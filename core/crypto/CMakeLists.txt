@@ -99,6 +99,27 @@ target_link_libraries(pbkdf2_provider
     )
 kagome_install(pbkdf2_provider)
 
+add_library(crypto_store_key_type
+    key_type.cpp
+    )
+target_link_libraries(crypto_store_key_type
+    Boost::boost
+    ed25519_provider
+    sr25519_provider
+    secp256k1_provider
+    bip39_provider
+    )
+kagome_install(crypto_store_key_type)
+
+add_library(crypto_store
+    crypto_store/crypto_store_impl.cpp
+    )
+target_link_libraries(crypto_store
+    bip39_provider
+    crypto_store_key_type
+    )
+kagome_install(crypto_store)
+
 add_subdirectory(bip39)
 add_subdirectory(blake2)
 add_subdirectory(keccak)
