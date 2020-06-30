@@ -9,8 +9,8 @@
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/core.hpp"
 
-#include "storage/changes_trie/changes_tracker.hpp"
 #include "blockchain/block_header_repository.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -23,7 +23,8 @@ namespace kagome::runtime::binaryen {
 
     ~CoreImpl() override = default;
 
-    outcome::result<primitives::Version> version() override;
+    outcome::result<primitives::Version> version(
+        std::optional<primitives::BlockHash> const &block_hash) override;
 
     outcome::result<void> execute_block(
         const primitives::Block &block) override;

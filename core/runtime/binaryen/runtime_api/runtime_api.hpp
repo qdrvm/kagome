@@ -37,7 +37,7 @@ namespace kagome::runtime::binaryen {
                    // completed
     };
 
-    RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
+    explicit RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
         : runtime_manager_(std::move(runtime_manager)) {
       BOOST_ASSERT(runtime_manager_);
     }
@@ -51,8 +51,7 @@ namespace kagome::runtime::binaryen {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
             return runtime_manager_
-                ->createPersistentRuntimeEnvironmentAt(
-                    state_root_opt.value())
+                ->createPersistentRuntimeEnvironmentAt(state_root_opt.value())
                 .value();
           case CallPersistency::EPHEMERAL:
             return runtime_manager_
@@ -62,9 +61,11 @@ namespace kagome::runtime::binaryen {
       } else {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_manager_->createPersistentRuntimeEnvironment().value();
+            return runtime_manager_->createPersistentRuntimeEnvironment()
+                .value();
           case CallPersistency::EPHEMERAL:
-            return runtime_manager_->createEphemeralRuntimeEnvironment().value();
+            return runtime_manager_->createEphemeralRuntimeEnvironment()
+                .value();
         }
       }
     }

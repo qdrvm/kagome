@@ -25,7 +25,12 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(header_repo_ != nullptr);
   }
 
-  outcome::result<Version> CoreImpl::version() {
+  outcome::result<Version> CoreImpl::version(
+      std::optional<primitives::BlockHash> const &block_hash) {
+    if (!!block_hash) {
+      return execute<Version>(
+          "Core_version", CallPersistency::EPHEMERAL, *block_hash);
+    }
     return execute<Version>("Core_version", CallPersistency::EPHEMERAL);
   }
 
@@ -36,20 +41,20 @@ namespace kagome::runtime::binaryen {
         block.header.parent_hash,
         block.header.number - 1));  // parent's number
     return executeAt<void>("Core_execute_block",
-                                 parent.state_root,
-                                 CallPersistency::PERSISTENT,
-                                 block);
+                           parent.state_root,
+                           CallPersistency::PERSISTENT,
+                           block);
   }
 
   outcome::result<void> CoreImpl::initialise_block(const BlockHeader &header) {
     auto parent = header_repo_->getBlockHeader(header.parent_hash).value();
-    OUTCOME_TRY(changes_tracker_->onBlockChange(
-        header.parent_hash,
-        header.number - 1));  // parent's number
+    OUTCOME_TRY(
+        changes_tracker_->onBlockChange(header.parent_hash,
+                                        header.number - 1));  // parent's number
     return executeAt<void>("Core_initialize_block",
-                                 parent.state_root,
-                                 CallPersistency::PERSISTENT,
-                                 header);
+                           parent.state_root,
+                           CallPersistency::PERSISTENT,
+                           header);
   }
 
   outcome::result<std::vector<AuthorityId>> CoreImpl::authorities(

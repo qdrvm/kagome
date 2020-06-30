@@ -28,7 +28,8 @@ namespace kagome::runtime {
      * @brief Returns the version of the runtime
      * @return runtime version
      */
-    virtual outcome::result<primitives::Version> version() = 0;
+    virtual outcome::result<primitives::Version> version(
+        std::optional<primitives::BlockHash> const &block_hash) = 0;
 
     /**
      * @brief Executes the given block
