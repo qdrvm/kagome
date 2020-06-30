@@ -16,7 +16,7 @@ namespace kagome::storage::trie {
    public:
     enum class Error { PARENT_EXPIRED = 1 };
 
-    TopperTrieBatchImpl(std::weak_ptr<TrieBatch> parent);
+    explicit TopperTrieBatchImpl(std::shared_ptr<TrieBatch> parent);
 
     outcome::result<Buffer> get(const Buffer &key) const override;
 

@@ -20,18 +20,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
 
 namespace kagome::storage::trie {
 
-  TopperTrieBatchImpl::TopperTrieBatchImpl(std::weak_ptr<TrieBatch> parent):
-  parent_(parent) {
-    BOOST_ASSERT(not parent_.expired());
-  }
+  TopperTrieBatchImpl::TopperTrieBatchImpl(std::shared_ptr<TrieBatch> parent)
+      : parent_(std::move(parent)) {}
 
   outcome::result<Buffer> TopperTrieBatchImpl::get(const Buffer &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
-      if(it->second.has_value())
+      if (it->second.has_value()) {
         return it->second.value();
-      else {
-        return TrieError::NO_VALUE;
       }
+      return TrieError::NO_VALUE;
     }
     if (auto p = parent_.lock(); p != nullptr) {
       return p->get(key);
@@ -79,8 +76,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::clearPrefix(const Buffer &prefix) {
-    for(auto p: cache_) {
-      if(p.first.subbuffer(0, prefix.size()) == prefix) {
+    for (auto& p : cache_) {
+      if (p.first.subbuffer(0, prefix.size()) == prefix) {
         cache_[p.first] = boost::none;
       }
     }
@@ -96,7 +93,7 @@ namespace kagome::storage::trie {
     if (auto p = parent_.lock(); p != nullptr) {
       auto it = cache_.begin();
       for (; it != cache_.end(); it++) {
-        if(it->second.has_value()) {
+        if (it->second.has_value()) {
           OUTCOME_TRY(p->put(it->first, it->second.value()));
         } else {
           OUTCOME_TRY(p->remove(it->first));
