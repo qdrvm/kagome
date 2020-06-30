@@ -20,8 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
 
 namespace kagome::storage::trie {
 
-  TopperTrieBatchImpl::TopperTrieBatchImpl(std::shared_ptr<TrieBatch> parent)
-      : parent_(std::move(parent)) {}
+  TopperTrieBatchImpl::TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent)
+      : parent_(parent) {}
 
   outcome::result<Buffer> TopperTrieBatchImpl::get(const Buffer &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
