@@ -8,8 +8,8 @@
 #include <functional>
 #include <utility>
 
-#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 
 using kagome::common::Buffer;
 
@@ -34,7 +34,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieImpl::put(const Buffer &key,
-                                          const Buffer &value) {
+                                              const Buffer &value) {
     auto value_copy = value;
     return put(key, std::move(value_copy));
   }
@@ -43,7 +43,8 @@ namespace kagome::storage::trie {
     return root_;
   }
 
-  outcome::result<void> PolkadotTrieImpl::put(const Buffer &key, Buffer &&value) {
+  outcome::result<void> PolkadotTrieImpl::put(const Buffer &key,
+                                              Buffer &&value) {
     auto k_enc = PolkadotCodec::keyToNibbles(key);
 
     NodePtr root = root_;
@@ -221,6 +222,44 @@ namespace kagome::storage::trie {
     return nullptr;
   }
 
+  outcome::result<std::list<std::pair<PolkadotTrieImpl::BranchPtr, uint8_t>>>
+  PolkadotTrieImpl::getPath(NodePtr parent,
+                            const common::Buffer &key_nibbles) const {
+    using Path = std::list<std::pair<PolkadotTrieImpl::BranchPtr, uint8_t>>;
+    using T = PolkadotNode::Type;
+    if (parent == nullptr) {
+      return Path{};
+    }
+    switch (parent->getTrieType()) {
+      case T::BranchEmptyValue:
+      case T::BranchWithValue: {
+        auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
+        if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
+          auto found_leaf =
+              std::make_shared<LeafNode>(parent->key_nibbles, parent->value);
+          return Path{};
+        }
+        if ((parent->key_nibbles.subbuffer(0, length) == key_nibbles)
+            && key_nibbles.size() < parent->key_nibbles.size()) {
+          return Path{};
+        }
+        auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
+        OUTCOME_TRY(n, retrieveChild(parent_as_branch, key_nibbles[length]));
+        OUTCOME_TRY(path, getPath(n, key_nibbles.subbuffer(length + 1)));
+        path.push_front({parent_as_branch, key_nibbles[length]});
+        return std::move(path);
+      }
+      case T::Leaf:
+        if (parent->key_nibbles == key_nibbles) {
+          return Path{};
+        }
+        break;
+      default:
+        return Error::INVALID_NODE_TYPE;
+    }
+    return Path{};
+  }
+
   std::unique_ptr<BufferMapCursor> PolkadotTrieImpl::cursor() {
     return std::make_unique<PolkadotTrieCursor>(*this);
   }
@@ -373,7 +412,7 @@ namespace kagome::storage::trie {
   }
 
   uint32_t PolkadotTrieImpl::getCommonPrefixLength(const Buffer &pref1,
-                                               const Buffer &pref2) const {
+                                                   const Buffer &pref2) const {
     size_t length = 0;
     auto min = pref1.size();
 

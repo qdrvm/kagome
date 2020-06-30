@@ -41,6 +41,12 @@ namespace kagome::storage::trie {
 
     NodePtr getRoot() const override;
 
+    outcome::result<NodePtr> getNode(
+        NodePtr parent, const common::Buffer &key_nibbles) const override;
+
+    outcome::result<std::list<std::pair<BranchPtr, uint8_t>>> getPath(
+        NodePtr parent, const common::Buffer &key_nibbles) const override;
+
     /**
      * Remove all entries, which key starts with the prefix
      */
@@ -81,8 +87,6 @@ namespace kagome::storage::trie {
     // remove a node with its children
     outcome::result<NodePtr> detachNode(const NodePtr &parent,
                                         const common::Buffer &prefix_nibbles);
-    outcome::result<NodePtr> getNode(
-        NodePtr parent, const common::Buffer &key_nibbles) const override;
 
     uint32_t getCommonPrefixLength(const common::Buffer &pref1,
                                    const common::Buffer &pref2) const;

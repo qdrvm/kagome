@@ -5,8 +5,8 @@
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 
-#include "storage/trie/serialization/polkadot_codec.hpp"
 #include "common/buffer_back_insert_iterator.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             PolkadotTrieCursor::Error,
@@ -30,6 +30,19 @@ namespace kagome::storage::trie {
   PolkadotTrieCursor::PolkadotTrieCursor(const PolkadotTrie &trie)
       : trie_{trie}, current_{nullptr} {}
 
+  outcome::result<std::unique_ptr<PolkadotTrieCursor>>
+  PolkadotTrieCursor::createAt(common::Buffer key, const PolkadotTrie &trie) {
+    auto c = std::make_unique<PolkadotTrieCursor>(trie);
+    OUTCOME_TRY(node,
+                trie.getNode(trie.getRoot(), c->codec_.keyToNibbles(key)));
+    c->visited_root_ = true;  // root is always visited first
+    c->current_ = node;
+    OUTCOME_TRY(last_child_path, c->constructLastVisitedChildPath(key));
+    c->last_visited_child_ = std::move(last_child_path);
+
+    return c;
+  }
+
   outcome::result<void> PolkadotTrieCursor::seekToFirst() {
     visited_root_ = false;
     current_ = trie_.getRoot();
@@ -41,6 +54,8 @@ namespace kagome::storage::trie {
       current_ = nullptr;
       return Error::NULL_ROOT;
     }
+    visited_root_ = true;  // root is always visited first
+    OUTCOME_TRY(last_child_path, constructLastVisitedChildPath(key));
     auto nibbles = PolkadotCodec::keyToNibbles(key);
     auto node = trie_.getNode(trie_.getRoot(), nibbles);
     // maybe need to refactor this condition
@@ -50,6 +65,7 @@ namespace kagome::storage::trie {
       current_ = nullptr;
       return Error::INVALID_CURSOR_POSITION;
     }
+    last_visited_child_ = std::move(last_child_path);
     return outcome::success();
   }
 
@@ -59,7 +75,8 @@ namespace kagome::storage::trie {
       current_ = nullptr;
       return Error::NULL_ROOT;
     }
-
+    visited_root_ = true;  // root is always visited first
+    last_visited_child_.clear();
     // find the rightmost leaf
     while (current->getTrieType() != NodeType::Leaf) {
       auto type = current->getTrieType();
@@ -70,6 +87,7 @@ namespace kagome::storage::trie {
         for (int8_t i = branch->kMaxChildren - 1; i >= 0; i--) {
           if (branch->children.at(i) != nullptr) {
             OUTCOME_TRY(c, trie_.retrieveChild(branch, i));
+            last_visited_child_.push_back({branch, i});
             current = c;
           }
         }
@@ -132,6 +150,10 @@ namespace kagome::storage::trie {
         }
         while (not hasNextChild(p, last_visited_child_.back().second)) {
           last_visited_child_.pop_back();
+          if (last_visited_child_.empty()) {
+            current_ = nullptr;
+            return outcome::success();
+          }
           p = last_visited_child_.back().first;  // p.parent
         }
         auto i = getNextChildIdx(p, last_visited_child_.back().second);
@@ -212,6 +234,19 @@ namespace kagome::storage::trie {
       last_visited_child_.pop_back();
     }
     last_visited_child_.emplace_back(std::make_pair(parent, child_idx));
+  }
+
+  auto PolkadotTrieCursor::constructLastVisitedChildPath(
+      const common::Buffer &key)
+      -> outcome::result<
+          std::list<std::pair<PolkadotTrieCursor::BranchPtr, int8_t>>> {
+    OUTCOME_TRY(path, trie_.getPath(trie_.getRoot(), codec_.keyToNibbles(key)));
+    std::list<std::pair<PolkadotTrieCursor::BranchPtr, int8_t>>
+        last_visited_child;
+    for (auto &&[branch, idx] : path) {
+      last_visited_child.push_back({branch, idx});
+    }
+    return last_visited_child;
   }
 
 }  // namespace kagome::storage::trie

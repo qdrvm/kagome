@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
+#include "testutil/storage/polkadot_trie_printer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -17,13 +18,14 @@ using kagome::common::Buffer;
 using kagome::storage::trie::PolkadotTrie;
 using kagome::storage::trie::PolkadotTrieCursor;
 using kagome::storage::trie::PolkadotTrieImpl;
+using kagome::storage::trie::operator<<;
 
-class PolkadotTrieCursorTest : public testing::Test {
-};
+class PolkadotTrieCursorTest : public testing::Test {};
 
-std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(size_t keys_num,
-                        size_t max_key_length = 32,
-                        size_t key_alphabet_size = 16) noexcept {
+std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
+    size_t keys_num,
+    size_t max_key_length = 32,
+    size_t key_alphabet_size = 16) noexcept {
   std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> res;
   auto trie = std::make_unique<PolkadotTrieImpl>();
   std::mt19937 eng(5489u);  // explicitly set default seed
@@ -34,8 +36,8 @@ std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(s
   auto key_gen = std::bind(key_dist, eng);
   auto key_length_gen = std::bind(length_dist, eng);
 
-  auto& keys = std::get<1>(res);
-  for(size_t i = 0; i < keys_num; i++) {
+  auto &keys = std::get<1>(res);
+  for (size_t i = 0; i < keys_num; i++) {
     kagome::common::Buffer key(key_length_gen(), 0);
     std::generate(key.begin(), key.end(), std::ref(key_gen));
     EXPECT_OUTCOME_TRUE_1(trie->put(key, key));
@@ -96,10 +98,10 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
 }
 
 TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrie) {
-  auto&& [trie, keys] = generateRandomTrie(10, 8, 32);
+  auto &&[trie, keys] = generateRandomTrie(100, 8, 32);
   const auto cursor = trie->cursor();
   EXPECT_OUTCOME_TRUE_1(cursor->next());
-  while(cursor->isValid()) {
+  while (cursor->isValid()) {
     EXPECT_OUTCOME_TRUE(key, cursor->key());
     EXPECT_OUTCOME_TRUE(value, cursor->value());
     ASSERT_EQ(key, value);
@@ -108,4 +110,51 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrie) {
     EXPECT_OUTCOME_TRUE_1(cursor->next());
   }
   EXPECT_TRUE(keys.empty());
+}
+
+TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
+  auto &&[trie, keys] = generateRandomTrie(100, 8, 32);
+  const auto cursor = trie->cursor();
+  EXPECT_OUTCOME_TRUE_1(cursor->next());
+  for (auto start_key : keys) {
+    EXPECT_OUTCOME_TRUE_1(cursor->seek(start_key));
+    auto keys_copy = std::set<Buffer>(keys);
+    while (cursor->isValid()) {
+      EXPECT_OUTCOME_TRUE(key, cursor->key());
+      EXPECT_OUTCOME_TRUE(value, cursor->value());
+      ASSERT_EQ(key, value);
+      ASSERT_TRUE(keys_copy.find(key) != keys_copy.end());
+      keys_copy.erase(key);
+      EXPECT_OUTCOME_TRUE_1(cursor->next());
+    }
+  }
+}
+
+TEST_F(PolkadotTrieCursorTest, Lexicographical) {
+  std::vector<std::pair<Buffer, Buffer>> vals{{"ab"_buf, Buffer{1}},
+                                              {"ac"_buf, Buffer{3}},
+                                              {"acd"_buf, Buffer{2}},
+                                              {"e"_buf, Buffer{7}},
+                                              {"f"_buf, Buffer{8}},
+                                              {"fg"_buf, Buffer{4}},
+                                              {"fgh"_buf, Buffer{5}},
+                                              {"fgha"_buf, Buffer{6}},
+                                              {"fghb"_buf, Buffer{7}},
+                                              {"fghc"_buf, Buffer{8}}
+  };
+  auto trie = makeTrie(vals);
+  std::cout << *trie << "\n";
+  auto c = trie->cursor();
+  EXPECT_OUTCOME_TRUE_1(c->seek("f"_buf));
+  Buffer prev_key {0};
+  do {
+    EXPECT_OUTCOME_TRUE(key, c->key());
+    ASSERT_LT(prev_key, key);
+    prev_key = key;
+    for(auto c: key) {
+      std::cout << char(c);
+    }
+    std::cout << "\n";
+    EXPECT_OUTCOME_TRUE_1(c->next());
+  } while (c->isValid());
 }

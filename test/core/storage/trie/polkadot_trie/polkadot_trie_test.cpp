@@ -332,3 +332,19 @@ TEST_F(TrieTest, EmptyTrie) {
   EXPECT_OUTCOME_TRUE_1(trie->put({0}, "asdasd"_buf));
   ASSERT_FALSE(trie->empty());
 }
+
+TEST_F(TrieTest, GetPath) {
+  const std::vector<std::pair<Buffer, Buffer>> data = {
+      {"123456"_hex2buf, "42"_hex2buf},
+      {"1234"_hex2buf, "1234"_hex2buf},
+      {"010203"_hex2buf, "0a0b"_hex2buf},
+      {"010a0b"_hex2buf, "1337"_hex2buf},
+      {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+
+  for (auto &entry : TrieTest::data) {
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
+  }
+
+  trie->getPath(trie->getRoot(), "123456"_hex2buf);
+
+}

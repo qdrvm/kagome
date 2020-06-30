@@ -23,15 +23,18 @@ namespace kagome::storage::trie {
 
     enum class Error {
       INVALID_CURSOR_POSITION =
-      1,  // operation cannot be performed for cursor position is not valid
+          1,  // operation cannot be performed for cursor position is not valid
       // due to an error, reaching the end or not calling next() after
       // initialization
-      NULL_ROOT, // the root of the supplied trie is null
+      NULL_ROOT,  // the root of the supplied trie is null
       METHOD_NOT_IMPLEMENTED
     };
 
     explicit PolkadotTrieCursor(const PolkadotTrie &trie);
     ~PolkadotTrieCursor() override = default;
+
+    static outcome::result<std::unique_ptr<PolkadotTrieCursor>> createAt(
+        common::Buffer key, const PolkadotTrie &trie);
 
     outcome::result<void> seekToFirst() override;
     outcome::result<void> seek(const common::Buffer &key) override;
@@ -52,6 +55,13 @@ namespace kagome::storage::trie {
     // will either put a new entry or update the top entry (in case that parent
     // in the top entry is the same as \param parent
     void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
+
+    /**
+     * Constructs a list of branch nodes on the path from the root to the node
+     * with the given \arg key
+     */
+    auto constructLastVisitedChildPath(const common::Buffer &key)
+        -> outcome::result<std::list<std::pair<BranchPtr, int8_t>>>;
 
     common::Buffer collectKey() const;
 
