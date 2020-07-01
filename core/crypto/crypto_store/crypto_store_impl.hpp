@@ -17,14 +17,13 @@
 namespace kagome::crypto {
 
   // TODO (yuraz): PRE-446 ECDSA will be added later
-  using KeyPair = boost::variant<ED25519Keypair, SR25519Keypair>;
-  using PublicKey = boost::variant<ED25519PublicKey, SR25519PublicKey>;
-  using Seed = common::Hash256;
+  namespace store {
+    using KeyPair = boost::variant<ED25519Keypair, SR25519Keypair>;
+    using PublicKey = common::Blob<32>;
+    using Seed = common::Hash256;
 
-  struct CryptoStoreKeypair {
-    KeyPair key_pair;
-    KeyTypeId key_type;
-  };
+    enum class CryptoId { ED25519, SR25519, SECP256k1 };
+  }  // namespace store
 
   enum class CryptoStoreError {
     WRONG_KEYFILE_NAME = 1,
@@ -34,19 +33,22 @@ namespace kagome::crypto {
     FAILED_OPEN_FILE,
     INVALID_FILE_FORMAT,
     INCONSISTENT_KEYFILE,
-    KEYS_PATH_IS_NOT_DIRECTORY
+    KEYS_PATH_IS_NOT_DIRECTORY,
+    WRONG_SEED_SIZE
   };
 
   class CryptoStoreImpl : public CryptoStore {
    public:
     ~CryptoStoreImpl() override = default;
 
-    CryptoStoreImpl(std::filesystem::path store_path,
-                    std::shared_ptr<ED25519Provider> ed25519_provider,
+    CryptoStoreImpl(std::shared_ptr<ED25519Provider> ed25519_provider,
                     std::shared_ptr<SR25519Provider> sr25519_provider,
                     std::shared_ptr<Secp256k1Provider> secp256k1_provider,
                     std::shared_ptr<Bip39Provider> bip39_provider);
 
+    /**
+     * @brief sets keys directory up and checks that it is correct
+     */
     outcome::result<void> initialize(
         std::filesystem::path keys_directory) override;
 
@@ -79,8 +81,8 @@ namespace kagome::crypto {
     SR25519Keys getSr25519PublicKeys(KeyTypeId key_type) const override;
 
    private:
-    outcome::result<CryptoStoreKeypair> loadKeypair(
-        const std::filesystem::path &key_path);
+    outcome::result<store::KeyPair> loadKeypair(
+        store::CryptoId crypto_id, const std::filesystem::path &key_path);
 
     std::filesystem::path keys_directory_;
     std::shared_ptr<ED25519Provider> ed25519_provider_;

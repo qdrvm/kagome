@@ -28,7 +28,7 @@ namespace kagome::crypto {
     return ED25519Keypair{private_key_high, public_key_high};
   }
 
-  outcome::result<ED25519Keypair> ED25519ProviderImpl::generateKeyPair(
+  outcome::result<ED25519Keypair> ED25519ProviderImpl::generateKeypair(
       const ED25519Seed &seed) const {
     private_key_t private_key_low{};
     public_key_t public_key_low{};

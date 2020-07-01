@@ -35,7 +35,7 @@ namespace kagome::crypto {
      * @param seed seed value
      * @return ed25519 key pair if succeeded of error if failed
      */
-    virtual outcome::result<ED25519Keypair> generateKeyPair(
+    virtual outcome::result<ED25519Keypair> generateKeypair(
         const ED25519Seed &seed) const = 0;
 
     /**

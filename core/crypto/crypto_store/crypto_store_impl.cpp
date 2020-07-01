@@ -9,23 +9,18 @@
 
 #include <gsl/span>
 #include "common/visitor.hpp"
+#include "crypto/bip39/mnemonic.hpp"
 
 namespace kagome::crypto {
   using DirectoryIterator = std::filesystem::directory_iterator;
-  using CryptoTypeId = common::Blob<32>;
-
-  static auto kEd25519 = CryptoTypeId::fromString("ed25").value();
-  static auto kSr25519 = CryptoTypeId::fromString("sr25").value();
-  static auto kSecp256k1 = CryptoTypeId::fromString("ecds").value();
 
   struct KeyFileInfo {
     KeyTypeId key_type_id;
-    CryptoTypeId crypto_type_id;
-    PublicKey public_key;
+    store::PublicKey public_key;
   };
 
   using MnemonicPhrase = std::string;
-  using KeyFileContent = boost::variant<Seed, MnemonicPhrase>;
+  using KeyFileContent = boost::variant<store::Seed, MnemonicPhrase>;
 
   namespace {
     template <class T>
@@ -43,7 +38,7 @@ namespace kagome::crypto {
     }
 
     outcome::result<KeyFileInfo> parseKeyFileName(std::string_view file_name) {
-      if (file_name.size() < 8) {
+      if (file_name.size() < 5) {
         return CryptoStoreError::WRONG_KEYFILE_NAME;
       }
 
@@ -54,37 +49,67 @@ namespace kagome::crypto {
       if (!isSupportedKeyType(key_type)) {
         return CryptoStoreError::UNSUPPORTED_KEY_TYPE;
       }
+      auto public_key_hex = file_name.substr(4);
 
-      auto crypto_type_str = file_name.substr(4, 4);
-      OUTCOME_TRY(crypto_type, CryptoTypeId::fromString(crypto_type_str));
-      auto public_key_hex = file_name.substr(8);
+      OUTCOME_TRY(public_key, store::PublicKey::fromHex(public_key_hex));
 
-      PublicKey public_key;
-
-      if (crypto_type == kEd25519) {
-        OUTCOME_TRY(ed_public_bytes, ED25519PublicKey::fromHex(public_key_hex));
-        public_key = ed_public_bytes;
-      } else if (crypto_type == kSr25519) {
-        OUTCOME_TRY(sr_public_bytes, SR25519PublicKey::fromHex(public_key_hex));
-        public_key = sr_public_bytes;
-      }
-      // kSecp256k1 is not supported yet
-
-      return KeyFileInfo{key_type, crypto_type, public_key};
+      return KeyFileInfo{key_type, public_key};
     }
 
-    outcome::result<std::string>
+    outcome::result<std::string> loadFile(const std::filesystem::path &p) {
+      std::ifstream file;
+      auto close_file = gsl::finally([&file] {
+        if (file.is_open()) file.close();
+      });
 
+      file.open(p, std::ios::in);
+      if (!file.is_open()) {
+        return CryptoStoreError::FAILED_OPEN_FILE;
+      }
+
+      std::string content;
+      file >> content;
+      return content;
+    }
+
+    std::string composeKeyFileName(KeyTypeId key_type,
+                                   const store::PublicKey &public_key) {
+      auto &&key_type_str = decodeKeyTypeId(key_type);
+      auto &&public_key_hex = public_key.toHex();
+      return key_type_str + public_key_hex;
+    }
+
+    outcome::result<void> storeKeyfile(const std::filesystem::path &directory,
+                                       KeyTypeId key_type,
+                                       const store::PublicKey &public_key,
+                                       const store::Seed &seed) {
+      std::ofstream file;
+      auto close_file = gsl::finally([&file] {
+        if (file.is_open()) file.close();
+      });
+
+      auto dir = directory;
+      auto &&file_name = composeKeyFileName(key_type, public_key);
+      auto &&path = dir.append(file_name);
+      file.open(path, std::ios::out | std::ios::trunc);
+      if (!file.is_open()) {
+        return CryptoStoreError::FAILED_OPEN_FILE;
+      }
+
+      file << seed.toHex();
+      file.flush();
+
+      return outcome::success();
+    }
   }  // namespace
 
   CryptoStoreImpl::CryptoStoreImpl(
-      std::filesystem::path store_path,
       std::shared_ptr<ED25519Provider> ed25519_provider,
       std::shared_ptr<SR25519Provider> sr25519_provider,
       std::shared_ptr<Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<Bip39Provider> bip39_provider)
-      : keys_directory_(std::move(store_path)),
-        ed25519_provider_(std::move(ed25519_provider_)),
+      : keys_directory_{},
+        ed25519_provider_(std::move(ed25519_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         bip39_provider_(std::move(bip39_provider)) {
@@ -94,37 +119,26 @@ namespace kagome::crypto {
     BOOST_ASSERT(bip39_provider_ != nullptr);
   }
 
-  // TODO (yuraz): PRE-*** ecdsa will be added later
-  outcome::result<CryptoStoreKeypair> CryptoStoreImpl::loadKeypair(
-      const std::filesystem::path &key_path) {
+  outcome::result<store::KeyPair> CryptoStoreImpl::loadKeypair(
+      store::CryptoId crypto_id, const std::filesystem::path &key_path) {
     OUTCOME_TRY(info, parseKeyFileName(key_path.filename().string()));
-    std::ifstream file;
-    file.open(key_path, std::ios::in);
-    if (!file.is_open()) {
-      return CryptoStoreError::FAILED_OPEN_FILE;
+    OUTCOME_TRY(content, loadFile(key_path));
+    OUTCOME_TRY(seed, store::Seed::fromString(content));
+
+    switch (crypto_id) {
+      case store::CryptoId::ED25519: {
+        OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(seed));
+        return pair;
+      }
+      case store::CryptoId::SR25519: {
+        return sr25519_provider_->generateKeypair(seed);
+      }
+      case store::CryptoId::SECP256k1:
+      default:
+        break;
     }
 
-    std::string content;
-    file >> content;
-    OUTCOME_TRY(seed, Seed::fromString(content));
-    if (info.crypto_type_id == kEd25519) {
-      OUTCOME_TRY(kp, ed25519_provider_->generateKeyPair(seed));
-      if (!kagome::visit_in_place(
-              info.public_key,
-              [&kp](const auto &v) -> bool { return kp.public_key == v; })) {
-        return CryptoStoreError::INCONSISTENT_KEYFILE;
-      }
-
-      return CryptoStoreKeypair{kp, info.key_type_id};
-    } else if (info.crypto_type_id == kSr25519) {
-      OUTCOME_TRY(sr_kp, sr25519_provider_->generateKeypair(seed));
-      if (kagome::visit_in_place(info.public_key,
-                                 [&sr_kp](const auto &v) -> bool {
-                                   return sr_kp.public_key == v;
-                                 })) {
-        return CryptoStoreError::INCONSISTENT_KEYFILE;
-      }
-    }
+    return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
   }
 
   outcome::result<void> CryptoStoreImpl::initialize(
@@ -133,62 +147,76 @@ namespace kagome::crypto {
       return CryptoStoreError::KEYS_PATH_IS_NOT_DIRECTORY;
     }
 
-    for (const auto &path : DirectoryIterator(keys_directory)) {
-      if (!path.is_regular_file()) {
-        return CryptoStoreError::NOT_REGULAR_FILE;
-      }
-      OUTCOME_TRY(pk_info, parseKeyFileName(std::string(path.path())));
-      OUTCOME_TRY(pair, loadKeypair(path));
-      switch (pk_info.key_type_id) {
-        case supported_key_types::kAudi:
+    keys_directory_ = std::move(keys_directory);
 
-            ;
-      }
-      auto &&res = kagome::visit_in_place(
-          key_pair,
-          [this, &pk_info](const ED25519Keypair &kp) -> outcome::result<void> {
-            ed_keys_.insert({})
-          },
-          [this, &pk_info](const SR25519Keypair &kp) -> outcome::result<void> {
-
-          });
-      if (!res) {
-        return res;
-      }
-    }
-
-    // load keys
-    BOOST_ASSERT_MSG(false, "not implemented yet");
     return outcome::success();
   }
 
   outcome::result<ED25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
       KeyTypeId key_type, std::string_view mnemonic_phrase) {
-    BOOST_ASSERT_MSG(false, "not implemented yet");
+    OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
+    OUTCOME_TRY(entropy, bip39_provider_->calculateEntropy(mnemonic.words));
+    OUTCOME_TRY(seed, bip39_provider_->makeSeed(entropy, mnemonic.password));
+    if (seed.size() < ED25519Seed::size()) {
+      return CryptoStoreError::WRONG_SEED_SIZE;
+    }
+
+    OUTCOME_TRY(ed_seed,
+                ED25519Seed::fromSpan(
+                    gsl::make_span(seed).subspan(0, ED25519Seed::size())));
+    OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(ed_seed));
+
+    ed_keys_[key_type].insert({pair.public_key, pair.private_key});
+
+    return pair;
   }
 
   outcome::result<SR25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
       KeyTypeId key_type, std::string_view mnemonic_phrase) {
-    BOOST_ASSERT_MSG(false, "not implemented yet");
+    OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
+    OUTCOME_TRY(entropy, bip39_provider_->calculateEntropy(mnemonic.words));
+    OUTCOME_TRY(seed, bip39_provider_->makeSeed(entropy, mnemonic.password));
+    if (seed.size() < SR25519Seed ::size()) {
+      return CryptoStoreError::WRONG_SEED_SIZE;
+    }
+
+    OUTCOME_TRY(sr_seed,
+                ED25519Seed::fromSpan(
+                    gsl::make_span(seed).subspan(0, ED25519Seed::size())));
+    auto &&pair = sr25519_provider_->generateKeypair(sr_seed);
+
+    sr_keys_[key_type].insert({pair.public_key, pair.secret_key});
+
+    return pair;
   }
 
   outcome::result<ED25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
       KeyTypeId key_type, const ED25519Seed &seed) {
-    BOOST_ASSERT_MSG(false, "not implemented yet");
+    OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(seed));
+    ed_keys_[key_type].insert({pair.public_key, pair.private_key});
+    return pair;
   }
 
   outcome::result<SR25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
       KeyTypeId key_type, const SR25519Seed &seed) {
-    BOOST_ASSERT_MSG(false, "not implemented yet");
+    auto &&pair = sr25519_provider_->generateKeypair(seed);
+    sr_keys_[key_type].insert({pair.public_key, pair.secret_key});
+    return pair;
   }
 
   outcome::result<ED25519Keypair> CryptoStoreImpl::generateEd25519KeyPair(
       KeyTypeId key_type) {
-    BOOST_ASSERT_MSG(false, "not implemented yet");
+    OUTCOME_TRY(pair, ed25519_provider_->generateKeypair());
+    ed_keys_[key_type].insert({pair.public_key, pair.private_key});
+//    OUTCOME_TRY(storeKeyfile(keys_directory_, key_type, pair.public_key, pair.private_key));
+    return pair;
   }
   outcome::result<SR25519Keypair> CryptoStoreImpl::generateSr25519KeyPair(
       KeyTypeId key_type) {
-    BOOST_ASSERT_MSG(false, "not implemented yet");
+    auto &&pair = sr25519_provider_->generateKeypair();
+    sr_keys_[key_type].insert({pair.public_key, pair.secret_key});
+//    OUTCOME_TRY(storeKeyfile(keys_directory_, key_type, pair.public_key, pair.secret_key));
+    return pair;
   }
 
   boost::optional<ED25519Keypair> CryptoStoreImpl::findEd25519Keypair(
@@ -203,6 +231,7 @@ namespace kagome::crypto {
 
   CryptoStore::ED25519Keys CryptoStoreImpl::getEd25519PublicKeys(
       KeyTypeId key_type) const {
+    ED25519Keys keys;
     BOOST_ASSERT_MSG(false, "not implemented yet");
   }
 
@@ -231,6 +260,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
       return "Key file is inconsistent, public key != derived public key";
     case E::KEYS_PATH_IS_NOT_DIRECTORY:
       return "Specified path to key files is not a valid directory";
+    case E::WRONG_SEED_SIZE:
+      return "Wrong seed size";
   }
   return "Unknown CryptoStoreError code";
 }
