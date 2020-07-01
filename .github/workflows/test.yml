@@ -8,7 +8,6 @@ on:
 
 env:
   BUILD_DIR: build
-  BUILD_TREADS: 2
   CTEST_OUTPUT_ON_FAILURE: 1
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
@@ -23,7 +22,6 @@ jobs:
       run: ./housekeeping/macos/dependency.sh
     - name: build
       env:
-        BUILD_TREADS: 4
         DEVELOPER_DIR: /Applications/Xcode_11.app/Contents/Developer
       run: ./housekeeping/makeBuild.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
