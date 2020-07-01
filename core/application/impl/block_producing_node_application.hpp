@@ -12,8 +12,7 @@
 
 namespace kagome::application {
 
-  class
-      BlockProducingNodeApplication : public KagomeApplication {
+  class BlockProducingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
     using InjectorType = decltype(injector::makeBlockProducingNodeInjector(
         std::string{},
