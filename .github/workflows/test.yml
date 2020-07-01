@@ -76,6 +76,7 @@ jobs:
           run: |
             ./housekeeping/makeBuild.sh
             ./housekeeping/clang-tidy.sh
+
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
       runs-on: ubuntu-latest
