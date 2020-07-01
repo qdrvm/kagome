@@ -19,7 +19,7 @@ namespace kagome::consensus::grandpa {
    public:
     VoterSet() = default;  // for scale codec (in decode)
 
-    explicit VoterSet(MembershipCounter set_id);
+    explicit VoterSet(MembershipCounter id_of_set);
 
     /**
      * Insert voter \param voter with \param weight
@@ -36,8 +36,8 @@ namespace kagome::consensus::grandpa {
     /**
      * \return uniqie voter set membership
      */
-    inline MembershipCounter setId() const {
-      return set_id_;
+    inline MembershipCounter id() const {
+      return id_;
     }
 
     /**
@@ -75,7 +75,7 @@ namespace kagome::consensus::grandpa {
 
    private:
     std::vector<Id> voters_;
-    MembershipCounter set_id_{};
+    MembershipCounter id_{};
     std::unordered_map<Id, size_t> weight_map_;
     size_t total_weight_{0};
   };
@@ -88,7 +88,7 @@ namespace kagome::consensus::grandpa {
     for (const auto &[id, weight] : voters.weightMap()) {
       key_val_vector.emplace_back(id, weight);
     }
-    return s << key_val_vector << voters.setId();
+    return s << key_val_vector << voters.id();
   }
 
   template <class Stream,

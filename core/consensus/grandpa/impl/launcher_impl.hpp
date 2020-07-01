@@ -15,6 +15,7 @@
 #include "consensus/grandpa/voting_round.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "network/gossiper.hpp"
+#include "runtime/grandpa.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -27,6 +28,7 @@ namespace kagome::consensus::grandpa {
     LauncherImpl(std::shared_ptr<Environment> environment,
                  std::shared_ptr<storage::BufferStorage> storage,
                  std::shared_ptr<crypto::ED25519Provider> crypto_provider,
+                 std::shared_ptr<runtime::Grandpa> grandpa_api,
                  const crypto::ED25519Keypair &keypair,
                  std::shared_ptr<Clock> clock,
                  std::shared_ptr<boost::asio::io_context> io_context);
@@ -56,6 +58,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::ED25519Provider> crypto_provider_;
+    std::shared_ptr<runtime::Grandpa> grandpa_api_;
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;

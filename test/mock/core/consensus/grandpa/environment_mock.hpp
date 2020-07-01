@@ -25,15 +25,15 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD3(onProposed,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,
-                                       const SignedPrimaryPropose &propose));
+                                       const SignedMessage &propose));
     MOCK_METHOD3(onPrevoted,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,
-                                       const SignedPrevote &prevote));
+                                       const SignedMessage &prevote));
     MOCK_METHOD3(onPrecommitted,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,
-                                       const SignedPrecommit &precommit));
+                                       const SignedMessage &precommit));
     MOCK_METHOD3(
         onCommitted,
         outcome::result<void>(RoundNumber round,
