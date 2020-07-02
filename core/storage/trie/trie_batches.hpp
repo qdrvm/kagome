@@ -11,8 +11,7 @@
 namespace kagome::storage::trie {
 
   class TrieBatch : public face::Readable<Buffer, Buffer>,
-                    public face::Writeable<Buffer, Buffer>,
-                    public face::Iterable<Buffer, Buffer> {
+                    public face::Writeable<Buffer, Buffer> {
    public:
     ~TrieBatch() override = default;
 
@@ -32,7 +31,8 @@ namespace kagome::storage::trie {
    * A batch that grants access to the persistent trie storage.
    * All changes are contained in memory until commit() is called.
    */
-  class PersistentTrieBatch : public TrieBatch {
+  class PersistentTrieBatch : public TrieBatch,
+                              public face::Iterable<Buffer, Buffer> {
    public:
     /**
      * Commits changes to persistent storage
@@ -45,7 +45,8 @@ namespace kagome::storage::trie {
    * Temporary in-memory trie build on top of the persistent one
    * All changes to it are simply discarded when the batch is destroyed
    */
-  class EphemeralTrieBatch : public TrieBatch {
+  class EphemeralTrieBatch : public TrieBatch,
+                             public face::Iterable<Buffer, Buffer> {
 
   };
 

@@ -131,30 +131,28 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
 }
 
 TEST_F(PolkadotTrieCursorTest, Lexicographical) {
-  std::vector<std::pair<Buffer, Buffer>> vals{{"0102"_hex2buf, Buffer{1}},
-                                              {"0103"_hex2buf, Buffer{3}},
-                                              {"010304"_hex2buf, Buffer{2}},
-                                              {"05"_hex2buf, Buffer{7}},
-                                              {"06"_hex2buf, Buffer{8}},
-                                              {"0607"_hex2buf, Buffer{4}},
-                                              {"060708"_hex2buf, Buffer{5}},
-                                              {"06070801"_hex2buf, Buffer{6}},
-                                              {"06070802"_hex2buf, Buffer{7}},
-                                              {"06070803"_hex2buf, Buffer{8}}
+  std::vector<std::pair<Buffer, Buffer>> vals{{"0102"_hex2buf, "0102"_hex2buf},
+                                              {"0103"_hex2buf, "0103"_hex2buf},
+                                              {"010304"_hex2buf, "010304"_hex2buf},
+                                              {"05"_hex2buf, "05"_hex2buf},
+                                              {"06"_hex2buf, "06"_hex2buf},
+                                              {"0607"_hex2buf, "0607"_hex2buf},
+                                              {"060708"_hex2buf, "060708"_hex2buf},
+                                              {"06070801"_hex2buf, "06070801"_hex2buf},
+                                              {"06070802"_hex2buf, "06070802"_hex2buf},
+                                              {"06070803"_hex2buf, "06070803"_hex2buf}
   };
   auto trie = makeTrie(vals);
-  std::cout << *trie << "\n";
+  std::cout << *trie;
   auto c = trie->cursor();
-  EXPECT_OUTCOME_TRUE_1(c->seek("f"_buf));
+  EXPECT_OUTCOME_FALSE_1(c->seek("f"_buf));
+  EXPECT_OUTCOME_TRUE_1(c->seek("06"_hex2buf));
   Buffer prev_key {0};
   do {
     EXPECT_OUTCOME_TRUE(key, c->key());
     ASSERT_LT(prev_key, key);
     prev_key = key;
-    for(auto c: key) {
-      std::cout << char(c);
-    }
-    std::cout << "\n";
+    std::cout << key.toHex() << "\n";
     EXPECT_OUTCOME_TRUE_1(c->next());
   } while (c->isValid());
 }

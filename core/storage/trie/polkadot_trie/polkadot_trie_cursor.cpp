@@ -19,6 +19,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
              "end or not calling next() after initialization";
     case E::NULL_ROOT:
       return "the root of the supplied trie is null";
+    case E::NOT_FOUND:
+      return "the seeked value is not found";
     case E::METHOD_NOT_IMPLEMENTED:
       return "the method is not yet implemented";
   }
@@ -57,13 +59,14 @@ namespace kagome::storage::trie {
     visited_root_ = true;  // root is always visited first
     OUTCOME_TRY(last_child_path, constructLastVisitedChildPath(key));
     auto nibbles = PolkadotCodec::keyToNibbles(key);
-    auto node = trie_.getNode(trie_.getRoot(), nibbles);
-    // maybe need to refactor this condition
-    if (node.has_value() and node.value()->value.has_value()) {
-      current_ = node.value();
+    OUTCOME_TRY(node, trie_.getNode(trie_.getRoot(), nibbles));
+
+    bool node_has_value = node != nullptr and node->value.has_value();
+    if (node_has_value) {
+      current_ = node;
     } else {
       current_ = nullptr;
-      return Error::INVALID_CURSOR_POSITION;
+      return Error::NOT_FOUND;
     }
     last_visited_child_ = std::move(last_child_path);
     return outcome::success();

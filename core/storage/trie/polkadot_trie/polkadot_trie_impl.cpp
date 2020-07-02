@@ -199,9 +199,7 @@ namespace kagome::storage::trie {
       case T::BranchWithValue: {
         auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
         if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
-          auto found_leaf =
-              std::make_shared<LeafNode>(parent->key_nibbles, parent->value);
-          return found_leaf;
+          return parent;
         }
         if ((parent->key_nibbles.subbuffer(0, length) == key_nibbles)
             && key_nibbles.size() < parent->key_nibbles.size()) {
