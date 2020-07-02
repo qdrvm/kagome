@@ -21,7 +21,6 @@ namespace kagome::runtime {
     MOCK_CONST_METHOD0(getCurrentBatch, std::shared_ptr<Batch>());
     MOCK_CONST_METHOD0(tryGetPersistentBatch, boost::optional<std::shared_ptr<PersistentBatch>>());
     MOCK_CONST_METHOD0(isCurrentlyPersistent, bool());
-
   };
 
 }
