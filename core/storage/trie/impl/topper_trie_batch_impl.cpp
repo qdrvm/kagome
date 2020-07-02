@@ -92,7 +92,7 @@ namespace kagome::storage::trie {
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
     if (auto p = parent_.lock(); p != nullptr) {
       auto it = cache_.begin();
-      for(auto prefix: cleared_prefixes_) {
+      for(auto& prefix: cleared_prefixes_) {
         OUTCOME_TRY(p->clearPrefix(prefix));
       }
       for (; it != cache_.end(); it++) {
