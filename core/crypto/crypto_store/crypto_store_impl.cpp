@@ -16,10 +16,8 @@ namespace kagome::crypto {
 
   namespace {
     template <class T>
-    outcome::result<KeyTypeId> keyTypeFromBytes(gsl::span<const T> bytes) {
-      if (bytes.size() != 4) {
-        return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
-      }
+    KeyTypeId keyTypeFromBytes(gsl::span<const T> bytes) {
+      BOOST_ASSERT_MSG(bytes.size() == 4, "Wrong span size");
 
       KeyTypeId res = static_cast<uint32_t>(bytes[3])
                       + (static_cast<uint32_t>(bytes[2]) << 8)
@@ -36,9 +34,8 @@ namespace kagome::crypto {
       }
 
       auto key_type_str = file_name.substr(0, 4);
-      OUTCOME_TRY(key_type,
-                  keyTypeFromBytes(gsl::make_span(key_type_str.begin(),
-                                                  key_type_str.end())));
+      auto key_type = keyTypeFromBytes(
+          gsl::make_span(key_type_str.begin(), key_type_str.end()));
       if (!isSupportedKeyType(key_type)) {
         return CryptoStoreError::UNSUPPORTED_KEY_TYPE;
       }
@@ -91,7 +88,7 @@ namespace kagome::crypto {
       if (file.is_open()) file.close();
     });
 
-    file.open(file_path, std::ios::in);
+    file.open(file_path.string(), std::ios::in);
     if (!file.is_open()) {
       return CryptoStoreError::FAILED_OPEN_FILE;
     }
