@@ -14,8 +14,7 @@ env:
   INDOCKER_IMAGE: soramitsu/kagome-dev:9
   CACHE_VERSION: v01
   CACHE_PATHS: |
-    ~/Library/Caches
-    ~/.cache
+    ~/Library/Caches/pip
     ~/.cargo
     ~/.ccache
     ~/.hunter
