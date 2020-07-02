@@ -125,3 +125,4 @@ jobs:
           env:
             VERSION: ${{ github.ref }}
           run: ./housekeeping/docker/release/build_and_push.sh
+
