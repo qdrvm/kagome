@@ -9,5 +9,7 @@ which git
 cd "$(dirname $0)/.."
 
 cmake . -B${BUILD_DIR} "$@"
-cmake --build "${BUILD_DIR}" -- -j${BUILD_TREADS}
+if [ "$BUILD_FINAL_TARGET" == "test" ] ; then
+  cmake --build "${BUILD_DIR}" -- -j${BUILD_TREADS}
+fi
 cmake --build "${BUILD_DIR}" --target "${BUILD_FINAL_TARGET}"
