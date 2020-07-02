@@ -66,7 +66,7 @@ namespace kagome::crypto {
 
     auto dir = keys_directory_;
     auto &&path = composeKeyPath(key_type, public_key);
-    file.open(path, std::ios::out | std::ios::trunc);
+    file.open(path.string(), std::ios::out | std::ios::trunc);
     if (!file.is_open()) {
       return CryptoStoreError::FAILED_OPEN_FILE;
     }
