@@ -9,12 +9,22 @@ target_link_libraries(trie_storage_backend
     buffer
     )
 
+add_library(topper_trie_batch
+    topper_trie_batch_impl.cpp
+    )
+target_link_libraries(topper_trie_batch
+    buffer
+    )
+kagome_install(topper_trie_batch)
+
 add_library(persistent_trie_batch
     persistent_trie_batch_impl.cpp
     )
 target_link_libraries(persistent_trie_batch
     buffer
     trie_error
+    polkadot_trie_cursor
+    topper_trie_batch
     )
 kagome_install(persistent_trie_batch)
 
@@ -23,6 +33,8 @@ add_library(ephemeral_trie_batch
     )
 target_link_libraries(ephemeral_trie_batch
     buffer
+    polkadot_trie_cursor
+    topper_trie_batch
     )
 kagome_install(ephemeral_trie_batch)
 

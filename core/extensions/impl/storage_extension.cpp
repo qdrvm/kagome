@@ -254,7 +254,7 @@ namespace kagome::extensions {
       memory_->storeBuffer(result, root);
     } else {
       logger_->error("ext_storage_root called in an ephemeral extension");
-      return;
+      memory_->storeBuffer(result, Buffer(32, 0));
     }
   }
 

@@ -35,10 +35,9 @@ namespace kagome::consensus::grandpa {
      * Triggered when current peer appears in round \param round with
      * \param set_id and \param propose is ready to be gossiped.
      */
-    virtual outcome::result<void> onProposed(
-        RoundNumber round,
-        MembershipCounter set_id,
-        const SignedPrimaryPropose &propose) = 0;
+    virtual outcome::result<void> onProposed(RoundNumber round,
+                                             MembershipCounter set_id,
+                                             const SignedMessage &propose) = 0;
 
     /**
      * Triggered when current peer appears in round \param round with
@@ -46,7 +45,7 @@ namespace kagome::consensus::grandpa {
      */
     virtual outcome::result<void> onPrevoted(RoundNumber round,
                                              MembershipCounter set_id,
-                                             const SignedPrevote &prevote) = 0;
+                                             const SignedMessage &prevote) = 0;
 
     /**
      * Triggered when current peer appears in round \param round with
@@ -55,7 +54,7 @@ namespace kagome::consensus::grandpa {
     virtual outcome::result<void> onPrecommitted(
         RoundNumber round,
         MembershipCounter set_id,
-        const SignedPrecommit &precommit) = 0;
+        const SignedMessage &precommit) = 0;
 
     /**
      * Triggered when current peer appears in round \param round intends to

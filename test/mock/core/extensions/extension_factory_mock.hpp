@@ -12,7 +12,7 @@
 
 namespace kagome::extensions {
 
-  class MockExtensionFactory : public ExtensionFactory {
+  class ExtensionFactoryMock : public ExtensionFactory {
    public:
     MOCK_CONST_METHOD2(createExtension,
                        std::shared_ptr<Extension>(
