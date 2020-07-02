@@ -38,7 +38,8 @@ namespace kagome::crypto {
     INCONSISTENT_KEYFILE,
     FAILED_CREATE_DIRECTORY,
     KEYS_PATH_IS_NOT_DIRECTORY,
-    WRONG_SEED_SIZE
+    WRONG_SEED_SIZE,
+    KEY_NOT_FOUND
   };
 
   class CryptoStoreImpl : public CryptoStore {
@@ -70,10 +71,10 @@ namespace kagome::crypto {
     outcome::result<SR25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type, const SR25519Seed &seed) override;
 
-    outcome::result<ED25519Keypair> generateEd25519KeyPair(
+    outcome::result<ED25519Keypair> generateEd25519Keypair(
         KeyTypeId key_type) override;
 
-    outcome::result<SR25519Keypair> generateSr25519KeyPair(
+    outcome::result<SR25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type) override;
 
     outcome::result<ED25519Keypair> findEd25519Keypair(
@@ -91,9 +92,6 @@ namespace kagome::crypto {
    private:
     Path composeKeyPath(KeyTypeId key_type,
                         const store::PublicKey &public_key) const;
-
-    outcome::result<store::KeyPair> loadKeypair(store::CryptoId crypto_id,
-                                                const Path &key_path);
 
     outcome::result<std::string> loadFile(const Path &file_name) const;
 

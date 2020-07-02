@@ -77,7 +77,7 @@ namespace kagome::crypto {
      * @param key_type key type identifier
      * @return generated key pair or error
      */
-    virtual outcome::result<ED25519Keypair> generateEd25519KeyPair(
+    virtual outcome::result<ED25519Keypair> generateEd25519Keypair(
         KeyTypeId key_type) = 0;
 
     /**
@@ -85,7 +85,7 @@ namespace kagome::crypto {
      * @param key_type key type identifier
      * @return generated key pair or error
      */
-    virtual outcome::result<SR25519Keypair> generateSr25519KeyPair(
+    virtual outcome::result<SR25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type) = 0;
 
     /**

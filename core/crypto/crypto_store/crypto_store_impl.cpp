@@ -52,7 +52,8 @@ namespace kagome::crypto {
     auto dir = keys_directory_;
     auto &&key_type_str = decodeKeyTypeId(key_type);
     auto &&public_key_hex = public_key.toHex();
-    return key_type_str + public_key_hex;
+
+    return dir.append(key_type_str + public_key_hex);
   }
 
   outcome::result<void> CryptoStoreImpl::storeKeyfile(
@@ -185,7 +186,7 @@ namespace kagome::crypto {
     return pair;
   }
 
-  outcome::result<ED25519Keypair> CryptoStoreImpl::generateEd25519KeyPair(
+  outcome::result<ED25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
       KeyTypeId key_type) {
     ED25519Seed seed;
     auto &&bytes = random_generator_->randomBytes(ED25519Seed::size());
@@ -198,7 +199,7 @@ namespace kagome::crypto {
     return pair;
   }
 
-  outcome::result<SR25519Keypair> CryptoStoreImpl::generateSr25519KeyPair(
+  outcome::result<SR25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
       KeyTypeId key_type) {
     SR25519Seed seed;
     auto &&bytes = random_generator_->randomBytes(SR25519Seed::size());
@@ -217,11 +218,14 @@ namespace kagome::crypto {
     if (ed_keys_.count(key_type) > 0) {
       const auto &map = ed_keys_.at(key_type);
       if (auto it = map.find(pk); it != map.end()) {
-        return ED25519Keypair{it->first, it->second};
+        return ED25519Keypair{it->second, it->first};
       }
     }
     // try find in filesystem
     auto path = composeKeyPath(key_type, pk);
+    if (!boost::filesystem::exists(path)) {
+      return CryptoStoreError::KEY_NOT_FOUND;
+    }
     OUTCOME_TRY(content, loadFile(path));
     OUTCOME_TRY(seed, ED25519Seed::fromHex(content));
 
@@ -239,6 +243,9 @@ namespace kagome::crypto {
     }
     // try find in filesystem
     auto path = composeKeyPath(key_type, pk);
+    if (!boost::filesystem::exists(path)) {
+      return CryptoStoreError::KEY_NOT_FOUND;
+    }
     OUTCOME_TRY(content, loadFile(path));
     OUTCOME_TRY(seed, ED25519Seed::fromHex(content));
 
@@ -329,6 +336,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
       return "specified path to key files is not a valid directory";
     case E::WRONG_SEED_SIZE:
       return "wrong seed size";
+    case E::KEY_NOT_FOUND:
+      return "key not found";
   }
   return "Unknown CryptoStoreError code";
 }
