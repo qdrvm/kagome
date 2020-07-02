@@ -37,13 +37,20 @@ class RuntimeTest : public ::testing::Test {
 
   void SetUp() override {
     using kagome::storage::trie::EphemeralTrieBatchMock;
+    using kagome::storage::trie::PersistentTrieBatch;
     using kagome::storage::trie::PersistentTrieBatchMock;
 
-    auto storage_provider = std::make_shared<
-        testing::NiceMock<kagome::runtime::TrieStorageProviderMock>>();
+    auto storage_provider =
+        std::make_shared<kagome::runtime::TrieStorageProviderMock>();
     ON_CALL(*storage_provider, getCurrentBatch())
         .WillByDefault(testing::Invoke(
             []() { return std::make_unique<PersistentTrieBatchMock>(); }));
+    ON_CALL(*storage_provider, tryGetPersistentBatch())
+        .WillByDefault(testing::Invoke(
+            []() -> boost::optional<std::shared_ptr<PersistentTrieBatch>> {
+              return std::shared_ptr<PersistentTrieBatch>(
+                  std::make_shared<PersistentTrieBatchMock>());
+            }));
     ON_CALL(*storage_provider, setToPersistent())
         .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*storage_provider, setToEphemeral())

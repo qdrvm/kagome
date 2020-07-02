@@ -95,7 +95,7 @@ class WasmExecutorTest : public ::testing::Test {
 TEST_F(WasmExecutorTest, ExecuteCode) {
   EXPECT_OUTCOME_TRUE(environment,
                       runtime_manager_->createEphemeralRuntimeEnvironment());
-  auto &&[module, memory] = std::move(environment);
+  auto &&[module, memory, opt_batch] = std::move(environment);
 
   auto res = executor_->call(
       *module, "addTwo", wasm::LiteralList{wasm::Literal(1), wasm::Literal(2)});
