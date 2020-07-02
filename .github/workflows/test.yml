@@ -29,7 +29,7 @@ jobs:
     - uses: actions/cache@v2
       with:
         path: ${{ env.CACHE_PATHS }}
-        key: ${{ runner.os }}-${{ env.CACHE_VERSION }}
+        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: build
@@ -55,7 +55,7 @@ jobs:
         - uses: actions/cache@v2
           with:
             path: ${{ env.CACHE_PATHS }}
-            key: ${{ runner.os }}-${{ env.CACHE_VERSION }}
+            key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
@@ -68,7 +68,7 @@ jobs:
         - uses: actions/cache@v2
           with:
             path: ${{ env.CACHE_PATHS }}
-            key: ${{ runner.os }}-${{ env.CACHE_VERSION }}
+            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
         - name: clang-tidy
           env:
             # build only generated files, so clang-tidy will work correctl
@@ -86,7 +86,7 @@ jobs:
         - uses: actions/cache@v2
           with:
             path: ${{ env.CACHE_PATHS }}
-            key: ${{ runner.os }}-${{ env.CACHE_VERSION }}
+            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
         - name: makeBuild
           env:
             BUILD_FINAL_TARGET: ctest_coverage
@@ -114,7 +114,7 @@ jobs:
         - uses: actions/cache@v2
           with:
             path: ${{ env.CACHE_PATHS }}
-            key: ${{ runner.os }}-${{ env.CACHE_VERSION }}
+            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
         - name: build
           run: ./housekeeping/docker/release/makeRelease.sh
         - uses: azure/docker-login@v1
