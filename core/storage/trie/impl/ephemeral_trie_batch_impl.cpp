@@ -21,7 +21,7 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<BufferMapCursor> EphemeralTrieBatchImpl::cursor() {
-    return std::make_unique<PolkadotTrieCursor>(trie_);
+    return std::make_unique<PolkadotTrieCursor>(*trie_);
   }
 
   bool EphemeralTrieBatchImpl::contains(const Buffer &key) const {

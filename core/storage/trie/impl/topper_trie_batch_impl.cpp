@@ -20,7 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
 
 namespace kagome::storage::trie {
 
-  TopperTrieBatchImpl::TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent)
+  TopperTrieBatchImpl::TopperTrieBatchImpl(
+      const std::shared_ptr<TrieBatch> &parent)
       : parent_(parent) {}
 
   outcome::result<Buffer> TopperTrieBatchImpl::get(const Buffer &key) const {
@@ -76,13 +77,14 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::clearPrefix(const Buffer &prefix) {
-    for (auto& p : cache_) {
+    for (auto &p : cache_) {
       if (p.first.subbuffer(0, prefix.size()) == prefix) {
         cache_[p.first] = boost::none;
       }
     }
-    if (auto p = parent_.lock(); p != nullptr) {
-      return p->clearPrefix(prefix);
+    cleared_prefixes_.push_back(prefix);
+    if(parent_.lock() != nullptr) {
+      return outcome::success();
     }
     return Error::PARENT_EXPIRED;
   }
@@ -90,6 +92,9 @@ namespace kagome::storage::trie {
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
     if (auto p = parent_.lock(); p != nullptr) {
       auto it = cache_.begin();
+      for(auto prefix: cleared_prefixes_) {
+        OUTCOME_TRY(p->clearPrefix(prefix));
+      }
       for (; it != cache_.end(); it++) {
         if (it->second.has_value()) {
           OUTCOME_TRY(p->put(it->first, it->second.value()));

@@ -62,7 +62,7 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<BufferMapCursor> PersistentTrieBatchImpl::cursor() {
-    return std::make_unique<PolkadotTrieCursor>(trie_);
+    return std::make_unique<PolkadotTrieCursor>(*trie_);
   }
 
   bool PersistentTrieBatchImpl::contains(const Buffer &key) const {

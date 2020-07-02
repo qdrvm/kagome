@@ -31,6 +31,7 @@ namespace kagome::storage::trie {
 
    private:
     std::map<Buffer, boost::optional<Buffer>> cache_;
+    std::list<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
   };
 
