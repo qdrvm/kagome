@@ -15,7 +15,7 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD1(version,
                  outcome::result<primitives::Version>(
-                     std::optional<primitives::BlockHash> const &));
+                     boost::optional<primitives::BlockHash> const &));
     MOCK_METHOD1(execute_block,
                  outcome::result<void>(const primitives::Block &));
     MOCK_METHOD1(initialise_block,

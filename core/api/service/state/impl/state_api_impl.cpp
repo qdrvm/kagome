@@ -38,7 +38,7 @@ namespace kagome::api {
   }
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(
-      std::optional<primitives::BlockHash> const &at) const {
+      const boost::optional<primitives::BlockHash> &at) const {
     return r_core_->version(at);
   }
 }  // namespace kagome::api

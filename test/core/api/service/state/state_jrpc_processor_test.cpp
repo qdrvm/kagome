@@ -130,20 +130,15 @@ TEST_F(StateJrpcProcessorTest, InvalidParams) {
  * @then the request is successfully processed and the response is valid
  */
 TEST_F(StateJrpcProcessorTest, ProcessGetVersionRequest) {
-  char const *dummy_sn = "dummy_sn";
-  char const *dummy_in = "dummy_in";
-  uint32_t const val1 = 0x101;
-  uint32_t const val2 = 0x111;
-  uint32_t const val3 = 0x201;
+  kagome::primitives::Version test_version{.spec_name = "dummy_sn",
+                                           .impl_name = "dummy_in",
+                                           .authoring_version = 0x101,
+                                           .spec_version = 0x111,
+                                           .impl_version = 0x202};
 
-  std::optional<kagome::primitives::BlockHash> hash = std::nullopt;
+  boost::optional<kagome::primitives::BlockHash> hash = boost::none;
   EXPECT_CALL(*state_api, getRuntimeVersion(hash))
-      .WillOnce(
-          testing::Return(kagome::primitives::Version{.spec_name = dummy_sn,
-                                                      .impl_name = dummy_in,
-                                                      .authoring_version = val1,
-                                                      .spec_version = val3,
-                                                      .impl_version = val2}));
+      .WillOnce(testing::Return(test_version));
 
   registerHandlers();
 
@@ -151,9 +146,10 @@ TEST_F(StateJrpcProcessorTest, ProcessGetVersionRequest) {
   auto result =
       execute(CallType::kCallType_GetRuntimeVersion, params).AsStruct();
 
-  ASSERT_EQ(result["authoringVersion"].AsInteger64(), val1);
-  ASSERT_EQ(result["specName"].AsString(), dummy_sn);
-  ASSERT_EQ(result["implName"].AsString(), dummy_in);
-  ASSERT_EQ(result["specVersion"].AsInteger64(), val3);
-  ASSERT_EQ(result["implVersion"].AsInteger64(), val2);
+  ASSERT_EQ(result["authoringVersion"].AsInteger64(),
+            test_version.authoring_version);
+  ASSERT_EQ(result["specName"].AsString(), test_version.spec_name);
+  ASSERT_EQ(result["implName"].AsString(), test_version.impl_name);
+  ASSERT_EQ(result["specVersion"].AsInteger64(), test_version.spec_version);
+  ASSERT_EQ(result["implVersion"].AsInteger64(), test_version.impl_version);
 }

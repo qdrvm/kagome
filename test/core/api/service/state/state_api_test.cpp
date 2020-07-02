@@ -79,45 +79,27 @@ TEST(StateApiTest, GetRuntimeVersion) {
   kagome::api::StateApiImpl api{
       block_header_repo, storage, block_tree, runtime_core};
 
-  char const *dummy_sn = "dummy_sn";
-  char const *dummy_in = "dummy_in";
-  uint32_t const val1 = 0x101;
-  uint32_t const val2 = 0x111;
-  uint32_t const val3 = 0x201;
+  kagome::primitives::Version test_version{.spec_name = "dummy_sn",
+                                           .impl_name = "dummy_in",
+                                           .authoring_version = 0x101,
+                                           .spec_version = 0x111,
+                                           .impl_version = 0x202};
 
-  std::optional<kagome::primitives::BlockHash> hash1 = std::nullopt;
+  boost::optional<kagome::primitives::BlockHash> hash1 = boost::none;
   EXPECT_CALL(*runtime_core, version(hash1))
-      .WillOnce(
-          testing::Return(kagome::primitives::Version{.spec_name = dummy_sn,
-                                                      .impl_name = dummy_in,
-                                                      .authoring_version = val1,
-                                                      .spec_version = val3,
-                                                      .impl_version = val2}));
+      .WillOnce(testing::Return(test_version));
 
   {
-    EXPECT_OUTCOME_TRUE(result, api.getRuntimeVersion(std::nullopt));
-    ASSERT_EQ(result.spec_name, dummy_sn);
-    ASSERT_EQ(result.impl_name, dummy_in);
-    ASSERT_EQ(result.authoring_version, val1);
-    ASSERT_EQ(result.impl_version, val2);
-    ASSERT_EQ(result.spec_version, val3);
+    EXPECT_OUTCOME_TRUE(result, api.getRuntimeVersion(boost::none));
+    ASSERT_EQ(result, test_version);
   }
 
-  std::optional<kagome::primitives::BlockHash> hash = "T"_hash256;
+  boost::optional<kagome::primitives::BlockHash> hash = "T"_hash256;
   EXPECT_CALL(*runtime_core, version(hash))
-      .WillOnce(
-          testing::Return(kagome::primitives::Version{.spec_name = dummy_in,
-                                                      .impl_name = dummy_sn,
-                                                      .authoring_version = val3,
-                                                      .spec_version = val2,
-                                                      .impl_version = val1}));
+      .WillOnce(testing::Return(test_version));
 
   {
     EXPECT_OUTCOME_TRUE(result, api.getRuntimeVersion("T"_hash256));
-    ASSERT_EQ(result.spec_name, dummy_in);
-    ASSERT_EQ(result.impl_name, dummy_sn);
-    ASSERT_EQ(result.authoring_version, val3);
-    ASSERT_EQ(result.impl_version, val1);
-    ASSERT_EQ(result.spec_version, val2);
+    ASSERT_EQ(result, test_version);
   }
 }

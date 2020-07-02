@@ -29,7 +29,7 @@ namespace kagome::api {
         const primitives::BlockHash &at) const override;
 
     outcome::result<primitives::Version> getRuntimeVersion(
-        std::optional<primitives::BlockHash> const &at) const override;
+        const boost::optional<primitives::BlockHash> &at) const override;
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
