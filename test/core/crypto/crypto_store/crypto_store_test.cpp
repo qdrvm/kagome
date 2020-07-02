@@ -11,8 +11,6 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
-#include <gtest/gtest.h>
-
 #include "testutil/storage/base_fs_test.hpp"
 
 using kagome::crypto::Bip39Provider;
