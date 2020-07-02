@@ -29,6 +29,7 @@ namespace kagome::storage::trie {
     std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
+    std::unique_ptr<BufferMapCursor> cursor() override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;
     outcome::result<void> clearPrefix(const Buffer &prefix) override;

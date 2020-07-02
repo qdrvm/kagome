@@ -19,17 +19,12 @@ namespace kagome::storage::trie {
     explicit TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
 
     outcome::result<Buffer> get(const Buffer &key) const override;
-
     bool contains(const Buffer &key) const override;
-
     bool empty() const override;
 
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
-
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
-
     outcome::result<void> remove(const Buffer &key) override;
-
     outcome::result<void> clearPrefix(const Buffer &prefix) override;
 
     outcome::result<void> writeBack() override;

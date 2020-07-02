@@ -81,15 +81,13 @@ namespace kagome::storage::trie {
         cache_[p.first] = boost::none;
       }
     }
-    // TODO(Harrm) Finish when cursor is merged
-    return outcome::success();
+    if (auto p = parent_.lock(); p != nullptr) {
+      return p->clearPrefix(prefix);
+    }
+    return Error::PARENT_EXPIRED;
   }
 
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
-    /// TODO(Harrm): For review consideration: should we try to roll back if a
-    /// put fails? From once side, we should, because safe atomic changes is
-    /// the point of the batch From the other, if a storage operation fails
-    /// there's no guarantee that rollback will succeed, so why bother
     if (auto p = parent_.lock(); p != nullptr) {
       auto it = cache_.begin();
       for (; it != cache_.end(); it++) {

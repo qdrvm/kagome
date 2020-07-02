@@ -7,6 +7,7 @@
 
 #include "scale/scale.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
 namespace kagome::storage::trie {
@@ -52,13 +53,16 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<TopperTrieBatch> PersistentTrieBatchImpl::batchOnTop() {
-    auto p = shared_from_this();
-    return std::make_unique<TopperTrieBatchImpl>(p);
+    return std::make_unique<TopperTrieBatchImpl>(shared_from_this());
   }
 
   outcome::result<Buffer> PersistentTrieBatchImpl::get(
       const Buffer &key) const {
     return trie_->get(key);
+  }
+
+  std::unique_ptr<BufferMapCursor> PersistentTrieBatchImpl::cursor() {
+    return std::make_unique<PolkadotTrieCursor>(trie_);
   }
 
   bool PersistentTrieBatchImpl::contains(const Buffer &key) const {
