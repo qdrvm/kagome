@@ -13,12 +13,12 @@ namespace kagome::crypto {
 
   bool isSupportedKeyType(KeyTypeId k) {
     static const std::unordered_set<KeyTypeId> supported_types = {
-        supported_key_types::kBabe,
-        supported_key_types::kGran,
-        supported_key_types::kAcco,
-        supported_key_types::kImon,
-        supported_key_types::kAudi,
-        supported_key_types::kLp2p};
+        key_types::kBabe,
+        key_types::kGran,
+        key_types::kAcco,
+        key_types::kImon,
+        key_types::kAudi,
+        key_types::kLp2p};
 
     return supported_types.count(k) > 0;
   }

@@ -9,10 +9,15 @@
 
 #include "crypto/crypto_store/key_type.hpp"
 
+using kagome::crypto::key_types::kAcco;
+using kagome::crypto::key_types::kAudi;
+using kagome::crypto::key_types::kBabe;
+using kagome::crypto::key_types::kGran;
+using kagome::crypto::key_types::kImon;
+using kagome::crypto::key_types::kLp2p;
+
 using kagome::crypto::decodeKeyTypeId;
 using kagome::crypto::KeyTypeId;
-
-using namespace kagome::crypto::supported_key_types;
 
 namespace {
   std::tuple<KeyTypeId, std::string_view, bool> good(KeyTypeId id,

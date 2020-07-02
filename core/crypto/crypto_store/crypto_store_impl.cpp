@@ -118,6 +118,12 @@ namespace kagome::crypto {
   }
 
   outcome::result<void> CryptoStoreImpl::initialize(Path keys_directory) {
+    if (!boost::filesystem::exists(keys_directory)) {
+      if (!boost::filesystem::create_directory(keys_directory)) {
+        return CryptoStoreError::FAILED_CREATE_DIRECTORY;
+      }
+    }
+
     if (!boost::filesystem::is_directory(keys_directory)) {
       return CryptoStoreError::KEYS_PATH_IS_NOT_DIRECTORY;
     }
@@ -302,25 +308,27 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
   using E = kagome::crypto::CryptoStoreError;
   switch (e) {
     case E::WRONG_KEYFILE_NAME:
-      return "Specified file name is not a valid key file";
+      return "specified file name is not a valid key file";
     case E::UNSUPPORTED_KEY_TYPE:
-      return "Key type is not supported";
+      return "key type is not supported";
     case E::UNSUPPORTED_CRYPTO_TYPE:
-      return "Cryptographic type is not supported";
+      return "cryptographic type is not supported";
     case E::NOT_REGULAR_FILE:
-      return "Provided file is not regular";
+      return "provided file is not regular";
     case E::FAILED_OPEN_FILE:
       return "failed to open file for reading";
     case E::FILE_DOESNT_EXIST:
       return "file doesn't exist";
     case E::INVALID_FILE_FORMAT:
-      return "Specified key file is invalid";
+      return "specified key file is invalid";
     case E::INCONSISTENT_KEYFILE:
-      return "Key file is inconsistent, public key != derived public key";
+      return "key file is inconsistent, public key != derived public key";
+    case E::FAILED_CREATE_DIRECTORY:
+      return "failed to create directory";
     case E::KEYS_PATH_IS_NOT_DIRECTORY:
-      return "Specified path to key files is not a valid directory";
+      return "specified path to key files is not a valid directory";
     case E::WRONG_SEED_SIZE:
-      return "Wrong seed size";
+      return "wrong seed size";
   }
   return "Unknown CryptoStoreError code";
 }

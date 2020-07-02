@@ -21,7 +21,7 @@ namespace kagome::crypto {
    */
   using KeyTypeId = uint32_t;
 
-  namespace supported_key_types {
+  namespace key_types {
     /**
      * Types are 32bit integers, which represent encoded 4-char strings
      * Big-endian byte order is used
