@@ -7,7 +7,7 @@
 
 #include <string_view>
 
-#include "crypto/key_type.hpp"
+#include "crypto/crypto_store/key_type.hpp"
 
 using kagome::crypto::decodeKeyTypeId;
 using kagome::crypto::KeyTypeId;

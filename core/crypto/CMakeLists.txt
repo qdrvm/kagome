@@ -100,7 +100,7 @@ target_link_libraries(pbkdf2_provider
 kagome_install(pbkdf2_provider)
 
 add_library(crypto_store_key_type
-    key_type.cpp
+    crypto_store/key_type.cpp
     )
 target_link_libraries(crypto_store_key_type
     Boost::boost
