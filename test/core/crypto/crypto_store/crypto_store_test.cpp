@@ -282,7 +282,7 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairStoreSuccess) {
  * @when call getEd25519PublicKeys
  * @then collection of all ed25519 public keys of provided type is returned
  */
-TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess_DISABLED) {
+TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
   EXPECT_OUTCOME_TRUE_MSG_1(
       crypto_store->initialize(crypto_store_test_directory),
       "initialization failed");
@@ -293,17 +293,36 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess_DISABLED) {
   EXPECT_OUTCOME_TRUE(pair4, crypto_store->generateSr25519Keypair(kBabe));
   EXPECT_OUTCOME_TRUE(pair5, crypto_store->generateSr25519Keypair(kAcco));
 
-  CryptoStoreImpl::ED25519Keys ed_babe_keys = {pair1.public_key,
-                                               pair2.public_key};
+  std::set<ED25519PublicKey> ed_babe_keys_set = {pair1.public_key,
+                                                 pair2.public_key};
+  std::vector<ED25519PublicKey> ed_babe_keys(ed_babe_keys_set.begin(),
+                                             ed_babe_keys_set.end());
 
   EXPECT_OUTCOME_TRUE(keys, crypto_store->getEd25519PublicKeys(kBabe));
   ASSERT_EQ(ed_babe_keys, keys);
 }
 
-//
-///**
-// * @given
-// * @when
-// * @then
-// */
-// TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {}
+/**
+ * @given cryptostore instance, and key type
+ * @when call getSr25519PublicKeys
+ * @then collection of all sr25519 public keys of provided type is returned
+ */
+TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
+  EXPECT_OUTCOME_TRUE_MSG_1(
+      crypto_store->initialize(crypto_store_test_directory),
+      "initialization failed");
+
+  EXPECT_OUTCOME_TRUE(pair1, crypto_store->generateSr25519Keypair(kBabe));
+  EXPECT_OUTCOME_TRUE(pair2, crypto_store->generateSr25519Keypair(kBabe));
+  EXPECT_OUTCOME_TRUE(pair3, crypto_store->generateSr25519Keypair(kLp2p));
+  EXPECT_OUTCOME_TRUE(pair4, crypto_store->generateEd25519Keypair(kBabe));
+  EXPECT_OUTCOME_TRUE(pair5, crypto_store->generateEd25519Keypair(kAcco));
+
+  std::set<SR25519PublicKey> sr_babe_keys_set = {pair1.public_key,
+                                                 pair2.public_key};
+  std::vector<SR25519PublicKey> sr_babe_keys(sr_babe_keys_set.begin(),
+                                             sr_babe_keys_set.end());
+
+  EXPECT_OUTCOME_TRUE(keys, crypto_store->getSr25519PublicKeys(kBabe));
+  ASSERT_EQ(sr_babe_keys, keys);
+}

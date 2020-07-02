@@ -193,7 +193,6 @@ namespace kagome::crypto {
     std::copy_n(bytes.begin(), ED25519Seed::size(), seed.begin());
 
     OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(seed));
-    ed_keys_[key_type].insert({pair.public_key, pair.private_key});
     OUTCOME_TRY(storeKeyfile(key_type, pair.public_key, seed));
 
     return pair;
@@ -206,7 +205,6 @@ namespace kagome::crypto {
     std::copy_n(bytes.begin(), SR25519Seed::size(), seed.begin());
 
     auto &&pair = sr25519_provider_->generateKeypair(seed);
-    sr_keys_[key_type].insert({pair.public_key, pair.secret_key});
     OUTCOME_TRY(storeKeyfile(key_type, pair.public_key, seed));
 
     return pair;
@@ -254,12 +252,12 @@ namespace kagome::crypto {
 
   outcome::result<CryptoStore::ED25519Keys>
   CryptoStoreImpl::getEd25519PublicKeys(KeyTypeId key_type) const {
-    ED25519Keys keys;
+    std::set<ED25519PublicKey> keys;
     // iterate over in-memory map
     if (ed_keys_.find(key_type) != ed_keys_.end()) {
       const auto &map = ed_keys_.at(key_type);
       for (const auto &k : map) {
-        keys.emplace_back(k.first);
+        keys.insert(k.first);
       }
     }
 
@@ -274,21 +272,26 @@ namespace kagome::crypto {
       }
       auto &[id, pk] = info.value();
       if (id == key_type) {
-        keys.emplace_back(pk);
+        OUTCOME_TRY(content, loadFile(it->path()));
+        OUTCOME_TRY(seed, ED25519Seed::fromHex(content));
+        OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(seed));
+        if (pair.public_key == pk) {
+          keys.insert(pk);
+        }
       }
     }
 
-    return keys;
+    return ED25519Keys(keys.begin(), keys.end());
   }
 
   outcome::result<CryptoStore::SR25519Keys>
   CryptoStoreImpl::getSr25519PublicKeys(KeyTypeId key_type) const {
-    SR25519Keys keys;
+    std::set<SR25519PublicKey> keys;
     // iterate over in-memory map
     if (sr_keys_.find(key_type) != sr_keys_.end()) {
       const auto &map = ed_keys_.at(key_type);
       for (const auto &k : map) {
-        keys.emplace_back(k.first);
+        keys.insert(k.first);
       }
     }
 
@@ -303,11 +306,16 @@ namespace kagome::crypto {
       }
       auto &[id, pk] = info.value();
       if (id == key_type) {
-        keys.emplace_back(pk);
+        OUTCOME_TRY(content, loadFile(it->path()));
+        OUTCOME_TRY(seed, SR25519Seed::fromHex(content));
+        auto &&pair = sr25519_provider_->generateKeypair(seed);
+        if (pair.public_key == pk) {
+          keys.insert(pk);
+        }
       }
     }
 
-    return keys;
+    return SR25519Keys(keys.begin(), keys.end());
   }
 }  // namespace kagome::crypto
 
