@@ -88,7 +88,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
  * @then initialization succeeds @and corresponding directory is created
  */
 TEST_F(CryptoStoreTest, InitializeSuccess) {
-  auto path = crypto_store_test_directory.append("aaa");
+  auto path = crypto_store_test_directory / "aaa";
   ASSERT_FALSE(boost::filesystem::exists(path));
   EXPECT_OUTCOME_TRUE_MSG_1(crypto_store->initialize(path),
                             "initialization failed");
@@ -101,10 +101,9 @@ TEST_F(CryptoStoreTest, InitializeSuccess) {
  * @then method call succeeds and result matches predefined key pair
  */
 TEST_F(CryptoStoreTest, generateEd25519KeypairMnemonicSuccess) {
-  auto path = crypto_store_test_directory.append("aaa");
-  ASSERT_FALSE(boost::filesystem::exists(path));
-  EXPECT_OUTCOME_TRUE_MSG_1(crypto_store->initialize(path),
-                            "initialization failed");
+  EXPECT_OUTCOME_TRUE_MSG_1(
+      crypto_store->initialize(crypto_store_test_directory),
+      "initialization failed");
 
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
@@ -125,10 +124,9 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairMnemonicSuccess) {
  * @then method call succeeds and result matches predefined key pair
  */
 TEST_F(CryptoStoreTest, generateSr25519KeypairMnemonicSuccess) {
-  auto path = crypto_store_test_directory.append("aaa");
-  ASSERT_FALSE(boost::filesystem::exists(path));
-  EXPECT_OUTCOME_TRUE_MSG_1(crypto_store->initialize(path),
-                            "initialization failed");
+  EXPECT_OUTCOME_TRUE_MSG_1(
+      crypto_store->initialize(crypto_store_test_directory),
+      "initialization failed");
 
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findSr25519Keypair(key_type, ed_pair.public_key));
