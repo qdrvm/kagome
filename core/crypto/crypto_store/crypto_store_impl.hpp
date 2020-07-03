@@ -18,7 +18,6 @@
 
 namespace kagome::crypto {
 
-  // TODO (yuraz): PRE-446 ECDSA will be added later
   namespace store {
     using KeyPair = boost::variant<ED25519Keypair, SR25519Keypair>;
     using PublicKey = common::Blob<32>;
