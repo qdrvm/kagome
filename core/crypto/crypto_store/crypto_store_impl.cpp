@@ -267,7 +267,7 @@ namespace kagome::crypto {
         continue;
       }
       auto &[id, pk] = info.value();
-      if (id == key_type) {
+      if (id == key_type && keys.count(pk) == 0) {
         OUTCOME_TRY(content, loadFile(it->path()));
         OUTCOME_TRY(seed, ED25519Seed::fromHex(content));
         OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(seed));
@@ -301,7 +301,7 @@ namespace kagome::crypto {
         continue;
       }
       auto &[id, pk] = info.value();
-      if (id == key_type) {
+      if (id == key_type && keys.count(pk) == 0) {
         OUTCOME_TRY(content, loadFile(it->path()));
         OUTCOME_TRY(seed, SR25519Seed::fromHex(content));
         auto &&pair = sr25519_provider_->generateKeypair(seed);
