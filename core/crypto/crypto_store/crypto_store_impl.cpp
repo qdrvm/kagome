@@ -96,27 +96,39 @@ namespace kagome::crypto {
   }
 
   CryptoStoreImpl::CryptoStoreImpl(
-      Path keys_directory,
       std::shared_ptr<ED25519Provider> ed25519_provider,
       std::shared_ptr<SR25519Provider> sr25519_provider,
       std::shared_ptr<Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<Bip39Provider> bip39_provider,
       std::shared_ptr<CSPRNG> random_generator)
-      : keys_directory_(std::move(keys_directory)),
+      : keys_directory_(),
         ed25519_provider_(std::move(ed25519_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         bip39_provider_(std::move(bip39_provider)),
         random_generator_(std::move(random_generator)) {
-    BOOST_ASSERT_MSG(boost::filesystem::exists(keys_directory_),
-                     "keys directory doesn't exist");
-    BOOST_ASSERT_MSG(boost::filesystem::is_directory(keys_directory_),
-                     "keys directory path is not a valid directory");
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(bip39_provider_ != nullptr);
     BOOST_ASSERT(random_generator_ != nullptr);
+  }
+
+  outcome::result<void> CryptoStoreImpl::initialize(Path keys_directory) {
+    if (boost::filesystem::exists(keys_directory)) {
+      // check whether specified path is a directory
+      if (!boost::filesystem::is_directory(keys_directory)) {
+        return CryptoStoreError::KEYS_PATH_IS_NOT_DIRECTORY;
+      }
+    } else {
+      // try create directory
+      if (!boost::filesystem::create_directory(keys_directory)) {
+        return CryptoStoreError::FAILED_CREATE_KEYS_DIRECTORY;
+      }
+    }
+    keys_directory_ = std::move(keys_directory);
+
+    return outcome::success();
   }
 
   outcome::result<ED25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
@@ -327,6 +339,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
       return "wrong seed size";
     case E::KEY_NOT_FOUND:
       return "key not found";
+    case E::KEYS_PATH_IS_NOT_DIRECTORY:
+      return "specified path is not a directory";
+    case E::FAILED_CREATE_KEYS_DIRECTORY:
+      return "failed to create directory";
   }
   return "Unknown CryptoStoreError code";
 }
