@@ -163,7 +163,7 @@
   }
 
 #define EXPECT_OUTCOME_SUCCESS(_result_, _expression_)                  \
-  auto &&_result_ = (_expression_);                                     \
+  [[maybe_unused]] auto &&_result_ = (_expression_);                                     \
   if (_result_.has_error()) {                                           \
     GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)               \
         << "  Actual:   Error '" << _result_.error().message() << "'\n" \
