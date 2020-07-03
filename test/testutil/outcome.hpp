@@ -94,22 +94,31 @@
 #define EXPECT_OUTCOME_TRUE_MSG(val, expr, msg) \
   EXPECT_OUTCOME_TRUE_MSG_name(UNIQUE_NAME(_r), val, expr, msg)
 
-#define EXPECT_OUTCOME_RAISE_3(var, ecode, statement) \
-  try { statement; FAIL() << "Line " << __LINE__ << ": " << #ecode << " not raised"; } \
-  catch (std::system_error &var) { EXPECT_EQ(var.code(), ecode); }
+#define EXPECT_OUTCOME_RAISE_3(var, ecode, statement)                 \
+  try {                                                               \
+    statement;                                                        \
+    FAIL() << "Line " << __LINE__ << ": " << #ecode << " not raised"; \
+  } catch (std::system_error & var) {                                 \
+    EXPECT_EQ(var.code(), ecode);                                     \
+  }
 
 #define EXPECT_OUTCOME_RAISE(ecode, statement) \
   EXPECT_OUTCOME_RAISE_3(UNIQUE_NAME(_e), ecode, statement)
 
 #define EXPECT_OUTCOME_ERROR_3(var, ecode, expr) \
-  { EXPECT_OUTCOME_FALSE_2(var, expr); EXPECT_EQ(var, ecode); }
+  {                                              \
+    EXPECT_OUTCOME_FALSE_2(var, expr);           \
+    EXPECT_EQ(var, ecode);                       \
+  }
 
 #define EXPECT_OUTCOME_EQ_3(var, expr, value) \
-  { EXPECT_OUTCOME_TRUE_2(var, expr); EXPECT_EQ(var, value); }
+  {                                           \
+    EXPECT_OUTCOME_TRUE_2(var, expr);         \
+    EXPECT_EQ(var, value);                    \
+  }
 
 #define EXPECT_OUTCOME_EQ(expr, value) \
   EXPECT_OUTCOME_EQ_3(UNIQUE_NAME(_v), expr, value)
-
 
 #define _OUTCOME_UNIQUE_NAME_GLUE2(x, y) x##y
 #define _OUTCOME_UNIQUE_NAME_GLUE(x, y) _OUTCOME_UNIQUE_NAME_GLUE2(x, y)
@@ -163,7 +172,7 @@
   }
 
 #define EXPECT_OUTCOME_SUCCESS(_result_, _expression_)                  \
-  [[maybe_unused]] auto &&_result_ = (_expression_);                                     \
+  [[maybe_unused]] auto &&_result_ = (_expression_);                    \
   if (_result_.has_error()) {                                           \
     GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)               \
         << "  Actual:   Error '" << _result_.error().message() << "'\n" \

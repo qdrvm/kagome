@@ -36,8 +36,6 @@ namespace kagome::crypto {
     FILE_DOESNT_EXIST,
     INVALID_FILE_FORMAT,
     INCONSISTENT_KEYFILE,
-    FAILED_CREATE_DIRECTORY,
-    KEYS_PATH_IS_NOT_DIRECTORY,
     WRONG_SEED_SIZE,
     KEY_NOT_FOUND
   };
@@ -48,16 +46,12 @@ namespace kagome::crypto {
 
     ~CryptoStoreImpl() override = default;
 
-    CryptoStoreImpl(std::shared_ptr<ED25519Provider> ed25519_provider,
+    CryptoStoreImpl(Path keys_directory,
+                    std::shared_ptr<ED25519Provider> ed25519_provider,
                     std::shared_ptr<SR25519Provider> sr25519_provider,
                     std::shared_ptr<Secp256k1Provider> secp256k1_provider,
                     std::shared_ptr<Bip39Provider> bip39_provider,
                     std::shared_ptr<CSPRNG> random_generator);
-
-    /**
-     * @brief sets keys directory up and checks that it is correct
-     */
-    outcome::result<void> initialize(Path keys_directory) override;
 
     outcome::result<ED25519Keypair> generateEd25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) override;

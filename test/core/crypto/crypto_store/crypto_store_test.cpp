@@ -56,7 +56,8 @@ struct CryptoStoreTest : public test::BaseFS_Test {
     bip39_provider =
         std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
     crypto_store =
-        std::make_shared<CryptoStoreImpl>(std::move(ed25519_provider),
+        std::make_shared<CryptoStoreImpl>(crypto_store_test_directory,
+                                          std::move(ed25519_provider),
                                           std::move(sr25519_provider),
                                           std::move(secp256k1_provider),
                                           bip39_provider,
@@ -113,29 +114,12 @@ struct CryptoStoreTest : public test::BaseFS_Test {
 };
 
 /**
- * @given cryptostore instance @and non-existant, but valid directory path
- * @when call initialize using provided directory as argument
- * @then initialization succeeds @and corresponding directory is created
- */
-TEST_F(CryptoStoreTest, InitializeSuccess) {
-  auto path = crypto_store_test_directory / "aaa";
-  ASSERT_FALSE(boost::filesystem::exists(path));
-  EXPECT_OUTCOME_TRUE_MSG_1(crypto_store->initialize(path),
-                            "initialization failed");
-  ASSERT_TRUE(boost::filesystem::exists(path));
-}
-
-/**
  * @given cryptostore instance, type, mnemonic and predefined key pair
  * @when generateEd25519Keypair is called
  * @then method call succeeds and result matches predefined key pair
  * @and generated key pair is stored in memory
  */
 TEST_F(CryptoStoreTest, generateEd25519KeypairMnemonicSuccess) {
-  EXPECT_OUTCOME_TRUE_MSG_1(
-      crypto_store->initialize(crypto_store_test_directory),
-      "initialization failed");
-
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
@@ -160,10 +144,6 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairMnemonicSuccess) {
  * @and generated key pair is stored in memory
  */
 TEST_F(CryptoStoreTest, generateSr25519KeypairMnemonicSuccess) {
-  EXPECT_OUTCOME_TRUE_MSG_1(
-      crypto_store->initialize(crypto_store_test_directory),
-      "initialization failed");
-
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findSr25519Keypair(key_type, ed_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
@@ -187,10 +167,6 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairMnemonicSuccess) {
  * @and generated key pair is stored in memory
  */
 TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
-  EXPECT_OUTCOME_TRUE_MSG_1(
-      crypto_store->initialize(crypto_store_test_directory),
-      "initialization failed");
-
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findEd25519Keypair(key_type, ed_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
@@ -214,10 +190,6 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairSeedSuccess) {
  * @and key generated pair is stored in memory
  */
 TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
-  EXPECT_OUTCOME_TRUE_MSG_1(
-      crypto_store->initialize(crypto_store_test_directory),
-      "initialization failed");
-
   EXPECT_OUTCOME_FALSE(
       err, crypto_store->findSr25519Keypair(key_type, sr_pair.public_key));
   ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
@@ -241,10 +213,6 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairSeedSuccess) {
  * @then a new ed25519 key pair is generated and stored on disk
  */
 TEST_F(CryptoStoreTest, generateEd25519KeypairStoreSuccess) {
-  EXPECT_OUTCOME_TRUE_MSG_1(
-      crypto_store->initialize(crypto_store_test_directory),
-      "initialization failed");
-
   EXPECT_OUTCOME_TRUE(pair, crypto_store->generateEd25519Keypair(key_type));
 
   // check that created pair is contained in the storage on disk
@@ -262,10 +230,6 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairStoreSuccess) {
  * @then a new ed25519 key pair is generated and stored on disk
  */
 TEST_F(CryptoStoreTest, generateSr25519KeypairStoreSuccess) {
-  EXPECT_OUTCOME_TRUE_MSG_1(
-      crypto_store->initialize(crypto_store_test_directory),
-      "initialization failed");
-
   EXPECT_OUTCOME_TRUE(pair, crypto_store->generateSr25519Keypair(key_type));
 
   // check that created pair is contained in the storage on disk
@@ -283,10 +247,6 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairStoreSuccess) {
  * @then collection of all ed25519 public keys of provided type is returned
  */
 TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
-  EXPECT_OUTCOME_TRUE_MSG_1(
-      crypto_store->initialize(crypto_store_test_directory),
-      "initialization failed");
-
   EXPECT_OUTCOME_TRUE(pair1, crypto_store->generateEd25519Keypair(kBabe));
   EXPECT_OUTCOME_TRUE(pair2, crypto_store->generateEd25519Keypair(kBabe));
   EXPECT_OUTCOME_SUCCESS(pair3, crypto_store->generateEd25519Keypair(kLp2p));
@@ -308,10 +268,6 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
  * @then collection of all sr25519 public keys of provided type is returned
  */
 TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
-  EXPECT_OUTCOME_TRUE_MSG_1(
-      crypto_store->initialize(crypto_store_test_directory),
-      "initialization failed");
-
   EXPECT_OUTCOME_TRUE(pair1, crypto_store->generateSr25519Keypair(kBabe));
   EXPECT_OUTCOME_TRUE(pair2, crypto_store->generateSr25519Keypair(kBabe));
   EXPECT_OUTCOME_SUCCESS(pair3, crypto_store->generateSr25519Keypair(kLp2p));

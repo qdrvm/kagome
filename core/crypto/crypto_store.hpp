@@ -30,13 +30,6 @@ namespace kagome::crypto {
     using SR25519Keys = std::vector<SR25519PublicKey>;
 
     /**
-     * @brief initializes key storage: loads keys from disk
-     * @param keys_directory path to keys directory
-     * @return success if loaded successfully or failure otherwise
-     */
-    virtual outcome::result<void> initialize(Path keys_directory) = 0;
-
-    /**
      * @brief generates ED25519 keypair and stores it in memory
      * @param key_type key type identifier
      * @param mnemonic_phrase mnemonic phrase
