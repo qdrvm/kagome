@@ -29,7 +29,7 @@ namespace kagome::network {
 
    private:
     libp2p::Host &host_;
-    const libp2p::peer::PeerInfo &peer_info_;
+    const libp2p::peer::PeerInfo peer_info_;
     common::Logger log_;
   };
 }  // namespace kagome::network
