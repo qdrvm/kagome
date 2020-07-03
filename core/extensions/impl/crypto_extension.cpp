@@ -280,7 +280,7 @@ namespace kagome::extensions {
         BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
       }
 
-      auto &&key_pair = ed25519_provider_->generateKeyPair(ed_seed.value());
+      auto &&key_pair = ed25519_provider_->generateKeypair(ed_seed.value());
       if (!key_pair) {
         logger_->error("failed to generate ed25519 key pair by seed: {}",
                        key_pair.error().message());

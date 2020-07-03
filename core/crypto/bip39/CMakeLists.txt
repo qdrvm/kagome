@@ -17,6 +17,5 @@ target_link_libraries(bip39_provider
     logger
     pbkdf2_provider
     sha
-    typed_key_storage
     )
 kagome_install(bip39_provider)

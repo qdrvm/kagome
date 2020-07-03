@@ -14,6 +14,7 @@
 #include <unordered_map>
 
 #include <boost/optional.hpp>
+
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime::binaryen {

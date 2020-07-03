@@ -18,14 +18,14 @@ namespace kagome::consensus::grandpa {
     virtual ~VoteCryptoProvider() = default;
 
     virtual bool verifyPrimaryPropose(
-        const SignedPrimaryPropose &primary_propose) const = 0;
-    virtual bool verifyPrevote(const SignedPrevote &prevote) const = 0;
-    virtual bool verifyPrecommit(const SignedPrecommit &precommit) const = 0;
+        const SignedMessage &primary_propose) const = 0;
+    virtual bool verifyPrevote(const SignedMessage &prevote) const = 0;
+    virtual bool verifyPrecommit(const SignedMessage &precommit) const = 0;
 
-    virtual SignedPrimaryPropose signPrimaryPropose(
+    virtual SignedMessage signPrimaryPropose(
         const PrimaryPropose &primary_propose) const = 0;
-    virtual SignedPrevote signPrevote(const Prevote &prevote) const = 0;
-    virtual SignedPrecommit signPrecommit(const Precommit &precommit) const = 0;
+    virtual SignedMessage signPrevote(const Prevote &prevote) const = 0;
+    virtual SignedMessage signPrecommit(const Precommit &precommit) const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

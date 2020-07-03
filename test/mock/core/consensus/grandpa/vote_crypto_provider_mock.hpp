@@ -15,16 +15,15 @@ namespace kagome::consensus::grandpa {
   class VoteCryptoProviderMock : public VoteCryptoProvider {
    public:
     MOCK_CONST_METHOD1(verifyPrimaryPropose,
-                       bool(const SignedPrimaryPropose &primary_propose));
-    MOCK_CONST_METHOD1(verifyPrevote, bool(const SignedPrevote &prevote));
-    MOCK_CONST_METHOD1(verifyPrecommit, bool(const SignedPrecommit &precommit));
+                       bool(const SignedMessage &primary_propose));
+    MOCK_CONST_METHOD1(verifyPrevote, bool(const SignedMessage &prevote));
+    MOCK_CONST_METHOD1(verifyPrecommit, bool(const SignedMessage &precommit));
 
-    MOCK_CONST_METHOD1(
-        signPrimaryPropose,
-        SignedPrimaryPropose(const PrimaryPropose &primary_propose));
-    MOCK_CONST_METHOD1(signPrevote, SignedPrevote(const Prevote &prevote));
+    MOCK_CONST_METHOD1(signPrimaryPropose,
+                       SignedMessage(const PrimaryPropose &primary_propose));
+    MOCK_CONST_METHOD1(signPrevote, SignedMessage(const Prevote &prevote));
     MOCK_CONST_METHOD1(signPrecommit,
-                       SignedPrecommit(const Precommit &precommit));
+                       SignedMessage(const Precommit &precommit));
   };
 
 }  // namespace kagome::consensus::grandpa

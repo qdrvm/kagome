@@ -14,6 +14,7 @@
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
+#include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
@@ -196,4 +197,30 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   // if the root hash is unchanged, then the trie content is kept untouched
   // (which we want, as the batch commit failed)
   ASSERT_EQ(trie->getRootHash(), old_root);
+}
+
+TEST_F(TrieBatchTest, TopperBatchAtomic) {
+  std::shared_ptr<PersistentTrieBatch> p_batch = trie->getPersistentBatch().value();
+  EXPECT_OUTCOME_TRUE_1(p_batch->put("123"_buf, "abc"_buf));
+  EXPECT_OUTCOME_TRUE_1(p_batch->put("678"_buf, "abc"_buf));
+
+  auto t_batch = p_batch->batchOnTop();
+
+  EXPECT_OUTCOME_TRUE_1(t_batch->put("123"_buf, "abc"_buf));
+  ASSERT_TRUE(t_batch->contains("123"_buf));
+  EXPECT_OUTCOME_TRUE_1(t_batch->put("345"_buf, "cde"_buf));
+  ASSERT_TRUE(t_batch->contains("345"_buf));
+  EXPECT_OUTCOME_TRUE_1(t_batch->remove("123"_buf));
+  ASSERT_FALSE(t_batch->contains("123"_buf));
+  ASSERT_TRUE(t_batch->contains("678"_buf));
+
+  ASSERT_FALSE(p_batch->contains("345"_buf));
+  ASSERT_TRUE(p_batch->contains("678"_buf));
+  ASSERT_TRUE(p_batch->contains("123"_buf));
+
+  EXPECT_OUTCOME_TRUE_1(t_batch->writeBack());
+
+  ASSERT_TRUE(p_batch->contains("345"_buf));
+  ASSERT_TRUE(p_batch->contains("678"_buf));
+  ASSERT_FALSE(p_batch->contains("123"_buf));
 }

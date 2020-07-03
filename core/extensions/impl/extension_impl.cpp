@@ -34,7 +34,6 @@ namespace kagome::extensions {
         io_ext_(memory),
         memory_ext_(memory),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
-    std::make_shared<crypto::Secp256k1ProviderImpl>();
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
   }

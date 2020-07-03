@@ -10,14 +10,13 @@
 
 namespace kagome::consensus::grandpa {
 
-  template <typename MessageType>
-  class VoteTrackerImpl : public VoteTracker<MessageType> {
+  class VoteTrackerImpl : public VoteTracker {
    public:
-    using PushResult = typename VoteTracker<MessageType>::PushResult;
-    using VotingMessage = typename VoteTracker<MessageType>::VotingMessage;
+    using PushResult = typename VoteTracker::PushResult;
+    using VotingMessage = typename VoteTracker::VotingMessage;
     using EquivocatoryVotingMessage =
-        typename VoteTracker<MessageType>::EquivocatoryVotingMessage;
-    using VoteVariant = typename VoteTracker<MessageType>::VoteVariant;
+        typename VoteTracker::EquivocatoryVotingMessage;
+    using VoteVariant = typename VoteTracker::VoteVariant;
 
     ~VoteTrackerImpl() override = default;
 
@@ -31,9 +30,6 @@ namespace kagome::consensus::grandpa {
     std::map<Id, VoteVariant> messages_;
     size_t total_weight_ = 0;
   };
-
-  using PrevoteTrackerImpl = VoteTrackerImpl<Prevote>;
-  using PrecommitTrackerImpl = VoteTrackerImpl<Precommit>;
 
 }  // namespace kagome::consensus::grandpa
 

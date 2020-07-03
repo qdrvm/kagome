@@ -8,6 +8,8 @@
 
 #include <boost/asio/steady_timer.hpp>
 #include <boost/variant.hpp>
+#include <common/buffer.hpp>
+#include <scale/scale.hpp>
 
 #include "common/blob.hpp"
 #include "common/visitor.hpp"
@@ -32,38 +34,65 @@ namespace kagome::consensus::grandpa {
   const static uint8_t kPrecommitStage = 1;
   const static uint8_t kPrimaryProposeStage = 2;
 
-  /// @tparam Message A protocol message or vote.
-  template <typename Message>
+  using Vote =
+      boost::variant<Prevote,
+                     Precommit,
+                     PrimaryPropose>;  // order is important and should
+                                       // correspond stage constants
+                                       // (kPrevoteStage, kPrecommitStage,
+                                       // kPrimaryPropose)
+
   struct SignedMessage {
-    Message message;
+    Vote message;
     Signature signature;
     Id id;
+
+    BlockNumber block_number() const {
+      return visit_in_place(message,
+                            [](const auto &vote) { return vote.block_number; });
+    }
+
+    BlockHash block_hash() const {
+      return visit_in_place(message,
+                            [](const auto &vote) { return vote.block_hash; });
+    }
+
+    BlockInfo block_info() const {
+      return visit_in_place(message, [](const auto &vote) {
+        return BlockInfo{vote.block_number, vote.block_hash};
+      });
+    }
+
+    template <typename T>
+    bool is() const {
+      return message.type() == typeid(T);
+    }
+
+    bool operator==(const SignedMessage &rhs) const {
+      return message == rhs.message && signature == rhs.signature && id == id;
+    }
+
+    bool operator!=(const SignedMessage &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   template <class Stream,
-            typename Message,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const SignedMessage<Message> &signed_msg) {
-    return s << signed_msg.message << signed_msg.signature << signed_msg.id;
+  Stream &operator<<(Stream &s, const SignedMessage &signed_msg) {
+    return s << (scale::encode(signed_msg.message).value())
+             << signed_msg.signature << signed_msg.id;
   }
 
   template <class Stream,
-            typename Message,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, SignedMessage<Message> &signed_msg) {
-    return s >> signed_msg.message >> signed_msg.signature >> signed_msg.id;
+  Stream &operator>>(Stream &s, SignedMessage &signed_msg) {
+    common::Buffer encoded_vote;
+    s >> encoded_vote;
+    auto decoded_vote = scale::template decode<Vote>(encoded_vote).value();
+    signed_msg.message = decoded_vote;
+    return s >> signed_msg.signature >> signed_msg.id;
   }
-
-  template <typename Message>
-  bool operator==(const SignedMessage<Message> &lhs,
-                  const SignedMessage<Message> &rhs) {
-    return lhs.message == rhs.message && lhs.signature == rhs.signature
-           && lhs.id == rhs.id;
-  }
-
-  using SignedPrevote = SignedMessage<Prevote>;
-  using SignedPrecommit = SignedMessage<Precommit>;
-  using SignedPrimaryPropose = SignedMessage<PrimaryPropose>;
 
   template <typename Message>
   struct Equivocated {
@@ -86,7 +115,7 @@ namespace kagome::consensus::grandpa {
   // justification that contains a list of signed precommits justifying the
   // validity of the block
   struct GrandpaJustification {
-    std::vector<SignedPrecommit> items;
+    std::vector<SignedMessage> items;
   };
 
   template <class Stream,
@@ -107,23 +136,14 @@ namespace kagome::consensus::grandpa {
     GrandpaJustification justification;
   };
 
-  using Vote =
-      boost::variant<SignedPrevote,
-                     SignedPrecommit,
-                     SignedPrimaryPropose>;  // order is important and should
-                                             // correspond stage constants
-                                             // (kPrevoteStage, kPrecommitStage,
-                                             // kPrimaryPropose)
-
   // either prevote, precommit or primary propose
   struct VoteMessage {
     RoundNumber round_number{0};
     MembershipCounter counter{0};
-    Vote vote;
+    SignedMessage vote;
 
     Id id() const {
-      return visit_in_place(
-          vote, [](const auto &signed_message) { return signed_message.id; });
+      return vote.id;
     }
   };
 
