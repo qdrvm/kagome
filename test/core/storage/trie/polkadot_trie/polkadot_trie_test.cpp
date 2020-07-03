@@ -345,6 +345,6 @@ TEST_F(TrieTest, GetPath) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
   }
 
-  trie->getPath(trie->getRoot(), "123456"_hex2buf);
-
+  EXPECT_OUTCOME_TRUE(path, trie->getPath(trie->getRoot(), "010203040506"_hex2buf));
+  auto it = path.begin();
 }

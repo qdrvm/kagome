@@ -38,6 +38,7 @@ namespace kagome::storage::trie {
     virtual outcome::result<NodePtr> retrieveChild(BranchPtr parent,
                                                    uint8_t idx) const = 0;
 
+    /// TODO(Harrm) Make key nibbles type distinguishable with just key
     /**
      * @returns a node which is a descendant of \arg parent found by following
      * \arg key_nibbles
