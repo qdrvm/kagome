@@ -289,9 +289,9 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
 
   EXPECT_OUTCOME_TRUE(pair1, crypto_store->generateEd25519Keypair(kBabe));
   EXPECT_OUTCOME_TRUE(pair2, crypto_store->generateEd25519Keypair(kBabe));
-  EXPECT_OUTCOME_TRUE_1(crypto_store->generateEd25519Keypair(kLp2p));
-  EXPECT_OUTCOME_TRUE_1(crypto_store->generateSr25519Keypair(kBabe));
-  EXPECT_OUTCOME_TRUE_1(crypto_store->generateSr25519Keypair(kAcco));
+  EXPECT_OUTCOME_SUCCESS(pair3, crypto_store->generateEd25519Keypair(kLp2p));
+  EXPECT_OUTCOME_SUCCESS(pair4, crypto_store->generateSr25519Keypair(kBabe));
+  EXPECT_OUTCOME_SUCCESS(pair5, crypto_store->generateSr25519Keypair(kAcco));
 
   std::set<ED25519PublicKey> ed_babe_keys_set = {pair1.public_key,
                                                  pair2.public_key};
@@ -314,9 +314,9 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
 
   EXPECT_OUTCOME_TRUE(pair1, crypto_store->generateSr25519Keypair(kBabe));
   EXPECT_OUTCOME_TRUE(pair2, crypto_store->generateSr25519Keypair(kBabe));
-  EXPECT_OUTCOME_TRUE_1(crypto_store->generateSr25519Keypair(kLp2p));
-  EXPECT_OUTCOME_TRUE_1(crypto_store->generateEd25519Keypair(kBabe));
-  EXPECT_OUTCOME_TRUE_1(crypto_store->generateEd25519Keypair(kAcco));
+  EXPECT_OUTCOME_SUCCESS(pair3, crypto_store->generateSr25519Keypair(kLp2p));
+  EXPECT_OUTCOME_SUCCESS(pair4, crypto_store->generateEd25519Keypair(kBabe));
+  EXPECT_OUTCOME_SUCCESS(pair5, crypto_store->generateEd25519Keypair(kAcco));
 
   std::set<SR25519PublicKey> sr_babe_keys_set = {pair1.public_key,
                                                  pair2.public_key};
