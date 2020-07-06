@@ -112,7 +112,7 @@ namespace kagome::extensions {
                                         runtime::WasmSize offset,
                                         runtime::WasmSize max_length) const;
 
-    outcome::result<boost::optional<runtime::WasmSpan>> getStorageNextKey(
+    outcome::result<boost::optional<common::Buffer>> getStorageNextKey(
         const common::Buffer &key) const;
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;

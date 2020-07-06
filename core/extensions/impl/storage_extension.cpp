@@ -301,19 +301,15 @@ namespace kagome::extensions {
         data.begin() + offset, data.begin() + offset + data_length));
   }
 
-  outcome::result<boost::optional<runtime::WasmSpan>>
+  outcome::result<boost::optional<Buffer>>
   StorageExtension::getStorageNextKey(const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     auto cursor = batch->cursor();
     OUTCOME_TRY(cursor->seek(key));
     OUTCOME_TRY(cursor->next());
     if (cursor->isValid()) {
-      OUTCOME_TRY(key, cursor->key());
-      auto res_ptr = memory_->allocate(key.size());
-      memory_->storeBuffer(res_ptr, key);
-      return boost::make_optional(runtime::WasmResult{
-          res_ptr, static_cast<runtime::WasmSize>(key.size())}
-                                      .combine());
+      OUTCOME_TRY(next_key, cursor->key());
+      return boost::make_optional(next_key);
     }
     return boost::none;
   }

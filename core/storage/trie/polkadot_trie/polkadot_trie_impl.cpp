@@ -226,15 +226,13 @@ namespace kagome::storage::trie {
     using Path = std::list<std::pair<PolkadotTrieImpl::BranchPtr, uint8_t>>;
     using T = PolkadotNode::Type;
     if (parent == nullptr) {
-      return Path{};
+      return TrieError::NO_VALUE;
     }
     switch (parent->getTrieType()) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
         auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
         if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
-          auto found_leaf =
-              std::make_shared<LeafNode>(parent->key_nibbles, parent->value);
           return Path{};
         }
         if ((parent->key_nibbles.subbuffer(0, length) == key_nibbles)
@@ -255,7 +253,7 @@ namespace kagome::storage::trie {
       default:
         return Error::INVALID_NODE_TYPE;
     }
-    return Path{};
+    return TrieError::NO_VALUE;
   }
 
   std::unique_ptr<BufferMapCursor> PolkadotTrieImpl::cursor() {
