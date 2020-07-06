@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
+if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif (CCACHE_FOUND)
+endif(CCACHE_FOUND)
 
 
 set(
@@ -27,9 +27,9 @@ print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)
 link_libraries(Threads::Threads)
-if (THREADS_HAVE_PTHREAD_ARG)
+if(THREADS_HAVE_PTHREAD_ARG)
   link_libraries(pthread)
-endif ()
+endif()
 
 
 include(CheckCXXCompilerFlag)
@@ -38,16 +38,16 @@ include(cmake/functions.cmake)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(CLANG_FORMAT "Enable clang-format target" ON)
-option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
-option(COVERAGE "Enable generation of coverage info" OFF)
+option(CLANG_FORMAT "Enable clang-format target"                  ON )
+option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
+option(COVERAGE     "Enable generation of coverage info"          OFF)
 
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
-option(ASAN "Enable address sanitizer" OFF)
-option(LSAN "Enable leak sanitizer" OFF)
-option(MSAN "Enable memory sanitizer" OFF)
-option(TSAN "Enable thread sanitizer" OFF)
-option(UBSAN "Enable UB sanitizer" OFF)
+option(ASAN         "Enable address sanitizer"                    OFF)
+option(LSAN         "Enable leak sanitizer"                       OFF)
+option(MSAN         "Enable memory sanitizer"                     OFF)
+option(TSAN         "Enable thread sanitizer"                     OFF)
+option(UBSAN        "Enable UB sanitizer"                         OFF)
 include(cmake/san.cmake)
 
 ## setup compilation flags
@@ -80,24 +80,24 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
   # TODO(warchant): add flags https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
-endif ()
+endif()
 
-if (COVERAGE)
+if(COVERAGE)
   include(cmake/coverage.cmake)
-endif ()
-if (CLANG_TIDY)
+endif()
+if(CLANG_TIDY)
   include(cmake/clang-tidy.cmake)
-endif ()
-if (CLANG_FORMAT)
+endif()
+if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
-endif ()
+endif()
 
 include(GNUInstallDirs)
 include(cmake/install.cmake)
 
 include_directories(
-    # project includes
-    ${PROJECT_SOURCE_DIR}/core
+  # project includes
+  ${PROJECT_SOURCE_DIR}/core
 )
 
 add_subdirectory(core)

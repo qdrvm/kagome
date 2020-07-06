@@ -41,17 +41,13 @@ namespace kagome::extensions {
         crypto_store_(std::move(crypto_store)),
         bip39_provider_(std::move(bip39_provider)),
         logger_{common::createLogger("CryptoExtension")} {
-    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
-    BOOST_ASSERT_MSG(sr25519_provider_ != nullptr,
-                     "sr25519 provider is nullptr");
-    BOOST_ASSERT_MSG(ed25519_provider_ != nullptr,
-                     "ed25519 provider is nullptr");
-    BOOST_ASSERT_MSG(secp256k1_provider_ != nullptr,
-                     "secp256k1 provider is nullptr");
-    BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
-    BOOST_ASSERT_MSG(crypto_store_ != nullptr,
-                     "cryptographic key storage is nullptr");
-    BOOST_ASSERT_MSG(bip39_provider_ != nullptr, "bip39 provider is nullptr");
+    BOOST_ASSERT(memory_ != nullptr);
+    BOOST_ASSERT(sr25519_provider_ != nullptr);
+    BOOST_ASSERT(ed25519_provider_ != nullptr);
+    BOOST_ASSERT(secp256k1_provider_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(crypto_store_ != nullptr);
+    BOOST_ASSERT(bip39_provider_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 

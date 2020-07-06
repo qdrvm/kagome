@@ -113,7 +113,7 @@ namespace kagome::api {
 
     Configuration config_;  ///< session configuration
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket &>
-        stream_;                         ///< stream
+        stream_;                             ///< stream
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
     boost::beast::flat_buffer wbuffer_;  ///< write buffer
 
