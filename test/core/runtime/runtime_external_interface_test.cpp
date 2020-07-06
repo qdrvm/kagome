@@ -7,6 +7,7 @@
 
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
+#include <crypto/crypto_store/key_type.hpp>
 #include <runtime/wasm_result.hpp>
 #include "core/runtime/mock_memory.hpp"
 #include "mock/core/extensions/extension_factory_mock.hpp"
@@ -18,8 +19,9 @@
 using ::testing::_;
 using ::testing::Return;
 
-using kagome::extensions::ExtensionMock;
+using kagome::crypto::key_types::kBabe;
 using kagome::extensions::ExtensionFactoryMock;
+using kagome::extensions::ExtensionMock;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmPointer;
@@ -546,8 +548,7 @@ TEST_F(REITest, ext_sr25519_verify_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
-  WasmSize key_type = 'babe';
-
+  WasmSize key_type = kBabe;
   WasmSpan res = WasmResult(1, 2).combine();
 
   EXPECT_CALL(*extension_, ext_ed25519_public_keys_v1(key_type))
@@ -567,7 +568,7 @@ TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_generate_v1_Test) {
-  WasmSize key_type = 'babe';
+  WasmSize key_type = kBabe;
   WasmSpan seed = WasmResult(1, 2).combine();
 
   WasmPointer res = 4;
@@ -590,7 +591,7 @@ TEST_F(REITest, ext_ed25519_generate_v1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_sign_v1_Test) {
-  WasmSize key_type = 'babe';
+  WasmSize key_type = kBabe;
   WasmPointer key = 1;
   WasmSpan msg = WasmResult(33, 2).combine();
   WasmSpan res = WasmResult(35, 25).combine();
@@ -641,7 +642,7 @@ TEST_F(REITest, ext_ed25519_verify_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
-  WasmSize key_type = 'babe';
+  WasmSize key_type = kBabe;
 
   WasmSpan res = WasmResult(1, 2).combine();
 
@@ -662,7 +663,7 @@ TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_generate_v1_Test) {
-  WasmSize key_type = 'babe';
+  WasmSize key_type = kBabe;
   WasmSpan seed = WasmResult(1, 2).combine();
 
   WasmPointer res = 4;
@@ -685,7 +686,7 @@ TEST_F(REITest, ext_sr25519_generate_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_sign_v1_Test) {
-  WasmSize key_type = 'babe';
+  WasmSize key_type = kBabe;
   WasmPointer key = 1;
   WasmSpan msg = WasmResult(33, 2).combine();
   WasmSpan res = WasmResult(35, 25).combine();
