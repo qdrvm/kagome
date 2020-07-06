@@ -8,6 +8,7 @@
 
 #include "common/logger.hpp"
 #include "crypto/bip39/bip39_types.hpp"
+#include "crypto/crypto_store.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::crypto {
@@ -16,11 +17,8 @@ namespace kagome::crypto {
   class Secp256k1Provider;
   class Hasher;
   class Bip39Provider;
+  class CryptoStore;
 }  // namespace kagome::crypto
-
-namespace kagome::crypto::storage {
-  class TypedKeyStorage;
-}
 
 namespace kagome::extensions {
   /**
@@ -34,7 +32,7 @@ namespace kagome::extensions {
         std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage,
+        std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     /**
@@ -111,8 +109,8 @@ namespace kagome::extensions {
      * @see Extension::ed25519_sign
      */
     runtime::WasmSpan ext_ed25519_sign_v1(runtime::WasmSize key_type,
-                                             runtime::WasmPointer key,
-                                             runtime::WasmSpan msg);
+                                          runtime::WasmPointer key,
+                                          runtime::WasmSpan msg);
 
     /**
      * @see Extension::ext_ed25519_verify
@@ -136,8 +134,8 @@ namespace kagome::extensions {
      * @see Extension::sr25519_sign
      */
     runtime::WasmSpan ext_sr25519_sign_v1(runtime::WasmSize key_type,
-                                             runtime::WasmPointer key,
-                                             runtime::WasmSpan msg);
+                                          runtime::WasmPointer key,
+                                          runtime::WasmSpan msg);
 
     /**
      * @see Extension::ext_sr25519_verify
@@ -157,6 +155,7 @@ namespace kagome::extensions {
      */
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg);
+
    private:
     crypto::bip39::Bip39Seed deriveBigSeed(std::string_view mnemonic_phrase);
 
@@ -165,7 +164,7 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;
     std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage_;
+    std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
     common::Logger logger_;
   };

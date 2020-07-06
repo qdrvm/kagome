@@ -9,9 +9,16 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
+#include <crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
+#include <crypto/random_generator/boost_generator.hpp>
 #include <fstream>
 
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
@@ -26,6 +33,14 @@
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
 
 using kagome::common::Buffer;
+using kagome::crypto::Bip39ProviderImpl;
+using kagome::crypto::BoostRandomGenerator;
+using kagome::crypto::CryptoStoreImpl;
+using kagome::crypto::ED25519ProviderImpl;
+using kagome::crypto::HasherImpl;
+using kagome::crypto::Pbkdf2ProviderImpl;
+using kagome::crypto::Secp256k1ProviderImpl;
+using kagome::crypto::SR25519ProviderImpl;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
 using kagome::runtime::binaryen::RuntimeManager;
@@ -66,11 +81,29 @@ class WasmExecutorTest : public ::testing::Test {
     storage_provider_ =
         std::make_shared<TrieStorageProviderImpl>(std::move(trieDb));
 
+    auto random_generator = std::make_shared<BoostRandomGenerator>();
+    auto sr25519_provider =
+        std::make_shared<SR25519ProviderImpl>(random_generator);
+    auto ed25519_provider = std::make_shared<ED25519ProviderImpl>();
+    auto secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
+    auto hasher = std::make_shared<HasherImpl>();
+    auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
+    auto bip39_provider = std::make_shared<Bip39ProviderImpl>(pbkdf2_provider);
+    auto crypto_store = std::make_shared<CryptoStoreImpl>(ed25519_provider,
+                                                          sr25519_provider,
+                                                          secp256k1_provider,
+                                                          bip39_provider,
+                                                          random_generator);
+
     auto extension_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
-            std::make_shared<ChangesTrackerMock>());
-
-    auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
+            std::make_shared<ChangesTrackerMock>(),
+            sr25519_provider,
+            ed25519_provider,
+            secp256k1_provider,
+            hasher,
+            crypto_store,
+            bip39_provider);
 
     runtime_manager_ =
         std::make_shared<RuntimeManager>(std::move(wasm_provider),

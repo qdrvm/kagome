@@ -11,13 +11,13 @@
 #include <gsl/span>
 #include "core/runtime/mock_memory.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
-#include "crypto/typed_key_storage/typed_key_storage_impl.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
@@ -28,6 +28,8 @@ using kagome::common::Buffer;
 using kagome::crypto::Bip39Provider;
 using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
+using kagome::crypto::CryptoStore;
+using kagome::crypto::CryptoStoreImpl;
 using kagome::crypto::CSPRNG;
 using kagome::crypto::ED25519Provider;
 using kagome::crypto::ED25519ProviderImpl;
@@ -44,8 +46,6 @@ using kagome::crypto::SR25519ProviderImpl;
 using kagome::crypto::SR25519PublicKey;
 using kagome::crypto::SR25519SecretKey;
 using kagome::crypto::SR25519Signature;
-using kagome::crypto::storage::TypedKeyStorage;
-using kagome::crypto::storage::TypedKeyStorageImpl;
 using kagome::crypto::secp256k1::CompressedPublicKey;
 using kagome::crypto::secp256k1::ExpandedPublicKey;
 using kagome::crypto::secp256k1::MessageHash;
@@ -72,15 +72,19 @@ class CryptoExtensionTest : public ::testing::Test {
     ed25519_provider_ = std::make_shared<ED25519ProviderImpl>();
     secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
     hasher_ = std::make_shared<HasherImpl>();
-    key_storage_ = std::make_shared<TypedKeyStorageImpl>();
     bip39_provider_ = std::make_shared<Bip39ProviderImpl>(
         std::make_shared<Pbkdf2ProviderImpl>());
+    crypto_store_ = std::make_shared<CryptoStoreImpl>(ed25519_provider_,
+                                                      sr25519_provider_,
+                                                      secp256k1_provider_,
+                                                      bip39_provider_,
+                                                      random_generator_);
     crypto_ext_ = std::make_shared<CryptoExtension>(memory_,
                                                     sr25519_provider_,
                                                     ed25519_provider_,
-                                                   secp256k1_provider_,
+                                                    secp256k1_provider_,
                                                     hasher_,
-                                                    key_storage_,
+                                                    crypto_store_,
                                                     bip39_provider_);
 
     sr25519_keypair = sr25519_provider_->generateKeypair();
@@ -114,7 +118,7 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<ED25519Provider> ed25519_provider_;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
   std::shared_ptr<Hasher> hasher_;
-  std::shared_ptr<TypedKeyStorage> key_storage_;
+  std::shared_ptr<CryptoStore> crypto_store_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
   std::shared_ptr<Bip39Provider> bip39_provider_;
 

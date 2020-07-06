@@ -15,7 +15,7 @@ target_link_libraries(crypto_extension
     secp256k1_provider
     ed25519_provider
     scale
-    typed_key_storage
+    crypto_store
     )
 kagome_install(crypto_extension)
 

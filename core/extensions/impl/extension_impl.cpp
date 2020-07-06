@@ -6,31 +6,35 @@
 #include "extensions/impl/extension_impl.hpp"
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
-#include "crypto/typed_key_storage/typed_key_storage_impl.hpp"
 
 namespace kagome::extensions {
 
   ExtensionImpl::ExtensionImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> tracker)
+      std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
+      std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
+      std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
+      std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<crypto::CryptoStore> crypto_store,
+      std::shared_ptr<crypto::Bip39Provider> bip39_provider)
       : memory_(memory),
         storage_provider_(std::move(storage_provider)),
         crypto_ext_(memory,
-                    std::make_shared<crypto::SR25519ProviderImpl>(
-                        std::make_shared<crypto::BoostRandomGenerator>()),
-                    std::make_shared<crypto::ED25519ProviderImpl>(),
-                    std::make_shared<crypto::Secp256k1ProviderImpl>(),
-                    std::make_shared<crypto::HasherImpl>(),
-                    std::make_shared<crypto::storage::TypedKeyStorageImpl>(),
-                    std::make_shared<crypto::Bip39ProviderImpl>(
-                        std::make_shared<crypto::Pbkdf2ProviderImpl>())),
+                    std::move(sr25519_provider),
+                    std::move(ed25519_provider),
+                    std::move(secp256k1_provider),
+                    std::move(hasher),
+                    std::move(crypto_store),
+                    std::move(bip39_provider)),
         io_ext_(memory),
         memory_ext_(memory),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {

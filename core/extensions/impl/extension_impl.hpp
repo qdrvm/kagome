@@ -23,7 +23,13 @@ namespace kagome::extensions {
     ExtensionImpl(
         const std::shared_ptr<runtime::WasmMemory> &memory,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
+        std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
+        std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
+        std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
+        std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<crypto::CryptoStore> crypto_store,
+        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     ~ExtensionImpl() override = default;
 
@@ -129,10 +135,9 @@ namespace kagome::extensions {
     runtime::WasmPointer ext_ed25519_generate_v1(
         runtime::WasmSize key_type, runtime::WasmSpan seed) override;
 
-    runtime::WasmSpan ext_ed25519_sign_v1(
-        runtime::WasmSize key_type,
-        runtime::WasmPointer key,
-        runtime::WasmSpan msg_data) override;
+    runtime::WasmSpan ext_ed25519_sign_v1(runtime::WasmSize key_type,
+                                          runtime::WasmPointer key,
+                                          runtime::WasmSpan msg_data) override;
 
     runtime::WasmSize ext_ed25519_verify_v1(
         runtime::WasmPointer sig_data,
@@ -145,10 +150,9 @@ namespace kagome::extensions {
     runtime::WasmPointer ext_sr25519_generate_v1(
         runtime::WasmSize key_type, runtime::WasmSpan seed) override;
 
-    runtime::WasmSpan ext_sr25519_sign_v1(
-        runtime::WasmSize key_type,
-        runtime::WasmPointer key,
-        runtime::WasmSpan msg_data) override;
+    runtime::WasmSpan ext_sr25519_sign_v1(runtime::WasmSize key_type,
+                                          runtime::WasmPointer key,
+                                          runtime::WasmSpan msg_data) override;
 
     runtime::WasmSize ext_sr25519_verify_v1(
         runtime::WasmPointer sig_data,
