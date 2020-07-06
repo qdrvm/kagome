@@ -16,6 +16,7 @@ using kagome::common::Hash256;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrie;
 using kagome::storage::trie::PolkadotTrieImpl;
+using kagome::storage::trie::KeyNibbles;
 
 /**
  * Automation of operations over a trie
@@ -345,6 +346,6 @@ TEST_F(TrieTest, GetPath) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
   }
 
-  EXPECT_OUTCOME_TRUE(path, trie->getPath(trie->getRoot(), "010203040506"_hex2buf));
+  EXPECT_OUTCOME_TRUE(path, trie->getPath(trie->getRoot(), KeyNibbles{"010203040506"_hex2buf}));
   auto it = path.begin();
 }

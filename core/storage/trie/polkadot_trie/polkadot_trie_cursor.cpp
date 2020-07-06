@@ -20,7 +20,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
     case E::NULL_ROOT:
       return "the root of the supplied trie is null";
     case E::NOT_FOUND:
-      return "the seeked value is not found";
+      return "the sought value is not found";
     case E::METHOD_NOT_IMPLEMENTED:
       return "the method is not yet implemented";
   }
@@ -130,16 +130,16 @@ namespace kagome::storage::trie {
           return outcome::success();
         }
         // assert last_visited_child_.back() == current.parent
-        auto p = last_visited_child_.back().first;  // self.current.parent
-        while (not hasNextChild(p, last_visited_child_.back().second)) {
+        auto p = last_visited_child_.back().parent;  // self.current.parent
+        while (not hasNextChild(p, last_visited_child_.back().child_idx)) {
           last_visited_child_.pop_back();
           if (last_visited_child_.empty()) {
             current_ = nullptr;
             return outcome::success();
           }
-          p = last_visited_child_.back().first;  // p.parent
+          p = last_visited_child_.back().parent;  // p.parent
         }
-        auto i = getNextChildIdx(p, last_visited_child_.back().second);
+        auto i = getNextChildIdx(p, last_visited_child_.back().child_idx);
         OUTCOME_TRY(c, trie_.retrieveChild(p, i));
         current_ = c;
         updateLastVisitedChild(p, i);
@@ -148,18 +148,18 @@ namespace kagome::storage::trie {
                  or current_->getTrieType() == NodeType::BranchWithValue) {
         auto p = std::dynamic_pointer_cast<BranchNode>(current_);
         if (last_visited_child_.empty()
-            or last_visited_child_.back().first != p) {
-          last_visited_child_.emplace_back(std::make_pair(p, -1));
+            or last_visited_child_.back().parent != p) {
+          last_visited_child_.emplace_back(p, -1);
         }
-        while (not hasNextChild(p, last_visited_child_.back().second)) {
+        while (not hasNextChild(p, last_visited_child_.back().child_idx)) {
           last_visited_child_.pop_back();
           if (last_visited_child_.empty()) {
             current_ = nullptr;
             return outcome::success();
           }
-          p = last_visited_child_.back().first;  // p.parent
+          p = last_visited_child_.back().parent;  // p.parent
         }
-        auto i = getNextChildIdx(p, last_visited_child_.back().second);
+        auto i = getNextChildIdx(p, last_visited_child_.back().child_idx);
         OUTCOME_TRY(c, trie_.retrieveChild(p, i));
         current_ = c;
         updateLastVisitedChild(p, i);
@@ -174,13 +174,13 @@ namespace kagome::storage::trie {
   }
 
   common::Buffer PolkadotTrieCursor::collectKey() const {
-    common::Buffer key_nibbles;
+    KeyNibbles key_nibbles;
     for (auto &node_idx : last_visited_child_) {
-      auto &node = node_idx.first;
-      auto idx = node_idx.second;
+      auto &node = node_idx.parent;
+      auto idx = node_idx.child_idx;
       std::copy(node->key_nibbles.begin(),
                 node->key_nibbles.end(),
-                std::back_inserter(key_nibbles));
+                std::back_inserter<Buffer>(key_nibbles));
       key_nibbles.putUint8(idx);
     }
     key_nibbles.put(current_->key_nibbles);
@@ -233,21 +233,21 @@ namespace kagome::storage::trie {
 
   void PolkadotTrieCursor::updateLastVisitedChild(const BranchPtr &parent,
                                                   uint8_t child_idx) {
-    if (last_visited_child_.back().first == parent) {
+    if (last_visited_child_.back().parent == parent) {
       last_visited_child_.pop_back();
     }
-    last_visited_child_.emplace_back(std::make_pair(parent, child_idx));
+    last_visited_child_.emplace_back(parent, child_idx);
   }
 
   auto PolkadotTrieCursor::constructLastVisitedChildPath(
       const common::Buffer &key)
       -> outcome::result<
-          std::list<std::pair<PolkadotTrieCursor::BranchPtr, int8_t>>> {
+          std::list<TriePathEntry>> {
     OUTCOME_TRY(path, trie_.getPath(trie_.getRoot(), codec_.keyToNibbles(key)));
-    std::list<std::pair<PolkadotTrieCursor::BranchPtr, int8_t>>
+    std::list<TriePathEntry>
         last_visited_child;
     for (auto &&[branch, idx] : path) {
-      last_visited_child.push_back({branch, idx});
+      last_visited_child.emplace_back(branch, idx);
     }
     return last_visited_child;
   }

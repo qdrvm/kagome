@@ -8,6 +8,7 @@
 #include <forward_list>
 
 #include "primitives/block_id.hpp"
+#include "runtime/wasm_result.hpp"
 #include "storage/changes_trie/impl/changes_trie.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -266,35 +267,23 @@ namespace kagome::extensions {
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
       runtime::WasmSpan key_span) const {
-    auto key_ptr = key_span & 0x0000'0000'FFFF'FFFF;
-    auto key_size = key_span & 0xFFFF'FFFF'0000'0000;
+    runtime::WasmSpan kErrorSpan = -1;
+
+    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
     auto key_bytes = memory_->loadN(key_ptr, key_size);
-    auto batch = storage_provider_->getCurrentBatch();
-    auto cursor = batch->cursor();
-    if (auto res = cursor->seek(key_bytes); res.has_error()) {
-      logger_->error("ext_storage_next_key seek failed: {}",
+    auto res = getStorageNextKey(key_bytes);
+    if (res.has_error()) {
+      logger_->error("ext_storage_next_key resulted with error: {}",
                      res.error().message());
-      return -1;
+      return kErrorSpan;
     }
-    if (auto res = cursor->next(); res.has_error()) {
-      logger_->error("ext_storage_next_key next failed: {}",
-                     res.error().message());
-      return -1;
-    }
-    if (cursor->isValid()) {
-      Buffer key;
-      if (auto res = cursor->key(); res.has_error()) {
-        logger_->error("ext_storage_next_key get key failed: {}",
-                       res.error().message());
-        return -1;
-      } else {
-        key = std::move(res.value());
-      }
-      auto res = memory_->allocate(key.size());
-      memory_->storeBuffer(res, key);
-      runtime::WasmSpan res_span =
-          (uint64_t(key_size) << 32) | uint64_t(key_ptr);
-      return res_span;
+    auto&& key_opt = res.value();
+    if(auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
+      return memory_->storeBuffer(enc_res.value());
+    } else {
+      logger_->error("ext_storage_next_key result encoding resulted with error: {}",
+                     enc_res.error().message());
+      return kErrorSpan;
     }
   }
 
@@ -310,5 +299,22 @@ namespace kagome::extensions {
 
     return common::Buffer(std::vector<uint8_t>(
         data.begin() + offset, data.begin() + offset + data_length));
+  }
+
+  outcome::result<boost::optional<runtime::WasmSpan>>
+  StorageExtension::getStorageNextKey(const common::Buffer &key) const {
+    auto batch = storage_provider_->getCurrentBatch();
+    auto cursor = batch->cursor();
+    OUTCOME_TRY(cursor->seek(key));
+    OUTCOME_TRY(cursor->next());
+    if (cursor->isValid()) {
+      OUTCOME_TRY(key, cursor->key());
+      auto res_ptr = memory_->allocate(key.size());
+      memory_->storeBuffer(res_ptr, key);
+      return boost::make_optional(runtime::WasmResult{
+          res_ptr, static_cast<runtime::WasmSize>(key.size())}
+                                      .combine());
+    }
+    return boost::none;
   }
 }  // namespace kagome::extensions
