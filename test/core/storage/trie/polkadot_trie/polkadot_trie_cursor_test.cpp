@@ -10,9 +10,9 @@
 #include <gtest/gtest.h>
 
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
-#include "testutil/storage/polkadot_trie_printer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/storage/polkadot_trie_printer.hpp"
 
 using kagome::common::Buffer;
 using kagome::storage::trie::PolkadotTrie;
@@ -22,6 +22,11 @@ using kagome::storage::trie::operator<<;
 
 class PolkadotTrieCursorTest : public testing::Test {};
 
+// The default values for arguments are somewhat randomly chosen,
+// they totally depend on what you want to test.
+// More alphabet size ~ more branching
+// Longer keys ~ longer keys (increases branching, too, if alphabet size is big
+// enough, and can be used for performance testing
 std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
     size_t keys_num,
     size_t max_key_length = 32,
@@ -131,23 +136,23 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
 }
 
 TEST_F(PolkadotTrieCursorTest, Lexicographical) {
-  std::vector<std::pair<Buffer, Buffer>> vals{{"0102"_hex2buf, "0102"_hex2buf},
-                                              {"0103"_hex2buf, "0103"_hex2buf},
-                                              {"010304"_hex2buf, "010304"_hex2buf},
-                                              {"05"_hex2buf, "05"_hex2buf},
-                                              {"06"_hex2buf, "06"_hex2buf},
-                                              {"0607"_hex2buf, "0607"_hex2buf},
-                                              {"060708"_hex2buf, "060708"_hex2buf},
-                                              {"06070801"_hex2buf, "06070801"_hex2buf},
-                                              {"06070802"_hex2buf, "06070802"_hex2buf},
-                                              {"06070803"_hex2buf, "06070803"_hex2buf}
-  };
+  std::vector<std::pair<Buffer, Buffer>> vals{
+      {"0102"_hex2buf, "0102"_hex2buf},
+      {"0103"_hex2buf, "0103"_hex2buf},
+      {"010304"_hex2buf, "010304"_hex2buf},
+      {"05"_hex2buf, "05"_hex2buf},
+      {"06"_hex2buf, "06"_hex2buf},
+      {"0607"_hex2buf, "0607"_hex2buf},
+      {"060708"_hex2buf, "060708"_hex2buf},
+      {"06070801"_hex2buf, "06070801"_hex2buf},
+      {"06070802"_hex2buf, "06070802"_hex2buf},
+      {"06070803"_hex2buf, "06070803"_hex2buf}};
   auto trie = makeTrie(vals);
   std::cout << *trie;
   auto c = trie->cursor();
   EXPECT_OUTCOME_FALSE_1(c->seek("f"_buf));
   EXPECT_OUTCOME_TRUE_1(c->seek("06"_hex2buf));
-  Buffer prev_key {0};
+  Buffer prev_key{0};
   do {
     EXPECT_OUTCOME_TRUE(key, c->key());
     ASSERT_LT(prev_key, key);
