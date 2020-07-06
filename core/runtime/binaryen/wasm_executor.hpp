@@ -6,10 +6,9 @@
 #ifndef KAGOME_CORE_RUNTIME_WASM_EXECUTOR_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_WASM_EXECUTOR_IMPL_HPP
 
-#include <binaryen/wasm-interpreter.h>
-
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
+#include "runtime/binaryen/module/wasm_module.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -25,9 +24,9 @@ namespace kagome::runtime::binaryen {
 
     WasmExecutor();
 
-    outcome::result<wasm::Literal> call(wasm::ModuleInstance &module_instance,
+    outcome::result<wasm::Literal> call(WasmModule &module_instance,
                                         wasm::Name method_name,
-                                        const wasm::LiteralList &args);
+                                        const std::vector<wasm::Literal> &args);
 
    private:
     common::Logger logger_;

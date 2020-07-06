@@ -6,18 +6,18 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_RUNTIME_MANAGER
 #define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_RUNTIME_MANAGER
 
-#include <binaryen/wasm-interpreter.h>
-
 #include "common/blob.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
 #include "extensions/extension_factory.hpp"
 #include "outcome/outcome.hpp"
+#include "runtime/binaryen/module/wasm_module.hpp"
+#include "runtime/binaryen/module/wasm_module_factory.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
+#include "runtime/trie_storage_provider.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
-#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -28,7 +28,7 @@ namespace kagome::runtime::binaryen {
    */
   class RuntimeManager {
    public:
-    enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
+    enum class Error { EMPTY_STATE_CODE = 1 };
 
     RuntimeManager(
         std::shared_ptr<WasmProvider> wasm_provider,
@@ -37,7 +37,7 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<crypto::Hasher> hasher);
 
     struct RuntimeEnvironment {
-      std::shared_ptr<wasm::ModuleInstance> module;
+      std::shared_ptr<WasmModule> module;
       std::shared_ptr<WasmMemory> memory;
       boost::optional<std::shared_ptr<storage::trie::TopperTrieBatch>>
           batch;  // in persistent environments all changes of a call must be
@@ -61,21 +61,19 @@ namespace kagome::runtime::binaryen {
    private:
     outcome::result<RuntimeEnvironment> createRuntimeEnvironment();
 
-    outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
-        const common::Buffer &state_code);
-
     common::Logger logger_ = common::createLogger("Runtime manager");
 
     std::shared_ptr<runtime::WasmProvider> wasm_provider_;
     std::shared_ptr<TrieStorageProvider> storage_provider_;
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
+    std::shared_ptr<WasmModuleFactory> module_factory_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
     // hash of WASM state code
     common::Hash256 state_code_hash_{};
 
     std::mutex modules_mutex_;
-    std::map<common::Hash256, std::shared_ptr<wasm::Module>> modules_;
+    std::map<common::Hash256, std::shared_ptr<WasmModule>> modules_;
 
     static thread_local std::shared_ptr<RuntimeExternalInterface>
         external_interface_;
