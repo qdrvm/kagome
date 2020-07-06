@@ -102,25 +102,19 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
   ASSERT_FALSE(cursor.isValid());
 }
 
-TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrie) {
-  auto &&[trie, keys] = generateRandomTrie(100, 8, 32);
-  const auto cursor = trie->cursor();
-  EXPECT_OUTCOME_TRUE_1(cursor->next());
-  while (cursor->isValid()) {
-    EXPECT_OUTCOME_TRUE(key, cursor->key());
-    EXPECT_OUTCOME_TRUE(value, cursor->value());
-    ASSERT_EQ(key, value);
-    ASSERT_TRUE(keys.find(key) != keys.end());
-    keys.erase(key);
-    EXPECT_OUTCOME_TRUE_1(cursor->next());
-  }
-  EXPECT_TRUE(keys.empty());
-}
-
+/**
+ * Stress-test for the trie cursor
+ * @given a generated big tree (using a pseudo-random generator to avoid a
+ * floating test)
+ * @when traversing using a cursor it from every key
+ * @then every key lexicographically bigger than current is visited once
+ */
 TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
   auto &&[trie, keys] = generateRandomTrie(100, 8, 32);
   const auto cursor = trie->cursor();
   EXPECT_OUTCOME_TRUE_1(cursor->next());
+  size_t keys_behind =
+      0;  // number of keys lexicographically lesser than current
   for (auto start_key : keys) {
     EXPECT_OUTCOME_TRUE_1(cursor->seek(start_key));
     auto keys_copy = std::set<Buffer>(keys);
@@ -132,9 +126,17 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
       keys_copy.erase(key);
       EXPECT_OUTCOME_TRUE_1(cursor->next());
     }
+    ASSERT_EQ(keys_copy.size(),
+              keys_behind++);  // unvisited keys are those already visited when
+                               // starting from lesser keys
   }
 }
 
+/**
+ * @given a trie
+ * @when traversing it with a cursor
+ * @then it visits keys in lexicographical order
+ */
 TEST_F(PolkadotTrieCursorTest, Lexicographical) {
   std::vector<std::pair<Buffer, Buffer>> vals{
       {"0102"_hex2buf, "0102"_hex2buf},
@@ -148,7 +150,6 @@ TEST_F(PolkadotTrieCursorTest, Lexicographical) {
       {"06070802"_hex2buf, "06070802"_hex2buf},
       {"06070803"_hex2buf, "06070803"_hex2buf}};
   auto trie = makeTrie(vals);
-  std::cout << *trie;
   auto c = trie->cursor();
   EXPECT_OUTCOME_FALSE_1(c->seek("f"_buf));
   EXPECT_OUTCOME_TRUE_1(c->seek("06"_hex2buf));
@@ -157,7 +158,6 @@ TEST_F(PolkadotTrieCursorTest, Lexicographical) {
     EXPECT_OUTCOME_TRUE(key, c->key());
     ASSERT_LT(prev_key, key);
     prev_key = key;
-    std::cout << key.toHex() << "\n";
     EXPECT_OUTCOME_TRUE_1(c->next());
   } while (c->isValid());
 }

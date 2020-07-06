@@ -90,7 +90,7 @@ namespace kagome::storage::trie {
         for (int8_t i = branch->kMaxChildren - 1; i >= 0; i--) {
           if (branch->children.at(i) != nullptr) {
             OUTCOME_TRY(c, trie_.retrieveChild(branch, i));
-            last_visited_child_.push_back({branch, i});
+            last_visited_child_.emplace_back(branch, i);
             current = c;
           }
         }
