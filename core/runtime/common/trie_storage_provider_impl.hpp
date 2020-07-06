@@ -18,7 +18,7 @@ namespace kagome::runtime {
     explicit TrieStorageProviderImpl(
         std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
-    virtual ~TrieStorageProviderImpl() = default;
+    ~TrieStorageProviderImpl() override = default;
 
     outcome::result<void> setToEphemeral() override;
     outcome::result<void> setToEphemeralAt(

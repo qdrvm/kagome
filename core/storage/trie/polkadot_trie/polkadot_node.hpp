@@ -19,11 +19,11 @@ namespace kagome::storage::trie {
 
     explicit KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
     KeyNibbles(std::initializer_list<uint8_t> b)
-        : Buffer{std::move(b)} {}
+        : Buffer{b} {}
 
     KeyNibbles &operator=(common::Buffer b) {
       clear();
-      put(std::move(b));
+      putBuffer(std::move(b));
       return *this;
     }
 

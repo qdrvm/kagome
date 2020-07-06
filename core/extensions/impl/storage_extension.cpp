@@ -283,8 +283,8 @@ namespace kagome::extensions {
     } else {
       logger_->error("ext_storage_next_key result encoding resulted with error: {}",
                      enc_res.error().message());
-      return kErrorSpan;
     }
+    return kErrorSpan;
   }
 
   outcome::result<common::Buffer> StorageExtension::get(

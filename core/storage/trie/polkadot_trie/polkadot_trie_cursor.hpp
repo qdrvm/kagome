@@ -35,7 +35,7 @@ namespace kagome::storage::trie {
     ~PolkadotTrieCursor() override = default;
 
     static outcome::result<std::unique_ptr<PolkadotTrieCursor>> createAt(
-        common::Buffer key, const PolkadotTrie &trie);
+        const common::Buffer &key, const PolkadotTrie &trie);
 
     outcome::result<void> seekToFirst() override;
     outcome::result<void> seek(const common::Buffer &key) override;
@@ -48,10 +48,10 @@ namespace kagome::storage::trie {
 
    private:
     static int8_t getNextChildIdx(const BranchPtr &parent, uint8_t child_idx);
-    static int8_t hasNextChild(const BranchPtr &parent, uint8_t child_idx);
+    static bool hasNextChild(const BranchPtr &parent, uint8_t child_idx);
 
     static int8_t getPrevChildIdx(const BranchPtr &parent, uint8_t child_idx);
-    static int8_t hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
+    static bool hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
 
     // will either put a new entry or update the top entry (in case that parent
     // in the top entry is the same as \param parent
@@ -62,8 +62,8 @@ namespace kagome::storage::trie {
      * index of its child which is the next node in the path
      */
     struct TriePathEntry {
-      TriePathEntry(BranchPtr parent, int8_t child_idx):
-      parent {std::move(parent)}, child_idx {child_idx} {}
+      TriePathEntry(BranchPtr parent, int8_t child_idx)
+          : parent{std::move(parent)}, child_idx{child_idx} {}
       BranchPtr parent;
       int8_t child_idx;
     };
