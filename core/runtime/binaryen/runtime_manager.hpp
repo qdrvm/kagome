@@ -33,6 +33,7 @@ namespace kagome::runtime::binaryen {
     RuntimeManager(
         std::shared_ptr<WasmProvider> wasm_provider,
         std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+        std::shared_ptr<WasmModuleFactory> module_factory,
         std::shared_ptr<TrieStorageProvider> storage_provider,
         std::shared_ptr<crypto::Hasher> hasher);
 

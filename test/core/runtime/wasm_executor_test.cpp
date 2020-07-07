@@ -14,6 +14,7 @@
 #include "crypto/hasher/hasher_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -70,11 +71,15 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
             std::make_shared<ChangesTrackerMock>());
 
+    auto module_factory =
+        std::make_shared<kagome::runtime::binaryen::WasmModuleFactoryImpl>();
+
     auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
 
     runtime_manager_ =
         std::make_shared<RuntimeManager>(std::move(wasm_provider),
                                          std::move(extension_factory),
+                                         std::move(module_factory),
                                          storage_provider_,
                                          std::move(hasher));
 

@@ -23,20 +23,22 @@ target_link_libraries(binaryen_runtime_external_interface
     logger
     )
 
+add_library(binaryen_wasm_module
+    module/wasm_module_impl.cpp
+    module/wasm_module_factory_impl.cpp
+    )
+target_link_libraries(binaryen_wasm_module
+    binaryen::binaryen
+    logger
+    )
+
 add_library(binaryen_runtime_manager
     runtime_manager.hpp
     runtime_manager.cpp
     )
 target_link_libraries(binaryen_runtime_manager
     binaryen_runtime_external_interface
-    )
-
-add_library(binaryen_wasm_module
-    module/wasm_module_impl.cpp
-    )
-target_link_libraries(binaryen_wasm_module
-    binaryen::binaryen
-    logger
+    binaryen_wasm_module
     )
 
 add_library(binaryen_wasm_executor
@@ -52,6 +54,7 @@ target_link_libraries(binaryen_wasm_executor
 add_library(binaryen_runtime_api INTERFACE)
 target_link_libraries(binaryen_runtime_api INTERFACE
     binaryen_runtime_external_interface
+    binaryen_wasm_module
     )
 
 add_library(binaryen_core_api

@@ -10,7 +10,7 @@
 
 namespace kagome::runtime::binaryen {
 
-  class WasmModuleFactoryImpl final: public WasmModuleFactory {
+  class WasmModuleFactoryImpl final : public WasmModuleFactory {
    public:
     ~WasmModuleFactoryImpl() override = default;
 
@@ -19,6 +19,6 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<RuntimeExternalInterface> rei) const override;
   };
 
-}  // namespace kagome::
+}  // namespace kagome::runtime::binaryen
 
 #endif  // KAGOME_CORE_RUNTIME_BINARYEN_MODULE_WASM_MODULE_FACTORY_IMPL

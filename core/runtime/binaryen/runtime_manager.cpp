@@ -28,15 +28,18 @@ namespace kagome::runtime::binaryen {
   RuntimeManager::RuntimeManager(
       std::shared_ptr<runtime::WasmProvider> wasm_provider,
       std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+      std::shared_ptr<WasmModuleFactory> module_factory,
       std::shared_ptr<TrieStorageProvider> storage_provider,
       std::shared_ptr<crypto::Hasher> hasher)
       : wasm_provider_{std::move(wasm_provider)},
         storage_provider_{std::move(storage_provider)},
         extension_factory_{std::move(extension_factory)},
+        module_factory_{std::move(module_factory)},
         hasher_{std::move(hasher)} {
     BOOST_ASSERT(wasm_provider_);
     BOOST_ASSERT(storage_provider_);
     BOOST_ASSERT(extension_factory_);
+    BOOST_ASSERT(module_factory_);
     BOOST_ASSERT(hasher_);
   }
 
@@ -97,6 +100,9 @@ namespace kagome::runtime::binaryen {
       }
     }
 
+    external_interface_ = std::make_shared<RuntimeExternalInterface>(
+        extension_factory_, storage_provider_);
+
     if (!module) {
       // Prepare new module
       OUTCOME_TRY(
@@ -109,9 +115,6 @@ namespace kagome::runtime::binaryen {
       module = modules_.emplace(std::move(hash), std::move(new_module))
                    .first->second;
     }
-
-    external_interface_ = std::make_shared<RuntimeExternalInterface>(
-        extension_factory_, storage_provider_);
 
     return RuntimeManager::RuntimeEnvironment{
         module, external_interface_->memory(), boost::none};
