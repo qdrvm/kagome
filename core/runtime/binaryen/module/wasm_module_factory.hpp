@@ -6,17 +6,25 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_MODULE_WASM_MODULE_FACTORY
 #define KAGOME_CORE_RUNTIME_BINARYEN_MODULE_WASM_MODULE_FACTORY
 
-#include "outcome/outcome.hpp"
 #include "common/buffer.hpp"
-#include "runtime/binaryen/runtime_external_interface.hpp"
+#include "outcome/outcome.hpp"
 #include "runtime/binaryen/module/wasm_module.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 
 namespace kagome::runtime::binaryen {
 
+  /**
+   * An abstract factory to produce WasmModules
+   */
   class WasmModuleFactory {
    public:
     virtual ~WasmModuleFactory() = default;
 
+    /**
+     * A module will be created with the provided \arg code and instantiated
+     * with \arg rei (runtime external interface)
+     * @return the module in case of success
+     */
     virtual outcome::result<std::unique_ptr<WasmModule>> createModule(
         const common::Buffer &code,
         std::shared_ptr<RuntimeExternalInterface> rei) const = 0;

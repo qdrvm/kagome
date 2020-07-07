@@ -18,6 +18,10 @@ namespace wasm {
 
 namespace kagome::runtime::binaryen {
 
+  /**
+   * Stores a wasm::Module and a wasm::Module instance which contains the module
+   * and the provided runtime external interface
+   */
   class WasmModuleImpl final : public WasmModule {
    public:
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
