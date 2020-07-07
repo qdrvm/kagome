@@ -4,8 +4,6 @@
 #
 
 add_library(hasher
-    hasher.hpp
-    hasher/hasher_impl.hpp
     hasher/hasher_impl.cpp
     )
 target_link_libraries(hasher
@@ -19,7 +17,6 @@ kagome_install(hasher)
 
 add_library(sr25519_types
     sr25519_types.cpp
-    sr25519_types.hpp
     )
 target_link_libraries(sr25519_types
     mp_utils
@@ -39,9 +36,7 @@ target_link_libraries(ed25519_types
 kagome_install(ed25519_types)
 
 add_library(vrf_provider
-    vrf_provider.hpp
     vrf/vrf_provider_impl.cpp
-    vrf/vrf_provider_impl.hpp
     )
 target_link_libraries(vrf_provider
     mp_utils
@@ -52,8 +47,6 @@ target_link_libraries(vrf_provider
     )
 
 add_library(sr25519_provider
-    sr25519_provider.hpp
-    sr25519/sr25519_provider_impl.hpp
     sr25519/sr25519_provider_impl.cpp
     )
 target_link_libraries(sr25519_provider
@@ -63,8 +56,6 @@ target_link_libraries(sr25519_provider
 kagome_install(sr25519_provider)
 
 add_library(ed25519_provider
-    ed25519_provider.hpp
-    ed25519/ed25519_provider_impl.hpp
     ed25519/ed25519_provider_impl.cpp
     )
 target_link_libraries(ed25519_provider
@@ -101,6 +92,7 @@ kagome_install(pbkdf2_provider)
 
 add_subdirectory(bip39)
 add_subdirectory(blake2)
+add_subdirectory(crypto_store)
 add_subdirectory(keccak)
 add_subdirectory(sha)
 add_subdirectory(twox)
