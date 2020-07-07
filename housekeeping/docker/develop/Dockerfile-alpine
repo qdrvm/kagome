@@ -27,9 +27,9 @@ RUN \
 	pip install gitpython && \
     rm -r /root/.cache
 
-# ToDo should be fixed in library repo
+# ToDo should be fixed in library repo, this fix is work only for github action, you should change home dir
 # The imported target "sr25519::sr25519" references the file
-#     "/root/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a"
+#     "/github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a"
 #  but this file does not exist.  Possible reasons include:
-RUN mkdir -p /root/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib && \
- 	ln -s /root/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib64/libsr25519crust.a /root/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a
+RUN mkdir -p /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib && \
+ 	ln -s /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib64/libsr25519crust.a /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a

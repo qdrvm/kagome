@@ -12,7 +12,7 @@ env:
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   INDOCKER_IMAGE: soramitsu/kagome-dev:10
-  CACHE_VERSION: v01
+  CACHE_VERSION: v02
   CACHE_PATHS: |
     ~/Library/Caches/pip
     ~/.cargo
@@ -108,9 +108,9 @@ jobs:
       strategy:
         matrix:
           options:
-            - name: "Build Test"
+            - name: "Alpine: Build Test"
               run: ./housekeeping/makeBuild.sh
-            - name: "Build Release"
+            - name: "Alpine: Build Release"
               run: ./housekeeping/docker/release/makeRelease.sh
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
