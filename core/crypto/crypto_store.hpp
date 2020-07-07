@@ -51,19 +51,19 @@ namespace kagome::crypto {
      * @brief generates ED25519 keypair and stores it in memory
      * @param key_type key type identifier
      * @param seed seed for generating keys
-     * @return generated key pair or error
+     * @return generated key pair
      */
-    virtual outcome::result<ED25519Keypair> generateEd25519Keypair(
-        KeyTypeId key_type, const ED25519Seed &seed) = 0;
+    virtual ED25519Keypair generateEd25519Keypair(KeyTypeId key_type,
+                                                  const ED25519Seed &seed) = 0;
 
     /**
      * @brief generates SR25519 keypair and stores it in memory
      * @param key_type key type identifier
      * @param seed seed for generating keys
-     * @return generated key pair or error
+     * @return generated key
      */
-    virtual outcome::result<SR25519Keypair> generateSr25519Keypair(
-        KeyTypeId key_type, const SR25519Seed &seed) = 0;
+    virtual SR25519Keypair generateSr25519Keypair(KeyTypeId key_type,
+                                                  const SR25519Seed &seed) = 0;
 
     /**
      * @brief generates ED25519 keypair and stores it on disk

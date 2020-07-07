@@ -12,7 +12,7 @@
 #include <boost/assert.hpp>
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/bip39/mnemonic.hpp"
-#include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
@@ -283,13 +283,7 @@ namespace kagome::extensions {
       }
 
       auto &&key_pair = ed25519_provider_->generateKeypair(ed_seed.value());
-      if (!key_pair) {
-        logger_->error("failed to generate ed25519 key pair by seed: {}",
-                       key_pair.error().message());
-        BOOST_ASSERT_MSG(false, "failed to generate ed25519 key pair");
-        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
-      }
-      kp = key_pair.value();
+      kp = key_pair;
     } else {
       auto &&key_pair = ed25519_provider_->generateKeypair();
       if (!key_pair) {

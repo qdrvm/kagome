@@ -33,10 +33,9 @@ namespace kagome::crypto {
     /**
      * @brief generates key pair by seed
      * @param seed seed value
-     * @return ed25519 key pair if succeeded of error if failed
+     * @return ed25519 key pair
      */
-    virtual outcome::result<ED25519Keypair> generateKeypair(
-        const ED25519Seed &seed) const = 0;
+    virtual ED25519Keypair generateKeypair(const ED25519Seed &seed) const = 0;
 
     /**
      * Sign message \param msg using \param keypair. If computed value is less

@@ -101,12 +101,13 @@ namespace kagome::crypto {
       std::shared_ptr<Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<Bip39Provider> bip39_provider,
       std::shared_ptr<CSPRNG> random_generator)
-      : keys_directory_(),
+      : keys_directory_{},
         ed25519_provider_(std::move(ed25519_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         bip39_provider_(std::move(bip39_provider)),
-        random_generator_(std::move(random_generator)) {
+        random_generator_(std::move(random_generator)),
+        logger_(common::createLogger("CryptoStore")) {
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
@@ -143,7 +144,7 @@ namespace kagome::crypto {
     OUTCOME_TRY(ed_seed,
                 ED25519Seed::fromSpan(
                     gsl::make_span(seed).subspan(0, ED25519Seed::size())));
-    OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(ed_seed));
+    auto &&pair = ed25519_provider_->generateKeypair(ed_seed);
 
     ed_keys_[key_type].emplace(pair.public_key, pair.private_key);
 
@@ -169,14 +170,14 @@ namespace kagome::crypto {
     return pair;
   }
 
-  outcome::result<ED25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
+  ED25519Keypair CryptoStoreImpl::generateEd25519Keypair(
       KeyTypeId key_type, const ED25519Seed &seed) {
-    OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(seed));
+    auto &&pair = ed25519_provider_->generateKeypair(seed);
     ed_keys_[key_type].emplace(pair.public_key, pair.private_key);
     return pair;
   }
 
-  outcome::result<SR25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
+  SR25519Keypair CryptoStoreImpl::generateSr25519Keypair(
       KeyTypeId key_type, const SR25519Seed &seed) {
     auto &&pair = sr25519_provider_->generateKeypair(seed);
     sr_keys_[key_type].emplace(pair.public_key, pair.secret_key);
@@ -189,7 +190,7 @@ namespace kagome::crypto {
     auto &&bytes = random_generator_->randomBytes(ED25519Seed::size());
     std::copy_n(bytes.begin(), ED25519Seed::size(), seed.begin());
 
-    OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(seed));
+    auto &&pair = ed25519_provider_->generateKeypair(seed);
     OUTCOME_TRY(storeKeyfile(key_type, pair.public_key, seed));
 
     return pair;
@@ -271,7 +272,7 @@ namespace kagome::crypto {
       if (id == key_type && keys.count(pk) == 0) {
         OUTCOME_TRY(content, loadFile(it->path()));
         OUTCOME_TRY(seed, ED25519Seed::fromHex(content));
-        OUTCOME_TRY(pair, ed25519_provider_->generateKeypair(seed));
+        auto &&pair = ed25519_provider_->generateKeypair(seed);
         if (pair.public_key == pk) {
           keys.emplace(pk);
         }
