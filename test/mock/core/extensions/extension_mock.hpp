@@ -12,7 +12,7 @@
 
 namespace kagome::extensions {
 
-  class MockExtension : public Extension {
+  class ExtensionMock : public Extension {
    public:
     MOCK_CONST_METHOD0(memory, std::shared_ptr<runtime::WasmMemory>());
     MOCK_METHOD2(ext_clear_prefix,

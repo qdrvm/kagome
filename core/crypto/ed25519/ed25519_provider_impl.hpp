@@ -16,6 +16,9 @@ namespace kagome::crypto {
 
     outcome::result<ED25519Keypair> generateKeypair() const override;
 
+    outcome::result<ED25519Keypair> generateKeypair(
+        const ED25519Seed &seed) const override;
+
     outcome::result<kagome::crypto::ED25519Signature> sign(
         const ED25519Keypair &keypair,
         gsl::span<uint8_t> message) const override;

@@ -459,12 +459,12 @@ namespace kagome::injector {
 
     auto &current_peer_info =
         injector.template create<network::OwnPeerInfo &>();
-    for (const auto &peer_info : peer_infos) {
+    for (auto &peer_info : peer_infos) {
       spdlog::debug("Added peer with id: {}", peer_info.id.toBase58());
       if (peer_info.id != current_peer_info.id) {
         res->clients.emplace_back(
             std::make_shared<network::RemoteSyncProtocolClient>(*host,
-                                                                peer_info));
+                                                                std::move(peer_info)));
       } else {
         res->clients.emplace_back(
             std::make_shared<network::DummySyncProtocolClient>());

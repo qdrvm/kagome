@@ -44,7 +44,7 @@ namespace kagome::runtime::binaryen {
 
    private:
     // as it has a deduced return type, must be defined before execute()
-    auto getRuntimeEnvironment(
+    auto createRuntimeEnvironment(
         CallPersistency persistency,
         const boost::optional<common::Hash256> &state_root_opt) {
       if (state_root_opt.has_value()) {
@@ -128,8 +128,8 @@ namespace kagome::runtime::binaryen {
         logger_->debug("Resetting state to: {}", state_root.value().toHex());
       }
 
-      auto environment = getRuntimeEnvironment(persistency, state_root);
-      auto &&[module, memory] = environment;
+      auto environment = createRuntimeEnvironment(persistency, state_root);
+      auto &&[module, memory, opt_batch] = environment;
 
       runtime::WasmPointer ptr = 0u;
       runtime::WasmSize len = 0u;
@@ -155,6 +155,9 @@ namespace kagome::runtime::binaryen {
         return scale::decode<R>(std::move(buffer));
       }
 
+      if(opt_batch) {
+        OUTCOME_TRY(opt_batch.value()->writeBack());
+      }
       return outcome::success();
     }
     std::shared_ptr<RuntimeManager> runtime_manager_;

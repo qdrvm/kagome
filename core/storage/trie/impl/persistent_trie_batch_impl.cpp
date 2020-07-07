@@ -7,6 +7,8 @@
 
 #include "scale/scale.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
 namespace kagome::storage::trie {
 
@@ -35,7 +37,7 @@ namespace kagome::storage::trie {
     if (changes_) {
       changes_.value()->setExtrinsicIdxGetter(
           [this]() -> outcome::result<Buffer> {
-            auto res = get(EXTRINSIC_INDEX_KEY);
+            auto res = trie_->get(EXTRINSIC_INDEX_KEY);
             if (res.has_error() and res.error() == TrieError::NO_VALUE) {
               return NO_EXTRINSIC_INDEX_VALUE;
             }
@@ -47,12 +49,20 @@ namespace kagome::storage::trie {
   outcome::result<Buffer> PersistentTrieBatchImpl::commit() {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
     root_changed_handler_(root);
-    return root;
+    return std::move(root);
+  }
+
+  std::unique_ptr<TopperTrieBatch> PersistentTrieBatchImpl::batchOnTop() {
+    return std::make_unique<TopperTrieBatchImpl>(shared_from_this());
   }
 
   outcome::result<Buffer> PersistentTrieBatchImpl::get(
       const Buffer &key) const {
     return trie_->get(key);
+  }
+
+  std::unique_ptr<BufferMapCursor> PersistentTrieBatchImpl::cursor() {
+    return std::make_unique<PolkadotTrieCursor>(*trie_);
   }
 
   bool PersistentTrieBatchImpl::contains(const Buffer &key) const {
@@ -61,12 +71,6 @@ namespace kagome::storage::trie {
 
   bool PersistentTrieBatchImpl::empty() const {
     return trie_->empty();
-  }
-
-
-  outcome::result<Buffer> PersistentTrieBatchImpl::calculateRoot() const {
-    OUTCOME_TRY(enc, codec_->encodeNode(*trie_->getRoot()));
-    return Buffer{codec_->hash256(enc)};
   }
 
   outcome::result<void> PersistentTrieBatchImpl::clearPrefix(
