@@ -12,9 +12,9 @@
 
 namespace kagome::network {
   RemoteSyncProtocolClient::RemoteSyncProtocolClient(
-      libp2p::Host &host, const libp2p::peer::PeerInfo &peer_info)
+      libp2p::Host &host, libp2p::peer::PeerInfo peer_info)
       : host_{host},
-        peer_info_{peer_info},
+        peer_info_{std::move(peer_info)},
         log_(common::createLogger("RemoteSyncProtocolClient")) {}
 
   void RemoteSyncProtocolClient::requestBlocks(
