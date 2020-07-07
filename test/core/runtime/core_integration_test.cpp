@@ -51,7 +51,7 @@ class CoreTest : public RuntimeTest {
  * @then successful result is returned
  */
 TEST_F(CoreTest, VersionTest) {
-  ASSERT_TRUE(core_->version());
+  ASSERT_TRUE(core_->version(boost::none));
 }
 
 /**
