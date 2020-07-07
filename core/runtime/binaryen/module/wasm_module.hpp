@@ -16,9 +16,10 @@ namespace kagome::runtime::binaryen {
     virtual ~WasmModule() = default;
 
     virtual wasm::Literal callExport(
-        wasm::Name name, const std::vector<wasm::Literal> &arguments) = 0;
+        wasm::Name name,
+        const std::vector<wasm::Literal> &arguments) = 0;
   };
 
-}
+}  // namespace kagome::runtime::binaryen
 
 #endif  // KAGOME_CORE_RUNTIME_BINARYEN_WASM_MODULE

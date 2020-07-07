@@ -11,7 +11,7 @@
 #include "wasm_module.hpp"
 
 namespace wasm {
-  using namespace ::wasm;
+  using namespace ::wasm;  // NOLINT(google-build-using-namespace)
   class Module;
   class ModuleInstance;
 }  // namespace wasm
@@ -23,7 +23,8 @@ namespace kagome::runtime::binaryen {
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
 
     static outcome::result<std::unique_ptr<WasmModuleImpl>> createFromCode(
-        const common::Buffer &code, std::shared_ptr<RuntimeExternalInterface> rei);
+        const common::Buffer &code,
+        const std::shared_ptr<RuntimeExternalInterface> &rei);
 
     wasm::Literal callExport(
         wasm::Name name, const std::vector<wasm::Literal> &arguments) override;
@@ -36,7 +37,6 @@ namespace kagome::runtime::binaryen {
     std::unique_ptr<wasm::Module> module_;
     std::unique_ptr<wasm::ModuleInstance> module_instance_;
   };
-
 
 }  // namespace kagome::runtime::binaryen
 

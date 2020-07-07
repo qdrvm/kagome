@@ -112,7 +112,7 @@ namespace kagome::runtime::binaryen {
       // Trying to safe emplace new module, and use existed one
       //  if it already emplaced in another thread
       std::lock_guard lockGuard(modules_mutex_);
-      module = modules_.emplace(std::move(hash), std::move(new_module))
+      module = modules_.emplace(hash, std::move(new_module))
                    .first->second;
     }
 
