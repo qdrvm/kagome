@@ -267,7 +267,7 @@ namespace kagome::extensions {
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
       runtime::WasmSpan key_span) const {
-    runtime::WasmSpan kErrorSpan = -1;
+    static constexpr runtime::WasmSpan kErrorSpan = -1;
 
     auto [key_ptr, key_size] = runtime::WasmResult(key_span);
     auto key_bytes = memory_->loadN(key_ptr, key_size);
@@ -280,7 +280,7 @@ namespace kagome::extensions {
     auto&& key_opt = res.value();
     if(auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
-    } else {
+    } else { // NOLINT(readability-else-after-return)
       logger_->error("ext_storage_next_key result encoding resulted with error: {}",
                      enc_res.error().message());
     }

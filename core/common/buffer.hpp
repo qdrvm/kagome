@@ -170,7 +170,6 @@ namespace kagome::common {
      * @return this buffer suitable for chaining.
      */
     Buffer &putBuffer(const Buffer &buf);
-    Buffer &putBuffer(Buffer &&buf);
 
     /**
      * Clear the contents of the Buffer

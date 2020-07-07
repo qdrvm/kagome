@@ -22,8 +22,7 @@ namespace kagome::storage::trie {
         : Buffer{b} {}
 
     KeyNibbles &operator=(common::Buffer b) {
-      clear();
-      putBuffer(std::move(b));
+      Buffer::operator=(std::move(b));
       return *this;
     }
 

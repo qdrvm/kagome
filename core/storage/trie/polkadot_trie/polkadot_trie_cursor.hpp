@@ -26,7 +26,7 @@ namespace kagome::storage::trie {
           1,  // operation cannot be performed for cursor position is not valid
       // due to an error, reaching the end or not calling next() after
       // initialization
-      NOT_FOUND,  // the seeked value is not found
+      NOT_FOUND,  // the sought value is not found
       NULL_ROOT,  // the root of the supplied trie is null
       METHOD_NOT_IMPLEMENTED
     };

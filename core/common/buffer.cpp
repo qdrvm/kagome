@@ -139,10 +139,6 @@ namespace kagome::common {
     return put(buf.toVector());
   }
 
-  Buffer &Buffer::putBuffer(Buffer &&buf) {
-    return put(std::move(buf.toVector()));
-  }
-
   void Buffer::clear() {
     data_.clear();
   }
