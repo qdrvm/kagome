@@ -36,26 +36,28 @@ namespace kagome::extensions {
     switch (level) {
       case WasmLogLevel::WasmLL_Error:
         logger_->error(
-            "target: {}\n\tmessage: {}", level, target_str, message_str);
+            "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       case WasmLogLevel::WasmLL_Warn:
         logger_->warn(
-            "target: {}\n\tmessage: {}", level, target_str, message_str);
+            "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       case WasmLogLevel::WasmLL_Info:
         logger_->info(
-            "target: {}\n\tmessage: {}", level, target_str, message_str);
+            "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       case WasmLogLevel::WasmLL_Debug:
         logger_->debug(
-            "target: {}\n\tmessage: {}", level, target_str, message_str);
+            "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       case WasmLogLevel::WasmLL_Trace:
         logger_->trace(
-            "target: {}\n\tmessage: {}", level, target_str, message_str);
+            "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       default: {
         assert(false);
+        logger_->error(
+            "Message with incorrect log level. Target: {}\n\tmessage: {}", target_str, message_str);
       } break;
     }
   }

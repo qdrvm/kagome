@@ -93,7 +93,7 @@ TEST_F(IOExtensionTest, PrintNum) {
 TEST_F(IOExtensionTest, PrintUTF8) {
   WasmPointer data = 0;
   WasmSize size = utf8_bytes_.size();
-  std::string buf(&utf8_bytes_.front(), &utf8_bytes_.back());
+  std::string buf(utf8_bytes_.begin(), utf8_bytes_.end());
 
   EXPECT_CALL(*memory_, loadStr(data, size)).WillOnce(Return(buf));
   io_extension_->ext_print_utf8(data, size);
