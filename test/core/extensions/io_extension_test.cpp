@@ -10,7 +10,7 @@
 #include <gtest/gtest.h>
 #include "core/runtime/mock_memory.hpp"
 #include "testutil/literals.hpp"
-#include <runtime/wasm_result.hpp>
+#include "runtime/wasm_result.hpp"
 
 using namespace kagome::extensions;
 using ::testing::Return;

@@ -152,8 +152,9 @@ namespace kagome::extensions {
 
     /**
      * Print a log message
-     * @param data - pointer to an array of bytes with hex
-     * @param length of the array
+     * @param level - log level of the message
+     * @param target pointer-size value of the message source
+     * @param message pointer-size value of the message content
      */
     virtual void ext_logging_log_version_1(
         runtime::WasmEnum level,
