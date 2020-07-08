@@ -113,6 +113,8 @@ class CryptoExtensionTest : public ::testing::Test {
     scale_encoded_secp_compressed_public_key
         .putUint8(0)  // 0 means 0-th index in <Value, Error> variant type
         .put(tmp2);   // value
+
+    secp_error_result.putUint8(1).putUint8(2);
   }
 
  protected:
@@ -157,6 +159,7 @@ class CryptoExtensionTest : public ::testing::Test {
   Buffer secp_message_vector{
       "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_hex2buf};
   MessageHash secp_message_hash{};
+  Buffer secp_error_result{};
 
   RSVSignature secp_signature{};
   ExpandedPublicKey secp_uncompressed_public_key{};
@@ -377,7 +380,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
  * @when call recovery public secp256k1 uncompressed key
  * @then resulting public key is correct
  */
-TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
+TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedSuccess) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
   WasmSpan res = WasmResult(20, 20).combine();
@@ -393,6 +396,34 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(
                   scale_encoded_secp_uncompressed_public_key)))
+      .WillOnce(Return(res));
+
+  auto ptrsize = crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
+  ASSERT_EQ(ptrsize, res);
+}
+
+/**
+ * @given initialized crypto extensions
+ * @and a damaged secp256k1 signature and message
+ * @when call recovery public secp256k1 uncompressed key
+ * @then error code is returned
+ */
+TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedFailure) {
+  WasmPointer sig = 1;
+  WasmPointer msg = 10;
+  WasmSpan res = WasmResult(20, 20).combine();
+  auto &sig_input = secp_signature;
+  auto &msg_input = secp_message_hash;
+  auto sig_buffer = Buffer(sig_input);
+  sig_buffer[4] = 0;  // damage signature
+  EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
+      .WillOnce(Return(sig_buffer));
+
+  EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
+      .WillOnce(Return(Buffer(msg_input)));
+
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(secp_error_result)))
       .WillOnce(Return(res));
 
   auto ptrsize = crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
@@ -420,6 +451,36 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(
                   scale_encoded_secp_compressed_public_key)))
+      .WillOnce(Return(res));
+
+  auto ptrsize =
+      crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig, msg);
+  ASSERT_EQ(ptrsize, res);
+}
+
+/**
+ * @given initialized crypto extensions
+ * @and a damaged secp256k1 signature and message
+ * @when call recovery public secp256k1 compressed key
+ * @then error code is returned
+ */
+TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
+  WasmPointer sig = 1;
+  WasmPointer msg = 10;
+  WasmSpan res = WasmResult(20, 20).combine();
+  auto &sig_input = secp_signature;
+  auto &msg_input = secp_message_hash;
+  Buffer sig_buffer(sig_input);
+  sig_buffer[4] = 0;  // damage signature
+
+  EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
+      .WillOnce(Return(sig_buffer));
+
+  EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
+      .WillOnce(Return(Buffer(msg_input)));
+
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(secp_error_result)))
       .WillOnce(Return(res));
 
   auto ptrsize =
