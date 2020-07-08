@@ -105,10 +105,14 @@ class CryptoExtensionTest : public ::testing::Test {
 
     EXPECT_OUTCOME_TRUE(tmp1,
                         kagome::scale::encode(secp_uncompressed_public_key));
-    scale_encoded_secp_uncompressed_public_key = Buffer(std::move(tmp1));
+    scale_encoded_secp_uncompressed_public_key
+        .putUint8(0)  // 0 means 0-th index in <Value, Error> variant type
+        .put(tmp1);   // value itself
     EXPECT_OUTCOME_TRUE(tmp2,
                         kagome::scale::encode(secp_compressed_pyblic_key));
-    scale_encoded_secp_compressed_public_key = Buffer(std::move(tmp2));
+    scale_encoded_secp_compressed_public_key
+        .putUint8(0)  // 0 means 0-th index in <Value, Error> variant type
+        .put(tmp2);   // value
   }
 
  protected:
@@ -144,14 +148,14 @@ class CryptoExtensionTest : public ::testing::Test {
                         150, 129, 221, 191, 251, 33,  226, 149, 136, 6,  232,
                         81,  118, 200, 28,  69,  219, 120, 179, 208, 237};
 
-  std::vector<uint8_t> secp_public_key_bytes{
-      "04e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a0a2b2667f7e725ceea70c673093bf67663e0312623c8e091b13cf2c0f11ef652"_unhex};
-  std::vector<uint8_t> secp_public_key_compressed_bytes{
-      "02e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a"_unhex};
-  std::vector<uint8_t> secp_signature_bytes{
-      "90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301"_unhex};
-  std::vector<uint8_t> secp_message_vector{
-      "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_unhex};
+  Buffer secp_public_key_bytes{
+      "04e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a0a2b2667f7e725ceea70c673093bf67663e0312623c8e091b13cf2c0f11ef652"_hex2buf};
+  Buffer secp_public_key_compressed_bytes{
+      "02e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a"_hex2buf};
+  Buffer secp_signature_bytes{
+      "90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301"_hex2buf};
+  Buffer secp_message_vector{
+      "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_hex2buf};
   MessageHash secp_message_hash{};
 
   RSVSignature secp_signature{};
@@ -373,7 +377,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
  * @when call recovery public secp256k1 uncompressed key
  * @then resulting public key is correct
  */
-TEST_F(CryptoExtensionTest, DISABLED_Secp256k1RecoverUncompressed) {
+TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
   WasmSpan res = WasmResult(20, 20).combine();
@@ -400,7 +404,7 @@ TEST_F(CryptoExtensionTest, DISABLED_Secp256k1RecoverUncompressed) {
  * @when call recovery public secp256k1 compressed key
  * @then resulting public key is correct
  */
-TEST_F(CryptoExtensionTest, DISABLED_Secp256k1RecoverCompressed) {
+TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
   WasmSpan res = WasmResult(20, 20).combine();
