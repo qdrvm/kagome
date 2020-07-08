@@ -14,6 +14,9 @@ using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CSPRNG;
 using kagome::crypto::SR25519Provider;
 using kagome::crypto::SR25519ProviderImpl;
+using kagome::crypto::SR25519PublicKey;
+using kagome::crypto::SR25519SecretKey;
+using kagome::crypto::SR25519Seed;
 
 struct SR25519ProviderTest : public ::testing::Test {
   void SetUp() override {
@@ -26,7 +29,18 @@ struct SR25519ProviderTest : public ::testing::Test {
     for (auto c : m) {
       message.push_back(c);
     }
+
+    hex_seed =
+        "31102468cbd502d177793fa523685b248f6bd083d67f76671e0b86d7fa20c030";
+    hex_sk =
+        "e5aff1a7d9694f2c0505f41ca68d51093d4f9f897aaa3ec4116b80393690010bbb5ee"
+        "1ea15ca731e60cd92b0765cf00675bb7eeabc04e531629988cd90e53ad6";
+    hex_vk = "6221d74b4c2168d0f73f97589900d2c6bdcdf3a8d54c3c92adc9e7650fbff251";
   }
+
+  std::string_view hex_seed;
+  std::string_view hex_sk;
+  std::string_view hex_vk;
 
   gsl::span<uint8_t> message_span;
   std::vector<uint8_t> message;
@@ -115,4 +129,22 @@ TEST_F(SR25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
   kp.public_key.fill(1);
   EXPECT_OUTCOME_FALSE_1(
       sr25519_provider->verify(signature, message_span, kp.public_key));
+}
+
+/**
+ * @given seed value
+ * @when generate key pair by seed
+ * @then verifying and secret keys come up with predefined values
+ */
+TEST_F(SR25519ProviderTest, GenerateBySeedSuccess) {
+  EXPECT_OUTCOME_TRUE(seed, SR25519Seed::fromHex(hex_seed));
+  EXPECT_OUTCOME_TRUE(public_key, SR25519PublicKey::fromHex(hex_vk));
+
+  // private key is the same as seed
+  EXPECT_OUTCOME_TRUE(secret_key, SR25519SecretKey::fromHex(hex_sk));
+
+  auto &&kp = sr25519_provider->generateKeypair(seed);
+
+  ASSERT_EQ(kp.secret_key, secret_key);
+  ASSERT_EQ(kp.public_key, public_key);
 }
