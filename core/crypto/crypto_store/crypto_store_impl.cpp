@@ -27,7 +27,7 @@ namespace kagome::crypto {
       return res;
     }
 
-    outcome::result<std::string> loadFile(
+    outcome::result<std::string> loadFileContent(
         const boost::filesystem::path &file_path) {
       if (!boost::filesystem::exists(file_path)) {
         return CryptoStoreError::FILE_DOESNT_EXIST;
@@ -101,8 +101,7 @@ namespace kagome::crypto {
       std::shared_ptr<Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<Bip39Provider> bip39_provider,
       std::shared_ptr<CSPRNG> random_generator)
-      : keys_directory_{},
-        ed25519_provider_(std::move(ed25519_provider)),
+      : ed25519_provider_(std::move(ed25519_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         bip39_provider_(std::move(bip39_provider)),
@@ -222,7 +221,7 @@ namespace kagome::crypto {
     if (!boost::filesystem::exists(path)) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
-    OUTCOME_TRY(content, loadFile(path));
+    OUTCOME_TRY(content, loadFileContent(path));
     OUTCOME_TRY(seed, ED25519Seed::fromHex(content));
 
     return ed25519_provider_->generateKeypair(seed);
@@ -242,7 +241,7 @@ namespace kagome::crypto {
     if (!boost::filesystem::exists(path)) {
       return CryptoStoreError::KEY_NOT_FOUND;
     }
-    OUTCOME_TRY(content, loadFile(path));
+    OUTCOME_TRY(content, loadFileContent(path));
     OUTCOME_TRY(seed, ED25519Seed::fromHex(content));
 
     return sr25519_provider_->generateKeypair(seed);
@@ -270,7 +269,7 @@ namespace kagome::crypto {
       }
       auto &[id, pk] = info.value();
       if (id == key_type && keys.count(pk) == 0) {
-        auto &&content = loadFile(it->path());
+        auto &&content = loadFileContent(it->path());
         if (!content) {
           logger_->error("failed to load keyfile {} : {}",
                          it->path().string(),
@@ -317,7 +316,7 @@ namespace kagome::crypto {
       }
       auto &[id, pk] = info.value();
       if (id == key_type && keys.count(pk) == 0) {
-        auto &&content = loadFile(it->path());
+        auto &&content = loadFileContent(it->path());
         if (!content) {
           logger_->error("failed to load keyfile {} : {}",
                          it->path().string(),
