@@ -6,6 +6,7 @@
 #include "api/service/state/state_jrpc_processor.hpp"
 
 #include "api/jrpc/jrpc_method.hpp"
+#include "api/service/state/requests/get_runtime_version.hpp"
 #include "api/service/state/requests/get_storage.hpp"
 
 namespace kagome::api::state {
@@ -23,6 +24,9 @@ namespace kagome::api::state {
   void StateJrpcProcessor::registerHandlers() {
     server_->registerHandler("state_getStorage",
                              Handler<request::GetStorage>(api_));
+
+    server_->registerHandler("state_getRuntimeVersion",
+                             Handler<request::GetRuntimeVersion>(api_));
   }
 
 }  // namespace kagome::api::state
