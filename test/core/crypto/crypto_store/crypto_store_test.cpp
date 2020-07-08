@@ -297,7 +297,7 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
   std::vector<ED25519PublicKey> ed_babe_keys(ed_babe_keys_set.begin(),
                                              ed_babe_keys_set.end());
 
-  EXPECT_OUTCOME_TRUE(keys, crypto_store->getEd25519PublicKeys(kBabe));
+  auto &&keys = crypto_store->getEd25519PublicKeys(kBabe);
   ASSERT_EQ(ed_babe_keys, keys);
 }
 
@@ -322,6 +322,6 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
   std::vector<SR25519PublicKey> sr_babe_keys(sr_babe_keys_set.begin(),
                                              sr_babe_keys_set.end());
 
-  EXPECT_OUTCOME_TRUE(keys, crypto_store->getSr25519PublicKeys(kBabe));
+  auto &&keys = crypto_store->getSr25519PublicKeys(kBabe);
   ASSERT_EQ(sr_babe_keys, keys);
 }

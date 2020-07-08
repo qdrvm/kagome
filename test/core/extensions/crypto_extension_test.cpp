@@ -373,7 +373,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
  * @when call recovery public secp256k1 uncompressed key
  * @then resulting public key is correct
  */
-TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
+TEST_F(CryptoExtensionTest, DISABLED_Secp256k1RecoverUncompressed) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
   WasmSpan res = WasmResult(20, 20).combine();
@@ -400,7 +400,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
  * @when call recovery public secp256k1 compressed key
  * @then resulting public key is correct
  */
-TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
+TEST_F(CryptoExtensionTest, DISABLED_Secp256k1RecoverCompressed) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
   WasmSpan res = WasmResult(20, 20).combine();

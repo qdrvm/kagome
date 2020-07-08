@@ -157,7 +157,7 @@ namespace kagome::extensions {
         runtime::WasmPointer sig, runtime::WasmPointer msg);
 
    private:
-    crypto::bip39::Bip39Seed deriveBigSeed(std::string_view mnemonic_phrase);
+    common::Blob<32> deriveSeed(std::string_view mnemonic_phrase);
 
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;

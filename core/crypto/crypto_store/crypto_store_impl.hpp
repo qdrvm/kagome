@@ -85,17 +85,16 @@ namespace kagome::crypto {
     outcome::result<SR25519Keypair> findSr25519Keypair(
         KeyTypeId key_type, const SR25519PublicKey &pk) const override;
 
-    outcome::result<ED25519Keys> getEd25519PublicKeys(
-        KeyTypeId key_type) const override;
+    ED25519Keys getEd25519PublicKeys(KeyTypeId key_type) const override;
 
-    outcome::result<SR25519Keys> getSr25519PublicKeys(
-        KeyTypeId key_type) const override;
+    SR25519Keys getSr25519PublicKeys(KeyTypeId key_type) const override;
 
    private:
+    outcome::result<std::pair<KeyTypeId, store::PublicKey>> parseKeyFileName(
+        std::string_view file_name) const;
+
     Path composeKeyPath(KeyTypeId key_type,
                         const store::PublicKey &public_key) const;
-
-    outcome::result<std::string> loadFile(const Path &file_name) const;
 
     outcome::result<void> storeKeyfile(KeyTypeId key_type,
                                        const store::PublicKey &public_key,

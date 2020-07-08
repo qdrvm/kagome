@@ -104,16 +104,14 @@ namespace kagome::crypto {
      * @param key_type key type identifier to look for
      * @return vector of found public keys
      */
-    virtual outcome::result<ED25519Keys> getEd25519PublicKeys(
-        KeyTypeId key_type) const = 0;
+    virtual ED25519Keys getEd25519PublicKeys(KeyTypeId key_type) const = 0;
 
     /**
      * @brief searches for SR25519 keys of specified typeED
      * @param key_type key type identifier to look for
      * @return vector of found public keys
      */
-    virtual outcome::result<SR25519Keys> getSr25519PublicKeys(
-        KeyTypeId key_type) const = 0;
+    virtual SR25519Keys getSr25519PublicKeys(KeyTypeId key_type) const = 0;
   };
 }  // namespace kagome::crypto
 
