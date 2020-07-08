@@ -52,6 +52,10 @@ namespace kagome::extensions {
     MOCK_METHOD1(ext_free, void(runtime::WasmPointer ptr));
     MOCK_METHOD2(ext_print_hex,
                  void(runtime::WasmPointer data, runtime::WasmSize length));
+    MOCK_METHOD3(ext_logging_log_version_1,
+                 void(runtime::WasmEnum level,
+                     runtime::WasmSpan target,
+                     runtime::WasmSpan message));
     MOCK_METHOD1(ext_print_num, void(uint64_t value));
     MOCK_METHOD2(ext_print_utf8,
                  void(runtime::WasmPointer utf8_data,

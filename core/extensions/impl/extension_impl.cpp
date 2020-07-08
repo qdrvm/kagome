@@ -123,6 +123,13 @@ namespace kagome::extensions {
     io_ext_.ext_print_hex(data, length);
   }
 
+  void ExtensionImpl::ext_logging_log_version_1(
+      runtime::WasmEnum level,
+      runtime::WasmSpan target,
+      runtime::WasmSpan message) {
+    io_ext_.ext_logging_log_version_1(level, target, message);
+  }
+
   void ExtensionImpl::ext_print_num(uint64_t value) {
     io_ext_.ext_print_num(value);
   }

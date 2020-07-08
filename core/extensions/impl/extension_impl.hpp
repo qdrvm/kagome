@@ -85,6 +85,11 @@ namespace kagome::extensions {
     void ext_print_hex(runtime::WasmPointer data,
                        runtime::WasmSize length) override;
 
+    void ext_logging_log_version_1(
+                            runtime::WasmEnum level,
+                            runtime::WasmSpan target,
+                            runtime::WasmSpan message) override;
+
     void ext_print_num(uint64_t value) override;
 
     void ext_print_utf8(runtime::WasmPointer utf8_data,

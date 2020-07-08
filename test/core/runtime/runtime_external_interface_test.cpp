@@ -27,6 +27,8 @@ using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
+using kagome::runtime::WasmEnum;
+using kagome::runtime::WasmLogLevel;
 using kagome::runtime::WasmSpan;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::storage::trie::PersistentTrieBatchMock;
@@ -155,6 +157,7 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_storage_root\" (func $ext_storage_root (type 1)))\n"
       "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2)))\n"
       "  (import \"env\" \"ext_print_hex\" (func $ext_print_hex (type 0)))\n"
+      "  (import \"env\" \"ext_logging_log_version_1\" (func $ext_logging_log_version_1 (type 12)))\n"
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
 
       /// version 1
@@ -412,6 +415,22 @@ TEST_F(REITest, ext_print_hex_Test) {
                                      "      (i32.const %d)\n"
                                      "    )\n")
                        % data_ptr % data_size)
+                          .str();
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_logging_log_version_1_Test) {
+  WasmResult position(12, 12);
+  const auto pos_packed = position.combine();
+  WasmEnum ll = static_cast<WasmEnum>(WasmLogLevel::WasmLL_Error);
+
+  EXPECT_CALL(*extension_, ext_logging_log_version_1(ll, pos_packed, pos_packed)).Times(1);
+  auto execute_code = (boost::format("    (call $ext_logging_log_version_1\n"
+                                     "      (i32.const %d)\n"
+                                     "      (i64.const %d)\n"
+                                     "      (i64.const %d)\n"
+                                     "    )\n")
+  % ll % position.combine() % position.combine())
                           .str();
   executeWasm(execute_code);
 }

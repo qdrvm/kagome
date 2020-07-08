@@ -36,6 +36,7 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_set_child_storage = "ext_set_child_storage";
 
   const static wasm::Name ext_print_hex = "ext_print_hex";
+  const static wasm::Name ext_logging_log_version_1 = "ext_logging_log_version_1";
   const static wasm::Name ext_print_num = "ext_print_num";
   const static wasm::Name ext_print_utf8 = "ext_print_utf8";
 
@@ -189,6 +190,16 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         extension_->ext_print_hex(arguments.at(0).geti32(),
                                   arguments.at(1).geti32());
+        return wasm::Literal();
+      }
+      /// ext_logging_log_version_1
+      if (import->base == ext_logging_log_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        extension_->ext_logging_log_version_1(
+            arguments.at(0).geti32(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti64()
+            );
         return wasm::Literal();
       }
       /// ext_print_num

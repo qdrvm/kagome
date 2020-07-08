@@ -146,8 +146,19 @@ namespace kagome::runtime::binaryen {
                                        kagome::runtime::WasmSize n) const {
     // TODO (kamilsa) PRE-98: check if we do not go outside of memory
     common::Buffer res;
+    res.reserve(n);
     for (auto i = addr; i < addr + n; i++) {
       res.putUint8(memory_->get<uint8_t>(i));
+    }
+    return res;
+  }
+
+  std::string WasmMemoryImpl::loadStr(kagome::runtime::WasmPointer addr,
+                      kagome::runtime::WasmSize n) const {
+    std::string res;
+    res.reserve(n);
+    for (auto i = addr; i < addr + n; i++) {
+      res.push_back(memory_->get<uint8_t>(i));
     }
     return res;
   }
