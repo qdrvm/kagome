@@ -44,7 +44,7 @@ namespace kagome::runtime::binaryen {
   WasmModuleImpl::createFromCode(
       const common::Buffer &code,
       const std::shared_ptr<RuntimeExternalInterface> &rei) {
-    // that nolint supresses false positive in a library function
+    // that nolint suppresses false positive in a library function
     // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
     if (code.empty()) {
       return Error::EMPTY_STATE_CODE;
