@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "wasm_module_impl.hpp"
+#include "runtime/binaryen/module/wasm_module_impl.hpp"
 
 #include <memory>
 

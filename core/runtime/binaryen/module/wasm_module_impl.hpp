@@ -8,7 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
-#include "wasm_module.hpp"
+#include "runtime/binaryen/module/wasm_module.hpp"
 
 namespace wasm {
   using namespace ::wasm;  // NOLINT(google-build-using-namespace)
