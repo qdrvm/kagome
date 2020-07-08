@@ -27,9 +27,6 @@ namespace kagome::runtime::binaryen {
     outcome::result<wasm::Literal> call(WasmModule &module_instance,
                                         wasm::Name method_name,
                                         const std::vector<wasm::Literal> &args);
-
-   private:
-    common::Logger logger_;
   };
 
 }  // namespace kagome::runtime::binaryen

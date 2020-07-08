@@ -26,12 +26,18 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 namespace kagome::runtime::binaryen {
 
   WasmModuleImpl::WasmModuleImpl(
-      std::unique_ptr<wasm::Module> module,
-      std::unique_ptr<wasm::ModuleInstance> module_instance)
+      std::unique_ptr<wasm::Module>&& module,
+      std::unique_ptr<wasm::ModuleInstance>&& module_instance)
       : module_{std::move(module)},
         module_instance_{std::move(module_instance)} {
     BOOST_ASSERT(module_ != nullptr);
     BOOST_ASSERT(module_instance_ != nullptr);
+  }
+
+  WasmModuleImpl::~WasmModuleImpl() {
+    // Enforce destruction order because module instance refers to module
+    module_instance_.reset();
+    module_.reset();
   }
 
   outcome::result<std::unique_ptr<WasmModuleImpl>>
@@ -45,19 +51,22 @@ namespace kagome::runtime::binaryen {
     }
 
     auto module = std::make_unique<wasm::Module>();
-    wasm::WasmBinaryBuilder parser(
-        *module,
-        reinterpret_cast<std::vector<char> const &>(  // NOLINT
-            code.toVector()),
-        false);
+    {
+      wasm::WasmBinaryBuilder parser(
 
-    try {
-      parser.read();
-    } catch (wasm::ParseException &e) {
-      std::ostringstream msg;
-      e.dump(msg);
-      spdlog::error(msg.str());
-      return Error::INVALID_STATE_CODE;
+          *module,
+          reinterpret_cast<std::vector<char> const &>(  // NOLINT
+              code.toVector()),
+          false);
+
+      try {
+        parser.read();
+      } catch (wasm::ParseException &e) {
+        std::ostringstream msg;
+        e.dump(msg);
+        spdlog::error(msg.str());
+        return Error::INVALID_STATE_CODE;
+      }
     }
     auto module_instance =
         std::make_unique<wasm::ModuleInstance>(*module, rei.get());

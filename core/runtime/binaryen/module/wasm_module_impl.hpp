@@ -26,6 +26,8 @@ namespace kagome::runtime::binaryen {
    public:
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
 
+    ~WasmModuleImpl() override;
+
     static outcome::result<std::unique_ptr<WasmModuleImpl>> createFromCode(
         const common::Buffer &code,
         const std::shared_ptr<RuntimeExternalInterface> &rei);
@@ -35,8 +37,8 @@ namespace kagome::runtime::binaryen {
 
    private:
     explicit WasmModuleImpl(
-        std::unique_ptr<wasm::Module> module,
-        std::unique_ptr<wasm::ModuleInstance> module_instance);
+        std::unique_ptr<wasm::Module>&& module,
+        std::unique_ptr<wasm::ModuleInstance>&& module_instance);
 
     std::unique_ptr<wasm::Module> module_;
     std::unique_ptr<wasm::ModuleInstance> module_instance_;
