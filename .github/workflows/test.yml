@@ -38,6 +38,7 @@ jobs:
 
   Linux:
       strategy:
+        fail-fast: false
         matrix:
           options:
            - name: "Linux: gcc-9 ASAN No Toolchain"
@@ -106,6 +107,7 @@ jobs:
 
   Alpine:
       strategy:
+        fail-fast: false
         matrix:
           options:
             - name: "Alpine: Build Test"
