@@ -37,22 +37,21 @@ namespace kagome::runtime::binaryen {
                    // completed
     };
 
-    RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
+    explicit RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
         : runtime_manager_(std::move(runtime_manager)) {
       BOOST_ASSERT(runtime_manager_);
     }
 
    private:
     // as it has a deduced return type, must be defined before execute()
-    auto getRuntimeEnvironment(
+    auto createRuntimeEnvironment(
         CallPersistency persistency,
         const boost::optional<common::Hash256> &state_root_opt) {
       if (state_root_opt.has_value()) {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
             return runtime_manager_
-                ->createPersistentRuntimeEnvironmentAt(
-                    state_root_opt.value())
+                ->createPersistentRuntimeEnvironmentAt(state_root_opt.value())
                 .value();
           case CallPersistency::EPHEMERAL:
             return runtime_manager_
@@ -62,9 +61,11 @@ namespace kagome::runtime::binaryen {
       } else {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_manager_->createPersistentRuntimeEnvironment().value();
+            return runtime_manager_->createPersistentRuntimeEnvironment()
+                .value();
           case CallPersistency::EPHEMERAL:
-            return runtime_manager_->createEphemeralRuntimeEnvironment().value();
+            return runtime_manager_->createEphemeralRuntimeEnvironment()
+                .value();
         }
       }
     }
@@ -127,8 +128,8 @@ namespace kagome::runtime::binaryen {
         logger_->debug("Resetting state to: {}", state_root.value().toHex());
       }
 
-      auto environment = getRuntimeEnvironment(persistency, state_root);
-      auto &&[module, memory] = environment;
+      auto environment = createRuntimeEnvironment(persistency, state_root);
+      auto &&[module, memory, opt_batch] = environment;
 
       runtime::WasmPointer ptr = 0u;
       runtime::WasmSize len = 0u;
@@ -154,6 +155,9 @@ namespace kagome::runtime::binaryen {
         return scale::decode<R>(std::move(buffer));
       }
 
+      if(opt_batch) {
+        OUTCOME_TRY(opt_batch.value()->writeBack());
+      }
       return outcome::success();
     }
     std::shared_ptr<RuntimeManager> runtime_manager_;

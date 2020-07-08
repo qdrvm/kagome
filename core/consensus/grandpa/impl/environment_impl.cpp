@@ -69,39 +69,42 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> EnvironmentImpl::onProposed(
       RoundNumber round,
       MembershipCounter set_id,
-      const SignedPrimaryPropose &propose) {
+      const SignedMessage &propose) {
+    BOOST_ASSERT(propose.is<PrimaryPropose>());
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = propose};
     gossiper_->vote(message);
     logger_->debug("Primary proposed block with hash {} in grandpa round {}",
-                   propose.message.block_hash.toHex(),
-                  round);
+                   propose.block_hash().toHex(),
+                   round);
     return outcome::success();
   }
 
   outcome::result<void> EnvironmentImpl::onPrevoted(
       RoundNumber round,
       MembershipCounter set_id,
-      const SignedPrevote &prevote) {
+      const SignedMessage &prevote) {
+    BOOST_ASSERT(prevote.is<Prevote>());
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = prevote};
     gossiper_->vote(message);
     logger_->debug("Prevoted block with hash {} in grandpa round {}",
-                   prevote.message.block_hash.toHex(),
-                  round);
+                   prevote.block_hash().toHex(),
+                   round);
     return outcome::success();
   }
 
   outcome::result<void> EnvironmentImpl::onPrecommitted(
       RoundNumber round,
       MembershipCounter set_id,
-      const SignedPrecommit &precommit) {
+      const SignedMessage &precommit) {
+    BOOST_ASSERT(precommit.is<Precommit>());
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = precommit};
     gossiper_->vote(message);
     logger_->debug("Precommitted block with hash {} in grandpa round {}",
-                   precommit.message.block_hash.toHex(),
-                  round);
+                   precommit.block_hash().toHex(),
+                   round);
     return outcome::success();
   }
 
@@ -111,7 +114,7 @@ namespace kagome::consensus::grandpa {
       const GrandpaJustification &justification) {
     logger_->debug("Committed block with hash: {} with number: {}",
                    vote.block_hash,
-                  vote.block_number);
+                   vote.block_number);
     gossiper_->finalize(Fin{
         .round_number = round, .vote = vote, .justification = justification});
     return outcome::success();

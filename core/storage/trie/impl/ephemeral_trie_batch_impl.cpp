@@ -5,6 +5,8 @@
 
 #include "storage/trie/impl/ephemeral_trie_batch_impl.hpp"
 
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+
 namespace kagome::storage::trie {
 
   EphemeralTrieBatchImpl::EphemeralTrieBatchImpl(
@@ -18,17 +20,16 @@ namespace kagome::storage::trie {
     return trie_->get(key);
   }
 
+  std::unique_ptr<BufferMapCursor> EphemeralTrieBatchImpl::cursor() {
+    return std::make_unique<PolkadotTrieCursor>(*trie_);
+  }
+
   bool EphemeralTrieBatchImpl::contains(const Buffer &key) const {
     return trie_->contains(key);
   }
 
   bool EphemeralTrieBatchImpl::empty() const {
     return trie_->empty();
-  }
-
-  outcome::result<Buffer> EphemeralTrieBatchImpl::calculateRoot() const {
-    OUTCOME_TRY(enc, codec_->encodeNode(*trie_->getRoot()));
-    return Buffer{codec_->hash256(enc)};
   }
 
   outcome::result<void> EphemeralTrieBatchImpl::clearPrefix(

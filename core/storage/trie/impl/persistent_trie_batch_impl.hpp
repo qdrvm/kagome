@@ -13,9 +13,9 @@
 
 namespace kagome::storage::trie {
 
-  class PersistentTrieBatchImpl : public PersistentTrieBatch {
+  class PersistentTrieBatchImpl: public PersistentTrieBatch {
    public:
-    using RootChangedEventHandler = std::function<void(const common::Buffer&)>;
+    using RootChangedEventHandler = std::function<void(const common::Buffer &)>;
 
     PersistentTrieBatchImpl(
         std::shared_ptr<Codec> codec,
@@ -25,15 +25,13 @@ namespace kagome::storage::trie {
         RootChangedEventHandler handler);
     ~PersistentTrieBatchImpl() override = default;
 
-    /**
-     * Commits changes to persistent storage
-     */
     outcome::result<Buffer> commit() override;
+    std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
+    std::unique_ptr<BufferMapCursor> cursor() override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;
-    outcome::result<Buffer> calculateRoot() const override;
     outcome::result<void> clearPrefix(const Buffer &prefix) override;
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;

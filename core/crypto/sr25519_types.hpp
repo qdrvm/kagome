@@ -40,7 +40,8 @@ namespace kagome::crypto {
 
   }  // namespace constants::sr25519
 
-  using VRFPreOutput = std::array<uint8_t, constants::sr25519::vrf::OUTPUT_SIZE>;
+  using VRFPreOutput =
+      std::array<uint8_t, constants::sr25519::vrf::OUTPUT_SIZE>;
   using VRFThreshold = boost::multiprecision::uint128_t;
   using VRFProof = std::array<uint8_t, constants::sr25519::vrf::PROOF_SIZE>;
 
@@ -73,6 +74,8 @@ namespace kagome::crypto {
   using SR25519SecretKey = common::Blob<constants::sr25519::SECRET_SIZE>;
 
   using SR25519PublicKey = common::Blob<constants::sr25519::PUBLIC_SIZE>;
+
+  using SR25519Seed = common::Blob<constants::sr25519::SEED_SIZE>;
 
   struct SR25519Keypair {
     SR25519SecretKey secret_key;

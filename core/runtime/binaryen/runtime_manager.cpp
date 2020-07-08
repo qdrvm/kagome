@@ -47,7 +47,11 @@ namespace kagome::runtime::binaryen {
   RuntimeManager::createPersistentRuntimeEnvironmentAt(
       const common::Hash256 &state_root) {
     OUTCOME_TRY(storage_provider_->setToPersistentAt(state_root));
-    return createRuntimeEnvironment();
+    auto env = createRuntimeEnvironment();
+    if(env.has_value()) {
+      env.value().batch = storage_provider_->tryGetPersistentBatch().value()->batchOnTop();
+    }
+    return env;
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
@@ -60,7 +64,11 @@ namespace kagome::runtime::binaryen {
   outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::createPersistentRuntimeEnvironment() {
     OUTCOME_TRY(storage_provider_->setToPersistent());
-    return createRuntimeEnvironment();
+    auto env = createRuntimeEnvironment();
+    if(env.has_value()) {
+      env.value().batch = storage_provider_->tryGetPersistentBatch().value()->batchOnTop();
+    }
+    return env;
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
@@ -104,9 +112,11 @@ namespace kagome::runtime::binaryen {
     external_interface_ = std::make_shared<RuntimeExternalInterface>(
         extension_factory_, storage_provider_);
 
-    return {std::make_shared<wasm::ModuleInstance>(*module,
-                                                   external_interface_.get()),
-            external_interface_->memory()};
+    return RuntimeManager::RuntimeEnvironment{
+        std::make_shared<wasm::ModuleInstance>(*module,
+                                               external_interface_.get()),
+        external_interface_->memory(),
+        boost::none};
   }
 
   outcome::result<std::shared_ptr<wasm::Module>> RuntimeManager::prepareModule(

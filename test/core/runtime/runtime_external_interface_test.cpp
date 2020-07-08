@@ -8,9 +8,9 @@
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
 #include <runtime/wasm_result.hpp>
-#include "core/extensions/mock_extension.hpp"
-#include "core/extensions/mock_extension_factory.hpp"
 #include "core/runtime/mock_memory.hpp"
+#include "mock/core/extensions/extension_factory_mock.hpp"
+#include "mock/core/extensions/extension_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -18,8 +18,8 @@
 using ::testing::_;
 using ::testing::Return;
 
-using kagome::extensions::MockExtension;
-using kagome::extensions::MockExtensionFactory;
+using kagome::extensions::ExtensionMock;
+using kagome::extensions::ExtensionFactoryMock;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmPointer;
@@ -61,8 +61,8 @@ class REITest : public ::testing::Test {
  public:
   void SetUp() override {
     memory_ = std::make_shared<MockMemory>();
-    extension_ = std::make_shared<MockExtension>();
-    extension_factory_ = std::make_shared<MockExtensionFactory>();
+    extension_ = std::make_shared<ExtensionMock>();
+    extension_factory_ = std::make_shared<ExtensionFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*extension_factory_, createExtension(_, _))
         .WillRepeatedly(Return(extension_));
@@ -92,8 +92,8 @@ class REITest : public ::testing::Test {
 
  protected:
   std::shared_ptr<MockMemory> memory_;
-  std::shared_ptr<MockExtension> extension_;
-  std::shared_ptr<MockExtensionFactory> extension_factory_;
+  std::shared_ptr<ExtensionMock> extension_;
+  std::shared_ptr<ExtensionFactoryMock> extension_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
 
   // clang-format off

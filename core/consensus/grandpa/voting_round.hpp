@@ -20,11 +20,11 @@ namespace kagome::consensus::grandpa {
     virtual void onFinalize(const Fin &f) = 0;
 
     virtual void onPrimaryPropose(
-        const SignedPrimaryPropose &primary_propose) = 0;
+        const SignedMessage &primary_propose) = 0;
 
-    virtual void onPrevote(const SignedPrevote &prevote) = 0;
+    virtual void onPrevote(const SignedMessage &prevote) = 0;
 
-    virtual void onPrecommit(const SignedPrecommit &precommit) = 0;
+    virtual void onPrecommit(const SignedMessage &precommit) = 0;
 
     virtual void primaryPropose(const RoundState &last_round_state) = 0;
 

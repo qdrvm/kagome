@@ -20,7 +20,7 @@ namespace kagome::network {
         public std::enable_shared_from_this<RemoteSyncProtocolClient> {
    public:
     RemoteSyncProtocolClient(libp2p::Host &host,
-                             const libp2p::peer::PeerInfo &peer_info);
+                             libp2p::peer::PeerInfo peer_info);
 
     void requestBlocks(
         const network::BlocksRequest &request,
@@ -29,7 +29,7 @@ namespace kagome::network {
 
    private:
     libp2p::Host &host_;
-    const libp2p::peer::PeerInfo &peer_info_;
+    const libp2p::peer::PeerInfo peer_info_;
     common::Logger log_;
   };
 }  // namespace kagome::network

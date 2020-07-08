@@ -15,6 +15,8 @@
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/wasm_provider.hpp"
+#include "storage/trie/trie_batches.hpp"
+#include "storage/trie/trie_storage.hpp"
 #include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::runtime::binaryen {
@@ -34,8 +36,13 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<TrieStorageProvider> storage_provider,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    using RuntimeEnvironment = std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                                          std::shared_ptr<WasmMemory>>;
+    struct RuntimeEnvironment {
+      std::shared_ptr<wasm::ModuleInstance> module;
+      std::shared_ptr<WasmMemory> memory;
+      boost::optional<std::shared_ptr<storage::trie::TopperTrieBatch>>
+          batch;  // in persistent environments all changes of a call must be
+                  // either applied together or discarded in case of failure
+    };
 
     outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironment();
 
@@ -52,8 +59,7 @@ namespace kagome::runtime::binaryen {
         const common::Hash256 &state_root);
 
    private:
-    outcome::result<RuntimeEnvironment>
-    createRuntimeEnvironment();
+    outcome::result<RuntimeEnvironment> createRuntimeEnvironment();
 
     outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
         const common::Buffer &state_code);
