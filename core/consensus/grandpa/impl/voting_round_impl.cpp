@@ -176,11 +176,12 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onPrimaryPropose(const SignedMessage &primary_propose) {
-	  bool isValid = vote_crypto_provider_->verifyPrimaryPropose(primary_propose);
-	  if (not isValid) {
-		  logger_->warn("Primary propose of {} has invalid signature", primary_propose.id.toHex());
-		  return;
-	  }
+    bool isValid = vote_crypto_provider_->verifyPrimaryPropose(primary_propose);
+    if (not isValid) {
+      logger_->warn("Primary propose of {} has invalid signature",
+                    primary_propose.id.toHex());
+      return;
+    }
     if (isPrimary(primary_propose.id)) {
       primary_vote_ = PrimaryPropose{primary_propose.block_number(),
                                      primary_propose.block_hash()};
@@ -190,7 +191,7 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::onPrevote(const SignedMessage &prevote) {
     bool isValid = vote_crypto_provider_->verifyPrevote(prevote);
     if (not isValid) {
-	    logger_->warn("Prevote of {} has invalid signature", prevote.id.toHex());
+      logger_->warn("Prevote of {} has invalid signature", prevote.id.toHex());
       return;
     }
     onSignedPrevote(prevote);
@@ -205,11 +206,12 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onPrecommit(const SignedMessage &precommit) {
-	  bool isValid = vote_crypto_provider_->verifyPrecommit(precommit);
-	  if (not isValid) {
-		  logger_->warn("Precommit of {} has invalid signature", precommit.id.toHex());
-		  return;
-	  }
+    bool isValid = vote_crypto_provider_->verifyPrecommit(precommit);
+    if (not isValid) {
+      logger_->warn("Precommit of {} has invalid signature",
+                    precommit.id.toHex());
+      return;
+    }
     if (not onSignedPrecommit(precommit)) {
       env_->onCompleted(VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
       return;
@@ -586,7 +588,7 @@ namespace kagome::consensus::grandpa {
     auto prevote_ghost = cur_round_state_.prevote_ghost.value();
 
     // anything new finalized? finalized blocks are those which have both
-    // 2/3+ prevote and precommit weight.
+    // 2/3+ precommit weight.
     auto current_precommits = precommits_->getTotalWeight();
 
     if (current_precommits >= threshold_) {
