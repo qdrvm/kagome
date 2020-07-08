@@ -24,6 +24,9 @@ namespace kagome::api {
         getStorage,
         outcome::result<common::Buffer>(const common::Buffer &key,
                                         const primitives::BlockHash &at));
+    MOCK_CONST_METHOD1(getRuntimeVersion,
+                       outcome::result<primitives::Version>(
+                           boost::optional<primitives::BlockHash> const &at));
   };
 }  // namespace kagome::api
 

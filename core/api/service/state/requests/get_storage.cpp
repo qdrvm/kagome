@@ -24,14 +24,14 @@ namespace kagome::api::state::request {
 
     if (params.size() > 1) {
       auto &param1 = params[1];
-      if (not param0.IsString()) {
+      if (not param1.IsString()) {
         throw jsonrpc::InvalidParametersFault(
             "Parameter 'at' must be a hex string");
       }
       auto &&at_str = param1.AsString();
       OUTCOME_TRY(at_span, common::unhexWith0x(at_str));
       OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
-      at_.reset(std::move(at));
+      at_.reset(at);
     } else {
       at_.reset();
     }
