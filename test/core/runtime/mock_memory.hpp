@@ -30,6 +30,7 @@ namespace kagome::runtime {
     MOCK_CONST_METHOD1(load64u, uint64_t(WasmPointer));
     MOCK_CONST_METHOD1(load128, std::array<uint8_t, 16>(WasmPointer));
     MOCK_CONST_METHOD2(loadN, common::Buffer(WasmPointer, WasmSize));
+    MOCK_CONST_METHOD2(loadStr, std::string(WasmPointer, WasmSize));
 
     MOCK_METHOD2(store8, void(WasmPointer, int8_t));
     MOCK_METHOD2(store16, void(WasmPointer, int16_t));

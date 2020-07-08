@@ -81,6 +81,13 @@ namespace kagome::runtime {
      * @return Buffer of length N
      */
     virtual common::Buffer loadN(WasmPointer addr, WasmSize n) const = 0;
+    /**
+     * Load string from address into buffer of size n
+     * @param addr address in memory to load bytes
+     * @param n number of bytes
+     * @return string with data
+     */
+    virtual std::string loadStr(WasmPointer addr, WasmSize n) const = 0;
 
     /**
      * Store integers at given address of the wasm memory
