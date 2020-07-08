@@ -243,35 +243,43 @@ namespace kagome::consensus::grandpa {
       return boost::none;
     }
 
-    // breadth-first search starting from this node.
-    bool loop = true;
-    while (loop) {
-      using namespace boost::adaptors;  // NOLINT
-      auto filtered_entries =
-          active_node.descendents | transformed([this](const BlockHash &d) {
-            return std::make_pair(d, entries_.at(d));
-          })
-          | filtered([&](const auto &pair) {
-              const auto &[_, node] = pair;
-              if (force_constrain && current_best) {
-                return inDirectAncestry(
-                    node, current_best->block_hash, current_best->block_number);
-              }
-              return true;
-            });
-      const auto &next_descendent_it = boost::range::find_if(
-          filtered_entries, [&condition](const auto &pair) {
-            const auto &[_, node] = pair;
-            return condition(node.cumulative_vote);
-          });
-      if (next_descendent_it == filtered_entries.end()) {
-        break;
-      }
-      force_constrain = false;
-      const auto &[key, node] = *next_descendent_it;
-      node_key = key;
-      active_node = node;
-    }
+    std::function<void(const VoteGraph::Entry &entry)> search =
+        [&](const VoteGraph::Entry &entry) {
+          using namespace boost::adaptors;  // NOLINT
+          auto filtered_entries =
+              entry.descendents
+              | transformed([this](const BlockHash &d) {
+                  return std::make_pair(d, entries_.at(d));
+                })
+              | filtered([&](const auto &pair) {
+                  const auto &[_, node] = pair;
+                  if (force_constrain && current_best) {
+                    return inDirectAncestry(node,
+                                            current_best->block_hash,
+                                            current_best->block_number);
+                  }
+                  return true;
+                })
+              | filtered([&](const auto &pair) {
+                  const auto &[_, node] = pair;
+                  return condition(node.cumulative_vote);
+                });
+
+          force_constrain = false;
+
+          for (const auto &[key, node] : filtered_entries) {
+            if (node.number > active_node.number
+                or (node.number == active_node.number
+                    and node.cumulative_vote > active_node.cumulative_vote)) {
+              node_key = key;
+              active_node = node;
+            }
+
+            search(node);
+          }
+        };
+
+    search(active_node);
 
     boost::optional<BlockInfo> info =
         force_constrain ? current_best : boost::none;
@@ -312,6 +320,7 @@ namespace kagome::consensus::grandpa {
     size_t offset = 0;
     while (true) {
       boost::optional<BlockHash> new_best;
+      boost::optional<VoteWeight> new_best_vote_weight;
 
       ++offset;
       for (const auto &d_node : descendents) {
@@ -331,12 +340,15 @@ namespace kagome::consensus::grandpa {
           descendent_blocks[d_block] += entry.cumulative_vote;
           // check if block fullfills condition
           if (condition(descendent_blocks[d_block])) {
+            if (not new_best_vote_weight
+                or new_best_vote_weight < descendent_blocks[d_block]) {
+              new_best_vote_weight = descendent_blocks[d_block];
+            }
             // we found our best block
             new_best = d_block;
-            break;
           }
-        }  // end if
-      }    // end for
+        }
+      }
 
       if (!new_best) {
         break;
