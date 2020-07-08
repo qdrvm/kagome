@@ -276,6 +276,8 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
  * @then an address of the next key is returned
  */
 TEST_F(StorageExtensionTest, NextKey) {
+  // as wasm logic is mocked, it is okay that key and next_key 'intersect' in
+  // wasm memory
   WasmPointer key_pointer = 43;
   WasmSize key_size = 8;
   Buffer key(key_size, 'k');
