@@ -58,4 +58,12 @@ namespace kagome::runtime {
     return std::dynamic_pointer_cast<PersistentBatch>(current_batch_)
            != nullptr;
   }
+
+  outcome::result<common::Buffer> TrieStorageProviderImpl::forceCommit() {
+    if(persistent_batch_ != nullptr) {
+      return persistent_batch_->commit();
+    }
+    return common::Buffer{};
+  }
+
 }  // namespace kagome::runtime

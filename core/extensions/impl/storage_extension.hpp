@@ -9,9 +9,9 @@
 #include <cstdint>
 
 #include "common/logger.hpp"
+#include "runtime/trie_storage_provider.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
-#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::extensions {
   /**
@@ -90,6 +90,12 @@ namespace kagome::extensions {
      */
     void ext_storage_root(runtime::WasmPointer result) const;
 
+    /**
+     * @see Extension::ext_storage_root
+     */
+    runtime::WasmSpan ext_storage_next_key_version_1(
+        runtime::WasmSpan key) const;
+
    private:
     /**
      * Find the value by given key and the return the part of it starting from
@@ -105,6 +111,9 @@ namespace kagome::extensions {
     outcome::result<common::Buffer> get(const common::Buffer &key,
                                         runtime::WasmSize offset,
                                         runtime::WasmSize max_length) const;
+
+    outcome::result<boost::optional<common::Buffer>> getStorageNextKey(
+        const common::Buffer &key) const;
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<runtime::WasmMemory> memory_;
