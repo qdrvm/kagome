@@ -235,9 +235,22 @@ namespace kagome::extensions {
     return memory_->storeBuffer(buffer);
   }
 
-  common::Blob<32> CryptoExtension::deriveSeed(
-      std::string_view mnemonic_phrase) {
-    auto &&mnemonic = crypto::bip39::Mnemonic::parse(mnemonic_phrase);
+  common::Blob<32> CryptoExtension::deriveSeed(std::string_view content) {
+    // first check if content is a hexified seed value
+    if (content.substr(0, 2) == "0x") {
+      auto &&res = common::Blob<32>::fromHex(content.substr(2));
+      if (!res) {
+        logger_->error("failed to unhex blob: {}", res.value());
+        std::terminate();
+      }
+    }
+
+    if (auto &&res = common::Blob<32>::fromHex(content); res) {
+      return res.value();
+    }
+
+    // now check if it is a bip39 mnemonic phrase with optional password
+    auto &&mnemonic = crypto::bip39::Mnemonic::parse(content);
     if (!mnemonic) {
       logger_->error("failed to parse mnemonic {}", mnemonic.error().message());
       std::terminate();
