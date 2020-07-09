@@ -22,8 +22,6 @@ namespace kagome::runtime::binaryen {
    public:
     enum class Error { EXECUTION_ERROR = 1 };
 
-    WasmExecutor();
-
     outcome::result<wasm::Literal> call(WasmModule &module_instance,
                                         wasm::Name method_name,
                                         const std::vector<wasm::Literal> &args);

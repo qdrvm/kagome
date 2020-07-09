@@ -26,6 +26,12 @@ namespace kagome::runtime::binaryen {
    public:
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
 
+    WasmModuleImpl(WasmModuleImpl&&) = default;
+    WasmModuleImpl& operator=(WasmModuleImpl&&) = default;
+
+    WasmModuleImpl(const WasmModuleImpl&) = delete;
+    WasmModuleImpl& operator=(const WasmModuleImpl&) = delete;
+
     ~WasmModuleImpl() override;
 
     static outcome::result<std::unique_ptr<WasmModuleImpl>> createFromCode(

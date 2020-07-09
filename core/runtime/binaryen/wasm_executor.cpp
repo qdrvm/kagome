@@ -20,8 +20,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
 
 namespace kagome::runtime::binaryen {
 
-  WasmExecutor::WasmExecutor() {}
-
   outcome::result<wasm::Literal> WasmExecutor::call(
       WasmModule &module_instance,
       wasm::Name method_name,
