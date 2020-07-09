@@ -75,7 +75,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::clearPrefix(
       const Buffer &prefix) {
-    /// TODO(Harrm): notify changes tracker
+    // TODO(Harrm): notify changes tracker
     return trie_->clearPrefix(prefix);
   }
 
