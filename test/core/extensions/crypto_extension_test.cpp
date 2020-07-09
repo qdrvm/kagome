@@ -179,37 +179,39 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<CryptoExtension> crypto_ext_;
   std::shared_ptr<Bip39Provider> bip39_provider_;
 
-  Buffer input{"6920616d2064617461"_unhex};
+  inline static Buffer input{"6920616d2064617461"_unhex};
 
   SR25519Signature sr25519_signature{};
   SR25519Keypair sr25519_keypair{};
   ED25519Signature ed25519_signature{};
   ED25519Keypair ed25519_keypair{};
 
-  Buffer blake2b_128_result{"de944c5c12e55ee9a07cf5bf4b674995"_unhex};
+  inline static Buffer blake2b_128_result{
+      "de944c5c12e55ee9a07cf5bf4b674995"_unhex};
 
-  Buffer blake2b_256_result{
+  inline static Buffer blake2b_256_result{
       "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex};
 
-  Buffer keccak_result{
+  inline static Buffer keccak_result{
       "65aac3ad8b88cb79396da4c8b6a8cb6b5b74b0f6534a3e4e5e8ad68658feccf4"_unhex};
 
-  Buffer twox_input{"414243444546"_unhex};
+  inline static Buffer twox_input{"414243444546"_unhex};
 
-  Buffer twox128_result{
+  inline static Buffer twox128_result{
       184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251};
 
-  Buffer twox256_result{184, 65,  176, 250, 243, 129, 181, 3,   77,  82, 63,
-                        150, 129, 221, 191, 251, 33,  226, 149, 136, 6,  232,
-                        81,  118, 200, 28,  69,  219, 120, 179, 208, 237};
+  inline static Buffer twox256_result{184, 65,  176, 250, 243, 129, 181, 3,
+                                      77,  82,  63,  150, 129, 221, 191, 251,
+                                      33,  226, 149, 136, 6,   232, 81,  118,
+                                      200, 28,  69,  219, 120, 179, 208, 237};
 
-  Buffer secp_public_key_bytes{
+  inline static Buffer secp_public_key_bytes{
       "04e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a0a2b2667f7e725ceea70c673093bf67663e0312623c8e091b13cf2c0f11ef652"_hex2buf};
-  Buffer secp_public_key_compressed_bytes{
+  inline static Buffer secp_public_key_compressed_bytes{
       "02e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a"_hex2buf};
-  Buffer secp_signature_bytes{
+  inline static Buffer secp_signature_bytes{
       "90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301"_hex2buf};
-  Buffer secp_message_vector{
+  inline static Buffer secp_message_vector{
       "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_hex2buf};
   MessageHash secp_message_hash;
   Buffer secp_error_result;
@@ -230,10 +232,10 @@ class CryptoExtensionTest : public ::testing::Test {
   Buffer scale_encoded_secp_compressed_public_key;
   Buffer signature_failure_result_buffer;
   Blob<32> seed;
-  std::string seed_hex =
+  inline static std::string seed_hex =
       "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b127ec35cd8325602dd47fd";
   Buffer seed_buffer;
-  std::string mnemonic =
+  inline static std::string mnemonic =
       "ozone drill grab fiber curtain grace pudding thank cruise elder eight "
       "picnic";
   Buffer mnemonic_buffer;
