@@ -18,6 +18,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "mock/core/crypto/crypto_store_mock.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
@@ -30,9 +31,13 @@ using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CryptoStore;
 using kagome::crypto::CryptoStoreImpl;
+using kagome::crypto::CryptoStoreMock;
 using kagome::crypto::CSPRNG;
+using kagome::crypto::ED25519Keypair;
+using kagome::crypto::ED25519PrivateKey;
 using kagome::crypto::ED25519Provider;
 using kagome::crypto::ED25519ProviderImpl;
+using kagome::crypto::ED25519PublicKey;
 using kagome::crypto::ED25519Signature;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
@@ -74,11 +79,8 @@ class CryptoExtensionTest : public ::testing::Test {
     hasher_ = std::make_shared<HasherImpl>();
     bip39_provider_ = std::make_shared<Bip39ProviderImpl>(
         std::make_shared<Pbkdf2ProviderImpl>());
-    crypto_store_ = std::make_shared<CryptoStoreImpl>(ed25519_provider_,
-                                                      sr25519_provider_,
-                                                      secp256k1_provider_,
-                                                      bip39_provider_,
-                                                      random_generator_);
+
+    crypto_store_ = std::make_shared<CryptoStoreMock>();
     crypto_ext_ = std::make_shared<CryptoExtension>(memory_,
                                                     sr25519_provider_,
                                                     ed25519_provider_,
@@ -87,8 +89,16 @@ class CryptoExtensionTest : public ::testing::Test {
                                                     crypto_store_,
                                                     bip39_provider_);
 
-    sr25519_keypair = sr25519_provider_->generateKeypair();
+    auto seed =
+        kagome::common::Blob<32>::fromHex(
+            "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b127ec35cd8325602dd47fd")
+            .value();
+
+    sr25519_keypair = sr25519_provider_->generateKeypair(seed);
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
+
+    ed25519_keypair = ed25519_provider_->generateKeypair(seed);
+    ed25519_signature = ed25519_provider_->sign(ed25519_keypair, input).value();
 
     std::copy_n(secp_message_vector.begin(),
                 secp_message_vector.size(),
@@ -115,6 +125,29 @@ class CryptoExtensionTest : public ::testing::Test {
         .put(tmp2);   // value
 
     secp_error_result.putUint8(1).putUint8(2);
+
+    ed_public_keys_result
+        .putUint8(4)  // scale-encoded size // 1
+        .put(ed25519_keypair.public_key);
+
+    sr_public_keys_result
+        .putUint8(4)  // scale-encoded size // 1
+        .put(sr25519_keypair.public_key);
+
+    ed_public_keys.emplace_back(ed25519_keypair.public_key);
+    sr_public_keys.emplace_back(sr25519_keypair.public_key);
+    ed_public_key_buffer.put(ed25519_keypair.public_key);
+    sr_public_key_buffer.put(sr25519_keypair.public_key);
+
+    ed25519_signature_result      // encoded optional value
+        .putUint8(1)              // 1 means that value presents
+        .put(ed25519_signature);  // the value itself
+
+    sr25519_signature_result      // encoded optional value
+        .putUint8(1)              // 1 means that value presents
+        .put(sr25519_signature);  // the value itself
+
+    signature_failure_result_buffer.putUint8(0);
   }
 
  protected:
@@ -124,7 +157,7 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<ED25519Provider> ed25519_provider_;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
   std::shared_ptr<Hasher> hasher_;
-  std::shared_ptr<CryptoStore> crypto_store_;
+  std::shared_ptr<CryptoStoreMock> crypto_store_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
   std::shared_ptr<Bip39Provider> bip39_provider_;
 
@@ -132,6 +165,8 @@ class CryptoExtensionTest : public ::testing::Test {
 
   SR25519Signature sr25519_signature{};
   SR25519Keypair sr25519_keypair{};
+  ED25519Signature ed25519_signature{};
+  ED25519Keypair ed25519_keypair{};
 
   Buffer blake2b_128_result{"de944c5c12e55ee9a07cf5bf4b674995"_unhex};
 
@@ -158,14 +193,24 @@ class CryptoExtensionTest : public ::testing::Test {
       "90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301"_hex2buf};
   Buffer secp_message_vector{
       "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_hex2buf};
-  MessageHash secp_message_hash{};
-  Buffer secp_error_result{};
+  MessageHash secp_message_hash;
+  Buffer secp_error_result;
+  Buffer ed_public_keys_result;
+  Buffer sr_public_keys_result;
+  Buffer ed_public_key_buffer;
+  Buffer sr_public_key_buffer;
+  Buffer ed25519_signature_result;
+  Buffer sr25519_signature_result;
+
+  std::vector<ED25519PublicKey> ed_public_keys;
+  std::vector<SR25519PublicKey> sr_public_keys;
 
   RSVSignature secp_signature{};
   ExpandedPublicKey secp_uncompressed_public_key{};
   CompressedPublicKey secp_compressed_pyblic_key{};
   Buffer scale_encoded_secp_uncompressed_public_key;
   Buffer scale_encoded_secp_compressed_public_key;
+  Buffer signature_failure_result_buffer;
 };
 
 /**
@@ -468,6 +513,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
   WasmSpan res = WasmResult(20, 20).combine();
+
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
   Buffer sig_buffer(sig_input);
@@ -486,4 +532,146 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
   auto ptrsize =
       crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig, msg);
   ASSERT_EQ(ptrsize, res);
+}
+
+/**
+ * @given initialized crypto extensions, key type
+ * @and a damaged secp256k1 signature and message
+ * @when call recovery public secp256k1 compressed key
+ * @then error code is returned
+ */
+TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
+  WasmSpan res = WasmResult(1, 2).combine();
+
+  auto key_type = kagome::crypto::key_types::kBabe;
+
+  EXPECT_CALL(*crypto_store_, getEd25519PublicKeys(key_type))
+      .WillOnce(Return(ed_public_keys));
+
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(ed_public_keys_result)))
+      .WillOnce(Return(res));
+
+  ASSERT_EQ(crypto_ext_->ext_ed25519_public_keys_v1(key_type), res);
+}
+
+TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
+  WasmSpan res = WasmResult(1, 2).combine();
+
+  auto key_type = kagome::crypto::key_types::kBabe;
+
+  EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(key_type))
+      .WillOnce(Return(sr_public_keys));
+
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(sr_public_keys_result)))
+      .WillOnce(Return(res));
+
+  ASSERT_EQ(crypto_ext_->ext_sr25519_public_keys_v1(key_type), res);
+}
+
+TEST_F(CryptoExtensionTest, Ed25519GenerateSuccess) {}
+
+TEST_F(CryptoExtensionTest, Sr25519GenerateSuccess) {}
+
+TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
+  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmPointer key = 2;
+  auto msg = WasmResult(3, 4).combine();
+  auto res = WasmResult(5, 6).combine();
+
+  // load public key
+  EXPECT_CALL(*memory_, loadN(2, ED25519PublicKey::size()))
+      .WillOnce(Return(ed_public_key_buffer));
+  // load message
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+
+  EXPECT_CALL(*crypto_store_,
+              findEd25519Keypair(key_type, ed25519_keypair.public_key))
+      .WillOnce(Return(ed25519_keypair));
+
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(ed25519_signature_result)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(crypto_ext_->ext_ed25519_sign_v1(key_type, key, msg), res);
+}
+
+TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
+  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmPointer key = 2;
+  auto msg = WasmResult(3, 4).combine();
+  auto res = WasmResult(5, 6).combine();
+
+  // load public key
+  EXPECT_CALL(*memory_, loadN(2, ED25519PublicKey::size()))
+      .WillOnce(Return(ed_public_key_buffer));
+  // load message
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+
+  EXPECT_CALL(*crypto_store_,
+              findEd25519Keypair(key_type, ed25519_keypair.public_key))
+      .WillOnce(Return(
+          outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
+
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(gsl::span<const uint8_t>(signature_failure_result_buffer)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(crypto_ext_->ext_ed25519_sign_v1(key_type, key, msg), res);
+}
+
+TEST_F(CryptoExtensionTest, DISABLED_Sr25519SignSuccess) {
+  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmPointer key = 2;
+  auto msg = WasmResult(3, 4).combine();
+  auto res = WasmResult(5, 6).combine();
+
+  // load public key
+  EXPECT_CALL(*memory_, loadN(2, SR25519PublicKey::size()))
+      .WillOnce(Return(sr_public_key_buffer));
+  // load message
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+
+  EXPECT_CALL(*crypto_store_,
+              findSr25519Keypair(key_type, sr25519_keypair.public_key))
+      .WillOnce(Return(sr25519_keypair));
+
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(sr25519_signature_result)))
+      .WillOnce(Return(res));
+
+  std::cout << "public_key_buffer = " << sr_public_key_buffer.toHex()
+            << std::endl;
+  std::cout << "input = " << input.toHex() << std::endl;
+  std::cout << "public key = " << sr25519_keypair.public_key.toHex()
+            << std::endl;
+  std::cout << "private key = " << sr25519_keypair.secret_key.toHex()
+            << std::endl;
+  std::cout << "signature result = " << sr25519_signature_result.toHex()
+            << std::endl;
+  ASSERT_EQ(crypto_ext_->ext_sr25519_sign_v1(key_type, key, msg), res);
+}
+
+TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
+  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmPointer key = 2;
+  auto msg = WasmResult(3, 4).combine();
+  auto res = WasmResult(5, 6).combine();
+
+  // load public key
+  EXPECT_CALL(*memory_, loadN(2, SR25519PublicKey::size()))
+      .WillOnce(Return(sr_public_key_buffer));
+  // load message
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+
+  EXPECT_CALL(*crypto_store_,
+              findSr25519Keypair(key_type, sr25519_keypair.public_key))
+      .WillOnce(Return(
+          outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
+
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(gsl::span<const uint8_t>(signature_failure_result_buffer)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(crypto_ext_->ext_sr25519_sign_v1(key_type, key, msg), res);
 }
