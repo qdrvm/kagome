@@ -103,12 +103,14 @@ class CryptoExtensionTest : public ::testing::Test {
                                                     crypto_store_,
                                                     bip39_provider_);
 
-    auto seed_hex =
-        "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b127ec35cd8325602dd47fd";
-    seed = kagome::common::Blob<32>::fromHex(seed_hex).value();
+    EXPECT_OUTCOME_TRUE(seed_tmp, kagome::common::Blob<32>::fromHex(seed_hex));
+    std::copy_n(seed_tmp.begin(), seed.size(), seed.begin());
 
     // scale-encoded string
-    seed_buffer.put(kagome::scale::encode(Buffer(seed)).value());
+    boost::optional<std::string> optional_seed(seed_hex);
+    seed_buffer.put(kagome::scale::encode(optional_seed).value());
+    boost::optional<std::string> optional_mnemonic(mnemonic);
+    mnemonic_buffer.put(kagome::scale::encode(optional_mnemonic).value());
 
     sr25519_keypair = sr25519_provider_->generateKeypair(seed);
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
@@ -228,7 +230,13 @@ class CryptoExtensionTest : public ::testing::Test {
   Buffer scale_encoded_secp_compressed_public_key;
   Buffer signature_failure_result_buffer;
   Blob<32> seed;
+  std::string seed_hex =
+      "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b127ec35cd8325602dd47fd";
   Buffer seed_buffer;
+  std::string mnemonic =
+      "ozone drill grab fiber curtain grace pudding thank cruise elder eight "
+      "picnic";
+  Buffer mnemonic_buffer;
 };
 
 /**
@@ -711,23 +719,69 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
 }
 
 /**
- * @given initialized crypto extension, key type and seed
+ * @given initialized crypto extension, key type and hexified seed
  * @when call generate ed25519 keypair method of crypto extension
  * @then a new ed25519 keypair is successfully generated and stored
  */
-TEST_F(CryptoExtensionTest, DISABLED_Ed25519GenerateSuccess) {
+TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
   kagome::runtime::WasmPointer res = 2;
-  auto seed = WasmResult(3, 4).combine();
+  auto seed_ptr = WasmResult(3, 4).combine();
 
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(seed_buffer));
-
-  ASSERT_EQ(res, crypto_ext_->ext_ed25519_generate_v1(key_type, seed));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(ed_public_key_buffer)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(res, crypto_ext_->ext_ed25519_generate_v1(key_type, seed_ptr));
 }
 
 /**
- * @given initialized crypto extension, key type and seed
+ * @given initialized crypto extension, key type and mnemonic phrase seed
+ * @when call generate ed25519 keypair method of crypto extension
+ * @then a new ed25519 keypair is successfully generated and stored
+ */
+TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
+  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmPointer res = 2;
+  auto seed_ptr = WasmResult(3, 4).combine();
+
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(ed_public_key_buffer)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(res, crypto_ext_->ext_ed25519_generate_v1(key_type, seed_ptr));
+}
+
+/**
+ * @given initialized crypto extension, key type and hexified seed
  * @when call generate sr25519 keypair method of crypto extension
  * @then a new sr25519 keypair is successfully generated and stored
  */
-TEST_F(CryptoExtensionTest, Sr25519GenerateSuccess) {}
+TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
+  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmPointer res = 2;
+  auto seed_ptr = WasmResult(3, 4).combine();
+
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(seed_buffer));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type, seed_ptr));
+}
+
+/**
+ * @given initialized crypto extension, key type and mnemonic phrase seed
+ * @when call generate sr25519 keypair method of crypto extension
+ * @then a new sr25519 keypair is successfully generated and stored
+ */
+TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
+  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmPointer res = 2;
+  auto seed_ptr = WasmResult(3, 4).combine();
+
+  EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
+      .WillOnce(Return(res));
+  ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type, seed_ptr));
+}
