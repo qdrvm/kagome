@@ -23,15 +23,19 @@ namespace kagome::storage::trie {
 
     enum class Error {
       INVALID_CURSOR_POSITION =
-      1,  // operation cannot be performed for cursor position is not valid
+          1,  // operation cannot be performed for cursor position is not valid
       // due to an error, reaching the end or not calling next() after
       // initialization
-      NULL_ROOT, // the root of the supplied trie is null
+      NOT_FOUND,  // the sought value is not found
+      NULL_ROOT,  // the root of the supplied trie is null
       METHOD_NOT_IMPLEMENTED
     };
 
     explicit PolkadotTrieCursor(const PolkadotTrie &trie);
     ~PolkadotTrieCursor() override = default;
+
+    static outcome::result<std::unique_ptr<PolkadotTrieCursor>> createAt(
+        const common::Buffer &key, const PolkadotTrie &trie);
 
     outcome::result<void> seekToFirst() override;
     outcome::result<void> seek(const common::Buffer &key) override;
@@ -44,14 +48,32 @@ namespace kagome::storage::trie {
 
    private:
     static int8_t getNextChildIdx(const BranchPtr &parent, uint8_t child_idx);
-    static int8_t hasNextChild(const BranchPtr &parent, uint8_t child_idx);
+    static bool hasNextChild(const BranchPtr &parent, uint8_t child_idx);
 
     static int8_t getPrevChildIdx(const BranchPtr &parent, uint8_t child_idx);
-    static int8_t hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
+    static bool hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
 
     // will either put a new entry or update the top entry (in case that parent
     // in the top entry is the same as \param parent
     void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
+
+    /**
+     * An element of a path in trie. A node that is a part of the path and the
+     * index of its child which is the next node in the path
+     */
+    struct TriePathEntry {
+      TriePathEntry(BranchPtr parent, int8_t child_idx)
+          : parent{std::move(parent)}, child_idx{child_idx} {}
+      BranchPtr parent;
+      int8_t child_idx;
+    };
+
+    /**
+     * Constructs a list of branch nodes on the path from the root to the node
+     * with the given \arg key
+     */
+    auto constructLastVisitedChildPath(const common::Buffer &key)
+        -> outcome::result<std::list<TriePathEntry>>;
 
     common::Buffer collectKey() const;
 
@@ -59,7 +81,7 @@ namespace kagome::storage::trie {
     PolkadotCodec codec_;
     NodePtr current_;
     bool visited_root_ = false;
-    std::list<std::pair<BranchPtr, int8_t>> last_visited_child_;
+    std::list<TriePathEntry> last_visited_child_;
   };
 
 }  // namespace kagome::storage::trie

@@ -7,11 +7,13 @@
 #define KAGOME_STORAGE_TRIE_IMPL_TRIE_BATCH
 
 #include "storage/buffer_map_types.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 
 namespace kagome::storage::trie {
 
   class TrieBatch : public face::Readable<Buffer, Buffer>,
-                    public face::Writeable<Buffer, Buffer> {
+                    public face::Writeable<Buffer, Buffer>,
+                    public face::Iterable<Buffer, Buffer> {
    public:
     ~TrieBatch() override = default;
 
@@ -29,8 +31,7 @@ namespace kagome::storage::trie {
    */
   class PersistentTrieBatch
       : public TrieBatch,
-        public std::enable_shared_from_this<PersistentTrieBatch>,
-        public face::Iterable<Buffer, Buffer> {
+        public std::enable_shared_from_this<PersistentTrieBatch> {
    public:
     /**
      * Commits changes to a persistent storage
@@ -48,8 +49,7 @@ namespace kagome::storage::trie {
    * A temporary in-memory trie built on top of a persistent one
    * All changes to it are simply discarded when the batch is destroyed
    */
-  class EphemeralTrieBatch : public TrieBatch,
-                             public face::Iterable<Buffer, Buffer> {};
+  class EphemeralTrieBatch : public TrieBatch {};
 
   /**
    * A batch on top of another batch

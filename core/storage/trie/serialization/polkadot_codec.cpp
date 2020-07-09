@@ -42,7 +42,7 @@ namespace kagome::storage::trie {
     return out;
   }
 
-  common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {
+  common::Buffer PolkadotCodec::nibblesToKey(const KeyNibbles &nibbles) {
     Buffer res;
     if (nibbles.size() % 2 == 0) {
       res = Buffer(nibbles.size() / 2, 0);
@@ -59,16 +59,16 @@ namespace kagome::storage::trie {
     return res;
   }
 
-  common::Buffer PolkadotCodec::keyToNibbles(const common::Buffer &key) {
+  KeyNibbles PolkadotCodec::keyToNibbles(const common::Buffer &key) {
     if (key.empty()) {
       return {};
     }
     if (key.size() == 1 && key[0] == 0) {
-      return {0, 0};
+      return KeyNibbles{common::Buffer{0, 0}};
     }
 
     auto l = key.size() * 2;
-    Buffer res(l, 0);
+    KeyNibbles res(common::Buffer(l, 0));
     for (size_t i = 0; i < key.size(); i++) {
       res[2 * i] = key[i] >> 4u;
       res[2 * i + 1] = key[i] & 0xfu;
@@ -262,7 +262,7 @@ namespace kagome::storage::trie {
     return std::make_pair(type, pk_length);
   }
 
-  outcome::result<common::Buffer> PolkadotCodec::decodePartialKey(
+  outcome::result<KeyNibbles> PolkadotCodec::decodePartialKey(
       size_t nibbles_num, BufferStream &stream) const {
     // length in bytes is length in nibbles over two round up
     auto byte_length = nibbles_num / 2 + nibbles_num % 2;
@@ -276,16 +276,16 @@ namespace kagome::storage::trie {
     }
     // array of nibbles is much more convenient than array of bytes, though it
     // wastes some memory
-    partial_key = keyToNibbles(partial_key);
+    KeyNibbles partial_key_nibbles = keyToNibbles(partial_key);
     if (nibbles_num % 2 == 1) {
-      partial_key = partial_key.subbuffer(1);
+      partial_key_nibbles = partial_key_nibbles.subbuffer(1);
     }
-    return partial_key;
+    return partial_key_nibbles;
   }
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeBranch(
       PolkadotNode::Type type,
-      const Buffer &partial_key,
+      const KeyNibbles &partial_key,
       BufferStream &stream) const {
     constexpr uint8_t kChildrenBitmapSize = 2;
 

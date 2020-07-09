@@ -13,6 +13,7 @@
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
+using kagome::storage::trie::KeyNibbles;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrie;
 using kagome::storage::trie::PolkadotTrieImpl;
@@ -28,7 +29,8 @@ struct TrieCommand {
   Command command;
 };
 
-class TrieTest: public testing::Test,
+class TrieTest
+    : public testing::Test,
       public ::testing::WithParamInterface<std::vector<TrieCommand>> {
  public:
   TrieTest() {}
@@ -331,4 +333,53 @@ TEST_F(TrieTest, EmptyTrie) {
   ASSERT_TRUE(trie->empty());
   EXPECT_OUTCOME_TRUE_1(trie->put({0}, "asdasd"_buf));
   ASSERT_FALSE(trie->empty());
+}
+
+/**
+ * @given a trie
+ * @when getting a path in a trie to a valid node
+ * @then the path is returned
+ */
+TEST_F(TrieTest, GetPath) {
+  // TODO(Harrm) PRE-461 Make parametrized
+  const std::vector<std::pair<Buffer, Buffer>> data = {
+      {"123456"_hex2buf, "42"_hex2buf},
+      {"1234"_hex2buf, "1234"_hex2buf},
+      {"010203"_hex2buf, "0a0b"_hex2buf},
+      {"010a0b"_hex2buf, "1337"_hex2buf},
+      {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+
+  for (auto &entry : TrieTest::data) {
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
+  }
+
+  EXPECT_OUTCOME_TRUE(
+      path, trie->getPath(trie->getRoot(), KeyNibbles{"010203040506"_hex2buf}));
+  auto root = trie->getRoot();
+  auto node1 = trie->getNode(root, KeyNibbles{1, 2, 3, 4}).value();
+  auto it = path.begin();
+  ASSERT_EQ(it->first, root);
+  ASSERT_EQ(it->first->children[it->second], node1);
+  ASSERT_EQ((++it)->first, node1);
+}
+
+/**
+ * @given a trie
+ * @when getting a path in a trie to a non-existing node
+ * @then an error is returned
+ */
+TEST_F(TrieTest, GetPathToInvalid) {
+  const std::vector<std::pair<Buffer, Buffer>> data = {
+      {"123456"_hex2buf, "42"_hex2buf},
+      {"1234"_hex2buf, "1234"_hex2buf},
+      {"010203"_hex2buf, "0a0b"_hex2buf},
+      {"010a0b"_hex2buf, "1337"_hex2buf},
+      {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+
+  for (auto &entry : TrieTest::data) {
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
+  }
+
+  EXPECT_OUTCOME_FALSE(
+      path, trie->getPath(trie->getRoot(), KeyNibbles{"0a0b0c0d0e0f"_hex2buf}));
 }
