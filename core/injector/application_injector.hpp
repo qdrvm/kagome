@@ -507,6 +507,41 @@ namespace kagome::injector {
     return *initialized;
   };
 
+  template <class Injector>
+  sptr<crypto::CryptoStore> get_crypto_store(std::string_view keystore_path,
+                                             const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<crypto::CryptoStore>>(boost::none);
+    if (initialized) {
+      return *initialized;
+    }
+
+    auto ed25519_provider =
+        injector.template create<sptr<crypto::ED25519Provider>>();
+    auto sr25519_provider =
+        injector.template create<sptr<crypto::SR25519Provider>>();
+    auto secp256k1_provider =
+        injector.template create<sptr<crypto::Secp256k1Provider>>();
+    auto bip39_provider =
+        injector.template create<sptr<crypto::Bip39Provider>>();
+    auto random_generator = injector.template create<sptr<crypto::CSPRNG>>();
+
+    auto crypto_store =
+        std::make_shared<crypto::CryptoStoreImpl>(std::move(ed25519_provider),
+                                                  std::move(sr25519_provider),
+                                                  std::move(secp256k1_provider),
+                                                  std::move(bip39_provider),
+                                                  std::move(random_generator));
+
+    boost::filesystem::path path = std::string(keystore_path);
+    if (auto &&res = crypto_store->initialize(path); res) {
+      common::raise(res.error());
+    }
+    initialized = crypto_store;
+
+    return *initialized;
+  }
+
   template <typename... Ts>
   auto makeApplicationInjector(
       const std::string &genesis_path,
