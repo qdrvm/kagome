@@ -29,11 +29,11 @@ namespace kagome::crypto {
 
     outcome::result<SR25519Signature> sign(
         const SR25519Keypair &keypair,
-        gsl::span<uint8_t> message) const override;
+        gsl::span<const uint8_t> message) const override;
 
     outcome::result<bool> verify(
         const SR25519Signature &signature,
-        gsl::span<uint8_t> message,
+        gsl::span<const uint8_t> message,
         const SR25519PublicKey &public_key) const override;
 
    private:

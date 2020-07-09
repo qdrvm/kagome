@@ -196,24 +196,25 @@ namespace kagome::extensions {
 
   namespace {
     auto encode_result = [](auto &&value) -> common::Buffer {
+      static auto logger =
+          common::createLogger("CryptoExtension::scale_encode");
       auto &&result = scale::encode(value);
-      std::string msg =
-          result ? ""
-                 : "failed to scale-encode value: " + result.error().message();
-      BOOST_ASSERT_MSG(result, msg.c_str());
+      if (!result) {
+        logger->error("failed to scale-encode value: {} ",
+                      result.error().message());
+        std::terminate();
+      }
       return common::Buffer(result.value());
     };
 
     template <class T>
     auto encode_optional = [](auto &&v) -> common::Buffer {
-      boost::optional<T> result = v;
-      return encode_result(result);
+      return encode_result(std::forward<boost::optional<T>>(v));
     };
 
     template <class T, class E>
     auto encode_variant = [](auto &&v) -> common::Buffer {
-      boost::variant<T, E> result = v;
-      return encode_result(result);
+      return encode_result(std::forward<boost::variant<T, E>>(v));
     };
   }  // namespace
 

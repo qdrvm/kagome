@@ -16,11 +16,11 @@ namespace kagome::crypto {
 
     MOCK_CONST_METHOD2(sign,
                        outcome::result<SR25519Signature>(const SR25519Keypair &,
-                                                         gsl::span<uint8_t>));
+                                                         gsl::span<const uint8_t>));
 
     MOCK_CONST_METHOD3(verify,
                        outcome::result<bool>(const SR25519Signature &,
-                                             gsl::span<uint8_t>,
+                                             gsl::span<const uint8_t>,
                                              const SR25519PublicKey &));
   };
 }  // namespace kagome::crypto

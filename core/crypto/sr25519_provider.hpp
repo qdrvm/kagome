@@ -45,7 +45,7 @@ namespace kagome::crypto {
      * @return signed message
      */
     virtual outcome::result<SR25519Signature> sign(
-        const SR25519Keypair &keypair, gsl::span<uint8_t> message) const = 0;
+        const SR25519Keypair &keypair, gsl::span<const uint8_t> message) const = 0;
 
     /**
      * Verifies that \param message was derived using \param public_key on
@@ -53,7 +53,7 @@ namespace kagome::crypto {
      */
     virtual outcome::result<bool> verify(
         const SR25519Signature &signature,
-        gsl::span<uint8_t> message,
+        gsl::span<const uint8_t> message,
         const SR25519PublicKey &public_key) const = 0;
   };
 }  // namespace kagome::crypto
