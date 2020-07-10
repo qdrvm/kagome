@@ -100,8 +100,10 @@ namespace kagome::runtime::binaryen {
       }
     }
 
-    external_interface_ = std::make_shared<RuntimeExternalInterface>(
-        extension_factory_, storage_provider_);
+    if (!external_interface_) {
+      external_interface_ = std::make_shared<RuntimeExternalInterface>(
+          extension_factory_, storage_provider_);
+    }
 
     if (!module) {
       // Prepare new module
