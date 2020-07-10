@@ -64,7 +64,7 @@ namespace kagome::extensions {
 
     auto hash = hasher_->blake2b_128(buf);
 
-    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+    memory_->storeBuffer(out_ptr, hash);
   }
 
   void CryptoExtension::ext_blake2_256(runtime::WasmPointer data,
@@ -74,7 +74,7 @@ namespace kagome::extensions {
 
     auto hash = hasher_->blake2b_256(buf);
 
-    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+    memory_->storeBuffer(out_ptr, hash);
   }
 
   void CryptoExtension::ext_keccak_256(runtime::WasmPointer data,
@@ -84,7 +84,7 @@ namespace kagome::extensions {
 
     auto hash = hasher_->keccak_256(buf);
 
-    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+    memory_->storeBuffer(out_ptr, hash);
   }
 
   runtime::WasmSize CryptoExtension::ext_ed25519_verify(
@@ -113,7 +113,7 @@ namespace kagome::extensions {
     if (!pubkey_res) {
       BOOST_UNREACHABLE_RETURN(kVerifyFail);
     }
-    auto &&pubkey = pubkey_res.value();
+    auto pubkey = pubkey_res.value();
 
     auto result = ed25519_provider_->verify(signature, msg, pubkey);
     auto is_succeeded = result && result.value();
@@ -165,7 +165,7 @@ namespace kagome::extensions {
                    buf.toHex(),
                    hash.toHex());
 
-    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+    memory_->storeBuffer(out_ptr, hash);
   }
 
   void CryptoExtension::ext_twox_128(runtime::WasmPointer data,
@@ -189,39 +189,15 @@ namespace kagome::extensions {
 
     auto hash = hasher_->twox_256(buf);
 
-    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+    memory_->storeBuffer(out_ptr, hash);
   }
 
   // ---------------------- runtime api version 1 methods ----------------------
 
-  namespace {
-    auto encode_result = [](auto &&value) -> common::Buffer {
-      static auto logger =
-          common::createLogger("CryptoExtension::scale_encode");
-      auto &&result = scale::encode(value);
-      if (!result) {
-        logger->error("failed to scale-encode value: {} ",
-                      result.error().message());
-        std::terminate();
-      }
-      return common::Buffer(result.value());
-    };
-
-    template <class T>
-    auto encode_optional = [](auto &&v) -> common::Buffer {
-      return encode_result(std::forward<boost::optional<T>>(v));
-    };
-
-    template <class T, class E>
-    auto encode_variant = [](auto &&v) -> common::Buffer {
-      return encode_result(std::forward<boost::variant<T, E>>(v));
-    };
-  }  // namespace
-
   runtime::WasmSpan CryptoExtension::ext_ed25519_public_keys_v1(
       runtime::WasmSize key_type) {
-    static const common::Buffer error_result =
-        encode_result(std::vector<crypto::ED25519PublicKey>{});
+    static const common::Buffer error_result(
+        scale::encode(std::vector<crypto::ED25519PublicKey>{}).value());
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
@@ -229,8 +205,8 @@ namespace kagome::extensions {
       logger_->warn("key type '{}' is not officially supported ", kt);
     }
 
-    auto &&public_keys = crypto_store_->getEd25519PublicKeys(key_type_id);
-    auto buffer = encode_result(public_keys);
+    auto public_keys = crypto_store_->getEd25519PublicKeys(key_type_id);
+    auto buffer = scale::encode(public_keys).value();
 
     return memory_->storeBuffer(buffer);
   }
@@ -315,8 +291,7 @@ namespace kagome::extensions {
       kp = key_pair.value();
     }
 
-    common::Buffer buffer(kp.public_key);
-    runtime::WasmSpan ps = memory_->storeBuffer(buffer);
+    runtime::WasmSpan ps = memory_->storeBuffer(kp.public_key);
 
     return runtime::WasmResult(ps).address;
   }
@@ -328,8 +303,9 @@ namespace kagome::extensions {
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg) {
-    static const auto kErrorResult =
-        encode_optional<crypto::ED25519Signature>(boost::none);
+    static const common::Buffer kErrorResult(
+        scale::encode(boost::optional<crypto::ED25519Signature>(boost::none))
+            .value());
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
@@ -350,15 +326,18 @@ namespace kagome::extensions {
       return memory_->storeBuffer(kErrorResult);
     }
 
-    auto &&sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
+    auto sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
     if (!sign) {
       logger_->error("failed to sign message, error = {}",
                      sign.error().message());
       std::terminate();
     }
 
-    return memory_->storeBuffer(
-        encode_optional<crypto::ED25519Signature>(sign.value()));
+    auto buffer =
+        scale::encode(boost::optional<crypto::ED25519Signature>(sign.value()))
+            .value();
+
+    return memory_->storeBuffer(buffer);
   }
 
   /**
@@ -377,16 +356,16 @@ namespace kagome::extensions {
    */
   runtime::WasmSpan CryptoExtension::ext_sr25519_public_keys_v1(
       runtime::WasmSize key_type) {
-    static const common::Buffer error_result =
-        encode_result(std::vector<crypto::SR25519PublicKey>{});
+    static const common::Buffer error_result(
+        scale::encode(std::vector<crypto::SR25519PublicKey>{}).value());
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     crypto::decodeKeyTypeId(key_type_id));
     }
-    auto &&public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
-    auto &&buffer = encode_result(public_keys);
+    auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
+    auto buffer = scale::encode(public_keys).value();
 
     return memory_->storeBuffer(buffer);
   }
@@ -432,8 +411,9 @@ namespace kagome::extensions {
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg) {
-    static auto error_result =
-        encode_optional<crypto::SR25519Signature>(boost::none);
+    static auto error_result(
+        scale::encode(boost::optional<crypto::SR25519Signature>(boost::none))
+            .value());
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
@@ -462,9 +442,10 @@ namespace kagome::extensions {
                      sign.error().message());
       std::terminate();
     }
-
-    return memory_->storeBuffer(
-        encode_optional<crypto::SR25519Signature>(sign.value()));
+    auto buffer =
+        scale::encode(boost::optional<crypto::SR25519Signature>(sign.value()))
+            .value();
+    return memory_->storeBuffer(buffer);
   }
 
   /**
@@ -481,9 +462,11 @@ namespace kagome::extensions {
   // TODO (yuraz): PRE-465 differentiate between 3 types of errors
   runtime::WasmSpan CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    static auto error_result =
-        encode_variant<ExpandedPublicKey, EcdsaVerifyError>(
-            crypto::secp256k1::ecdsa_verify_error::kInvalidSignature);
+    static common::Buffer error_result(
+        scale::encode(
+            boost::variant<ExpandedPublicKey, EcdsaVerifyError>(
+                crypto::secp256k1::ecdsa_verify_error::kInvalidSignature))
+            .value());
 
     RSVSignature signature{};
     MessageHash message{};
@@ -501,8 +484,8 @@ namespace kagome::extensions {
       logger_->error("failed to recover uncompressed secp256k1 public key");
       return memory_->storeBuffer(error_result);
     }
-    auto &&buffer =
-        encode_variant<ExpandedPublicKey, EcdsaVerifyError>(public_key.value());
+    boost::variant<ExpandedPublicKey, EcdsaVerifyError> v(public_key.value());
+    auto buffer = scale::encode(v).value();
     return memory_->storeBuffer(buffer);
   }
 
@@ -510,9 +493,11 @@ namespace kagome::extensions {
   runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    static auto error_result =
-        encode_variant<CompressedPublicKey, EcdsaVerifyError>(
-            crypto::secp256k1::ecdsa_verify_error::kInvalidSignature);
+    static common::Buffer error_result(
+        scale::encode(
+            boost::variant<CompressedPublicKey, EcdsaVerifyError>(
+                crypto::secp256k1::ecdsa_verify_error::kInvalidSignature))
+            .value());
 
     RSVSignature signature{};
     MessageHash message{};
@@ -531,8 +516,10 @@ namespace kagome::extensions {
       return memory_->storeBuffer(error_result);
     }
 
-    auto &&buffer = encode_variant<CompressedPublicKey, EcdsaVerifyError>(
-        public_key.value());
+    auto buffer =
+        scale::encode(boost::variant<CompressedPublicKey, EcdsaVerifyError>(
+                          public_key.value()))
+            .value();
     return memory_->storeBuffer(buffer);
   }
 }  // namespace kagome::extensions
