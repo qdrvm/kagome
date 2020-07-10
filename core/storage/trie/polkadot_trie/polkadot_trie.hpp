@@ -21,8 +21,6 @@ namespace kagome::storage::trie {
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
 
-    friend class PolkadotTrieCursor;
-
     /**
      * Remove all trie entries which key begins with the supplied prefix
      */
@@ -33,12 +31,27 @@ namespace kagome::storage::trie {
      */
     virtual NodePtr getRoot() const = 0;
 
+    /**
+     * @returns a child node pointer of a provided \arg parent node
+     * at the index \idx
+     */
     virtual outcome::result<NodePtr> retrieveChild(BranchPtr parent,
                                                    uint8_t idx) const = 0;
 
-   protected:
+    // TODO(Harrm) Make key nibbles type distinguishable with just key
+    /**
+     * @returns a node which is a descendant of \arg parent found by following
+     * \arg key_nibbles
+     */
     virtual outcome::result<NodePtr> getNode(
-        NodePtr parent, const common::Buffer &key_nibbles) const = 0;
+        NodePtr parent, const KeyNibbles &key_nibbles) const = 0;
+
+    /**
+     * @returns a sequence of nodes in between \arg parent and the node found by
+     * following \arg key_nibbles. The parent is included, the end node isn't.
+     */
+    virtual outcome::result<std::list<std::pair<BranchPtr, uint8_t>>> getPath(
+        NodePtr parent, const KeyNibbles &key_nibbles) const = 0;
   };
 
 }  // namespace kagome::storage::trie

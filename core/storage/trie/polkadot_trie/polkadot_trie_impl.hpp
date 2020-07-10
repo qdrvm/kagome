@@ -41,6 +41,12 @@ namespace kagome::storage::trie {
 
     NodePtr getRoot() const override;
 
+    outcome::result<NodePtr> getNode(
+        NodePtr parent, const KeyNibbles &key_nibbles) const override;
+
+    outcome::result<std::list<std::pair<BranchPtr, uint8_t>>> getPath(
+        NodePtr parent, const KeyNibbles &key_nibbles) const override;
+
     /**
      * Remove all entries, which key starts with the prefix
      */
@@ -66,26 +72,24 @@ namespace kagome::storage::trie {
 
    private:
     outcome::result<NodePtr> insert(const NodePtr &parent,
-                                    const common::Buffer &key_nibbles,
+                                    const KeyNibbles &key_nibbles,
                                     NodePtr node);
 
     outcome::result<NodePtr> updateBranch(BranchPtr parent,
-                                          const common::Buffer &key_nibbles,
+                                          const KeyNibbles &key_nibbles,
                                           const NodePtr &node);
 
     outcome::result<NodePtr> deleteNode(NodePtr parent,
-                                        const common::Buffer &key_nibbles);
+                                        const KeyNibbles &key_nibbles);
     outcome::result<NodePtr> handleDeletion(const BranchPtr &parent,
                                             NodePtr node,
-                                            const common::Buffer &key_nibbles);
+                                            const KeyNibbles &key_nibbles);
     // remove a node with its children
     outcome::result<NodePtr> detachNode(const NodePtr &parent,
-                                        const common::Buffer &prefix_nibbles);
-    outcome::result<NodePtr> getNode(
-        NodePtr parent, const common::Buffer &key_nibbles) const override;
+                                        const KeyNibbles &prefix_nibbles);
 
-    uint32_t getCommonPrefixLength(const common::Buffer &pref1,
-                                   const common::Buffer &pref2) const;
+    uint32_t getCommonPrefixLength(const KeyNibbles &pref1,
+                                   const KeyNibbles &pref2) const;
 
     outcome::result<NodePtr> retrieveChild(BranchPtr parent,
                                            uint8_t idx) const override;

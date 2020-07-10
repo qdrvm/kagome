@@ -43,12 +43,12 @@ namespace kagome::storage::trie {
      * Def. 14 KeyEncode
      * Splits a key to an array of nibbles (a nibble is a half of a byte)
      */
-    static Buffer keyToNibbles(const Buffer &key);
+    static KeyNibbles keyToNibbles(const Buffer &key);
 
     /**
      * Collects an array of nibbles to a key
      */
-    static Buffer nibblesToKey(const Buffer &nibbles);
+    static Buffer nibblesToKey(const KeyNibbles &nibbles);
 
     /**
      * Encodes a node header accroding to the specification
@@ -63,12 +63,12 @@ namespace kagome::storage::trie {
     outcome::result<std::pair<PolkadotNode::Type, size_t>> decodeHeader(
         BufferStream &stream) const;
 
-    outcome::result<Buffer> decodePartialKey(size_t nibbles_num,
+    outcome::result<KeyNibbles> decodePartialKey(size_t nibbles_num,
                                              BufferStream &stream) const;
 
     outcome::result<std::shared_ptr<Node>> decodeBranch(
         PolkadotNode::Type type,
-        const Buffer &partial_key,
+        const KeyNibbles &partial_key,
         BufferStream &stream) const;
   };
 
