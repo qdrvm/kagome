@@ -204,7 +204,7 @@ namespace kagome::blockchain {
     if (!node) {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
-    if (storage_->getJustification(block)){
+    if (storage_->getJustification(block)) {
       // block was already finalized, fine
       return outcome::success();
     }
@@ -225,7 +225,8 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
 
-    log_->info("Finalized block number {} with hash {}", node->depth, block.toHex());
+    log_->info(
+        "Finalized block number {} with hash {}", node->depth, block.toHex());
     return outcome::success();
   }
 

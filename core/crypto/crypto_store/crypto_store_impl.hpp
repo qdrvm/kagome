@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/variant.hpp>
 #include "common/blob.hpp"
+#include "common/logger.hpp"
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -66,11 +67,11 @@ namespace kagome::crypto {
     outcome::result<SR25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) override;
 
-    outcome::result<ED25519Keypair> generateEd25519Keypair(
-        KeyTypeId key_type, const ED25519Seed &seed) override;
+    ED25519Keypair generateEd25519Keypair(KeyTypeId key_type,
+                                          const ED25519Seed &seed) override;
 
-    outcome::result<SR25519Keypair> generateSr25519Keypair(
-        KeyTypeId key_type, const SR25519Seed &seed) override;
+    SR25519Keypair generateSr25519Keypair(KeyTypeId key_type,
+                                          const SR25519Seed &seed) override;
 
     outcome::result<ED25519Keypair> generateEd25519Keypair(
         KeyTypeId key_type) override;
@@ -84,17 +85,16 @@ namespace kagome::crypto {
     outcome::result<SR25519Keypair> findSr25519Keypair(
         KeyTypeId key_type, const SR25519PublicKey &pk) const override;
 
-    outcome::result<ED25519Keys> getEd25519PublicKeys(
-        KeyTypeId key_type) const override;
+    ED25519Keys getEd25519PublicKeys(KeyTypeId key_type) const override;
 
-    outcome::result<SR25519Keys> getSr25519PublicKeys(
-        KeyTypeId key_type) const override;
+    SR25519Keys getSr25519PublicKeys(KeyTypeId key_type) const override;
 
    private:
+    outcome::result<std::pair<KeyTypeId, store::PublicKey>> parseKeyFileName(
+        std::string_view file_name) const;
+
     Path composeKeyPath(KeyTypeId key_type,
                         const store::PublicKey &public_key) const;
-
-    outcome::result<std::string> loadFile(const Path &file_name) const;
 
     outcome::result<void> storeKeyfile(KeyTypeId key_type,
                                        const store::PublicKey &public_key,
@@ -109,6 +109,7 @@ namespace kagome::crypto {
 
     std::map<KeyTypeId, std::map<ED25519PublicKey, ED25519PrivateKey>> ed_keys_;
     std::map<KeyTypeId, std::map<SR25519PublicKey, SR25519SecretKey>> sr_keys_;
+    common::Logger logger_;
   };
 }  // namespace kagome::crypto
 
