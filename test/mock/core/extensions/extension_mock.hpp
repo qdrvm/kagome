@@ -72,11 +72,46 @@ namespace kagome::extensions {
                  void(runtime::WasmPointer data,
                       runtime::WasmSize len,
                       runtime::WasmPointer out));
+    MOCK_METHOD2(ext_ed25519_public_keys,
+                 runtime::WasmSize(runtime::WasmSize key_type,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD4(ext_ed25519_generate,
+                 runtime::WasmSize(runtime::WasmSize key_type,
+                                   runtime::WasmPointer seed_data,
+                                   runtime::WasmSize seed_len,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD5(ext_ed25519_sign,
+                 runtime::WasmSize(runtime::WasmSize key_type,
+                                   runtime::WasmPointer key,
+                                   runtime::WasmPointer msg_data,
+                                   runtime::WasmSize msg_len,
+                                   runtime::WasmPointer out_ptr));
+
     MOCK_METHOD4(ext_ed25519_verify,
                  runtime::WasmSize(runtime::WasmPointer msg_data,
                                    runtime::WasmSize msg_len,
                                    runtime::WasmPointer sig_data,
                                    runtime::WasmPointer pubkey_data));
+
+    MOCK_METHOD2(ext_sr25519_public_keys,
+                 runtime::WasmSize(runtime::WasmSize key_type,
+                                   runtime::WasmPointer out_keys));
+
+    MOCK_METHOD4(ext_sr25519_generate,
+                 runtime::WasmSize(runtime::WasmSize key_type,
+                                   runtime::WasmPointer seed_data,
+                                   runtime::WasmSize seed_len,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD5(ext_sr25519_sign,
+                 runtime::WasmSize(runtime::WasmSize key_type,
+                                   runtime::WasmPointer key,
+                                   runtime::WasmPointer msg_data,
+                                   runtime::WasmSize msg_len,
+                                   runtime::WasmPointer out_ptr));
+
     MOCK_METHOD4(ext_sr25519_verify,
                  runtime::WasmSize(runtime::WasmPointer msg_data,
                                    runtime::WasmSize msg_len,
@@ -95,9 +130,47 @@ namespace kagome::extensions {
                       runtime::WasmSize len,
                       runtime::WasmPointer out));
     MOCK_CONST_METHOD0(ext_chain_id, uint64_t());
+
+    // -------------------------Crypto extensions v1---------------------
+
+    MOCK_METHOD1(ext_ed25519_public_keys_v1,
+                 runtime::WasmSpan(runtime::WasmSize key_type));
+
+    MOCK_METHOD2(ext_ed25519_generate_v1,
+                 runtime::WasmPointer(runtime::WasmSize key_type,
+                                      runtime::WasmSpan seed));
+
+    MOCK_METHOD3(ext_ed25519_sign_v1,
+                 runtime::WasmSpan(runtime::WasmSize key_type,
+                                      runtime::WasmPointer key,
+                                      runtime::WasmSpan msg_data));
+
+    MOCK_METHOD3(ext_ed25519_verify_v1,
+                 runtime::WasmSize(runtime::WasmPointer sig_data,
+                                   runtime::WasmSpan msg,
+                                   runtime::WasmPointer pubkey_data));
+
+    MOCK_METHOD1(ext_sr25519_public_keys_v1,
+                 runtime::WasmSpan(runtime::WasmSize key_type));
+
+    MOCK_METHOD2(ext_sr25519_generate_v1,
+                 runtime::WasmPointer(runtime::WasmSize key_type,
+                                      runtime::WasmSpan seed));
+
+    MOCK_METHOD3(ext_sr25519_sign_v1,
+                 runtime::WasmSpan(runtime::WasmSize key_type,
+                                      runtime::WasmPointer key,
+                                      runtime::WasmSpan msg_data));
+
+    MOCK_METHOD3(ext_sr25519_verify_v1,
+                 runtime::WasmSize(runtime::WasmPointer sig_data,
+                                   runtime::WasmSpan msg,
+                                   runtime::WasmPointer pubkey_data));
+
     MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_v1,
                  runtime::WasmSpan(runtime::WasmPointer sig,
                                       runtime::WasmPointer msg));
+
     MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_compressed_v1,
                  runtime::WasmSpan(runtime::WasmPointer sig,
                                       runtime::WasmPointer msg));

@@ -8,6 +8,10 @@
 
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
+#include <crypto/bip39/impl/bip39_provider_impl.hpp>
+#include <crypto/crypto_store/crypto_store_impl.hpp>
+#include <crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
+#include <crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
@@ -470,8 +474,8 @@ namespace kagome::injector {
       spdlog::debug("Added peer with id: {}", peer_info.id.toBase58());
       if (peer_info.id != current_peer_info.id) {
         res->clients.emplace_back(
-            std::make_shared<network::RemoteSyncProtocolClient>(*host,
-                                                                std::move(peer_info)));
+            std::make_shared<network::RemoteSyncProtocolClient>(
+                *host, std::move(peer_info)));
       } else {
         res->clients.emplace_back(
             std::make_shared<network::DummySyncProtocolClient>());
@@ -491,8 +495,7 @@ namespace kagome::injector {
       return *initialized;
     }
 
-    sptr<runtime::BabeApi> babe_api =
-        injector.template create<sptr<runtime::BabeApi>>();
+    auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
     auto configuration_res = babe_api->configuration();
     if (not configuration_res) {
       common::raise(configuration_res.error());
@@ -505,6 +508,41 @@ namespace kagome::injector {
     initialized = std::make_shared<primitives::BabeConfiguration>(config);
     return *initialized;
   };
+
+  template <class Injector>
+  sptr<crypto::CryptoStore> get_crypto_store(std::string_view keystore_path,
+                                             const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<crypto::CryptoStore>>(boost::none);
+    if (initialized) {
+      return *initialized;
+    }
+
+    auto ed25519_provider =
+        injector.template create<sptr<crypto::ED25519Provider>>();
+    auto sr25519_provider =
+        injector.template create<sptr<crypto::SR25519Provider>>();
+    auto secp256k1_provider =
+        injector.template create<sptr<crypto::Secp256k1Provider>>();
+    auto bip39_provider =
+        injector.template create<sptr<crypto::Bip39Provider>>();
+    auto random_generator = injector.template create<sptr<crypto::CSPRNG>>();
+
+    auto crypto_store =
+        std::make_shared<crypto::CryptoStoreImpl>(std::move(ed25519_provider),
+                                                  std::move(sr25519_provider),
+                                                  std::move(secp256k1_provider),
+                                                  std::move(bip39_provider),
+                                                  std::move(random_generator));
+
+    boost::filesystem::path path = std::string(keystore_path);
+    if (auto &&res = crypto_store->initialize(path); res) {
+      common::raise(res.error());
+    }
+    initialized = crypto_store;
+
+    return *initialized;
+  }
 
   template <typename... Ts>
   auto makeApplicationInjector(
@@ -586,6 +624,10 @@ namespace kagome::injector {
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
+        di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
+        di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
+        di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
+        di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
         di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
