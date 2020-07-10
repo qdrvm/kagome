@@ -8,14 +8,15 @@
 
 #include "application/kagome_application.hpp"
 
-#include "injector/block_producing_node_injector.hpp"
 #include "application/app_config.hpp"
+#include "injector/block_producing_node_injector.hpp"
 
 namespace kagome::application {
 
   class BlockProducingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
-    using InjectorType = decltype(injector::makeBlockProducingNodeInjector(AppConfigPtr{}));
+    using InjectorType =
+        decltype(injector::makeBlockProducingNodeInjector(AppConfigPtr{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;

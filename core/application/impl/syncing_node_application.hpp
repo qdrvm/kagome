@@ -8,8 +8,8 @@
 
 #include "application/kagome_application.hpp"
 
-#include "common/logger.hpp"
 #include "application/app_config.hpp"
+#include "common/logger.hpp"
 #include "injector/syncing_node_injector.hpp"
 
 namespace kagome::application {
@@ -22,8 +22,8 @@ namespace kagome::application {
     using uptr = std::unique_ptr<T>;
 
    public:
-    using InjectorType = decltype(
-        injector::makeSyncingNodeInjector(AppConfigPtr{}));
+    using InjectorType =
+        decltype(injector::makeSyncingNodeInjector(AppConfigPtr{}));
 
     ~SyncingNodeApplication() override = default;
 

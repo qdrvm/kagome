@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
 
+#include "application/app_config.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
@@ -13,7 +14,6 @@
 #include "injector/application_injector.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "runtime/dummy/grandpa_dummy.hpp"
-#include "application/app_config.hpp"
 
 namespace kagome::injector {
 
@@ -143,12 +143,15 @@ namespace kagome::injector {
   auto get_babe_observer = get_babe;
 
   template <typename... Ts>
-  auto makeFullNodeInjector(application::AppConfigPtr app_config, Ts &&... args) {
+  auto makeFullNodeInjector(application::AppConfigPtr app_config,
+                            Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
-        makeApplicationInjector(
-            app_config->genesis_path(), app_config->leveldb_path(), app_config->rpc_http_endpoint(), app_config->rpc_ws_endpoint()),
+        makeApplicationInjector(app_config->genesis_path(),
+                                app_config->leveldb_path(),
+                                app_config->rpc_http_endpoint(),
+                                app_config->rpc_ws_endpoint()),
         // bind sr25519 keypair
         di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
         // bind ed25519 keypair
@@ -157,34 +160,35 @@ namespace kagome::injector {
         di::bind<libp2p::crypto::KeyPair>.to(
             std::move(get_peer_keypair))[boost::di::override],
         // compose peer info
-        di::bind<network::OwnPeerInfo>.to([p2p_port{app_config->p2p_port()}](const auto &injector) {
-          return get_peer_info(injector, p2p_port);
-        }),
+        di::bind<network::OwnPeerInfo>.to(
+            [p2p_port{app_config->p2p_port()}](const auto &injector) {
+              return get_peer_info(injector, p2p_port);
+            }),
         di::bind<consensus::Babe>.to(std::move(get_babe)),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
-        di::bind<runtime::Grandpa>.template to([is_only_finalizing{app_config->is_only_finalizing()}](
-                                                   const auto &injector)
-                                                   -> sptr<runtime::Grandpa> {
-          static boost::optional<sptr<runtime::Grandpa>> initialized =
-              boost::none;
-          if (initialized) {
-            return *initialized;
-          }
-          if (is_only_finalizing) {
-            auto grandpa_dummy =
-                injector.template create<sptr<runtime::dummy::GrandpaDummy>>();
-            initialized = grandpa_dummy;
-          } else {
-            auto grandpa =
-                injector
-                    .template create<sptr<runtime::binaryen::GrandpaImpl>>();
-            initialized = grandpa;
-          }
-          return *initialized;
-        })[di::override],
+        di::bind<runtime::Grandpa>.template to(
+            [is_only_finalizing{app_config->is_only_finalizing()}](
+                const auto &injector) -> sptr<runtime::Grandpa> {
+              static boost::optional<sptr<runtime::Grandpa>> initialized =
+                  boost::none;
+              if (initialized) {
+                return *initialized;
+              }
+              if (is_only_finalizing) {
+                auto grandpa_dummy =
+                    injector
+                        .template create<sptr<runtime::dummy::GrandpaDummy>>();
+                initialized = grandpa_dummy;
+              } else {
+                auto grandpa = injector.template create<
+                    sptr<runtime::binaryen::GrandpaImpl>>();
+                initialized = grandpa;
+              }
+              return *initialized;
+            })[di::override],
         di::bind<application::KeyStorage>.to(
             [app_config](const auto &injector) {
               return get_key_storage(app_config->keystore_path(), injector);

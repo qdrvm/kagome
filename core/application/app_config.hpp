@@ -6,10 +6,10 @@
 #ifndef KAGOME_APP_CONFIG_HPP
 #define KAGOME_APP_CONFIG_HPP
 
-#include <string>
-#include <memory>
 #include <spdlog/spdlog.h>
 #include <boost/asio/ip/tcp.hpp>
+#include <memory>
+#include <string>
 
 namespace kagome::application {
 
@@ -69,7 +69,6 @@ namespace kagome::application {
      * @return true if node in only finalizing mode, otherwise false.
      */
     virtual bool is_only_finalizing() const = 0;
-
   };
 
   using AppConfigPtr = std::shared_ptr<AppConfiguration>;

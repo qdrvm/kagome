@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_INJECTOR_BLOCK_PRODUCING_NODE_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_BLOCK_PRODUCING_NODE_INJECTOR_HPP
 
+#include "application/app_config.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/syncing_babe_observer.hpp"
@@ -14,13 +15,13 @@
 #include "injector/validating_node_injector.hpp"
 #include "runtime/dummy/grandpa_dummy.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "application/app_config.hpp"
 
 namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename... Ts>
-  auto makeBlockProducingNodeInjector(application::AppConfigPtr app_config, Ts &&... args) {
+  auto makeBlockProducingNodeInjector(application::AppConfigPtr app_config,
+                                      Ts &&... args) {
     using namespace boost;  // NOLINT;
     assert(app_config);
 
@@ -28,8 +29,10 @@ namespace kagome::injector {
     return di::make_injector(
 
         // inherit application injector
-        makeApplicationInjector(
-            app_config->genesis_path(), app_config->leveldb_path(), app_config->rpc_http_endpoint(), app_config->rpc_ws_endpoint()),
+        makeApplicationInjector(app_config->genesis_path(),
+                                app_config->leveldb_path(),
+                                app_config->rpc_http_endpoint(),
+                                app_config->rpc_ws_endpoint()),
         // bind sr25519 keypair
         di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
         // bind ed25519 keypair
@@ -38,9 +41,10 @@ namespace kagome::injector {
         di::bind<libp2p::crypto::KeyPair>.to(
             std::move(get_peer_keypair))[boost::di::override],
         // peer info
-        di::bind<network::OwnPeerInfo>.to([p2p_port{app_config->p2p_port()}](const auto &injector) {
-          return get_peer_info(injector, p2p_port);
-        }),
+        di::bind<network::OwnPeerInfo>.to(
+            [p2p_port{app_config->p2p_port()}](const auto &injector) {
+              return get_peer_info(injector, p2p_port);
+            }),
 
         di::bind<consensus::Babe>.to(std::move(get_babe)),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),

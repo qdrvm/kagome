@@ -20,8 +20,8 @@ namespace kagome::application {
   class ValidatingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
     using GrandpaLauncher = consensus::grandpa::Launcher;
-    using InjectorType = decltype(
-        injector::makeFullNodeInjector(AppConfigPtr{}));
+    using InjectorType =
+        decltype(injector::makeFullNodeInjector(AppConfigPtr{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;

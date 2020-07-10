@@ -6,9 +6,9 @@
 #ifndef KAGOME_CORE_INJECTOR_SYNCING_NODE_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_SYNCING_NODE_INJECTOR_HPP
 
+#include "application/app_config.hpp"
 #include "consensus/babe/impl/syncing_babe_observer.hpp"
 #include "consensus/grandpa/impl/syncing_round_observer.hpp"
-#include "application/app_config.hpp"
 #include "injector/application_injector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 
@@ -49,19 +49,23 @@ namespace kagome::injector {
   };
 
   template <typename... Ts>
-  auto makeSyncingNodeInjector(application::AppConfigPtr app_config, Ts &&... args) {
+  auto makeSyncingNodeInjector(application::AppConfigPtr app_config,
+                               Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
 
         // inherit application injector
-        makeApplicationInjector(
-            app_config->genesis_path(), app_config->leveldb_path(), app_config->rpc_http_endpoint(), app_config->rpc_ws_endpoint()),
+        makeApplicationInjector(app_config->genesis_path(),
+                                app_config->leveldb_path(),
+                                app_config->rpc_http_endpoint(),
+                                app_config->rpc_ws_endpoint()),
 
         // peer info
-        di::bind<network::OwnPeerInfo>.to([p2p_port{app_config->p2p_port()}](const auto &injector) {
-          return get_peer_info(injector, p2p_port);
-        }),
+        di::bind<network::OwnPeerInfo>.to(
+            [p2p_port{app_config->p2p_port()}](const auto &injector) {
+              return get_peer_info(injector, p2p_port);
+            }),
 
         di::bind<network::BabeObserver>.template to<consensus::SyncingBabeObserver>(),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::SyncingRoundObserver>(),

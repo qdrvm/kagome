@@ -12,17 +12,19 @@
 
 namespace {
   struct RegisteredHandlers {
-    using Handler = void(kagome::application::AppConfigurationImpl::*)(rapidjson::Value &);
+    using Handler =
+        void (kagome::application::AppConfigurationImpl::*)(rapidjson::Value &);
     char const *segment_name;
     Handler handler;
   };
 
-  template<typename T, typename Func>
-  inline void find_argument(boost::program_options::variables_map &vm, char const* name, Func &&f) {
+  template <typename T, typename Func>
+  inline void find_argument(boost::program_options::variables_map &vm,
+                            char const *name,
+                            Func &&f) {
     assert(nullptr != name);
     auto it = vm.find(name);
-    if (it != vm.end())
-      std::forward<Func>(f)(it->second.as<T>());
+    if (it != vm.end()) std::forward<Func>(f)(it->second.as<T>());
   }
 
   const std::string def_rpc_http_host = "0.0.0.0";
@@ -32,31 +34,33 @@ namespace {
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = 2;
   const bool def_is_only_finalizing = false;
-}
+}  // namespace
 
 namespace kagome::application {
 
-  void AppConfigurationImpl::file_deleter(FILE* f) {
+  void AppConfigurationImpl::file_deleter(FILE *f) {
     std::fclose(f);
   }
 
   AppConfigurationImpl::AppConfigurationImpl(kagome::common::Logger logger)
-  : logger_(std::move(logger))
-  , rpc_http_host_(def_rpc_http_host)
-  , rpc_ws_host_(def_rpc_ws_host)
-  , rpc_http_port_(def_rpc_http_port)
-  , rpc_ws_port_(def_rpc_ws_port)
-  , p2p_port_(def_p2p_port)
-  , verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity))
-  , is_only_finalizing_(def_is_only_finalizing)
-  { }
+      : logger_(std::move(logger)),
+        rpc_http_host_(def_rpc_http_host),
+        rpc_ws_host_(def_rpc_ws_host),
+        rpc_http_port_(def_rpc_http_port),
+        rpc_ws_port_(def_rpc_ws_port),
+        p2p_port_(def_p2p_port),
+        verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
+        is_only_finalizing_(def_is_only_finalizing) {}
 
-  AppConfigurationImpl::FilePtr AppConfigurationImpl::open_file(const std::string &filepath) {
+  AppConfigurationImpl::FilePtr AppConfigurationImpl::open_file(
+      const std::string &filepath) {
     assert(!filepath.empty());
-    return AppConfigurationImpl::FilePtr(std::fopen(filepath.c_str(), "r"), &file_deleter);
+    return AppConfigurationImpl::FilePtr(std::fopen(filepath.c_str(), "r"),
+                                         &file_deleter);
   }
 
-  [[maybe_unused]] size_t AppConfigurationImpl::get_file_size(const std::string &filepath) {
+  [[maybe_unused]] size_t AppConfigurationImpl::get_file_size(
+      const std::string &filepath) {
     struct stat statbuf;
     if (-1 == stat(filepath.c_str(), &statbuf)) {
       logger_->error("Read configuration file metadata failed: {}", filepath);
@@ -65,7 +69,9 @@ namespace kagome::application {
     return static_cast<size_t>(statbuf.st_size);
   }
 
-  bool AppConfigurationImpl::load_str(const rapidjson::Value &val, char const *name, std::string &target) {
+  bool AppConfigurationImpl::load_str(const rapidjson::Value &val,
+                                      char const *name,
+                                      std::string &target) {
     auto m = val.FindMember(name);
     if (val.MemberEnd() != m && m->value.IsString()) {
       target.assign(m->value.GetString(), m->value.GetStringLength());
@@ -74,7 +80,9 @@ namespace kagome::application {
     return false;
   }
 
-  bool AppConfigurationImpl::load_bool(const rapidjson::Value &val, char const *name, bool &target) {
+  bool AppConfigurationImpl::load_bool(const rapidjson::Value &val,
+                                       char const *name,
+                                       bool &target) {
     auto m = val.FindMember(name);
     if (val.MemberEnd() != m && m->value.IsBool()) {
       target = m->value.GetBool();
@@ -83,7 +91,9 @@ namespace kagome::application {
     return false;
   }
 
-  bool AppConfigurationImpl::load_u16(const rapidjson::Value &val, char const *name, uint16_t &target) {
+  bool AppConfigurationImpl::load_u16(const rapidjson::Value &val,
+                                      char const *name,
+                                      uint16_t &target) {
     auto m = val.FindMember(name);
     if (val.MemberEnd() != m && m->value.IsInt()) {
       target = static_cast<uint16_t>(m->value.GetInt());
@@ -122,7 +132,8 @@ namespace kagome::application {
     load_bool(val, "single_finalizing_node", is_only_finalizing_);
   }
 
-  void AppConfigurationImpl::validate_config(AppConfiguration::LoadScheme scheme) {
+  void AppConfigurationImpl::validate_config(
+      AppConfiguration::LoadScheme scheme) {
     if (genesis_path_.empty()) {
       logger_->error("Node configuration must contain 'genesis' option.");
       exit(EXIT_FAILURE);
@@ -134,26 +145,28 @@ namespace kagome::application {
     }
 
     const auto need_keystore =
-        (AppConfiguration::LoadScheme::kBlockProducing == scheme) ||
-            (AppConfiguration::LoadScheme::kValidating == scheme);
+        (AppConfiguration::LoadScheme::kBlockProducing == scheme)
+        || (AppConfiguration::LoadScheme::kValidating == scheme);
 
-    if(!(!need_keystore != !keystore_path_.empty())) {
+    if (!(!need_keystore != !keystore_path_.empty())) {
       logger_->error("Node configuration must contain 'keystore_path' option.");
       exit(EXIT_FAILURE);
     }
   }
 
-  void AppConfigurationImpl::read_config_from_file(const std::string &filepath) {
+  void AppConfigurationImpl::read_config_from_file(
+      const std::string &filepath) {
     assert(!filepath.empty());
 
-    /// TODO: make handler calls via lambda-calls, remove member-function ptrs (iceseer)
+    /// TODO: make handler calls via lambda-calls, remove member-function ptrs
+    /// (iceseer)
     RegisteredHandlers handlers[] = {
-        { "general", &AppConfigurationImpl::parse_general_segment },
-        { "blockchain", &AppConfigurationImpl::parse_blockchain_segment },
-        { "storage", &AppConfigurationImpl::parse_storage_segment },
-        { "authority", &AppConfigurationImpl::parse_authority_segment },
-        { "network", &AppConfigurationImpl::parse_network_segment },
-        { "additional", &AppConfigurationImpl::parse_additional_segment },
+        {"general", &AppConfigurationImpl::parse_general_segment},
+        {"blockchain", &AppConfigurationImpl::parse_blockchain_segment},
+        {"storage", &AppConfigurationImpl::parse_storage_segment},
+        {"authority", &AppConfigurationImpl::parse_authority_segment},
+        {"network", &AppConfigurationImpl::parse_network_segment},
+        {"additional", &AppConfigurationImpl::parse_additional_segment},
     };
 
     auto file = open_file(filepath);
@@ -179,8 +192,8 @@ namespace kagome::application {
     }
   }
 
-  boost::asio::ip::tcp::endpoint
-  AppConfigurationImpl::get_endpoint_from(std::string const &host, uint16_t port) {
+  boost::asio::ip::tcp::endpoint AppConfigurationImpl::get_endpoint_from(
+      std::string const &host, uint16_t port) {
     boost::asio::ip::tcp::endpoint endpoint;
     boost::system::error_code err;
 
@@ -199,7 +212,8 @@ namespace kagome::application {
     return std::move(endpoint);
   }
 
-  bool AppConfigurationImpl::initialize_from_args(AppConfiguration::LoadScheme scheme, int argc, char **argv) {
+  bool AppConfigurationImpl::initialize_from_args(
+      AppConfiguration::LoadScheme scheme, int argc, char **argv) {
     namespace po = boost::program_options;
 
     // clang-format off
@@ -242,9 +256,9 @@ namespace kagome::application {
 
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv)
-        .options(desc)
-        .allow_unregistered()
-        .run();
+                                    .options(desc)
+                                    .allow_unregistered()
+                                    .run();
     po::store(parsed, vm);
     po::notify(vm);
 
@@ -279,44 +293,38 @@ namespace kagome::application {
       is_only_finalizing_ = val;
     });
 
-    find_argument<std::string>(vm, "genesis", [&](std::string const &val) {
-      genesis_path_ = val;
-    });
+    find_argument<std::string>(
+        vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });
 
-    find_argument<std::string>(vm, "leveldb", [&](std::string const &val) {
-      leveldb_path_ = val;
-    });
+    find_argument<std::string>(
+        vm, "leveldb", [&](std::string const &val) { leveldb_path_ = val; });
 
-    find_argument<std::string>(vm, "keystore", [&](std::string const &val) {
-      keystore_path_ = val;
-    });
+    find_argument<std::string>(
+        vm, "keystore", [&](std::string const &val) { keystore_path_ = val; });
 
-    find_argument<uint16_t>(vm, "p2p_port", [&](uint16_t val) {
-      p2p_port_ = val;
-    });
+    find_argument<uint16_t>(
+        vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
 
     find_argument<int32_t>(vm, "verbosity", [&](int32_t val) {
       verbosity_ = (spdlog::level::level_enum)val;
     });
 
-    find_argument<std::string>(vm, "rpc_http_host", [&](std::string const &val) {
-      rpc_http_host_ = val;
-    });
+    find_argument<std::string>(
+        vm, "rpc_http_host", [&](std::string const &val) {
+          rpc_http_host_ = val;
+        });
 
-    find_argument<std::string>(vm, "rpc_ws_host", [&](std::string const &val) {
-      rpc_ws_host_ = val;
-    });
+    find_argument<std::string>(
+        vm, "rpc_ws_host", [&](std::string const &val) { rpc_ws_host_ = val; });
 
-    find_argument<uint16_t>(vm, "rpc_http_port", [&](uint16_t val) {
-      rpc_http_port_ = val;
-    });
+    find_argument<uint16_t>(
+        vm, "rpc_http_port", [&](uint16_t val) { rpc_http_port_ = val; });
 
-    find_argument<uint16_t>(vm, "rpc_ws_port", [&](uint16_t val) {
-      rpc_ws_port_ = val;
-    });
+    find_argument<uint16_t>(
+        vm, "rpc_ws_port", [&](uint16_t val) { rpc_ws_port_ = val; });
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
-    rpc_ws_endpoint_   = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
+    rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
     validate_config(scheme);
     return true;
   }
