@@ -247,10 +247,9 @@ namespace kagome::consensus::grandpa {
         [&](const VoteGraph::Entry &entry) {
           using namespace boost::adaptors;  // NOLINT
           auto filtered_entries =
-              entry.descendents
-              | transformed([this](const BlockHash &d) {
-                  return std::make_pair(d, entries_.at(d));
-                })
+              entry.descendents | transformed([this](const BlockHash &d) {
+                return std::make_pair(d, entries_.at(d));
+              })
               | filtered([&](const auto &pair) {
                   const auto &[_, node] = pair;
                   if (force_constrain && current_best) {
@@ -260,7 +259,7 @@ namespace kagome::consensus::grandpa {
                   }
                   return true;
                 })
-              | filtered([&](const auto &pair) {
+              | filtered([&condition](const auto &pair) {
                   const auto &[_, node] = pair;
                   return condition(node.cumulative_vote);
                 });
@@ -342,10 +341,10 @@ namespace kagome::consensus::grandpa {
           if (condition(descendent_blocks[d_block])) {
             if (not new_best_vote_weight
                 or new_best_vote_weight < descendent_blocks[d_block]) {
+              // we found our best block
+              new_best = d_block;
               new_best_vote_weight = descendent_blocks[d_block];
             }
-            // we found our best block
-            new_best = d_block;
           }
         }
       }

@@ -132,7 +132,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
         graph->findGhost(boost::none, [](auto &&x) { return x >= "5"_W; });
     ASSERT_TRUE(ghostOpt);
     ASSERT_EQ(*ghostOpt, BlockInfo(10, "ED"_H))
-        << "The farthest block of blocks with enough weight should be selected";
+        << "The best block of blocks with enough weight should be selected";
   }
 
   {
