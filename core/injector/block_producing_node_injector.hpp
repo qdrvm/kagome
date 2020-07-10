@@ -14,28 +14,22 @@
 #include "injector/validating_node_injector.hpp"
 #include "runtime/dummy/grandpa_dummy.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "application/app_config.hpp"
 
 namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename... Ts>
-  auto makeBlockProducingNodeInjector(
-      const std::string &genesis_path,
-      const std::string &keystore_path,
-      const std::string &leveldb_path,
-      uint16_t p2p_port,
-      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-      Ts &&... args) {
+  auto makeBlockProducingNodeInjector(application::AppConfigPtr app_config, Ts &&... args) {
     using namespace boost;  // NOLINT;
+    assert(app_config);
 
     auto get_babe_observer = get_babe;
-
     return di::make_injector(
 
         // inherit application injector
         makeApplicationInjector(
-            genesis_path, leveldb_path, rpc_http_endpoint, rpc_ws_endpoint),
+            app_config->genesis_path(), app_config->leveldb_path(), app_config->rpc_http_endpoint(), app_config->rpc_ws_endpoint()),
         // bind sr25519 keypair
         di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
         // bind ed25519 keypair
@@ -44,7 +38,7 @@ namespace kagome::injector {
         di::bind<libp2p::crypto::KeyPair>.to(
             std::move(get_peer_keypair))[boost::di::override],
         // peer info
-        di::bind<network::OwnPeerInfo>.to([p2p_port](const auto &injector) {
+        di::bind<network::OwnPeerInfo>.to([p2p_port{app_config->p2p_port()}](const auto &injector) {
           return get_peer_info(injector, p2p_port);
         }),
 
@@ -54,8 +48,8 @@ namespace kagome::injector {
 
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::SyncingRoundObserver>(),
         di::bind<application::KeyStorage>.to(
-            [keystore_path](const auto &injector) {
-              return get_key_storage(keystore_path, injector);
+            [app_config](const auto &injector) {
+              return get_key_storage(app_config->keystore_path(), injector);
             }),
         di::bind<runtime::Grandpa>.template to<runtime::dummy::GrandpaDummy>()
             [boost::di::override],

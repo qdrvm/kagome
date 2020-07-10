@@ -13,6 +13,7 @@
 #include "injector/application_injector.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "runtime/dummy/grandpa_dummy.hpp"
+#include "application/app_config.hpp"
 
 namespace kagome::injector {
 
@@ -142,20 +143,12 @@ namespace kagome::injector {
   auto get_babe_observer = get_babe;
 
   template <typename... Ts>
-  auto makeFullNodeInjector(
-      const std::string &genesis_path,
-      const std::string &keystore_path,
-      const std::string &leveldb_path,
-      uint16_t p2p_port,
-      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-      bool is_only_finalizing,
-      Ts &&... args) {
+  auto makeFullNodeInjector(application::AppConfigPtr app_config, Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
         makeApplicationInjector(
-            genesis_path, leveldb_path, rpc_http_endpoint, rpc_ws_endpoint),
+            app_config->genesis_path(), app_config->leveldb_path(), app_config->rpc_http_endpoint(), app_config->rpc_ws_endpoint()),
         // bind sr25519 keypair
         di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
         // bind ed25519 keypair
@@ -164,7 +157,7 @@ namespace kagome::injector {
         di::bind<libp2p::crypto::KeyPair>.to(
             std::move(get_peer_keypair))[boost::di::override],
         // compose peer info
-        di::bind<network::OwnPeerInfo>.to([p2p_port](const auto &injector) {
+        di::bind<network::OwnPeerInfo>.to([p2p_port{app_config->p2p_port()}](const auto &injector) {
           return get_peer_info(injector, p2p_port);
         }),
         di::bind<consensus::Babe>.to(std::move(get_babe)),
@@ -172,7 +165,7 @@ namespace kagome::injector {
         di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
-        di::bind<runtime::Grandpa>.template to([is_only_finalizing](
+        di::bind<runtime::Grandpa>.template to([is_only_finalizing{app_config->is_only_finalizing()}](
                                                    const auto &injector)
                                                    -> sptr<runtime::Grandpa> {
           static boost::optional<sptr<runtime::Grandpa>> initialized =
@@ -193,8 +186,8 @@ namespace kagome::injector {
           return *initialized;
         })[di::override],
         di::bind<application::KeyStorage>.to(
-            [keystore_path](const auto &injector) {
-              return get_key_storage(keystore_path, injector);
+            [app_config](const auto &injector) {
+              return get_key_storage(app_config->keystore_path(), injector);
             }),
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

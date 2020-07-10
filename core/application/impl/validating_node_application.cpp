@@ -9,27 +9,13 @@
 
 namespace kagome::application {
 
-  ValidatingNodeApplication::ValidatingNodeApplication(
-      const std::string &config_path,
-      const std::string &keystore_path,
-      const std::string &leveldb_path,
-      uint16_t p2p_port,
-      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-      bool is_only_finalizing,
-      uint8_t verbosity)
-      : injector_{injector::makeFullNodeInjector(config_path,
-                                                 keystore_path,
-                                                 leveldb_path,
-                                                 p2p_port,
-                                                 rpc_http_endpoint,
-                                                 rpc_ws_endpoint,
-                                                 is_only_finalizing)},
+  ValidatingNodeApplication::ValidatingNodeApplication(AppConfigPtr app_config)
+      : injector_{injector::makeFullNodeInjector(app_config)},
         logger_(common::createLogger("Application")) {
-    spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
+    spdlog::set_level(app_config->verbosity());
 
     // genesis launch if database does not exist
-    is_genesis_ = boost::filesystem::exists(leveldb_path)
+    is_genesis_ = boost::filesystem::exists(app_config->leveldb_path())
                       ? Babe::ExecutionStrategy::SYNC_FIRST
                       : Babe::ExecutionStrategy::GENESIS;
 

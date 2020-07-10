@@ -10,4 +10,5 @@ target_link_libraries(kagome_validating
     Boost::boost
     Boost::program_options
     validating_node_application
+    app_config_impl
     )

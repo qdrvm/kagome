@@ -9,6 +9,7 @@
 #include "application/kagome_application.hpp"
 
 #include "common/logger.hpp"
+#include "application/app_config.hpp"
 #include "injector/syncing_node_injector.hpp"
 
 namespace kagome::application {
@@ -22,21 +23,11 @@ namespace kagome::application {
 
    public:
     using InjectorType = decltype(
-        injector::makeSyncingNodeInjector(std::string{},
-                                          std::string{},
-                                          uint16_t{},
-                                          boost::asio::ip::tcp::endpoint{},
-                                          boost::asio::ip::tcp::endpoint{}));
+        injector::makeSyncingNodeInjector(AppConfigPtr{}));
 
     ~SyncingNodeApplication() override = default;
 
-    SyncingNodeApplication(
-        const std::string &config_path,
-        const std::string &leveldb_path,
-        uint16_t p2p_port,
-        const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-        const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-        uint8_t verbosity);
+    SyncingNodeApplication(AppConfigPtr app_config);
 
     void run() override;
 

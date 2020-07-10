@@ -7,22 +7,10 @@
 
 namespace kagome::application {
 
-  BlockProducingNodeApplication::BlockProducingNodeApplication(
-      const std::string &config_path,
-      const std::string &keystore_path,
-      const std::string &leveldb_path,
-      uint16_t p2p_port,
-      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-      uint8_t verbosity)
-      : injector_{injector::makeBlockProducingNodeInjector(config_path,
-                                                           keystore_path,
-                                                           leveldb_path,
-                                                           p2p_port,
-                                                           rpc_http_endpoint,
-                                                           rpc_ws_endpoint)},
+  BlockProducingNodeApplication::BlockProducingNodeApplication(AppConfigPtr app_config)
+      : injector_{injector::makeBlockProducingNodeInjector(app_config)},
         logger_(common::createLogger("Application")) {
-    spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
+    spdlog::set_level(app_config->verbosity());
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
