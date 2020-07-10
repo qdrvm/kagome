@@ -20,13 +20,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
 
 namespace kagome::runtime::binaryen {
 
-  WasmExecutor::WasmExecutor()
-      : logger_{common::createLogger("Wasm executor")} {}
-
   outcome::result<wasm::Literal> WasmExecutor::call(
-      wasm::ModuleInstance &module_instance,
+      WasmModule &module_instance,
       wasm::Name method_name,
-      const wasm::LiteralList &args) {
+      const std::vector<wasm::Literal> &args) {
     try {
       return module_instance.callExport(wasm::Name(method_name), args);
     } catch (wasm::ExitException &e) {

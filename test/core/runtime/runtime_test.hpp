@@ -28,6 +28,7 @@
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
+#include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
@@ -94,6 +95,9 @@ class RuntimeTest : public ::testing::Test {
             crypto_store,
             bip39_provider);
 
+    auto module_factory =
+        std::make_shared<kagome::runtime::binaryen::WasmModuleFactoryImpl>();
+
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/polkadot_runtime.compact.wasm";
     auto wasm_provider =
@@ -103,6 +107,7 @@ class RuntimeTest : public ::testing::Test {
         std::make_shared<kagome::runtime::binaryen::RuntimeManager>(
             std::move(wasm_provider),
             std::move(extension_factory),
+            std::move(module_factory),
             std::move(storage_provider),
             std::move(hasher));
   }
