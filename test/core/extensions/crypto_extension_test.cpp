@@ -103,7 +103,8 @@ class CryptoExtensionTest : public ::testing::Test {
                                                     crypto_store_,
                                                     bip39_provider_);
 
-    EXPECT_OUTCOME_TRUE(seed_tmp, kagome::common::Blob<32>::fromHex(seed_hex));
+    EXPECT_OUTCOME_TRUE(seed_tmp,
+                        kagome::common::Blob<32>::fromHexWithPrefix(seed_hex));
     std::copy_n(seed_tmp.begin(), seed.size(), seed.begin());
 
     // scale-encoded string
@@ -233,7 +234,7 @@ class CryptoExtensionTest : public ::testing::Test {
   Buffer signature_failure_result_buffer;
   Blob<32> seed;
   inline static std::string seed_hex =
-      "a4681403ba5b6a3f3bd0b0604ce439a78244c7d43b127ec35cd8325602dd47fd";
+      "0xa4681403ba5b6a3f3bd0b0604ce439a78244c7d43b127ec35cd8325602dd47fd";
   Buffer seed_buffer;
   inline static std::string mnemonic =
       "ozone drill grab fiber curtain grace pudding thank cruise elder eight "
