@@ -20,35 +20,27 @@ namespace kagome::consensus::grandpa {
       total_weight_ += weight;
       return PushResult::SUCCESS;
     }
-    auto &equivotes = vote_it->second;
-    bool isDuplicate = visit_in_place(
-        equivotes,
-        [&vote](const VotingMessage &voting_message) {
-          return voting_message.block_hash() == vote.block_hash();
-        },
-        [&vote](const EquivocatoryVotingMessage &equivocatory_vote) {
-          return equivocatory_vote.first.block_hash() == vote.block_hash()
-                 or equivocatory_vote.second.block_hash() == vote.block_hash();
-        });
-    if (not isDuplicate) {
-      return visit_in_place(
-          equivotes,
-          // if there is only single vote for that id, make it equivocatory vote
-          [&](const VotingMessage &voting_message) {
-            EquivocatoryVotingMessage v;
-            v.first = boost::get<VotingMessage>(equivotes);
-            v.second = vote;
 
-            messages_[vote.id] = v;
-            total_weight_ += weight;
-            return PushResult::EQUIVOCATED;
-          },
-          // otherwise return duplicated
-          [&](const EquivocatoryVotingMessage &) {
+    auto &equivotes = vote_it->second;
+    return visit_in_place(
+        equivotes,
+        // if there is only single vote for that id, make it equivocatory vote
+        [&](const VotingMessage &voting_message) {
+          if (voting_message.block_hash() == vote.block_hash()) {
             return PushResult::DUPLICATED;
-          });
-    }
-    return PushResult::DUPLICATED;
+          }
+          EquivocatoryVotingMessage v;
+          v.first = boost::get<VotingMessage>(equivotes);
+          v.second = vote;
+
+          messages_[vote.id] = v;
+          total_weight_ -= weight; // Revoke votes of equivocator
+          return PushResult::EQUIVOCATED;
+        },
+        // otherwise return duplicated
+        [&](const EquivocatoryVotingMessage &) {
+          return PushResult::DUPLICATED;
+        });
   }
 
   std::vector<typename VoteTracker::VoteVariant> VoteTrackerImpl::getMessages()
