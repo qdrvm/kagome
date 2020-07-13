@@ -6,8 +6,10 @@
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 
 #include <boost/range/adaptors.hpp>
-#include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/numeric.hpp>
+#include <unordered_map>
+#include <unordered_set>
+
 #include "common/visitor.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "primitives/justification.hpp"
@@ -109,8 +111,12 @@ namespace kagome::consensus::grandpa {
   bool VotingRoundImpl::validate(
       const BlockInfo &vote, const GrandpaJustification &justification) const {
     size_t total_weight = 0;
+
+    std::unordered_map<Id, BlockHash> validators;
+    std::unordered_set<Id> equivocators;
+
     for (const auto &signed_precommit : justification.items) {
-      // verify signatures
+      // Verify signatures
       if (not vote_crypto_provider_->verifyPrecommit(signed_precommit)) {
         logger_->error(
             "Received invalid signed precommit during the round {} from the "
@@ -123,10 +129,28 @@ namespace kagome::consensus::grandpa {
       // check that every signed precommit corresponds to the vote (i.e.
       // signed_precommits are descendants of the vote). If so add weight of
       // that voter to the total weight
-      if (env_->getAncestry(vote.block_hash, signed_precommit.block_hash())) {
-        total_weight +=
-            voter_set_->voterWeight(signed_precommit.id)
-                .value_or(0);  // add zero if such voter does not exist
+
+      if (auto [it, success] = validators.emplace(
+              signed_precommit.id, signed_precommit.block_hash());
+          success) {
+        // New vote
+        if (env_->getAncestry(vote.block_hash, signed_precommit.block_hash())) {
+          total_weight += voter_set_->voterWeight(signed_precommit.id).value();
+        }
+
+      } else if (equivocators.emplace(signed_precommit.id).second) {
+        // Detected equivocation
+        if (env_->getAncestry(vote.block_hash, it->second)) {
+          total_weight -= voter_set_->voterWeight(signed_precommit.id).value();
+        }
+      } else {
+        // Detected duplicate of equivotation
+        logger_->error(
+            "Received third precommit of caught equivocator during the round "
+            "{} from the peer {}",
+            round_number_,
+            signed_precommit.id.toHex());
+        return false;
       }
     }
 
