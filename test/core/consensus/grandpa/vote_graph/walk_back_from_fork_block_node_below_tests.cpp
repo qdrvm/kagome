@@ -6,9 +6,7 @@
 
 struct WalkBackFromBlockNodeBelow
     : public VoteGraphFixture,
-      public ::testing::WithParamInterface<BlockInfo> {
-  const BlockInfo EXPECTED = BlockInfo(5, "D"_H);
-
+      public ::testing::WithParamInterface<std::tuple<BlockInfo, BlockInfo>> {
   void SetUp() override {
     BlockInfo base{1, GENESIS_HASH};
     graph = std::make_shared<VoteGraphImpl>(base, chain);
@@ -164,27 +162,99 @@ struct WalkBackFromBlockNodeBelow
   "base": "genesis",
   "base_number": 1
 })");
+
+    expect_getAncestry(GENESIS_HASH,
+                       "H2"_H,
+                       vec("G2"_H, "F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "H2"_H}, "1"_W));
+
+    AssertGraphCorrect(*graph,
+                       R"({
+  "entries": {
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [
+        "B"
+      ],
+      "cumulative_vote": 21
+    },
+    "F1": {
+      "number": 7,
+      "ancestors": [
+        "E1",
+        "D",
+        "C",
+        "B"
+      ],
+      "descendents": [],
+      "cumulative_vote": 5
+    },
+    "B": {
+      "number": 3,
+      "ancestors": [
+        "A",
+        "genesis"
+      ],
+      "descendents": [
+        "F1",
+        "G2"
+      ],
+      "cumulative_vote": 21
+    },
+    "G2": {
+      "number": 8,
+      "ancestors": [
+        "F2",
+        "E2",
+        "D",
+        "C",
+        "B"
+      ],
+      "descendents": [
+				"H2"
+			],
+      "cumulative_vote": 6
+    },
+    "H2": {
+      "number": 9,
+      "ancestors": [
+        "G2"
+      ],
+      "descendents": [],
+      "cumulative_vote": 1
+    }
+  },
+  "heads": [
+    "F1",
+    "H2"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
   }
 };
 
 TEST_P(WalkBackFromBlockNodeBelow, FindAncestor) {
-  BlockInfo block = GetParam();
+  auto &[block, ancestor] = GetParam();
   auto ancestorOpt =
       graph->findAncestor(block, [](auto &&x) { return x > "5"_W; });
 
   ASSERT_TRUE(ancestorOpt) << "number: " << block.block_number << " "
                            << "hash: " << block.block_hash.toHex();
-  ASSERT_EQ(*ancestorOpt, EXPECTED);
+  ASSERT_EQ(*ancestorOpt, ancestor);
 }
 
-const std::vector<BlockInfo> test_cases = {{
-    // clang-format off
-   BlockInfo(6, "E1"_H),
-   BlockInfo(6, "E2"_H),
-   BlockInfo(7, "F1"_H),
-   BlockInfo(7, "F2"_H),
-   BlockInfo(8, "G2"_H)
-    // clang-format on
+const std::vector<std::tuple<BlockInfo, BlockInfo>> test_cases{{
+		// clang-format off
+		{{5, "D"_H}, {5, "D"_H}},
+		{{6, "E1"_H}, {5, "D"_H}},
+		{{6, "E2"_H}, {5, "D"_H}},
+		{{7, "F1"_H}, {5, "D"_H}},
+		{{7, "F2"_H}, {5, "D"_H}},
+		{{8, "G2"_H}, {8, "G2"_H}},
+		{{9, "H2"_H}, {8, "G2"_H}},
+		// clang-format on
 }};
 
 INSTANTIATE_TEST_CASE_P(VoteGraph,
