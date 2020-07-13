@@ -5,8 +5,11 @@
 
 #include "extensions/impl/extension_impl.hpp"
 
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
@@ -16,15 +19,22 @@ namespace kagome::extensions {
   ExtensionImpl::ExtensionImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> tracker)
+      std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
+      std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
+      std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
+      std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<crypto::CryptoStore> crypto_store,
+      std::shared_ptr<crypto::Bip39Provider> bip39_provider)
       : memory_(memory),
         storage_provider_(std::move(storage_provider)),
         crypto_ext_(memory,
-                    std::make_shared<crypto::SR25519ProviderImpl>(
-                        std::make_shared<crypto::BoostRandomGenerator>()),
-                    std::make_shared<crypto::ED25519ProviderImpl>(),
-                    std::make_shared<crypto::Secp256k1ProviderImpl>(),
-                    std::make_shared<crypto::HasherImpl>()),
+                    std::move(sr25519_provider),
+                    std::move(ed25519_provider),
+                    std::move(secp256k1_provider),
+                    std::move(hasher),
+                    std::move(crypto_store),
+                    std::move(bip39_provider)),
         io_ext_(memory),
         memory_ext_(memory),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
@@ -182,6 +192,56 @@ namespace kagome::extensions {
                                    runtime::WasmSize len,
                                    runtime::WasmPointer out) {
     crypto_ext_.ext_twox_256(data, len, out);
+  }
+
+  /// Crypto extensions v1
+
+  runtime::WasmSpan ExtensionImpl::ext_ed25519_public_keys_v1(
+      runtime::WasmSize key_type) {
+    return crypto_ext_.ext_ed25519_public_keys_v1(key_type);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_ed25519_generate_v1(
+      runtime::WasmSize key_type, runtime::WasmSpan seed) {
+    return crypto_ext_.ext_ed25519_generate_v1(key_type, seed);
+  }
+
+  runtime::WasmSpan ExtensionImpl::ext_ed25519_sign_v1(
+      runtime::WasmSize key_type,
+      runtime::WasmPointer key,
+      runtime::WasmSpan msg_data) {
+    return crypto_ext_.ext_ed25519_sign_v1(key_type, key, msg_data);
+  }
+
+  runtime::WasmSize ExtensionImpl::ext_ed25519_verify_v1(
+      runtime::WasmPointer sig_data,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_ed25519_verify_v1(sig_data, msg, pubkey_data);
+  }
+
+  runtime::WasmSpan ExtensionImpl::ext_sr25519_public_keys_v1(
+      runtime::WasmSize key_type) {
+    return crypto_ext_.ext_sr25519_public_keys_v1(key_type);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_sr25519_generate_v1(
+      runtime::WasmSize key_type, runtime::WasmSpan seed) {
+    return crypto_ext_.ext_sr25519_generate_v1(key_type, seed);
+  }
+
+  runtime::WasmSpan ExtensionImpl::ext_sr25519_sign_v1(
+      runtime::WasmSize key_type,
+      runtime::WasmPointer key,
+      runtime::WasmSpan msg_data) {
+    return crypto_ext_.ext_sr25519_sign_v1(key_type, key, msg_data);
+  }
+
+  runtime::WasmSize ExtensionImpl::ext_sr25519_verify_v1(
+      runtime::WasmPointer sig_data,
+      runtime::WasmSpan msg,
+      runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_sr25519_verify_v1(sig_data, msg, pubkey_data);
   }
 
   /// misc extensions

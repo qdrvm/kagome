@@ -7,6 +7,7 @@
 
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
+#include <crypto/crypto_store/key_type.hpp>
 #include <runtime/wasm_result.hpp>
 #include "core/runtime/mock_memory.hpp"
 #include "mock/core/extensions/extension_factory_mock.hpp"
@@ -18,8 +19,9 @@
 using ::testing::_;
 using ::testing::Return;
 
-using kagome::extensions::ExtensionMock;
+using kagome::crypto::key_types::kBabe;
 using kagome::extensions::ExtensionFactoryMock;
+using kagome::extensions::ExtensionMock;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmPointer;
@@ -130,7 +132,10 @@ class REITest : public ::testing::Test {
       "  (type (;26;) (func (param i32 i64 i64 i64 i64 i32)))\n"
       "  (type (;27;) (func (result i64)))\n"
       "  (type (;28;) (func (param i32 i32 i32)))\n"
-      "  (type (;29;) (func (param i32 i32 i64) (result i64)))\n"
+      "  (type (;29;) (func (param i64) (result i64)))\n"
+      "  (type (;30;) (func (param i32 i64) (result i32)))\n"
+      "  (type (;31;) (func (param i32 i32 i64) (result i64)))\n"
+      "  (type (;32;) (func (param i32 i64 i32) (result i32)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
       "  (import \"env\" \"ext_blake2_128\" (func $ext_blake2_128 (type 5)))\n"
@@ -156,8 +161,16 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
 
       /// version 1
-      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 29)))\n"
-      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 29)))\n"
+      "  (import \"env\" \"ext_crypto_ed25519_public_keys_version_1\" (func $ext_crypto_ed25519_public_keys_version_1 (type 29)))\n"
+      "  (import \"env\" \"ext_crypto_ed25519_generate_version_1\" (func $ext_crypto_ed25519_generate_version_1 (type 30)))\n"
+      "  (import \"env\" \"ext_crypto_ed25519_sign_version_1\" (func $ext_crypto_ed25519_sign_version_1 (type 31)))\n"
+      "  (import \"env\" \"ext_crypto_ed25519_verify_version_1\" (func $ext_crypto_ed25519_verify_version_1 (type 32)))\n"
+      "  (import \"env\" \"ext_crypto_sr25519_public_keys_version_1\" (func $ext_crypto_sr25519_public_keys_version_1 (type 29)))\n"
+      "  (import \"env\" \"ext_crypto_sr25519_generate_version_1\" (func $ext_crypto_sr25519_generate_version_1 (type 30)))\n"
+      "  (import \"env\" \"ext_crypto_sr25519_sign_version_1\" (func $ext_crypto_sr25519_sign_version_1 (type 31)))\n"
+      "  (import \"env\" \"ext_crypto_sr25519_verify_version_2\" (func $ext_crypto_sr25519_verify_version_2 (type 32)))\n"
+      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 31)))\n"
+      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 31)))\n"
 
       /// assertions to check output in wasm
       "  (import \"env\" \"assert\" (func $assert (param i32)))\n"
@@ -549,6 +562,195 @@ TEST_F(REITest, ext_sr25519_verify_Test) {
                                      "    )\n")
                        % msg_data % msg_len % sig_data % pubkey_data % res)
                           .str();
+  SCOPED_TRACE("ext_sr25519_verify_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
+  WasmSize key_type = kBabe;
+  WasmSpan res = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_ed25519_public_keys_v1(key_type))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_crypto_ed25519_public_keys_version_1\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % key_type % res)
+          .str();
+  SCOPED_TRACE("ext_ed25519_public_keys_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_ed25519_generate_v1_Test) {
+  WasmSize key_type = kBabe;
+  WasmSpan seed = WasmResult(1, 2).combine();
+
+  WasmPointer res = 4;
+
+  EXPECT_CALL(*extension_, ext_ed25519_generate_v1(key_type, seed))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_crypto_ed25519_generate_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % key_type % seed % res)
+          .str();
+  SCOPED_TRACE("ext_ed25519_generate_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_ed25519_sign_v1_Test) {
+  WasmSize key_type = kBabe;
+  WasmPointer key = 1;
+  WasmSpan msg = WasmResult(33, 2).combine();
+  WasmSpan res = WasmResult(35, 25).combine();
+
+  EXPECT_CALL(*extension_, ext_ed25519_sign_v1(key_type, key, msg))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_crypto_ed25519_sign_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % key_type % key % msg % res)
+          .str();
+  SCOPED_TRACE("ext_ed25519_generate_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_ed25519_verify_v1_Test) {
+  WasmPointer msg_data = 123;
+  WasmSize msg_len = 1233;
+  WasmSpan msg = WasmResult(msg_data, msg_len).combine();
+  WasmPointer sig_data = 42;
+  WasmPointer pubkey_data = 321;
+
+  WasmSize res = 1;
+
+  EXPECT_CALL(*extension_, ext_ed25519_verify_v1(sig_data, msg, pubkey_data))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_crypto_ed25519_verify_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % sig_data % msg % pubkey_data % res)
+          .str();
+  SCOPED_TRACE("ext_ed25519_verify_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
+  WasmSize key_type = kBabe;
+
+  WasmSpan res = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_sr25519_public_keys_v1(key_type))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_crypto_sr25519_public_keys_version_1\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % key_type % res)
+          .str();
+  SCOPED_TRACE("ext_sr25519_public_keys_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_generate_v1_Test) {
+  WasmSize key_type = kBabe;
+  WasmSpan seed = WasmResult(1, 2).combine();
+
+  WasmPointer res = 4;
+
+  EXPECT_CALL(*extension_, ext_sr25519_generate_v1(key_type, seed))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_crypto_sr25519_generate_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % key_type % seed % res)
+          .str();
+  SCOPED_TRACE("ext_sr25519_generate_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_sign_v1_Test) {
+  WasmSize key_type = kBabe;
+  WasmPointer key = 1;
+  WasmSpan msg = WasmResult(33, 2).combine();
+  WasmSpan res = WasmResult(35, 25).combine();
+
+  EXPECT_CALL(*extension_, ext_sr25519_sign_v1(key_type, key, msg))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_crypto_sr25519_sign_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % key_type % key % msg % res)
+          .str();
+  SCOPED_TRACE("ext_sr25519_sign_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_verify_v2_Test) {
+  WasmPointer msg_data = 123;
+  WasmSize msg_len = 1233;
+  WasmSpan msg = WasmResult(msg_data, msg_len).combine();
+  WasmPointer sig_data = 42;
+  WasmPointer pubkey_data = 321;
+
+  WasmSize res = 1;
+
+  EXPECT_CALL(*extension_, ext_sr25519_verify_v1(sig_data, msg, pubkey_data))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_crypto_sr25519_verify_version_2\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % sig_data % msg % pubkey_data % res)
+          .str();
   SCOPED_TRACE("ext_sr25519_verify_Test");
   executeWasm(execute_code);
 }

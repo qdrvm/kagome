@@ -49,6 +49,24 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_twox_128 = "ext_twox_128";
   const static wasm::Name ext_twox_256 = "ext_twox_256";
 
+  const static wasm::Name ext_ed25519_public_keys_v1 =
+      "ext_crypto_ed25519_public_keys_version_1";
+  const static wasm::Name ext_ed25519_generate_v1 =
+      "ext_crypto_ed25519_generate_version_1";
+  const static wasm::Name ext_ed25519_sign_v1 =
+      "ext_crypto_ed25519_sign_version_1";
+  const static wasm::Name ext_ed25519_verify_v1 =
+      "ext_crypto_ed25519_verify_version_1";
+
+  const static wasm::Name ext_sr25519_public_keys_v1 =
+      "ext_crypto_sr25519_public_keys_version_1";
+  const static wasm::Name ext_sr25519_generate_v1 =
+      "ext_crypto_sr25519_generate_version_1";
+  const static wasm::Name ext_sr25519_sign_v1 =
+      "ext_crypto_sr25519_sign_version_1";
+  const static wasm::Name ext_sr25519_verify_v2 =
+      "ext_crypto_sr25519_verify_version_2";
+
   const static wasm::Name ext_secp256k1_ecdsa_recover_v1 =
       "ext_crypto_secp256k1_ecdsa_recover_version_1";
   const static wasm::Name ext_secp256k1_ecdsa_recover_compressed_v1 =
@@ -198,7 +216,7 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal();
       }
 
-      /// Cryptographuc extensions
+      /// Cryptographic extensions
       /// ext_blake2_128
       if (import->base == ext_blake2_128) {
         checkArguments(import->base.c_str(), 3, arguments.size());
@@ -263,6 +281,7 @@ namespace kagome::runtime::binaryen {
       /// ext_twox_256
       if (import->base == ext_twox_256) {
         checkArguments(import->base.c_str(), 3, arguments.size());
+
         extension_->ext_twox_256(arguments.at(0).geti32(),
                                  arguments.at(1).geti32(),
                                  arguments.at(2).geti32());
@@ -276,6 +295,65 @@ namespace kagome::runtime::binaryen {
       }
 
       /// crypto version 1
+      if (import->base == ext_ed25519_public_keys_v1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res =
+            extension_->ext_ed25519_public_keys_v1(arguments.at(0).geti32());
+        return wasm::Literal(res);
+      }
+
+      if (import->base == ext_ed25519_generate_v1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = extension_->ext_ed25519_generate_v1(
+            arguments.at(0).geti32(), arguments.at(1).geti64());
+        return wasm::Literal(res);
+      }
+
+      if (import->base == ext_ed25519_sign_v1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = extension_->ext_ed25519_sign_v1(arguments.at(0).geti32(),
+                                                   arguments.at(1).geti32(),
+                                                   arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
+      if (import->base == ext_ed25519_verify_v1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = extension_->ext_ed25519_verify_v1(arguments.at(0).geti32(),
+                                                     arguments.at(1).geti64(),
+                                                     arguments.at(2).geti32());
+        return wasm::Literal(res);
+      }
+
+      if (import->base == ext_sr25519_public_keys_v1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res =
+            extension_->ext_sr25519_public_keys_v1(arguments.at(0).geti32());
+        return wasm::Literal(res);
+      }
+
+      if (import->base == ext_sr25519_generate_v1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = extension_->ext_sr25519_generate_v1(
+            arguments.at(0).geti32(), arguments.at(1).geti64());
+        return wasm::Literal(res);
+      }
+
+      if (import->base == ext_sr25519_sign_v1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = extension_->ext_sr25519_sign_v1(arguments.at(0).geti32(),
+                                                   arguments.at(1).geti32(),
+                                                   arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
+      if (import->base == ext_sr25519_verify_v2) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = extension_->ext_sr25519_verify_v1(arguments.at(0).geti32(),
+                                                     arguments.at(1).geti64(),
+                                                     arguments.at(2).geti32());
+        return wasm::Literal(res);
+      }
 
       /// ext_secp256k1_ecdsa_recover_v1
       if (import->base == ext_secp256k1_ecdsa_recover_v1) {
@@ -293,6 +371,7 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
     }
+
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
                   << import->name.str;
   }

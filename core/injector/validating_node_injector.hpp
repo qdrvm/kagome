@@ -201,6 +201,10 @@ namespace kagome::injector {
             [keystore_path](const auto &injector) {
               return get_key_storage(keystore_path, injector);
             }),
+        di::bind<crypto::CryptoStore>.template to(
+            [keystore_path](const auto &injector) {
+              return get_crypto_store(keystore_path, injector);
+            })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }

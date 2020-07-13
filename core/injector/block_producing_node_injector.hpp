@@ -62,6 +62,10 @@ namespace kagome::injector {
             }),
         di::bind<runtime::Grandpa>.template to<runtime::dummy::GrandpaDummy>()
             [boost::di::override],
+        di::bind<crypto::CryptoStore>.template to(
+            [keystore_path](const auto &injector) {
+              return get_crypto_store(keystore_path, injector);
+            })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }

@@ -22,13 +22,20 @@ namespace kagome::crypto {
     auto pub_span = gsl::make_span<uint8_t>(public_key_low.data,
                                             constants::ed25519::PUBKEY_SIZE);
 
-    OUTCOME_TRY(private_key_high, ED25519PrivateKey::fromSpan(priv_span));
-    OUTCOME_TRY(public_key_high, ED25519PublicKey::fromSpan(pub_span));
+    auto &&private_key_high = ED25519PrivateKey::fromSpan(priv_span);
+    if (!private_key_high) {
+      BOOST_UNREACHABLE_RETURN(ED25519Keypair{});
+    }
 
-    return ED25519Keypair{private_key_high, public_key_high};
+    auto &&public_key_high = ED25519PublicKey::fromSpan(pub_span);
+    if (!public_key_high) {
+      BOOST_UNREACHABLE_RETURN(ED25519Keypair{});
+    }
+
+    return ED25519Keypair{private_key_high.value(), public_key_high.value()};
   }
 
-  outcome::result<ED25519Keypair> ED25519ProviderImpl::generateKeypair(
+  ED25519Keypair ED25519ProviderImpl::generateKeypair(
       const ED25519Seed &seed) const {
     private_key_t private_key_low{};
     public_key_t public_key_low{};
@@ -39,9 +46,12 @@ namespace kagome::crypto {
     ED25519PrivateKey privateKey{seed};
     auto pub_span = gsl::make_span<uint8_t>(public_key_low.data,
                                             constants::ed25519::PUBKEY_SIZE);
-    OUTCOME_TRY(public_key_high, ED25519PublicKey::fromSpan(pub_span));
+    auto &&public_key_high = ED25519PublicKey::fromSpan(pub_span);
+    if (!public_key_high) {
+      BOOST_UNREACHABLE_RETURN(ED25519Keypair{});
+    }
 
-    return ED25519Keypair{privateKey, public_key_high};
+    return ED25519Keypair{privateKey, public_key_high.value()};
   }
 
   outcome::result<ED25519Signature> ED25519ProviderImpl::sign(
