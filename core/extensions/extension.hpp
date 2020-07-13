@@ -102,6 +102,16 @@ namespace kagome::extensions {
                                  runtime::WasmSize value_length) = 0;
 
     /**
+     * @brief Reads data from storage with the given key
+     * @param key pointer-size to the key
+     * @param value_out pointer-size to the read data
+     * @param offset in bytes from the data block begin should be read
+     */
+    virtual runtime::WasmSpan ext_storage_read(runtime::WasmSpan key,
+                                               runtime::WasmSpan value_out,
+                                               runtime::WasmOffset offset) = 0;
+
+    /**
      * Calculate ordered trie root from provided values
      * @param values_data pointer to array of values to calculate hash
      * @param lens_data pointer to the array of lengths for values
@@ -156,10 +166,9 @@ namespace kagome::extensions {
      * @param target pointer-size value of the message source
      * @param message pointer-size value of the message content
      */
-    virtual void ext_logging_log_version_1(
-        runtime::WasmEnum level,
-        runtime::WasmSpan target,
-        runtime::WasmSpan message) = 0;
+    virtual void ext_logging_log_version_1(runtime::WasmEnum level,
+                                           runtime::WasmSpan target,
+                                           runtime::WasmSpan message) = 0;
 
     /**
      * Print a hex value

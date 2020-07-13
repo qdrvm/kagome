@@ -22,6 +22,7 @@ using kagome::common::Hash256;
 using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
+using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
@@ -396,6 +397,30 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
 
   storage_extension_->ext_set_storage(
       key_pointer, key_size, value_pointer, value_size);
+}
+
+/**
+ * @given key, value, offset
+ * @when ext_storage_read is invoked on given key and value
+ * @then data read from db with given keyy
+ */
+TEST_P(OutcomeParameterizedTest, StorageReadTest) {
+  WasmResult key(43, 43);
+  Buffer key_data(8, 'k');
+  WasmResult value(42, 41);
+  Buffer value_data(8, 'v');
+  WasmOffset offset = 0;
+
+  // expect key loaded, than data stored
+  EXPECT_CALL(*memory_, loadN(key.address, key.length))
+      .WillOnce(Return(key_data));
+  EXPECT_CALL(*storage_provider_, getCurrentBatch())
+      .WillOnce(Return(trie_batch_));
+  EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(value_data));
+  EXPECT_CALL(*memory_,
+              storeBuffer(value.address, gsl::span<const uint8_t>(value_data)));
+
+  storage_extension_->ext_storage_read(key.combine(), value.combine(), offset);
 }
 
 INSTANTIATE_TEST_CASE_P(Instance,

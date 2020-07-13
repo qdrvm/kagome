@@ -34,6 +34,10 @@ namespace kagome::extensions {
                                    runtime::WasmPointer value_data,
                                    runtime::WasmSize value_length,
                                    runtime::WasmSize value_offset));
+    MOCK_METHOD3(ext_storage_read,
+                 runtime::WasmSpan(runtime::WasmSpan key,
+                                   runtime::WasmSpan value_out,
+                                   runtime::WasmOffset offset));
     MOCK_METHOD4(ext_set_storage,
                  void(runtime::WasmPointer key_data,
                       runtime::WasmSize key_length,
@@ -54,8 +58,8 @@ namespace kagome::extensions {
                  void(runtime::WasmPointer data, runtime::WasmSize length));
     MOCK_METHOD3(ext_logging_log_version_1,
                  void(runtime::WasmEnum level,
-                     runtime::WasmSpan target,
-                     runtime::WasmSpan message));
+                      runtime::WasmSpan target,
+                      runtime::WasmSpan message));
     MOCK_METHOD1(ext_print_num, void(uint64_t value));
     MOCK_METHOD2(ext_print_utf8,
                  void(runtime::WasmPointer utf8_data,
@@ -142,8 +146,8 @@ namespace kagome::extensions {
 
     MOCK_METHOD3(ext_ed25519_sign_v1,
                  runtime::WasmSpan(runtime::WasmSize key_type,
-                                      runtime::WasmPointer key,
-                                      runtime::WasmSpan msg_data));
+                                   runtime::WasmPointer key,
+                                   runtime::WasmSpan msg_data));
 
     MOCK_METHOD3(ext_ed25519_verify_v1,
                  runtime::WasmSize(runtime::WasmPointer sig_data,
@@ -159,8 +163,8 @@ namespace kagome::extensions {
 
     MOCK_METHOD3(ext_sr25519_sign_v1,
                  runtime::WasmSpan(runtime::WasmSize key_type,
-                                      runtime::WasmPointer key,
-                                      runtime::WasmSpan msg_data));
+                                   runtime::WasmPointer key,
+                                   runtime::WasmSpan msg_data));
 
     MOCK_METHOD3(ext_sr25519_verify_v1,
                  runtime::WasmSize(runtime::WasmPointer sig_data,
@@ -169,11 +173,11 @@ namespace kagome::extensions {
 
     MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_v1,
                  runtime::WasmSpan(runtime::WasmPointer sig,
-                                      runtime::WasmPointer msg));
+                                   runtime::WasmPointer msg));
 
     MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_compressed_v1,
                  runtime::WasmSpan(runtime::WasmPointer sig,
-                                      runtime::WasmPointer msg));
+                                   runtime::WasmPointer msg));
   };
 
 }  // namespace kagome::extensions

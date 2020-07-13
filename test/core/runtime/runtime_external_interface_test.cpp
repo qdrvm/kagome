@@ -24,11 +24,12 @@ using kagome::extensions::ExtensionFactoryMock;
 using kagome::extensions::ExtensionMock;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
+using kagome::runtime::WasmEnum;
+using kagome::runtime::WasmLogLevel;
+using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
-using kagome::runtime::WasmEnum;
-using kagome::runtime::WasmLogLevel;
 using kagome::runtime::WasmSpan;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::storage::trie::PersistentTrieBatchMock;
@@ -136,6 +137,7 @@ class REITest : public ::testing::Test {
       "  (type (;30;) (func (param i32 i64) (result i32)))\n"
       "  (type (;31;) (func (param i32 i32 i64) (result i64)))\n"
       "  (type (;32;) (func (param i32 i64 i32) (result i32)))\n"
+      "  (type (;33;) (func (param i64 i64 i32)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
       "  (import \"env\" \"ext_blake2_128\" (func $ext_blake2_128 (type 5)))\n"
@@ -150,6 +152,7 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_twox_256\" (func $ext_twox_256 (type 5)))\n"
       "  (import \"env\" \"ext_clear_storage\" (func $ext_clear_storage (type 0)))\n"
       "  (import \"env\" \"ext_set_storage\" (func $ext_set_storage (type 6)))\n"
+      "  (import \"env\" \"ext_storage_read\" (func $ext_storage_read (type 33)))\n"
       "  (import \"env\" \"ext_clear_prefix\" (func $ext_clear_prefix (type 0)))\n"
       "  (import \"env\" \"ext_exists_storage\" (func $ext_exists_storage (type 3)))\n"
       "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n"
@@ -347,6 +350,24 @@ TEST_F(REITest, ext_set_storage_Test) {
   executeWasm(execute_code);
 }
 
+TEST_F(REITest, ext_storage_read_Test) {
+  WasmResult key(123, 1233);
+  WasmResult value(42, 12);
+  WasmOffset offset(1);
+
+  EXPECT_CALL(*extension_,
+              ext_storage_read(key.combine(), value.combine(), offset))
+      .Times(1);
+  auto execute_code = (boost::format("    (call $ext_storage_read\n"
+                                     "      (i64.const %d)\n"
+                                     "      (i64.const %d)\n"
+                                     "      (i32.const %d)\n"
+                                     "    )\n")
+                       % key.combine() % value.combine() % offset)
+                          .str();
+  executeWasm(execute_code);
+}
+
 TEST_F(REITest, ext_blake2_256_enumerated_trie_root_Test) {
   WasmPointer values_data = 12;
   WasmPointer lens_data = 42;
@@ -424,13 +445,15 @@ TEST_F(REITest, ext_logging_log_version_1_Test) {
   const auto pos_packed = position.combine();
   WasmEnum ll = static_cast<WasmEnum>(WasmLogLevel::WasmLL_Error);
 
-  EXPECT_CALL(*extension_, ext_logging_log_version_1(ll, pos_packed, pos_packed)).Times(1);
+  EXPECT_CALL(*extension_,
+              ext_logging_log_version_1(ll, pos_packed, pos_packed))
+      .Times(1);
   auto execute_code = (boost::format("    (call $ext_logging_log_version_1\n"
                                      "      (i32.const %d)\n"
                                      "      (i64.const %d)\n"
                                      "      (i64.const %d)\n"
                                      "    )\n")
-  % ll % position.combine() % position.combine())
+                       % ll % position.combine() % position.combine())
                           .str();
   executeWasm(execute_code);
 }

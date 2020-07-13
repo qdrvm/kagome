@@ -62,6 +62,13 @@ namespace kagome::extensions {
                                            runtime::WasmSize value_offset);
 
     /**
+     * @see Extension::ext_storage_read
+     */
+    runtime::WasmSpan ext_storage_read(runtime::WasmSpan key,
+                                       runtime::WasmSpan value_out,
+                                       runtime::WasmOffset offset);
+
+    /**
      * @see Extension::ext_set_storage
      */
     void ext_set_storage(runtime::WasmPointer key_data,
