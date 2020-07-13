@@ -24,7 +24,9 @@ RUN pip3 install --no-cache-dir scikit-build cmake requests gitpython gcovr pyya
 
 # install rustc
 ENV RUST_VERSION=nightly-2019-07-07
-ENV PATH="/root/.cargo/bin:${PATH}"
+ENV RUSTUP_HOME=/root/.rustup
+ENV CARGO_HOME=/root/.cargo
+ENV PATH="${CARGO_HOME}/bin:${PATH}"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION} && \
     rustup default ${RUST_VERSION}
 
