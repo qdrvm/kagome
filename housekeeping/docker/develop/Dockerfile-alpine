@@ -14,7 +14,8 @@ RUN apk add --no-cache \
         g++ \
         ccache \
         linux-headers \
-        docker-cli
+        docker-cli \
+        tar
 
 # Setup python
 RUN \
