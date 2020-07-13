@@ -21,5 +21,4 @@ namespace kagome::crypto {
   bool SR25519Keypair::operator!=(const SR25519Keypair &other) const {
     return !(*this == other);
   }
-
 }  // namespace kagome::crypto

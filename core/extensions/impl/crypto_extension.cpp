@@ -196,8 +196,8 @@ namespace kagome::extensions {
 
   runtime::WasmSpan CryptoExtension::ext_ed25519_public_keys_v1(
       runtime::WasmSize key_type) {
-    static const common::Buffer error_result(
-        scale::encode(std::vector<crypto::ED25519PublicKey>{}).value());
+    using ResultType = std::vector<crypto::ED25519PublicKey>;
+    static const auto error_result(scale::encode(ResultType{}).value());
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
@@ -220,7 +220,7 @@ namespace kagome::extensions {
     logger_->debug("failed to unhex seed, try parse mnemonic");
 
     // now check if it is a bip39 mnemonic phrase with optional password
-    auto &&mnemonic = crypto::bip39::Mnemonic::parse(content);
+    auto mnemonic = crypto::bip39::Mnemonic::parse(content);
     if (!mnemonic) {
       logger_->error("failed to parse mnemonic {}", mnemonic.error().message());
       std::terminate();
@@ -263,8 +263,8 @@ namespace kagome::extensions {
     }
 
     auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
-    auto &&seed_buffer = memory_->loadN(seed_ptr, seed_len);
-    auto &&seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
+    auto seed_buffer = memory_->loadN(seed_ptr, seed_len);
+    auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
       std::terminate();
@@ -273,10 +273,10 @@ namespace kagome::extensions {
     crypto::ED25519Keypair kp{};
     boost::optional<std::string> bip39_seed = seed_res.value();
     if (bip39_seed.has_value()) {
-      auto &&ed_seed = deriveSeed(*bip39_seed);
+      auto ed_seed = deriveSeed(*bip39_seed);
       kp = ed25519_provider_->generateKeypair(ed_seed);
     } else {
-      auto &&key_pair = ed25519_provider_->generateKeypair();
+      auto key_pair = ed25519_provider_->generateKeypair();
       if (!key_pair) {
         logger_->error("failed to generate ed25519 key pair: {}",
                        key_pair.error().message());
@@ -297,9 +297,7 @@ namespace kagome::extensions {
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg) {
-    static const common::Buffer kErrorResult(
-        scale::encode(boost::optional<crypto::ED25519Signature>(boost::none))
-            .value());
+    using ResultType = boost::optional<crypto::ED25519Signature>;
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
@@ -317,7 +315,8 @@ namespace kagome::extensions {
     auto key_pair = crypto_store_->findEd25519Keypair(key_type_id, pk.value());
     if (!key_pair) {
       logger_->error("failed to find required key");
-      return memory_->storeBuffer(kErrorResult);
+      auto error_result = scale::encode(ResultType(boost::none)).value();
+      return memory_->storeBuffer(error_result);
     }
 
     auto sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
@@ -327,10 +326,7 @@ namespace kagome::extensions {
       std::terminate();
     }
 
-    auto buffer =
-        scale::encode(boost::optional<crypto::ED25519Signature>(sign.value()))
-            .value();
-
+    auto buffer = scale::encode(ResultType(sign.value())).value();
     return memory_->storeBuffer(buffer);
   }
 
@@ -350,8 +346,8 @@ namespace kagome::extensions {
    */
   runtime::WasmSpan CryptoExtension::ext_sr25519_public_keys_v1(
       runtime::WasmSize key_type) {
-    static const common::Buffer error_result(
-        scale::encode(std::vector<crypto::SR25519PublicKey>{}).value());
+    using ResultType = std::vector<crypto::SR25519PublicKey>;
+    static const auto error_result(scale::encode(ResultType{}).value());
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
@@ -376,17 +372,17 @@ namespace kagome::extensions {
     }
 
     auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
-    auto &&seed_buffer = memory_->loadN(seed_ptr, seed_len);
-    auto &&seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
+    auto seed_buffer = memory_->loadN(seed_ptr, seed_len);
+    auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
       std::terminate();
     }
 
     crypto::SR25519Keypair kp{};
-    boost::optional<std::string> bip39_seed = seed_res.value();
+    auto bip39_seed = seed_res.value();
     if (bip39_seed.has_value()) {
-      auto &&sr_seed = deriveSeed(*bip39_seed);
+      auto sr_seed = deriveSeed(*bip39_seed);
       kp = sr25519_provider_->generateKeypair(sr_seed);
     } else {
       kp = sr25519_provider_->generateKeypair();
@@ -405,9 +401,9 @@ namespace kagome::extensions {
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg) {
-    static auto error_result(
-        scale::encode(boost::optional<crypto::SR25519Signature>(boost::none))
-            .value());
+    using ResultType = boost::optional<crypto::SR25519Signature>;
+    static const auto error_result =
+        scale::encode(ResultType(boost::none)).value();
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
@@ -430,15 +426,13 @@ namespace kagome::extensions {
       return memory_->storeBuffer(error_result);
     }
 
-    auto &&sign = sr25519_provider_->sign(key_pair.value(), msg_buffer);
+    auto sign = sr25519_provider_->sign(key_pair.value(), msg_buffer);
     if (!sign) {
       logger_->error("failed to sign message, error = {}",
                      sign.error().message());
       std::terminate();
     }
-    auto buffer =
-        scale::encode(boost::optional<crypto::SR25519Signature>(sign.value()))
-            .value();
+    auto buffer = scale::encode(ResultType(sign.value())).value();
     return memory_->storeBuffer(buffer);
   }
 
@@ -453,67 +447,74 @@ namespace kagome::extensions {
     return ext_sr25519_verify(msg_data, msg_len, sig, pubkey_data);
   }
 
-  // TODO (yuraz): PRE-465 differentiate between 3 types of errors
   runtime::WasmSpan CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    static common::Buffer error_result(
-        scale::encode(
-            boost::variant<ExpandedPublicKey, EcdsaVerifyError>(
-                crypto::secp256k1::ecdsa_verify_error::kInvalidSignature))
-            .value());
+    using ResultType = boost::variant<ExpandedPublicKey, EcdsaVerifyError>;
 
-    RSVSignature signature{};
-    MessageHash message{};
     constexpr auto signature_size = RSVSignature::size();
     constexpr auto message_size = MessageHash::size();
 
-    const auto &sig_buffer = memory_->loadN(sig, signature_size);
-    const auto &msg_buffer = memory_->loadN(msg, message_size);
-    std::copy_n(sig_buffer.begin(), signature_size, signature.begin());
-    std::copy_n(msg_buffer.begin(), message_size, message.begin());
+    auto sig_buffer = memory_->loadN(sig, signature_size);
+    auto msg_buffer = memory_->loadN(msg, message_size);
 
-    auto &&public_key =
+    auto signature = RSVSignature::fromSpan(sig_buffer).value();
+    auto message = MessageHash::fromSpan(msg_buffer).value();
+
+    auto public_key =
         secp256k1_provider_->recoverPublickeyUncompressed(signature, message);
     if (!public_key) {
-      logger_->error("failed to recover uncompressed secp256k1 public key");
+      logger_->error("failed to recover uncompressed secp256k1 public key: {}",
+                     public_key.error().message());
+
+      auto error_code =
+          crypto::secp256k1::convertFailureToError(public_key.as_failure());
+      if (error_code == crypto::secp256k1::ecdsa_verify_error::kNoError) {
+        logger_->error("internal error occured");
+        std::terminate();
+      }
+
+      auto error_result =
+          scale::encode(static_cast<ResultType>(error_code)).value();
       return memory_->storeBuffer(error_result);
     }
-    boost::variant<ExpandedPublicKey, EcdsaVerifyError> v(public_key.value());
-    auto buffer = scale::encode(v).value();
+
+    auto buffer = scale::encode(ResultType(public_key.value())).value();
     return memory_->storeBuffer(buffer);
   }
 
-  // TODO (yuraz): PRE-465 differentiate between 3 types of errors
   runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    static common::Buffer error_result(
-        scale::encode(
-            boost::variant<CompressedPublicKey, EcdsaVerifyError>(
-                crypto::secp256k1::ecdsa_verify_error::kInvalidSignature))
-            .value());
+    using ResultType = boost::variant<CompressedPublicKey, EcdsaVerifyError>;
 
-    RSVSignature signature{};
-    MessageHash message{};
     constexpr auto signature_size = RSVSignature::size();
     constexpr auto message_size = MessageHash::size();
 
-    const auto &sig_buffer = memory_->loadN(sig, signature_size);
-    const auto &msg_buffer = memory_->loadN(msg, message_size);
-    std::copy_n(sig_buffer.begin(), signature_size, signature.begin());
-    std::copy_n(msg_buffer.begin(), message_size, message.begin());
+    auto sig_buffer = memory_->loadN(sig, signature_size);
+    auto msg_buffer = memory_->loadN(msg, message_size);
 
-    auto &&public_key =
+    auto signature = RSVSignature::fromSpan(sig_buffer).value();
+    auto message = MessageHash::fromSpan(msg_buffer).value();
+
+    auto public_key =
         secp256k1_provider_->recoverPublickeyCompressed(signature, message);
     if (!public_key) {
-      logger_->error("failed to recover compressed secp256k1 public key");
+      logger_->error("failed to recover uncompressed secp256k1 public key: {}",
+                     public_key.error().message());
+
+      auto error_code =
+          crypto::secp256k1::convertFailureToError(public_key.as_failure());
+      if (error_code == crypto::secp256k1::ecdsa_verify_error::kNoError) {
+        logger_->error("internal error occured");
+        std::terminate();
+      }
+
+      auto error_result =
+          scale::encode(static_cast<ResultType>(error_code)).value();
       return memory_->storeBuffer(error_result);
     }
 
-    auto buffer =
-        scale::encode(boost::variant<CompressedPublicKey, EcdsaVerifyError>(
-                          public_key.value()))
-            .value();
+    auto buffer = scale::encode(ResultType(public_key.value())).value();
     return memory_->storeBuffer(buffer);
   }
 }  // namespace kagome::extensions

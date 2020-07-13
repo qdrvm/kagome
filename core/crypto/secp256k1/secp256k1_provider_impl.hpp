@@ -14,6 +14,9 @@ namespace kagome::crypto {
 
   enum class Secp256k1ProviderError {
     INVALID_ARGUMENT = 1,
+    INVALID_V_VALUE,
+    INVALID_R_OR_S_VALUE,
+    INVALID_SIGNATURE,
     RECOVERY_FAILED,
   };
 
