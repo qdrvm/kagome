@@ -155,7 +155,7 @@ namespace kagome::application {
     auto file = open_file(filepath);
     if (!file) {
       logger_->error("Configuration file path is invalid: {}", filepath);
-      exit(EXIT_FAILURE);
+      return;
     }
 
     using FileReadStream = rapidjson::FileReadStream;
@@ -166,6 +166,12 @@ namespace kagome::application {
 
     Document document;
     document.ParseStream(input_stream);
+    if (document.HasParseError()) {
+      logger_->error("Configuration file {} parse failed, with error {}",
+                     filepath,
+                     document.GetParseError());
+      return;
+    }
 
     for (auto &handler : handlers) {
       auto it = document.FindMember(handler.segment_name);
