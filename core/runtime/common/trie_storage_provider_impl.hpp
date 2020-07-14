@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_COMMON_TRIE_STORAGE_PROVIDER_IMPL
 #define KAGOME_CORE_RUNTIME_COMMON_TRIE_STORAGE_PROVIDER_IMPL
 
+#include <common/buffer.hpp>
 #include "runtime/trie_storage_provider.hpp"
 
 #include "storage/trie/trie_storage.hpp"
@@ -17,7 +18,7 @@ namespace kagome::runtime {
     explicit TrieStorageProviderImpl(
         std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
-    virtual ~TrieStorageProviderImpl() = default;
+    ~TrieStorageProviderImpl() override = default;
 
     outcome::result<void> setToEphemeral() override;
     outcome::result<void> setToEphemeralAt(
@@ -32,6 +33,8 @@ namespace kagome::runtime {
     boost::optional<std::shared_ptr<PersistentBatch>> tryGetPersistentBatch()
         const override;
     bool isCurrentlyPersistent() const override;
+
+    outcome::result<common::Buffer> forceCommit() override;
 
    private:
     std::shared_ptr <storage::trie::TrieStorage> trie_storage_;

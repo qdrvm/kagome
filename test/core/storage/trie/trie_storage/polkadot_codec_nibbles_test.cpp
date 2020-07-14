@@ -15,7 +15,7 @@ using namespace trie;
 
 struct NibblesToKey
   // pair{nibbles, key}
-    : public ::testing::TestWithParam<std::pair<Buffer, Buffer>> {};
+    : public ::testing::TestWithParam<std::pair<KeyNibbles, Buffer>> {};
 
 struct KeyToNibbles
   // pair{nibbles, key}
@@ -44,7 +44,7 @@ const std::vector<std::pair<Buffer, Buffer>> KEY_TO_NIBBLES = {
     {{0xa, 0xa, 0xf, 0xf, 0x0, 0x1, 0xc, 0x0}, {0xAA, 0xFF, 0x01, 0xc0}},
 };
 
-const std::vector<std::pair<Buffer, Buffer>> NIBBLES_TO_KEY_LE = {
+const std::vector<std::pair<KeyNibbles, Buffer>> NIBBLES_TO_KEY_LE = {
     {{0xF, 0xF}, {0xFF}},
     {{0x3, 0xa, 0x0, 0x5}, {0x3a, 0x05}},
     {{0xa, 0xa, 0xf, 0xf, 0x0, 0x1}, {0xaa, 0xff, 0x01}},

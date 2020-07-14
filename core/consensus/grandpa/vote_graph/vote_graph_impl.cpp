@@ -5,11 +5,6 @@
 
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 
-#include <functional>
-
-#include <boost/range/adaptors.hpp>
-#include <boost/range/algorithm/find_if.hpp>
-
 namespace kagome::consensus::grandpa {
 
   namespace {
@@ -243,34 +238,40 @@ namespace kagome::consensus::grandpa {
       return boost::none;
     }
 
-    // breadth-first search starting from this node.
-    bool loop = true;
-    while (loop) {
-      using namespace boost::adaptors;  // NOLINT
-      auto filtered_entries =
-          active_node.descendents | transformed([this](const BlockHash &d) {
-            return std::make_pair(d, entries_.at(d));
-          })
-          | filtered([&](const auto &pair) {
-              const auto &[_, node] = pair;
-              if (force_constrain && current_best) {
-                return inDirectAncestry(
-                    node, current_best->block_hash, current_best->block_number);
-              }
-              return true;
-            });
-      const auto &next_descendent_it = boost::range::find_if(
-          filtered_entries, [&condition](const auto &pair) {
-            const auto &[_, node] = pair;
-            return condition(node.cumulative_vote);
-          });
-      if (next_descendent_it == filtered_entries.end()) {
-        break;
+    std::deque<std::reference_wrapper<const Entry>> observing_entries;
+
+    auto start_node = active_node;
+    observing_entries.emplace_back(start_node);
+
+    while (not observing_entries.empty()) {
+      auto &entry = observing_entries.front().get();
+      observing_entries.pop_front();
+
+      for (auto &descendent_hash : entry.descendents) {
+        auto &descendent = entries_.at(descendent_hash);
+
+        if (force_constrain && current_best) {
+          if (not inDirectAncestry(descendent,
+                                   current_best->block_hash,
+                                   current_best->block_number)) {
+            continue;
+          }
+        }
+        if (not condition(descendent.cumulative_vote)) {
+          continue;
+        }
+
+        if (descendent.number > active_node.number
+            or (descendent.number == active_node.number
+                and descendent.cumulative_vote > active_node.cumulative_vote)) {
+          node_key = descendent_hash;
+          active_node = descendent;
+
+          observing_entries.emplace_back(descendent);
+        }
       }
+
       force_constrain = false;
-      const auto &[key, node] = *next_descendent_it;
-      node_key = key;
-      active_node = node;
     }
 
     boost::optional<BlockInfo> info =
@@ -312,6 +313,7 @@ namespace kagome::consensus::grandpa {
     size_t offset = 0;
     while (true) {
       boost::optional<BlockHash> new_best;
+      boost::optional<VoteWeight> new_best_vote_weight;
 
       ++offset;
       for (const auto &d_node : descendents) {
@@ -331,12 +333,15 @@ namespace kagome::consensus::grandpa {
           descendent_blocks[d_block] += entry.cumulative_vote;
           // check if block fullfills condition
           if (condition(descendent_blocks[d_block])) {
-            // we found our best block
-            new_best = d_block;
-            break;
+            if (not new_best_vote_weight
+                or new_best_vote_weight < descendent_blocks[d_block]) {
+              // we found our best block
+              new_best = d_block;
+              new_best_vote_weight = descendent_blocks[d_block];
+            }
           }
-        }  // end if
-      }    // end for
+        }
+      }
 
       if (!new_best) {
         break;

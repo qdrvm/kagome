@@ -10,7 +10,10 @@
 #include "core/runtime/mock_memory.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/map_cursor_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "runtime/wasm_result.hpp"
+#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -20,12 +23,16 @@ using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmPointer;
+using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
+using kagome::runtime::WasmSpan;
 using kagome::storage::changes_trie::ChangesTrackerMock;
+using kagome::storage::face::MapCursorMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
 
 using ::testing::_;
+using ::testing::Invoke;
 using ::testing::Return;
 
 class StorageExtensionTest : public ::testing::Test {
@@ -260,6 +267,109 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
   ASSERT_EQ(kU32Max,
             storage_extension_->ext_get_storage_into(
                 key_pointer, key_size, value_ptr, value_length, value_offset));
+}
+
+/**
+ * @given a trie key address in WASM memory, to which there is a key
+ * lexicographically greater
+ * @when using ext_storage_next_key_version_1 to obtain the next key
+ * @then an address of the next key is returned
+ */
+TEST_F(StorageExtensionTest, NextKey) {
+  // as wasm logic is mocked, it is okay that key and next_key 'intersect' in
+  // wasm memory
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 8;
+  Buffer key(key_size, 'k');
+  WasmPointer next_key_pointer = 44;
+  WasmSize next_key_size = 9;
+  Buffer expected_next_key(next_key_size, 'k');
+
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+
+  EXPECT_CALL(*trie_batch_, cursor())
+      .WillOnce(Invoke([&key, &expected_next_key]() {
+        auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
+        EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(outcome::success()));
+        EXPECT_CALL(*cursor, next()).WillOnce(Return(outcome::success()));
+        EXPECT_CALL(*cursor, isValid()).WillOnce(Return(true));
+        EXPECT_CALL(*cursor, key()).WillOnce(Return(expected_next_key));
+        return cursor;
+      }));
+
+  auto expected_key_span =
+      WasmResult{next_key_pointer, next_key_size}.combine();
+  EXPECT_CALL(*memory_, storeBuffer(_))
+      .WillOnce(Invoke([&expected_next_key,
+                        &expected_key_span](auto &&buffer) -> WasmSpan {
+        EXPECT_OUTCOME_TRUE(
+            key_opt, kagome::scale::decode<boost::optional<Buffer>>(buffer));
+        EXPECT_TRUE(key_opt.has_value());
+        EXPECT_EQ(key_opt.value(), expected_next_key);
+        return expected_key_span;
+      }));
+
+  auto next_key_span = storage_extension_->ext_storage_next_key_version_1(
+      WasmResult{key_pointer, key_size}.combine());
+  ASSERT_EQ(expected_key_span, next_key_span);
+}
+
+/**
+ * @given a trie key address in WASM memory, to which there is no key
+ * lexicographically greater
+ * @when using ext_storage_next_key_version_1 to obtain the next key
+ * @then an address of none value is returned
+ */
+TEST_F(StorageExtensionTest, NextKeyLastKey) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 8;
+  Buffer key(key_size, 'k');
+
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+
+  EXPECT_CALL(*trie_batch_, cursor()).WillOnce(Invoke([&key]() {
+    auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
+    EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*cursor, next()).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*cursor, isValid()).WillOnce(Return(false));
+    return cursor;
+  }));
+
+  EXPECT_CALL(*memory_, storeBuffer(_))
+      .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
+        EXPECT_OUTCOME_TRUE(
+            key_opt, kagome::scale::decode<boost::optional<Buffer>>(buffer));
+        EXPECT_EQ(key_opt, boost::none);
+        return 0;  // don't need the result
+      }));
+
+  storage_extension_->ext_storage_next_key_version_1(
+      WasmResult{key_pointer, key_size}.combine());
+}
+
+/**
+ * @given a trie key address in WASM memory, which is not present in the storage
+ * @when using ext_storage_next_key_version_1 to obtain the next key
+ * @then an invalid address is returned
+ */
+TEST_F(StorageExtensionTest, NextKeyInvalidKey) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 8;
+  Buffer key(key_size, 'k');
+
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+
+  EXPECT_CALL(*trie_batch_, cursor()).WillOnce(Invoke([&key]() {
+    auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
+    EXPECT_CALL(*cursor, seek(key))
+        .WillOnce(Return(
+            kagome::storage::trie::PolkadotTrieCursor::Error::NOT_FOUND));
+    return cursor;
+  }));
+
+  auto next_key_span = storage_extension_->ext_storage_next_key_version_1(
+      WasmResult{key_pointer, key_size}.combine());
+  ASSERT_EQ(next_key_span, -1);
 }
 
 /**

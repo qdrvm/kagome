@@ -31,15 +31,28 @@ namespace kagome::storage::trie {
       }
       return TrieError::NO_VALUE;
     }
+    if (wasClearedByPrefix(key)) {
+      return TrieError::NO_VALUE;
+    }
     if (auto p = parent_.lock(); p != nullptr) {
       return p->get(key);
     }
     return Error::PARENT_EXPIRED;
   }
 
+  std::unique_ptr<BufferMapCursor> TopperTrieBatchImpl::cursor() {
+    if (auto p = parent_.lock(); p != nullptr) {
+      return p->cursor();
+    }
+    return nullptr;
+  }
+
   bool TopperTrieBatchImpl::contains(const Buffer &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       return it->second.has_value();
+    }
+    if (wasClearedByPrefix(key)) {
+      return false;
     }
     if (auto p = parent_.lock(); p != nullptr) {
       return p->contains(key);
@@ -54,6 +67,8 @@ namespace kagome::storage::trie {
             })) {
       return false;
     }
+    // TODO(Harrm) PRE-462 consider clearPrefix here. Not an easy thing and is
+    // barely possible to happen, so leave it for the future
     if (auto p = parent_.lock(); p != nullptr) {
       return p->empty();
     }
@@ -83,7 +98,7 @@ namespace kagome::storage::trie {
       }
     }
     cleared_prefixes_.push_back(prefix);
-    if(parent_.lock() != nullptr) {
+    if (parent_.lock() != nullptr) {
       return outcome::success();
     }
     return Error::PARENT_EXPIRED;
@@ -92,7 +107,7 @@ namespace kagome::storage::trie {
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
     if (auto p = parent_.lock(); p != nullptr) {
       auto it = cache_.begin();
-      for(auto& prefix: cleared_prefixes_) {
+      for (auto &prefix : cleared_prefixes_) {
         OUTCOME_TRY(p->clearPrefix(prefix));
       }
       for (; it != cache_.end(); it++) {
@@ -105,6 +120,16 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
     return Error::PARENT_EXPIRED;
+  }
+
+  bool TopperTrieBatchImpl::wasClearedByPrefix(const Buffer &key) const {
+    for (auto prefix : cleared_prefixes_) {
+      auto key_end = key.begin();
+      std::advance(key_end, std::min(key.size(), prefix.size()) - 1);
+      auto is_cleared = std::equal(key.begin(), key_end, prefix.begin());
+      if (is_cleared) return true;
+    }
+    return false;
   }
 
 }  // namespace kagome::storage::trie

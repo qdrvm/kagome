@@ -23,10 +23,7 @@ namespace kagome::consensus {
    public:
     ~Babe() override = default;
 
-    enum class ExecutionStrategy {
-      GENESIS,
-      SYNC_FIRST
-    };
+    enum class ExecutionStrategy { GENESIS, SYNC_FIRST };
 
     /**
      * Start babe execution

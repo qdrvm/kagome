@@ -95,6 +95,18 @@ namespace kagome::common {
     }
 
     /**
+     * Create Blob from hex string prefixed with 0x
+     * @param hex hex string
+     * @return result containing Blob object if hex string has proper size and
+     * is in hex format
+     */
+    static outcome::result<Blob<size_>> fromHexWithPrefix(
+        std::string_view hex) {
+      OUTCOME_TRY(res, unhexWith0x(hex));
+      return fromSpan(res);
+    }
+
+    /**
      * Create Blob from span of uint8_t
      * @param buffer
      * @return

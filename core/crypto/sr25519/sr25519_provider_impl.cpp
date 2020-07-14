@@ -20,7 +20,7 @@ namespace kagome::crypto {
   }
 
   SR25519Keypair SR25519ProviderImpl::generateKeypair(
-      common::Blob<32> seed) const {
+      const SR25519Seed &seed) const {
     std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp{};
     sr25519_keypair_from_seed(kp.data(), seed.data());
 
@@ -36,7 +36,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<SR25519Signature> SR25519ProviderImpl::sign(
-      const SR25519Keypair &keypair, gsl::span<uint8_t> message) const {
+      const SR25519Keypair &keypair, gsl::span<const uint8_t> message) const {
     SR25519Signature signature{};
 
     try {
@@ -54,7 +54,7 @@ namespace kagome::crypto {
 
   outcome::result<bool> SR25519ProviderImpl::verify(
       const SR25519Signature &signature,
-      gsl::span<uint8_t> message,
+      gsl::span<const uint8_t> message,
       const SR25519PublicKey &public_key) const {
     bool result = false;
     try {

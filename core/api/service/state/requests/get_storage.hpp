@@ -19,7 +19,14 @@ namespace kagome::api::state::request {
 
   class GetStorage final {
    public:
+    GetStorage(GetStorage const &) = delete;
+    GetStorage &operator=(GetStorage const &) = delete;
+
+    GetStorage(GetStorage &&) = default;
+    GetStorage &operator=(GetStorage &&) = default;
+
     explicit GetStorage(std::shared_ptr<StateApi> api) : api_(std::move(api)){};
+    ~GetStorage() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
 
