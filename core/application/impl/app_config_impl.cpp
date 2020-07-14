@@ -284,7 +284,8 @@ namespace kagome::application {
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
 
     find_argument<int32_t>(vm, "verbosity", [&](int32_t val) {
-      verbosity_ = (spdlog::level::level_enum)val;
+      if (val >= SPDLOG_LEVEL_TRACE && val <= SPDLOG_LEVEL_OFF)
+        verbosity_ = static_cast<spdlog::level::level_enum>(val);
     });
 
     find_argument<std::string>(

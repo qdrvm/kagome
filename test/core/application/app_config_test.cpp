@@ -5,6 +5,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <boost/filesystem.hpp>
 #include <fstream>
 
 #include "application/impl/app_config_impl.hpp"
@@ -15,30 +16,33 @@ using kagome::application::AppConfigurationImpl;
 class AppConfigurationTest : public testing::Test {
  public:
   static constexpr char const *file_content =
-      "{\n"
-      "  \"general\" : {\n"
-      "    \"verbosity\" : 2\n"
-      "  },\n"
-      "  \"blockchain\" : {\n"
-      "    \"genesis\" : \"genesis file path\"\n"
-      "  },\n"
-      "  \"storage\" : {\n"
-      "    \"leveldb\" : \"leveldb file path\"\n"
-      "  },\n"
-      "  \"authority\" : {\n"
-      "    \"keystore\" : \"keystore file path\"\n"
-      "  },\n"
-      "  \"network\" : {\n"
-      "        \"p2p_port\" : 456,\n"
-      "        \"rpc_http_host\" : \"1.1.1.1\",\n"
-      "        \"rpc_http_port\" : 123,\n"
-      "        \"rpc_ws_host\" : \"2.2.2.2\",\n"
-      "        \"rpc_ws_port\" : 678\n"
-      "  },\n"
-      "  \"additional\" : {\n"
-      "    \"single_finalizing_node\" : true\n"
-      "  }\n"
-      "}";
+      R"({
+        "general" : {
+          "verbosity" : 2
+        },
+        "blockchain" : {
+          "genesis" : "genesis file path"
+        },
+        "storage" : {
+          "leveldb" : "leveldb file path"
+        },
+        "authority" : {
+          "keystore" : "keystore file path"
+        },
+        "network" : {
+              "p2p_port" : 456,
+              "rpc_http_host" : "1.1.1.1",
+              "rpc_http_port" : 123,
+              "rpc_ws_host" : "2.2.2.2",
+              "rpc_ws_port" : 678
+        },
+        "additional" : {
+          "single_finalizing_node" : true
+        }
+      })";
+  boost::filesystem::path tmp_dir =
+      boost::filesystem::temp_directory_path() / "config";
+  std::string config_path = (tmp_dir / "config.json").native();
 
   boost::asio::ip::tcp::endpoint get_endpoint(char const *host, uint16_t port) {
     boost::asio::ip::tcp::endpoint endpoint;
@@ -49,10 +53,13 @@ class AppConfigurationTest : public testing::Test {
   }
 
   void SetUp() override {
-    std::ofstream file("./config.json",
-                       std::ofstream::out | std::ofstream::trunc);
+    boost::filesystem::create_directory(tmp_dir);
+    std::ofstream file(config_path, std::ofstream::out | std::ofstream::trunc);
     file << file_content;
 
+    if (!boost::filesystem::exists(tmp_dir)) {
+      exit(EXIT_FAILURE);
+    }
     auto logger = kagome::common::createLogger("App config test");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);
   }
@@ -162,7 +169,7 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
   char const *args[] = {
       "/path/",
       "--config_file",
-      "./config.json",
+      config_path.c_str(),
       "--rpc_http_host",
       "1.2.3.4",
       "--rpc_ws_host",
@@ -192,7 +199,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("2.2.2.2", 678);
 
-  char const *args[] = {"/path/", "--config_file", "./config.json"};
+  char const *args[] = {"/path/", "--config_file", config_path.c_str()};
   app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
                                     (char **)args);
@@ -381,4 +388,25 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
                                       (char **)args);
     ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::off);
   }
+}
+
+/**
+ * @given new created AppConfigurationImpl
+ * @when verbosity provided with unexpected value
+ * @then we expect last saved value(def. spdlog::level::level_enum::info)
+ */
+TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
+  char const *args[] = {"/path/",
+                        "--verbosity",
+                        "555",
+                        "--genesis",
+                        "genesis_path",
+                        "--leveldb",
+                        "leveldb_path",
+                        "--keystore",
+                        "keystore path"};
+  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                                    sizeof(args) / sizeof(args[0]),
+                                    (char **)args);
+  ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
 }

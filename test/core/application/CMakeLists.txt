@@ -30,4 +30,5 @@ addtest(app_config_test
 target_link_libraries(app_config_test
     app_config_impl
     logger
+    Boost::filesystem
     )
