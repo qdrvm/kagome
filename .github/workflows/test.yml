@@ -137,8 +137,8 @@ jobs:
           run: "${{ matrix.options.run }}"
 
   push:
-      #if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-      #needs: [clang-tidy, Linux, MacOS, Alpine]
+      if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+      needs: [clang-tidy, Linux, MacOS, Alpine]
       name: "Push"
       runs-on: ubuntu-latest
       container: soramitsu/kagome-dev:10-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
@@ -167,5 +167,5 @@ jobs:
             password: ${{ secrets.DOCKER_TOKEN }}
         - name: docker pack and push
           env:
-            VERSION: test-ci #${{ github.ref }}
+            VERSION: ${{ github.ref }}
           run: ./housekeeping/docker/release/build_and_push.sh
