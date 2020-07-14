@@ -116,6 +116,14 @@ namespace kagome::consensus::grandpa {
     std::unordered_set<Id> equivocators;
 
     for (const auto &signed_precommit : justification.items) {
+      // Skip known equivocators
+      if (auto index = voter_set_->voterIndex(signed_precommit.id);
+          index.has_value()) {
+        if (precommit_equivocators_.at(index.value())) {
+          continue;
+        }
+      }
+
       // Verify signatures
       if (not vote_crypto_provider_->verifyPrecommit(signed_precommit)) {
         logger_->error(
@@ -143,6 +151,7 @@ namespace kagome::consensus::grandpa {
         if (env_->getAncestry(vote.block_hash, it->second)) {
           total_weight -= voter_set_->voterWeight(signed_precommit.id).value();
         }
+
       } else {
         // Detected duplicate of equivotation
         logger_->error(
