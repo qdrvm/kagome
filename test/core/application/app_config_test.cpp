@@ -40,9 +40,35 @@ class AppConfigurationTest : public testing::Test {
           "single_finalizing_node" : true
         }
       })";
+  static constexpr char const *invalid_file_content =
+      R"({
+        "general" : {
+          "verbosity" : 4444
+        },
+        "blockchain" : {
+          "genesis" : 1
+        },
+        "storage" : {
+          "leveldb" : 2
+        },
+        "authority" : {
+          "keystore" : 3
+        },
+        "network" : {
+              "p2p_port" : "13",
+              "rpc_http_host" : 7,
+              "rpc_http_port" : "1312",
+              "rpc_ws_host" : 5,
+              "rpc_ws_port" : "AWESOME_PORT"
+        },
+        "additional" : {
+          "single_finalizing_node" : "order1800"
+        }
+      })";
   boost::filesystem::path tmp_dir = boost::filesystem::temp_directory_path()
                                     / boost::filesystem::unique_path();
   std::string config_path = (tmp_dir / "config.json").native();
+  std::string invalid_config_path = (tmp_dir / "invalid_config.json").native();
 
   boost::asio::ip::tcp::endpoint get_endpoint(char const *host, uint16_t port) {
     boost::asio::ip::tcp::endpoint endpoint;
@@ -58,6 +84,10 @@ class AppConfigurationTest : public testing::Test {
 
     std::ofstream file(config_path, std::ofstream::out | std::ofstream::trunc);
     file << file_content;
+
+    std::ofstream invalid_file(invalid_config_path,
+                               std::ofstream::out | std::ofstream::trunc);
+    invalid_file << invalid_file_content;
 
     auto logger = kagome::common::createLogger("App config test");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);
@@ -211,6 +241,41 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
   ASSERT_EQ(app_config_->is_only_finalizing(), true);
+}
+
+/**
+ * @given new created AppConfigurationImpl
+ * @when --config_file cmd line arg is provided and data in config is not
+ * correct
+ * @then we must receive default values
+ */
+TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
+  boost::asio::ip::tcp::endpoint const http_endpoint =
+      get_endpoint("0.0.0.0", 40363);
+  boost::asio::ip::tcp::endpoint const ws_endpoint =
+      get_endpoint("0.0.0.0", 40364);
+
+  char const *args[] = {"/path/",
+                        "--keystore",
+                        "keystore_path",
+                        "--genesis",
+                        "genesis_path",
+                        "--leveldb",
+                        "leveldb_path",
+                        "--config_file",
+                        invalid_config_path.c_str()};
+  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                                    sizeof(args) / sizeof(args[0]),
+                                    (char **)args);
+
+  ASSERT_EQ(app_config_->genesis_path(), "genesis_path");
+  ASSERT_EQ(app_config_->leveldb_path(), "leveldb_path");
+  ASSERT_EQ(app_config_->keystore_path(), "keystore_path");
+  ASSERT_EQ(app_config_->p2p_port(), 30363);
+  ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
+  ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
+  ASSERT_EQ(app_config_->is_only_finalizing(), false);
 }
 
 /**
