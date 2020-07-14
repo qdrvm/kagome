@@ -127,7 +127,7 @@ jobs:
         # The imported target "sr25519::sr25519" references the file
         #     "/github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a"
         #  but this file does not exist.  Possible reasons include:
-        - name:
+        - name: Kludge
           run: |
             mkdir -p /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib && \
             ln -s /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib64/libsr25519crust.a \
@@ -151,7 +151,7 @@ jobs:
         # The imported target "sr25519::sr25519" references the file
         #     "/github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a"
         #  but this file does not exist.  Possible reasons include:
-        - name:
+        - name: Kludge
           run: |
             mkdir -p /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib && \
             ln -s /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib64/libsr25519crust.a \
