@@ -40,8 +40,8 @@ class AppConfigurationTest : public testing::Test {
           "single_finalizing_node" : true
         }
       })";
-  boost::filesystem::path tmp_dir =
-      boost::filesystem::temp_directory_path() / "config";
+  boost::filesystem::path tmp_dir = boost::filesystem::temp_directory_path()
+                                    / boost::filesystem::unique_path();
   std::string config_path = (tmp_dir / "config.json").native();
 
   boost::asio::ip::tcp::endpoint get_endpoint(char const *host, uint16_t port) {
@@ -57,9 +57,7 @@ class AppConfigurationTest : public testing::Test {
     std::ofstream file(config_path, std::ofstream::out | std::ofstream::trunc);
     file << file_content;
 
-    if (!boost::filesystem::exists(tmp_dir)) {
-      exit(EXIT_FAILURE);
-    }
+    ASSERT_TRUE(boost::filesystem::exists(tmp_dir));
     auto logger = kagome::common::createLogger("App config test");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);
   }
