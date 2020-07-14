@@ -8,7 +8,7 @@
 
 namespace kagome::application {
 
-  SyncingNodeApplication::SyncingNodeApplication(AppConfigPtr app_config)
+  SyncingNodeApplication::SyncingNodeApplication(const AppConfigPtr &app_config)
       : injector_{injector::makeSyncingNodeInjector(app_config)},
         logger_{common::createLogger("SyncingNodeApplication")} {
     spdlog::set_level(app_config->verbosity());

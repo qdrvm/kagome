@@ -48,16 +48,6 @@ namespace kagome::application {
                                          &std::fclose);
   }
 
-  [[maybe_unused]] size_t AppConfigurationImpl::get_file_size(
-      const std::string &filepath) {
-    struct stat statbuf;
-    if (-1 == stat(filepath.c_str(), &statbuf)) {
-      logger_->error("Read configuration file metadata failed: {}", filepath);
-      exit(EXIT_FAILURE);
-    }
-    return static_cast<size_t>(statbuf.st_size);
-  }
-
   bool AppConfigurationImpl::load_str(const rapidjson::Value &val,
                                       char const *name,
                                       std::string &target) {
@@ -138,6 +128,21 @@ namespace kagome::application {
       exit(EXIT_FAILURE);
     }
 
+    if (p2p_port_ == 0) {
+      logger_->error("p2p port is 0.");
+      exit(EXIT_FAILURE);
+    }
+
+    if (rpc_ws_port_ == 0) {
+      logger_->error("RPC ws port is 0.");
+      exit(EXIT_FAILURE);
+    }
+
+    if (rpc_http_port_ == 0) {
+      logger_->error("RPC http port is 0.");
+      exit(EXIT_FAILURE);
+    }
+
     const auto need_keystore =
         (AppConfiguration::LoadScheme::kBlockProducing == scheme)
         || (AppConfiguration::LoadScheme::kValidating == scheme);
@@ -161,8 +166,8 @@ namespace kagome::application {
     using FileReadStream = rapidjson::FileReadStream;
     using Document = rapidjson::Document;
 
-    char buffer_size[1024];
-    FileReadStream input_stream(file.get(), buffer_size, sizeof(buffer_size));
+    std::array<char, 1024> buffer_size{};
+    FileReadStream input_stream(file.get(), buffer_size.data(), buffer_size.size());
 
     Document document;
     document.ParseStream(input_stream);
@@ -193,7 +198,7 @@ namespace kagome::application {
     }
 
     endpoint.port(port);
-    return std::move(endpoint);
+    return endpoint;
   }
 
   bool AppConfigurationImpl::initialize_from_args(

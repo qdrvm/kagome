@@ -87,7 +87,7 @@ class AppConfigurationTest : public testing::Test {
     boost::system::error_code err;
     endpoint.address(boost::asio::ip::address::from_string(host, err));
     endpoint.port(port);
-    return std::move(endpoint);
+    return endpoint;
   }
 
   void SetUp() override {

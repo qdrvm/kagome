@@ -10,11 +10,12 @@
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
-  typedef ::std::size_t SizeType;
+  using SizeType = ::std::size_t;
 }
 #include <rapidjson/document.h>
 #undef RAPIDJSON_NO_SIZETYPEDEFINE
 
+#include <array>
 #include <cstdio>
 #include <memory>
 
@@ -50,19 +51,23 @@ namespace kagome::application {
 
     /// TODO(iceseer): make handler calls via lambda-calls, remove
     /// member-function ptrs
-    static constexpr struct {
+    struct SegmentHandler {
       using Handler = void (kagome::application::AppConfigurationImpl::*)(
           rapidjson::Value &);
       char const *segment_name;
       Handler handler;
-    } handlers[] = {
-        {"general", &AppConfigurationImpl::parse_general_segment},
-        {"blockchain", &AppConfigurationImpl::parse_blockchain_segment},
-        {"storage", &AppConfigurationImpl::parse_storage_segment},
-        {"authority", &AppConfigurationImpl::parse_authority_segment},
-        {"network", &AppConfigurationImpl::parse_network_segment},
-        {"additional", &AppConfigurationImpl::parse_additional_segment},
     };
+
+    // clang-format off
+    std::array<SegmentHandler, 6> handlers = {
+        SegmentHandler{"general",    &AppConfigurationImpl::parse_general_segment},
+        SegmentHandler{"blockchain", &AppConfigurationImpl::parse_blockchain_segment},
+        SegmentHandler{"storage",    &AppConfigurationImpl::parse_storage_segment},
+        SegmentHandler{"authority",  &AppConfigurationImpl::parse_authority_segment},
+        SegmentHandler{"network",    &AppConfigurationImpl::parse_network_segment},
+        SegmentHandler{"additional", &AppConfigurationImpl::parse_additional_segment},
+    };
+    // clang-format on
 
    private:
     kagome::common::Logger logger_;
@@ -96,12 +101,16 @@ namespace kagome::application {
     boost::asio::ip::tcp::endpoint get_endpoint_from(const std::string &host,
                                                      uint16_t port);
     FilePtr open_file(const std::string &filepath);
-    [[maybe_unused]] size_t get_file_size(const std::string &filepath);
 
    public:
     AppConfigurationImpl(kagome::common::Logger logger);
+    ~AppConfigurationImpl() = default;
+
     AppConfigurationImpl(const AppConfigurationImpl &) = delete;
     AppConfigurationImpl &operator=(const AppConfigurationImpl &) = delete;
+
+    AppConfigurationImpl(AppConfigurationImpl &&) = default;
+    AppConfigurationImpl &operator=(AppConfigurationImpl &&) = default;
 
     bool initialize_from_args(AppConfiguration::LoadScheme scheme,
                               int argc,

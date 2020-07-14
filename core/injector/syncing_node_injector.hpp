@@ -49,7 +49,7 @@ namespace kagome::injector {
   };
 
   template <typename... Ts>
-  auto makeSyncingNodeInjector(application::AppConfigPtr app_config,
+  auto makeSyncingNodeInjector(const application::AppConfigPtr &app_config,
                                Ts &&... args) {
     using namespace boost;  // NOLINT;
 

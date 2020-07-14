@@ -143,7 +143,7 @@ namespace kagome::injector {
   }
 
   template <typename... Ts>
-  auto makeFullNodeInjector(application::AppConfigPtr app_config,
+  auto makeFullNodeInjector(const application::AppConfigPtr &app_config,
                             Ts &&... args) {
     using namespace boost;  // NOLINT;
 
@@ -163,9 +163,10 @@ namespace kagome::injector {
           return get_peer_keypair(inj);
         })[boost::di::override],
         // compose peer info
-        di::bind<network::OwnPeerInfo>.to([p2p_port{app_config->p2p_port()}](const auto &injector) {
-          return get_peer_info(injector, p2p_port);
-        }),
+        di::bind<network::OwnPeerInfo>.to(
+            [p2p_port{app_config->p2p_port()}](const auto &injector) {
+              return get_peer_info(injector, p2p_port);
+            }),
         di::bind<consensus::Babe>.to(
             [](auto const &inj) { return get_babe(inj); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
@@ -198,8 +199,8 @@ namespace kagome::injector {
               return get_key_storage(app_config->keystore_path(), injector);
             }),
         di::bind<crypto::CryptoStore>.template to(
-            [keystore_path](const auto &injector) {
-              return get_crypto_store(keystore_path, injector);
+            [app_config](const auto &injector) {
+              return get_crypto_store(app_config->keystore_path(), injector);
             })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

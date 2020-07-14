@@ -27,7 +27,7 @@ namespace kagome::application {
 
     ~SyncingNodeApplication() override = default;
 
-    SyncingNodeApplication(AppConfigPtr app_config);
+    SyncingNodeApplication(const AppConfigPtr &app_config);
 
     void run() override;
 

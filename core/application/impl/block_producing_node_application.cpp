@@ -8,7 +8,7 @@
 namespace kagome::application {
 
   BlockProducingNodeApplication::BlockProducingNodeApplication(
-      AppConfigPtr app_config)
+      const AppConfigPtr &app_config)
       : injector_{injector::makeBlockProducingNodeInjector(app_config)},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(app_config->verbosity());
