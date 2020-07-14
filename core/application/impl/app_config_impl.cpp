@@ -11,13 +11,6 @@
 #include <iostream>
 
 namespace {
-  struct RegisteredHandlers {
-    using Handler =
-        void (kagome::application::AppConfigurationImpl::*)(rapidjson::Value &);
-    char const *segment_name;
-    Handler handler;
-  };
-
   template <typename T, typename Func>
   inline void find_argument(boost::program_options::variables_map &vm,
                             char const *name,
@@ -38,10 +31,6 @@ namespace {
 
 namespace kagome::application {
 
-  void AppConfigurationImpl::file_deleter(FILE *f) {
-    std::fclose(f);
-  }
-
   AppConfigurationImpl::AppConfigurationImpl(kagome::common::Logger logger)
       : logger_(std::move(logger)),
         rpc_http_host_(def_rpc_http_host),
@@ -56,7 +45,7 @@ namespace kagome::application {
       const std::string &filepath) {
     assert(!filepath.empty());
     return AppConfigurationImpl::FilePtr(std::fopen(filepath.c_str(), "r"),
-                                         &file_deleter);
+                                         &std::fclose);
   }
 
   [[maybe_unused]] size_t AppConfigurationImpl::get_file_size(
@@ -96,15 +85,20 @@ namespace kagome::application {
                                       uint16_t &target) {
     auto m = val.FindMember(name);
     if (val.MemberEnd() != m && m->value.IsInt()) {
-      target = static_cast<uint16_t>(m->value.GetInt());
-      return true;
+      const auto v = m->value.GetInt();
+      const auto in_range = (v & ~std::numeric_limits<uint16_t>::max()) == 0;
+
+      if (in_range) {
+        target = static_cast<uint16_t>(v);
+        return true;
+      }
     }
     return false;
   }
 
   void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
     uint16_t v;
-    if (load_u16(val, "verbosity", v))
+    if (load_u16(val, "verbosity", v) && v <= SPDLOG_LEVEL_OFF)
       verbosity_ = static_cast<spdlog::level::level_enum>(v);
   }
 
@@ -148,7 +142,7 @@ namespace kagome::application {
         (AppConfiguration::LoadScheme::kBlockProducing == scheme)
         || (AppConfiguration::LoadScheme::kValidating == scheme);
 
-    if (!(!need_keystore != !keystore_path_.empty())) {
+    if (need_keystore && keystore_path_.empty()) {
       logger_->error("Node configuration must contain 'keystore_path' option.");
       exit(EXIT_FAILURE);
     }
@@ -157,17 +151,6 @@ namespace kagome::application {
   void AppConfigurationImpl::read_config_from_file(
       const std::string &filepath) {
     assert(!filepath.empty());
-
-    /// TODO: make handler calls via lambda-calls, remove member-function ptrs
-    /// (iceseer)
-    RegisteredHandlers handlers[] = {
-        {"general", &AppConfigurationImpl::parse_general_segment},
-        {"blockchain", &AppConfigurationImpl::parse_blockchain_segment},
-        {"storage", &AppConfigurationImpl::parse_storage_segment},
-        {"authority", &AppConfigurationImpl::parse_authority_segment},
-        {"network", &AppConfigurationImpl::parse_network_segment},
-        {"additional", &AppConfigurationImpl::parse_additional_segment},
-    };
 
     auto file = open_file(filepath);
     if (!file) {
@@ -200,11 +183,6 @@ namespace kagome::application {
     endpoint.address(boost::asio::ip::address::from_string(host, err));
     if (err.failed()) {
       logger_->error("RPC address '{}' is invalid", host);
-      exit(EXIT_FAILURE);
-    }
-
-    if (port <= 0 || port >= 65535) {
-      logger_->error("RPC port '{}' is wrong", port);
       exit(EXIT_FAILURE);
     }
 

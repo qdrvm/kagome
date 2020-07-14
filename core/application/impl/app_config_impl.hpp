@@ -8,7 +8,13 @@
 
 #include "application/app_config.hpp"
 
+#define RAPIDJSON_NO_SIZETYPEDEFINE
+namespace rapidjson {
+  typedef ::std::size_t SizeType;
+}
 #include <rapidjson/document.h>
+#undef RAPIDJSON_NO_SIZETYPEDEFINE
+
 #include <cstdio>
 #include <memory>
 
@@ -32,8 +38,31 @@
 namespace kagome::application {
 
   class AppConfigurationImpl final : public AppConfiguration {
-    static void file_deleter(std::FILE *f);
-    using FilePtr = std::unique_ptr<std::FILE, decltype(&file_deleter)>;
+    using FilePtr = std::unique_ptr<std::FILE, decltype(&std::fclose)>;
+
+   private:
+    void parse_general_segment(rapidjson::Value &val);
+    void parse_blockchain_segment(rapidjson::Value &val);
+    void parse_storage_segment(rapidjson::Value &val);
+    void parse_authority_segment(rapidjson::Value &val);
+    void parse_network_segment(rapidjson::Value &val);
+    void parse_additional_segment(rapidjson::Value &val);
+
+    /// TODO(iceseer): make handler calls via lambda-calls, remove
+    /// member-function ptrs
+    static constexpr struct {
+      using Handler = void (kagome::application::AppConfigurationImpl::*)(
+          rapidjson::Value &);
+      char const *segment_name;
+      Handler handler;
+    } handlers[] = {
+        {"general", &AppConfigurationImpl::parse_general_segment},
+        {"blockchain", &AppConfigurationImpl::parse_blockchain_segment},
+        {"storage", &AppConfigurationImpl::parse_storage_segment},
+        {"authority", &AppConfigurationImpl::parse_authority_segment},
+        {"network", &AppConfigurationImpl::parse_network_segment},
+        {"additional", &AppConfigurationImpl::parse_additional_segment},
+    };
 
    private:
     kagome::common::Logger logger_;
@@ -51,14 +80,6 @@ namespace kagome::application {
      *          DEFAULT VALUES              <- low priority
      */
     // clang-format on
-
-   private:
-    void parse_general_segment(rapidjson::Value &val);
-    void parse_blockchain_segment(rapidjson::Value &val);
-    void parse_storage_segment(rapidjson::Value &val);
-    void parse_authority_segment(rapidjson::Value &val);
-    void parse_network_segment(rapidjson::Value &val);
-    void parse_additional_segment(rapidjson::Value &val);
 
    private:
     void validate_config(AppConfiguration::LoadScheme scheme);
