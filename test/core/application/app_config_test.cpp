@@ -54,10 +54,11 @@ class AppConfigurationTest : public testing::Test {
 
   void SetUp() override {
     boost::filesystem::create_directory(tmp_dir);
+    ASSERT_TRUE(boost::filesystem::exists(tmp_dir));
+
     std::ofstream file(config_path, std::ofstream::out | std::ofstream::trunc);
     file << file_content;
 
-    ASSERT_TRUE(boost::filesystem::exists(tmp_dir));
     auto logger = kagome::common::createLogger("App config test");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);
   }
