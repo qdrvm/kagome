@@ -87,8 +87,7 @@ namespace kagome::crypto {
     bool operator!=(const SR25519Keypair &other) const;
   };
 
-  using SR25519Signature =
-      std::array<uint8_t, constants::sr25519::SIGNATURE_SIZE>;
+  using SR25519Signature = common::Blob<constants::sr25519::SIGNATURE_SIZE>;
 
   /**
    * @brief outputs object of type VRFOutput to stream

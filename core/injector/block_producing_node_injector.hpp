@@ -29,28 +29,31 @@ namespace kagome::injector {
       Ts &&... args) {
     using namespace boost;  // NOLINT;
 
-    auto get_babe_observer = get_babe;
-
     return di::make_injector(
 
         // inherit application injector
         makeApplicationInjector(
             genesis_path, leveldb_path, rpc_http_endpoint, rpc_ws_endpoint),
         // bind sr25519 keypair
-        di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
+        di::bind<crypto::SR25519Keypair>.to(
+            [](auto const &inj) { return get_sr25519_keypair(inj); }),
         // bind ed25519 keypair
-        di::bind<crypto::ED25519Keypair>.to(std::move(get_ed25519_keypair)),
+        di::bind<crypto::ED25519Keypair>.to(
+            [](auto const &inj) { return get_ed25519_keypair(inj); }),
         // compose peer keypair
-        di::bind<libp2p::crypto::KeyPair>.to(
-            std::move(get_peer_keypair))[boost::di::override],
+        di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {
+          return get_peer_keypair(inj);
+        })[boost::di::override],
         // peer info
         di::bind<network::OwnPeerInfo>.to([p2p_port](const auto &injector) {
           return get_peer_info(injector, p2p_port);
         }),
 
-        di::bind<consensus::Babe>.to(std::move(get_babe)),
+        di::bind<consensus::Babe>.to(
+            [](auto const &inj) { return get_babe(inj); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-        di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
+        di::bind<network::BabeObserver>.to(
+            [](auto const &inj) { return get_babe(inj); }),
 
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::SyncingRoundObserver>(),
         di::bind<application::KeyStorage>.to(
@@ -59,6 +62,10 @@ namespace kagome::injector {
             }),
         di::bind<runtime::Grandpa>.template to<runtime::dummy::GrandpaDummy>()
             [boost::di::override],
+        di::bind<crypto::CryptoStore>.template to(
+            [keystore_path](const auto &injector) {
+              return get_crypto_store(keystore_path, injector);
+            })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }

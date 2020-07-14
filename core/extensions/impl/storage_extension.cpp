@@ -8,6 +8,7 @@
 #include <forward_list>
 
 #include "primitives/block_id.hpp"
+#include "runtime/wasm_result.hpp"
 #include "storage/changes_trie/impl/changes_trie.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -253,9 +254,37 @@ namespace kagome::extensions {
       const auto &root = res.value();
       memory_->storeBuffer(result, root);
     } else {
-      logger_->error("ext_storage_root called in an ephemeral extension");
-      memory_->storeBuffer(result, Buffer(32, 0));
+      logger_->warn("ext_storage_root called in an ephemeral extension");
+      auto res = storage_provider_->forceCommit();
+      if (res.has_error()) {
+        logger_->error("ext_storage_root resulted with an error: {}",
+                       res.error().message());
+      }
+      const auto &root = res.value();
+      memory_->storeBuffer(result, root);
     }
+  }
+
+  runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
+      runtime::WasmSpan key_span) const {
+    static constexpr runtime::WasmSpan kErrorSpan = -1;
+
+    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
+    auto key_bytes = memory_->loadN(key_ptr, key_size);
+    auto res = getStorageNextKey(key_bytes);
+    if (res.has_error()) {
+      logger_->error("ext_storage_next_key resulted with error: {}",
+                     res.error().message());
+      return kErrorSpan;
+    }
+    auto&& key_opt = res.value();
+    if(auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
+      return memory_->storeBuffer(enc_res.value());
+    } else { // NOLINT(readability-else-after-return)
+      logger_->error("ext_storage_next_key result encoding resulted with error: {}",
+                     enc_res.error().message());
+    }
+    return kErrorSpan;
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
@@ -270,5 +299,18 @@ namespace kagome::extensions {
 
     return common::Buffer(std::vector<uint8_t>(
         data.begin() + offset, data.begin() + offset + data_length));
+  }
+
+  outcome::result<boost::optional<Buffer>>
+  StorageExtension::getStorageNextKey(const common::Buffer &key) const {
+    auto batch = storage_provider_->getCurrentBatch();
+    auto cursor = batch->cursor();
+    OUTCOME_TRY(cursor->seek(key));
+    OUTCOME_TRY(cursor->next());
+    if (cursor->isValid()) {
+      OUTCOME_TRY(next_key, cursor->key());
+      return boost::make_optional(next_key);
+    }
+    return boost::none;
   }
 }  // namespace kagome::extensions

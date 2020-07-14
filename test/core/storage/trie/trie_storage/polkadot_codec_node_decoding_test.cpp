@@ -20,7 +20,6 @@ using namespace testing;
 
 struct NodeDecodingTest
     : public ::testing::TestWithParam<std::shared_ptr<PolkadotNode>> {
-
   std::unique_ptr<PolkadotCodec> codec = std::make_unique<PolkadotCodec>();
 };
 
@@ -44,9 +43,12 @@ std::shared_ptr<PolkadotNode> make(const common::Buffer &key_nibbles,
 }
 
 std::shared_ptr<PolkadotNode> branch_with_2_children = []() {
-  auto node = std::make_shared<BranchNode>("010203"_hex2buf, "0a"_hex2buf);
-  auto child1 = std::make_shared<LeafNode>("01"_hex2buf, "0b"_hex2buf);
-  auto child2 = std::make_shared<LeafNode>("02"_hex2buf, "0c"_hex2buf);
+  auto node =
+      std::make_shared<BranchNode>(KeyNibbles{"010203"_hex2buf}, "0a"_hex2buf);
+  auto child1 =
+      std::make_shared<LeafNode>(KeyNibbles{"01"_hex2buf}, "0b"_hex2buf);
+  auto child2 =
+      std::make_shared<LeafNode>(KeyNibbles{"02"_hex2buf}, "0c"_hex2buf);
   node->children[0] = child1;
   node->children[1] = child2;
   return node;
@@ -58,7 +60,6 @@ static const std::vector<std::shared_ptr<PolkadotNode>> CASES = {
     make<LeafNode>("010203"_hex2buf, "abcdef"_hex2buf),
     make<LeafNode>("0a0b0c"_hex2buf, "abcdef"_hex2buf),
     make<BranchNode>("010203"_hex2buf, "abcdef"_hex2buf),
-    branch_with_2_children
-};
+    branch_with_2_children};
 
 INSTANTIATE_TEST_CASE_P(PolkadotCodec, NodeDecodingTest, ValuesIn(CASES));

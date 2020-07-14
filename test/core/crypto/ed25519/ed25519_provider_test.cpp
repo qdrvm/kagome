@@ -131,7 +131,7 @@ TEST_F(ED25519ProviderTest, GenerateBySeedSuccess) {
   // private key is the same as seed
   EXPECT_OUTCOME_TRUE(private_key, ED25519PrivateKey::fromHex(hex_seed));
 
-  EXPECT_OUTCOME_TRUE(kp, ed25519_provider->generateKeypair(seed));
+  auto &&kp = ed25519_provider->generateKeypair(seed);
 
   ASSERT_EQ(kp.private_key, private_key);
   ASSERT_EQ(kp.public_key, public_key);

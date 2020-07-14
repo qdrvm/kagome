@@ -68,6 +68,11 @@ namespace kagome::runtime {
      * false otherwise
      */
     virtual bool isCurrentlyPersistent() const = 0;
+
+    /**
+     * Commits persistent changes even if the current batch is not persistent
+     */
+    virtual outcome::result<common::Buffer> forceCommit() = 0;
   };
 
 }  // namespace kagome::runtime

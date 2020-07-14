@@ -8,6 +8,10 @@
 
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
+#include <crypto/bip39/impl/bip39_provider_impl.hpp>
+#include <crypto/crypto_store/crypto_store_impl.hpp>
+#include <crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
+#include <crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
@@ -64,6 +68,8 @@
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
+#include "runtime/binaryen/module/wasm_module_impl.hpp"
+#include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
@@ -109,7 +115,8 @@ namespace kagome::injector {
   template <class T>
   using uptr = std::unique_ptr<T>;
 
-  auto get_boot_nodes = [](const auto &injector) -> sptr<network::PeerList> {
+  template <typename Injector>
+  sptr<network::PeerList> get_boot_nodes(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<network::PeerList>>(boost::none);
     if (initialized) {
@@ -119,10 +126,10 @@ namespace kagome::injector {
 
     initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
     return initialized.value();
-  };
+  }
 
-  auto get_jrpc_api_service =
-      [](const auto &injector) -> sptr<api::ApiService> {
+  template <typename Injector>
+  sptr<api::ApiService> get_jrpc_api_service(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<api::ApiService>>(boost::none);
     if (initialized) {
@@ -152,12 +159,13 @@ namespace kagome::injector {
                                           std::move(server),
                                           processors);
     return initialized.value();
-  };
+  }
 
   // jrpc api listener (over HTTP) getter
-  auto get_jrpc_api_http_listener =
-      [](const auto &injector, const boost::asio::ip::tcp::endpoint &endpoint)
-      -> sptr<api::HttpListenerImpl> {
+  template <typename Injector>
+  sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
+      const Injector &injector,
+      const boost::asio::ip::tcp::endpoint &endpoint) {
     static auto initialized =
         boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
     if (initialized) {
@@ -178,12 +186,13 @@ namespace kagome::injector {
     initialized = std::make_shared<api::HttpListenerImpl>(
         app_state_manager, context, listener_config, http_session_config);
     return initialized.value();
-  };
+  }
 
   // jrpc api listener (over Websockets) getter
-  auto get_jrpc_api_ws_listener =
-      [](const auto &injector, const boost::asio::ip::tcp::endpoint &endpoint)
-      -> sptr<api::WsListenerImpl> {
+  template <typename Injector>
+  sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
+      const Injector &injector,
+      const boost::asio::ip::tcp::endpoint &endpoint) {
     static auto initialized =
         boost::optional<sptr<api::WsListenerImpl>>(boost::none);
     if (initialized) {
@@ -204,11 +213,11 @@ namespace kagome::injector {
     initialized = std::make_shared<api::WsListenerImpl>(
         app_state_manager, context, listener_config, ws_session_config);
     return initialized.value();
-  };
+  }
 
   // block storage getter
-  auto get_block_storage =
-      [](const auto &injector) -> sptr<blockchain::BlockStorage> {
+  template <typename Injector>
+  sptr<blockchain::BlockStorage> get_block_storage(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<blockchain::BlockStorage>>(boost::none);
 
@@ -285,11 +294,11 @@ namespace kagome::injector {
     }
     initialized = storage.value();
     return initialized.value();
-  };
+  }
 
   // block tree getter
-  auto get_block_tree =
-      [](const auto &injector) -> sptr<blockchain::BlockTree> {
+  template <typename Injector>
+  sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<blockchain::BlockTree>>(boost::none);
 
@@ -324,10 +333,11 @@ namespace kagome::injector {
     }
     initialized = tree.value();
     return initialized.value();
-  };
+  }
 
-  auto get_trie_storage_backend =
-      [](const auto &injector) -> sptr<storage::trie::TrieStorageBackendImpl> {
+  template <typename Injector>
+  sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
+      const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
             boost::none);
@@ -341,10 +351,11 @@ namespace kagome::injector {
         storage, common::Buffer{TRIE_NODE});
     initialized = backend;
     return backend;
-  };
+  }
 
-  auto get_trie_storage_impl =
-      [](const auto &injector) -> sptr<storage::trie::TrieStorageImpl> {
+  template <typename Injector>
+  sptr<storage::trie::TrieStorageImpl> get_trie_storage_impl(
+      const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<storage::trie::TrieStorageImpl>>(boost::none);
 
@@ -368,10 +379,10 @@ namespace kagome::injector {
         std::move(trie_storage_res.value());
     initialized = trie_storage;
     return trie_storage;
-  };
+  }
 
-  auto get_trie_storage =
-      [](const auto &injector) -> sptr<storage::trie::TrieStorage> {
+  template <typename Injector>
+  sptr<storage::trie::TrieStorage> get_trie_storage(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<storage::trie::TrieStorage>>(boost::none);
     if (initialized) {
@@ -400,7 +411,7 @@ namespace kagome::injector {
 
     initialized = trie_storage;
     return trie_storage;
-  };
+  }
 
   // level db getter
   template <typename Injector>
@@ -439,8 +450,8 @@ namespace kagome::injector {
     return config_storage_res.value();
   };
 
-  auto get_sync_clients_set =
-      [](const auto &injector) -> sptr<network::SyncClientsSet> {
+  template <typename Injector>
+  sptr<network::SyncClientsSet> get_sync_clients_set(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<network::SyncClientsSet>>(boost::none);
     if (initialized) {
@@ -463,8 +474,8 @@ namespace kagome::injector {
       spdlog::debug("Added peer with id: {}", peer_info.id.toBase58());
       if (peer_info.id != current_peer_info.id) {
         res->clients.emplace_back(
-            std::make_shared<network::RemoteSyncProtocolClient>(*host,
-                                                                std::move(peer_info)));
+            std::make_shared<network::RemoteSyncProtocolClient>(
+                *host, std::move(peer_info)));
       } else {
         res->clients.emplace_back(
             std::make_shared<network::DummySyncProtocolClient>());
@@ -473,18 +484,18 @@ namespace kagome::injector {
     std::reverse(res->clients.begin(), res->clients.end());
     initialized = res;
     return res;
-  };
+  }
 
-  auto get_babe_configuration =
-      [](const auto &injector) -> sptr<primitives::BabeConfiguration> {
+  template <typename Injector>
+  sptr<primitives::BabeConfiguration> get_babe_configuration(
+      const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<primitives::BabeConfiguration>>(boost::none);
     if (initialized) {
       return *initialized;
     }
 
-    sptr<runtime::BabeApi> babe_api =
-        injector.template create<sptr<runtime::BabeApi>>();
+    auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
     auto configuration_res = babe_api->configuration();
     if (not configuration_res) {
       common::raise(configuration_res.error());
@@ -497,6 +508,41 @@ namespace kagome::injector {
     initialized = std::make_shared<primitives::BabeConfiguration>(config);
     return *initialized;
   };
+
+  template <class Injector>
+  sptr<crypto::CryptoStore> get_crypto_store(std::string_view keystore_path,
+                                             const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<crypto::CryptoStore>>(boost::none);
+    if (initialized) {
+      return *initialized;
+    }
+
+    auto ed25519_provider =
+        injector.template create<sptr<crypto::ED25519Provider>>();
+    auto sr25519_provider =
+        injector.template create<sptr<crypto::SR25519Provider>>();
+    auto secp256k1_provider =
+        injector.template create<sptr<crypto::Secp256k1Provider>>();
+    auto bip39_provider =
+        injector.template create<sptr<crypto::Bip39Provider>>();
+    auto random_generator = injector.template create<sptr<crypto::CSPRNG>>();
+
+    auto crypto_store =
+        std::make_shared<crypto::CryptoStoreImpl>(std::move(ed25519_provider),
+                                                  std::move(sr25519_provider),
+                                                  std::move(secp256k1_provider),
+                                                  std::move(bip39_provider),
+                                                  std::move(random_generator));
+
+    boost::filesystem::path path = std::string(keystore_path);
+    if (auto &&res = crypto_store->initialize(path); res) {
+      common::raise(res.error());
+    }
+    initialized = crypto_store;
+
+    return *initialized;
+  }
 
   template <typename... Ts>
   auto makeApplicationInjector(
@@ -527,8 +573,8 @@ namespace kagome::injector {
                 libp2p::security::Secio>()[di::override]),
 
         // bind boot nodes
-        di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
-
+        di::bind<network::PeerList>.to(
+            [](auto const &inj) { return get_boot_nodes(inj); }),
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
 
         // bind io_context: 1 per injector
@@ -547,7 +593,9 @@ namespace kagome::injector {
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
-        di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
+        di::bind<api::ApiService>.to([](const auto &injector) {
+          return get_jrpc_api_service(injector);
+        }),
         di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
@@ -556,14 +604,17 @@ namespace kagome::injector {
             [leveldb_path](const auto &injector) {
               return get_level_db(leveldb_path, injector);
             }),
-        di::bind<blockchain::BlockStorage>.to(std::move(get_block_storage)),
-        di::bind<blockchain::BlockTree>.to(std::move(get_block_tree)),
+        di::bind<blockchain::BlockStorage>.to(
+            [](const auto &injector) { return get_block_storage(injector); }),
+        di::bind<blockchain::BlockTree>.to(
+            [](auto const &inj) { return get_block_tree(inj); }),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-        di::bind<primitives::BabeConfiguration>.to(
-            std::move(get_babe_configuration)),
+        di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
+          return get_babe_configuration(injector);
+        }),
         di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
@@ -573,13 +624,21 @@ namespace kagome::injector {
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
+        di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
+        di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
+        di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
+        di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
         di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
-        di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
+        di::bind<network::SyncClientsSet>.to([](auto const &injector) {
+          return get_sync_clients_set(injector);
+        }),
         di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
+        di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
+        di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
@@ -593,10 +652,11 @@ namespace kagome::injector {
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<storage::trie::TrieStorageBackend>.to(
-            std::move(get_trie_storage_backend)),
+            [](auto const &inj) { return get_trie_storage_backend(inj); }),
         di::bind<storage::trie::TrieStorageImpl>.to(
-            std::move(get_trie_storage_impl)),
-        di::bind<storage::trie::TrieStorage>.to(std::move(get_trie_storage)),
+            [](auto const &inj) { return get_trie_storage_impl(inj); }),
+        di::bind<storage::trie::TrieStorage>.to(
+            [](auto const &inj) { return get_trie_storage(inj); }),
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),

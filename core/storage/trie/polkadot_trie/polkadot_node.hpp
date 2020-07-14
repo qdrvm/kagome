@@ -14,16 +14,32 @@
 
 namespace kagome::storage::trie {
 
+  struct KeyNibbles : public common::Buffer {
+    KeyNibbles() = default;
+
+    explicit KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
+    KeyNibbles(std::initializer_list<uint8_t> b)
+        : Buffer{b} {}
+
+    KeyNibbles &operator=(common::Buffer b) {
+      Buffer::operator=(std::move(b));
+      return *this;
+    }
+
+    KeyNibbles subspan(size_t offset = 0, size_t length = -1) const {
+      return KeyNibbles{Buffer::subbuffer(offset, length)};
+    }
+  };
+
   /**
    * For specification see
    * https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf
    * 5.3 The Trie structure
    */
 
-  struct PolkadotNode: public Node {
+  struct PolkadotNode : public Node {
     PolkadotNode() = default;
-    PolkadotNode(common::Buffer key_nibbles,
-                 boost::optional<common::Buffer> value)
+    PolkadotNode(KeyNibbles key_nibbles, boost::optional<common::Buffer> value)
         : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
 
     ~PolkadotNode() override = default;
@@ -43,7 +59,7 @@ namespace kagome::storage::trie {
       return static_cast<Type>(getType());
     }
 
-    common::Buffer key_nibbles;
+    KeyNibbles key_nibbles;
     boost::optional<common::Buffer> value;
   };
 
@@ -51,7 +67,7 @@ namespace kagome::storage::trie {
     static constexpr int kMaxChildren = 16;
 
     BranchNode() = default;
-    explicit BranchNode(common::Buffer key_nibbles,
+    explicit BranchNode(KeyNibbles key_nibbles,
                         boost::optional<common::Buffer> value = boost::none)
         : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
 
@@ -73,7 +89,7 @@ namespace kagome::storage::trie {
 
   struct LeafNode : public PolkadotNode {
     LeafNode() = default;
-    LeafNode(common::Buffer key_nibbles, boost::optional<common::Buffer> value)
+    LeafNode(KeyNibbles key_nibbles, boost::optional<common::Buffer> value)
         : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;
