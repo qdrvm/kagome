@@ -8,65 +8,61 @@
 #include "crypto/hasher/hasher_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <algorithm>
-#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-
-using namespace kagome::crypto;
-using namespace secp256k1;
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
+using kagome::crypto::Hasher;
+using kagome::crypto::HasherImpl;
+using kagome::crypto::Secp256k1Provider;
+using kagome::crypto::Secp256k1ProviderError;
+using kagome::crypto::Secp256k1ProviderImpl;
+using kagome::crypto::secp256k1::CompressedPublicKey;
+using kagome::crypto::secp256k1::MessageHash;
+using kagome::crypto::secp256k1::RSVSignature;
+using kagome::crypto::secp256k1::UncompressedPublicKey;
 
 /**
  * @brief Pre-generated key pair and signature for sample message
- * @using reference implementation from github.com/libp2p/go-libp2p-core
+ * to generate test data following script was used:
+ * https://gist.github.com/masterjedy/c6fe4a2c654c10b30da000153318eeb1
  */
-
-class Secp256k1ProviderTest : public ::testing::Test {
- protected:
-  /**
-   * Sample message, signature, and pubkey from go-secp256k1
-   * (https://github.com/ipsn/go-secp256k1/blob/master/secp256_test.go#L206)
-   * Pay attention that hash function is not used for message (it is already
-   * 32 byte long)
-   */
-  Buffer secp_public_key_expanded_bytes{
-      "04f821bc128a43d9b0516969111e19a40bab417f45181d692d0519a3b35573cb63178403d12eb41d7702913a70ebc1c64438002a1474e1328276b7dcdacb511fc3"_hex2buf};
-  Buffer secp_public_key_compressed_bytes{
-      "03f821bc128a43d9b0516969111e19a40bab417f45181d692d0519a3b35573cb63"_hex2buf};
-  Buffer secp_signature_bytes{
-      "c5a65afd7eeec736ca07377e5ad28b6f4a977d71c8b5c1130f53cf8be3dedeebcf3f024d8c24dd4ad52c573118e55cbf5f9e646b558ab2cb9656970679c6bc5701"_hex2buf};
-
-  // message: "this is a message"
-  Buffer secp_message_vector{"746869732069732061206d657373616765"_hex2buf};
-  MessageHash secp_message_hash{};
-
-  RSVSignature secp_signature{};
-  ExpandedPublicKey secp_public_key_expanded{};
-  CompressedPublicKey secp_public_key_compressed{};
+struct Secp256k1ProviderTest : public ::testing::Test {
+  MessageHash secp_message_hash;
+  RSVSignature secp_signature;
+  UncompressedPublicKey secp_public_key_expanded;
+  CompressedPublicKey secp_public_key_compressed;
 
   std::shared_ptr<Secp256k1Provider> secp256K1_provider =
       std::make_shared<Secp256k1ProviderImpl>();
-  std::shared_ptr<kagome::crypto::Hasher> hasher =
-      std::make_shared<kagome::crypto::HasherImpl>();
+  std::shared_ptr<Hasher> hasher = std::make_shared<HasherImpl>();
 
   void SetUp() override {
-    auto msg_hash = hasher->blake2s_256(secp_message_vector);
+    // message: "this is a message"
+    EXPECT_OUTCOME_TRUE(secp_message_vector,
+                        Buffer::fromHex("746869732069732061206d657373616765"));
+    secp_message_hash = hasher->blake2s_256(secp_message_vector);
 
-    std::copy_n(msg_hash.begin(), Blob<32>::size(), secp_message_hash.begin());
-    std::cout << "secp message hash = " << secp_message_hash.toHex()
-              << std::endl;
-    std::cout << "msg hash = " << msg_hash.toHex() << std::endl;
-    std::copy_n(secp_public_key_expanded_bytes.begin(),
-                secp_public_key_expanded_bytes.size(),
-                secp_public_key_expanded.begin());
-    std::copy_n(secp_public_key_compressed_bytes.begin(),
-                secp_public_key_compressed_bytes.size(),
-                secp_public_key_compressed.begin());
-    std::copy_n(secp_signature_bytes.begin(),
-                secp_signature_bytes.size(),
-                secp_signature.begin());
+    EXPECT_OUTCOME_TRUE(
+        secp_public_key_expanded_bytes,
+        Buffer::fromHex("04f821bc128a43d9b0516969111e19a40bab417f45181d692d0519"
+                        "a3b35573cb63178403d12eb41d7702913a70ebc1c64438002a1474"
+                        "e1328276b7dcdacb511fc3"));
+    secp_public_key_expanded =
+        UncompressedPublicKey::fromSpan(secp_public_key_expanded_bytes).value();
+
+    EXPECT_OUTCOME_TRUE(secp_public_key_compressed_bytes,
+                        Buffer::fromHex("03f821bc128a43d9b0516969111e19a40bab41"
+                                        "7f45181d692d0519a3b35573cb63"));
+    secp_public_key_compressed =
+        CompressedPublicKey::fromSpan(secp_public_key_compressed_bytes).value();
+
+    EXPECT_OUTCOME_TRUE(
+        secp_signature_bytes,
+        Buffer::fromHex("ebdedee38bcf530f13c1b5c8717d974a6f8bd25a7e3707ca36c7ee"
+                        "7efd5aa6c557bcc67906975696cbb28a556b649e5fbf5ce5183157"
+                        "2cd54add248c4d023fcf01"));
+    secp_signature = RSVSignature::fromSpan(secp_signature_bytes).value();
   }
 };
 
@@ -94,17 +90,19 @@ TEST_F(Secp256k1ProviderTest, RecoverInvalidRecidFailure) {
 TEST_F(Secp256k1ProviderTest, RecoverInvalidSignatureFailure) {
   RSVSignature wrong_signature = secp_signature;
   *(wrong_signature.begin() + 3) = 0xFF;
-  EXPECT_OUTCOME_ERROR(res,
-                       secp256K1_provider->recoverPublickeyUncompressed(
-                           wrong_signature, secp_message_hash),
-                       Secp256k1ProviderError::INVALID_SIGNATURE);
+  auto res = secp256K1_provider->recoverPublickeyUncompressed(
+      wrong_signature, secp_message_hash);
+  // corrupted signature may recover some public key, but this key is wrong
+  if (res) {
+    ASSERT_NE(res.value(), secp_public_key_expanded);
+  } else {
+    // otherwise the operation should result in failure
+    EXPECT_OUTCOME_ERROR(err, res, Secp256k1ProviderError::INVALID_SIGNATURE);
+  }
 }
 
 /**
- * @given Sample message, signature, and pubkey from go-secp256k1
- * (https://github.com/ipsn/go-secp256k1/blob/master/secp256_test.go#L206)
- * Pay attention that hash function is not used for message (it is already 32
- * byte long)
+ * @given Sample message, signature, and pubkey
  * @when Recover uncompressed pubkey from message and signature
  * @then Recovery is successful, public key returned
  */
@@ -116,12 +114,9 @@ TEST_F(Secp256k1ProviderTest, RecoverUncompressedSuccess) {
 }
 
 /**
- * @given Sample message, signature, and pubkey from go-secp256k1
- * (https://github.com/ipsn/go-secp256k1/blob/master/secp256_test.go#L206)
- * Pay attention that hash function is not used for message (it is already 32
- * byte long)
+ * @given Sample message, signature, and pubkey
  * @when Recover compressed pubkey from message and signature
- * @then Recovery is successful, public key returned
+ * @then Recovery is successful, public key is returned
  */
 TEST_F(Secp256k1ProviderTest, RecoverCompressedSuccess) {
   EXPECT_OUTCOME_TRUE(public_key,

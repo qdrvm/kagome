@@ -26,7 +26,7 @@ namespace kagome::crypto {
 
     Secp256k1ProviderImpl();
 
-    outcome::result<secp256k1::ExpandedPublicKey> recoverPublickeyUncompressed(
+    outcome::result<secp256k1::UncompressedPublicKey> recoverPublickeyUncompressed(
         const secp256k1::RSVSignature &signature,
         const secp256k1::MessageHash &message_hash) const override;
 
