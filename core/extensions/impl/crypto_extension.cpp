@@ -16,7 +16,7 @@
 #include "crypto/crypto_store/key_type.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
-#include "crypto/secp256k1_provider.hpp"
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
@@ -27,6 +27,7 @@ namespace kagome::extensions {
   namespace ecdsa = crypto::secp256k1;
 
   using crypto::decodeKeyTypeId;
+  using crypto::Secp256k1ProviderError;
   using crypto::secp256k1::CompressedPublicKey;
   using crypto::secp256k1::EcdsaVerifyError;
   using crypto::secp256k1::MessageHash;
@@ -449,6 +450,30 @@ namespace kagome::extensions {
     return ext_sr25519_verify(msg_data, msg_len, sig, pubkey_data);
   }
 
+  namespace {
+    template <typename T>
+    using failure_type =
+        decltype(outcome::result<std::decay_t<T>>(T{}).as_failure());
+    /**
+     * @brief converts outcome::failure_type to EcdsaVerifyError error code
+     * @param failure outcome::result containing error
+     * @return error code
+     */
+    template <class T>
+    EcdsaVerifyError convertFailureToError(const failure_type<T> &failure) {
+      const outcome::result<void> res = failure;
+      if (res == outcome::failure(Secp256k1ProviderError::INVALID_V_VALUE)) {
+        return ecdsa::ecdsa_verify_error::kInvalidV;
+      }
+      if (res
+          == outcome::failure(Secp256k1ProviderError::INVALID_R_OR_S_VALUE)) {
+        return ecdsa::ecdsa_verify_error::kInvalidRS;
+      }
+
+      return ecdsa::ecdsa_verify_error::kInvalidSignature;
+    }
+  }  // namespace
+
   runtime::WasmSpan CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
     using ResultType = boost::variant<ecdsa::PublicKey, EcdsaVerifyError>;
@@ -469,14 +494,10 @@ namespace kagome::extensions {
                      public_key.error().message());
 
       auto error_code =
-          crypto::secp256k1::convertFailureToError(public_key.as_failure());
-      if (error_code == crypto::secp256k1::ecdsa_verify_error::kNoError) {
-        logger_->error("internal error occured");
-        std::terminate();
-      }
-
+          convertFailureToError<UncompressedPublicKey>(public_key.as_failure());
       auto error_result =
           scale::encode(static_cast<ResultType>(error_code)).value();
+
       return memory_->storeBuffer(error_result);
     }
 
@@ -485,7 +506,8 @@ namespace kagome::extensions {
     // specification says, that it should have 64 bytes, not 65 as with prefix
     // On success it contains the 64-byte recovered public key or an error type
     auto truncated_span = gsl::span<uint8_t>(public_key.value()).subspan(1, 64);
-    auto truncated_public_key = ecdsa::PublicKey::fromSpan(truncated_span).value();
+    auto truncated_public_key =
+        ecdsa::PublicKey::fromSpan(truncated_span).value();
     auto buffer = scale::encode(ResultType(truncated_public_key)).value();
     return memory_->storeBuffer(buffer);
   }
@@ -511,12 +533,7 @@ namespace kagome::extensions {
                      public_key.error().message());
 
       auto error_code =
-          crypto::secp256k1::convertFailureToError(public_key.as_failure());
-      if (error_code == crypto::secp256k1::ecdsa_verify_error::kNoError) {
-        logger_->error("internal error occured");
-        std::terminate();
-      }
-
+          convertFailureToError<CompressedPublicKey>(public_key.as_failure());
       auto error_result =
           scale::encode(static_cast<ResultType>(error_code)).value();
       return memory_->storeBuffer(error_result);

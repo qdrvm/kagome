@@ -21,16 +21,7 @@ namespace kagome::crypto::secp256k1 {
     static constexpr EcdsaVerifyError kInvalidRS = 0;
     static constexpr EcdsaVerifyError kInvalidV = 1;
     static constexpr EcdsaVerifyError kInvalidSignature = 2;
-    static constexpr EcdsaVerifyError kNoError =
-        std::numeric_limits<EcdsaVerifyError>::max();
   }  // namespace ecdsa_verify_error
-
-  /**
-   * @brief converts ourcome::result failure to EcdsaVerifyError error code
-   * @param failure outcome::result containing error
-   * @return error code
-   */
-  EcdsaVerifyError convertFailureToError(outcome::result<void> failure);
 
   /**
    * compressed form of public key
