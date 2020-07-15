@@ -9,4 +9,5 @@ add_executable(kagome_block_producing
 target_link_libraries(kagome_block_producing
     block_producing_node_application
     Boost::program_options
+    app_config_impl
     )
