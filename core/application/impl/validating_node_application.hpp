@@ -9,6 +9,7 @@
 #include "application/kagome_application.hpp"
 
 #include "api/service/api_service.hpp"
+#include "application/app_config.hpp"
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "injector/validating_node_injector.hpp"
@@ -19,14 +20,8 @@ namespace kagome::application {
   class ValidatingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
     using GrandpaLauncher = consensus::grandpa::Launcher;
-    using InjectorType = decltype(
-        injector::makeFullNodeInjector(std::string{},
-                                       std::string{},
-                                       std::string{},
-                                       uint16_t{},
-                                       boost::asio::ip::tcp::endpoint{},
-                                       boost::asio::ip::tcp::endpoint{},
-                                       bool{}));
+    using InjectorType =
+        decltype(injector::makeFullNodeInjector(AppConfigPtr{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -48,15 +43,7 @@ namespace kagome::application {
      * node
      * @param verbosity level of logging
      */
-    ValidatingNodeApplication(
-        const std::string &config_path,
-        const std::string &keystore_path,
-        const std::string &leveldb_path,
-        uint16_t p2p_port,
-        const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-        const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-        bool is_only_finalizing,
-        uint8_t verbosity);
+    ValidatingNodeApplication(const AppConfigPtr &config);
 
     void run() override;
 
