@@ -14,6 +14,13 @@ target_link_libraries(validating_node_application
     blob
     )
 
+add_library(app_config_impl
+    impl/app_config_impl.cpp
+    )
+target_link_libraries(app_config_impl
+    Boost::program_options
+    )
+
 add_library(syncing_node_application
     impl/syncing_node_application.cpp
     )
