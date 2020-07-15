@@ -13,7 +13,7 @@ namespace kagome::crypto::secp256k1 {
     static constexpr size_t kUncompressedPublicKeySize = 65u;
     static constexpr size_t kCompressedPublicKeySize = 33u;
     static constexpr size_t kCompactSignatureSize = 65u;
-    static constexpr size_t kTruncatedPublicKeySize = 64u;
+    static constexpr size_t kGeneralPublicKeySize = 64u;
   }  // namespace constants
 
   using EcdsaVerifyError = uint8_t;
@@ -26,7 +26,7 @@ namespace kagome::crypto::secp256k1 {
   }  // namespace ecdsa_verify_error
 
   /**
-   * @brief converts ourcome::result failure to
+   * @brief converts ourcome::result failure to EcdsaVerifyError error code
    * @param failure outcome::result containing error
    * @return error code
    */
@@ -40,12 +40,13 @@ namespace kagome::crypto::secp256k1 {
   /**
    * uncompressed form of public key
    */
-  using UncompressedPublicKey = common::Blob<constants::kUncompressedPublicKeySize>;
+  using UncompressedPublicKey =
+      common::Blob<constants::kUncompressedPublicKeySize>;
 
   /**
    * truncated form of uncompressed public key
    */
-  using TruncatedPublicKey = common::Blob<constants::kTruncatedPublicKeySize>;
+  using PublicKey = common::Blob<constants::kGeneralPublicKeySize>;
 
   /**
    * secp256k1 RSV-signature

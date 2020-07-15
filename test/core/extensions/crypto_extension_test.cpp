@@ -52,12 +52,7 @@ using kagome::crypto::SR25519ProviderImpl;
 using kagome::crypto::SR25519PublicKey;
 using kagome::crypto::SR25519SecretKey;
 using kagome::crypto::SR25519Signature;
-using kagome::crypto::secp256k1::CompressedPublicKey;
 using kagome::crypto::secp256k1::EcdsaVerifyError;
-using kagome::crypto::secp256k1::MessageHash;
-using kagome::crypto::secp256k1::RSVSignature;
-using kagome::crypto::secp256k1::TruncatedPublicKey;
-using kagome::crypto::secp256k1::UncompressedPublicKey;
 using kagome::runtime::MockMemory;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
@@ -68,6 +63,7 @@ using ::testing::Return;
 
 namespace sr25519_constants = kagome::crypto::constants::sr25519;
 namespace ed25519_constants = kagome::crypto::constants::ed25519;
+namespace ecdsa = kagome::crypto::secp256k1;
 
 // The point is that sr25519 signature can have many valid values
 // so we can only verify whether it is correct
@@ -85,9 +81,9 @@ MATCHER_P3(VerifySr25519Signature,
 class CryptoExtensionTest : public ::testing::Test {
  public:
   using RecoverUncompressedPublicKeyReturnValue =
-      boost::variant<TruncatedPublicKey, EcdsaVerifyError>;
+      boost::variant<ecdsa::PublicKey, EcdsaVerifyError>;
   using RecoverCompressedPublicKeyReturnValue =
-      boost::variant<CompressedPublicKey, EcdsaVerifyError>;
+      boost::variant<ecdsa::CompressedPublicKey, EcdsaVerifyError>;
 
   void SetUp() override {
     memory_ = std::make_shared<MockMemory>();
@@ -126,18 +122,21 @@ class CryptoExtensionTest : public ::testing::Test {
     ed25519_keypair = ed25519_provider_->generateKeypair(seed);
     ed25519_signature = ed25519_provider_->sign(ed25519_keypair, input).value();
 
-    secp_message_hash = MessageHash::fromSpan(secp_message_vector).value();
+    secp_message_hash =
+        ecdsa::MessageHash::fromSpan(secp_message_vector).value();
     secp_uncompressed_public_key =
-        UncompressedPublicKey::fromSpan(secp_public_key_bytes).value();
+        ecdsa::UncompressedPublicKey::fromSpan(secp_public_key_bytes).value();
     secp_compressed_pyblic_key =
-        CompressedPublicKey::fromSpan(secp_public_key_compressed_bytes).value();
+        ecdsa::CompressedPublicKey::fromSpan(secp_public_key_compressed_bytes)
+            .value();
     // first byte contains 0x04
     // and needs to be omitted in runtime api return value
     secp_truncated_public_key =
-        TruncatedPublicKey::fromSpan(
+        ecdsa::PublicKey::fromSpan(
             gsl::make_span(secp_public_key_bytes).subspan(1))
             .value();
-    secp_signature = RSVSignature::fromSpan(secp_signature_bytes).value();
+    secp_signature =
+        ecdsa::RSVSignature::fromSpan(secp_signature_bytes).value();
 
     scale_encoded_secp_truncated_public_key =
         Buffer(kagome::scale::encode(RecoverUncompressedPublicKeyReturnValue(
@@ -227,7 +226,7 @@ class CryptoExtensionTest : public ::testing::Test {
       "ebdedee38bcf530f13c1b5c8717d974a6f8bd25a7e3707ca36c7ee7efd5aa6c557bcc67906975696cbb28a556b649e5fbf5ce51831572cd54add248c4d023fcf01"_hex2buf};
   inline static Buffer secp_message_vector{
       "e13d3f3f21115294edf249cfdcb262a4f96d86943b63426c7635b6d94a5434c7"_hex2buf};
-  MessageHash secp_message_hash;
+  ecdsa::MessageHash secp_message_hash;
   Buffer secp_invalid_signature_error;
   Buffer ed_public_keys_result;
   Buffer sr_public_keys_result;
@@ -239,13 +238,13 @@ class CryptoExtensionTest : public ::testing::Test {
   std::vector<ED25519PublicKey> ed_public_keys;
   std::vector<SR25519PublicKey> sr_public_keys;
 
-  RSVSignature secp_signature;  ///< secp256k1 RSV-signature
-  UncompressedPublicKey
+  ecdsa::RSVSignature secp_signature;  ///< secp256k1 RSV-signature
+  ecdsa::UncompressedPublicKey
       secp_uncompressed_public_key;  ///< secp256k1 uncompressed public key
-  CompressedPublicKey
+  ecdsa::CompressedPublicKey
       secp_compressed_pyblic_key;  ///< secp256k1 compressed public key
-  TruncatedPublicKey secp_truncated_public_key;  ///< secp256k1 truncated
-                                                 ///< uncompressed public key
+  ecdsa::PublicKey secp_truncated_public_key;  ///< secp256k1 truncated
+                                               ///< uncompressed public key
 
   Buffer scale_encoded_secp_truncated_public_key;
   Buffer scale_encoded_secp_compressed_public_key;

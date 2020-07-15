@@ -24,12 +24,13 @@
 namespace kagome::extensions {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
+  namespace ecdsa = crypto::secp256k1;
+
   using crypto::decodeKeyTypeId;
   using crypto::secp256k1::CompressedPublicKey;
   using crypto::secp256k1::EcdsaVerifyError;
   using crypto::secp256k1::MessageHash;
   using crypto::secp256k1::RSVSignature;
-  using crypto::secp256k1::TruncatedPublicKey;
   using crypto::secp256k1::UncompressedPublicKey;
 
   CryptoExtension::CryptoExtension(
@@ -450,7 +451,7 @@ namespace kagome::extensions {
 
   runtime::WasmSpan CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    using ResultType = boost::variant<TruncatedPublicKey, EcdsaVerifyError>;
+    using ResultType = boost::variant<ecdsa::PublicKey, EcdsaVerifyError>;
 
     constexpr auto signature_size = RSVSignature::size();
     constexpr auto message_size = MessageHash::size();
@@ -484,8 +485,7 @@ namespace kagome::extensions {
     // specification says, that it should have 64 bytes, not 65 as with prefix
     // On success it contains the 64-byte recovered public key or an error type
     auto truncated_span = gsl::span<uint8_t>(public_key.value()).subspan(1, 64);
-    auto truncated_public_key =
-        TruncatedPublicKey::fromSpan(truncated_span).value();
+    auto truncated_public_key = ecdsa::PublicKey::fromSpan(truncated_span).value();
     auto buffer = scale::encode(ResultType(truncated_public_key)).value();
     return memory_->storeBuffer(buffer);
   }
