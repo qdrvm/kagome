@@ -14,8 +14,8 @@ namespace kagome::runtime {
    */
   enum WasmLogLevel {
     WasmLL_Error = 0,
-    WasmLL_Warn  = 1,
-    WasmLL_Info  = 2,
+    WasmLL_Warn = 1,
+    WasmLL_Info = 2,
     WasmLL_Debug = 3,
     WasmLL_Trace = 4,
   };
@@ -36,6 +36,11 @@ namespace kagome::runtime {
    * @brief Enum value is uint32_t
    */
   using WasmEnum = uint32_t;
+  /**
+   * @brief Offset type is uint32_t because we are working in 32 bit address
+   * space
+   */
+  using WasmOffset = uint32_t;
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_RUNTIME_TYPES_HPP
