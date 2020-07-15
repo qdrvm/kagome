@@ -167,7 +167,8 @@ namespace kagome::application {
     using Document = rapidjson::Document;
 
     std::array<char, 1024> buffer_size{};
-    FileReadStream input_stream(file.get(), buffer_size.data(), buffer_size.size());
+    FileReadStream input_stream(
+        file.get(), buffer_size.data(), buffer_size.size());
 
     Document document;
     document.ParseStream(input_stream);
@@ -239,7 +240,7 @@ namespace kagome::application {
 
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
-        ("single_finalizing_node,f", po::value<bool>(), "if this is the only finalizing node")
+        ("single_finalizing_node,f", "if this is the only finalizing node")
         ;
     // clang-format on
 
@@ -278,9 +279,8 @@ namespace kagome::application {
       read_config_from_file(path);
     });
 
-    find_argument<bool>(vm, "single_finalizing_node", [&](bool val) {
-      is_only_finalizing_ = val;
-    });
+    if (vm.end() != vm.find("single_finalizing_node"))
+      is_only_finalizing_ = true;
 
     find_argument<std::string>(
         vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });

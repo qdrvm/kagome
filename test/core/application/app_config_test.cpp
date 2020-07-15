@@ -558,3 +558,43 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
                                     (char **)args);
   ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
 }
+
+/**
+ * @given new created AppConfigurationImpl
+ * @when is_only_finalize present
+ * @then we should receve true from the call
+ */
+TEST_F(AppConfigurationTest, OnlyFinalizeTestTest) {
+  char const *args[] = {"/path/",
+                        "-f",
+                        "--genesis",
+                        "genesis_path",
+                        "--leveldb",
+                        "leveldb_path",
+                        "--keystore",
+                        "keystore path"};
+  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                                    sizeof(args) / sizeof(args[0]),
+                                    (char **)args);
+  ASSERT_EQ(app_config_->is_only_finalizing(), true);
+}
+
+/**
+ * @given new created AppConfigurationImpl
+ * @when is_only_finalize present
+ * @then we should receve true from the call
+ */
+TEST_F(AppConfigurationTest, OnlyFinalizeTestTest_2) {
+  char const *args[] = {"/path/",
+                        "--single_finalizing_node",
+                        "--genesis",
+                        "genesis_path",
+                        "--leveldb",
+                        "leveldb_path",
+                        "--keystore",
+                        "keystore path"};
+  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                                    sizeof(args) / sizeof(args[0]),
+                                    (char **)args);
+  ASSERT_EQ(app_config_->is_only_finalizing(), true);
+}
