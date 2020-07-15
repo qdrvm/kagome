@@ -107,9 +107,10 @@ namespace kagome::extensions {
      * @param value_out pointer-size to the read data
      * @param offset in bytes from the data block begin should be read
      */
-    virtual runtime::WasmSpan ext_storage_read(runtime::WasmSpan key,
-                                               runtime::WasmSpan value_out,
-                                               runtime::WasmOffset offset) = 0;
+    virtual runtime::WasmSpan ext_storage_read_version_1(
+        runtime::WasmSpan key,
+        runtime::WasmSpan value_out,
+        runtime::WasmOffset offset) = 0;
 
     /**
      * Calculate ordered trie root from provided values

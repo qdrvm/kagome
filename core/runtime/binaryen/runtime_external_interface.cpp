@@ -21,7 +21,8 @@ namespace kagome::runtime::binaryen {
       "ext_get_allocated_storage";
   const static wasm::Name ext_get_storage_into = "ext_get_storage_into";
   const static wasm::Name ext_set_storage = "ext_set_storage";
-  const static wasm::Name ext_storage_read = "ext_storage_read";
+  const static wasm::Name ext_storage_read_version_1 =
+      "ext_storage_read_version_1";
   const static wasm::Name ext_blake2_256_enumerated_trie_root =
       "ext_blake2_256_enumerated_trie_root";
   const static wasm::Name ext_storage_changes_root = "ext_storage_changes_root";
@@ -152,13 +153,14 @@ namespace kagome::runtime::binaryen {
                                                     arguments.at(4).geti32());
         return wasm::Literal(res);
       }
-      /// ext_storage_read
-      if (import->base == ext_storage_read) {
+      /// ext_storage_read_version_1
+      if (import->base == ext_storage_read_version_1) {
         checkArguments(import->base.c_str(), 3, arguments.size());
-        extension_->ext_storage_read(arguments.at(0).geti64(),
-                                     arguments.at(1).geti64(),
-                                     arguments.at(2).geti32());
-        return wasm::Literal();
+        auto res =
+            extension_->ext_storage_read_version_1(arguments.at(0).geti64(),
+                                                   arguments.at(1).geti64(),
+                                                   arguments.at(2).geti32());
+        return wasm::Literal(res);
       }
       /// ext_set_storage
       if (import->base == ext_set_storage) {

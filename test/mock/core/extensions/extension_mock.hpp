@@ -34,7 +34,7 @@ namespace kagome::extensions {
                                    runtime::WasmPointer value_data,
                                    runtime::WasmSize value_length,
                                    runtime::WasmSize value_offset));
-    MOCK_METHOD3(ext_storage_read,
+    MOCK_METHOD3(ext_storage_read_version_1,
                  runtime::WasmSpan(runtime::WasmSpan key,
                                    runtime::WasmSpan value_out,
                                    runtime::WasmOffset offset));

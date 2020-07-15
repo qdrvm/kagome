@@ -81,11 +81,11 @@ namespace kagome::extensions {
         key_data, key_length, value_data, value_length, value_offset);
   }
 
-  runtime::WasmSpan ExtensionImpl::ext_storage_read(
+  runtime::WasmSpan ExtensionImpl::ext_storage_read_version_1(
       runtime::WasmSpan key,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
-    return storage_ext_.ext_storage_read(key, value_out, offset);
+    return storage_ext_.ext_storage_read_version_1(key, value_out, offset);
   }
 
   void ExtensionImpl::ext_set_storage(runtime::WasmPointer key_data,

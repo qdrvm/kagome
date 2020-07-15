@@ -401,8 +401,8 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
 
 /**
  * @given key, value, offset
- * @when ext_storage_read is invoked on given key and value
- * @then data read from db with given keyy
+ * @when ext_storage_read_version_1 is invoked on given key and value
+ * @then data read from db with given key
  */
 TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   WasmResult key(43, 43);
@@ -420,7 +420,8 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   EXPECT_CALL(*memory_,
               storeBuffer(value.address, gsl::span<const uint8_t>(value_data)));
 
-  storage_extension_->ext_storage_read(key.combine(), value.combine(), offset);
+  storage_extension_->ext_storage_read_version_1(
+      key.combine(), value.combine(), offset);
 }
 
 INSTANTIATE_TEST_CASE_P(Instance,

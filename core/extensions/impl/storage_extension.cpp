@@ -122,7 +122,7 @@ namespace kagome::extensions {
     return data.value().size();
   }
 
-  runtime::WasmSpan StorageExtension::ext_storage_read(
+  runtime::WasmSpan StorageExtension::ext_storage_read_version_1(
       runtime::WasmSpan key_pos,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
