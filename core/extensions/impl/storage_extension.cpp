@@ -122,6 +122,23 @@ namespace kagome::extensions {
     return data.value().size();
   }
 
+  runtime::WasmSpan StorageExtension::ext_storage_read_version_1(
+      runtime::WasmSpan key_pos,
+      runtime::WasmSpan value_out,
+      runtime::WasmOffset offset) {
+    static constexpr runtime::WasmSpan kErrorSpan = -1;
+
+    auto [key_ptr, key_size] = runtime::WasmResult(key_pos);
+    auto [value_ptr, value_size] = runtime::WasmResult(value_out);
+
+    auto key = memory_->loadN(key_ptr, key_size);
+    if (auto data = get(key, offset, value_size)) {
+      memory_->storeBuffer(value_ptr, data.value());
+      return runtime::WasmResult(0, data.value().size()).combine();
+    }
+    return kErrorSpan;
+  }
+
   void StorageExtension::ext_set_storage(const runtime::WasmPointer key_data,
                                          runtime::WasmSize key_length,
                                          const runtime::WasmPointer value_data,
@@ -277,12 +294,13 @@ namespace kagome::extensions {
                      res.error().message());
       return kErrorSpan;
     }
-    auto&& key_opt = res.value();
-    if(auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
+    auto &&key_opt = res.value();
+    if (auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
-    } else { // NOLINT(readability-else-after-return)
-      logger_->error("ext_storage_next_key result encoding resulted with error: {}",
-                     enc_res.error().message());
+    } else {  // NOLINT(readability-else-after-return)
+      logger_->error(
+          "ext_storage_next_key result encoding resulted with error: {}",
+          enc_res.error().message());
     }
     return kErrorSpan;
   }
@@ -301,8 +319,8 @@ namespace kagome::extensions {
         data.begin() + offset, data.begin() + offset + data_length));
   }
 
-  outcome::result<boost::optional<Buffer>>
-  StorageExtension::getStorageNextKey(const common::Buffer &key) const {
+  outcome::result<boost::optional<Buffer>> StorageExtension::getStorageNextKey(
+      const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     auto cursor = batch->cursor();
     OUTCOME_TRY(cursor->seek(key));

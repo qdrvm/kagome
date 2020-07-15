@@ -59,6 +59,11 @@ namespace kagome::extensions {
         runtime::WasmSize value_length,
         runtime::WasmSize value_offset) override;
 
+    runtime::WasmSpan ext_storage_read_version_1(
+        runtime::WasmSpan key,
+        runtime::WasmSpan value_out,
+        runtime::WasmOffset offset) override;
+
     void ext_set_storage(runtime::WasmPointer key_data,
                          runtime::WasmSize key_length,
                          runtime::WasmPointer value_data,
@@ -85,10 +90,9 @@ namespace kagome::extensions {
     void ext_print_hex(runtime::WasmPointer data,
                        runtime::WasmSize length) override;
 
-    void ext_logging_log_version_1(
-                            runtime::WasmEnum level,
-                            runtime::WasmSpan target,
-                            runtime::WasmSpan message) override;
+    void ext_logging_log_version_1(runtime::WasmEnum level,
+                                   runtime::WasmSpan target,
+                                   runtime::WasmSpan message) override;
 
     void ext_print_num(uint64_t value) override;
 

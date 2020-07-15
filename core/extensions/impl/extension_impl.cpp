@@ -81,6 +81,13 @@ namespace kagome::extensions {
         key_data, key_length, value_data, value_length, value_offset);
   }
 
+  runtime::WasmSpan ExtensionImpl::ext_storage_read_version_1(
+      runtime::WasmSpan key,
+      runtime::WasmSpan value_out,
+      runtime::WasmOffset offset) {
+    return storage_ext_.ext_storage_read_version_1(key, value_out, offset);
+  }
+
   void ExtensionImpl::ext_set_storage(runtime::WasmPointer key_data,
                                       runtime::WasmSize key_length,
                                       runtime::WasmPointer value_data,
@@ -123,10 +130,9 @@ namespace kagome::extensions {
     io_ext_.ext_print_hex(data, length);
   }
 
-  void ExtensionImpl::ext_logging_log_version_1(
-      runtime::WasmEnum level,
-      runtime::WasmSpan target,
-      runtime::WasmSpan message) {
+  void ExtensionImpl::ext_logging_log_version_1(runtime::WasmEnum level,
+                                                runtime::WasmSpan target,
+                                                runtime::WasmSpan message) {
     io_ext_.ext_logging_log_version_1(level, target, message);
   }
 
