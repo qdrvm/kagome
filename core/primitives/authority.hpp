@@ -105,6 +105,12 @@ namespace kagome::primitives {
   Stream &operator>>(Stream &s, Authority &a) {
     return s >> a.id >> a.weight;
   }
+
+  /// Special type for vector of authorities
+  struct AuthorityList : public std::vector<Authority> {
+  		using std::vector<Authority>::vector;
+  };
+
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_AUTHORITY_HPP

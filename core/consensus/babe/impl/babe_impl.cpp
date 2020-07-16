@@ -121,7 +121,7 @@ namespace kagome::consensus {
    * @return index of authority in list of authorities
    */
   boost::optional<uint64_t> getAuthorityIndex(
-      const std::vector<primitives::Authority> &authorities,
+      const primitives::AuthorityList &authorities,
       const primitives::SessionKey &authority_key) {
     auto it = std::find_if(authorities.begin(),
                            authorities.end(),
