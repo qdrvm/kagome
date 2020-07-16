@@ -19,7 +19,7 @@ namespace kagome::consensus {
    * Name and implementation are taken from substrate.
    */
   using ConsensusLog =
-      boost::variant<uint32_t,  // = 0 fake type, should never be used
+      boost::variant<Unused<0>,  // = 0 fake type, should never be used
 
                      /// The epoch has changed. This provides
                      /// information about the _next_ epoch -

@@ -8,6 +8,7 @@
 
 #include <boost/variant.hpp>
 #include "common/buffer.hpp"
+#include "common/unused.hpp"
 
 namespace kagome::primitives {
   // from
@@ -69,20 +70,17 @@ namespace kagome::primitives {
     return s >> dic.consensus_engine_id >> dic.data;
   }
 
-  /// Some other thing. Unsupported and experimental.
-  using Other = common::Buffer;
   /// Digest item that is able to encode/decode 'system' digest items and
   /// provide opaque access to other items.
   /// Note: order of types in variant matters. Should match type ids from here:
   /// https://github.com/paritytech/substrate/blob/39094c764a0bc12134d2a2ed8ab494a9ebfeba88/core/sr-primitives/src/generic/digest.rs#L155-L161
-  using DigestItem = boost::variant<
-      Other,            // = 0
-      uint32_t,         // = 1 (fake type, should never be used in digest)
-      ChangesTrieRoot,  // = 2
-      std::string,      // = 3 (fake type, should never be used in digest)
-      Consensus,        // = 4
-      Seal,             // = 5
-      PreRuntime>;      // = 6
+  using DigestItem = boost::variant<Unused<0>,        // 0
+                                    Unused<1>,        // 1
+                                    ChangesTrieRoot,  // 2
+                                    Unused<3>,        // 3
+                                    Consensus,        // 4
+                                    Seal,             // 5
+                                    PreRuntime>;      // 6
 
   /**
    * Digest is an implementation- and usage-defined entity, for example,
