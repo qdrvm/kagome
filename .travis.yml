@@ -46,7 +46,6 @@ jobs:
         - brew cleanup
       env:
         - BUILD_DIR=build
-        - BUILD_TREADS=2
       script:
         - ./housekeeping/makeBuild.sh  -DCOVERAGE=${COVERAGE:-OFF} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN:-cmake/toolchain/cxx17.cmake}
 
@@ -56,7 +55,6 @@ jobs:
       env:
         - BUILD_FINAL_TARGET=generated
         - BUILD_DIR=build
-        - BUILD_TREADS=2
         - INDOCKER_IMAGE=soramitsu/kagome-dev:9
       script:
         - ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh

@@ -8,27 +8,37 @@ on:
 
 env:
   BUILD_DIR: build
-  BUILD_TREADS: 2
   CTEST_OUTPUT_ON_FAILURE: 1
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
-  INDOCKER_IMAGE: soramitsu/kagome-dev:9
+  INDOCKER_IMAGE: soramitsu/kagome-dev:10
+  CACHE_VERSION: v03
+  CACHE_PATHS: |
+    ~/Library/Caches/pip
+    ~/.cargo
+    ~/.ccache
+    ~/.hunter
+    ~/.rustup
 
 jobs:
   MacOS:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: ${{ env.CACHE_PATHS }}
+        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: build
       env:
-        BUILD_TREADS: 4
         DEVELOPER_DIR: /Applications/Xcode_11.app/Contents/Developer
       run: ./housekeeping/makeBuild.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
       strategy:
+        fail-fast: false
         matrix:
           options:
            - name: "Linux: gcc-9 ASAN No Toolchain"
@@ -39,18 +49,26 @@ jobs:
              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:9 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:10 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
+        - uses: actions/cache@v2
+          with:
+            path: ${{ env.CACHE_PATHS }}
+            key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
   clang-tidy:
       name: "Linux: clang-tidy"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:9
+      container: soramitsu/kagome-dev:10
       steps:
         - uses: actions/checkout@v2
+        - uses: actions/cache@v2
+          with:
+            path: ${{ env.CACHE_PATHS }}
+            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
         - name: clang-tidy
           env:
             # build only generated files, so clang-tidy will work correctl
@@ -58,21 +76,28 @@ jobs:
           run: |
             ./housekeeping/makeBuild.sh
             ./housekeeping/clang-tidy.sh
+
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:9  # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:10  # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
+        - uses: actions/cache@v2
+          with:
+            path: ${{ env.CACHE_PATHS }}
+            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
         - name: makeBuild
           env:
             BUILD_FINAL_TARGET: ctest_coverage
           run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON
-        - name: Submit Coverage
+        - if: github.repository == 'soramitsu/kagome'
+          name: Submit Coverage
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           run: ./housekeeping/codecov.sh
-        - name: Sonar
+        - if: github.repository == 'soramitsu/kagome'
+          name: Sonar
           env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
             GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
@@ -80,14 +105,59 @@ jobs:
             BRANCH_NAME: ${{ github.ref }}
           run: ./housekeeping/sonar.sh
 
-  push:
-      if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-      needs: [clang-tidy, Linux, MacOS]
-      name: "Push"
+  Alpine:
+      strategy:
+        fail-fast: false
+        matrix:
+          options:
+            - name: "Alpine: Build Test"
+              run: ./housekeeping/makeBuild.sh
+            - name: "Alpine: Build Release"
+              run: ./housekeeping/docker/release/makeRelease.sh
+      name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:9 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:10-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
+        - uses: actions/cache@v2
+          with:
+            path: ${{ env.CACHE_PATHS }}
+            key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+        # https://github.com/soramitsu/kagome/issues/453
+        # ToDo should be fixed in library repo, this fix is work only for github action, you should change home dir
+        # The imported target "sr25519::sr25519" references the file
+        #     "/github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a"
+        #  but this file does not exist.  Possible reasons include:
+        - name: Kludge
+          run: |
+            mkdir -p /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib && \
+            ln -s /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib64/libsr25519crust.a \
+                  /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a || true
+        - name: "${{ matrix.options.name }}"
+          run: "${{ matrix.options.run }}"
+
+  push:
+      if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+      needs: [clang-tidy, Linux, MacOS, Alpine]
+      name: "Push"
+      runs-on: ubuntu-latest
+      container: soramitsu/kagome-dev:10-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      steps:
+        - uses: actions/checkout@v2
+        - uses: actions/cache@v2
+          with:
+            path: ${{ env.CACHE_PATHS }}
+            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+        # https://github.com/soramitsu/kagome/issues/453
+        # ToDo should be fixed in library repo, this fix is work only for github action, you should change home dir
+        # The imported target "sr25519::sr25519" references the file
+        #     "/github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a"
+        #  but this file does not exist.  Possible reasons include:
+        - name: Kludge
+          run: |
+            mkdir -p /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib && \
+            ln -s /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib64/libsr25519crust.a \
+                  /github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a || true
         - name: build
           run: ./housekeeping/docker/release/makeRelease.sh
         - uses: azure/docker-login@v1

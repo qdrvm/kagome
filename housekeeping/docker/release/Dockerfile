@@ -1,9 +1,6 @@
-FROM ubuntu:18.04
+FROM alpine:3
 
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y \
-        libasan5 \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache libgcc libstdc++
 
 WORKDIR /kagome
 ENV PATH $PATH:/kagome
