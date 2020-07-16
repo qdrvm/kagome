@@ -68,7 +68,7 @@ namespace kagome::consensus::grandpa {
     Vote vote(primary_propose);
     auto sign = voteSignature(vote);
     return {.message = std::move(vote),
-            .signature = std::move(sign),
+            .signature = sign,
             .id = keypair_.public_key};
   }
 
@@ -77,7 +77,7 @@ namespace kagome::consensus::grandpa {
     Vote vote(prevote);
     auto sign = voteSignature(vote);
     return {.message = std::move(vote),
-            .signature = std::move(sign),
+            .signature = sign,
             .id = keypair_.public_key};
   }
 
@@ -86,7 +86,7 @@ namespace kagome::consensus::grandpa {
     Vote vote(precommit);
     auto sign = voteSignature(vote);
     return {.message = std::move(vote),
-            .signature = std::move(sign),
+            .signature = sign,
             .id = keypair_.public_key};
   }
 }  // namespace kagome::consensus::grandpa
