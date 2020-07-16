@@ -87,7 +87,7 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
-    uint16_t v; // NOLINT
+    uint16_t v{};
     if (load_u16(val, "verbosity", v) && v <= SPDLOG_LEVEL_OFF)
       verbosity_ = static_cast<spdlog::level::level_enum>(v);
   }
