@@ -24,7 +24,7 @@ namespace kagome::crypto {
      * @param message_hash blake2s message hash
      * @return uncompressed public key or error
      */
-    virtual outcome::result<secp256k1::ExpandedPublicKey>
+    virtual outcome::result<secp256k1::UncompressedPublicKey>
     recoverPublickeyUncompressed(
         const secp256k1::RSVSignature &signature,
         const secp256k1::MessageHash &message_hash) const = 0;

@@ -14,12 +14,12 @@ namespace kagome::crypto {
                                           | SECP256K1_CONTEXT_VERIFY),
                  secp256k1_context_destroy) {}
 
-  outcome::result<secp256k1::ExpandedPublicKey>
+  outcome::result<secp256k1::UncompressedPublicKey>
   Secp256k1ProviderImpl::recoverPublickeyUncompressed(
       const secp256k1::RSVSignature &signature,
       const secp256k1::MessageHash &message_hash) const {
     OUTCOME_TRY(pubkey, recoverPublickey(signature, message_hash));
-    secp256k1::ExpandedPublicKey pubkey_out;
+    secp256k1::UncompressedPublicKey pubkey_out;
     size_t outputlen = pubkey_out.size();
 
     if (1
@@ -54,15 +54,9 @@ namespace kagome::crypto {
     return pubkey_out;
   }
 
-  outcome::result<secp256k1_pubkey> Secp256k1ProviderImpl::recoverPublickey(
-      const secp256k1::RSVSignature &signature,
-      const secp256k1::MessageHash &message_hash) const {
-    secp256k1_ecdsa_recoverable_signature sig_rec;
-    secp256k1_pubkey pubkey;
-    auto v = static_cast<int>(signature[64]);
+  outcome::result<int> validateRecoveryId(int v) {
     int recovery_id = -1;
-    // v can be 0/1 27/28
-    // recovery_id should be 0 or 1
+    // v can be 0/1 27/28, recovery id must be 0 or 1
     switch (v) {
       case 0:
         recovery_id = 0;
@@ -77,19 +71,29 @@ namespace kagome::crypto {
         recovery_id = 1;
         break;
       default:
-        return Secp256k1ProviderError::INVALID_ARGUMENT;
+        return Secp256k1ProviderError::INVALID_V_VALUE;
     }
+    return recovery_id;
+  }
+
+  outcome::result<secp256k1_pubkey> Secp256k1ProviderImpl::recoverPublickey(
+      const secp256k1::RSVSignature &signature,
+      const secp256k1::MessageHash &message_hash) const {
+    OUTCOME_TRY(rec_id, validateRecoveryId(static_cast<int>(signature[64])));
+
+    secp256k1_ecdsa_recoverable_signature sig_rec;
+    secp256k1_pubkey pubkey;
 
     if (1
         != secp256k1_ecdsa_recoverable_signature_parse_compact(
-            context_.get(), &sig_rec, signature.data(), recovery_id)) {
-      return Secp256k1ProviderError::INVALID_ARGUMENT;
+            context_.get(), &sig_rec, signature.data(), rec_id)) {
+      return Secp256k1ProviderError::INVALID_R_OR_S_VALUE;
     }
 
     if (1
         != secp256k1_ecdsa_recover(
             context_.get(), &pubkey, &sig_rec, message_hash.data())) {
-      return Secp256k1ProviderError::RECOVERY_FAILED;
+      return Secp256k1ProviderError::INVALID_SIGNATURE;
     }
 
     return pubkey;
@@ -101,6 +105,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, Secp256k1ProviderError, e) {
   switch (e) {
     case E::INVALID_ARGUMENT:
       return "invalid argument occured";
+    case E::INVALID_V_VALUE:
+      return "invalid V value of an RSV signature";
+    case E::INVALID_R_OR_S_VALUE:
+      return "invalid R or S value of an RSV signature";
+    case E::INVALID_SIGNATURE:
+      return "invalid RSV signature";
     case E::RECOVERY_FAILED:
       return "public key recovery operation failed";
   }
