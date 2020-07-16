@@ -56,10 +56,10 @@ namespace kagome::application {
     boost::property_tree::ptree top_tree;
     // v0.7 format
     if(auto top_tree_opt = genesis_raw_tree.get_child_optional("top"); top_tree_opt.has_value()) {
-      top_tree = std::move(top_tree_opt.value());
+      top_tree = top_tree_opt.value();
     } else {
       // Try to fall back to v0.6
-      top_tree = std::move(genesis_raw_tree.begin()->second);
+      top_tree = genesis_raw_tree.begin()->second;
     }
 
     for (const auto &[key, value] : top_tree) {
