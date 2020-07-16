@@ -279,6 +279,7 @@ namespace kagome::application {
       read_config_from_file(path);
     });
 
+    /// aggregate data from command line args
     if (vm.end() != vm.find("single_finalizing_node"))
       is_only_finalizing_ = true;
 
