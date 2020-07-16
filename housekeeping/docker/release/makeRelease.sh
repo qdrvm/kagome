@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
 BUILD_DIR=build
-BUILD_TREADS="${BUILD_TREADS:-4}"
+BUILD_TREADS="${BUILD_TREADS:-$(( $(nproc 2>/dev/null || sysctl -n hw.ncpu) + 1 ))}"
 
 cd "$(dirname $0)/../../.."
 
