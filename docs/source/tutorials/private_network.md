@@ -1,6 +1,6 @@
 ## Start private Kagome network
 
-In this tutorial we will learn how to start a blockchain nework with a validator and block producing nodes
+In this tutorial we will learn how to start a blockchain network with a validator and block producing nodes
 
 First go to tutorial's folder:
 
@@ -15,14 +15,21 @@ First we execute validating node in the simillar way we did it during previous t
 To start with let's navigate into the node's folder:
 
 ```bash
-kagome_validating \
-    --genesis testchain.json \
-    --keystore testkeystore1.json \
-     --leveldb test_ldb1 \ 
-     --p2p_port 11122 \
-     --rpc_http_port 11133 \
-     --rpc_ws_port 11144 \
-     -f
+docker run \
+  -it \
+  -v $(pwd)/demo:/kagome/configs \
+  -p 30363:30363 \
+  -p 9933:9933 \
+  -p 9944:9944 \
+  soramitsu/kagome \
+    kagome_validating \
+      --genesis testchain.json \
+      --keystore testkeystore1.json \
+       --leveldb test_ldb1 \ 
+       --p2p_port 11122 \
+       --rpc_http_port 11133 \
+       --rpc_ws_port 11144 \
+       -f
 ```
 
 This time we also included `-f` flag to indicate that current node is the only one participating in finalization.
@@ -55,13 +62,20 @@ Block producing node can only participate in block production, but not in block 
 Now that validating node is up and running, second node can join the network by bootstrapping from the first node. Command will look very simillar. Only this time we will use `kagome_block_producing` instead of `kagome_validating`:
 
 ```
-kagome_block_producing \
-    --genesis testchain.json \
-    --keystore testkeystore2.json \
-    --leveldb test_ldb2 \
-    --p2p_port 11222 \
-    --rpc_http_port 11233 \
-    --rpc_ws_port 11244
+docker run \
+  -it \
+  -v $(pwd)/demo:/kagome/configs \
+  -p 30363:30363 \
+  -p 9933:9933 \
+  -p 9944:9944 \
+  soramitsu/kagome \
+    kagome_block_producing \
+      --genesis testchain.json \
+      --keystore testkeystore2.json \
+      --leveldb test_ldb2 \
+      --p2p_port 11222 \
+      --rpc_http_port 11233 \
+      --rpc_ws_port 11244
 ```
 
 Block producing node passes several steps before actual block production begins:
@@ -109,7 +123,19 @@ Syncing node cannot participate in either block production or block finalization
 To start syncing node `kagome_full_syncing` binary is used as follows:
 
 ```
-kagome_full_syncing --genesis testchain.json -leveldb syncing_ldb1 --p2p_port 21122 --rpc_http_port 21133 --rpc_ws_port 21144
+docker run \
+  -it \
+  -v $(pwd)/demo:/kagome/configs \
+  -p 30363:30363 \
+  -p 9933:9933 \
+  -p 9944:9944 \
+  soramitsu/kagome \
+    kagome_full_syncing
+      --genesis testchain.json \
+      --leveldb syncing_ldb1 \
+      --p2p_port 21122 \
+      --rpc_http_port 21133 \
+      --rpc_ws_port 21144
 ```
 
 If everything is done correctly you should see the following output:

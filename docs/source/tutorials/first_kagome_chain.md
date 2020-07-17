@@ -4,20 +4,24 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 
 ### Prerequisites
 
-1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-full-validating-node).
-2. For your convenience make sure you have this binary included into your path:
-```
-PATH=$PATH:build/node/kagome_validating/
-```
-3. Python 3 installed in the system  
+1. [Docker](https://docs.docker.com/get-docker/) installed in the system
+2. Python 3 installed in the system  
 
 ### Tutorial
 
 During this tutorial we will:
-1. Launch Kagome network using prepared genesis file
-2. Query the balance of Alice account
-3. Send extrinsic that transfers some amount of currency from Alice to Bob
-4. Query again the balance of Alice to make sure balance was updated
+1. Get Kagome docker image
+2. Launch Kagome network using prepared genesis file
+3. Query the balance of Alice account
+4. Send extrinsic that transfers some amount of currency from Alice to Bob
+5. Query again the balance of Alice to make sure balance was updated
+
+#### Get Kagome docker image
+
+In order to run Kagome peer as a single instance in Docker, you should pull the image for Kagome first:
+```shell script
+docker pull soramitsu/kagome:latest
+```
 
 #### Launch Kagome network
 
@@ -62,12 +66,21 @@ subkey inspect //Bob
 For this tutorial you can start a single node network as follows:
 
 ```
-kagome_validating \
-    --genesis config/localchain.json \
-    --keystore config/localkeystore.json \
-    --leveldb ldb \
-    --rpc_http_port 40363 \
-    --rpc_ws_port 40364
+docker run \
+  -it \
+  -v $(pwd)/demo:/kagome/configs \
+  -p 30363:30363 \
+  -p 9933:9933 \
+  -p 9944:9944 \
+  soramitsu/kagome \
+    kagome_validating \
+      --genesis config/localchain.json \
+      --keystore config/localkeystore.json \
+      --leveldb ldb \ 
+      --p2p_port 30363 \
+      --rpc_http_port 9933 \
+      --rpc_ws_port 9944 \
+      -f
 ```
 
 Let's look at this flags in detail:
@@ -106,13 +119,13 @@ This folder contains two python scripts:
 Let's query current balance of Alice's account. This balance is stored under `0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb` key.
 
 ```bash
-python3 balance.py localhost:40363 0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb
+python3 balance.py localhost:9933 0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb
 # Balance is 1000000000000000000000  
 ```
 
 Let's do the same for the Bob's account. His balance key is `0xaa91c89bc225912c164c982c289e170c5a0d0f8802b37d68f88e2821facf4b55`
 ```bash
-python3 balance.py localhost:40363 0xaa91c89bc225912c164c982c289e170c5a0d0f8802b37d68f88e2821facf4b55
+python3 balance.py localhost:9933 0xaa91c89bc225912c164c982c289e170c5a0d0f8802b37d68f88e2821facf4b55
 # Balance is 1000000000000000000000  
 ```
 
@@ -130,7 +143,7 @@ This command will create extrinsic that transfers 1000 from Alice to Bob's accou
 
 To send extrinsic use `transfer.py` script as follows:
 ```bash
-python3 transfer.py localhost:40363 0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f40a68108bf61df0e9d0108ab8b621b354d233067514055fc77542aa84b647608335134d45c4b3040b8c2830217aa8350091774eaf3c22644d8e0c8db54143860000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f
+python3 transfer.py localhost:9933 0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f40a68108bf61df0e9d0108ab8b621b354d233067514055fc77542aa84b647608335134d45c4b3040b8c2830217aa8350091774eaf3c22644d8e0c8db54143860000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f
 # Extrinsic submitted. Response:  {'jsonrpc': '2.0', 'id': 1, 'result': [39, 212, 157, 212, 66, 199, 109, 255, 180, 146, 47, 243, 118, 221, 233, 172, 35, 201, 157, 96, 248, 24, 22, 14, 230, 108, 217, 211, 29, 216, 65, 255]} 
 ```
 
@@ -141,14 +154,14 @@ Now let's check that extrinsic was actually applied:
 Get the balance of Bob's account:
 
 ```bash
-python3 balance.py localhost:40363 0xaa91c89bc225912c164c982c289e170c5a0d0f8802b37d68f88e2821facf4b55
+python3 balance.py localhost:9933 0xaa91c89bc225912c164c982c289e170c5a0d0f8802b37d68f88e2821facf4b55
 # Balance is 1000000000000000001000
 ```
 We can see that Bob's balance was increased by 1000 as it was set on the subkey command
 
 Now let's check Alice's account:
 ```bash
-python3 balance.py localhost:40363 0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb
+python3 balance.py localhost:9933 0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb
 # Balance is 999999996589072329000
 ```
 
