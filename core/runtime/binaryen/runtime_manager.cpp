@@ -100,10 +100,8 @@ namespace kagome::runtime::binaryen {
       }
     }
 
-    if (!external_interface_) {
-      external_interface_ = std::make_shared<RuntimeExternalInterface>(
-          extension_factory_, storage_provider_);
-    }
+    external_interface_ = std::make_shared<RuntimeExternalInterface>(
+        extension_factory_, storage_provider_);
 
     if (!module) {
       // Prepare new module
@@ -119,7 +117,7 @@ namespace kagome::runtime::binaryen {
     }
 
     return RuntimeManager::RuntimeEnvironment{
-        module, external_interface_->memory(), boost::none};
+        module->instantiate(external_interface_), external_interface_->memory(), boost::none};
   }
 
 }  // namespace kagome::runtime::binaryen

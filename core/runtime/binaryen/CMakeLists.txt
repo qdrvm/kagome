@@ -26,6 +26,7 @@ target_link_libraries(binaryen_runtime_external_interface
 add_library(binaryen_wasm_module
     module/wasm_module_impl.cpp
     module/wasm_module_factory_impl.cpp
+    module/wasm_module_instance_impl.cpp
     )
 target_link_libraries(binaryen_wasm_module
     binaryen::binaryen
