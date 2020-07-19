@@ -11,6 +11,9 @@
 
 namespace kagome::runtime::binaryen {
 
+  /**
+   * Wrapper for wasm::ModuleInstance
+   */
   class WasmModuleInstance {
    public:
     /**
