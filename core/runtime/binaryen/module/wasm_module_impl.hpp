@@ -30,6 +30,8 @@ namespace kagome::runtime::binaryen {
     WasmModuleImpl(const WasmModuleImpl &) = delete;
     WasmModuleImpl &operator=(const WasmModuleImpl &) = delete;
 
+    ~WasmModuleImpl() override = default;
+
     static outcome::result<std::unique_ptr<WasmModuleImpl>> createFromCode(
         const common::Buffer &code,
         const std::shared_ptr<RuntimeExternalInterface> &rei);
