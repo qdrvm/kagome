@@ -16,6 +16,8 @@ namespace kagome::runtime::binaryen {
    */
   class WasmModuleInstance {
    public:
+    virtual ~WasmModuleInstance() = default;
+
     /**
      * @param name the name of a wasm function to call
      * @param arguments the list of arguments to pass to the function
