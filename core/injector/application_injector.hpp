@@ -38,6 +38,9 @@
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "common/outcome_throw.hpp"
+#include "consensus/authority/authority_manager.hpp"
+#include "consensus/authority/authority_update_observer.hpp"
+#include "consensus/authority/impl/authority_manager_impl.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
@@ -667,6 +670,8 @@ namespace kagome::injector {
             }),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
+        di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
+        di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

@@ -32,7 +32,9 @@ namespace kagome::consensus {
       crypto::SR25519Keypair keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::unique_ptr<clock::Timer> timer)
+      std::unique_ptr<clock::Timer> timer,
+      std::shared_ptr<authority::AuthorityUpdateObserver>
+          authority_update_observer)
       : lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
         trie_storage_{std::move(trie_storage)},
@@ -45,6 +47,7 @@ namespace kagome::consensus {
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         timer_{std::move(timer)},
+        authority_update_observer_(std::move(authority_update_observer)),
         log_{common::createLogger("BABE")} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(epoch_storage_);
@@ -55,6 +58,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(log_);
+    BOOST_ASSERT(authority_update_observer_);
 
     NextEpochDescriptor init_epoch_desc;
     init_epoch_desc.randomness = genesis_configuration_->randomness;
@@ -193,7 +197,7 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::runSlot() {
-    bool rewind_slots; // NOLINT
+    bool rewind_slots;  // NOLINT
     do {
       if (current_slot_ != 0
           and current_slot_ % genesis_configuration_->epoch_length == 0) {
@@ -305,7 +309,8 @@ namespace kagome::consensus {
                          put_res.error().message());
     }
 
-    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+    auto best_block_info = block_tree_->deepestLeaf();
+    auto &[best_block_number, best_block_hash] = best_block_info;
     log_->info("Babe builds block on top of block with number {} and hash {}",
                best_block_number,
                best_block_hash);
@@ -355,6 +360,20 @@ namespace kagome::consensus {
           "executing in debug mode, consider to rebuild in release");
       return;
     }
+
+    // observe possible changes of authorities
+    for (auto &digest_item : block.header.digest) {
+      visit_in_place(
+          digest_item,
+          [&](const primitives::Consensus &consensus_message) {
+            [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
+                consensus_message.consensus_engine_id,
+                best_block_info,
+                consensus_message);
+          },
+          [](const auto &) {});
+    }
+
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       log_->error("Could not add block: {}", add_res.error().message());
