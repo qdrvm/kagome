@@ -52,8 +52,8 @@ namespace kagome::subscription {
     Subscriber(Subscriber const &) = delete;
     Subscriber &operator=(Subscriber const &) = delete;
 
-    Subscriber(Subscriber &&) noexcept = default;
-    Subscriber &operator=(Subscriber &&) noexcept = default;
+    Subscriber(Subscriber &&) = default;
+    Subscriber &operator=(Subscriber &&) = default;
 
     void set_callback(std::function<void(Arguments const &...)> &&f) {
       on_notify_callback_ = std::move(f);
