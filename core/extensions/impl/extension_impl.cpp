@@ -255,6 +255,11 @@ namespace kagome::extensions {
     return misc_ext_.ext_chain_id();
   }
 
+  runtime::WasmResult ExtensionImpl::ext_misc_runtime_version_version_1(
+      runtime::WasmSpan data) const {
+    return misc_ext_.ext_misc_runtime_version_version_1(data);
+  }
+
   runtime::WasmSpan ExtensionImpl::ext_crypto_secp256k1_ecdsa_recover_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
     return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);

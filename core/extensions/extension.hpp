@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "runtime/types.hpp"
+#include "runtime/wasm_result.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::extensions {
@@ -364,6 +365,9 @@ namespace kagome::extensions {
 
     // -------------------------Misc extensions--------------------------
     virtual uint64_t ext_chain_id() const = 0;
+
+    virtual runtime::WasmResult ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const = 0;
   };
 }  // namespace kagome::extensions
 

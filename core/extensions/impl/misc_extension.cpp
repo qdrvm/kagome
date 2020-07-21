@@ -15,4 +15,10 @@ namespace kagome::extensions {
   uint64_t MiscExtension::ext_chain_id() const {
     return chain_id_;
   }
+
+  uint64_t MiscExtension::ext_misc_runtime_version_version_1(
+      runtime::WasmSpan data) const {
+
+  }
+
 }  // namespace extensions

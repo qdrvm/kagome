@@ -171,6 +171,9 @@ namespace kagome::extensions {
 
     uint64_t ext_chain_id() const override;
 
+    runtime::WasmResult ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const override;
+
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
 

@@ -31,7 +31,6 @@ namespace kagome::runtime::binaryen {
     enum class Error { EMPTY_STATE_CODE = 1 };
 
     RuntimeManager(
-        std::shared_ptr<WasmProvider> wasm_provider,
         std::shared_ptr<extensions::ExtensionFactory> extension_factory,
         std::shared_ptr<WasmModuleFactory> module_factory,
         std::shared_ptr<TrieStorageProvider> storage_provider,
@@ -45,26 +44,25 @@ namespace kagome::runtime::binaryen {
                   // either applied together or discarded in case of failure
     };
 
-    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironment();
+    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironment(const common::Buffer &state_code);
 
-    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironment();
+    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironment(const common::Buffer &state_code);
 
     /**
      * @warning calling this with an \arg state_root older than the current root
      * will reset the storage to an older state once changes are committed
      */
-    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironmentAt(
+    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironmentAt(const common::Buffer &state_code,
         const common::Hash256 &state_root);
 
-    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironmentAt(
+    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironmentAt(const common::Buffer &state_code,
         const common::Hash256 &state_root);
 
    private:
-    outcome::result<RuntimeEnvironment> createRuntimeEnvironment();
+    outcome::result<RuntimeEnvironment> createRuntimeEnvironment(const common::Buffer &state_code);
 
     common::Logger logger_ = common::createLogger("Runtime manager");
 
-    std::shared_ptr<runtime::WasmProvider> wasm_provider_;
     std::shared_ptr<TrieStorageProvider> storage_provider_;
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
     std::shared_ptr<WasmModuleFactory> module_factory_;

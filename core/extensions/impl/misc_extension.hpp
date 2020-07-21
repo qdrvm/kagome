@@ -8,6 +8,8 @@
 
 #include <cstdint>
 
+#include "runtime/types.hpp"
+
 namespace kagome::extensions {
   /**
    * Implements miscellaneous extension functions
@@ -22,6 +24,9 @@ namespace kagome::extensions {
      * @return id (a 64-bit unsigned integer) of the current chain
      */
     uint64_t ext_chain_id() const;
+
+    uint64_t ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const;
 
    private:
     const uint64_t chain_id_ = 42;

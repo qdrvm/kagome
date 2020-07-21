@@ -26,17 +26,14 @@ namespace kagome::runtime::binaryen {
       RuntimeManager::external_interface_{};
 
   RuntimeManager::RuntimeManager(
-      std::shared_ptr<runtime::WasmProvider> wasm_provider,
       std::shared_ptr<extensions::ExtensionFactory> extension_factory,
       std::shared_ptr<WasmModuleFactory> module_factory,
       std::shared_ptr<TrieStorageProvider> storage_provider,
       std::shared_ptr<crypto::Hasher> hasher)
-      : wasm_provider_{std::move(wasm_provider)},
-        storage_provider_{std::move(storage_provider)},
+      : storage_provider_{std::move(storage_provider)},
         extension_factory_{std::move(extension_factory)},
         module_factory_{std::move(module_factory)},
         hasher_{std::move(hasher)} {
-    BOOST_ASSERT(wasm_provider_);
     BOOST_ASSERT(storage_provider_);
     BOOST_ASSERT(extension_factory_);
     BOOST_ASSERT(module_factory_);
@@ -44,10 +41,10 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createPersistentRuntimeEnvironmentAt(
+  RuntimeManager::createPersistentRuntimeEnvironmentAt(const common::Buffer &state_code,
       const common::Hash256 &state_root) {
     OUTCOME_TRY(storage_provider_->setToPersistentAt(state_root));
-    auto env = createRuntimeEnvironment();
+    auto env = createRuntimeEnvironment(state_code);
     if (env.has_value()) {
       env.value().batch =
           storage_provider_->tryGetPersistentBatch().value()->batchOnTop();
@@ -56,16 +53,16 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createEphemeralRuntimeEnvironmentAt(
+  RuntimeManager::createEphemeralRuntimeEnvironmentAt(const common::Buffer &state_code,
       const common::Hash256 &state_root) {
     OUTCOME_TRY(storage_provider_->setToEphemeralAt(state_root));
-    return createRuntimeEnvironment();
+    return createRuntimeEnvironment(state_code);
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createPersistentRuntimeEnvironment() {
+  RuntimeManager::createPersistentRuntimeEnvironment(const common::Buffer &state_code) {
     OUTCOME_TRY(storage_provider_->setToPersistent());
-    auto env = createRuntimeEnvironment();
+    auto env = createRuntimeEnvironment(state_code);
     if (env.has_value()) {
       env.value().batch =
           storage_provider_->tryGetPersistentBatch().value()->batchOnTop();
@@ -74,15 +71,13 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createEphemeralRuntimeEnvironment() {
+  RuntimeManager::createEphemeralRuntimeEnvironment(const common::Buffer &state_code) {
     OUTCOME_TRY(storage_provider_->setToEphemeral());
-    return createRuntimeEnvironment();
+    return createRuntimeEnvironment(state_code);
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createRuntimeEnvironment() {
-    const auto &state_code = wasm_provider_->getStateCode();
-
+  RuntimeManager::createRuntimeEnvironment(const common::Buffer &state_code) {
     if (state_code.empty()) {
       return Error::EMPTY_STATE_CODE;
     }
