@@ -103,8 +103,8 @@ namespace kagome::application {
     FilePtr open_file(const std::string &filepath);
 
    public:
-    AppConfigurationImpl(kagome::common::Logger logger);
-    ~AppConfigurationImpl() = default;
+    explicit AppConfigurationImpl(common::Logger logger);
+    ~AppConfigurationImpl() override = default;
 
     AppConfigurationImpl(const AppConfigurationImpl &) = delete;
     AppConfigurationImpl &operator=(const AppConfigurationImpl &) = delete;

@@ -261,7 +261,7 @@ namespace kagome::blockchain {
     }
     auto start_block_number = block_number_res.value();
 
-    primitives::BlockNumber finish_block_number;
+    primitives::BlockNumber finish_block_number; // NOLINT
     if (ascending) {
       if (start_block_number < maximum) {
         // we want to finish at the root
@@ -522,7 +522,7 @@ namespace kagome::blockchain {
 
     // trying to return back extrinsics to transaction pool
     for (auto &&extrinsic : extrinsics) {
-      auto result = extrinsic_observer_->onTxMessage(std::move(extrinsic));
+      auto result = extrinsic_observer_->onTxMessage(extrinsic);
       if (result) {
         log_->debug("Reapplied tx {}", result.value());
       } else {

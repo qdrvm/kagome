@@ -277,7 +277,7 @@ namespace kagome::blockchain {
     if (hash_res.has_value()) {
       primitives::BlockHash hash;
       std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
-      return std::move(hash);
+      return hash;
     }
 
     if (hash_res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
