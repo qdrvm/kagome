@@ -16,8 +16,10 @@ namespace kagome::extensions {
    */
   class MemoryExtension {
    public:
+    ;
     explicit MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory);
 
+    // ----------------- memory legacy api -----------------
     /**
      * @see Extension::ext_malloc
      */
@@ -27,6 +29,17 @@ namespace kagome::extensions {
      * @see Extension::ext_free
      */
     void ext_free(runtime::WasmPointer ptr);
+
+    // ----------------- memory api v1 -----------------
+    /**
+     * @see Extension::ext_allocator_malloc_version_1
+     */
+    runtime::WasmPointer ext_allocator_malloc_version_1(runtime::WasmSize size);
+
+    /**
+     * @see Extension::ext_allocator_free_version_1
+     */
+    void ext_allocator_free_version_1(runtime::WasmPointer ptr);
 
    private:
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [MemoryExtension]";
