@@ -228,7 +228,7 @@ namespace kagome::extensions {
       runtime::WasmSpan data) {
     auto [ptr, size] = runtime::WasmResult(data);
     const auto &buf = memory_->loadN(ptr, size);
-    auto hash = hasher_->blake2s_256(buf);
+    auto hash = hasher_->blake2b_256(buf);
 
     return memory_->storeBuffer(hash);
   }
