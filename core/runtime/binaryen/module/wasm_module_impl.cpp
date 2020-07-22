@@ -10,6 +10,8 @@
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
 
+#include "runtime/binaryen/module/wasm_module_instance_impl.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
                             WasmModuleImpl::Error,
                             e) {
@@ -25,19 +27,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 
 namespace kagome::runtime::binaryen {
 
-  WasmModuleImpl::WasmModuleImpl(
-      std::unique_ptr<wasm::Module>&& module,
-      std::unique_ptr<wasm::ModuleInstance>&& module_instance)
-      : module_{std::move(module)},
-        module_instance_{std::move(module_instance)} {
+  WasmModuleImpl::WasmModuleImpl(std::unique_ptr<wasm::Module> &&module)
+      : module_{std::move(module)} {
     BOOST_ASSERT(module_ != nullptr);
-    BOOST_ASSERT(module_instance_ != nullptr);
-  }
-
-  WasmModuleImpl::~WasmModuleImpl() {
-    // Enforce destruction order because module instance refers to module
-    module_instance_.reset();
-    module_.reset();
   }
 
   outcome::result<std::unique_ptr<WasmModuleImpl>>
@@ -68,17 +60,15 @@ namespace kagome::runtime::binaryen {
         return Error::INVALID_STATE_CODE;
       }
     }
-    auto module_instance =
-        std::make_unique<wasm::ModuleInstance>(*module, rei.get());
-
     std::unique_ptr<WasmModuleImpl> wasm_module_impl(
-        new WasmModuleImpl(std::move(module), std::move(module_instance)));
+        new WasmModuleImpl(std::move(module)));
     return wasm_module_impl;
   }
 
-  wasm::Literal WasmModuleImpl::callExport(wasm::Name name,
-                                           const wasm::LiteralList &arguments) {
-    return module_instance_->callExport(name, arguments);
+  std::unique_ptr<WasmModuleInstance> WasmModuleImpl::instantiate(
+      const std::shared_ptr<RuntimeExternalInterface> &externalInterface) const {
+    return std::make_unique<WasmModuleInstanceImpl>(
+        *module_, externalInterface);
   }
 
 }  // namespace kagome::runtime::binaryen

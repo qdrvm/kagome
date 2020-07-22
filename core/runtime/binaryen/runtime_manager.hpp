@@ -37,7 +37,7 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<crypto::Hasher> hasher);
 
     struct RuntimeEnvironment {
-      std::shared_ptr<WasmModule> module;
+      std::shared_ptr<WasmModuleInstance> module_instance;
       std::shared_ptr<WasmMemory> memory;
       boost::optional<std::shared_ptr<storage::trie::TopperTrieBatch>>
           batch;  // in persistent environments all changes of a call must be
