@@ -8,10 +8,12 @@
 
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
+#include "consensus/grandpa/finalization_observer.hpp"
 
 namespace kagome::authority {
   class AuthorityManagerImpl : public AuthorityManager,
-                               public AuthorityUpdateObserver {
+                               public AuthorityUpdateObserver,
+                               public consensus::grandpa::FinalizationObserver {
     inline static const std::vector<primitives::ConsensusEngineId>
         known_engines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
 
@@ -44,6 +46,8 @@ namespace kagome::authority {
         const primitives::ConsensusEngineId &engine_id,
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
+
+    void onFinalize(const primitives::BlockInfo &block) override;
   };
 
   enum class AuthorityUpdateObserverError { UNSUPPORTED_MESSAGE_TYPE = 1 };

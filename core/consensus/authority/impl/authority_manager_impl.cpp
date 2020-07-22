@@ -96,4 +96,6 @@ namespace kagome::authority {
         });
   }
 
+  void AuthorityManagerImpl::onFinalize(const primitives::BlockInfo &block) {
+  }
 }  // namespace kagome::authority
