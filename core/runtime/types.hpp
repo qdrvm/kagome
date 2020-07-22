@@ -7,6 +7,7 @@
 #define KAGOME_RUNTIME_TYPES_HPP
 
 #include <cstdint>
+#include <utility>
 
 namespace kagome::runtime {
   /**
@@ -41,6 +42,17 @@ namespace kagome::runtime {
    * space
    */
   using WasmOffset = uint32_t;
+
+  /**
+   * Splits 64 bit wasm span on 32 bit pointer and 32 bit address
+   */
+  static constexpr std::pair<WasmPointer, WasmSize> splitSpan(WasmSpan span) {
+    auto unsigned_result = static_cast<uint64_t>(span);
+    uint64_t minor_part = unsigned_result & 0xFFFFFFFFLLU;
+    uint64_t major_part = (unsigned_result >> 32u) & 0xFFFFFFFFLLU;
+
+    return {minor_part, major_part};
+  }
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_RUNTIME_TYPES_HPP

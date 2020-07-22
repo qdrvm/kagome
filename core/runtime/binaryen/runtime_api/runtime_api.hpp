@@ -37,9 +37,12 @@ namespace kagome::runtime::binaryen {
                    // completed
     };
 
-    explicit RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
-        : runtime_manager_(std::move(runtime_manager)) {
+    RuntimeApi(std::shared_ptr<WasmProvider> wasm_provider,
+               std::shared_ptr<RuntimeManager> runtime_manager)
+        : runtime_manager_(std::move(runtime_manager)),
+          wasm_provider_{std::move(wasm_provider)} {
       BOOST_ASSERT(runtime_manager_);
+      BOOST_ASSERT(wasm_provider_);
     }
 
    private:
@@ -51,20 +54,26 @@ namespace kagome::runtime::binaryen {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
             return runtime_manager_
-                ->createPersistentRuntimeEnvironmentAt(state_root_opt.value())
+                ->createPersistentRuntimeEnvironmentAt(
+                    wasm_provider_->getStateCode(), state_root_opt.value())
                 .value();
           case CallPersistency::EPHEMERAL:
             return runtime_manager_
-                ->createEphemeralRuntimeEnvironmentAt(state_root_opt.value())
+                ->createEphemeralRuntimeEnvironmentAt(
+                    wasm_provider_->getStateCode(), state_root_opt.value())
                 .value();
         }
       } else {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_manager_->createPersistentRuntimeEnvironment()
+            return runtime_manager_
+                ->createPersistentRuntimeEnvironment(
+                    wasm_provider_->getStateCode())
                 .value();
           case CallPersistency::EPHEMERAL:
-            return runtime_manager_->createEphemeralRuntimeEnvironment()
+            return runtime_manager_
+                ->createEphemeralRuntimeEnvironment(
+                    wasm_provider_->getStateCode())
                 .value();
         }
       }
@@ -155,12 +164,13 @@ namespace kagome::runtime::binaryen {
         return scale::decode<R>(std::move(buffer));
       }
 
-      if(opt_batch) {
+      if (opt_batch) {
         OUTCOME_TRY(opt_batch.value()->writeBack());
       }
       return outcome::success();
     }
     std::shared_ptr<RuntimeManager> runtime_manager_;
+    std::shared_ptr<WasmProvider> wasm_provider_;
     WasmExecutor executor_;
     common::Logger logger_ = common::createLogger("Runtime API");
   };

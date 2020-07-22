@@ -19,7 +19,9 @@ namespace kagome::runtime::binaryen {
      * @param extension extension instance
      * @param codec scale codec instance
      */
-    explicit ParachainHostImpl(const std::shared_ptr<RuntimeManager> &runtime_manager);
+    explicit ParachainHostImpl(
+        std::shared_ptr<WasmProvider> wasm_provider,
+        const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~ParachainHostImpl() override = default;
 

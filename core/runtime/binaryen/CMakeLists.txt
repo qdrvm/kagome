@@ -59,6 +59,7 @@ target_link_libraries(binaryen_runtime_api INTERFACE
 
 add_library(binaryen_core_api
     runtime_api/core_impl.cpp
+    runtime_api/core_factory_impl.cpp
     )
 target_link_libraries(binaryen_core_api
     binaryen_wasm_executor

@@ -15,6 +15,7 @@ namespace kagome::runtime::binaryen {
                                      public TaggedTransactionQueue {
    public:
     explicit TaggedTransactionQueueImpl(
+        std::shared_ptr<WasmProvider> wasm_provider,
         const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~TaggedTransactionQueueImpl() override = default;

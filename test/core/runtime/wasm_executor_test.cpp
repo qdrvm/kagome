@@ -24,6 +24,7 @@
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
@@ -44,6 +45,8 @@ using kagome::crypto::Secp256k1ProviderImpl;
 using kagome::crypto::SR25519ProviderImpl;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
+using kagome::runtime::WasmProvider;
+using kagome::runtime::binaryen::CoreFactoryImpl;
 using kagome::runtime::binaryen::RuntimeManager;
 using kagome::runtime::binaryen::WasmExecutor;
 using kagome::storage::changes_trie::ChangesTrackerMock;
@@ -62,7 +65,7 @@ class WasmExecutorTest : public ::testing::Test {
     // path to a file with wasm code in wasm/ subfolder
     auto wasm_path =
         fs::path(__FILE__).parent_path().string() + "/wasm/sumtwo.wasm";
-    auto wasm_provider =
+    wasm_provider_ =
         std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
 
     auto backend =
@@ -95,9 +98,11 @@ class WasmExecutorTest : public ::testing::Test {
                                                           secp256k1_provider,
                                                           bip39_provider,
                                                           random_generator);
+    auto core_factory = std::make_shared<CoreFactoryImpl>();
 
     auto extension_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
+            core_factory,
             std::make_shared<ChangesTrackerMock>(),
             sr25519_provider,
             ed25519_provider,
@@ -110,8 +115,7 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<kagome::runtime::binaryen::WasmModuleFactoryImpl>();
 
     runtime_manager_ =
-        std::make_shared<RuntimeManager>(std::move(wasm_provider),
-                                         std::move(extension_factory),
+        std::make_shared<RuntimeManager>(std::move(extension_factory),
                                          std::move(module_factory),
                                          storage_provider_,
                                          std::move(hasher));
@@ -123,6 +127,7 @@ class WasmExecutorTest : public ::testing::Test {
   std::shared_ptr<WasmExecutor> executor_;
   std::shared_ptr<RuntimeManager> runtime_manager_;
   std::shared_ptr<TrieStorageProvider> storage_provider_;
+  std::shared_ptr<WasmProvider> wasm_provider_;
 };
 
 /**
@@ -132,7 +137,8 @@ class WasmExecutorTest : public ::testing::Test {
  */
 TEST_F(WasmExecutorTest, ExecuteCode) {
   EXPECT_OUTCOME_TRUE(environment,
-                      runtime_manager_->createEphemeralRuntimeEnvironment());
+                      runtime_manager_->createEphemeralRuntimeEnvironment(
+                          wasm_provider_->getStateCode()));
   auto &&[module, memory, opt_batch] = std::move(environment);
 
   auto res = executor_->call(

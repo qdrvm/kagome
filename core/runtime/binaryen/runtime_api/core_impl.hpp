@@ -17,7 +17,8 @@ namespace kagome::runtime::binaryen {
   class CoreImpl : public RuntimeApi, public Core {
    public:
     explicit CoreImpl(
-        const std::shared_ptr<RuntimeManager> &runtime_manager,
+        std::shared_ptr<WasmProvider> wasm_provider,
+        std::shared_ptr<RuntimeManager> runtime_manager,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
 

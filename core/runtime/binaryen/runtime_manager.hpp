@@ -44,22 +44,25 @@ namespace kagome::runtime::binaryen {
                   // either applied together or discarded in case of failure
     };
 
-    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironment(const common::Buffer &state_code);
+    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironment(
+        const common::Buffer &state_code);
 
-    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironment(const common::Buffer &state_code);
+    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironment(
+        const common::Buffer &state_code);
 
     /**
      * @warning calling this with an \arg state_root older than the current root
      * will reset the storage to an older state once changes are committed
      */
-    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironmentAt(const common::Buffer &state_code,
-        const common::Hash256 &state_root);
+    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironmentAt(
+        const common::Buffer &state_code, const common::Hash256 &state_root);
 
-    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironmentAt(const common::Buffer &state_code,
-        const common::Hash256 &state_root);
+    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironmentAt(
+        const common::Buffer &state_code, const common::Hash256 &state_root);
 
    private:
-    outcome::result<RuntimeEnvironment> createRuntimeEnvironment(const common::Buffer &state_code);
+    outcome::result<RuntimeEnvironment> createRuntimeEnvironment(
+        const common::Buffer &state_code);
 
     common::Logger logger_ = common::createLogger("Runtime manager");
 
@@ -67,9 +70,6 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
     std::shared_ptr<WasmModuleFactory> module_factory_;
     std::shared_ptr<crypto::Hasher> hasher_;
-
-    // hash of WASM state code
-    common::Hash256 state_code_hash_{};
 
     std::mutex modules_mutex_;
     std::map<common::Hash256, std::shared_ptr<WasmModule>> modules_;
