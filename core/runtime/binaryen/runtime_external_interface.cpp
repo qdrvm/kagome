@@ -530,7 +530,7 @@ namespace kagome::runtime::binaryen {
       }
 
       /// ext_storage_get_version_1
-      if (import->base == ext_storage_set_version_1) {
+      if (import->base == ext_storage_get_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             extension_->ext_storage_get_version_1(arguments.at(0).geti64());
