@@ -59,3 +59,33 @@ TEST_F(MemoryExtensionsTest, FreeIsCalled) {
 
   memory_extension_->ext_free(ptr);
 }
+
+/**
+ * @given MemoryExtension initialized with the memory
+ * @when ext_malloc is invoked on MemoryExtension
+ * @then ext_malloc invokes allocate method from Memory and returns its result
+ */
+TEST_F(MemoryExtensionsTest, MallocV1IsCalled) {
+  const uint32_t allocated_size = 10;
+  // expected address is 0 because it is the first memory chunk
+  const WasmPointer expected_address = 0;
+  EXPECT_CALL(*memory_, allocate(allocated_size))
+      .WillOnce(Return(expected_address));
+
+  auto ptr = memory_extension_->ext_allocator_malloc_version_1(allocated_size);
+  ASSERT_EQ(ptr, expected_address);
+}
+
+/**
+ * @given MemoryExtension initialized with the memory
+ * @when ext_free is invoked on it
+ * @then deallocate is invoked on Memory object
+ */
+TEST_F(MemoryExtensionsTest, FreeV1IsCalled) {
+  int32_t ptr = 0;
+  // result of deallocate method, could be basically anything
+  boost::optional<uint32_t> deallocate_result{42};
+  EXPECT_CALL(*memory_, deallocate(ptr)).WillOnce(Return(deallocate_result));
+
+  memory_extension_->ext_allocator_free_version_1(ptr);
+}
