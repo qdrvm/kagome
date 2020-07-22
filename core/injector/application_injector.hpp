@@ -98,14 +98,6 @@
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
 namespace kagome::injector {
-  enum class InjectorError {
-    INDEX_OUT_OF_BOUND = 1,  // index out of bound
-  };
-}
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::injector, InjectorError);
-
-namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename C>

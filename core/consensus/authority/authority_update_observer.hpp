@@ -16,7 +16,7 @@ namespace kagome::authority {
     virtual ~AuthorityUpdateObserver() = default;
 
     /**
-     * Processes consensus message
+     * Processes consensus message in block digest
      * @param message
      * @return failure or nothing
      */
