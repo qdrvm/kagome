@@ -189,7 +189,7 @@ namespace kagome::extensions {
      * root.
      * @return memory span containing scale-encoded storage root
      */
-    virtual runtime::WasmSpan ext_storage_root_version_1() = 0;
+    virtual runtime::WasmPointer ext_storage_root_version_1() = 0;
 
     /**
      * Commits all existing operations and gets the resulting change
@@ -197,7 +197,7 @@ namespace kagome::extensions {
      * @param parent_hash wasm span containing parent hash
      * @return wasm span containing scale-encoded optional change root
      */
-    virtual runtime::WasmSpan ext_storage_changes_root_version_1(
+    virtual runtime::WasmPointer ext_storage_changes_root_version_1(
         runtime::WasmSpan parent_hash) = 0;
 
     /**

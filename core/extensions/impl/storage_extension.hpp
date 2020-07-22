@@ -89,19 +89,13 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_storage_changes_root
      */
-    runtime::WasmSize ext_storage_changes_root(runtime::WasmPointer parent_hash,
+    runtime::WasmPointer ext_storage_changes_root(runtime::WasmPointer parent_hash,
                                                runtime::WasmPointer result);
 
     /**
      * @see Extension::ext_storage_root
      */
     void ext_storage_root(runtime::WasmPointer result) const;
-
-    /**
-     * @see Extension::ext_storage_root
-     */
-    runtime::WasmSpan ext_storage_next_key_version_1(
-        runtime::WasmSpan key) const;
 
     // ------------------------ VERSION 1 ------------------------
 
@@ -135,13 +129,19 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_storage_root_version_1
      */
-    runtime::WasmSpan ext_storage_root_version_1();
+    runtime::WasmPointer ext_storage_root_version_1();
 
     /**
      * @see Extension::ext_storage_changes_root_version_1
      */
-    runtime::WasmSpan ext_storage_changes_root_version_1(
+    runtime::WasmPointer ext_storage_changes_root_version_1(
         runtime::WasmSpan parent_hash);
+
+    /**
+     * @see Extension::ext_storage_next_key
+     */
+    runtime::WasmSpan ext_storage_next_key_version_1(
+        runtime::WasmSpan key) const;
 
     /**
      * @see Extension::ext_trie_blake2_256_root_version_1
