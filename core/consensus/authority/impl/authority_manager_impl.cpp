@@ -11,6 +11,12 @@
 
 namespace kagome::authority {
 
+  AuthorityManagerImpl::AuthorityManagerImpl(
+      std::shared_ptr<blockchain::BlockTree> block_tree)
+      : block_tree_(std::move(block_tree)) {
+    BOOST_ASSERT(block_tree_ != nullptr);
+  }
+
   outcome::result<std::shared_ptr<const primitives::AuthorityList>>
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &block) {
     auto node = getAppropriateAncestor(block);
@@ -269,7 +275,8 @@ namespace kagome::authority {
   bool AuthorityManagerImpl::isDirectAncestry(
       const primitives::BlockInfo &ancestor,
       const primitives::BlockInfo &descendant) {
-#warning  // TODO(xDimon): Needs to be implemented
-    return false;
+    auto chain_res = block_tree_->getChainByBlocks(ancestor.block_hash,
+                                                   descendant.block_hash);
+    return chain_res.has_value();
   }
 }  // namespace kagome::authority

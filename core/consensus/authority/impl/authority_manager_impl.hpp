@@ -10,6 +10,7 @@
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/grandpa/finalization_observer.hpp"
 
+#include "blockchain/block_tree.hpp"
 #include "consensus/authority/impl/schedule_node.hpp"
 
 namespace kagome::authority {
@@ -20,6 +21,8 @@ namespace kagome::authority {
         known_engines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
 
    public:
+    AuthorityManagerImpl(std::shared_ptr<blockchain::BlockTree> block_tree);
+
     ~AuthorityManagerImpl() override = default;
 
     outcome::result<std::shared_ptr<const primitives::AuthorityList>>
@@ -54,6 +57,7 @@ namespace kagome::authority {
 
    private:
     std::shared_ptr<ScheduleNode> root_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
 
     /**
      * @brief Find schedule_node according to the block
