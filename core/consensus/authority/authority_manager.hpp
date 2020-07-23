@@ -18,8 +18,8 @@ namespace kagome::authority {
      * @param block for which authority set is requested
      * @return outcome authority set
      */
-    virtual outcome::result<primitives::AuthorityList> authorities(
-        const primitives::BlockInfo &block) = 0;
+    virtual outcome::result<std::shared_ptr<const primitives::AuthorityList>>
+    authorities(const primitives::BlockInfo &block) = 0;
 
     /**
      * @brief Schedule an authority set change after the given delay of N
@@ -31,7 +31,7 @@ namespace kagome::authority {
     virtual outcome::result<void> onScheduledChange(
         const primitives::BlockInfo &block,
         const primitives::AuthorityList &authorities,
-        primitives::BlockNumber activateAt) = 0;
+        primitives::BlockNumber activate_at) = 0;
 
     /**
      * @brief Force an authority set change after the given delay of N blocks,
@@ -44,7 +44,7 @@ namespace kagome::authority {
     virtual outcome::result<void> onForcedChange(
         const primitives::BlockInfo &block,
         const primitives::AuthorityList &authorities,
-        primitives::BlockNumber activateAt) = 0;
+        primitives::BlockNumber activate_at) = 0;
 
     /**
      * @brief An index to the individual authority in the current authority list
@@ -71,7 +71,7 @@ namespace kagome::authority {
      */
     virtual outcome::result<void> onPause(
         const primitives::BlockInfo &block,
-        primitives::BlockNumber activateAt) = 0;
+        primitives::BlockNumber activate_at) = 0;
 
     /**
      * @brief A signal to resume the current authority set after the given
@@ -83,7 +83,7 @@ namespace kagome::authority {
      */
     virtual outcome::result<void> onResume(
         const primitives::BlockInfo &block,
-        primitives::BlockNumber activateAt) = 0;
+        primitives::BlockNumber activate_at) = 0;
   };
 }  // namespace kagome::authority
 
