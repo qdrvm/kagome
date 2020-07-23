@@ -261,7 +261,7 @@ namespace kagome::blockchain {
     }
     auto start_block_number = block_number_res.value();
 
-    primitives::BlockNumber finish_block_number; // NOLINT
+    primitives::BlockNumber finish_block_number;  // NOLINT
     if (ascending) {
       if (start_block_number < maximum) {
         // we want to finish at the root
@@ -341,6 +341,37 @@ namespace kagome::blockchain {
     result.push_back(current_hash);
     std::reverse(result.begin(), result.end());
     return result;
+  }
+
+  bool BlockTreeImpl::checkDirectAncestry(
+      const primitives::BlockHash &ancestor,
+      const primitives::BlockHash &descendant) {
+    auto ancestor_node_ptr = tree_->getByHash(ancestor);
+    auto descendant_node_ptr = tree_->getByHash(descendant);
+
+    // if both nodes are in our light tree, we can use this representation only
+    if (ancestor_node_ptr && descendant_node_ptr) {
+      auto current_node = descendant_node_ptr;
+      while (current_node != ancestor_node_ptr) {
+        if (auto parent = current_node->parent; !parent.expired()) {
+          current_node = parent.lock();
+        } else {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // else, we need to use a database
+    auto current_hash = descendant;
+    while (current_hash != ancestor) {
+      auto current_header_res = header_repo_->getBlockHeader(current_hash);
+      if (!current_header_res) {
+        return false;
+      }
+      current_hash = current_header_res.value().parent_hash;
+    }
+    return true;
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::longestPath() {
