@@ -17,9 +17,11 @@
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 
 using ::testing::_;
+using ::testing::Invoke;
 using ::testing::Return;
 
 using kagome::crypto::key_types::kBabe;
+using kagome::extensions::Extension;
 using kagome::extensions::ExtensionFactoryMock;
 using kagome::extensions::ExtensionMock;
 using kagome::runtime::MockMemory;
@@ -66,11 +68,21 @@ class REITest : public ::testing::Test {
  public:
   void SetUp() override {
     memory_ = std::make_shared<MockMemory>();
-    extension_ = std::make_shared<ExtensionMock>();
+    extension_ = std::make_unique<ExtensionMock>();
     extension_factory_ = std::make_shared<ExtensionFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*extension_factory_, createExtension(_, _))
-        .WillRepeatedly(Return(extension_));
+        .WillRepeatedly(Invoke([this](auto&, auto&) -> std::unique_ptr<Extension> {
+          if (extension_) {
+            auto ext = std::move(extension_);
+            extension_ = std::make_unique<ExtensionMock>();
+            return std::unique_ptr<Extension>(std::move(ext));
+          } else {
+            extension_ = std::make_unique<ExtensionMock>();
+            return std::unique_ptr<Extension>(
+                std::make_unique<ExtensionMock>());
+          }
+        }));
   }
 
   void executeWasm(std::string call_code) {
@@ -97,7 +109,7 @@ class REITest : public ::testing::Test {
 
  protected:
   std::shared_ptr<MockMemory> memory_;
-  std::shared_ptr<ExtensionMock> extension_;
+  std::unique_ptr<ExtensionMock> extension_;
   std::shared_ptr<ExtensionFactoryMock> extension_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
 
