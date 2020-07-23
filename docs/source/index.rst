@@ -14,13 +14,11 @@ If you would like to understand how different components of Kagome are implement
 
 .. toctree::
     :maxdepth: 2
-    :numbered:
     :caption: Table of contents
 
-    development/README.md
+    development/index.rst
     overview/getting_started.md
-    tutorials/first_kagome_chain.md
-    tutorials/private_network.md
+    tutorials/index.md
 
 Kagome in media
 ^^^^^^^^^^^^^^^

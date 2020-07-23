@@ -5,7 +5,7 @@ In Kagome we use certain set of tools to assure code quality. Here is a list, an
 
 ## clang-tidy
 
-Set of rules is specified at root [`.clang-tidy`](../.clang-tidy) file.
+Set of rules is specified at root [`.clang-tidy`](../../.clang-tidy) file.
 
 ### Configure + Build + Run clang-tidy (slow)
 
@@ -20,7 +20,7 @@ Warnings/errors will be reported to stderr, same as compiler warnings/errors.
 ### Run clang-tidy for changes between your branch and master
 
 1. Ensure `clang-tidy` is in PATH
-2. Ensure `run-clang-tidy.py` is in PATH. 
+2. Ensure `run-clang-tidy.py` is in PATH.
     - on Mac it is usually located at `/usr/local/Cellar/llvm/8.0.0_1/share/clang/run-clang-tidy.py` (note, 8.0.0_1 is your version, it may be different).
     - on Linux it is usually located at `/usr/lib/llvm-8/share/clang/run-clang-tidy.py`
 3. `mkdir build`
@@ -33,7 +33,7 @@ Warnings/errors will be reported to stderr, same as compiler warnings/errors.
 
 ## Toolchain build
 
-When CMAKE_TOOLCHAIN_FILE is specified, then specific toolchain is used. 
+When CMAKE_TOOLCHAIN_FILE is specified, then specific toolchain is used.
 Toolchain is a cmake file, which sets specific variables, such as compiler, its flags, build mode, language standard.
 
 Example:
@@ -45,16 +45,16 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain/gcc-8_cxx17.cmake
 
 All dependencies will be built with gcc-8 and cxx17 standard.
 
-Default toolchain is `cxx17.cmake`. [List of toolchains.](../cmake/toolchain)
+Default toolchain is `cxx17.cmake`. [List of toolchains.](../../cmake/toolchain)
 
 Also, **sanitizers** can be enabled with use of toolchains, so all dependencies will be built with specified sanitizer.
 
-[List of sanitizers available.](../cmake/san)
+[List of sanitizers available.](../../cmake/san)
 
 
-## coverage 
+## coverage
 
-Coverage is calculated automatically by Jenkins (CI). 
+Coverage is calculated automatically by Jenkins (CI).
 
 We use [codecov](https://codecov.io/gh/soramitsu/kagome) to display coverage.
 
