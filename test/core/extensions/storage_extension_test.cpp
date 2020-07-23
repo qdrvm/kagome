@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/storage_extension.hpp"
+#include "extensions/impl/storage_extension_impl.hpp"
 
 #include <gtest/gtest.h>
 
@@ -20,6 +20,7 @@
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::extensions::StorageExtension;
+using kagome::extensions::StorageExtensionImpl;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmOffset;
@@ -51,7 +52,7 @@ class StorageExtensionTest : public ::testing::Test {
                 kagome::storage::trie::PersistentTrieBatch>(trie_batch_))));
     memory_ = std::make_shared<MockMemory>();
     changes_tracker_ = std::make_shared<ChangesTrackerMock>();
-    storage_extension_ = std::make_shared<StorageExtension>(
+    storage_extension_ = std::make_shared<StorageExtensionImpl>(
         storage_provider_, memory_, changes_tracker_);
   }
 
@@ -400,6 +401,33 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
 }
 
 /**
+ * @given key_pointer, key_size, value_ptr, value_size
+ * @when ext_storage_set_version_1 is invoked on given key and value
+ * @then provided key and value are put to db
+ */
+TEST_P(OutcomeParameterizedTest, ExtStorageSetV1Test) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  Buffer key(8, 'k');
+
+  WasmPointer value_pointer = 42;
+  WasmSize value_size = 41;
+  Buffer value(8, 'v');
+
+  // expect key and value were loaded
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
+      .WillOnce(Return(value));
+
+  // expect key-value pair was put to db
+  EXPECT_CALL(*trie_batch_, put(key, value)).WillOnce(Return(GetParam()));
+
+  storage_extension_->ext_storage_set_version_1(
+      WasmResult(key_pointer, key_size).combine(),
+      WasmResult(value_pointer, value_size).combine());
+}
+
+/**
  * @given key, value, offset
  * @when ext_storage_read_version_1 is invoked on given key and value
  * @then data read from db with given key
@@ -479,3 +507,149 @@ INSTANTIATE_TEST_CASE_P(
         EnumeratedTrieRootTestCase{
             std::list<Buffer>{},
             "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314"_hex2buf}));
+
+/**
+ * @given key_pointer, key_size, value_ptr, value_size
+ * @when ext_storage_get_version_1 is invoked on given key
+ * @then corresponding value will be returned
+ */
+TEST_F(StorageExtensionTest, StorageGetV1Test) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  Buffer key(8, 'k');
+
+  WasmPointer value_pointer = 42;
+  WasmSize value_size = 41;
+
+  WasmSpan value_span = WasmResult(value_pointer, value_size).combine();
+  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+
+  Buffer value(8, 'v');
+
+  // expect key and value were loaded
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(value)))
+      .WillOnce(Return(value_span));
+
+  // expect key-value pair was put to db
+  EXPECT_CALL(*trie_batch_, get(key)).WillOnce(Return(value));
+
+  ASSERT_EQ(value_span,
+            storage_extension_->ext_storage_get_version_1(key_span));
+}
+
+/**
+ * @given key_pointer and key_size
+ * @when ext_storage_clear_version_1 is invoked on StorageExtension with given
+ * key
+ * @then key is loaded from the memory @and del is invoked on storage
+ */
+TEST_P(OutcomeParameterizedTest, ExtStorageClearV1Test) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  Buffer key(8, 'k');
+  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  // to ensure that it works when remove() returns success or failure
+  EXPECT_CALL(*trie_batch_, remove(key)).WillOnce(Return(GetParam()));
+
+  storage_extension_->ext_storage_clear_version_1(key_span);
+}
+
+/**
+ * @given key pointer and key size
+ * @when ext_storage_exists_version_1 is invoked on StorageExtension with given
+ * key
+ * @then result is the same as result of contains on given key
+ */
+TEST_F(StorageExtensionTest, ExtStorageExistsV1Test) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  Buffer key(8, 'k');
+  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+
+  /// result of contains method on db
+  WasmSize contains = 1;
+
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*trie_batch_, contains(key)).WillOnce(Return(contains));
+
+  ASSERT_EQ(contains,
+            storage_extension_->ext_storage_exists_version_1(key_span));
+}
+
+/**
+ * @given prefix_pointer with prefix_length
+ * @when ext_clear_prefix is invoked on StorageExtension with given prefix
+ * @then prefix is loaded from the memory @and clearPrefix is invoked on storage
+ */
+TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
+  WasmPointer prefix_pointer = 42;
+  WasmSize prefix_size = 42;
+  Buffer prefix(8, 'p');
+  WasmSpan prefix_span = WasmResult(prefix_pointer, prefix_size).combine();
+
+  EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
+      .WillOnce(Return(prefix));
+  EXPECT_CALL(*trie_batch_, clearPrefix(prefix))
+      .Times(1)
+      .WillOnce(Return(outcome::success()));
+
+  storage_extension_->ext_storage_clear_prefix_version_1(prefix_span);
+}
+
+namespace {
+  struct StorageExtensionMock : public StorageExtensionImpl {
+    MOCK_METHOD2(ext_storage_changes_root,
+                 WasmSize(WasmPointer parent_hash_data, WasmPointer result));
+
+    MOCK_CONST_METHOD1(ext_storage_root, void(WasmPointer));
+
+    using StorageExtensionImpl::StorageExtensionImpl;
+  };
+}  // namespace
+
+
+/**
+ * Test fixture for v1 methods, which are wrappers over legacy methods
+ */
+struct ExtStorageExtensionWrapperTest : public StorageExtensionTest {
+  void SetUp() override {
+    StorageExtensionTest::SetUp();
+    storage_extension = std::make_shared<StorageExtensionMock>(
+        storage_provider_, memory_, changes_tracker_);
+  }
+
+  std::shared_ptr<StorageExtensionMock> storage_extension;
+};
+
+TEST_F(ExtStorageExtensionWrapperTest, ExtStorageExtensionWrapperTest) {
+  WasmPointer parent_hash_pointer = 42;
+  WasmSize parent_hash_size = 42;
+  Buffer parent_hash(8, 'p');
+  auto hash_size = kagome::common::Hash256::size();
+  WasmPointer value_ptr = 43;
+
+  WasmSpan parent_hash_span =
+      WasmResult(parent_hash_pointer, parent_hash_size).combine();
+
+  EXPECT_CALL(*memory_, allocate(hash_size)).WillOnce(Return(value_ptr));
+  EXPECT_CALL(*storage_extension,
+              ext_storage_changes_root(parent_hash_pointer, value_ptr))
+      .WillOnce(Return(hash_size));
+
+  ASSERT_EQ(
+      value_ptr,
+      storage_extension->ext_storage_changes_root_version_1(parent_hash_span));
+}
+
+TEST_F(ExtStorageExtensionWrapperTest, ExtStorageRootV1Test) {
+  auto hash_size = kagome::common::Hash256::size();
+  WasmPointer ptr = 43;
+
+  EXPECT_CALL(*memory_, allocate(hash_size)).WillOnce(Return(ptr));
+  EXPECT_CALL(*storage_extension, ext_storage_root(ptr)).WillOnce(Return());
+
+  ASSERT_EQ(ptr, storage_extension->ext_storage_root_version_1());
+}
