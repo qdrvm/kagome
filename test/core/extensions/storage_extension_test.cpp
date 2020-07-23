@@ -494,6 +494,35 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
       values_ptr, lens_ptr, values.size(), result);
 }
 
+/**
+ * @given a set of values, which ordered trie hash we want to calculate from
+ * wasm
+ * @when calling an extension method ext_blake2_256_ordered_trie_root
+ * @then the method reads the data from wasm memory properly and stores the
+ * result in the wasm memory
+ */
+TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
+  auto &[values, hash_array] = GetParam();
+
+  using testing::_;
+  WasmPointer values_ptr = 1;
+  WasmSize values_size = 2;
+  WasmSpan values_data = WasmResult(values_ptr, values_size).combine();
+  WasmPointer result = 1984;
+
+  Buffer buffer{kagome::scale::encode(values).value()};
+
+  EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
+      .WillOnce(Return(buffer));
+
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(hash_array)))
+      .WillOnce(Return(result));
+
+  ASSERT_EQ(result,
+            storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
+                values_data));
+}
+
 INSTANTIATE_TEST_CASE_P(
     Instance,
     BuffersParametrizedTest,
@@ -610,7 +639,6 @@ namespace {
   };
 }  // namespace
 
-
 /**
  * Test fixture for v1 methods, which are wrappers over legacy methods
  */
@@ -624,6 +652,11 @@ struct ExtStorageExtensionWrapperTest : public StorageExtensionTest {
   std::shared_ptr<StorageExtensionMock> storage_extension;
 };
 
+/**
+ * @given initialized storage extension
+ * @when ext_storage_changes_root_version_1 is invoked
+ * @then wrapped ext_storage_changes_root is properly called
+ */
 TEST_F(ExtStorageExtensionWrapperTest, ExtStorageExtensionWrapperTest) {
   WasmPointer parent_hash_pointer = 42;
   WasmSize parent_hash_size = 42;
@@ -644,6 +677,11 @@ TEST_F(ExtStorageExtensionWrapperTest, ExtStorageExtensionWrapperTest) {
       storage_extension->ext_storage_changes_root_version_1(parent_hash_span));
 }
 
+/**
+ * @given initialized storage extension
+ * @when ext_storage_root_version_1 is invoked
+ * @then wrapped ext_storage_root is properly called
+ */
 TEST_F(ExtStorageExtensionWrapperTest, ExtStorageRootV1Test) {
   auto hash_size = kagome::common::Hash256::size();
   WasmPointer ptr = 43;
@@ -652,4 +690,35 @@ TEST_F(ExtStorageExtensionWrapperTest, ExtStorageRootV1Test) {
   EXPECT_CALL(*storage_extension, ext_storage_root(ptr)).WillOnce(Return());
 
   ASSERT_EQ(ptr, storage_extension->ext_storage_root_version_1());
+}
+
+/**
+ * @given a set of values, which ordered trie hash we want to calculate from
+ * wasm
+ * @when calling an extension method ext_blake2_256_ordered_trie_root
+ * @then the method reads the data from wasm memory properly and stores the
+ * result in the wasm memory
+ */
+TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
+  std::vector<std::pair<Buffer, Buffer>> dict = {
+      {"a"_buf, "one"_buf}, {"b"_buf, "two"_buf}, {"c"_buf, "three"_buf}};
+  auto hash_array =
+      "eaa57e0e1a41d5a49db5954f95140a4e7c9a4373f7d29c0d667c9978ab4dadcb"_hex2buf;
+
+  using testing::_;
+  WasmPointer values_ptr = 1;
+  WasmSize values_size = 2;
+  WasmSpan dict_data = WasmResult(values_ptr, values_size).combine();
+  WasmPointer result = 1984;
+
+  Buffer buffer{kagome::scale::encode(dict).value()};
+
+  EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
+      .WillOnce(Return(buffer));
+
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(hash_array)))
+      .WillOnce(Return(result));
+
+  ASSERT_EQ(result,
+            storage_extension_->ext_trie_blake2_256_root_version_1(dict_data));
 }

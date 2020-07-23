@@ -363,7 +363,8 @@ namespace kagome::extensions {
     return ext_clear_prefix(prefix_ptr, prefix_size);
   }
 
-  runtime::WasmPointer StorageExtensionImpl::ext_storage_root_version_1() const {
+  runtime::WasmPointer StorageExtensionImpl::ext_storage_root_version_1()
+      const {
     auto hash_size = common::Hash256::size();
     auto ptr = memory_->allocate(hash_size);
     ext_storage_root(ptr);
@@ -449,6 +450,9 @@ namespace kagome::extensions {
       std::terminate();
     }
     const auto &hash = codec.hash256(enc.value());
+
+    std::cout << "res hash = " << hash.toHex() << std::endl;
+
     auto res = memory_->storeBuffer(hash);
     return runtime::WasmResult(res).address;
   }
@@ -464,8 +468,9 @@ namespace kagome::extensions {
       std::terminate();
     }
 
+    const auto &collection = values.value();
     auto ordered_hash = storage::trie::calculateOrderedTrieHash(
-        values.value().begin(), values.value().end());
+        collection.begin(), collection.end());
     if (!ordered_hash.has_value()) {
       logger_->error(
           "ext_blake2_256_enumerated_trie_root resulted with an error: {}",
