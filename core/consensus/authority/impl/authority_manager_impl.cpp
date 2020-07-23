@@ -275,8 +275,9 @@ namespace kagome::authority {
   bool AuthorityManagerImpl::isDirectAncestry(
       const primitives::BlockInfo &ancestor,
       const primitives::BlockInfo &descendant) {
-    auto chain_res = block_tree_->getChainByBlocks(ancestor.block_hash,
-                                                   descendant.block_hash);
-    return chain_res.has_value();
+    auto result = ancestor.block_number < descendant.block_number
+                  && block_tree_->checkDirectAncestry(ancestor.block_hash,
+                                                      descendant.block_hash);
+    return result;
   }
 }  // namespace kagome::authority
