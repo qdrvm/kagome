@@ -22,7 +22,7 @@ namespace kagome::extensions {
     /**
      * Takes \param memory and creates \return extension using this memory
      */
-    virtual std::shared_ptr<Extension> createExtension(
+    virtual std::unique_ptr<Extension> createExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const = 0;
   };

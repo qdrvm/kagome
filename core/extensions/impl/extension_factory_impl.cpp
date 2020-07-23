@@ -33,10 +33,10 @@ namespace kagome::extensions {
     BOOST_ASSERT(bip39_provider_ != nullptr);
   }
 
-  std::shared_ptr<Extension> ExtensionFactoryImpl::createExtension(
+  std::unique_ptr<Extension> ExtensionFactoryImpl::createExtension(
       std::shared_ptr<runtime::WasmMemory> memory,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const {
-    return std::make_shared<ExtensionImpl>(memory,
+    return std::make_unique<ExtensionImpl>(memory,
                                            storage_provider,
                                            changes_tracker_,
                                            sr25519_provider_,
