@@ -13,7 +13,6 @@
 #include <gsl/span>
 #include "common/outcome_throw.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
-#include "scale/detail/tuple.hpp"
 #include "scale/detail/variant.hpp"
 
 namespace kagome::scale {
@@ -37,14 +36,17 @@ namespace kagome::scale {
     }
 
     /**
-     * @brief scale-decodes tuple of values
-     * @tparam T enumeration of types
-     * @param v tuple value
+     * @brief scale-decoding of tuple
+     * @tparam T enumeration of tuples types
+     * @param v reference to tuple
      * @return reference to stream
      */
     template <class... T>
     ScaleDecoderStream &operator>>(std::tuple<T...> &v) {
-      return detail::decodeTuple(*this, v);
+      if constexpr (sizeof...(T) > 0) {
+        decodeElementOfTuple<0>(v);
+      }
+      return *this;
     }
 
     /**
@@ -258,6 +260,15 @@ namespace kagome::scale {
      * @return boost::optional<bool> value
      */
     boost::optional<bool> decodeOptionalBool();
+
+    template <size_t I, class... Ts>
+    void decodeElementOfTuple(std::tuple<Ts...> &v) {
+      using T = std::remove_const_t<std::tuple_element_t<I, std::tuple<Ts...>>>;
+      *this >> const_cast<T &>(std::get<I>(v));  // NOLINT
+      if constexpr (sizeof...(Ts) > I + 1) {
+        decodeElementOfTuple<I + 1>(v);
+      }
+    }
 
     using ByteSpan = gsl::span<const uint8_t>;
     using SpanIterator = ByteSpan::const_iterator;
