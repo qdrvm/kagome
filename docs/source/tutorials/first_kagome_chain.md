@@ -85,11 +85,13 @@ docker run \
 
 Let's look at this flags in detail:
 
-* `--genesis` -– mandatory, genesis configuration file path
-* `--keystore` –- mandatory, keystore file path
-* `--leveldb` –- mandatory, leveldb directory path                 
-* `--rpc_http_port` –- port for RPC over HTTP                            
-* `--rpc_ws_port`   –- port for RPC over Websocket protocol              
+| Flag              | Description                                       |
+|-------------------|---------------------------------------------------|
+| `--genesis`       | mandatory, genesis configuration file path        |
+| `--keystore`      | mandatory, keystore file path                     |
+| `--leveldb`       | mandatory, leveldb directory path                 |
+| `--rpc_http_port` | port for RPC over HTTP                            |
+| `--rpc_ws_port`   | port for RPC over Websocket protocol              |
 
 More flags info available by running `kagome_validating --help`.
 
