@@ -150,6 +150,8 @@ class REITest : public ::testing::Test {
       "  (type (;31;) (func (param i32 i32 i64) (result i64)))\n"
       "  (type (;32;) (func (param i32 i64 i32) (result i32)))\n"
       "  (type (;33;) (func (param i64 i64 i32) (result i64)))\n"
+      "  (type (;34;) (func (param i64) (result i32)))\n"
+      "  (type (;35;) (func (result i32)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
       "  (import \"env\" \"ext_blake2_128\" (func $ext_blake2_128 (type 5)))\n"
@@ -164,7 +166,6 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_twox_256\" (func $ext_twox_256 (type 5)))\n"
       "  (import \"env\" \"ext_clear_storage\" (func $ext_clear_storage (type 0)))\n"
       "  (import \"env\" \"ext_set_storage\" (func $ext_set_storage (type 6)))\n"
-      "  (import \"env\" \"ext_storage_read_version_1\" (func $ext_storage_read_version_1 (type 33)))\n"
       "  (import \"env\" \"ext_clear_prefix\" (func $ext_clear_prefix (type 0)))\n"
       "  (import \"env\" \"ext_exists_storage\" (func $ext_exists_storage (type 3)))\n"
       "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n"
@@ -186,6 +187,34 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_crypto_sr25519_verify_version_2\" (func $ext_crypto_sr25519_verify_version_2 (type 32)))\n"
       "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 31)))\n"
       "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 31)))\n"
+
+      /// hashing methods
+      "  (import \"env\" \"ext_hashing_keccak_256_version_1\" (func $ext_hashing_keccak_256_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_hashing_sha2_256_version_1\" (func $ext_hashing_sha2_256_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_hashing_blake2_128_version_1\" (func $ext_hashing_blake2_128_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_hashing_blake2_256_version_1\" (func $ext_hashing_blake2_256_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_hashing_twox_256_version_1\" (func $ext_hashing_twox_256_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_hashing_twox_128_version_1\" (func $ext_hashing_twox_128_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_hashing_twox_64_version_1\" (func $ext_hashing_twox_64_version_1 (type 34)))\n"
+
+      /// allocator methods
+      "  (import \"env\" \"ext_allocator_malloc_version_1\" (func $ext_allocator_malloc_version_1 (type 8)))\n"
+      "  (import \"env\" \"ext_allocator_free_version_1\" (func $ext_allocator_free_version_1 (type 1)))\n"
+
+      /// storage methods
+      "  (import \"env\" \"ext_storage_set_version_1\" (func $ext_storage_set_version_1 (type 18)))\n"
+      "  (import \"env\" \"ext_storage_get_version_1\" (func $ext_storage_get_version_1 (type 29)))\n"
+      "  (import \"env\" \"ext_storage_clear_version_1\" (func $ext_storage_clear_version_1 (type 7)))\n"
+      "  (import \"env\" \"ext_storage_exists_version_1\" (func $ext_storage_exists_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_storage_read_version_1\" (func $ext_storage_read_version_1 (type 33)))\n"
+      "  (import \"env\" \"ext_storage_clear_prefix_version_1\" (func $ext_storage_clear_prefix_version_1 (type 7)))\n"
+      "  (import \"env\" \"ext_storage_changes_root_version_1\" (func $ext_storage_changes_root_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_storage_root_version_1\" (func $ext_storage_root_version_1 (type 35)))\n"
+      "  (import \"env\" \"ext_storage_next_key_version_1\" (func $ext_storage_next_key_version_1 (type 29)))\n"
+
+      /// trie methods
+      "  (import \"env\" \"ext_trie_blake2_256_root_version_1\" (func $ext_trie_blake2_256_root_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_trie_blake2_256_ordered_root_version_1\" (func $ext_trie_blake2_256_ordered_root_version_1 (type 34)))\n"
 
       /// assertions to check output in wasm
       "  (import \"env\" \"assert\" (func $assert (param i32)))\n"
@@ -359,30 +388,6 @@ TEST_F(REITest, ext_set_storage_Test) {
                                      "    )\n")
                        % key_ptr % key_size % value_ptr % value_size)
                           .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_storage_read_version_1_Test) {
-  WasmResult key(123, 1233);
-  WasmResult value(42, 12);
-  WasmOffset offset(1);
-  WasmSpan res = WasmResult(1, 2).combine();
-
-  EXPECT_CALL(
-      *extension_,
-      ext_storage_read_version_1(key.combine(), value.combine(), offset))
-      .WillOnce(Return(res));
-  auto execute_code = (boost::format("    (call $assert_eq_i64\n"
-                                     "    (call $ext_storage_read_version_1\n"
-                                     "      (i64.const %d)\n"
-                                     "      (i64.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n"
-                                     "      (i64.const %d)\n"
-                                     "    )\n")
-                       % key.combine() % value.combine() % offset % res)
-                          .str();
-  SCOPED_TRACE("ext_storage_read_version_1_Test");
   executeWasm(execute_code);
 }
 
@@ -885,5 +890,377 @@ TEST_F(REITest, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1_Test) {
            ")")
        % sig_ptr % msg_ptr % out_span)
           .str();
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_hashing_keccak_256_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_hashing_keccak_256_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_hashing_keccak_256_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_hashing_keccak_256_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_hashing_sha2_256_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_hashing_sha2_256_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_hashing_sha2_256_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_hashing_sha2_256_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_hashing_blake2_128_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_hashing_blake2_128_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_hashing_blake2_128_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_hashing_blake2_128_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_hashing_blake2_256_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_hashing_blake2_256_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_hashing_blake2_256_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_hashing_blake2_256_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_hashing_twox_256_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_hashing_twox_256_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_hashing_twox_256_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_hashing_twox_256_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_hashing_twox_128_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_hashing_twox_128_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_hashing_twox_128_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_hashing_twox_128_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_hashing_twox_64_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_hashing_twox_64_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_hashing_twox_64_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_hashing_twox_64_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_allocator_malloc_version_1_Test) {
+  WasmSize size = 42;
+  WasmPointer ptr = 123;
+  EXPECT_CALL(*extension_, ext_allocator_malloc_version_1(size))
+      .WillOnce(Return(ptr));
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_allocator_malloc_version_1\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % size % ptr)
+          .str();
+  SCOPED_TRACE("ext_allocator_malloc_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_allocator_free_version_1_Test) {
+  WasmPointer ptr = 123;
+  EXPECT_CALL(*extension_, ext_allocator_free_version_1(ptr)).Times(1);
+  auto execute_code = (boost::format("    (call $ext_allocator_free_version_1\n"
+                                     "      (i32.const %d)\n"
+                                     "    )\n")
+                       % ptr)
+                          .str();
+  SCOPED_TRACE("ext_allocator_free_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_set_version_1_Test) {
+  WasmSpan param1 = WasmResult(1, 2).combine();
+  WasmSpan param2 = WasmResult(3, 4).combine();
+  EXPECT_CALL(*extension_, ext_storage_set_version_1(param1, param2))
+      .WillOnce(Return());
+
+  auto execute_code = (boost::format("      (call $ext_storage_set_version_1\n"
+                                     "        (i64.const %d)\n"
+                                     "        (i64.const %d)\n"
+                                     "      )\n")
+                       % param1 % param2)
+                          .str();
+  SCOPED_TRACE("ext_storage_set_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_get_version_1_Test) {
+  WasmSize key_type = kBabe;
+  WasmSpan res = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_storage_get_version_1(key_type))
+      .WillOnce(Return(res));
+
+  auto execute_code = (boost::format("    (call $assert_eq_i64\n"
+                                     "      (call $ext_storage_get_version_1\n"
+                                     "        (i64.const %d)\n"
+                                     "      )\n"
+                                     "      (i64.const %d)\n"
+                                     "    )\n")
+                       % key_type % res)
+                          .str();
+  SCOPED_TRACE("ext_storage_get_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_clear_version_1_Test) {
+  uint64_t num = 12;
+
+  EXPECT_CALL(*extension_, ext_storage_clear_version_1(num)).Times(1);
+  auto execute_code = (boost::format("    (call $ext_storage_clear_version_1\n"
+                                     "      (i64.const %d)\n"
+                                     "    )\n")
+                       % num)
+                          .str();
+  SCOPED_TRACE("ext_storage_clear_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_exists_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_storage_exists_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_storage_exists_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_storage_exists_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_read_version_1_Test) {
+  WasmResult key(123, 1233);
+  WasmResult value(42, 12);
+  WasmOffset offset(1);
+  WasmSpan res = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(
+      *extension_,
+      ext_storage_read_version_1(key.combine(), value.combine(), offset))
+      .WillOnce(Return(res));
+  auto execute_code = (boost::format("    (call $assert_eq_i64\n"
+                                     "    (call $ext_storage_read_version_1\n"
+                                     "      (i64.const %d)\n"
+                                     "      (i64.const %d)\n"
+                                     "      (i32.const %d)\n"
+                                     "    )\n"
+                                     "      (i64.const %d)\n"
+                                     "    )\n")
+                       % key.combine() % value.combine() % offset % res)
+                          .str();
+  SCOPED_TRACE("ext_storage_read_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_clear_prefix_version_1_Test) {
+  uint64_t num = 12;
+
+  EXPECT_CALL(*extension_, ext_storage_clear_prefix_version_1(num)).Times(1);
+  auto execute_code =
+      (boost::format("    (call $ext_storage_clear_prefix_version_1\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % num)
+          .str();
+  SCOPED_TRACE("ext_storage_clear_prefix_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_changes_root_version_1_Test) {
+  WasmSize key_type = kBabe;
+  WasmPointer res = 2;
+
+  EXPECT_CALL(*extension_, ext_storage_changes_root_version_1(key_type))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_storage_changes_root_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % key_type % res)
+          .str();
+  SCOPED_TRACE("ext_storage_changes_root_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_root_version_1_Test) {
+  uint32_t res = 123141;
+
+  EXPECT_CALL(*extension_, ext_storage_root_version_1()).WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_storage_root_version_1)\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % res)
+          .str();
+  SCOPED_TRACE("ext_storage_root_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_storage_next_key_version_1_Test) {
+  WasmSpan param = 5678;
+  WasmSpan res = 123141;
+
+  EXPECT_CALL(*extension_, ext_storage_next_key_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_storage_next_key_version_1"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_storage_next_key_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_trie_blake2_256_root_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_trie_blake2_256_root_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_trie_blake2_256_root_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_trie_blake2_256_root_version_1_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_trie_blake2_256_ordered_root_version_1_Test) {
+  WasmPointer res = 3;
+  WasmSpan param = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_trie_blake2_256_ordered_root_version_1(param))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_trie_blake2_256_ordered_root_version_1\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % param % res)
+          .str();
+  SCOPED_TRACE("ext_trie_blake2_256_ordered_root_version_1_Test");
   executeWasm(execute_code);
 }
