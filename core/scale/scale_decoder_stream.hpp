@@ -10,10 +10,10 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 #include <gsl/span>
 #include "common/outcome_throw.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
-#include "scale/detail/variant.hpp"
 
 namespace kagome::scale {
   class ScaleDecoderStream {
@@ -50,14 +50,24 @@ namespace kagome::scale {
     }
 
     /**
-     * @brief scale-decodes variant value
-     * @tparam T type list
-     * @param v value to decode
+     * @brief scale-decoding of variant
+     * @tparam T enumeration of various types
+     * @param v reference to variant
      * @return reference to stream
      */
-    template <class... T>
-    ScaleDecoderStream &operator>>(boost::variant<T...> &v) {
-      return detail::decodeVariant(*this, v);
+    template <class... Ts>
+    ScaleDecoderStream &operator>>(boost::variant<Ts...> &v) {
+      // first byte means type index
+      uint8_t type_index = 0u;
+      *this >> type_index;  // decode type index
+
+      // ensure that index is in [0, types_count)
+      if (type_index >= sizeof...(Ts)) {
+        common::raise(DecodeError::WRONG_TYPE_INDEX);
+      }
+
+      tryDecodeAsOneOfVariant<0>(v, type_index);
+      return *this;
     }
 
     /**
@@ -267,6 +277,20 @@ namespace kagome::scale {
       *this >> const_cast<T &>(std::get<I>(v));  // NOLINT
       if constexpr (sizeof...(Ts) > I + 1) {
         decodeElementOfTuple<I + 1>(v);
+      }
+    }
+
+    template <size_t I, class... Ts>
+    void tryDecodeAsOneOfVariant(boost::variant<Ts...> &v, size_t i) {
+      using T = std::remove_const_t<std::tuple_element_t<I, std::tuple<Ts...>>>;
+      if (I == i) {
+        T val;
+        *this >> val;
+        v = std::forward<T>(val);
+        return;
+      }
+      if constexpr (sizeof...(Ts) > I + 1) {
+        tryDecodeAsOneOfVariant<I + 1>(v, i);
       }
     }
 
