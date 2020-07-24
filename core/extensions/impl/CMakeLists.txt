@@ -44,7 +44,7 @@ add_library(misc_extension
 kagome_install(misc_extension)
 
 add_library(storage_extension
-    storage_extension_impl.cpp
+    storage_extension.cpp
     )
 target_link_libraries(storage_extension
     buffer

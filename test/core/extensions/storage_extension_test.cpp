@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/storage_extension_impl.hpp"
+#include "extensions/impl/storage_extension.hpp"
 
 #include <gtest/gtest.h>
 
@@ -20,7 +20,6 @@
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::extensions::StorageExtension;
-using kagome::extensions::StorageExtensionImpl;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmOffset;
@@ -52,7 +51,7 @@ class StorageExtensionTest : public ::testing::Test {
                 kagome::storage::trie::PersistentTrieBatch>(trie_batch_))));
     memory_ = std::make_shared<MockMemory>();
     changes_tracker_ = std::make_shared<ChangesTrackerMock>();
-    storage_extension_ = std::make_shared<StorageExtensionImpl>(
+    storage_extension_ = std::make_shared<StorageExtension>(
         storage_provider_, memory_, changes_tracker_);
   }
 
@@ -626,70 +625,6 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
       .WillOnce(Return(outcome::success()));
 
   storage_extension_->ext_storage_clear_prefix_version_1(prefix_span);
-}
-
-namespace {
-  struct StorageExtensionMock : public StorageExtensionImpl {
-    MOCK_METHOD2(ext_storage_changes_root,
-                 WasmSize(WasmPointer parent_hash_data, WasmPointer result));
-
-    MOCK_CONST_METHOD1(ext_storage_root, void(WasmPointer));
-
-    using StorageExtensionImpl::StorageExtensionImpl;
-  };
-}  // namespace
-
-/**
- * Test fixture for v1 methods, which are wrappers over legacy methods
- */
-struct ExtStorageExtensionWrapperTest : public StorageExtensionTest {
-  void SetUp() override {
-    StorageExtensionTest::SetUp();
-    storage_extension = std::make_shared<StorageExtensionMock>(
-        storage_provider_, memory_, changes_tracker_);
-  }
-
-  std::shared_ptr<StorageExtensionMock> storage_extension;
-};
-
-/**
- * @given initialized storage extension
- * @when ext_storage_changes_root_version_1 is invoked
- * @then wrapped ext_storage_changes_root is properly called
- */
-TEST_F(ExtStorageExtensionWrapperTest, ExtStorageExtensionWrapperTest) {
-  WasmPointer parent_hash_pointer = 42;
-  WasmSize parent_hash_size = 42;
-  Buffer parent_hash(8, 'p');
-  auto hash_size = kagome::common::Hash256::size();
-  WasmPointer value_ptr = 43;
-
-  WasmSpan parent_hash_span =
-      WasmResult(parent_hash_pointer, parent_hash_size).combine();
-
-  EXPECT_CALL(*memory_, allocate(hash_size)).WillOnce(Return(value_ptr));
-  EXPECT_CALL(*storage_extension,
-              ext_storage_changes_root(parent_hash_pointer, value_ptr))
-      .WillOnce(Return(hash_size));
-
-  ASSERT_EQ(
-      value_ptr,
-      storage_extension->ext_storage_changes_root_version_1(parent_hash_span));
-}
-
-/**
- * @given initialized storage extension
- * @when ext_storage_root_version_1 is invoked
- * @then wrapped ext_storage_root is properly called
- */
-TEST_F(ExtStorageExtensionWrapperTest, ExtStorageRootV1Test) {
-  auto hash_size = kagome::common::Hash256::size();
-  WasmPointer ptr = 43;
-
-  EXPECT_CALL(*memory_, allocate(hash_size)).WillOnce(Return(ptr));
-  EXPECT_CALL(*storage_extension, ext_storage_root(ptr)).WillOnce(Return());
-
-  ASSERT_EQ(ptr, storage_extension->ext_storage_root_version_1());
 }
 
 /**

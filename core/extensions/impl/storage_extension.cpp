@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/storage_extension_impl.hpp"
+#include "extensions/impl/storage_extension.hpp"
 
 #include <forward_list>
 
@@ -20,7 +20,7 @@ namespace {
 }
 
 namespace kagome::extensions {
-  StorageExtensionImpl::StorageExtensionImpl(
+  StorageExtension::StorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<runtime::WasmMemory> memory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
@@ -35,8 +35,8 @@ namespace kagome::extensions {
 
   // -------------------------Data storage--------------------------
 
-  void StorageExtensionImpl::ext_clear_prefix(runtime::WasmPointer prefix_data,
-                                              runtime::WasmSize prefix_length) {
+  void StorageExtension::ext_clear_prefix(runtime::WasmPointer prefix_data,
+                                          runtime::WasmSize prefix_length) {
     auto batch = storage_provider_->getCurrentBatch();
     auto prefix = memory_->loadN(prefix_data, prefix_length);
     auto res = batch->clearPrefix(prefix);
@@ -45,8 +45,8 @@ namespace kagome::extensions {
     }
   }
 
-  void StorageExtensionImpl::ext_clear_storage(runtime::WasmPointer key_data,
-                                               runtime::WasmSize key_length) {
+  void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
+                                           runtime::WasmSize key_length) {
     auto batch = storage_provider_->getCurrentBatch();
     auto key = memory_->loadN(key_data, key_length);
     auto del_result = batch->remove(key);
@@ -59,14 +59,14 @@ namespace kagome::extensions {
     }
   }
 
-  runtime::WasmSize StorageExtensionImpl::ext_exists_storage(
+  runtime::WasmSize StorageExtension::ext_exists_storage(
       runtime::WasmPointer key_data, runtime::WasmSize key_length) const {
     auto batch = storage_provider_->getCurrentBatch();
     auto key = memory_->loadN(key_data, key_length);
     return batch->contains(key) ? 1 : 0;
   }
 
-  runtime::WasmPointer StorageExtensionImpl::ext_get_allocated_storage(
+  runtime::WasmPointer StorageExtension::ext_get_allocated_storage(
       runtime::WasmPointer key_data,
       runtime::WasmSize key_length,
       runtime::WasmPointer len_ptr) {
@@ -97,7 +97,7 @@ namespace kagome::extensions {
     return data_ptr;
   }
 
-  runtime::WasmSize StorageExtensionImpl::ext_get_storage_into(
+  runtime::WasmSize StorageExtension::ext_get_storage_into(
       runtime::WasmPointer key_data,
       runtime::WasmSize key_length,
       runtime::WasmPointer value_data,
@@ -122,7 +122,7 @@ namespace kagome::extensions {
     return data.value().size();
   }
 
-  runtime::WasmSpan StorageExtensionImpl::ext_storage_read_version_1(
+  runtime::WasmSpan StorageExtension::ext_storage_read_version_1(
       runtime::WasmSpan key_pos,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
@@ -139,11 +139,10 @@ namespace kagome::extensions {
     return kErrorSpan;
   }
 
-  void StorageExtensionImpl::ext_set_storage(
-      const runtime::WasmPointer key_data,
-      runtime::WasmSize key_length,
-      const runtime::WasmPointer value_data,
-      runtime::WasmSize value_length) {
+  void StorageExtension::ext_set_storage(const runtime::WasmPointer key_data,
+                                         runtime::WasmSize key_length,
+                                         const runtime::WasmPointer value_data,
+                                         runtime::WasmSize value_length) {
     auto key = memory_->loadN(key_data, key_length);
     auto value = memory_->loadN(value_data, value_length);
 
@@ -172,7 +171,7 @@ namespace kagome::extensions {
 
   // -------------------------Trie operations--------------------------
 
-  void StorageExtensionImpl::ext_blake2_256_enumerated_trie_root(
+  void StorageExtension::ext_blake2_256_enumerated_trie_root(
       runtime::WasmPointer values_data,
       runtime::WasmPointer lengths_data,
       runtime::WasmSize values_num,
@@ -199,7 +198,7 @@ namespace kagome::extensions {
     }
   }
 
-  runtime::WasmSize StorageExtensionImpl::ext_storage_changes_root(
+  runtime::WasmSize StorageExtension::ext_storage_changes_root(
       runtime::WasmPointer parent_hash_data, runtime::WasmPointer result) {
     if (not storage_provider_->isCurrentlyPersistent()) {
       logger_->error(
@@ -261,8 +260,7 @@ namespace kagome::extensions {
     return result_buf.size();
   }
 
-  void StorageExtensionImpl::ext_storage_root(
-      runtime::WasmPointer result) const {
+  void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
       auto res = opt_batch.value()->commit();
@@ -284,7 +282,7 @@ namespace kagome::extensions {
     }
   }
 
-  outcome::result<common::Buffer> StorageExtensionImpl::get(
+  outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key,
       runtime::WasmSize offset,
       runtime::WasmSize max_length) const {
@@ -298,14 +296,14 @@ namespace kagome::extensions {
         data.begin() + offset, data.begin() + offset + data_length));
   }
 
-  outcome::result<common::Buffer> StorageExtensionImpl::get(
+  outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     return batch->get(key);
   }
 
-  outcome::result<boost::optional<Buffer>>
-  StorageExtensionImpl::getStorageNextKey(const common::Buffer &key) const {
+  outcome::result<boost::optional<Buffer>> StorageExtension::getStorageNextKey(
+      const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     auto cursor = batch->cursor();
     OUTCOME_TRY(cursor->seek(key));
@@ -317,14 +315,14 @@ namespace kagome::extensions {
     return boost::none;
   }
 
-  void StorageExtensionImpl::ext_storage_set_version_1(
-      runtime::WasmSpan key, runtime::WasmSpan value) {
+  void StorageExtension::ext_storage_set_version_1(runtime::WasmSpan key,
+                                                   runtime::WasmSpan value) {
     auto [key_ptr, key_size] = runtime::WasmResult(key);
     auto [value_ptr, value_size] = runtime::WasmResult(value);
     ext_set_storage(key_ptr, key_size, value_ptr, value_size);
   }
 
-  runtime::WasmSpan StorageExtensionImpl::ext_storage_get_version_1(
+  runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
     auto [key_ptr, key_size] = runtime::WasmResult(key);
     auto key_buffer = memory_->loadN(key_ptr, key_size);
@@ -345,33 +343,32 @@ namespace kagome::extensions {
     return memory_->storeBuffer(data.value());
   }
 
-  void StorageExtensionImpl::ext_storage_clear_version_1(
+  void StorageExtension::ext_storage_clear_version_1(
       runtime::WasmSpan key_data) {
     auto [key_ptr, key_size] = runtime::WasmResult(key_data);
     ext_clear_storage(key_ptr, key_size);
   }
 
-  runtime::WasmSize StorageExtensionImpl::ext_storage_exists_version_1(
+  runtime::WasmSize StorageExtension::ext_storage_exists_version_1(
       runtime::WasmSpan key_data) const {
     auto [key_ptr, key_size] = runtime::WasmResult(key_data);
     return ext_exists_storage(key_ptr, key_size);
   }
 
-  void StorageExtensionImpl::ext_storage_clear_prefix_version_1(
+  void StorageExtension::ext_storage_clear_prefix_version_1(
       runtime::WasmSpan prefix) {
     auto [prefix_ptr, prefix_size] = runtime::WasmResult(prefix);
     return ext_clear_prefix(prefix_ptr, prefix_size);
   }
 
-  runtime::WasmPointer StorageExtensionImpl::ext_storage_root_version_1()
-      const {
+  runtime::WasmPointer StorageExtension::ext_storage_root_version_1() const {
     auto hash_size = common::Hash256::size();
     auto ptr = memory_->allocate(hash_size);
     ext_storage_root(ptr);
     return ptr;
   }
 
-  runtime::WasmPointer StorageExtensionImpl::ext_storage_changes_root_version_1(
+  runtime::WasmPointer StorageExtension::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash_data) {
     auto hash_size = common::Hash256::size();
     auto result = memory_->allocate(hash_size);
@@ -384,7 +381,7 @@ namespace kagome::extensions {
     return result;
   }
 
-  runtime::WasmSpan StorageExtensionImpl::ext_storage_next_key_version_1(
+  runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
       runtime::WasmSpan key_span) const {
     static constexpr runtime::WasmSpan kErrorSpan = -1;
 
@@ -420,7 +417,7 @@ namespace kagome::extensions {
     using ValuesCollection = std::vector<common::Buffer>;
   }  // namespace
 
-  runtime::WasmPointer StorageExtensionImpl::ext_trie_blake2_256_root_version_1(
+  runtime::WasmPointer StorageExtension::ext_trie_blake2_256_root_version_1(
       runtime::WasmSpan values_data) {
     auto [ptr, size] = runtime::WasmResult(values_data);
     const auto &buffer = memory_->loadN(ptr, size);
@@ -458,7 +455,7 @@ namespace kagome::extensions {
   }
 
   runtime::WasmPointer
-  StorageExtensionImpl::ext_trie_blake2_256_ordered_root_version_1(
+  StorageExtension::ext_trie_blake2_256_ordered_root_version_1(
       runtime::WasmSpan values_data) {
     auto [ptr, size] = runtime::WasmResult(values_data);
     const auto &buffer = memory_->loadN(ptr, size);
