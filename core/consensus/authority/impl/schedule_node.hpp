@@ -13,6 +13,8 @@ namespace kagome::authority {
 
   class ScheduleNode : public std::enable_shared_from_this<ScheduleNode> {
    public:
+    ScheduleNode() = default;
+
     ScheduleNode(const std::shared_ptr<ScheduleNode> &ancestor,
                  primitives::BlockInfo block)
         : block(std::move(block)), parent(ancestor) {
@@ -24,7 +26,7 @@ namespace kagome::authority {
     std::shared_ptr<ScheduleNode> makeDescendant(
         const primitives::BlockInfo &block);
 
-    const primitives::BlockInfo block;
+    const primitives::BlockInfo block{};
     std::weak_ptr<ScheduleNode> parent;
     std::vector<std::shared_ptr<ScheduleNode>> descendants{};
 
@@ -49,6 +51,66 @@ namespace kagome::authority {
     // For resume
     primitives::BlockNumber resume_for = inactive;
   };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const ScheduleNode &b) {
+    s << b.block << b.actual_authorities << b.enabled;
+    if (b.scheduled_after != ScheduleNode::inactive) {
+      s << b.scheduled_after << b.scheduled_authorities;
+    } else {
+      s << 0;
+    }
+    if (b.forced_for != ScheduleNode::inactive) {
+      s << b.forced_for << b.forced_authorities;
+    } else {
+      s << 0;
+    }
+    if (b.pause_after != ScheduleNode::inactive) {
+      s << b.pause_after;
+    } else {
+      s << 0;
+    }
+    if (b.resume_for != ScheduleNode::inactive) {
+      s << b.resume_for;
+    } else {
+      s << 0;
+    }
+    s << b.descendants;
+    return s;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, ScheduleNode &b) {
+    s >> const_cast<primitives::BlockInfo &>(b.block)  // NOLINT
+        >> b.actual_authorities >> b.enabled;
+    primitives::BlockNumber bn;
+    if (s >> bn, bn) {
+      b.scheduled_after = bn;
+      s >> b.scheduled_authorities;
+    } else {
+      b.scheduled_after = ScheduleNode::inactive;
+    }
+    if (s >> bn, bn) {
+      b.forced_for = bn;
+      s >> b.forced_authorities;
+    } else {
+      b.scheduled_after = ScheduleNode::inactive;
+    }
+    if (s >> bn, bn) {
+      b.pause_after = bn;
+    } else {
+      b.pause_after = ScheduleNode::inactive;
+    }
+    if (s >> bn, bn) {
+      b.resume_for = bn;
+    } else {
+      b.resume_for = ScheduleNode::inactive;
+    }
+    s >> b.descendants;
+    return s;
+  }
 
 }  // namespace kagome::authority
 
