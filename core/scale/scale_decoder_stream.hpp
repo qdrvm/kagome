@@ -12,6 +12,7 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 #include <gsl/span>
+
 #include "common/outcome_throw.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
 
@@ -32,7 +33,9 @@ namespace kagome::scale {
      */
     template <class F, class S>
     ScaleDecoderStream &operator>>(std::pair<F, S> &p) {
-      return *this >> p.first >> p.second;
+      static_assert(!std::is_reference_v<F> && !std::is_reference_v<S>);
+      return *this >> const_cast<std::remove_const_t<F> &>(p.first)  // NOLINT
+             >> const_cast<std::remove_const_t<S> &>(p.second);      // NOLINT
     }
 
     /**
@@ -142,15 +145,12 @@ namespace kagome::scale {
       bool has_value = false;
       *this >> has_value;
       if (!has_value) {
-        v = boost::none;
+        v.reset();
         return *this;
       }
       // decode value
-      T t{};
-      *this >> t;
-      v = t;
-
-      return *this;
+      v.emplace();
+      return *this >> const_cast<std::remove_const_t<T> &>(*v);  // NOLINT
     }
 
     /**
@@ -161,14 +161,13 @@ namespace kagome::scale {
     ScaleDecoderStream &operator>>(CompactInteger &v);
 
     /**
-     * @brief decodes collection of items
+     * @brief decodes vector of items
      * @tparam T item type
-     * @param v reference to collection
+     * @param v reference to vector
      * @return reference to stream
      */
     template <class T>
     ScaleDecoderStream &operator>>(std::vector<T> &v) {
-      v.clear();
       CompactInteger size{0u};
       *this >> size;
 
@@ -178,12 +177,15 @@ namespace kagome::scale {
         common::raise(DecodeError::TOO_MANY_ITEMS);
       }
       auto item_count = size.convert_to<size_type>();
-      v.reserve(item_count);
+
+      std::vector<std::remove_const_t<T>> vec;
+      vec.resize(item_count);
+
       for (size_type i = 0u; i < item_count; ++i) {
-        T t{};
-        *this >> t;
-        v.push_back(std::move(t));
+        *this >> vec[i];
       }
+
+      v.swap(vec);
       return *this;
     }
 
@@ -221,14 +223,11 @@ namespace kagome::scale {
      * @param a reference to the array
      * @return reference to stream
      */
-    template <typename T, size_t size>
+    template <class T, size_t size>
     ScaleDecoderStream &operator>>(std::array<T, size> &a) {
-      // TODO(akvinikym) PRE-285: bad implementation: maybe move to another file
-      // and implement it
-      std::vector<T> v;
-      v.reserve(size);
-      *this >> v;
-      std::copy(v.begin(), v.end(), a.begin());
+      for (size_t i = 0u; i < size; ++i) {
+        *this >> const_cast<std::remove_const_t<T> &>(a[i]);  // NOLINT
+      }
       return *this;
     }
 
