@@ -59,6 +59,34 @@ namespace kagome::scale {
     }
 
     /**
+     * @brief scale-decodes shared_ptr value
+     * @tparam T value type
+     * @param v value to decode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleDecoderStream &operator>>(std::shared_ptr<T> &v) {
+      auto sptr = std::make_shared<std::remove_const_t<T>>();
+      *this >> *sptr;
+      v = sptr;
+      return *this;
+    }
+
+    /**
+     * @brief scale-decodes unique_ptr value
+     * @tparam T value type
+     * @param v value to decode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleDecoderStream &operator>>(std::unique_ptr<T> &v) {
+      auto uptr = std::make_unique<std::remove_const_t<T>>();
+      *this >> *uptr;
+      v = uptr;
+      return *this;
+    }
+
+    /**
      * @brief scale-encodes any integral type including bool
      * @tparam T integral type
      * @param v value of integral type

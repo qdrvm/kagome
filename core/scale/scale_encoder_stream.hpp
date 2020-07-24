@@ -64,6 +64,28 @@ namespace kagome::scale {
     }
 
     /**
+     * @brief scale-encodes sharead_ptr value
+     * @tparam T type list
+     * @param v value to encode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleEncoderStream &operator<<(const std::shared_ptr<T> &v) {
+      return *this << *v;
+    }
+
+    /**
+     * @brief scale-encodes unique_ptr value
+     * @tparam T type list
+     * @param v value to encode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleEncoderStream &operator<<(const std::unique_ptr<T> &v) {
+      return *this << *v;
+    }
+
+    /**
      * @brief scale-encodes collection of same time items
      * @tparam T type of item
      * @param c collection to encode
