@@ -60,9 +60,8 @@ namespace kagome::subscription {
     }
 
     void subscribe(KeyType const &key) {
-      std::lock_guard<std::mutex> lock(subscriptions_cs_);
-      auto &&[it, inserted] = subscriptions_.emplace(
-          std::make_pair(key, typename SubscriptionEngineType::IteratorType{}));
+      std::lock_guard lock(subscriptions_cs_);
+      auto &&[it, inserted] = subscriptions_.emplace(key, typename SubscriptionEngineType::IteratorType{});
 
       /// Here we check first local subscriptions because of strong connection
       /// with SubscriptionEngine.
