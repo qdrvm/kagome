@@ -9,14 +9,14 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-#include <crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
-#include <crypto/random_generator/boost_generator.hpp>
 #include <fstream>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
+#include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"

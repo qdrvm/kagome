@@ -75,6 +75,17 @@ namespace kagome::scale {
     }
 
     /**
+     * @brief scale-encodes collection of same time items
+     * @tparam T type of item
+     * @param c collection to encode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleEncoderStream &operator<<(const std::list<T> &c) {
+      return encodeCollection(c.size(), c.begin(), c.end());
+    }
+
+    /**
      * @brief scale-encodes optional value
      * @tparam T value type
      * @param v value to encode

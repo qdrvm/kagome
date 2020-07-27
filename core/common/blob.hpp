@@ -112,7 +112,7 @@ namespace kagome::common {
      * @return
      */
     static outcome::result<Blob<size_>> fromSpan(
-        const gsl::span<uint8_t> &span) {
+        const gsl::span<const uint8_t> &span) {
       if (span.size() != size_) {
         return BlobError::INCORRECT_LENGTH;
       }
