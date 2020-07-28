@@ -98,11 +98,8 @@ class WasmExecutorTest : public ::testing::Test {
                                                           secp256k1_provider,
                                                           bip39_provider,
                                                           random_generator);
-    auto core_factory = std::make_shared<CoreFactoryImpl>();
-
     auto extension_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
-            core_factory,
             std::make_shared<ChangesTrackerMock>(),
             sr25519_provider,
             ed25519_provider,

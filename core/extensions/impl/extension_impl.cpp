@@ -19,7 +19,6 @@ namespace kagome::extensions {
   ExtensionImpl::ExtensionImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-      std::shared_ptr<runtime::CoreFactory> core_factory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
       std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
       std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
@@ -38,7 +37,7 @@ namespace kagome::extensions {
                     std::move(bip39_provider)),
         io_ext_(memory),
         memory_ext_(memory),
-        misc_ext_(42, memory, std::move(core_factory)),
+        misc_ext_(42, memory),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);

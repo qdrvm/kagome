@@ -10,6 +10,8 @@
 
 namespace kagome::runtime {
 
+  class RuntimeManager;
+
   class CoreFactory {
    public:
     virtual ~CoreFactory() = default;

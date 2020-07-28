@@ -87,15 +87,8 @@ class RuntimeTest : public ::testing::Test {
     changes_tracker_ =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
 
-    auto core_factory =
-        std::make_shared<kagome::runtime::binaryen::CoreFactoryImpl>(
-            wasm_provider_,
-            changes_tracker_,
-            );
-
     auto extension_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
-            core_factory,
             changes_tracker_,
             sr25519_provider,
             ed25519_provider,

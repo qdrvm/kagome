@@ -25,6 +25,7 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
     ~CoreFactoryImpl() override = default;
+
     std::unique_ptr<Core> createWithCode(
         std::shared_ptr<WasmProvider> wasm_provider) override;
 

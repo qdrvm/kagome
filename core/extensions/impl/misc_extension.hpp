@@ -7,16 +7,20 @@
 #define KAGOME_MISC_EXTENSION_HPP
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 
 #include "common/logger.hpp"
+#include "outcome/outcome.hpp"
 #include "runtime/types.hpp"
 #include "runtime/wasm_result.hpp"
 
 namespace kagome::runtime {
   class WasmMemory;
   class CoreFactory;
-}
+  class Core;
+  class WasmProvider;
+}  // namespace kagome::runtime
 
 namespace kagome::extensions {
   /**
@@ -24,9 +28,13 @@ namespace kagome::extensions {
    */
   class MiscExtension final {
    public:
+    using CoreFactoryMethod =
+        std::function<std::unique_ptr<runtime::Core>(
+            std::shared_ptr<runtime::WasmProvider>)>;
+
     MiscExtension(uint64_t chain_id,
                   std::shared_ptr<runtime::WasmMemory> memory,
-                  std::shared_ptr<runtime::CoreFactory> core_factory);
+                  CoreFactoryMethod core_factory_method);
 
     ~MiscExtension() = default;
 
@@ -39,8 +47,8 @@ namespace kagome::extensions {
         runtime::WasmSpan data) const;
 
    private:
+    CoreFactoryMethod core_factory_method_;
     std::shared_ptr<runtime::WasmMemory> memory_;
-    std::shared_ptr<runtime::CoreFactory> core_factory_;
     common::Logger logger_;
     const uint64_t chain_id_ = 42;
   };

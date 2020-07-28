@@ -23,9 +23,6 @@ namespace kagome::runtime {
     constexpr WasmResult(WasmPointer ptr, WasmSize size)
         : address{ptr}, length{size} {}
 
-    WasmPointer address = 0u;  ///< address of buffer result
-    WasmSize length = 0u;      ///< length of buffer result
-
     /**
      * @brief makes combined pointer-size result from address
      * @return pointer-size uint64_t value
@@ -34,6 +31,13 @@ namespace kagome::runtime {
       return static_cast<WasmSpan>(address)
              | (static_cast<WasmSpan>(length) << 32ull);
     }
+
+    bool operator==(const WasmResult& rhs) const {
+        return address == rhs.address and length == rhs.length;
+    }
+
+    WasmPointer address = 0u;  ///< address of buffer result
+    WasmSize length = 0u;      ///< length of buffer result
   };
 }  // namespace kagome::runtime
 

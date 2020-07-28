@@ -41,9 +41,9 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(hasher_);
   }
 
-  outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createPersistentRuntimeEnvironmentAt(const common::Buffer &state_code,
-      const common::Hash256 &state_root) {
+  outcome::result<RuntimeEnvironment>
+  RuntimeManager::createPersistentRuntimeEnvironmentAt(
+      const common::Buffer &state_code, const common::Hash256 &state_root) {
     OUTCOME_TRY(storage_provider_->setToPersistentAt(state_root));
     auto env = createRuntimeEnvironment(state_code);
     if (env.has_value()) {
@@ -53,15 +53,16 @@ namespace kagome::runtime::binaryen {
     return env;
   }
 
-  outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createEphemeralRuntimeEnvironmentAt(const common::Buffer &state_code,
-      const common::Hash256 &state_root) {
+  outcome::result<RuntimeEnvironment>
+  RuntimeManager::createEphemeralRuntimeEnvironmentAt(
+      const common::Buffer &state_code, const common::Hash256 &state_root) {
     OUTCOME_TRY(storage_provider_->setToEphemeralAt(state_root));
     return createRuntimeEnvironment(state_code);
   }
 
-  outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createPersistentRuntimeEnvironment(const common::Buffer &state_code) {
+  outcome::result<RuntimeEnvironment>
+  RuntimeManager::createPersistentRuntimeEnvironment(
+      const common::Buffer &state_code) {
     OUTCOME_TRY(storage_provider_->setToPersistent());
     auto env = createRuntimeEnvironment(state_code);
     if (env.has_value()) {
@@ -71,14 +72,15 @@ namespace kagome::runtime::binaryen {
     return env;
   }
 
-  outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createEphemeralRuntimeEnvironment(const common::Buffer &state_code) {
+  outcome::result<RuntimeEnvironment>
+  RuntimeManager::createEphemeralRuntimeEnvironment(
+      const common::Buffer &state_code) {
     OUTCOME_TRY(storage_provider_->setToEphemeral());
     return createRuntimeEnvironment(state_code);
   }
 
-  outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::createRuntimeEnvironment(const common::Buffer &state_code) {
+  outcome::result<RuntimeEnvironment> RuntimeManager::createRuntimeEnvironment(
+      const common::Buffer &state_code) {
     if (state_code.empty()) {
       return Error::EMPTY_STATE_CODE;
     }
@@ -96,7 +98,7 @@ namespace kagome::runtime::binaryen {
       }
     }
 
-    if(external_interface_ == nullptr) {
+    if (external_interface_ == nullptr) {
       external_interface_ = std::make_shared<RuntimeExternalInterface>(
           extension_factory_, storage_provider_);
     }
@@ -110,12 +112,11 @@ namespace kagome::runtime::binaryen {
       // Trying to safe emplace new module, and use existed one
       //  if it already emplaced in another thread
       std::lock_guard lockGuard(modules_mutex_);
-      module = modules_.emplace(hash, std::move(new_module))
-                   .first->second;
+      module = modules_.emplace(hash, std::move(new_module)).first->second;
     }
 
-    return RuntimeManager::RuntimeEnvironment{
-        module->instantiate(external_interface_), external_interface_->memory(), boost::none};
+    return RuntimeEnvironment::create(
+        external_interface_, module, state_code);
   }
 
 }  // namespace kagome::runtime::binaryen

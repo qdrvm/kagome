@@ -10,7 +10,6 @@
 namespace kagome::extensions {
 
   ExtensionFactoryImpl::ExtensionFactoryImpl(
-      std::shared_ptr<runtime::CoreFactory> core_factory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
       std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
       std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
@@ -18,15 +17,13 @@ namespace kagome::extensions {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
       std::shared_ptr<crypto::Bip39Provider> bip39_provider)
-      : core_factory_{std::move(core_factory)},
-        changes_tracker_{std::move(tracker)},
+      : changes_tracker_{std::move(tracker)},
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
         crypto_store_(std::move(crypto_store)),
         bip39_provider_(std::move(bip39_provider)) {
-    BOOST_ASSERT(changes_tracker_ != nullptr);
     BOOST_ASSERT(changes_tracker_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
@@ -41,7 +38,6 @@ namespace kagome::extensions {
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const {
     return std::make_unique<ExtensionImpl>(memory,
                                            storage_provider,
-                                           core_factory_,
                                            changes_tracker_,
                                            sr25519_provider_,
                                            ed25519_provider_,

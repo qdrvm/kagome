@@ -23,7 +23,6 @@ namespace kagome::extensions {
     ExtensionImpl(
         const std::shared_ptr<runtime::WasmMemory> &memory,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-        std::shared_ptr<runtime::CoreFactory> core_factory,
         std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
         std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
         std::shared_ptr<crypto::ED25519Provider> ed25519_provider,

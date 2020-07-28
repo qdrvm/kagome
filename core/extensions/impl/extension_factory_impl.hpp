@@ -16,10 +16,6 @@
 #include "crypto/sr25519_provider.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
-namespace kagome::runtime {
-  class CoreFactory;
-}
-
 namespace kagome::extensions {
 
   class ExtensionFactoryImpl : public ExtensionFactory {
@@ -27,7 +23,6 @@ namespace kagome::extensions {
     ~ExtensionFactoryImpl() override = default;
 
     ExtensionFactoryImpl(
-        std::shared_ptr<runtime::CoreFactory> core_factory,
         std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
         std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
         std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
@@ -42,7 +37,6 @@ namespace kagome::extensions {
         const override;
 
    private:
-    std::shared_ptr<runtime::CoreFactory> core_factory_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;

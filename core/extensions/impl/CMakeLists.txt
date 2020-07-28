@@ -45,6 +45,8 @@ target_link_libraries(misc_extension
     scale
     logger
     const_wasm_provider
+    outcome
+    blob
     )
 kagome_install(misc_extension)
 

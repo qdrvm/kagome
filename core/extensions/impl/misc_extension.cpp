@@ -15,13 +15,12 @@ namespace kagome::extensions {
   MiscExtension::MiscExtension(
       uint64_t chain_id,
       std::shared_ptr<runtime::WasmMemory> memory,
-      std::shared_ptr<runtime::CoreFactory> core_factory)
-      : memory_{std::move(memory)},
-        core_factory_{std::move(core_factory)},
+      CoreFactoryMethod core_factory_method)
+      : core_factory_method_{std::move(core_factory_method)},
+        memory_{std::move(memory)},
         logger_{common::createLogger("MiscExtension")},
         chain_id_{chain_id} {
     BOOST_ASSERT(memory_);
-    BOOST_ASSERT(core_factory_);
   }
 
   uint64_t MiscExtension::ext_chain_id() const {
@@ -34,7 +33,7 @@ namespace kagome::extensions {
     auto code = memory_->loadN(ptr, len);
     auto wasm_provider =
         std::make_shared<runtime::ConstWasmProvider>(std::move(code));
-    auto core = core_factory_->createWithCode(wasm_provider);
+    auto core = core_factory_method_(wasm_provider);
     auto version_res = core->version(boost::none);
 
     auto error_res =

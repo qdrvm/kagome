@@ -15,6 +15,7 @@
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "extensions/extension_factory.hpp"
+#include "runtime/binaryen/runtime_environment.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"

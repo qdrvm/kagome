@@ -90,8 +90,7 @@ namespace kagome::runtime::binaryen {
                      "storage provider is nullptr");
     auto memory_impl =
         std::make_shared<WasmMemoryImpl>(&(ShellExternalInterface::memory));
-    extension_ = extension_factory->createExtension(
-        memory_impl, std::move(storage_provider));
+    extension_ = extension_factory->createExtension(memory_impl, std::move(storage_provider));
   }
 
   wasm::Literal RuntimeExternalInterface::callImport(
