@@ -21,6 +21,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
@@ -98,6 +99,8 @@ class WasmExecutorTest : public ::testing::Test {
                                                           secp256k1_provider,
                                                           bip39_provider,
                                                           random_generator);
+    auto changes_tracker =
+        std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
     auto extension_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
             std::make_shared<ChangesTrackerMock>(),
@@ -106,7 +109,15 @@ class WasmExecutorTest : public ::testing::Test {
             secp256k1_provider,
             hasher,
             crypto_store,
-            bip39_provider);
+            bip39_provider, [this, changes_tracker](
+    std::shared_ptr<kagome::runtime::WasmProvider> wasm_provider) {
+      kagome::runtime::binaryen::CoreFactoryImpl factory(
+          runtime_manager_,
+          changes_tracker,
+          std::make_shared<
+              kagome::blockchain::BlockHeaderRepositoryMock>());
+      return factory.createWithCode(std::move(wasm_provider));
+    });
 
     auto module_factory =
         std::make_shared<kagome::runtime::binaryen::WasmModuleFactoryImpl>();

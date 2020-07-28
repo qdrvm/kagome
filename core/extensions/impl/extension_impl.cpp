@@ -25,7 +25,8 @@ namespace kagome::extensions {
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<crypto::Bip39Provider> bip39_provider)
+      std::shared_ptr<crypto::Bip39Provider> bip39_provider,
+      MiscExtension::CoreFactoryMethod core_factory_method)
       : memory_(memory),
         storage_provider_(std::move(storage_provider)),
         crypto_ext_(memory,
@@ -37,7 +38,7 @@ namespace kagome::extensions {
                     std::move(bip39_provider)),
         io_ext_(memory),
         memory_ext_(memory),
-        misc_ext_(42, memory),
+        misc_ext_(42, memory, std::move(core_factory_method)),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);

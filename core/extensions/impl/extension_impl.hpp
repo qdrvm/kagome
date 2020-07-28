@@ -29,7 +29,8 @@ namespace kagome::extensions {
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
+        std::shared_ptr<crypto::Bip39Provider> bip39_provider,
+        MiscExtension::CoreFactoryMethod core_factory_method);
 
     ~ExtensionImpl() override = default;
 
