@@ -68,8 +68,8 @@
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
-#include "runtime/binaryen/module/wasm_module_impl.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
+#include "runtime/binaryen/module/wasm_module_impl.hpp"
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
@@ -78,6 +78,7 @@
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
+#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -332,6 +333,43 @@ namespace kagome::injector {
       common::raise(tree.error());
     }
     initialized = tree.value();
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<extensions::ExtensionFactoryImpl> get_extension_factory(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<extensions::ExtensionFactoryImpl>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto tracker =
+        injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
+    auto sr25519_provider =
+        injector.template create<sptr<crypto::SR25519Provider>>();
+    auto ed25519_provider =
+        injector.template create<sptr<crypto::ED25519Provider>>();
+    auto secp256k1_provider =
+        injector.template create<sptr<crypto::Secp256k1Provider>>();
+    auto hasher = injector.template create<sptr<crypto::Hasher>>();
+    auto crypto_store = injector.template create<sptr<crypto::CryptoStore>>();
+    auto bip39_provider =
+        injector.template create<sptr<crypto::Bip39Provider>>();
+
+    auto core_factory_method = [&injector](sptr<runtime::WasmProvider> wasm_provider) {
+      auto core_factory = injector.template create<sptr<runtime::binaryen::CoreFactoryImpl>>();
+      return core_factory->createWithCode(wasm_provider);
+    };
+    initialized =
+        std::make_shared<extensions::ExtensionFactoryImpl>(tracker,
+                                                           sr25519_provider,
+                                                           ed25519_provider,
+                                                           secp256k1_provider,
+                                                           hasher,
+                                                           crypto_store,
+                                                           bip39_provider,
+                                                           core_factory_method);
     return initialized.value();
   }
 
@@ -628,7 +666,10 @@ namespace kagome::injector {
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
+        di::bind<extensions::ExtensionFactory>.template to(
+            [](auto const &injector) {
+              return get_extension_factory(injector);
+            }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
@@ -639,6 +680,7 @@ namespace kagome::injector {
         di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
         di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
         di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
+        di::bind<runtime::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
