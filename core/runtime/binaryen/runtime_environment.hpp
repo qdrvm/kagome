@@ -19,7 +19,7 @@ namespace kagome::common {
 namespace kagome::storage::trie {
   class TopperTrieBatch;
   class TrieBatch;
-}
+}  // namespace kagome::storage::trie
 
 namespace kagome::runtime {
   class WasmMemory;
@@ -30,6 +30,10 @@ namespace kagome::runtime::binaryen {
   class WasmModuleInstance;
   class WasmModule;
 
+  /**
+   * Runtime environment is a structure that contains data necessary to operate
+   * with Runtime: memory, WASM module, storage batch
+   */
   class RuntimeEnvironment {
    public:
     static outcome::result<RuntimeEnvironment> create(
