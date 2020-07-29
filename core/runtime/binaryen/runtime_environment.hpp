@@ -37,8 +37,8 @@ namespace kagome::runtime::binaryen {
   class RuntimeEnvironment {
    public:
     static outcome::result<RuntimeEnvironment> create(
-        std::shared_ptr<RuntimeExternalInterface> rei,
-        std::shared_ptr<WasmModule> module,
+        const std::shared_ptr<RuntimeExternalInterface> &rei,
+        const std::shared_ptr<WasmModule> &module,
         const common::Buffer &state_code);
 
     RuntimeEnvironment(RuntimeEnvironment &&) = default;
@@ -46,6 +46,8 @@ namespace kagome::runtime::binaryen {
 
     RuntimeEnvironment(const RuntimeEnvironment &) = delete;
     RuntimeEnvironment &operator=(const RuntimeEnvironment &) = delete;
+
+    ~RuntimeEnvironment() = default;
 
     std::shared_ptr<WasmModuleInstance> module_instance;
     std::shared_ptr<WasmMemory> memory;

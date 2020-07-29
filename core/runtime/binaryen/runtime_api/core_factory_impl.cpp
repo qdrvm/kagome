@@ -14,7 +14,8 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<RuntimeManager> runtime_manager,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
-      : changes_tracker_{std::move(changes_tracker)},
+      : runtime_manager_{std::move(runtime_manager)},
+        changes_tracker_{std::move(changes_tracker)},
         header_repo_{std::move(header_repo)} {
     BOOST_ASSERT(runtime_manager_);
     BOOST_ASSERT(changes_tracker_);

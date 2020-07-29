@@ -10,7 +10,9 @@
 
 namespace kagome::runtime {
 
-  class RuntimeManager;
+  namespace binaryen {
+    class RuntimeManager;
+  }
 
   /**
    * An abstract factory that enables construction of Core objects over specific

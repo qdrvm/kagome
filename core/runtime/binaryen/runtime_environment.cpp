@@ -11,8 +11,8 @@
 namespace kagome::runtime::binaryen {
 
   outcome::result<RuntimeEnvironment> RuntimeEnvironment::create(
-      std::shared_ptr<RuntimeExternalInterface> rei,
-      std::shared_ptr<WasmModule> module,
+      const std::shared_ptr<RuntimeExternalInterface> &rei,
+      const std::shared_ptr<WasmModule> &module,
 
       const common::Buffer &state_code) {
 
