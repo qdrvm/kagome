@@ -400,6 +400,33 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
 }
 
 /**
+ * @given key_pointer, key_size, value_ptr, value_size
+ * @when ext_storage_set_version_1 is invoked on given key and value
+ * @then provided key and value are put to db
+ */
+TEST_P(OutcomeParameterizedTest, ExtStorageSetV1Test) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  Buffer key(8, 'k');
+
+  WasmPointer value_pointer = 42;
+  WasmSize value_size = 41;
+  Buffer value(8, 'v');
+
+  // expect key and value were loaded
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*memory_, loadN(value_pointer, value_size))
+      .WillOnce(Return(value));
+
+  // expect key-value pair was put to db
+  EXPECT_CALL(*trie_batch_, put(key, value)).WillOnce(Return(GetParam()));
+
+  storage_extension_->ext_storage_set_version_1(
+      WasmResult(key_pointer, key_size).combine(),
+      WasmResult(value_pointer, value_size).combine());
+}
+
+/**
  * @given key, value, offset
  * @when ext_storage_read_version_1 is invoked on given key and value
  * @then data read from db with given key
@@ -466,6 +493,35 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
       values_ptr, lens_ptr, values.size(), result);
 }
 
+/**
+ * @given a set of values, which ordered trie hash we want to calculate from
+ * wasm
+ * @when calling an extension method ext_blake2_256_ordered_trie_root
+ * @then the method reads the data from wasm memory properly and stores the
+ * result in the wasm memory
+ */
+TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
+  auto &[values, hash_array] = GetParam();
+
+  using testing::_;
+  WasmPointer values_ptr = 1;
+  WasmSize values_size = 2;
+  WasmSpan values_data = WasmResult(values_ptr, values_size).combine();
+  WasmPointer result = 1984;
+
+  Buffer buffer{kagome::scale::encode(values).value()};
+
+  EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
+      .WillOnce(Return(buffer));
+
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(hash_array)))
+      .WillOnce(Return(result));
+
+  ASSERT_EQ(result,
+            storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
+                values_data));
+}
+
 INSTANTIATE_TEST_CASE_P(
     Instance,
     BuffersParametrizedTest,
@@ -479,3 +535,125 @@ INSTANTIATE_TEST_CASE_P(
         EnumeratedTrieRootTestCase{
             std::list<Buffer>{},
             "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314"_hex2buf}));
+
+/**
+ * @given key_pointer, key_size, value_ptr, value_size
+ * @when ext_storage_get_version_1 is invoked on given key
+ * @then corresponding value will be returned
+ */
+TEST_F(StorageExtensionTest, StorageGetV1Test) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  Buffer key(8, 'k');
+
+  WasmPointer value_pointer = 42;
+  WasmSize value_size = 41;
+
+  WasmSpan value_span = WasmResult(value_pointer, value_size).combine();
+  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+
+  Buffer value(8, 'v');
+
+  // expect key and value were loaded
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(value)))
+      .WillOnce(Return(value_span));
+
+  // expect key-value pair was put to db
+  EXPECT_CALL(*trie_batch_, get(key)).WillOnce(Return(value));
+
+  ASSERT_EQ(value_span,
+            storage_extension_->ext_storage_get_version_1(key_span));
+}
+
+/**
+ * @given key_pointer and key_size
+ * @when ext_storage_clear_version_1 is invoked on StorageExtension with given
+ * key
+ * @then key is loaded from the memory @and del is invoked on storage
+ */
+TEST_P(OutcomeParameterizedTest, ExtStorageClearV1Test) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  Buffer key(8, 'k');
+  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  // to ensure that it works when remove() returns success or failure
+  EXPECT_CALL(*trie_batch_, remove(key)).WillOnce(Return(GetParam()));
+
+  storage_extension_->ext_storage_clear_version_1(key_span);
+}
+
+/**
+ * @given key pointer and key size
+ * @when ext_storage_exists_version_1 is invoked on StorageExtension with given
+ * key
+ * @then result is the same as result of contains on given key
+ */
+TEST_F(StorageExtensionTest, ExtStorageExistsV1Test) {
+  WasmPointer key_pointer = 43;
+  WasmSize key_size = 43;
+  Buffer key(8, 'k');
+  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+
+  /// result of contains method on db
+  WasmSize contains = 1;
+
+  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
+  EXPECT_CALL(*trie_batch_, contains(key)).WillOnce(Return(contains));
+
+  ASSERT_EQ(contains,
+            storage_extension_->ext_storage_exists_version_1(key_span));
+}
+
+/**
+ * @given prefix_pointer with prefix_length
+ * @when ext_clear_prefix is invoked on StorageExtension with given prefix
+ * @then prefix is loaded from the memory @and clearPrefix is invoked on storage
+ */
+TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
+  WasmPointer prefix_pointer = 42;
+  WasmSize prefix_size = 42;
+  Buffer prefix(8, 'p');
+  WasmSpan prefix_span = WasmResult(prefix_pointer, prefix_size).combine();
+
+  EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
+      .WillOnce(Return(prefix));
+  EXPECT_CALL(*trie_batch_, clearPrefix(prefix))
+      .Times(1)
+      .WillOnce(Return(outcome::success()));
+
+  storage_extension_->ext_storage_clear_prefix_version_1(prefix_span);
+}
+
+/**
+ * @given a set of values, which ordered trie hash we want to calculate from
+ * wasm
+ * @when calling an extension method ext_blake2_256_ordered_trie_root
+ * @then the method reads the data from wasm memory properly and stores the
+ * result in the wasm memory
+ */
+TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
+  std::vector<std::pair<Buffer, Buffer>> dict = {
+      {"a"_buf, "one"_buf}, {"b"_buf, "two"_buf}, {"c"_buf, "three"_buf}};
+  auto hash_array =
+      "eaa57e0e1a41d5a49db5954f95140a4e7c9a4373f7d29c0d667c9978ab4dadcb"_hex2buf;
+
+  using testing::_;
+  WasmPointer values_ptr = 1;
+  WasmSize values_size = 2;
+  WasmSpan dict_data = WasmResult(values_ptr, values_size).combine();
+  WasmPointer result = 1984;
+
+  Buffer buffer{kagome::scale::encode(dict).value()};
+
+  EXPECT_CALL(*memory_, loadN(values_ptr, values_size))
+      .WillOnce(Return(buffer));
+
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(hash_array)))
+      .WillOnce(Return(result));
+
+  ASSERT_EQ(result,
+            storage_extension_->ext_trie_blake2_256_root_version_1(dict_data));
+}

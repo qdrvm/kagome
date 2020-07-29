@@ -92,7 +92,47 @@ namespace kagome::extensions {
                       runtime::WasmSize len,
                       runtime::WasmPointer out);
 
-    // -------------------- runtime api version 1 methods --------------------
+    // -------------------- hashing methods v1 --------------------
+
+    /**
+     * @see Extension::ext_hashing_keccak_256_version_1
+     */
+    runtime::WasmPointer ext_hashing_keccak_256_version_1(
+        runtime::WasmSpan data);
+
+    /**
+     * @see Extension::ext_hashing_sha2_256_version_1
+     */
+    runtime::WasmPointer ext_hashing_sha2_256_version_1(runtime::WasmSpan data);
+
+    /**
+     * @see Extension::ext_hashing_blake2_128_version_1
+     */
+    runtime::WasmPointer ext_hashing_blake2_128_version_1(
+        runtime::WasmSpan data);
+
+    /**
+     * @see Extension::ext_hashing_blake2_256_version_1
+     */
+    runtime::WasmPointer ext_hashing_blake2_256_version_1(
+        runtime::WasmSpan data);
+
+    /**
+     * @see Extension::ext_hashing_twox_64_version_1
+     */
+    runtime::WasmPointer ext_hashing_twox_64_version_1(runtime::WasmSpan data);
+
+    /**
+     * @see Extension::ext_hashing_twox_128_version_1
+     */
+    runtime::WasmPointer ext_hashing_twox_128_version_1(runtime::WasmSpan data);
+
+    /**
+     * @see Extension::ext_hashing_twox_256_version_1
+     */
+    runtime::WasmPointer ext_hashing_twox_256_version_1(runtime::WasmSpan data);
+
+    // -------------------- crypto methods v1 --------------------
 
     /**
      * @see Extension::ext_ed25519_public_keys

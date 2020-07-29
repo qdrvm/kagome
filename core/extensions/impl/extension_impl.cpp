@@ -116,6 +116,55 @@ namespace kagome::extensions {
     return storage_ext_.ext_storage_root(result);
   }
 
+  runtime::WasmSpan ExtensionImpl::ext_storage_next_key_version_1(
+      runtime::WasmSpan key) const {
+    return storage_ext_.ext_storage_next_key_version_1(key);
+  }
+
+  void ExtensionImpl::ext_storage_set_version_1(runtime::WasmSpan key,
+                                                runtime::WasmSpan value) {
+    return storage_ext_.ext_storage_set_version_1(key, value);
+  }
+
+  runtime::WasmSpan ExtensionImpl::ext_storage_get_version_1(
+      runtime::WasmSpan key) {
+    return storage_ext_.ext_storage_get_version_1(key);
+  }
+
+  void ExtensionImpl::ext_storage_clear_version_1(runtime::WasmSpan key_data) {
+    return storage_ext_.ext_storage_clear_version_1(key_data);
+  }
+
+  runtime::WasmSize ExtensionImpl::ext_storage_exists_version_1(
+      runtime::WasmSpan key_data) const {
+    return storage_ext_.ext_storage_exists_version_1(key_data);
+  }
+
+  void ExtensionImpl::ext_storage_clear_prefix_version_1(
+      runtime::WasmSpan prefix) {
+    return storage_ext_.ext_storage_clear_prefix_version_1(prefix);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_storage_root_version_1() {
+    return storage_ext_.ext_storage_root_version_1();
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_storage_changes_root_version_1(
+      runtime::WasmSpan parent_hash) {
+    return storage_ext_.ext_storage_changes_root_version_1(parent_hash);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_trie_blake2_256_root_version_1(
+      runtime::WasmSpan values_data) {
+    return storage_ext_.ext_trie_blake2_256_root_version_1(values_data);
+  }
+
+  runtime::WasmPointer
+  ExtensionImpl::ext_trie_blake2_256_ordered_root_version_1(
+      runtime::WasmSpan values_data) {
+    return storage_ext_.ext_trie_blake2_256_ordered_root_version_1(values_data);
+  }
+
   // -------------------------Memory extensions--------------------------
 
   runtime::WasmPointer ExtensionImpl::ext_malloc(runtime::WasmSize size) {
@@ -124,6 +173,16 @@ namespace kagome::extensions {
 
   void ExtensionImpl::ext_free(runtime::WasmPointer ptr) {
     memory_ext_.ext_free(ptr);
+  }
+
+  // ------------------------Memory extensions v1-------------------------
+  runtime::WasmPointer ExtensionImpl::ext_allocator_malloc_version_1(
+      runtime::WasmSize size) {
+    return memory_ext_.ext_allocator_malloc_version_1(size);
+  }
+
+  void ExtensionImpl::ext_allocator_free_version_1(runtime::WasmPointer ptr) {
+    return memory_ext_.ext_free(ptr);
   }
 
   /// I/O extensions
@@ -250,6 +309,43 @@ namespace kagome::extensions {
       runtime::WasmSpan msg,
       runtime::WasmPointer pubkey_data) {
     return crypto_ext_.ext_sr25519_verify_v1(sig_data, msg, pubkey_data);
+  }
+
+  // ------------------------- Hashing extension/crypto ---------------
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_keccak_256_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_keccak_256_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_sha2_256_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_sha2_256_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_blake2_128_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_blake2_128_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_blake2_256_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_blake2_256_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_twox_64_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_twox_64_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_twox_128_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_twox_128_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_twox_256_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_twox_256_version_1(data);
   }
 
   /// misc extensions
