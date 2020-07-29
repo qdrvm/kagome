@@ -8,10 +8,6 @@
 
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
-#include <crypto/bip39/impl/bip39_provider_impl.hpp>
-#include <crypto/crypto_store/crypto_store_impl.hpp>
-#include <crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
-#include <crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
@@ -53,9 +49,13 @@
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"

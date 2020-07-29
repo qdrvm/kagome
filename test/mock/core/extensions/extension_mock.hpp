@@ -136,6 +136,58 @@ namespace kagome::extensions {
     MOCK_CONST_METHOD0(ext_chain_id, uint64_t());
     MOCK_CONST_METHOD1(ext_misc_runtime_version_version_1, runtime::WasmResult(runtime::WasmSpan));
 
+    // ------------------------ Storage extensions v1 ------------------------
+
+    MOCK_METHOD2(ext_storage_set_version_1,
+                 void(runtime::WasmSpan, runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_storage_get_version_1,
+                 runtime::WasmSpan(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_storage_clear_version_1, void(runtime::WasmSpan));
+
+    MOCK_CONST_METHOD1(ext_storage_exists_version_1,
+                       runtime::WasmSize(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_storage_clear_prefix_version_1, void(runtime::WasmSpan));
+
+    MOCK_METHOD0(ext_storage_root_version_1, runtime::WasmPointer());
+
+    MOCK_METHOD1(ext_storage_changes_root_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
+    MOCK_CONST_METHOD1(ext_storage_next_key_version_1,
+                       runtime::WasmSpan(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_trie_blake2_256_root_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan values_data));
+
+    MOCK_METHOD1(ext_trie_blake2_256_ordered_root_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
+    // -------------------- hashing methods v1 --------------------
+
+    MOCK_METHOD1(ext_hashing_keccak_256_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_hashing_sha2_256_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_hashing_blake2_128_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_hashing_blake2_256_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_hashing_twox_64_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_hashing_twox_128_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_hashing_twox_256_version_1,
+                 runtime::WasmPointer(runtime::WasmSpan));
+
     // -------------------------Crypto extensions v1---------------------
 
     MOCK_METHOD1(ext_ed25519_public_keys_v1,
@@ -179,6 +231,13 @@ namespace kagome::extensions {
     MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_compressed_v1,
                  runtime::WasmSpan(runtime::WasmPointer sig,
                                    runtime::WasmPointer msg));
+
+    // ---------------------------- memory api v1 ----------------------------
+
+    MOCK_METHOD1(ext_allocator_malloc_version_1,
+                 runtime::WasmPointer(runtime::WasmSize));
+
+    MOCK_METHOD1(ext_allocator_free_version_1, void(runtime::WasmPointer));
   };
 
 }  // namespace kagome::extensions

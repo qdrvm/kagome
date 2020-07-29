@@ -208,7 +208,12 @@ class CryptoExtensionTest : public ::testing::Test {
   inline static Buffer keccak_result{
       "65aac3ad8b88cb79396da4c8b6a8cb6b5b74b0f6534a3e4e5e8ad68658feccf4"_unhex};
 
+  inline static Buffer sha2_256_result{
+      "3dabee24d43ded7266178f585eea5c1a6f2c18b316a6f5e946e137f9ef9b5f69"_unhex};
+
   inline static Buffer twox_input{"414243444546"_unhex};
+
+  inline static Buffer twox64_result{184, 65, 176, 250, 243, 129, 181, 3};
 
   inline static Buffer twox128_result{
       184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251};
@@ -809,4 +814,132 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
               storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
       .WillOnce(Return(res));
   ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type, seed_ptr));
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be keccak-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Keccac256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(keccak_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_keccak_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be sha2_256-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Sha2_256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(sha2_256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_sha2_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be blake2_128-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Blake2_128Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(blake2b_128_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_blake2_128_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be blake2_256-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Blake2_256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(blake2b_256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be twox_256-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Twox_256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be twox_128-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Twox_128Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox128_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_128_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be twox_128-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Twox_64Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox64_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_64_version_1(data_span), out_ptr);
 }

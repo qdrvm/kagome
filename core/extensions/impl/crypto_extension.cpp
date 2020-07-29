@@ -197,6 +197,69 @@ namespace kagome::extensions {
 
   // ---------------------- runtime api version 1 methods ----------------------
 
+  runtime::WasmPointer CryptoExtension::ext_hashing_keccak_256_version_1(
+      runtime::WasmSpan data) {
+    auto [ptr, size] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(ptr, size);
+    auto hash = hasher_->keccak_256(buf);
+
+    return memory_->storeBuffer(hash);
+  }
+
+  runtime::WasmPointer CryptoExtension::ext_hashing_sha2_256_version_1(
+      runtime::WasmSpan data) {
+    auto [ptr, size] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(ptr, size);
+    auto hash = hasher_->sha2_256(buf);
+
+    return memory_->storeBuffer(hash);
+  }
+
+  runtime::WasmPointer CryptoExtension::ext_hashing_blake2_128_version_1(
+      runtime::WasmSpan data) {
+    auto [ptr, size] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(ptr, size);
+    auto hash = hasher_->blake2b_128(buf);
+
+    return memory_->storeBuffer(hash);
+  }
+
+  runtime::WasmPointer CryptoExtension::ext_hashing_blake2_256_version_1(
+      runtime::WasmSpan data) {
+    auto [ptr, size] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(ptr, size);
+    auto hash = hasher_->blake2b_256(buf);
+
+    return memory_->storeBuffer(hash);
+  }
+
+  runtime::WasmPointer CryptoExtension::ext_hashing_twox_64_version_1(
+      runtime::WasmSpan data) {
+    auto [ptr, size] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(ptr, size);
+    auto hash = hasher_->twox_64(buf);
+
+    return memory_->storeBuffer(hash);
+  }
+
+  runtime::WasmPointer CryptoExtension::ext_hashing_twox_128_version_1(
+      runtime::WasmSpan data) {
+    auto [ptr, size] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(ptr, size);
+    auto hash = hasher_->twox_128(buf);
+
+    return memory_->storeBuffer(hash);
+  }
+
+  runtime::WasmPointer CryptoExtension::ext_hashing_twox_256_version_1(
+      runtime::WasmSpan data) {
+    auto [ptr, size] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(ptr, size);
+    auto hash = hasher_->twox_256(buf);
+
+    return memory_->storeBuffer(hash);
+  }
+
   runtime::WasmSpan CryptoExtension::ext_ed25519_public_keys_v1(
       runtime::WasmSize key_type) {
     using ResultType = std::vector<crypto::ED25519PublicKey>;
