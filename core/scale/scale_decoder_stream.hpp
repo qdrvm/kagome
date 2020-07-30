@@ -86,7 +86,7 @@ namespace kagome::scale {
       static_assert(std::is_default_constructible_v<mutableT>);
 
       v = std::make_shared<mutableT>();
-      return *this >> const_cast<mutableT &>(*v);
+      return *this >> const_cast<mutableT &>(*v);  // NOLINT
     }
 
     /**
@@ -102,7 +102,7 @@ namespace kagome::scale {
       static_assert(std::is_default_constructible_v<mutableT>);
 
       v = std::make_unique<mutableT>();
-      return *this >> const_cast<mutableT &>(*v);
+      return *this >> const_cast<mutableT &>(*v);  // NOLINT
     }
 
     /**

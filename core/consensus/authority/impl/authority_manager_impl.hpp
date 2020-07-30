@@ -69,7 +69,7 @@ namespace kagome::authority {
     outcome::result<void> onFinalize(
         const primitives::BlockInfo &block) override;
 
-   protected:
+   private:
     common::Logger log_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;

@@ -22,10 +22,8 @@ namespace kagome::primitives {
     uint32_t subchain_lenght = 0;
 
     AuthorityListChange() = default;
-    AuthorityListChange(AuthorityList &&authorities, uint32_t delay)
+    AuthorityListChange(AuthorityList authorities, uint32_t delay)
         : authorities(std::move(authorities)), subchain_lenght(delay) {}
-    AuthorityListChange(const AuthorityList &authorities, uint32_t delay)
-        : authorities(authorities), subchain_lenght(delay) {}
   };
 
   struct ScheduledChange : public AuthorityListChange {
