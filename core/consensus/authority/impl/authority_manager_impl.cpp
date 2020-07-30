@@ -22,19 +22,18 @@ namespace kagome::authority {
         genesis_configuration_(std::move(genesis_configuration)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)) {
-    BOOST_ASSERT(app_state_manager != nullptr);
+    BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
 
-    app_state_manager->takeControl(*this);
+    app_state_manager_->takeControl(*this);
   }
 
   void AuthorityManagerImpl::prepare() {
-    auto encoded_root_res = storage_->get(LAST_FINALIZED_SCHEDULED_NODE);
+    auto encoded_root_res = storage_->get(SCHEDULER_TREE);
     if (!encoded_root_res.has_value()) {
       // Get initial authorities from genesis
-      root_ = std::make_shared<ScheduleNode>(ScheduleNode().shared_from_this(),
-                                             primitives::BlockInfo{});
+      root_ = ScheduleNode::makeAsRoot({});
       root_->actual_authorities = std::make_shared<primitives::AuthorityList>(
           genesis_configuration_->genesis_authorities);
       return;
@@ -54,13 +53,14 @@ namespace kagome::authority {
   void AuthorityManagerImpl::start() {}
 
   void AuthorityManagerImpl::stop() {
+    if (!root_) return;
     auto data_res = scale::encode(root_);
     if (!data_res.has_value()) {
       log_->critical("Can't encode state to store");
       return;
     }
-    auto save_res = storage_->put(LAST_FINALIZED_SCHEDULED_NODE,
-                                  common::Buffer(data_res.value()));
+    auto save_res =
+        storage_->put(SCHEDULER_TREE, common::Buffer(data_res.value()));
     if (save_res.has_value()) {
       log_->critical("Can't store current state");
       return;
@@ -71,7 +71,12 @@ namespace kagome::authority {
   AuthorityManagerImpl::authorities(const primitives::BlockInfo &block) {
     auto node = getAppropriateAncestor(block);
 
-    auto adjusted_node = node->makeDescendant(block);
+    if (not node) {
+      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+    }
+
+    auto adjusted_node =
+        (node->block == block) ? node : node->makeDescendant(block);
 
     if (adjusted_node->enabled) {
       // Original authorities
@@ -178,7 +183,7 @@ namespace kagome::authority {
     auto authorities = std::make_shared<primitives::AuthorityList>(
         *new_node->actual_authorities);
     (*authorities)[authority_index].weight = 0;
-    node->actual_authorities = std::move(authorities);
+    new_node->actual_authorities = std::move(authorities);
 
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
@@ -285,47 +290,74 @@ namespace kagome::authority {
         });
   }
 
-  void AuthorityManagerImpl::onFinalize(const primitives::BlockInfo &block) {
+  outcome::result<void> AuthorityManagerImpl::onFinalize(
+      const primitives::BlockInfo &block) {
+    if (block == root_->block) {
+      return outcome::success();
+    }
+
+    if (block.block_number < root_->block.block_number) {
+      return AuthorityManagerError::WRONG_FINALISATION_ORDER;
+    }
+
     auto node = getAppropriateAncestor(block);
 
     // Create new node
-    auto new_node = std::make_shared<ScheduleNode>(node, block);
+    auto new_node = node->makeDescendant(block, true);
 
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
-      auto &ancestor =
-          isDirectAncestry(block, descendant->block) ? new_node : node;
-      ancestor->descendants.emplace_back(std::move(descendant));
+      if (isDirectAncestry(block, descendant->block)) {
+        new_node->descendants.emplace_back(std::move(descendant));
+      }
     }
-    node->descendants.emplace_back(std::move(new_node));
 
-    root_ = new_node;
+    root_ = std::move(new_node);
+
+    OUTCOME_TRY(encoded_state, scale::encode(root_));
+    OUTCOME_TRY(storage_->put(SCHEDULER_TREE,
+                              common::Buffer(std::move(encoded_state))));
+
+    return outcome::success();
   }
 
   std::shared_ptr<ScheduleNode> AuthorityManagerImpl::getAppropriateAncestor(
       const primitives::BlockInfo &block) {
-    std::shared_ptr<ScheduleNode> ancestor = root_;
+    BOOST_ASSERT(root_ != nullptr);
+    std::shared_ptr<ScheduleNode> ancestor;
+    // Target block is not descendant current root
+    if (root_->block.block_number > block.block_number
+        || (root_->block != block
+            && not isDirectAncestry(root_->block, block))) {
+      return ancestor;
+    }
+    ancestor = root_;
     for (;;) {
       if (ancestor->block == block) {
         return ancestor;
       }
       bool goto_next_generation = false;
       for (const auto &node : ancestor->descendants) {
-        if (isDirectAncestry(node->block, block)) {
+        if (node->block == block || isDirectAncestry(node->block, block)) {
           ancestor = node;
           goto_next_generation = true;
           break;
         }
       }
-      if (goto_next_generation) continue;
-      return ancestor;
+      if (not goto_next_generation) {
+        return ancestor;
+      }
     }
   }
 
   bool AuthorityManagerImpl::isDirectAncestry(
       const primitives::BlockInfo &ancestor,
       const primitives::BlockInfo &descendant) {
-    if (ancestor.block_number == 0) return true;
+    // Any block is descendant of genesis
+    if (ancestor.block_number <= 1
+        && ancestor.block_number < descendant.block_number) {
+      return true;
+    }
     auto result = ancestor.block_number < descendant.block_number
                   && block_tree_->checkDirectAncestry(ancestor.block_hash,
                                                       descendant.block_hash);

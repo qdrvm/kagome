@@ -9,7 +9,11 @@
 #include <outcome/outcome.hpp>
 
 namespace kagome::authority {
-  enum class AuthorityManagerError { UNKNOWN_ENGINE_ID = 1 };
+  enum class AuthorityManagerError {
+    UNKNOWN_ENGINE_ID = 1,
+    WRONG_FINALISATION_ORDER,
+    ORPHAN_BLOCK_OR_ALREADY_FINALISED
+  };
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::authority, AuthorityManagerError)

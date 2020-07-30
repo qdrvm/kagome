@@ -8,63 +8,84 @@
 
 namespace kagome::authority {
 
+  ScheduleNode::ScheduleNode(const std::shared_ptr<ScheduleNode> &ancestor,
+                             primitives::BlockInfo block)
+      : block(std::move(block)), parent(ancestor) {
+    BOOST_ASSERT((bool)ancestor);
+  }
+
+  std::shared_ptr<ScheduleNode> ScheduleNode::makeAsRoot(
+      primitives::BlockInfo block) {
+    auto fake_parent = std::make_shared<ScheduleNode>(ScheduleNode());
+    return std::make_shared<ScheduleNode>(fake_parent, primitives::BlockInfo{});
+  }
+
   outcome::result<void> ScheduleNode::ensureReadyToSchedule() const {
-    if (scheduled_after) {
+    if (scheduled_after != inactive) {
       return AuthorityUpdateObserverError::NO_SCHEDULED_CHANGE_APPLIED_YET;
     }
-    if (forced_for) {
+    if (forced_for != inactive) {
       return AuthorityUpdateObserverError::NO_FORCED_CHANGE_APPLIED_YET;
     }
-    if (pause_after) {
+    if (pause_after != inactive) {
       return AuthorityUpdateObserverError::NO_PAUSE_APPLIED_YET;
     }
-    if (resume_for) {
+    if (resume_for != inactive) {
       return AuthorityUpdateObserverError::NO_RESUME_APPLIED_YET;
     }
     return outcome::success();
   }
 
   std::shared_ptr<ScheduleNode> ScheduleNode::makeDescendant(
-      const primitives::BlockInfo &block) {
+      const primitives::BlockInfo &block, bool finalized) {
+    auto node = std::make_shared<ScheduleNode>(shared_from_this(), block);
     // Has ScheduledChange
-    if (scheduled_after) {
-      auto node = std::make_shared<ScheduleNode>(shared_from_this(), block);
-      node->actual_authorities = actual_authorities;
-      node->enabled = enabled;
-      node->scheduled_authorities = scheduled_authorities;
-      node->scheduled_after = scheduled_after;
-      return node;
+    if (scheduled_after != inactive) {
+      if (finalized && scheduled_after <= block.block_number) {
+        node->actual_authorities = scheduled_authorities;
+      } else {
+        node->actual_authorities = actual_authorities;
+        node->enabled = enabled;
+        node->scheduled_after = scheduled_after;
+        node->scheduled_authorities = scheduled_authorities;
+      }
     }
     // Has ForcedChange
-    if (forced_for) {
-      auto node = std::make_shared<ScheduleNode>(shared_from_this(), block);
-      node->enabled = enabled;
-      if (forced_for > block.block_number) {
-        node->actual_authorities = scheduled_authorities;
-        node->forced_authorities = forced_authorities;
+    else if (forced_for != inactive) {
+      if (forced_for <= block.block_number) {
+        node->actual_authorities = forced_authorities;
       } else {
-        node->actual_authorities = scheduled_authorities;
+        node->actual_authorities = actual_authorities;
+        node->enabled = enabled;
+        node->forced_for = forced_for;
+        node->forced_authorities = forced_authorities;
       }
-      return node;
     }
     // Has planned pause
-    if (pause_after) {
-      auto node = std::make_shared<ScheduleNode>(shared_from_this(), block);
+    else if (pause_after != inactive) {
       node->actual_authorities = actual_authorities;
-      node->enabled = enabled;
-      node->pause_after = pause_after;
-      return node;
+      if (finalized && pause_after <= block.block_number) {
+        node->enabled = false;
+      } else {
+        node->enabled = enabled;
+        node->pause_after = pause_after;
+      }
     }
     // Has planned resume
-    if (resume_for) {
-      auto node = std::make_shared<ScheduleNode>(shared_from_this(), block);
+    else if (resume_for != inactive) {
       node->actual_authorities = actual_authorities;
       if (resume_for <= block.block_number) {
         node->enabled = true;
+      } else {
+        node->enabled = enabled;
+        node->resume_for = resume_for;
       }
-      return node;
     }
-    return shared_from_this();
+    // Nothing else
+    else {
+      node->actual_authorities = actual_authorities;
+      node->enabled = enabled;
+    }
+    return node;
   }
-
 }  // namespace kagome::authority

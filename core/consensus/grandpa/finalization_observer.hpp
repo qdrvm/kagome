@@ -16,11 +16,12 @@ namespace kagome::consensus::grandpa {
     virtual ~FinalizationObserver() = default;
 
     /**
-     * Dooing something at block finalized
+     * Doing something at block finalized
      * @param message
      * @return failure or nothing
      */
-    virtual void onFinalize(const primitives::BlockInfo &block) = 0;
+    virtual outcome::result<void> onFinalize(
+        const primitives::BlockInfo &block) = 0;
   };
 }  // namespace kagome::consensus::grandpa
 

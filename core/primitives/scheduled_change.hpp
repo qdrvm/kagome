@@ -12,20 +12,34 @@
 namespace kagome::primitives {
   struct DelayInChain {
     uint32_t subchain_lenght = 0;
+    DelayInChain(uint32_t delay) : subchain_lenght(delay) {}
   };
 
   struct AuthorityListChange {
     AuthorityList authorities{};
     uint32_t subchain_lenght = 0;
+
+    AuthorityListChange(AuthorityList &&authorities, uint32_t delay)
+        : authorities(std::move(authorities)), subchain_lenght(delay) {}
+    AuthorityListChange(const AuthorityList &authorities, uint32_t delay)
+        : authorities(authorities), subchain_lenght(delay) {}
   };
 
-  struct ScheduledChange : public AuthorityListChange {};
-  struct ForcedChange : public AuthorityListChange {};
+  struct ScheduledChange : public AuthorityListChange {
+    using AuthorityListChange::AuthorityListChange;
+  };
+  struct ForcedChange : public AuthorityListChange {
+    using AuthorityListChange::AuthorityListChange;
+  };
   struct OnDisabled {
     uint64_t authority_index = 0;
   };
-  struct Pause : public DelayInChain {};
-  struct Resume : public DelayInChain {};
+  struct Pause : public DelayInChain {
+    using DelayInChain::DelayInChain;
+  };
+  struct Resume : public DelayInChain {
+    using DelayInChain::DelayInChain;
+  };
 
   template <class Stream>
   Stream &operator<<(Stream &s, const DelayInChain &delay) {

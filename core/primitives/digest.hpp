@@ -69,11 +69,11 @@ namespace kagome::primitives {
     Consensus() = default;
 
     template <class A,
-              typename = std::enable_if_t<std::is_same_v<A, Consensus>, void>>
+              typename = std::enable_if_t<!std::is_same_v<A, Consensus>, void>>
     Consensus(A &&a) : payload(std::forward<A>(a)){};
 
     template <class A,
-              typename = std::enable_if_t<std::is_same_v<A, Consensus>, void>>
+              typename = std::enable_if_t<!std::is_same_v<A, Consensus>, void>>
     Consensus(const A &a) : payload(a){};
   };
 

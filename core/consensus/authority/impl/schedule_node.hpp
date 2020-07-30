@@ -16,15 +16,15 @@ namespace kagome::authority {
     ScheduleNode() = default;
 
     ScheduleNode(const std::shared_ptr<ScheduleNode> &ancestor,
-                 primitives::BlockInfo block)
-        : block(std::move(block)), parent(ancestor) {
-      BOOST_ASSERT((bool)ancestor);
-    }
+                 primitives::BlockInfo block);
+
+    static std::shared_ptr<ScheduleNode> makeAsRoot(
+        primitives::BlockInfo block);
 
     outcome::result<void> ensureReadyToSchedule() const;
 
     std::shared_ptr<ScheduleNode> makeDescendant(
-        const primitives::BlockInfo &block);
+        const primitives::BlockInfo &block, bool finalized = false);
 
     const primitives::BlockInfo block{};
     std::weak_ptr<ScheduleNode> parent;
@@ -34,8 +34,7 @@ namespace kagome::authority {
     std::shared_ptr<const primitives::AuthorityList> actual_authorities;
     bool enabled = true;
 
-    static constexpr auto inactive =
-        std::numeric_limits<primitives::BlockNumber>::max();
+    static constexpr auto inactive = 0;
 
     // For scheduled changes
     primitives::BlockNumber scheduled_after = inactive;
@@ -59,22 +58,22 @@ namespace kagome::authority {
     if (b.scheduled_after != ScheduleNode::inactive) {
       s << b.scheduled_after << b.scheduled_authorities;
     } else {
-      s << 0;
+      s << static_cast<primitives::BlockNumber>(0);
     }
     if (b.forced_for != ScheduleNode::inactive) {
       s << b.forced_for << b.forced_authorities;
     } else {
-      s << 0;
+      s << static_cast<primitives::BlockNumber>(0);
     }
     if (b.pause_after != ScheduleNode::inactive) {
       s << b.pause_after;
     } else {
-      s << 0;
+      s << static_cast<primitives::BlockNumber>(0);
     }
     if (b.resume_for != ScheduleNode::inactive) {
       s << b.resume_for;
     } else {
-      s << 0;
+      s << static_cast<primitives::BlockNumber>(0);
     }
     s << b.descendants;
     return s;
@@ -96,7 +95,7 @@ namespace kagome::authority {
       b.forced_for = bn;
       s >> b.forced_authorities;
     } else {
-      b.scheduled_after = ScheduleNode::inactive;
+      b.forced_for = ScheduleNode::inactive;
     }
     if (s >> bn, bn) {
       b.pause_after = bn;

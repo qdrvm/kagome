@@ -20,12 +20,12 @@ namespace kagome::authority {
   class AuthorityManagerImpl : public AuthorityManager,
                                public AuthorityUpdateObserver,
                                public consensus::grandpa::FinalizationObserver {
+   public:
     inline static const std::vector<primitives::ConsensusEngineId>
         known_engines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
-    inline static const common::Buffer LAST_FINALIZED_SCHEDULED_NODE =
-        common::Buffer{}.put(":kagome:authorities:root_of_scheduler");
+    inline static const common::Buffer SCHEDULER_TREE =
+        common::Buffer{}.put(":kagome:authorities:scheduler_tree");
 
-   public:
     AuthorityManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<primitives::BabeConfiguration> genesis_configuration,
@@ -66,10 +66,11 @@ namespace kagome::authority {
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
 
-    void onFinalize(const primitives::BlockInfo &block) override;
+    outcome::result<void> onFinalize(
+        const primitives::BlockInfo &block) override;
 
-   private:
-  	common::Logger log_;
+   protected:
+    common::Logger log_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -84,6 +85,12 @@ namespace kagome::authority {
     std::shared_ptr<ScheduleNode> getAppropriateAncestor(
         const primitives::BlockInfo &block);
 
+    /**
+     * @brief Check if one block is direct ancestor of second one
+     * @param ancestor - hash of block, which is at the top of the chain
+     * @param descendant - hash of block, which is the bottom of the chain
+     * @return true if \param ancestor is direct ancestor of \param descendant
+     */
     bool isDirectAncestry(const primitives::BlockInfo &ancestor,
                           const primitives::BlockInfo &descendant);
   };
