@@ -18,6 +18,7 @@ namespace kagome::scale {
     NEGATIVE_COMPACT_INTEGER,     ///< cannot compact-encode negative integers
     WRONG_CATEGORY,               ///< wrong compact category
     WRONG_ALTERNATIVE,            ///< wrong cast to alternative
+    DEREF_NULLPOINTER,            ///< dereferencing a null pointer
   };
 
   /**

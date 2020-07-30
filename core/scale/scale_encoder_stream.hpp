@@ -74,6 +74,9 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleEncoderStream &operator<<(const std::shared_ptr<T> &v) {
+      if (v == nullptr) {
+        common::raise(EncodeError::DEREF_NULLPOINTER);
+      }
       return *this << *v;
     }
 
@@ -85,6 +88,9 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleEncoderStream &operator<<(const std::unique_ptr<T> &v) {
+      if (v == nullptr) {
+        common::raise(EncodeError::DEREF_NULLPOINTER);
+      }
       return *this << *v;
     }
 

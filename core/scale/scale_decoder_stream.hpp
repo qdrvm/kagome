@@ -83,7 +83,7 @@ namespace kagome::scale {
     ScaleDecoderStream &operator>>(std::shared_ptr<T> &v) {
       auto sptr = std::make_shared<std::remove_const_t<T>>();
       *this >> *sptr;
-      v = sptr;
+      v = std::forward<std::shared_ptr<T>>(sptr);
       return *this;
     }
 
