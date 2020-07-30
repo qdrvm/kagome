@@ -12,6 +12,8 @@
 namespace kagome::primitives {
   struct DelayInChain {
     uint32_t subchain_lenght = 0;
+
+    DelayInChain() = default;
     DelayInChain(uint32_t delay) : subchain_lenght(delay) {}
   };
 
@@ -19,6 +21,7 @@ namespace kagome::primitives {
     AuthorityList authorities{};
     uint32_t subchain_lenght = 0;
 
+    AuthorityListChange() = default;
     AuthorityListChange(AuthorityList &&authorities, uint32_t delay)
         : authorities(std::move(authorities)), subchain_lenght(delay) {}
     AuthorityListChange(const AuthorityList &authorities, uint32_t delay)

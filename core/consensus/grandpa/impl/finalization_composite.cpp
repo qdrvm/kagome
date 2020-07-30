@@ -7,10 +7,12 @@
 
 namespace kagome::consensus::grandpa {
 
-  void FinalizationComposite::onFinalize(const primitives::BlockInfo &block) {
+  outcome::result<void> FinalizationComposite::onFinalize(
+      const primitives::BlockInfo &block) {
     for (auto &observer : observers_) {
-      observer->onFinalize(block);
+      OUTCOME_TRY(observer->onFinalize(block));
     }
+    return outcome::success();
   }
 
 }  // namespace kagome::consensus::grandpa

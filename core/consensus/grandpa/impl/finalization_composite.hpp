@@ -28,7 +28,8 @@ namespace kagome::consensus::grandpa {
      * @param message
      * @return failure or nothing
      */
-    void onFinalize(const primitives::BlockInfo &block) override;
+    outcome::result<void> onFinalize(
+        const primitives::BlockInfo &block) override;
 
    private:
     std::vector<std::shared_ptr<FinalizationObserver>> observers_;

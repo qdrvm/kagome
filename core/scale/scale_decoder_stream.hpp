@@ -81,10 +81,12 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleDecoderStream &operator>>(std::shared_ptr<T> &v) {
-      auto sptr = std::make_shared<std::remove_const_t<T>>();
-      *this >> *sptr;
-      v = std::forward<std::shared_ptr<T>>(sptr);
-      return *this;
+      using mutableT = std::remove_const_t<T>;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
+      v = std::make_shared<mutableT>();
+      return *this >> const_cast<mutableT &>(*v);
     }
 
     /**
@@ -95,10 +97,12 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleDecoderStream &operator>>(std::unique_ptr<T> &v) {
-      auto uptr = std::make_unique<std::remove_const_t<T>>();
-      *this >> *uptr;
-      v = uptr;
-      return *this;
+      using mutableT = std::remove_const_t<T>;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
+      v = std::make_unique<mutableT>();
+      return *this >> const_cast<mutableT &>(*v);
     }
 
     /**
@@ -134,10 +138,14 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleDecoderStream &operator>>(boost::optional<T> &v) {
+      using mutableT = std::remove_const_t<T>;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
       // optional bool is special case of optional values
       // it is encoded as one byte instead of two
       // as described in specification
-      if constexpr (std::is_same<T, bool>::value) {
+      if constexpr (std::is_same<mutableT, bool>::value) {
         v = decodeOptionalBool();
         return *this;
       }
@@ -150,7 +158,7 @@ namespace kagome::scale {
       }
       // decode value
       v.emplace();
-      return *this >> const_cast<std::remove_const_t<T> &>(*v);  // NOLINT
+      return *this >> const_cast<mutableT &>(*v);  // NOLINT
     }
 
     /**
@@ -168,24 +176,27 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleDecoderStream &operator>>(std::vector<T> &v) {
+      using mutableT = std::remove_const_t<T>;
+      using size_type = typename std::list<T>::size_type;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
       CompactInteger size{0u};
       *this >> size;
-
-      using size_type = typename std::vector<T>::size_type;
 
       if (size > std::numeric_limits<size_type>::max()) {
         common::raise(DecodeError::TOO_MANY_ITEMS);
       }
       auto item_count = size.convert_to<size_type>();
 
-      std::vector<std::remove_const_t<T>> vec;
+      std::vector<mutableT> vec;
       vec.resize(item_count);
 
       for (size_type i = 0u; i < item_count; ++i) {
         *this >> vec[i];
       }
 
-      v.swap(vec);
+      v = std::move(vec);
       return *this;
     }
 
@@ -197,22 +208,26 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleDecoderStream &operator>>(std::list<T> &v) {
-      v.clear();
+      using mutableT = std::remove_const_t<T>;
+      using size_type = typename std::list<T>::size_type;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
       CompactInteger size{0u};
       *this >> size;
-
-      using size_type = typename std::list<T>::size_type;
 
       if (size > std::numeric_limits<size_type>::max()) {
         common::raise(DecodeError::TOO_MANY_ITEMS);
       }
       auto item_count = size.convert_to<size_type>();
-      v.reserve(item_count);
+
+      std::list<T> lst;
+      lst.reserve(item_count);
       for (size_type i = 0u; i < item_count; ++i) {
-        T t{};
-        *this >> t;
-        v.push_back(std::move(t));
+        lst.emplace_back();
+        *this >> lst.back();
       }
+      v = std::move(lst);
       return *this;
     }
 
@@ -225,8 +240,9 @@ namespace kagome::scale {
      */
     template <class T, size_t size>
     ScaleDecoderStream &operator>>(std::array<T, size> &a) {
+      using mutableT = std::remove_const_t<T>;
       for (size_t i = 0u; i < size; ++i) {
-        *this >> const_cast<std::remove_const_t<T> &>(a[i]);  // NOLINT
+        *this >> const_cast<mutableT &>(a[i]);  // NOLINT
       }
       return *this;
     }
@@ -282,6 +298,7 @@ namespace kagome::scale {
     template <size_t I, class... Ts>
     void tryDecodeAsOneOfVariant(boost::variant<Ts...> &v, size_t i) {
       using T = std::remove_const_t<std::tuple_element_t<I, std::tuple<Ts...>>>;
+      static_assert(std::is_default_constructible_v<T>);
       if (I == i) {
         T val;
         *this >> val;
