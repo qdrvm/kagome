@@ -55,7 +55,7 @@ namespace kagome::subscription {
    public:
     template <typename... Args>
     explicit Subscriber(SubscriptionEnginePtr &ptr, Args &&... args)
-        : engine_(ptr), object_(std::forward<Args>(args)...), next_id_(0ull) {}
+        : next_id_(0ull), engine_(ptr), object_(std::forward<Args>(args)...) {}
 
     ~Subscriber() {
       /// Unsubscribe all

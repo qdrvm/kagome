@@ -26,6 +26,7 @@ class StateJrpcProcessorTest : public testing::Test {
     kCallType_GetRuntimeVersion = 0,
     kCallType_GetStorage,
     kCallType_StorageSubscribe,
+    kCallType_StorageUnsubscribe,
   };
 
  private:
@@ -54,6 +55,11 @@ class StateJrpcProcessorTest : public testing::Test {
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(std::make_pair(
               CallType::kCallType_StorageSubscribe, CallContext{.handler = f}));
+        }));
+    EXPECT_CALL(*server, registerHandler("state_unsubscribeStorage", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_StorageUnsubscribe, CallContext{.handler = f}));
         }));
     processor.registerHandlers();
   }
