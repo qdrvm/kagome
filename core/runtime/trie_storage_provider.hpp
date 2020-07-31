@@ -8,8 +8,8 @@
 
 #include <boost/optional.hpp>
 
-#include "outcome/outcome.hpp"
 #include "common/blob.hpp"
+#include "outcome/outcome.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome::runtime {

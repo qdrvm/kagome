@@ -17,7 +17,7 @@ namespace kagome::storage::changes_trie {
      * less or equal to 1.
      */
     uint32_t digest_interval;
-    
+
     /**
      * Maximal number of levels in the
      * hierarchy. 0 means that block mappings are not created at

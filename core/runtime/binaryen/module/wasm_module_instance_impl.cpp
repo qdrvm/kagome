@@ -13,7 +13,7 @@ namespace kagome::runtime::binaryen {
       wasm::Module &module,
       const std::shared_ptr<RuntimeExternalInterface> &rei)
       : module_instance_{
-          std::make_unique<wasm::ModuleInstance>(module, rei.get())} {
+            std::make_unique<wasm::ModuleInstance>(module, rei.get())} {
     BOOST_ASSERT(module_instance_);
   }
 

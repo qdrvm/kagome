@@ -18,10 +18,10 @@ using kagome::scale::ScaleEncoderStream;
  * @then encoded value meets expectations
  */
 TEST(Scale, RawStringEncodeSuccess) {
-auto * v = "asdadad";
-ScaleEncoderStream s{};
-ASSERT_NO_THROW((s << v));
-ASSERT_EQ(s.data(), (ByteArray{28, 'a', 's', 'd', 'a', 'd', 'a', 'd'}));
+  auto *v = "asdadad";
+  ScaleEncoderStream s{};
+  ASSERT_NO_THROW((s << v));
+  ASSERT_EQ(s.data(), (ByteArray{28, 'a', 's', 'd', 'a', 'd', 'a', 'd'}));
 }
 
 /**
@@ -30,10 +30,10 @@ ASSERT_EQ(s.data(), (ByteArray{28, 'a', 's', 'd', 'a', 'd', 'a', 'd'}));
  * @then encoded value meets expectations
  */
 TEST(Scale, StdStringEncodeSuccess) {
-std::string v = "asdadad";
-ScaleEncoderStream s;
-ASSERT_NO_THROW((s << v));
-ASSERT_EQ(s.data(), (ByteArray{28, 'a', 's', 'd', 'a', 'd', 'a', 'd'}));
+  std::string v = "asdadad";
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << v));
+  ASSERT_EQ(s.data(), (ByteArray{28, 'a', 's', 'd', 'a', 'd', 'a', 'd'}));
 }
 
 /**
@@ -42,9 +42,9 @@ ASSERT_EQ(s.data(), (ByteArray{28, 'a', 's', 'd', 'a', 'd', 'a', 'd'}));
  * @then decoded string matches expectations
  */
 TEST(Scale, StringDecodeSuccess) {
-auto bytes = ByteArray{28, 'a', 's', 'd', 'a', 'd', 'a', 'd'};
-ScaleDecoderStream s(bytes);
-std::string v;
-ASSERT_NO_THROW(s >> v);
-ASSERT_EQ(v, "asdadad");
+  auto bytes = ByteArray{28, 'a', 's', 'd', 'a', 'd', 'a', 'd'};
+  ScaleDecoderStream s(bytes);
+  std::string v;
+  ASSERT_NO_THROW(s >> v);
+  ASSERT_EQ(v, "asdadad");
 }

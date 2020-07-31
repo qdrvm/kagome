@@ -289,7 +289,8 @@ namespace kagome::blockchain {
 
   outcome::result<void> KeyValueBlockStorage::setLastFinalizedBlockHash(
       const primitives::BlockHash &hash) {
-    OUTCOME_TRY(storage_->put(LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY, Buffer{hash}));
+    OUTCOME_TRY(
+        storage_->put(LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY, Buffer{hash}));
 
     return outcome::success();
   }

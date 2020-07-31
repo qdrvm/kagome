@@ -154,7 +154,7 @@ namespace kagome::runtime::binaryen {
   }
 
   std::string WasmMemoryImpl::loadStr(kagome::runtime::WasmPointer addr,
-                      kagome::runtime::WasmSize n) const {
+                                      kagome::runtime::WasmSize n) const {
     std::string res;
     res.reserve(n);
     for (auto i = addr; i < addr + n; i++) {

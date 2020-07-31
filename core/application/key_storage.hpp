@@ -6,8 +6,8 @@
 #ifndef KAGOME_APPLICATION_KEY_STORAGE_HPP
 #define KAGOME_APPLICATION_KEY_STORAGE_HPP
 
-#include <libp2p/peer/peer_info.hpp>
 #include <libp2p/crypto/key.hpp>
+#include <libp2p/peer/peer_info.hpp>
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 
@@ -36,6 +36,6 @@ namespace kagome::application {
     virtual libp2p::crypto::KeyPair getP2PKeypair() const = 0;
   };
 
-}
+}  // namespace kagome::application
 
 #endif  // KAGOME_APPLICATION_KEY_STORAGE_HPP

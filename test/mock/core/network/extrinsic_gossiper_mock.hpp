@@ -20,6 +20,6 @@ namespace kagome::network {
                  void(const network::TransactionAnnounce &));
   };
 
-}  // namespace kagome::api
+}  // namespace kagome::network
 
 #endif  // KAGOME_TEST_CORE_NETWORK_EXTRINSIC_GOSSIPER_MOCK_HPP

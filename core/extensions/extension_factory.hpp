@@ -24,7 +24,8 @@ namespace kagome::extensions {
      */
     virtual std::unique_ptr<Extension> createExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
-        std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const = 0;
+        std::shared_ptr<runtime::TrieStorageProvider> storage_provider)
+        const = 0;
   };
 
 }  // namespace kagome::extensions

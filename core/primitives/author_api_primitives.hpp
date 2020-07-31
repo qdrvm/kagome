@@ -49,4 +49,4 @@ namespace kagome::primitives {
 
 }  // namespace kagome::primitives
 
-#endif  //KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP
+#endif  // KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP

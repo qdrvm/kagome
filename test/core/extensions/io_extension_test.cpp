@@ -9,19 +9,19 @@
 
 #include <gtest/gtest.h>
 #include "core/runtime/mock_memory.hpp"
-#include "testutil/literals.hpp"
 #include "runtime/wasm_result.hpp"
+#include "testutil/literals.hpp"
 
 using namespace kagome::extensions;
 using ::testing::Return;
 
 using kagome::common::Buffer;
 using kagome::runtime::MockMemory;
-using kagome::runtime::WasmPointer;
-using kagome::runtime::WasmSize;
-using kagome::runtime::WasmLogLevel;
-using kagome::runtime::WasmResult;
 using kagome::runtime::WasmEnum;
+using kagome::runtime::WasmLogLevel;
+using kagome::runtime::WasmPointer;
+using kagome::runtime::WasmResult;
+using kagome::runtime::WasmSize;
 
 /**
  * It is impossible to test the console output, but at least we can check, that
@@ -72,8 +72,12 @@ TEST_F(IOExtensionTest, PrintMessage) {
   WasmResult target(0, hex_bytes_.size());
   std::string buf(&hex_bytes_.front(), &hex_bytes_.back());
 
-  EXPECT_CALL(*memory_, loadStr(target.address, target.length)).WillRepeatedly(Return(buf));
-  io_extension_->ext_logging_log_version_1(static_cast<WasmEnum>(WasmLogLevel::WasmLL_Error), target.combine(), target.combine());
+  EXPECT_CALL(*memory_, loadStr(target.address, target.length))
+      .WillRepeatedly(Return(buf));
+  io_extension_->ext_logging_log_version_1(
+      static_cast<WasmEnum>(WasmLogLevel::WasmLL_Error),
+      target.combine(),
+      target.combine());
 }
 
 /**

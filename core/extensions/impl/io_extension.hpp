@@ -27,10 +27,9 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_logging_log_version_1
      */
-    void ext_logging_log_version_1(
-        runtime::WasmEnum level,
-        runtime::WasmSpan target,
-        runtime::WasmSpan message);
+    void ext_logging_log_version_1(runtime::WasmEnum level,
+                                   runtime::WasmSpan target,
+                                   runtime::WasmSpan message);
 
     /**
      * @see Extension::ext_print_num

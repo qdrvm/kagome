@@ -39,7 +39,8 @@ namespace kagome::application {
     try {
       pt::read_json(file_path, tree);
     } catch (pt::json_parser_error &e) {
-      spdlog::error("Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
+      spdlog::error(
+          "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
       return ConfigReaderError::PARSER_ERROR;
     }
 
@@ -55,7 +56,8 @@ namespace kagome::application {
                 ensure(genesis_tree.get_child_optional("raw")));
     boost::property_tree::ptree top_tree;
     // v0.7 format
-    if(auto top_tree_opt = genesis_raw_tree.get_child_optional("top"); top_tree_opt.has_value()) {
+    if (auto top_tree_opt = genesis_raw_tree.get_child_optional("top");
+        top_tree_opt.has_value()) {
       top_tree = top_tree_opt.value();
     } else {
       // Try to fall back to v0.6

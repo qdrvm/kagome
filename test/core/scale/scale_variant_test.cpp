@@ -41,7 +41,8 @@ TEST_P(VariantFixture, EncodeSuccessTest) {
   ASSERT_EQ(s.data(), match);
 }
 
-INSTANTIATE_TEST_CASE_P(CompactTestCases, VariantFixture,
+INSTANTIATE_TEST_CASE_P(CompactTestCases,
+                        VariantFixture,
                         ::testing::Values(make_pair(uint8_t(1), {0, 1}),
                                           make_pair(uint32_t(2),
                                                     {1, 2, 0, 0, 0})));

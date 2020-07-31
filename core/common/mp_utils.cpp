@@ -12,7 +12,7 @@ namespace kagome::common {
   namespace detail {
     template <size_t size, typename uint>
     std::array<uint8_t, size> uint_to_bytes(uint &&i) {
-      std::array<uint8_t, size> res {};
+      std::array<uint8_t, size> res{};
       res.fill(0);
       export_bits(i, res.begin(), 8, false);
       return res;

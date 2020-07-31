@@ -54,7 +54,8 @@ namespace kagome::primitives::parachain {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Relay &v) {
     return s;
   }

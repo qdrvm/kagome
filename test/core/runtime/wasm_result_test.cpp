@@ -38,7 +38,8 @@ TEST_P(WasmResultTest, DecomposeSuccess) {
   ASSERT_EQ(r.length, length);
 }
 
-INSTANTIATE_TEST_CASE_P(WasmResultTestCases, WasmResultTest,
+INSTANTIATE_TEST_CASE_P(WasmResultTestCases,
+                        WasmResultTest,
                         ::testing::Values(TestCase{0, {0, 0}},
                                           TestCase{1, {1, 0}},
                                           TestCase{4294967297, {1, 1}},

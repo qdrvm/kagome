@@ -40,9 +40,9 @@ namespace kagome::crypto {
      * msg
      */
     virtual VRFVerifyOutput verify(const common::Buffer &msg,
-                        const VRFOutput &output,
-                        const SR25519PublicKey &public_key,
-                        const VRFThreshold &threshold) const = 0;
+                                   const VRFOutput &output,
+                                   const SR25519PublicKey &public_key,
+                                   const VRFThreshold &threshold) const = 0;
   };
 }  // namespace kagome::crypto
 

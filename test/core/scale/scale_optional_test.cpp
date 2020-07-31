@@ -191,5 +191,5 @@ TEST(Scale, DecodeOptionalBoolSuccess) {
   ASSERT_EQ(res.b1, boost::none);
   ASSERT_EQ(res.b2, optbool(false));
   ASSERT_EQ(res.b3, optbool(true));
-  ASSERT_EQ(res.b4 , optbool(false));
+  ASSERT_EQ(res.b4, optbool(false));
 }

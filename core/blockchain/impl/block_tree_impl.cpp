@@ -261,7 +261,7 @@ namespace kagome::blockchain {
     }
     auto start_block_number = block_number_res.value();
 
-    primitives::BlockNumber finish_block_number; // NOLINT
+    primitives::BlockNumber finish_block_number;  // NOLINT
     if (ascending) {
       if (start_block_number < maximum) {
         // we want to finish at the root

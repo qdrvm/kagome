@@ -100,7 +100,7 @@ namespace kagome::runtime::binaryen {
       }
     }
 
-    if(external_interface_ == nullptr) {
+    if (external_interface_ == nullptr) {
       external_interface_ = std::make_shared<RuntimeExternalInterface>(
           extension_factory_, storage_provider_);
     }
@@ -114,12 +114,13 @@ namespace kagome::runtime::binaryen {
       // Trying to safe emplace new module, and use existed one
       //  if it already emplaced in another thread
       std::lock_guard lockGuard(modules_mutex_);
-      module = modules_.emplace(hash, std::move(new_module))
-                   .first->second;
+      module = modules_.emplace(hash, std::move(new_module)).first->second;
     }
 
     return RuntimeManager::RuntimeEnvironment{
-        module->instantiate(external_interface_), external_interface_->memory(), boost::none};
+        module->instantiate(external_interface_),
+        external_interface_->memory(),
+        boost::none};
   }
 
 }  // namespace kagome::runtime::binaryen

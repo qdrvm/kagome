@@ -13,7 +13,7 @@
 
 namespace kagome::storage::trie {
 
-  class PersistentTrieBatchImpl: public PersistentTrieBatch {
+  class PersistentTrieBatchImpl : public PersistentTrieBatch {
    public:
     using RootChangedEventHandler = std::function<void(const common::Buffer &)>;
 

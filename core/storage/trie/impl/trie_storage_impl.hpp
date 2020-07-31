@@ -34,7 +34,7 @@ namespace kagome::storage::trie {
     void operator=(const TrieStorageImpl &) = delete;
 
     TrieStorageImpl(TrieStorageImpl &&) = default;
-    TrieStorageImpl& operator=(TrieStorageImpl &&) = default;
+    TrieStorageImpl &operator=(TrieStorageImpl &&) = default;
     ~TrieStorageImpl() override = default;
 
     outcome::result<std::unique_ptr<PersistentTrieBatch>> getPersistentBatch()

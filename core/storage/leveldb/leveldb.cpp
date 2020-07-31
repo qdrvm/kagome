@@ -6,8 +6,8 @@
 #include "storage/leveldb/leveldb.hpp"
 
 #include <boost/filesystem.hpp>
-#include <utility>
 #include <iostream>
+#include <utility>
 
 #include "storage/leveldb/leveldb_batch.hpp"
 #include "storage/leveldb/leveldb_cursor.hpp"
@@ -55,7 +55,7 @@ namespace kagome::storage {
     }
 
     // not always an actual error so don't log it
-    if(status.IsNotFound()) {
+    if (status.IsNotFound()) {
       return error_as_result<Buffer>(status);
     }
 

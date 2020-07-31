@@ -86,13 +86,13 @@ namespace kagome::crypto {
 
     if (1
         != secp256k1_ecdsa_recoverable_signature_parse_compact(
-            context_.get(), &sig_rec, signature.data(), rec_id)) {
+               context_.get(), &sig_rec, signature.data(), rec_id)) {
       return Secp256k1ProviderError::INVALID_R_OR_S_VALUE;
     }
 
     if (1
         != secp256k1_ecdsa_recover(
-            context_.get(), &pubkey, &sig_rec, message_hash.data())) {
+               context_.get(), &pubkey, &sig_rec, message_hash.data())) {
       return Secp256k1ProviderError::INVALID_SIGNATURE;
     }
 

@@ -22,4 +22,3 @@ namespace kagome::consensus::grandpa {
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA_CONFIG_HPP
-

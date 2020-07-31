@@ -367,11 +367,11 @@ ACTION_P(onPrecommitted, test_fixture) {
       SignedMessage{.message = signed_precommit.message,
                     .signature = test_fixture->kBobSignature,
                     .id = test_fixture->kBob});
-//  // send Eve's precommit
-//  test_fixture->voting_round_->onPrecommit(
-//      SignedMessage{.message = signed_precommit.message,
-//                    .signature = test_fixture->kEveSignature,
-//                    .id = test_fixture->kEve});
+  //  // send Eve's precommit
+  //  test_fixture->voting_round_->onPrecommit(
+  //      SignedMessage{.message = signed_precommit.message,
+  //                    .signature = test_fixture->kEveSignature,
+  //                    .id = test_fixture->kEve});
   return outcome::success();
 }
 

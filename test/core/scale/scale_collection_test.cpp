@@ -59,8 +59,8 @@ TEST(Scale, encodeCollectionUint16) {
  * @then expected result is obtained
  */
 TEST(Scale, encodeCollectionUint32) {
-  std::vector<uint32_t> collection = {50462976, 117835012, 185207048,
-                                      252579084};
+  std::vector<uint32_t> collection = {
+      50462976, 117835012, 185207048, 252579084};
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << collection));
   auto &&out = s.data();

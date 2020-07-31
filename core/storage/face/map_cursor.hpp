@@ -65,4 +65,4 @@ namespace kagome::storage::face {
 
 }  // namespace kagome::storage::face
 
-#endif  //KAGOME_MAP_CURSOR_HPP
+#endif  // KAGOME_MAP_CURSOR_HPP

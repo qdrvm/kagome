@@ -28,7 +28,6 @@ namespace kagome::runtime {
     outcome::result<void> setToPersistentAt(
         const common::Hash256 &state_root) override;
 
-
     std::shared_ptr<Batch> getCurrentBatch() const override;
     boost::optional<std::shared_ptr<PersistentBatch>> tryGetPersistentBatch()
         const override;
@@ -37,7 +36,7 @@ namespace kagome::runtime {
     outcome::result<common::Buffer> forceCommit() override;
 
    private:
-    std::shared_ptr <storage::trie::TrieStorage> trie_storage_;
+    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
 
     std::shared_ptr<Batch> current_batch_;
 

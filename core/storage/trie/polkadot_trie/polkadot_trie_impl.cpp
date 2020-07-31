@@ -138,9 +138,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::updateBranch(
-      BranchPtr parent,
-      const KeyNibbles &key_nibbles,
-      const NodePtr &node) {
+      BranchPtr parent, const KeyNibbles &key_nibbles, const NodePtr &node) {
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
 
     if (length == parent->key_nibbles.size()) {
@@ -323,9 +321,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::handleDeletion(
-      const BranchPtr &parent,
-      NodePtr node,
-      const KeyNibbles &key_nibbles) {
+      const BranchPtr &parent, NodePtr node, const KeyNibbles &key_nibbles) {
     auto newRoot = std::move(node);
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
     auto bitmap = parent->childrenBitmap();
@@ -407,8 +403,8 @@ namespace kagome::storage::trie {
     return retrieve_child_(std::move(parent), idx);
   }
 
-  uint32_t PolkadotTrieImpl::getCommonPrefixLength(const KeyNibbles &pref1,
-                                                   const KeyNibbles &pref2) const {
+  uint32_t PolkadotTrieImpl::getCommonPrefixLength(
+      const KeyNibbles &pref1, const KeyNibbles &pref2) const {
     size_t length = 0;
     auto min = pref1.size();
 

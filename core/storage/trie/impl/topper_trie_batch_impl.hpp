@@ -35,7 +35,7 @@ namespace kagome::storage::trie {
     outcome::result<void> writeBack() override;
 
    private:
-    bool wasClearedByPrefix(const Buffer& key) const;
+    bool wasClearedByPrefix(const Buffer &key) const;
 
     std::map<Buffer, boost::optional<Buffer>> cache_;
     std::list<Buffer> cleared_prefixes_;

@@ -8,8 +8,8 @@
 
 #include <boost/optional.hpp>
 
-#include "outcome/outcome.hpp"
 #include "common/blob.hpp"
+#include "outcome/outcome.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 

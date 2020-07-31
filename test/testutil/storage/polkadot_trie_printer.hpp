@@ -39,7 +39,8 @@ namespace kagome::storage::trie {
         switch (node->getTrieType()) {
           case T::BranchWithValue:
           case T::BranchEmptyValue: {
-            printBranch(std::static_pointer_cast<BranchNode>(node), trie, nest_level);
+            printBranch(
+                std::static_pointer_cast<BranchNode>(node), trie, nest_level);
             break;
           }
           case T::Leaf: {

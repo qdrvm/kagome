@@ -14,10 +14,11 @@ namespace kagome::extensions {
 
   class ExtensionFactoryMock : public ExtensionFactory {
    public:
-    MOCK_CONST_METHOD2(createExtension,
-                       std::unique_ptr<Extension>(
-                           std::shared_ptr<runtime::WasmMemory>,
-                           std::shared_ptr<runtime::TrieStorageProvider> storage));
+    MOCK_CONST_METHOD2(
+        createExtension,
+        std::unique_ptr<Extension>(
+            std::shared_ptr<runtime::WasmMemory>,
+            std::shared_ptr<runtime::TrieStorageProvider> storage));
   };
 
 }  // namespace kagome::extensions

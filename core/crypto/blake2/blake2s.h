@@ -56,7 +56,9 @@ void blake2s_256(void *out, const void *in, size_t inlen);
  * not provided.
  * @return -1 in case of wrong input arguments; 0 in case of success.
  */
-int blake2s_init(blake2s_ctx *ctx, size_t outlen, const void *key,
+int blake2s_init(blake2s_ctx *ctx,
+                 size_t outlen,
+                 const void *key,
                  size_t keylen);
 
 /**
@@ -70,8 +72,12 @@ int blake2s_init(blake2s_ctx *ctx, size_t outlen, const void *key,
  * @param inlen size of {@param in}
  * @return -1 in case of wrong input arguments; 0 in case of success
  */
-int blake2s(void *out, size_t outlen, const void *key, size_t keylen,
-            const void *in, size_t inlen);
+int blake2s(void *out,
+            size_t outlen,
+            const void *key,
+            size_t keylen,
+            const void *in,
+            size_t inlen);
 
 #if defined(__cplusplus)
 }

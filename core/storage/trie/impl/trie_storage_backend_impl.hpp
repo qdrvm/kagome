@@ -15,7 +15,7 @@ namespace kagome::storage::trie {
   class TrieStorageBackendImpl : public TrieStorageBackend {
    public:
     TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage,
-                      common::Buffer node_prefix);
+                           common::Buffer node_prefix);
 
     ~TrieStorageBackendImpl() override = default;
 

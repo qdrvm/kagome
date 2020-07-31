@@ -39,6 +39,6 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(state, State());
   };
 
-}  // namespace kagome
+}  // namespace kagome::application
 
 #endif  // KAGOME_APP_STATE_MANAGER_MOCK

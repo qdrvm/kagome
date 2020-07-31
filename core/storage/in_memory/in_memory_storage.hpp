@@ -8,8 +8,8 @@
 
 #include <memory>
 
-#include "outcome/outcome.hpp"
 #include "common/buffer.hpp"
+#include "outcome/outcome.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::storage {

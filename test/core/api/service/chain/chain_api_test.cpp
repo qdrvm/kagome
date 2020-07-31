@@ -6,16 +6,16 @@
 #include <gtest/gtest.h>
 
 #include "api/service/chain/impl/chain_api_impl.hpp"
-#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "primitives/block_header.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::api::ChainApi;
 using kagome::api::ChainApiImpl;
-using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::BlockHeaderRepositoryMock;
+using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;

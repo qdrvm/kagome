@@ -193,7 +193,7 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::runSlot() {
-    bool rewind_slots; // NOLINT
+    bool rewind_slots;  // NOLINT
     do {
       if (current_slot_ != 0
           and current_slot_ % genesis_configuration_->epoch_length == 0) {

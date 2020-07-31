@@ -18,7 +18,7 @@ namespace kagome::api {
   }
 
   void JRpcServerImpl::processData(std::string_view request,
-                               const ResponseHandler &cb) {
+                                   const ResponseHandler &cb) {
     auto &&formatted_response =
         jsonrpc_handler_.HandleRequest(std::string(request));
     std::string response(formatted_response->GetData(),

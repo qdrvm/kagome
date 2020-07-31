@@ -246,7 +246,7 @@ TEST_P(WalkBackFromBlockNodeBelow, FindAncestor) {
 }
 
 const std::vector<std::tuple<BlockInfo, BlockInfo>> test_cases{{
-		// clang-format off
+    // clang-format off
 		{{5, "D"_H}, {5, "D"_H}},
 		{{6, "E1"_H}, {5, "D"_H}},
 		{{6, "E2"_H}, {5, "D"_H}},
@@ -254,7 +254,7 @@ const std::vector<std::tuple<BlockInfo, BlockInfo>> test_cases{{
 		{{7, "F2"_H}, {5, "D"_H}},
 		{{8, "G2"_H}, {8, "G2"_H}},
 		{{9, "H2"_H}, {8, "G2"_H}},
-		// clang-format on
+    // clang-format on
 }};
 
 INSTANTIATE_TEST_CASE_P(VoteGraph,

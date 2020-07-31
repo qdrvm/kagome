@@ -15,7 +15,7 @@ namespace kagome::application {
    */
   enum class ConfigReaderError { MISSING_ENTRY = 1, PARSER_ERROR };
 
-}
+}  // namespace kagome::application
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::application, ConfigReaderError);
 

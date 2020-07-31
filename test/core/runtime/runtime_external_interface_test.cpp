@@ -72,17 +72,18 @@ class REITest : public ::testing::Test {
     extension_factory_ = std::make_shared<ExtensionFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*extension_factory_, createExtension(_, _))
-        .WillRepeatedly(Invoke([this](auto&, auto&) -> std::unique_ptr<Extension> {
-          if (extension_) {
-            auto ext = std::move(extension_);
-            extension_ = std::make_unique<ExtensionMock>();
-            return std::unique_ptr<Extension>(std::move(ext));
-          } else {
-            extension_ = std::make_unique<ExtensionMock>();
-            return std::unique_ptr<Extension>(
-                std::make_unique<ExtensionMock>());
-          }
-        }));
+        .WillRepeatedly(
+            Invoke([this](auto &, auto &) -> std::unique_ptr<Extension> {
+              if (extension_) {
+                auto ext = std::move(extension_);
+                extension_ = std::make_unique<ExtensionMock>();
+                return std::unique_ptr<Extension>(std::move(ext));
+              } else {
+                extension_ = std::make_unique<ExtensionMock>();
+                return std::unique_ptr<Extension>(
+                    std::make_unique<ExtensionMock>());
+              }
+            }));
   }
 
   void executeWasm(std::string call_code) {

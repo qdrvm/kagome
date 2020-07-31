@@ -32,7 +32,7 @@ namespace kagome::crypto {
     static constexpr KeyTypeId kImon = 1768779630u;  // "imon"
     static constexpr KeyTypeId kAudi = 1635083369u;  // "audi"
     static constexpr KeyTypeId kLp2p = 1819292272u;  // "lp2p"
-  }  // namespace supported_key_types
+  }                                                  // namespace key_types
 
   /**
    * @brief makes string representation of KeyTypeId

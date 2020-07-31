@@ -67,20 +67,20 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(42));
 
-//  // WHEN
-//  EXPECT_CALL(changes_trie_builder, startNewTrie("aaa"_hash256))
-//      .WillOnce(Return(std::ref(changes_trie_builder)));
-//  ON_CALL(changes_trie_builder, insertExtrinsicsChange(_, _))
-//      .WillByDefault(testing::Invoke([](auto k, auto v) {
-//        ;
-//        return outcome::success();
-//      }));
-//  EXPECT_CALL(changes_trie_builder,
-//              insertExtrinsicsChange(
-//                  AnyOf(":extrinsic_index"_buf, "abc"_buf, "cde"_buf),
-//                  AnyOf(std::vector<ExtrinsicIndex>{42},
-//                        std::vector<ExtrinsicIndex>{0xffffff})))
-//      .WillRepeatedly(Return(outcome::success()));
+  //  // WHEN
+  //  EXPECT_CALL(changes_trie_builder, startNewTrie("aaa"_hash256))
+  //      .WillOnce(Return(std::ref(changes_trie_builder)));
+  //  ON_CALL(changes_trie_builder, insertExtrinsicsChange(_, _))
+  //      .WillByDefault(testing::Invoke([](auto k, auto v) {
+  //        ;
+  //        return outcome::success();
+  //      }));
+  //  EXPECT_CALL(changes_trie_builder,
+  //              insertExtrinsicsChange(
+  //                  AnyOf(":extrinsic_index"_buf, "abc"_buf, "cde"_buf),
+  //                  AnyOf(std::vector<ExtrinsicIndex>{42},
+  //                        std::vector<ExtrinsicIndex>{0xffffff})))
+  //      .WillRepeatedly(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(
       changes_tracker->constructChangesTrie("aaa"_hash256, {}));
   // THEN SUCCESS

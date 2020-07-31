@@ -17,7 +17,6 @@ using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::BlockTreeMock;
 using kagome::common::Blob;
 using kagome::common::Hash256;
 using kagome::consensus::grandpa::Chain;

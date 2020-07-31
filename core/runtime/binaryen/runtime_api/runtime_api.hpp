@@ -155,7 +155,7 @@ namespace kagome::runtime::binaryen {
         return scale::decode<R>(std::move(buffer));
       }
 
-      if(opt_batch) {
+      if (opt_batch) {
         OUTCOME_TRY(opt_batch.value()->writeBack());
       }
       return outcome::success();

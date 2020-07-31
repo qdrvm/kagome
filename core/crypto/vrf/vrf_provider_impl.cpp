@@ -42,13 +42,13 @@ namespace kagome::crypto {
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
     auto threshold_bytes = common::uint128_t_to_bytes(threshold);
-    auto sign_res =
-        sr25519_vrf_sign_if_less(out_proof.data(),
-                                 keypair_buf.data(),
-                                 msg.data(),
-                                 msg.size(),
-                                 threshold_bytes.data());
-    if (not sign_res.is_less or not (sign_res.result == Sr25519SignatureResult::Ok)) {
+    auto sign_res = sr25519_vrf_sign_if_less(out_proof.data(),
+                                             keypair_buf.data(),
+                                             msg.data(),
+                                             msg.size(),
+                                             threshold_bytes.data());
+    if (not sign_res.is_less
+        or not(sign_res.result == Sr25519SignatureResult::Ok)) {
       return boost::none;
     }
 

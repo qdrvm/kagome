@@ -5,9 +5,7 @@
 
 #include "application/impl/config_reader/error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::application,
-                            ConfigReaderError,
-                            e) {
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::application, ConfigReaderError, e) {
   using E = kagome::application::ConfigReaderError;
   switch (e) {
     case E::MISSING_ENTRY:

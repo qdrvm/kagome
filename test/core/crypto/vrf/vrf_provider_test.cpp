@@ -6,14 +6,14 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "crypto/random_generator/boost_generator.hpp"
 #include "common/mp_utils.hpp"
+#include "crypto/random_generator/boost_generator.hpp"
 
 using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::SR25519Keypair;
-using kagome::crypto::VRFProviderImpl;
 using kagome::crypto::VRFPreOutput;
+using kagome::crypto::VRFProviderImpl;
 using kagome::crypto::VRFThreshold;
 
 class VRFProviderTest : public testing::Test {
@@ -48,7 +48,8 @@ TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   auto out = out_opt.value();
 
   // then
-  auto verify_res = vrf_provider_->verify(msg_, out, keypair1_.public_key, threshold);
+  auto verify_res =
+      vrf_provider_->verify(msg_, out, keypair1_.public_key, threshold);
   ASSERT_TRUE(verify_res.is_valid);
   ASSERT_TRUE(verify_res.is_less);
 }
@@ -69,7 +70,8 @@ TEST_F(VRFProviderTest, VerifyFailed) {
   auto out = out_opt.value();
 
   // then
-  ASSERT_FALSE(vrf_provider_->verify(msg_, out, keypair2_.public_key, threshold).is_valid);
+  ASSERT_FALSE(vrf_provider_->verify(msg_, out, keypair2_.public_key, threshold)
+                   .is_valid);
 }
 
 /**

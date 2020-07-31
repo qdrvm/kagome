@@ -18,7 +18,7 @@ namespace kagome::storage::trie {
 
    protected:
     static outcome::result<PolkadotTrie::NodePtr> defaultChildRetriever(
-        const PolkadotTrie::BranchPtr& branch, uint8_t idx) {
+        const PolkadotTrie::BranchPtr &branch, uint8_t idx) {
       return branch->children.at(idx);
     };
 

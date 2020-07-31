@@ -27,7 +27,7 @@ namespace kagome::storage::changes_trie {
 
     static outcome::result<std::unique_ptr<ChangesTrie>> buildFromChanges(
         const primitives::BlockNumber &parent_block,
-        const std::shared_ptr<storage::trie::PolkadotTrieFactory>& trie_factory,
+        const std::shared_ptr<storage::trie::PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<trie::Codec> codec,
         const ExtrinsicsChanges &extinsics_changes,
         const ChangesTrieConfig &config);
@@ -43,7 +43,7 @@ namespace kagome::storage::changes_trie {
      */
     struct KeyIndex {
       // block in which the change occurred
-      primitives::BlockNumber block {};
+      primitives::BlockNumber block{};
       // changed key
       common::Buffer key;
     };

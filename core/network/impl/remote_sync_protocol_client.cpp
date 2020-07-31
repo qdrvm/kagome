@@ -20,20 +20,19 @@ namespace kagome::network {
   void RemoteSyncProtocolClient::requestBlocks(
       const network::BlocksRequest &request,
       std::function<void(outcome::result<network::BlocksResponse>)> cb) {
-    visit_in_place(
-        request.from,
-        [this](primitives::BlockNumber from) {
-          log_->debug("Requesting blocks: from {}", from);
-        },
-        [this, &request](const primitives::BlockHash &from) {
-          if (not request.to) {
-            log_->debug("Requesting blocks: from {}", from.toHex());
-          } else {
-            log_->debug("Requesting blocks: from {}, to {}",
-                        from.toHex(),
-                        request.to->toHex());
-          }
-        });
+    visit_in_place(request.from,
+                   [this](primitives::BlockNumber from) {
+                     log_->debug("Requesting blocks: from {}", from);
+                   },
+                   [this, &request](const primitives::BlockHash &from) {
+                     if (not request.to) {
+                       log_->debug("Requesting blocks: from {}", from.toHex());
+                     } else {
+                       log_->debug("Requesting blocks: from {}, to {}",
+                                   from.toHex(),
+                                   request.to->toHex());
+                     }
+                   });
     network::RPC<network::ScaleMessageReadWriter>::
         write<network::BlocksRequest, network::BlocksResponse>(
             host_, peer_info_, network::kSyncProtocol, request, std::move(cb));

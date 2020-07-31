@@ -60,7 +60,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<common::Buffer> TrieStorageProviderImpl::forceCommit() {
-    if(persistent_batch_ != nullptr) {
+    if (persistent_batch_ != nullptr) {
       return persistent_batch_->commit();
     }
     return common::Buffer{};

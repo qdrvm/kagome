@@ -47,8 +47,8 @@ namespace kagome::storage::changes_trie {
 
     std::map<common::Buffer, std::vector<primitives::ExtrinsicIndex>>
         extrinsics_changes_;
-    std::set<common::Buffer>
-        new_entries_; // entries that do not yet exist in the underlying storage
+    std::set<common::Buffer> new_entries_;  // entries that do not yet exist in
+                                            // the underlying storage
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
     GetExtrinsicIndexDelegate get_extrinsic_index_;

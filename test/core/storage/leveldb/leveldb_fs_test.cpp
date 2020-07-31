@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
-#include "storage/leveldb/leveldb.hpp"
 #include "storage/database_error.hpp"
+#include "storage/leveldb/leveldb.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace kagome::storage;

@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-#include "testutil/literals.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2s.h"
+#include "testutil/literals.hpp"
 
 // Deterministic sequences (Fibonacci generator).
 
@@ -24,7 +24,8 @@ static void selftest_seq(uint8_t *out, size_t len, size_t seed) {
 
 TEST(Blake2b, Correctness) {
   // grand hash of hash results
-  auto blake2b_res = "C23A7800D98123BD10F506C61E29DA5603D763B8BBAD2E737F5E765A7BCCD475"_unhex;
+  auto blake2b_res =
+      "C23A7800D98123BD10F506C61E29DA5603D763B8BBAD2E737F5E765A7BCCD475"_unhex;
   // parameter sets
   const size_t b2b_md_len[4] = {20, 32, 48, 64};
   const size_t b2b_in_len[6] = {0, 3, 128, 129, 255, 1024};
@@ -61,7 +62,8 @@ TEST(Blake2b, Correctness) {
 
 TEST(Blake2s, Correctness) {
   // Grand hash of hash results.
-  auto blake2s_res = "6A411F08CE25ADCDFB02ABA641451CEC53C598B24F4FC787FBDC88797F4C1DFE"_unhex;
+  auto blake2s_res =
+      "6A411F08CE25ADCDFB02ABA641451CEC53C598B24F4FC787FBDC88797F4C1DFE"_unhex;
   // Parameter sets.
   const size_t b2s_md_len[4] = {16, 20, 28, 32};
   const size_t b2s_in_len[6] = {0, 3, 64, 65, 255, 1024};

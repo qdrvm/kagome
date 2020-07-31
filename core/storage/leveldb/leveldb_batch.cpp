@@ -17,9 +17,8 @@ namespace kagome::storage {
     return outcome::success();
   }
 
-  outcome::result<void> LevelDB::Batch::put(const Buffer &key,
-                                            Buffer &&value) {
-    return put(key, static_cast<const Buffer&>(value));
+  outcome::result<void> LevelDB::Batch::put(const Buffer &key, Buffer &&value) {
+    return put(key, static_cast<const Buffer &>(value));
   }
 
   outcome::result<void> LevelDB::Batch::remove(const Buffer &key) {

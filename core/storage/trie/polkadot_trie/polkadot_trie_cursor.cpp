@@ -33,7 +33,8 @@ namespace kagome::storage::trie {
       : trie_{trie}, current_{nullptr} {}
 
   outcome::result<std::unique_ptr<PolkadotTrieCursor>>
-  PolkadotTrieCursor::createAt(const common::Buffer &key, const PolkadotTrie &trie) {
+  PolkadotTrieCursor::createAt(const common::Buffer &key,
+                               const PolkadotTrie &trie) {
     auto c = std::make_unique<PolkadotTrieCursor>(trie);
     OUTCOME_TRY(node,
                 trie.getNode(trie.getRoot(), c->codec_.keyToNibbles(key)));
@@ -212,7 +213,7 @@ namespace kagome::storage::trie {
   }
 
   bool PolkadotTrieCursor::hasNextChild(const BranchPtr &parent,
-                                          uint8_t child_idx) {
+                                        uint8_t child_idx) {
     return getNextChildIdx(parent, child_idx) != -1;
   }
 
@@ -227,7 +228,7 @@ namespace kagome::storage::trie {
   }
 
   bool PolkadotTrieCursor::hasPrevChild(const BranchPtr &parent,
-                                          uint8_t child_idx) {
+                                        uint8_t child_idx) {
     return getPrevChildIdx(parent, child_idx) != -1;
   }
 
@@ -240,12 +241,9 @@ namespace kagome::storage::trie {
   }
 
   auto PolkadotTrieCursor::constructLastVisitedChildPath(
-      const common::Buffer &key)
-      -> outcome::result<
-          std::list<TriePathEntry>> {
+      const common::Buffer &key) -> outcome::result<std::list<TriePathEntry>> {
     OUTCOME_TRY(path, trie_.getPath(trie_.getRoot(), codec_.keyToNibbles(key)));
-    std::list<TriePathEntry>
-        last_visited_child;
+    std::list<TriePathEntry> last_visited_child;
     for (auto &&[branch, idx] : path) {
       last_visited_child.emplace_back(branch, idx);
     }

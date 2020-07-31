@@ -7,8 +7,8 @@
 #define KAGOME_CORE_API_EXTRINSIC_EXTRINSIC_API_HPP
 
 #include "common/blob.hpp"
-#include "primitives/extrinsic.hpp"
 #include "primitives/author_api_primitives.hpp"
+#include "primitives/extrinsic.hpp"
 
 namespace kagome::api {
   class AuthorApi {

@@ -7,12 +7,12 @@
 
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/impl/extension_impl.hpp"
-#include "runtime/common/trie_storage_provider_impl.hpp"
 #include "mock/core/extensions/extension_factory_mock.hpp"
-#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/runtime/wasm_provider_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/common/trie_storage_provider_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace testing;

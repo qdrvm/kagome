@@ -31,6 +31,6 @@ namespace kagome::crypto {
     Hash256 sha2_256(gsl::span<const uint8_t> buffer) const override;
   };
 
-}  // namespace kagome::hash
+}  // namespace kagome::crypto
 
 #endif  // KAGOME_CORE_CRYPTO_HASHER_HASHER_IMPL_HPP_

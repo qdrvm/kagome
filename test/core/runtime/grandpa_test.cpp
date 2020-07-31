@@ -15,9 +15,9 @@
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
 using kagome::primitives::BlockId;
-using kagome::primitives::PreRuntime;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
+using kagome::primitives::PreRuntime;
 using kagome::runtime::Grandpa;
 using kagome::runtime::binaryen::GrandpaImpl;
 

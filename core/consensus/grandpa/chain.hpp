@@ -43,7 +43,7 @@ namespace kagome::consensus::grandpa {
      * given {@param base}.
      */
     inline bool isEqualOrDescendOf(const primitives::BlockHash &base,
-                            const primitives::BlockHash &block) const {
+                                   const primitives::BlockHash &block) const {
       return base == block ? true : getAncestry(base, block).has_value();
     }
   };

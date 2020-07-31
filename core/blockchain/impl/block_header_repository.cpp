@@ -12,7 +12,8 @@ namespace kagome::blockchain {
   auto BlockHeaderRepository::getNumberById(const primitives::BlockId &id) const
       -> outcome::result<primitives::BlockNumber> {
     return visit_in_place(
-        id, [](const primitives::BlockNumber &n) { return n; },
+        id,
+        [](const primitives::BlockNumber &n) { return n; },
         [this](const common::Hash256 &hash) { return getNumberByHash(hash); });
   }
 
