@@ -109,9 +109,14 @@ TEST_F(SubscriptionEngineTest, SubUnsub) {
 
   const auto id = subscriber->generate_subscription_set_id();
   subscriber->subscribe(id, key);
-  subscriber->unsubscribe(id, key);
+  ASSERT_EQ(engine_->size(key), 1ull);
 
+  subscriber->unsubscribe(5555ull, key);
+  ASSERT_EQ(engine_->size(key), 1ull);
+
+  subscriber->unsubscribe(id, key);
   ASSERT_EQ(engine_->size(key), 0ull);
+
   engine_->notify(key, data_1, data_2);
 }
 
