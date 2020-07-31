@@ -27,6 +27,7 @@ namespace kagome::subscription {
     using KeyType = Key;
     using ValueType = Type;
     using HashType = size_t;
+    using SubscriptionSetId = uint64_t;
 
     using SubscriptionEngineType =
         SubscriptionEngine<KeyType, ValueType, Arguments...>;
@@ -36,23 +37,29 @@ namespace kagome::subscription {
     using SubscriptionsContainer =
         std::unordered_map<KeyType,
                            typename SubscriptionEngineType::IteratorType>;
+    using SubscriptionsSets =
+      std::unordered_map<SubscriptionSetId, SubscriptionsContainer>;
 
+
+    SubscriptionSetId next_id_;
     SubscriptionEnginePtr engine_;
     ValueType object_;
 
     std::mutex subscriptions_cs_;
-    SubscriptionsContainer subscriptions_;
+    SubscriptionsSets subscriptions_sets_;
 
     std::function<void(ValueType&, const KeyType &, const Arguments &...)> on_notify_callback_;
 
    public:
     template <typename... Args>
     explicit Subscriber(SubscriptionEnginePtr &ptr, Args &&... args)
-        : engine_(ptr), object_(std::forward<Args>(args)...) {}
+        : engine_(ptr), object_(std::forward<Args>(args)...), next_id_(0ull) {}
 
     ~Subscriber() {
       /// Unsubscribe all
-      for (auto &[key, it] : subscriptions_) engine_->unsubscribe(key, it);
+      for (auto &[_, subscriptions] : subscriptions_sets_)
+        for (auto &[key, it] : subscriptions)
+          engine_->unsubscribe(key, it);
     }
 
     Subscriber(const Subscriber &) = delete;
@@ -65,9 +72,13 @@ namespace kagome::subscription {
       on_notify_callback_ = std::move(f);
     }
 
-    void subscribe(const KeyType &key) {
+    SubscriptionSetId generate_subscription_set_id() {
+        return ++next_id_;
+    }
+
+    void subscribe(SubscriptionSetId id, const KeyType &key) {
       std::lock_guard lock(subscriptions_cs_);
-      auto &&[it, inserted] = subscriptions_.emplace(key, typename SubscriptionEngineType::IteratorType{});
+      auto &&[it, inserted] = subscriptions_sets_[id].emplace(key, typename SubscriptionEngineType::IteratorType{});
 
       /// Here we check first local subscriptions because of strong connection
       /// with SubscriptionEngine.
@@ -75,21 +86,36 @@ namespace kagome::subscription {
         it->second = engine_->subscribe(key, this->weak_from_this());
     }
 
-    void unsubscribe(const KeyType &key) {
+    void unsubscribe(SubscriptionSetId id, const KeyType &key) {
       std::lock_guard<std::mutex> lock(subscriptions_cs_);
-      auto it = subscriptions_.find(key);
-      if (subscriptions_.end() != it) {
-        engine_->unsubscribe(key, it->second);
-        subscriptions_.erase(it);
+      if (auto set_it = subscriptions_sets_.find(id); set_it != subscriptions_sets_.end()) {
+        auto &subscriptions = set_it->second;
+        auto it = subscriptions.find(key);
+        if (subscriptions.end() != it) {
+          engine_->unsubscribe(key, it->second);
+          subscriptions.erase(it);
+        }
+      }
+    }
+
+    void unsubscribe(SubscriptionSetId id) {
+      std::lock_guard<std::mutex> lock(subscriptions_cs_);
+      if (auto set_it = subscriptions_sets_.find(id); set_it != subscriptions_sets_.end()) {
+        auto &subscriptions = set_it->second;
+        for (auto &[key, it] : subscriptions)
+          engine_->unsubscribe(key, it);
+
+        subscriptions_sets_.erase(set_it);
       }
     }
 
     void unsubscribe() {
       std::lock_guard<std::mutex> lock(subscriptions_cs_);
-      for (auto &it : subscriptions_) {
-        engine_->unsubscribe(it.first, it.second);
-      }
-      subscriptions_.clear();
+      for (auto &[_, subscriptions] : subscriptions_sets_)
+        for (auto &[key, it] : subscriptions)
+          engine_->unsubscribe(key, it);
+
+      subscriptions_sets_.clear();
     }
 
     void on_notify(const KeyType &key, const Arguments &... args) {
