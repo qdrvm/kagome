@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
 #ifndef KAGOME_AUTHORITY_UPDATE_OBSERVER_MOCK
 #define KAGOME_AUTHORITY_UPDATE_OBSERVER_MOCK
 

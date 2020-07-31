@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
 #ifndef KAGOME_GRANDPA_FINALIZATION_COMPOSITE
 #define KAGOME_GRANDPA_FINALIZATION_COMPOSITE
 

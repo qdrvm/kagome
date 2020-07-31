@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
 #ifndef KAGOME_GRANDPA_FINALIZATION_OBSERVER
 #define KAGOME_GRANDPA_FINALIZATION_OBSERVER
 

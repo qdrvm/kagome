@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
 #ifndef KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
 #define KAGOME_CONSENSUS_AUTHORITIES_SCHEDULE_NODE
 

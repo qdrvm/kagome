@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
 #ifndef KAGOME_TYPE_TRAITS
 #define KAGOME_TYPE_TRAITS
 
