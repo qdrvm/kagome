@@ -81,8 +81,12 @@ namespace kagome::api {
                   result["changes"] = std::move(out_data);
                   result["block"] = api::makeValue(block);
 
+                  jsonrpc::Value::Struct params;
+                  params["result"] = std::move(result);
+                  params["subscription"] = 0;
+
                   self->server_->processJsonData(
-                      result, [&](const std::string &response) {
+                      params, [&](const std::string &response) {
                         session->respond(response);
                       });
                 }

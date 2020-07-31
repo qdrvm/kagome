@@ -33,6 +33,8 @@ namespace kagome::subscription {
         SubscriptionEngine<KeyType, ValueType, Arguments...>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
+    using CallbackFnType = std::function<void(ValueType&, const KeyType &, const Arguments &...)>;
+
    private:
     using SubscriptionsContainer =
         std::unordered_map<KeyType,
@@ -48,7 +50,7 @@ namespace kagome::subscription {
     std::mutex subscriptions_cs_;
     SubscriptionsSets subscriptions_sets_;
 
-    std::function<void(ValueType&, const KeyType &, const Arguments &...)> on_notify_callback_;
+    CallbackFnType on_notify_callback_;
 
    public:
     template <typename... Args>
@@ -68,7 +70,7 @@ namespace kagome::subscription {
     Subscriber(Subscriber &&) = default;
     Subscriber &operator=(Subscriber &&) = default;
 
-    void setCallback(std::function<void(ValueType&, const KeyType &, const Arguments &...)> &&f) {
+    void setCallback(CallbackFnType &&f) {
       on_notify_callback_ = std::move(f);
     }
 
