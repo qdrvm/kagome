@@ -144,3 +144,124 @@ TEST_F(SubscriptionEngineTest, DeleteSub) {
   ASSERT_EQ(engine_->size(key), 0ull);
   engine_->notify(key, data_1, data_2);
 }
+
+/**
+ * @given a subscription engine
+ * @when we add several subscriber with the same key
+ * @then we expect 1 subscribers in engine
+ */
+TEST_F(SubscriptionEngineTest, MultiSub) {
+  std::string_view data_1(test_data);
+  int32_t data_2 = 105;
+
+  SubscriptionTargetMock target;
+  auto subscriber = std::make_shared<Subscriber<std::string_view,
+                                                SubscriptionTargetMock,
+                                                std::string_view,
+                                                int32_t>>(engine_);
+  subscriber->set_callback(
+      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
+        target.test_call(data_1, data_2);
+      });
+
+  EXPECT_CALL(target, test_call(data_1, data_2));
+
+  const auto id = subscriber->generate_subscription_set_id();
+  subscriber->subscribe(id, key);
+  subscriber->subscribe(id, key);
+  subscriber->subscribe(id, key);
+  subscriber->subscribe(id, key);
+
+  ASSERT_EQ(engine_->size(key), 1ull);
+  engine_->notify(key, data_1, data_2);
+}
+
+/**
+ * @given a subscription engine
+ * @when we add subscriber and become unsubscribe the other key
+ * @then we expect 1 subscribers in engine
+ */
+TEST_F(SubscriptionEngineTest, UnsubscribeSub) {
+  std::string_view data_1(test_data);
+  int32_t data_2 = 105;
+
+  SubscriptionTargetMock target;
+  auto subscriber = std::make_shared<Subscriber<std::string_view,
+      SubscriptionTargetMock,
+      std::string_view,
+      int32_t>>(engine_);
+  subscriber->set_callback(
+      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
+        target.test_call(data_1, data_2);
+      });
+
+  EXPECT_CALL(target, test_call(data_1, data_2));
+
+  const auto id = subscriber->generate_subscription_set_id();
+  subscriber->subscribe(id, key);
+  ASSERT_EQ(engine_->size(key), 1ull);
+
+  subscriber->unsubscribe(100);
+  ASSERT_EQ(engine_->size(key), 1ull);
+
+  engine_->notify(key, data_1, data_2);
+}
+
+/**
+ * @given a subscription engine
+ * @when we add subscriber and become unsubscribe all
+ * @then we expect 0 subscribers in engine
+ */
+TEST_F(SubscriptionEngineTest, UnsubscribeAllSub) {
+  std::string_view data_1(test_data);
+  int32_t data_2 = 105;
+
+  SubscriptionTargetMock target;
+  auto subscriber = std::make_shared<Subscriber<std::string_view,
+      SubscriptionTargetMock,
+      std::string_view,
+      int32_t>>(engine_);
+  subscriber->set_callback(
+      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
+        ASSERT_FALSE(true);
+      });
+
+  const auto id = subscriber->generate_subscription_set_id();
+  subscriber->subscribe(id, key);
+  ASSERT_EQ(engine_->size(key), 1ull);
+
+  subscriber->unsubscribe();
+  ASSERT_EQ(engine_->size(key), 0ull);
+
+  engine_->notify(key, data_1, data_2);
+}
+
+/**
+ * @given a subscription engine
+ * @when we add subscriber and become unsubscribe the stream
+ * @then we expect 0 subscribers in engine
+ */
+TEST_F(SubscriptionEngineTest, UnsubscribeStreamSub) {
+  std::string_view data_1(test_data);
+  int32_t data_2 = 105;
+
+  SubscriptionTargetMock target;
+  auto subscriber = std::make_shared<Subscriber<std::string_view,
+      SubscriptionTargetMock,
+      std::string_view,
+      int32_t>>(engine_);
+  subscriber->set_callback(
+      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
+        ASSERT_FALSE(true);
+      });
+
+  const auto id = subscriber->generate_subscription_set_id();
+  subscriber->subscribe(id, key);
+  ASSERT_EQ(engine_->size(key), 1ull);
+
+  subscriber->unsubscribe(id);
+  ASSERT_EQ(engine_->size(key), 0ull);
+
+  engine_->notify(key, data_1, data_2);
+}
+
