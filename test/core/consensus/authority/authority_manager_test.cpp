@@ -4,15 +4,16 @@
  */
 
 #include <gtest/gtest.h>
-#include <mock/core/application/app_state_manager_mock.hpp>
-#include <mock/core/blockchain/block_tree_mock.hpp>
-#include <mock/core/storage/persistent_map_mock.hpp>
-#include <scale/scale.hpp>
-#include <testutil/outcome/dummy_error.hpp>
+
 #include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/digest.hpp"
+#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/outcome/dummy_error.hpp"
 
 using namespace kagome;
 using AuthorityManager = authority::AuthorityManagerImpl;
@@ -148,9 +149,11 @@ TEST_F(AuthorityManagerTest, InitFromGenesis) {
 
 TEST_F(AuthorityManagerTest, InitFromStorage) {
   // Make custom state
-	primitives::AuthorityList custom_authorities{makeAuthority("NonGenesisAuthority", 1)};
-  auto node = authority::ScheduleNode::makeAsRoot({10, "B"_hash256});
-  node->actual_authorities = std::make_shared<primitives::AuthorityList>(custom_authorities);
+  primitives::AuthorityList custom_authorities{
+      makeAuthority("NonGenesisAuthority", 1)};
+  auto node = authority::ScheduleNode::createAsRoot({10, "B"_hash256});
+  node->actual_authorities =
+      std::make_shared<primitives::AuthorityList>(custom_authorities);
   EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
   common::Buffer encoded_data(encode_result.value());
 
@@ -159,7 +162,7 @@ TEST_F(AuthorityManagerTest, InitFromStorage) {
 
   auth_mngr_->prepare();
 
-	examine({20, "D"_hash256}, custom_authorities);
+  examine({20, "D"_hash256}, custom_authorities);
 }
 
 TEST_F(AuthorityManagerTest, OnFinalize) {
@@ -171,7 +174,7 @@ TEST_F(AuthorityManagerTest, OnFinalize) {
   auto &orig_authorities = *authorities_result.value();
 
   // Make expected state
-  auto node = authority::ScheduleNode::makeAsRoot({20, "D"_hash256});
+  auto node = authority::ScheduleNode::createAsRoot({20, "D"_hash256});
   node->actual_authorities =
       std::make_shared<primitives::AuthorityList>(orig_authorities);
 
@@ -280,9 +283,9 @@ TEST_F(AuthorityManagerTest, OnConsensus_DisableAuthority) {
 TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   prepareAuthorityManager();
 
-	EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-	                       auth_mngr_->authorities({35, "F"_hash256}));
-	auto &old_authorities = *old_authorities_result.value();
+  EXPECT_OUTCOME_SUCCESS(old_authorities_result,
+                         auth_mngr_->authorities({35, "F"_hash256}));
+  auto &old_authorities = *old_authorities_result.value();
 
   auto engine_id = primitives::kBabeEngineId;
   primitives::BlockInfo target_block{5, "A"_hash256};
@@ -315,8 +318,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
 TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   prepareAuthorityManager();
 
-	EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-	                       auth_mngr_->authorities({35, "F"_hash256}));
+  EXPECT_OUTCOME_SUCCESS(old_authorities_result,
+                         auth_mngr_->authorities({35, "F"_hash256}));
   auto &enabled_authorities = *old_authorities_result.value();
 
   primitives::AuthorityList disabled_authorities = enabled_authorities;

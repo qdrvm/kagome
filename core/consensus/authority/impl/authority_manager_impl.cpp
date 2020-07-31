@@ -24,6 +24,7 @@ namespace kagome::authority {
         storage_(std::move(storage)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(genesis_configuration_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
 
     app_state_manager_->takeControl(*this);
@@ -33,7 +34,7 @@ namespace kagome::authority {
     auto encoded_root_res = storage_->get(SCHEDULER_TREE);
     if (!encoded_root_res.has_value()) {
       // Get initial authorities from genesis
-      root_ = ScheduleNode::makeAsRoot({});
+      root_ = ScheduleNode::createAsRoot({});
       root_->actual_authorities = std::make_shared<primitives::AuthorityList>(
           genesis_configuration_->genesis_authorities);
       return;
@@ -115,7 +116,7 @@ namespace kagome::authority {
       if (descendant->block.block_number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
         descendant->forced_authorities.reset();
-        descendant->forced_for = ScheduleNode::inactive;
+        descendant->forced_for = ScheduleNode::INACTIVE;
       }
 
       ancestor->descendants.emplace_back(std::move(descendant));
@@ -154,11 +155,11 @@ namespace kagome::authority {
       if (descendant->block.block_number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
         descendant->forced_authorities.reset();
-        descendant->forced_for = ScheduleNode::inactive;
+        descendant->forced_for = ScheduleNode::INACTIVE;
       }
       if (descendant->block.block_number >= ancestor->resume_for) {
         descendant->enabled = true;
-        descendant->resume_for = ScheduleNode::inactive;
+        descendant->resume_for = ScheduleNode::INACTIVE;
       }
 
       ancestor->descendants.emplace_back(std::move(descendant));
@@ -242,11 +243,11 @@ namespace kagome::authority {
       if (descendant->block.block_number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
         descendant->forced_authorities.reset();
-        descendant->forced_for = ScheduleNode::inactive;
+        descendant->forced_for = ScheduleNode::INACTIVE;
       }
       if (descendant->block.block_number >= ancestor->resume_for) {
         descendant->enabled = true;
-        descendant->resume_for = ScheduleNode::inactive;
+        descendant->resume_for = ScheduleNode::INACTIVE;
       }
 
       ancestor->descendants.emplace_back(std::move(descendant));
@@ -325,7 +326,7 @@ namespace kagome::authority {
       const primitives::BlockInfo &block) {
     BOOST_ASSERT(root_ != nullptr);
     std::shared_ptr<ScheduleNode> ancestor;
-    // Target block is not descendant current root
+    // Target block is not descendant of the current root
     if (root_->block.block_number > block.block_number
         || (root_->block != block
             && not isDirectAncestry(root_->block, block))) {

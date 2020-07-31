@@ -23,7 +23,8 @@ namespace kagome::authority {
 
     /**
      * @brief Schedule an authority set change after the given delay of N
-     * blocks, is a block finalized by the finality consensus engine
+     * blocks, after next one would be finalized by the finality consensus
+     * engine
      * @param block is info of block which representing this change
      * @param authorities is authotity set for renewal
      * @param activateAt is number of block when changes will applied
@@ -35,8 +36,8 @@ namespace kagome::authority {
 
     /**
      * @brief Force an authority set change after the given delay of N blocks,
-     * is an imported block which has been validated by the block production
-     * conensus engine.
+     * after next one would be imported block which has been validated by the
+     * block production conensus engine.
      * @param block is info of block which representing this change
      * @param authorities is authotity set for renewal
      * @param activateAt is number of block when changes will applied
@@ -47,7 +48,7 @@ namespace kagome::authority {
         primitives::BlockNumber activate_at) = 0;
 
     /**
-     * @brief An index to the individual authority in the current authority list
+     * @brief An index of the individual authority in the current authority list
      * that should be immediately disabled until the next authority set change.
      * When an authority gets disabled, the node should stop performing any
      * authority functionality from that authority, including authoring blocks

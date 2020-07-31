@@ -14,23 +14,23 @@ namespace kagome::authority {
     BOOST_ASSERT((bool)ancestor);
   }
 
-  std::shared_ptr<ScheduleNode> ScheduleNode::makeAsRoot(
+  std::shared_ptr<ScheduleNode> ScheduleNode::createAsRoot(
       primitives::BlockInfo block) {
     auto fake_parent = std::make_shared<ScheduleNode>(ScheduleNode());
     return std::make_shared<ScheduleNode>(fake_parent, primitives::BlockInfo{});
   }
 
   outcome::result<void> ScheduleNode::ensureReadyToSchedule() const {
-    if (scheduled_after != inactive) {
+    if (scheduled_after != INACTIVE) {
       return AuthorityUpdateObserverError::NO_SCHEDULED_CHANGE_APPLIED_YET;
     }
-    if (forced_for != inactive) {
+    if (forced_for != INACTIVE) {
       return AuthorityUpdateObserverError::NO_FORCED_CHANGE_APPLIED_YET;
     }
-    if (pause_after != inactive) {
+    if (pause_after != INACTIVE) {
       return AuthorityUpdateObserverError::NO_PAUSE_APPLIED_YET;
     }
-    if (resume_for != inactive) {
+    if (resume_for != INACTIVE) {
       return AuthorityUpdateObserverError::NO_RESUME_APPLIED_YET;
     }
     return outcome::success();
@@ -40,7 +40,7 @@ namespace kagome::authority {
       const primitives::BlockInfo &block, bool finalized) {
     auto node = std::make_shared<ScheduleNode>(shared_from_this(), block);
     // Has ScheduledChange
-    if (scheduled_after != inactive) {
+    if (scheduled_after != INACTIVE) {
       if (finalized && scheduled_after <= block.block_number) {
         node->actual_authorities = scheduled_authorities;
       } else {
@@ -51,7 +51,7 @@ namespace kagome::authority {
       }
     }
     // Has ForcedChange
-    else if (forced_for != inactive) {
+    else if (forced_for != INACTIVE) {
       if (forced_for <= block.block_number) {
         node->actual_authorities = forced_authorities;
       } else {
@@ -62,7 +62,7 @@ namespace kagome::authority {
       }
     }
     // Has planned pause
-    else if (pause_after != inactive) {
+    else if (pause_after != INACTIVE) {
       node->actual_authorities = actual_authorities;
       if (finalized && pause_after <= block.block_number) {
         node->enabled = false;
@@ -72,7 +72,7 @@ namespace kagome::authority {
       }
     }
     // Has planned resume
-    else if (resume_for != inactive) {
+    else if (resume_for != INACTIVE) {
       node->actual_authorities = actual_authorities;
       if (resume_for <= block.block_number) {
         node->enabled = true;

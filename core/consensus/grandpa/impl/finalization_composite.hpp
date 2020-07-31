@@ -13,6 +13,10 @@
 
 namespace kagome::consensus::grandpa {
 
+  /**
+   * @brief Special wrapper for aggregate anyone finalisation observers.
+   * Needed in order to have single endpoint to handle finalization.
+   */
   class FinalizationComposite final : public FinalizationObserver {
    public:
     template <class... Args,

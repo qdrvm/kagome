@@ -6,7 +6,6 @@
 #ifndef KAGOME_CONSENSUS_AUTHORITIES_MANAGER_IMPL
 #define KAGOME_CONSENSUS_AUTHORITIES_MANAGER_IMPL
 
-#include <primitives/babe_configuration.hpp>
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/grandpa/finalization_observer.hpp"
@@ -14,6 +13,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/authority/impl/schedule_node.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::authority {
