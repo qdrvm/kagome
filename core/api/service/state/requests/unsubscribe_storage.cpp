@@ -22,7 +22,7 @@ namespace kagome::api::state::request {
     return outcome::success();
   }
 
-  outcome::result<uint32_t> UnsubscribeStorage::execute() {
+  outcome::result<void> UnsubscribeStorage::execute() {
     return api_->unsubscribeStorage(subscriber_id_);
   }
 

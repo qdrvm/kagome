@@ -30,7 +30,7 @@ namespace kagome::api::state::request {
     ~UnsubscribeStorage() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
-    outcome::result<uint32_t> execute();
+    outcome::result<void> execute();
 
    private:
     std::shared_ptr<StateApi> api_;

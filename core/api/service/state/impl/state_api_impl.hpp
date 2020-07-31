@@ -33,7 +33,7 @@ namespace kagome::api {
         const boost::optional<primitives::BlockHash> &at) const override;
     outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) override;
-    outcome::result<uint32_t> unsubscribeStorage(
+    outcome::result<void> unsubscribeStorage(
         uint32_t subscription_id) override;
 
   private:

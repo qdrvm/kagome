@@ -50,7 +50,7 @@ namespace kagome::api {
     return api_service_->subscribe_session_to_keys(keys);
   }
 
-  outcome::result<uint32_t> StateApiImpl::unsubscribeStorage(
+  outcome::result<void> StateApiImpl::unsubscribeStorage(
       uint32_t subscription_id) {
     return api_service_->unsubscribe_thread_session_from_ids(subscription_id);
   }

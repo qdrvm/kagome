@@ -166,11 +166,12 @@ namespace kagome::api {
       const std::vector<common::Buffer> &keys) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
       if (auto session = findSessionById(*session_id)) {
+        const auto id = session->generate_subscription_set_id();
         for (auto &key : keys) {
           /// TODO(iceseer): PRE-476 make move data to subscription
-          session->subscribe(key);
+          session->subscribe(id, key);
         }
-        return 0;
+        return static_cast<uint32_t>(id);
       }
       throw jsonrpc::InternalErrorFault(
           "Internal error. No session was stored for subscription.");
@@ -179,12 +180,12 @@ namespace kagome::api {
         "Internal error. No session was bound to subscription.");
   }
 
-  outcome::result<uint32_t> ApiService::unsubscribe_thread_session_from_ids(
+  outcome::result<void> ApiService::unsubscribe_thread_session_from_ids(
       uint32_t subscription_id) {
     if (auto session_id = threaded_info.fetch_thread_session_id(); session_id) {
       if (auto session = find_session_by_id(*session_id)) {
-        session->unsubscribe();
-        return 0;
+        session->unsubscribe(subscription_id);
+        return outcome::success();
       }
       throw jsonrpc::InternalErrorFault(
           "Internal error. No session was stored for subscription.");
