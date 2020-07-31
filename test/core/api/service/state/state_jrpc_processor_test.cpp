@@ -192,3 +192,22 @@ TEST_F(StateJrpcProcessorTest, ProcessSubscribeStorage) {
 
   ASSERT_EQ(result, val);
 }
+
+/**
+ * @given a request of state_unsubscribeStorage with a valid param
+ * @when processing it
+ * @then the request is successfully processed and the response is valid
+ */
+TEST_F(StateJrpcProcessorTest, ProcessUnsubscribeStorage) {
+  std::vector<uint32_t> subscription_ids = { 10 };
+  EXPECT_CALL(*state_api, unsubscribeStorage(subscription_ids))
+      .WillOnce(testing::Return(outcome::success()));
+
+  registerHandlers();
+
+  jsonrpc::Value::Array data;
+  data.emplace_back(10);
+
+  jsonrpc::Request::Parameters params{data};
+  execute(CallType::kCallType_StorageUnsubscribe, params);
+}

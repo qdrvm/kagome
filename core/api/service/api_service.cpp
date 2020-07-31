@@ -185,10 +185,11 @@ namespace kagome::api {
   }
 
   outcome::result<void> ApiService::unsubscribe_thread_session_from_ids(
-      uint32_t subscription_id) {
+      const std::vector<uint32_t> &subscription_ids) {
     if (auto session_id = threaded_info.fetch_thread_session_id(); session_id) {
       if (auto session = find_session_by_id(*session_id)) {
-        session->unsubscribe(subscription_id);
+        for (auto id : subscription_ids)
+          session->unsubscribe(id);
         return outcome::success();
       }
       throw jsonrpc::InternalErrorFault(

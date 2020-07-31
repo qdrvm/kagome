@@ -32,7 +32,7 @@ namespace kagome::api {
         outcome::result<uint32_t>(std::vector<common::Buffer> const &keys));
     MOCK_METHOD1(
         unsubscribeStorage,
-        outcome::result<void>(uint32_t subscription_id));
+        outcome::result<void>(const std::vector<uint32_t> &subscription_id));
   };
 }  // namespace kagome::api
 

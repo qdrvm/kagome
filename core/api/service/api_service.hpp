@@ -72,7 +72,7 @@ namespace kagome::api {
         const std::vector<common::Buffer> &keys);
 
     outcome::result<void> unsubscribe_thread_session_from_ids(
-        uint32_t subscription_id);
+        const std::vector<uint32_t> &subscription_id);
 
    private:
     SubscribedSessionPtr findSessionById(Session::SessionId id);

@@ -34,7 +34,7 @@ namespace kagome::api::state::request {
 
    private:
     std::shared_ptr<StateApi> api_;
-    uint32_t subscriber_id_;
+    std::vector<uint32_t> subscriber_id_;
   };
 
 }  // namespace kagome::api::state::request

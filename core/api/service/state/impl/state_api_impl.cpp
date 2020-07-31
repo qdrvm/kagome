@@ -51,7 +51,7 @@ namespace kagome::api {
   }
 
   outcome::result<void> StateApiImpl::unsubscribeStorage(
-      uint32_t subscription_id) {
+      const std::vector<uint32_t> &subscription_id) {
     return api_service_->unsubscribe_thread_session_from_ids(subscription_id);
   }
 }  // namespace kagome::api
