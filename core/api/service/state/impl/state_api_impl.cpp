@@ -49,4 +49,9 @@ namespace kagome::api {
     BOOST_ASSERT(nullptr != api_service_);
     return api_service_->subscribe_session_to_keys(keys);
   }
+
+  outcome::result<uint32_t> StateApiImpl::unsubscribeStorage(
+      uint32_t subscription_id) {
+    return api_service_->unsubscribe_thread_session_from_ids(subscription_id);
+  }
 }  // namespace kagome::api

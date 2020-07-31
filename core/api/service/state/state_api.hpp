@@ -26,6 +26,8 @@ namespace kagome::api {
         const boost::optional<primitives::BlockHash> &at) const = 0;
     virtual outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) = 0;
+    virtual outcome::result<uint32_t> unsubscribeStorage(
+        uint32_t subscription_id) = 0;
   };
 
 }  // namespace kagome::api

@@ -179,4 +179,19 @@ namespace kagome::api {
         "Internal error. No session was bound to subscription.");
   }
 
+  outcome::result<uint32_t> ApiService::unsubscribe_thread_session_from_ids(
+      uint32_t subscription_id) {
+    if (auto session_id = threaded_info.fetch_thread_session_id(); session_id) {
+      if (auto session = find_session_by_id(*session_id)) {
+        session->unsubscribe();
+        return 0;
+      }
+      throw jsonrpc::InternalErrorFault(
+          "Internal error. No session was stored for subscription.");
+    }
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. No session was binded to subscription.");
+  }
+
+
 }  // namespace kagome::api

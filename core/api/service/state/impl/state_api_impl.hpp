@@ -33,8 +33,10 @@ namespace kagome::api {
         const boost::optional<primitives::BlockHash> &at) const override;
     outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) override;
+    outcome::result<uint32_t> unsubscribeStorage(
+        uint32_t subscription_id) override;
 
-   private:
+  private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

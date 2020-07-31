@@ -84,6 +84,14 @@ namespace kagome::subscription {
       }
     }
 
+    void unsubscribe() {
+      std::lock_guard<std::mutex> lock(subscriptions_cs_);
+      for (auto &it : subscriptions_) {
+        engine_->unsubscribe(it.first, it.second);
+      }
+      subscriptions_.clear();
+    }
+
     void on_notify(const KeyType &key, const Arguments &... args) {
       if (nullptr != on_notify_callback_) on_notify_callback_(object_, key, args...);
     }
