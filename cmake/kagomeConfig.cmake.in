@@ -17,22 +17,32 @@ set(kagome_INCLUDE_DIRS
 set(kagome_LIBRARIES
         kagome::scale
         kagome::buffer
+        kagome::outcome
         kagome::hexutil
+        kagome::mp_utils
         kagome::blob
+        kagome::database_error
+        kagome::trie_error
         kagome::trie_storage
         kagome::polkadot_codec
+        kagome::polkadot_node
         kagome::polkadot_trie
+        kagome::polkadot_trie_cursor
+        kagome::ephemeral_trie_batch
+        kagome::persistent_trie_batch
+        kagome::topper_trie_batch
         kagome::blake2
         kagome::keccak
         kagome::hasher
         kagome::twox
         kagome::sha
         kagome::leveldb
-        kagome::polkadot_trie_batch
         kagome::logger
         kagome::in_memory_storage
         kagome::extensions
         kagome::ordered_trie_hash
+        kagome::crypto_store
+        kagome::crypto_store_key_type
         kagome::crypto_extension
         kagome::io_extension
         kagome::memory_extension
@@ -42,5 +52,7 @@ set(kagome_LIBRARIES
         kagome::ed25519_types
         kagome::sr25519_provider
         kagome::ed25519_provider
-        kagome::trie_db_backend
+        kagome::pbkdf2_provider
+        kagome::secp256k1_provider
+        kagome::bip39_provider
     )
