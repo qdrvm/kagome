@@ -23,10 +23,13 @@ set(kagome_LIBRARIES
         kagome::blob
         kagome::database_error
         kagome::trie_error
+        kagome::trie_serializer
         kagome::trie_storage
+        kagome::trie_storage_backend
         kagome::polkadot_codec
         kagome::polkadot_node
         kagome::polkadot_trie
+        kagome::polkadot_trie_factory
         kagome::polkadot_trie_cursor
         kagome::ephemeral_trie_batch
         kagome::persistent_trie_batch
@@ -47,6 +50,7 @@ set(kagome_LIBRARIES
         kagome::io_extension
         kagome::memory_extension
         kagome::misc_extension
+        kagome::trie_storage_provider
         kagome::storage_extension
         kagome::sr25519_types
         kagome::ed25519_types

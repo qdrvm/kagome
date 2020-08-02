@@ -8,6 +8,7 @@ add_library(trie_storage_backend
 target_link_libraries(trie_storage_backend
     buffer
     )
+kagome_install(trie_storage_backend)
 
 add_library(topper_trie_batch
     topper_trie_batch_impl.cpp

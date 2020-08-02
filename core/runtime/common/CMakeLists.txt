@@ -17,3 +17,4 @@ add_library(trie_storage_provider
 target_link_libraries(trie_storage_provider
     trie_storage
     )
+kagome_install(trie_storage_provider)
