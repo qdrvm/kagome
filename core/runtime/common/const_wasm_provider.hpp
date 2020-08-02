@@ -10,7 +10,7 @@
 
 namespace kagome::runtime {
 
-  class ConstWasmProvider: public WasmProvider {
+  class ConstWasmProvider : public WasmProvider {
    public:
     explicit ConstWasmProvider(common::Buffer code);
 
@@ -20,6 +20,6 @@ namespace kagome::runtime {
     common::Buffer code_;
   };
 
-}  // namespace kagome::
+}  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER

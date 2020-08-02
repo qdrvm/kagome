@@ -18,7 +18,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
     case Error::EMPTY_STATE_CODE:
       return "Provided state code is empty, calling a function is impossible";
   }
-  return "Unknown error";
+  return "Unknown RuntimeManager error";
 }
 
 namespace kagome::runtime::binaryen {

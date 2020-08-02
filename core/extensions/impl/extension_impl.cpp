@@ -38,7 +38,7 @@ namespace kagome::extensions {
                     std::move(bip39_provider)),
         io_ext_(memory),
         memory_ext_(memory),
-        misc_ext_(42, memory, std::move(core_factory_method)),
+        misc_ext_(DEFAULT_CHAIN_ID, memory, std::move(core_factory_method)),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);

@@ -240,6 +240,8 @@ namespace kagome::extensions {
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
 
    private:
+    static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
+
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 

@@ -36,7 +36,7 @@ namespace kagome::extensions {
     auto core = core_factory_method_(wasm_provider);
     auto version_res = core->version(boost::none);
 
-    auto error_res =
+    static const auto error_res =
         scale::encode<boost::optional<primitives::Version>>(boost::none)
             .value();
 
