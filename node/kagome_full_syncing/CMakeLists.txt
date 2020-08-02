@@ -11,3 +11,4 @@ target_link_libraries(kagome_full_syncing
     Boost::program_options
     app_config_impl
     )
+kagome_install(kagome_full_syncing)
