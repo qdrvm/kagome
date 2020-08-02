@@ -10,6 +10,16 @@
 #include <spdlog/spdlog.h>
 
 namespace kagome::common {
+
+  using LogLevel = spdlog::level::level_enum;
+
+  /**
+   * Set global logging level
+   * @param lvl - new global logging level
+   */
+  void setLogLevel(LogLevel lvl);
+
+
   using Logger = std::shared_ptr<spdlog::logger>;
 
   /**
@@ -18,6 +28,7 @@ namespace kagome::common {
    * @return logger object
    */
   Logger createLogger(const std::string &tag);
-}  // namespace kagome::common
+
+} // namespace kagome::common
 
 #endif  // KAGOME_LOGGER_HPP
