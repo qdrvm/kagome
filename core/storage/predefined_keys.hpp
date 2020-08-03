@@ -14,7 +14,6 @@ namespace kagome::storage {
       common::Buffer().put("grandpa_voters");
   inline const common::Buffer kSetStateKey =
       common::Buffer().put("grandpa_completed_round");
-  ;
 
 }  // namespace kagome::storage
 

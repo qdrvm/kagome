@@ -59,7 +59,6 @@ using kagome::storage::trie::PolkadotTrieImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorage;
 using kagome::storage::trie::TrieStorageImpl;
-using kagome::subscription::SubscriptionEngine;
 
 namespace fs = boost::filesystem;
 
@@ -83,8 +82,6 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
 
     using SessionPtr = std::shared_ptr<Session>;
-    using SubscriptionEngineType =
-        SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
     auto trieDb = kagome::storage::trie::TrieStorageImpl::createEmpty(
                       trie_factory, codec, serializer, boost::none)
                       .value();

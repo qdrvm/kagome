@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
 
 #include "primitives/authority.hpp"
 
@@ -15,26 +15,26 @@ namespace kagome::runtime::binaryen {
   using primitives::ScheduledChange;
   using primitives::SessionKey;
 
-  GrandpaImpl::GrandpaImpl(
+  GrandpaApiImpl::GrandpaApiImpl(
       const std::shared_ptr<WasmProvider> &wasm_provider,
       const std::shared_ptr<RuntimeManager> &runtime_manager)
       : RuntimeApi(wasm_provider, runtime_manager) {}
 
-  outcome::result<boost::optional<ScheduledChange>> GrandpaImpl::pending_change(
-      const Digest &digest) {
+  outcome::result<boost::optional<ScheduledChange>>
+  GrandpaApiImpl::pending_change(const Digest &digest) {
     return execute<boost::optional<ScheduledChange>>(
         "GrandpaApi_grandpa_pending_change",
         CallPersistency::EPHEMERAL,
         digest);
   }
 
-  outcome::result<boost::optional<ForcedChange>> GrandpaImpl::forced_change(
+  outcome::result<boost::optional<ForcedChange>> GrandpaApiImpl::forced_change(
       const Digest &digest) {
     return execute<boost::optional<ForcedChange>>(
         "GrandpaApi_grandpa_forced_change", CallPersistency::EPHEMERAL, digest);
   }
 
-  outcome::result<primitives::AuthorityList> GrandpaImpl::authorities(
+  outcome::result<primitives::AuthorityList> GrandpaApiImpl::authorities(
       const primitives::BlockId &block_id) {
     return execute<primitives::AuthorityList>(
         "GrandpaApi_grandpa_authorities", CallPersistency::EPHEMERAL, block_id);

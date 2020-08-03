@@ -74,10 +74,10 @@ target_link_libraries(parachain_test
     binaryen_core_api
     )
 
-addtest(grandpa_test
-    grandpa_test.cpp
+addtest(grandpa_api_test
+    grandpa_api_test.cpp
     )
-target_link_libraries(grandpa_test
+target_link_libraries(grandpa_api_test
     binaryen_grandpa_api
     trie_storage_backend
     basic_wasm_provider

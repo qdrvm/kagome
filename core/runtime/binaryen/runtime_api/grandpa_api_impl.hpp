@@ -7,17 +7,17 @@
 #define KAGOME_CORE_RUNTIME_BINARYEN_GRANDPA_IMPL_HPP
 
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
-#include "runtime/grandpa.hpp"
+#include "runtime/grandpa_api.hpp"
 
 namespace kagome::runtime::binaryen {
 
-  class GrandpaImpl : public RuntimeApi, public Grandpa {
+  class GrandpaApiImpl : public RuntimeApi, public GrandpaApi {
    public:
-    explicit GrandpaImpl(
+    explicit GrandpaApiImpl(
         const std::shared_ptr<WasmProvider> &wasm_provider,
         const std::shared_ptr<RuntimeManager> &runtime_manager);
 
-    ~GrandpaImpl() override = default;
+    ~GrandpaApiImpl() override = default;
 
     outcome::result<boost::optional<ScheduledChange>> pending_change(
         const Digest &digest) override;
