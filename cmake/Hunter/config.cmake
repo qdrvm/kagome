@@ -17,3 +17,9 @@ hunter_config(libsecp256k1
     SHA1 179e316b0fe5150f1b05ca70ec2ac1490fe2cb3b
     CMAKE_ARGS SECP256K1_BUILD_TEST=OFF
     )
+
+hunter_config(sr25519
+    URL https://github.com/Harrm/sr25519-crust/archive/master.zip
+    SHA1 e39f020b7b9d11f655cac979f2a04bcf0f91df5b
+    CMAKE_ARGS TESTING=OFF
+    )
