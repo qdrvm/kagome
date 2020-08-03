@@ -13,7 +13,7 @@
 
 namespace kagome::storage::trie {
 
-  class PersistentTrieBatchImpl: public PersistentTrieBatch {
+  class PersistentTrieBatchImpl : public PersistentTrieBatch {
    public:
     using RootChangedEventHandler = std::function<void(const common::Buffer &)>;
 
@@ -22,7 +22,7 @@ namespace kagome::storage::trie {
         std::shared_ptr<TrieSerializer> serializer,
         boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
         std::unique_ptr<PolkadotTrie> trie,
-        RootChangedEventHandler handler);
+        RootChangedEventHandler &&handler);
     ~PersistentTrieBatchImpl() override = default;
 
     outcome::result<Buffer> commit() override;

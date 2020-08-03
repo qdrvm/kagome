@@ -8,6 +8,7 @@
 
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
+#include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/validation/block_validator.hpp"
@@ -28,7 +29,9 @@ namespace kagome::consensus {
                   std::shared_ptr<BlockValidator> block_validator,
                   std::shared_ptr<EpochStorage> epoch_storage,
                   std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
-                  std::shared_ptr<crypto::Hasher> hasher);
+                  std::shared_ptr<crypto::Hasher> hasher,
+                  std::shared_ptr<authority::AuthorityUpdateObserver>
+                      authority_update_observer);
 
     /**
      * Processes next header: if header is observed first it is added to the
@@ -74,7 +77,8 @@ namespace kagome::consensus {
     std::shared_ptr<EpochStorage> epoch_storage_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;
-
+    std::shared_ptr<authority::AuthorityUpdateObserver>
+        authority_update_observer_;
     common::Logger logger_;
   };
 

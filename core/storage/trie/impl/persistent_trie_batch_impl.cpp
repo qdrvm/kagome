@@ -6,9 +6,9 @@
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 
 #include "scale/scale.hpp"
-#include "storage/trie/polkadot_trie/trie_error.hpp"
-#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 
 namespace kagome::storage::trie {
 
@@ -16,14 +16,15 @@ namespace kagome::storage::trie {
       common::Buffer{}.put(":extrinsic_index");
 
   // sometimes there is no extrinsic index for a runtime call
-  const common::Buffer NO_EXTRINSIC_INDEX_VALUE{scale::encode(0xffffffff).value()};
+  const common::Buffer NO_EXTRINSIC_INDEX_VALUE{
+      scale::encode(0xffffffff).value()};
 
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
       std::unique_ptr<PolkadotTrie> trie,
-      RootChangedEventHandler handler)
+      RootChangedEventHandler &&handler)
       : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         changes_{std::move(changes)},
@@ -81,15 +82,15 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
                                                      const Buffer &value) {
-    return put(key, Buffer {value}); // would have to copy anyway
+    return put(key, Buffer{value});  // would have to copy anyway
   }
 
   outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
                                                      Buffer &&value) {
     bool is_new_entry = not trie_->contains(key);
-    auto res = trie_->put(key, std::move(value));
+    auto res = trie_->put(key, value);
     if (res and changes_.has_value()) {
-      OUTCOME_TRY(changes_.value()->onPut(key, is_new_entry));
+      OUTCOME_TRY(changes_.value()->onPut(key, value, is_new_entry));
     }
     return res;
   }

@@ -49,7 +49,7 @@ namespace kagome::application {
     void parse_network_segment(rapidjson::Value &val);
     void parse_additional_segment(rapidjson::Value &val);
 
-    /// TODO(iceseer): make handler calls via lambda-calls, remove
+    /// TODO(iceseer): PRE-476 make handler calls via lambda-calls, remove
     /// member-function ptrs
     struct SegmentHandler {
       using Handler = void (kagome::application::AppConfigurationImpl::*)(

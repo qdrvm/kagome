@@ -10,7 +10,6 @@
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
-#include <outcome/outcome.hpp>
 
 #include "api/service/api_service.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
@@ -38,12 +37,17 @@
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "common/outcome_throw.hpp"
+#include "consensus/authority/authority_manager.hpp"
+#include "consensus/authority/authority_update_observer.hpp"
+#include "consensus/authority/impl/authority_manager_impl.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
+#include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
+#include "consensus/grandpa/impl/finalization_composite.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
@@ -68,6 +72,7 @@
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
+#include "outcome/outcome.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/module/wasm_module_impl.hpp"
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
@@ -91,14 +96,6 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
-
-namespace kagome::injector {
-  enum class InjectorError {
-    INDEX_OUT_OF_BOUND = 1,  // index out of bound
-  };
-}
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::injector, InjectorError);
 
 namespace kagome::injector {
   namespace di = boost::di;
@@ -135,6 +132,13 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
+    using SubscriptionEnginePtr = std::shared_ptr<
+        subscription::SubscriptionEngine<common::Buffer,
+                                         std::shared_ptr<api::Session>,
+                                         common::Buffer,
+                                         primitives::BlockHash>>;
+    auto subscription_engine =
+        injector.template create<SubscriptionEnginePtr>();
     auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
@@ -157,7 +161,8 @@ namespace kagome::injector {
                                           std::move(rpc_thread_pool),
                                           std::move(listeners),
                                           std::move(server),
-                                          processors);
+                                          processors,
+                                          std::move(subscription_engine));
     return initialized.value();
   }
 
@@ -544,6 +549,22 @@ namespace kagome::injector {
     return *initialized;
   }
 
+  template <class Injector>
+  sptr<consensus::grandpa::FinalizationObserver> get_finalization_observer(
+      const Injector &injector) {
+    static auto instance = boost::optional<
+        std::shared_ptr<consensus::grandpa::FinalizationObserver>>(boost::none);
+    if (instance) {
+      return *instance;
+    }
+
+    instance = std::make_shared<consensus::grandpa::FinalizationComposite>(
+        injector.template create<
+            std::shared_ptr<authority::AuthorityManagerImpl>>());
+
+    return *instance;
+  }
+
   template <typename... Ts>
   auto makeApplicationInjector(
       const std::string &genesis_path,
@@ -667,6 +688,10 @@ namespace kagome::injector {
             }),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
+        di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
+        di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
+        di::bind<consensus::grandpa::FinalizationObserver>.to(
+            [](auto const &inj) { return get_finalization_observer(inj); }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

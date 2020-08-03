@@ -33,9 +33,9 @@ namespace kagome::runtime::binaryen {
         "GrandpaApi_grandpa_forced_change", CallPersistency::EPHEMERAL, digest);
   }
 
-  outcome::result<std::vector<Authority>> GrandpaImpl::authorities(
+  outcome::result<primitives::AuthorityList> GrandpaImpl::authorities(
       const primitives::BlockId &block_id) {
-    return execute<std::vector<Authority>>(
+    return execute<primitives::AuthorityList>(
         "GrandpaApi_grandpa_authorities", CallPersistency::EPHEMERAL, block_id);
   }
 }  // namespace kagome::runtime::binaryen

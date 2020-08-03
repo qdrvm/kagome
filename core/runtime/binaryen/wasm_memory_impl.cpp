@@ -81,7 +81,7 @@ namespace kagome::runtime::binaryen {
     auto min_value = std::numeric_limits<WasmPointer>::max();
     WasmPointer min_key = 0;
     for (const auto &[key, value] : deallocated_) {
-      if (min_value < 0) {
+      if (min_value <= 0) {
         return 0;
       }
       if (value < static_cast<uint32_t>(min_value) and value >= size) {
@@ -93,10 +93,6 @@ namespace kagome::runtime::binaryen {
   }
 
   WasmPointer WasmMemoryImpl::growAlloc(WasmSize size) {
-    if (offset_ < 0) {
-      return 0;
-    }
-
     // check that we do not exceed max memory size
     if (static_cast<uint32_t>(offset_) > kMaxMemorySize - size) {
       return 0;
@@ -154,7 +150,7 @@ namespace kagome::runtime::binaryen {
   }
 
   std::string WasmMemoryImpl::loadStr(kagome::runtime::WasmPointer addr,
-                      kagome::runtime::WasmSize n) const {
+                                      kagome::runtime::WasmSize n) const {
     std::string res;
     res.reserve(n);
     for (auto i = addr; i < addr + n; i++) {
