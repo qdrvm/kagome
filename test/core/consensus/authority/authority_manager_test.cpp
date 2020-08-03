@@ -130,7 +130,8 @@ class AuthorityManagerTest : public testing::Test {
   }
 
   /**
-   * @brief Check if authorities gotten for examining block is equal expected
+   * @brief Check if authorities gotten from the examined block are equal to
+   * expected ones
    * @param examining_block
    * @param expected_authorities
    */

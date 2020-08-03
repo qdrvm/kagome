@@ -11,9 +11,9 @@
 namespace kagome::authority {
 
   /**
-   * @brief Node of scheduler tree. Contains actual authorities for accorded
-   * block and all his descendant blocks until any changes applyed. Can be
-   * contains one of changes.
+   * @brief Node of scheduler tree. Contains actual authorities for the accorded
+   * block and all its descendant blocks until any changes are applied. May
+   * contain one of the changes.
    */
   class ScheduleNode : public std::enable_shared_from_this<ScheduleNode> {
    public:

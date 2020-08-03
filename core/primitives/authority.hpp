@@ -108,8 +108,8 @@ namespace kagome::primitives {
 
   /// Special type for vector of authorities
   struct AuthorityList : public std::vector<Authority> {
-    // Attention: If would be add some member, we'll need to ensure correctly
-    // destruction for avoid memory leaks or other problem
+    // Attention: When adding a member, we need to ensure correct
+    // destruction to avoid memory leaks or any other problem
     using std::vector<Authority>::vector;
   };
 
