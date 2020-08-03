@@ -135,6 +135,13 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
+    using SubscriptionEnginePtr = std::shared_ptr<
+        subscription::SubscriptionEngine<common::Buffer,
+                                         std::shared_ptr<api::Session>,
+                                         common::Buffer,
+                                         primitives::BlockHash>>;
+    auto subscription_engine =
+        injector.template create<SubscriptionEnginePtr>();
     auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
@@ -157,7 +164,8 @@ namespace kagome::injector {
                                           std::move(rpc_thread_pool),
                                           std::move(listeners),
                                           std::move(server),
-                                          processors);
+                                          processors,
+                                          std::move(subscription_engine));
     return initialized.value();
   }
 

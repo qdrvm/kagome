@@ -8,22 +8,26 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+#include "outcome/outcome.hpp"
+#include "storage/leveldb/leveldb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
-#include "storage/leveldb/leveldb.hpp"
-#include "outcome/outcome.hpp"
-#include "testutil/outcome.hpp"
+#include "subscription/subscriber.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
+using kagome::api::Session;
 using kagome::common::Buffer;
-using kagome::storage::trie::PolkadotTrieFactoryImpl;
+using kagome::primitives::BlockHash;
+using kagome::storage::LevelDB;
 using kagome::storage::trie::PolkadotCodec;
+using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::storage::trie::TrieStorageImpl;
-using kagome::storage::LevelDB;
+using kagome::subscription::SubscriptionEngine;
 
 static Buffer kNodePrefix = "\1"_buf;
 
@@ -48,6 +52,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         codec,
         std::make_shared<TrieStorageBackendImpl>(std::move(level_db),
                                                  kNodePrefix));
+
     auto storage =
         TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
             .value();

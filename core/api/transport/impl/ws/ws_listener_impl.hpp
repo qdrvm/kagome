@@ -8,6 +8,8 @@
 
 #include "api/transport/listener.hpp"
 
+#include <atomic>
+
 #include "api/transport/impl/ws/ws_session.hpp"
 #include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
@@ -46,6 +48,7 @@ namespace kagome::api {
     std::unique_ptr<Acceptor> acceptor_;
     std::unique_ptr<NewSessionHandler> on_new_session_;
 
+    std::atomic<Session::SessionId> next_session_id_;
     std::shared_ptr<SessionImpl> new_session_;
 
     common::Logger logger_ = common::createLogger("RPC_Websocket_Listener");

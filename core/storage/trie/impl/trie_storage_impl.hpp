@@ -13,6 +13,11 @@
 #include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
+#include "subscription/subscription_engine.hpp"
+
+namespace kagome::api {
+  class Session;
+}
 
 namespace kagome::storage::trie {
 
@@ -34,7 +39,7 @@ namespace kagome::storage::trie {
     void operator=(const TrieStorageImpl &) = delete;
 
     TrieStorageImpl(TrieStorageImpl &&) = default;
-    TrieStorageImpl& operator=(TrieStorageImpl &&) = default;
+    TrieStorageImpl &operator=(TrieStorageImpl &&) = default;
     ~TrieStorageImpl() override = default;
 
     outcome::result<std::unique_ptr<PersistentTrieBatch>> getPersistentBatch()

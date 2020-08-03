@@ -39,6 +39,7 @@ namespace kagome::storage::changes_trie {
      * present value
      */
     virtual outcome::result<void> onPut(const common::Buffer &key,
+                                        const common::Buffer &value,
                                         bool new_entry) = 0;
     /**
      * Supposed to be called when an entry is removed from the tracked storage

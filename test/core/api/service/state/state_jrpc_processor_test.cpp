@@ -25,6 +25,7 @@ class StateJrpcProcessorTest : public testing::Test {
   enum struct CallType {
     kCallType_GetRuntimeVersion = 0,
     kCallType_GetStorage,
+    kCallType_StorageSubscribe,
   };
 
  private:
@@ -48,6 +49,11 @@ class StateJrpcProcessorTest : public testing::Test {
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
+        }));
+    EXPECT_CALL(*server, registerHandler("state_subscribeStorage", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_StorageSubscribe, CallContext{.handler = f}));
         }));
     processor.registerHandlers();
   }
@@ -152,4 +158,31 @@ TEST_F(StateJrpcProcessorTest, ProcessGetVersionRequest) {
   ASSERT_EQ(result["implName"].AsString(), test_version.impl_name);
   ASSERT_EQ(result["specVersion"].AsInteger64(), test_version.spec_version);
   ASSERT_EQ(result["implVersion"].AsInteger64(), test_version.impl_version);
+}
+
+/**
+ * @given a request of state_subscribeStorage with a valid param
+ * @when processing it
+ * @then the request is successfully processed and the response is valid
+ */
+TEST_F(StateJrpcProcessorTest, ProcessSubscribeStorage) {
+  uint32_t val = 10;
+  std::vector<Buffer> keys;
+  keys.emplace_back(kagome::common::unhexWith0x("0x1011").value());
+  keys.emplace_back(kagome::common::unhexWith0x("0x2002").value());
+
+  EXPECT_CALL(*state_api, subscribeStorage(keys))
+      .WillOnce(testing::Return(val));
+
+  registerHandlers();
+
+  jsonrpc::Value::Array data;
+  data.emplace_back("0x1011");
+  data.emplace_back("0x2002");
+
+  jsonrpc::Request::Parameters params{data};
+  auto result =
+      execute(CallType::kCallType_StorageSubscribe, params).AsInteger32();
+
+  ASSERT_EQ(result, val);
 }
