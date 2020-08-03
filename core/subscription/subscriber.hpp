@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SUBSCRIBER_HPP
-#define KAGOME_SUBSCRIBER_HPP
+#ifndef KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
+#define KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
 
 #include <functional>
 #include <memory>
@@ -14,6 +14,12 @@
 
 namespace kagome::subscription {
 
+  /**
+   * Is a wrapper class, which provides subscription to events from SubscriptionEngine
+   * @tparam Key is a type of a subscription Key.
+   * @tparam Type is a type of an object to receive notifications in.
+   * @tparam Arguments is a set of types of objects needed to construct Type.
+   */
   template <typename Key, typename Type, typename... Arguments>
   class Subscriber final : public std::enable_shared_from_this<
                                Subscriber<Key, Type, Arguments...>> {
@@ -37,7 +43,7 @@ namespace kagome::subscription {
     std::mutex subscriptions_cs_;
     SubscriptionsContainer subscriptions_;
 
-    std::function<void(Arguments const &...)> on_notify_callback_;
+    std::function<void(ValueType&, const KeyType &, const Arguments &...)> on_notify_callback_;
 
    public:
     template <typename... Args>
@@ -49,17 +55,17 @@ namespace kagome::subscription {
       for (auto &[key, it] : subscriptions_) engine_->unsubscribe(key, it);
     }
 
-    Subscriber(Subscriber const &) = delete;
-    Subscriber &operator=(Subscriber const &) = delete;
+    Subscriber(const Subscriber &) = delete;
+    Subscriber &operator=(const Subscriber &) = delete;
 
     Subscriber(Subscriber &&) = default;
     Subscriber &operator=(Subscriber &&) = default;
 
-    void set_callback(std::function<void(Arguments const &...)> &&f) {
+    void setCallback(std::function<void(ValueType&, const KeyType &, const Arguments &...)> &&f) {
       on_notify_callback_ = std::move(f);
     }
 
-    void subscribe(KeyType const &key) {
+    void subscribe(const KeyType &key) {
       std::lock_guard lock(subscriptions_cs_);
       auto &&[it, inserted] = subscriptions_.emplace(key, typename SubscriptionEngineType::IteratorType{});
 
@@ -69,7 +75,7 @@ namespace kagome::subscription {
         it->second = engine_->subscribe(key, this->weak_from_this());
     }
 
-    void unsubscribe(KeyType const &key) {
+    void unsubscribe(const KeyType &key) {
       std::lock_guard<std::mutex> lock(subscriptions_cs_);
       auto it = subscriptions_.find(key);
       if (subscriptions_.end() != it) {
@@ -78,11 +84,11 @@ namespace kagome::subscription {
       }
     }
 
-    void on_notify(Arguments const &... args) {
-      if (nullptr != on_notify_callback_) on_notify_callback_(args...);
+    void on_notify(const KeyType &key, const Arguments &... args) {
+      if (nullptr != on_notify_callback_) on_notify_callback_(object_, key, args...);
     }
   };
 
 }  // namespace kagome::subscription
 
-#endif  // KAGOME_SUBSCRIBER_HPP
+#endif  // KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP

@@ -27,6 +27,9 @@ namespace kagome::api {
     MOCK_CONST_METHOD1(getRuntimeVersion,
                        outcome::result<primitives::Version>(
                            boost::optional<primitives::BlockHash> const &at));
+    MOCK_METHOD1(
+        subscribeStorage,
+        outcome::result<uint32_t>(std::vector<common::Buffer> const &keys));
   };
 }  // namespace kagome::api
 
