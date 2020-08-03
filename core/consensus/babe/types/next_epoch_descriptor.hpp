@@ -13,7 +13,7 @@ namespace kagome::consensus {
   /// Information about the epoch after next epoch
   struct NextEpochDescriptor {
     /// The authorities.
-    std::vector<primitives::Authority> authorities;
+    primitives::AuthorityList authorities;
 
     /// The value of randomness to use for the slot-assignment.
     Randomness randomness;

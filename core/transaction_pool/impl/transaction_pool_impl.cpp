@@ -133,13 +133,11 @@ namespace kagome::transaction_pool {
     return outcome::success();
   }
 
-  outcome::result<void> TransactionPoolImpl::remove(
+  void TransactionPoolImpl::remove(
       const std::vector<Transaction::Hash> &tx_hashes) {
     for (auto &tx_hash : tx_hashes) {
-      removeOne(tx_hash);
+      [[maybe_unused]] auto result = removeOne(tx_hash);
     }
-
-    return outcome::success();
   }
 
   void TransactionPoolImpl::processPostponedTransactions() {
