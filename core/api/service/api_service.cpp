@@ -166,7 +166,7 @@ namespace kagome::api {
     logger_->debug("Service stopped");
   }
 
-  outcome::result<uint32_t> ApiService::subscribe_session_to_keys(
+  outcome::result<uint32_t> ApiService::subscribeSessionToKeys(
       const std::vector<common::Buffer> &keys) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
       if (auto session = findSessionById(*session_id)) {
@@ -184,7 +184,7 @@ namespace kagome::api {
         "Internal error. No session was bound to subscription.");
   }
 
-  outcome::result<void> ApiService::unsubscribe_thread_session_from_ids(
+  outcome::result<void> ApiService::unsubscribeSessionFromIds(
       const std::vector<uint32_t> &subscription_ids) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
       if (auto session = findSessionById(*session_id)) {

@@ -15,7 +15,8 @@
 namespace kagome::injector {
   namespace di = boost::di;
 
-  auto get_peer_info(const auto &injector,
+  template<typename Injector>
+  auto get_peer_info(const Injector &injector,
                           uint16_t p2p_port) -> sptr<network::OwnPeerInfo> {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {

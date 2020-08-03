@@ -68,10 +68,10 @@ namespace kagome::api {
     void start();
     void stop();
 
-    outcome::result<uint32_t> subscribe_session_to_keys(
+    outcome::result<uint32_t> subscribeSessionToKeys(
         const std::vector<common::Buffer> &keys);
 
-    outcome::result<void> unsubscribe_thread_session_from_ids(
+    outcome::result<void> unsubscribeSessionFromIds(
         const std::vector<uint32_t> &subscription_id);
 
    private:
