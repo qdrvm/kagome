@@ -34,6 +34,7 @@ set(kagome_LIBRARIES
         kagome::ephemeral_trie_batch
         kagome::persistent_trie_batch
         kagome::topper_trie_batch
+        kagome::changes_tracker
         kagome::blake2
         kagome::keccak
         kagome::hasher
