@@ -64,7 +64,7 @@ namespace kagome::api {
 
             if (SessionType::kWs == session->type()) {
               auto subscribed_session =
-                  self->store_session_with_id(session->id(), session);
+                  self->storeSessionWithId(session->id(), session);
               subscribed_session->setCallback([wp](SessionPtr &session,
                                                     const auto &key,
                                                     const auto &data,
@@ -100,8 +100,9 @@ namespace kagome::api {
                   };
 
                   threaded_info.storeSessionId(session->id());
-                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                   std::unique_ptr<void, decltype(thread_session_auto_release)>
+
+                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                   thread_session_keeper(reinterpret_cast<void *>(0xff),
                                         std::move(thread_session_auto_release));
 
@@ -117,7 +118,7 @@ namespace kagome::api {
 
             session->connectOnCloseHandler(
                 [wp](Session::SessionId id, SessionType /*type*/) {
-                  if (auto self = wp.lock()) self->remove_session_by_id(id);
+                  if (auto self = wp.lock()) self->removeSessionById(id);
                 });
           };
 
@@ -125,7 +126,7 @@ namespace kagome::api {
     }
   }
 
-  ApiService::SubscribedSessionPtr ApiService::find_session_by_id(
+  ApiService::SubscribedSessionPtr ApiService::findSessionById(
       Session::SessionId id) {
     std::lock_guard guard(subscribed_sessions_cs_);
     if (auto it = subscribed_sessions_.find(id);
@@ -135,7 +136,7 @@ namespace kagome::api {
     return nullptr;
   }
 
-  ApiService::SubscribedSessionPtr ApiService::store_session_with_id(
+  ApiService::SubscribedSessionPtr ApiService::storeSessionWithId(
       const Session::SessionId id, const std::shared_ptr<Session> &session) {
     std::lock_guard guard(subscribed_sessions_cs_);
     auto &&[it, inserted] = subscribed_sessions_.emplace(
@@ -146,7 +147,7 @@ namespace kagome::api {
     return std::move(it->second);
   }
 
-  void ApiService::remove_session_by_id(Session::SessionId id) {
+  void ApiService::removeSessionById(Session::SessionId id) {
     std::lock_guard guard(subscribed_sessions_cs_);
     subscribed_sessions_.erase(id);
   }
@@ -164,7 +165,7 @@ namespace kagome::api {
   outcome::result<uint32_t> ApiService::subscribe_session_to_keys(
       const std::vector<common::Buffer> &keys) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
-      if (auto session = find_session_by_id(*session_id)) {
+      if (auto session = findSessionById(*session_id)) {
         for (auto &key : keys) {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(key);

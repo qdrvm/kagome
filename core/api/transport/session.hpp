@@ -90,7 +90,7 @@ namespace kagome::api {
      * @param id session id
      * @param type type of the closed session
      */
-    void notify_on_close(SessionId id, SessionType type) {
+    void notifyOnClose(SessionId id, SessionType type) {
       if (nullptr != on_close_) on_close_(id, type);
     }
 

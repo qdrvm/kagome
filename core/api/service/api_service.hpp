@@ -72,9 +72,9 @@ namespace kagome::api {
         const std::vector<common::Buffer> &keys);
 
    private:
-    SubscribedSessionPtr find_session_by_id(Session::SessionId id);
-    void remove_session_by_id(Session::SessionId id);
-    SubscribedSessionPtr store_session_with_id(
+    SubscribedSessionPtr findSessionById(Session::SessionId id);
+    void removeSessionById(Session::SessionId id);
+    SubscribedSessionPtr storeSessionWithId(
         const Session::SessionId id, const std::shared_ptr<Session> &session);
 
    private:

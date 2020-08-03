@@ -30,7 +30,7 @@ namespace kagome::api {
     boost::system::error_code ec;
     stream_.close(boost::beast::websocket::close_reason(), ec);
     boost::ignore_unused(ec);
-    notify_on_close(id_, type());
+    notifyOnClose(id_, type());
   }
 
   void WsSession::handleRequest(std::string_view data) {
