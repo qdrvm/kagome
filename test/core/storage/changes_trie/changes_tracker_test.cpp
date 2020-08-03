@@ -47,7 +47,6 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
   using SessionPtr = std::shared_ptr<Session>;
   using SubscriptionEngineType =
       SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
-  using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
   // GIVEN
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();

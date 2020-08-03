@@ -127,7 +127,7 @@ TEST(StateApiTest, SubscribeStorage) {
   jsonrpc::Request::Parameters params;
   params.push_back(jsonrpc::Value::Array{ std::string("0x") + keys[0].toHex(), std::string("0x") + keys[1].toHex()});
 
-  subscribe_storage->init(params);
+  EXPECT_OUTCOME_SUCCESS(r, subscribe_storage->init(params));
   EXPECT_OUTCOME_TRUE(result, subscribe_storage->execute());
   ASSERT_EQ(result, 55);
 }
