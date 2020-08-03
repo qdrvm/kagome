@@ -186,8 +186,8 @@ namespace kagome::api {
 
   outcome::result<void> ApiService::unsubscribe_thread_session_from_ids(
       const std::vector<uint32_t> &subscription_ids) {
-    if (auto session_id = threaded_info.fetch_thread_session_id(); session_id) {
-      if (auto session = find_session_by_id(*session_id)) {
+    if (auto session_id = threaded_info.fetchSessionId(); session_id) {
+      if (auto session = findSessionById(*session_id)) {
         for (auto id : subscription_ids)
           session->unsubscribe(id);
         return outcome::success();
