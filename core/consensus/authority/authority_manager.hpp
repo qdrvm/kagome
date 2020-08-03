@@ -29,7 +29,7 @@ namespace kagome::authority {
      * @param authorities is authotity set for renewal
      * @param activateAt is number of block when changes will applied
      */
-    virtual outcome::result<void> onScheduledChange(
+    virtual outcome::result<void> applyScheduledChange(
         const primitives::BlockInfo &block,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber activate_at) = 0;
@@ -42,7 +42,7 @@ namespace kagome::authority {
      * @param authorities is authotity set for renewal
      * @param activateAt is number of block when changes will applied
      */
-    virtual outcome::result<void> onForcedChange(
+    virtual outcome::result<void> applyForcedChange(
         const primitives::BlockInfo &block,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber activate_at) = 0;
@@ -60,7 +60,7 @@ namespace kagome::authority {
      * @param block is info of block which representing this change
      * @param authority_index is index of one authority in current authority set
      */
-    virtual outcome::result<void> onOnDisabled(
+    virtual outcome::result<void> applyOnDisabled(
         const primitives::BlockInfo &block, uint64_t authority_index) = 0;
 
     /**
@@ -70,7 +70,7 @@ namespace kagome::authority {
      * @param block is info of block which representing this change
      * @param activateAt is number of block when changes will applied
      */
-    virtual outcome::result<void> onPause(
+    virtual outcome::result<void> applyPause(
         const primitives::BlockInfo &block,
         primitives::BlockNumber activate_at) = 0;
 
@@ -82,7 +82,7 @@ namespace kagome::authority {
      * @param block is info of block which representing this change
      * @param activateAt is number of block when changes will applied
      */
-    virtual outcome::result<void> onResume(
+    virtual outcome::result<void> applyResume(
         const primitives::BlockInfo &block,
         primitives::BlockNumber activate_at) = 0;
   };

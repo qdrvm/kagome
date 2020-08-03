@@ -51,7 +51,7 @@ namespace kagome::blockchain {
                  BlockHashVecRes(const primitives::BlockHash &,
                                  const primitives::BlockHash &));
 
-    MOCK_METHOD2(checkDirectAncestry,
+    MOCK_METHOD2(hasDirectChain,
                  bool(const primitives::BlockHash &,
                       const primitives::BlockHash &));
 

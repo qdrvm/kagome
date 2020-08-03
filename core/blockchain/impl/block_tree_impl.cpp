@@ -343,9 +343,8 @@ namespace kagome::blockchain {
     return result;
   }
 
-  bool BlockTreeImpl::checkDirectAncestry(
-      const primitives::BlockHash &ancestor,
-      const primitives::BlockHash &descendant) {
+  bool BlockTreeImpl::hasDirectChain(const primitives::BlockHash &ancestor,
+                                     const primitives::BlockHash &descendant) {
     auto ancestor_node_ptr = tree_->getByHash(ancestor);
     auto descendant_node_ptr = tree_->getByHash(descendant);
 

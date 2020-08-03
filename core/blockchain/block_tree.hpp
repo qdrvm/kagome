@@ -135,14 +135,13 @@ namespace kagome::blockchain {
         const primitives::BlockHash &bottom_block) = 0;
 
     /**
-     * Check if one block is direct ancestor of second one
+     * Check if one block is ancestor of second one (direct chain exists)
      * @param ancestor - block, which is at the top of the chain
      * @param descendant - block, which is the bottom of the chain
-     * @return true if \param ancestor is direct ancestor of \param descendant
+     * @return true if \param ancestor is ancestor of \param descendant
      */
-    virtual bool checkDirectAncestry(
-        const primitives::BlockHash &ancestor,
-        const primitives::BlockHash &descendant) = 0;
+    virtual bool hasDirectChain(const primitives::BlockHash &ancestor,
+                                const primitives::BlockHash &descendant) = 0;
 
     /**
      * Get a longest path (chain of blocks) from the last finalized block down

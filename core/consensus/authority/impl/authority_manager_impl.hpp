@@ -34,30 +34,36 @@ namespace kagome::authority {
 
     ~AuthorityManagerImpl() override = default;
 
+    /** @see AppStateManager::takeControl */
     void prepare();
+
+    /** @see AppStateManager::takeControl */
     void start();
+
+    /** @see AppStateManager::takeControl */
     void stop();
 
     outcome::result<std::shared_ptr<const primitives::AuthorityList>>
     authorities(const primitives::BlockInfo &block) override;
 
-    outcome::result<void> onScheduledChange(
+    outcome::result<void> applyScheduledChange(
         const primitives::BlockInfo &block,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber activate_at) override;
 
-    outcome::result<void> onForcedChange(
+    outcome::result<void> applyForcedChange(
         const primitives::BlockInfo &block,
         const primitives::AuthorityList &authorities,
         primitives::BlockNumber activate_at) override;
 
-    outcome::result<void> onOnDisabled(const primitives::BlockInfo &block,
-                                       uint64_t authority_index) override;
+    outcome::result<void> applyOnDisabled(const primitives::BlockInfo &block,
+                                          uint64_t authority_index) override;
 
-    outcome::result<void> onPause(const primitives::BlockInfo &block,
-                                  primitives::BlockNumber activate_at) override;
+    outcome::result<void> applyPause(
+        const primitives::BlockInfo &block,
+        primitives::BlockNumber activate_at) override;
 
-    outcome::result<void> onResume(
+    outcome::result<void> applyResume(
         const primitives::BlockInfo &block,
         primitives::BlockNumber activate_at) override;
 
@@ -91,8 +97,8 @@ namespace kagome::authority {
      * @param descendant - hash of block, which is the bottom of the chain
      * @return true if \param ancestor is direct ancestor of \param descendant
      */
-    bool isDirectAncestry(const primitives::BlockInfo &ancestor,
-                          const primitives::BlockInfo &descendant);
+    bool directChainExists(const primitives::BlockInfo &ancestor,
+                           const primitives::BlockInfo &descendant);
   };
 }  // namespace kagome::authority
 

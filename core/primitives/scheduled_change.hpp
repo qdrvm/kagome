@@ -15,6 +15,7 @@ namespace kagome::primitives {
 
     DelayInChain() = default;
     DelayInChain(uint32_t delay) : subchain_lenght(delay) {}
+    virtual ~DelayInChain() = default;
   };
 
   struct AuthorityListChange {
@@ -24,21 +25,22 @@ namespace kagome::primitives {
     AuthorityListChange() = default;
     AuthorityListChange(AuthorityList authorities, uint32_t delay)
         : authorities(std::move(authorities)), subchain_lenght(delay) {}
+    virtual ~AuthorityListChange() = default;
   };
 
-  struct ScheduledChange : public AuthorityListChange {
+  struct ScheduledChange final : public AuthorityListChange {
     using AuthorityListChange::AuthorityListChange;
   };
-  struct ForcedChange : public AuthorityListChange {
+  struct ForcedChange final : public AuthorityListChange {
     using AuthorityListChange::AuthorityListChange;
   };
   struct OnDisabled {
     uint64_t authority_index = 0;
   };
-  struct Pause : public DelayInChain {
+  struct Pause final : public DelayInChain {
     using DelayInChain::DelayInChain;
   };
-  struct Resume : public DelayInChain {
+  struct Resume final : public DelayInChain {
     using DelayInChain::DelayInChain;
   };
 

@@ -42,7 +42,7 @@ class AuthorityManagerTest : public testing::Test {
     auth_mngr_ = std::make_shared<AuthorityManager>(
         app_state_manager, configuration, block_tree, storage);
 
-    ON_CALL(*block_tree, checkDirectAncestry(_, _))
+    ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
           static std::map<primitives::BlockHash, uint8_t> mapping = {
               {"GEN"_hash256, 0},
@@ -99,8 +99,7 @@ class AuthorityManagerTest : public testing::Test {
           }
           throw std::runtime_error("Broken test");
         }));
-    EXPECT_CALL(*block_tree, checkDirectAncestry(_, _))
-        .Times(testing::AnyNumber());
+    EXPECT_CALL(*block_tree, hasDirectChain(_, _)).Times(testing::AnyNumber());
   }
 
   using StorageMock =
@@ -122,6 +121,7 @@ class AuthorityManagerTest : public testing::Test {
     return authority;
   }
 
+  /// Init by data from genesis config
   void prepareAuthorityManager() {
     EXPECT_CALL(*storage, get(authority::AuthorityManagerImpl::SCHEDULER_TREE))
         .WillOnce(Return(outcome::failure(testutil::DummyError::ERROR)));
@@ -129,6 +129,11 @@ class AuthorityManagerTest : public testing::Test {
     auth_mngr_->prepare();
   }
 
+  /**
+   * @brief Check if authorities gotten for examining block is equal expected
+   * @param examining_block
+   * @param expected_authorities
+   */
   void examine(const primitives::BlockInfo &examining_block,
                const primitives::AuthorityList &expected_authorities) {
     ASSERT_OUTCOME_SUCCESS(actual_authorities_sptr,
@@ -138,14 +143,22 @@ class AuthorityManagerTest : public testing::Test {
   }
 };
 
+/**
+ * @given no initialized manager
+ * @when init by data from genesis config
+ * @then authorities for any block is equal of authorities from genesis config
+ */
 TEST_F(AuthorityManagerTest, InitFromGenesis) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(authorities_result,
-                         auth_mngr_->authorities({20, "D"_hash256}));
-
-  EXPECT_EQ(configuration->genesis_authorities, *authorities_result.value());
+  examine({20, "D"_hash256}, configuration->genesis_authorities);
 }
+
+/**
+ * @given no initialized manager, custom authorities saved to storage
+ * @when do prepare manager
+ * @then authorities for any block is equal of authorities from storage
+ */
 
 TEST_F(AuthorityManagerTest, InitFromStorage) {
   // Make custom state
@@ -165,6 +178,11 @@ TEST_F(AuthorityManagerTest, InitFromStorage) {
   examine({20, "D"_hash256}, custom_authorities);
 }
 
+/**
+ * @given initialized manager has some state
+ * @when do finalize for some block
+ * @then aclual state will be saved to storage
+ */
 TEST_F(AuthorityManagerTest, OnFinalize) {
   prepareAuthorityManager();
 
@@ -196,6 +214,13 @@ TEST_F(AuthorityManagerTest, OnFinalize) {
   examine({30, "F"_hash256}, orig_authorities);
 }
 
+/**
+ * @given initialized manager has some state
+ * @when apply Consensus message as ScheduledChange
+ * @then actual state was not change before finalize and change after finalize
+ * if delay passed (only for block with number of target block number +
+ * subchain_lenght)
+ */
 TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   prepareAuthorityManager();
 
@@ -229,6 +254,12 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   examine({25, "E"_hash256}, new_authorities);
 }
 
+/**
+ * @given initialized manager has some state
+ * @when apply Consensus message as ForcedChange
+ * @then actual state was change after delay passed (only for block with number
+ * of target block number + subchain_lenght)
+ */
 TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   prepareAuthorityManager();
 
@@ -255,6 +286,12 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   examine({25, "E"_hash256}, new_authorities);
 }
 
+/**
+ * @given initialized manager has some state
+ * @when apply Consensus message as DisableAuthority
+ * @then actual state was change (disable one of authority) for target block and
+ * any one after
+ */
 TEST_F(AuthorityManagerTest, OnConsensus_DisableAuthority) {
   prepareAuthorityManager();
 
@@ -280,6 +317,13 @@ TEST_F(AuthorityManagerTest, OnConsensus_DisableAuthority) {
   examine({15, "C"_hash256}, new_authorities);
 }
 
+/**
+ * @given initialized manager has some state
+ * @when apply Consensus message as ScheduledChange
+ * @then actual state was not change before finalize and changed (disabled)
+ * after finalize if delay passed (only for block with number of target block
+ * number + subchain_lenght)
+ */
 TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   prepareAuthorityManager();
 
@@ -314,6 +358,13 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
 }
+
+/**
+ * @given initialized manager has some state
+ * @when apply Consensus message as ForcedChange
+ * @then actual state was change (enabled again) after delay passed (only for
+ * block with number of target block number + subchain_lenght)
+ */
 
 TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   prepareAuthorityManager();

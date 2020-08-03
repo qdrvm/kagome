@@ -137,8 +137,8 @@ namespace kagome::blockchain {
         const primitives::BlockHash &top_block,
         const primitives::BlockHash &bottom_block) override;
 
-    bool checkDirectAncestry(const primitives::BlockHash &ancestor,
-                             const primitives::BlockHash &descendant) override;
+    bool hasDirectChain(const primitives::BlockHash &ancestor,
+                        const primitives::BlockHash &descendant) override;
 
     BlockHashVecRes longestPath() override;
 

@@ -93,7 +93,7 @@ namespace kagome::authority {
     return std::move(authorities);
   }
 
-  outcome::result<void> AuthorityManagerImpl::onScheduledChange(
+  outcome::result<void> AuthorityManagerImpl::applyScheduledChange(
       const primitives::BlockInfo &block,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
@@ -111,7 +111,7 @@ namespace kagome::authority {
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
       auto &ancestor =
-          isDirectAncestry(block, descendant->block) ? new_node : node;
+          directChainExists(block, descendant->block) ? new_node : node;
 
       if (descendant->block.block_number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
@@ -126,7 +126,7 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  outcome::result<void> AuthorityManagerImpl::onForcedChange(
+  outcome::result<void> AuthorityManagerImpl::applyForcedChange(
       const primitives::BlockInfo &block,
       const primitives::AuthorityList &authorities,
       primitives::BlockNumber activate_at) {
@@ -149,7 +149,7 @@ namespace kagome::authority {
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
       auto &ancestor =
-          isDirectAncestry(block, descendant->block) ? new_node : node;
+          directChainExists(block, descendant->block) ? new_node : node;
 
       // Apply forced changes if dalay will be passed for descendant
       if (descendant->block.block_number >= ancestor->forced_for) {
@@ -169,7 +169,7 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  outcome::result<void> AuthorityManagerImpl::onOnDisabled(
+  outcome::result<void> AuthorityManagerImpl::applyOnDisabled(
       const primitives::BlockInfo &block, uint64_t authority_index) {
     auto node = getAppropriateAncestor(block);
 
@@ -188,7 +188,7 @@ namespace kagome::authority {
 
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
-      if (isDirectAncestry(block, descendant->block)) {
+      if (directChainExists(block, descendant->block)) {
         // Propogate change to descendants
         if (descendant->actual_authorities == node->actual_authorities) {
           descendant->actual_authorities = new_node->actual_authorities;
@@ -203,7 +203,7 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  outcome::result<void> AuthorityManagerImpl::onPause(
+  outcome::result<void> AuthorityManagerImpl::applyPause(
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
     auto node = getAppropriateAncestor(block);
 
@@ -216,7 +216,7 @@ namespace kagome::authority {
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
       auto &ancestor =
-          isDirectAncestry(block, descendant->block) ? new_node : node;
+          directChainExists(block, descendant->block) ? new_node : node;
       ancestor->descendants.emplace_back(std::move(descendant));
     }
     node->descendants.emplace_back(std::move(new_node));
@@ -224,7 +224,7 @@ namespace kagome::authority {
     return outcome::success();
   }
 
-  outcome::result<void> AuthorityManagerImpl::onResume(
+  outcome::result<void> AuthorityManagerImpl::applyResume(
       const primitives::BlockInfo &block, primitives::BlockNumber activate_at) {
     auto node = getAppropriateAncestor(block);
 
@@ -237,7 +237,7 @@ namespace kagome::authority {
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
       auto &ancestor =
-          isDirectAncestry(block, descendant->block) ? new_node : node;
+          directChainExists(block, descendant->block) ? new_node : node;
 
       // Apply resume if delay will be passed for descendant
       if (descendant->block.block_number >= ancestor->forced_for) {
@@ -270,21 +270,21 @@ namespace kagome::authority {
         message.payload,
         [this, &block](
             const primitives::ScheduledChange &msg) -> outcome::result<void> {
-          return onScheduledChange(
+          return applyScheduledChange(
               block, msg.authorities, block.block_number + msg.subchain_lenght);
         },
         [this, &block](const primitives::ForcedChange &msg) {
-          return onForcedChange(
+          return applyForcedChange(
               block, msg.authorities, block.block_number + msg.subchain_lenght);
         },
         [this, &block](const primitives::OnDisabled &msg) {
-          return onOnDisabled(block, msg.authority_index);
+          return applyOnDisabled(block, msg.authority_index);
         },
         [this, &block](const primitives::Pause &msg) {
-          return onPause(block, block.block_number + msg.subchain_lenght);
+          return applyPause(block, block.block_number + msg.subchain_lenght);
         },
         [this, &block](const primitives::Resume &msg) {
-          return onResume(block, block.block_number + msg.subchain_lenght);
+          return applyResume(block, block.block_number + msg.subchain_lenght);
         },
         [](auto &) {
           return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
@@ -308,7 +308,7 @@ namespace kagome::authority {
 
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
-      if (isDirectAncestry(block, descendant->block)) {
+      if (directChainExists(block, descendant->block)) {
         new_node->descendants.emplace_back(std::move(descendant));
       }
     }
@@ -329,29 +329,27 @@ namespace kagome::authority {
     // Target block is not descendant of the current root
     if (root_->block.block_number > block.block_number
         || (root_->block != block
-            && not isDirectAncestry(root_->block, block))) {
+            && not directChainExists(root_->block, block))) {
       return ancestor;
     }
     ancestor = root_;
-    for (;;) {
-      if (ancestor->block == block) {
-        return ancestor;
-      }
+    while (ancestor->block != block) {
       bool goto_next_generation = false;
       for (const auto &node : ancestor->descendants) {
-        if (node->block == block || isDirectAncestry(node->block, block)) {
+        if (node->block == block || directChainExists(node->block, block)) {
           ancestor = node;
           goto_next_generation = true;
           break;
         }
       }
       if (not goto_next_generation) {
-        return ancestor;
+        break;
       }
     }
+    return ancestor;
   }
 
-  bool AuthorityManagerImpl::isDirectAncestry(
+  bool AuthorityManagerImpl::directChainExists(
       const primitives::BlockInfo &ancestor,
       const primitives::BlockInfo &descendant) {
     // Any block is descendant of genesis
@@ -360,8 +358,8 @@ namespace kagome::authority {
       return true;
     }
     auto result = ancestor.block_number < descendant.block_number
-                  && block_tree_->checkDirectAncestry(ancestor.block_hash,
-                                                      descendant.block_hash);
+                  && block_tree_->hasDirectChain(ancestor.block_hash,
+                                                 descendant.block_hash);
     return result;
   }
 }  // namespace kagome::authority
