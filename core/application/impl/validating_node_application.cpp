@@ -29,20 +29,20 @@ namespace kagome::application {
     key_storage_ = injector_.create<sptr<KeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     babe_ = injector_.create<sptr<Babe>>();
-    grandpa_launcher_ = injector_.create<sptr<GrandpaLauncher>>();
+    grandpa_ = injector_.create<sptr<Grandpa>>();
     router_ = injector_.create<sptr<network::Router>>();
 
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void ValidatingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+    logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
 
     // starts block production
     app_state_manager_->atLaunch([this] { babe_->start(is_genesis_); });
 
     // starts finalization event loop
-    app_state_manager_->atLaunch([this] { grandpa_launcher_->start(); });
+    app_state_manager_->atLaunch([this] { grandpa_->start(); });
 
     app_state_manager_->atLaunch([this] {
       // execute listeners

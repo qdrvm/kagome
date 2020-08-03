@@ -78,7 +78,7 @@
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
-#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
@@ -250,7 +250,7 @@ namespace kagome::injector {
           if (not db->get(storage::kAuthoritySetKey)) {
             // insert authorities
             auto grandpa_api =
-                injector.template create<sptr<runtime::Grandpa>>();
+                injector.template create<sptr<runtime::GrandpaApi>>();
             const auto &weighted_authorities_res = grandpa_api->authorities(
                 primitives::BlockId(primitives::BlockNumber{0}));
             BOOST_ASSERT_MSG(weighted_authorities_res,
@@ -709,7 +709,7 @@ namespace kagome::injector {
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
-        di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
+        di::bind<runtime::GrandpaApi>.template to<runtime::binaryen::GrandpaApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),

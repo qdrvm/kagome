@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/grandpa/impl/launcher_impl.hpp"
+#include "consensus/grandpa/impl/grandpa_impl.hpp"
 
 #include <boost/asio/post.hpp>
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -18,11 +18,11 @@ namespace kagome::consensus::grandpa {
 
   static size_t round_id = 0;
 
-  LauncherImpl::LauncherImpl(
+  GrandpaImpl::GrandpaImpl(
       std::shared_ptr<Environment> environment,
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::ED25519Provider> crypto_provider,
-      std::shared_ptr<runtime::Grandpa> grandpa_api,
+      std::shared_ptr<runtime::GrandpaApi> grandpa_api,
       const crypto::ED25519Keypair &keypair,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context)
@@ -40,8 +40,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(io_context_ != nullptr);
-    // lambda which is executed when voting round is completed. This lambda
-    // executes next round
+    // Lambda which is executed when voting round is completed.
+    // This lambda executes next round
     auto handle_completed_round =
         [this](outcome::result<CompletedRound> completed_round_res) {
           round_id++;
@@ -52,14 +52,16 @@ namespace kagome::consensus::grandpa {
                            completed_round_res.error().message());
           } else {
             const auto &completed_round = completed_round_res.value();
-            // update last completed round if it is greater than previous last
-            // completed round
-            const auto &last_completed_round_res = getLastCompletedRound();
+
+            const auto last_completed_round_res = getLastCompletedRound();
             if (not last_completed_round_res) {
               logger_->warn(last_completed_round_res.error().message());
               return;
             }
             const auto &last_completed_round = last_completed_round_res.value();
+
+            // update last completed round if it is greater than previous last
+            // completed round
             if (completed_round.round_number
                 > last_completed_round.round_number) {
               if (auto put_res = storage_->put(
@@ -79,7 +81,7 @@ namespace kagome::consensus::grandpa {
     environment_->doOnCompleted(handle_completed_round);
   }
 
-  outcome::result<std::shared_ptr<VoterSet>> LauncherImpl::getVoters() const {
+  outcome::result<std::shared_ptr<VoterSet>> GrandpaImpl::getVoters() const {
     /*
      * TODO(kamilsa): PRE-356 Check if voters were updated:
      * We should check if voters received from runtime (through
@@ -93,13 +95,13 @@ namespace kagome::consensus::grandpa {
     return std::make_shared<VoterSet>(voter_set);
   }
 
-  outcome::result<CompletedRound> LauncherImpl::getLastCompletedRound() const {
+  outcome::result<CompletedRound> GrandpaImpl::getLastCompletedRound() const {
     OUTCOME_TRY(last_round_encoded, storage_->get(storage::kSetStateKey));
 
     return scale::decode<CompletedRound>(last_round_encoded);
   }
 
-  void LauncherImpl::executeNextRound() {
+  void GrandpaImpl::executeNextRound() {
     // obtain grandpa voters
     auto voters_res = getVoters();
     BOOST_ASSERT_MSG(
@@ -147,15 +149,15 @@ namespace kagome::consensus::grandpa {
     current_round_->precommit(last_round_state);
   }
 
-  void LauncherImpl::start() {
+  void GrandpaImpl::start() {
     boost::asio::post(*io_context_,
                       [self{shared_from_this()}] { self->executeNextRound(); });
     startLivenessChecker();
   }
 
-  void LauncherImpl::startLivenessChecker() {
-    // check if round id was updated. If it was not, that means that grandpa is
-    // not working
+  void GrandpaImpl::startLivenessChecker() {
+    // Check if round id was updated.
+    // If it was not, that means that grandpa is not working
     auto current_round_id = round_id;
 
     using std::chrono_literals::operator""ms;
@@ -177,7 +179,7 @@ namespace kagome::consensus::grandpa {
     });
   }
 
-  void LauncherImpl::onVoteMessage(const VoteMessage &msg) {
+  void GrandpaImpl::onVoteMessage(const VoteMessage &msg) {
     auto current_round = current_round_;
     auto current_round_number = current_round->roundNumber();
 
@@ -226,7 +228,7 @@ namespace kagome::consensus::grandpa {
         });
   }
 
-  void LauncherImpl::onFinalize(const Fin &f) {
+  void GrandpaImpl::onFinalize(const Fin &f) {
     logger_->debug("Received fin message for round: {}", f.round_number);
     if (f.round_number == current_round_->roundNumber()) {
       current_round_->onFinalize(f);

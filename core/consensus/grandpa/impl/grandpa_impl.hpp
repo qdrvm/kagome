@@ -3,35 +3,35 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_LAUNCHERIMPL_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_LAUNCHERIMPL_HPP
+#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
+#define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
 
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/launcher.hpp"
+#include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "network/gossiper.hpp"
-#include "runtime/grandpa.hpp"
+#include "runtime/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus::grandpa {
 
-  class LauncherImpl : public Launcher,
-                       public std::enable_shared_from_this<LauncherImpl> {
+  class GrandpaImpl : public Grandpa,
+                      public std::enable_shared_from_this<GrandpaImpl> {
    public:
-    ~LauncherImpl() override = default;
+    ~GrandpaImpl() override = default;
 
-    LauncherImpl(std::shared_ptr<Environment> environment,
-                 std::shared_ptr<storage::BufferStorage> storage,
-                 std::shared_ptr<crypto::ED25519Provider> crypto_provider,
-                 std::shared_ptr<runtime::Grandpa> grandpa_api,
-                 const crypto::ED25519Keypair &keypair,
-                 std::shared_ptr<Clock> clock,
-                 std::shared_ptr<boost::asio::io_context> io_context);
+    GrandpaImpl(std::shared_ptr<Environment> environment,
+                std::shared_ptr<storage::BufferStorage> storage,
+                std::shared_ptr<crypto::ED25519Provider> crypto_provider,
+                std::shared_ptr<runtime::GrandpaApi> grandpa_api,
+                const crypto::ED25519Keypair &keypair,
+                std::shared_ptr<Clock> clock,
+                std::shared_ptr<boost::asio::io_context> io_context);
 
     void start() override;
 
@@ -58,15 +58,15 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::ED25519Provider> crypto_provider_;
-    std::shared_ptr<runtime::Grandpa> grandpa_api_;
+    std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     Timer liveness_checker_;
 
-    common::Logger logger_ = common::createLogger("Grandpa launcher");
+    common::Logger logger_ = common::createLogger("Grandpa");
   };
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_LAUNCHERIMPL_HPP
+#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL

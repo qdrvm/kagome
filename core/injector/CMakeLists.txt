@@ -50,7 +50,7 @@ target_link_libraries(application_injector
     leveldb
     local_key_storage
     outcome
-    launcher
+    grandpa
     environment
     proposer
     storage_wasm_provider
@@ -78,7 +78,7 @@ add_library(validating_node_injector
     )
 target_link_libraries(validating_node_injector
     application_injector
-    grandpa_dummy
+    grandpa_api_dummy
     )
 
 add_library(block_producing_node_injector
@@ -87,5 +87,5 @@ add_library(block_producing_node_injector
 target_link_libraries(block_producing_node_injector
     application_injector
     syncing_round_observer
-    grandpa_dummy
+    grandpa_api_dummy
     )

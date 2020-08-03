@@ -108,7 +108,7 @@ target_link_libraries(binaryen_parachain_host_api
     )
 
 add_library(binaryen_grandpa_api
-    runtime_api/grandpa_impl.cpp
+    runtime_api/grandpa_api_impl.cpp
     )
 target_link_libraries(binaryen_grandpa_api
     binaryen_wasm_executor
