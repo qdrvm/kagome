@@ -124,10 +124,10 @@ class RuntimeTest : public ::testing::Test {
     kagome::common::Hash256 extrinsics_root;
     extrinsics_root.fill('e');
 
-    Digest digest;
+    Digest digest{};
 
     return BlockHeader{
-        parent_hash, number, state_root, extrinsics_root, {digest}};
+        parent_hash, number, state_root, extrinsics_root, digest};
   }
 
   kagome::primitives::Block createBlock() {

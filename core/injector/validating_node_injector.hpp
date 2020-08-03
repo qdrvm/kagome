@@ -138,7 +138,9 @@ namespace kagome::injector {
         injector.template create<crypto::SR25519Keypair>(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<uptr<clock::Timer>>());
+        injector.template create<uptr<clock::Timer>>(),
+        injector.template create<sptr<authority::AuthorityUpdateObserver>>()
+	  );
     return *initialized;
   }
 

@@ -21,6 +21,7 @@
 #include "mock/core/consensus/babe/epoch_storage_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
+#include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
@@ -32,6 +33,7 @@
 
 using namespace kagome;
 using namespace consensus;
+using namespace authority;
 using namespace blockchain;
 using namespace authorship;
 using namespace crypto;
@@ -78,6 +80,7 @@ class BabeTest : public testing::Test {
     hasher_ = std::make_shared<HasherMock>();
     timer_mock_ = std::make_unique<testutil::TimerMock>();
     timer_ = timer_mock_.get();
+	  grandpa_authority_update_observer_ = std::make_shared<AuthorityUpdateObserverMock>();
 
     // add initialization logic
     auto expected_config = std::make_shared<primitives::BabeConfiguration>();
@@ -105,7 +108,8 @@ class BabeTest : public testing::Test {
                                                           babe_block_validator_,
                                                           epoch_storage_,
                                                           tx_pool_,
-                                                          hasher_);
+                                                          hasher_,
+                                                          grandpa_authority_update_observer_);
 
     babe_ = std::make_shared<BabeImpl>(lottery_,
                                        block_executor,
@@ -118,7 +122,8 @@ class BabeTest : public testing::Test {
                                        keypair_,
                                        clock_,
                                        hasher_,
-                                       std::move(timer_mock_));
+                                       std::move(timer_mock_),
+                                       grandpa_authority_update_observer_);
 
     epoch_.randomness = expected_config->randomness;
     epoch_.epoch_duration = expected_config->epoch_length;
@@ -142,6 +147,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;
   testutil::TimerMock *timer_;
+	std::shared_ptr<AuthorityUpdateObserverMock> grandpa_authority_update_observer_;
 
   std::shared_ptr<BabeImpl> babe_;
 

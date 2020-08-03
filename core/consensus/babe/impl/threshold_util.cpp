@@ -10,10 +10,9 @@
 
 namespace kagome::consensus {
 
-  Threshold calculateThreshold(
-      const std::pair<uint64_t, uint64_t> &c_pair,
-      const std::vector<primitives::Authority> &authorities,
-      primitives::AuthorityIndex authority_index) {
+  Threshold calculateThreshold(const std::pair<uint64_t, uint64_t> &c_pair,
+                               const primitives::AuthorityList &authorities,
+                               primitives::AuthorityIndex authority_index) {
     double c = double(c_pair.first) / c_pair.second;
 
     using boost::adaptors::transformed;
