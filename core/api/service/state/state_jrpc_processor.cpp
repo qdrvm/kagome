@@ -9,6 +9,7 @@
 #include "api/service/state/requests/get_runtime_version.hpp"
 #include "api/service/state/requests/get_storage.hpp"
 #include "api/service/state/requests/subscribe_storage.hpp"
+#include "api/service/state/requests/unsubscribe_storage.hpp"
 
 namespace kagome::api::state {
 
@@ -31,6 +32,9 @@ namespace kagome::api::state {
 
     server_->registerHandler("state_subscribeStorage",
                              Handler<request::SubscribeStorage>(api_));
+
+    server_->registerHandler("state_unsubscribeStorage",
+                             Handler<request::UnsubscribeStorage>(api_));
   }
 
 }  // namespace kagome::api::state

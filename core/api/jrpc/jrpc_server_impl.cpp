@@ -25,7 +25,7 @@ namespace kagome::api {
 
     auto writer = format_handler_.CreateWriter();
     try {
-      Response response(jsonrpc::Value(from), Value(0));
+      Response response(Value(from), Value(0));
       response.Write(*writer);
     } catch (const Fault &ex) {
       Response(ex.GetCode(), ex.GetString(), Value()).Write(*writer);
