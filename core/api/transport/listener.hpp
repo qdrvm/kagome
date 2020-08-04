@@ -38,13 +38,22 @@ namespace kagome::api {
 
     virtual ~Listener() = default;
 
-    /// Bind endpoint
-    virtual void prepare() = 0;
+    /**
+     * @brief Bind endpoint
+     * @see AppStateManager::takeControl
+     */
+    virtual bool prepare() = 0;
 
-    /// Start handling inner connection
-    virtual void start() = 0;
+    /**
+     * @brief Start handling inner connection
+     * @see AppStateManager::takeControl
+     */
+    virtual bool start() = 0;
 
-    /// Stop working
+    /**
+     * @brief Stop working
+     * @see AppStateManager::takeControl
+     */
     virtual void stop() = 0;
 
     /// Set handler for working new session

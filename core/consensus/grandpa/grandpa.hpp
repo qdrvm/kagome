@@ -16,10 +16,15 @@ namespace kagome::consensus::grandpa {
   class Grandpa : public RoundObserver {
    public:
     ~Grandpa() override = default;
+
+    virtual bool prepare() = 0;
+
     /**
      * Start event loop which executes grandpa voting rounds
      */
-    virtual void start() = 0;
+    virtual bool start() = 0;
+
+    virtual void stop() = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

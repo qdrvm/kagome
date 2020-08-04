@@ -70,7 +70,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(init_epoch_desc_ok);
   }
 
-  void BabeImpl::start(ExecutionStrategy strategy) {
+  bool BabeImpl::start(ExecutionStrategy strategy) {
     auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
     log_->debug("Babe run on block with number {} and hash {}",
                 best_block_number,
@@ -81,6 +81,7 @@ namespace kagome::consensus {
         auto epoch_digest_res = epoch_storage_->getEpochDescriptor(0);
         if (not epoch_digest_res) {
           log_->error("Last epoch digest does not exist for initial epoch");
+          return false;
         }
         auto &&epoch_digest = epoch_digest_res.value();
 
@@ -115,6 +116,7 @@ namespace kagome::consensus {
         break;
       }
     }
+    return true;
   }
 
   /**

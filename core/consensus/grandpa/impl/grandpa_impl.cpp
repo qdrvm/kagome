@@ -6,7 +6,7 @@
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
 #include <boost/asio/post.hpp>
-#include "consensus/grandpa/impl/environment_impl.hpp"
+
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
@@ -19,6 +19,7 @@ namespace kagome::consensus::grandpa {
   static size_t round_id = 0;
 
   GrandpaImpl::GrandpaImpl(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::ED25519Provider> crypto_provider,
@@ -26,7 +27,8 @@ namespace kagome::consensus::grandpa {
       const crypto::ED25519Keypair &keypair,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context)
-      : environment_{std::move(environment)},
+      : app_state_manager_(std::move(app_state_manager)),
+        environment_{std::move(environment)},
         storage_{std::move(storage)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
@@ -34,52 +36,38 @@ namespace kagome::consensus::grandpa {
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
         liveness_checker_{*io_context_} {
+    BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(io_context_ != nullptr);
-    // Lambda which is executed when voting round is completed.
-    // This lambda executes next round
-    auto handle_completed_round =
-        [this](outcome::result<CompletedRound> completed_round_res) {
-          round_id++;
 
-          if (not completed_round_res) {
-            current_round_.reset();
-            logger_->debug("Grandpa round was not finalized: {}",
-                           completed_round_res.error().message());
-          } else {
-            const auto &completed_round = completed_round_res.value();
-
-            const auto last_completed_round_res = getLastCompletedRound();
-            if (not last_completed_round_res) {
-              logger_->warn(last_completed_round_res.error().message());
-              return;
-            }
-            const auto &last_completed_round = last_completed_round_res.value();
-
-            // update last completed round if it is greater than previous last
-            // completed round
-            if (completed_round.round_number
-                > last_completed_round.round_number) {
-              if (auto put_res = storage_->put(
-                      storage::kSetStateKey,
-                      common::Buffer(scale::encode(completed_round).value()));
-                  not put_res) {
-                logger_->error("New round state was not added to the storage");
-                return;
-              }
-              BOOST_ASSERT(storage_->get(storage::kSetStateKey));
-            }
-          }
-          boost::asio::post(*io_context_, [self{shared_from_this()}] {
-            self->executeNextRound();
-          });
-        };
-    environment_->doOnCompleted(handle_completed_round);
+    app_state_manager_->takeControl(*this);
   }
+
+  bool GrandpaImpl::prepare() {
+    // Lambda which is executed when voting round is completed.
+    environment_->doOnCompleted(
+        [wp = weak_from_this()](
+            outcome::result<CompletedRound> completed_round_res) {
+          if (auto self = wp.lock()) {
+            self->onCompletedRound(completed_round_res);
+          }
+        });
+    return true;
+  }
+
+  bool GrandpaImpl::start() {
+    boost::asio::post(*io_context_,
+                      [self{shared_from_this()}] { self->executeNextRound(); });
+
+    startLivenessChecker();
+    return true;
+  }
+
+  void GrandpaImpl::stop() {}
 
   outcome::result<std::shared_ptr<VoterSet>> GrandpaImpl::getVoters() const {
     /*
@@ -149,12 +137,6 @@ namespace kagome::consensus::grandpa {
     current_round_->precommit(last_round_state);
   }
 
-  void GrandpaImpl::start() {
-    boost::asio::post(*io_context_,
-                      [self{shared_from_this()}] { self->executeNextRound(); });
-    startLivenessChecker();
-  }
-
   void GrandpaImpl::startLivenessChecker() {
     // Check if round id was updated.
     // If it was not, that means that grandpa is not working
@@ -165,17 +147,18 @@ namespace kagome::consensus::grandpa {
 
     liveness_checker_.async_wait([this, current_round_id](const auto &ec) {
       if (ec and ec != boost::asio::error::operation_aborted) {
-        this->logger_->error("Error happened during liveness timer: {}",
-                             ec.message());
+        logger_->error("Error happened during liveness timer: {}",
+                       ec.message());
         return;
       }
       // if round id was not updated, that means execution of round was
       // completed properly, execute again
       if (current_round_id == round_id) {
-        this->logger_->warn("Round was not completed properly");
-        return start();
+        logger_->warn("Round was not completed properly");
+        start();
+        return;
       }
-      return this->startLivenessChecker();
+      startLivenessChecker();
     });
   }
 
@@ -233,6 +216,41 @@ namespace kagome::consensus::grandpa {
     if (f.round_number == current_round_->roundNumber()) {
       current_round_->onFinalize(f);
     }
+  }
+
+  void GrandpaImpl::onCompletedRound(
+      outcome::result<CompletedRound> completed_round_res) {
+    round_id++;
+
+    if (not completed_round_res) {
+      current_round_.reset();
+      logger_->debug("Grandpa round was not finalized: {}",
+                     completed_round_res.error().message());
+    } else {
+      const auto &completed_round = completed_round_res.value();
+
+      const auto last_completed_round_res = getLastCompletedRound();
+      if (not last_completed_round_res) {
+        logger_->warn(last_completed_round_res.error().message());
+        return;
+      }
+      const auto &last_completed_round = last_completed_round_res.value();
+
+      // update last completed round if it is greater than previous last
+      // completed round
+      if (completed_round.round_number > last_completed_round.round_number) {
+        if (auto put_res = storage_->put(
+                storage::kSetStateKey,
+                common::Buffer(scale::encode(completed_round).value()));
+            not put_res) {
+          logger_->error("New round state was not added to the storage");
+          return;
+        }
+        BOOST_ASSERT(storage_->get(storage::kSetStateKey));
+      }
+    }
+    boost::asio::post(*io_context_,
+                      [self{shared_from_this()}] { self->executeNextRound(); });
   }
 
 }  // namespace kagome::consensus::grandpa

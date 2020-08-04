@@ -53,81 +53,93 @@ namespace kagome::api {
     app_state_manager->takeControl(*this);
   }
 
-  void ApiService::prepare() {
+  bool ApiService::prepare() {
     for (const auto &listener : listeners_) {
-      auto on_new_session =
-          [wp = weak_from_this()](const sptr<Session> &session) mutable {
-            auto self = wp.lock();
-            if (!self) {
-              return;
+      auto on_new_session = [wp = weak_from_this()](
+                                const sptr<Session> &session) mutable {
+        auto self = wp.lock();
+        if (!self) {
+          return;
+        }
+
+        if (SessionType::kWs == session->type()) {
+          auto subscribed_session =
+              self->storeSessionWithId(session->id(), session);
+          subscribed_session->setCallback([wp](SessionPtr &session,
+                                               const auto &key,
+                                               const auto &data,
+                                               const auto &block) {
+            if (auto self = wp.lock()) {
+              jsonrpc::Value::Array out_data;
+              out_data.emplace_back(api::makeValue(key));
+              out_data.emplace_back(api::makeValue(data));
+
+              /// TODO(iceseer): PRE-475 make event notofication depending in
+              /// blocks, to butch them in a single message
+
+              jsonrpc::Value::Struct result;
+              result["changes"] = std::move(out_data);
+              result["block"] = api::makeValue(block);
+
+              jsonrpc::Value::Struct params;
+              params["result"] = std::move(result);
+              params["subscription"] = 0;
+
+              self->server_->processJsonData(params,
+                                             [&](const std::string &response) {
+                                               session->respond(response);
+                                             });
             }
+          });
+        }
 
-            if (SessionType::kWs == session->type()) {
-              auto subscribed_session =
-                  self->storeSessionWithId(session->id(), session);
-              subscribed_session->setCallback([wp](SessionPtr &session,
-                                                    const auto &key,
-                                                    const auto &data,
-                                                    const auto &block) {
-                if (auto self = wp.lock()) {
-                  jsonrpc::Value::Array out_data;
-                  out_data.emplace_back(api::makeValue(key));
-                  out_data.emplace_back(api::makeValue(data));
+        session->connectOnRequest(
+            [wp](std::string_view request,
+                 std::shared_ptr<Session> session) mutable {
+              auto self = wp.lock();
+              if (not self) return;
 
-                  /// TODO(iceseer): PRE-475 make event notofication depending in
-                  /// blocks, to butch them in a single message
+              auto thread_session_auto_release = [](void *) {
+                threaded_info.releaseSessionId();
+              };
 
-                  jsonrpc::Value::Struct result;
-                  result["changes"] = std::move(out_data);
-                  result["block"] = api::makeValue(block);
-
-                  jsonrpc::Value::Struct params;
-                  params["result"] = std::move(result);
-                  params["subscription"] = 0;
-
-                  self->server_->processJsonData(
-                      params, [&](const std::string &response) {
-                        session->respond(response);
-                      });
-                }
-              });
-            }
-
-            session->connectOnRequest(
-                [wp](std::string_view request,
-                     std::shared_ptr<Session> session) mutable {
-                  auto self = wp.lock();
-                  if (not self) return;
-
-                  auto thread_session_auto_release = [](void *) {
-                    threaded_info.releaseSessionId();
-                  };
-
-                  threaded_info.storeSessionId(session->id());
-                  std::unique_ptr<void, decltype(thread_session_auto_release)>
+              threaded_info.storeSessionId(session->id());
+              std::unique_ptr<void, decltype(thread_session_auto_release)>
 
                   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                   thread_session_keeper(reinterpret_cast<void *>(0xff),
                                         std::move(thread_session_auto_release));
 
-                  // process new request
-                  self->server_->processData(
-                      std::string(request),
-                      [session = std::move(session)](
-                          const std::string &response) mutable {
-                        // process response
-                        session->respond(response);
-                      });
-                });
+              // process new request
+              self->server_->processData(
+                  std::string(request),
+                  [session = std::move(session)](
+                      const std::string &response) mutable {
+                    // process response
+                    session->respond(response);
+                  });
+            });
 
-            session->connectOnCloseHandler(
-                [wp](Session::SessionId id, SessionType /*type*/) {
-                  if (auto self = wp.lock()) self->removeSessionById(id);
-                });
-          };
+        session->connectOnCloseHandler(
+            [wp](Session::SessionId id, SessionType /*type*/) {
+              if (auto self = wp.lock()) self->removeSessionById(id);
+            });
+      };
 
       listener->setHandlerForNewSession(std::move(on_new_session));
     }
+    return true;
+  }
+
+  bool ApiService::start() {
+    thread_pool_->start();
+    logger_->debug("Service started");
+    return true;
+  }
+
+  void ApiService::stop() {
+    thread_pool_->stop();
+    logger_->debug("Service stopped");
   }
 
   ApiService::SubscribedSessionPtr ApiService::findSessionById(
@@ -156,16 +168,6 @@ namespace kagome::api {
     subscribed_sessions_.erase(id);
   }
 
-  void ApiService::start() {
-    thread_pool_->start();
-    logger_->debug("Service started");
-  }
-
-  void ApiService::stop() {
-    thread_pool_->stop();
-    logger_->debug("Service stopped");
-  }
-
   outcome::result<uint32_t> ApiService::subscribeSessionToKeys(
       const std::vector<common::Buffer> &keys) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
@@ -188,8 +190,7 @@ namespace kagome::api {
       const std::vector<uint32_t> &subscription_ids) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
       if (auto session = findSessionById(*session_id)) {
-        for (auto id : subscription_ids)
-          session->unsubscribe(id);
+        for (auto id : subscription_ids) session->unsubscribe(id);
         return outcome::success();
       }
       throw jsonrpc::InternalErrorFault(
@@ -198,6 +199,5 @@ namespace kagome::api {
     throw jsonrpc::InternalErrorFault(
         "Internal error. No session was binded to subscription.");
   }
-
 
 }  // namespace kagome::api

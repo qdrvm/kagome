@@ -14,20 +14,20 @@ namespace kagome::application {
 
   class AppStateManagerMock : public AppStateManager {
    public:
-    void atPrepare(Callback &&cb) {
+    void atPrepare(OnPrepare &&cb) {
       atPrepare(cb);
     }
-    MOCK_METHOD1(atPrepare, void(Callback));
+    MOCK_METHOD1(atPrepare, void(OnPrepare));
 
-    void atLaunch(Callback &&cb) {
+    void atLaunch(OnLaunch &&cb) {
       atLaunch(cb);
     }
-    MOCK_METHOD1(atLaunch, void(Callback));
+    MOCK_METHOD1(atLaunch, void(OnLaunch));
 
-    void atShutdown(Callback &&cb) {
+    void atShutdown(OnShutdown &&cb) {
       atShutdown(cb);
     }
-    MOCK_METHOD1(atShutdown, void(Callback));
+    MOCK_METHOD1(atShutdown, void(OnShutdown));
 
     MOCK_METHOD0(run, void());
     MOCK_METHOD0(shutdown, void());
