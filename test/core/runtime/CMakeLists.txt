@@ -34,6 +34,8 @@ target_link_libraries(tagged_transaction_queue_test
     testutil_primitives_generator
     basic_wasm_provider
     extension_factory
+    binaryen_core_api
+    binaryen_core_api
     )
 
 addtest(block_builder_api_test
@@ -43,6 +45,7 @@ target_link_libraries(block_builder_api_test
     binaryen_block_builder_api
     basic_wasm_provider
     extension_factory
+    binaryen_core_api
     )
 
 addtest(wasm_executor_test
@@ -51,6 +54,7 @@ addtest(wasm_executor_test
 target_link_libraries(wasm_executor_test
     binaryen_wasm_executor
     basic_wasm_provider
+    binaryen_core_api
     trie_storage
     trie_storage_backend
     trie_storage_provider
@@ -67,6 +71,7 @@ target_link_libraries(parachain_test
     binaryen_parachain_host_api
     basic_wasm_provider
     extension_factory
+    binaryen_core_api
     )
 
 addtest(grandpa_test
@@ -77,6 +82,7 @@ target_link_libraries(grandpa_test
     trie_storage_backend
     basic_wasm_provider
     extension_factory
+    binaryen_core_api
     )
 
 addtest(metadata_test
@@ -87,6 +93,7 @@ target_link_libraries(metadata_test
     basic_wasm_provider
     extension_factory
     trie_storage
+    binaryen_core_api
     )
 
 addtest(offchain_worker_test
@@ -97,6 +104,7 @@ target_link_libraries(offchain_worker_test
     basic_wasm_provider
     trie_storage_backend
     extension_factory
+    binaryen_core_api
     )
 
 addtest(wasm_result_test

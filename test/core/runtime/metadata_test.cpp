@@ -26,7 +26,7 @@ class MetadataTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<MetadataImpl>(runtime_manager_);
+    api_ = std::make_shared<MetadataImpl>(wasm_provider_, runtime_manager_);
   }
 
  protected:

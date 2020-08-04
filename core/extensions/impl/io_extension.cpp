@@ -58,7 +58,7 @@ namespace kagome::extensions {
         assert(false);
         logger_->error(
             "Message with incorrect log level. Target: {}\n\tmessage: {}", target_str, message_str);
-      } break;
+      }
     }
   }
 

@@ -11,6 +11,7 @@
 #include <gmock/gmock.h>
 
 namespace kagome::runtime {
+
   class CoreMock : public Core {
    public:
     MOCK_METHOD1(version,

@@ -16,8 +16,9 @@ namespace kagome::runtime::binaryen {
   using primitives::SessionKey;
 
   GrandpaImpl::GrandpaImpl(
+      const std::shared_ptr<WasmProvider> &wasm_provider,
       const std::shared_ptr<RuntimeManager> &runtime_manager)
-      : RuntimeApi(runtime_manager) {}
+      : RuntimeApi(wasm_provider, runtime_manager) {}
 
   outcome::result<boost::optional<ScheduledChange>> GrandpaImpl::pending_change(
       const Digest &digest) {
