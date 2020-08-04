@@ -170,7 +170,7 @@ namespace kagome::api {
       const std::vector<common::Buffer> &keys) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
       if (auto session = findSessionById(*session_id)) {
-        const auto id = session->generate_subscription_set_id();
+        const auto id = session->generateSubscriptionSetId();
         for (auto &key : keys) {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);

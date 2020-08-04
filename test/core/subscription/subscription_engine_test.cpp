@@ -56,7 +56,7 @@ TEST_F(SubscriptionEngineTest, SubscriberRegistration) {
   });
 
   EXPECT_CALL(target, test_call(data_1, data_2));
-  const auto id = subscriber->generate_subscription_set_id();
+  const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
 
   ASSERT_EQ(engine_->size(key), 1ull);
@@ -81,7 +81,7 @@ TEST_F(SubscriptionEngineTest, NegSubscriberRegistration) {
   subscriber->setCallback(
       [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
 
-  const auto id = subscriber->generate_subscription_set_id();
+  const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, "100");
 
   ASSERT_EQ(engine_->size(key), 0ull);
@@ -107,7 +107,7 @@ TEST_F(SubscriptionEngineTest, SubUnsub) {
   subscriber->setCallback(
       [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
 
-  const auto id = subscriber->generate_subscription_set_id();
+  const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
   ASSERT_EQ(engine_->size(key), 1ull);
 
@@ -137,7 +137,7 @@ TEST_F(SubscriptionEngineTest, DeleteSub) {
     subscriber->setCallback(
         [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
 
-    const auto id = subscriber->generate_subscription_set_id();
+    const auto id = subscriber->generateSubscriptionSetId();
     subscriber->subscribe(id, key);
   }
 
@@ -166,7 +166,7 @@ TEST_F(SubscriptionEngineTest, MultiSub) {
 
   EXPECT_CALL(target, test_call(data_1, data_2));
 
-  const auto id = subscriber->generate_subscription_set_id();
+  const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
   subscriber->subscribe(id, key);
   subscriber->subscribe(id, key);
@@ -197,7 +197,7 @@ TEST_F(SubscriptionEngineTest, UnsubscribeSub) {
 
   EXPECT_CALL(target, test_call(data_1, data_2));
 
-  const auto id = subscriber->generate_subscription_set_id();
+  const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
   ASSERT_EQ(engine_->size(key), 1ull);
 
@@ -226,7 +226,7 @@ TEST_F(SubscriptionEngineTest, UnsubscribeAllSub) {
         ASSERT_FALSE(true);
       });
 
-  const auto id = subscriber->generate_subscription_set_id();
+  const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
   ASSERT_EQ(engine_->size(key), 1ull);
 
@@ -255,7 +255,7 @@ TEST_F(SubscriptionEngineTest, UnsubscribeStreamSub) {
         ASSERT_FALSE(true);
       });
 
-  const auto id = subscriber->generate_subscription_set_id();
+  const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
   ASSERT_EQ(engine_->size(key), 1ull);
 

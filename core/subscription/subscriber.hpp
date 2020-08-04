@@ -74,7 +74,7 @@ namespace kagome::subscription {
       on_notify_callback_ = std::move(f);
     }
 
-    SubscriptionSetId generate_subscription_set_id() {
+    SubscriptionSetId generateSubscriptionSetId() {
         return ++next_id_;
     }
 
