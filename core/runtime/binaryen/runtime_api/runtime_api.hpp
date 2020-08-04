@@ -38,8 +38,8 @@ namespace kagome::runtime::binaryen {
                    // completed
     };
 
-    RuntimeApi(std::shared_ptr<WasmProvider> wasm_provider,
-               std::shared_ptr<RuntimeManager> runtime_manager)
+    RuntimeApi(const std::shared_ptr<WasmProvider> &wasm_provider,
+               const std::shared_ptr<RuntimeManager> &runtime_manager)
         : runtime_manager_(std::move(runtime_manager)),
           wasm_provider_{std::move(wasm_provider)} {
       BOOST_ASSERT(runtime_manager_);

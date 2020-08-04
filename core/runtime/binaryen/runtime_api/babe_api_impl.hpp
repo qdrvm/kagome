@@ -16,7 +16,7 @@ namespace kagome::runtime::binaryen {
     ~BabeApiImpl() override = default;
 
     explicit BabeApiImpl(
-        std::shared_ptr<WasmProvider> wasm_provider,
+        const std::shared_ptr<WasmProvider> &wasm_provider,
         const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     outcome::result<primitives::BabeConfiguration> configuration() override;

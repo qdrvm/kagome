@@ -14,6 +14,7 @@ namespace kagome::runtime {
    * bits are the address and next 32 bits are the size of the returned buffer.
    */
   struct WasmResult {
+
     explicit constexpr WasmResult(WasmSpan v) {
       auto [ptr, len] = splitSpan(v);
       address = ptr;
@@ -32,13 +33,14 @@ namespace kagome::runtime {
              | (static_cast<WasmSpan>(length) << 32ull);
     }
 
-    bool operator==(const WasmResult& rhs) const {
-        return address == rhs.address and length == rhs.length;
+    bool operator==(const WasmResult &rhs) const {
+      return address == rhs.address and length == rhs.length;
     }
 
     WasmPointer address = 0u;  ///< address of buffer result
     WasmSize length = 0u;      ///< length of buffer result
   };
+
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_WASM_RESULT_HPP
