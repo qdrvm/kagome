@@ -39,10 +39,10 @@ namespace kagome::application {
     logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
 
     // starts block production
-    app_state_manager_->atLaunch([this] { babe_->start(is_genesis_); });
+    app_state_manager_->atLaunch([this] { return babe_->start(is_genesis_); });
 
     // starts finalization event loop
-    app_state_manager_->atLaunch([this] { grandpa_->start(); });
+    app_state_manager_->atLaunch([this] { return grandpa_->start(); });
 
     app_state_manager_->atLaunch([this] {
       // execute listeners
@@ -61,11 +61,13 @@ namespace kagome::application {
         }
         this->router_->init();
       });
+      return true;
     });
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });
       asio_runner.detach();
+      return true;
     });
 
     app_state_manager_->atShutdown([ctx{io_context_}] { ctx->stop(); });

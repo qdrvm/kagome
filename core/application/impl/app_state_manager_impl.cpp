@@ -23,7 +23,7 @@ namespace kagome::application {
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
     act.sa_handler = shuttingDownSignalsHandler;  // NOLINT
-    sigset_t set; // NOLINT
+    sigset_t set;                                 // NOLINT
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);
@@ -39,7 +39,7 @@ namespace kagome::application {
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
     act.sa_handler = SIG_DFL;  // NOLINT
-    sigset_t set; // NOLINT
+    sigset_t set;              // NOLINT
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
     sigaddset(&set, SIGTERM);
@@ -59,7 +59,7 @@ namespace kagome::application {
     shutdown_requested_ = false;
   }
 
-  void AppStateManagerImpl::atPrepare(Callback &&cb) {
+  void AppStateManagerImpl::atPrepare(OnPrepare &&cb) {
     std::lock_guard lg(mutex_);
     if (state_ > State::Init) {
       throw AppStateException("adding callback for stage 'prepare'");
@@ -67,7 +67,7 @@ namespace kagome::application {
     prepare_.emplace(std::move(cb));
   }
 
-  void AppStateManagerImpl::atLaunch(Callback &&cb) {
+  void AppStateManagerImpl::atLaunch(OnLaunch &&cb) {
     std::lock_guard lg(mutex_);
     if (state_ > State::ReadyToStart) {
       throw AppStateException("adding callback for stage 'launch'");
@@ -75,7 +75,7 @@ namespace kagome::application {
     launch_.emplace(std::move(cb));
   }
 
-  void AppStateManagerImpl::atShutdown(Callback &&cb) {
+  void AppStateManagerImpl::atShutdown(OnShutdown &&cb) {
     std::lock_guard lg(mutex_);
     if (state_ > State::Works) {
       throw AppStateException("adding callback for stage 'shutdown'");
@@ -93,7 +93,10 @@ namespace kagome::application {
     while (!prepare_.empty()) {
       auto &cb = prepare_.front();
       if (state_ == State::Prepare) {
-        cb();
+        auto success = cb();
+        if (not success) {
+          state_ = State::ShuttingDown;
+        }
       }
       prepare_.pop();
     }
@@ -115,7 +118,10 @@ namespace kagome::application {
     while (!launch_.empty()) {
       auto &cb = launch_.front();
       if (state_ == State::Starting) {
-        cb();
+        auto success = cb();
+        if (not success) {
+          state_ = State::ShuttingDown;
+        }
       }
       launch_.pop();
     }

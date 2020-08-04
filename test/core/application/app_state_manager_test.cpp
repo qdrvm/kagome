@@ -12,11 +12,28 @@
 using kagome::application::AppStateException;
 using kagome::application::AppStateManager;
 using kagome::application::AppStateManagerImpl;
+using OnPrepare = kagome::application::AppStateManager::OnPrepare;
+using OnLaunch = kagome::application::AppStateManager::OnLaunch;
+using OnShutdown = kagome::application::AppStateManager::OnShutdown;
 
 using testing::Return;
 using testing::Sequence;
 
-class CallbackMock {
+class OnPrepareMock {
+ public:
+  MOCK_METHOD0(call, bool());
+  bool operator()() {
+    return call();
+  }
+};
+class OnLaunchMock {
+ public:
+  MOCK_METHOD0(call, bool());
+  bool operator()() {
+    return call();
+  }
+};
+class OnShutdownMock {
  public:
   MOCK_METHOD0(call, void());
   void operator()() {
@@ -28,9 +45,9 @@ class AppStateManagerTest : public AppStateManagerImpl, public testing::Test {
  public:
   void SetUp() override {
     reset();
-    prepare_cb = std::make_shared<CallbackMock>();
-    launch_cb = std::make_shared<CallbackMock>();
-    shutdown_cb = std::make_shared<CallbackMock>();
+    prepare_cb = std::make_shared<OnPrepareMock>();
+    launch_cb = std::make_shared<OnLaunchMock>();
+    shutdown_cb = std::make_shared<OnShutdownMock>();
   }
   void TearDown() override {
     prepare_cb.reset();
@@ -38,9 +55,9 @@ class AppStateManagerTest : public AppStateManagerImpl, public testing::Test {
     shutdown_cb.reset();
   }
 
-  std::shared_ptr<CallbackMock> prepare_cb;
-  std::shared_ptr<CallbackMock> launch_cb;
-  std::shared_ptr<CallbackMock> shutdown_cb;
+  std::shared_ptr<OnPrepareMock> prepare_cb;
+  std::shared_ptr<OnLaunchMock> launch_cb;
+  std::shared_ptr<OnShutdownMock> shutdown_cb;
 };
 
 /**
@@ -108,9 +125,9 @@ TEST_F(AppStateManagerTest, StateSequence_Abnormal_3) {
  * @then done without exceptions
  */
 TEST_F(AppStateManagerTest, AddCallback_Initial) {
-  EXPECT_NO_THROW(atPrepare([] {}));
-  EXPECT_NO_THROW(atLaunch([] {}));
-  EXPECT_NO_THROW(atShutdown([] {}));
+  EXPECT_NO_THROW(atPrepare(OnPrepare{}));
+  EXPECT_NO_THROW(atLaunch(OnLaunch{}));
+  EXPECT_NO_THROW(atShutdown(OnShutdown{}));
 }
 
 /**
@@ -120,9 +137,9 @@ TEST_F(AppStateManagerTest, AddCallback_Initial) {
  */
 TEST_F(AppStateManagerTest, AddCallback_AfterPrepare) {
   doPrepare();
-  EXPECT_THROW(atPrepare([] {}), AppStateException);
-  EXPECT_NO_THROW(atLaunch([] {}));
-  EXPECT_NO_THROW(atShutdown([] {}));
+  EXPECT_THROW(atPrepare(OnPrepare{}), AppStateException);
+  EXPECT_NO_THROW(atLaunch(OnLaunch{}));
+  EXPECT_NO_THROW(atShutdown(OnShutdown{}));
 }
 
 /**
@@ -133,9 +150,9 @@ TEST_F(AppStateManagerTest, AddCallback_AfterPrepare) {
 TEST_F(AppStateManagerTest, AddCallback_AfterLaunch) {
   doPrepare();
   doLaunch();
-  EXPECT_THROW(atPrepare([] {}), AppStateException);
-  EXPECT_THROW(atLaunch([] {}), AppStateException);
-  EXPECT_NO_THROW(atShutdown([] {}));
+  EXPECT_THROW(atPrepare(OnPrepare{}), AppStateException);
+  EXPECT_THROW(atLaunch(OnLaunch{}), AppStateException);
+  EXPECT_NO_THROW(atShutdown(OnShutdown{}));
 }
 
 /**
@@ -147,9 +164,9 @@ TEST_F(AppStateManagerTest, AddCallback_AfterShutdown) {
   doPrepare();
   doLaunch();
   doShutdown();
-  EXPECT_THROW(atPrepare([] {}), AppStateException);
-  EXPECT_THROW(atLaunch([] {}), AppStateException);
-  EXPECT_THROW(atShutdown([] {}), AppStateException);
+  EXPECT_THROW(atPrepare(OnPrepare{}), AppStateException);
+  EXPECT_THROW(atLaunch(OnLaunch{}), AppStateException);
+  EXPECT_THROW(atShutdown(OnShutdown{}), AppStateException);
 }
 
 /**
@@ -162,20 +179,20 @@ TEST_F(AppStateManagerTest, RegCallbacks) {
 
   registerHandlers(
       [&] {
-        (*prepare_cb)();
         tag = 1;
+        return (*prepare_cb)();
       },
       [&] {
-        (*launch_cb)();
         tag = 2;
+        return (*launch_cb)();
       },
       [&] {
-        (*shutdown_cb)();
         tag = 3;
+        return (*shutdown_cb)();
       });
 
-  EXPECT_CALL(*prepare_cb, call()).WillOnce(Return());
-  EXPECT_CALL(*launch_cb, call()).WillOnce(Return());
+  EXPECT_CALL(*prepare_cb, call()).WillOnce(Return(true));
+  EXPECT_CALL(*launch_cb, call()).WillOnce(Return(true));
   EXPECT_CALL(*shutdown_cb, call()).WillOnce(Return());
 
   EXPECT_NO_THROW(doPrepare());
@@ -196,18 +213,19 @@ TEST_F(AppStateManagerTest, Run_CallSequence) {
 
   auto app_state_manager = std::make_shared<AppStateManagerImpl>();
 
-  app_state_manager->registerHandlers([&] { (*prepare_cb)(); },
-                                      [&] { (*launch_cb)(); },
-                                      [&] { (*shutdown_cb)(); });
+  app_state_manager->registerHandlers([&] { return (*prepare_cb)(); },
+                                      [&] { return (*launch_cb)(); },
+                                      [&] { return (*shutdown_cb)(); });
 
   Sequence seq;
-  EXPECT_CALL(*prepare_cb, call()).InSequence(seq).WillOnce(Return());
-  EXPECT_CALL(*launch_cb, call()).InSequence(seq).WillOnce(Return());
+  EXPECT_CALL(*prepare_cb, call()).InSequence(seq).WillOnce(Return(true));
+  EXPECT_CALL(*launch_cb, call()).InSequence(seq).WillOnce(Return(true));
   EXPECT_CALL(*shutdown_cb, call()).InSequence(seq).WillOnce(Return());
 
   app_state_manager->atLaunch([] {
     std::thread terminator([] { raise(SIGQUIT); });
     terminator.detach();
+    return true;
   });
 
   EXPECT_NO_THROW(app_state_manager->run());

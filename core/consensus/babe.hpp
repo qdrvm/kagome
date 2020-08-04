@@ -30,7 +30,7 @@ namespace kagome::consensus {
      * @param is_genesis is true when genesis epoch is executed on the current
      * node
      */
-    virtual void start(ExecutionStrategy strategy) = 0;
+    virtual bool start(ExecutionStrategy strategy) = 0;
 
     /**
      * Start a Babe production

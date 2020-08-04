@@ -21,36 +21,38 @@ namespace kagome::api {
     app_state_manager->takeControl(*this);
   }
 
-  void HttpListenerImpl::prepare() {
+  bool HttpListenerImpl::prepare() {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       logger_->critical("Failed to prepare of listener: can't {}",
                         exception.what());
-      return;
+      return false;
     } catch (const std::exception &exception) {
       logger_->critical("Exception at preparing of listener: {}",
                         exception.what());
-      return;
+      return false;
     }
 
     boost::system::error_code ec;
     acceptor_->set_option(boost::asio::socket_base::reuse_address(true), ec);
     if (ec) {
       logger_->error("Failed to set `reuse address` option to acceptor");
-      return;
+      return false;
     }
+    return true;
   }
 
-  void HttpListenerImpl::start() {
+  bool HttpListenerImpl::start() {
     assert(acceptor_);
 
     if (!acceptor_->is_open()) {
       logger_->error("error: trying to start on non opened acceptor");
-      return;
+      return false;
     }
 
     acceptOnce();
+    return true;
   }
 
   void HttpListenerImpl::stop() {

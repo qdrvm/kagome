@@ -30,28 +30,30 @@ namespace kagome::authority {
     app_state_manager_->takeControl(*this);
   }
 
-  void AuthorityManagerImpl::prepare() {
+  bool AuthorityManagerImpl::prepare() {
     auto encoded_root_res = storage_->get(SCHEDULER_TREE);
     if (!encoded_root_res.has_value()) {
       // Get initial authorities from genesis
       root_ = ScheduleNode::createAsRoot({});
       root_->actual_authorities = std::make_shared<primitives::AuthorityList>(
           genesis_configuration_->genesis_authorities);
-      return;
+      return true;
     }
 
     auto root_res =
         scale::decode<std::shared_ptr<ScheduleNode>>(encoded_root_res.value());
     if (!root_res.has_value()) {
       log_->critical("Can't decode stored state");
-      app_state_manager_->shutdown();
-      return;
+      return false;
     }
 
     root_ = std::move(root_res.value());
+    return true;
   }
 
-  void AuthorityManagerImpl::start() {}
+  bool AuthorityManagerImpl::start() {
+    return true;
+  }
 
   void AuthorityManagerImpl::stop() {
     if (!root_) return;
