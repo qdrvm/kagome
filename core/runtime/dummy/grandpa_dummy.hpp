@@ -27,7 +27,7 @@ namespace kagome::runtime::dummy {
     outcome::result<boost::optional<ForcedChange>> forced_change(
         const Digest &digest) override;
 
-    outcome::result<std::vector<WeightedAuthority>> authorities(
+    outcome::result<AuthorityList> authorities(
         const primitives::BlockId &block_id) override;
 
    private:

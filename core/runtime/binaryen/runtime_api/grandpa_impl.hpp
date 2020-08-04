@@ -25,7 +25,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<boost::optional<ForcedChange>> forced_change(
         const Digest &digest) override;
 
-    outcome::result<std::vector<WeightedAuthority>> authorities(
+    outcome::result<primitives::AuthorityList> authorities(
         const primitives::BlockId &block_id) override;
   };
 }  // namespace kagome::runtime::binaryen

@@ -28,7 +28,7 @@ namespace kagome::consensus {
     BabeSlotNumber epoch_duration{};
 
     /// authorities of the epoch with their weights
-    std::vector<primitives::Authority> authorities;
+    primitives::AuthorityList authorities;
 
     /// randomness of the epoch
     Randomness randomness{};

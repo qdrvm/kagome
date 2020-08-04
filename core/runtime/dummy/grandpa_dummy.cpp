@@ -25,9 +25,9 @@ namespace kagome::runtime::dummy {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
     return outcome::failure(boost::system::error_code{});
   }
-  outcome::result<std::vector<primitives::Authority>> GrandpaDummy::authorities(
+  outcome::result<primitives::AuthorityList> GrandpaDummy::authorities(
       const primitives::BlockId &block_id) {
-    return std::vector<primitives::Authority>{
+    return primitives::AuthorityList{
         {{key_storage_->getLocalEd25519Keypair().public_key}, 1}};
   }
 }  // namespace kagome::runtime::dummy

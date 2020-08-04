@@ -21,7 +21,9 @@ namespace kagome::consensus {
       std::shared_ptr<consensus::BlockValidator> block_validator,
       std::shared_ptr<consensus::EpochStorage> epoch_storage,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<authority::AuthorityUpdateObserver>
+          authority_update_observer)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         genesis_configuration_{std::move(configuration)},
@@ -30,6 +32,7 @@ namespace kagome::consensus {
         epoch_storage_{std::move(epoch_storage)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
+        authority_update_observer_{std::move(authority_update_observer)},
         logger_{common::createLogger("BlockExecutor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
@@ -39,6 +42,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(epoch_storage_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(authority_update_observer_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -191,6 +195,20 @@ namespace kagome::consensus {
 
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
+
+    // observe possible changes of authorities
+    for (auto &digest_item : block_without_seal_digest.header.digest) {
+      OUTCOME_TRY(visit_in_place(
+          digest_item,
+          [&](const primitives::Consensus &consensus_message)
+              -> outcome::result<void> {
+            return authority_update_observer_->onConsensus(
+                consensus_message.consensus_engine_id,
+                primitives::BlockInfo{block.header.number, block_hash},
+                consensus_message);
+          },
+          [](const auto &) { return outcome::success(); }));
+    }
 
     // remove block's extrinsics from tx pool
     for (const auto &extrinsic : block.body) {
