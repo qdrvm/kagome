@@ -91,12 +91,12 @@ jobs:
           env:
             BUILD_FINAL_TARGET: ctest_coverage
           run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON
-        - if: ${{ github.repository == 'soramitsu/kagome' }}
+        - if: ${{ github.repository == 'soramitsu/kagome' && secrets.CODECOV_TOKEN != '' }}
           name: Submit Coverage
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           run: ./housekeeping/codecov.sh
-        - if: ${{ github.repository == 'soramitsu/kagome' }}
+        - if: ${{ github.repository == 'soramitsu/kagome' && secrets.SONAR_TOKEN != '' && secrets.GITHUB_USERNAME != '' && secrets.GITHUB_TOKEN != '' }}
           name: Sonar
           env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
