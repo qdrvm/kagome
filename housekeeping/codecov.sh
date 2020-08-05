@@ -1,5 +1,10 @@
 #!/bin/bash -xe
 
+if [ -z "$CODECOV_TOKEN" ]; then
+    echo "CODECOV_TOKEN not provided. Skip code coverage..."
+    exit 0
+fi
+
 buildDir=${BUILD_DIR:-${1:?BUILD_DIR variable or script arg is not defined}}
 token=${CODECOV_TOKEN:-${2:?CODECOV_TOKEN variable or script arg is not defined}}
 
