@@ -9,8 +9,10 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "api/service/state/requests/subscribe_storage.hpp"
 #include "primitives/block_header.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -21,6 +23,7 @@ using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
+using kagome::api::StateApiMock;
 using kagome::runtime::CoreMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::TrieStorageMock;
@@ -39,7 +42,7 @@ TEST(StateApiTest, GetStorage) {
   auto runtime_core = std::make_shared<CoreMock>();
 
   kagome::api::StateApiImpl api{
-      block_header_repo, storage, block_tree, runtime_core};
+      block_header_repo, storage, block_tree, runtime_core, nullptr};
 
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
@@ -77,7 +80,7 @@ TEST(StateApiTest, GetRuntimeVersion) {
   auto runtime_core = std::make_shared<CoreMock>();
 
   kagome::api::StateApiImpl api{
-      block_header_repo, storage, block_tree, runtime_core};
+      block_header_repo, storage, block_tree, runtime_core, nullptr};
 
   kagome::primitives::Version test_version{.spec_name = "dummy_sn",
                                            .impl_name = "dummy_in",
@@ -102,4 +105,74 @@ TEST(StateApiTest, GetRuntimeVersion) {
     EXPECT_OUTCOME_TRUE(result, api.getRuntimeVersion("T"_hash256));
     ASSERT_EQ(result, test_version);
   }
+}
+
+/**
+ * @given state api
+ * @when call a subscribe storage with a given set on keys
+ * @then the correct values are returned
+ */
+TEST(StateApiTest, SubscribeStorage) {
+  auto state_api = std::make_shared<StateApiMock>();
+  auto subscribe_storage = std::make_shared<kagome::api::state::request::SubscribeStorage>(state_api);
+
+  std::vector<Buffer> keys = {
+      { 0x10, 0x11, 0x12, 0x13 },
+      { 0x50, 0x51, 0x52, 0x53 },
+  };
+
+  EXPECT_CALL(*state_api, subscribeStorage(keys))
+      .WillOnce(testing::Return(55));
+
+  jsonrpc::Request::Parameters params;
+  params.push_back(jsonrpc::Value::Array{ std::string("0x") + keys[0].toHex(), std::string("0x") + keys[1].toHex()});
+
+  EXPECT_OUTCOME_SUCCESS(r, subscribe_storage->init(params));
+  EXPECT_OUTCOME_TRUE(result, subscribe_storage->execute());
+  ASSERT_EQ(result, 55);
+}
+
+/**
+ * @given state api
+ * @when call a subscribe storage with a given BAD key
+ * @then we skip processing and return error
+ */
+TEST(StateApiTest, SubscribeStorageInvalidData) {
+  auto state_api = std::make_shared<StateApiMock>();
+  auto subscribe_storage = std::make_shared<kagome::api::state::request::SubscribeStorage>(state_api);
+
+  jsonrpc::Request::Parameters params;
+  params.push_back(jsonrpc::Value::Array{ std::string("test_data") });
+
+  EXPECT_OUTCOME_ERROR(result, subscribe_storage->init(params), kagome::common::UnhexError::MISSING_0X_PREFIX);
+}
+
+/**
+ * @given state api
+ * @when call a subscribe storage with a given BAD key
+ * @then we skip processing and return error
+ */
+TEST(StateApiTest, SubscribeStorageWithoutPrefix) {
+  auto state_api = std::make_shared<StateApiMock>();
+  auto subscribe_storage = std::make_shared<kagome::api::state::request::SubscribeStorage>(state_api);
+
+  jsonrpc::Request::Parameters params;
+  params.push_back(jsonrpc::Value::Array{ std::string("aa1122334455") });
+
+  EXPECT_OUTCOME_ERROR(result, subscribe_storage->init(params), kagome::common::UnhexError::MISSING_0X_PREFIX);
+}
+
+/**
+ * @given state api
+ * @when call a subscribe storage with a given BAD key
+ * @then we skip processing and return error
+ */
+TEST(StateApiTest, SubscribeStorageBadBoy) {
+  auto state_api = std::make_shared<StateApiMock>();
+  auto subscribe_storage = std::make_shared<kagome::api::state::request::SubscribeStorage>(state_api);
+
+  jsonrpc::Request::Parameters params;
+  params.push_back(jsonrpc::Value::Array{ std::string("0xtest_data") });
+
+  EXPECT_OUTCOME_ERROR(result, subscribe_storage->init(params), kagome::common::UnhexError::NON_HEX_INPUT);
 }

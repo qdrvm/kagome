@@ -26,9 +26,9 @@ namespace kagome::subscription {
     using SubscriberPtr = std::shared_ptr<SubscriberType>;
     using SubscriberWPtr = std::weak_ptr<SubscriberType>;
 
-    /// List preferable here because of remains the whole containers iterators
-    /// alive after remove from the middle
-    /// TODO(iceseer): remove processor cache penalty, while iterating, using
+    /// List is preferable here because this container iterators remain
+    /// alive after removal from the middle of the container
+    /// TODO(iceseer): PRE-476 remove processor cache penalty, while iterating, using
     /// custom allocator
     using SubscribersContainer = std::list<SubscriberWPtr>;
     using IteratorType = typename SubscribersContainer::iterator;
@@ -38,7 +38,7 @@ namespace kagome::subscription {
     friend class Subscriber;
     using KeyValueContainer = std::unordered_map<KeyType, SubscribersContainer>;
 
-    std::shared_mutex subscribers_map_cs_;
+    mutable std::shared_mutex subscribers_map_cs_;
     KeyValueContainer subscribers_map_;
 
    public:
@@ -48,17 +48,17 @@ namespace kagome::subscription {
     SubscriptionEngine(SubscriptionEngine &&) = default;
     SubscriptionEngine &operator=(SubscriptionEngine &&) = default;
 
-    SubscriptionEngine(SubscriptionEngine const &) = delete;
-    SubscriptionEngine &operator=(SubscriptionEngine const &) = delete;
+    SubscriptionEngine(const SubscriptionEngine &) = delete;
+    SubscriptionEngine &operator=(const SubscriptionEngine &) = delete;
 
    private:
-    IteratorType subscribe(KeyType const &key, SubscriberWPtr ptr) {
+    IteratorType subscribe(const KeyType &key, SubscriberWPtr ptr) {
       std::unique_lock lock(subscribers_map_cs_);
       auto &subscribers_list = subscribers_map_[key];
       return subscribers_list.emplace(subscribers_list.end(), std::move(ptr));
     }
 
-    void unsubscribe(KeyType const &key, IteratorType const &it_remove) {
+    void unsubscribe(const KeyType &key, const IteratorType &it_remove) {
       std::unique_lock lock(subscribers_map_cs_);
       auto it = subscribers_map_.find(key);
       if (subscribers_map_.end() != it) {
@@ -68,7 +68,15 @@ namespace kagome::subscription {
     }
 
    public:
-    void notify(KeyType const &key, Arguments const &... args) {
+    size_t size(const KeyType &key) const {
+      std::shared_lock lock(subscribers_map_cs_);
+      if (auto it = subscribers_map_.find(key); it != subscribers_map_.end())
+        return it->second.size();
+
+      return 0ull;
+    }
+
+    void notify(const KeyType &key, const Arguments &... args) {
       std::shared_lock lock(subscribers_map_cs_);
       auto it = subscribers_map_.find(key);
       if (subscribers_map_.end() == it) return;
@@ -77,7 +85,7 @@ namespace kagome::subscription {
       for (auto it_sub = subscribers_container.begin();
            it_sub != subscribers_container.end();) {
         if (auto sub = it_sub->lock()) {
-          sub->on_notify(args...);
+          sub->on_notify(key, args...);
           ++it_sub;
         } else {
           it_sub = subscribers_container.erase(it_sub);

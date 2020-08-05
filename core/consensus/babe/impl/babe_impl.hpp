@@ -16,6 +16,7 @@
 #include "blockchain/block_tree.hpp"
 #include "clock/timer.hpp"
 #include "common/logger.hpp"
+#include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_gossiper.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/epoch_storage.hpp"
@@ -71,7 +72,9 @@ namespace kagome::consensus {
              crypto::SR25519Keypair keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
-             std::unique_ptr<clock::Timer> timer);
+             std::unique_ptr<clock::Timer> timer,
+             std::shared_ptr<authority::AuthorityUpdateObserver>
+                 authority_update_observer);
 
     ~BabeImpl() override = default;
 
@@ -133,6 +136,8 @@ namespace kagome::consensus {
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::unique_ptr<clock::Timer> timer_;
+    std::shared_ptr<authority::AuthorityUpdateObserver>
+        authority_update_observer_;
 
     BabeState current_state_{BabeState::WAIT_BLOCK};
 

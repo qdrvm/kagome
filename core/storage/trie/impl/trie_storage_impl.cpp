@@ -10,6 +10,7 @@
 #include "outcome/outcome.hpp"
 #include "storage/trie/impl/ephemeral_trie_batch_impl.hpp"
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
+#include "subscription/subscriber.hpp"
 
 namespace kagome::storage::trie {
 

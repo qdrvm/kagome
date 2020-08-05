@@ -134,6 +134,7 @@ namespace kagome::extensions {
                       runtime::WasmSize len,
                       runtime::WasmPointer out));
     MOCK_CONST_METHOD0(ext_chain_id, uint64_t());
+    MOCK_CONST_METHOD1(ext_misc_runtime_version_version_1, runtime::WasmResult(runtime::WasmSpan));
 
     // ------------------------ Storage extensions v1 ------------------------
 

@@ -26,10 +26,30 @@ namespace kagome::application {
 
     virtual ~AppStateManager() = default;
 
+    /**
+     * @brief Execute \param cb at stage of prepare application
+     * @param cb
+     */
     virtual void atPrepare(Callback &&cb) = 0;
+
+    /**
+     * @brief Execute \param cb immediately before start application
+     * @param cb
+     */
     virtual void atLaunch(Callback &&cb) = 0;
+
+    /**
+     * @brief Execute \param cb at stage of shutting down application
+     * @param cb
+     */
     virtual void atShutdown(Callback &&cb) = 0;
 
+    /**
+     * @brief Registration of all stages' handlers at the same time
+     * @param prepare_cb - handler for stage of prepare
+     * @param launch_cb - handler for doing immediately before start application
+     * @param shutdown_cb - handler for stage of shutting down application
+     */
     void registerHandlers(Callback &&prepare_cb,
                           Callback &&launch_cb,
                           Callback &&shutdown_cb) {
@@ -38,6 +58,11 @@ namespace kagome::application {
       atShutdown(std::move(shutdown_cb));
     }
 
+    /**
+     * @brief Registration special methods of object as handlers for stages of
+     * application
+     * @param entity is registered entity
+     */
     template <typename Controlled>
     void takeControl(Controlled &entity) {
       registerHandlers([&entity] { entity.prepare(); },
@@ -45,9 +70,13 @@ namespace kagome::application {
                        [&entity] { entity.stop(); });
     }
 
+    /// Start application life cycle
     virtual void run() = 0;
+
+    /// Initiate shutting down (at any time)
     virtual void shutdown() = 0;
 
+    /// Get current stage
     virtual State state() const = 0;
 
    protected:

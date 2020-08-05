@@ -66,9 +66,9 @@ TEST_F(PolkadotTrieCursorTest, NextOnRootOnlyTrie) {
   auto trie = makeTrie({{"a"_buf, Buffer{1}}});
   PolkadotTrieCursor cursor{*trie};
   ASSERT_FALSE(cursor.isValid());
-  cursor.next();
+  EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
   ASSERT_TRUE(cursor.isValid());
-  cursor.next();
+  EXPECT_OUTCOME_SUCCESS(r2, cursor.next());
   ASSERT_FALSE(cursor.isValid());
 }
 
@@ -76,7 +76,7 @@ TEST_F(PolkadotTrieCursorTest, NextOnEmptyTrie) {
   auto trie = makeTrie({});
   PolkadotTrieCursor cursor{*trie};
   ASSERT_FALSE(cursor.isValid());
-  cursor.next();
+  EXPECT_OUTCOME_SOME_ERROR(r1, cursor.next());
   ASSERT_FALSE(cursor.isValid());
 }
 
@@ -92,13 +92,13 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
   auto trie = makeTrie(vals);
   PolkadotTrieCursor cursor{*trie};
   for (auto &p : vals) {
-    cursor.next();
+    EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
     EXPECT_OUTCOME_TRUE(v, cursor.value());
     EXPECT_OUTCOME_TRUE(k, cursor.key());
     ASSERT_EQ(v, p.second);
     ASSERT_EQ(k, p.first);
   }
-  cursor.next();
+  EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
   ASSERT_FALSE(cursor.isValid());
 }
 

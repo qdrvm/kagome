@@ -10,6 +10,10 @@
 
 #include "runtime/trie_storage_provider.hpp"
 
+namespace kagome::runtime {
+  class CoreFactory;
+}
+
 namespace kagome::extensions {
 
   /**

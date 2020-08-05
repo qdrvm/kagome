@@ -3,14 +3,28 @@
 
 #include "storage/changes_trie/changes_tracker.hpp"
 
+#include "subscription/subscriber.hpp"
+
 namespace kagome::storage::trie {
   class Codec;
   class PolkadotTrieFactory;
 }  // namespace kagome::storage::trie
 
+namespace kagome::api {
+  class Session;
+}
+
 namespace kagome::storage::changes_trie {
 
   class StorageChangesTrackerImpl : public ChangesTracker {
+    using SessionPtr = std::shared_ptr<api::Session>;
+    using SubscriptionEngineType =
+        subscription::SubscriptionEngine<common::Buffer,
+                                         SessionPtr,
+                                         common::Buffer,
+                                         primitives::BlockHash>;
+    using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
+
    public:
     enum class Error {
       EXTRINSIC_IDX_GETTER_UNINITIALIZED = 1,
@@ -19,7 +33,8 @@ namespace kagome::storage::changes_trie {
 
     StorageChangesTrackerImpl(
         std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
-        std::shared_ptr<storage::trie::Codec> codec);
+        std::shared_ptr<storage::trie::Codec> codec,
+        SubscriptionEnginePtr subscription_engine);
 
     /**
      * Functor that returns the current extrinsic index, which is supposed to
@@ -34,6 +49,7 @@ namespace kagome::storage::changes_trie {
         primitives::BlockNumber new_parent_number) override;
 
     outcome::result<void> onPut(const common::Buffer &key,
+                                const common::Buffer &value,
                                 bool new_entry) override;
     outcome::result<void> onRemove(const common::Buffer &key) override;
 
@@ -47,11 +63,12 @@ namespace kagome::storage::changes_trie {
 
     std::map<common::Buffer, std::vector<primitives::ExtrinsicIndex>>
         extrinsics_changes_;
-    std::set<common::Buffer>
-        new_entries_; // entries that do not yet exist in the underlying storage
+    std::set<common::Buffer> new_entries_;  // entries that do not yet exist in
+                                            // the underlying storage
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
     GetExtrinsicIndexDelegate get_extrinsic_index_;
+    SubscriptionEnginePtr subscription_engine_;
   };
 
 }  // namespace kagome::storage::changes_trie
