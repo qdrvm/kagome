@@ -5,6 +5,7 @@
 
 #include "authorship/impl/block_builder_impl.hpp"
 
+#include "common/visitor.hpp"
 #include "authorship/impl/block_builder_error.hpp"
 
 namespace kagome::authorship {

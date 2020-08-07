@@ -13,15 +13,17 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<runtime::Core> r_core)
+      std::shared_ptr<runtime::Core> runtime_core,
+      std::shared_ptr<api::ApiService> api_service)
       : block_repo_{std::move(block_repo)},
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
-        r_core_{std::move(r_core)} {
+        runtime_core_{std::move(runtime_core)},
+        api_service_(std::move(api_service)) {
     BOOST_ASSERT(nullptr != block_repo_);
     BOOST_ASSERT(nullptr != storage_);
     BOOST_ASSERT(nullptr != block_tree_);
-    BOOST_ASSERT(nullptr != r_core_);
+    BOOST_ASSERT(nullptr != runtime_core_);
   }
 
   outcome::result<common::Buffer> StateApiImpl::getStorage(
@@ -39,6 +41,17 @@ namespace kagome::api {
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(
       const boost::optional<primitives::BlockHash> &at) const {
-    return r_core_->version(at);
+    return runtime_core_->version(at);
+  }
+
+  outcome::result<uint32_t> StateApiImpl::subscribeStorage(
+      const std::vector<common::Buffer> &keys) {
+    BOOST_ASSERT(nullptr != api_service_);
+    return api_service_->subscribeSessionToKeys(keys);
+  }
+
+  outcome::result<void> StateApiImpl::unsubscribeStorage(
+      const std::vector<uint32_t> &subscription_id) {
+    return api_service_->unsubscribeSessionFromIds(subscription_id);
   }
 }  // namespace kagome::api

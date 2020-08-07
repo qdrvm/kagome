@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SUBSCRIBER_HPP
-#define KAGOME_SUBSCRIBER_HPP
+#ifndef KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
+#define KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
 
 #include <functional>
 #include <memory>
@@ -14,6 +14,12 @@
 
 namespace kagome::subscription {
 
+  /**
+   * Is a wrapper class, which provides subscription to events from SubscriptionEngine
+   * @tparam Key is a type of a subscription Key.
+   * @tparam Type is a type of an object to receive notifications in.
+   * @tparam Arguments is a set of types of objects needed to construct Type.
+   */
   template <typename Key, typename Type, typename... Arguments>
   class Subscriber final : public std::enable_shared_from_this<
                                Subscriber<Key, Type, Arguments...>> {
@@ -21,47 +27,60 @@ namespace kagome::subscription {
     using KeyType = Key;
     using ValueType = Type;
     using HashType = size_t;
+    using SubscriptionSetId = uint64_t;
 
     using SubscriptionEngineType =
         SubscriptionEngine<KeyType, ValueType, Arguments...>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
+    using CallbackFnType = std::function<void(ValueType&, const KeyType &, const Arguments &...)>;
+
    private:
     using SubscriptionsContainer =
         std::unordered_map<KeyType,
                            typename SubscriptionEngineType::IteratorType>;
+    using SubscriptionsSets =
+      std::unordered_map<SubscriptionSetId, SubscriptionsContainer>;
 
+
+    SubscriptionSetId next_id_;
     SubscriptionEnginePtr engine_;
     ValueType object_;
 
     std::mutex subscriptions_cs_;
-    SubscriptionsContainer subscriptions_;
+    SubscriptionsSets subscriptions_sets_;
 
-    std::function<void(Arguments const &...)> on_notify_callback_;
+    CallbackFnType on_notify_callback_;
 
    public:
     template <typename... Args>
     explicit Subscriber(SubscriptionEnginePtr &ptr, Args &&... args)
-        : engine_(ptr), object_(std::forward<Args>(args)...) {}
+        : next_id_(0ull), engine_(ptr), object_(std::forward<Args>(args)...) {}
 
     ~Subscriber() {
       /// Unsubscribe all
-      for (auto &[key, it] : subscriptions_) engine_->unsubscribe(key, it);
+      for (auto &[_, subscriptions] : subscriptions_sets_)
+        for (auto &[key, it] : subscriptions)
+          engine_->unsubscribe(key, it);
     }
 
-    Subscriber(Subscriber const &) = delete;
-    Subscriber &operator=(Subscriber const &) = delete;
+    Subscriber(const Subscriber &) = delete;
+    Subscriber &operator=(const Subscriber &) = delete;
 
     Subscriber(Subscriber &&) = default;
     Subscriber &operator=(Subscriber &&) = default;
 
-    void set_callback(std::function<void(Arguments const &...)> &&f) {
+    void setCallback(CallbackFnType &&f) {
       on_notify_callback_ = std::move(f);
     }
 
-    void subscribe(KeyType const &key) {
+    SubscriptionSetId generateSubscriptionSetId() {
+        return ++next_id_;
+    }
+
+    void subscribe(SubscriptionSetId id, const KeyType &key) {
       std::lock_guard lock(subscriptions_cs_);
-      auto &&[it, inserted] = subscriptions_.emplace(key, typename SubscriptionEngineType::IteratorType{});
+      auto &&[it, inserted] = subscriptions_sets_[id].emplace(key, typename SubscriptionEngineType::IteratorType{});
 
       /// Here we check first local subscriptions because of strong connection
       /// with SubscriptionEngine.
@@ -69,20 +88,43 @@ namespace kagome::subscription {
         it->second = engine_->subscribe(key, this->weak_from_this());
     }
 
-    void unsubscribe(KeyType const &key) {
+    void unsubscribe(SubscriptionSetId id, const KeyType &key) {
       std::lock_guard<std::mutex> lock(subscriptions_cs_);
-      auto it = subscriptions_.find(key);
-      if (subscriptions_.end() != it) {
-        engine_->unsubscribe(key, it->second);
-        subscriptions_.erase(it);
+      if (auto set_it = subscriptions_sets_.find(id); set_it != subscriptions_sets_.end()) {
+        auto &subscriptions = set_it->second;
+        auto it = subscriptions.find(key);
+        if (subscriptions.end() != it) {
+          engine_->unsubscribe(key, it->second);
+          subscriptions.erase(it);
+        }
       }
     }
 
-    void on_notify(Arguments const &... args) {
-      if (nullptr != on_notify_callback_) on_notify_callback_(args...);
+    void unsubscribe(SubscriptionSetId id) {
+      std::lock_guard<std::mutex> lock(subscriptions_cs_);
+      if (auto set_it = subscriptions_sets_.find(id); set_it != subscriptions_sets_.end()) {
+        auto &subscriptions = set_it->second;
+        for (auto &[key, it] : subscriptions)
+          engine_->unsubscribe(key, it);
+
+        subscriptions_sets_.erase(set_it);
+      }
+    }
+
+    void unsubscribe() {
+      std::lock_guard<std::mutex> lock(subscriptions_cs_);
+      for (auto &[_, subscriptions] : subscriptions_sets_)
+        for (auto &[key, it] : subscriptions)
+          engine_->unsubscribe(key, it);
+
+      subscriptions_sets_.clear();
+    }
+
+    void on_notify(const KeyType &key, const Arguments &... args) {
+      if (nullptr != on_notify_callback_) on_notify_callback_(object_, key, args...);
     }
   };
 
 }  // namespace kagome::subscription
 
-#endif  // KAGOME_SUBSCRIBER_HPP
+#endif  // KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP

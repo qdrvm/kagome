@@ -17,8 +17,8 @@ namespace kagome::api::state::request {
 
   class GetRuntimeVersion final {
    public:
-    GetRuntimeVersion(GetRuntimeVersion const &) = delete;
-    GetRuntimeVersion &operator=(GetRuntimeVersion const &) = delete;
+    GetRuntimeVersion(const GetRuntimeVersion &) = delete;
+    GetRuntimeVersion &operator=(const GetRuntimeVersion &) = delete;
 
     GetRuntimeVersion(GetRuntimeVersion &&) = default;
     GetRuntimeVersion &operator=(GetRuntimeVersion &&) = default;

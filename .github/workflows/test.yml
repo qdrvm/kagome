@@ -91,19 +91,19 @@ jobs:
           env:
             BUILD_FINAL_TARGET: ctest_coverage
           run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON
-        - if: github.repository == 'soramitsu/kagome'
+        - if: ${{ github.repository == 'soramitsu/kagome' }}
           name: Submit Coverage
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          run: ./housekeeping/codecov.sh
-        - if: github.repository == 'soramitsu/kagome'
+          run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
+        - if: ${{ github.repository == 'soramitsu/kagome' }}
           name: Sonar
           env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
             GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             BRANCH_NAME: ${{ github.ref }}
-          run: ./housekeeping/sonar.sh
+          run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
   Alpine:
       strategy:

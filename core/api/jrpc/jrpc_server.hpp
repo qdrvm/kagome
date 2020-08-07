@@ -7,6 +7,8 @@
 #define KAGOME_API_JRPC_SERVER_HPP
 
 #include <jsonrpc-lean/dispatcher.h>
+#include <jsonrpc-lean/response.h>
+#include <jsonrpc-lean/value.h>
 
 #include <functional>
 
@@ -33,6 +35,14 @@ namespace kagome::api {
      * Response callback type
      */
     using ResponseHandler = std::function<void(const std::string &)>;
+
+    /**
+     * @brief creates valid jsonrpc response
+     * @param from is a data source
+     * @param cb callback
+     */
+    virtual void processJsonData(const jsonrpc::Value &from,
+                                 const ResponseHandler &cb) = 0;
 
     /**
      * @brief handles decoded network message

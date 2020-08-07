@@ -29,7 +29,8 @@ namespace kagome::extensions {
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
+        std::shared_ptr<crypto::Bip39Provider> bip39_provider,
+        MiscExtension::CoreFactoryMethod core_factory_method);
 
     ~ExtensionImpl() override = default;
 
@@ -229,6 +230,9 @@ namespace kagome::extensions {
 
     uint64_t ext_chain_id() const override;
 
+    runtime::WasmResult ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const override;
+
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
 
@@ -236,6 +240,8 @@ namespace kagome::extensions {
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
 
    private:
+    static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
+
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 

@@ -48,11 +48,9 @@ find_package(RapidJSON CONFIG REQUIRED)
 hunter_add_package(Microsoft.GSL)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 
-# not in hunter, added in cmake/Hunter/config.cmake
 hunter_add_package(sr25519)
 find_package(sr25519 CONFIG REQUIRED)
 
-# not in hunter, added in cmake/Hunter/config.cmake
 hunter_add_package(jsonrpc-lean)
 find_package(jsonrpc-lean REQUIRED)
 

@@ -41,6 +41,13 @@ kagome_install(memory_extension)
 add_library(misc_extension
     misc_extension.cpp
     )
+target_link_libraries(misc_extension
+    scale
+    logger
+    const_wasm_provider
+    outcome
+    blob
+    )
 kagome_install(misc_extension)
 
 add_library(storage_extension
