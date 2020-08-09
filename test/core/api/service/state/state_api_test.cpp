@@ -42,7 +42,7 @@ TEST(StateApiTest, GetStorage) {
   auto runtime_core = std::make_shared<CoreMock>();
 
   kagome::api::StateApiImpl api{
-      block_header_repo, storage, block_tree, runtime_core, nullptr};
+      block_header_repo, storage, block_tree, runtime_core};
 
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
@@ -80,7 +80,7 @@ TEST(StateApiTest, GetRuntimeVersion) {
   auto runtime_core = std::make_shared<CoreMock>();
 
   kagome::api::StateApiImpl api{
-      block_header_repo, storage, block_tree, runtime_core, nullptr};
+      block_header_repo, storage, block_tree, runtime_core};
 
   kagome::primitives::Version test_version{.spec_name = "dummy_sn",
                                            .impl_name = "dummy_in",
