@@ -23,7 +23,7 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN pip3 install --no-cache-dir scikit-build cmake requests gitpython gcovr pyyaml
 
 # install rustc
-ENV RUST_VERSION=nightly-2019-07-07
+ENV RUST_VERSION=nightly-2020-05-30
 ENV RUSTUP_HOME=/root/.rustup
 ENV CARGO_HOME=/root/.cargo
 ENV PATH="${CARGO_HOME}/bin:${PATH}"
