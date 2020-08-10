@@ -123,11 +123,6 @@ jobs:
           with:
             path: ${{ env.CACHE_PATHS }}
             key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-        # https://github.com/soramitsu/kagome/issues/453
-        # ToDo should be fixed in library repo, this fix is work only for github action, you should change home dir
-        # The imported target "sr25519::sr25519" references the file
-        #     "/github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a"
-        #  but this file does not exist.  Possible reasons include:
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
@@ -143,11 +138,6 @@ jobs:
           with:
             path: ${{ env.CACHE_PATHS }}
             key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-        # https://github.com/soramitsu/kagome/issues/453
-        # ToDo should be fixed in library repo, this fix is work only for github action, you should change home dir
-        # The imported target "sr25519::sr25519" references the file
-        #     "/github/home/.hunter/_Base/7819e7d/473f5cb/ee8f669/Install/lib/libsr25519crust.a"
-        #  but this file does not exist.  Possible reasons include:
         - name: build
           run: ./housekeeping/docker/release/makeRelease.sh
         - uses: azure/docker-login@v1
