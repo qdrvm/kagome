@@ -23,3 +23,4 @@ add_library(extension_factory
 target_link_libraries(extension_factory
     extensions
     )
+kagome_install(extension_factory)
