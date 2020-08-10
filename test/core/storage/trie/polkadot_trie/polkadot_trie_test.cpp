@@ -380,6 +380,6 @@ TEST_F(TrieTest, GetPathToInvalid) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
   }
 
-  EXPECT_OUTCOME_FALSE(
+  EXPECT_OUTCOME_SOME_ERROR(
       path, trie->getPath(trie->getRoot(), KeyNibbles{"0a0b0c0d0e0f"_hex2buf}));
 }

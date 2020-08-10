@@ -51,6 +51,10 @@ namespace kagome::blockchain {
                  BlockHashVecRes(const primitives::BlockHash &,
                                  const primitives::BlockHash &));
 
+    MOCK_METHOD2(hasDirectChain,
+                 bool(const primitives::BlockHash &,
+                      const primitives::BlockHash &));
+
     MOCK_CONST_METHOD2(getBestContaining,
                        outcome::result<primitives::BlockInfo>(
                            const primitives::BlockHash &,

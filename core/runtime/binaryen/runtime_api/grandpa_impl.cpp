@@ -16,8 +16,9 @@ namespace kagome::runtime::binaryen {
   using primitives::SessionKey;
 
   GrandpaImpl::GrandpaImpl(
+      const std::shared_ptr<WasmProvider> &wasm_provider,
       const std::shared_ptr<RuntimeManager> &runtime_manager)
-      : RuntimeApi(runtime_manager) {}
+      : RuntimeApi(wasm_provider, runtime_manager) {}
 
   outcome::result<boost::optional<ScheduledChange>> GrandpaImpl::pending_change(
       const Digest &digest) {
@@ -33,9 +34,9 @@ namespace kagome::runtime::binaryen {
         "GrandpaApi_grandpa_forced_change", CallPersistency::EPHEMERAL, digest);
   }
 
-  outcome::result<std::vector<Authority>> GrandpaImpl::authorities(
+  outcome::result<primitives::AuthorityList> GrandpaImpl::authorities(
       const primitives::BlockId &block_id) {
-    return execute<std::vector<Authority>>(
+    return execute<primitives::AuthorityList>(
         "GrandpaApi_grandpa_authorities", CallPersistency::EPHEMERAL, block_id);
   }
 }  // namespace kagome::runtime::binaryen

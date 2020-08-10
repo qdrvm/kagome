@@ -6,8 +6,10 @@
 #ifndef KAGOME_RUNTIME_CORE_HPP
 #define KAGOME_RUNTIME_CORE_HPP
 
-#include <outcome/outcome.hpp>
 #include <vector>
+
+#include <boost/optional.hpp>
+#include <outcome/outcome.hpp>
 
 #include "primitives/authority.hpp"
 #include "primitives/block.hpp"
@@ -17,6 +19,8 @@
 #include "primitives/version.hpp"
 
 namespace kagome::runtime {
+  class WasmProvider;
+
   /**
    * Core represents mandatory part of runtime api
    */

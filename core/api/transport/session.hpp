@@ -16,6 +16,11 @@
 #include "api/transport/rpc_io_context.hpp"
 
 namespace kagome::api {
+  enum struct SessionType {
+    kHttp = 1,
+    kWs,
+  };
+
   /**
    * @brief rpc session
    */
@@ -35,6 +40,10 @@ namespace kagome::api {
     using Timer = boost::asio::steady_timer;
     using Connection = boost::signals2::connection;
     using Duration = Timer::duration;
+    using SessionId = uint64_t;
+
+    /// Event handlers.
+    using OnCloseHandler = std::function<void(SessionId, SessionType)>;
 
     virtual ~Session() = default;
 
@@ -54,6 +63,14 @@ namespace kagome::api {
     }
 
     /**
+     * @brief connects `on close` callback
+     * @param handler `on close` event handler
+     */
+    void connectOnCloseHandler(OnCloseHandler &&handler) {
+      on_close_ = std::move(handler);
+    }
+
+    /**
      * @brief process request message
      * @param request message to process
      */
@@ -68,8 +85,30 @@ namespace kagome::api {
      */
     virtual void respond(std::string_view message) = 0;
 
+    /**
+     * @brief makes `on close` notification to listener
+     * @param id session id
+     * @param type type of the closed session
+     */
+    void notifyOnClose(SessionId id, SessionType type) {
+      if (nullptr != on_close_) on_close_(id, type);
+    }
+
+    /**
+     * @brief method to get id of the session
+     * @return id of the session
+     */
+    virtual SessionId id() const = 0;
+
+    /**
+     * @brief method to get type of the session
+     * @return type of the session
+     */
+    virtual SessionType type() const = 0;
+
    private:
     std::function<OnRequestSignature> on_request_;  ///< `on request` callback
+    OnCloseHandler on_close_;
   };
 
 }  // namespace kagome::api

@@ -16,6 +16,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, EncodeError, e) {
       return "wrong compact encoding category";
     case EncodeError::WRONG_ALTERNATIVE:
       return "wrong cast to alternative";
+    case EncodeError::DEREF_NULLPOINTER:
+      return "dereference of nullptr";
   }
   return "unknown EncodeError";
 }

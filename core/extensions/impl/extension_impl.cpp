@@ -25,7 +25,8 @@ namespace kagome::extensions {
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<crypto::Bip39Provider> bip39_provider)
+      std::shared_ptr<crypto::Bip39Provider> bip39_provider,
+      MiscExtension::CoreFactoryMethod core_factory_method)
       : memory_(memory),
         storage_provider_(std::move(storage_provider)),
         crypto_ext_(memory,
@@ -37,6 +38,7 @@ namespace kagome::extensions {
                     std::move(bip39_provider)),
         io_ext_(memory),
         memory_ext_(memory),
+        misc_ext_(DEFAULT_CHAIN_ID, memory, std::move(core_factory_method)),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
@@ -349,6 +351,11 @@ namespace kagome::extensions {
   /// misc extensions
   uint64_t ExtensionImpl::ext_chain_id() const {
     return misc_ext_.ext_chain_id();
+  }
+
+  runtime::WasmResult ExtensionImpl::ext_misc_runtime_version_version_1(
+      runtime::WasmSpan data) const {
+    return misc_ext_.ext_misc_runtime_version_version_1(data);
   }
 
   runtime::WasmSpan ExtensionImpl::ext_crypto_secp256k1_ecdsa_recover_v1(
