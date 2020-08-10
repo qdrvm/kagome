@@ -91,12 +91,12 @@ jobs:
           env:
             BUILD_FINAL_TARGET: ctest_coverage
           run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON
-        - if: ${{ github.event_name != "pull_request" || github.event.pull_request.head.repo.full_name == github.repository }}
+        - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           name: Submit Coverage
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
-        - if: ${{ github.event_name != "pull_request" || github.event.pull_request.head.repo.full_name == github.repository }}
+        - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           name: Sonar
           env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
