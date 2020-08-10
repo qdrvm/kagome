@@ -51,7 +51,8 @@ namespace kagome::api {
     if (auto api_service = api_service_.lock())
       return api_service->subscribeSessionToKeys(keys);
 
-    return outcome::failure(boost::system::error_code{});
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
   }
 
   outcome::result<void> StateApiImpl::unsubscribeStorage(
@@ -59,6 +60,7 @@ namespace kagome::api {
     if (auto api_service = api_service_.lock())
       return api_service->unsubscribeSessionFromIds(subscription_id);
 
-    return outcome::failure(boost::system::error_code{});
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
   }
 }  // namespace kagome::api
