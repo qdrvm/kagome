@@ -22,7 +22,7 @@ env:
 
 jobs:
   MacOS:
-    runs-on: macos-latest
+    runs-on: macoнеs-latest
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
