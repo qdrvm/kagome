@@ -29,6 +29,10 @@ namespace {
 }  // namespace
 
 namespace kagome::common {
+  void setLogLevel(LogLevel lvl) {
+    spdlog::set_level(lvl);
+  }
+
   Logger createLogger(const std::string &tag) {
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
