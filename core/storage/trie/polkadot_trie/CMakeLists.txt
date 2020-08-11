@@ -43,3 +43,4 @@ add_library(polkadot_trie_factory
 target_link_libraries(polkadot_trie_factory
     polkadot_trie
     )
+kagome_install(polkadot_trie_factory)

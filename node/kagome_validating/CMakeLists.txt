@@ -12,3 +12,4 @@ target_link_libraries(kagome_validating
     validating_node_application
     app_config_impl
     )
+kagome_install(kagome_validating)

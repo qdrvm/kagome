@@ -7,6 +7,7 @@ add_library(trie_serializer
 target_link_libraries(trie_serializer
     polkadot_node
     )
+kagome_install(trie_serializer)
 
 add_library(polkadot_codec
     polkadot_codec.cpp

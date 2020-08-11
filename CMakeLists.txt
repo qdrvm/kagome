@@ -38,6 +38,8 @@ include(cmake/functions.cmake)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(TESTING      "Build and run test suite"                    ON )
+
 option(CLANG_FORMAT "Enable clang-format target"                  ON )
 option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE     "Enable generation of coverage info"          OFF)
@@ -131,7 +133,9 @@ install(FILES
 
 export(PACKAGE kagome)
 
-enable_testing()
-add_subdirectory(test)
+if(TESTING)
+  enable_testing()
+  add_subdirectory(test)
+endif()
 
 add_subdirectory(node)
