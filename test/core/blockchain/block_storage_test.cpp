@@ -96,7 +96,7 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
   EXPECT_OUTCOME_ERROR(res,
                        KeyValueBlockStorage::createWithGenesis(
                            root_hash, storage, hasher, block_handler),
-                       KeyValueBlockStorage::Error::GENESIS_ALREADY_EXISTS);
+                       KeyValueBlockStorage::Error::GENESIS_BLOCK_ALREADY_EXISTS);
 }
 
 /**

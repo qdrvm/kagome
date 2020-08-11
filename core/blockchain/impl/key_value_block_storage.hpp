@@ -11,21 +11,20 @@
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "storage/predefined_keys.hpp"
 
 namespace kagome::blockchain {
 
   class KeyValueBlockStorage : public BlockStorage {
    public:
-    inline static const common::Buffer LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY =
-        common::Buffer{}.put(":kagome:last_finalized_block_hash");
-
     using BlockHandler = std::function<void(const primitives::Block &)>;
 
     enum class Error {
       BLOCK_EXISTS = 1,
       BODY_DOES_NOT_EXIST,
       JUSTIFICATION_DOES_NOT_EXIST,
-      GENESIS_ALREADY_EXISTS,
+      GENESIS_BLOCK_ALREADY_EXISTS,
+      GENESIS_BLOCK_NOT_FOUND,
       FINALIZED_BLOCK_NOT_FOUND,
     };
 
@@ -58,6 +57,8 @@ namespace kagome::blockchain {
                       const std::shared_ptr<storage::BufferStorage> &storage,
                       std::shared_ptr<crypto::Hasher> hasher,
                       const BlockHandler &on_genesis_created);
+
+    outcome::result<primitives::BlockHash> getGenesisBlockHash() const override;
 
     outcome::result<primitives::BlockHash> getLastFinalizedBlockHash()
         const override;
