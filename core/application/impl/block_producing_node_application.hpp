@@ -30,7 +30,7 @@ namespace kagome::application {
     /**
      * @param kagome_config kagome configuration parameters
      */
-    BlockProducingNodeApplication(const AppConfigPtr &app_config);
+    explicit BlockProducingNodeApplication(const AppConfigPtr &app_config);
 
     void run() override;
 

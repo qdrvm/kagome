@@ -43,7 +43,7 @@ namespace kagome::storage::changes_trie {
      */
     struct KeyIndex {
       // block in which the change occurred
-      primitives::BlockNumber block {};
+      primitives::BlockNumber block;
       // changed key
       common::Buffer key;
     };

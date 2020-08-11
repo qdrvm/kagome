@@ -61,7 +61,7 @@ namespace kagome::api {
      * @brief method to get type of the session
      * @return type of the session
      */
-    virtual SessionType type() const override {
+    SessionType type() const override {
       return SessionType::kWs;
     }
 

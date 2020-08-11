@@ -164,6 +164,9 @@ namespace kagome::injector {
                                           std::move(server),
                                           processors,
                                           std::move(subscription_engine));
+
+    auto state_api = injector.template create<std::shared_ptr<api::StateApiImpl>>();
+    state_api->setApiService(initialized.value());
     return initialized.value();
   }
 

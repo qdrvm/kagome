@@ -67,8 +67,8 @@ namespace kagome::subscription {
     Subscriber(const Subscriber &) = delete;
     Subscriber &operator=(const Subscriber &) = delete;
 
-    Subscriber(Subscriber &&) = default;
-    Subscriber &operator=(Subscriber &&) = default;
+    Subscriber(Subscriber &&) = default; // NOLINT
+    Subscriber &operator=(Subscriber &&) = default; // NOLINT
 
     void setCallback(CallbackFnType &&f) {
       on_notify_callback_ = std::move(f);

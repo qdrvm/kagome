@@ -10,14 +10,14 @@ namespace kagome::authority {
 
   ScheduleNode::ScheduleNode(const std::shared_ptr<ScheduleNode> &ancestor,
                              primitives::BlockInfo block)
-      : block(std::move(block)), parent(ancestor) {
+      : block(block), parent(ancestor) {
     BOOST_ASSERT((bool)ancestor);
   }
 
   std::shared_ptr<ScheduleNode> ScheduleNode::createAsRoot(
       primitives::BlockInfo block) {
     auto fake_parent = std::make_shared<ScheduleNode>(ScheduleNode());
-    return std::make_shared<ScheduleNode>(fake_parent, std::move(block));
+    return std::make_shared<ScheduleNode>(fake_parent, block);
   }
 
   outcome::result<void> ScheduleNode::ensureReadyToSchedule() const {
