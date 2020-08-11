@@ -6,5 +6,6 @@ sudo python3 -m pip install --upgrade pip
 sudo python3 -m pip install scikit-build
 sudo python3 -m pip install cmake requests gitpython gcovr
 curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2020-05-30
-rustup default nightly-2020-05-30
 export PATH="$HOME/.cargo/bin:$PATH"
+source $HOME/.cargo/env
+rustup default nightly-2020-05-30
