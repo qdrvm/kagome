@@ -13,7 +13,7 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   INDOCKER_IMAGE: soramitsu/kagome-dev:11
   CACHE_VERSION: v04
-  CACHE_PATHS: |
+  CACHE_PATHS:
     ~/Library/Caches/pip
     ~/.cargo
     ~/.ccache
