@@ -70,6 +70,26 @@ target_link_libraries(grandpa
     vote_tracker
     )
 
+add_library(voting_round2
+    impl/voting_round_impl_2.cpp
+    )
+
+target_link_libraries(voting_round2
+    logger
+    voter_set
+    voting_round_error
+    )
+
+add_library(grandpa2
+    impl/grandpa_impl_2.cpp
+    )
+target_link_libraries(grandpa2
+    voting_round2
+    vote_crypto_provider
+    vote_graph
+    vote_tracker
+    )
+
 add_library(syncing_round_observer
     impl/syncing_round_observer.cpp
     )

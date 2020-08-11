@@ -41,9 +41,6 @@ namespace kagome::application {
     // starts block production
     app_state_manager_->atLaunch([this] { return babe_->start(is_genesis_); });
 
-    // starts finalization event loop
-    app_state_manager_->atLaunch([this] { return grandpa_->start(); });
-
     app_state_manager_->atLaunch([this] {
       // execute listeners
       io_context_->post([this] {

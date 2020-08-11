@@ -15,6 +15,11 @@ namespace kagome::storage {
   inline const common::Buffer kSetStateKey =
       common::Buffer().put("grandpa_completed_round");
 
+  inline const common::Buffer kGenesisBlockHashLookupKey =
+      common::Buffer().put(":kagome:genesis_block_hash");
+  inline const common::Buffer kLastFinalizedBlockHashLookupKey =
+      common::Buffer().put(":kagome:last_finalized_block_hash");
+
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP

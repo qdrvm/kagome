@@ -51,6 +51,7 @@ target_link_libraries(application_injector
     local_key_storage
     outcome
     grandpa
+    grandpa2
     environment
     proposer
     storage_wasm_provider
