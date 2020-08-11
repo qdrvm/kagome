@@ -52,10 +52,10 @@ jobs:
       container: soramitsu/kagome-dev:11 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
          - uses: actions/checkout@v2
-#        - uses: actions/cache@v2
-#          with:
-#            path: ${{ env.CACHE_PATHS }}
-#            key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+        - uses: actions/cache@v2
+          with:
+            path: ${{ env.CACHE_PATHS }}
+            key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
