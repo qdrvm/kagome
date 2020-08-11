@@ -11,3 +11,4 @@ target_link_libraries(kagome_block_producing
     Boost::program_options
     app_config_impl
     )
+kagome_install(kagome_block_producing)
