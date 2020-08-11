@@ -21,20 +21,20 @@ env:
     ~/.rustup
 
 jobs:
-  MacOS:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: ${{ env.CACHE_PATHS }}
-        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-    - name: install
-      run: ./housekeeping/macos/dependency.sh
-    - name: build
-      env:
-        DEVELOPER_DIR: /Applications/Xcode_11.app/Contents/Developer
-      run: ./housekeeping/makeBuild.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+#  MacOS:
+#    runs-on: macos-latest
+#    steps:
+#    - uses: actions/checkout@v2
+#    - uses: actions/cache@v2
+#      with:
+#        path: ${{ env.CACHE_PATHS }}
+#        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+#    - name: install
+#      run: ./housekeeping/macos/dependency.sh
+#    - name: build
+#      env:
+#        DEVELOPER_DIR: /Applications/Xcode_11.app/Contents/Developer
+#      run: ./housekeeping/makeBuild.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
       strategy:
@@ -43,10 +43,10 @@ jobs:
           options:
            - name: "Linux: gcc-9 ASAN No Toolchain"
              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON
-           - name: "Linux: clang-8 TSAN"
-             run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_tsan.cmake
-           - name: "Linux: clang-8 UBSAN"
-             run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
+#           - name: "Linux: clang-8 TSAN"
+#             run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_tsan.cmake
+#           - name: "Linux: clang-8 UBSAN"
+#             run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
       container: soramitsu/kagome-dev:11 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
@@ -59,23 +59,23 @@ jobs:
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
-  clang-tidy:
-      name: "Linux: clang-tidy"
-      runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:11
-      steps:
-        - uses: actions/checkout@v2
-        - uses: actions/cache@v2
-          with:
-            path: ${{ env.CACHE_PATHS }}
-            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-        - name: clang-tidy
-          env:
-            # build only generated files, so clang-tidy will work correctl
-            BUILD_FINAL_TARGET: generated
-          run: |
-            ./housekeeping/makeBuild.sh
-            ./housekeeping/clang-tidy.sh
+#  clang-tidy:
+#      name: "Linux: clang-tidy"
+#      runs-on: ubuntu-latest
+#      container: soramitsu/kagome-dev:11
+#      steps:
+#        - uses: actions/checkout@v2
+#        - uses: actions/cache@v2
+#          with:
+#            path: ${{ env.CACHE_PATHS }}
+#            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+#        - name: clang-tidy
+#          env:
+#            # build only generated files, so clang-tidy will work correctl
+#            BUILD_FINAL_TARGET: generated
+#          run: |
+#            ./housekeeping/makeBuild.sh
+#            ./housekeeping/clang-tidy.sh
 
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
