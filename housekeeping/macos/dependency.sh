@@ -9,3 +9,4 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2020-05
 export PATH="$HOME/.cargo/bin:$PATH"
 source $HOME/.cargo/env
 rustup default nightly-2020-05-30
+rustc --version
