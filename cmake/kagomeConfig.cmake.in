@@ -61,6 +61,7 @@ set(kagome_LIBRARIES
         kagome::secp256k1_provider
         kagome::bip39_provider
         kagome::extension_factory
+        kagome::binaryen_runtime_api
         kagome::binaryen_runtime_external_interface
         kagome::binaryen_runtime_manager
         kagome::binaryen_runtime_environment
