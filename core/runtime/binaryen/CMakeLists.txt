@@ -80,6 +80,7 @@ target_link_libraries(binaryen_core_api
     binaryen_wasm_executor
     binaryen_runtime_api
     )
+kagome_install(binaryen_core_api)
 
 add_library(binaryen_tagged_transaction_queue_api
     runtime_api/tagged_transaction_queue_impl.cpp
