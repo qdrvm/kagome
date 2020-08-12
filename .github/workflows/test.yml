@@ -44,9 +44,9 @@ jobs:
            - name: "Linux: gcc-9 ASAN No Toolchain"
              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON
            - name: "Linux: clang-8 TSAN"
-             run: echo 'a' #./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_tsan.cmake
+             run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_tsan.cmake
            - name: "Linux: clang-8 UBSAN"
-             run: echo 'b' #./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
+             run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
       container: soramitsu/kagome-dev:11 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
