@@ -14,7 +14,7 @@ namespace kagome::primitives {
     uint32_t subchain_lenght = 0;
 
     DelayInChain() = default;
-    DelayInChain(uint32_t delay) : subchain_lenght(delay) {}
+    explicit DelayInChain(uint32_t delay) : subchain_lenght(delay) {}
     virtual ~DelayInChain() = default;
   };
 

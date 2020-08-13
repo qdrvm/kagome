@@ -45,8 +45,8 @@ namespace kagome::subscription {
     SubscriptionEngine() = default;
     ~SubscriptionEngine() = default;
 
-    SubscriptionEngine(SubscriptionEngine &&) = default;
-    SubscriptionEngine &operator=(SubscriptionEngine &&) = default;
+    SubscriptionEngine(SubscriptionEngine &&) = default; // NOLINT
+    SubscriptionEngine &operator=(SubscriptionEngine &&) = default; // NOLINT
 
     SubscriptionEngine(const SubscriptionEngine &) = delete;
     SubscriptionEngine &operator=(const SubscriptionEngine &) = delete;

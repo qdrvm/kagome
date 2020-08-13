@@ -25,7 +25,6 @@ namespace kagome::storage::changes_trie {
       SubscriptionEnginePtr subscription_engine)
       : trie_factory_(std::move(trie_factory)),
         codec_(std::move(codec)),
-        parent_hash_{},
         parent_number_{std::numeric_limits<primitives::BlockNumber>::max()},
         subscription_engine_(std::move(subscription_engine)) {
     BOOST_ASSERT(trie_factory_ != nullptr);

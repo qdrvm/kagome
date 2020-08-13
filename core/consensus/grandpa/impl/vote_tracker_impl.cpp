@@ -16,7 +16,7 @@ namespace kagome::consensus::grandpa {
                                                 size_t weight) {
     auto vote_it = messages_.find(vote.id);
     if (vote_it == messages_.end()) {
-      messages_[vote.id] = {vote};
+      messages_[vote.id] = vote;
       total_weight_ += weight;
       return PushResult::SUCCESS;
     }

@@ -21,7 +21,7 @@ namespace kagome::consensus::grandpa {
     template <class... Args,
               typename =
                   std::enable_if_t<(is_shared_ptr<Args>::value() && ...), void>>
-    FinalizationComposite(Args &&... args)
+    explicit FinalizationComposite(Args &&... args)
         : observers_{std::forward<Args>(args)...} {};
 
     ~FinalizationComposite() override = default;

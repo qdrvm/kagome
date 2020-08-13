@@ -29,7 +29,7 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    GossiperBroadcast(libp2p::Host &host);
+    explicit GossiperBroadcast(libp2p::Host &host);
 
     ~GossiperBroadcast() override = default;
 

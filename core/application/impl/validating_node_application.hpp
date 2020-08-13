@@ -43,7 +43,7 @@ namespace kagome::application {
      * node
      * @param verbosity level of logging
      */
-    ValidatingNodeApplication(const AppConfigPtr &config);
+    explicit ValidatingNodeApplication(const AppConfigPtr &config);
 
     void run() override;
 

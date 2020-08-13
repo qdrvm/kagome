@@ -21,8 +21,7 @@ namespace kagome::api {
     StateApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
                  std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
                  std::shared_ptr<blockchain::BlockTree> block_tree,
-                 std::shared_ptr<runtime::Core> runtime_core,
-                 std::shared_ptr<api::ApiService> api_service);
+                 std::shared_ptr<runtime::Core> runtime_core);
 
     outcome::result<common::Buffer> getStorage(
         const common::Buffer &key) const override;
@@ -36,12 +35,14 @@ namespace kagome::api {
     outcome::result<void> unsubscribeStorage(
         const std::vector<uint32_t> &subscription_id) override;
 
+    void setApiService(std::shared_ptr<api::ApiService> const &api_service);
+
   private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> runtime_core_;
-    std::shared_ptr<api::ApiService> api_service_;
+    std::weak_ptr<api::ApiService> api_service_;
   };
 
 }  // namespace kagome::api
