@@ -41,13 +41,13 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
 
     for (const auto &peer_info : peer_list.peers) {
-      if (peer_info.id != own_peer_info.id) {
+//      if (peer_info.id != own_peer_info.id) {
         gossiper_->reserveStream(peer_info, {});
-      } else {
-        auto stream = std::make_shared<LoopbackStream>(own_peer_info);
-        loopback_stream_ = stream;
-        gossiper_->reserveStream(own_peer_info, std::move(stream));
-      }
+//      } else {
+//        auto stream = std::make_shared<LoopbackStream>(own_peer_info);
+//        loopback_stream_ = stream;
+//        gossiper_->reserveStream(own_peer_info, std::move(stream));
+//      }
     }
   }
 
