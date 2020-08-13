@@ -20,6 +20,7 @@ env:
     ~/.hunter
     ~/.rustup
 
+
 jobs:
   MacOS:
     runs-on: macos-latest
@@ -48,9 +49,9 @@ jobs:
            - name: "Linux: clang-8 UBSAN"
              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
       name: "${{ matrix.options.name }}"
+      timeout-minutes: 900
       runs-on: ubuntu-latest
       container: soramitsu/kagome-dev:11 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-      timeout-minutes: 100
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -62,6 +63,7 @@ jobs:
 
   clang-tidy:
       name: "Linux: clang-tidy"
+      timeout-minutes: 900
       runs-on: ubuntu-latest
       container: soramitsu/kagome-dev:11
       steps:
@@ -80,7 +82,7 @@ jobs:
 
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
-      timeout-minutes: 100
+      timeout-minutes: 900
       runs-on: ubuntu-latest
       container: soramitsu/kagome-dev:11  # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
@@ -117,7 +119,7 @@ jobs:
             - name: "Alpine: Build Release"
               run: ./housekeeping/docker/release/makeRelease.sh
       name: "${{ matrix.options.name }}"
-      timeout-minutes: 100
+      timeout-minutes: 900
       runs-on: ubuntu-latest
       container: soramitsu/kagome-dev:11-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
@@ -133,6 +135,7 @@ jobs:
       if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
       needs: [clang-tidy, Linux, MacOS, Alpine]
       name: "Push"
+      timeout-minutes: 900
       runs-on: ubuntu-latest
       container: soramitsu/kagome-dev:11-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
