@@ -116,6 +116,7 @@ kagome_install_setup(
     core/outcome
     core/runtime
     core/extensions
+    core/subscription
 )
 
 include(CMakePackageConfigHelpers)
