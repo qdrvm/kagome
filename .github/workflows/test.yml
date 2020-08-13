@@ -20,7 +20,6 @@ env:
     ~/.hunter
     ~/.rustup
 
-
 jobs:
   MacOS:
     timeout-minutes: 900
@@ -45,10 +44,10 @@ jobs:
           options:
            - name: "Linux: gcc-9 ASAN No Toolchain"
              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON
-#            - name: "Linux: clang-8 TSAN"
-#              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_tsan.cmake
-#            - name: "Linux: clang-8 UBSAN"
-#              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
+           - name: "Linux: clang-8 TSAN"
+             run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_tsan.cmake
+           - name: "Linux: clang-8 UBSAN"
+             run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
       name: "${{ matrix.options.name }}"
       timeout-minutes: 900
       runs-on: ubuntu-latest
@@ -117,8 +116,8 @@ jobs:
           options:
             - name: "Alpine: Build Test"
               run: ./housekeeping/makeBuild.sh
-#             - name: "Alpine: Build Release"
-#               run: ./housekeeping/docker/release/makeRelease.sh
+            - name: "Alpine: Build Release"
+              run: ./housekeeping/docker/release/makeRelease.sh
       name: "${{ matrix.options.name }}"
       timeout-minutes: 900
       runs-on: ubuntu-latest
