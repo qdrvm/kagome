@@ -28,10 +28,9 @@ namespace kagome::application {
   }
 
   void BlockProducingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+    logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
 
-    app_state_manager_->atLaunch(
-        [this] { return babe_->start(Babe::ExecutionStrategy::SYNC_FIRST); });
+    babe_->setExecutionStrategy(Babe::ExecutionStrategy::SYNC_FIRST);
 
     app_state_manager_->atLaunch([this] {
       // execute listeners

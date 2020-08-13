@@ -127,6 +127,7 @@ namespace kagome::injector {
     }
 
     initialized = std::make_shared<consensus::BabeImpl>(
+        injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
         injector.template create<sptr<consensus::BlockExecutor>>(),
         injector.template create<sptr<storage::trie::TrieStorage>>(),

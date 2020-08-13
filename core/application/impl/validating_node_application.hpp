@@ -64,7 +64,7 @@ namespace kagome::application {
 
     sptr<api::ApiService> jrpc_api_service_;
 
-    Babe::ExecutionStrategy is_genesis_;
+    Babe::ExecutionStrategy babe_execution_strategy_;
 
     common::Logger logger_;
   };
