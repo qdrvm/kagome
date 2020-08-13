@@ -22,20 +22,21 @@ env:
 
 
 jobs:
-#   MacOS:
-#     runs-on: macos-latest
-#     steps:
-#     - uses: actions/checkout@v2
-#     - uses: actions/cache@v2
-#       with:
-#         path: ${{ env.CACHE_PATHS }}
-#         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-#     - name: install
-#       run: ./housekeeping/macos/dependency.sh
-#     - name: build
-#       env:
-#         DEVELOPER_DIR: /Applications/Xcode_11.app/Contents/Developer
-#       run: ./housekeeping/makeBuild.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+  MacOS:
+    timeout-minutes: 900
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: ${{ env.CACHE_PATHS }}
+        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+    - name: install
+      run: ./housekeeping/macos/dependency.sh
+    - name: build
+      env:
+        DEVELOPER_DIR: /Applications/Xcode_11.app/Contents/Developer
+      run: ./housekeeping/makeBuild.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
       strategy:
@@ -61,24 +62,24 @@ jobs:
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
-#   clang-tidy:
-#       name: "Linux: clang-tidy"
-#       timeout-minutes: 900
-#       runs-on: ubuntu-latest
-#       container: soramitsu/kagome-dev:11
-#       steps:
-#         - uses: actions/checkout@v2
-#         - uses: actions/cache@v2
-#           with:
-#             path: ${{ env.CACHE_PATHS }}
-#             key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-#         - name: clang-tidy
-#           env:
-#             # build only generated files, so clang-tidy will work correctly
-#             BUILD_FINAL_TARGET: generated
-#           run: |
-#             ./housekeeping/makeBuild.sh
-#             ./housekeeping/clang-tidy.sh
+  clang-tidy:
+      name: "Linux: clang-tidy"
+      timeout-minutes: 900
+      runs-on: ubuntu-latest
+      container: soramitsu/kagome-dev:11
+      steps:
+        - uses: actions/checkout@v2
+        - uses: actions/cache@v2
+          with:
+            path: ${{ env.CACHE_PATHS }}
+            key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+        - name: clang-tidy
+          env:
+            # build only generated files, so clang-tidy will work correctly
+            BUILD_FINAL_TARGET: generated
+          run: |
+            ./housekeeping/makeBuild.sh
+            ./housekeeping/clang-tidy.sh
 
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
