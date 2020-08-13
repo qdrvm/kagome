@@ -16,7 +16,7 @@ namespace kagome::application {
     spdlog::set_level(app_config->verbosity());
 
     // genesis launch if database does not exist
-    is_genesis_ = boost::filesystem::exists(app_config->leveldb_path())
+    babe_execution_strategy_ = boost::filesystem::exists(app_config->leveldb_path())
                       ? Babe::ExecutionStrategy::SYNC_FIRST
                       : Babe::ExecutionStrategy::GENESIS;
 
@@ -38,8 +38,7 @@ namespace kagome::application {
   void ValidatingNodeApplication::run() {
     logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
 
-    // starts block production
-    app_state_manager_->atLaunch([this] { return babe_->start(is_genesis_); });
+    babe_->setExecutionStrategy(babe_execution_strategy_);
 
     app_state_manager_->atLaunch([this] {
       // execute listeners

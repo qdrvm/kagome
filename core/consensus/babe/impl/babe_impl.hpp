@@ -8,10 +8,10 @@
 
 #include "consensus/babe.hpp"
 
+#include <boost/asio/basic_waitable_timer.hpp>
 #include <memory>
 
-#include <boost/asio/basic_waitable_timer.hpp>
-#include <outcome/outcome.hpp>
+#include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "clock/timer.hpp"
@@ -23,6 +23,7 @@
 #include "consensus/babe/impl/block_executor.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -61,7 +62,8 @@ namespace kagome::consensus {
      * kagome::clock::BasicWaitableTimer
      * @param event_bus to deliver events over
      */
-    BabeImpl(std::shared_ptr<BabeLottery> lottery,
+    BabeImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
+             std::shared_ptr<BabeLottery> lottery,
              std::shared_ptr<BlockExecutor> block_executor,
              std::shared_ptr<storage::trie::TrieStorage> trie_db,
              std::shared_ptr<EpochStorage> epoch_storage,
@@ -78,7 +80,11 @@ namespace kagome::consensus {
 
     ~BabeImpl() override = default;
 
-    bool start(ExecutionStrategy strategy) override;
+    bool start();
+
+    void setExecutionStrategy(ExecutionStrategy strategy) override {
+      execution_strategy_ = strategy;
+    }
 
     void runEpoch(Epoch epoch,
                   BabeTimePoint starting_slot_finish_time) override;
@@ -124,6 +130,7 @@ namespace kagome::consensus {
     void synchronizeSlots(const primitives::BlockHeader &new_header);
 
    private:
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
@@ -153,6 +160,8 @@ namespace kagome::consensus {
     BabeSlotNumber current_slot_{};
     BabeLottery::SlotsLeadership slots_leadership_;
     BabeTimePoint next_slot_finish_time_;
+
+    boost::optional<ExecutionStrategy> execution_strategy_;
 
     common::Logger log_;
   };
