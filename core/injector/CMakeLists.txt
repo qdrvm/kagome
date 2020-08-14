@@ -50,7 +50,6 @@ target_link_libraries(application_injector
     leveldb
     local_key_storage
     outcome
-    grandpa
     grandpa2
     environment
     proposer
