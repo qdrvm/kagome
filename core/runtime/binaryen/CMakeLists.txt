@@ -70,6 +70,7 @@ target_link_libraries(binaryen_runtime_api INTERFACE
     binaryen_runtime_external_interface
     binaryen_wasm_module
     )
+kagome_install(binaryen_runtime_api)
 
 add_library(binaryen_core_api
     runtime_api/core_impl.cpp
@@ -79,6 +80,7 @@ target_link_libraries(binaryen_core_api
     binaryen_wasm_executor
     binaryen_runtime_api
     )
+kagome_install(binaryen_core_api)
 
 add_library(binaryen_tagged_transaction_queue_api
     runtime_api/tagged_transaction_queue_impl.cpp

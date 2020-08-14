@@ -21,6 +21,7 @@ set(kagome_LIBRARIES
         kagome::hexutil
         kagome::mp_utils
         kagome::blob
+        kagome::primitives
         kagome::database_error
         kagome::trie_error
         kagome::trie_serializer
@@ -35,6 +36,8 @@ set(kagome_LIBRARIES
         kagome::persistent_trie_batch
         kagome::topper_trie_batch
         kagome::changes_tracker
+        kagome::blockchain_common
+        kagome::block_header_repository
         kagome::blake2
         kagome::keccak
         kagome::hasher
@@ -61,6 +64,8 @@ set(kagome_LIBRARIES
         kagome::secp256k1_provider
         kagome::bip39_provider
         kagome::extension_factory
+        kagome::binaryen_core_api
+        kagome::binaryen_runtime_api
         kagome::binaryen_runtime_external_interface
         kagome::binaryen_runtime_manager
         kagome::binaryen_runtime_environment

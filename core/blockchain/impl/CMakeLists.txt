@@ -21,6 +21,7 @@ target_link_libraries(blockchain_common
     polkadot_codec
     primitives
     )
+kagome_install(blockchain_common)
 
 add_library(block_tree
     block_tree_impl.cpp
