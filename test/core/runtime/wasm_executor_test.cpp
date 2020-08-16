@@ -81,7 +81,6 @@ class WasmExecutorTest : public ::testing::Test {
     auto serializer =
         std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
 
-    using SessionPtr = std::shared_ptr<Session>;
     auto trieDb = kagome::storage::trie::TrieStorageImpl::createEmpty(
                       trie_factory, codec, serializer, boost::none)
                       .value();

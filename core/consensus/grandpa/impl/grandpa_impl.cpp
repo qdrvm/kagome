@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/grandpa/impl/grandpa_impl_2.hpp"
+#include "consensus/grandpa/impl/grandpa_impl.hpp"
 
 #include <boost/asio/post.hpp>
 #include <storage/database_error.hpp>
@@ -19,7 +19,7 @@ namespace kagome::consensus::grandpa {
 
   static size_t round_id = 0;
 
-  GrandpaImpl2::GrandpaImpl2(
+  GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<Environment> environment,
       std::shared_ptr<storage::BufferStorage> storage,
@@ -51,7 +51,7 @@ namespace kagome::consensus::grandpa {
     app_state_manager_->takeControl(*this);
   }
 
-  bool GrandpaImpl2::prepare() {
+  bool GrandpaImpl::prepare() {
     // Lambda which is executed when voting round is completed.
     environment_->doOnCompleted(
         [wp = weak_from_this()](
@@ -63,7 +63,7 @@ namespace kagome::consensus::grandpa {
     return true;
   }
 
-  bool GrandpaImpl2::start() {
+  bool GrandpaImpl::start() {
     // Obtain last completed round
     auto last_round_res = getLastCompletedRound();
     if (not last_round_res.has_value()) {
@@ -77,13 +77,11 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    const auto &[last_round_number, last_round_state] = last_round_res.value();
+    auto &[last_round_number, last_round_state] = last_round_res.value();
 
     logger_->debug("Grandpa is starting with round #{}", last_round_number + 1);
 
-    current_round = makeInitialRound(
-        last_round_number,
-        std::make_shared<RoundState>(std::move(last_round_state)));
+    current_round = makeInitialRound(last_round_number, last_round_state);
 
     // Planning play round
     boost::asio::post(*io_context_, [wp = current_round->weak_from_this()] {
@@ -96,9 +94,9 @@ namespace kagome::consensus::grandpa {
     return true;
   }
 
-  void GrandpaImpl2::stop() {}
+  void GrandpaImpl::stop() {}
 
-  void GrandpaImpl2::readinessCheck() {
+  void GrandpaImpl::readinessCheck() {
     // Check if round id was updated.
     // If it was not, that means that grandpa is not working
 
@@ -130,9 +128,9 @@ namespace kagome::consensus::grandpa {
         });
   }
 
-  std::shared_ptr<VotingRoundImpl2> GrandpaImpl2::makeInitialRound(
+  std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       RoundNumber previous_round_number,
-      std::shared_ptr<RoundState> previous_round_state) {
+      std::shared_ptr<const RoundState> previous_round_state) {
     assert(previous_round_state != nullptr);
 
     // Obtain grandpa voters
@@ -151,7 +149,9 @@ namespace kagome::consensus::grandpa {
     const auto new_round_number = previous_round_number + 1;
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(
-        previous_round_state->finalized.value(), environment_);
+        previous_round_state->finalized.value_or(
+            previous_round_state->last_finalized_block),
+        environment_);
 
     GrandpaConfig config{
         .voters = voters,
@@ -162,7 +162,7 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, new_round_number, voters);
 
-    auto new_round = std::make_shared<VotingRoundImpl2>(
+    auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
         environment_,
@@ -178,8 +178,10 @@ namespace kagome::consensus::grandpa {
     return new_round;
   }
 
-  std::shared_ptr<VotingRoundImpl2> GrandpaImpl2::makeNextRound(
-      const std::shared_ptr<VotingRoundImpl2> &round) {
+  std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
+      const std::shared_ptr<VotingRound> &round) {
+    logger_->debug("Making next round");
+
     // Obtain grandpa voters
     auto voters_res = getVoters();
     if (not voters_res.has_value()) {
@@ -195,9 +197,10 @@ namespace kagome::consensus::grandpa {
 
     const auto new_round_number = round->roundNumber() + 1;
 
+    BlockInfo best_block = round->state()->finalized.value_or(
+        round->state()->last_finalized_block);
 
-	  auto vote_graph = std::make_shared<VoteGraphImpl>(
-			  round->getCurrentState()->finalized.value(), environment_);
+    auto vote_graph = std::make_shared<VoteGraphImpl>(best_block, environment_);
 
     GrandpaConfig config{
         .voters = voters,
@@ -208,7 +211,7 @@ namespace kagome::consensus::grandpa {
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, new_round_number, voters);
 
-    auto new_round = std::make_shared<VotingRoundImpl2>(
+    auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
         environment_,
@@ -223,7 +226,7 @@ namespace kagome::consensus::grandpa {
     return new_round;
   }
 
-  outcome::result<std::shared_ptr<VoterSet>> GrandpaImpl2::getVoters() const {
+  outcome::result<std::shared_ptr<VoterSet>> GrandpaImpl::getVoters() const {
     /*
      * TODO(kamilsa): PRE-356 Check if voters were updated:
      * We should check if voters received from runtime (through
@@ -237,7 +240,7 @@ namespace kagome::consensus::grandpa {
     return std::make_shared<VoterSet>(voter_set);
   }
 
-  outcome::result<CompletedRound> GrandpaImpl2::getLastCompletedRound() const {
+  outcome::result<CompletedRound> GrandpaImpl::getLastCompletedRound() const {
     auto last_round_encoded_res = storage_->get(storage::kSetStateKey);
 
     // Saved data exists
@@ -268,24 +271,28 @@ namespace kagome::consensus::grandpa {
               genesis_hash_res.value().end(),
               genesis_hash.begin());
 
-    CompletedRound zero_round;
-    zero_round.round_number = 0;
-    zero_round.state.last_finalized_block =
-        primitives::BlockInfo(0, genesis_hash);
-    zero_round.state.prevote_ghost = Prevote(0, genesis_hash);
-    zero_round.state.estimate = primitives::BlockInfo(0, genesis_hash);
-    zero_round.state.finalized = primitives::BlockInfo(0, genesis_hash);
+    auto round_state = std::make_shared<const RoundState>(RoundState{
+        .last_finalized_block = primitives::BlockInfo(0, genesis_hash),
+        .best_prevote_candidate = Prevote(0, genesis_hash),
+        .best_final_candidate = primitives::BlockInfo(0, genesis_hash),
+        .finalized = primitives::BlockInfo(0, genesis_hash)});
+
+    CompletedRound zero_round{.round_number = 0, .state = round_state};
+
     return std::move(zero_round);
   }
 
-  void GrandpaImpl2::executeNextRound() {
+  void GrandpaImpl::executeNextRound() {
+    logger_->debug("Execute next round #{} -> #{}",
+                   current_round->roundNumber(),
+                   current_round->roundNumber() + 1);
     previous_round.swap(current_round);
     previous_round->end();
     current_round = makeNextRound(previous_round);
     current_round->play();
   }
 
-  void GrandpaImpl2::onVoteMessage(const VoteMessage &msg) {
+  void GrandpaImpl::onVoteMessage(const VoteMessage &msg) {
     std::shared_ptr<VotingRound> target_round;
     if (current_round && current_round->roundNumber() == msg.round_number) {
       target_round = current_round;
@@ -336,7 +343,7 @@ namespace kagome::consensus::grandpa {
         });
   }
 
-  void GrandpaImpl2::onFinalize(const Fin &f) {
+  void GrandpaImpl::onFinalize(const Fin &f) {
     logger_->debug("Received fin message for round: {}", f.round_number);
 
     std::shared_ptr<VotingRound> target_round;
@@ -352,7 +359,7 @@ namespace kagome::consensus::grandpa {
     target_round->onFinalize(f);
   }
 
-  void GrandpaImpl2::onCompletedRound(
+  void GrandpaImpl::onCompletedRound(
       outcome::result<CompletedRound> completed_round_res) {
     round_id++;
 
@@ -361,6 +368,9 @@ namespace kagome::consensus::grandpa {
                      completed_round_res.error().message());
     } else {
       const auto &completed_round = completed_round_res.value();
+
+      logger_->debug("Event OnCompleted for round #{}",
+                     completed_round.round_number);
 
       if (auto put_res = storage_->put(
               storage::kSetStateKey,

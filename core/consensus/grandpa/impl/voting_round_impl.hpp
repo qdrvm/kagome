@@ -20,33 +20,30 @@
 
 namespace kagome::consensus::grandpa {
 
-  class GrandpaImpl2;
+  class Grandpa;
 
-  class VotingRoundImpl2
-      : public VotingRound,
-        public std::enable_shared_from_this<VotingRoundImpl2> {
+  class VotingRoundImpl : public VotingRound {
     using OnCompleted = boost::signals2::signal<void(const CompletedRound &)>;
     using OnCompletedSlotType = OnCompleted::slot_type;
 
    public:
-    ~VotingRoundImpl2() override = default;
+    ~VotingRoundImpl() override = default;
 
-    VotingRoundImpl2(const std::shared_ptr<GrandpaImpl2> &grandpa,
-                     const GrandpaConfig &config,
-                     std::shared_ptr<Environment> env,
-                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
-                     std::shared_ptr<VoteTracker> prevotes,
-                     std::shared_ptr<VoteTracker> precommits,
-                     std::shared_ptr<VoteGraph> graph,
-                     std::shared_ptr<Clock> clock,
-                     std::shared_ptr<boost::asio::io_context> io_context,
-                     std::shared_ptr<VotingRoundImpl2> previous_round,
-                     std::shared_ptr<const RoundState> previous_round_state);
+    VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
+                    const GrandpaConfig &config,
+                    std::shared_ptr<Environment> env,
+                    std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
+                    std::shared_ptr<VoteTracker> prevotes,
+                    std::shared_ptr<VoteTracker> precommits,
+                    std::shared_ptr<VoteGraph> graph,
+                    std::shared_ptr<Clock> clock,
+                    std::shared_ptr<boost::asio::io_context> io_context,
+                    const std::shared_ptr<const VotingRound> &previous_round,
+                    std::shared_ptr<const RoundState> previous_round_state);
 
-    std::weak_ptr<GrandpaImpl2> grandpa_;
+    std::weak_ptr<Grandpa> grandpa_;
 
     bool isPrimary_ = false;
-    std::shared_ptr<VotingRoundImpl2> previous_round_;
     std::shared_ptr<const RoundState> previous_round_state_;
 
     enum class Stage {
@@ -72,10 +69,10 @@ namespace kagome::consensus::grandpa {
 
     std::function<void()> on_complete_handler_;
 
-    // Start|stop round
+    // Start/stop round
 
-    void play();
-    void end();
+    void play() override;
+    void end() override;
 
     // Workflow of round
 
@@ -88,10 +85,31 @@ namespace kagome::consensus::grandpa {
 
     // Actions of round
 
-    void doProposal();
-    void doPrevote();
-    void doPrecommit();
-    void doFinalize();
+    /**
+     * During the primary propose we:
+     * 1. Check if we are the primary for the current round. If not execution of
+     * the method is finished
+     * 2. We can send primary propose only if the estimate from last round state
+     * is greater than finalized. If we cannot send propose, method is finished
+     * 3. Primary propose is the last rounds estimate.
+     * 4. After all steps above are done we broadcast propose
+     * 5. We store what we have broadcasted in primary_vote_ field
+     */
+    void doProposal() override;
+
+    /**
+     * 1. Waits until start_time_ + duration * 2 or round is completable
+     * 2. Constructs prevote (\see constructPrevote) and broadcasts it
+     */
+    void doPrevote() override;
+
+    /**
+     * 1. Waits until start_time_ + duration * 4 or round is completable
+     * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
+     */
+    void doPrecommit() override;
+
+    void doFinalize() override;
 
     // Handlers of incoming messages
 
@@ -132,34 +150,7 @@ namespace kagome::consensus::grandpa {
 
     RoundNumber roundNumber() const override;
 
-    /**
-     * During the primary propose we :
-     * 1. Check if we are the primary for the current round. If not execution of
-     * the method is finished
-     * 2. We can send primary propose only if the estimate from \param
-     * last_round_state is greater than finalized from \param last_round_state.
-     * If we cannot send propose, method is finished
-     * 3. Primary propose is the last rounds estimate.
-     * 4. After all steps above are done we broadcast propose
-     * 5. We store what we have broadcasted in primary_vote_ field
-     */
-    void primaryPropose(const RoundState &last_round_state) override{};
-
-    /**
-     * 1. Waits until start_time_ + duration * 2 or round is completable
-     * 2. Constructs prevote (\see constructPrevote) and broadcasts it
-     */
-    void prevote(const RoundState &last_round_state) override{};
-
-    /**
-     * 1. Waits until start_time_ + duration * 4 or round is completable
-     * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
-     */
-    void precommit(const RoundState &last_round_state) override{};
-
-    inline std::shared_ptr<const RoundState> getCurrentState() const {
-      return current_round_state_;
-    }
+    std::shared_ptr<const RoundState> state() const override;
 
     /**
      * Round is completable when we have block (stored in

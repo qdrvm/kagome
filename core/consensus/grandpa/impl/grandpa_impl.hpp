@@ -16,7 +16,7 @@
 #include "common/logger.hpp"
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/impl/voting_round_impl_2.hpp"
+#include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
@@ -26,35 +26,39 @@
 
 namespace kagome::consensus::grandpa {
 
-  class GrandpaImpl2 : public Grandpa,
-                       public std::enable_shared_from_this<GrandpaImpl2> {
+  class GrandpaImpl : public Grandpa,
+                      public std::enable_shared_from_this<GrandpaImpl> {
    public:
-    ~GrandpaImpl2() override = default;
+    ~GrandpaImpl() override = default;
 
-    GrandpaImpl2(
-        std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<Environment> environment,
-        std::shared_ptr<storage::BufferStorage> storage,
-        std::shared_ptr<crypto::ED25519Provider> crypto_provider,
-        std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-        const crypto::ED25519Keypair &keypair,
-        std::shared_ptr<Clock> clock,
-        std::shared_ptr<boost::asio::io_context> io_context,
-        std::shared_ptr<authority::AuthorityManager> authority_manager);
+    GrandpaImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
+                std::shared_ptr<Environment> environment,
+                std::shared_ptr<storage::BufferStorage> storage,
+                std::shared_ptr<crypto::ED25519Provider> crypto_provider,
+                std::shared_ptr<runtime::GrandpaApi> grandpa_api,
+                const crypto::ED25519Keypair &keypair,
+                std::shared_ptr<Clock> clock,
+                std::shared_ptr<boost::asio::io_context> io_context,
+                std::shared_ptr<authority::AuthorityManager> authority_manager);
 
-    bool prepare() override;
-    bool start() override;
-    void stop() override;
+    /** @see AppStateManager::takeControl */
+    bool prepare();
 
-    std::shared_ptr<VotingRoundImpl2> previous_round;
-    std::shared_ptr<VotingRoundImpl2> current_round;
+    /** @see AppStateManager::takeControl */
+    bool start();
 
-    std::shared_ptr<VotingRoundImpl2> makeInitialRound(
+    /** @see AppStateManager::takeControl */
+    void stop();
+
+    std::shared_ptr<VotingRound> previous_round;
+    std::shared_ptr<VotingRound> current_round;
+
+    std::shared_ptr<VotingRound> makeInitialRound(
         RoundNumber previous_round_number,
-        std::shared_ptr<RoundState> previous_round_state);
+        std::shared_ptr<const RoundState> previous_round_state);
 
-    std::shared_ptr<VotingRoundImpl2> makeNextRound(
-        const std::shared_ptr<VotingRoundImpl2> &previous_round_state);
+    std::shared_ptr<VotingRound> makeNextRound(
+        const std::shared_ptr<VotingRound> &previous_round);
 
     /**
      * TODO (PRE-371): kamilsa remove this method when grandpa issue resolved
@@ -64,11 +68,11 @@ namespace kagome::consensus::grandpa {
      */
     void readinessCheck();
 
+    void executeNextRound() override;
+
     void onVoteMessage(const VoteMessage &msg) override;
 
     void onFinalize(const Fin &f) override;
-
-    void executeNextRound();
 
    private:
     void onCompletedRound(outcome::result<CompletedRound> completed_round_res);
