@@ -17,14 +17,7 @@ namespace kagome::consensus::grandpa {
    public:
     ~Grandpa() override = default;
 
-    virtual bool prepare() = 0;
-
-    /**
-     * Start event loop which executes grandpa voting rounds
-     */
-    virtual bool start() = 0;
-
-    virtual void stop() = 0;
+    virtual void executeNextRound() = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

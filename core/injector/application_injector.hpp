@@ -77,13 +77,13 @@
 #include "runtime/binaryen/module/wasm_module_impl.hpp"
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
+#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
 #include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
-#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -165,7 +165,8 @@ namespace kagome::injector {
                                           processors,
                                           std::move(subscription_engine));
 
-    auto state_api = injector.template create<std::shared_ptr<api::StateApiImpl>>();
+    auto state_api =
+        injector.template create<std::shared_ptr<api::StateApiImpl>>();
     state_api->setApiService(initialized.value());
     return initialized.value();
   }
@@ -277,25 +278,6 @@ namespace kagome::injector {
               BOOST_ASSERT_MSG(false, "Could not insert authorities");
               std::exit(1);
             }
-
-            // insert last completed round
-            consensus::grandpa::CompletedRound zero_round;
-            zero_round.round_number = 0;
-            const auto &hasher = injector.template create<crypto::Hasher &>();
-            auto genesis_hash =
-                hasher.blake2b_256(scale::encode(genesis_block.header).value());
-            spdlog::debug("Genesis hash in injector: {}", genesis_hash.toHex());
-            zero_round.state.prevote_ghost =
-                consensus::grandpa::Prevote(0, genesis_hash);
-            zero_round.state.estimate = primitives::BlockInfo(0, genesis_hash);
-            zero_round.state.finalized = primitives::BlockInfo(0, genesis_hash);
-            auto completed_round_put_res =
-                db->put(storage::kSetStateKey,
-                        common::Buffer(scale::encode(zero_round).value()));
-            if (not completed_round_put_res) {
-              BOOST_ASSERT_MSG(false, "Could not insert completed round");
-              std::exit(1);
-            }
           }
         });
     if (storage.has_error()) {
@@ -365,8 +347,10 @@ namespace kagome::injector {
     auto bip39_provider =
         injector.template create<sptr<crypto::Bip39Provider>>();
 
-    auto core_factory_method = [&injector](sptr<runtime::WasmProvider> wasm_provider) {
-      auto core_factory = injector.template create<sptr<runtime::binaryen::CoreFactoryImpl>>();
+    auto core_factory_method = [&injector](
+                                   sptr<runtime::WasmProvider> wasm_provider) {
+      auto core_factory =
+          injector.template create<sptr<runtime::binaryen::CoreFactoryImpl>>();
       return core_factory->createWithCode(wasm_provider);
     };
     initialized =

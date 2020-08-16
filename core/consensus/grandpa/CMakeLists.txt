@@ -50,21 +50,21 @@ target_link_libraries(voting_round_error
     outcome
     )
 
-add_library(voting_round2
-    impl/voting_round_impl_2.cpp
+add_library(voting_round
+    impl/voting_round_impl.cpp
     )
 
-target_link_libraries(voting_round2
+target_link_libraries(voting_round
     logger
     voter_set
     voting_round_error
     )
 
-add_library(grandpa2
-    impl/grandpa_impl_2.cpp
+add_library(grandpa
+    impl/grandpa_impl.cpp
     )
-target_link_libraries(grandpa2
-    voting_round2
+target_link_libraries(grandpa
+    voting_round
     vote_crypto_provider
     vote_graph
     vote_tracker
