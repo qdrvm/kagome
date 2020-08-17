@@ -111,7 +111,12 @@ class VotingRoundTest : public ::testing::Test {
                          .peer_id = kAlice};
 
     std::shared_ptr<VotingRoundImpl> previous_round{};
-    std::shared_ptr<const RoundState> previous_round_state{};
+    std::shared_ptr<const RoundState> previous_round_state =
+        std::make_shared<const RoundState>(
+            RoundState{.last_finalized_block = BlockInfo(1, GENESIS_HASH),
+                       .best_prevote_candidate = Prevote(1, GENESIS_HASH),
+                       .best_final_candidate = BlockInfo(1, GENESIS_HASH),
+                       .finalized = BlockInfo(1, GENESIS_HASH)});
 
     voting_round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                       config,
