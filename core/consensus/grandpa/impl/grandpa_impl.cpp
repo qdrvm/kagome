@@ -272,10 +272,10 @@ namespace kagome::consensus::grandpa {
               genesis_hash.begin());
 
     auto round_state = std::make_shared<const RoundState>(RoundState{
-        .last_finalized_block = primitives::BlockInfo(0, genesis_hash),
-        .best_prevote_candidate = Prevote(0, genesis_hash),
-        .best_final_candidate = primitives::BlockInfo(0, genesis_hash),
-        .finalized = primitives::BlockInfo(0, genesis_hash)});
+        .last_finalized_block = primitives::BlockInfo(1, genesis_hash),
+        .best_prevote_candidate = Prevote(1, genesis_hash),
+        .best_final_candidate = primitives::BlockInfo(1, genesis_hash),
+        .finalized = primitives::BlockInfo(1, genesis_hash)});
 
     CompletedRound zero_round{.round_number = 0, .state = round_state};
 
