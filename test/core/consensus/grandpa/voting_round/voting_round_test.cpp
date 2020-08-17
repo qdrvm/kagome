@@ -536,10 +536,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       onCompleted(outcome::result<CompletedRound>(expected_completed_round)))
       .WillRepeatedly(Return());
 
-	// TODO need refactoring
-//  voting_round_->primaryPropose(last_round_state);
-//  voting_round_->prevote(last_round_state);
-//  voting_round_->precommit(last_round_state);
+  voting_round_->play();
 
   io_context_->run_for(duration_ * 6);
 }
@@ -561,10 +558,7 @@ TEST_F(VotingRoundTest, NoEstimateForPreviousRound) {
       .WillOnce(Return());
 
   // when
- // TODO need refactoring
-//  voting_round_->primaryPropose(last_round_state);
-//  voting_round_->prevote(last_round_state);
-//  voting_round_->precommit(last_round_state);
+  voting_round_->play();
 
   io_context_->run_for(duration_ * 6);
 }
