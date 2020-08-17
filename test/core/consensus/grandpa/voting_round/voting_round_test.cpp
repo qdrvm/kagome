@@ -161,7 +161,7 @@ class VotingRoundTest : public ::testing::Test {
   const ED25519Signature kEveSignature = "Eve"_SIG;
 
   RoundNumber round_number_{0};
-  Duration duration_{1000ms};
+  Duration duration_{200ms};
   TimePoint start_time_{42h};
   MembershipCounter counter_{0};
   std::shared_ptr<VoterSet> voters_ = std::make_shared<VoterSet>(counter_);
@@ -198,6 +198,19 @@ class VotingRoundTest : public ::testing::Test {
  * the block with number N and hash H
  */
 
+// clang-format off
+
+// # 1   2   3   4   5   6      7    8    9    10
+//
+//                                 - FA - FB - FC
+//                               /
+// GEN - A - B - C - D - E +--- F
+//                          \                    .
+//                           \
+//                            - EA - EB - EC - ED
+
+// clang-format on
+
 /**
  * Check that prevote ghost and estimates are updated correctly
  *
@@ -227,8 +240,8 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
       preparePrevote(kAlice, kAliceSignature, Prevote{10, "FC"_H});
 
   EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
-      .WillOnce(Return(std::vector<kagome::primitives::BlockHash>{
-          "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H}));
+      .WillOnce(
+          Return(std::vector<BlockHash>{"FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H}));
 
   voting_round_->onPrevote(alice_vote);
 
@@ -237,8 +250,8 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   auto bob_vote = preparePrevote(kBob, kBobSignature, Prevote{10, "ED"_H});
 
   EXPECT_CALL(*env_, getAncestry("C"_H, "ED"_H))
-      .WillOnce(Return(std::vector<kagome::primitives::BlockHash>{
-          "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H}));
+      .WillOnce(
+          Return(std::vector<BlockHash>{"EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H}));
 
   voting_round_->onPrevote(bob_vote);
 
@@ -291,8 +304,8 @@ TEST_F(VotingRoundTest, Finalization) {
   // when 1.
   // Alice precommits FC
   EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
-      .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
-          "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H}));
+      .WillRepeatedly(
+          Return(std::vector<BlockHash>{"FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H}));
 
   voting_round_->onPrecommit(
       preparePrecommit(kAlice, kAliceSignature, {10, "FC"_H}));
@@ -300,8 +313,8 @@ TEST_F(VotingRoundTest, Finalization) {
   // when 2.
   // Bob precommits ED
   EXPECT_CALL(*env_, getAncestry("C"_H, "ED"_H))
-      .WillOnce(Return(std::vector<kagome::primitives::BlockHash>{
-          "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H}));
+      .WillOnce(
+          Return(std::vector<BlockHash>{"EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H}));
 
   voting_round_->onPrecommit(
       preparePrecommit(kBob, kBobSignature, {10, "ED"_H}));
@@ -433,11 +446,10 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       .WillRepeatedly(Return(BlockInfo{best_block_number, best_block_hash}));
 
   EXPECT_CALL(*env_, getAncestry(base_block_hash, best_block_hash))
-      .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
-          "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H}));
-  EXPECT_CALL(*env_, getAncestry(best_block_hash, best_block_hash))
       .WillRepeatedly(
-          Return(std::vector<kagome::primitives::BlockHash>{best_block_hash}));
+          Return(std::vector<BlockHash>{"FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H}));
+  EXPECT_CALL(*env_, getAncestry(best_block_hash, best_block_hash))
+      .WillRepeatedly(Return(std::vector<BlockHash>{best_block_hash}));
 
   RoundState last_round_state;
   last_round_state.best_prevote_candidate = {3, "B"_H};
