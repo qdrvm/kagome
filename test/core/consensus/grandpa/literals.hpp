@@ -10,17 +10,9 @@
 
 inline kagome::consensus::grandpa::VoteWeight makeVoteWeight(uint64_t s) {
   kagome::consensus::grandpa::VoteWeight v;
-  v.weight = s;
+  v.prevotes_sum = s;
+  v.precommits_sum = s;
   return v;
-}
-
-inline kagome::consensus::grandpa::VoteWeight makeVoteWeight(std::string s) {
-  size_t weight = 0;
-  std::stringstream ss(s);
-  ss >> weight;
-  assert(!ss.fail());
-
-  return makeVoteWeight(weight);
 }
 
 inline kagome::consensus::grandpa::BlockHash makeBlockHash(std::string s) {
@@ -44,9 +36,8 @@ inline kagome::crypto::ED25519Signature makeSig(std::string s) {
   return sig;
 }
 
-inline kagome::consensus::grandpa::VoteWeight operator"" _W(const char *c,
-                                                            size_t s) {
-  return makeVoteWeight(std::string{c, c + s});
+inline kagome::consensus::grandpa::VoteWeight operator"" _W(unsigned long long weight) {
+  return makeVoteWeight(weight);
 }
 
 inline kagome::consensus::grandpa::BlockHash operator"" _H(const char *c,

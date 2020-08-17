@@ -639,16 +639,18 @@ namespace kagome::consensus::grandpa {
 
         // prepare VoteWeight which contains index of who has voted and what
         // kind of vote it was
-        VoteWeight v{voters.size()};
+        VoteWeight voteWeight{voters.size()};
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
           logger_->warn("Voter {} is not known: {}", vote.id.toHex());
           return;
         }
 
-        v.prevotes[index.value()] = voter_set_->voterWeight(vote.id).value();
+        voteWeight.setPrevote(index.value(),
+                              voter_set_->voterWeight(vote.id).value());
 
-        if (auto inserted = graph_->insert(vote.message, v); not inserted) {
+        if (auto inserted = graph_->insert(vote.message, voteWeight);
+            not inserted) {
           logger_->warn("Vote {} was not inserted with error: {}",
                         vote.block_hash().toHex(),
                         inserted.error().message());
@@ -682,16 +684,18 @@ namespace kagome::consensus::grandpa {
 
         // prepare VoteWeight which contains index of who has voted and what
         // kind of vote it was
-        VoteWeight v{voters.size()};
+        VoteWeight voteWeight{voters.size()};
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
           logger_->warn("Voter {} is not known: {}", vote.id.toHex());
           return false;
         }
 
-        v.precommits[index.value()] = voter_set_->voterWeight(vote.id).value();
+        voteWeight.setPrecommit(index.value(),
+                                voter_set_->voterWeight(vote.id).value());
 
-        if (auto inserted = graph_->insert(vote.message, v); not inserted) {
+        if (auto inserted = graph_->insert(vote.message, voteWeight);
+            not inserted) {
           logger_->warn("Vote {} was not inserted with error: {}",
                         vote.block_hash().toHex(),
                         inserted.error().message());
@@ -721,14 +725,16 @@ namespace kagome::consensus::grandpa {
           convertToBlockInfo(current_round_state_->best_prevote_candidate);
 
       auto prevote_ghost = graph_->findGhost(
-          ghost_block_info, [this](const VoteWeight &vote_weight) {
+          ghost_block_info,
+          [this](const VoteWeight &vote_weight) {
             return vote_weight
                        .totalWeight(prevote_equivocators_,
                                     precommit_equivocators_,
                                     voter_set_)
                        .prevote
                    >= threshold_;
-          });
+          },
+          VoteWeight::prevoteComparator);
 
       if (prevote_ghost.has_value()) {
         current_round_state_->best_prevote_candidate =
@@ -837,7 +843,8 @@ namespace kagome::consensus::grandpa {
                                     voter_set_)
                        .precommit
                    >= threshold_;
-          });
+          },
+          VoteWeight::precommitComparator);
     }
 
     // figuring out whether a block can still be committed for is
@@ -901,7 +908,8 @@ namespace kagome::consensus::grandpa {
     if (precommits_->getTotalWeight() >= threshold_) {
       auto block = graph_->findAncestor(
           BlockInfo{prevote_ghost.block_number, prevote_ghost.block_hash},
-          possible_to_precommit);
+          possible_to_precommit,
+          VoteWeight::precommitComparator);
       if (block.has_value()) {
         current_round_state_->best_final_candidate = block.value();
       }
@@ -913,9 +921,11 @@ namespace kagome::consensus::grandpa {
 
     const auto &block = current_round_state_->best_final_candidate;
     completable_ =
-
         block.block_hash != prevote_ghost.block_hash
-        || graph_->findGhost(block, possible_to_precommit)
+        || graph_
+               ->findGhost(block,
+                           possible_to_precommit,
+                           VoteWeight::precommitComparator)
                .map([&prevote_ghost](const BlockInfo &block_info) {
                  return std::tie(block_info.block_hash, block_info.block_number)
                         == std::tie(prevote_ghost.block_hash,

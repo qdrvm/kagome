@@ -56,6 +56,8 @@ namespace kagome::consensus::grandpa {
     virtual ~VoteGraph() = default;
 
     using Condition = std::function<bool(const VoteWeight &)>;
+    using Comparator =
+        std::function<bool(const VoteWeight &, const VoteWeight &)>;
 
     virtual const BlockInfo &getBase() const = 0;
 
@@ -67,7 +69,6 @@ namespace kagome::consensus::grandpa {
     virtual void adjustBase(const std::vector<BlockHash> &ancestry_proof) = 0;
 
     inline virtual outcome::result<void> insert(const Vote &vote,
-
                                                 const VoteWeight &weigth) {
       return visit_in_place(
           vote, [this, &weigth](const auto &vote) -> outcome::result<void> {
@@ -94,7 +95,9 @@ namespace kagome::consensus::grandpa {
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
     virtual boost::optional<BlockInfo> findAncestor(
-        const BlockInfo &block, const Condition &condition) const = 0;
+        const BlockInfo &block,
+        const Condition &condition,
+        const Comparator &comparator) const = 0;
 
     /// Find the best GHOST descendent of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
@@ -111,7 +114,8 @@ namespace kagome::consensus::grandpa {
     /// condition.
     virtual boost::optional<BlockInfo> findGhost(
         const boost::optional<BlockInfo> &current_best,
-        const Condition &condition) const = 0;
+        const Condition &condition,
+        const Comparator &comparator) const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
