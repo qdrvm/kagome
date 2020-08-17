@@ -721,8 +721,12 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::updatePrevoteGhost() {
     if (prevotes_->getTotalWeight() >= threshold_) {
-      const auto &ghost_block_info =
-          convertToBlockInfo(current_round_state_->best_prevote_candidate);
+      boost::optional<BlockInfo> ghost_block_info;
+      if (current_round_state_->best_prevote_candidate.block_hash
+          != current_round_state_->last_finalized_block.block_hash) {
+        ghost_block_info.emplace(
+            convertToBlockInfo(current_round_state_->best_prevote_candidate));
+      }
 
       auto prevote_ghost = graph_->findGhost(
           ghost_block_info,
