@@ -19,11 +19,16 @@ Warnings/errors will be reported to stderr, same as compiler warnings/errors.
 
 ### Run clang-tidy for changes between your branch and master
 
-1. Ensure `clang-tidy-diff.py` is in PATH.
+1. Ensure `clang-tidy` is in PATH
+2. Ensure `clang-tidy-diff.py` is in PATH.
     - on Mac it is usually located at `/usr/local/Cellar/llvm/8.0.0_1/share/clang/clang-tidy-diff.py` (note, 8.0.0_1 is your version, it may be different).
     - on Linux it is usually located at `/usr/lib/llvm-8/share/clang/clang-tidy-diff.py`
-2. `git diff -U0 HEAD^ | clang-tidy-diff.py -p1`
-
+3. `mkdir build`
+4. `cd build`
+5. `cmake ..`
+6. `make generated` - this step creates generated headers (protobuf, etc)
+7. `cd ..`
+8. `BUILD_DIR=build housekeeping/clang-tidy-diff.sh`
 
 ## Toolchain build
 
