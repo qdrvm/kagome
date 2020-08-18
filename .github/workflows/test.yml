@@ -75,7 +75,7 @@ jobs:
             BUILD_FINAL_TARGET: generated
           run: |
             ./housekeeping/makeBuild.sh
-            git diff -U0 HEAD^ | clang-tidy-diff.py -p1
+            git diff -U0 'HEAD^' | clang-tidy-diff.py -p1
 
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
