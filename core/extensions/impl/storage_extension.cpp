@@ -149,14 +149,14 @@ namespace kagome::extensions {
     if (value.toHex().size() < 500) {
       logger_->trace(
           "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
-          key.data(),
+          key.toString(),
           key.toHex(),
-          value.data(),
+          value.toString(),
           value.toHex());
     } else {
       logger_->trace(
           "Set storage. Key: {}, Key hex: {} Value is too big to display",
-          key.data(),
+          key.toString(),
           key.toHex());
     }
 
