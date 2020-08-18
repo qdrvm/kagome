@@ -55,7 +55,7 @@ jobs:
       env:
         - BUILD_FINAL_TARGET=generated
         - BUILD_DIR=build
-        - INDOCKER_IMAGE=soramitsu/kagome-dev:9
+        - INDOCKER_IMAGE=soramitsu/kagome-dev:10
       script:
         - ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh
         - git diff -U0 HEAD^ | clang-tidy-diff.py -p1
