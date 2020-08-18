@@ -57,8 +57,9 @@ jobs:
         - BUILD_DIR=build
         - INDOCKER_IMAGE=soramitsu/kagome-dev:10
       script:
-        - ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh
-        - git diff -U0 HEAD^ | clang-tidy-diff.py -p1
+#        - ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh
+        - git diff -U0 HEAD^
+        - ./housekeeping/indocker.sh 'git diff -U0 HEAD^ | clang-tidy-diff.py -p1'
 
 
 before_script:
