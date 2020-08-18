@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_GRANDPA_HPP
-#define KAGOME_CORE_RUNTIME_GRANDPA_HPP
+#ifndef KAGOME_RUNTIME_GRANDPAAPI
+#define KAGOME_RUNTIME_GRANDPAAPI
 
 #include <boost/optional.hpp>
-#include <outcome/outcome.hpp>
+
+#include "outcome/outcome.hpp"
 #include "common/buffer.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/block_id.hpp"
@@ -64,4 +65,4 @@ namespace kagome::runtime {
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_CORE_RUNTIME_GRANDPA_HPP
+#endif  // KAGOME_RUNTIME_GRANDPAAPI

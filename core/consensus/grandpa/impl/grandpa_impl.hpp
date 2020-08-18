@@ -8,12 +8,10 @@
 
 #include "consensus/grandpa/grandpa.hpp"
 
-#include <consensus/authority/authority_manager.hpp>
-#include <optional>
-
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
+#include "consensus/authority/authority_manager.hpp"
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"

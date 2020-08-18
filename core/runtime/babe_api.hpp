@@ -9,7 +9,6 @@
 #include <outcome/outcome.hpp>
 
 #include "primitives/babe_configuration.hpp"
-#include "primitives/block_id.hpp"
 
 namespace kagome::runtime {
 
