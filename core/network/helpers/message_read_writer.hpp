@@ -14,8 +14,9 @@ namespace kagome::network {
   /**
    * Chain specific messages read-writer
    */
-  template<typename Ancestor> struct MessageReadWriter final {
+  template<typename Ancestor, typename Adapter> struct MessageReadWriter final {
     using AncestorType = Ancestor;
+    using AdapterType = Adapter;
     using BufferContainer = std::vector<uint8_t>;
 
    public:
@@ -29,9 +30,9 @@ namespace kagome::network {
     MessageReadWriter& operator=(const MessageReadWriter&) = delete;
 
    public:
-    template<typename T, typename Adapter>
-    BufferContainer::iterator write(const T &t, BufferContainer &out, size_t reserved) {
-      constexpr size_t r = Adapter::size(t) + reserved;
+    template<typename T>
+    BufferContainer::iterator write(const T &t, BufferContainer &out, size_t reserved = 0) {
+      constexpr size_t r = AdapterType<T>::size(t) + reserved;
       out.resize(r);
 
       BufferContainer::iterator loaded = out.end();
@@ -39,7 +40,7 @@ namespace kagome::network {
         loaded = sink_->write(t, out, r);
 
       assert(std::distance(out.begin(), loaded) >= r);
-      return Adapter::write(t, out, loaded);
+      return AdapterType<T>::write(t, out, loaded);
     }
 
    private:
