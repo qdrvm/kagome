@@ -41,11 +41,6 @@ namespace kagome::consensus::grandpa {
                     const std::shared_ptr<const VotingRound> &previous_round,
                     std::shared_ptr<const RoundState> previous_round_state);
 
-    std::weak_ptr<Grandpa> grandpa_;
-
-    bool isPrimary_ = false;
-    std::shared_ptr<const RoundState> previous_round_state_;
-
     enum class Stage {
       INIT,
       START,
@@ -64,10 +59,6 @@ namespace kagome::consensus::grandpa {
 
       COMPLETED
     };
-
-    Stage stage_ = Stage::INIT;
-
-    std::function<void()> on_complete_handler_;
 
     // Start/stop round
 
@@ -220,11 +211,20 @@ namespace kagome::consensus::grandpa {
                   const GrandpaJustification &justification) const;
 
    private:
+    std::weak_ptr<Grandpa> grandpa_;
+
+	  Stage stage_ = Stage::INIT;
+    bool isPrimary_ = false;
+
+    std::shared_ptr<const RoundState> previous_round_state_;
+	  std::shared_ptr<RoundState> current_round_state_;
+
+    std::function<void()> on_complete_handler_;
+
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
     const Duration duration_;  // length of round (T in spec)
     TimePoint start_time_;
-    std::shared_ptr<RoundState> current_round_state_;
 
     const Id id_;  // id of current peer
 
@@ -250,7 +250,7 @@ namespace kagome::consensus::grandpa {
     std::vector<bool> precommit_equivocators_;
 
     boost::optional<PrimaryPropose> primary_vote_;
-    bool completable_{false};
+    bool completable_ = false;
   };
 }  // namespace kagome::consensus::grandpa
 

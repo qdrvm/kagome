@@ -38,7 +38,7 @@ namespace kagome::consensus::grandpa {
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
         authority_manager_(std::move(authority_manager)),
-        liveness_checker_(*io_context_) {
+        readiness_checker_(*io_context_) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -81,16 +81,16 @@ namespace kagome::consensus::grandpa {
 
     logger_->debug("Grandpa is starting with round #{}", last_round_number + 1);
 
-    current_round = makeInitialRound(last_round_number, last_round_state);
+	  current_round_ = makeInitialRound(last_round_number, last_round_state);
 
     // Planning play round
-    boost::asio::post(*io_context_, [wp = current_round->weak_from_this()] {
+    boost::asio::post(*io_context_, [wp = current_round_->weak_from_this()] {
       if (auto round = wp.lock()) {
         round->play();
       }
     });
 
-    readinessCheck();
+//    readinessCheck();
     return true;
   }
 
@@ -100,8 +100,8 @@ namespace kagome::consensus::grandpa {
     // Check if round id was updated.
     // If it was not, that means that grandpa is not working
 
-    liveness_checker_.expires_after(std::chrono::seconds(20));
-    liveness_checker_.async_wait(
+    readiness_checker_.expires_after(std::chrono::seconds(20));
+    readiness_checker_.async_wait(
         [wp = weak_from_this(), current_round_id = round_id](const auto &ec) {
           auto grandpa = wp.lock();
           if (not grandpa) {
@@ -118,7 +118,7 @@ namespace kagome::consensus::grandpa {
             grandpa->logger_->warn("Round was not completed properly");
             // Planning play round
             boost::asio::post(*grandpa->io_context_,
-                              [wp = grandpa->current_round->weak_from_this()] {
+                              [wp = grandpa->current_round_->weak_from_this()] {
                                 if (auto round = wp.lock()) {
                                   round->play();
                                 }
@@ -284,21 +284,21 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::executeNextRound() {
     logger_->debug("Execute next round #{} -> #{}",
-                   current_round->roundNumber(),
-                   current_round->roundNumber() + 1);
-    previous_round.swap(current_round);
-    previous_round->end();
-    current_round = makeNextRound(previous_round);
-    current_round->play();
+                   current_round_->roundNumber(),
+                   current_round_->roundNumber() + 1);
+    previous_round_.swap(current_round_);
+    previous_round_->end();
+	  current_round_ = makeNextRound(previous_round_);
+    current_round_->play();
   }
 
   void GrandpaImpl::onVoteMessage(const VoteMessage &msg) {
     std::shared_ptr<VotingRound> target_round;
-    if (current_round && current_round->roundNumber() == msg.round_number) {
-      target_round = current_round;
-    } else if (previous_round
-               && previous_round->roundNumber() == msg.round_number) {
-      target_round = previous_round;
+    if (current_round_ && current_round_->roundNumber() == msg.round_number) {
+      target_round = current_round_;
+    } else if (previous_round_
+               && previous_round_->roundNumber() == msg.round_number) {
+      target_round = previous_round_;
     } else {
       return;
     }
@@ -347,11 +347,11 @@ namespace kagome::consensus::grandpa {
     logger_->debug("Received fin message for round: {}", f.round_number);
 
     std::shared_ptr<VotingRound> target_round;
-    if (current_round && current_round->roundNumber() == f.round_number) {
-      target_round = current_round;
-    } else if (previous_round
-               && previous_round->roundNumber() == f.round_number) {
-      target_round = previous_round;
+    if (current_round_ && current_round_->roundNumber() == f.round_number) {
+      target_round = current_round_;
+    } else if (previous_round_
+               && previous_round_->roundNumber() == f.round_number) {
+      target_round = previous_round_;
     } else {
       return;
     }

@@ -48,16 +48,13 @@ namespace kagome::consensus::grandpa {
     /** @see AppStateManager::takeControl */
     void stop();
 
-    std::shared_ptr<VotingRound> previous_round;
-    std::shared_ptr<VotingRound> current_round;
+    void executeNextRound() override;
 
-    std::shared_ptr<VotingRound> makeInitialRound(
-        RoundNumber previous_round_number,
-        std::shared_ptr<const RoundState> previous_round_state);
+    void onVoteMessage(const VoteMessage &msg) override;
 
-    std::shared_ptr<VotingRound> makeNextRound(
-        const std::shared_ptr<VotingRound> &previous_round);
+    void onFinalize(const Fin &f) override;
 
+   private:
     /**
      * TODO (PRE-371): kamilsa remove this method when grandpa issue resolved
      *
@@ -66,17 +63,20 @@ namespace kagome::consensus::grandpa {
      */
     void readinessCheck();
 
-    void executeNextRound() override;
-
-    void onVoteMessage(const VoteMessage &msg) override;
-
-    void onFinalize(const Fin &f) override;
-
-   private:
-    void onCompletedRound(outcome::result<CompletedRound> completed_round_res);
-
     outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
     outcome::result<CompletedRound> getLastCompletedRound() const;
+
+    std::shared_ptr<VotingRound> makeInitialRound(
+        RoundNumber previous_round_number,
+        std::shared_ptr<const RoundState> previous_round_state);
+
+    std::shared_ptr<VotingRound> makeNextRound(
+        const std::shared_ptr<VotingRound> &previous_round);
+
+    void onCompletedRound(outcome::result<CompletedRound> completed_round_res);
+
+    std::shared_ptr<VotingRound> previous_round_;
+    std::shared_ptr<VotingRound> current_round_;
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<Environment> environment_;
@@ -87,7 +87,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
-    Timer liveness_checker_;
+    Timer readiness_checker_;
 
     common::Logger logger_ = common::createLogger("Grandpa");
   };
