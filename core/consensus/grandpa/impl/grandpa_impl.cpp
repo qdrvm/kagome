@@ -57,7 +57,7 @@ namespace kagome::consensus::grandpa {
         [wp = weak_from_this()](
             outcome::result<CompletedRound> completed_round_res) {
           if (auto self = wp.lock()) {
-            self->onCompletedRound(completed_round_res);
+            self->onCompletedRound(std::move(completed_round_res));
           }
         });
     return true;

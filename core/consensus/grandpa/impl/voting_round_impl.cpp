@@ -281,7 +281,6 @@ namespace kagome::consensus::grandpa {
     };
 
     on_complete_handler_ = handle_end_condition;
-    // TODO set handler of previous round finalizable
 
     stage_ = Stage::WAITING_RUNS;
   }
@@ -331,23 +330,23 @@ namespace kagome::consensus::grandpa {
     if (not proposed) {
       logger_->error("Primary proposal was not sent in round #{}",
                      proposed.error().message());
-      // TODO Do need to handle?
+      // TODO(xDimon): Do need to handle?
     }
   }
 
   void VotingRoundImpl::doPrevote() {
-    // TODO: make by spec
-    //
-    //    // spec: L Best-Final-Candidate(r-1)
-    //    const auto &best_final_candidate =
-    //        previous_round_state_->best_final_candidate;
-    //
-    //    // spec: N Best-PreVote-Candidate(r)
-    //    const auto &best_prevote_candidate =
-    //        current_round_state_->best_prevote_candidate;
+    // TODO(xDimon): check if it's according to spec
 
-    // Broadcast vote for prevote stage
-    // spec: Broadcast(M vr;pv (N ))
+//    // spec: L Best-Final-Candidate(r-1)
+//    const auto &best_final_candidate =
+//        previous_round_state_->best_final_candidate;
+//
+//    // spec: N Best-PreVote-Candidate(r)
+//    const auto &best_prevote_candidate =
+//        current_round_state_->best_prevote_candidate;
+//
+//		// Broadcast vote for prevote stage
+//		// spec: Broadcast(M vr;pv (N ))
 
     auto prevote = constructPrevote(*previous_round_state_);
     if (prevote) {
@@ -390,12 +389,10 @@ namespace kagome::consensus::grandpa {
         if (not precommitted) {
           logger_->error("Precommit was not sent: {}",
                          precommitted.error().message());
-          return;
         }
         return;
-      } else {
-        logger_->debug("No precommit in round #{}", round_number_);
       }
+      logger_->debug("No precommit in round #{}", round_number_);
       BOOST_ASSERT_MSG(false, "Not possible. Shouldn't get here");
     }
 
