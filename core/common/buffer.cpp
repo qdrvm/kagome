@@ -39,6 +39,10 @@ namespace kagome::common {
     return hex_lower(data_);
   }
 
+  const std::string_view Buffer::toString() const {
+    return std::string_view(reinterpret_cast<const char*>(data_.data()), data_.size()); // NOLINT
+  }
+
   bool Buffer::empty() const {
     return data_.empty();
   }
