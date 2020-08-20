@@ -23,15 +23,33 @@ namespace kagome::application {
    public:
     virtual ~ConfigurationStorage() = default;
 
+    virtual const std::string &name() const = 0;
+
+    virtual const std::string &id() const = 0;
+
+    virtual const std::string &chainType() const = 0;
+
+    /// Return ids of peer nodes of the current node
+    virtual network::PeerList getBootNodes() const = 0;
+
+    virtual const std::vector<std::pair<std::string, size_t>>
+        &telemetryEndpoints() const = 0;
+
+    virtual const std::string &protocolId() const = 0;
+
+    virtual boost::optional<std::reference_wrapper<const std::string>>
+    getProperty(const std::string &property) const = 0;
+
+    virtual const std::set<primitives::BlockHash> &forkBlocks() const = 0;
+
+    virtual const std::set<primitives::BlockHash> &badBlocks() const = 0;
+
+    virtual boost::optional<std::string> consensusEngine() const = 0;
+
     /**
      * @return genesis block of the chain
      */
     virtual GenesisRawConfig getGenesis() const = 0;
-
-    /**
-     * Return ids of peer nodes of the current node
-     */
-    virtual network::PeerList getBootNodes() const = 0;
   };
 
 }  // namespace kagome::application
