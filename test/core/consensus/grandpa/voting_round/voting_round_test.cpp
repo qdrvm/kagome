@@ -121,7 +121,6 @@ class VotingRoundTest : public ::testing::Test {
                                                vote_graph_,
                                                clock_,
                                                io_context_,
-                                               nullptr,
                                                previous_round_state_);
   }
 

@@ -40,9 +40,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteTracker> precommits,
       std::shared_ptr<VoteGraph> graph,
       std::shared_ptr<Clock> clock,
-      std::shared_ptr<boost::asio::io_context> io_context,
-      const std::shared_ptr<const VotingRound> &previous_round,
-      std::shared_ptr<const RoundState> previous_round_state)
+      std::shared_ptr<boost::asio::io_context> io_context)
       : grandpa_(grandpa),
         voter_set_{config.voters},
         round_number_{config.round_number},
@@ -67,24 +65,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(env_ != nullptr);
     BOOST_ASSERT(graph_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
-
-    if (previous_round) {
-      previous_round_state_ = previous_round->state();
-    } else {
-      previous_round_state_ = std::move(previous_round_state);
-    }
-    BOOST_ASSERT(previous_round_state_ != nullptr);
-
-    current_round_state_ = std::make_shared<RoundState>(RoundState{
-        .last_finalized_block = previous_round_state_->finalized.value_or(
-            previous_round_state_->last_finalized_block),
-        .best_prevote_candidate =
-            convertToPrevote(previous_round_state_->finalized.value_or(
-                previous_round_state_->last_finalized_block)),
-        .best_final_candidate =
-            convertToBlockInfo(previous_round_state_->finalized.value_or(
-                previous_round_state_->last_finalized_block))});
-
     BOOST_ASSERT(not voter_set_->empty());
 
     // calculate supermajority
@@ -97,6 +77,70 @@ namespace kagome::consensus::grandpa {
     isPrimary_ = voter_set_->voters().at(index) == id_;
 
     logger_->debug("New round was created: #{}", round_number_);
+  }
+
+  VotingRoundImpl::VotingRoundImpl(
+      const std::shared_ptr<Grandpa> &grandpa,
+      const GrandpaConfig &config,
+      const std::shared_ptr<Environment> &env,
+      const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
+      const std::shared_ptr<VoteTracker> &prevotes,
+      const std::shared_ptr<VoteTracker> &precommits,
+      const std::shared_ptr<VoteGraph> &graph,
+      const std::shared_ptr<Clock> &clock,
+      const std::shared_ptr<boost::asio::io_context> &io_context,
+      const std::shared_ptr<const VotingRound> &previous_round)
+      : VotingRoundImpl(grandpa,
+                        config,
+                        env,
+                        vote_crypto_provider,
+                        prevotes,
+                        precommits,
+                        graph,
+                        clock,
+                        io_context) {
+    previous_round_state_ = previous_round->state();
+    BOOST_ASSERT(previous_round_state_ != nullptr);
+
+    constructCurrentState();
+  }
+
+  VotingRoundImpl::VotingRoundImpl(
+      const std::shared_ptr<Grandpa> &grandpa,
+      const GrandpaConfig &config,
+      const std::shared_ptr<Environment> &env,
+      const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
+      const std::shared_ptr<VoteTracker> &prevotes,
+      const std::shared_ptr<VoteTracker> &precommits,
+      const std::shared_ptr<VoteGraph> &graph,
+      const std::shared_ptr<Clock> &clock,
+      const std::shared_ptr<boost::asio::io_context> &io_context,
+      std::shared_ptr<const RoundState> previous_round_state)
+      : VotingRoundImpl(grandpa,
+                        config,
+                        env,
+                        vote_crypto_provider,
+                        prevotes,
+                        precommits,
+                        graph,
+                        clock,
+                        io_context) {
+    previous_round_state_ = std::move(previous_round_state);
+    BOOST_ASSERT(previous_round_state_ != nullptr);
+
+    constructCurrentState();
+  }
+
+  void VotingRoundImpl::constructCurrentState() {
+    current_round_state_ = std::make_shared<RoundState>(RoundState{
+        .last_finalized_block = previous_round_state_->finalized.value_or(
+            previous_round_state_->last_finalized_block),
+        .best_prevote_candidate =
+            convertToPrevote(previous_round_state_->finalized.value_or(
+                previous_round_state_->last_finalized_block)),
+        .best_final_candidate =
+            convertToBlockInfo(previous_round_state_->finalized.value_or(
+                previous_round_state_->last_finalized_block))});
   }
 
   void VotingRoundImpl::play() {

@@ -26,9 +26,7 @@ namespace kagome::consensus::grandpa {
     using OnCompleted = boost::signals2::signal<void(const CompletedRound &)>;
     using OnCompletedSlotType = OnCompleted::slot_type;
 
-   public:
-    ~VotingRoundImpl() override = default;
-
+   private:
     VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
                     const GrandpaConfig &config,
                     std::shared_ptr<Environment> env,
@@ -37,9 +35,34 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<VoteTracker> precommits,
                     std::shared_ptr<VoteGraph> graph,
                     std::shared_ptr<Clock> clock,
-                    std::shared_ptr<boost::asio::io_context> io_context,
-                    const std::shared_ptr<const VotingRound> &previous_round,
-                    std::shared_ptr<const RoundState> previous_round_state);
+                    std::shared_ptr<boost::asio::io_context> io_context);
+
+   public:
+    ~VotingRoundImpl() override = default;
+
+    VotingRoundImpl(
+        const std::shared_ptr<Grandpa> &grandpa,
+        const GrandpaConfig &config,
+        const std::shared_ptr<Environment> &env,
+        const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
+        const std::shared_ptr<VoteTracker> &prevotes,
+        const std::shared_ptr<VoteTracker> &precommits,
+        const std::shared_ptr<VoteGraph> &graph,
+        const std::shared_ptr<Clock> &clock,
+        const std::shared_ptr<boost::asio::io_context> &io_context,
+        std::shared_ptr<const RoundState> previous_round_state);
+
+    VotingRoundImpl(
+        const std::shared_ptr<Grandpa> &grandpa,
+        const GrandpaConfig &config,
+        const std::shared_ptr<Environment> &env,
+        const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
+        const std::shared_ptr<VoteTracker> &prevotes,
+        const std::shared_ptr<VoteTracker> &precommits,
+        const std::shared_ptr<VoteGraph> &graph,
+        const std::shared_ptr<Clock> &clock,
+        const std::shared_ptr<boost::asio::io_context> &io_context,
+        const std::shared_ptr<const VotingRound> &previous_round);
 
     enum class Stage {
       INIT,
@@ -151,6 +174,8 @@ namespace kagome::consensus::grandpa {
     bool completable() const;
 
    private:
+    void constructCurrentState();
+
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
 

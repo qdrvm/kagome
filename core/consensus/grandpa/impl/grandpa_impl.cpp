@@ -140,7 +140,6 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         clock_,
         io_context_,
-        nullptr,
         std::move(previous_round_state));
 
     return new_round;
@@ -191,8 +190,7 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         clock_,
         io_context_,
-        round,
-        nullptr);
+        round);
     return new_round;
   }
 
