@@ -13,6 +13,11 @@
 
 namespace kagome::api::system::request {
 
+  /**
+   * @brief Get the chain's type. Given as a string identifier
+   * @see
+   *  https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#system_chain
+   */
   class Chain final {
    public:
     Chain(const Chain &) = delete;

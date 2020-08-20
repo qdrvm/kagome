@@ -21,7 +21,7 @@ namespace kagome::api {
     virtual ~StateApi() = default;
 
     virtual void setApiService(
-		    const std::shared_ptr<api::ApiService> &api_service) = 0;
+        const std::shared_ptr<api::ApiService> &api_service) = 0;
 
     virtual outcome::result<common::Buffer> getStorage(
         const common::Buffer &key) const = 0;

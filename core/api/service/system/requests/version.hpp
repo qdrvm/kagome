@@ -13,6 +13,10 @@
 
 namespace kagome::api::system::request {
 
+  /**
+   * @brief Get the node implementation's version. Should be a semver string
+   * @see https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#system_version
+   */
   class Version final {
    public:
     Version(const Version &) = delete;

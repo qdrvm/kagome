@@ -7,7 +7,6 @@
 #define KAGOME_CORE_API_SERVICE_HPP
 
 #include <functional>
-#include <gsl/span>
 #include <mutex>
 #include <unordered_map>
 

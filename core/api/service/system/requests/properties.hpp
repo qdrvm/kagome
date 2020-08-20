@@ -13,6 +13,12 @@
 
 namespace kagome::api::system::request {
 
+  /**
+   * @brief Get a custom set of properties as a JSON object, defined in the
+   *  chain spec
+   * @see
+   *  https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#system_properties
+   */
   class Properties final {
    public:
     Properties(Properties const &) = delete;

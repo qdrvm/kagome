@@ -15,8 +15,8 @@ namespace kagome::api::system {
 
   class SystemJrpcProcessor : public JRpcProcessor {
    public:
-		  SystemJrpcProcessor(std::shared_ptr<JRpcServer> server,
-                       std::shared_ptr<SystemApi> api);
+    SystemJrpcProcessor(std::shared_ptr<JRpcServer> server,
+                        std::shared_ptr<SystemApi> api);
     ~SystemJrpcProcessor() override = default;
 
     void registerHandlers() override;
@@ -26,5 +26,5 @@ namespace kagome::api::system {
     std::shared_ptr<JRpcServer> server_;
   };
 
-}  // namespace kagome::api
+}  // namespace kagome::api::system
 #endif  // KAGOME_API_SYSTEM_SYSTEMJRPCPROCESSOR

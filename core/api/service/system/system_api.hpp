@@ -10,11 +10,13 @@
 
 namespace kagome::api {
 
+  /// Auxiliary class that providing access for some app's parts over RPC
   class SystemApi {
    public:
     virtual ~SystemApi() = default;
 
-    virtual std::shared_ptr<application::ConfigurationStorage> getConfig() const = 0;
+    virtual std::shared_ptr<application::ConfigurationStorage> getConfig()
+        const = 0;
   };
 
 }  // namespace kagome::api

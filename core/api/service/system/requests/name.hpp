@@ -13,6 +13,10 @@
 
 namespace kagome::api::system::request {
 
+  /**
+   * @brief Get the node's implementation name
+   * @see https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#system_name
+   */
   class Name final {
    public:
     Name(const Name &) = delete;

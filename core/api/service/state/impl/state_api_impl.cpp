@@ -44,7 +44,7 @@ namespace kagome::api {
 
   void StateApiImpl::setApiService(
       std::shared_ptr<api::ApiService> const &api_service) {
-  	BOOST_ASSERT(api_service != nullptr);
+    BOOST_ASSERT(api_service != nullptr);
     api_service_ = api_service;
   }
 
