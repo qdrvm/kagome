@@ -7,7 +7,8 @@
 
 #include "common/visitor.hpp"
 #include "network/common.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
+//#include "network/helpers/scale_message_read_writer.hpp"
+#include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/rpc.hpp"
 
 namespace kagome::network {
