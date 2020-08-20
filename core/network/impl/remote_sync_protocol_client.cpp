@@ -35,7 +35,7 @@ namespace kagome::network {
                         request.to->toHex());
           }
         });
-    network::RPC<network::ScaleMessageReadWriter>::
+    network::RPC<network::ProtobufMessageReadWriter>::
         write<network::BlocksRequest, network::BlocksResponse>(
             host_, peer_info_, network::kSyncProtocol, request, std::move(cb));
   }

@@ -11,6 +11,8 @@
 #include <gsl/span>
 
 namespace kagome::network {
+  struct NoSink {};
+
   /**
    * Chain specific messages read-writer
    */
@@ -30,21 +32,18 @@ namespace kagome::network {
 
    public:
     template<typename T>
-    BufferContainer::iterator write(const T &t, BufferContainer &out, size_t reserved = 0) {
-      constexpr size_t r = AdapterType<T>::size(t) + reserved;
+    static BufferContainer::iterator write(const T &t, BufferContainer &out, size_t reserved = 0ull) {
+      const size_t r = AdapterType::size(t) + reserved;
       out.resize(r);
 
-      BufferContainer::iterator loaded = sink_->write(t, out, r);
+      BufferContainer::iterator loaded = AncestorType::write(t, out, r);
       assert(std::distance(out.begin(), loaded) >= r);
-      return AdapterType<T>::write(t, out, loaded);
+      return AdapterType::write(t, out, loaded);
     }
 
-   private:
-    AncestorType sink_;
   };
 
-  template<typename Adapter> struct MessageReadWriter final {
-    using AncestorType = Ancestor;
+  template<typename Adapter> struct MessageReadWriter<Adapter, NoSink> final {
     using AdapterType = Adapter;
     using BufferContainer = std::vector<uint8_t>;
 
@@ -59,10 +58,10 @@ namespace kagome::network {
 
    public:
     template<typename T>
-    BufferContainer::iterator write(const T &t, BufferContainer &out, size_t reserved = 0) {
-      constexpr size_t r = AdapterType<T>::size(t) + reserved;
+    static BufferContainer::iterator write(const T &t, BufferContainer &out, size_t reserved = 0) {
+      const size_t r = AdapterType::size(t) + reserved;
       out.resize(r);
-      return AdapterType<T>::write(t, out, out.end());
+      return AdapterType::write(t, out, out.end());
     }
   };
 

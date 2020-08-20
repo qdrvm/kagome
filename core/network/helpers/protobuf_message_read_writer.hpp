@@ -70,20 +70,17 @@ namespace kagome::network {
      */
     template <typename MsgType>
     void write(const MsgType &msg, libp2p::basic::Writer::WriteCallbackFunc cb) const {
-      using ProtobufRW = MessageReadWriter<DummyAdapter<MsgType>>;
+      using ProtobufRW = MessageReadWriter<DummyAdapter<MsgType>, NoSink>;
       using UVarRW = MessageReadWriter<DummyAdapter<MsgType>, ProtobufRW>;
 
-      auto encoded_msg_res = scale::encode(msg);
-      if (!encoded_msg_res) {
-        return cb(encoded_msg_res.error());
-      }
-      auto msg_ptr = std::make_shared<std::vector<uint8_t>>(
-          std::move(encoded_msg_res.value()));
+      std::vector<uint8_t> out;
+      auto it = UVarRW::write(msg, out);
 
-      read_writer_->write(*msg_ptr,
-                          [self{shared_from_this()},
-                              msg_ptr,
-                              cb = std::move(cb)](auto &&write_res) {
+      gsl::span<uint8_t> data(&*it, out.size() - std::distance(out.begin(), it));
+      assert(!data.empty());
+
+      read_writer_->write(data,
+                          [self{shared_from_this()}, out{std::move(out)}, cb = std::move(cb)](auto &&write_res) {
                             if (!write_res) {
                               return cb(write_res.error());
                             }
