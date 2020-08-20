@@ -55,14 +55,7 @@ namespace kagome::consensus::grandpa {
     void onFinalize(const Fin &f) override;
 
    private:
-    /**
-     * TODO (PRE-371): kamilsa remove this method when grandpa issue resolved
-     *
-     * Start timer which constantly checks if grandpa rounds are running. If not
-     * relaunches grandpa
-     */
-    void readinessCheck();
-
+    std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);
     outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
     outcome::result<CompletedRound> getLastCompletedRound() const;
 
@@ -87,7 +80,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
-    Timer readiness_checker_;
 
     common::Logger logger_ = common::createLogger("Grandpa");
   };

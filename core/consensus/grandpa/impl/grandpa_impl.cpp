@@ -37,8 +37,7 @@ namespace kagome::consensus::grandpa {
         keypair_{keypair},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
-        authority_manager_(std::move(authority_manager)),
-        readiness_checker_(*io_context_) {
+        authority_manager_(std::move(authority_manager)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -81,7 +80,7 @@ namespace kagome::consensus::grandpa {
 
     logger_->debug("Grandpa is starting with round #{}", last_round_number + 1);
 
-	  current_round_ = makeInitialRound(last_round_number, last_round_state);
+    current_round_ = makeInitialRound(last_round_number, last_round_state);
 
     // Planning play round
     boost::asio::post(*io_context_, [wp = current_round_->weak_from_this()] {
@@ -90,43 +89,10 @@ namespace kagome::consensus::grandpa {
       }
     });
 
-//    readinessCheck();
     return true;
   }
 
   void GrandpaImpl::stop() {}
-
-  void GrandpaImpl::readinessCheck() {
-    // Check if round id was updated.
-    // If it was not, that means that grandpa is not working
-
-    readiness_checker_.expires_after(std::chrono::seconds(20));
-    readiness_checker_.async_wait(
-        [wp = weak_from_this(), current_round_id = round_id](const auto &ec) {
-          auto grandpa = wp.lock();
-          if (not grandpa) {
-            return;
-          }
-          if (ec and ec != boost::asio::error::operation_aborted) {
-            grandpa->logger_->error("Error happened during readiness timer: {}",
-                                    ec.message());
-            return;
-          }
-          // if round id was not updated, that means execution of round was
-          // completed properly, execute again
-          if (current_round_id == round_id) {
-            grandpa->logger_->warn("Round was not completed properly");
-            // Planning play round
-            boost::asio::post(*grandpa->io_context_,
-                              [wp = grandpa->current_round_->weak_from_this()] {
-                                if (auto round = wp.lock()) {
-                                  round->play();
-                                }
-                              });
-          }
-          grandpa->readinessCheck();
-        });
-  }
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       RoundNumber previous_round_number,
@@ -156,7 +122,9 @@ namespace kagome::consensus::grandpa {
     GrandpaConfig config{
         .voters = voters,
         .round_number = new_round_number,
-        .duration = std::chrono::milliseconds(1000),  // Where is it from?
+        .duration = std::chrono::milliseconds(
+            333),  // Note: Duration value was gotten from substrate:
+                   // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
         .peer_id = keypair_.public_key};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
@@ -205,7 +173,9 @@ namespace kagome::consensus::grandpa {
     GrandpaConfig config{
         .voters = voters,
         .round_number = new_round_number,
-        .duration = std::chrono::milliseconds(1000),  // Where is it from?
+        .duration = std::chrono::milliseconds(
+            333),  // Note: Duration value was gotten from substrate:
+                   // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
         .peer_id = keypair_.public_key};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
@@ -224,6 +194,18 @@ namespace kagome::consensus::grandpa {
         round,
         nullptr);
     return new_round;
+  }
+
+  std::shared_ptr<VotingRound> GrandpaImpl::selectRound(
+      RoundNumber round_number) {
+    std::shared_ptr<VotingRound> target_round;
+    if (current_round_ && current_round_->roundNumber() == round_number) {
+      target_round = current_round_;
+    } else if (previous_round_
+               && previous_round_->roundNumber() == round_number) {
+      target_round = previous_round_;
+    }
+    return target_round;
   }
 
   outcome::result<std::shared_ptr<VoterSet>> GrandpaImpl::getVoters() const {
@@ -288,20 +270,13 @@ namespace kagome::consensus::grandpa {
                    current_round_->roundNumber() + 1);
     previous_round_.swap(current_round_);
     previous_round_->end();
-	  current_round_ = makeNextRound(previous_round_);
+    current_round_ = makeNextRound(previous_round_);
     current_round_->play();
   }
 
   void GrandpaImpl::onVoteMessage(const VoteMessage &msg) {
-    std::shared_ptr<VotingRound> target_round;
-    if (current_round_ && current_round_->roundNumber() == msg.round_number) {
-      target_round = current_round_;
-    } else if (previous_round_
-               && previous_round_->roundNumber() == msg.round_number) {
-      target_round = previous_round_;
-    } else {
-      return;
-    }
+    std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
+    if (not target_round) return;
 
     // get block info
     auto blockInfo = visit_in_place(msg.vote.message, [](const auto &vote) {
@@ -346,15 +321,8 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onFinalize(const Fin &f) {
     logger_->debug("Received fin message for round: {}", f.round_number);
 
-    std::shared_ptr<VotingRound> target_round;
-    if (current_round_ && current_round_->roundNumber() == f.round_number) {
-      target_round = current_round_;
-    } else if (previous_round_
-               && previous_round_->roundNumber() == f.round_number) {
-      target_round = previous_round_;
-    } else {
-      return;
-    }
+    std::shared_ptr<VotingRound> target_round = selectRound(f.round_number);
+    if (not target_round) return;
 
     target_round->onFinalize(f);
   }
@@ -389,5 +357,4 @@ namespace kagome::consensus::grandpa {
       }
     });
   }
-
 }  // namespace kagome::consensus::grandpa

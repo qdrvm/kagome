@@ -36,8 +36,12 @@ namespace kagome::consensus::grandpa {
     boost::optional<BlockInfo> finalized;
 
     inline bool operator==(const RoundState &round_state) const {
-      return std::tie(best_prevote_candidate, best_final_candidate, finalized)
-             == std::tie(round_state.best_prevote_candidate,
+      return std::tie(last_finalized_block,
+                      best_prevote_candidate,
+                      best_final_candidate,
+                      finalized)
+             == std::tie(round_state.last_finalized_block,
+                         round_state.best_prevote_candidate,
                          round_state.best_final_candidate,
                          round_state.finalized);
     }
@@ -50,15 +54,15 @@ namespace kagome::consensus::grandpa {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const RoundState &state) {
-    return s << state.best_prevote_candidate << state.best_final_candidate
-             << state.finalized;
+    return s << state.last_finalized_block << state.best_prevote_candidate
+             << state.best_final_candidate << state.finalized;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, RoundState &state) {
-    return s >> state.best_prevote_candidate >> state.best_final_candidate
-           >> state.finalized;
+    return s >> state.last_finalized_block >> state.best_prevote_candidate
+           >> state.best_final_candidate >> state.finalized;
   }
 
 }  // namespace kagome::consensus::grandpa

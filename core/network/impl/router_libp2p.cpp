@@ -40,14 +40,16 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
 
+    // FIXME(xDimon): https://github.com/soramitsu/kagome/issues/495
+    //  Uncomment after issue will be resolved
     for (const auto &peer_info : peer_list.peers) {
-//      if (peer_info.id != own_peer_info.id) {
-        gossiper_->reserveStream(peer_info, {});
-//      } else {
-//        auto stream = std::make_shared<LoopbackStream>(own_peer_info);
-//        loopback_stream_ = stream;
-//        gossiper_->reserveStream(own_peer_info, std::move(stream));
-//      }
+      // if (peer_info.id != own_peer_info.id) {
+      gossiper_->reserveStream(peer_info, {});
+      // } else {
+      //   auto stream = std::make_shared<LoopbackStream>(own_peer_info);
+      //   loopback_stream_ = stream;
+      //   gossiper_->reserveStream(own_peer_info, std::move(stream));
+      // }
     }
   }
 

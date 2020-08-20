@@ -429,6 +429,7 @@ ACTION_P(onFinalize, test_fixture) {
  */
 TEST_F(VotingRoundTest, SunnyDayScenario) {
   auto base_block_hash = previous_round_state_->best_final_candidate.block_hash;
+  auto finalized_block = *previous_round_state_->finalized;
 
   BlockHash best_block_hash = "FC"_H;
   BlockNumber best_block_number = 10;
@@ -501,12 +502,14 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       .WillOnce(Return(outcome::success()));
 
   // check if completed round is as expected
-  Prevote expected_prevote_ghost{best_block_number, best_block_hash};
-  BlockInfo expected_final_estimate{best_block_number, best_block_hash};
+  BlockInfo expected_last_finalized_block = finalized_block;
+  Prevote expected_best_prevote_ghost{best_block_number, best_block_hash};
+  BlockInfo expected_best_final_candidate{best_block_number, best_block_hash};
   auto expected_state = std::make_shared<RoundState>(
-      RoundState{.best_prevote_candidate = expected_prevote_ghost,
-                 .best_final_candidate = expected_final_estimate,
-                 .finalized = expected_final_estimate});
+      RoundState{.last_finalized_block = expected_last_finalized_block,
+                 .best_prevote_candidate = expected_best_prevote_ghost,
+                 .best_final_candidate = expected_best_final_candidate,
+                 .finalized = expected_best_final_candidate});
   CompletedRound expected_completed_round{.round_number = round_number_,
                                           .state = expected_state};
   EXPECT_CALL(

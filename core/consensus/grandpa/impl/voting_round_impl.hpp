@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTINGROUNDIMPL2
-#define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTINGROUNDIMPL2
+#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
+#define KAGOME_CORE_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
 
 #include "consensus/grandpa/voting_round.hpp"
 
@@ -213,11 +213,11 @@ namespace kagome::consensus::grandpa {
    private:
     std::weak_ptr<Grandpa> grandpa_;
 
-	  Stage stage_ = Stage::INIT;
+    Stage stage_ = Stage::INIT;
     bool isPrimary_ = false;
 
     std::shared_ptr<const RoundState> previous_round_state_;
-	  std::shared_ptr<RoundState> current_round_state_;
+    std::shared_ptr<RoundState> current_round_state_;
 
     std::function<void()> on_complete_handler_;
 
@@ -254,4 +254,4 @@ namespace kagome::consensus::grandpa {
   };
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTINGROUNDIMPL2
+#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
