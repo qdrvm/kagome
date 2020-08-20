@@ -3,6 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(protobuf)
-add_subdirectory(helpers)
-add_subdirectory(impl)
+add_proto_library(node_api_proto
+        api.v1.proto
+        )
