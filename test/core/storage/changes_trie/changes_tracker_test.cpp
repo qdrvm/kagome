@@ -18,8 +18,10 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using kagome::api::Session;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
+using kagome::primitives::BlockHash;
 using kagome::primitives::ExtrinsicIndex;
 using kagome::storage::InMemoryStorage;
 using kagome::storage::changes_trie::ChangesTracker;
@@ -30,6 +32,7 @@ using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
+using kagome::subscription::SubscriptionEngine;
 namespace scale = kagome::scale;
 using testing::_;
 using testing::AnyOf;
@@ -41,6 +44,10 @@ using testing::Return;
  * @then changes are passed to the trie successfully
  */
 TEST(ChangesTrieTest, IntegrationWithOverlay) {
+  using SessionPtr = std::shared_ptr<Session>;
+  using SubscriptionEngineType =
+      SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
+
   // GIVEN
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
@@ -48,8 +55,10 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       std::make_shared<InMemoryStorage>(), Buffer{});
   auto serializer =
       std::make_shared<TrieSerializerImpl>(factory, codec, backend);
+  auto subscription_engine = std::make_shared<SubscriptionEngineType>();
   std::shared_ptr<ChangesTracker> changes_tracker =
-      std::make_shared<StorageChangesTrackerImpl>(factory, codec);
+      std::make_shared<StorageChangesTrackerImpl>(
+          factory, codec, subscription_engine);
   EXPECT_OUTCOME_TRUE_1(changes_tracker->onBlockChange("aaa"_hash256, 42));
   auto batch = std::make_shared<PersistentTrieBatchImpl>(
       codec,
@@ -67,20 +76,6 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(42));
 
-//  // WHEN
-//  EXPECT_CALL(changes_trie_builder, startNewTrie("aaa"_hash256))
-//      .WillOnce(Return(std::ref(changes_trie_builder)));
-//  ON_CALL(changes_trie_builder, insertExtrinsicsChange(_, _))
-//      .WillByDefault(testing::Invoke([](auto k, auto v) {
-//        ;
-//        return outcome::success();
-//      }));
-//  EXPECT_CALL(changes_trie_builder,
-//              insertExtrinsicsChange(
-//                  AnyOf(":extrinsic_index"_buf, "abc"_buf, "cde"_buf),
-//                  AnyOf(std::vector<ExtrinsicIndex>{42},
-//                        std::vector<ExtrinsicIndex>{0xffffff})))
-//      .WillRepeatedly(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(
       changes_tracker->constructChangesTrie("aaa"_hash256, {}));
   // THEN SUCCESS

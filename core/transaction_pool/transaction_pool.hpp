@@ -46,11 +46,10 @@ namespace kagome::transaction_pool {
         const Transaction::Hash &txHash) = 0;
 
     /**
-     * Remove several transactions from the pool
+     * Trying to remove several transactions from the pool
      * @see removeOne()
      */
-    virtual outcome::result<void> remove(
-        const std::vector<Transaction::Hash> &txHashes) = 0;
+    virtual void remove(const std::vector<Transaction::Hash> &txHashes) = 0;
 
     /**
      * @return transactions ready to included in the next block, sorted by their

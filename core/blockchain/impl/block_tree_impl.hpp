@@ -132,9 +132,13 @@ namespace kagome::blockchain {
     BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
                                     bool ascending,
                                     uint64_t maximum) override;
+
     BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,
         const primitives::BlockHash &bottom_block) override;
+
+    bool hasDirectChain(const primitives::BlockHash &ancestor,
+                        const primitives::BlockHash &descendant) override;
 
     BlockHashVecRes longestPath() override;
 

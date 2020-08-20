@@ -9,4 +9,6 @@ add_executable(kagome_full_syncing
 target_link_libraries(kagome_full_syncing
     syncing_node_application
     Boost::program_options
+    app_config_impl
     )
+kagome_install(kagome_full_syncing)

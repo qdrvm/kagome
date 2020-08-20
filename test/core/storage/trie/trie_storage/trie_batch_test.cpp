@@ -8,24 +8,31 @@
 
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
-#include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
 
 using namespace kagome::storage::trie;
+using kagome::api::Session;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
+using kagome::primitives::BlockHash;
 using kagome::storage::face::WriteBatch;
+using kagome::subscription::SubscriptionEngine;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
+
+using SessionPtr = std::shared_ptr<Session>;
+using SubscriptionEngineType =
+    SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
 
 class TrieBatchTest : public test::BaseLevelDB_Test {
  public:
@@ -181,7 +188,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       std::make_shared<TrieStorageBackendImpl>(std::move(db), kNodePrefix));
   auto trie =
       TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
-           .value();
+          .value();
   auto batch = trie->getPersistentBatch().value();
 
   EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "111"_buf));
@@ -200,7 +207,8 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 }
 
 TEST_F(TrieBatchTest, TopperBatchAtomic) {
-  std::shared_ptr<PersistentTrieBatch> p_batch = trie->getPersistentBatch().value();
+  std::shared_ptr<PersistentTrieBatch> p_batch =
+      trie->getPersistentBatch().value();
   EXPECT_OUTCOME_TRUE_1(p_batch->put("123"_buf, "abc"_buf));
   EXPECT_OUTCOME_TRUE_1(p_batch->put("678"_buf, "abc"_buf));
 

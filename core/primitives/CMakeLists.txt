@@ -25,3 +25,4 @@ target_link_libraries(primitives
     scale
     blob
     )
+kagome_install(primitives)

@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 MAINTAINER Bohdan Vanieiev <bogdan@soramitsu.co.jp>
 
@@ -14,16 +14,19 @@ RUN apt-get update && \
         python3-pip \
         python3-setuptools \
     && wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
-    add-apt-repository -y "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main" && \
-    add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    add-apt-repository -y "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-10 main" && \
+    add-apt-repository -y ppa:ubuntu-toolchain-r/test \
+    && rm -rf /var/lib/apt/lists/*
 
 # install cmake and dev dependencies
-RUN python3 -m pip install --upgrade pip
-RUN pip3 install scikit-build cmake requests gitpython gcovr pyyaml
+RUN python3 -m pip install --no-cache-dir --upgrade pip
+RUN pip3 install --no-cache-dir scikit-build cmake requests gitpython gcovr pyyaml
 
 # install rustc
 ENV RUST_VERSION=nightly-2019-07-07
-ENV PATH="/root/.cargo/bin:${PATH}"
+ENV RUSTUP_HOME=/root/.rustup
+ENV CARGO_HOME=/root/.cargo
+ENV PATH="${CARGO_HOME}/bin:${PATH}"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION} && \
     rustup default ${RUST_VERSION}
 
@@ -36,6 +39,8 @@ RUN apt-get update && apt-get upgrade -y && \
         g++-8 \
         gcc-9 \
         g++-9 \
+        gcc-10 \
+        g++-10 \
         llvm-8 \
         clang-8 \
         clang-tidy-8 \
@@ -46,6 +51,7 @@ RUN apt-get update && apt-get upgrade -y && \
         ninja-build \
         vim \
         unzip\
+        docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # install sonar cli
@@ -73,11 +79,3 @@ RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gc
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-8         90 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-8       90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3              90
-
-# soramitsu/kagome-dev:8 is used as cache,
-# if you build fresh image kagome build will fail: 'hunter ERROR: sr25519'
-# TODO change image to alpine and move this block up.
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y \
-      docker.io \
-    && rm -rf /var/lib/apt/lists/*

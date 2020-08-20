@@ -14,6 +14,9 @@ namespace kagome::crypto {
 
   enum class Secp256k1ProviderError {
     INVALID_ARGUMENT = 1,
+    INVALID_V_VALUE,
+    INVALID_R_OR_S_VALUE,
+    INVALID_SIGNATURE,
     RECOVERY_FAILED,
   };
 
@@ -23,7 +26,7 @@ namespace kagome::crypto {
 
     Secp256k1ProviderImpl();
 
-    outcome::result<secp256k1::ExpandedPublicKey> recoverPublickeyUncompressed(
+    outcome::result<secp256k1::UncompressedPublicKey> recoverPublickeyUncompressed(
         const secp256k1::RSVSignature &signature,
         const secp256k1::MessageHash &message_hash) const override;
 

@@ -9,10 +9,9 @@
 #include <deque>
 
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 #include <gsl/span>
 #include "scale/detail/fixed_witdh_integer.hpp"
-#include "scale/detail/tuple.hpp"
-#include "scale/detail/variant.hpp"
 
 namespace kagome::scale {
   /**
@@ -42,14 +41,17 @@ namespace kagome::scale {
     }
 
     /**
-     * @brief scale-encodes tuple of values
+     * @brief scale-encodes tuple
      * @tparam T enumeration of types
-     * @param v tuple value
+     * @param v tuple
      * @return reference to stream
      */
-    template <class... T>
-    ScaleEncoderStream &operator<<(const std::tuple<T...> v) {
-      return detail::encodeTuple(v, *this);
+    template <class... Ts>
+    ScaleEncoderStream &operator<<(const std::tuple<Ts...> &v) {
+      if constexpr (sizeof...(Ts) > 0) {
+        encodeElementOfTuple<0>(v);
+      }
+      return *this;
     }
 
     /**
@@ -60,7 +62,36 @@ namespace kagome::scale {
      */
     template <class... T>
     ScaleEncoderStream &operator<<(const boost::variant<T...> &v) {
-      return detail::encodeVariant(v, *this);
+      tryEncodeAsOneOfVariant<0>(v);
+      return *this;
+    }
+
+    /**
+     * @brief scale-encodes sharead_ptr value
+     * @tparam T type list
+     * @param v value to encode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleEncoderStream &operator<<(const std::shared_ptr<T> &v) {
+      if (v == nullptr) {
+        common::raise(EncodeError::DEREF_NULLPOINTER);
+      }
+      return *this << *v;
+    }
+
+    /**
+     * @brief scale-encodes unique_ptr value
+     * @tparam T type list
+     * @param v value to encode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleEncoderStream &operator<<(const std::unique_ptr<T> &v) {
+      if (v == nullptr) {
+        common::raise(EncodeError::DEREF_NULLPOINTER);
+      }
+      return *this << *v;
     }
 
     /**
@@ -71,6 +102,17 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleEncoderStream &operator<<(const std::vector<T> &c) {
+      return encodeCollection(c.size(), c.begin(), c.end());
+    }
+
+    /**
+     * @brief scale-encodes collection of same time items
+     * @tparam T type of item
+     * @param c collection to encode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleEncoderStream &operator<<(const std::list<T> &c) {
       return encodeCollection(c.size(), c.begin(), c.end());
     }
 
@@ -181,6 +223,26 @@ namespace kagome::scale {
     ScaleEncoderStream &operator<<(const CompactInteger &v);
 
    protected:
+    template <size_t I, class... Ts>
+    void encodeElementOfTuple(const std::tuple<Ts...> &v) {
+      *this << std::get<I>(v);
+      if constexpr (sizeof...(Ts) > I + 1) {
+        encodeElementOfTuple<I + 1>(v);
+      }
+    }
+
+    template <uint8_t I, class... Ts>
+    void tryEncodeAsOneOfVariant(const boost::variant<Ts...> &v) {
+      using T = std::tuple_element_t<I, std::tuple<Ts...>>;
+      if (v.type() == typeid(T)) {
+        *this << I << boost::get<T>(v);
+        return;
+      }
+      if constexpr (sizeof...(Ts) > I + 1) {
+        tryEncodeAsOneOfVariant<I + 1>(v);
+      }
+    }
+
     /**
      * @brief scale-encodes any collection
      * @tparam It iterator over collection of bytes

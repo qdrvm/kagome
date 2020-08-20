@@ -29,7 +29,8 @@ namespace kagome::extensions {
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
+        std::shared_ptr<crypto::Bip39Provider> bip39_provider,
+        MiscExtension::CoreFactoryMethod core_factory_method);
 
     ~ExtensionImpl() override = default;
 
@@ -59,6 +60,11 @@ namespace kagome::extensions {
         runtime::WasmSize value_length,
         runtime::WasmSize value_offset) override;
 
+    runtime::WasmSpan ext_storage_read_version_1(
+        runtime::WasmSpan key,
+        runtime::WasmSpan value_out,
+        runtime::WasmOffset offset) override;
+
     void ext_set_storage(runtime::WasmPointer key_data,
                          runtime::WasmSize key_length,
                          runtime::WasmPointer value_data,
@@ -76,19 +82,52 @@ namespace kagome::extensions {
 
     void ext_storage_root(runtime::WasmPointer result) const override;
 
+    // ------------------------ Storage extensions v1 ------------------------
+
+    void ext_storage_set_version_1(runtime::WasmSpan key,
+                                   runtime::WasmSpan value) override;
+
+    runtime::WasmSpan ext_storage_get_version_1(runtime::WasmSpan key) override;
+
+    void ext_storage_clear_version_1(runtime::WasmSpan key_data) override;
+
+    runtime::WasmSize ext_storage_exists_version_1(
+        runtime::WasmSpan key_data) const override;
+
+    void ext_storage_clear_prefix_version_1(runtime::WasmSpan prefix) override;
+
+    runtime::WasmPointer ext_storage_root_version_1() override;
+
+    runtime::WasmPointer ext_storage_changes_root_version_1(
+        runtime::WasmSpan parent_hash) override;
+
+    runtime::WasmSpan ext_storage_next_key_version_1(
+        runtime::WasmSpan key) const override;
+
+    runtime::WasmPointer ext_trie_blake2_256_root_version_1(
+        runtime::WasmSpan values_data) override;
+
+    runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_1(
+        runtime::WasmSpan values_data) override;
+
     // -------------------------Memory extensions--------------------------
     runtime::WasmPointer ext_malloc(runtime::WasmSize size) override;
 
     void ext_free(runtime::WasmPointer ptr) override;
 
+    // ------------------------Memory extensions v1-------------------------
+    runtime::WasmPointer ext_allocator_malloc_version_1(
+        runtime::WasmSize size) override;
+
+    void ext_allocator_free_version_1(runtime::WasmPointer ptr) override;
+
     // -------------------------I/O extensions--------------------------
     void ext_print_hex(runtime::WasmPointer data,
                        runtime::WasmSize length) override;
 
-    void ext_logging_log_version_1(
-                            runtime::WasmEnum level,
-                            runtime::WasmSpan target,
-                            runtime::WasmSpan message) override;
+    void ext_logging_log_version_1(runtime::WasmEnum level,
+                                   runtime::WasmSpan target,
+                                   runtime::WasmSpan message) override;
 
     void ext_print_num(uint64_t value) override;
 
@@ -163,9 +202,36 @@ namespace kagome::extensions {
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) override;
+
+    // ------------------------- Hashing extension/crypto ---------------
+
+    runtime::WasmPointer ext_hashing_keccak_256_version_1(
+        runtime::WasmSpan data) override;
+
+    runtime::WasmPointer ext_hashing_sha2_256_version_1(
+        runtime::WasmSpan data) override;
+
+    runtime::WasmPointer ext_hashing_blake2_128_version_1(
+        runtime::WasmSpan data) override;
+
+    runtime::WasmPointer ext_hashing_blake2_256_version_1(
+        runtime::WasmSpan data) override;
+
+    runtime::WasmPointer ext_hashing_twox_64_version_1(
+        runtime::WasmSpan data) override;
+
+    runtime::WasmPointer ext_hashing_twox_128_version_1(
+        runtime::WasmSpan data) override;
+
+    runtime::WasmPointer ext_hashing_twox_256_version_1(
+        runtime::WasmSpan data) override;
+
     // -------------------------Misc extensions--------------------------
 
     uint64_t ext_chain_id() const override;
+
+    runtime::WasmResult ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const override;
 
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
@@ -174,6 +240,8 @@ namespace kagome::extensions {
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
 
    private:
+    static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
+
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 

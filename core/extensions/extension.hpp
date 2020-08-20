@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "runtime/types.hpp"
+#include "runtime/wasm_result.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::extensions {
@@ -102,6 +103,17 @@ namespace kagome::extensions {
                                  runtime::WasmSize value_length) = 0;
 
     /**
+     * @brief Reads data from storage with the given key
+     * @param key pointer-size to the key
+     * @param value_out pointer-size to the read data
+     * @param offset in bytes from the data block begin should be read
+     */
+    virtual runtime::WasmSpan ext_storage_read_version_1(
+        runtime::WasmSpan key,
+        runtime::WasmSpan value_out,
+        runtime::WasmOffset offset) = 0;
+
+    /**
      * Calculate ordered trie root from provided values
      * @param values_data pointer to array of values to calculate hash
      * @param lens_data pointer to the array of lengths for values
@@ -132,6 +144,93 @@ namespace kagome::extensions {
      */
     virtual void ext_storage_root(runtime::WasmPointer result) const = 0;
 
+    // ------------------------ Storage extensions v1 ------------------------
+
+    /**
+     * @brief Sets the value under a given key into storage.
+     * @param key memory span containing key
+     * @param value memory span containing value
+     */
+    virtual void ext_storage_set_version_1(runtime::WasmSpan key,
+                                           runtime::WasmSpan value) = 0;
+
+    /**
+     * @brief Retrieves the value associated with the given key from storage.
+     * @param key key memory span containing key
+     * @return value memory span containing scale-encoded optional value
+     */
+    virtual runtime::WasmSpan ext_storage_get_version_1(
+        runtime::WasmSpan key) = 0;
+
+    /**
+     * @brief Clears the storage of the given key and its value.
+     * @param key_data memory span containing key
+     */
+    virtual void ext_storage_clear_version_1(runtime::WasmSpan key_data) = 0;
+
+    /**
+     * @brief Checks whether the given key exists in storage.
+     * @param key_data memory span containing key
+     * @return an i32 integer value equal to 1 if the key exists or a value
+     * equal to 0 if otherwise.
+     */
+    virtual runtime::WasmSize ext_storage_exists_version_1(
+        runtime::WasmSpan key_data) const = 0;
+
+    /**
+     * @brief Clear the storage of each key/value pair where the key starts with
+     * the given prefix.
+     * @param prefix memory span containing prefix
+     */
+    virtual void ext_storage_clear_prefix_version_1(
+        runtime::WasmSpan prefix) = 0;
+
+    /**
+     * @brief Commits all existing operations and computes the resulting storage
+     * root.
+     * @return memory span containing scale-encoded storage root
+     */
+    virtual runtime::WasmPointer ext_storage_root_version_1() = 0;
+
+    /**
+     * Commits all existing operations and gets the resulting change
+     * root. The parent hash is a SCALE encoded change root.
+     * @param parent_hash wasm span containing parent hash
+     * @return wasm span containing scale-encoded optional change root
+     */
+    virtual runtime::WasmPointer ext_storage_changes_root_version_1(
+        runtime::WasmSpan parent_hash) = 0;
+
+    /**
+     * Gets the next key in storage after the given one in lexicographic order.
+     * @param key memory span containing key
+     * @return wasm span containing scale-encoded optional next key
+     */
+    virtual runtime::WasmSpan ext_storage_next_key_version_1(
+        runtime::WasmSpan key) const = 0;
+
+    /**
+     * Conducts a 256-bit Blake2 trie root formed from the iterated items.
+     * @param values_data wasm span containing the iterated items from which the
+     * trie root gets formed. The items consist of a SCALE encoded array
+     * containing arbitrary key/value pairs.
+     * @return wasm span containing the 256-bit trie root result
+     */
+    virtual runtime::WasmPointer ext_trie_blake2_256_root_version_1(
+        runtime::WasmSpan values_data) = 0;
+
+    /**
+     * Conducts a 256-bit Blake2 trie root formed from the enumerated items.
+     * @param values_data wasm span containing the enumerated items from which
+     * the trie root gets formed. The items consist of a SCALE encoded array
+     * containing only values, where the corre-sponding key of each value is the
+     * index of the item in the array, starting at 0. The keys are
+     * little-endian, fixed-size integers.
+     * @return wasm span containing the 256-bit trie root result
+     */
+    virtual runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_1(
+        runtime::WasmSpan values_data) = 0;
+
     // -------------------------Memory extensions--------------------------
     /**
      * allocate wasm memory of given size returning a pointer to the beginning
@@ -148,6 +247,18 @@ namespace kagome::extensions {
      */
     virtual void ext_free(runtime::WasmPointer ptr) = 0;
 
+    // ------------------------Memory extensions v1-------------------------
+    /**
+     * @see Extension::ext_malloc
+     */
+    virtual runtime::WasmPointer ext_allocator_malloc_version_1(
+        runtime::WasmSize size) = 0;
+
+    /**
+     * @see  Extension::ext_free
+     */
+    virtual void ext_allocator_free_version_1(runtime::WasmPointer ptr) = 0;
+
     // -------------------------I/O extensions--------------------------
 
     /**
@@ -156,10 +267,9 @@ namespace kagome::extensions {
      * @param target pointer-size value of the message source
      * @param message pointer-size value of the message content
      */
-    virtual void ext_logging_log_version_1(
-        runtime::WasmEnum level,
-        runtime::WasmSpan target,
-        runtime::WasmSpan message) = 0;
+    virtual void ext_logging_log_version_1(runtime::WasmEnum level,
+                                           runtime::WasmSpan target,
+                                           runtime::WasmSpan message) = 0;
 
     /**
      * Print a hex value
@@ -294,6 +404,29 @@ namespace kagome::extensions {
     virtual runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
 
+    // ------------------------- Hashing extension/crypto ---------------
+
+    virtual runtime::WasmPointer ext_hashing_keccak_256_version_1(
+        runtime::WasmSpan data) = 0;
+
+    virtual runtime::WasmPointer ext_hashing_sha2_256_version_1(
+        runtime::WasmSpan data) = 0;
+
+    virtual runtime::WasmPointer ext_hashing_blake2_128_version_1(
+        runtime::WasmSpan data) = 0;
+
+    virtual runtime::WasmPointer ext_hashing_blake2_256_version_1(
+        runtime::WasmSpan data) = 0;
+
+    virtual runtime::WasmPointer ext_hashing_twox_64_version_1(
+        runtime::WasmSpan data) = 0;
+
+    virtual runtime::WasmPointer ext_hashing_twox_128_version_1(
+        runtime::WasmSpan data) = 0;
+
+    virtual runtime::WasmPointer ext_hashing_twox_256_version_1(
+        runtime::WasmSpan data) = 0;
+
     // -------------------------Crypto extensions v1---------------------
 
     /**
@@ -354,6 +487,9 @@ namespace kagome::extensions {
 
     // -------------------------Misc extensions--------------------------
     virtual uint64_t ext_chain_id() const = 0;
+
+    virtual runtime::WasmResult ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const = 0;
   };
 }  // namespace kagome::extensions
 

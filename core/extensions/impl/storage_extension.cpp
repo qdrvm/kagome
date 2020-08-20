@@ -122,6 +122,23 @@ namespace kagome::extensions {
     return data.value().size();
   }
 
+  runtime::WasmSpan StorageExtension::ext_storage_read_version_1(
+      runtime::WasmSpan key_pos,
+      runtime::WasmSpan value_out,
+      runtime::WasmOffset offset) {
+    static constexpr runtime::WasmSpan kErrorSpan = -1;
+
+    auto [key_ptr, key_size] = runtime::WasmResult(key_pos);
+    auto [value_ptr, value_size] = runtime::WasmResult(value_out);
+
+    auto key = memory_->loadN(key_ptr, key_size);
+    if (auto data = get(key, offset, value_size)) {
+      memory_->storeBuffer(value_ptr, data.value());
+      return runtime::WasmResult(0, data.value().size()).combine();
+    }
+    return kErrorSpan;
+  }
+
   void StorageExtension::ext_set_storage(const runtime::WasmPointer key_data,
                                          runtime::WasmSize key_length,
                                          const runtime::WasmPointer value_data,
@@ -132,14 +149,14 @@ namespace kagome::extensions {
     if (value.toHex().size() < 500) {
       logger_->trace(
           "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
-          key.data(),
+          key.toString(),
           key.toHex(),
-          value.data(),
+          value.toString(),
           value.toHex());
     } else {
       logger_->trace(
           "Set storage. Key: {}, Key hex: {} Value is too big to display",
-          key.data(),
+          key.toString(),
           key.toHex());
     }
 
@@ -265,28 +282,6 @@ namespace kagome::extensions {
     }
   }
 
-  runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
-      runtime::WasmSpan key_span) const {
-    static constexpr runtime::WasmSpan kErrorSpan = -1;
-
-    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
-    auto key_bytes = memory_->loadN(key_ptr, key_size);
-    auto res = getStorageNextKey(key_bytes);
-    if (res.has_error()) {
-      logger_->error("ext_storage_next_key resulted with error: {}",
-                     res.error().message());
-      return kErrorSpan;
-    }
-    auto&& key_opt = res.value();
-    if(auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
-      return memory_->storeBuffer(enc_res.value());
-    } else { // NOLINT(readability-else-after-return)
-      logger_->error("ext_storage_next_key result encoding resulted with error: {}",
-                     enc_res.error().message());
-    }
-    return kErrorSpan;
-  }
-
   outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key,
       runtime::WasmSize offset,
@@ -301,8 +296,14 @@ namespace kagome::extensions {
         data.begin() + offset, data.begin() + offset + data_length));
   }
 
-  outcome::result<boost::optional<Buffer>>
-  StorageExtension::getStorageNextKey(const common::Buffer &key) const {
+  outcome::result<common::Buffer> StorageExtension::get(
+      const common::Buffer &key) const {
+    auto batch = storage_provider_->getCurrentBatch();
+    return batch->get(key);
+  }
+
+  outcome::result<boost::optional<Buffer>> StorageExtension::getStorageNextKey(
+      const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     auto cursor = batch->cursor();
     OUTCOME_TRY(cursor->seek(key));
@@ -313,4 +314,169 @@ namespace kagome::extensions {
     }
     return boost::none;
   }
+
+  void StorageExtension::ext_storage_set_version_1(runtime::WasmSpan key,
+                                                   runtime::WasmSpan value) {
+    auto [key_ptr, key_size] = runtime::WasmResult(key);
+    auto [value_ptr, value_size] = runtime::WasmResult(value);
+    ext_set_storage(key_ptr, key_size, value_ptr, value_size);
+  }
+
+  runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
+      runtime::WasmSpan key) {
+    auto [key_ptr, key_size] = runtime::WasmResult(key);
+    auto key_buffer = memory_->loadN(key_ptr, key_size);
+    auto data = get(key_buffer);
+    if (not data) {
+      logger_->trace("ext_get_storage_into. Val by key {} not found",
+                     key_buffer.toHex());
+      return runtime::WasmMemory::kMaxMemorySize;
+    }
+    if (not data.value().empty()) {
+      logger_->trace("ext_get_storage_into. Key hex: {} , Value hex {}",
+                     key_buffer.toHex(),
+                     data.value().toHex());
+    } else {
+      logger_->trace("ext_get_storage_into. Key hex: {} Value: empty",
+                     key_buffer.toHex());
+    }
+    return memory_->storeBuffer(data.value());
+  }
+
+  void StorageExtension::ext_storage_clear_version_1(
+      runtime::WasmSpan key_data) {
+    auto [key_ptr, key_size] = runtime::WasmResult(key_data);
+    ext_clear_storage(key_ptr, key_size);
+  }
+
+  runtime::WasmSize StorageExtension::ext_storage_exists_version_1(
+      runtime::WasmSpan key_data) const {
+    auto [key_ptr, key_size] = runtime::WasmResult(key_data);
+    return ext_exists_storage(key_ptr, key_size);
+  }
+
+  void StorageExtension::ext_storage_clear_prefix_version_1(
+      runtime::WasmSpan prefix) {
+    auto [prefix_ptr, prefix_size] = runtime::WasmResult(prefix);
+    return ext_clear_prefix(prefix_ptr, prefix_size);
+  }
+
+  runtime::WasmPointer StorageExtension::ext_storage_root_version_1() const {
+    auto hash_size = common::Hash256::size();
+    auto ptr = memory_->allocate(hash_size);
+    ext_storage_root(ptr);
+    return ptr;
+  }
+
+  runtime::WasmPointer StorageExtension::ext_storage_changes_root_version_1(
+      runtime::WasmSpan parent_hash_data) {
+    auto hash_size = common::Hash256::size();
+    auto result = memory_->allocate(hash_size);
+    auto parent_hash_ptr = runtime::WasmResult(parent_hash_data).address;
+    auto bytes_written = ext_storage_changes_root(parent_hash_ptr, result);
+    if (hash_size != bytes_written) {
+      std::terminate();
+    }
+
+    return result;
+  }
+
+  runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
+      runtime::WasmSpan key_span) const {
+    static constexpr runtime::WasmSpan kErrorSpan = -1;
+
+    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
+    auto key_bytes = memory_->loadN(key_ptr, key_size);
+    auto res = getStorageNextKey(key_bytes);
+    if (res.has_error()) {
+      logger_->error("ext_storage_next_key resulted with error: {}",
+                     res.error().message());
+      return kErrorSpan;
+    }
+    auto &&key_opt = res.value();
+    if (auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
+      return memory_->storeBuffer(enc_res.value());
+    } else {  // NOLINT(readability-else-after-return)
+      logger_->error(
+          "ext_storage_next_key result encoding resulted with error: {}",
+          enc_res.error().message());
+    }
+    return kErrorSpan;
+  }
+
+  namespace {
+    /**
+     * @brief type of serialized data for ext_trie_blake2_256_root_version_1
+     */
+    using KeyValueCollection =
+        std::vector<std::pair<common::Buffer, common::Buffer>>;
+    /**
+     * @brief type of serialized data for
+     * ext_trie_blake2_256_ordered_root_version_1
+     */
+    using ValuesCollection = std::vector<common::Buffer>;
+  }  // namespace
+
+  runtime::WasmPointer StorageExtension::ext_trie_blake2_256_root_version_1(
+      runtime::WasmSpan values_data) {
+    auto [ptr, size] = runtime::WasmResult(values_data);
+    const auto &buffer = memory_->loadN(ptr, size);
+    const auto &pairs = scale::decode<KeyValueCollection>(buffer);
+    if (!pairs) {
+      logger_->error("failed to decode pairs: {}", pairs.error().message());
+      std::terminate();
+    }
+
+    auto &&pv = pairs.value();
+    storage::trie::PolkadotCodec codec;
+    if (pv.empty()) {
+      static const auto empty_root = common::Buffer{}.put(codec.hash256({0}));
+      auto res = memory_->storeBuffer(empty_root);
+      return runtime::WasmResult(res).address;
+    }
+    storage::trie::PolkadotTrieImpl trie;
+    for (auto &&p : pv) {
+      auto &&key = p.first;
+      auto &&value = p.second;
+      // already scale-encoded
+      trie.put(key, value);
+    }
+    const auto &enc = codec.encodeNode(*trie.getRoot());
+    if (!enc) {
+      logger_->error("failed to encode trie root: {}", enc.error().message());
+      std::terminate();
+    }
+    const auto &hash = codec.hash256(enc.value());
+
+    std::cout << "res hash = " << hash.toHex() << std::endl;
+
+    auto res = memory_->storeBuffer(hash);
+    return runtime::WasmResult(res).address;
+  }
+
+  runtime::WasmPointer
+  StorageExtension::ext_trie_blake2_256_ordered_root_version_1(
+      runtime::WasmSpan values_data) {
+    auto [ptr, size] = runtime::WasmResult(values_data);
+    const auto &buffer = memory_->loadN(ptr, size);
+    const auto &values = scale::decode<ValuesCollection>(buffer);
+    if (!values) {
+      logger_->error("failed to decode values: {}", values.error().message());
+      std::terminate();
+    }
+
+    const auto &collection = values.value();
+    auto ordered_hash = storage::trie::calculateOrderedTrieHash(
+        collection.begin(), collection.end());
+    if (!ordered_hash.has_value()) {
+      logger_->error(
+          "ext_blake2_256_enumerated_trie_root resulted with an error: {}",
+          ordered_hash.error().message());
+      std::terminate();
+    }
+
+    auto res = memory_->storeBuffer(ordered_hash.value());
+    return runtime::WasmResult(res).address;
+  }
+
 }  // namespace kagome::extensions

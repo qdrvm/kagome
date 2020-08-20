@@ -36,7 +36,8 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_set_child_storage = "ext_set_child_storage";
 
   const static wasm::Name ext_print_hex = "ext_print_hex";
-  const static wasm::Name ext_logging_log_version_1 = "ext_logging_log_version_1";
+  const static wasm::Name ext_logging_log_version_1 =
+      "ext_logging_log_version_1";
   const static wasm::Name ext_print_num = "ext_print_num";
   const static wasm::Name ext_print_utf8 = "ext_print_utf8";
 
@@ -49,30 +50,77 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_twox_128 = "ext_twox_128";
   const static wasm::Name ext_twox_256 = "ext_twox_256";
 
-  const static wasm::Name ext_ed25519_public_keys_v1 =
+  const static wasm::Name ext_chain_id = "ext_chain_id";
+
+  // version 1
+  const static wasm::Name ext_hashing_keccak_256_version_1 =
+      "ext_hashing_keccak_256_version_1";
+  const static wasm::Name ext_hashing_sha2_256_version_1 =
+      "ext_hashing_sha2_256_version_1";
+  const static wasm::Name ext_hashing_blake2_128_version_1 =
+      "ext_hashing_blake2_128_version_1";
+  const static wasm::Name ext_hashing_blake2_256_version_1 =
+      "ext_hashing_blake2_256_version_1";
+  const static wasm::Name ext_hashing_twox_256_version_1 =
+      "ext_hashing_twox_256_version_1";
+  const static wasm::Name ext_hashing_twox_128_version_1 =
+      "ext_hashing_twox_128_version_1";
+  const static wasm::Name ext_hashing_twox_64_version_1 =
+      "ext_hashing_twox_64_version_1";
+
+  const static wasm::Name ext_allocator_malloc_version_1 =
+      "ext_allocator_malloc_version_1";
+  const static wasm::Name ext_allocator_free_version_1 =
+      "ext_allocator_free_version_1";
+
+  const static wasm::Name ext_storage_set_version_1 =
+      "ext_storage_set_version_1";
+  const static wasm::Name ext_storage_get_version_1 =
+      "ext_storage_get_version_1";
+  const static wasm::Name ext_storage_clear_version_1 =
+      "ext_storage_clear_version_1";
+  const static wasm::Name ext_storage_exists_version_1 =
+      "ext_storage_exists_version_1";
+  const static wasm::Name ext_storage_read_version_1 =
+      "ext_storage_read_version_1";
+  const static wasm::Name ext_storage_clear_prefix_version_1 =
+      "ext_storage_clear_prefix_version_1";
+  const static wasm::Name ext_storage_root_version_1 =
+      "ext_storage_root_version_1";
+  const static wasm::Name ext_storage_changes_root_version_1 =
+      "ext_storage_changes_root_version_1";
+  const static wasm::Name ext_storage_next_key_version_1 =
+      "ext_storage_next_key_version_1";
+
+  const static wasm::Name ext_crypto_ed25519_public_keys_version_1 =
       "ext_crypto_ed25519_public_keys_version_1";
-  const static wasm::Name ext_ed25519_generate_v1 =
+  const static wasm::Name ext_crypto_ed25519_generate_version_1 =
       "ext_crypto_ed25519_generate_version_1";
-  const static wasm::Name ext_ed25519_sign_v1 =
+  const static wasm::Name ext_crypto_ed25519_sign_version_1 =
       "ext_crypto_ed25519_sign_version_1";
-  const static wasm::Name ext_ed25519_verify_v1 =
+  const static wasm::Name ext_crypto_ed25519_verify_version_1 =
       "ext_crypto_ed25519_verify_version_1";
 
-  const static wasm::Name ext_sr25519_public_keys_v1 =
+  const static wasm::Name ext_crypto_sr25519_public_keys_version_1 =
       "ext_crypto_sr25519_public_keys_version_1";
-  const static wasm::Name ext_sr25519_generate_v1 =
+  const static wasm::Name ext_crypto_sr25519_generate_version_1 =
       "ext_crypto_sr25519_generate_version_1";
-  const static wasm::Name ext_sr25519_sign_v1 =
+  const static wasm::Name ext_crypto_sr25519_sign_version_1 =
       "ext_crypto_sr25519_sign_version_1";
-  const static wasm::Name ext_sr25519_verify_v2 =
+  const static wasm::Name ext_crypto_sr25519_verify_version_2 =
       "ext_crypto_sr25519_verify_version_2";
 
-  const static wasm::Name ext_secp256k1_ecdsa_recover_v1 =
+  const static wasm::Name ext_crypto_secp256k1_ecdsa_recover_version_1 =
       "ext_crypto_secp256k1_ecdsa_recover_version_1";
-  const static wasm::Name ext_secp256k1_ecdsa_recover_compressed_v1 =
-      "ext_crypto_secp256k1_ecdsa_recover_compressed_version_1";
+  const static wasm::Name
+      ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 =
+          "ext_crypto_secp256k1_ecdsa_recover_compressed_version_1";
 
-  const static wasm::Name ext_chain_id = "ext_chain_id";
+  const static wasm::Name ext_trie_blake2_256_root_version_1 =
+      "ext_trie_blake2_256_root_version_1";
+  const static wasm::Name ext_trie_blake2_256_ordered_root_version_1 =
+      "ext_trie_blake2_256_ordered_root_version_1";
+
   /**
    * @note: some implementation details were taken from
    * https://github.com/WebAssembly/binaryen/blob/master/src/shell-interface.h
@@ -87,8 +135,7 @@ namespace kagome::runtime::binaryen {
                      "storage provider is nullptr");
     auto memory_impl =
         std::make_shared<WasmMemoryImpl>(&(ShellExternalInterface::memory));
-    extension_ = extension_factory->createExtension(
-        memory_impl, std::move(storage_provider));
+    extension_ = extension_factory->createExtension(memory_impl, std::move(storage_provider));
   }
 
   wasm::Literal RuntimeExternalInterface::callImport(
@@ -150,6 +197,15 @@ namespace kagome::runtime::binaryen {
                                                     arguments.at(4).geti32());
         return wasm::Literal(res);
       }
+      /// ext_storage_read_version_1
+      if (import->base == ext_storage_read_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res =
+            extension_->ext_storage_read_version_1(arguments.at(0).geti64(),
+                                                   arguments.at(1).geti64(),
+                                                   arguments.at(2).geti32());
+        return wasm::Literal(res);
+      }
       /// ext_set_storage
       if (import->base == ext_set_storage) {
         checkArguments(import->base.c_str(), 4, arguments.size());
@@ -195,11 +251,9 @@ namespace kagome::runtime::binaryen {
       /// ext_logging_log_version_1
       if (import->base == ext_logging_log_version_1) {
         checkArguments(import->base.c_str(), 3, arguments.size());
-        extension_->ext_logging_log_version_1(
-            arguments.at(0).geti32(),
-            arguments.at(1).geti64(),
-            arguments.at(2).geti64()
-            );
+        extension_->ext_logging_log_version_1(arguments.at(0).geti32(),
+                                              arguments.at(1).geti64(),
+                                              arguments.at(2).geti64());
         return wasm::Literal();
       }
       /// ext_print_num
@@ -294,22 +348,27 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      /// crypto version 1
-      if (import->base == ext_ed25519_public_keys_v1) {
+      // ----------------------- api version 1 ---------------------------
+
+      // ----------------------- crypto functions ------------------------
+      /// ext_crypto_ed25519_public_keys_version_1
+      if (import->base == ext_crypto_ed25519_public_keys_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             extension_->ext_ed25519_public_keys_v1(arguments.at(0).geti32());
         return wasm::Literal(res);
       }
 
-      if (import->base == ext_ed25519_generate_v1) {
+      /// ext_crypto_ed25519_generate_version_1
+      if (import->base == ext_crypto_ed25519_generate_version_1) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = extension_->ext_ed25519_generate_v1(
             arguments.at(0).geti32(), arguments.at(1).geti64());
         return wasm::Literal(res);
       }
 
-      if (import->base == ext_ed25519_sign_v1) {
+      /// ext_crypto_ed25519_sign_version_1
+      if (import->base == ext_crypto_ed25519_sign_version_1) {
         checkArguments(import->base.c_str(), 3, arguments.size());
         auto res = extension_->ext_ed25519_sign_v1(arguments.at(0).geti32(),
                                                    arguments.at(1).geti32(),
@@ -317,7 +376,8 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      if (import->base == ext_ed25519_verify_v1) {
+      /// ext_crypto_ed25519_verify_version_1
+      if (import->base == ext_crypto_ed25519_verify_version_1) {
         checkArguments(import->base.c_str(), 3, arguments.size());
         auto res = extension_->ext_ed25519_verify_v1(arguments.at(0).geti32(),
                                                      arguments.at(1).geti64(),
@@ -325,21 +385,24 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      if (import->base == ext_sr25519_public_keys_v1) {
+      /// ext_crypto_sr25519_public_keys_version_1
+      if (import->base == ext_crypto_sr25519_public_keys_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             extension_->ext_sr25519_public_keys_v1(arguments.at(0).geti32());
         return wasm::Literal(res);
       }
 
-      if (import->base == ext_sr25519_generate_v1) {
+      /// ext_crypto_sr25519_generate_version_1
+      if (import->base == ext_crypto_sr25519_generate_version_1) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = extension_->ext_sr25519_generate_v1(
             arguments.at(0).geti32(), arguments.at(1).geti64());
         return wasm::Literal(res);
       }
 
-      if (import->base == ext_sr25519_sign_v1) {
+      /// ext_crypto_sr25519_sign_version_1
+      if (import->base == ext_crypto_sr25519_sign_version_1) {
         checkArguments(import->base.c_str(), 3, arguments.size());
         auto res = extension_->ext_sr25519_sign_v1(arguments.at(0).geti32(),
                                                    arguments.at(1).geti32(),
@@ -347,7 +410,8 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      if (import->base == ext_sr25519_verify_v2) {
+      /// ext_crypto_sr25519_verify_version_2
+      if (import->base == ext_crypto_sr25519_verify_version_2) {
         checkArguments(import->base.c_str(), 3, arguments.size());
         auto res = extension_->ext_sr25519_verify_v1(arguments.at(0).geti32(),
                                                      arguments.at(1).geti64(),
@@ -355,26 +419,199 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      /// ext_secp256k1_ecdsa_recover_v1
-      if (import->base == ext_secp256k1_ecdsa_recover_v1) {
+      /// ext_crypto_secp256k1_ecdsa_recover_version_1
+      if (import->base == ext_crypto_secp256k1_ecdsa_recover_version_1) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = extension_->ext_crypto_secp256k1_ecdsa_recover_v1(
             arguments.at(0).geti32(), arguments.at(1).geti32());
         return wasm::Literal(res);
       }
 
-      /// ext_secp256k1_ecdsa_recover_compressed_v1
-      if (import->base == ext_secp256k1_ecdsa_recover_compressed_v1) {
+      /// ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
+      if (import->base
+          == ext_crypto_secp256k1_ecdsa_recover_compressed_version_1) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = extension_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
             arguments.at(0).geti32(), arguments.at(1).geti32());
+        return wasm::Literal(res);
+      }
+
+      // ----------------------- hashing functions ------------------------
+
+      /// ext_hashing_keccak_256_version_1
+      if (import->base == ext_hashing_keccak_256_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_hashing_keccak_256_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_hashing_sha2_256_version_1
+      if (import->base == ext_hashing_sha2_256_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_hashing_sha2_256_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_hashing_blake2_128_version_1
+      if (import->base == ext_hashing_blake2_128_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_hashing_blake2_128_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_hashing_blake2_256_version_1
+      if (import->base == ext_hashing_blake2_256_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_hashing_blake2_256_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_hashing_twox_256_version_1
+      if (import->base == ext_hashing_twox_256_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_hashing_twox_256_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_hashing_twox_128_version_1
+      if (import->base == ext_hashing_twox_128_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_hashing_twox_128_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_hashing_twox_64_version_1
+      if (import->base == ext_hashing_twox_64_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res =
+            extension_->ext_hashing_twox_64_version_1(arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_allocator_malloc_version_1
+      if (import->base == ext_allocator_malloc_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_allocator_malloc_version_1(
+            arguments.at(0).geti32());
+        return wasm::Literal(res);
+      }
+
+      // ----------------------- memory functions ------------------------
+
+      /// ext_allocator_malloc_version_1
+      if (import->base == ext_allocator_malloc_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_allocator_malloc_version_1(
+            arguments.at(0).geti32());
+        return wasm::Literal(res);
+      }
+
+      /// ext_allocator_free_version_1
+      if (import->base == ext_allocator_free_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        extension_->ext_allocator_free_version_1(arguments.at(0).geti32());
+        return wasm::Literal();
+      }
+
+      // ----------------------- storage functions ------------------------
+      /// ext_storage_set_version_1
+      if (import->base == ext_storage_set_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        extension_->ext_storage_set_version_1(arguments.at(0).geti64(),
+                                              arguments.at(1).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_storage_get_version_1
+      if (import->base == ext_storage_get_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res =
+            extension_->ext_storage_get_version_1(arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_storage_clear_version_1
+      if (import->base == ext_storage_clear_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        extension_->ext_storage_clear_version_1(arguments.at(0).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_storage_exists_version_1
+      if (import->base == ext_storage_exists_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res =
+            extension_->ext_storage_exists_version_1(arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_storage_read_version_1
+      if (import->base == ext_storage_read_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res =
+            extension_->ext_storage_read_version_1(arguments.at(0).geti64(),
+                                                   arguments.at(1).geti64(),
+                                                   arguments.at(2).geti32());
+        return wasm::Literal(res);
+      }
+
+      /// ext_storage_clear_prefix_version_1
+      if (import->base == ext_storage_clear_prefix_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        extension_->ext_storage_clear_prefix_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_storage_root_version_1
+      if (import->base == ext_storage_root_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        auto res = extension_->ext_storage_root_version_1();
+        return wasm::Literal(res);
+      }
+
+      /// ext_storage_changes_root_version_1
+      if (import->base == ext_storage_changes_root_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_storage_changes_root_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_storage_next_key_version_1
+      if (import->base == ext_storage_next_key_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_storage_next_key_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_trie_blake2_256_root_version_1
+      if (import->base == ext_trie_blake2_256_root_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_trie_blake2_256_root_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_trie_blake2_256_ordered_root_version_1
+      if (import->base == ext_trie_blake2_256_ordered_root_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = extension_->ext_trie_blake2_256_ordered_root_version_1(
+            arguments.at(0).geti64());
         return wasm::Literal(res);
       }
     }
 
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
                   << import->name.str;
-  }
+  }  // namespace kagome::runtime::binaryen
 
   void RuntimeExternalInterface::checkArguments(std::string_view extern_name,
                                                 size_t expected,

@@ -25,7 +25,8 @@ namespace kagome::extensions {
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<crypto::Bip39Provider> bip39_provider)
+      std::shared_ptr<crypto::Bip39Provider> bip39_provider,
+      MiscExtension::CoreFactoryMethod core_factory_method)
       : memory_(memory),
         storage_provider_(std::move(storage_provider)),
         crypto_ext_(memory,
@@ -37,6 +38,7 @@ namespace kagome::extensions {
                     std::move(bip39_provider)),
         io_ext_(memory),
         memory_ext_(memory),
+        misc_ext_(DEFAULT_CHAIN_ID, memory, std::move(core_factory_method)),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
@@ -81,6 +83,13 @@ namespace kagome::extensions {
         key_data, key_length, value_data, value_length, value_offset);
   }
 
+  runtime::WasmSpan ExtensionImpl::ext_storage_read_version_1(
+      runtime::WasmSpan key,
+      runtime::WasmSpan value_out,
+      runtime::WasmOffset offset) {
+    return storage_ext_.ext_storage_read_version_1(key, value_out, offset);
+  }
+
   void ExtensionImpl::ext_set_storage(runtime::WasmPointer key_data,
                                       runtime::WasmSize key_length,
                                       runtime::WasmPointer value_data,
@@ -107,6 +116,55 @@ namespace kagome::extensions {
     return storage_ext_.ext_storage_root(result);
   }
 
+  runtime::WasmSpan ExtensionImpl::ext_storage_next_key_version_1(
+      runtime::WasmSpan key) const {
+    return storage_ext_.ext_storage_next_key_version_1(key);
+  }
+
+  void ExtensionImpl::ext_storage_set_version_1(runtime::WasmSpan key,
+                                                runtime::WasmSpan value) {
+    return storage_ext_.ext_storage_set_version_1(key, value);
+  }
+
+  runtime::WasmSpan ExtensionImpl::ext_storage_get_version_1(
+      runtime::WasmSpan key) {
+    return storage_ext_.ext_storage_get_version_1(key);
+  }
+
+  void ExtensionImpl::ext_storage_clear_version_1(runtime::WasmSpan key_data) {
+    return storage_ext_.ext_storage_clear_version_1(key_data);
+  }
+
+  runtime::WasmSize ExtensionImpl::ext_storage_exists_version_1(
+      runtime::WasmSpan key_data) const {
+    return storage_ext_.ext_storage_exists_version_1(key_data);
+  }
+
+  void ExtensionImpl::ext_storage_clear_prefix_version_1(
+      runtime::WasmSpan prefix) {
+    return storage_ext_.ext_storage_clear_prefix_version_1(prefix);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_storage_root_version_1() {
+    return storage_ext_.ext_storage_root_version_1();
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_storage_changes_root_version_1(
+      runtime::WasmSpan parent_hash) {
+    return storage_ext_.ext_storage_changes_root_version_1(parent_hash);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_trie_blake2_256_root_version_1(
+      runtime::WasmSpan values_data) {
+    return storage_ext_.ext_trie_blake2_256_root_version_1(values_data);
+  }
+
+  runtime::WasmPointer
+  ExtensionImpl::ext_trie_blake2_256_ordered_root_version_1(
+      runtime::WasmSpan values_data) {
+    return storage_ext_.ext_trie_blake2_256_ordered_root_version_1(values_data);
+  }
+
   // -------------------------Memory extensions--------------------------
 
   runtime::WasmPointer ExtensionImpl::ext_malloc(runtime::WasmSize size) {
@@ -117,16 +175,25 @@ namespace kagome::extensions {
     memory_ext_.ext_free(ptr);
   }
 
+  // ------------------------Memory extensions v1-------------------------
+  runtime::WasmPointer ExtensionImpl::ext_allocator_malloc_version_1(
+      runtime::WasmSize size) {
+    return memory_ext_.ext_allocator_malloc_version_1(size);
+  }
+
+  void ExtensionImpl::ext_allocator_free_version_1(runtime::WasmPointer ptr) {
+    return memory_ext_.ext_free(ptr);
+  }
+
   /// I/O extensions
   void ExtensionImpl::ext_print_hex(runtime::WasmPointer data,
                                     runtime::WasmSize length) {
     io_ext_.ext_print_hex(data, length);
   }
 
-  void ExtensionImpl::ext_logging_log_version_1(
-      runtime::WasmEnum level,
-      runtime::WasmSpan target,
-      runtime::WasmSpan message) {
+  void ExtensionImpl::ext_logging_log_version_1(runtime::WasmEnum level,
+                                                runtime::WasmSpan target,
+                                                runtime::WasmSpan message) {
     io_ext_.ext_logging_log_version_1(level, target, message);
   }
 
@@ -244,9 +311,51 @@ namespace kagome::extensions {
     return crypto_ext_.ext_sr25519_verify_v1(sig_data, msg, pubkey_data);
   }
 
+  // ------------------------- Hashing extension/crypto ---------------
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_keccak_256_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_keccak_256_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_sha2_256_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_sha2_256_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_blake2_128_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_blake2_128_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_blake2_256_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_blake2_256_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_twox_64_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_twox_64_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_twox_128_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_twox_128_version_1(data);
+  }
+
+  runtime::WasmPointer ExtensionImpl::ext_hashing_twox_256_version_1(
+      runtime::WasmSpan data) {
+    return crypto_ext_.ext_hashing_twox_256_version_1(data);
+  }
+
   /// misc extensions
   uint64_t ExtensionImpl::ext_chain_id() const {
     return misc_ext_.ext_chain_id();
+  }
+
+  runtime::WasmResult ExtensionImpl::ext_misc_runtime_version_version_1(
+      runtime::WasmSpan data) const {
+    return misc_ext_.ext_misc_runtime_version_version_1(data);
   }
 
   runtime::WasmSpan ExtensionImpl::ext_crypto_secp256k1_ecdsa_recover_v1(

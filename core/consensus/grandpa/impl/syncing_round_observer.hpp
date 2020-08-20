@@ -19,7 +19,7 @@ namespace kagome::consensus::grandpa {
   class SyncingRoundObserver : public RoundObserver {
    public:
     ~SyncingRoundObserver() override = default;
-    SyncingRoundObserver(std::shared_ptr<Environment> environment);
+    explicit SyncingRoundObserver(std::shared_ptr<Environment> environment);
 
     void onFinalize(const Fin &f) override;
 

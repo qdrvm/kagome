@@ -11,6 +11,7 @@ target_link_libraries(http_listener_test
     api_jrpc_server
     api_transport
     api_service
+    buffer
     )
 
 addtest(ws_listener_test
@@ -21,4 +22,5 @@ target_link_libraries(ws_listener_test
     api_jrpc_server
     api_transport
     api_service
+    buffer
     )

@@ -8,13 +8,8 @@
 
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
-#include <crypto/bip39/impl/bip39_provider_impl.hpp>
-#include <crypto/crypto_store/crypto_store_impl.hpp>
-#include <crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp>
-#include <crypto/secp256k1/secp256k1_provider_impl.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
-#include <outcome/outcome.hpp>
 
 #include "api/service/api_service.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
@@ -42,20 +37,29 @@
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "common/outcome_throw.hpp"
+#include "consensus/authority/authority_manager.hpp"
+#include "consensus/authority/authority_update_observer.hpp"
+#include "consensus/authority/impl/authority_manager_impl.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
+#include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
+#include "consensus/grandpa/impl/finalization_composite.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
@@ -68,8 +72,9 @@
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
-#include "runtime/binaryen/module/wasm_module_impl.hpp"
+#include "outcome/outcome.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
+#include "runtime/binaryen/module/wasm_module_impl.hpp"
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
@@ -78,6 +83,7 @@
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
+#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -91,14 +97,6 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
-
-namespace kagome::injector {
-  enum class InjectorError {
-    INDEX_OUT_OF_BOUND = 1,  // index out of bound
-  };
-}
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::injector, InjectorError);
 
 namespace kagome::injector {
   namespace di = boost::di;
@@ -135,6 +133,13 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
+    using SubscriptionEnginePtr = std::shared_ptr<
+        subscription::SubscriptionEngine<common::Buffer,
+                                         std::shared_ptr<api::Session>,
+                                         common::Buffer,
+                                         primitives::BlockHash>>;
+    auto subscription_engine =
+        injector.template create<SubscriptionEnginePtr>();
     auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
@@ -157,7 +162,11 @@ namespace kagome::injector {
                                           std::move(rpc_thread_pool),
                                           std::move(listeners),
                                           std::move(server),
-                                          processors);
+                                          processors,
+                                          std::move(subscription_engine));
+
+    auto state_api = injector.template create<std::shared_ptr<api::StateApiImpl>>();
+    state_api->setApiService(initialized.value());
     return initialized.value();
   }
 
@@ -332,6 +341,43 @@ namespace kagome::injector {
       common::raise(tree.error());
     }
     initialized = tree.value();
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<extensions::ExtensionFactoryImpl> get_extension_factory(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<extensions::ExtensionFactoryImpl>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto tracker =
+        injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
+    auto sr25519_provider =
+        injector.template create<sptr<crypto::SR25519Provider>>();
+    auto ed25519_provider =
+        injector.template create<sptr<crypto::ED25519Provider>>();
+    auto secp256k1_provider =
+        injector.template create<sptr<crypto::Secp256k1Provider>>();
+    auto hasher = injector.template create<sptr<crypto::Hasher>>();
+    auto crypto_store = injector.template create<sptr<crypto::CryptoStore>>();
+    auto bip39_provider =
+        injector.template create<sptr<crypto::Bip39Provider>>();
+
+    auto core_factory_method = [&injector](sptr<runtime::WasmProvider> wasm_provider) {
+      auto core_factory = injector.template create<sptr<runtime::binaryen::CoreFactoryImpl>>();
+      return core_factory->createWithCode(wasm_provider);
+    };
+    initialized =
+        std::make_shared<extensions::ExtensionFactoryImpl>(tracker,
+                                                           sr25519_provider,
+                                                           ed25519_provider,
+                                                           secp256k1_provider,
+                                                           hasher,
+                                                           crypto_store,
+                                                           bip39_provider,
+                                                           core_factory_method);
     return initialized.value();
   }
 
@@ -544,6 +590,22 @@ namespace kagome::injector {
     return *initialized;
   }
 
+  template <class Injector>
+  sptr<consensus::grandpa::FinalizationObserver> get_finalization_observer(
+      const Injector &injector) {
+    static auto instance = boost::optional<
+        std::shared_ptr<consensus::grandpa::FinalizationObserver>>(boost::none);
+    if (instance) {
+      return *instance;
+    }
+
+    instance = std::make_shared<consensus::grandpa::FinalizationComposite>(
+        injector.template create<
+            std::shared_ptr<authority::AuthorityManagerImpl>>());
+
+    return *instance;
+  }
+
   template <typename... Ts>
   auto makeApplicationInjector(
       const std::string &genesis_path,
@@ -628,7 +690,10 @@ namespace kagome::injector {
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
+        di::bind<extensions::ExtensionFactory>.template to(
+            [](auto const &injector) {
+              return get_extension_factory(injector);
+            }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
@@ -639,6 +704,7 @@ namespace kagome::injector {
         di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
         di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
         di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
+        di::bind<runtime::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
@@ -667,6 +733,10 @@ namespace kagome::injector {
             }),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
+        di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
+        di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
+        di::bind<consensus::grandpa::FinalizationObserver>.to(
+            [](auto const &inj) { return get_finalization_observer(inj); }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

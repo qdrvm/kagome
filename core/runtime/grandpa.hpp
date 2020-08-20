@@ -27,7 +27,7 @@ namespace kagome::runtime {
     using ScheduledChange = primitives::ScheduledChange;
     using BlockNumber = primitives::BlockNumber;
     using SessionKey = primitives::SessionKey;
-    using WeightedAuthority = primitives::Authority;
+    using AuthorityList = primitives::AuthorityList;
     using ForcedChange = primitives::ForcedChange;
     using BlockId = primitives::BlockId;
 
@@ -58,7 +58,7 @@ namespace kagome::runtime {
      * @brief calls Grandpa_authorities runtime api function
      * @return collection of current grandpa authorities with their weights
      */
-    virtual outcome::result<std::vector<WeightedAuthority>> authorities(
+    virtual outcome::result<AuthorityList> authorities(
         const primitives::BlockId &block_id) = 0;
   };
 

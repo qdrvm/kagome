@@ -24,7 +24,7 @@ TEST(ThresholdTest, OutputAsInGossamer) {
   c.first = 5;
   c.second = 17;
   primitives::AuthorityIndex authority_index{3};
-  std::vector<primitives::Authority> authorities;
+  primitives::AuthorityList authorities;
   authorities.push_back(primitives::Authority{.weight = 3});
   authorities.push_back(primitives::Authority{.weight = 1});
   authorities.push_back(primitives::Authority{.weight = 4});

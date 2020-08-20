@@ -8,19 +8,15 @@
 
 #include "application/kagome_application.hpp"
 
+#include "application/app_config.hpp"
 #include "injector/block_producing_node_injector.hpp"
 
 namespace kagome::application {
 
   class BlockProducingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
-    using InjectorType = decltype(injector::makeBlockProducingNodeInjector(
-        std::string{},
-        std::string{},
-        std::string{},
-        uint16_t{},
-        boost::asio::ip::tcp::endpoint{},
-        boost::asio::ip::tcp::endpoint{}));
+    using InjectorType =
+        decltype(injector::makeBlockProducingNodeInjector(AppConfigPtr{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -33,16 +29,8 @@ namespace kagome::application {
 
     /**
      * @param kagome_config kagome configuration parameters
-     * @param keys_config keys parameters
      */
-    BlockProducingNodeApplication(
-        const std::string &config_path,
-        const std::string &keystore_path,
-        const std::string &leveldb_path,
-        uint16_t p2p_port,
-        const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-        const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-        uint8_t verbosity);
+    explicit BlockProducingNodeApplication(const AppConfigPtr &app_config);
 
     void run() override;
 

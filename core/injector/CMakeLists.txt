@@ -61,6 +61,7 @@ target_link_libraries(application_injector
     vrf_provider
     waitable_timer
     binaryen_wasm_executor
+    authority_manager
     )
 
 add_library(syncing_node_injector

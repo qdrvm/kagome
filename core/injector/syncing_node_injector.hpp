@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_INJECTOR_SYNCING_NODE_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_SYNCING_NODE_INJECTOR_HPP
 
+#include "application/app_config.hpp"
 #include "consensus/babe/impl/syncing_babe_observer.hpp"
 #include "consensus/grandpa/impl/syncing_round_observer.hpp"
 #include "injector/application_injector.hpp"
@@ -14,7 +15,8 @@
 namespace kagome::injector {
   namespace di = boost::di;
 
-  auto get_peer_info = [](const auto &injector,
+  template<typename Injector>
+  auto get_peer_info(const Injector &injector,
                           uint16_t p2p_port) -> sptr<network::OwnPeerInfo> {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
@@ -45,28 +47,26 @@ namespace kagome::injector {
     initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
                                                          std::move(addresses));
     return initialized.value();
-  };
+  }
 
   template <typename... Ts>
-  auto makeSyncingNodeInjector(
-      const std::string &genesis_path,
-      const std::string &leveldb_path,
-      uint16_t p2p_port,
-      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-      Ts &&... args) {
+  auto makeSyncingNodeInjector(const application::AppConfigPtr &app_config,
+                               Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
 
         // inherit application injector
-        makeApplicationInjector(
-            genesis_path, leveldb_path, rpc_http_endpoint, rpc_ws_endpoint),
+        makeApplicationInjector(app_config->genesis_path(),
+                                app_config->leveldb_path(),
+                                app_config->rpc_http_endpoint(),
+                                app_config->rpc_ws_endpoint()),
 
         // peer info
-        di::bind<network::OwnPeerInfo>.to([p2p_port](const auto &injector) {
-          return get_peer_info(injector, p2p_port);
-        }),
+        di::bind<network::OwnPeerInfo>.to(
+            [p2p_port{app_config->p2p_port()}](const auto &injector) {
+              return get_peer_info(injector, p2p_port);
+            }),
 
         di::bind<network::BabeObserver>.template to<consensus::SyncingBabeObserver>(),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::SyncingRoundObserver>(),

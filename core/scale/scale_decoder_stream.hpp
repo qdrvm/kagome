@@ -10,11 +10,11 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 #include <gsl/span>
+
 #include "common/outcome_throw.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
-#include "scale/detail/tuple.hpp"
-#include "scale/detail/variant.hpp"
 
 namespace kagome::scale {
   class ScaleDecoderStream {
@@ -33,29 +33,76 @@ namespace kagome::scale {
      */
     template <class F, class S>
     ScaleDecoderStream &operator>>(std::pair<F, S> &p) {
-      return *this >> p.first >> p.second;
+      static_assert(!std::is_reference_v<F> && !std::is_reference_v<S>);
+      return *this >> const_cast<std::remove_const_t<F> &>(p.first)  // NOLINT
+             >> const_cast<std::remove_const_t<S> &>(p.second);      // NOLINT
     }
 
     /**
-     * @brief scale-decodes tuple of values
-     * @tparam T enumeration of types
-     * @param v tuple value
+     * @brief scale-decoding of tuple
+     * @tparam T enumeration of tuples types
+     * @param v reference to tuple
      * @return reference to stream
      */
     template <class... T>
     ScaleDecoderStream &operator>>(std::tuple<T...> &v) {
-      return detail::decodeTuple(*this, v);
+      if constexpr (sizeof...(T) > 0) {
+        decodeElementOfTuple<0>(v);
+      }
+      return *this;
     }
 
     /**
-     * @brief scale-decodes variant value
-     * @tparam T type list
+     * @brief scale-decoding of variant
+     * @tparam T enumeration of various types
+     * @param v reference to variant
+     * @return reference to stream
+     */
+    template <class... Ts>
+    ScaleDecoderStream &operator>>(boost::variant<Ts...> &v) {
+      // first byte means type index
+      uint8_t type_index = 0u;
+      *this >> type_index;  // decode type index
+
+      // ensure that index is in [0, types_count)
+      if (type_index >= sizeof...(Ts)) {
+        common::raise(DecodeError::WRONG_TYPE_INDEX);
+      }
+
+      tryDecodeAsOneOfVariant<0>(v, type_index);
+      return *this;
+    }
+
+    /**
+     * @brief scale-decodes shared_ptr value
+     * @tparam T value type
      * @param v value to decode
      * @return reference to stream
      */
-    template <class... T>
-    ScaleDecoderStream &operator>>(boost::variant<T...> &v) {
-      return detail::decodeVariant(*this, v);
+    template <class T>
+    ScaleDecoderStream &operator>>(std::shared_ptr<T> &v) {
+      using mutableT = std::remove_const_t<T>;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
+      v = std::make_shared<mutableT>();
+      return *this >> const_cast<mutableT &>(*v);  // NOLINT
+    }
+
+    /**
+     * @brief scale-decodes unique_ptr value
+     * @tparam T value type
+     * @param v value to decode
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleDecoderStream &operator>>(std::unique_ptr<T> &v) {
+      using mutableT = std::remove_const_t<T>;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
+      v = std::make_unique<mutableT>();
+      return *this >> const_cast<mutableT &>(*v);  // NOLINT
     }
 
     /**
@@ -91,10 +138,14 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleDecoderStream &operator>>(boost::optional<T> &v) {
+      using mutableT = std::remove_const_t<T>;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
       // optional bool is special case of optional values
       // it is encoded as one byte instead of two
       // as described in specification
-      if constexpr (std::is_same<T, bool>::value) {
+      if constexpr (std::is_same<mutableT, bool>::value) {
         v = decodeOptionalBool();
         return *this;
       }
@@ -102,15 +153,12 @@ namespace kagome::scale {
       bool has_value = false;
       *this >> has_value;
       if (!has_value) {
-        v = boost::none;
+        v.reset();
         return *this;
       }
       // decode value
-      T t{};
-      *this >> t;
-      v = t;
-
-      return *this;
+      v.emplace();
+      return *this >> const_cast<mutableT &>(*v);  // NOLINT
     }
 
     /**
@@ -121,29 +169,65 @@ namespace kagome::scale {
     ScaleDecoderStream &operator>>(CompactInteger &v);
 
     /**
+     * @brief decodes vector of items
+     * @tparam T item type
+     * @param v reference to vector
+     * @return reference to stream
+     */
+    template <class T>
+    ScaleDecoderStream &operator>>(std::vector<T> &v) {
+      using mutableT = std::remove_const_t<T>;
+      using size_type = typename std::list<T>::size_type;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
+      CompactInteger size{0u};
+      *this >> size;
+
+      if (size > std::numeric_limits<size_type>::max()) {
+        common::raise(DecodeError::TOO_MANY_ITEMS);
+      }
+      auto item_count = size.convert_to<size_type>();
+
+      std::vector<mutableT> vec;
+      vec.resize(item_count);
+
+      for (size_type i = 0u; i < item_count; ++i) {
+        *this >> vec[i];
+      }
+
+      v = std::move(vec);
+      return *this;
+    }
+
+    /**
      * @brief decodes collection of items
      * @tparam T item type
      * @param v reference to collection
      * @return reference to stream
      */
     template <class T>
-    ScaleDecoderStream &operator>>(std::vector<T> &v) {
-      v.clear();
+    ScaleDecoderStream &operator>>(std::list<T> &v) {
+      using mutableT = std::remove_const_t<T>;
+      using size_type = typename std::list<T>::size_type;
+
+      static_assert(std::is_default_constructible_v<mutableT>);
+
       CompactInteger size{0u};
       *this >> size;
-
-      using size_type = typename std::vector<T>::size_type;
 
       if (size > std::numeric_limits<size_type>::max()) {
         common::raise(DecodeError::TOO_MANY_ITEMS);
       }
       auto item_count = size.convert_to<size_type>();
-      v.reserve(item_count);
+
+      std::list<T> lst;
+      lst.reserve(item_count);
       for (size_type i = 0u; i < item_count; ++i) {
-        T t{};
-        *this >> t;
-        v.push_back(std::move(t));
+        lst.emplace_back();
+        *this >> lst.back();
       }
+      v = std::move(lst);
       return *this;
     }
 
@@ -154,14 +238,12 @@ namespace kagome::scale {
      * @param a reference to the array
      * @return reference to stream
      */
-    template <typename T, size_t size>
+    template <class T, size_t size>
     ScaleDecoderStream &operator>>(std::array<T, size> &a) {
-      // TODO(akvinikym) PRE-285: bad implementation: maybe move to another file
-      // and implement it
-      std::vector<T> v;
-      v.reserve(size);
-      *this >> v;
-      std::copy(v.begin(), v.end(), a.begin());
+      using mutableT = std::remove_const_t<T>;
+      for (size_t i = 0u; i < size; ++i) {
+        *this >> const_cast<mutableT &>(a[i]);  // NOLINT
+      }
       return *this;
     }
 
@@ -203,6 +285,30 @@ namespace kagome::scale {
      * @return boost::optional<bool> value
      */
     boost::optional<bool> decodeOptionalBool();
+
+    template <size_t I, class... Ts>
+    void decodeElementOfTuple(std::tuple<Ts...> &v) {
+      using T = std::remove_const_t<std::tuple_element_t<I, std::tuple<Ts...>>>;
+      *this >> const_cast<T &>(std::get<I>(v));  // NOLINT
+      if constexpr (sizeof...(Ts) > I + 1) {
+        decodeElementOfTuple<I + 1>(v);
+      }
+    }
+
+    template <size_t I, class... Ts>
+    void tryDecodeAsOneOfVariant(boost::variant<Ts...> &v, size_t i) {
+      using T = std::remove_const_t<std::tuple_element_t<I, std::tuple<Ts...>>>;
+      static_assert(std::is_default_constructible_v<T>);
+      if (I == i) {
+        T val;
+        *this >> val;
+        v = std::forward<T>(val);
+        return;
+      }
+      if constexpr (sizeof...(Ts) > I + 1) {
+        tryDecodeAsOneOfVariant<I + 1>(v, i);
+      }
+    }
 
     using ByteSpan = gsl::span<const uint8_t>;
     using SpanIterator = ByteSpan::const_iterator;

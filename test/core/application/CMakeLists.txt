@@ -23,3 +23,12 @@ addtest(app_state_manager_test
 target_link_libraries(app_state_manager_test
     app_state_manager
     )
+
+addtest(app_config_test
+    app_config_test.cpp
+    )
+target_link_libraries(app_config_test
+    app_config_impl
+    logger
+    Boost::filesystem
+    )

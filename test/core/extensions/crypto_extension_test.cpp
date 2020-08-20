@@ -52,10 +52,7 @@ using kagome::crypto::SR25519ProviderImpl;
 using kagome::crypto::SR25519PublicKey;
 using kagome::crypto::SR25519SecretKey;
 using kagome::crypto::SR25519Signature;
-using kagome::crypto::secp256k1::CompressedPublicKey;
-using kagome::crypto::secp256k1::ExpandedPublicKey;
-using kagome::crypto::secp256k1::MessageHash;
-using kagome::crypto::secp256k1::RSVSignature;
+using kagome::crypto::secp256k1::EcdsaVerifyError;
 using kagome::runtime::MockMemory;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
@@ -66,6 +63,7 @@ using ::testing::Return;
 
 namespace sr25519_constants = kagome::crypto::constants::sr25519;
 namespace ed25519_constants = kagome::crypto::constants::ed25519;
+namespace ecdsa = kagome::crypto::secp256k1;
 
 // The point is that sr25519 signature can have many valid values
 // so we can only verify whether it is correct
@@ -82,6 +80,11 @@ MATCHER_P3(VerifySr25519Signature,
 
 class CryptoExtensionTest : public ::testing::Test {
  public:
+  using RecoverUncompressedPublicKeyReturnValue =
+      boost::variant<ecdsa::PublicKey, EcdsaVerifyError>;
+  using RecoverCompressedPublicKeyReturnValue =
+      boost::variant<ecdsa::CompressedPublicKey, EcdsaVerifyError>;
+
   void SetUp() override {
     memory_ = std::make_shared<MockMemory>();
 
@@ -105,7 +108,7 @@ class CryptoExtensionTest : public ::testing::Test {
 
     EXPECT_OUTCOME_TRUE(seed_tmp,
                         kagome::common::Blob<32>::fromHexWithPrefix(seed_hex));
-    std::copy_n(seed_tmp.begin(), seed.size(), seed.begin());
+    std::copy_n(seed_tmp.begin(), Blob<32>::size(), seed.begin());
 
     // scale-encoded string
     boost::optional<std::string> optional_seed(seed_hex);
@@ -119,31 +122,38 @@ class CryptoExtensionTest : public ::testing::Test {
     ed25519_keypair = ed25519_provider_->generateKeypair(seed);
     ed25519_signature = ed25519_provider_->sign(ed25519_keypair, input).value();
 
-    std::copy_n(secp_message_vector.begin(),
-                secp_message_vector.size(),
-                secp_message_hash.begin());
-    std::copy_n(secp_public_key_bytes.begin(),
-                secp_public_key_bytes.size(),
-                secp_uncompressed_public_key.begin());
-    std::copy_n(secp_public_key_compressed_bytes.begin(),
-                secp_public_key_compressed_bytes.size(),
-                secp_compressed_pyblic_key.begin());
-    std::copy_n(secp_signature_bytes.begin(),
-                secp_signature_bytes.size(),
-                secp_signature.begin());
+    secp_message_hash =
+        ecdsa::MessageHash::fromSpan(secp_message_vector).value();
+    secp_uncompressed_public_key =
+        ecdsa::UncompressedPublicKey::fromSpan(secp_public_key_bytes).value();
+    secp_compressed_pyblic_key =
+        ecdsa::CompressedPublicKey::fromSpan(secp_public_key_compressed_bytes)
+            .value();
+    // first byte contains 0x04
+    // and needs to be omitted in runtime api return value
+    secp_truncated_public_key =
+        ecdsa::PublicKey::fromSpan(
+            gsl::make_span(secp_public_key_bytes).subspan(1))
+            .value();
+    secp_signature =
+        ecdsa::RSVSignature::fromSpan(secp_signature_bytes).value();
 
-    EXPECT_OUTCOME_TRUE(tmp1,
-                        kagome::scale::encode(secp_uncompressed_public_key));
-    scale_encoded_secp_uncompressed_public_key
-        .putUint8(0)  // 0 means 0-th index in <Value, Error> variant type
-        .put(tmp1);   // value itself
-    EXPECT_OUTCOME_TRUE(tmp2,
-                        kagome::scale::encode(secp_compressed_pyblic_key));
-    scale_encoded_secp_compressed_public_key
-        .putUint8(0)  // 0 means 0-th index in <Value, Error> variant type
-        .put(tmp2);   // value
+    scale_encoded_secp_truncated_public_key =
+        Buffer(kagome::scale::encode(RecoverUncompressedPublicKeyReturnValue(
+                                         secp_truncated_public_key))
+                   .value());
 
-    secp_error_result.putUint8(1).putUint8(2);
+    scale_encoded_secp_compressed_public_key =
+        Buffer(kagome::scale::encode(RecoverCompressedPublicKeyReturnValue(
+                                         secp_compressed_pyblic_key))
+                   .value());
+
+    // this value suits both compressed & uncompressed failure tests
+    secp_invalid_signature_error = Buffer(
+        kagome::scale::encode(RecoverCompressedPublicKeyReturnValue(
+                                  kagome::crypto::secp256k1::
+                                      ecdsa_verify_error::kInvalidSignature))
+            .value());
 
     ed_public_keys_result
         .putUint8(4)  // scale-encoded size // 1
@@ -166,7 +176,9 @@ class CryptoExtensionTest : public ::testing::Test {
         .putUint8(1)              // 1 means that value presents
         .put(sr25519_signature);  // the value itself
 
-    signature_failure_result_buffer.putUint8(0);
+    // the return value is scale-encoded 'boost::option's none',
+    // so it's "0" for all types
+    ed_sr_signature_failure_result_buffer.putUint8(0);
   }
 
  protected:
@@ -196,7 +208,12 @@ class CryptoExtensionTest : public ::testing::Test {
   inline static Buffer keccak_result{
       "65aac3ad8b88cb79396da4c8b6a8cb6b5b74b0f6534a3e4e5e8ad68658feccf4"_unhex};
 
+  inline static Buffer sha2_256_result{
+      "3dabee24d43ded7266178f585eea5c1a6f2c18b316a6f5e946e137f9ef9b5f69"_unhex};
+
   inline static Buffer twox_input{"414243444546"_unhex};
+
+  inline static Buffer twox64_result{184, 65, 176, 250, 243, 129, 181, 3};
 
   inline static Buffer twox128_result{
       184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251};
@@ -207,15 +224,15 @@ class CryptoExtensionTest : public ::testing::Test {
                                       200, 28,  69,  219, 120, 179, 208, 237};
 
   inline static Buffer secp_public_key_bytes{
-      "04e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a0a2b2667f7e725ceea70c673093bf67663e0312623c8e091b13cf2c0f11ef652"_hex2buf};
+      "04f821bc128a43d9b0516969111e19a40bab417f45181d692d0519a3b35573cb63178403d12eb41d7702913a70ebc1c64438002a1474e1328276b7dcdacb511fc3"_hex2buf};
   inline static Buffer secp_public_key_compressed_bytes{
-      "02e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a"_hex2buf};
+      "03f821bc128a43d9b0516969111e19a40bab417f45181d692d0519a3b35573cb63"_hex2buf};
   inline static Buffer secp_signature_bytes{
-      "90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301"_hex2buf};
+      "ebdedee38bcf530f13c1b5c8717d974a6f8bd25a7e3707ca36c7ee7efd5aa6c557bcc67906975696cbb28a556b649e5fbf5ce51831572cd54add248c4d023fcf01"_hex2buf};
   inline static Buffer secp_message_vector{
-      "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_hex2buf};
-  MessageHash secp_message_hash;
-  Buffer secp_error_result;
+      "e13d3f3f21115294edf249cfdcb262a4f96d86943b63426c7635b6d94a5434c7"_hex2buf};
+  ecdsa::MessageHash secp_message_hash;
+  Buffer secp_invalid_signature_error;
   Buffer ed_public_keys_result;
   Buffer sr_public_keys_result;
   Buffer ed_public_key_buffer;
@@ -226,13 +243,19 @@ class CryptoExtensionTest : public ::testing::Test {
   std::vector<ED25519PublicKey> ed_public_keys;
   std::vector<SR25519PublicKey> sr_public_keys;
 
-  RSVSignature secp_signature{};
-  ExpandedPublicKey secp_uncompressed_public_key{};
-  CompressedPublicKey secp_compressed_pyblic_key{};
-  Buffer scale_encoded_secp_uncompressed_public_key;
+  ecdsa::RSVSignature secp_signature;  ///< secp256k1 RSV-signature
+  ecdsa::UncompressedPublicKey
+      secp_uncompressed_public_key;  ///< secp256k1 uncompressed public key
+  ecdsa::CompressedPublicKey
+      secp_compressed_pyblic_key;  ///< secp256k1 compressed public key
+  ecdsa::PublicKey secp_truncated_public_key;  ///< secp256k1 truncated
+                                               ///< uncompressed public key
+
+  Buffer scale_encoded_secp_truncated_public_key;
   Buffer scale_encoded_secp_compressed_public_key;
-  Buffer signature_failure_result_buffer;
-  Blob<32> seed;
+  Buffer ed_sr_signature_failure_result_buffer;
+
+  Blob<32> seed;  ///< seed is for generating sr25519 and ed25519 keys
   inline static std::string seed_hex =
       "0xa4681403ba5b6a3f3bd0b0604ce439a78244c7d43b127ec35cd8325602dd47fd";
   Buffer seed_buffer;
@@ -469,7 +492,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedSuccess) {
 
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(
-                  scale_encoded_secp_uncompressed_public_key)))
+                  scale_encoded_secp_truncated_public_key)))
       .WillOnce(Return(res));
 
   auto ptrsize = crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
@@ -489,15 +512,17 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedFailure) {
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
   auto sig_buffer = Buffer(sig_input);
-  sig_buffer[4] = 0;  // damage signature
+  // corrupt signature
+  std::fill(sig_buffer.begin() + 2, sig_buffer.begin() + 10, 0xFF);
   EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
       .WillOnce(Return(sig_buffer));
 
   EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
       .WillOnce(Return(Buffer(msg_input)));
 
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(secp_error_result)))
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(gsl::span<const uint8_t>(secp_invalid_signature_error)))
       .WillOnce(Return(res));
 
   auto ptrsize = crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
@@ -546,7 +571,8 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
   Buffer sig_buffer(sig_input);
-  sig_buffer[4] = 0;  // damage signature
+  // corrupt signature
+  std::fill(sig_buffer.begin() + 2, sig_buffer.begin() + 10, 0xFF);
 
   EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
       .WillOnce(Return(sig_buffer));
@@ -554,8 +580,9 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
   EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
       .WillOnce(Return(Buffer(msg_input)));
 
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(secp_error_result)))
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(gsl::span<const uint8_t>(secp_invalid_signature_error)))
       .WillOnce(Return(res));
 
   auto ptrsize =
@@ -653,9 +680,9 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
       .WillOnce(Return(
           outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
 
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(gsl::span<const uint8_t>(signature_failure_result_buffer)))
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(
+                  ed_sr_signature_failure_result_buffer)))
       .WillOnce(Return(res));
   ASSERT_EQ(crypto_ext_->ext_ed25519_sign_v1(key_type, key, msg), res);
 }
@@ -714,9 +741,9 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
       .WillOnce(Return(
           outcome::failure(kagome::crypto::CryptoStoreError::KEY_NOT_FOUND)));
 
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(gsl::span<const uint8_t>(signature_failure_result_buffer)))
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(
+                  ed_sr_signature_failure_result_buffer)))
       .WillOnce(Return(res));
   ASSERT_EQ(crypto_ext_->ext_sr25519_sign_v1(key_type, key, msg), res);
 }
@@ -787,4 +814,132 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
               storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
       .WillOnce(Return(res));
   ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type, seed_ptr));
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be keccak-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Keccac256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(keccak_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_keccak_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be sha2_256-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Sha2_256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(sha2_256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_sha2_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be blake2_128-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Blake2_128Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(blake2b_128_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_blake2_128_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be blake2_256-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Blake2_256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(blake2b_256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be twox_256-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Twox_256Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox256_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_256_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be twox_128-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Twox_128Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox128_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_128_version_1(data_span), out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be twox_128-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Twox_64Version1_Success) {
+  WasmPointer data = 0;
+  WasmSize size = twox_input.size();
+  WasmPointer out_ptr = 42;
+  WasmSpan data_span = WasmResult(data, size).combine();
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox64_result)))
+      .WillOnce(Return(out_ptr));
+
+  ASSERT_EQ(crypto_ext_->ext_hashing_twox_64_version_1(data_span), out_ptr);
 }

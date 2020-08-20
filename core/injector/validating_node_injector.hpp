@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
 
+#include "application/app_config.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
@@ -137,25 +138,22 @@ namespace kagome::injector {
         injector.template create<crypto::SR25519Keypair>(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<uptr<clock::Timer>>());
+        injector.template create<uptr<clock::Timer>>(),
+        injector.template create<sptr<authority::AuthorityUpdateObserver>>()
+	  );
     return *initialized;
   }
 
   template <typename... Ts>
-  auto makeFullNodeInjector(
-      const std::string &genesis_path,
-      const std::string &keystore_path,
-      const std::string &leveldb_path,
-      uint16_t p2p_port,
-      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
-      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-      bool is_only_finalizing,
-      Ts &&... args) {
+  auto makeFullNodeInjector(const application::AppConfigPtr &app_config,
+                            Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
-        makeApplicationInjector(
-            genesis_path, leveldb_path, rpc_http_endpoint, rpc_ws_endpoint),
+        makeApplicationInjector(app_config->genesis_path(),
+                                app_config->leveldb_path(),
+                                app_config->rpc_http_endpoint(),
+                                app_config->rpc_ws_endpoint()),
         // bind sr25519 keypair
         di::bind<crypto::SR25519Keypair>.to(
             [](auto const &inj) { return get_sr25519_keypair(inj); }),
@@ -167,9 +165,10 @@ namespace kagome::injector {
           return get_peer_keypair(inj);
         })[boost::di::override],
         // compose peer info
-        di::bind<network::OwnPeerInfo>.to([p2p_port](const auto &injector) {
-          return get_peer_info(injector, p2p_port);
-        }),
+        di::bind<network::OwnPeerInfo>.to(
+            [p2p_port{app_config->p2p_port()}](const auto &injector) {
+              return get_peer_info(injector, p2p_port);
+            }),
         di::bind<consensus::Babe>.to(
             [](auto const &inj) { return get_babe(inj); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
@@ -177,33 +176,33 @@ namespace kagome::injector {
             [](auto const &inj) { return get_babe(inj); }),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
-        di::bind<runtime::Grandpa>.template to([is_only_finalizing](
-                                                   const auto &injector)
-                                                   -> sptr<runtime::Grandpa> {
-          static boost::optional<sptr<runtime::Grandpa>> initialized =
-              boost::none;
-          if (initialized) {
-            return *initialized;
-          }
-          if (is_only_finalizing) {
-            auto grandpa_dummy =
-                injector.template create<sptr<runtime::dummy::GrandpaDummy>>();
-            initialized = grandpa_dummy;
-          } else {
-            auto grandpa =
-                injector
-                    .template create<sptr<runtime::binaryen::GrandpaImpl>>();
-            initialized = grandpa;
-          }
-          return *initialized;
-        })[di::override],
+        di::bind<runtime::Grandpa>.template to(
+            [is_only_finalizing{app_config->is_only_finalizing()}](
+                const auto &injector) -> sptr<runtime::Grandpa> {
+              static boost::optional<sptr<runtime::Grandpa>> initialized =
+                  boost::none;
+              if (initialized) {
+                return *initialized;
+              }
+              if (is_only_finalizing) {
+                auto grandpa_dummy =
+                    injector
+                        .template create<sptr<runtime::dummy::GrandpaDummy>>();
+                initialized = grandpa_dummy;
+              } else {
+                auto grandpa = injector.template create<
+                    sptr<runtime::binaryen::GrandpaImpl>>();
+                initialized = grandpa;
+              }
+              return *initialized;
+            })[di::override],
         di::bind<application::KeyStorage>.to(
-            [keystore_path](const auto &injector) {
-              return get_key_storage(keystore_path, injector);
+            [app_config](const auto &injector) {
+              return get_key_storage(app_config->keystore_path(), injector);
             }),
         di::bind<crypto::CryptoStore>.template to(
-            [keystore_path](const auto &injector) {
-              return get_crypto_store(keystore_path, injector);
+            [app_config](const auto &injector) {
+              return get_crypto_store(app_config->keystore_path(), injector);
             })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

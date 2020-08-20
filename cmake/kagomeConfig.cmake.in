@@ -17,30 +17,59 @@ set(kagome_INCLUDE_DIRS
 set(kagome_LIBRARIES
         kagome::scale
         kagome::buffer
+        kagome::outcome
         kagome::hexutil
+        kagome::mp_utils
         kagome::blob
+        kagome::primitives
+        kagome::database_error
+        kagome::trie_error
+        kagome::trie_serializer
         kagome::trie_storage
+        kagome::trie_storage_backend
         kagome::polkadot_codec
+        kagome::polkadot_node
         kagome::polkadot_trie
+        kagome::polkadot_trie_factory
+        kagome::polkadot_trie_cursor
+        kagome::ephemeral_trie_batch
+        kagome::persistent_trie_batch
+        kagome::topper_trie_batch
+        kagome::changes_tracker
+        kagome::blockchain_common
+        kagome::block_header_repository
         kagome::blake2
         kagome::keccak
         kagome::hasher
         kagome::twox
         kagome::sha
         kagome::leveldb
-        kagome::polkadot_trie_batch
         kagome::logger
         kagome::in_memory_storage
         kagome::extensions
         kagome::ordered_trie_hash
+        kagome::crypto_store
+        kagome::crypto_store_key_type
         kagome::crypto_extension
         kagome::io_extension
         kagome::memory_extension
         kagome::misc_extension
+        kagome::trie_storage_provider
         kagome::storage_extension
         kagome::sr25519_types
         kagome::ed25519_types
         kagome::sr25519_provider
         kagome::ed25519_provider
-        kagome::trie_db_backend
+        kagome::pbkdf2_provider
+        kagome::secp256k1_provider
+        kagome::bip39_provider
+        kagome::extension_factory
+        kagome::binaryen_core_api
+        kagome::binaryen_runtime_api
+        kagome::binaryen_runtime_external_interface
+        kagome::binaryen_runtime_manager
+        kagome::binaryen_runtime_environment
+        kagome::binaryen_wasm_executor
+        kagome::binaryen_wasm_memory
+        kagome::binaryen_wasm_module
     )

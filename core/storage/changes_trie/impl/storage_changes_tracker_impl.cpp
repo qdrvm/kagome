@@ -21,11 +21,12 @@ namespace kagome::storage::changes_trie {
 
   StorageChangesTrackerImpl::StorageChangesTrackerImpl(
       std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
-      std::shared_ptr<storage::trie::Codec> codec)
+      std::shared_ptr<storage::trie::Codec> codec,
+      SubscriptionEnginePtr subscription_engine)
       : trie_factory_(std::move(trie_factory)),
         codec_(std::move(codec)),
-        parent_hash_{},
-        parent_number_{std::numeric_limits<primitives::BlockNumber>::max()} {
+        parent_number_{std::numeric_limits<primitives::BlockNumber>::max()},
+        subscription_engine_(std::move(subscription_engine)) {
     BOOST_ASSERT(trie_factory_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
   }
@@ -47,7 +48,9 @@ namespace kagome::storage::changes_trie {
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onPut(
-      const common::Buffer &key, bool is_new_entry) {
+      const common::Buffer &key,
+      const common::Buffer &value,
+      bool is_new_entry) {
     auto change_it = extrinsics_changes_.find(key);
     OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
     OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));
@@ -62,6 +65,7 @@ namespace kagome::storage::changes_trie {
         new_entries_.insert(key);
       }
     }
+    subscription_engine_->notify(key, value, parent_hash_);
     return outcome::success();
   }
 

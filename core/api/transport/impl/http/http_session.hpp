@@ -69,6 +69,22 @@ namespace kagome::api {
      */
     void respond(std::string_view response) override;
 
+    /**
+     * @brief method to get id of the session
+     * @return id of the session
+     */
+    SessionId id() const override {
+      return 0ull;
+    }
+
+    /**
+     * @brief method to get type of the session
+     * @return type of the session
+     */
+    SessionType type() const override {
+      return SessionType::kHttp;
+    }
+
    private:
     /**
      * @brief stops session

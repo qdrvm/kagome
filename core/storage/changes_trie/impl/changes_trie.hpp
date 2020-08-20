@@ -43,7 +43,7 @@ namespace kagome::storage::changes_trie {
      */
     struct KeyIndex {
       // block in which the change occurred
-      primitives::BlockNumber block {};
+      primitives::BlockNumber block;
       // changed key
       common::Buffer key;
     };
@@ -56,9 +56,7 @@ namespace kagome::storage::changes_trie {
 
     // the key used for the Changes Trie must be the varying datatype, not the
     // individual, appended KeyIndex.
-    // Unlike the default encoding for varying data types, this
-    // structure starts its indexing at 1
-    using KeyIndexVariant = boost::variant<uint32_t,
+    using KeyIndexVariant = boost::variant<Unused<0>,
                                            ExtrinsicsChangesKey,
                                            BlocksChangesKey,
                                            ChildChangesKey>;

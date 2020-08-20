@@ -11,11 +11,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, EncodeError, e) {
     case EncodeError::NEGATIVE_COMPACT_INTEGER:
       return "compact integers cannot be negative";
     case EncodeError::COMPACT_INTEGER_TOO_BIG:
-      return "compact integers cannot be negative";
+      return "compact integers too big";
     case EncodeError::WRONG_CATEGORY:
       return "wrong compact encoding category";
     case EncodeError::WRONG_ALTERNATIVE:
       return "wrong cast to alternative";
+    case EncodeError::DEREF_NULLPOINTER:
+      return "dereference of nullptr";
   }
   return "unknown EncodeError";
 }

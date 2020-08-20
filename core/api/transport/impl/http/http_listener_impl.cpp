@@ -6,6 +6,7 @@
 #include "api/transport/impl/http/http_listener_impl.hpp"
 
 #include <boost/asio.hpp>
+#include <utility>
 
 namespace kagome::api {
   HttpListenerImpl::HttpListenerImpl(
@@ -14,8 +15,8 @@ namespace kagome::api {
       Configuration listener_config,
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
-        config_{listener_config},
-        session_config_{std::move(session_config)} {
+        config_{std::move(listener_config)},
+        session_config_{session_config} {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
