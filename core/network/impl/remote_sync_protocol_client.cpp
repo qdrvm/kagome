@@ -12,11 +12,24 @@
 #include "network/rpc.hpp"
 
 namespace kagome::network {
+  template<> struct ProtobufMessageAdapter<network::BlocksRequest> {
+    static size_t size(const network::BlocksRequest &t) {
+      //static_assert(false, "No impl!");
+      return 0;
+    }
+    static std::vector<uint8_t>::iterator write(const network::BlocksRequest &/*t*/, std::vector<uint8_t> &out, std::vector<uint8_t>::iterator /*loaded*/) {
+      //static_assert(false, "No impl!");
+      return out.end();
+    }
+  };
+
   RemoteSyncProtocolClient::RemoteSyncProtocolClient(
       libp2p::Host &host, libp2p::peer::PeerInfo peer_info)
       : host_{host},
         peer_info_{std::move(peer_info)},
-        log_(common::createLogger("RemoteSyncProtocolClient")) {}
+        log_(common::createLogger("RemoteSyncProtocolClient")) {
+    assert(false);
+  }
 
   void RemoteSyncProtocolClient::requestBlocks(
       const network::BlocksRequest &request,

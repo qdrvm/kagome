@@ -14,18 +14,31 @@
 #include <outcome/outcome.hpp>
 
 #include "network/helpers/message_read_writer.hpp"
+#include "network/helpers/adapters.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::network {
-  template<typename T> struct DummyAdapter {
+  template<typename T> struct UVarMessageAdapter {
     static size_t size(const T &t) {
-      return 0ull;
+      return 16; // LE128
     }
-    static std::vector<uint8_t>::iterator write(const T &/*t*/, std::vector<uint8_t> &out, std::vector<uint8_t>::iterator /*loaded*/) {
-      return out.end();
+
+    static std::vector<uint8_t>::iterator write(const network::BlocksRequest &t, std::vector<uint8_t> &out, std::vector<uint8_t>::iterator loaded) {
+      assert(std::distance(out.begin(), loaded) >= UVarMessageAdapter<T>::size(t));
+      constexpr size_t kContinuationBitMask{0x80ull};
+      constexpr size_t kSignificantBitsMask{0x7Full};
+
+      auto data_sz = out.size();
+      auto sz_start = --loaded;
+      do {
+        assert(std::distance(out.begin(), loaded) >= 1);
+        *(loaded--) = (data_sz & kSignificantBitsMask) | kContinuationBitMask;
+      } while(data_sz >>= size_t(7ull));
+      *sz_start &= uint8_t(kSignificantBitsMask);
+
+      return ++loaded;
     }
   };
-
   /**
    * Read and write messages, encoded into SCALE with a prepended varint
    */
@@ -70,8 +83,8 @@ namespace kagome::network {
      */
     template <typename MsgType>
     void write(const MsgType &msg, libp2p::basic::Writer::WriteCallbackFunc cb) const {
-      using ProtobufRW = MessageReadWriter<DummyAdapter<MsgType>, NoSink>;
-      using UVarRW = MessageReadWriter<DummyAdapter<MsgType>, ProtobufRW>;
+      using ProtobufRW = MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
+      using UVarRW = MessageReadWriter<UVarMessageAdapter<MsgType>, ProtobufRW>;
 
       std::vector<uint8_t> out;
       auto it = UVarRW::write(msg, out);
