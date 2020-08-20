@@ -31,7 +31,9 @@ namespace kagome::application {
       return chain_type_;
     }
 
-    network::PeerList getBootNodes() const override;
+    network::PeerList getBootNodes() const override {
+      return boot_nodes_;
+    }
 
     const std::vector<std::pair<std::string, size_t>> &telemetryEndpoints()
         const override {
@@ -63,7 +65,9 @@ namespace kagome::application {
       return consensus_engine_;
     }
 
-    GenesisRawConfig getGenesis() const override;
+    GenesisRawConfig getGenesis() const override {
+      return genesis_;
+    }
 
    private:
     outcome::result<void> loadFromJson(const std::string &file_path);

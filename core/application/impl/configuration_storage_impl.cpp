@@ -14,14 +14,6 @@
 
 namespace kagome::application {
 
-  GenesisRawConfig ConfigurationStorageImpl::getGenesis() const {
-    return genesis_;
-  }
-
-  network::PeerList ConfigurationStorageImpl::getBootNodes() const {
-    return boot_nodes_;
-  }
-
   outcome::result<std::shared_ptr<ConfigurationStorageImpl>>
   ConfigurationStorageImpl::create(const std::string &path) {
     auto config_storage =
@@ -67,13 +59,12 @@ namespace kagome::application {
     if (telemetry_endpoints_opt.has_value()
         && telemetry_endpoints_opt.value().get<std::string>("") != "null") {
       for (auto &[_, endpoint] : telemetry_endpoints_opt.value()) {
-        auto it = endpoint.begin();
-        if (it == endpoint.end()) continue;
-        auto &uri = it->second;
-        if (++it == endpoint.end()) continue;
-        auto &priority = it->second;
-        telemetry_endpoints_.emplace_back(uri.get<std::string>(""),
-                                          priority.get<size_t>(""));
+        if (auto it = endpoint.begin(); endpoint.size() >= 2) {
+          auto &uri = it->second;
+          auto &priority = (++it)->second;
+          telemetry_endpoints_.emplace_back(uri.get<std::string>(""),
+                                            priority.get<size_t>(""));
+        }
       }
     }
 
@@ -98,7 +89,7 @@ namespace kagome::application {
         && fork_blocks_opt.value().get<std::string>("") != "null") {
       for (auto &[_, fork_block] : fork_blocks_opt.value()) {
         // TODO(xDimon): Ensure if implementation is correct, and remove return
-        return ConfigReaderError::NOT_YET_IMPLEMENTED; // NOLINT
+        return ConfigReaderError::NOT_YET_IMPLEMENTED;  // NOLINT
 
         OUTCOME_TRY(hash,
                     primitives::BlockHash::fromHexWithPrefix(
@@ -111,8 +102,8 @@ namespace kagome::application {
     if (bad_blocks_opt.has_value()
         && bad_blocks_opt.value().get<std::string>("") != "null") {
       for (auto &[_, bad_block] : bad_blocks_opt.value()) {
-	      // TODO(xDimon): Ensure if implementation is correct, and remove return
-        return ConfigReaderError::NOT_YET_IMPLEMENTED; // NOLINT
+        // TODO(xDimon): Ensure if implementation is correct, and remove return
+        return ConfigReaderError::NOT_YET_IMPLEMENTED;  // NOLINT
 
         OUTCOME_TRY(hash,
                     primitives::BlockHash::fromHexWithPrefix(
