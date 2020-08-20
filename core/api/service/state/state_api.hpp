@@ -8,6 +8,7 @@
 
 #include <boost/optional.hpp>
 
+#include "api/service/api_service.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
@@ -18,6 +19,10 @@ namespace kagome::api {
   class StateApi {
    public:
     virtual ~StateApi() = default;
+
+    virtual void setApiService(
+		    const std::shared_ptr<api::ApiService> &api_service) = 0;
+
     virtual outcome::result<common::Buffer> getStorage(
         const common::Buffer &key) const = 0;
     virtual outcome::result<common::Buffer> getStorage(

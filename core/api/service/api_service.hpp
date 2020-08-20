@@ -59,7 +59,7 @@ namespace kagome::api {
         std::shared_ptr<api::RpcThreadPool> thread_pool,
         std::vector<std::shared_ptr<Listener>> listeners,
         std::shared_ptr<JRpcServer> server,
-        gsl::span<std::shared_ptr<JRpcProcessor>> processors,
+        const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
         SubscriptionEnginePtr subscription_engine);
 
     virtual ~ApiService() = default;

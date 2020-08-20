@@ -16,7 +16,6 @@
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
-#include "api/service/state/impl/readonly_trie_builder_impl.hpp"
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/state_jrpc_processor.hpp"
 #include "api/transport/impl/http/http_listener_impl.hpp"
@@ -77,13 +76,13 @@
 #include "runtime/binaryen/module/wasm_module_impl.hpp"
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
+#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
 #include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
-#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -165,7 +164,7 @@ namespace kagome::injector {
                                           processors,
                                           std::move(subscription_engine));
 
-    auto state_api = injector.template create<std::shared_ptr<api::StateApiImpl>>();
+    auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());
     return initialized.value();
   }
@@ -364,11 +363,13 @@ namespace kagome::injector {
     auto crypto_store = injector.template create<sptr<crypto::CryptoStore>>();
     auto bip39_provider =
         injector.template create<sptr<crypto::Bip39Provider>>();
+    auto core_factory_method =
+        [&injector](sptr<runtime::WasmProvider> wasm_provider) {
+          auto core_factory =
+              injector.template create<sptr<runtime::CoreFactory>>();
+          return core_factory->createWithCode(wasm_provider);
+        };
 
-    auto core_factory_method = [&injector](sptr<runtime::WasmProvider> wasm_provider) {
-      auto core_factory = injector.template create<sptr<runtime::binaryen::CoreFactoryImpl>>();
-      return core_factory->createWithCode(wasm_provider);
-    };
     initialized =
         std::make_shared<extensions::ExtensionFactoryImpl>(tracker,
                                                            sr25519_provider,

@@ -42,7 +42,9 @@ namespace kagome::api {
     return runtime_core_->version(at);
   }
 
-  void StateApiImpl::setApiService(std::shared_ptr<api::ApiService> const &api_service) {
+  void StateApiImpl::setApiService(
+      std::shared_ptr<api::ApiService> const &api_service) {
+  	BOOST_ASSERT(api_service != nullptr);
     api_service_ = api_service;
   }
 
