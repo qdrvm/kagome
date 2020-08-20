@@ -129,7 +129,7 @@ namespace kagome::application {
     OUTCOME_TRY(genesis_raw_tree,
                 ensure(genesis_tree.get_child_optional("raw")));
     boost::property_tree::ptree top_tree;
-    // v0.7 format
+    // v0.7+ format
     if (auto top_tree_opt = genesis_raw_tree.get_child_optional("top");
         top_tree_opt.has_value()) {
       top_tree = top_tree_opt.value();
