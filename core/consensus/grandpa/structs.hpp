@@ -176,6 +176,32 @@ namespace kagome::consensus::grandpa {
     uint64_t prevote;
     uint64_t precommit;
   };
+
+  struct CatchUpRequest {
+    RoundNumber round_number;
+    size_t voter_set_id;
+  };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const CatchUpRequest &request) {
+    return s << request.round_number << request.voter_set_id;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, CatchUpRequest &request) {
+    return s >> request.round_number >> request.voter_set_id;
+  }
+
+  struct CatchUpResponse {
+	  size_t voter_set_id;
+	  RoundNumber round_number;
+		GrandpaJustification prevote_justification;
+		GrandpaJustification precommit_justification;
+		BlockInfo best_final_candidate;
+  };
+
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
