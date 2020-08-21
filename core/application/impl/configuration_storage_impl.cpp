@@ -77,7 +77,7 @@ namespace kagome::application {
 
     auto properties_opt = tree.get_child_optional("properties");
     if (properties_opt.has_value()
-        && protocol_id_opt.value().get<std::string>("") != "null") {
+        && properties_opt.value().get<std::string>("") != "null") {
       for (auto &[propertyName, propertyValue] : properties_opt.value()) {
         properties_.emplace(propertyName, propertyValue.get<std::string>(""));
       }
