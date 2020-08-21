@@ -13,6 +13,9 @@ namespace kagome::api::system::request {
 
   outcome::result<void> Chain::init(
       const jsonrpc::Request::Parameters &params) {
+    if (!params.empty()) {
+      throw jsonrpc::InvalidParametersFault("Method should not have params");
+    }
     return outcome::success();
   }
 

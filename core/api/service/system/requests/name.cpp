@@ -12,13 +12,16 @@ namespace kagome::api::system::request {
   }
 
   outcome::result<void> Name::init(const jsonrpc::Request::Parameters &params) {
+    if (!params.empty()) {
+      throw jsonrpc::InvalidParametersFault("Method should not have params");
+    }
     return outcome::success();
   }
 
   outcome::result<std::string> Name::execute() {
-	  // TODO(xDimon): Ensure if implementation is correct, and remove exception
-	  throw jsonrpc::InternalErrorFault(
-			  "Internal error: method is known, but not yet implemented");
+    // TODO(xDimon): Ensure if implementation is correct, and remove exception
+    throw jsonrpc::InternalErrorFault(
+        "Internal error: method is known, but not yet implemented");
 
     return api_->getConfig()->name();
   }
