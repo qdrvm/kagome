@@ -13,9 +13,13 @@ namespace kagome::application {
   /**
    * Codes for errors that originate in configuration readers
    */
-  enum class ConfigReaderError { MISSING_ENTRY = 1, PARSER_ERROR };
+  enum class ConfigReaderError {
+    MISSING_ENTRY = 1,
+    PARSER_ERROR,
+    NOT_YET_IMPLEMENTED
+  };
 
-}
+}  // namespace kagome::application
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::application, ConfigReaderError);
 
