@@ -170,7 +170,6 @@ namespace kagome::injector {
                                           std::move(subscription_engine));
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
-
     state_api->setApiService(initialized.value());
     return initialized.value();
   }
@@ -356,13 +355,6 @@ namespace kagome::injector {
               injector.template create<sptr<runtime::CoreFactory>>();
           return core_factory->createWithCode(wasm_provider);
         };
-
-    auto core_factory_method = [&injector](
-                                   sptr<runtime::WasmProvider> wasm_provider) {
-      auto core_factory =
-          injector.template create<sptr<runtime::binaryen::CoreFactoryImpl>>();
-      return core_factory->createWithCode(wasm_provider);
-    };
 
     initialized =
         std::make_shared<extensions::ExtensionFactoryImpl>(tracker,
