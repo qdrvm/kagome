@@ -37,6 +37,8 @@ namespace kagome::application {
 
     virtual const std::string &protocolId() const = 0;
 
+    virtual const std::map<std::string, std::string> &properties() const = 0;
+
     virtual boost::optional<std::reference_wrapper<const std::string>>
     getProperty(const std::string &property) const = 0;
 

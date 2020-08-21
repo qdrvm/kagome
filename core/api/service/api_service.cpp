@@ -33,7 +33,7 @@ namespace kagome::api {
       std::shared_ptr<api::RpcThreadPool> thread_pool,
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
-      gsl::span<std::shared_ptr<JRpcProcessor>> processors,
+      const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
       SubscriptionEnginePtr subscription_engine)
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners)),

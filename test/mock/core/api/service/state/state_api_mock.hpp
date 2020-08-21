@@ -18,6 +18,8 @@ namespace kagome::api {
    public:
     ~StateApiMock() override = default;
 
+    MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
+
     MOCK_CONST_METHOD1(
         getStorage, outcome::result<common::Buffer>(const common::Buffer &key));
     MOCK_CONST_METHOD2(
