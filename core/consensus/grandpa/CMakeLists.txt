@@ -60,10 +60,10 @@ target_link_libraries(voting_round
     voting_round_error
     )
 
-add_library(launcher
-    impl/launcher_impl.cpp
+add_library(grandpa
+    impl/grandpa_impl.cpp
     )
-target_link_libraries(launcher
+target_link_libraries(grandpa
     voting_round
     vote_crypto_provider
     vote_graph

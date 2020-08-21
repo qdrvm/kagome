@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
 
 #include <gtest/gtest.h>
 
@@ -15,11 +15,11 @@
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
 using kagome::primitives::BlockId;
-using kagome::primitives::PreRuntime;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
-using kagome::runtime::Grandpa;
-using kagome::runtime::binaryen::GrandpaImpl;
+using kagome::primitives::PreRuntime;
+using kagome::runtime::GrandpaApi;
+using kagome::runtime::binaryen::GrandpaApiImpl;
 
 using ::testing::_;
 using ::testing::Return;
@@ -31,7 +31,7 @@ class GrandpaTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<GrandpaImpl>(wasm_provider_, runtime_manager_);
+    api_ = std::make_shared<GrandpaApiImpl>(wasm_provider_, runtime_manager_);
   }
 
   Digest createDigest() const {
@@ -43,7 +43,7 @@ class GrandpaTest : public RuntimeTest {
   }
 
  protected:
-  std::shared_ptr<Grandpa> api_;
+  std::shared_ptr<GrandpaApi> api_;
 };
 
 // TODO(yuraz): PRE-157 find out do we need to give block_id to api functions

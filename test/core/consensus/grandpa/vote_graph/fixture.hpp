@@ -37,6 +37,9 @@ struct VoteGraphFixture : public ::testing::Test {
                           const std::vector<BlockHash> &ancestry) {
     EXPECT_CALL(*chain, getAncestry(base, block)).WillOnce(Return(ancestry));
   }
+
+  const std::function<bool(const VoteWeight &, const VoteWeight &)> comparator =
+      VoteWeight::prevoteComparator;
 };
 
 /// JSON utils to parse graph state
@@ -160,7 +163,7 @@ namespace std {
       *os << a << ", ";
     }
     *os << "], ";
-    *os << "cumulative_vote=" << e.cumulative_vote.weight << "}";
+    *os << "cumulative_vote=" << e.cumulative_vote.prevotes_sum << "}";
   }
 }  // namespace std
 #endif  // KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP

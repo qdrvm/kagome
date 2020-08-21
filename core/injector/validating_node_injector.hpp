@@ -10,10 +10,10 @@
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
-#include "consensus/grandpa/impl/launcher_impl.hpp"
+#include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "network/types/own_peer_info.hpp"
-#include "runtime/dummy/grandpa_dummy.hpp"
+#include "runtime/dummy/grandpa_api_dummy.hpp"
 
 namespace kagome::injector {
 
@@ -127,6 +127,7 @@ namespace kagome::injector {
     }
 
     initialized = std::make_shared<consensus::BabeImpl>(
+        injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
         injector.template create<sptr<consensus::BlockExecutor>>(),
         injector.template create<sptr<storage::trie::TrieStorage>>(),
@@ -139,8 +140,7 @@ namespace kagome::injector {
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
-        injector.template create<sptr<authority::AuthorityUpdateObserver>>()
-	  );
+        injector.template create<sptr<authority::AuthorityUpdateObserver>>());
     return *initialized;
   }
 
@@ -174,25 +174,24 @@ namespace kagome::injector {
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(
             [](auto const &inj) { return get_babe(inj); }),
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
-        di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
-        di::bind<runtime::Grandpa>.template to(
+        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<runtime::GrandpaApi>.template to(
             [is_only_finalizing{app_config->is_only_finalizing()}](
-                const auto &injector) -> sptr<runtime::Grandpa> {
-              static boost::optional<sptr<runtime::Grandpa>> initialized =
+                const auto &injector) -> sptr<runtime::GrandpaApi> {
+              static boost::optional<sptr<runtime::GrandpaApi>> initialized =
                   boost::none;
               if (initialized) {
                 return *initialized;
               }
               if (is_only_finalizing) {
-                auto grandpa_dummy =
-                    injector
-                        .template create<sptr<runtime::dummy::GrandpaDummy>>();
-                initialized = grandpa_dummy;
+                auto grandpa_api = injector.template create<
+                    sptr<runtime::dummy::GrandpaApiDummy>>();
+                initialized = grandpa_api;
               } else {
-                auto grandpa = injector.template create<
-                    sptr<runtime::binaryen::GrandpaImpl>>();
-                initialized = grandpa;
+                auto grandpa_api = injector.template create<
+                    sptr<runtime::binaryen::GrandpaApiImpl>>();
+                initialized = grandpa_api;
               }
               return *initialized;
             })[di::override],

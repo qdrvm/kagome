@@ -10,14 +10,14 @@
 
 namespace kagome::consensus::grandpa {
 
-  // Structure containing state and number of completed round. Used to start new
-  // round
+  // Structure containing state and number of completed round.
+  // Used to start new round
   struct CompletedRound {
     RoundNumber round_number{};
-    RoundState state;
+    std::shared_ptr<const RoundState> state;
 
     bool operator==(const CompletedRound &rhs) const {
-      return round_number == rhs.round_number and state == rhs.state;
+      return round_number == rhs.round_number and *state == *rhs.state;
     }
     bool operator!=(const CompletedRound &rhs) const {
       return !operator==(rhs);

@@ -80,7 +80,7 @@
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
-#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
@@ -254,7 +254,7 @@ namespace kagome::injector {
           if (not db->get(storage::kAuthoritySetKey)) {
             // insert authorities
             auto grandpa_api =
-                injector.template create<sptr<runtime::Grandpa>>();
+                injector.template create<sptr<runtime::GrandpaApi>>();
             const auto &weighted_authorities_res = grandpa_api->authorities(
                 primitives::BlockId(primitives::BlockNumber{0}));
             BOOST_ASSERT_MSG(weighted_authorities_res,
@@ -279,25 +279,6 @@ namespace kagome::injector {
                         common::Buffer(scale::encode(voters).value()));
             if (not authorities_put_res) {
               BOOST_ASSERT_MSG(false, "Could not insert authorities");
-              std::exit(1);
-            }
-
-            // insert last completed round
-            consensus::grandpa::CompletedRound zero_round;
-            zero_round.round_number = 0;
-            const auto &hasher = injector.template create<crypto::Hasher &>();
-            auto genesis_hash =
-                hasher.blake2b_256(scale::encode(genesis_block.header).value());
-            spdlog::debug("Genesis hash in injector: {}", genesis_hash.toHex());
-            zero_round.state.prevote_ghost =
-                consensus::grandpa::Prevote(0, genesis_hash);
-            zero_round.state.estimate = primitives::BlockInfo(0, genesis_hash);
-            zero_round.state.finalized = primitives::BlockInfo(0, genesis_hash);
-            auto completed_round_put_res =
-                db->put(storage::kSetStateKey,
-                        common::Buffer(scale::encode(zero_round).value()));
-            if (not completed_round_put_res) {
-              BOOST_ASSERT_MSG(false, "Could not insert completed round");
               std::exit(1);
             }
           }
@@ -637,8 +618,11 @@ namespace kagome::injector {
 
         // inherit host injector
         libp2p::injector::makeHostInjector(
-            libp2p::injector::useSecurityAdaptors<
-                libp2p::security::Secio>()[di::override]),
+            // FIXME(xDimon): https://github.com/soramitsu/kagome/issues/495
+            //  Uncomment after issue will be resolved
+            // libp2p::injector::useSecurityAdaptors<
+            // libp2p::security::Secio>()[di::override]
+            ),
 
         // bind boot nodes
         di::bind<network::PeerList>.to(
@@ -716,7 +700,7 @@ namespace kagome::injector {
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
-        di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
+        di::bind<runtime::GrandpaApi>.template to<runtime::binaryen::GrandpaApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),

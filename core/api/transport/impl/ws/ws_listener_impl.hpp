@@ -32,8 +32,13 @@ namespace kagome::api {
 
     ~WsListenerImpl() override = default;
 
-    void prepare() override;
-    void start() override;
+    /** @see AppStateManager::takeControl */
+    bool prepare() override;
+
+    /** @see AppStateManager::takeControl */
+    bool start() override;
+
+    /** @see AppStateManager::takeControl */
     void stop() override;
 
     void setHandlerForNewSession(NewSessionHandler &&on_new_session) override;

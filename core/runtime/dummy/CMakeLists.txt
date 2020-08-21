@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(grandpa_dummy
-    grandpa_dummy.cpp
+add_library(grandpa_api_dummy
+    grandpa_api_dummy.cpp
     )
-target_link_libraries(grandpa_dummy
+target_link_libraries(grandpa_api_dummy
     primitives
     )

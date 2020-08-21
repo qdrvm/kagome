@@ -28,10 +28,9 @@ namespace kagome::application {
   }
 
   void BlockProducingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+    logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
 
-    app_state_manager_->atLaunch(
-        [this] { babe_->start(Babe::ExecutionStrategy::SYNC_FIRST); });
+    babe_->setExecutionStrategy(Babe::ExecutionStrategy::SYNC_FIRST);
 
     app_state_manager_->atLaunch([this] {
       // execute listeners
@@ -50,11 +49,13 @@ namespace kagome::application {
         }
         this->router_->init();
       });
+      return true;
     });
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });
       asio_runner.detach();
+      return true;
     });
 
     app_state_manager_->atShutdown([ctx{io_context_}] { ctx->stop(); });

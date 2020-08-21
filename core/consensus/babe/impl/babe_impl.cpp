@@ -21,6 +21,7 @@
 
 namespace kagome::consensus {
   BabeImpl::BabeImpl(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
@@ -35,7 +36,8 @@ namespace kagome::consensus {
       std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer)
-      : lottery_{std::move(lottery)},
+      : app_state_manager_(std::move(app_state_manager)),
+        lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
         trie_storage_{std::move(trie_storage)},
         epoch_storage_{std::move(epoch_storage)},
@@ -49,6 +51,7 @@ namespace kagome::consensus {
         timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
         log_{common::createLogger("BABE")} {
+    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(epoch_storage_);
     BOOST_ASSERT(trie_storage_);
@@ -68,19 +71,28 @@ namespace kagome::consensus {
         && epoch_storage_->addEpochDescriptor(1, init_epoch_desc).has_value();
 
     BOOST_ASSERT(init_epoch_desc_ok);
+
+    app_state_manager_->atLaunch([this] { return start(); });
   }
 
-  void BabeImpl::start(ExecutionStrategy strategy) {
-    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
-    log_->debug("Babe run on block with number {} and hash {}",
-                best_block_number,
-                best_block_hash);
+  bool BabeImpl::start() {
+    if (not execution_strategy_.has_value()) {
+      log_->critical("Internal error: undefined execution strategy of babe");
+      return false;
+    }
 
-    switch (strategy) {
+    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+
+    switch (execution_strategy_.get()) {
       case ExecutionStrategy::GENESIS: {
+        log_->debug("Babe is starting with genesis block #{}, hash={}",
+                    best_block_number,
+                    best_block_hash);
+
         auto epoch_digest_res = epoch_storage_->getEpochDescriptor(0);
         if (not epoch_digest_res) {
           log_->error("Last epoch digest does not exist for initial epoch");
+          return false;
         }
         auto &&epoch_digest = epoch_digest_res.value();
 
@@ -111,15 +123,19 @@ namespace kagome::consensus {
         break;
       }
       case ExecutionStrategy::SYNC_FIRST: {
+        log_->debug("Babe is starting with syncing from block #{}, hash={}",
+                    best_block_number,
+                    best_block_hash);
+
         current_state_ = BabeState::WAIT_BLOCK;
         break;
       }
     }
+    return true;
   }
 
   /**
-   * Get index of authority
-   *
+   * @brief Get index of authority
    * @param authorities list of authorities
    * @param authority_key authority
    * @return index of authority in list of authorities

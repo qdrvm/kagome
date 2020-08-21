@@ -53,7 +53,7 @@ namespace kagome::api {
     app_state_manager->takeControl(*this);
   }
 
-  void ApiService::prepare() {
+  bool ApiService::prepare() {
     for (const auto &listener : listeners_) {
       auto on_new_session = [wp = weak_from_this()](
                                 const sptr<Session> &session) mutable {
@@ -128,6 +128,18 @@ namespace kagome::api {
 
       listener->setHandlerForNewSession(std::move(on_new_session));
     }
+    return true;
+  }
+
+  bool ApiService::start() {
+    thread_pool_->start();
+    logger_->debug("Service started");
+    return true;
+  }
+
+  void ApiService::stop() {
+    thread_pool_->stop();
+    logger_->debug("Service stopped");
   }
 
   ApiService::SubscribedSessionPtr ApiService::findSessionById(
@@ -154,16 +166,6 @@ namespace kagome::api {
   void ApiService::removeSessionById(Session::SessionId id) {
     std::lock_guard guard(subscribed_sessions_cs_);
     subscribed_sessions_.erase(id);
-  }
-
-  void ApiService::start() {
-    thread_pool_->start();
-    logger_->debug("Service started");
-  }
-
-  void ApiService::stop() {
-    thread_pool_->stop();
-    logger_->debug("Service stopped");
   }
 
   outcome::result<uint32_t> ApiService::subscribeSessionToKeys(

@@ -63,8 +63,13 @@ namespace kagome::api {
 
     virtual ~ApiService() = default;
 
-    void prepare();
-    void start();
+    /** @see AppStateManager::takeControl */
+    bool prepare();
+
+    /** @see AppStateManager::takeControl */
+    bool start();
+
+    /** @see AppStateManager::takeControl */
     void stop();
 
     outcome::result<uint32_t> subscribeSessionToKeys(

@@ -20,10 +20,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
       return "Block body was not found";
     case E::JUSTIFICATION_DOES_NOT_EXIST:
       return "Justification was not found";
-    case E::GENESIS_ALREADY_EXISTS:
+    case E::GENESIS_BLOCK_ALREADY_EXISTS:
       return "Genesis block already exists";
     case E::FINALIZED_BLOCK_NOT_FOUND:
       return "Finalized block not found. Possible storage corrupted";
+    case E::GENESIS_BLOCK_NOT_FOUND:
+      return "Genesis block not found exists";
   }
   return "Unknown error";
 }
@@ -119,6 +121,8 @@ namespace kagome::blockchain {
     // the rest of the fields have default value
 
     OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
+    OUTCOME_TRY(storage->put(storage::kGenesisBlockHashLookupKey,
+                             Buffer{genesis_block_hash}));
     OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
 
     on_genesis_created(genesis_block);
@@ -272,8 +276,24 @@ namespace kagome::blockchain {
   }
 
   outcome::result<primitives::BlockHash>
+  KeyValueBlockStorage::getGenesisBlockHash() const {
+    auto hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
+    if (hash_res.has_value()) {
+      primitives::BlockHash hash;
+      std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
+      return hash;
+    }
+
+    if (hash_res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
+      return Error::GENESIS_BLOCK_NOT_FOUND;
+    }
+
+    return hash_res.as_failure();
+  }
+
+  outcome::result<primitives::BlockHash>
   KeyValueBlockStorage::getLastFinalizedBlockHash() const {
-    auto hash_res = storage_->get(LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY);
+    auto hash_res = storage_->get(storage::kLastFinalizedBlockHashLookupKey);
     if (hash_res.has_value()) {
       primitives::BlockHash hash;
       std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
@@ -289,7 +309,8 @@ namespace kagome::blockchain {
 
   outcome::result<void> KeyValueBlockStorage::setLastFinalizedBlockHash(
       const primitives::BlockHash &hash) {
-    OUTCOME_TRY(storage_->put(LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY, Buffer{hash}));
+    OUTCOME_TRY(
+        storage_->put(storage::kLastFinalizedBlockHashLookupKey, Buffer{hash}));
 
     return outcome::success();
   }
@@ -297,7 +318,7 @@ namespace kagome::blockchain {
   outcome::result<void> KeyValueBlockStorage::ensureGenesisNotExists() const {
     auto res = getLastFinalizedBlockHash();
     if (res.has_value()) {
-      return Error::GENESIS_ALREADY_EXISTS;
+      return Error::GENESIS_BLOCK_ALREADY_EXISTS;
     }
     return outcome::success();
   }
