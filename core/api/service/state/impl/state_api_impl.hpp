@@ -6,8 +6,6 @@
 #ifndef KAGOME_STATE_API_IMPL_HPP
 #define KAGOME_STATE_API_IMPL_HPP
 
-#include "api/service/api_service.hpp"
-#include "api/service/state/readonly_trie_builder.hpp"
 #include "api/service/state/state_api.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
@@ -23,6 +21,9 @@ namespace kagome::api {
                  std::shared_ptr<blockchain::BlockTree> block_tree,
                  std::shared_ptr<runtime::Core> runtime_core);
 
+    void setApiService(
+        std::shared_ptr<api::ApiService> const &api_service) override;
+
     outcome::result<common::Buffer> getStorage(
         const common::Buffer &key) const override;
     outcome::result<common::Buffer> getStorage(
@@ -35,13 +36,12 @@ namespace kagome::api {
     outcome::result<void> unsubscribeStorage(
         const std::vector<uint32_t> &subscription_id) override;
 
-    void setApiService(std::shared_ptr<api::ApiService> const &api_service);
-
-  private:
+   private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> runtime_core_;
+
     std::weak_ptr<api::ApiService> api_service_;
   };
 

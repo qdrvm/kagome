@@ -62,6 +62,7 @@ target_link_libraries(application_injector
     waitable_timer
     binaryen_wasm_executor
     authority_manager
+    system_api_service
     )
 
 add_library(syncing_node_injector

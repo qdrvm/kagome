@@ -44,6 +44,10 @@ namespace kagome::application {
       return protocol_id_;
     }
 
+    const std::map<std::string, std::string> &properties() const override {
+      return properties_;
+    }
+
     boost::optional<std::reference_wrapper<const std::string>> getProperty(
         const std::string &property) const override {
       auto it = properties_.find(property);
