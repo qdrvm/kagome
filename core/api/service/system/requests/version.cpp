@@ -20,11 +20,8 @@ namespace kagome::api::system::request {
   }
 
   outcome::result<std::string> Version::execute() {
-    // TODO(xDimon): Ensure if implementation is correct, and remove exception
-    throw jsonrpc::InternalErrorFault(
-        "Internal error: method is known, but not yet implemented");
-
-    return api_->getConfig()->id();
+    // TODO(xDimon): Need to replace hardcode by some config or generated code
+    return "0.0.1";
   }
 
 }  // namespace kagome::api::system::request
