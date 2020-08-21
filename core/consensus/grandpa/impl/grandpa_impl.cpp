@@ -82,7 +82,8 @@ namespace kagome::consensus::grandpa {
 
     current_round_ = makeInitialRound(last_round_number, last_round_state);
     if (current_round_ == nullptr) {
-      logger_->critical("Next round wasn't make. Stopping grandpa execution");
+      logger_->critical(
+          "Next round hasn't been made. Stopping grandpa execution");
       return false;
     }
 
@@ -103,7 +104,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<const RoundState> previous_round_state) {
     if (previous_round_state == nullptr) {
       logger_->critical(
-          "Can't to make initial round: previous round state is null");
+          "Can't make initial round: previous round state is null");
       return {};
     }
 

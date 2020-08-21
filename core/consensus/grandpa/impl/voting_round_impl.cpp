@@ -439,7 +439,9 @@ namespace kagome::consensus::grandpa {
       logger_->debug("No precommit in round #{}", round_number_);
 
       // Current implementation of constructPrecommit() isn't return any error
-      BOOST_ASSERT_MSG(false, "Not possible. Shouldn't get here");
+      BOOST_ASSERT_MSG(false,
+                       "Unreachable code; Current implementation of "
+                       "constructPrecommit() should not return any error");
     }
 
     env_->onCompleted(VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
