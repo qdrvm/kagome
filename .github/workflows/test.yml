@@ -65,6 +65,8 @@ jobs:
       container: soramitsu/kagome-dev:10
       steps:
         - uses: actions/checkout@v2
+          with:
+            fetch-depth: 0
         - uses: actions/cache@v2
           with:
             path: ${{ env.CACHE_PATHS }}
@@ -75,7 +77,7 @@ jobs:
             BUILD_FINAL_TARGET: generated
           run: |
             ./housekeeping/makeBuild.sh
-            ./housekeeping/clang-tidy.sh
+            ./housekeeping/clang-tidy-diff.sh
 
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
