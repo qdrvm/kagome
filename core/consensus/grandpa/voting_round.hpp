@@ -47,9 +47,7 @@ namespace kagome::consensus::grandpa {
      */
     virtual void doPrecommit() = 0;
 
-    virtual void doFinalize() = 0;
-
-    // executes algorithm 4.9 Attempt-To-Finalize-Round(r)
+    // executes algorithm Attempt-To-Finalize-Round(r)
     virtual bool tryFinalize() = 0;
 
     virtual void onFinalize(const Fin &f) = 0;

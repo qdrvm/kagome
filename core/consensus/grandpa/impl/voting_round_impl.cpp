@@ -437,44 +437,13 @@ namespace kagome::consensus::grandpa {
         return;
       }
       logger_->debug("No precommit in round #{}", round_number_);
+
+      // Current implementation of constructPrecommit() isn't return any error
       BOOST_ASSERT_MSG(false, "Not possible. Shouldn't get here");
     }
 
     env_->onCompleted(VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
   }
-
-  void VotingRoundImpl::doFinalize() {}
-
-  //  BlockInfo VotingRoundImpl2::getBestFinalCandidate() const {
-  //    // 1. Взять ghost
-  //    // 2. Взять множество блоков у которых высота меньше либо равна ghost
-  //    при
-  //    // этом эти блоки могут потенциально набрать больше чем 2/3 голосов
-  //    // 3. если таких блоков нет, то
-  //    //   4. вернуть ghost
-  //    // 5. Из множества C вернуть блок с наибольшей высотой
-  //
-  //    current_round_state_->prevote_ghost;
-  //
-  //    previous_round_state_->estimate;
-  //
-  //    return kagome::consensus::grandpa::BlockInfo();
-  //  }
-  //
-  //  BlockInfo VotingRoundImpl2::getBestPrevoteCandidate() const {
-  //    //  	L <- Best-Final-Candidate(r ¡ 1)
-  //    //		B vr;pv <- GRANDPA-GHOST(r)
-  //    //		if Received(M v r;prim (B)) and B vr;pv > B > L
-  //    //			N <- B
-  //    //		else
-  //    //			N <- B vr;pv
-  //
-  //    return kagome::consensus::grandpa::BlockInfo();
-  //  }
-  //
-  //  BlockInfo VotingRoundImpl2::getLastFinalizedBlock() const {
-  //    return kagome::consensus::grandpa::BlockInfo();
-  //  }
 
   bool VotingRoundImpl::isPrimary(const Id &id) const {
     auto index = round_number_ % voter_set_->size();

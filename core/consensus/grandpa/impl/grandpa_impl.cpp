@@ -81,6 +81,10 @@ namespace kagome::consensus::grandpa {
     logger_->debug("Grandpa is starting with round #{}", last_round_number + 1);
 
     current_round_ = makeInitialRound(last_round_number, last_round_state);
+    if (current_round_ == nullptr) {
+      logger_->critical("Next round wasn't make. Stopping grandpa execution");
+      return false;
+    }
 
     // Planning play round
     boost::asio::post(*io_context_, [wp = current_round_->weak_from_this()] {
@@ -97,7 +101,11 @@ namespace kagome::consensus::grandpa {
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       RoundNumber previous_round_number,
       std::shared_ptr<const RoundState> previous_round_state) {
-    assert(previous_round_state != nullptr);
+    if (previous_round_state == nullptr) {
+      logger_->critical(
+          "Can't to make initial round: previous round state is null");
+      return {};
+    }
 
     // Obtain grandpa voters
     auto voters_res = getVoters();

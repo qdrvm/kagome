@@ -65,21 +65,28 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<const VotingRound> &previous_round);
 
     enum class Stage {
+      // Initial stage, round is just created
       INIT,
+
+      // Beginner stage, round is just start to play
       START,
 
+      // Stages for prevote mechanism
       START_PREVOTE,
       PREVOTE_RUNS,
       END_PREVOTE,
 
+      // Stages for precommit mechanism
       START_PRECOMMIT,
       PRECOMMIT_RUNS,
       END_PRECOMMIT,
 
+      // Stages for waiting finalisation
       START_WAITING,
       WAITING_RUNS,
       END_WAITING,
 
+      // Final state. Round was finalized
       COMPLETED
     };
 
@@ -122,8 +129,6 @@ namespace kagome::consensus::grandpa {
      * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
      */
     void doPrecommit() override;
-
-    void doFinalize() override;
 
     // Handlers of incoming messages
 
