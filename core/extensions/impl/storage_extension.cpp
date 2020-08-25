@@ -205,29 +205,6 @@ namespace kagome::extensions {
           "ext_storage_changes_root failed: called in ephemeral environment");
       return 0;
     }
-    auto batch = storage_provider_->tryGetPersistentBatch().value();
-
-    boost::optional<storage::changes_trie::ChangesTrieConfig> trie_config;
-    auto config_bytes_res = batch->get(CHANGES_CONFIG_KEY);
-    if (config_bytes_res.has_error()) {
-      if (config_bytes_res.error() != storage::trie::TrieError::NO_VALUE) {
-        logger_->error("ext_storage_changes_root resulted with an error: {}",
-                       config_bytes_res.error().message());
-        return 0;
-      }
-      logger_->debug("ext_storage_changes_root: no changes trie config found");
-      trie_config = boost::none;
-    } else {
-      auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
-          config_bytes_res.value());
-      if (config_res.has_error()) {
-        logger_->error("ext_storage_changes_root resulted with an error: {}",
-                       config_res.error().message());
-        return 0;
-      }
-      trie_config = config_res.value();
-    }
-
     auto parent_hash_bytes =
         memory_->loadN(parent_hash_data, common::Hash256::size());
     common::Hash256 parent_hash;
@@ -235,51 +212,28 @@ namespace kagome::extensions {
                 common::Hash256::size(),
                 parent_hash.begin());
 
-    // if no config found in the storage, then disable tracking blocks changes
-    if (not trie_config.has_value()) {
-      trie_config = storage::changes_trie::ChangesTrieConfig{
-          .digest_interval = 0, .digest_levels = 0};
+    if(auto result_buf = calcStorageChangesRoot(parent_hash); result_buf.has_value()) {
+      memory_->storeBuffer(result, result_buf.value());
+      return result_buf.value().size();
     }
-
-    logger_->debug(
-        "ext_storage_changes_root constructing changes trie with parent_hash: "
-        "{}",
-        parent_hash.toHex());
-    auto trie_hash_res = changes_tracker_->constructChangesTrie(
-        parent_hash, trie_config.value());
-    if (trie_hash_res.has_error()) {
-      logger_->error("ext_storage_changes_root resulted with an error: {}",
-                     trie_hash_res.error().message());
-      return 0;
-    }
-    common::Buffer result_buf(trie_hash_res.value());
-    logger_->debug("ext_storage_changes_root with parent_hash {} result is: {}",
-                   parent_hash.toHex(),
-                   result_buf.toHex());
-    memory_->storeBuffer(result, result_buf);
-    return result_buf.size();
+    return 0;
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
+    outcome::result<Buffer> res{{}};
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
-      auto res = opt_batch.value()->commit();
-      if (res.has_error()) {
-        logger_->error("ext_storage_root resulted with an error: {}",
-                       res.error().message());
-      }
-      const auto &root = res.value();
-      memory_->storeBuffer(result, root);
+      res = opt_batch.value()->commit();
     } else {
       logger_->warn("ext_storage_root called in an ephemeral extension");
-      auto res = storage_provider_->forceCommit();
-      if (res.has_error()) {
-        logger_->error("ext_storage_root resulted with an error: {}",
-                       res.error().message());
-      }
-      const auto &root = res.value();
-      memory_->storeBuffer(result, root);
+      res = storage_provider_->forceCommit();
     }
+    if (res.has_error()) {
+      logger_->error("ext_storage_root resulted with an error: {}",
+                     res.error().message());
+    }
+    const auto &root = res.value();
+    memory_->storeBuffer(result, root);
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
@@ -361,24 +315,37 @@ namespace kagome::extensions {
     return ext_clear_prefix(prefix_ptr, prefix_size);
   }
 
-  runtime::WasmPointer StorageExtension::ext_storage_root_version_1() const {
-    auto hash_size = common::Hash256::size();
-    auto ptr = memory_->allocate(hash_size);
-    ext_storage_root(ptr);
-    return ptr;
+  runtime::WasmSpan StorageExtension::ext_storage_root_version_1() const {
+    outcome::result<Buffer> res{{}};
+    if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
+        opt_batch.has_value() and opt_batch.value() != nullptr) {
+      res = opt_batch.value()->commit();
+    } else {
+      logger_->warn("ext_storage_root called in an ephemeral extension");
+      res = storage_provider_->forceCommit();
+    }
+    if (res.has_error()) {
+      logger_->error("ext_storage_root resulted with an error: {}",
+                     res.error().message());
+    }
+    const auto &root = res.value();
+    return memory_->storeBuffer(root);
   }
 
-  runtime::WasmPointer StorageExtension::ext_storage_changes_root_version_1(
+  runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash_data) {
     auto hash_size = common::Hash256::size();
-    auto result = memory_->allocate(hash_size);
-    auto parent_hash_ptr = runtime::WasmResult(parent_hash_data).address;
-    auto bytes_written = ext_storage_changes_root(parent_hash_ptr, result);
-    if (hash_size != bytes_written) {
-      std::terminate();
+    auto parent_hash_span = runtime::WasmResult(parent_hash_data);
+    auto parent_hash_bytes =
+        memory_->loadN(parent_hash_span.address, parent_hash_span.length);
+    common::Hash256 parent_hash;
+    std::copy_n(parent_hash_bytes.begin(),
+                common::Hash256::size(),
+                parent_hash.begin());
+    if(auto result = calcStorageChangesRoot(parent_hash); result.has_value()) {
+      return memory_->storeBuffer(result.value());
     }
-
-    return result;
+    return 0;
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
@@ -477,6 +444,54 @@ namespace kagome::extensions {
 
     auto res = memory_->storeBuffer(ordered_hash.value());
     return runtime::WasmResult(res).address;
+  }
+
+  boost::optional<common::Buffer> StorageExtension::calcStorageChangesRoot(
+      common::Hash256 parent_hash) const {
+    auto batch = storage_provider_->tryGetPersistentBatch().value();
+    boost::optional<storage::changes_trie::ChangesTrieConfig> trie_config;
+    auto config_bytes_res = batch->get(CHANGES_CONFIG_KEY);
+    if (config_bytes_res.has_error()) {
+      if (config_bytes_res.error() != storage::trie::TrieError::NO_VALUE) {
+        logger_->error("ext_storage_changes_root resulted with an error: {}",
+                       config_bytes_res.error().message());
+        return boost::none;
+      }
+      logger_->debug("ext_storage_changes_root: no changes trie config found");
+      trie_config = boost::none;
+    } else {
+      auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
+          config_bytes_res.value());
+      if (config_res.has_error()) {
+        logger_->error("ext_storage_changes_root resulted with an error: {}",
+                       config_res.error().message());
+        return boost::none;
+      }
+      trie_config = config_res.value();
+    }
+
+    // if no config found in the storage, then disable tracking blocks changes
+    if (not trie_config.has_value()) {
+      trie_config = storage::changes_trie::ChangesTrieConfig{
+          .digest_interval = 0, .digest_levels = 0};
+    }
+
+    logger_->debug(
+        "ext_storage_changes_root constructing changes trie with parent_hash: "
+        "{}",
+        parent_hash.toHex());
+    auto trie_hash_res = changes_tracker_->constructChangesTrie(
+        parent_hash, trie_config.value());
+    if (trie_hash_res.has_error()) {
+      logger_->error("ext_storage_changes_root resulted with an error: {}",
+                     trie_hash_res.error().message());
+      return boost::none;
+    }
+    common::Buffer result_buf(trie_hash_res.value());
+    logger_->debug("ext_storage_changes_root with parent_hash {} result is: {}",
+                   parent_hash.toHex(),
+                   result_buf.toHex());
+    return result_buf;
   }
 
 }  // namespace kagome::extensions
