@@ -208,8 +208,8 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_storage_exists_version_1\" (func $ext_storage_exists_version_1 (type 34)))\n"
       "  (import \"env\" \"ext_storage_read_version_1\" (func $ext_storage_read_version_1 (type 33)))\n"
       "  (import \"env\" \"ext_storage_clear_prefix_version_1\" (func $ext_storage_clear_prefix_version_1 (type 7)))\n"
-      "  (import \"env\" \"ext_storage_changes_root_version_1\" (func $ext_storage_changes_root_version_1 (type 34)))\n"
-      "  (import \"env\" \"ext_storage_root_version_1\" (func $ext_storage_root_version_1 (type 35)))\n"
+      "  (import \"env\" \"ext_storage_changes_root_version_1\" (func $ext_storage_changes_root_version_1 (type 29)))\n"
+      "  (import \"env\" \"ext_storage_root_version_1\" (func $ext_storage_root_version_1 (type 27)))\n"
       "  (import \"env\" \"ext_storage_next_key_version_1\" (func $ext_storage_next_key_version_1 (type 29)))\n"
 
       /// trie methods
@@ -1171,17 +1171,17 @@ TEST_F(REITest, ext_storage_clear_prefix_version_1_Test) {
 
 TEST_F(REITest, ext_storage_changes_root_version_1_Test) {
   WasmSize key_type = kBabe;
-  WasmPointer res = 2;
+  WasmSpan res = 2;
 
   EXPECT_CALL(*extension_, ext_storage_changes_root_version_1(key_type))
       .WillOnce(Return(res));
 
   auto execute_code =
-      (boost::format("    (call $assert_eq_i32\n"
+      (boost::format("    (call $assert_eq_i64\n"
                      "      (call $ext_storage_changes_root_version_1\n"
                      "        (i64.const %d)\n"
                      "      )\n"
-                     "      (i32.const %d)\n"
+                     "      (i64.const %d)\n"
                      "    )\n")
        % key_type % res)
           .str();
@@ -1190,14 +1190,14 @@ TEST_F(REITest, ext_storage_changes_root_version_1_Test) {
 }
 
 TEST_F(REITest, ext_storage_root_version_1_Test) {
-  uint32_t res = 123141;
+  WasmSpan res = 123141;
 
   EXPECT_CALL(*extension_, ext_storage_root_version_1()).WillOnce(Return(res));
 
   auto execute_code =
-      (boost::format("    (call $assert_eq_i32\n"
+      (boost::format("    (call $assert_eq_i64\n"
                      "      (call $ext_storage_root_version_1)\n"
-                     "      (i32.const %d)\n"
+                     "      (i64.const %d)\n"
                      "    )\n")
        % res)
           .str();
