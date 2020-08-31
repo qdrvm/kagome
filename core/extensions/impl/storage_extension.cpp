@@ -256,17 +256,16 @@ namespace kagome::extensions {
     return batch->get(key);
   }
 
-  outcome::result<boost::optional<Buffer>> StorageExtension::getStorageNextKey(
+  outcome::result<std::pair<boost::optional<Buffer>, bool>> StorageExtension::getStorageNextKey(
       const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     auto cursor = batch->cursor();
-    OUTCOME_TRY(cursor->seek(key));
-    OUTCOME_TRY(cursor->next());
-    if (cursor->isValid()) {
-      OUTCOME_TRY(next_key, cursor->key());
-      return boost::make_optional(next_key);
+    OUTCOME_TRY(exists, cursor->seek(key));
+    if (not exists) {
+      return {boost::none, false};
     }
-    return boost::none;
+    OUTCOME_TRY(cursor->next());
+    return {cursor->key(), true};
   }
 
   void StorageExtension::ext_storage_set_version_1(runtime::WasmSpan key,
@@ -334,7 +333,6 @@ namespace kagome::extensions {
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash_data) {
-    auto hash_size = common::Hash256::size();
     auto parent_hash_span = runtime::WasmResult(parent_hash_data);
     auto parent_hash_bytes =
         memory_->loadN(parent_hash_span.address, parent_hash_span.length);
@@ -360,8 +358,12 @@ namespace kagome::extensions {
                      res.error().message());
       return kErrorSpan;
     }
-    auto &&key_opt = res.value();
-    if (auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
+    auto &&[next_key_opt, curr_key_found] = res.value();
+    if (not curr_key_found) {
+      logger_->warn(
+          "ext_storage_next_key called with a key not present in the trie");
+    }
+    if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
     } else {  // NOLINT(readability-else-after-return)
       logger_->error(

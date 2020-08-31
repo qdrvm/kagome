@@ -76,7 +76,7 @@ TEST_F(PolkadotTrieCursorTest, NextOnEmptyTrie) {
   auto trie = makeTrie({});
   PolkadotTrieCursor cursor{*trie};
   ASSERT_FALSE(cursor.isValid());
-  EXPECT_OUTCOME_SOME_ERROR(r1, cursor.next());
+  EXPECT_OUTCOME_TRUE_1(cursor.next());
   ASSERT_FALSE(cursor.isValid());
 }
 
@@ -93,10 +93,10 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
   PolkadotTrieCursor cursor{*trie};
   for (auto &p : vals) {
     EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
-    EXPECT_OUTCOME_TRUE(v, cursor.value());
-    EXPECT_OUTCOME_TRUE(k, cursor.key());
-    ASSERT_EQ(v, p.second);
-    ASSERT_EQ(k, p.first);
+    ASSERT_TRUE(cursor.value());
+    ASSERT_TRUE(cursor.key());
+    ASSERT_EQ(cursor.value(), p.second);
+    ASSERT_EQ(cursor.key(), p.first);
   }
   EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
   ASSERT_FALSE(cursor.isValid());
@@ -115,15 +115,17 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
   EXPECT_OUTCOME_TRUE_1(cursor->next());
   size_t keys_behind =
       0;  // number of keys lexicographically lesser than current
-  for (auto start_key : keys) {
+  for (auto const &start_key : keys) {
     EXPECT_OUTCOME_TRUE_1(cursor->seek(start_key));
     auto keys_copy = std::set<Buffer>(keys);
     while (cursor->isValid()) {
-      EXPECT_OUTCOME_TRUE(key, cursor->key());
-      EXPECT_OUTCOME_TRUE(value, cursor->value());
-      ASSERT_EQ(key, value);
-      ASSERT_TRUE(keys_copy.find(key) != keys_copy.end());
-      keys_copy.erase(key);
+      ASSERT_TRUE(cursor->key());
+      ASSERT_TRUE(cursor->value());
+      auto k = cursor->key().value();
+      auto v = cursor->value().value();
+      ASSERT_EQ(k, v);
+      ASSERT_TRUE(keys_copy.find(k) != keys_copy.end());
+      keys_copy.erase(k);
       EXPECT_OUTCOME_TRUE_1(cursor->next());
     }
     ASSERT_EQ(keys_copy.size(),
@@ -155,7 +157,8 @@ TEST_F(PolkadotTrieCursorTest, Lexicographical) {
   EXPECT_OUTCOME_TRUE_1(c->seek("06"_hex2buf));
   Buffer prev_key{0};
   do {
-    EXPECT_OUTCOME_TRUE(key, c->key());
+    ASSERT_TRUE(c->key());
+    auto key = c->key().value();
     ASSERT_LT(prev_key, key);
     prev_key = key;
     EXPECT_OUTCOME_TRUE_1(c->next());

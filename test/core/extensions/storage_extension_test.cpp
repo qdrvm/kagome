@@ -291,9 +291,8 @@ TEST_F(StorageExtensionTest, NextKey) {
   EXPECT_CALL(*trie_batch_, cursor())
       .WillOnce(Invoke([&key, &expected_next_key]() {
         auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
-        EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(outcome::success()));
+        EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(true));
         EXPECT_CALL(*cursor, next()).WillOnce(Return(outcome::success()));
-        EXPECT_CALL(*cursor, isValid()).WillOnce(Return(true));
         EXPECT_CALL(*cursor, key()).WillOnce(Return(expected_next_key));
         return cursor;
       }));
@@ -330,9 +329,9 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
 
   EXPECT_CALL(*trie_batch_, cursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
-    EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(true));
     EXPECT_CALL(*cursor, next()).WillOnce(Return(outcome::success()));
-    EXPECT_CALL(*cursor, isValid()).WillOnce(Return(false));
+    EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));
 
@@ -364,13 +363,20 @@ TEST_F(StorageExtensionTest, NextKeyInvalidKey) {
     auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
     EXPECT_CALL(*cursor, seek(key))
         .WillOnce(Return(
-            kagome::storage::trie::PolkadotTrieCursor::Error::NOT_FOUND));
+            false));
     return cursor;
   }));
 
-  auto next_key_span = storage_extension_->ext_storage_next_key_version_1(
+  EXPECT_CALL(*memory_, storeBuffer(_))
+      .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
+        EXPECT_OUTCOME_TRUE(
+            key_opt, kagome::scale::decode<boost::optional<Buffer>>(buffer));
+        EXPECT_EQ(key_opt, boost::none);
+        return 0;
+      }));
+
+  storage_extension_->ext_storage_next_key_version_1(
       WasmResult{key_pointer, key_size}.combine());
-  ASSERT_EQ(next_key_span, -1);
 }
 
 /**
@@ -450,6 +456,18 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   storage_extension_->ext_storage_read_version_1(
       key.combine(), value.combine(), offset);
 }
+/**
+ * Just to avoid output like "smth failed with reason: Success"
+ * which happens if provide error code zero
+ */
+struct test_error_category_t: public std::error_category {
+  const char *name() const noexcept override {
+    return "testing error category";
+  }
+  std::string message(int i) const override {
+    return "Error expected in a test";
+  }
+} test_error_category;
 
 INSTANTIATE_TEST_CASE_P(Instance,
                         OutcomeParameterizedTest,
@@ -457,7 +475,7 @@ INSTANTIATE_TEST_CASE_P(Instance,
                             /// success case
                             outcome::success(),
                             /// failure with arbitrary error code
-                            outcome::failure(std::error_code())),
+                            outcome::failure(std::error_code(1, test_error_category))),
                         // empty argument for the macro
 );
 

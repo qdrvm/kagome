@@ -100,7 +100,7 @@ TEST_F(LevelDB_Integration_Test, Iterator) {
 
   logger->warn("forward iteration");
   auto it = db_->cursor();
-  EXPECT_OUTCOME_TRUE_1(it->seekToFirst());
+  EXPECT_OUTCOME_TRUE_1(it->seekFirst());
   for (; it->isValid(); it->next().assume_value()) {
     auto k = it->key().value();
     auto v = it->value().value();

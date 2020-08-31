@@ -21,11 +21,11 @@ namespace kagome::storage {
 
     explicit Cursor(std::shared_ptr<leveldb::Iterator> it);
 
-    outcome::result<void> seekToFirst() override;
+    outcome::result<bool> seekFirst() override;
 
-    outcome::result<void> seek(const Buffer &key) override;
+    outcome::result<bool> seek(const Buffer &key) override;
 
-    outcome::result<void> seekToLast() override;
+    outcome::result<bool> seekLast() override;
 
     bool isValid() const override;
 
@@ -33,9 +33,9 @@ namespace kagome::storage {
 
     outcome::result<void> prev() override;
 
-    outcome::result<Buffer> key() const override;
+    boost::optional<Buffer> key() const override;
 
-    outcome::result<Buffer> value() const override;
+    boost::optional<Buffer> value() const override;
 
    private:
     std::shared_ptr<leveldb::Iterator> i_;

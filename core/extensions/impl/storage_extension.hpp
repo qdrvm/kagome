@@ -173,10 +173,15 @@ namespace kagome::extensions {
 
     outcome::result<common::Buffer> get(const common::Buffer &key) const;
 
-    outcome::result<boost::optional<common::Buffer>> getStorageNextKey(
-        const common::Buffer &key) const;
+    /**
+     * @return error if any, a pair with (opt_key, true)
+     * if \arg key is found, (none, false) otherwise
+     */
+    outcome::result<std::pair<boost::optional<common::Buffer>, bool>>
+    getStorageNextKey(const common::Buffer &key) const;
 
-    boost::optional<common::Buffer> calcStorageChangesRoot(common::Hash256 parent) const;
+    boost::optional<common::Buffer> calcStorageChangesRoot(
+        common::Hash256 parent) const;
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<runtime::WasmMemory> memory_;
