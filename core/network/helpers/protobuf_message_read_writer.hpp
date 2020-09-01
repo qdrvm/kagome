@@ -32,13 +32,16 @@ namespace kagome::network {
       assert(remains >= UVarMessageAdapter<T>::size(t));
 
       auto data_sz = out.size() - remains;
+      while ((data_sz & kSignificantBitsMaskMSB) == 0 && data_sz != 0)
+        data_sz <<= size_t(7ull);
+
       auto sz_start = --loaded;
       do {
         assert(std::distance(out.begin(), loaded) >= 1);
-        *(loaded--) = ((data_sz & kSignificantBitsMaskMSB) >> 55ull) | kContinuationBitMask;
+        *loaded-- = ((data_sz & kSignificantBitsMaskMSB) >> 55ull) | kContinuationBitMask;
       } while(data_sz <<= size_t(7ull));
-      *sz_start &= uint8_t(kSignificantBitsMask);
 
+      *sz_start &= uint8_t(kSignificantBitsMask);
       return ++loaded;
     }
 
@@ -66,6 +69,7 @@ namespace kagome::network {
       return from;
     }
   };
+  
   /**
    * Read and write messages, encoded into protobuf with a prepended varint
    */
