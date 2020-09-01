@@ -50,6 +50,8 @@ namespace kagome::network {
       return AdapterType::write(t, out, loaded);
     }
 
+    template<typename T>
+    static s
   };
 
   template<typename Adapter> struct MessageReadWriter<Adapter, NoSink> final {
