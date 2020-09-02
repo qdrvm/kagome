@@ -42,7 +42,7 @@ namespace kagome::network {
     }
 
     static std::vector<uint8_t>::iterator write(const T &t, std::vector<uint8_t> &out, std::vector<uint8_t>::iterator loaded) {
-      const auto remains = std::distance(out.begin(), loaded);
+      const size_t remains = static_cast<size_t>(std::distance(out.begin(), loaded));
       assert(remains >= UVarMessageAdapter<T>::size(t));
       auto data_sz = out.size() - remains;
 
