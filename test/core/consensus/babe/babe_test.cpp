@@ -117,6 +117,10 @@ class BabeTest : public testing::Test {
                                         hasher_,
                                         grandpa_authority_update_observer_);
 
+    EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
+    EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
+    EXPECT_CALL(*app_state_manager_, atShutdown(_)).Times(testing::AnyNumber());
+
     babe_ = std::make_shared<BabeImpl>(app_state_manager_,
                                        lottery_,
                                        block_executor,
@@ -235,8 +239,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*timer_, asyncWait(_))
       .WillOnce(testing::InvokeArgument<0>(boost::system::error_code{}))
       .WillOnce(testing::InvokeArgument<0>(boost::system::error_code{}))
-      .WillOnce({})
-      .RetiresOnSaturation();
+      .WillOnce({});
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
@@ -248,6 +251,10 @@ TEST_F(BabeTest, Success) {
 
   EXPECT_CALL(*gossiper_, blockAnnounce(_))
       .WillOnce(CheckBlockHeader(created_block_.header));
+
+  EXPECT_CALL(*epoch_storage_, setLastEpoch(_))
+      .WillOnce(Return(outcome::success()))
+      .WillOnce(Return(outcome::success()));
 
   babe_->runEpoch(epoch_, test_begin + slot_duration_);
 }
