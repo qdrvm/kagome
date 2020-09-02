@@ -117,6 +117,10 @@ namespace kagome::blockchain {
 
     outcome::result<void> addBlock(const primitives::Block &block) override;
 
+    outcome::result<void> addExistingBlock(
+        const primitives::BlockHash &block_hash,
+        const primitives::Block &block) override;
+
     outcome::result<void> addBlockBody(
         primitives::BlockNumber block_number,
         const primitives::BlockHash &block_hash,
@@ -167,6 +171,11 @@ namespace kagome::blockchain {
         std::shared_ptr<TreeMeta> meta,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher);
+
+    /**
+     * Update local meta with the provided node
+     */
+    void updateMeta(const std::shared_ptr<TreeNode> &new_node);
 
     /**
      * Walks the chain backwards starting from \param start until the current

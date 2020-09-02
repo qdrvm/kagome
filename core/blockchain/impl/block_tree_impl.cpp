@@ -166,18 +166,8 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> BlockTreeImpl::addBlock(
-      const primitives::Block &block) {
-    // first of all, check if we know parent of this block; if not, we cannot
-    // insert it
-    auto parent = tree_->getByHash(block.header.parent_hash);
-    if (!parent) {
-      return BlockTreeError::NO_PARENT;
-    }
-    OUTCOME_TRY(block_hash, storage_->putBlock(block));
-    // update local meta with the new block
-    auto new_node =
-        std::make_shared<TreeNode>(block_hash, block.header.number, parent);
+  void BlockTreeImpl::updateMeta(const std::shared_ptr<TreeNode> &new_node) {
+    auto parent = new_node->parent.lock();
     parent->children.push_back(new_node);
 
     tree_meta_->leaves.insert(new_node->block_hash);
@@ -185,6 +175,46 @@ namespace kagome::blockchain {
     if (new_node->depth > tree_meta_->deepest_leaf.get().depth) {
       tree_meta_->deepest_leaf = *new_node;
     }
+  }
+
+  outcome::result<void> BlockTreeImpl::addBlock(
+      const primitives::Block &block) {
+    // Check if we know parent of this block; if not, we cannot insert it
+    auto parent = tree_->getByHash(block.header.parent_hash);
+    if (!parent) {
+      return BlockTreeError::NO_PARENT;
+    }
+
+    // Save block
+    OUTCOME_TRY(block_hash, storage_->putBlock(block));
+
+    // Update local meta with the block
+    auto new_node =
+        std::make_shared<TreeNode>(block_hash, block.header.number, parent);
+
+    updateMeta(new_node);
+
+    return outcome::success();
+  }
+
+  outcome::result<void> BlockTreeImpl::addExistingBlock(
+      const primitives::BlockHash &block_hash, const primitives::Block &block) {
+    auto node = tree_->getByHash(block_hash);
+    // Check if tree doesn't have this block; if not, we skip that
+    if (node != nullptr) {
+      return BlockTreeError::BLOCK_EXISTS;
+    }
+    // Check if we know parent of this block; if not, we cannot insert it
+    auto parent = tree_->getByHash(block.header.parent_hash);
+    if (parent == nullptr) {
+      return BlockTreeError::NO_PARENT;
+    }
+
+    // Update local meta with the block
+    auto new_node =
+        std::make_shared<TreeNode>(block_hash, block.header.number, parent);
+
+    updateMeta(new_node);
 
     return outcome::success();
   }
@@ -579,5 +609,4 @@ namespace kagome::blockchain {
       container.emplace_back(child->block_hash, child->depth);
     }
   }
-
 }  // namespace kagome::blockchain
