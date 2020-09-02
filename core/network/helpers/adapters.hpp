@@ -9,20 +9,23 @@
 #include <functional>
 #include <memory>
 #include <gsl/span>
+#include <boost/system/error_code.hpp>
+
+#include "outcome/outcome.hpp"
 
 namespace kagome::network {
 
   template<typename T> struct ProtobufMessageAdapter {
     static size_t size(const T &t) {
-      assert(!"No implementation");
+      assert(false); // NO_IMPL
       return 0ull;
     }
     static std::vector<uint8_t>::iterator write(const T &/*t*/, std::vector<uint8_t> &out, std::vector<uint8_t>::iterator /*loaded*/) {
-      assert(!"No implementation");
+      assert(false); // NO_IMPL
       return out.end();
     }
     static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(T &out, const std::vector<uint8_t> &src, std::vector<uint8_t>::const_iterator from) {
-      assert(!"No implementation");
+      assert(false); // NO_IMPL
       return outcome::failure(boost::system::error_code{});
     }
   };
@@ -30,36 +33,41 @@ namespace kagome::network {
   template<typename T> struct UVarMessageAdapter {
     static constexpr size_t kContinuationBitMask{0x80ull};
     static constexpr size_t kSignificantBitsMask{0x7Full};
-    static constexpr size_t kSignificantBitsMaskMSB{kSignificantBitsMask << 56};
+    static constexpr size_t kMSBBit = (1ull << 63);
+    static constexpr size_t kPayloadSize = ((sizeof(uint64_t) << size_t(3)) + size_t(6)) / size_t(7);
+    static constexpr size_t kSignificantBitsMaskMSB{kSignificantBitsMask << 57};
 
-    static size_t size(const T &t) {
-      return sizeof(uint64_t);
+    static size_t size(const T &/*t*/) {
+      return kPayloadSize;
     }
 
     static std::vector<uint8_t>::iterator write(const T &t, std::vector<uint8_t> &out, std::vector<uint8_t>::iterator loaded) {
       const auto remains = std::distance(out.begin(), loaded);
       assert(remains >= UVarMessageAdapter<T>::size(t));
-
       auto data_sz = out.size() - remains;
-      while ((data_sz & kSignificantBitsMaskMSB) == 0 && data_sz != 0)
-        data_sz <<= size_t(7ull);
+
+      /// We need to align bits to 7-bit bound
+      if (!(kMSBBit & data_sz)) {
+        data_sz <<= size_t(1ull);
+        while ((data_sz & kSignificantBitsMaskMSB) == 0 && data_sz != 0)
+          data_sz <<= size_t(7ull);
+      }
 
       auto sz_start = --loaded;
       do {
         assert(std::distance(out.begin(), loaded) >= 1);
-        *loaded-- = ((data_sz & kSignificantBitsMaskMSB) >> 55ull) | kContinuationBitMask;
+        *loaded-- = ((data_sz & kSignificantBitsMaskMSB) >> 57ull) | kContinuationBitMask;
       } while(data_sz <<= size_t(7ull));
 
       *sz_start &= uint8_t(kSignificantBitsMask);
       return ++loaded;
     }
 
-    static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(T &out, const std::vector<uint8_t> &src, std::vector<uint8_t>::const_iterator from) {
+    static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(T &/*out*/, const std::vector<uint8_t> &src, std::vector<uint8_t>::const_iterator from) {
       if (from == src.end())
         return outcome::failure(boost::system::error_code{});
 
       uint64_t sz = 0;
-      constexpr size_t kPayloadSize = ((UVarMessageAdapter<T>::size() << size_t(3)) + size_t(6)) / size_t(7);
       const auto loaded = std::distance(src.begin(), from);
 
       auto const * const beg = from.base();

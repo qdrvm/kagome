@@ -12,6 +12,10 @@ target_link_libraries(block_request_test
     testutil_primitives_generator
     )
 
+addtest(uvar_adapter_test
+        uvar_adapter_test.cpp
+        )
+
 addtest(block_response_test
     blocks_response_test.cpp
     )
