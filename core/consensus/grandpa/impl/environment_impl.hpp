@@ -41,6 +41,19 @@ namespace kagome::consensus::grandpa {
 
     // Environment methods
 
+    outcome::result<void> onCatchUpRequested(
+        const libp2p::peer::PeerId &peer_id,
+        MembershipCounter set_id,
+        RoundNumber round_number) override;
+
+    outcome::result<void> onCatchUpResponsed(
+        const libp2p::peer::PeerId &peer_id,
+        MembershipCounter set_id,
+        RoundNumber round_number,
+        GrandpaJustification prevote_justification,
+        GrandpaJustification precommit_justification,
+        BlockInfo best_final_candidate) override;
+
     outcome::result<void> onProposed(RoundNumber round,
                                      MembershipCounter set_id,
                                      const SignedMessage &propose) override;
@@ -66,6 +79,11 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> finalize(
         const primitives::BlockHash &block_hash,
         const GrandpaJustification &justification) override;
+
+    // Getters
+
+    outcome::result<GrandpaJustification> getJustification(
+        const BlockHash &block_hash) override;
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;

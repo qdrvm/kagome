@@ -22,7 +22,7 @@ namespace kagome::consensus::grandpa {
      * Note: prevote_ghost is not necessary the prevote that created by the
      * current peer
      */
-    Prevote best_prevote_candidate;
+    BlockInfo best_prevote_candidate;
 
     /**
      * is the best possible block that could be finalized in current round.

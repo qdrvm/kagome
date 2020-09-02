@@ -48,6 +48,24 @@ namespace kagome::consensus::grandpa {
         finalize,
         outcome::result<void>(const primitives::BlockHash &block,
                               const GrandpaJustification &justification));
+
+    MOCK_METHOD1(
+        getJustification,
+        outcome::result<GrandpaJustification>(const BlockHash &block_hash));
+
+    MOCK_METHOD3(onCatchUpRequested,
+                 outcome::result<void>(const libp2p::peer::PeerId &peer_id,
+                                       MembershipCounter set_id,
+                                       RoundNumber round_number));
+
+    MOCK_METHOD6(
+        onCatchUpResponsed,
+        outcome::result<void>(const libp2p::peer::PeerId &peer_id,
+                              MembershipCounter set_id,
+                              RoundNumber round_number,
+                              GrandpaJustification prevote_justification,
+                              GrandpaJustification precommit_justification,
+                              BlockInfo best_final_candidate));
   };
 
 }  // namespace kagome::consensus::grandpa

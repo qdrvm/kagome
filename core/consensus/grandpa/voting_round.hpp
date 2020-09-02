@@ -18,10 +18,21 @@ namespace kagome::consensus::grandpa {
     virtual ~VotingRound() = default;
 
     virtual RoundNumber roundNumber() const = 0;
+    virtual MembershipCounter voterSetId() const = 0;
     virtual std::shared_ptr<const RoundState> state() const = 0;
+
+    /**
+     * Round is completable when we have block (stored in
+     * current_state_.finalized) for which we have supermajority on both
+     * prevotes and precommits
+     */
+    virtual bool completable() const = 0;
 
     virtual void play() = 0;
     virtual void end() = 0;
+
+    virtual void doCatchUpRequest(const libp2p::peer::PeerId &peer_id) = 0;
+    virtual void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) = 0;
 
     /**
      * During the primary propose we:

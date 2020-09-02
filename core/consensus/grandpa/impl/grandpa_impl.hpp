@@ -25,6 +25,7 @@
 namespace kagome::consensus::grandpa {
 
   class GrandpaImpl : public Grandpa,
+                      public GrandpaObserver,
                       public std::enable_shared_from_this<GrandpaImpl> {
    public:
     ~GrandpaImpl() override = default;
@@ -48,11 +49,24 @@ namespace kagome::consensus::grandpa {
     /** @see AppStateManager::takeControl */
     void stop();
 
+    // Catch-up methods
+
+    void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
+                          const network::CatchUpRequest &msg) override;
+
+    void onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
+                           const network::CatchUpResponse &msg) override;
+
+    // Voting methods
+
+    void onVoteMessage(const libp2p::peer::PeerId &peer_id,
+                       const VoteMessage &msg) override;
+
+    void onFinalize(const libp2p::peer::PeerId &peer_id, const Fin &f) override;
+
+    // Round processing method
+
     void executeNextRound() override;
-
-    void onVoteMessage(const VoteMessage &msg) override;
-
-    void onFinalize(const Fin &f) override;
 
    private:
     std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);

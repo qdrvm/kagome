@@ -19,10 +19,6 @@ namespace kagome::consensus::grandpa {
   class VoteTracker {
    public:
     enum class PushResult { SUCCESS, DUPLICATED, EQUIVOCATED };
-    using VotingMessage = SignedMessage;
-    using EquivocatoryVotingMessage = std::pair<VotingMessage, VotingMessage>;
-    using VoteVariant =
-        boost::variant<VotingMessage, EquivocatoryVotingMessage>;
 
     virtual ~VoteTracker() = default;
     /**

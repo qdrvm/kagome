@@ -14,6 +14,7 @@
 #include "common/logger.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
+#include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -167,8 +168,15 @@ namespace kagome::consensus::grandpa {
      */
     bool tryFinalize() override;
 
-    RoundNumber roundNumber() const override;
+    // Catch-up actions
 
+    void doCatchUpRequest(const libp2p::peer::PeerId &peer_id) override;
+    void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) override;
+
+    // Getters
+
+    RoundNumber roundNumber() const override;
+    MembershipCounter voterSetId() const override;
     std::shared_ptr<const RoundState> state() const override;
 
     /**
@@ -176,7 +184,7 @@ namespace kagome::consensus::grandpa {
      * current_state_.finalized) for which we have supermajority on both
      * prevotes and precommits
      */
-    bool completable() const;
+    bool completable() const override;
 
    private:
     void constructCurrentState();
@@ -214,8 +222,8 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> notify(const RoundState &last_round_state);
 
     /// prepare justification for the provided \param estimate
-    boost::optional<GrandpaJustification> finalizingPrecommits(
-        const BlockInfo &estimate) const;
+    boost::optional<GrandpaJustification> getJustification(
+        const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const;
 
     /**
      * We will vote for the best chain containing primary_vote_ iff
@@ -235,10 +243,13 @@ namespace kagome::consensus::grandpa {
     outcome::result<SignedMessage> constructPrecommit(
         const RoundState &last_round_state) const;
 
-    /// Check if received \param vote has valid \param justification. If so
-    /// \return true, false otherwise
-    bool validate(const BlockInfo &vote,
-                  const GrandpaJustification &justification) const;
+    /// Check if received \param vote has valid \param justification prevote
+    bool validatePrevoteJustification(
+        const BlockInfo &vote, const GrandpaJustification &justification) const;
+
+    /// Check if received \param vote has valid \param justification precommit
+    bool validatePrecommitJustification(
+        const BlockInfo &vote, const GrandpaJustification &justification) const;
 
    private:
     std::weak_ptr<Grandpa> grandpa_;

@@ -13,10 +13,21 @@
 namespace kagome::consensus::grandpa {
 
   class GrandpaMock : public Grandpa {
+    using PeerId = libp2p::peer::PeerId;
+    using CatchUpRequest = network::CatchUpRequest;
+    using CatchUpResponse = network::CatchUpResponse;
+
    public:
+    MOCK_METHOD2(onVoteMessage,
+                 void(const PeerId &peer_id, const VoteMessage &));
+    MOCK_METHOD2(onFinalize, void(const PeerId &peer_id, const Fin &));
+
+    MOCK_METHOD2(onCatchUpRequest,
+                 void(const PeerId &peer_id, const CatchUpRequest &));
+    MOCK_METHOD2(onCatchUpResponse,
+                 void(const PeerId &peer_id, const CatchUpResponse &));
+
     MOCK_METHOD0(executeNextRound, void());
-    MOCK_METHOD1(onFinalize, void(const Fin &));
-    MOCK_METHOD1(onVoteMessage, void(const VoteMessage &));
   };
 
 }  // namespace kagome::consensus::grandpa

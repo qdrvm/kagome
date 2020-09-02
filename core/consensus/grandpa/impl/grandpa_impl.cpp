@@ -17,8 +17,6 @@
 
 namespace kagome::consensus::grandpa {
 
-  static size_t round_id = 0;
-
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<Environment> environment,
@@ -260,11 +258,11 @@ namespace kagome::consensus::grandpa {
               genesis_hash_res.value().end(),
               genesis_hash.begin());
 
-    auto round_state = std::make_shared<const RoundState>(RoundState{
-        .last_finalized_block = primitives::BlockInfo(1, genesis_hash),
-        .best_prevote_candidate = Prevote(1, genesis_hash),
-        .best_final_candidate = primitives::BlockInfo(1, genesis_hash),
-        .finalized = primitives::BlockInfo(1, genesis_hash)});
+    auto round_state = std::make_shared<const RoundState>(
+        RoundState{.last_finalized_block = {1, genesis_hash},
+                   .best_prevote_candidate = {1, genesis_hash},
+                   .best_final_candidate = {1, genesis_hash},
+                   .finalized = {{1, genesis_hash}}});
 
     CompletedRound zero_round{.round_number = 0, .state = round_state};
 
@@ -272,18 +270,97 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::executeNextRound() {
-    logger_->debug("Execute next round #{} -> #{}",
-                   current_round_->roundNumber(),
-                   current_round_->roundNumber() + 1);
     previous_round_.swap(current_round_);
     previous_round_->end();
     current_round_ = makeNextRound(previous_round_);
     current_round_->play();
   }
 
-  void GrandpaImpl::onVoteMessage(const VoteMessage &msg) {
+  void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
+                                     const network::CatchUpRequest &msg) {
+    if (current_round_ == nullptr) {
+      return;
+    }
+    if (current_round_->roundNumber() < msg.round_number) {
+      return;
+    }
+    if (current_round_->voterSetId() != msg.voter_set_id) {
+      return;
+    }
+    current_round_->doCatchUpResponse(peer_id);
+  }
+
+  void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
+                                      const network::CatchUpResponse &msg) {
+    if (current_round_ == nullptr) {
+      return;
+    }
+    if (current_round_->voterSetId() != msg.voter_set_id) {
+      // Catching up of different set
+      return;
+    }
+    if (current_round_->roundNumber() >= msg.round_number) {
+      // Catching up in to the past
+      return;
+    }
+
+    auto round = makeInitialRound(msg.round_number, current_round_->state());
+
+    for (auto &signed_message : msg.prevote_justification.items) {
+      auto success = visit_in_place(
+          signed_message.message,
+          [round, &signed_message](const Prevote &prevote) {
+            round->onPrevote(signed_message);
+            return true;
+          },
+          [](auto...) { return false; });
+      if (not success) {
+        // Invalid prevote justification
+        return;
+      }
+    }
+    for (auto &signed_message : msg.precommit_justification.items) {
+      auto success = visit_in_place(
+          signed_message.message,
+          [round, &signed_message](const Precommit &precommit) {
+            round->onPrecommit(signed_message);
+            return true;
+          },
+          [](auto...) { return false; });
+      if (not success) {
+        // Invalid precommit justification
+        return;
+      }
+    }
+
+    if (current_round_->state()->best_prevote_candidate.block_number
+        > round->state()->best_prevote_candidate.block_number) {
+      // GHOST-less Catch-up
+      return;
+    }
+
+    if (not round->completable()) {
+      // Catch-up round is not completable
+      return;
+    }
+
+    // TODO something else
+
+    previous_round_.swap(current_round_);
+    previous_round_->end();
+    current_round_ = std::move(round);
+    current_round_->play();
+  }
+
+  void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
+                                  const VoteMessage &msg) {
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
-    if (not target_round) return;
+    if (not target_round) {
+      if (msg.round_number > current_round_->roundNumber()) {
+        current_round_->doCatchUpRequest(peer_id);
+      }
+      return;
+    }
 
     // get block info
     auto blockInfo = visit_in_place(msg.vote.message, [](const auto &vote) {
@@ -311,7 +388,6 @@ namespace kagome::consensus::grandpa {
       logger_->warn("Vote signed by unknown validator");
       return;
     };
-
     visit_in_place(
         msg.vote.message,
         [&target_round, &msg](const PrimaryPropose &primary_propose) {
@@ -325,19 +401,23 @@ namespace kagome::consensus::grandpa {
         });
   }
 
-  void GrandpaImpl::onFinalize(const Fin &f) {
+  void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
+                               const Fin &f) {
     logger_->debug("Received fin message for round: {}", f.round_number);
 
     std::shared_ptr<VotingRound> target_round = selectRound(f.round_number);
-    if (not target_round) return;
+    if (not target_round) {
+      if (f.round_number > current_round_->roundNumber()) {
+        current_round_->doCatchUpRequest(peer_id);
+      }
+      return;
+    }
 
     target_round->onFinalize(f);
   }
 
   void GrandpaImpl::onCompletedRound(
       outcome::result<CompletedRound> completed_round_res) {
-    round_id++;
-
     if (not completed_round_res) {
       logger_->debug("Grandpa round was not finalized: {}",
                      completed_round_res.error().message());
@@ -358,10 +438,11 @@ namespace kagome::consensus::grandpa {
       BOOST_ASSERT(storage_->get(storage::kSetStateKey));
     }
 
-    boost::asio::post(*io_context_, [wp = weak_from_this()] {
-      if (auto grandpa = wp.lock()) {
-        grandpa->executeNextRound();
-      }
-    });
+    //    boost::asio::post(*io_context_, [wp = weak_from_this()] {
+    //      if (auto grandpa = wp.lock()) {
+    //        grandpa->
+    executeNextRound();
+    //      }
+    //    });
   }
 }  // namespace kagome::consensus::grandpa

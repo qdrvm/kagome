@@ -66,6 +66,35 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  outcome::result<void> EnvironmentImpl::onCatchUpRequested(
+      const libp2p::peer::PeerId &peer_id,
+      MembershipCounter set_id,
+      RoundNumber round_number) {
+    network::CatchUpRequest message{.round_number = round_number,
+                                    .voter_set_id = set_id};
+    gossiper_->catchUpRequest(peer_id, message);
+    logger_->debug("Catch-Up-Request sent from round #{}", round_number);
+    return outcome::success();
+  }
+
+  outcome::result<void> EnvironmentImpl::onCatchUpResponsed(
+      const libp2p::peer::PeerId &peer_id,
+      MembershipCounter set_id,
+      RoundNumber round_number,
+      GrandpaJustification prevote_justification,
+      GrandpaJustification precommit_justification,
+      BlockInfo best_final_candidate) {
+    network::CatchUpResponse message{
+        .voter_set_id = set_id,
+        .round_number = round_number,
+        .prevote_justification = std::move(prevote_justification),
+        .precommit_justification = std::move(precommit_justification),
+        .best_final_candidate = best_final_candidate};
+    gossiper_->catchUpResponse(peer_id, message);
+    logger_->debug("Catch-Up-Response sent upto round {}", round_number);
+    return outcome::success();
+  }
+
   outcome::result<void> EnvironmentImpl::onProposed(
       RoundNumber round,
       MembershipCounter set_id,
@@ -139,6 +168,18 @@ namespace kagome::consensus::grandpa {
     primitives::Justification justification;
     justification.data.put(scale::encode(grandpa_jusitification).value());
     return block_tree_->finalize(block_hash, justification);
+  }
+
+  outcome::result<GrandpaJustification> EnvironmentImpl::getJustification(
+      const BlockHash &block_hash) {
+    OUTCOME_TRY(encoded_justification,
+                block_tree_->getBlockJustification(block_hash));
+
+    OUTCOME_TRY(
+        grandpa_jusitification,
+        scale::decode<GrandpaJustification>(encoded_justification.data));
+
+    return outcome::success(std::move(grandpa_jusitification));
   }
 
 }  // namespace kagome::consensus::grandpa

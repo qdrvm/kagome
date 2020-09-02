@@ -175,6 +175,8 @@ namespace kagome::injector {
         di::bind<network::BabeObserver>.to(
             [](auto const &inj) { return get_babe(inj); }),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<runtime::GrandpaApi>.template to(
             [is_only_finalizing{app_config->is_only_finalizing()}](

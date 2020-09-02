@@ -12,11 +12,11 @@ namespace kagome::consensus::grandpa {
 
   class VoteTrackerImpl : public VoteTracker {
    public:
-    using PushResult = typename VoteTracker::PushResult;
-    using VotingMessage = typename VoteTracker::VotingMessage;
-    using EquivocatoryVotingMessage =
-        typename VoteTracker::EquivocatoryVotingMessage;
-    using VoteVariant = typename VoteTracker::VoteVariant;
+    //    using PushResult = typename VoteTracker::PushResult;
+    //    using VotingMessage = typename VoteTracker::VotingMessage;
+    //    using EquivocatoryVotingMessage =
+    //        typename VoteTracker::EquivocatoryVotingMessage;
+    //    using VoteVariant = typename VoteTracker::VoteVariant;
 
     ~VoteTrackerImpl() override = default;
 

@@ -22,6 +22,7 @@ namespace kagome::network {
       BLOCK_ANNOUNCE,
       TRANSACTIONS,
       CONSENSUS,
+      GRANDPA,  // TODO(xDimon): It's implemented over spec. Need to check
       UNKNOWN = 99
     };
 

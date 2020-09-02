@@ -107,10 +107,10 @@ class VotingRoundTest : public ::testing::Test {
                          .peer_id = kAlice};
 
     previous_round_state_ = std::make_shared<const RoundState>(
-        RoundState{.last_finalized_block = BlockInfo(1, "genesis"_H),
-                   .best_prevote_candidate = Prevote(3, "B"_H),
-                   .best_final_candidate = BlockInfo(4, "C"_H),
-                   .finalized = BlockInfo(3, "B"_H)});
+        RoundState{.last_finalized_block = {1, "genesis"_H},
+                   .best_prevote_candidate = {3, "B"_H},
+                   .best_final_candidate = {4, "C"_H},
+                   .finalized = {{3, "B"_H}}});
 
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                config,
@@ -251,7 +251,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   round_->onPrevote(bob_vote);
 
   // then 1.
-  ASSERT_EQ(round_->state()->best_prevote_candidate, Prevote(6, "E"_H));
+  ASSERT_EQ(round_->state()->best_prevote_candidate, BlockInfo(6, "E"_H));
 
   // then 2.
   ASSERT_EQ(round_->state()->best_final_candidate, BlockInfo(6, "E"_H));
@@ -264,7 +264,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   round_->onPrevote(eve_vote);
 
   // then 3.
-  ASSERT_EQ(round_->state()->best_prevote_candidate, Prevote(6, "E"_H));
+  ASSERT_EQ(round_->state()->best_prevote_candidate, BlockInfo(6, "E"_H));
   ASSERT_EQ(round_->state()->best_final_candidate, BlockInfo(6, "E"_H));
 }
 
@@ -502,7 +502,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
 
   // check if completed round is as expected
   BlockInfo expected_last_finalized_block = finalized_block;
-  Prevote expected_best_prevote_ghost{best_block_number, best_block_hash};
+  BlockInfo expected_best_prevote_ghost{best_block_number, best_block_hash};
   BlockInfo expected_best_final_candidate{best_block_number, best_block_hash};
   auto expected_state = std::make_shared<RoundState>(
       RoundState{.last_finalized_block = expected_last_finalized_block,

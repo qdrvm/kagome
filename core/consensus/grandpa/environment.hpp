@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
 
+#include <libp2p/peer/peer_id.hpp>
+
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/completed_round.hpp"
@@ -29,6 +31,25 @@ namespace kagome::consensus::grandpa {
      * commit messages that are sent (e.g. random value in [0, 1] seconds).
      * virtual Timer roundCommitTimer() = 0;
      */
+
+    /**
+     * Make cath-up-request
+     */
+    virtual outcome::result<void> onCatchUpRequested(
+        const libp2p::peer::PeerId &peer_id,
+        MembershipCounter set_id,
+        RoundNumber round_number) = 0;
+
+    /**
+     * Make catch-up-response
+     */
+    virtual outcome::result<void> onCatchUpResponsed(
+        const libp2p::peer::PeerId &peer_id,
+        MembershipCounter set_id,
+        RoundNumber round_number,
+        GrandpaJustification prevote_justification,
+        GrandpaJustification precommit_justification,
+        BlockInfo best_final_candidate) = 0;
 
     /**
      * Note that we've done a primary proposal in the given round.
@@ -82,6 +103,9 @@ namespace kagome::consensus::grandpa {
     virtual outcome::result<void> finalize(
         const primitives::BlockHash &block,
         const GrandpaJustification &justification) = 0;
+
+    virtual outcome::result<GrandpaJustification> getJustification(
+        const BlockHash &block_hash) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

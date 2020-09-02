@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
 
+#include <libp2p/peer/peer_id.hpp>
+
 #include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -18,16 +20,18 @@ namespace kagome::consensus::grandpa {
     virtual ~RoundObserver() = default;
 
     /**
-     * Handler of grandpa finalization messages
-     * @param f finalization message
-     */
-    virtual void onFinalize(const Fin &f) = 0;
-
-    /**
      * Handler of grandpa vote messages
      * @param msg vote message
      */
-    virtual void onVoteMessage(const VoteMessage &msg) = 0;
+    virtual void onVoteMessage(const libp2p::peer::PeerId &peer_id,
+                               const VoteMessage &msg) = 0;
+
+    /**
+     * Handler of grandpa finalization messages
+     * @param f finalization message
+     */
+    virtual void onFinalize(const libp2p::peer::PeerId &peer_id,
+                            const Fin &f) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
