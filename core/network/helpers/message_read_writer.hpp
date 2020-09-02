@@ -51,7 +51,13 @@ namespace kagome::network {
     }
 
     template<typename T>
-    static s
+    static libp2p::outcome::result<BufferContainer::iterator> read(T &out, const BufferContainer &src, BufferContainer::const_iterator from) {
+      if (from == src.end())
+        return outcome::failure(boost::system::error_code{});
+
+      OUTCOME_TRY(it, AdapterType::read(out, src, from));
+      return AncestorType::read(out, src, it);
+    }
   };
 
   template<typename Adapter> struct MessageReadWriter<Adapter, NoSink> final {
@@ -78,6 +84,14 @@ namespace kagome::network {
       const size_t r = AdapterType::size(t) + reserved;
       assert(std::distance(out.begin(), out.end()) >= r);
       return AdapterType::write(t, out, out.end());
+    }
+
+    template<typename T>
+    static libp2p::outcome::result<BufferContainer::iterator> read(T &out, const BufferContainer &src, BufferContainer::const_iterator from) {
+      if (from == src.end())
+        return outcome::failure(boost::system::error_code{});
+
+      return AdapterType::read(out, src, from);
     }
 
     template<typename T>

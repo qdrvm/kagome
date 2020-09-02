@@ -21,6 +21,10 @@ namespace kagome::network {
       assert(!"No implementation");
       return out.end();
     }
+    static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(T &out, const std::vector<uint8_t> &src, std::vector<uint8_t>::const_iterator from) {
+      assert(!"No implementation");
+      return outcome::failure(boost::system::error_code{});
+    }
   };
 
   template<typename T> struct UVarMessageAdapter {
@@ -50,7 +54,7 @@ namespace kagome::network {
       return ++loaded;
     }
 
-    static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(const std::vector<uint8_t> &src, std::vector<uint8_t>::const_iterator from) {
+    static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(T &out, const std::vector<uint8_t> &src, std::vector<uint8_t>::const_iterator from) {
       if (from == src.end())
         return outcome::failure(boost::system::error_code{});
 
@@ -58,7 +62,7 @@ namespace kagome::network {
       constexpr size_t kPayloadSize = ((UVarMessageAdapter<T>::size() << size_t(3)) + size_t(6)) / size_t(7);
       const auto loaded = std::distance(src.begin(), from);
 
-      auto const * const beg = &*from;
+      auto const * const beg = from.base();
       auto const * const end = &src[std::min(loaded + kPayloadSize, src.size())];
       auto const * ptr = beg;
       size_t counter = 0;

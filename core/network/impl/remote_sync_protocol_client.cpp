@@ -51,6 +51,37 @@ namespace kagome::network {
       std::advance(res_it, std::min(distance_was, was_size));
       return std::move(res_it);
     }
+
+    static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(network::BlocksRequest &out, const std::vector<uint8_t> &src, std::vector<uint8_t>::const_iterator from) {
+      const auto remains = src.size() - std::distance(src.begin(), from);
+      assert(remains > 0);
+
+      api::v1::BlockRequest msg;
+      if (!msg.ParseFromArray(from.base(), remains))
+        return outcome::failure(boost::system::error_code{});
+
+      out.fields.load(LE_BE_SWAP32(msg.fields()));
+      out.direction = static_cast<decltype(out.direction)>(msg.direction());
+
+      switch (msg.from_block_case()) {
+        case msg.kHash: {
+          OUTCOME_TRY(data, primitives::BlockHash::fromHex(msg.hash()));
+          out.from = data;
+        } break;
+
+        case msg.kNumber: {
+          out.from = std::stoull(msg.number());
+        } break;
+
+        default: return outcome::failure(boost::system::error_code{});
+      }
+
+      OUTCOME_TRY(to_block, primitives::BlockHash::fromHex(msg.to_block()));
+      out.to = to_block;
+      out.max = msg.max_blocks();
+
+      return outcome::success();
+    }
   };
 
   RemoteSyncProtocolClient::RemoteSyncProtocolClient(
