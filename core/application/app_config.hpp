@@ -66,6 +66,11 @@ namespace kagome::application {
      * @return true if node in only finalizing mode, otherwise false.
      */
     virtual bool is_only_finalizing() const = 0;
+
+    /**
+     * @return true if need to force block production
+     */
+    virtual bool is_already_synchronized() const = 0;
   };
 
   using AppConfigPtr = std::shared_ptr<AppConfiguration>;
