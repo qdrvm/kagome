@@ -15,10 +15,11 @@ namespace kagome::application {
         logger_(common::createLogger("Application")) {
     spdlog::set_level(app_config->verbosity());
 
-    // genesis launch if database does not exist
-    babe_execution_strategy_ = boost::filesystem::exists(app_config->leveldb_path())
-                      ? Babe::ExecutionStrategy::SYNC_FIRST
-                      : Babe::ExecutionStrategy::GENESIS;
+    if (not app_config->is_already_synchronized()) {
+      babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;
+    } else {
+      babe_execution_strategy_ = Babe::ExecutionStrategy::START;
+    }
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
