@@ -6,6 +6,7 @@
 #ifndef KAGOME_CONSENSUS_BABE_NEXTEPOCHDESCRIPTOR
 #define KAGOME_CONSENSUS_BABE_NEXTEPOCHDESCRIPTOR
 
+#include "consensus/babe/common.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::consensus {
