@@ -43,7 +43,16 @@ namespace kagome::network {
         if (src_block.justification)
           dst_block->set_justification(src_block.justification->data.toHex());
       }
-      return out.end();
+
+      const size_t distance_was = std::distance(out.begin(), loaded);
+      const size_t was_size = out.size();
+
+      out.resize(was_size + msg.ByteSizeLong());
+      msg.SerializeToArray(&out[was_size], msg.ByteSizeLong());
+
+      auto res_it = out.begin();
+      std::advance(res_it, std::min(distance_was, was_size));
+      return std::move(res_it);
     }
 
     static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(
