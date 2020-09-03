@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
 #include <random>
 
@@ -16,7 +16,7 @@
 
 using kagome::common::Buffer;
 using kagome::storage::trie::PolkadotTrie;
-using kagome::storage::trie::PolkadotTrieCursor;
+using kagome::storage::trie::PolkadotTrieCursorImpl;
 using kagome::storage::trie::PolkadotTrieImpl;
 using kagome::storage::trie::operator<<;
 
@@ -64,7 +64,7 @@ std::shared_ptr<PolkadotTrie> makeTrie(
 
 TEST_F(PolkadotTrieCursorTest, NextOnRootOnlyTrie) {
   auto trie = makeTrie({{"a"_buf, Buffer{1}}});
-  PolkadotTrieCursor cursor{*trie};
+  PolkadotTrieCursorImpl cursor{*trie};
   ASSERT_FALSE(cursor.isValid());
   EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
   ASSERT_TRUE(cursor.isValid());
@@ -74,7 +74,7 @@ TEST_F(PolkadotTrieCursorTest, NextOnRootOnlyTrie) {
 
 TEST_F(PolkadotTrieCursorTest, NextOnEmptyTrie) {
   auto trie = makeTrie({});
-  PolkadotTrieCursor cursor{*trie};
+  PolkadotTrieCursorImpl cursor{*trie};
   ASSERT_FALSE(cursor.isValid());
   EXPECT_OUTCOME_TRUE_1(cursor.next());
   ASSERT_FALSE(cursor.isValid());
@@ -90,7 +90,7 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
                                               {"fh"_buf, Buffer{5}},
                                               {"fhi"_buf, Buffer{6}}};
   auto trie = makeTrie(vals);
-  PolkadotTrieCursor cursor{*trie};
+  PolkadotTrieCursorImpl cursor{*trie};
   for (auto &p : vals) {
     EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
     ASSERT_TRUE(cursor.value());
@@ -115,7 +115,7 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
   EXPECT_OUTCOME_TRUE_1(cursor->next());
   size_t keys_behind =
       0;  // number of keys lexicographically lesser than current
-  for (auto const &start_key : keys) {
+  for (const auto &start_key : keys) {
     EXPECT_OUTCOME_TRUE_1(cursor->seek(start_key));
     auto keys_copy = std::set<Buffer>(keys);
     while (cursor->isValid()) {
@@ -194,4 +194,12 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundFirstKey) {
   ASSERT_EQ(c->value().value(), "0102"_hex2buf);
   EXPECT_OUTCOME_TRUE_1(c->next());
   ASSERT_EQ(c->value().value(), "0103"_hex2buf);
+}
+
+TEST_F(PolkadotTrieCursorTest, LowerBoundEmptyTrie) {
+  auto trie = makeTrie({});
+  auto c = trie->trieCursor();
+
+  ASSERT_FALSE(c->seekLowerBound("00"_hex2buf).value());
+  ASSERT_FALSE(c->key().has_value());
 }

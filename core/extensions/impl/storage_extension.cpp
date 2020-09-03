@@ -260,10 +260,7 @@ namespace kagome::extensions {
       const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     auto cursor = batch->trieCursor();
-    OUTCOME_TRY(exists, cursor->seekLowerBound(key));
-    if (cursor->key().has_value() and cursor->key().value() == key) {
-      OUTCOME_TRY(cursor->next());
-    }
+    OUTCOME_TRY(cursor->seekUpperBound(key));
     return cursor->key();
   }
 
@@ -357,7 +354,7 @@ namespace kagome::extensions {
                      res.error().message());
       return kErrorSpan;
     }
-    auto && next_key_opt = res.value().first;
+    auto && next_key_opt = res.value();
     if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
     } else {  // NOLINT(readability-else-after-return)

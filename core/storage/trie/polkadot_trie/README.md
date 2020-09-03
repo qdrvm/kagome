@@ -3,6 +3,7 @@
 
 ### Lower bound
 ```plantuml
+@startuml lower bound algorithm
 start
 :current := root
 left_nibbles := key_nibbles<
@@ -26,4 +27,5 @@ else
     :current>
 endif
 detach
+@enduml
 ```

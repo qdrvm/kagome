@@ -10,12 +10,13 @@
 #include "core/runtime/mock_memory.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "mock/core/storage/map_cursor_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/outcome/dummy_error.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
@@ -28,9 +29,9 @@ using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
 using kagome::storage::changes_trie::ChangesTrackerMock;
-using kagome::storage::face::MapCursorMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
+using kagome::storage::trie::PolkadotTrieCursorMock;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -288,11 +289,10 @@ TEST_F(StorageExtensionTest, NextKey) {
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
-  EXPECT_CALL(*trie_batch_, cursor())
+  EXPECT_CALL(*trie_batch_, trieCursor())
       .WillOnce(Invoke([&key, &expected_next_key]() {
-        auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
-        EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(true));
-        EXPECT_CALL(*cursor, next()).WillOnce(Return(outcome::success()));
+        auto cursor = std::make_unique<PolkadotTrieCursorMock>();
+        EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(true));
         EXPECT_CALL(*cursor, key()).WillOnce(Return(expected_next_key));
         return cursor;
       }));
@@ -327,10 +327,9 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
-  EXPECT_CALL(*trie_batch_, cursor()).WillOnce(Invoke([&key]() {
-    auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
-    EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(true));
-    EXPECT_CALL(*cursor, next()).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
+    auto cursor = std::make_unique<PolkadotTrieCursorMock>();
+    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(true));
     EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));
@@ -352,18 +351,17 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
  * @when using ext_storage_next_key_version_1 to obtain the next key
  * @then an invalid address is returned
  */
-TEST_F(StorageExtensionTest, NextKeyInvalidKey) {
+TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
   WasmPointer key_pointer = 43;
   WasmSize key_size = 8;
   Buffer key(key_size, 'k');
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
-  EXPECT_CALL(*trie_batch_, cursor()).WillOnce(Invoke([&key]() {
-    auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
-    EXPECT_CALL(*cursor, seek(key))
-        .WillOnce(Return(
-            false));
+  EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
+    auto cursor = std::make_unique<PolkadotTrieCursorMock>();
+    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(false));
+    EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));
 
@@ -456,18 +454,6 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   storage_extension_->ext_storage_read_version_1(
       key.combine(), value.combine(), offset);
 }
-/**
- * Just to avoid output like "smth failed with reason: Success"
- * which happens if provide error code zero
- */
-struct test_error_category_t: public std::error_category {
-  const char *name() const noexcept override {
-    return "testing error category";
-  }
-  std::string message(int i) const override {
-    return "Error expected in a test";
-  }
-} test_error_category;
 
 INSTANTIATE_TEST_CASE_P(Instance,
                         OutcomeParameterizedTest,
@@ -475,7 +461,7 @@ INSTANTIATE_TEST_CASE_P(Instance,
                             /// success case
                             outcome::success(),
                             /// failure with arbitrary error code
-                            outcome::failure(std::error_code(1, test_error_category))),
+                            outcome::failure(testutil::DummyError::ERROR)),
                         // empty argument for the macro
 );
 

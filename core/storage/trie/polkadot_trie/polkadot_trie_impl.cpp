@@ -8,7 +8,7 @@
 #include <functional>
 #include <utility>
 
-#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
 using kagome::common::Buffer;
@@ -23,13 +23,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
 }
 
 namespace kagome::storage::trie {
-  namespace {
-    gsl::span<const uint8_t> makeSubspan(const Buffer &b,
-                                         size_t start = 0,
-                                         std::ptrdiff_t length = -1) {
-      return gsl::make_span(b.data() + start, length);
-    }
-  }  // namespace
 
   PolkadotTrieImpl::PolkadotTrieImpl(ChildRetrieveFunctor f)
       : retrieve_child_{std::move(f)} {
@@ -264,7 +257,7 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<PolkadotTrieCursor> PolkadotTrieImpl::trieCursor() {
-    return std::make_unique<PolkadotTrieCursor>(*this);
+    return std::make_unique<PolkadotTrieCursorImpl>(*this);
   }
 
   bool PolkadotTrieImpl::contains(const common::Buffer &key) const {
