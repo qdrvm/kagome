@@ -9,89 +9,108 @@
 #include "storage/face/map_cursor.hpp"
 
 #include "common/buffer.hpp"
-#include "storage/trie/polkadot_trie/polkadot_trie.hpp"
+#include "storage/trie/polkadot_trie/polkadot_node.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::storage::trie {
 
-    class PolkadotTrieCursor
-            : public face::MapCursor<common::Buffer, common::Buffer> {
-    public:
-        using NodePtr = std::shared_ptr<PolkadotNode>;
-        using BranchPtr = std::shared_ptr<BranchNode>;
-        using NodeType = PolkadotNode::Type;
+  class PolkadotTrie;
 
-        enum class Error {
-            // operation cannot be performed for cursor position is not valid
-            // due to an error, reaching the end or not calling next() after
-            // initialization
-            INVALID_NODE_TYPE = 1,
-            METHOD_NOT_IMPLEMENTED
-        };
+  class PolkadotTrieCursor
+      : public face::MapCursor<common::Buffer, common::Buffer> {
+   public:
+    using NodePtr = std::shared_ptr<PolkadotNode>;
+    using BranchPtr = std::shared_ptr<BranchNode>;
+    using NodeType = PolkadotNode::Type;
 
-        explicit PolkadotTrieCursor(const PolkadotTrie &trie);
+    enum class Error {
+      // operation cannot be performed for cursor position is not valid
+      // due to an error, reaching the end or not calling next() after
+      // initialization
+      INVALID_NODE_TYPE = 1,
+      METHOD_NOT_IMPLEMENTED
+    };
 
-        ~PolkadotTrieCursor() override = default;
+    explicit PolkadotTrieCursor(const PolkadotTrie &trie);
 
-        static outcome::result<std::unique_ptr<PolkadotTrieCursor>> createAt(
-                const common::Buffer &key, const PolkadotTrie &trie);
+    ~PolkadotTrieCursor() override = default;
 
-        outcome::result<bool> seekFirst() override;
+    static outcome::result<std::unique_ptr<PolkadotTrieCursor>> createAt(
+        const common::Buffer &key, const PolkadotTrie &trie);
 
-        outcome::result<bool> seek(const common::Buffer &key) override;
+    outcome::result<bool> seekFirst() override;
 
-        outcome::result<bool> seekLast() override;
+    outcome::result<bool> seek(const common::Buffer &key) override;
 
-        bool isValid() const override;
+    outcome::result<bool> seekLast() override;
 
-        outcome::result<void> next() override;
+    /**
+     * Seek the first element with key not less than \arg key
+     * @return true if the trie is not empty
+     */
+    outcome::result<bool> seekLowerBound(const common::Buffer &key);
 
-        outcome::result<void> prev() override;
+    /**
+     * Seek the first element with key greater than \arg key
+     * @return true if the trie is not empty
+     */
+    outcome::result<bool> seekUpperBound(const common::Buffer &key);
 
-        boost::optional<common::Buffer> key() const override;
+    bool isValid() const override;
 
-        boost::optional<common::Buffer> value() const override;
+    outcome::result<void> next() override;
 
-    private:
-        static int8_t getNextChildIdx(const BranchPtr &parent, uint8_t child_idx);
+    boost::optional<common::Buffer> key() const override;
 
-        static bool hasNextChild(const BranchPtr &parent, uint8_t child_idx);
+    boost::optional<common::Buffer> value() const override;
 
-        static int8_t getPrevChildIdx(const BranchPtr &parent, uint8_t child_idx);
+   private:
+    /**
+     * An element of a path in trie. A node that is a part of the path and the
+     * index of its child which is the next node in the path
+     */
+    struct TriePathEntry {
+      TriePathEntry(BranchPtr parent, int8_t child_idx)
+          : parent{std::move(parent)}, child_idx{child_idx} {}
 
-        static bool hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
+      BranchPtr parent;
+      int8_t child_idx;
+    };
 
-        // will either put a new entry or update the top entry (in case that parent
-        // in the top entry is the same as \param parent
-        void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
+    static int8_t getNextChildIdx(const BranchPtr &parent, uint8_t child_idx);
 
-        /**
-         * An element of a path in trie. A node that is a part of the path and the
-         * index of its child which is the next node in the path
-         */
-        struct TriePathEntry {
-            TriePathEntry(BranchPtr parent, int8_t child_idx)
-                    : parent{std::move(parent)}, child_idx{child_idx} {}
+    static bool hasNextChild(const BranchPtr &parent, uint8_t child_idx);
 
-            BranchPtr parent;
-            int8_t child_idx;
-        };
+    static int8_t getPrevChildIdx(const BranchPtr &parent, uint8_t child_idx);
 
-        /**
-         * Constructs a list of branch nodes on the path from the root to the node
-         * with the given \arg key
-         */
-        auto constructLastVisitedChildPath(const common::Buffer &key)
+    static bool hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
+
+    // will either put a new entry or update the top entry (in case that parent
+    // in the top entry is the same as \param parent
+    void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
+
+    outcome::result<std::list<TriePathEntry>> followNibbles(
+        NodePtr node, gsl::span<const uint8_t> &nibbles) const;
+    outcome::result<boost::optional<NodePtr>> seekChildWithValue(
+        BranchPtr node);
+    outcome::result<boost::optional<NodePtr>> seekChildWithValueAfterIdx(
+        BranchPtr node, int8_t idx);
+
+    /**
+     * Constructs a list of branch nodes on the path from the root to the node
+     * with the given \arg key
+     */
+    auto constructLastVisitedChildPath(const common::Buffer &key)
         -> outcome::result<std::list<TriePathEntry>>;
 
-        common::Buffer collectKey() const;
+    common::Buffer collectKey() const;
 
-        const PolkadotTrie &trie_;
-        PolkadotCodec codec_;
-        NodePtr current_;
-        bool visited_root_ = false;
-        std::list<TriePathEntry> last_visited_child_;
-    };
+    const PolkadotTrie &trie_;
+    PolkadotCodec codec_;
+    NodePtr current_;
+    bool visited_root_ = false;
+    std::list<TriePathEntry> last_visited_child_;
+  };
 
 }  // namespace kagome::storage::trie
 

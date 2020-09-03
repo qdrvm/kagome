@@ -31,7 +31,7 @@ namespace kagome::storage {
 
     outcome::result<void> next() override;
 
-    outcome::result<void> prev() override;
+    outcome::result<void> prev();
 
     boost::optional<Buffer> key() const override;
 

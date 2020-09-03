@@ -358,11 +358,7 @@ namespace kagome::extensions {
                      res.error().message());
       return kErrorSpan;
     }
-    auto &&[next_key_opt, curr_key_found] = res.value();
-    if (not curr_key_found) {
-      logger_->warn(
-          "ext_storage_next_key called with a key not present in the trie");
-    }
+    auto && next_key_opt = res.value().first;
     if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
     } else {  // NOLINT(readability-else-after-return)
@@ -408,7 +404,11 @@ namespace kagome::extensions {
       auto &&key = p.first;
       auto &&value = p.second;
       // already scale-encoded
-      trie.put(key, value);
+      auto res = trie.put(key, value);
+      if (res.has_error()) {
+        logger_->error("failed to construct a Trie: {}", res.error().message());
+        std::terminate();
+      }
     }
     const auto &enc = codec.encodeNode(*trie.getRoot());
     if (!enc) {
@@ -416,8 +416,6 @@ namespace kagome::extensions {
       std::terminate();
     }
     const auto &hash = codec.hash256(enc.value());
-
-    std::cout << "res hash = " << hash.toHex() << std::endl;
 
     auto res = memory_->storeBuffer(hash);
     return runtime::WasmResult(res).address;
