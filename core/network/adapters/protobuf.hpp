@@ -11,6 +11,7 @@
 #include <gsl/span>
 #include <boost/system/error_code.hpp>
 
+#include "network/protobuf/api.v1.pb.h"
 #include "outcome/outcome.hpp"
 
 #ifdef _MSC_VER

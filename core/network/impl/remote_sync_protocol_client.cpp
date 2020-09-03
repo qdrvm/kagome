@@ -7,7 +7,6 @@
 
 #include "common/visitor.hpp"
 #include "network/common.hpp"
-#include "network/protobuf/api.v1.pb.h"
 #include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/rpc.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
