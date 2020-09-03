@@ -15,6 +15,7 @@ namespace kagome::network {
     static size_t size(const network::BlocksRequest &t) {
       return 0;
     }
+
     static std::vector<uint8_t>::iterator write(
         const network::BlocksRequest &t,
         std::vector<uint8_t> &out,
