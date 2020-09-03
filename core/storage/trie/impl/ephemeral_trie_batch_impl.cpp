@@ -20,7 +20,7 @@ namespace kagome::storage::trie {
     return trie_->get(key);
   }
 
-  std::unique_ptr<BufferMapCursor> EphemeralTrieBatchImpl::cursor() {
+  std::unique_ptr<PolkadotTrieCursor> EphemeralTrieBatchImpl::trieCursor() {
     return std::make_unique<PolkadotTrieCursor>(*trie_);
   }
 

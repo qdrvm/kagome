@@ -177,7 +177,7 @@ namespace kagome::extensions {
      * @return error if any, a pair with (opt_key, true)
      * if \arg key is found, (none, false) otherwise
      */
-    outcome::result<std::pair<boost::optional<common::Buffer>, bool>>
+    outcome::result<boost::optional<common::Buffer>>
     getStorageNextKey(const common::Buffer &key) const;
 
     boost::optional<common::Buffer> calcStorageChangesRoot(

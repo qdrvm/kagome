@@ -256,16 +256,15 @@ namespace kagome::extensions {
     return batch->get(key);
   }
 
-  outcome::result<std::pair<boost::optional<Buffer>, bool>> StorageExtension::getStorageNextKey(
+  outcome::result<boost::optional<Buffer>> StorageExtension::getStorageNextKey(
       const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
-    auto cursor = batch->cursor();
-    OUTCOME_TRY(exists, cursor->seek(key));
-    if (not exists) {
-      return {boost::none, false};
+    auto cursor = batch->trieCursor();
+    OUTCOME_TRY(exists, cursor->seekLowerBound(key));
+    if (cursor->key().has_value() and cursor->key().value() == key) {
+      OUTCOME_TRY(cursor->next());
     }
-    OUTCOME_TRY(cursor->next());
-    return {cursor->key(), true};
+    return cursor->key();
   }
 
   void StorageExtension::ext_storage_set_version_1(runtime::WasmSpan key,
