@@ -48,13 +48,11 @@ namespace kagome::network {
             using ProtobufRW = MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
             using UVarRW = MessageReadWriter<UVarMessageAdapter<MsgType>, ProtobufRW>;
 
-            //auto msg_res = UVarRW::read(*read_res.value());
-            //if (!msg_res) {
-              //return cb(msg_res.error());
-            //}
-
-            //return cb(std::move(msg_res.value()));
-            return cb(read_res.error());
+            MsgType msg;
+            if (auto msg_res = UVarRW::read(msg, *read_res.value(), read_res.value()->begin()); !msg_res) {
+              return cb(msg_res.error());
+            }
+            return cb(std::move(msg));
           });
     }
 
@@ -73,7 +71,7 @@ namespace kagome::network {
       std::vector<uint8_t> out;
       auto it = UVarRW::write(msg, out);
 
-      gsl::span<uint8_t> data(&*it, out.size() - std::distance(out.begin(), it));
+      gsl::span<uint8_t> data(it.base(), out.size() - std::distance(out.begin(), it));
       assert(!data.empty());
 
       read_writer_->write(data,
