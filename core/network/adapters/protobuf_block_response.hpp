@@ -72,23 +72,48 @@ namespace kagome::network {
         OUTCOME_TRY(hash,
                     primitives::BlockHash::fromHex(src_block_data.hash()));
 
-        primitives::BlockHeader header;
-        if (auto &h = src_block_data.header(); !h.empty()) {
-          OUTCOME_TRY(
-              h_decoded,
-              scale::decode<primitives::BlockHeader>(gsl::span<const uint8_t>(
-                  reinterpret_cast<const uint8_t *>(h.data()), h.size())));
-          header = std::move(h_decoded);
-        }
+        OUTCOME_TRY(header, extract_value<primitives::BlockHeader>([&]() {
+                      return src_block_data.header();
+                    }));
 
-        dst_blocks.emplace_back(
-            primitives::BlockData{.hash = hash, .header = std::move(header)});
+        OUTCOME_TRY(body, extract_value<primitives::BlockBody>([&]() {
+                      return src_block_data.body();
+                    }));
+
+        OUTCOME_TRY(receipt, common::Buffer::fromHex(src_block_data.receipt()));
+
+        OUTCOME_TRY(message_queue,
+                    common::Buffer::fromHex(src_block_data.message_queue()));
+
+        OUTCOME_TRY(justification,
+                    common::Buffer::fromHex(src_block_data.justification()));
+
+        dst_blocks.emplace_back(primitives::BlockData{
+            .hash = hash,
+            .header = std::move(header),
+            .body = std::move(body),
+            .receipt = std::move(receipt),
+            .message_queue = std::move(message_queue),
+            .justification =
+                primitives::Justification{std::move(justification)}});
       }
 
       return outcome::success();
     }
 
    private:
+    template<typename T, typename F>
+    static libp2p::outcome::result<T> extract_value(F &&f) {
+      if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
+        OUTCOME_TRY(decoded,
+                    scale::decode<T>(gsl::span<const uint8_t>(
+                        reinterpret_cast<const uint8_t *>(buffer.data()),
+                        buffer.size())));
+        return std::move(decoded);
+      }
+      return outcome::failure(boost::system::error_code{});
+    }
+
     static std::string vector_to_string(std::vector<uint8_t> &&src) {
       return std::string(reinterpret_cast<char *>(src.data()), src.size());
     }
