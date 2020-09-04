@@ -59,7 +59,33 @@ namespace kagome::network {
         network::BlocksResponse &out,
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
-      return outcome::failure(boost::system::error_code{});
+      const auto remains = src.size() - std::distance(src.begin(), from);
+      assert(remains >= size(out));
+
+      api::v1::BlockResponse msg;
+      if (!msg.ParseFromArray(from.base(), remains))
+        return outcome::failure(boost::system::error_code{});
+
+      auto &dst_blocks = out.blocks;
+      dst_blocks.reserve(msg.blocks().size());
+      for (const auto &src_block_data : msg.blocks()) {
+        OUTCOME_TRY(hash,
+                    primitives::BlockHash::fromHex(src_block_data.hash()));
+
+        primitives::BlockHeader header;
+        if (auto &h = src_block_data.header(); !h.empty()) {
+          OUTCOME_TRY(
+              h_decoded,
+              scale::decode<primitives::BlockHeader>(gsl::span<const uint8_t>(
+                  reinterpret_cast<const uint8_t *>(h.data()), h.size())));
+          header = std::move(h_decoded);
+        }
+
+        dst_blocks.emplace_back(
+            primitives::BlockData{.hash = hash, .header = std::move(header)});
+      }
+
+      return outcome::success();
     }
 
    private:

@@ -50,7 +50,7 @@ namespace kagome::network {
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
       const auto remains = src.size() - std::distance(src.begin(), from);
-      assert(remains > 0);
+      assert(remains >= size(out));
 
       api::v1::BlockRequest msg;
       if (!msg.ParseFromArray(from.base(), remains))
