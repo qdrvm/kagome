@@ -15,10 +15,10 @@ namespace kagome::application {
         logger_(common::createLogger("Application")) {
     spdlog::set_level(app_config->verbosity());
 
-    if (not app_config->is_already_synchronized()) {
-      babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;
-    } else {
+    if (app_config->is_already_synchronized()) {
       babe_execution_strategy_ = Babe::ExecutionStrategy::START;
+    } else {
+      babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;
     }
 
     // keep important instances, the must exist when injector destroyed

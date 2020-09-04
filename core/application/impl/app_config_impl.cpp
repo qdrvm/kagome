@@ -27,7 +27,7 @@ namespace {
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = 2;
   const bool def_is_only_finalizing = false;
-	const bool def_is_already_synchronized = false;
+  const bool def_is_already_synchronized = false;
 }  // namespace
 
 namespace kagome::application {
@@ -41,7 +41,7 @@ namespace kagome::application {
         p2p_port_(def_p2p_port),
         verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
         is_only_finalizing_(def_is_only_finalizing),
-		    is_already_synchronized_(def_is_already_synchronized) {}
+        is_already_synchronized_(def_is_already_synchronized) {}
 
   AppConfigurationImpl::FilePtr AppConfigurationImpl::open_file(
       const std::string &filepath) {
@@ -244,7 +244,7 @@ namespace kagome::application {
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
         ("single_finalizing_node,f", "if this is the only finalizing node")
-        ("already_synchronized,s", "if need to consider sinchronized")
+        ("already_synchronized,s", "if need to consider synchronized")
         ;
     // clang-format on
 
@@ -288,7 +288,7 @@ namespace kagome::application {
       is_only_finalizing_ = true;
 
     if (vm.end() != vm.find("already_synchronized"))
-	    is_already_synchronized_ = true;
+      is_already_synchronized_ = true;
 
     find_argument<std::string>(
         vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });

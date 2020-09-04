@@ -138,7 +138,7 @@ namespace kagome::consensus {
 
     // check if block body already exists. If so, do not apply
     if (block_tree_->getBlockBody(block_hash)) {
-      OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, block));
+      OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, block.header));
 
       logger_->debug("Skipping existed block number: {}, hash: {}",
                      block.header.number,

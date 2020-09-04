@@ -119,7 +119,7 @@ namespace kagome::blockchain {
 
     outcome::result<void> addExistingBlock(
         const primitives::BlockHash &block_hash,
-        const primitives::Block &block) override;
+        const primitives::BlockHeader &block_header) override;
 
     outcome::result<void> addBlockBody(
         primitives::BlockNumber block_number,

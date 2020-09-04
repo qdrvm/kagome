@@ -79,14 +79,15 @@ namespace kagome::blockchain {
         const primitives::BlockBody &block_body) = 0;
 
     /**
-     * Add a existent block to the tree
-     * @param block to be added to tree
+     * Add an existent block to the tree
+     * @param block_hash is hash of the added block in the tree
+     * @param block_header is header of that block
      * @return nothing or error; if error happens, no changes in the tree are
      * made
      */
     virtual outcome::result<void> addExistingBlock(
         const primitives::BlockHash &block_hash,
-        const primitives::Block &block) = 0;
+        const primitives::BlockHeader &block_header) = 0;
 
     /**
      * Add a new block to the tree

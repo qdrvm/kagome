@@ -198,21 +198,22 @@ namespace kagome::blockchain {
   }
 
   outcome::result<void> BlockTreeImpl::addExistingBlock(
-      const primitives::BlockHash &block_hash, const primitives::Block &block) {
+      const primitives::BlockHash &block_hash,
+      const primitives::BlockHeader &block_header) {
     auto node = tree_->getByHash(block_hash);
     // Check if tree doesn't have this block; if not, we skip that
     if (node != nullptr) {
       return BlockTreeError::BLOCK_EXISTS;
     }
     // Check if we know parent of this block; if not, we cannot insert it
-    auto parent = tree_->getByHash(block.header.parent_hash);
+    auto parent = tree_->getByHash(block_header.parent_hash);
     if (parent == nullptr) {
       return BlockTreeError::NO_PARENT;
     }
 
     // Update local meta with the block
     auto new_node =
-        std::make_shared<TreeNode>(block_hash, block.header.number, parent);
+        std::make_shared<TreeNode>(block_hash, block_header.number, parent);
 
     updateMeta(new_node);
 
