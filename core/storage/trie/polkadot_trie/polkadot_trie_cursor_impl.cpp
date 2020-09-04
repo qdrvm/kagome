@@ -183,7 +183,7 @@ namespace kagome::storage::trie {
         case NodeType::BranchWithValue: {
           // ran out of left_nibbles
           if (current->key_nibbles == left_nibbles or left_nibbles.empty()
-              or left_nibbles.size() < current->key_nibbles.size()) {
+              or static_cast<size_t>(left_nibbles.size()) < current->key_nibbles.size()) {
             left_nibbles = left_nibbles.subspan(common_length);
             return followed_path;
           }

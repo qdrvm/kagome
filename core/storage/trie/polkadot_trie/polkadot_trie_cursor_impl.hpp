@@ -44,13 +44,13 @@ namespace kagome::storage::trie {
      * Seek the first element with key not less than \arg key
      * @return true if the trie is not empty
      */
-    outcome::result<bool> seekLowerBound(const common::Buffer &key);
+    outcome::result<bool> seekLowerBound(const common::Buffer &key) override;
 
     /**
      * Seek the first element with key greater than \arg key
      * @return true if the trie is not empty
      */
-    outcome::result<bool> seekUpperBound(const common::Buffer &key);
+    outcome::result<bool> seekUpperBound(const common::Buffer &key) override;
 
     bool isValid() const override;
 
