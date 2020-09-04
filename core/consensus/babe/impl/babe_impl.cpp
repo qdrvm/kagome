@@ -276,11 +276,12 @@ namespace kagome::consensus {
       processSlotLeadership(*slot_leadership);
     }
 
-    ++current_slot_;
-    next_slot_finish_time_ += genesis_configuration_->slot_duration;
     log_->debug("Slot {} in epoch {} has finished",
                 current_slot_,
                 current_epoch_.epoch_index);
+
+    ++current_slot_;
+    next_slot_finish_time_ += genesis_configuration_->slot_duration;
     runSlot();
   }
 
@@ -368,7 +369,7 @@ namespace kagome::consensus {
       log_->info("Obtained next epoch digest");
       if (not epoch_storage_->addEpochDescriptor(
               current_epoch_.epoch_index + 2, next_epoch_digest_res.value())) {
-        log_->error("Could not add nex epoch digest to epoch storage");
+        log_->error("Could not add next epoch digest to epoch storage");
       }
     }
 
@@ -406,8 +407,8 @@ namespace kagome::consensus {
       return;
     }
 
-    auto next_epoch_digest_res = getNextEpochDigest(block.header);
-    if (next_epoch_digest_res) {
+    if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
+        next_epoch_digest_res) {
       log_->info("Got next epoch digest for epoch: {}",
                  current_epoch_.epoch_index + 2);
       if (auto add_epoch_res = epoch_storage_->addEpochDescriptor(
@@ -448,9 +449,15 @@ namespace kagome::consensus {
       // PRE-364 is done. For now assume no changes after epoch
       //
       // return.
-      next_epoch_digest_res =
-          NextEpochDescriptor{.authorities = current_epoch_.authorities,
-                              .randomness = current_epoch_.randomness};
+      NextEpochDescriptor next_epoch_digest{
+          .authorities = current_epoch_.authorities,
+          .randomness = current_epoch_.randomness};
+
+      epoch_storage_
+          ->addEpochDescriptor(current_epoch_.epoch_index, next_epoch_digest)
+          .value();
+
+      next_epoch_digest_res = next_epoch_digest;
     }
 
     log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
