@@ -623,15 +623,25 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VotingRoundImpl::tryFinalize() {
-    if (not completable()) {
+    if (not finalizable()) {
+      if (logger_->level() >= spdlog::level::level_enum::debug) {
+        if (not completable_) {
+          logger_->debug("Did not finalized. Reason: not completable");
+        } else if (not current_round_state_->finalized.has_value()) {
+          logger_->debug("Did not finalized. Reason: not finalizable");
+        } else if (current_round_state_->finalized
+                   == previous_round_state_->finalized) {
+          logger_->debug(
+              "Did not finalized. Reason: new state is equal to the new one");
+        } else {
+          logger_->debug("Did not finalized. Reason: unknown");
+        }
+      }
       return false;
     }
-    if (not previous_round_state_) {
-      logger_->error("Last round state is empty during finalization");
-      return false;
-    }
+
     // check if new state differs with the old one and broadcast new state
-    if (auto notify_res = notify(*previous_round_state_); not notify_res) {
+    if (auto notify_res = notify(); not notify_res) {
       logger_->debug("Did not notify. Reason: {}",
                      notify_res.error().message());
       // Round is completable but we cannot notify others. Finish the round
@@ -641,24 +651,25 @@ namespace kagome::consensus::grandpa {
     return true;
   }
 
-  outcome::result<void> VotingRoundImpl::notify(
-      const RoundState &last_round_state) {
-    if (completable_) {
-      auto finalized = current_round_state_->finalized.value();
-      const auto &justification_opt =
-          getJustification(finalized, precommits_->getMessages());
-      if (not justification_opt) {
-        logger_->warn("No justification for block  <{}, {}>",
-                      finalized.block_number,
-                      finalized.block_hash.toHex());
-      }
+  outcome::result<void> VotingRoundImpl::notify() {
+    BOOST_ASSERT(completable_);
+    BOOST_ASSERT(current_round_state_->finalized.has_value());
+//    BOOST_ASSERT(current_round_state_->finalized == previous_round_state_->finalized);
 
-      auto justification = justification_opt.value();
-
-      OUTCOME_TRY(env_->onCommitted(round_number_, finalized, justification));
-      return outcome::success();
+    auto finalized = current_round_state_->finalized.value();
+    const auto &justification_opt =
+        getJustification(finalized, precommits_->getMessages());
+    if (not justification_opt) {
+      logger_->warn("No justification for block  <{}, {}>",
+                    finalized.block_number,
+                    finalized.block_hash.toHex());
     }
-    return VotingRoundError::NEW_STATE_EQUAL_TO_OLD;
+
+    auto justification = justification_opt.value();
+
+    OUTCOME_TRY(env_->onCommitted(round_number_, finalized, justification));
+
+    return outcome::success();
   }
 
   RoundNumber VotingRoundImpl::roundNumber() const {
@@ -844,6 +855,13 @@ namespace kagome::consensus::grandpa {
     return completable_;
   }
 
+  bool VotingRoundImpl::finalizable() const {
+    return completable_ && current_round_state_->finalized.has_value()
+//           && current_round_state_->finalized
+//                  != previous_round_state_->finalized
+                  ;
+  }
+
   outcome::result<SignedMessage> VotingRoundImpl::constructPrevote(
       const RoundState &last_round_state) const {
     const auto &last_round_estimate = last_round_state.best_final_candidate;
@@ -921,7 +939,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    const auto &prevote_ghost = current_round_state_->best_prevote_candidate;
+    const auto &best_prevote_candidate =
+        current_round_state_->best_prevote_candidate;
 
     // anything new finalized? finalized blocks are those which have both
     // 2/3+ precommit weight.
@@ -929,10 +948,7 @@ namespace kagome::consensus::grandpa {
 
     if (current_precommits >= threshold_) {
       current_round_state_->finalized = graph_->findAncestor(
-          BlockInfo{
-              prevote_ghost.block_number,
-              prevote_ghost.block_hash,
-          },
+          best_prevote_candidate,
           [this](const VoteWeight &vote_weight) {
             return vote_weight
                        .totalWeight(prevote_equivocators_,
@@ -1003,30 +1019,26 @@ namespace kagome::consensus::grandpa {
     // the round-estimate is the highest block in the chain with head
     // `prevote_ghost` that could have supermajority-commits.
     if (precommits_->getTotalWeight() >= threshold_) {
-      auto block = graph_->findAncestor(
-          BlockInfo{prevote_ghost.block_number, prevote_ghost.block_hash},
-          possible_to_precommit,
-          VoteWeight::precommitComparator);
+      auto block = graph_->findAncestor(best_prevote_candidate,
+                                        possible_to_precommit,
+                                        VoteWeight::precommitComparator);
       if (block.has_value()) {
         current_round_state_->best_final_candidate = block.value();
       }
     } else {
-      current_round_state_->best_final_candidate =
-          BlockInfo{prevote_ghost.block_number, prevote_ghost.block_hash};
+      current_round_state_->best_final_candidate = best_prevote_candidate;
       return;
     }
 
     const auto &block = current_round_state_->best_final_candidate;
     completable_ =
-        block.block_hash != prevote_ghost.block_hash
+        block.block_hash != best_prevote_candidate.block_hash
         || graph_
                ->findGhost(block,
                            possible_to_precommit,
                            VoteWeight::precommitComparator)
-               .map([&prevote_ghost](const BlockInfo &block_info) {
-                 return std::tie(block_info.block_hash, block_info.block_number)
-                        == std::tie(prevote_ghost.block_hash,
-                                    prevote_ghost.block_number);
+               .map([&best_prevote_candidate](const BlockInfo &block_info) {
+                 return block_info == best_prevote_candidate;
                })
                .value_or(true);
   }

@@ -186,6 +186,8 @@ namespace kagome::consensus::grandpa {
      */
     bool completable() const override;
 
+    bool finalizable() const override;
+
    private:
     void constructCurrentState();
 
@@ -211,7 +213,8 @@ namespace kagome::consensus::grandpa {
      */
     void updatePrevoteGhost();
 
-    /// Update current state of the round. In particular we update:
+    /// Update current state of the round.
+    /// In particular we update:
     /// 1. If round is completable
     /// 2. If round has something ready to finalize
     /// 3. New best rounds estimate
@@ -219,7 +222,7 @@ namespace kagome::consensus::grandpa {
 
     // notify about new finalized round. False if new state does not differ from
     // old one
-    outcome::result<void> notify(const RoundState &last_round_state);
+    outcome::result<void> notify();
 
     /// prepare justification for the provided \param estimate
     boost::optional<GrandpaJustification> getJustification(

@@ -28,6 +28,8 @@ namespace kagome::consensus::grandpa {
      */
     virtual bool completable() const = 0;
 
+    virtual bool finalizable() const = 0;
+
     virtual void play() = 0;
     virtual void end() = 0;
 
