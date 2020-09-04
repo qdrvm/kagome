@@ -20,6 +20,11 @@ namespace kagome::consensus {
     MOCK_CONST_METHOD1(
         getEpochDescriptor,
         outcome::result<NextEpochDescriptor>(EpochIndex epoch_number));
+
+    MOCK_METHOD1(setLastEpoch,
+                 outcome::result<void>(const LastEpochDescriptor &led));
+
+    MOCK_CONST_METHOD0(getLastEpoch, outcome::result<LastEpochDescriptor>());
   };
 
 }  // namespace kagome::consensus

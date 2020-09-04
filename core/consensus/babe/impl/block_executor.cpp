@@ -138,12 +138,16 @@ namespace kagome::consensus {
 
     // check if block body already exists. If so, do not apply
     if (block_tree_->getBlockBody(block_hash)) {
+      OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, block.header));
+
+      logger_->debug("Skipping existed block number: {}, hash: {}",
+                     block.header.number,
+                     block_hash.toHex());
       return blockchain::BlockTreeError::BLOCK_EXISTS;
     }
-    logger_->info(
-        "Applying block number: {}, hash: {}",
-        block.header.number,
-        hasher_->blake2b_256(scale::encode(block.header).value()).toHex());
+    logger_->info("Applying block number: {}, hash: {}",
+                  block.header.number,
+                  block_hash.toHex());
 
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 

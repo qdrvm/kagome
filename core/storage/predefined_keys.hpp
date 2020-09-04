@@ -20,6 +20,8 @@ namespace kagome::storage {
   inline const common::Buffer kLastFinalizedBlockHashLookupKey =
       common::Buffer().put(":kagome:last_finalized_block_hash");
 
+  inline const common::Buffer kLastBabeEpochNumberLookupKey =
+      common::Buffer().put(":kagome:last_babe_epoch_number");
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP

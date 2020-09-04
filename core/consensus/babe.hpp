@@ -24,10 +24,10 @@ namespace kagome::consensus {
     ~Babe() override = default;
 
     enum class ExecutionStrategy {
-      /// Genesis epoch is executed on the current node
-      GENESIS,
+      /// Start on last epoch
+      START,
       /// Node needs to syncronize first
-      SYNC_FIRST
+      SYNC_FIRST,
     };
 
     /**
