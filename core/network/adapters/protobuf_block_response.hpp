@@ -30,7 +30,7 @@ namespace kagome::network {
 
         if (src_block.header)
           dst_block->set_header(
-              vector_to_string(scale::encode(src_block.header).value()));
+              vector_to_string(scale::encode(*src_block.header).value()));
 
         if (src_block.body)
           for (auto &ext_body : *src_block.body)
