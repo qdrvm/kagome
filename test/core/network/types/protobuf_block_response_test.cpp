@@ -2,21 +2,21 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "network/adapters/protobuf_block_request.hpp"
+#include "network/adapters/protobuf_block_response.hpp"
 
 #include <gmock/gmock.h>
 
 #include "testutil/outcome.hpp"
 
 using kagome::network::ProtobufMessageAdapter;
-using kagome::network::BlocksRequest;
+using kagome::network::BlocksResponse;
 using kagome::network::Direction;
 using kagome::network::BlockAttributes;
 
 using kagome::primitives::BlockHash;
 
-struct ProtobufBlockRequestAdapterTest : public ::testing::Test {
-  using AdapterType = ProtobufMessageAdapter<BlocksRequest>;
+struct ProtobufBlockResponseAdapterTest : public ::testing::Test {
+  using AdapterType = ProtobufMessageAdapter<BlocksResponse>;
 
   void SetUp() {
     request.max = 10;
@@ -35,7 +35,7 @@ struct ProtobufBlockRequestAdapterTest : public ::testing::Test {
   BlocksRequest request;
 };
 
-TEST_F(ProtobufBlockRequestAdapterTest, Serialization) {
+TEST_F(ProtobufBlockResponseAdapterTest, Serialization) {
   std::vector<uint8_t> data;
   data.resize(AdapterType::size(request));
 
@@ -48,7 +48,7 @@ TEST_F(ProtobufBlockRequestAdapterTest, Serialization) {
   ASSERT_EQ(r2.fields, request.fields);
   ASSERT_EQ(r2.from, request.from);
   ASSERT_EQ(r2.to, request.to);
- }
+}
 
 
 
