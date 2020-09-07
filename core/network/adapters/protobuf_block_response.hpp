@@ -9,6 +9,7 @@
 #include "network/adapters/protobuf.hpp"
 
 #include "network/types/blocks_response.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::network {
 
@@ -54,7 +55,7 @@ namespace kagome::network {
 
       auto res_it = out.begin();
       std::advance(res_it, std::min(distance_was, was_size));
-      return std::move(res_it);
+      return res_it;
     }
 
     static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(
@@ -78,9 +79,14 @@ namespace kagome::network {
                       return src_block_data.header();
                     }));
 
-        OUTCOME_TRY(body, extract_value<primitives::BlockBody>([&]() {
-                      return src_block_data.body();
-                    }));
+        boost::optional<primitives::BlockBody> bodies;
+        for (auto &b : src_block_data.body()) {
+          if (!bodies) bodies = primitives::BlockBody{};
+
+          OUTCOME_TRY(
+              body, extract_value<primitives::Extrinsic>([&]() { return b; }));
+          bodies->emplace_back(std::move(body));
+        }
 
         OUTCOME_TRY(receipt, common::Buffer::fromHex(src_block_data.receipt()));
 
@@ -93,14 +99,15 @@ namespace kagome::network {
         dst_blocks.emplace_back(primitives::BlockData{
             .hash = hash,
             .header = std::move(header),
-            .body = std::move(body),
+            .body = std::move(bodies),
             .receipt = std::move(receipt),
             .message_queue = std::move(message_queue),
             .justification =
                 primitives::Justification{std::move(justification)}});
       }
 
-      return outcome::success();
+      std::advance(from, msg.ByteSizeLong());
+      return from;
     }
 
    private:

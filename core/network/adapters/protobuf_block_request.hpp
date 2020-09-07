@@ -80,7 +80,8 @@ namespace kagome::network {
       out.to = to_block;
       out.max = msg.max_blocks();
 
-      return outcome::success();
+      std::advance(from, msg.ByteSizeLong());
+      return from;
     }
   };
 

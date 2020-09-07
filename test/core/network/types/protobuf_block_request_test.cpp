@@ -23,12 +23,16 @@ struct ProtobufBlockRequestAdapterTest : public ::testing::Test {
     request.direction = Direction::DESCENDING;
     request.fields.load(0x19);
 
-    EXPECT_OUTCOME_TRUE(hash_from, BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
-                                                      "c7d43b127ec35cd8325602dd47fd"));
+    EXPECT_OUTCOME_TRUE(
+        hash_from,
+        BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
+                           "c7d43b127ec35cd8325602dd47fd"));
     request.from = hash_from;
 
-    EXPECT_OUTCOME_TRUE(hash_to, BlockHash::fromHex("22221403ba5b6a3f3bd0b0604ce439a78244"
-                                                    "c7d43b127ec35cd8325602dd47fd"));
+    EXPECT_OUTCOME_TRUE(
+        hash_to,
+        BlockHash::fromHex("22221403ba5b6a3f3bd0b0604ce439a78244"
+                           "c7d43b127ec35cd8325602dd47fd"));
     request.to = hash_to;
   }
 
@@ -41,14 +45,15 @@ TEST_F(ProtobufBlockRequestAdapterTest, Serialization) {
 
   AdapterType::write(request, data, data.end());
   BlocksRequest r2;
-  AdapterType::read(r2, data, data.begin());
+  EXPECT_OUTCOME_TRUE(it_read, AdapterType::read(r2, data, data.begin()));
 
+  ASSERT_EQ(it_read, data.end());
   ASSERT_EQ(r2.max, request.max);
   ASSERT_EQ(r2.direction, request.direction);
   ASSERT_EQ(r2.fields, request.fields);
   ASSERT_EQ(r2.from, request.from);
   ASSERT_EQ(r2.to, request.to);
- }
+}
 
 
 

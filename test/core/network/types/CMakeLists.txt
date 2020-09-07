@@ -22,6 +22,7 @@ addtest(proto_block_response_test
 target_link_libraries(proto_block_response_test
         node_api_proto
         blob
+        scale
         )
 
 addtest(proto_block_request_test
