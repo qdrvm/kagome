@@ -10,44 +10,68 @@
 
 using kagome::network::ProtobufMessageAdapter;
 using kagome::network::BlocksResponse;
-using kagome::network::Direction;
-using kagome::network::BlockAttributes;
 
 using kagome::primitives::BlockHash;
+using kagome::primitives::BlockData;
+using kagome::primitives::BlockHeader;
+using kagome::primitives::Extrinsic;
+
+using kagome::common::Buffer;
 
 struct ProtobufBlockResponseAdapterTest : public ::testing::Test {
   using AdapterType = ProtobufMessageAdapter<BlocksResponse>;
 
   void SetUp() {
-    request.max = 10;
-    request.direction = Direction::DESCENDING;
-    request.fields.load(0x19);
+    EXPECT_OUTCOME_TRUE(
+        hash,
+        BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
+                           "c7d43b127ec35cd8325602dd47fd"));
 
-    EXPECT_OUTCOME_TRUE(hash_from, BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
-                                                      "c7d43b127ec35cd8325602dd47fd"));
-    request.from = hash_from;
+    EXPECT_OUTCOME_TRUE(
+        parent_hash,
+        BlockHash::fromHex("22111403ba5b6a3f3bd0b0604ce439a78244"
+                           "c7d43b127ec35cd8325602dd47fd"));
 
-    EXPECT_OUTCOME_TRUE(hash_to, BlockHash::fromHex("22221403ba5b6a3f3bd0b0604ce439a78244"
-                                                    "c7d43b127ec35cd8325602dd47fd"));
-    request.to = hash_to;
+    EXPECT_OUTCOME_TRUE(
+        root_hash,
+        BlockHash::fromHex("23648236745b6a3f3bd0b0604ce439a78244"
+                           "c7d43b127ec35cd8325602dd47fd"));
+
+    EXPECT_OUTCOME_TRUE(
+        ext_hash,
+        BlockHash::fromHex("2364823674278726578628756faad1a78244"
+                           "c7d43b127ec35cd8325602dd47fd"));
+
+    EXPECT_OUTCOME_TRUE(ext, Buffer::fromHex("11223344"));
+    EXPECT_OUTCOME_TRUE(receipt, Buffer::fromHex("55ffddeeaa"));
+    EXPECT_OUTCOME_TRUE(message_queue, Buffer::fromHex("1a2b3c4d5e6f"));
+
+    response.blocks.emplace_back(
+        BlockData{.hash = hash,
+                  .header = BlockHeader{.parent_hash = parent_hash,
+                                        .number = 0u,
+                                        .state_root = root_hash,
+                                        .extrinsics_root = ext_hash},
+                  .body = std::vector{Extrinsic{ext}},
+                  .receipt = receipt,
+                  .message_queue = message_queue});
   }
 
-  BlocksRequest request;
+  BlocksResponse response;
 };
 
 TEST_F(ProtobufBlockResponseAdapterTest, Serialization) {
   std::vector<uint8_t> data;
-  data.resize(AdapterType::size(request));
+  data.resize(AdapterType::size(response));
 
-  AdapterType::write(request, data, data.end());
-  BlocksRequest r2;
-  AdapterType::read(r2, data, data.begin());
+  AdapterType::write(response, data, data.end());
+  BlocksResponse r2;
+  EXPECT_OUTCOME_TRUE(it_read, AdapterType::read(r2, data, data.begin()));
 
-  ASSERT_EQ(r2.max, request.max);
-  ASSERT_EQ(r2.direction, request.direction);
-  ASSERT_EQ(r2.fields, request.fields);
-  ASSERT_EQ(r2.from, request.from);
-  ASSERT_EQ(r2.to, request.to);
+  ASSERT_EQ(it_read, data.end());
+  for (size_t ix = 0; ix < response.blocks.size(); ++ix) {
+    ASSERT_EQ(response.blocks[ix].hash, r2.blocks[ix].hash);
+  }
 }
 
 
