@@ -16,6 +16,14 @@ addtest(uvar_adapter_test
         uvar_adapter_test.cpp
         )
 
+addtest(proto_block_request_test
+        protobuf_block_request_test.cpp
+        )
+target_link_libraries(proto_block_request_test
+        node_api_proto
+        blob
+        )
+
 addtest(block_response_test
     blocks_response_test.cpp
     )

@@ -8,6 +8,8 @@
 
 #include "network/adapters/protobuf.hpp"
 
+#include "network/types/blocks_response.hpp"
+
 namespace kagome::network {
 
   template <>
@@ -102,7 +104,7 @@ namespace kagome::network {
     }
 
    private:
-    template<typename T, typename F>
+    template <typename T, typename F>
     static libp2p::outcome::result<T> extract_value(F &&f) {
       if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
         OUTCOME_TRY(decoded,

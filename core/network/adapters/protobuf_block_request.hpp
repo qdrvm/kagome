@@ -8,6 +8,9 @@
 
 #include "network/adapters/protobuf.hpp"
 
+#include "common/visitor.hpp"
+#include "network/types/blocks_request.hpp"
+
 namespace kagome::network {
 
   template <>
@@ -42,7 +45,7 @@ namespace kagome::network {
 
       auto res_it = out.begin();
       std::advance(res_it, std::min(distance_was, was_size));
-      return std::move(res_it);
+      return res_it;
     }
 
     static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(

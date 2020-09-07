@@ -12,9 +12,6 @@ using kagome::network::UVarMessageAdapter;
 
 struct UVarAdapterTest : public ::testing::Test {
   struct Dummy {}d;
-  void SetUp() {
-
-  }
 };
 
 /**
