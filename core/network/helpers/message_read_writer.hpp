@@ -9,6 +9,10 @@
 #include <functional>
 #include <memory>
 #include <gsl/span>
+#include <boost/assert.hpp>
+#include <boost/system/error_code.hpp>
+
+#include "outcome/outcome.hpp"
 
 namespace kagome::network {
   struct NoSink {};
@@ -24,9 +28,10 @@ namespace kagome::network {
 
    public:
     MessageReadWriter() = default;
+    ~MessageReadWriter() = default;
 
-    MessageReadWriter(MessageReadWriter &&) = default;
-    MessageReadWriter& operator=(MessageReadWriter &&) = default;
+    MessageReadWriter(MessageReadWriter &&) noexcept = default;
+    MessageReadWriter& operator=(MessageReadWriter &&) noexcept = default;
 
     MessageReadWriter(const MessageReadWriter&) = delete;
     MessageReadWriter& operator=(const MessageReadWriter&) = delete;
@@ -46,12 +51,12 @@ namespace kagome::network {
       const size_t r = AdapterType::size(t) + reserved;
       BufferContainer::iterator loaded = AncestorType::write(t, out, r);
 
-      assert(static_cast<size_t>(std::distance(out.begin(), loaded)) >= r);
+      BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), loaded)) >= r);
       return AdapterType::write(t, out, loaded);
     }
 
     template<typename T>
-    static libp2p::outcome::result<BufferContainer::const_iterator> read(T &out, const BufferContainer &src, BufferContainer::const_iterator from) {
+    static outcome::result<BufferContainer::const_iterator> read(T &out, const BufferContainer &src, BufferContainer::const_iterator from) {
       if (from == src.end())
         return outcome::failure(boost::system::error_code{});
 
@@ -67,9 +72,10 @@ namespace kagome::network {
 
    public:
     MessageReadWriter() = default;
+    ~MessageReadWriter() = default;
 
-    MessageReadWriter(MessageReadWriter &&) = default;
-    MessageReadWriter& operator=(MessageReadWriter &&) = default;
+    MessageReadWriter(MessageReadWriter &&) noexcept = default;
+    MessageReadWriter& operator=(MessageReadWriter &&) noexcept = default;
 
     MessageReadWriter(const MessageReadWriter&) = delete;
     MessageReadWriter& operator=(const MessageReadWriter&) = delete;
@@ -82,12 +88,12 @@ namespace kagome::network {
         out.resize(need_to_reserve);
 
       const size_t r = AdapterType::size(t) + reserved;
-      assert(std::distance(out.begin(), out.end()) >= r);
+      BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), out.end())) >= r);
       return AdapterType::write(t, out, out.end());
     }
 
     template<typename T>
-    static libp2p::outcome::result<BufferContainer::const_iterator> read(T &out, const BufferContainer &src, BufferContainer::const_iterator from) {
+    static outcome::result<BufferContainer::const_iterator> read(T &out, const BufferContainer &src, BufferContainer::const_iterator from) {
       if (from == src.end())
         return outcome::failure(boost::system::error_code{});
 

@@ -43,7 +43,7 @@ namespace kagome::network {
      * @param cb to be called, when the message is read, or error happens
      */
     template <typename MsgType>
-    void read(ReadCallback<MsgType> cb) const {
+    void read(ReadCallback<MsgType> &&cb) const {
       read_writer_->read([self{shared_from_this()},
                           cb = std::move(cb)](auto &&read_res) {
         if (!read_res) {
@@ -73,7 +73,7 @@ namespace kagome::network {
      */
     template <typename MsgType>
     void write(const MsgType &msg,
-               libp2p::basic::Writer::WriteCallbackFunc cb) const {
+               libp2p::basic::Writer::WriteCallbackFunc &&cb) const {
       using ProtobufRW =
           MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
       using UVarRW = MessageReadWriter<UVarMessageAdapter<MsgType>, ProtobufRW>;

@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 #include <gsl/span>
 #include <boost/system/error_code.hpp>
 
@@ -73,7 +74,7 @@ namespace kagome::network {
       do {
         sz |= (static_cast<uint64_t>(*ptr & kSignificantBitsMask)
                << (size_t(7) * counter++));
-      } while (uint8_t(0) != (*ptr++ & uint8_t(kContinuationBitMask))
+      } while (uint8_t(0) != (*ptr++ & uint8_t(kContinuationBitMask)) // NOLINT
                && ptr != end);
 
       if (sz != src.size() - (loaded + counter))

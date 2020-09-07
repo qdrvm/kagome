@@ -71,6 +71,10 @@ TEST_F(ProtobufBlockResponseAdapterTest, Serialization) {
   ASSERT_EQ(it_read, data.end());
   for (size_t ix = 0; ix < response.blocks.size(); ++ix) {
     ASSERT_EQ(response.blocks[ix].hash, r2.blocks[ix].hash);
+    ASSERT_EQ(response.blocks[ix].header, r2.blocks[ix].header);
+    ASSERT_EQ(response.blocks[ix].body, r2.blocks[ix].body);
+    ASSERT_EQ(response.blocks[ix].receipt, r2.blocks[ix].receipt);
+    ASSERT_EQ(response.blocks[ix].message_queue, r2.blocks[ix].message_queue);
   }
 }
 
