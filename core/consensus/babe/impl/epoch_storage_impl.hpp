@@ -8,7 +8,6 @@
 
 #include "consensus/babe/epoch_storage.hpp"
 
-#include <unordered_map>
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus {
@@ -31,6 +30,11 @@ namespace kagome::consensus {
 
     outcome::result<NextEpochDescriptor> getEpochDescriptor(
         EpochIndex epoch_number) const override;
+
+    outcome::result<void> setLastEpoch(
+        const LastEpochDescriptor &epoch_descriptor) override;
+
+    outcome::result<LastEpochDescriptor> getLastEpoch() const override;
 
    private:
     std::shared_ptr<storage::BufferStorage> storage_;

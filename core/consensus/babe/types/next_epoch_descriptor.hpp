@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_BABE_TYPES_NEXT_EPOCH_DESCRIPTOR_HPP
-#define KAGOME_CORE_CONSENSUS_BABE_TYPES_NEXT_EPOCH_DESCRIPTOR_HPP
+#ifndef KAGOME_CONSENSUS_BABE_NEXTEPOCHDESCRIPTOR
+#define KAGOME_CONSENSUS_BABE_NEXTEPOCHDESCRIPTOR
 
+#include "consensus/babe/common.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::consensus {
@@ -40,4 +41,4 @@ namespace kagome::consensus {
 
 }  // namespace kagome::consensus
 
-#endif  // KAGOME_CORE_CONSENSUS_BABE_TYPES_NEXT_EPOCH_DESCRIPTOR_HPP
+#endif  // KAGOME_CONSENSUS_BABE_NEXTEPOCHDESCRIPTOR
