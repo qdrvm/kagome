@@ -30,12 +30,12 @@ namespace kagome::network {
    public:
     explicit ProtobufMessageReadWriter(
         std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer)
-        : read_writer_{std::move(read_writer)} {}
+        : read_writer_(std::move(read_writer)) {}
     explicit ProtobufMessageReadWriter(
         const std::shared_ptr<libp2p::basic::ReadWriter> &read_writer)
-        : read_writer_{
+        : read_writer_(
             std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
-                read_writer)} {}
+                read_writer)) {}
 
     /**
      * Read a Protobuf message from the channel

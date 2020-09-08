@@ -16,6 +16,10 @@ addtest(uvar_adapter_test
         uvar_adapter_test.cpp
         )
 
+addtest(message_read_writer_test
+        message_read_writer_test.cpp
+        )
+
 addtest(proto_block_response_test
         protobuf_block_response_test.cpp
         )
