@@ -278,23 +278,33 @@ namespace kagome::extensions {
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
+    static constexpr runtime::WasmSpan kErrorSpan = -1;
+
     auto [key_ptr, key_size] = runtime::WasmResult(key);
     auto key_buffer = memory_->loadN(key_ptr, key_size);
-    auto data = get(key_buffer);
-    if (not data) {
-      logger_->trace("ext_get_storage_into. Val by key {} not found",
-                     key_buffer.toHex());
-      return runtime::WasmMemory::kMaxMemorySize;
-    }
-    if (not data.value().empty()) {
-      logger_->trace("ext_get_storage_into. Key hex: {} , Value hex {}",
+
+    auto result = get(key_buffer);
+    auto option = result ? boost::make_optional(result.value()) : boost::none;
+
+    if(option) {
+      logger_->trace("ext_storage_get( {} ) => {}",
                      key_buffer.toHex(),
-                     data.value().toHex());
+                     option.value().empty() ? "empty" : option.value().toHex());
+
     } else {
-      logger_->trace("ext_get_storage_into. Key hex: {} Value: empty",
+      logger_->trace("ext_storage_get( {} ) => not found",
                      key_buffer.toHex());
     }
-    return memory_->storeBuffer(data.value());
+
+    auto encoded = scale::encode(option);
+
+    if (!encoded) {
+      logger_->error("ext_storage_get result encoding failed: {}",
+                     encoded.error().message());
+      return kErrorSpan;
+    }
+
+    return memory_->storeBuffer(encoded.value());
   }
 
   void StorageExtension::ext_storage_clear_version_1(
