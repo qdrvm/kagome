@@ -62,7 +62,7 @@ namespace kagome::consensus::grandpa {
     void onVoteMessage(const libp2p::peer::PeerId &peer_id,
                        const VoteMessage &msg) override;
 
-    void onFinalize(const libp2p::peer::PeerId &peer_id, const Fin &f) override;
+    void onFinalize(const libp2p::peer::PeerId &peer_id, const Fin &fin) override;
 
     // Round processing method
 
@@ -84,6 +84,7 @@ namespace kagome::consensus::grandpa {
 
     std::shared_ptr<VotingRound> previous_round_;
     std::shared_ptr<VotingRound> current_round_;
+    std::shared_ptr<VotingRound> last_finalised_round_;
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<Environment> environment_;

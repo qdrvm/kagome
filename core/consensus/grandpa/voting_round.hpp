@@ -17,6 +17,8 @@ namespace kagome::consensus::grandpa {
   struct VotingRound : public std::enable_shared_from_this<VotingRound> {
     virtual ~VotingRound() = default;
 
+    // Getters
+
     virtual RoundNumber roundNumber() const = 0;
     virtual MembershipCounter voterSetId() const = 0;
     virtual std::shared_ptr<const RoundState> state() const = 0;
@@ -30,11 +32,17 @@ namespace kagome::consensus::grandpa {
 
     virtual bool finalizable() const = 0;
 
+    virtual BlockInfo bestFinalCandidate() = 0;
+
+    /// @see spec: Best-PreVote-Candidate
+    virtual BlockInfo bestPrevoteCandidate() = 0;
+
+    // Control lifecycle
+
     virtual void play() = 0;
     virtual void end() = 0;
 
-    virtual void doCatchUpRequest(const libp2p::peer::PeerId &peer_id) = 0;
-    virtual void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) = 0;
+    // Doing some activity
 
     /**
      * During the primary propose we:
@@ -48,28 +56,37 @@ namespace kagome::consensus::grandpa {
      */
     virtual void doProposal() = 0;
 
-    /**
-     * 1. Waits until start_time_ + duration * 2 or round is completable
-     * 2. Constructs prevote (\see constructPrevote) and broadcasts it
-     */
+    /// Calculate prevote and broadcast signed prevote message
     virtual void doPrevote() = 0;
 
-    /**
-     * 1. Waits until start_time_ + duration * 4 or round is completable
-     * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
-     */
+    /// Calculate precommit and broadcast signed precommit message
     virtual void doPrecommit() = 0;
 
-    // executes algorithm Attempt-To-Finalize-Round(r)
-    virtual bool tryFinalize() = 0;
+    /// Broadcast Fin message
+    virtual void doFinalize() = 0;
 
-    virtual void onFinalize(const Fin &f) = 0;
+    /// Make a Cathc-Up-Request and send to the peer that has been overtaken by
+    ///  the current round
+    virtual void doCatchUpRequest(const libp2p::peer::PeerId &peer_id) = 0;
 
-    virtual void onPrimaryPropose(const SignedMessage &primary_propose) = 0;
+    /// Make Cathc-Up-Response based on current round and send to requesting
+    /// peer
+    virtual void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) = 0;
+
+    // Handling inner messages
+
+    virtual void onProposal(const SignedMessage &primary_propose) = 0;
 
     virtual void onPrevote(const SignedMessage &prevote) = 0;
 
     virtual void onPrecommit(const SignedMessage &precommit) = 0;
+
+    virtual void onFinalize(const Fin &f) = 0;
+
+		// Auxiliary methods
+
+	  /// executes algorithm Attempt-To-Finalize-Round
+	  virtual void attemptToFinalizeRound() = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

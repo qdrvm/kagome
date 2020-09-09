@@ -342,7 +342,7 @@ TEST_F(VotingRoundTest, Finalization) {
 
 ACTION_P(onProposed, test_fixture) {
   // immitating primary proposed is received from network
-  test_fixture->round_->onPrimaryPropose(arg2);
+	test_fixture->round_->onProposal(arg2);
   return outcome::success();
 }
 

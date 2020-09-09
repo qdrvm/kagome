@@ -13,6 +13,10 @@ namespace kagome::consensus::grandpa {
   enum class VotingRoundError {
     FIN_VALIDATION_FAILED = 1,
     LAST_ESTIMATE_BETTER_THAN_PREVOTE,
+    UNKNOWN_VOTER,
+    DUPLICATED_VOTE,
+    EQUIVOCATED_VOTE,
+
   };
 
 }

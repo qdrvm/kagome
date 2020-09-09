@@ -278,33 +278,74 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
-    if (current_round_ == nullptr) {
+    if (previous_round_ == nullptr) {
+      logger_->debug(
+          "Catch-up request (since round #{}) received from {} was rejected: "
+          "previous round is dummy yet",
+          msg.round_number,
+          peer_id.toHex());
       return;
     }
-    if (current_round_->roundNumber() < msg.round_number) {
+    if (previous_round_->roundNumber() < msg.round_number) {
+      // Catching up in to the past
+      logger_->debug(
+          "Catch-up request (since round #{}) received from {} was rejected: "
+          "catching up in to the past",
+          msg.round_number,
+          peer_id.toHex());
       return;
     }
-    if (current_round_->voterSetId() != msg.voter_set_id) {
+    if (previous_round_->voterSetId() != msg.voter_set_id) {
+      // Catching up of different set
+      logger_->debug(
+          "Catch-up request (since round #{}) received from {} was rejected: "
+          "voter set is different",
+          msg.round_number,
+          peer_id.toHex());
       return;
     }
-    current_round_->doCatchUpResponse(peer_id);
+    if (not previous_round_->completable()) {
+      logger_->debug(
+          "Catch-up request (since round #{}) received from {} was rejected: "
+          "round is not completable",
+          msg.round_number,
+          peer_id.toHex());
+      return;
+    }
+
+    logger_->debug("Catch-up request (since round #{}) received from {}",
+                   msg.round_number,
+                   peer_id.toHex());
+    previous_round_->doCatchUpResponse(peer_id);
   }
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
-    if (current_round_ == nullptr) {
+    BOOST_ASSERT(current_round_ != nullptr);
+    if (current_round_->roundNumber() > msg.round_number) {
+      // Catching up in to the past
+      logger_->debug(
+          "Catch-up response (till round #{}) received from {} was rejected: "
+          "catching up in to the past",
+          msg.round_number,
+          peer_id.toHex());
       return;
     }
     if (current_round_->voterSetId() != msg.voter_set_id) {
       // Catching up of different set
-      return;
-    }
-    if (current_round_->roundNumber() >= msg.round_number) {
-      // Catching up in to the past
+      logger_->debug(
+          "Catch-up response (till round #{}) received from {} was rejected: "
+          "voter set is different",
+          msg.round_number,
+          peer_id.toHex());
       return;
     }
 
-    auto round = makeInitialRound(msg.round_number, current_round_->state());
+    logger_->debug("Catch-up response (till round #{}) received from {}",
+                   msg.round_number,
+                   peer_id.toHex());
+    auto round =
+        makeInitialRound(msg.round_number - 1, current_round_->state());
 
     for (auto &signed_message : msg.prevote_justification.items) {
       auto success = visit_in_place(
@@ -313,7 +354,7 @@ namespace kagome::consensus::grandpa {
             round->onPrevote(signed_message);
             return true;
           },
-          [](auto...) { return false; });
+          [](auto) { return false; });
       if (not success) {
         // Invalid prevote justification
         return;
@@ -326,15 +367,15 @@ namespace kagome::consensus::grandpa {
             round->onPrecommit(signed_message);
             return true;
           },
-          [](auto...) { return false; });
+          [](auto) { return false; });
       if (not success) {
         // Invalid precommit justification
         return;
       }
     }
 
-    if (current_round_->state()->best_prevote_candidate.block_number
-        > round->state()->best_prevote_candidate.block_number) {
+    if (current_round_->bestPrevoteCandidate().block_number
+        > round->bestFinalCandidate().block_number) {
       // GHOST-less Catch-up
       return;
     }
@@ -356,7 +397,7 @@ namespace kagome::consensus::grandpa {
                                   const VoteMessage &msg) {
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
-      if (msg.round_number > current_round_->roundNumber()) {
+      if (current_round_->roundNumber() < msg.round_number) {
         current_round_->doCatchUpRequest(peer_id);
       }
       return;
@@ -390,30 +431,30 @@ namespace kagome::consensus::grandpa {
     };
     visit_in_place(
         msg.vote.message,
-        [&target_round, &msg](const PrimaryPropose &primary_propose) {
-          target_round->onPrimaryPropose(msg.vote);
+        [&target_round, &msg](const PrimaryPropose &) {
+          target_round->onProposal(msg.vote);
         },
-        [&target_round, &msg](const Prevote &prevote) {
+        [&target_round, &msg](const Prevote &) {
           target_round->onPrevote(msg.vote);
         },
-        [&target_round, &msg](const Precommit &precommit) {
+        [&target_round, &msg](const Precommit &) {
           target_round->onPrecommit(msg.vote);
         });
   }
 
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
-                               const Fin &f) {
-    logger_->debug("Received fin message for round: {}", f.round_number);
+                               const Fin &fin) {
+    logger_->debug("Received fin message for round: {}", fin.round_number);
 
-    std::shared_ptr<VotingRound> target_round = selectRound(f.round_number);
+    std::shared_ptr<VotingRound> target_round = selectRound(fin.round_number);
     if (not target_round) {
-      if (f.round_number > current_round_->roundNumber()) {
+      if (current_round_->roundNumber() < fin.round_number) {
         current_round_->doCatchUpRequest(peer_id);
       }
       return;
     }
 
-    target_round->onFinalize(f);
+    target_round->onFinalize(fin);
   }
 
   void GrandpaImpl::onCompletedRound(
@@ -421,28 +462,22 @@ namespace kagome::consensus::grandpa {
     if (not completed_round_res) {
       logger_->debug("Grandpa round was not finalized: {}",
                      completed_round_res.error().message());
-    } else {
-      const auto &completed_round = completed_round_res.value();
-
-      logger_->debug("Event OnCompleted for round #{}",
-                     completed_round.round_number);
-
-      if (auto put_res = storage_->put(
-              storage::kSetStateKey,
-              common::Buffer(scale::encode(completed_round).value()));
-          not put_res) {
-        logger_->error("New round state was not added to the storage");
-        return;
-      }
-
-      BOOST_ASSERT(storage_->get(storage::kSetStateKey));
+      return;
     }
 
-    //    boost::asio::post(*io_context_, [wp = weak_from_this()] {
-    //      if (auto grandpa = wp.lock()) {
-    //        grandpa->
-    executeNextRound();
-    //      }
-    //    });
+    const auto &completed_round = completed_round_res.value();
+
+    logger_->debug("Event OnCompleted for round #{}",
+                   completed_round.round_number);
+
+    if (auto put_res = storage_->put(
+            storage::kSetStateKey,
+            common::Buffer(scale::encode(completed_round).value()));
+        not put_res) {
+      logger_->error("New round state was not added to the storage");
+      return;
+    }
+
+    BOOST_ASSERT(storage_->get(storage::kSetStateKey));
   }
 }  // namespace kagome::consensus::grandpa

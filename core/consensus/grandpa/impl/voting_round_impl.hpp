@@ -63,7 +63,7 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteGraph> &graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<boost::asio::io_context> &io_context,
-        const std::shared_ptr<const VotingRound> &previous_round);
+        const std::shared_ptr<VotingRound> &previous_round);
 
     enum class Stage {
       // Initial stage, round is just created
@@ -107,43 +107,24 @@ namespace kagome::consensus::grandpa {
 
     // Actions of round
 
-    /**
-     * During the primary propose we:
-     * 1. Check if we are the primary for the current round. If not execution of
-     * the method is finished
-     * 2. We can send primary propose only if the estimate from last round state
-     * is greater than finalized. If we cannot send propose, method is finished
-     * 3. Primary propose is the last rounds estimate.
-     * 4. After all steps above are done we broadcast propose
-     * 5. We store what we have broadcasted in primary_vote_ field
-     */
     void doProposal() override;
-
-    /**
-     * 1. Waits until start_time_ + duration * 2 or round is completable
-     * 2. Constructs prevote (\see constructPrevote) and broadcasts it
-     */
     void doPrevote() override;
-
-    /**
-     * 1. Waits until start_time_ + duration * 4 or round is completable
-     * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
-     */
     void doPrecommit() override;
+    void doFinalize() override;
 
     // Handlers of incoming messages
 
     /**
      * Triggered when we receive finalization message
      */
-    void onFinalize(const Fin &f) override;
+    void onFinalize(const Fin &finalize) override;
 
     /**
      * Invoked when we received a primary propose for the current round
      * Basically method just checks if received propose was produced by the
      * primary and if so, it is stored in primary_vote_ field
      */
-    void onPrimaryPropose(const SignedMessage &primary_propose) override;
+    void onProposal(const SignedMessage &proposal) override;
 
     /**
      * Triggered when we receive prevote for current round
@@ -164,9 +145,8 @@ namespace kagome::consensus::grandpa {
      * Checks if current round is completable and finalized block differs from
      * the last round's finalized block. If so fin message is broadcasted to the
      * network
-     * @return true if fin message was sent, false otherwise
      */
-    bool tryFinalize() override;
+    void attemptToFinalizeRound() override;
 
     // Catch-up actions
 
@@ -188,6 +168,9 @@ namespace kagome::consensus::grandpa {
 
     bool finalizable() const override;
 
+    BlockInfo bestPrevoteCandidate() override;
+    BlockInfo bestFinalCandidate() override;
+
    private:
     void constructCurrentState();
 
@@ -201,10 +184,11 @@ namespace kagome::consensus::grandpa {
     size_t getThreshold(const std::shared_ptr<VoterSet> &voters);
 
     /// Triggered when we receive \param signed_prevote for the current peer
-    void onSignedPrevote(const SignedMessage &signed_prevote);
+    outcome::result<void> onSignedPrevote(const SignedMessage &signed_prevote);
 
     /// Triggered when we receive \param signed_precommit for the current peer
-    bool onSignedPrecommit(const SignedMessage &signed_precommit);
+    outcome::result<void> onSignedPrecommit(
+        const SignedMessage &signed_precommit);
 
     /**
      * Invoked during each onSingedPrevote.
@@ -224,9 +208,12 @@ namespace kagome::consensus::grandpa {
     // old one
     outcome::result<void> notify();
 
-    /// prepare justification for the provided \param estimate
+    /// prepare justification of \param estimate over the provided \param votes
     boost::optional<GrandpaJustification> getJustification(
         const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const;
+
+    /// @see spec: Grandpa-Ghost
+    BlockInfo grandpaGhost();
 
     /**
      * We will vote for the best chain containing primary_vote_ iff
@@ -235,16 +222,7 @@ namespace kagome::consensus::grandpa {
      * aware of.
      * Otherwise we will vote for the best chain containing last round estimate
      */
-    outcome::result<SignedMessage> constructPrevote(
-        const RoundState &last_round_state) const;
-
-    /**
-     * Constructs precommit as following:
-     * 1. If we have prevote ghost, then vote for it
-     * 2. Otherwise vote for the last finalized block (base of the graph)
-     */
-    outcome::result<SignedMessage> constructPrecommit(
-        const RoundState &last_round_state) const;
+    outcome::result<Prevote> calculatePrevote() const;
 
     /// Check if received \param vote has valid \param justification prevote
     bool validatePrevoteJustification(
@@ -254,11 +232,20 @@ namespace kagome::consensus::grandpa {
     bool validatePrecommitJustification(
         const BlockInfo &vote, const GrandpaJustification &justification) const;
 
-   private:
+    void sendProposal(const PrimaryPropose &primary_proposal);
+    void sendPrevote(const Prevote &prevote);
+    void sendPrecommit(const Precommit &precommit);
+    void sendFinalize(const BlockInfo &block,
+                      const GrandpaJustification &justification);
+
+    void pending();
+
     std::weak_ptr<Grandpa> grandpa_;
 
     Stage stage_ = Stage::INIT;
     bool isPrimary_ = false;
+
+    std::weak_ptr<VotingRound> previous_round_;
 
     std::shared_ptr<const RoundState> previous_round_state_;
     std::shared_ptr<RoundState> current_round_state_;
@@ -286,6 +273,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<boost::asio::io_context> io_context_;
 
     Timer timer_;
+    Timer pending_timer_;
 
     common::Logger logger_;
     // equivocators arrays. Index in vector corresponds to the index of voter in
@@ -294,7 +282,16 @@ namespace kagome::consensus::grandpa {
     std::vector<bool> precommit_equivocators_;
 
     boost::optional<PrimaryPropose> primary_vote_;
+    boost::optional<Prevote> prevote_;
+    boost::optional<Precommit> precommit_;
+
     bool completable_ = false;
+
+   public:
+    BlockInfo last_finalized_block_;
+    BlockInfo best_prevote_candidate_;
+    BlockInfo best_final_candidate_;
+    boost::optional<BlockInfo> finalized_;
   };
 }  // namespace kagome::consensus::grandpa
 

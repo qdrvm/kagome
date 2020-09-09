@@ -146,6 +146,10 @@ namespace kagome::consensus::grandpa {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const VoteMessage &v) {
+  	if (v.counter != 0){
+  		[]{}();
+  	}
+
     return s << v.round_number << v.counter << v.vote;
   }
 

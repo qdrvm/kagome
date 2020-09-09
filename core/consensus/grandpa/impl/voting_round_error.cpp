@@ -13,5 +13,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
     case E::LAST_ESTIMATE_BETTER_THAN_PREVOTE:
       return "Current state does not contain prevote which is equal to the "
              "last round estimate or is descendant of it";
+	  case E::UNKNOWN_VOTER:
+		  return "Provided vote is the vote of unknown voter";
+	  case E::DUPLICATED_VOTE:
+		  return "Provided vote duplicates the existing one";
+	  case E::EQUIVOCATED_VOTE:
+		  return "Provided vote equivocated the existing one";
   }
 }
