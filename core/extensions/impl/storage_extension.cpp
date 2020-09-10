@@ -212,7 +212,8 @@ namespace kagome::extensions {
                 common::Hash256::size(),
                 parent_hash.begin());
 
-    if(auto result_buf = calcStorageChangesRoot(parent_hash); result_buf.has_value()) {
+    if (auto result_buf = calcStorageChangesRoot(parent_hash);
+        result_buf.has_value()) {
       memory_->storeBuffer(result, result_buf.value());
       return result_buf.value().size();
     }
@@ -278,33 +279,25 @@ namespace kagome::extensions {
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
-    static constexpr runtime::WasmSpan kErrorSpan = -1;
-
     auto [key_ptr, key_size] = runtime::WasmResult(key);
     auto key_buffer = memory_->loadN(key_ptr, key_size);
 
     auto result = get(key_buffer);
     auto option = result ? boost::make_optional(result.value()) : boost::none;
 
-    if(option) {
-      logger_->trace("ext_storage_get( {} ) => {}",
+    if (option) {
+      logger_->trace("ext_storage_get_version_1( {} ) => {}",
                      key_buffer.toHex(),
                      option.value().empty() ? "empty" : option.value().toHex());
 
     } else {
-      logger_->trace("ext_storage_get( {} ) => not found",
+      logger_->trace("ext_storage_get_version_1( {} ) => not found",
                      key_buffer.toHex());
     }
 
-    auto encoded = scale::encode(option);
+    auto encoded = scale::encode(option).value();
 
-    if (!encoded) {
-      logger_->error("ext_storage_get result encoding failed: {}",
-                     encoded.error().message());
-      return kErrorSpan;
-    }
-
-    return memory_->storeBuffer(encoded.value());
+    return memory_->storeBuffer(encoded);
   }
 
   void StorageExtension::ext_storage_clear_version_1(
@@ -344,7 +337,6 @@ namespace kagome::extensions {
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash_data) {
-    auto hash_size = common::Hash256::size();
     auto parent_hash_span = runtime::WasmResult(parent_hash_data);
     auto parent_hash_bytes =
         memory_->loadN(parent_hash_span.address, parent_hash_span.length);
@@ -352,7 +344,7 @@ namespace kagome::extensions {
     std::copy_n(parent_hash_bytes.begin(),
                 common::Hash256::size(),
                 parent_hash.begin());
-    if(auto result = calcStorageChangesRoot(parent_hash); result.has_value()) {
+    if (auto result = calcStorageChangesRoot(parent_hash); result.has_value()) {
       return memory_->storeBuffer(result.value());
     }
     return 0;
@@ -416,7 +408,8 @@ namespace kagome::extensions {
       auto &&key = p.first;
       auto &&value = p.second;
       // already scale-encoded
-      trie.put(key, value);
+      auto put_res = trie.put(key, value);
+      BOOST_ASSERT_MSG(put_res, "Trie put was failed");
     }
     const auto &enc = codec.encodeNode(*trie.getRoot());
     if (!enc) {

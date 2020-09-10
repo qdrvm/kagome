@@ -553,10 +553,13 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
   WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
 
   Buffer value(8, 'v');
+  auto encoded_opt_value =
+      kagome::scale::encode<boost::optional<Buffer>>(value).value();
 
   // expect key and value were loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(value)))
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(encoded_opt_value)))
       .WillOnce(Return(value_span));
 
   // expect key-value pair was put to db
