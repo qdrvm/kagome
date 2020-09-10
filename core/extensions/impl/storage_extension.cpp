@@ -132,11 +132,12 @@ namespace kagome::extensions {
     auto [value_ptr, value_size] = runtime::WasmResult(value_out);
 
     auto key = memory_->loadN(key_ptr, key_size);
+    boost::optional<uint32_t> res{boost::none};
     if (auto data = get(key, offset, value_size)) {
       memory_->storeBuffer(value_ptr, data.value());
-      return runtime::WasmResult(0, data.value().size()).combine();
+      res = value_size;
     }
-    return kErrorSpan;
+    return memory_->storeBuffer(scale::encode(res).value());
   }
 
   void StorageExtension::ext_set_storage(const runtime::WasmPointer key_data,
