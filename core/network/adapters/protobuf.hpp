@@ -11,7 +11,7 @@
 #include <gsl/span>
 #include <boost/system/error_code.hpp>
 
-#include "network/protobuf/api.v1.pb.h" // NOLINT
+#include "network/protobuf/api.v1.pb.h"
 #include "outcome/outcome.hpp"
 
 #ifdef _MSC_VER
@@ -37,7 +37,7 @@ namespace kagome::network {
       assert(false);  // NO_IMPL
       return out.end();
     }
-    static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(
+    static outcome::result<std::vector<uint8_t>::const_iterator> read(
         T &out,
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {

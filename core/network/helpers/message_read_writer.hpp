@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 #include <gsl/span>
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
@@ -49,7 +50,7 @@ namespace kagome::network {
         out.resize(need_to_reserve);
 
       const size_t r = AdapterType::size(t) + reserved;
-      BufferContainer::iterator loaded = AncestorType::write(t, out, r);
+      auto loaded = AncestorType::write(t, out, r);
 
       BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), loaded)) >= r);
       return AdapterType::write(t, out, loaded);

@@ -27,10 +27,9 @@ namespace kagome::network {
     template <typename MsgType>
     using ReadCallback = std::function<void(outcome::result<MsgType>)>;
 
+    std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer_;
+
    public:
-    explicit ProtobufMessageReadWriter(
-        std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer)
-        : read_writer_(std::move(read_writer)) {}
     explicit ProtobufMessageReadWriter(
         const std::shared_ptr<libp2p::basic::ReadWriter> &read_writer)
         : read_writer_(
@@ -52,12 +51,10 @@ namespace kagome::network {
 
         using ProtobufRW =
             MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
-        using UVarRW =
-            MessageReadWriter<UVarMessageAdapter<MsgType>, ProtobufRW>;
 
         MsgType msg;
         if (auto msg_res =
-                UVarRW::read(msg, *read_res.value(), read_res.value()->begin());
+              ProtobufRW::read(msg, *read_res.value(), read_res.value()->begin());
             !msg_res) {
           return cb(msg_res.error());
         }
@@ -76,16 +73,15 @@ namespace kagome::network {
                libp2p::basic::Writer::WriteCallbackFunc &&cb) const {
       using ProtobufRW =
           MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
-      using UVarRW = MessageReadWriter<UVarMessageAdapter<MsgType>, ProtobufRW>;
 
       // TODO(iceseer) : try to cache this vector
       std::vector<uint8_t> out;
-      auto it = UVarRW::write(msg, out);
+      auto it = ProtobufRW::write(msg, out);
 
       gsl::span<uint8_t> data(it.base(),
                               out.size() - std::distance(out.begin(), it));
-      assert(!data.empty());
 
+      assert(!data.empty());
       read_writer_->write(data,
                           [self{shared_from_this()},
                            out{std::move(out)},
@@ -96,9 +92,6 @@ namespace kagome::network {
                             cb(outcome::success());
                           });
     }
-
-   private:
-    std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer_;
   };
 
 }  // namespace kagome::network

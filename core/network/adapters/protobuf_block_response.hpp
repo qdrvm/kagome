@@ -58,7 +58,7 @@ namespace kagome::network {
       return res_it;
     }
 
-    static libp2p::outcome::result<std::vector<uint8_t>::const_iterator> read(
+    static outcome::result<std::vector<uint8_t>::const_iterator> read(
         network::BlocksResponse &out,
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
