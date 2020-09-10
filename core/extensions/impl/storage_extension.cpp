@@ -291,13 +291,14 @@ namespace kagome::extensions {
                      option.value().empty() ? "empty" : option.value().toHex());
 
     } else {
-      logger_->trace("ext_storage_get_version_1( {} ) => not found",
-                     key_buffer.toHex());
+      logger_->trace(
+          "ext_storage_get_version_1( {} ) => value was not obtained. Reason: "
+          "{}",
+          key_buffer.toHex(),
+          result.error().message());
     }
 
-    auto encoded = scale::encode(option).value();
-
-    return memory_->storeBuffer(encoded);
+    return memory_->storeBuffer(scale::encode(option).value());
   }
 
   void StorageExtension::ext_storage_clear_version_1(
@@ -409,7 +410,14 @@ namespace kagome::extensions {
       auto &&value = p.second;
       // already scale-encoded
       auto put_res = trie.put(key, value);
-      BOOST_ASSERT_MSG(put_res, "Trie put was failed");
+      if (not put_res) {
+        logger_->error(
+            "Insertion of value {} with key {} into the trie failed due to "
+            "error: {}",
+            value.toHex(),
+            key.toHex(),
+            put_res.error().message());
+      }
     }
     const auto &enc = codec.encodeNode(*trie.getRoot());
     if (!enc) {
