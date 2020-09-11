@@ -15,6 +15,9 @@ target_link_libraries(block_request_test
 addtest(uvar_adapter_test
         uvar_adapter_test.cpp
         )
+target_link_libraries(uvar_adapter_test
+        adapter_errors
+        )
 
 addtest(message_read_writer_test
         message_read_writer_test.cpp
@@ -27,6 +30,7 @@ target_link_libraries(proto_block_response_test
         node_api_proto
         blob
         scale
+        adapter_errors
         )
 
 addtest(proto_block_request_test
@@ -35,6 +39,7 @@ addtest(proto_block_request_test
 target_link_libraries(proto_block_request_test
         node_api_proto
         blob
+        adapter_errors
         )
 
 addtest(block_response_test

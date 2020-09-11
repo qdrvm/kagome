@@ -30,6 +30,7 @@ target_link_libraries(kagome_router
     scale
     loopback_stream
     node_api_proto
+    adapter_errors
     )
 
 add_library(extrinsic_observer
@@ -47,6 +48,7 @@ add_library(remote_sync_protocol_client
 target_link_libraries(remote_sync_protocol_client
     logger
     node_api_proto
+    adapter_errors
     )
 
 add_library(dummy_sync_protocol_client

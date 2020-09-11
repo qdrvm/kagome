@@ -6,3 +6,4 @@
 add_subdirectory(protobuf)
 add_subdirectory(helpers)
 add_subdirectory(impl)
+add_subdirectory(adapters)

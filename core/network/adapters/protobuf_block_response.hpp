@@ -67,7 +67,7 @@ namespace kagome::network {
 
       ::api::v1::BlockResponse msg;
       if (!msg.ParseFromArray(from.base(), remains))
-        return outcome::failure(boost::system::error_code{});
+        return AdaptersError::PARSE_FAILED;
 
       auto &dst_blocks = out.blocks;
       dst_blocks.reserve(msg.blocks().size());
@@ -114,17 +114,19 @@ namespace kagome::network {
     template <typename T, typename F>
     static outcome::result<T> extract_value(F &&f) {
       if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
-        OUTCOME_TRY(decoded,
-                    scale::decode<T>(gsl::span<const uint8_t>(
-                        reinterpret_cast<const uint8_t *>(buffer.data()), // NOLINT
-                        buffer.size())));
+        OUTCOME_TRY(
+            decoded,
+            scale::decode<T>(gsl::span<const uint8_t>(
+                reinterpret_cast<const uint8_t *>(buffer.data()),  // NOLINT
+                buffer.size())));
         return std::move(decoded);
       }
-      return outcome::failure(boost::system::error_code{});
+      return AdaptersError::EMPTY_DATA;
     }
 
     static std::string vector_to_string(std::vector<uint8_t> &&src) {
-      return std::string(reinterpret_cast<char *>(src.data()), src.size()); // NOLINT
+      return std::string(reinterpret_cast<char *>(src.data()),  // NOLINT
+                         src.size());
     }
   };
 

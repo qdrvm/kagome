@@ -11,6 +11,7 @@
 #include <gsl/span>
 #include <boost/system/error_code.hpp>
 
+#include "network/adapters/adapter_errors.hpp"
 #include "network/protobuf/api.v1.pb.h"
 #include "outcome/outcome.hpp"
 
@@ -25,8 +26,7 @@
 namespace kagome::network {
 
   template <typename T>
-  struct ProtobufMessageAdapter {
-  };
+  struct ProtobufMessageAdapter {};
 
 }  // namespace kagome::network
 

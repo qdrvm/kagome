@@ -12,6 +12,7 @@
 #include <gsl/span>
 #include <boost/system/error_code.hpp>
 
+#include "network/adapters/adapter_errors.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {
@@ -60,8 +61,7 @@ namespace kagome::network {
         T & /*out*/,
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
-      if (from == src.end())
-        return outcome::failure(boost::system::error_code{});
+      if (from == src.end()) return AdaptersError::EMPTY_DATA;
 
       uint64_t sz = 0;
       const auto loaded = std::distance(src.begin(), from);
@@ -74,11 +74,11 @@ namespace kagome::network {
       do {
         sz |= (static_cast<uint64_t>(*ptr & kSignificantBitsMask)
                << (size_t(7) * counter++));
-      } while (uint8_t(0) != (*ptr++ & uint8_t(kContinuationBitMask)) // NOLINT
+      } while (uint8_t(0) != (*ptr++ & uint8_t(kContinuationBitMask))  // NOLINT
                && ptr != end);
 
       if (sz != src.size() - (loaded + counter))
-        return outcome::failure(boost::system::error_code{});
+        return AdaptersError::DATA_SIZE_CORRUPTED;
 
       std::advance(from, counter);
       return from;

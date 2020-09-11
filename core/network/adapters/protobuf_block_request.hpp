@@ -57,7 +57,7 @@ namespace kagome::network {
 
       ::api::v1::BlockRequest msg;
       if (!msg.ParseFromArray(from.base(), remains))
-        return outcome::failure(boost::system::error_code{});
+        return AdaptersError::PARSE_FAILED;
 
       out.fields.load(LE_BE_SWAP32(msg.fields()));
       out.direction = static_cast<decltype(out.direction)>(msg.direction());
@@ -73,7 +73,7 @@ namespace kagome::network {
         } break;
 
         default:
-          return outcome::failure(boost::system::error_code{});
+          return AdaptersError::UNEXPECTED_VARIANT;
       }
 
       OUTCOME_TRY(to_block, primitives::BlockHash::fromHex(msg.to_block()));
