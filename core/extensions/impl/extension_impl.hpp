@@ -104,6 +104,9 @@ namespace kagome::extensions {
     runtime::WasmSpan ext_storage_next_key_version_1(
         runtime::WasmSpan key) const override;
 
+    void ext_storage_append_version_1(runtime::WasmSpan key,
+                                      runtime::WasmSpan value) const override;
+
     runtime::WasmPointer ext_trie_blake2_256_root_version_1(
         runtime::WasmSpan values_data) override;
 
@@ -232,6 +235,8 @@ namespace kagome::extensions {
 
     runtime::WasmResult ext_misc_runtime_version_version_1(
         runtime::WasmSpan data) const override;
+
+    void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const override;
 
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;

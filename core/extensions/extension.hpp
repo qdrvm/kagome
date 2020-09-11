@@ -10,8 +10,8 @@
 #include <functional>
 
 #include "runtime/types.hpp"
-#include "runtime/wasm_result.hpp"
 #include "runtime/wasm_memory.hpp"
+#include "runtime/wasm_result.hpp"
 
 namespace kagome::extensions {
   /**
@@ -208,6 +208,19 @@ namespace kagome::extensions {
      */
     virtual runtime::WasmSpan ext_storage_next_key_version_1(
         runtime::WasmSpan key) const = 0;
+
+    /**
+     * Appends the scale encoded value to the scale encoded storage item at the
+     * given key
+     * @param key memory span containing key
+     * @param value memory span containing value that should be appended to
+     * storage item under the @param key
+     *
+     * @note This assumes specific format of the storage item. Also there is no
+     * way to undo this operation.
+     */
+    virtual void ext_storage_append_version_1(
+        runtime::WasmSpan key, runtime::WasmSpan value) const = 0;
 
     /**
      * Conducts a 256-bit Blake2 trie root formed from the iterated items.
@@ -489,6 +502,9 @@ namespace kagome::extensions {
     virtual uint64_t ext_chain_id() const = 0;
 
     virtual runtime::WasmResult ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const = 0;
+
+    virtual void ext_misc_print_utf8_version_1(
         runtime::WasmSpan data) const = 0;
   };
 }  // namespace kagome::extensions

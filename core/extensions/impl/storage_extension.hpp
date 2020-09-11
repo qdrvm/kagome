@@ -144,6 +144,12 @@ namespace kagome::extensions {
         runtime::WasmSpan key) const;
 
     /**
+     * @see Extension::ext_storage_append_version_1
+     */
+    void ext_storage_append_version_1(runtime::WasmSpan key,
+                                      runtime::WasmSpan value) const;
+
+    /**
      * @see Extension::ext_trie_blake2_256_root_version_1
      */
     runtime::WasmPointer ext_trie_blake2_256_root_version_1(
@@ -171,12 +177,20 @@ namespace kagome::extensions {
                                         runtime::WasmSize offset,
                                         runtime::WasmSize max_length) const;
 
+    /**
+     * Find the value by given key and the return the part of it starting from
+     * given offset
+     *
+     * @param key Buffer representation of the key
+     * @return result containing Buffer with the value
+     */
     outcome::result<common::Buffer> get(const common::Buffer &key) const;
 
     outcome::result<boost::optional<common::Buffer>> getStorageNextKey(
         const common::Buffer &key) const;
 
-    boost::optional<common::Buffer> calcStorageChangesRoot(common::Hash256 parent) const;
+    boost::optional<common::Buffer> calcStorageChangesRoot(
+        common::Hash256 parent) const;
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<runtime::WasmMemory> memory_;
