@@ -26,5 +26,5 @@ namespace kagome::api::state {
     std::shared_ptr<JRpcServer> server_;
   };
 
-}  // namespace kagome::api
+}  // namespace kagome::api::state
 #endif  // KAGOME_STATE_JRPC_PROCESSOR_HPP

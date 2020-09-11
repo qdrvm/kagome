@@ -16,7 +16,7 @@ namespace kagome::crypto {
    public:
     MOCK_CONST_METHOD0(generateKeypair, outcome::result<ED25519Keypair>());
     MOCK_CONST_METHOD1(generateKeypair,
-                       outcome::result<ED25519Keypair>(const ED25519Seed &));
+                       ED25519Keypair(const ED25519Seed &));
     MOCK_CONST_METHOD2(sign,
                        outcome::result<ED25519Signature>(const ED25519Keypair &,
                                                          gsl::span<uint8_t>));

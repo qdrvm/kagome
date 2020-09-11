@@ -8,16 +8,16 @@
 
 #include <boost/asio/steady_timer.hpp>
 #include <boost/variant.hpp>
-#include <common/buffer.hpp>
-#include <scale/scale.hpp>
 
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
 #include "common/visitor.hpp"
 #include "common/wrapper.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/common.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -29,18 +29,9 @@ namespace kagome::consensus::grandpa {
   using PrimaryPropose =
       primitives::detail::BlockInfoT<struct PrimaryProposeTag>;
 
-  // Identifiers for the vote type. Needed for serialization and signing
-  const static uint8_t kPrevoteStage = 0;
-  const static uint8_t kPrecommitStage = 1;
-  const static uint8_t kPrimaryProposeStage = 2;
-
-  using Vote =
-      boost::variant<Prevote,
-                     Precommit,
-                     PrimaryPropose>;  // order is important and should
-                                       // correspond stage constants
-                                       // (kPrevoteStage, kPrecommitStage,
-                                       // kPrimaryPropose)
+  using Vote = boost::variant<Prevote,
+                              Precommit,
+                              PrimaryPropose>;  // order is important
 
   struct SignedMessage {
     Vote message;

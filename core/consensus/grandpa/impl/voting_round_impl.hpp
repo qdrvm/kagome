@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTING_ROUND_IMPL_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTING_ROUND_IMPL_HPP
+#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
+#define KAGOME_CORE_CONSENSUS_GRANDPA_VOTINGROUNDIMPL
 
 #include "consensus/grandpa/voting_round.hpp"
 
@@ -20,14 +20,15 @@
 
 namespace kagome::consensus::grandpa {
 
+  class Grandpa;
+
   class VotingRoundImpl : public VotingRound {
     using OnCompleted = boost::signals2::signal<void(const CompletedRound &)>;
     using OnCompletedSlotType = OnCompleted::slot_type;
 
-   public:
-    ~VotingRoundImpl() override = default;
-
-    VotingRoundImpl(const GrandpaConfig &config,
+   private:
+    VotingRoundImpl(const std::shared_ptr<Grandpa> &grandpa,
+                    const GrandpaConfig &config,
                     std::shared_ptr<Environment> env,
                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
                     std::shared_ptr<VoteTracker> prevotes,
@@ -35,6 +36,101 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<VoteGraph> graph,
                     std::shared_ptr<Clock> clock,
                     std::shared_ptr<boost::asio::io_context> io_context);
+
+   public:
+    ~VotingRoundImpl() override = default;
+
+    VotingRoundImpl(
+        const std::shared_ptr<Grandpa> &grandpa,
+        const GrandpaConfig &config,
+        const std::shared_ptr<Environment> &env,
+        const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
+        const std::shared_ptr<VoteTracker> &prevotes,
+        const std::shared_ptr<VoteTracker> &precommits,
+        const std::shared_ptr<VoteGraph> &graph,
+        const std::shared_ptr<Clock> &clock,
+        const std::shared_ptr<boost::asio::io_context> &io_context,
+        std::shared_ptr<const RoundState> previous_round_state);
+
+    VotingRoundImpl(
+        const std::shared_ptr<Grandpa> &grandpa,
+        const GrandpaConfig &config,
+        const std::shared_ptr<Environment> &env,
+        const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
+        const std::shared_ptr<VoteTracker> &prevotes,
+        const std::shared_ptr<VoteTracker> &precommits,
+        const std::shared_ptr<VoteGraph> &graph,
+        const std::shared_ptr<Clock> &clock,
+        const std::shared_ptr<boost::asio::io_context> &io_context,
+        const std::shared_ptr<const VotingRound> &previous_round);
+
+    enum class Stage {
+      // Initial stage, round is just created
+      INIT,
+
+      // Beginner stage, round is just start to play
+      START,
+
+      // Stages for prevote mechanism
+      START_PREVOTE,
+      PREVOTE_RUNS,
+      END_PREVOTE,
+
+      // Stages for precommit mechanism
+      START_PRECOMMIT,
+      PRECOMMIT_RUNS,
+      END_PRECOMMIT,
+
+      // Stages for waiting finalisation
+      START_WAITING,
+      WAITING_RUNS,
+      END_WAITING,
+
+      // Final state. Round was finalized
+      COMPLETED
+    };
+
+    // Start/stop round
+
+    void play() override;
+    void end() override;
+
+    // Workflow of round
+
+    void startPrevoteStage();
+    void endPrevoteStage();
+    void startPrecommitStage();
+    void endPrecommitStage();
+    void startWaitingStage();
+    void endWaitingStage();
+
+    // Actions of round
+
+    /**
+     * During the primary propose we:
+     * 1. Check if we are the primary for the current round. If not execution of
+     * the method is finished
+     * 2. We can send primary propose only if the estimate from last round state
+     * is greater than finalized. If we cannot send propose, method is finished
+     * 3. Primary propose is the last rounds estimate.
+     * 4. After all steps above are done we broadcast propose
+     * 5. We store what we have broadcasted in primary_vote_ field
+     */
+    void doProposal() override;
+
+    /**
+     * 1. Waits until start_time_ + duration * 2 or round is completable
+     * 2. Constructs prevote (\see constructPrevote) and broadcasts it
+     */
+    void doPrevote() override;
+
+    /**
+     * 1. Waits until start_time_ + duration * 4 or round is completable
+     * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
+     */
+    void doPrecommit() override;
+
+    // Handlers of incoming messages
 
     /**
      * Triggered when we receive finalization message
@@ -73,34 +169,7 @@ namespace kagome::consensus::grandpa {
 
     RoundNumber roundNumber() const override;
 
-    /**
-     * During the primary propose we :
-     * 1. Check if we are the primary for the current round. If not execution of
-     * the method is finished
-     * 2. We can send primary propose only if the estimate from \param
-     * last_round_state is greater than finalized from \param last_round_state.
-     * If we cannot send propose, method is finished
-     * 3. Primary propose is the last rounds estimate.
-     * 4. After all steps above are done we broadcast propose
-     * 5. We store what we have broadcasted in primary_vote_ field
-     */
-    void primaryPropose(const RoundState &last_round_state) override;
-
-    /**
-     * 1. Waits until start_time_ + duration * 2 or round is completable
-     * 2. Constructs prevote (\see constructPrevote) and broadcasts it
-     */
-    void prevote(const RoundState &last_round_state) override;
-
-    /**
-     * 1. Waits until start_time_ + duration * 4 or round is completable
-     * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
-     */
-    void precommit(const RoundState &last_round_state) override;
-
-    inline const RoundState &getCurrentState() const {
-      return cur_round_state_;
-    }
+    std::shared_ptr<const RoundState> state() const override;
 
     /**
      * Round is completable when we have block (stored in
@@ -110,6 +179,8 @@ namespace kagome::consensus::grandpa {
     bool completable() const;
 
    private:
+    void constructCurrentState();
+
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
 
@@ -170,19 +241,26 @@ namespace kagome::consensus::grandpa {
                   const GrandpaJustification &justification) const;
 
    private:
+    std::weak_ptr<Grandpa> grandpa_;
+
+    Stage stage_ = Stage::INIT;
+    bool isPrimary_ = false;
+
+    std::shared_ptr<const RoundState> previous_round_state_;
+    std::shared_ptr<RoundState> current_round_state_;
+
+    std::function<void()> on_complete_handler_;
+
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
     const Duration duration_;  // length of round (T in spec)
     TimePoint start_time_;
-    RoundState cur_round_state_;
 
-    boost::optional<RoundState> last_round_state_;
     const Id id_;  // id of current peer
 
     std::shared_ptr<Environment> env_;
 
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
-    State state_;
     size_t threshold_;  // supermajority threshold
 
     std::shared_ptr<VoteTracker> prevotes_;
@@ -192,8 +270,8 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Clock> clock_;
 
     std::shared_ptr<boost::asio::io_context> io_context_;
-    Timer prevote_timer_;
-    Timer precommit_timer_;
+
+    Timer timer_;
 
     common::Logger logger_;
     // equivocators arrays. Index in vector corresponds to the index of voter in
@@ -202,8 +280,8 @@ namespace kagome::consensus::grandpa {
     std::vector<bool> precommit_equivocators_;
 
     boost::optional<PrimaryPropose> primary_vote_;
-    bool completable_{false};
+    bool completable_ = false;
   };
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_VOTING_ROUND_IMPL_HPP
+#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_VOTINGROUNDIMPL

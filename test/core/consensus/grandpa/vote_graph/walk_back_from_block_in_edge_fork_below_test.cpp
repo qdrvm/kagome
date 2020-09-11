@@ -31,7 +31,7 @@ struct WalkBackFromBlockInEdgeForkBelow
 })");
 
     expect_getAncestry(GENESIS_HASH, "B"_H, vec("A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{3, "B"_H}, "10"_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{3, "B"_H}, 10_W));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -63,7 +63,7 @@ struct WalkBackFromBlockInEdgeForkBelow
 
     expect_getAncestry(
         GENESIS_HASH, "F1"_H, vec("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F1"_H}, "5"_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F1"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -108,7 +108,7 @@ struct WalkBackFromBlockInEdgeForkBelow
 
     expect_getAncestry(
         GENESIS_HASH, "G2"_H, vec("F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{8, "G2"_H}, "5"_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{8, "G2"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -169,8 +169,10 @@ struct WalkBackFromBlockInEdgeForkBelow
 
 TEST_P(WalkBackFromBlockInEdgeForkBelow, FindAncestor) {
   BlockInfo block = GetParam();
-  auto ancestorOpt =
-      graph->findAncestor(block, [](auto &&x) { return x > "5"_W; });
+  auto ancestorOpt = graph->findAncestor(
+      block,
+      [](auto &&x) { return x.prevotes_sum > (5_W).prevotes_sum; },
+      comparator);
 
   ASSERT_TRUE(ancestorOpt) << "number: " << block.block_number << " "
                            << "hash: " << block.block_hash.toHex();

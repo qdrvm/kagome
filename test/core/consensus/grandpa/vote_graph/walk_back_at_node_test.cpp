@@ -30,7 +30,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
 })");
 
     expect_getAncestry(GENESIS_HASH, "C"_H, vec("B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{4, "C"_H}, "10"_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{4, "C"_H}, 10_W));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -63,7 +63,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
 
     expect_getAncestry(
         GENESIS_HASH, "F1"_H, vec("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F1"_H}, "5"_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F1"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -108,7 +108,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
 
     expect_getAncestry(
         GENESIS_HASH, "F2"_H, vec("E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F2"_H}, "5"_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F2"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -167,7 +167,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         GENESIS_HASH,
         "I1"_H,
         vec("H1"_H, "G1"_H, "F1"_H, "E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{10, "I1"_H}, "1"_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{10, "I1"_H}, 1_W));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -239,7 +239,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
 TEST_P(WalkBackAtNode, FindAncestor) {
   BlockInfo block = GetParam();
   auto ancestorOpt =
-      graph->findAncestor(block, [](auto &&x) { return x >= "20"_W; });
+      graph->findAncestor(block, [](auto x) { return x.prevotes_sum >= 20_W .prevotes_sum; }, comparator);
 
   ASSERT_TRUE(ancestorOpt) << "number: " << block.block_number << " "
                            << "hash: " << block.block_hash.toHex();

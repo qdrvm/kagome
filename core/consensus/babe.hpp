@@ -23,14 +23,18 @@ namespace kagome::consensus {
    public:
     ~Babe() override = default;
 
-    enum class ExecutionStrategy { GENESIS, SYNC_FIRST };
+    enum class ExecutionStrategy {
+      /// Start on last epoch
+      START,
+      /// Node needs to syncronize first
+      SYNC_FIRST,
+    };
 
     /**
-     * Start babe execution
-     * @param is_genesis is true when genesis epoch is executed on the current
-     * node
+     * Set execution grategy
+     * @param strategy of execution
      */
-    virtual void start(ExecutionStrategy strategy) = 0;
+    virtual void setExecutionStrategy(ExecutionStrategy strategy) = 0;
 
     /**
      * Start a Babe production

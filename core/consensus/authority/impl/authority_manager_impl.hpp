@@ -35,10 +35,10 @@ namespace kagome::authority {
     ~AuthorityManagerImpl() override = default;
 
     /** @see AppStateManager::takeControl */
-    void prepare();
+    bool prepare();
 
     /** @see AppStateManager::takeControl */
-    void start();
+    bool start();
 
     /** @see AppStateManager::takeControl */
     void stop();

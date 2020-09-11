@@ -44,7 +44,8 @@ namespace kagome::consensus::grandpa {
       prevotes[i] += vote.prevotes[i];
       precommits[i] += vote.precommits[i];
     }
-    weight += vote.weight;
+    prevotes_sum += vote.prevotes_sum;
+    precommits_sum += vote.precommits_sum;
     return *this;
   }
 }  // namespace kagome::consensus::grandpa

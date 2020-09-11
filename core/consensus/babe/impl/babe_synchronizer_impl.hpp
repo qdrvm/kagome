@@ -46,10 +46,9 @@ namespace kagome::consensus {
      * @param polled_clients peers that were already requested
      * @param requested_blocks_handler handler of received blocks
      */
-    void pollClients(
-        network::BlocksRequest request,
-        primitives::AuthorityIndex authority_index,
-        const BlocksHandler &requested_blocks_handler) const;
+    void pollClients(network::BlocksRequest request,
+                     primitives::AuthorityIndex authority_index,
+                     const BlocksHandler &requested_blocks_handler) const;
 
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
     common::Logger logger_;

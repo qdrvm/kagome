@@ -15,10 +15,11 @@ namespace kagome::application {
         logger_(common::createLogger("Application")) {
     spdlog::set_level(app_config->verbosity());
 
-    // genesis launch if database does not exist
-    is_genesis_ = boost::filesystem::exists(app_config->leveldb_path())
-                      ? Babe::ExecutionStrategy::SYNC_FIRST
-                      : Babe::ExecutionStrategy::GENESIS;
+    if (app_config->is_already_synchronized()) {
+      babe_execution_strategy_ = Babe::ExecutionStrategy::START;
+    } else {
+      babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;
+    }
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
@@ -29,20 +30,16 @@ namespace kagome::application {
     key_storage_ = injector_.create<sptr<KeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     babe_ = injector_.create<sptr<Babe>>();
-    grandpa_launcher_ = injector_.create<sptr<GrandpaLauncher>>();
+    grandpa_ = injector_.create<sptr<Grandpa>>();
     router_ = injector_.create<sptr<network::Router>>();
 
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void ValidatingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+    logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
 
-    // starts block production
-    app_state_manager_->atLaunch([this] { babe_->start(is_genesis_); });
-
-    // starts finalization event loop
-    app_state_manager_->atLaunch([this] { grandpa_launcher_->start(); });
+    babe_->setExecutionStrategy(babe_execution_strategy_);
 
     app_state_manager_->atLaunch([this] {
       // execute listeners
@@ -61,11 +58,13 @@ namespace kagome::application {
         }
         this->router_->init();
       });
+      return true;
     });
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });
       asio_runner.detach();
+      return true;
     });
 
     app_state_manager_->atShutdown([ctx{io_context_}] { ctx->stop(); });

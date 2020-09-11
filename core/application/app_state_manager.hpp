@@ -12,7 +12,9 @@ namespace kagome::application {
 
   class AppStateManager : public std::enable_shared_from_this<AppStateManager> {
    public:
-    using Callback = std::function<void()>;
+    using OnPrepare = std::function<bool()>;
+    using OnLaunch = std::function<bool()>;
+    using OnShutdown = std::function<void()>;
 
     enum class State {
       Init,
@@ -30,19 +32,19 @@ namespace kagome::application {
      * @brief Execute \param cb at stage of prepare application
      * @param cb
      */
-    virtual void atPrepare(Callback &&cb) = 0;
+    virtual void atPrepare(OnPrepare &&cb) = 0;
 
     /**
      * @brief Execute \param cb immediately before start application
      * @param cb
      */
-    virtual void atLaunch(Callback &&cb) = 0;
+    virtual void atLaunch(OnLaunch &&cb) = 0;
 
     /**
      * @brief Execute \param cb at stage of shutting down application
      * @param cb
      */
-    virtual void atShutdown(Callback &&cb) = 0;
+    virtual void atShutdown(OnShutdown &&cb) = 0;
 
     /**
      * @brief Registration of all stages' handlers at the same time
@@ -50,24 +52,24 @@ namespace kagome::application {
      * @param launch_cb - handler for doing immediately before start application
      * @param shutdown_cb - handler for stage of shutting down application
      */
-    void registerHandlers(Callback &&prepare_cb,
-                          Callback &&launch_cb,
-                          Callback &&shutdown_cb) {
+    void registerHandlers(OnPrepare &&prepare_cb,
+                          OnLaunch &&launch_cb,
+                          OnShutdown &&shutdown_cb) {
       atPrepare(std::move(prepare_cb));
       atLaunch(std::move(launch_cb));
       atShutdown(std::move(shutdown_cb));
     }
 
     /**
-     * @brief Registration special methods of object as handlers for stages of
-     * application
+     * @brief Registration special methods of object as handlers
+     * for stages of application life-cycle
      * @param entity is registered entity
      */
     template <typename Controlled>
     void takeControl(Controlled &entity) {
-      registerHandlers([&entity] { entity.prepare(); },
-                       [&entity] { entity.start(); },
-                       [&entity] { entity.stop(); });
+      registerHandlers([&entity]() -> bool { return entity.prepare(); },
+                       [&entity]() -> bool { return entity.start(); },
+                       [&entity]() -> void { return entity.stop(); });
     }
 
     /// Start application life cycle

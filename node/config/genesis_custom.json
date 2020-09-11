@@ -1,11 +1,9 @@
 {
   "name": "Kagome",
   "id": "kagome",
+  "chainType": "Test",
   "bootNodes": [
     "/ip4/127.0.0.1/tcp/30363/ipfs/12D3KooWE77U4m1d5mJxmU61AEsXewKjKnG7LiW2UQEPFnS6FXhv"
-  ],
-  "sessionKeys": [
-    "0x7ad7336e38e0ddd6635fb4cc88e65ddc0c9fdaa65ecf3d131c9db9c391834450"
   ],
   "telemetryEndpoints": [
     [
@@ -14,11 +12,13 @@
     ]
   ],
   "protocolId": "kag",
-  "consensusEngine": null,
   "properties": {
     "tokenDecimals": 15,
     "tokenSymbol": "DOT"
   },
+  "forkBlocks": null,
+  "badBlocks": null,
+  "consensusEngine": null,
   "genesis": {
     "raw": {
       "top": {

@@ -5,7 +5,9 @@
 
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
 
+#include "primitives/digest.hpp"
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, EpochStorageError, e) {
   using E = kagome::consensus::EpochStorageError;
@@ -20,6 +22,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, EpochStorageError, e) {
 namespace kagome::consensus {
 
   const auto EPOCH_PREFIX = common::Blob<8>::fromString("epchdcr0").value();
+  const auto LAST_EPOCH_INDEX = common::Blob<8>::fromString("lstepind").value();
 
   EpochStorageImpl::EpochStorageImpl(
       std::shared_ptr<kagome::storage::BufferStorage> storage)
@@ -39,5 +42,18 @@ namespace kagome::consensus {
     auto key = common::Buffer{EPOCH_PREFIX}.putUint64(epoch_number);
     OUTCOME_TRY(encoded_ed, storage_->get(key));
     return scale::decode<NextEpochDescriptor>(encoded_ed);
+  }
+
+  outcome::result<void> EpochStorageImpl::setLastEpoch(
+      const LastEpochDescriptor &epoch_descriptor) {
+    auto &key = storage::kLastBabeEpochNumberLookupKey;
+    auto val = common::Buffer{scale::encode(epoch_descriptor).value()};
+    return storage_->put(key, val);
+  }
+
+  outcome::result<LastEpochDescriptor> EpochStorageImpl::getLastEpoch() const {
+    auto &key = storage::kLastBabeEpochNumberLookupKey;
+    OUTCOME_TRY(epoch_descriptor, storage_->get(key));
+    return scale::decode<LastEpochDescriptor>(epoch_descriptor);
   }
 }  // namespace kagome::consensus

@@ -145,11 +145,11 @@ namespace kagome::extensions {
     return storage_ext_.ext_storage_clear_prefix_version_1(prefix);
   }
 
-  runtime::WasmPointer ExtensionImpl::ext_storage_root_version_1() {
+  runtime::WasmSpan ExtensionImpl::ext_storage_root_version_1() {
     return storage_ext_.ext_storage_root_version_1();
   }
 
-  runtime::WasmPointer ExtensionImpl::ext_storage_changes_root_version_1(
+  runtime::WasmSpan ExtensionImpl::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash) {
     return storage_ext_.ext_storage_changes_root_version_1(parent_hash);
   }

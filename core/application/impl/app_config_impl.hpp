@@ -124,6 +124,7 @@ namespace kagome::application {
     DECLARE_PROPERTY(boost::asio::ip::tcp::endpoint, rpc_ws_endpoint);
     DECLARE_PROPERTY(spdlog::level::level_enum, verbosity);
     DECLARE_PROPERTY(bool, is_only_finalizing);
+    DECLARE_PROPERTY(bool, is_already_synchronized);
   };
 
 }  // namespace kagome::application

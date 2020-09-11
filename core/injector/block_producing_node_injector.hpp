@@ -13,7 +13,7 @@
 #include "consensus/grandpa/impl/syncing_round_observer.hpp"
 #include "injector/application_injector.hpp"
 #include "injector/validating_node_injector.hpp"
-#include "runtime/dummy/grandpa_dummy.hpp"
+#include "runtime/dummy/grandpa_api_dummy.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 
 namespace kagome::injector {
@@ -59,7 +59,7 @@ namespace kagome::injector {
             [app_config](const auto &injector) {
               return get_key_storage(app_config->keystore_path(), injector);
             }),
-        di::bind<runtime::Grandpa>.template to<runtime::dummy::GrandpaDummy>()
+        di::bind<runtime::GrandpaApi>.template to<runtime::dummy::GrandpaApiDummy>()
             [boost::di::override],
         di::bind<crypto::CryptoStore>.template to(
             [app_config](const auto &injector) {

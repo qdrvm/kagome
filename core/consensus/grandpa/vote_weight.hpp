@@ -43,15 +43,41 @@ namespace kagome::consensus::grandpa {
     VoteWeight &operator+=(const VoteWeight &vote);
 
     bool operator==(const VoteWeight &other) const {
-      return prevotes == other.prevotes and precommits == other.precommits;
+      return prevotes_sum == other.prevotes_sum
+             and precommits_sum == other.precommits_sum
+             and prevotes == other.prevotes and precommits == other.precommits;
     }
-    bool operator<(const VoteWeight &other) const {
-      return weight < other.weight;
+
+    size_t prevotes_sum = 0;
+    size_t precommits_sum = 0;
+
+    std::vector<size_t> prevotes = std::vector<size_t>(kMaxNumberOfVoters, 0UL);
+    std::vector<size_t> precommits =
+        std::vector<size_t>(kMaxNumberOfVoters, 0UL);
+
+    void setPrevote(size_t index, size_t weight) {
+      prevotes_sum -= prevotes[index];
+      prevotes[index] = weight;
+      prevotes_sum += weight;
     }
-    // TODO(kamilsa) PRE-358: remove weight
-    size_t weight = 0;
-    std::vector<size_t> prevotes{kMaxNumberOfVoters, 0UL};
-    std::vector<size_t> precommits{kMaxNumberOfVoters, 0UL};
+
+    void setPrecommit(size_t index, size_t weight) {
+      precommits_sum -= precommits[index];
+      precommits[index] = weight;
+      precommits_sum += weight;
+    }
+
+    static inline const struct {
+      bool operator()(const VoteWeight &lhs, const VoteWeight &rhs) {
+        return lhs.prevotes_sum < rhs.prevotes_sum;
+      }
+    } prevoteComparator;
+
+    static inline const struct {
+      bool operator()(const VoteWeight &lhs, const VoteWeight &rhs) {
+        return lhs.precommits_sum < rhs.precommits_sum;
+      }
+    } precommitComparator;
   };
 
 }  // namespace kagome::consensus::grandpa

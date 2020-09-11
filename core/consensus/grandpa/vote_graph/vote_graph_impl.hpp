@@ -27,12 +27,14 @@ namespace kagome::consensus::grandpa {
 
     /// Insert a vote with given value into the graph at given hash and number.
     outcome::result<void> insert(const BlockInfo &block,
-                                 const VoteWeight &vote) override;
+                                 const VoteWeight &voteWeight) override;
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
     boost::optional<BlockInfo> findAncestor(
-        const BlockInfo &block, const Condition &cond) const override;
+        const BlockInfo &block,
+        const Condition &condition,
+        const Comparator &comparator) const override;
 
     /// Find the best GHOST descendent of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
@@ -49,7 +51,8 @@ namespace kagome::consensus::grandpa {
     /// condition.
     boost::optional<BlockInfo> findGhost(
         const boost::optional<BlockInfo> &current_best,
-        const Condition &condition) const override;
+        const Condition &condition,
+        const Comparator &comparator) const override;
 
     // introduce a branch to given vote-nodes.
     //
@@ -73,7 +76,8 @@ namespace kagome::consensus::grandpa {
         const BlockHash &active_node_hash,
         const Entry &active_node,
         const boost::optional<BlockInfo> &force_constrain,
-        const Condition &condition) const;
+        const Condition &condition,
+        const Comparator &comparator) const;
 
     // attempts to find the containing node keys for the given hash and number.
     //

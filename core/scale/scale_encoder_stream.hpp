@@ -155,9 +155,10 @@ namespace kagome::scale {
      */
     template <typename T, size_t size>
     ScaleEncoderStream &operator<<(const std::array<T, size> &a) {
-      // TODO(akvinikym) PRE-285: bad implementation: maybe move to another file
-      // and implement it
-      return encodeCollection(size, a.begin(), a.end());
+      for (const auto &e : a) {
+        *this << e;
+      }
+      return *this;
     }
 
     /**

@@ -129,12 +129,12 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_storage_root_version_1
      */
-    runtime::WasmPointer ext_storage_root_version_1() const;
+    runtime::WasmSpan ext_storage_root_version_1() const;
 
     /**
      * @see Extension::ext_storage_changes_root_version_1
      */
-    runtime::WasmPointer ext_storage_changes_root_version_1(
+    runtime::WasmSpan ext_storage_changes_root_version_1(
         runtime::WasmSpan parent_hash);
 
     /**
@@ -175,6 +175,8 @@ namespace kagome::extensions {
 
     outcome::result<boost::optional<common::Buffer>> getStorageNextKey(
         const common::Buffer &key) const;
+
+    boost::optional<common::Buffer> calcStorageChangesRoot(common::Hash256 parent) const;
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<runtime::WasmMemory> memory_;

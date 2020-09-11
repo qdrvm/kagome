@@ -86,3 +86,10 @@ addtest(scale_tuple_test
 target_link_libraries(scale_tuple_test
     scale
     )
+
+addtest(scale_array_test
+    scale_array_test.cpp
+    )
+target_link_libraries(scale_array_test
+    scale
+    )

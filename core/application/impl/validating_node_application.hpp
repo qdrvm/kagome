@@ -13,13 +13,13 @@
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "injector/validating_node_injector.hpp"
-#include "runtime/dummy/grandpa_dummy.hpp"
+#include "runtime/dummy/grandpa_api_dummy.hpp"
 
 namespace kagome::application {
 
   class ValidatingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
-    using GrandpaLauncher = consensus::grandpa::Launcher;
+    using Grandpa = consensus::grandpa::Grandpa;
     using InjectorType =
         decltype(injector::makeFullNodeInjector(AppConfigPtr{}));
 
@@ -59,12 +59,12 @@ namespace kagome::application {
     sptr<KeyStorage> key_storage_;
     sptr<clock::SystemClock> clock_;
     sptr<Babe> babe_;
-    sptr<GrandpaLauncher> grandpa_launcher_;
+    sptr<Grandpa> grandpa_;
     sptr<network::Router> router_;
 
     sptr<api::ApiService> jrpc_api_service_;
 
-    Babe::ExecutionStrategy is_genesis_;
+    Babe::ExecutionStrategy babe_execution_strategy_;
 
     common::Logger logger_;
   };
