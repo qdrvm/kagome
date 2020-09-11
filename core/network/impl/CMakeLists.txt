@@ -29,6 +29,7 @@ target_link_libraries(kagome_router
     outcome
     scale
     loopback_stream
+    node_api_proto
     )
 
 add_library(extrinsic_observer

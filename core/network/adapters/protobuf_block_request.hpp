@@ -14,22 +14,22 @@
 namespace kagome::network {
 
   template <>
-  struct ProtobufMessageAdapter<network::BlocksRequest> {
-    static size_t size(const network::BlocksRequest &t) {
+  struct ProtobufMessageAdapter<BlocksRequest> {
+    static size_t size(const BlocksRequest &t) {
       return 0;
     }
 
     static std::vector<uint8_t>::iterator write(
-        const network::BlocksRequest &t,
+        const BlocksRequest &t,
         std::vector<uint8_t> &out,
         std::vector<uint8_t>::iterator loaded) {
-      api::v1::BlockRequest msg;
+      ::api::v1::BlockRequest msg;
       msg.set_fields(LE_BE_SWAP32(t.fields.attributes.to_ulong()));
 
       if (t.max) msg.set_max_blocks(*t.max);
       if (t.to) msg.set_to_block(t.to->toHex());
 
-      msg.set_direction(static_cast<api::v1::Direction>(t.direction));
+      msg.set_direction(static_cast<::api::v1::Direction>(t.direction));
       kagome::visit_in_place(
           t.from,
           [&](const primitives::BlockHash &v) { msg.set_hash(v.toHex()); },
@@ -49,13 +49,13 @@ namespace kagome::network {
     }
 
     static outcome::result<std::vector<uint8_t>::const_iterator> read(
-        network::BlocksRequest &out,
+        BlocksRequest &out,
         const std::vector<uint8_t> &src,
         std::vector<uint8_t>::const_iterator from) {
       const auto remains = src.size() - std::distance(src.begin(), from);
       assert(remains >= size(out));
 
-      api::v1::BlockRequest msg;
+      ::api::v1::BlockRequest msg;
       if (!msg.ParseFromArray(from.base(), remains))
         return outcome::failure(boost::system::error_code{});
 
