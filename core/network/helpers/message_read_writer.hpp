@@ -16,6 +16,9 @@
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {
+  /**
+   * NoSink is used to break the MessageReadWriter ancestor execute sequence.
+   */
   struct NoSink {};
 
   /**
@@ -52,6 +55,7 @@ namespace kagome::network {
       const size_t r = AdapterType::size(t) + reserved;
       auto loaded = AncestorType::write(t, out, r);
 
+      BOOST_ASSERT(std::distance(out.begin(), loaded) >= 0);
       BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), loaded)) >= r);
       return AdapterType::write(t, out, loaded);
     }
@@ -89,6 +93,7 @@ namespace kagome::network {
         out.resize(need_to_reserve);
 
       const size_t r = AdapterType::size(t) + reserved;
+      BOOST_ASSERT(std::distance(out.begin(), out.end()) >= 0);
       BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), out.end())) >= r);
       return AdapterType::write(t, out, out.end());
     }

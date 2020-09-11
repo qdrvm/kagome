@@ -60,6 +60,11 @@ struct ProtobufBlockResponseAdapterTest : public ::testing::Test {
   BlocksResponse response;
 };
 
+/**
+ * @given sample `BlocksResponse` instance
+ * @when protobuf serialized into buffer
+ * @then deserialization `BlocksResponse` from this buffer will contain exactly the same fields with the same values
+ */
 TEST_F(ProtobufBlockResponseAdapterTest, Serialization) {
   std::vector<uint8_t> data;
   data.resize(AdapterType::size(response));
