@@ -437,8 +437,7 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   WasmResult value(42, 41);
   Buffer value_data(8, 'v');
   WasmOffset offset = 0;
-  auto encoded_opt_val_size =
-      kagome::scale::encode(boost::make_optional(value.length)).value();
+  EXPECT_OUTCOME_TRUE(encoded_opt_val_size, kagome::scale::encode(boost::make_optional(value.length)));
   WasmSpan res_wasm_span = 1337;
 
   // expect key loaded, than data stored

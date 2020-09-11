@@ -126,8 +126,6 @@ namespace kagome::extensions {
       runtime::WasmSpan key_pos,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
-    static constexpr runtime::WasmSpan kErrorSpan = -1;
-
     auto [key_ptr, key_size] = runtime::WasmResult(key_pos);
     auto [value_ptr, value_size] = runtime::WasmResult(value_out);
 
