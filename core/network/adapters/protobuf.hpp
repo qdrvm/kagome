@@ -26,24 +26,6 @@ namespace kagome::network {
 
   template <typename T>
   struct ProtobufMessageAdapter {
-    static size_t size(const T &t) {
-      assert(false);  // NO_IMPL
-      return 0ull;
-    }
-    static std::vector<uint8_t>::iterator write(
-        const T & /*t*/,
-        std::vector<uint8_t> &out,
-        std::vector<uint8_t>::iterator /*loaded*/) {
-      assert(false);  // NO_IMPL
-      return out.end();
-    }
-    static outcome::result<std::vector<uint8_t>::const_iterator> read(
-        T &out,
-        const std::vector<uint8_t> &src,
-        std::vector<uint8_t>::const_iterator from) {
-      assert(false);  // NO_IMPL
-      return outcome::failure(boost::system::error_code{});
-    }
   };
 
 }  // namespace kagome::network

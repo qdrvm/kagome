@@ -74,7 +74,7 @@ namespace kagome::network {
       using ProtobufRW =
           MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
 
-      // TODO(iceseer) : try to cache this vector
+      // TODO(iceseer): PRE-523 cache this vector
       std::vector<uint8_t> out;
       auto it = ProtobufRW::write(msg, out);
 

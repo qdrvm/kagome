@@ -112,7 +112,7 @@ namespace kagome::network {
 
    private:
     template <typename T, typename F>
-    static libp2p::outcome::result<T> extract_value(F &&f) {
+    static outcome::result<T> extract_value(F &&f) {
       if (const auto &buffer = std::forward<F>(f)(); !buffer.empty()) {
         OUTCOME_TRY(decoded,
                     scale::decode<T>(gsl::span<const uint8_t>(
