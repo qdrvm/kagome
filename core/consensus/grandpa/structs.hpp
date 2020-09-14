@@ -8,9 +8,11 @@
 
 #include <boost/asio/steady_timer.hpp>
 #include <boost/variant.hpp>
+#include <common/buffer.hpp>
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "common/logger.hpp"
 #include "common/visitor.hpp"
 #include "common/wrapper.hpp"
 #include "consensus/grandpa/common.hpp"
@@ -150,13 +152,34 @@ namespace kagome::consensus::grandpa {
   		[]{}();
   	}
 
-    return s << v.round_number << v.counter << v.vote;
+  	auto l = kagome::common::createLogger("scale");
+  	l->debug("encode VoteMessage step B: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+    s << v.round_number;
+	  l->debug("encode VoteMessage step 1: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+    s << v.counter;
+	  l->debug("encode VoteMessage step 2: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+    s << v.vote;
+	  l->debug("encode VoteMessage step F: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+		return s;
+
+//    return s << v.round_number << v.counter << v.vote;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, VoteMessage &v) {
-    return s >> v.round_number >> v.counter >> v.vote;
+
+	  auto l = kagome::common::createLogger("scale");
+	  l->debug("decode VoteMessage step B: pos={}, {}->{}", s.currentIndex(), s.span().size(), common::Buffer{s.span()}.toHex());
+	  s >> v.round_number;
+	  l->debug("decode VoteMessage step 1: pos={}", s.currentIndex());
+	  s >> v.counter;
+	  l->debug("decode VoteMessage step 2: pos={}", s.currentIndex());
+	  s >> v.vote;
+	  l->debug("decode VoteMessage step F: pos={}", s.currentIndex());
+	  return s;
+
+//    return s >> v.round_number >> v.counter >> v.vote;
   }
 
   // finalizing message

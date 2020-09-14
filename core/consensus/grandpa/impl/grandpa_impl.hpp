@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
 #define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
 
+#include <consensus/grandpa/movable_round_state.hpp>
 #include "consensus/grandpa/grandpa.hpp"
 
 #include "application/app_state_manager.hpp"
@@ -71,16 +72,15 @@ namespace kagome::consensus::grandpa {
    private:
     std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);
     outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
-    outcome::result<CompletedRound> getLastCompletedRound() const;
+    outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(
-        RoundNumber previous_round_number,
-        std::shared_ptr<const RoundState> previous_round_state);
+        const MovableRoundState& round_state);
 
     std::shared_ptr<VotingRound> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);
 
-    void onCompletedRound(outcome::result<CompletedRound> completed_round_res);
+    void onCompletedRound(outcome::result<MovableRoundState> round_state_res);
 
     std::shared_ptr<VotingRound> previous_round_;
     std::shared_ptr<VotingRound> current_round_;

@@ -17,6 +17,7 @@
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
+#include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -106,11 +107,15 @@ class VotingRoundTest : public ::testing::Test {
                          .duration = duration_,
                          .peer_id = kAlice};
 
-    previous_round_state_ = std::make_shared<const RoundState>(
-        RoundState{.last_finalized_block = {1, "genesis"_H},
-                   .best_prevote_candidate = {3, "B"_H},
-                   .best_final_candidate = {4, "C"_H},
-                   .finalized = {{3, "B"_H}}});
+    previous_round_ = std::make_shared<VotingRoundMock>();
+    ON_CALL(*previous_round_, lastFinalizedBlock())
+        .WillByDefault(testing::Return(BlockInfo{0, "genesis"_H}));
+    ON_CALL(*previous_round_, bestPrevoteCandidate())
+        .WillByDefault(testing::Return(BlockInfo{2, "B"_H}));
+    ON_CALL(*previous_round_, bestFinalCandidate())
+        .WillByDefault(testing::Return(BlockInfo{3, "C"_H}));
+    ON_CALL(*previous_round_, finalizedBlock())
+        .WillByDefault(testing::Return(BlockInfo{2, "B"_H}));
 
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                config,
@@ -121,7 +126,7 @@ class VotingRoundTest : public ::testing::Test {
                                                vote_graph_,
                                                clock_,
                                                io_context_,
-                                               previous_round_state_);
+                                               previous_round_);
   }
 
   SignedMessage preparePrimaryPropose(const Id &id,
@@ -183,12 +188,12 @@ class VotingRoundTest : public ::testing::Test {
   std::shared_ptr<boost::asio::io_context> io_context_ =
       std::make_shared<boost::asio::io_context>();
 
-  std::shared_ptr<const RoundState> previous_round_state_;
+  std::shared_ptr<VotingRoundMock> previous_round_;
   std::shared_ptr<VotingRoundImpl> round_;
 };
 
 /**
- * # 1   2   3   4   5   6      7    8    9    10
+ * # 0   1   2   3   4   5      6     7    8    9
  *
  *                                 - FA - FB - FC
  *                               /
@@ -232,7 +237,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   // when 1.
   // Alice prevotes
   auto alice_vote =
-      preparePrevote(kAlice, kAliceSignature, Prevote{10, "FC"_H});
+      preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
 
   EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
       .WillOnce(
@@ -242,7 +247,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 
   // when 2.
   // Bob prevotes
-  auto bob_vote = preparePrevote(kBob, kBobSignature, Prevote{10, "ED"_H});
+  auto bob_vote = preparePrevote(kBob, kBobSignature, Prevote{9, "ED"_H});
 
   EXPECT_CALL(*env_, getAncestry("C"_H, "ED"_H))
       .WillOnce(
@@ -251,21 +256,21 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   round_->onPrevote(bob_vote);
 
   // then 1.
-  ASSERT_EQ(round_->state()->best_prevote_candidate, BlockInfo(6, "E"_H));
+  ASSERT_EQ(round_->bestPrevoteCandidate(), BlockInfo(5, "E"_H));
 
   // then 2.
-  ASSERT_EQ(round_->state()->best_final_candidate, BlockInfo(6, "E"_H));
+  ASSERT_EQ(round_->bestFinalCandidate(), BlockInfo(5, "E"_H));
   ASSERT_FALSE(round_->completable());
 
   // when 3.
   // Eve prevotes
-  auto eve_vote = preparePrevote(kEve, kEveSignature, Prevote{7, "F"_H});
+  auto eve_vote = preparePrevote(kEve, kEveSignature, Prevote{6, "F"_H});
 
   round_->onPrevote(eve_vote);
 
   // then 3.
-  ASSERT_EQ(round_->state()->best_prevote_candidate, BlockInfo(6, "E"_H));
-  ASSERT_EQ(round_->state()->best_final_candidate, BlockInfo(6, "E"_H));
+  ASSERT_EQ(round_->bestPrevoteCandidate(), BlockInfo(5, "E"_H));
+  ASSERT_EQ(round_->bestFinalCandidate(), BlockInfo(5, "E"_H));
 }
 
 /**
@@ -302,7 +307,7 @@ TEST_F(VotingRoundTest, Finalization) {
       .WillRepeatedly(
           Return(std::vector<BlockHash>{"FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H}));
 
-  round_->onPrecommit(preparePrecommit(kAlice, kAliceSignature, {10, "FC"_H}));
+  round_->onPrecommit(preparePrecommit(kAlice, kAliceSignature, {9, "FC"_H}));
 
   // when 2.
   // Bob precommits ED
@@ -310,39 +315,39 @@ TEST_F(VotingRoundTest, Finalization) {
       .WillOnce(
           Return(std::vector<BlockHash>{"EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H}));
 
-  round_->onPrecommit(preparePrecommit(kBob, kBobSignature, {10, "ED"_H}));
+  round_->onPrecommit(preparePrecommit(kBob, kBobSignature, {9, "ED"_H}));
 
   // then 1.
-  ASSERT_FALSE(round_->state()->finalized.has_value());
+  ASSERT_FALSE(round_->finalizedBlock().has_value());
 
   // import some prevotes.
 
   // when 3.
   // Alice Prevotes
-  round_->onPrevote(preparePrevote(kAlice, kAliceSignature, {10, "FC"_H}));
+  round_->onPrevote(preparePrevote(kAlice, kAliceSignature, {9, "FC"_H}));
 
   // when 4.
   // Bob prevotes
-  round_->onPrevote(preparePrevote(kBob, kBobSignature, {10, "ED"_H}));
+  round_->onPrevote(preparePrevote(kBob, kBobSignature, {9, "ED"_H}));
   // then 2.
-  ASSERT_EQ(round_->state()->finalized, BlockInfo(6, "E"_H));
+  ASSERT_EQ(round_->finalizedBlock(), BlockInfo(5, "E"_H));
 
   // when 5.
   // Eve prevotes
-  round_->onPrevote(preparePrevote(kEve, kEveSignature, {7, "EA"_H}));
+  round_->onPrevote(preparePrevote(kEve, kEveSignature, {6, "EA"_H}));
   // then 3.
-  ASSERT_EQ(round_->state()->finalized, BlockInfo(6, "E"_H));
+  ASSERT_EQ(round_->finalizedBlock(), BlockInfo(5, "E"_H));
 
   // when 6.
   // Eve precommits
-  round_->onPrecommit(preparePrecommit(kEve, kEveSignature, {7, "EA"_H}));
+  round_->onPrecommit(preparePrecommit(kEve, kEveSignature, {6, "EA"_H}));
   // then 3.
-  ASSERT_EQ(round_->state()->finalized, BlockInfo(7, "EA"_H));
+  ASSERT_EQ(round_->finalizedBlock(), BlockInfo(6, "EA"_H));
 }
 
 ACTION_P(onProposed, test_fixture) {
   // immitating primary proposed is received from network
-	test_fixture->round_->onProposal(arg2);
+  test_fixture->round_->onProposal(arg2);
   return outcome::success();
 }
 
@@ -427,11 +432,11 @@ ACTION_P(onFinalize, test_fixture) {
  * and `finalized` equal to the best block that Alice voted for
  */
 TEST_F(VotingRoundTest, SunnyDayScenario) {
-  auto base_block_hash = previous_round_state_->best_final_candidate.block_hash;
-  auto finalized_block = *previous_round_state_->finalized;
+  auto base_block_hash = previous_round_->bestFinalCandidate().block_hash;
+  auto finalized_block = *previous_round_->finalizedBlock();
 
   BlockHash best_block_hash = "FC"_H;
-  BlockNumber best_block_number = 10;
+  BlockNumber best_block_number = 9;
 
   // needed for Alice to get the best block to vote for
   EXPECT_CALL(*env_, bestChainContaining(base_block_hash))
@@ -446,9 +451,11 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   // is 0 and she is the first in voters set
   {
     auto matcher = [&](const SignedMessage &primary_propose) {
-      if (primary_propose.block_hash()
-              == previous_round_state_->best_final_candidate.block_hash
-          and primary_propose.id == kAlice) {
+      if (
+//      		primary_propose.block_hash()
+//              == previous_round_->bestFinalCandidate().block_hash
+//          and
+          primary_propose.id == kAlice) {
         std::cout << "Proposed: " << primary_propose.block_hash().data()
                   << std::endl;
         return true;
@@ -500,20 +507,15 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   EXPECT_CALL(*env_, finalize(best_block_hash, _))
       .WillOnce(Return(outcome::success()));
 
-  // check if completed round is as expected
-  BlockInfo expected_last_finalized_block = finalized_block;
-  BlockInfo expected_best_prevote_ghost{best_block_number, best_block_hash};
-  BlockInfo expected_best_final_candidate{best_block_number, best_block_hash};
-  auto expected_state = std::make_shared<RoundState>(
-      RoundState{.last_finalized_block = expected_last_finalized_block,
-                 .best_prevote_candidate = expected_best_prevote_ghost,
-                 .best_final_candidate = expected_best_final_candidate,
-                 .finalized = expected_best_final_candidate});
-  CompletedRound expected_completed_round{.round_number = round_number_,
-                                          .state = expected_state};
+  // check if completed round state is as expected
+  MovableRoundState expected_round_state{
+      .round_number = round_number_,
+      .last_finalized_block = finalized_block,
+      .finalized = {{best_block_number, best_block_hash}}};
+
   EXPECT_CALL(
       *env_,
-      onCompleted(outcome::result<CompletedRound>(expected_completed_round)))
+      onCompleted(outcome::result<MovableRoundState>(expected_round_state)))
       .WillRepeatedly(Return());
 
   round_->play();

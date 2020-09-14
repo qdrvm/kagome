@@ -14,6 +14,7 @@
 #include "common/logger.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
+#include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
@@ -51,7 +52,7 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteGraph> &graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<boost::asio::io_context> &io_context,
-        std::shared_ptr<const RoundState> previous_round_state);
+        const MovableRoundState& round_state);
 
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
@@ -157,7 +158,7 @@ namespace kagome::consensus::grandpa {
 
     RoundNumber roundNumber() const override;
     MembershipCounter voterSetId() const override;
-    std::shared_ptr<const RoundState> state() const override;
+//    std::shared_ptr<const RoundState> state() const override;
 
     /**
      * Round is completable when we have block (stored in
@@ -168,12 +169,18 @@ namespace kagome::consensus::grandpa {
 
     bool finalizable() const override;
 
+    BlockInfo lastFinalizedBlock() const override {
+      return last_finalized_block_;
+    }
     BlockInfo bestPrevoteCandidate() override;
     BlockInfo bestFinalCandidate() override;
+    boost::optional<BlockInfo> finalizedBlock() const override {
+      return finalized_;
+    };
+
+		MovableRoundState state() const override;
 
    private:
-    void constructCurrentState();
-
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
 
@@ -240,58 +247,50 @@ namespace kagome::consensus::grandpa {
 
     void pending();
 
-    std::weak_ptr<Grandpa> grandpa_;
+		std::shared_ptr<VoterSet> voter_set_;
+		const RoundNumber round_number_;
+		std::weak_ptr<VotingRound> previous_round_;
 
-    Stage stage_ = Stage::INIT;
-    bool isPrimary_ = false;
+		const Duration duration_;  // length of round (T in spec)
+		bool isPrimary_ = false;
+		size_t threshold_;  // supermajority threshold
+		const Id id_;  // id of current peer
+		TimePoint start_time_;
 
-    std::weak_ptr<VotingRound> previous_round_;
+		std::weak_ptr<Grandpa> grandpa_;
+		std::shared_ptr<Environment> env_;
+		std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
+		std::shared_ptr<VoteGraph> graph_;
+		std::shared_ptr<Clock> clock_;
+		std::shared_ptr<boost::asio::io_context> io_context_;
 
-    std::shared_ptr<const RoundState> previous_round_state_;
-    std::shared_ptr<RoundState> current_round_state_;
+		std::function<void()> on_complete_handler_;
 
-    std::function<void()> on_complete_handler_;
+		Stage stage_ = Stage::INIT;
 
-    std::shared_ptr<VoterSet> voter_set_;
-    const RoundNumber round_number_;
-    const Duration duration_;  // length of round (T in spec)
-    TimePoint start_time_;
+		std::shared_ptr<VoteTracker> prevotes_;
+		std::shared_ptr<VoteTracker> precommits_;
 
-    const Id id_;  // id of current peer
+		// equivocators arrays. Index in vector corresponds to the index of voter in
+		// voterset, value corresponds to the weight of the voter
+		std::vector<bool> prevote_equivocators_;
+		std::vector<bool> precommit_equivocators_;
 
-    std::shared_ptr<Environment> env_;
+		boost::optional<PrimaryPropose> primary_vote_;
+		boost::optional<Prevote> prevote_;
+		boost::optional<Precommit> precommit_;
 
-    std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
-    size_t threshold_;  // supermajority threshold
-
-    std::shared_ptr<VoteTracker> prevotes_;
-    std::shared_ptr<VoteTracker> precommits_;
-    std::shared_ptr<VoteGraph> graph_;
-
-    std::shared_ptr<Clock> clock_;
-
-    std::shared_ptr<boost::asio::io_context> io_context_;
+		BlockInfo last_finalized_block_;
+		BlockInfo best_prevote_candidate_;
+		BlockInfo best_final_candidate_;
+		boost::optional<BlockInfo> finalized_;
 
     Timer timer_;
     Timer pending_timer_;
 
-    common::Logger logger_;
-    // equivocators arrays. Index in vector corresponds to the index of voter in
-    // voterset, value corresponds to the weight of the voter
-    std::vector<bool> prevote_equivocators_;
-    std::vector<bool> precommit_equivocators_;
-
-    boost::optional<PrimaryPropose> primary_vote_;
-    boost::optional<Prevote> prevote_;
-    boost::optional<Precommit> precommit_;
+    common::Logger logger_ = common::createLogger("Grandpa");
 
     bool completable_ = false;
-
-   public:
-    BlockInfo last_finalized_block_;
-    BlockInfo best_prevote_candidate_;
-    BlockInfo best_final_candidate_;
-    boost::optional<BlockInfo> finalized_;
   };
 }  // namespace kagome::consensus::grandpa
 

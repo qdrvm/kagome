@@ -52,7 +52,7 @@ namespace kagome::consensus::grandpa {
     // Lambda which is executed when voting round is completed.
     environment_->doOnCompleted(
         [wp = weak_from_this()](
-            outcome::result<CompletedRound> completed_round_res) {
+            outcome::result<MovableRoundState> completed_round_res) {
           if (auto self = wp.lock()) {
             self->onCompletedRound(std::move(completed_round_res));
           }
@@ -62,33 +62,33 @@ namespace kagome::consensus::grandpa {
 
   bool GrandpaImpl::start() {
     // Obtain last completed round
-    auto last_round_res = getLastCompletedRound();
-    if (not last_round_res.has_value()) {
+    auto round_state_res = getLastCompletedRound();
+    if (not round_state_res.has_value()) {
       // No saved data
-      if (last_round_res
+      if (round_state_res
           != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
         logger_->critical(
             "Can't retrieve last round data: {}. Stopping grandpa execution",
-            last_round_res.error().message());
+            round_state_res.error().message());
         return false;
       }
     }
+    auto &round_state = round_state_res.value();
 
-    auto &[last_round_number, last_round_state] = last_round_res.value();
+    logger_->debug("Grandpa is starting with round #{}",
+                   round_state.round_number + 1);
 
-    logger_->debug("Grandpa is starting with round #{}", last_round_number + 1);
-
-    current_round_ = makeInitialRound(last_round_number, last_round_state);
+    current_round_ = makeInitialRound(round_state);
     if (current_round_ == nullptr) {
       logger_->critical(
           "Next round hasn't been made. Stopping grandpa execution");
       return false;
     }
 
-    // Planning play round
-    boost::asio::post(*io_context_, [wp = current_round_->weak_from_this()] {
-      if (auto round = wp.lock()) {
-        round->play();
+    // Planning play next round
+    boost::asio::post(*io_context_, [wp = weak_from_this()] {
+      if (auto self = wp.lock()) {
+        self->executeNextRound();
       }
     });
 
@@ -98,14 +98,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::stop() {}
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
-      RoundNumber previous_round_number,
-      std::shared_ptr<const RoundState> previous_round_state) {
-    if (previous_round_state == nullptr) {
-      logger_->critical(
-          "Can't make initial round: previous round state is null");
-      return {};
-    }
-
+      const MovableRoundState &round_state) {
     // Obtain grandpa voters
     auto voters_res = getVoters();
     if (not voters_res.has_value()) {
@@ -119,23 +112,19 @@ namespace kagome::consensus::grandpa {
       return {};
     }
 
-    const auto new_round_number = previous_round_number + 1;
-
     auto vote_graph = std::make_shared<VoteGraphImpl>(
-        previous_round_state->finalized.value_or(
-            previous_round_state->last_finalized_block),
-        environment_);
+        round_state.last_finalized_block, environment_);
 
     GrandpaConfig config{
         .voters = voters,
-        .round_number = new_round_number,
+        .round_number = round_state.round_number,
         .duration = std::chrono::milliseconds(
             333),  // Note: Duration value was gotten from substrate:
                    // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
         .peer_id = keypair_.public_key};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_, crypto_provider_, new_round_number, voters);
+        keypair_, crypto_provider_, round_state.round_number, voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
@@ -147,8 +136,9 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         clock_,
         io_context_,
-        std::move(previous_round_state));
+        round_state);
 
+    new_round->end();
     return new_round;
   }
 
@@ -156,7 +146,9 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VotingRound> &round) {
     logger_->debug("Making next round");
 
-    // Obtain grandpa voters
+	  BOOST_ASSERT(round->finalizedBlock().has_value());
+
+	  // Obtain grandpa voters
     auto voters_res = getVoters();
     if (not voters_res.has_value()) {
       logger_->critical("Can't retrieve voters: {}. Stopping grandpa execution",
@@ -171,8 +163,7 @@ namespace kagome::consensus::grandpa {
 
     const auto new_round_number = round->roundNumber() + 1;
 
-    BlockInfo best_block = round->state()->finalized.value_or(
-        round->state()->last_finalized_block);
+    BlockInfo best_block = round->finalizedBlock().value();
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(best_block, environment_);
 
@@ -227,12 +218,13 @@ namespace kagome::consensus::grandpa {
     return std::make_shared<VoterSet>(voter_set);
   }
 
-  outcome::result<CompletedRound> GrandpaImpl::getLastCompletedRound() const {
+  outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
+      const {
     auto last_round_encoded_res = storage_->get(storage::kSetStateKey);
 
     // Saved data exists
     if (last_round_encoded_res.has_value()) {
-      return scale::decode<CompletedRound>(last_round_encoded_res.value());
+      return scale::decode<MovableRoundState>(last_round_encoded_res.value());
     }
 
     // Fail at retrieve data
@@ -258,15 +250,11 @@ namespace kagome::consensus::grandpa {
               genesis_hash_res.value().end(),
               genesis_hash.begin());
 
-    auto round_state = std::make_shared<const RoundState>(
-        RoundState{.last_finalized_block = {1, genesis_hash},
-                   .best_prevote_candidate = {1, genesis_hash},
-                   .best_final_candidate = {1, genesis_hash},
-                   .finalized = {{1, genesis_hash}}});
-
-    CompletedRound zero_round{.round_number = 0, .state = round_state};
-
-    return std::move(zero_round);
+    return MovableRoundState{.round_number = 0,
+                             .last_finalized_block = {0, genesis_hash},
+                             .prevotes = {},
+                             .precommits = {},
+                             .finalized = {{0, genesis_hash}}};
   }
 
   void GrandpaImpl::executeNextRound() {
@@ -312,6 +300,14 @@ namespace kagome::consensus::grandpa {
           peer_id.toHex());
       return;
     }
+    if (not previous_round_->finalizable()) {
+      logger_->debug(
+          "Catch-up request (since round #{}) received from {} was rejected: "
+          "round is not finalizable",
+          msg.round_number,
+          peer_id.toHex());
+      return;
+    }
 
     logger_->debug("Catch-up request (since round #{}) received from {}",
                    msg.round_number,
@@ -322,7 +318,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
     BOOST_ASSERT(current_round_ != nullptr);
-    if (current_round_->roundNumber() > msg.round_number) {
+    if (current_round_->roundNumber() >= msg.round_number) {
       // Catching up in to the past
       logger_->debug(
           "Catch-up response (till round #{}) received from {} was rejected: "
@@ -344,35 +340,58 @@ namespace kagome::consensus::grandpa {
     logger_->debug("Catch-up response (till round #{}) received from {}",
                    msg.round_number,
                    peer_id.toHex());
-    auto round =
-        makeInitialRound(msg.round_number - 1, current_round_->state());
 
-    for (auto &signed_message : msg.prevote_justification.items) {
-      auto success = visit_in_place(
-          signed_message.message,
-          [round, &signed_message](const Prevote &prevote) {
-            round->onPrevote(signed_message);
-            return true;
-          },
-          [](auto) { return false; });
-      if (not success) {
-        // Invalid prevote justification
-        return;
-      }
-    }
-    for (auto &signed_message : msg.precommit_justification.items) {
-      auto success = visit_in_place(
-          signed_message.message,
-          [round, &signed_message](const Precommit &precommit) {
-            round->onPrecommit(signed_message);
-            return true;
-          },
-          [](auto) { return false; });
-      if (not success) {
-        // Invalid precommit justification
-        return;
-      }
-    }
+    MovableRoundState round_state{
+        .round_number = msg.round_number,
+        .last_finalized_block = msg.best_final_candidate,
+        .prevotes =
+            [&items = msg.prevote_justification.items] {
+              std::vector<VoteVariant> v;
+              std::transform(items.begin(),
+                             items.end(),
+                             std::back_inserter(v),
+                             [](auto &item) { return item; });
+              return v;
+            }(),
+        .precommits =
+            [&items = msg.precommit_justification.items] {
+              std::vector<VoteVariant> v;
+              std::transform(items.begin(),
+                             items.end(),
+                             std::back_inserter(v),
+                             [](auto &item) { return item; });
+              return v;
+            }(),
+        .finalized = msg.best_final_candidate};
+
+    auto round = makeInitialRound(round_state);
+
+    //    for (auto &signed_message : msg.prevote_justification.items) {
+    //      auto success = visit_in_place(
+    //          signed_message.message,
+    //          [round, &signed_message](const Prevote &prevote) {
+    //            round->onPrevote(signed_message);
+    //            return true;
+    //          },
+    //          [](auto) { return false; });
+    //      if (not success) {
+    //        // Invalid prevote justification
+    //        return;
+    //      }
+    //    }
+    //    for (auto &signed_message : msg.precommit_justification.items) {
+    //      auto success = visit_in_place(
+    //          signed_message.message,
+    //          [round, &signed_message](const Precommit &precommit) {
+    //            round->onPrecommit(signed_message);
+    //            return true;
+    //          },
+    //          [](auto) { return false; });
+    //      if (not success) {
+    //        // Invalid precommit justification
+    //        return;
+    //      }
+    //    }
 
     if (current_round_->bestPrevoteCandidate().block_number
         > round->bestFinalCandidate().block_number) {
@@ -386,18 +405,18 @@ namespace kagome::consensus::grandpa {
     }
 
     // TODO something else
-
     previous_round_.swap(current_round_);
     previous_round_->end();
     current_round_ = std::move(round);
-    current_round_->play();
+
+    executeNextRound();
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
-      if (current_round_->roundNumber() < msg.round_number) {
+      if (current_round_->roundNumber() + 2 <= msg.round_number) {
         current_round_->doCatchUpRequest(peer_id);
       }
       return;
@@ -458,26 +477,30 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::onCompletedRound(
-      outcome::result<CompletedRound> completed_round_res) {
-    if (not completed_round_res) {
+      outcome::result<MovableRoundState> round_state_res) {
+    if (not round_state_res) {
       logger_->debug("Grandpa round was not finalized: {}",
-                     completed_round_res.error().message());
+                     round_state_res.error().message());
       return;
     }
 
-    const auto &completed_round = completed_round_res.value();
+    const auto &round_state = round_state_res.value();
 
     logger_->debug("Event OnCompleted for round #{}",
-                   completed_round.round_number);
+                   round_state.round_number);
 
     if (auto put_res = storage_->put(
             storage::kSetStateKey,
-            common::Buffer(scale::encode(completed_round).value()));
+            common::Buffer(scale::encode(round_state).value()));
         not put_res) {
       logger_->error("New round state was not added to the storage");
       return;
     }
 
     BOOST_ASSERT(storage_->get(storage::kSetStateKey));
+
+	  if (round_state.round_number == current_round_->roundNumber()) {
+	  	executeNextRound();
+	  }
   }
 }  // namespace kagome::consensus::grandpa

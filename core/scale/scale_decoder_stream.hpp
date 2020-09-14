@@ -281,6 +281,17 @@ namespace kagome::scale {
      */
     uint8_t nextByte();
 
+	  using ByteSpan = gsl::span<const uint8_t>;
+	  using SpanIterator = ByteSpan::const_iterator;
+	  using SizeType = ByteSpan::size_type;
+
+    ByteSpan span() const {
+    	return span_;
+    }
+    SizeType currentIndex() const {
+    	return current_index_;
+    }
+
    private:
     bool decodeBool();
     /**
@@ -312,10 +323,6 @@ namespace kagome::scale {
         tryDecodeAsOneOfVariant<I + 1>(v, i);
       }
     }
-
-    using ByteSpan = gsl::span<const uint8_t>;
-    using SpanIterator = ByteSpan::const_iterator;
-    using SizeType = ByteSpan::size_type;
 
     ByteSpan span_;
     SpanIterator current_iterator_;

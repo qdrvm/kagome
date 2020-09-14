@@ -94,3 +94,12 @@ addtest(scale_array_test
 target_link_libraries(scale_array_test
     scale
     )
+
+addtest(scale_special_test
+    special.cpp
+    )
+target_link_libraries(scale_special_test
+    scale
+    blob
+        logger
+    )

@@ -286,7 +286,7 @@ namespace kagome::blockchain {
     auto block_number_res = header_repo_->getNumberByHash(block);
     if (!block_number_res) {
       log_->error("cannot retrieve block with hash {}: {}",
-                  block,
+                  block.toHex(),
                   block_number_res.error().message());
       return BlockTreeError::NO_SUCH_BLOCK;
     }
@@ -349,7 +349,9 @@ namespace kagome::blockchain {
         if (auto parent = current_node->parent; !parent.expired()) {
           current_node = parent.lock();
         } else {
-          log_->warn(kNotAncestorError.data(), top_block, bottom_block);
+          log_->warn(kNotAncestorError.data(),
+                     top_block.toHex(),
+                     bottom_block.toHex());
           return BlockTreeError::INCORRECT_ARGS;
         }
       }
@@ -364,7 +366,8 @@ namespace kagome::blockchain {
       result.push_back(current_hash);
       auto current_header_res = header_repo_->getBlockHeader(current_hash);
       if (!current_header_res) {
-        log_->error(kNotAncestorError.data(), top_block, bottom_block);
+        log_->error(
+            kNotAncestorError.data(), top_block.toHex(), bottom_block.toHex());
         return BlockTreeError::INCORRECT_ARGS;
       }
       current_hash = current_header_res.value().parent_hash;
@@ -464,9 +467,9 @@ namespace kagome::blockchain {
     }
 
     log_->warn(
-        "Block {:?} exists in chain but not found when following all \
-			leaves backwards. Max block number = {:?}",
-        target_hash,
+        "Block {:?} exists in chain but not found when following all leaves "
+        "backwards. Max block number = {:?}",
+        target_hash.toHex(),
         max_number.has_value() ? max_number.value() : -1);
     return Error::BLOCK_NOT_FOUND;
   }

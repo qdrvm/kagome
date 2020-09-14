@@ -12,6 +12,7 @@
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/structs.hpp"
+#include "consensus/grandpa/movable_round_state.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -21,7 +22,7 @@ namespace kagome::consensus::grandpa {
    */
   struct Environment : public Chain {
     using CompleteHandler =
-        std::function<void(outcome::result<CompletedRound>)>;
+        std::function<void(outcome::result<MovableRoundState>)>;
 
     ~Environment() override = default;
 
@@ -94,7 +95,7 @@ namespace kagome::consensus::grandpa {
     /**
      * Triggered when round \param round is completed
      */
-    virtual void onCompleted(outcome::result<CompletedRound> round) = 0;
+    virtual void onCompleted(outcome::result<MovableRoundState> round) = 0;
 
     /**
      * Triggered when blovk \param block justified by \param justification

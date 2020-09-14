@@ -42,7 +42,7 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD1(doOnCompleted, void(const CompleteHandler &));
 
-    MOCK_METHOD1(onCompleted, void(outcome::result<CompletedRound> round));
+    MOCK_METHOD1(onCompleted, void(outcome::result<MovableRoundState> state));
 
     MOCK_METHOD2(
         finalize,

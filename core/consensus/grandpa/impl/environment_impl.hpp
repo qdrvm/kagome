@@ -19,7 +19,7 @@ namespace kagome::consensus::grandpa {
 
   class EnvironmentImpl : public Environment {
     using OnCompleted =
-        boost::signals2::signal<void(outcome::result<CompletedRound>)>;
+        boost::signals2::signal<void(outcome::result<MovableRoundState>)>;
     using OnCompletedSlotType = OnCompleted::slot_type;
 
    public:
@@ -74,7 +74,7 @@ namespace kagome::consensus::grandpa {
 
     void doOnCompleted(const CompleteHandler &) override;
 
-    void onCompleted(outcome::result<CompletedRound> round) override;
+    void onCompleted(outcome::result<MovableRoundState> round) override;
 
     outcome::result<void> finalize(
         const primitives::BlockHash &block_hash,

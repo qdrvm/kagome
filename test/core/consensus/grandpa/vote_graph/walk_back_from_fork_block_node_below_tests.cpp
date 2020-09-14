@@ -8,14 +8,14 @@ struct WalkBackFromBlockNodeBelow
     : public VoteGraphFixture,
       public ::testing::WithParamInterface<std::tuple<BlockInfo, BlockInfo>> {
   void SetUp() override {
-    BlockInfo base{1, GENESIS_HASH};
+    BlockInfo base{0, GENESIS_HASH};
     graph = std::make_shared<VoteGraphImpl>(base, chain);
 
     AssertGraphCorrect(*graph,
                        R"({
   "entries": {
     "genesis": {
-      "number": 1,
+      "number": 0,
       "ancestors": [],
       "descendents": [],
       "cumulative_vote": 0
@@ -25,17 +25,17 @@ struct WalkBackFromBlockNodeBelow
     "genesis"
   ],
   "base": "genesis",
-  "base_number": 1
+  "base_number": 0
 })");
 
     expect_getAncestry(GENESIS_HASH, "B"_H, vec("A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{3, "B"_H}, 10_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{2, "B"_H}, 10_W));
 
     AssertGraphCorrect(*graph,
                        R"({
   "entries": {
     "genesis": {
-      "number": 1,
+      "number": 0,
       "ancestors": [],
       "descendents": [
         "B"
@@ -43,7 +43,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 10
     },
     "B": {
-      "number": 3,
+      "number": 2,
       "ancestors": [
         "A",
         "genesis"
@@ -56,18 +56,18 @@ struct WalkBackFromBlockNodeBelow
     "B"
   ],
   "base": "genesis",
-  "base_number": 1
+  "base_number": 0
 })");
 
     expect_getAncestry(
         GENESIS_HASH, "F1"_H, vec("E1"_H, "D"_H, "C"_H, "B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F1"_H}, 5_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "F1"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
                        R"({
   "entries": {
     "genesis": {
-      "number": 1,
+      "number": 0,
       "ancestors": [],
       "descendents": [
         "B"
@@ -75,7 +75,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 15
     },
     "F1": {
-      "number": 7,
+      "number": 6,
       "ancestors": [
         "E1",
         "D",
@@ -86,7 +86,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 5
     },
     "B": {
-      "number": 3,
+      "number": 2,
       "ancestors": [
         "A",
         "genesis"
@@ -101,18 +101,18 @@ struct WalkBackFromBlockNodeBelow
     "F1"
   ],
   "base": "genesis",
-  "base_number": 1
+  "base_number": 0
 })");
 
     expect_getAncestry(
         GENESIS_HASH, "G2"_H, vec("F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{8, "G2"_H}, 5_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "G2"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
                        R"({
   "entries": {
     "genesis": {
-      "number": 1,
+      "number": 0,
       "ancestors": [],
       "descendents": [
         "B"
@@ -120,7 +120,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 20
     },
     "F1": {
-      "number": 7,
+      "number": 6,
       "ancestors": [
         "E1",
         "D",
@@ -131,7 +131,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 5
     },
     "B": {
-      "number": 3,
+      "number": 2,
       "ancestors": [
         "A",
         "genesis"
@@ -143,7 +143,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 20
     },
     "G2": {
-      "number": 8,
+      "number": 7,
       "ancestors": [
         "F2",
         "E2",
@@ -160,19 +160,19 @@ struct WalkBackFromBlockNodeBelow
     "G2"
   ],
   "base": "genesis",
-  "base_number": 1
+  "base_number": 0
 })");
 
     expect_getAncestry(GENESIS_HASH,
                        "H2"_H,
                        vec("G2"_H, "F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "H2"_H}, 1_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{8, "H2"_H}, 1_W));
 
     AssertGraphCorrect(*graph,
                        R"({
   "entries": {
     "genesis": {
-      "number": 1,
+      "number": 0,
       "ancestors": [],
       "descendents": [
         "B"
@@ -180,7 +180,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 21
     },
     "F1": {
-      "number": 7,
+      "number": 6,
       "ancestors": [
         "E1",
         "D",
@@ -191,7 +191,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 5
     },
     "B": {
-      "number": 3,
+      "number": 2,
       "ancestors": [
         "A",
         "genesis"
@@ -203,7 +203,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 21
     },
     "G2": {
-      "number": 8,
+      "number": 7,
       "ancestors": [
         "F2",
         "E2",
@@ -217,7 +217,7 @@ struct WalkBackFromBlockNodeBelow
       "cumulative_vote": 6
     },
     "H2": {
-      "number": 9,
+      "number": 8,
       "ancestors": [
         "G2"
       ],
@@ -230,7 +230,7 @@ struct WalkBackFromBlockNodeBelow
     "H2"
   ],
   "base": "genesis",
-  "base_number": 1
+  "base_number": 0
 })");
   }
 };
@@ -249,13 +249,13 @@ TEST_P(WalkBackFromBlockNodeBelow, FindAncestor) {
 
 const std::vector<std::tuple<BlockInfo, BlockInfo>> test_cases{{
     // clang-format off
-		{{5,  "D"_H}, {5, "D"_H}},
-		{{6, "E1"_H}, {5, "D"_H}},
-		{{6, "E2"_H}, {5, "D"_H}},
-		{{7, "F1"_H}, {5, "D"_H}},
-		{{7, "F2"_H}, {5, "D"_H}},
-		{{8, "G2"_H}, {8, "G2"_H}},
-		{{9, "H2"_H}, {8, "G2"_H}},
+		{{4,  "D"_H}, {4, "D"_H}},
+		{{5, "E1"_H}, {4, "D"_H}},
+		{{5, "E2"_H}, {4, "D"_H}},
+		{{6, "F1"_H}, {4, "D"_H}},
+		{{6, "F2"_H}, {4, "D"_H}},
+		{{7, "G2"_H}, {7, "G2"_H}},
+		{{8, "H2"_H}, {7, "G2"_H}},
     // clang-format on
 }};
 
@@ -274,6 +274,6 @@ TEST_F(WalkBackFromBlockNodeBelow, GhostFindMergePoint_NoConstrain) {
       [](auto &&x) -> bool { return x.prevotes_sum > (5_W).prevotes_sum; },
       comparator);
 
-  EXPECT_EQ(subchain.best_number, 5);
+  EXPECT_EQ(subchain.best_number, 4);
   EXPECT_EQ(subchain.hashes, (vec("B"_H, "C"_H, "D"_H)));
 }

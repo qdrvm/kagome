@@ -35,8 +35,8 @@ namespace kagome::consensus::grandpa {
       return std::vector<BlockHash>{};
     }
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
-    std::vector<BlockHash> result_chain(chain.size() - 2);
-    std::move(chain.rbegin() + 1, chain.rend() - 1, result_chain.begin());
+    std::vector<BlockHash> result_chain(chain.size() - 1);
+    std::move(chain.rbegin() + 1, chain.rend(), result_chain.begin());
     return result_chain;
   }
 
@@ -155,11 +155,11 @@ namespace kagome::consensus::grandpa {
     on_completed_.connect(on_completed_slot);
   }
 
-  void EnvironmentImpl::onCompleted(outcome::result<CompletedRound> round) {
+  void EnvironmentImpl::onCompleted(outcome::result<MovableRoundState> round_state) {
     BOOST_ASSERT_MSG(
         not on_completed_.empty(),
         "Completed signal in environment cannot be empty when it is invoked");
-    on_completed_(round);
+    on_completed_(round_state);
   }
 
   outcome::result<void> EnvironmentImpl::finalize(

@@ -6,7 +6,7 @@
 #include "core/consensus/grandpa/vote_graph/fixture.hpp"
 
 TEST_F(VoteGraphFixture, AdjustBase) {
-  BlockInfo base{6, "E"_H};
+  BlockInfo base{5, "E"_H};
   graph = std::make_shared<VoteGraphImpl>(base, chain);
   auto &entries = graph->getEntries();
 
@@ -15,7 +15,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
                      R"({
   "entries": {
     "E": {
-      "number": 6,
+      "number": 5,
       "ancestors": [],
       "descendents": [],
       "cumulative_vote": 0
@@ -25,17 +25,17 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     "E"
   ],
   "base": "E",
-  "base_number": 6
+  "base_number": 5
 })");
 
   expect_getAncestry("E"_H, "FC"_H, vec("FB"_H, "FA"_H, "F"_H));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{10, "FC"_H}, 5_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "FC"_H}, 5_W));
   SCOPED_TRACE(2);
   AssertGraphCorrect(*graph,
                      R"({
   "entries": {
     "E": {
-      "number": 6,
+      "number": 5,
       "ancestors": [],
       "descendents": [
         "FC"
@@ -43,7 +43,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 5
     },
     "FC": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "FB",
         "FA",
@@ -58,17 +58,17 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     "FC"
   ],
   "base": "E",
-  "base_number": 6
+  "base_number": 5
 })");
 
   expect_getAncestry("E"_H, "ED"_H, vec("EC"_H, "EB"_H, "EA"_H));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{10, "ED"_H}, 7_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "ED"_H}, 7_W));
   SCOPED_TRACE(3);
   AssertGraphCorrect(*graph,
                      R"({
   "entries": {
     "E": {
-      "number": 6,
+      "number": 5,
       "ancestors": [],
       "descendents": [
         "FC",
@@ -77,7 +77,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 12
     },
     "FC": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "FB",
         "FA",
@@ -88,7 +88,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 5
     },
     "ED": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "EC",
         "EB",
@@ -104,19 +104,19 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     "ED"
   ],
   "base": "E",
-  "base_number": 6
+  "base_number": 5
 })");
 
-  ASSERT_EQ(graph->getBase(), BlockInfo(6, "E"_H));
+  ASSERT_EQ(graph->getBase(), BlockInfo(5, "E"_H));
 
   graph->adjustBase(vec("D"_H, "C"_H, "B"_H, "A"_H));
-  ASSERT_EQ(graph->getBase(), BlockInfo(2, "A"_H));
+  ASSERT_EQ(graph->getBase(), BlockInfo(1, "A"_H));
   SCOPED_TRACE(4);
   AssertGraphCorrect(*graph,
                      R"({
   "entries": {
     "ED": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "EC",
         "EB",
@@ -127,7 +127,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 7
     },
     "A": {
-      "number": 2,
+      "number": 1,
       "ancestors": [],
       "descendents": [
         "E"
@@ -135,7 +135,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 12
     },
     "E": {
-      "number": 6,
+      "number": 5,
       "ancestors": [
         "D",
         "C",
@@ -149,7 +149,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 12
     },
     "FC": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "FB",
         "FA",
@@ -165,17 +165,17 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     "ED"
   ],
   "base": "A",
-  "base_number": 2
+  "base_number": 1
 })");
 
   graph->adjustBase(std::vector<BlockHash>{GENESIS_HASH});
-  ASSERT_EQ(graph->getBase(), BlockInfo(1, GENESIS_HASH));
+  ASSERT_EQ(graph->getBase(), BlockInfo(0, GENESIS_HASH));
   SCOPED_TRACE(5);
   AssertGraphCorrect(*graph,
                      R"({
   "entries": {
     "ED": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "EC",
         "EB",
@@ -186,7 +186,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 7
     },
     "A": {
-      "number": 2,
+      "number": 1,
       "ancestors": [
         "genesis"
       ],
@@ -196,7 +196,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 12
     },
     "E": {
-      "number": 6,
+      "number": 5,
       "ancestors": [
         "D",
         "C",
@@ -210,7 +210,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 12
     },
     "FC": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "FB",
         "FA",
@@ -221,7 +221,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 5
     },
     "genesis": {
-      "number": 1,
+      "number": 0,
       "ancestors": [],
       "descendents": [
         "A"
@@ -234,30 +234,30 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     "ED"
   ],
   "base": "genesis",
-  "base_number": 1
+  "base_number": 0
 })");
 
   ASSERT_EQ(entries[GENESIS_HASH].cumulative_vote, 12_W);
 
-  expect_getAncestry(GENESIS_HASH, "5"_H, vec("4"_H, "3"_H, "A"_H));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo(5, "5"_H), 3_W));
+  expect_getAncestry(GENESIS_HASH, "4"_H, vec("3"_H, "2"_H, "A"_H));
+  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo(4, "4"_H), 3_W));
 
   SCOPED_TRACE(6);
   AssertGraphCorrect(*graph,
                      R"({
   "entries": {
-    "5": {
-      "number": 5,
+    "4": {
+      "number": 4,
       "ancestors": [
-        "4",
         "3",
+        "2",
         "A"
       ],
       "descendents": [],
       "cumulative_vote": 3
     },
     "ED": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "EC",
         "EB",
@@ -268,18 +268,18 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 7
     },
     "A": {
-      "number": 2,
+      "number": 1,
       "ancestors": [
         "genesis"
       ],
       "descendents": [
         "E",
-        "5"
+        "4"
       ],
       "cumulative_vote": 15
     },
     "E": {
-      "number": 6,
+      "number": 5,
       "ancestors": [
         "D",
         "C",
@@ -293,7 +293,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 12
     },
     "FC": {
-      "number": 10,
+      "number": 9,
       "ancestors": [
         "FB",
         "FA",
@@ -304,7 +304,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "cumulative_vote": 5
     },
     "genesis": {
-      "number": 1,
+      "number": 0,
       "ancestors": [],
       "descendents": [
         "A"
@@ -313,11 +313,11 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     }
   },
   "heads": [
-    "5",
+    "4",
     "FC",
     "ED"
   ],
   "base": "genesis",
-  "base_number": 1
+  "base_number": 0
 })");
 }

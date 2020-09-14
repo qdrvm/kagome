@@ -6,10 +6,11 @@
 #ifndef KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP
 #define KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP
 
-#include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
-
 #include <gtest/gtest.h>
+
 #include <rapidjson/document.h>
+
+#include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/consensus/grandpa/chain_mock.hpp"
 #include "testutil/outcome.hpp"

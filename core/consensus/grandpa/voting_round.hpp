@@ -8,6 +8,7 @@
 
 #include "consensus/grandpa/round_observer.hpp"
 #include "consensus/grandpa/round_state.hpp"
+#include "consensus/grandpa/movable_round_state.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -21,7 +22,6 @@ namespace kagome::consensus::grandpa {
 
     virtual RoundNumber roundNumber() const = 0;
     virtual MembershipCounter voterSetId() const = 0;
-    virtual std::shared_ptr<const RoundState> state() const = 0;
 
     /**
      * Round is completable when we have block (stored in
@@ -32,10 +32,16 @@ namespace kagome::consensus::grandpa {
 
     virtual bool finalizable() const = 0;
 
+    virtual BlockInfo lastFinalizedBlock() const = 0;
     virtual BlockInfo bestFinalCandidate() = 0;
 
     /// @see spec: Best-PreVote-Candidate
     virtual BlockInfo bestPrevoteCandidate() = 0;
+
+    /// Block is finalized at the round
+    virtual boost::optional<BlockInfo> finalizedBlock() const = 0;
+
+		virtual MovableRoundState state() const = 0;
 
     // Control lifecycle
 
