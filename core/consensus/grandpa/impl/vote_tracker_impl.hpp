@@ -22,6 +22,8 @@ namespace kagome::consensus::grandpa {
 
     PushResult push(const VotingMessage &vote, size_t weight) override;
 
+    void unpush(const VotingMessage &vote, size_t weight) override;
+
     std::vector<VoteVariant> getMessages() const override;
 
     size_t getTotalWeight() const override;

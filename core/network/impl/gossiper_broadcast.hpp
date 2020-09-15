@@ -41,9 +41,9 @@ namespace kagome::network {
 
     void blockAnnounce(const BlockAnnounce &announce) override;
 
-    void vote(const consensus::grandpa::VoteMessage &msg) override;
+    void vote(const network::GrandpaVoteMessage &msg) override;
 
-    void finalize(const consensus::grandpa::Fin &fin) override;
+    void finalize(const network::GrandpaPreCommit &msg) override;
 
     void catchUpRequest(const libp2p::peer::PeerId &peer_id,
                         const CatchUpRequest &catch_up_request) override;

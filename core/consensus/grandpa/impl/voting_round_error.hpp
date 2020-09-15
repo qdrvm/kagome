@@ -16,7 +16,7 @@ namespace kagome::consensus::grandpa {
     UNKNOWN_VOTER,
     DUPLICATED_VOTE,
     EQUIVOCATED_VOTE,
-
+		NO_PREVOTE_CANDIDATE
   };
 
 }

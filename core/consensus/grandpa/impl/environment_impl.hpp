@@ -36,6 +36,9 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockHash &base,
         const primitives::BlockHash &block) const override;
 
+    bool hasAncestry(const primitives::BlockHash &base,
+                     const primitives::BlockHash &block) const override;
+
     outcome::result<BlockInfo> bestChainContaining(
         const primitives::BlockHash &base) const override;
 

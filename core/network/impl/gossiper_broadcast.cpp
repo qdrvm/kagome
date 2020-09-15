@@ -40,22 +40,22 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::vote(
-      const consensus::grandpa::VoteMessage &vote_message) {
+      const network::GrandpaVoteMessage &vote_message) {
     logger_->debug("Gossip vote message: grandpa round number {}",
                    vote_message.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
-    message.data.put(scale::encode(vote_message).value());
+    message.data.put(scale::encode(GrandpaMessage(vote_message)).value());
 
     broadcast(std::move(message));
   }
 
-  void GossiperBroadcast::finalize(const consensus::grandpa::Fin &fin) {
+  void GossiperBroadcast::finalize(const network::GrandpaPreCommit &fin) {
     logger_->debug("Gossip fin message: grandpa round number {}",
                    fin.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
-    message.data.put(scale::encode(fin).value());
+    message.data.put(scale::encode(GrandpaMessage(fin)).value());
 
     broadcast(std::move(message));
   }
@@ -66,7 +66,7 @@ namespace kagome::network {
     logger_->debug("Gossip catch-up request: grandpa round number {}",
                    catch_up_request.round_number);
     GossipMessage message;
-    message.type = GossipMessage::Type::GRANDPA;
+    message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(catch_up_request)).value());
 
     send(peer_id, std::move(message));
@@ -78,7 +78,7 @@ namespace kagome::network {
     logger_->debug("Gossip catch-up response: grandpa round number {}",
                    catch_up_response.round_number);
     GossipMessage message;
-    message.type = GossipMessage::Type::GRANDPA;
+    message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(catch_up_response)).value());
 
     send(peer_id, std::move(message));
@@ -192,12 +192,17 @@ namespace kagome::network {
 
   void GossiperBroadcast::broadcast(GossipMessage &&msg) {
     auto msg_send_lambda = [msg, this](auto stream) {
+      auto s = stream;
       auto read_writer =
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
-      read_writer->write(msg, [this](auto &&res) {
+      read_writer->write(msg, [this, s](auto &&res) {
         if (not res) {
-          logger_->error("Could not broadcast, reason: {}",
+          logger_->error("Could not send message to {}: {}",
+                         s->remotePeerId().value().toBase58(),
                          res.error().message());
+        } else {
+          logger_->error("Message sent to {}",
+                         s->remotePeerId().value().toBase58());
         }
       });
     };
@@ -229,9 +234,10 @@ namespace kagome::network {
             if (!stream_res) {
               // we will try to open the stream again, when
               // another gossip message arrives later
-              self->logger_->error("Could not send message to {} Error: {}",
-                                   info.id.toBase58(),
-                                   stream_res.error().message());
+              self->logger_->error(
+                  "Could not send message to {} over new stream: {}",
+                  info.id.toBase58(),
+                  stream_res.error().message());
               return;
             }
 

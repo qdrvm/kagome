@@ -74,6 +74,19 @@ namespace kagome::consensus::grandpa {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const SignedMessage &signed_msg) {
+
+	  // clang-format off
+//	  auto l = kagome::common::createLogger("scale");
+//	  l->debug("encode SignedMessage step B: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+//	  s << (scale::encode(signed_msg.message).value());
+//	  l->debug("encode SignedMessage step 1: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+//	  s << signed_msg.signature;
+//	  l->debug("encode SignedMessage step 2: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+//	  s << signed_msg.id;
+//	  l->debug("encode SignedMessage step F: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+//  	return s;
+	  // clang-format on
+
     return s << (scale::encode(signed_msg.message).value())
              << signed_msg.signature << signed_msg.id;
   }
@@ -81,6 +94,21 @@ namespace kagome::consensus::grandpa {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, SignedMessage &signed_msg) {
+	  // clang-format off
+//	  auto l = kagome::common::createLogger("scale");
+//	  l->debug("decode SignedMessage step B: pos={}, {}->{}", s.currentIndex(), s.span().size(), common::Buffer{s.span()}.toHex());
+//	    common::Buffer encoded_vote;
+//	    s >> encoded_vote;
+//	    auto decoded_vote = scale::template decode<Vote>(encoded_vote).value();
+//	    signed_msg.message = decoded_vote;
+//	  l->debug("decode SignedMessage step 1: pos={}", s.currentIndex());
+//	  s >> signed_msg.signature;
+//	  l->debug("decode SignedMessage step 2: pos={}", s.currentIndex());
+//	  s >> signed_msg.id;
+//	  l->debug("decode SignedMessage step F: pos={}", s.currentIndex());
+//	  return s;
+	  // clang-format on
+
     common::Buffer encoded_vote;
     s >> encoded_vote;
     auto decoded_vote = scale::template decode<Vote>(encoded_vote).value();
@@ -148,38 +176,38 @@ namespace kagome::consensus::grandpa {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const VoteMessage &v) {
-  	if (v.counter != 0){
-  		[]{}();
-  	}
+  	// clang-format off
+//  	auto l = kagome::common::createLogger("scale");
+//  	l->debug("encode VoteMessage step B: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+//    s << v.round_number;
+//	  l->debug("encode VoteMessage step 1: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+//    s << v.counter;
+//	  l->debug("encode VoteMessage step 2: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+//    s << v.vote;
+//	  l->debug("encode VoteMessage step F: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
+//		return s;
+	  // clang-format on
 
-  	auto l = kagome::common::createLogger("scale");
-  	l->debug("encode VoteMessage step B: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
-    s << v.round_number;
-	  l->debug("encode VoteMessage step 1: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
-    s << v.counter;
-	  l->debug("encode VoteMessage step 2: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
-    s << v.vote;
-	  l->debug("encode VoteMessage step F: {}->{}", s.data().size(), common::Buffer{s.data()}.toHex());
-		return s;
-
-//    return s << v.round_number << v.counter << v.vote;
+    return s << v.round_number << v.counter << v.vote;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, VoteMessage &v) {
 
-	  auto l = kagome::common::createLogger("scale");
-	  l->debug("decode VoteMessage step B: pos={}, {}->{}", s.currentIndex(), s.span().size(), common::Buffer{s.span()}.toHex());
-	  s >> v.round_number;
-	  l->debug("decode VoteMessage step 1: pos={}", s.currentIndex());
-	  s >> v.counter;
-	  l->debug("decode VoteMessage step 2: pos={}", s.currentIndex());
-	  s >> v.vote;
-	  l->debug("decode VoteMessage step F: pos={}", s.currentIndex());
-	  return s;
+	  // clang-format off
+//	  auto l = kagome::common::createLogger("scale");
+//	  l->debug("decode VoteMessage step B: pos={}, {}->{}", s.currentIndex(), s.span().size(), common::Buffer{s.span()}.toHex());
+//	  s >> v.round_number;
+//	  l->debug("decode VoteMessage step 1: pos={}", s.currentIndex());
+//	  s >> v.counter;
+//	  l->debug("decode VoteMessage step 2: pos={}", s.currentIndex());
+//	  s >> v.vote;
+//	  l->debug("decode VoteMessage step F: pos={}", s.currentIndex());
+//	  return s;
+	  // clang-format on
 
-//    return s >> v.round_number >> v.counter >> v.vote;
+    return s >> v.round_number >> v.counter >> v.vote;
   }
 
   // finalizing message

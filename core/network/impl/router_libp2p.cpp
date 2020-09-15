@@ -156,29 +156,11 @@ namespace kagome::network {
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }
-      case MsgType::CONSENSUS: {
-        auto vote_msg_res =
-            scale::decode<consensus::grandpa::VoteMessage>(msg.data);
-        if (vote_msg_res) {
-          grandpa_observer_->onVoteMessage(peer_id, vote_msg_res.value());
-          return true;
-        }
-
-        auto fin_msg_res = scale::decode<consensus::grandpa::Fin>(msg.data);
-        if (fin_msg_res) {
-          grandpa_observer_->onFinalize(peer_id, fin_msg_res.value());
-          return true;
-        }
-
-        log_->error("error while decoding a consensus message: {}",
-                    fin_msg_res.error().message());
-        return false;
-      }
-      case GossipMessage::Type::GRANDPA: {
+      case GossipMessage::Type::CONSENSUS: {
         auto grandpa_msg_res = scale::decode<GrandpaMessage>(msg.data);
 
         if (not grandpa_msg_res) {
-          log_->error("error while decoding a grandpa message: {}",
+          log_->error("error while decoding a consensus (grandpa) message: {}",
                       grandpa_msg_res.error().message());
           return false;
         }
@@ -187,14 +169,21 @@ namespace kagome::network {
 
         return visit_in_place(
             grandpa_msg,
-            [this,
-             &peer_id](const consensus::grandpa::VoteMessage &vote_message) {
+            [this, &peer_id](const network::GrandpaVoteMessage &vote_message) {
               grandpa_observer_->onVoteMessage(peer_id, vote_message);
               return true;
             },
-            [this, &peer_id](const consensus::grandpa::Fin &fin_message) {
+            [this, &peer_id](const network::GrandpaPreCommit &fin_message) {
               grandpa_observer_->onFinalize(peer_id, fin_message);
               return true;
+            },
+            [this, &peer_id](const GrandpaNeighborPacket &neighbor_packet) {
+              BOOST_ASSERT_MSG(false,
+                               "Unimplemented variant (GrandpaNeighborPacket) "
+                               "of consensus (grandpa) message");
+              (void)this;
+              (void)peer_id;
+              return false;
             },
             [this, &peer_id](const network::CatchUpRequest &catch_up_request) {
               grandpa_observer_->onCatchUpRequest(peer_id, catch_up_request);
@@ -206,7 +195,8 @@ namespace kagome::network {
               return true;
             },
             [](const auto &...) {
-              BOOST_ASSERT_MSG(false, "Unknown variant of grandpa message");
+              BOOST_ASSERT_MSG(
+                  false, "Unknown variant of consensus (grandpa) message");
               return false;
             });
       }

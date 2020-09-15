@@ -30,14 +30,23 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(
       const BlockHash &base, const BlockHash &block) const {
-    // if base equal to block, then return empty list
+    std::vector<BlockHash> result_chain;
+
+    // if base equal to block, then return list with single block
     if (base == block) {
-      return std::vector<BlockHash>{};
+      result_chain.push_back(base);
+      return result_chain;
     }
+
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
-    std::vector<BlockHash> result_chain(chain.size() - 1);
+    result_chain.resize(chain.size() - 1);
     std::move(chain.rbegin() + 1, chain.rend(), result_chain.begin());
     return result_chain;
+  }
+
+  bool EnvironmentImpl::hasAncestry(const BlockHash &base,
+                                    const BlockHash &block) const {
+    return block_tree_->hasDirectChain(base, block);
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
@@ -100,8 +109,8 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &propose) {
     BOOST_ASSERT(propose.is<PrimaryPropose>());
-    VoteMessage message{
-        .round_number = round, .counter = set_id, .vote = propose};
+    network::GrandpaVoteMessage message{
+        {.round_number = round, .counter = set_id, .vote = propose}};
     gossiper_->vote(message);
     logger_->debug("Primary proposed block with hash {} in grandpa round {}",
                    propose.block_hash().toHex(),
@@ -114,8 +123,8 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &prevote) {
     BOOST_ASSERT(prevote.is<Prevote>());
-    VoteMessage message{
-        .round_number = round, .counter = set_id, .vote = prevote};
+    network::GrandpaVoteMessage message{
+        {.round_number = round, .counter = set_id, .vote = prevote}};
     gossiper_->vote(message);
     logger_->debug("Prevoted block with hash {} in grandpa round {}",
                    prevote.block_hash().toHex(),
@@ -128,8 +137,8 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &precommit) {
     BOOST_ASSERT(precommit.is<Precommit>());
-    VoteMessage message{
-        .round_number = round, .counter = set_id, .vote = precommit};
+    network::GrandpaVoteMessage message{
+        {.round_number = round, .counter = set_id, .vote = precommit}};
     gossiper_->vote(message);
     logger_->debug("Precommitted block with hash {} in grandpa round {}",
                    precommit.block_hash().toHex(),
@@ -144,8 +153,9 @@ namespace kagome::consensus::grandpa {
     logger_->debug("Committed block with hash: {} with number: {}",
                    vote.block_hash,
                    vote.block_number);
-    gossiper_->finalize(Fin{
-        .round_number = round, .vote = vote, .justification = justification});
+    network::GrandpaPreCommit message{
+        {.round_number = round, .vote = vote, .justification = justification}};
+    gossiper_->finalize(message);
     return outcome::success();
   }
 
@@ -155,7 +165,8 @@ namespace kagome::consensus::grandpa {
     on_completed_.connect(on_completed_slot);
   }
 
-  void EnvironmentImpl::onCompleted(outcome::result<MovableRoundState> round_state) {
+  void EnvironmentImpl::onCompleted(
+      outcome::result<MovableRoundState> round_state) {
     BOOST_ASSERT_MSG(
         not on_completed_.empty(),
         "Completed signal in environment cannot be empty when it is invoked");

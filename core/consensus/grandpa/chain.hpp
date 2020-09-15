@@ -31,6 +31,15 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockHash &block) const = 0;
 
     /**
+     * @brief Check if block is ancestor for second one
+     * @param base is potential ancestor
+     * @param block is testee block
+     * @return true, if \param base is ancestor for \param block
+     */
+    virtual bool hasAncestry(const primitives::BlockHash &base,
+                             const primitives::BlockHash &block) const = 0;
+
+    /**
      * @returns the hash of the best block whose chain contains the given
      * block hash, even if that block is {@param base} itself. If base is
      * unknown, return None.
@@ -43,8 +52,8 @@ namespace kagome::consensus::grandpa {
      * given {@param base}.
      */
     inline bool isEqualOrDescendOf(const primitives::BlockHash &base,
-                            const primitives::BlockHash &block) const {
-      return base == block ? true : getAncestry(base, block).has_value();
+                                   const primitives::BlockHash &block) const {
+      return base == block ? true : hasAncestry(base, block);
     }
   };
 

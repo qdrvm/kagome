@@ -24,12 +24,12 @@ namespace kagome::consensus::grandpa {
     /**
      * Broadcast grandpa's \param vote_message
      */
-    virtual void vote(const VoteMessage &vote_message) = 0;
+    virtual void vote(const network::GrandpaVoteMessage &vote_message) = 0;
 
     /**
      * Broadcast grandpa's \param fin_message
      */
-    virtual void finalize(const Fin &fin_message) = 0;
+    virtual void finalize(const network::GrandpaPreCommit &message) = 0;
 
     /**
      * Send grandpa's \param catch_up_request

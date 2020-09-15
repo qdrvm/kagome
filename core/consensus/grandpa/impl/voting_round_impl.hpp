@@ -40,7 +40,7 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<boost::asio::io_context> io_context);
 
    public:
-    ~VotingRoundImpl() override = default;
+    ~VotingRoundImpl() override;
 
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
@@ -201,35 +201,23 @@ namespace kagome::consensus::grandpa {
      * Invoked during each onSingedPrevote.
      * Updates current round's prevote ghost. New prevote-ghost is the highest
      * block with supermajority of prevotes
+     * @return true if prevote ghost was updated
      */
-    void updatePrevoteGhost();
+    bool updatePrevoteGhost();
 
-    /// Update current state of the round.
-    /// In particular we update:
-    /// 1. If round is completable
-    /// 2. If round has something ready to finalize
-    /// 3. New best rounds estimate
-    void update();
+		/**
+		 * Invoked during each onSingedPrevote.
+		 * Updates current round's prevote ghost. New prevote-ghost is the highest
+		 * block with supermajority of prevotes
+		 * @return true if precommit ghost was updated
+		 */
+    bool updatePrecommitGhost();
 
-    // notify about new finalized round. False if new state does not differ from
-    // old one
-    outcome::result<void> notify();
+		bool updateCompletability();
 
     /// prepare justification of \param estimate over the provided \param votes
     boost::optional<GrandpaJustification> getJustification(
         const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const;
-
-    /// @see spec: Grandpa-Ghost
-    BlockInfo grandpaGhost();
-
-    /**
-     * We will vote for the best chain containing primary_vote_ iff
-     * the last round's prevote-GHOST included that block and
-     * that block is a strict descendent of the last round-estimate that we are
-     * aware of.
-     * Otherwise we will vote for the best chain containing last round estimate
-     */
-    outcome::result<Prevote> calculatePrevote() const;
 
     /// Check if received \param vote has valid \param justification prevote
     bool validatePrevoteJustification(
@@ -276,13 +264,32 @@ namespace kagome::consensus::grandpa {
 		std::vector<bool> prevote_equivocators_;
 		std::vector<bool> precommit_equivocators_;
 
-		boost::optional<PrimaryPropose> primary_vote_;
-		boost::optional<Prevote> prevote_;
-		boost::optional<Precommit> precommit_;
+		// Proposed primary vote.
+		// It's best final candidate of previous round
+		boost::optional<BlockInfo> primary_vote_;
 
+		// Our vote at prevote stage.
+		// It's deepest descendant of primary vote (or last finalized)
+		boost::optional<BlockInfo> prevote_;
+
+		// Our vote at precommit stage. Setting once.
+		// It's deepest descendant of best prevote candidate with prevote supermajority
+		boost::optional<BlockInfo> precommit_;
+
+		// Last finalized block at the moment of round is cteated
 		BlockInfo last_finalized_block_;
-		BlockInfo best_prevote_candidate_;
-		BlockInfo best_final_candidate_;
+
+		// Prevote ghost. Updating by each prevote.
+		// It's deepest descendant of primary vote (or last finalized) with prevote supermajority
+		// Is't also the best prevote candidate
+		boost::optional<BlockInfo> prevote_ghost_;
+
+		// Precommit ghost. Updating by each prevote and precommit.
+		// It's deepest descendant of best prevote candidate with precommit supermajority
+		// Is't also the best final candidate
+		boost::optional<BlockInfo> precommit_ghost_;
+
+		boost::optional<BlockInfo> best_final_candidate_;
 		boost::optional<BlockInfo> finalized_;
 
     Timer timer_;
@@ -291,6 +298,9 @@ namespace kagome::consensus::grandpa {
     common::Logger logger_ = common::createLogger("Grandpa");
 
     bool completable_ = false;
+
+    bool need_to_save_at_finalizing_ = true;
+    bool need_to_notice_at_finalizing_ = true;
   };
 }  // namespace kagome::consensus::grandpa
 
