@@ -187,11 +187,11 @@ namespace kagome::scale {
       auto item_count = size.convert_to<size_type>();
 
       std::vector<mutableT> vec;
-	    try {
-		    vec.resize(item_count);
-	    } catch (const std::bad_alloc &) {
-		    common::raise(DecodeError::TOO_MANY_ITEMS);
-	    }
+      try {
+        vec.resize(item_count);
+      } catch (const std::bad_alloc &) {
+        common::raise(DecodeError::TOO_MANY_ITEMS);
+      }
 
       for (size_type i = 0u; i < item_count; ++i) {
         *this >> vec[i];
@@ -281,15 +281,15 @@ namespace kagome::scale {
      */
     uint8_t nextByte();
 
-	  using ByteSpan = gsl::span<const uint8_t>;
-	  using SpanIterator = ByteSpan::const_iterator;
-	  using SizeType = ByteSpan::size_type;
+    using ByteSpan = gsl::span<const uint8_t>;
+    using SpanIterator = ByteSpan::const_iterator;
+    using SizeType = ByteSpan::size_type;
 
     ByteSpan span() const {
-    	return span_;
+      return span_;
     }
     SizeType currentIndex() const {
-    	return current_index_;
+      return current_index_;
     }
 
    private:

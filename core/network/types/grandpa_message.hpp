@@ -21,43 +21,10 @@ namespace kagome::network {
         : VoteMessage(std::move(vm)){};
   };
 
-  //  template <class Stream,
-  //            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  //  Stream &operator<<(Stream &s, const GrandpaVoteMessage
-  //  &grandpa_vote_message) {
-  //	  return s <<
-  //(scale::encode(static_cast<SignedMessage>(grandpa_vote_message)).value());
-  //  }
-  //
-  //  template <class Stream,
-  //            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  //  Stream &operator>>(Stream &s, GrandpaVoteMessage &grandpa_vote_message) {
-  //		common::Buffer encoded_signed_message;
-  //		s >> encoded_signed_message;
-  //		auto decoded_signed_message = scale::template
-  //decode<SignedMessage>(encoded_signed_message).value();
-  //		static_cast<SignedMessage>(grandpa_vote_message) =
-  //std::move(decoded_signed_message);
-  //    return s;
-  //  }
-
-  struct GrandpaPreCommit : public Fin {};
-
-  //  template <class Stream,
-  //            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  //  Stream &operator<<(Stream &s, const GrandpaPreCommit &request) {
-  //    throw std::runtime_error(
-  //        "Encoding of GrandpaPreCommit is not implemented yet");
-  //    return s;
-  //  }
-  //
-  //  template <class Stream,
-  //            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  //  Stream &operator>>(Stream &s, GrandpaPreCommit &request) {
-  //    throw std::runtime_error(
-  //        "Decoding of GrandpaPreCommit is not implemented yet");
-  //    return s;
-  //  }
+  struct GrandpaPreCommit : public Fin {
+    using Fin::Fin;
+    GrandpaPreCommit(Fin &&f) noexcept : Fin(std::move(f)){};
+  };
 
   struct GrandpaNeighborPacket {};
 

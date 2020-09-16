@@ -33,11 +33,11 @@ namespace kagome::consensus::grandpa {
      */
     virtual PushResult push(const VotingMessage &vote, size_t weight) = 0;
 
-	  /**
-		 * Unpush a vote from a tracker (i.e. at wrong vote)
-		 * @param vote the voting message was pushed before
-		 * @param weight weight of this vote
-		 */
+    /**
+     * Unpush a vote from a tracker (i.e. at wrong vote)
+     * @param vote the voting message was pushed before
+     * @param weight weight of this vote
+     */
     virtual void unpush(const VotingMessage &vote, size_t weight) = 0;
 
     /**

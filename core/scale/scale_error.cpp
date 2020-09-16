@@ -30,7 +30,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, DecodeError, e) {
     case DecodeError::UNEXPECTED_VALUE:
       return "unexpected value occured";
     case DecodeError::TOO_MANY_ITEMS:
-      return "collection has too many items or memory is out or data is damaged, unable to unpack";
+      return "collection has too many items or memory is out or data is "
+             "damaged, unable to unpack";
     case DecodeError::WRONG_TYPE_INDEX:
       return "wrong type index, cannot decode variant";
     case DecodeError::INVALID_DATA:

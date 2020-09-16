@@ -154,13 +154,7 @@ namespace kagome::consensus::grandpa {
     RoundNumber roundNumber() const override;
     MembershipCounter voterSetId() const override;
 
-    /**
-     * Round is completable when we have block (stored in
-     * current_state_.finalized) for which we have supermajority on both
-     * prevotes and precommits
-     */
     bool completable() const override;
-
     bool finalizable() const override;
 
     BlockInfo lastFinalizedBlock() const override {
@@ -230,11 +224,11 @@ namespace kagome::consensus::grandpa {
     const RoundNumber round_number_;
     std::weak_ptr<VotingRound> previous_round_;
 
-    const Duration duration_;  // length of round (T in spec)
+    const Duration duration_;  // length of round
     bool isPrimary_ = false;
-    size_t threshold_;  // supermajority threshold
-    const Id id_;       // id of current peer
-    TimePoint start_time_;
+    size_t threshold_;      // supermajority threshold
+    const Id id_;           // id of current peer
+    TimePoint start_time_;  // time when round was started to play
 
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<Environment> env_;

@@ -16,7 +16,7 @@ addtest(scale_compact_test
 target_link_libraries(scale_compact_test
     scale
     buffer
-        blob
+    blob
     )
 
 addtest(scale_fixed_test
@@ -93,13 +93,4 @@ addtest(scale_array_test
     )
 target_link_libraries(scale_array_test
     scale
-    )
-
-addtest(scale_special_test
-    special.cpp
-    )
-target_link_libraries(scale_special_test
-    scale
-    blob
-        logger
     )

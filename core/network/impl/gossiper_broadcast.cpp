@@ -143,8 +143,8 @@ namespace kagome::network {
       });
     };
 
-    // If stream esists then send them the msg. If stream is closed it is
-    // removed
+    // If stream esists then send them the msg
+    // If stream is closed it is removed
     auto syncing_stream_it = syncing_streams_.find(peer_id);
     if (syncing_stream_it != syncing_streams_.end()) {
       auto &stream = syncing_stream_it->second;
