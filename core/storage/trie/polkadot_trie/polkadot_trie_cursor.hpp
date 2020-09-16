@@ -25,13 +25,13 @@ namespace kagome::storage::trie {
      * Seek the first element with key not less than \arg key
      * @return true if the trie is not empty
      */
-    virtual outcome::result<bool> seekLowerBound(const common::Buffer &key) = 0;
+    virtual outcome::result<void> seekLowerBound(const common::Buffer &key) = 0;
 
     /**
      * Seek the first element with key greater than \arg key
      * @return true if the trie is not empty
      */
-    virtual outcome::result<bool> seekUpperBound(const common::Buffer &key) = 0;
+    virtual outcome::result<void> seekUpperBound(const common::Buffer &key) = 0;
   };
 
 }  // namespace kagome::storage::trie

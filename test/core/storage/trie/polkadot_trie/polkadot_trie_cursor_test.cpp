@@ -200,6 +200,15 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundEmptyTrie) {
   auto trie = makeTrie({});
   auto c = trie->trieCursor();
 
-  ASSERT_FALSE(c->seekLowerBound("00"_hex2buf).value());
+  EXPECT_OUTCOME_TRUE_1(c->seekLowerBound("00"_hex2buf));
   ASSERT_FALSE(c->key().has_value());
+}
+
+TEST_F(PolkadotTrieCursorTest, Lex) {
+  auto trie = makeTrie({{":heappages"_buf, "00"_hex2buf},
+                        {":code"_buf, "geass"_buf}});
+  auto c = trie->trieCursor();
+
+  EXPECT_OUTCOME_TRUE_1(c->seekLowerBound("Optional"_buf));
+  EXPECT_FALSE(c->key().has_value());
 }

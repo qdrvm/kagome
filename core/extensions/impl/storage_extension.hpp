@@ -174,8 +174,8 @@ namespace kagome::extensions {
     outcome::result<common::Buffer> get(const common::Buffer &key) const;
 
     /**
-     * @return error if any, a pair with (opt_key, true)
-     * if \arg key is found, (none, false) otherwise
+     * @return error if any, a key if the next key exists
+     * none otherwise
      */
     outcome::result<boost::optional<common::Buffer>>
     getStorageNextKey(const common::Buffer &key) const;
@@ -190,6 +190,7 @@ namespace kagome::extensions {
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };
+
 }  // namespace kagome::extensions
 
 #endif  // KAGOME_STORAGE_EXTENSIONS_EXTENSION_HPP

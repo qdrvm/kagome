@@ -14,8 +14,7 @@ namespace kagome::storage::trie {
 
   class PolkadotTrie;
 
-  class PolkadotTrieCursorImpl
-      : public PolkadotTrieCursor {
+  class PolkadotTrieCursorImpl : public PolkadotTrieCursor {
    public:
     using NodeType = PolkadotNode::Type;
 
@@ -42,15 +41,13 @@ namespace kagome::storage::trie {
 
     /**
      * Seek the first element with key not less than \arg key
-     * @return true if the trie is not empty
      */
-    outcome::result<bool> seekLowerBound(const common::Buffer &key) override;
+    outcome::result<void> seekLowerBound(const common::Buffer &key) override;
 
     /**
      * Seek the first element with key greater than \arg key
-     * @return true if the trie is not empty
      */
-    outcome::result<bool> seekUpperBound(const common::Buffer &key) override;
+    outcome::result<void> seekUpperBound(const common::Buffer &key) override;
 
     bool isValid() const override;
 
@@ -85,12 +82,11 @@ namespace kagome::storage::trie {
     // in the top entry is the same as \param parent
     void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
 
-    outcome::result<std::list<TriePathEntry>> followNibbles(
-        NodePtr node, gsl::span<const uint8_t> &nibbles) const;
-    outcome::result<boost::optional<NodePtr>> seekChildWithValue(
-        BranchPtr node);
-    outcome::result<boost::optional<NodePtr>> seekChildWithValueAfterIdx(
-        BranchPtr node, int8_t idx);
+    outcome::result<NodePtr> seekNodeWithValue(
+        NodePtr node);
+    // -1 if none
+    outcome::result<int8_t> getChildWithMinIdx(
+        BranchPtr node, uint8_t min_idx) const;
 
     /**
      * Constructs a list of branch nodes on the path from the root to the node
