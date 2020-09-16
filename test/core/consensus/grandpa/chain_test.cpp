@@ -138,12 +138,14 @@ TEST_F(ChainTest, IsEqualOrDescendantOf) {
   auto h1 = "010101"_hash256;
   auto h2 = "020202"_hash256;
   auto h3 = "030303"_hash256;
-  EXPECT_CALL(*tree, getChainByBlocks(h3, h2))
-      .WillOnce(Return(outcome::failure(boost::system::error_code())));
-  EXPECT_CALL(*tree, getChainByBlocks(h1, h3))
-      .WillOnce(Return(std::vector<BlockHash>{h1, h2, h3}));
+  EXPECT_CALL(*tree, hasDirectChain(h2, h2))
+      .Times(0);
+  EXPECT_CALL(*tree, hasDirectChain(h3, h1))
+      .WillOnce(Return(false));
+  EXPECT_CALL(*tree, hasDirectChain(h1, h3))
+      .WillOnce(Return(true));
 
-  ASSERT_TRUE(chain->isEqualOrDescendOf("01"_hash256, "01"_hash256));
-  ASSERT_FALSE(chain->isEqualOrDescendOf(h3, h2));
+  ASSERT_TRUE(chain->isEqualOrDescendOf(h2, h2));
+  ASSERT_FALSE(chain->isEqualOrDescendOf(h3, h1));
   ASSERT_TRUE(chain->isEqualOrDescendOf(h1, h3));
 }

@@ -351,7 +351,7 @@ namespace kagome::blockchain {
         } else {
           log_->warn(
               "impossible to get chain by blocks: "
-							"most probably, block {} is not an ancestor of {}",
+              "most probably, block {} is not an ancestor of {}",
               top_block.toHex(),
               bottom_block.toHex());
           return BlockTreeError::INCORRECT_ARGS;
@@ -370,9 +370,8 @@ namespace kagome::blockchain {
       if (!current_header_res) {
         log_->warn(
             "impossible to get chain by blocks: "
-						"intermediate block {} was not added to block tree before",
-            top_block.toHex(),
-            bottom_block.toHex());
+            "intermediate block {} was not added to block tree before",
+            current_hash.toHex());
         return BlockTreeError::NO_SOME_BLOCK_IN_CHAIN;
       }
       current_hash = current_header_res.value().parent_hash;
@@ -472,8 +471,8 @@ namespace kagome::blockchain {
     }
 
     log_->warn(
-        "Block {:?} exists in chain but not found when following all leaves "
-        "backwards. Max block number = {:?}",
+        "Block {} exists in chain but not found when following all leaves "
+        "backwards. Max block number = {}",
         target_hash.toHex(),
         max_number.has_value() ? max_number.value() : -1);
     return Error::BLOCK_NOT_FOUND;
@@ -593,11 +592,9 @@ namespace kagome::blockchain {
     for (auto &&extrinsic : extrinsics) {
       auto result = extrinsic_observer_->onTxMessage(extrinsic);
       if (result) {
-        log_->debug("Reapplied tx {}", result.value().toHex());
+        log_->debug("Tx {} was reapplied", result.value().toHex());
       } else {
-        log_->debug("Skipped tx {}: {}",
-                    result.value().toHex(),
-                    result.error().message());
+        log_->debug("Tx was skipped: {}", result.error().message());
       }
     }
 

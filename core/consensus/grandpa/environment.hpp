@@ -20,7 +20,7 @@ namespace kagome::consensus::grandpa {
    * Necessary environment for a voter.
    * This encapsulates the database and networking layers of the chain.
    */
-  struct Environment : public Chain {
+  struct Environment : public virtual Chain {
     using CompleteHandler =
         std::function<void(outcome::result<MovableRoundState>)>;
 

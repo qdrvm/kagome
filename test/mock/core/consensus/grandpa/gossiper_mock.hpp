@@ -20,8 +20,8 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD2(catchUpResponse,
                  void(const libp2p::peer::PeerId &,
                       const network::CatchUpResponse &));
-    MOCK_METHOD1(vote, void(const VoteMessage &));
-    MOCK_METHOD1(finalize, void(const Fin &));
+    MOCK_METHOD1(vote, void(const network::GrandpaVoteMessage &));
+    MOCK_METHOD1(finalize, void(const network::GrandpaPreCommit &));
   };
 
 }  // namespace kagome::consensus::grandpa

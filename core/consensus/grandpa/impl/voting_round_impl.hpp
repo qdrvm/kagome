@@ -40,8 +40,6 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<boost::asio::io_context> io_context);
 
    public:
-    ~VotingRoundImpl() override;
-
     VotingRoundImpl(
         const std::shared_ptr<Grandpa> &grandpa,
         const GrandpaConfig &config,
