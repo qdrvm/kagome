@@ -10,7 +10,6 @@
 
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/common.hpp"
-#include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 

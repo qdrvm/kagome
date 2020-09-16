@@ -3,17 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
-#define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
+#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPAIMPL
+#define KAGOME_CONSENSUS_GRANDPA_GRANDPAIMPL
 
-#include <consensus/grandpa/movable_round_state.hpp>
 #include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/grandpa_observer.hpp"
 
+#include "consensus/grandpa/movable_round_state.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "consensus/authority/authority_manager.hpp"
-#include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/voter_set.hpp"
@@ -63,7 +63,8 @@ namespace kagome::consensus::grandpa {
     void onVoteMessage(const libp2p::peer::PeerId &peer_id,
                        const VoteMessage &msg) override;
 
-    void onFinalize(const libp2p::peer::PeerId &peer_id, const Fin &fin) override;
+    void onFinalize(const libp2p::peer::PeerId &peer_id,
+                    const Fin &fin) override;
 
     // Round processing method
 
@@ -75,7 +76,7 @@ namespace kagome::consensus::grandpa {
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(
-        const MovableRoundState& round_state);
+        const MovableRoundState &round_state);
 
     std::shared_ptr<VotingRound> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);
@@ -101,4 +102,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
+#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPAIMPL

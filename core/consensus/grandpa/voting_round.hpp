@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTING_ROUND_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_VOTING_ROUND_HPP
+#ifndef KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
+#define KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
 
-#include "consensus/grandpa/round_observer.hpp"
-#include "consensus/grandpa/round_state.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
+#include "consensus/grandpa/round_observer.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -41,7 +40,7 @@ namespace kagome::consensus::grandpa {
     /// Block is finalized at the round
     virtual boost::optional<BlockInfo> finalizedBlock() const = 0;
 
-		virtual MovableRoundState state() const = 0;
+    virtual MovableRoundState state() const = 0;
 
     // Control lifecycle
 
@@ -89,12 +88,12 @@ namespace kagome::consensus::grandpa {
 
     virtual void onFinalize(const Fin &f) = 0;
 
-		// Auxiliary methods
+    // Auxiliary methods
 
-	  /// executes algorithm Attempt-To-Finalize-Round
-	  virtual void attemptToFinalizeRound() = 0;
+    /// executes algorithm Attempt-To-Finalize-Round
+    virtual void attemptToFinalizeRound() = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_VOTING_ROUND_HPP
+#endif  // KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
