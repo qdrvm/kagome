@@ -1,83 +1,24 @@
-@startuml follow nibbles algorithm
+@startuml lower bound algorithm
 start
-
-note right
-**Input:** an array of nibbles
-**Output:** Longest path in the trie matching given nibbles
-================================
-Returns a tuple **(P, T, L)**, where:
-**P** - an array of tuples (//node//, //idx//) denoting a node in the path
-     and the child idx of the next node
-**T** - the last node in the path, **empty** if it ends precisely
-     at a branch (e. g. when **left nibbles** are //'abc'//
-     for a node with nibbles //'ab'// the path ends in branch //'c'// of that
-     node even if there's no corresponding child)
-**L** - the first nibble that didn't match. Empty if all matched.
-end note
 
 :left nibbles := key_nibbles<
 :current := trie root<
-:P := {};
-while (left_nibbles are not empty) is (yes)
-    :L := common_length(left_nibbles, current.nibbles);
-    if (L < size(current.nibbles)) then (yes)
-        if (L < size(left_nibbles)) then (yes)
-            :(P, current, left_nibbles[L+1])>
-            note left
-            mismatch somewhere in
-            current's key nibbles
-            end note
-            detach
-        else (no)
-            :(P, current, none)>
-            note right
-            all nibbles match, but they are shorter
-            than an actual path in the trie
-            end note
-            detach
-        endif
-    else if (left_nibbles == current.nibbles) then (yes)
-        :(P, current, none)>
-        note right
-        perfect match, like in get_node
-        end note
+while () is (yes)
+    if (**length**(//left_nibbles//) <= **length**(//current_nibbles//) and
+        //common_length// == **length**(//left_nibbles//) or
+        //left_nibbles// < //current_nibbles//) then (yes)
+        :current or its least descendant with a value>
         detach
-    else (no)
-        :left_nibbles = left_nibbles[common_length:];
-        if (current is branch) then (yes)
-            :next := get_child(current, left_nibbles[0]);
-            if (next != null) then (yes)
-                :P.append((current, left_nibbles[0]));
-                :current := next;
-                :left_nibbles.pop_front();
-            else (no)
-                :(P, current, left_nibbles[0])>
-                detach
-            endif
-        else (no)
-            :(P, current, left_nibbles[0])>
-            note right: this has to be the rightmost leaf in the trie
-            detach
-        endif
+    else if (**length**(//left_nibbles//) > **length**(//current_nibbles//) and
+     //common_length// == **length**(current_nibbles) and
+     there is child with //idx// >= //left_nibbles//[0]) then (yes)
+       :go to current's child by nibble greater than //left_nibbles//[0];
+
+    else
+        :go to parent and find a child greater than current,
+        repeat until found or reached root;
+        detach
     endif
 end while
-->no;
-:(P, current, none)>
-
-@enduml
-
-@startuml lower bound algorithm
-start
-:current := root
-left_nibbles := key_nibbles<
-
-:(path, tail_node, next_nibble) := follow_nibbles(left_nibbles);
-note right: see "follow nibbles" algorithm
-
-if (next_nibble is not null) then (yes)
-    :current>
-    detach
-endif
-
-
+:unreachable;
 @enduml

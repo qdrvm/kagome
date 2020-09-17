@@ -134,7 +134,7 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
   }
 }
 
-const std::vector<std::pair<Buffer, Buffer>> lex_sorted_vals {
+const std::vector<std::pair<Buffer, Buffer>> lex_sorted_vals{
     {"0102"_hex2buf, "0102"_hex2buf},
     {"0103"_hex2buf, "0103"_hex2buf},
     {"010304"_hex2buf, "010304"_hex2buf},
@@ -144,9 +144,7 @@ const std::vector<std::pair<Buffer, Buffer>> lex_sorted_vals {
     {"060708"_hex2buf, "060708"_hex2buf},
     {"06070801"_hex2buf, "06070801"_hex2buf},
     {"06070802"_hex2buf, "06070802"_hex2buf},
-    {"06070803"_hex2buf, "06070803"_hex2buf}
-};
-
+    {"06070803"_hex2buf, "06070803"_hex2buf}};
 
 /**
  * @given a trie
@@ -168,7 +166,13 @@ TEST_F(PolkadotTrieCursorTest, Lexicographical) {
   } while (c->isValid());
 }
 
-TEST_F(PolkadotTrieCursorTest, LowerBound) {
+/**
+ * @given a non-empty trie
+ * @when seeking a lower bound for a given byte sequence which is somewhere in
+ * the middle in the set of trie keys and is not present in the trie
+ * @then the corresponding lower bound is found
+ */
+TEST_F(PolkadotTrieCursorTest, LowerBoundKeyNotPresent) {
   auto trie = makeTrie(lex_sorted_vals);
   auto c = trie->trieCursor();
   c->seekLowerBound("06066666"_hex2buf).value();
@@ -177,6 +181,12 @@ TEST_F(PolkadotTrieCursorTest, LowerBound) {
   ASSERT_EQ(c->value().value(), "060708"_hex2buf);
 }
 
+/**
+ * @given a non-empty trie
+ * @when seeking a lower bound for a given byte sequence which is somewhere in
+ * the middle in the set of trie keys
+ * @then the corresponding lower bound is found
+ */
 TEST_F(PolkadotTrieCursorTest, LowerBoundMiddleFromRoot) {
   auto trie = makeTrie(lex_sorted_vals);
   auto c = trie->trieCursor();
@@ -186,6 +196,12 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundMiddleFromRoot) {
   ASSERT_EQ(c->value().value(), "06"_hex2buf);
 }
 
+/**
+ * @given a non-empty trie
+ * @when seeking a lower bound for a byte sequence lex. smallest than any key in
+ * the trie
+ * @then the first key is found
+ */
 TEST_F(PolkadotTrieCursorTest, LowerBoundFirstKey) {
   auto trie = makeTrie(lex_sorted_vals);
   auto c = trie->trieCursor();
@@ -196,6 +212,11 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundFirstKey) {
   ASSERT_EQ(c->value().value(), "0103"_hex2buf);
 }
 
+/**
+ * @given an empty trie
+ * @when seeking a lower bound for a byte sequence in it
+ * @then resulting iterator is not valid
+ */
 TEST_F(PolkadotTrieCursorTest, LowerBoundEmptyTrie) {
   auto trie = makeTrie({});
   auto c = trie->trieCursor();
@@ -204,9 +225,14 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundEmptyTrie) {
   ASSERT_FALSE(c->key().has_value());
 }
 
-TEST_F(PolkadotTrieCursorTest, Lex) {
-  auto trie = makeTrie({{":heappages"_buf, "00"_hex2buf},
-                        {":code"_buf, "geass"_buf}});
+/**
+ * @given a non-empty trie
+ * @when seeking a lower bound in the trie for a given byte sequence
+ * @then the returned key is none if there is no lex. greater key in the trie
+ */
+TEST_F(PolkadotTrieCursorTest, LexOrderKept) {
+  auto trie =
+      makeTrie({{":heappages"_buf, "00"_hex2buf}, {":code"_buf, "geass"_buf}});
   auto c = trie->trieCursor();
 
   EXPECT_OUTCOME_TRUE_1(c->seekLowerBound("Optional"_buf));
