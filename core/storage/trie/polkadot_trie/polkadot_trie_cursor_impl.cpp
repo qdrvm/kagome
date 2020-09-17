@@ -4,6 +4,7 @@
  */
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
+#include <spdlog/spdlog.h>
 
 #include "common/buffer_back_insert_iterator.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
@@ -164,7 +165,9 @@ namespace kagome::storage::trie {
               last_visited_child_.emplace_back(current_as_branch, child_idx);
               OUTCOME_TRY(new_current,
                           trie_.retrieveChild(current_as_branch, child_idx));
-              left_nibbles = left_nibbles.subspan(current->key_nibbles.size() + 1);
+              left_nibbles =
+                  left_nibbles.subspan(current->key_nibbles.size() + 1);
+              current = new_current;
               continue;
             }
             break;  // go to case3
@@ -221,8 +224,7 @@ namespace kagome::storage::trie {
           }
         }
       }
-      BREAK:
-        ;
+    BREAK:;
     }
     return node;
   }
