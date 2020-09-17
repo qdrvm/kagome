@@ -18,8 +18,8 @@ target_link_libraries(trie_error
 kagome_install(trie_error)
 
 add_library(polkadot_trie_cursor
-        polkadot_trie_cursor_impl.cpp
-        )
+    polkadot_trie_cursor_impl.cpp
+    )
 target_link_libraries(polkadot_trie_cursor
     buffer
     polkadot_codec
