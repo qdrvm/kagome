@@ -28,6 +28,11 @@ namespace kagome::network {
     using Prevote = consensus::grandpa::Prevote;
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
+    /// Current protocol version.
+    static constexpr uint32_t CURRENT_VERSION = 6;
+    /// Lowest version we support
+    static constexpr uint32_t MIN_VERSION = 3;
+
    public:
     explicit GossiperBroadcast(libp2p::Host &host);
 
@@ -46,6 +51,10 @@ namespace kagome::network {
     void finalize(const consensus::grandpa::Fin &fin) override;
 
     void addStream(std::shared_ptr<libp2p::connection::Stream> stream) override;
+
+    void streamWrite(const GossipMessage &msg, std::shared_ptr<libp2p::connection::Stream> &&stream);
+
+    void onNewStream(std::shared_ptr<libp2p::connection::Stream> stream);
 
    private:
     void broadcast(GossipMessage &&msg);
