@@ -27,12 +27,12 @@ namespace kagome::network {
       msg.set_fields(LE_BE_SWAP32(t.fields.attributes.to_ulong()));
 
       if (t.max) msg.set_max_blocks(*t.max);
-      if (t.to) msg.set_to_block(t.to->toHex());
+      if (t.to) msg.set_to_block(t.to->toString());
 
       msg.set_direction(static_cast<::api::v1::Direction>(t.direction));
       kagome::visit_in_place(
           t.from,
-          [&](const primitives::BlockHash &v) { msg.set_hash(v.toHex()); },
+          [&](const primitives::BlockHash &v) { msg.set_hash(v.toString()); },
           [&](const primitives::BlockNumber &v) {
             msg.set_number(std::to_string(v));
           });
@@ -64,7 +64,7 @@ namespace kagome::network {
 
       switch (msg.from_block_case()) {
         case msg.kHash: {
-          OUTCOME_TRY(data, primitives::BlockHash::fromHex(msg.hash()));
+          OUTCOME_TRY(data, primitives::BlockHash::fromString(msg.hash()));
           out.from = data;
         } break;
 
@@ -76,7 +76,7 @@ namespace kagome::network {
           return AdaptersError::UNEXPECTED_VARIANT;
       }
 
-      OUTCOME_TRY(to_block, primitives::BlockHash::fromHex(msg.to_block()));
+      OUTCOME_TRY(to_block, primitives::BlockHash::fromString(msg.to_block()));
       out.to = to_block;
       out.max = msg.max_blocks();
 

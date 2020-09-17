@@ -26,7 +26,7 @@ namespace kagome::network {
       ::api::v1::BlockResponse msg;
       for (const auto &src_block : t.blocks) {
         auto *dst_block = msg.add_blocks();
-        dst_block->set_hash(src_block.hash.toHex());
+        dst_block->set_hash(src_block.hash.toString());
 
         if (src_block.header)
           dst_block->set_header(
@@ -38,13 +38,13 @@ namespace kagome::network {
                 vector_to_string(scale::encode(ext_body).value()));
 
         if (src_block.receipt)
-          dst_block->set_receipt(src_block.receipt->toHex());
+          dst_block->set_receipt(src_block.receipt->asString());
 
         if (src_block.message_queue)
-          dst_block->set_message_queue(src_block.message_queue->toHex());
+          dst_block->set_message_queue(src_block.message_queue->asString());
 
         if (src_block.justification)
-          dst_block->set_justification(src_block.justification->data.toHex());
+          dst_block->set_justification(src_block.justification->data.asString());
       }
 
       const size_t distance_was = std::distance(out.begin(), loaded);
@@ -73,7 +73,7 @@ namespace kagome::network {
       dst_blocks.reserve(msg.blocks().size());
       for (const auto &src_block_data : msg.blocks()) {
         OUTCOME_TRY(hash,
-                    primitives::BlockHash::fromHex(src_block_data.hash()));
+                    primitives::BlockHash::fromString(src_block_data.hash()));
 
         OUTCOME_TRY(header, extract_value<primitives::BlockHeader>([&]() {
                       return src_block_data.header();
@@ -88,13 +88,13 @@ namespace kagome::network {
           bodies->emplace_back(std::move(body));
         }
 
-        OUTCOME_TRY(receipt, common::Buffer::fromHex(src_block_data.receipt()));
+        OUTCOME_TRY(receipt, common::Buffer::fromString(src_block_data.receipt()));
 
         OUTCOME_TRY(message_queue,
-                    common::Buffer::fromHex(src_block_data.message_queue()));
+                    common::Buffer::fromString(src_block_data.message_queue()));
 
         OUTCOME_TRY(justification,
-                    common::Buffer::fromHex(src_block_data.justification()));
+                    common::Buffer::fromString(src_block_data.justification()));
 
         dst_blocks.emplace_back(primitives::BlockData{
             .hash = hash,
