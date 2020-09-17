@@ -126,17 +126,16 @@ namespace kagome::extensions {
       runtime::WasmSpan key_pos,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
-    static constexpr runtime::WasmSpan kErrorSpan = -1;
-
     auto [key_ptr, key_size] = runtime::WasmResult(key_pos);
     auto [value_ptr, value_size] = runtime::WasmResult(value_out);
 
     auto key = memory_->loadN(key_ptr, key_size);
+    boost::optional<uint32_t> res{boost::none};
     if (auto data = get(key, offset, value_size)) {
       memory_->storeBuffer(value_ptr, data.value());
-      return runtime::WasmResult(0, data.value().size()).combine();
+      res = value_size;
     }
-    return kErrorSpan;
+    return memory_->storeBuffer(scale::encode(res).value());
   }
 
   void StorageExtension::ext_set_storage(const runtime::WasmPointer key_data,
@@ -212,7 +211,8 @@ namespace kagome::extensions {
                 common::Hash256::size(),
                 parent_hash.begin());
 
-    if(auto result_buf = calcStorageChangesRoot(parent_hash); result_buf.has_value()) {
+    if (auto result_buf = calcStorageChangesRoot(parent_hash);
+        result_buf.has_value()) {
       memory_->storeBuffer(result, result_buf.value());
       return result_buf.value().size();
     }
@@ -275,21 +275,24 @@ namespace kagome::extensions {
       runtime::WasmSpan key) {
     auto [key_ptr, key_size] = runtime::WasmResult(key);
     auto key_buffer = memory_->loadN(key_ptr, key_size);
-    auto data = get(key_buffer);
-    if (not data) {
-      logger_->trace("ext_get_storage_into. Val by key {} not found",
-                     key_buffer.toHex());
-      return runtime::WasmMemory::kMaxMemorySize;
-    }
-    if (not data.value().empty()) {
-      logger_->trace("ext_get_storage_into. Key hex: {} , Value hex {}",
+
+    auto result = get(key_buffer);
+    auto option = result ? boost::make_optional(result.value()) : boost::none;
+
+    if (option) {
+      logger_->trace("ext_storage_get_version_1( {} ) => {}",
                      key_buffer.toHex(),
-                     data.value().toHex());
+                     option.value().empty() ? "empty" : option.value().toHex());
+
     } else {
-      logger_->trace("ext_get_storage_into. Key hex: {} Value: empty",
-                     key_buffer.toHex());
+      logger_->trace(
+          "ext_storage_get_version_1( {} ) => value was not obtained. Reason: "
+          "{}",
+          key_buffer.toHex(),
+          result.error().message());
     }
-    return memory_->storeBuffer(data.value());
+
+    return memory_->storeBuffer(scale::encode(option).value());
   }
 
   void StorageExtension::ext_storage_clear_version_1(
@@ -336,7 +339,7 @@ namespace kagome::extensions {
     std::copy_n(parent_hash_bytes.begin(),
                 common::Hash256::size(),
                 parent_hash.begin());
-    if(auto result = calcStorageChangesRoot(parent_hash); result.has_value()) {
+    if (auto result = calcStorageChangesRoot(parent_hash); result.has_value()) {
       return memory_->storeBuffer(result.value());
     }
     return 0;
@@ -400,10 +403,14 @@ namespace kagome::extensions {
       auto &&key = p.first;
       auto &&value = p.second;
       // already scale-encoded
-      auto res = trie.put(key, value);
-      if (res.has_error()) {
-        logger_->error("failed to construct a Trie: {}", res.error().message());
-        std::terminate();
+      auto put_res = trie.put(key, value);
+      if (not put_res) {
+        logger_->error(
+            "Insertion of value {} with key {} into the trie failed due to "
+            "error: {}",
+            value.toHex(),
+            key.toHex(),
+            put_res.error().message());
       }
     }
     const auto &enc = codec.encodeNode(*trie.getRoot());

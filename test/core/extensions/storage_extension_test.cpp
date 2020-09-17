@@ -441,6 +441,8 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   WasmResult value(42, 41);
   Buffer value_data(8, 'v');
   WasmOffset offset = 0;
+  EXPECT_OUTCOME_TRUE(encoded_opt_val_size, kagome::scale::encode(boost::make_optional(value.length)));
+  WasmSpan res_wasm_span = 1337;
 
   // expect key loaded, than data stored
   EXPECT_CALL(*memory_, loadN(key.address, key.length))
@@ -450,9 +452,13 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(value_data));
   EXPECT_CALL(*memory_,
               storeBuffer(value.address, gsl::span<const uint8_t>(value_data)));
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(encoded_opt_val_size)))
+      .WillOnce(Return(res_wasm_span));
 
-  storage_extension_->ext_storage_read_version_1(
-      key.combine(), value.combine(), offset);
+  ASSERT_EQ(res_wasm_span,
+            storage_extension_->ext_storage_read_version_1(
+                key.combine(), value.combine(), offset));
 }
 
 INSTANTIATE_TEST_CASE_P(Instance,
@@ -557,10 +563,13 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
   WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
 
   Buffer value(8, 'v');
+  auto encoded_opt_value =
+      kagome::scale::encode<boost::optional<Buffer>>(value).value();
 
   // expect key and value were loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(value)))
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(encoded_opt_value)))
       .WillOnce(Return(value_span));
 
   // expect key-value pair was put to db
