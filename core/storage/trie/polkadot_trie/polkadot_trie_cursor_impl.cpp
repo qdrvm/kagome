@@ -131,7 +131,8 @@ namespace kagome::storage::trie {
       // lenghts) are equal
       bool part_equal = left_mismatch == left_nibbles.end()
                         or current_mismatch == current->key_nibbles.end();
-      // case 1
+      // if current choice is lexicographically less or equal to the left part
+      // of the sought key, we just take the closest node with value
       bool lessOrEq =
           (part_equal and left_mismatch == left_nibbles.end())
           or (not part_equal and *left_mismatch < *current_mismatch);
@@ -150,7 +151,10 @@ namespace kagome::storage::trie {
             return Error::INVALID_NODE_TYPE;
         }
       }
-      // case 2
+      // if the left part of the sought key exceeds the current node's key, but
+      // its prefix is equal to the key, then we proceed to a child node that
+      // starts with a nibble that is greater of equal to the first nibble of
+      // the left part (if there is no such child, proceed to the next case)
       bool longer = (part_equal and left_mismatch != left_nibbles.end()
                      and current_mismatch == current->key_nibbles.end());
       if (longer) {
@@ -179,7 +183,9 @@ namespace kagome::storage::trie {
             return Error::INVALID_NODE_TYPE;
         }
       }
-      // case 3 and not case 2
+      // if the left part of the key is longer than the current of
+      // lexicographically greater than the current, we must return to its
+      // parent and find a child greater than the current one
       bool longerOrBigger =
           longer or (not part_equal and *left_mismatch > *current_mismatch);
       if (longerOrBigger) {
