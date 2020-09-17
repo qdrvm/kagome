@@ -8,7 +8,6 @@
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/loopback_stream.hpp"
-#include "network/types/status.hpp"
 
 namespace kagome::network {
 
@@ -61,39 +60,21 @@ namespace kagome::network {
     broadcast(std::move(message));
   }
 
-  void GossiperBroadcast::onNewStream(
-      std::shared_ptr<libp2p::connection::Stream> stream) {
-    Status status_msg;
-    status_msg.version = CURRENT_VERSION;
-    status_msg.min_supported_version = MIN_VERSION;
-
-    GossipMessage status_;
-    status_.type = GossipMessage::Type::STATUS;
-    status_.data.put(scale::encode(status_msg).value());
-
-    streamWrite(status_, std::move(stream));
-  }
-
-  void GossiperBroadcast::streamWrite(
-      const GossipMessage &msg,
-      std::shared_ptr<libp2p::connection::Stream> &&stream) {
-    ScaleMessageReadWriter rw(std::move(stream));
-    rw.write(msg, [this](auto &&res) {
-      if (!res)
-        logger_->error("Could not broadcast, reason: {}",
-                       res.error().message());
-    });
-  }
-
   void GossiperBroadcast::addStream(
       std::shared_ptr<libp2p::connection::Stream> stream) {
     syncing_streams_.push_back(stream);
-    onNewStream(stream);
   }
 
   void GossiperBroadcast::broadcast(GossipMessage &&msg) {
     auto msg_send_lambda = [msg, this](auto stream) {
-      streamWrite(msg, std::move(stream));
+      auto read_writer =
+          std::make_shared<ScaleMessageReadWriter>(std::move(stream));
+      read_writer->write(msg, [this](auto &&res) {
+        if (not res) {
+          logger_->error("Could not broadcast, reason: {}",
+                         res.error().message());
+        }
+      });
     };
 
     // iterate over the existing streams and send them the msg. If stream is
