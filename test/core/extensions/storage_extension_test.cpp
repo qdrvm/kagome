@@ -292,7 +292,7 @@ TEST_F(StorageExtensionTest, NextKey) {
   EXPECT_CALL(*trie_batch_, trieCursor())
       .WillOnce(Invoke([&key, &expected_next_key]() {
         auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-        EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(true));
+        EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
         EXPECT_CALL(*cursor, key()).WillOnce(Return(expected_next_key));
         return cursor;
       }));
@@ -329,7 +329,7 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
 
   EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(true));
+    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
     EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));
@@ -360,7 +360,7 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
 
   EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(false));
+    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
     EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));

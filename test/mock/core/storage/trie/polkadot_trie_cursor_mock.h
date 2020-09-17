@@ -14,8 +14,8 @@ namespace kagome::storage::trie {
    public:
     MOCK_METHOD0(seekFirst, outcome::result<bool>());
     MOCK_METHOD1(seek, outcome::result<bool>(const Buffer &));
-    MOCK_METHOD1(seekLowerBound, outcome::result<bool>(const Buffer &));
-    MOCK_METHOD1(seekUpperBound, outcome::result<bool>(const Buffer &));
+    MOCK_METHOD1(seekLowerBound, outcome::result<void>(const Buffer &));
+    MOCK_METHOD1(seekUpperBound, outcome::result<void>(const Buffer &));
     MOCK_METHOD0(seekLast, outcome::result<bool>());
     MOCK_CONST_METHOD0(isValid, bool());
     MOCK_METHOD0(next, outcome::result<void>());
