@@ -183,6 +183,19 @@ TEST_F(PolkadotTrieCursorTest, LowerBoundKeyNotPresent) {
 
 /**
  * @given a non-empty trie
+ * @when seeking a lower bound for a given byte sequence which is greater than
+ * any key in the trie
+ * @then the corresponding lower bound is found
+ */
+TEST_F(PolkadotTrieCursorTest, LowerBoundKeyGreatest) {
+  auto trie = makeTrie(lex_sorted_vals);
+  auto c = trie->trieCursor();
+  c->seekLowerBound("060709"_hex2buf).value();
+  ASSERT_FALSE(c->isValid());
+}
+
+/**
+ * @given a non-empty trie
  * @when seeking a lower bound for a given byte sequence which is somewhere in
  * the middle in the set of trie keys
  * @then the corresponding lower bound is found

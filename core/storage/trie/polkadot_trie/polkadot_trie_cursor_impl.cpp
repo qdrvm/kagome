@@ -263,6 +263,7 @@ namespace kagome::storage::trie {
     if (not visited_root_) {
       current_ = trie_.getRoot();
     }
+    // if we are in invalid position, next() just doesn't do anything
     if (current_ == nullptr) {
       return outcome::success();
     }

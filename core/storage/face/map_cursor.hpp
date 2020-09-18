@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MAP_CURSOR_HPP
-#define KAGOME_MAP_CURSOR_HPP
+#ifndef KAGOME_STORAGE_MAP_CURSOR_HPP
+#define KAGOME_STORAGE_MAP_CURSOR_HPP
+
+#include <boost/optional.hpp>
 
 #include "outcome/outcome.hpp"
-#include "boost/optional.hpp"
 
 namespace kagome::storage::face {
 
