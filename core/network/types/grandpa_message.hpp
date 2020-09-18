@@ -10,20 +10,24 @@
 #include "consensus/grandpa/structs.hpp"
 
 namespace {
-  using namespace kagome::consensus::grandpa;
-}
+  using kagome::consensus::grandpa::BlockInfo;
+  using kagome::consensus::grandpa::Fin;
+  using kagome::consensus::grandpa::GrandpaJustification;
+  using kagome::consensus::grandpa::RoundNumber;
+  using kagome::consensus::grandpa::VoteMessage;
+}  // namespace
 
 namespace kagome::network {
 
   struct GrandpaVoteMessage : public VoteMessage {
     using VoteMessage::VoteMessage;
-    GrandpaVoteMessage(VoteMessage &&vm) noexcept
+    explicit GrandpaVoteMessage(VoteMessage &&vm) noexcept
         : VoteMessage(std::move(vm)){};
   };
 
   struct GrandpaPreCommit : public Fin {
     using Fin::Fin;
-    GrandpaPreCommit(Fin &&f) noexcept : Fin(std::move(f)){};
+    explicit GrandpaPreCommit(Fin &&f) noexcept : Fin(std::move(f)){};
   };
 
   struct GrandpaNeighborPacket {};
@@ -62,8 +66,8 @@ namespace kagome::network {
   }
 
   struct CatchUpResponse {
-    size_t voter_set_id;
-    RoundNumber round_number;
+    size_t voter_set_id{};
+    RoundNumber round_number{};
     GrandpaJustification prevote_justification;
     GrandpaJustification precommit_justification;
     BlockInfo best_final_candidate;
