@@ -348,8 +348,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(previous_round != nullptr);
 
     bool isReadyToEnd =
-        completable_ && previous_round->finalizedBlock().has_value()
-        && previous_round->finalizedBlock()->block_number
+        finalizable()
+        && finalizedBlock()->block_number
                >= previous_round->bestFinalCandidate().block_number;
 
     if (isReadyToEnd) {
