@@ -1530,13 +1530,13 @@ namespace kagome::consensus::grandpa {
     pending_timer_.expires_from_now(std::max<Clock::Duration>(
         duration_ * 10,
         std::chrono::seconds(15)));  // Should be longer than precommit timer
-    pending_timer_.async_wait(
-        [wp = std::weak_ptr(std::static_pointer_cast<VotingRoundImpl>(
-             shared_from_this()))](const auto &...) {
-          if (auto self = wp.lock()) {
-            self->logger_->debug("Round #{} pending...", self->round_number_);
-            self->pending();
-          }
-        });
+    pending_timer_.async_wait([wp = std::weak_ptr<VotingRoundImpl>(
+                                   std::static_pointer_cast<VotingRoundImpl>(
+                                       shared_from_this()))](const auto &...) {
+      if (auto self = wp.lock()) {
+        self->logger_->debug("Round #{} pending...", self->round_number_);
+        self->pending();
+      }
+    });
   }
 }  // namespace kagome::consensus::grandpa
