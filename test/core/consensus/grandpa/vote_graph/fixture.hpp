@@ -19,10 +19,10 @@ using namespace kagome;
 using namespace consensus;
 using namespace grandpa;
 
-using ::testing::_;
-using ::testing::Return;
+using testing::_;
+using testing::Return;
 
-struct VoteGraphFixture : public ::testing::Test {
+struct VoteGraphFixture : public testing::Test {
   const BlockHash GENESIS_HASH = "genesis"_H;
 
   std::shared_ptr<ChainMock> chain = std::make_shared<ChainMock>();

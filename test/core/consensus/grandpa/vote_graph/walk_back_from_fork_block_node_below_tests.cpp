@@ -6,7 +6,7 @@
 
 struct WalkBackFromBlockNodeBelow
     : public VoteGraphFixture,
-      public ::testing::WithParamInterface<std::tuple<BlockInfo, BlockInfo>> {
+      public testing::WithParamInterface<std::tuple<BlockInfo, BlockInfo>> {
   void SetUp() override {
     BlockInfo base{0, GENESIS_HASH};
     graph = std::make_shared<VoteGraphImpl>(base, chain);
@@ -28,7 +28,7 @@ struct WalkBackFromBlockNodeBelow
   "base_number": 0
 })");
 
-    expect_getAncestry(GENESIS_HASH, "B"_H, vec("A"_H));
+    expect_getAncestry(GENESIS_HASH, "B"_H, vec("B"_H, "A"_H, GENESIS_HASH));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{2, "B"_H}, 10_W));
 
     AssertGraphCorrect(*graph,
@@ -60,7 +60,9 @@ struct WalkBackFromBlockNodeBelow
 })");
 
     expect_getAncestry(
-        GENESIS_HASH, "F1"_H, vec("E1"_H, "D"_H, "C"_H, "B"_H, "A"_H));
+        GENESIS_HASH,
+        "F1"_H,
+        vec("F1"_H, "E1"_H, "D"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "F1"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
@@ -105,7 +107,9 @@ struct WalkBackFromBlockNodeBelow
 })");
 
     expect_getAncestry(
-        GENESIS_HASH, "G2"_H, vec("F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H));
+        GENESIS_HASH,
+        "G2"_H,
+        vec("G2"_H, "F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "G2"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
@@ -165,7 +169,15 @@ struct WalkBackFromBlockNodeBelow
 
     expect_getAncestry(GENESIS_HASH,
                        "H2"_H,
-                       vec("G2"_H, "F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H));
+                       vec("H2"_H,
+                           "G2"_H,
+                           "F2"_H,
+                           "E2"_H,
+                           "D"_H,
+                           "C"_H,
+                           "B"_H,
+                           "A"_H,
+                           GENESIS_HASH));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{8, "H2"_H}, 1_W));
 
     AssertGraphCorrect(*graph,

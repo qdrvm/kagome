@@ -30,23 +30,19 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(
       const BlockHash &base, const BlockHash &block) const {
-    std::vector<BlockHash> result_chain;
-
     // if base equal to block, then return list with single block
     if (base == block) {
-      result_chain.push_back(base);
-      return result_chain;
+      return std::vector<BlockHash>{base};
     }
 
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
-    result_chain.resize(chain.size() - 1);
-    std::move(chain.rbegin() + 1, chain.rend(), result_chain.begin());
-    return result_chain;
+    std::reverse(chain.begin(), chain.end());
+    return std::move(chain);
   }
 
   bool EnvironmentImpl::hasAncestry(const BlockHash &base,
                                     const BlockHash &block) const {
-    return block_tree_->hasDirectChain(base, block);
+    return base == block ? true : block_tree_->hasDirectChain(base, block);
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(

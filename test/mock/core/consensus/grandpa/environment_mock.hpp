@@ -6,8 +6,8 @@
 #ifndef KAGOME_TEST_MOCK_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_MOCK_HPP
 #define KAGOME_TEST_MOCK_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_MOCK_HPP
 
-#include "mock/core/consensus/grandpa/chain_mock.hpp"
 #include "consensus/grandpa/environment.hpp"
+#include "mock/core/consensus/grandpa/chain_mock.hpp"
 
 #include <gmock/gmock.h>
 
@@ -15,11 +15,11 @@ namespace kagome::consensus::grandpa {
 
   class EnvironmentMock : public Environment, public ChainMock {
    public:
-
     MOCK_METHOD3(onProposed,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,
                                        const SignedMessage &propose));
+
     MOCK_METHOD3(onPrevoted,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,

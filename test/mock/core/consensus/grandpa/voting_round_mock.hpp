@@ -19,8 +19,9 @@ namespace kagome::consensus::grandpa {
     MOCK_CONST_METHOD0(completable, bool());
     MOCK_CONST_METHOD0(finalizable, bool());
     MOCK_CONST_METHOD0(lastFinalizedBlock, BlockInfo());
-    MOCK_METHOD0(bestFinalCandidate, BlockInfo());
     MOCK_METHOD0(bestPrevoteCandidate, BlockInfo());
+    MOCK_METHOD0(bestPrecommitCandidate, BlockInfo());
+    MOCK_METHOD0(bestFinalCandidate, BlockInfo());
     MOCK_CONST_METHOD0(finalizedBlock, boost::optional<BlockInfo>());
     MOCK_CONST_METHOD0(state, MovableRoundState());
     MOCK_METHOD0(play, void());

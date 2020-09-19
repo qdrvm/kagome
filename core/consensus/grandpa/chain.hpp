@@ -22,8 +22,8 @@ namespace kagome::consensus::grandpa {
     virtual ~Chain() = default;
 
     /**
-     * @brief Get the ancestry of a {@param block} up to but not including the
-     * {@param base} hash. Should be in reverse order from block's parent.
+     * @brief Get the ancestry of a {@param block} up to the {@param base} hash.
+     * Should be in reverse order from block's parent.
      * @return If the block is not a descendent of base, returns an error.
      */
     virtual outcome::result<std::vector<primitives::BlockHash>> getAncestry(

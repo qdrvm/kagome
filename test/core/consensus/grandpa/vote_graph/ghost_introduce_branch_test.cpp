@@ -26,10 +26,18 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   "base_number": 0
 })");
 
-    expect_getAncestry(
-        GENESIS_HASH,
-        "FC"_H,
-        vec("FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H, "B"_H, "A"_H));
+    expect_getAncestry(GENESIS_HASH,
+                       "FC"_H,
+                       vec("FC"_H,
+                           "FB"_H,
+                           "FA"_H,
+                           "F"_H,
+                           "E"_H,
+                           "D"_H,
+                           "C"_H,
+                           "B"_H,
+                           "A"_H,
+                           GENESIS_HASH));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "FC"_H}, 5_W));
 
     AssertGraphCorrect(*graph,
@@ -67,10 +75,18 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   "base_number": 0
 })");
 
-    expect_getAncestry(
-        GENESIS_HASH,
-        "ED"_H,
-        vec("EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H, "B"_H, "A"_H));
+    expect_getAncestry(GENESIS_HASH,
+                       "ED"_H,
+                       vec("ED"_H,
+                           "EC"_H,
+                           "EB"_H,
+                           "EA"_H,
+                           "E"_H,
+                           "D"_H,
+                           "C"_H,
+                           "B"_H,
+                           "A"_H,
+                           GENESIS_HASH));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "ED"_H}, 7_W));
 
     AssertGraphCorrect(*graph,

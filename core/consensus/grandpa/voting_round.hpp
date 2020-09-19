@@ -31,11 +31,29 @@ namespace kagome::consensus::grandpa {
 
     virtual bool finalizable() const = 0;
 
+    /// Block finalized in previous round (when current one was created)
     virtual BlockInfo lastFinalizedBlock() const = 0;
-    virtual BlockInfo bestFinalCandidate() = 0;
 
-    /// @see spec: Best-PreVote-Candidate
+    /**
+     * Best block from descendants of previous round best-final-candidate
+     * @see spec: Best-PreVote-Candidate
+     */
     virtual BlockInfo bestPrevoteCandidate() = 0;
+
+    /**
+     * Block what has prevote supermajority.
+     * @see spec: Best-PreVote-Candidate
+     * @see spec: Ghost-Function
+     */
+    virtual BlockInfo bestPrecommitCandidate() = 0;
+
+    /**
+     * Block what has precommit supermajority.
+     * Should be descendant or equal of Best-PreVote-Candidate
+     * @see spec: Best-Final-Candidate
+     * @see spec: Ghost-Function
+     */
+    virtual BlockInfo bestFinalCandidate() = 0;
 
     /// Block is finalized at the round
     virtual boost::optional<BlockInfo> finalizedBlock() const = 0;

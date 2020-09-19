@@ -161,6 +161,7 @@ namespace kagome::consensus::grandpa {
       return last_finalized_block_;
     }
     BlockInfo bestPrevoteCandidate() override;
+    BlockInfo bestPrecommitCandidate() override;
     BlockInfo bestFinalCandidate() override;
     boost::optional<BlockInfo> finalizedBlock() const override {
       return finalized_;
@@ -281,7 +282,7 @@ namespace kagome::consensus::grandpa {
     Timer timer_;
     Timer pending_timer_;
 
-    common::Logger logger_ = common::createLogger("Grandpa");
+    common::Logger logger_ = common::createLogger("VotingRound");
 
     bool completable_ = false;
 
