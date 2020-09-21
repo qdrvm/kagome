@@ -177,12 +177,10 @@ namespace kagome::network {
               grandpa_observer_->onFinalize(peer_id, fin_message);
               return true;
             },
-            [this, &peer_id](const GrandpaNeighborPacket &neighbor_packet) {
+            [](const GrandpaNeighborPacket &neighbor_packet) {
               BOOST_ASSERT_MSG(false,
                                "Unimplemented variant (GrandpaNeighborPacket) "
                                "of consensus (grandpa) message");
-              (void)this;
-              (void)peer_id;
               return false;
             },
             [this, &peer_id](const network::CatchUpRequest &catch_up_request) {

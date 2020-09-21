@@ -205,10 +205,6 @@ namespace kagome::consensus::grandpa {
     boost::optional<GrandpaJustification> getJustification(
         const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const;
 
-    /// Check if received \param vote has valid \param justification prevote
-    bool validatePrevoteJustification(
-        const BlockInfo &vote, const GrandpaJustification &justification) const;
-
     /// Check if received \param vote has valid \param justification precommit
     bool validatePrecommitJustification(
         const BlockInfo &vote, const GrandpaJustification &justification) const;
@@ -286,6 +282,9 @@ namespace kagome::consensus::grandpa {
 
     bool completable_ = false;
 
+    // We should not broadcast Fin message, if our round was finalized by Fin
+    // message from other peer or during the catch-up mechanism.
+    // In last cases we can just unset this flag for that.
     bool need_to_notice_at_finalizing_ = true;
   };
 }  // namespace kagome::consensus::grandpa

@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-#include "consensus/grandpa/structs.hpp"
 #include "scale/scale.hpp"
 #include "scale/scale_error.hpp"
 #include "testutil/literals.hpp"
@@ -84,8 +83,24 @@ INSTANTIATE_TEST_CASE_P(
         // some multibyte integer
         CompactTest::pair(
             CompactInteger("1234567890123456789012345678901234567890"),
-            {0b110111, 210, 10, 63, 206, 150, 95, 188, 172, 184, 243, 219, 192,
-             117, 32, 201, 160, 3}),
+            {0b110111,
+             210,
+             10,
+             63,
+             206,
+             150,
+             95,
+             188,
+             172,
+             184,
+             243,
+             219,
+             192,
+             117,
+             32,
+             201,
+             160,
+             3}),
         // min multibyte integer
         CompactTest::pair(1073741824, {3, 0, 0, 0, 64}),
         // max multibyte integer

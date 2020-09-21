@@ -104,30 +104,7 @@ namespace kagome::network {
       return;
     }
 
-    //    auto stream_it = std::find_if(
-    //        streams_.begin(), streams_.end(), [peer_id](const auto &item) {
-    //          return item.first.id == peer_id;
-    //        });
-    //    if (stream_it == streams_.end()) {
-    //      syncing_streams_.emplace(peer_id, std::move(stream));
     logger_->debug("Syncing stream (peer_id={}) was emplaced", peer_id.toHex());
-    return;
-    //    }
-    //
-    //    if (stream_it->second) {
-    //      if (stream_it->second != stream) {
-    //        stream_it->second->reset();
-    //        stream_it->second.swap(stream);
-    //        logger_->debug("Reserved stream (peer_id={}) was replaced",
-    //                       peer_id.toHex());
-    //      }
-    //      return;
-    //    }
-    //
-    //    stream_it->second.swap(stream);
-    //    logger_->debug("Reserved stream (peer_id={}) was emplaced",
-    //                   peer_id.toHex());
-    //    return;
   }
 
   void GossiperBroadcast::send(const libp2p::peer::PeerId &peer_id,
@@ -143,7 +120,7 @@ namespace kagome::network {
       });
     };
 
-    // If stream esists then send them the msg
+    // If stream exists then send them the msg
     // If stream is closed it is removed
     auto syncing_stream_it = syncing_streams_.find(peer_id);
     if (syncing_stream_it != syncing_streams_.end()) {

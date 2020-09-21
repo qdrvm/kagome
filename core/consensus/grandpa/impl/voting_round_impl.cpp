@@ -338,8 +338,8 @@ namespace kagome::consensus::grandpa {
     logger_->debug("Round #{}: Start final stage", round_number_);
 
     // Continue to receive messages until current round is completable and
-    // previous one is finalisable and last filanized better than best filan
-    // candidate of prefious round
+    // previous one is finalisable and last finalized better than best filan
+    // candidate of previous round
 
     // spec: Receive-Messages(
     //    until r is completable
@@ -396,7 +396,6 @@ namespace kagome::consensus::grandpa {
 
     // Reset handler of previous round finalizable
     on_complete_handler_ = nullptr;
-
 
     // Play new round
     // spec: Play-Grandpa-round(r + 1);
@@ -645,61 +644,6 @@ namespace kagome::consensus::grandpa {
 
     need_to_notice_at_finalizing_ = false;
     env_->onCompleted(state());
-  }
-
-  bool VotingRoundImpl::validatePrevoteJustification(
-      const BlockInfo &vote, const GrandpaJustification &justification) const {
-    size_t total_weight = 0;
-
-    std::unordered_map<Id, BlockHash> validators;
-    std::unordered_set<Id> equivocators;
-
-    for (const auto &signed_precommit : justification.items) {
-      // Skip known equivocators
-      if (auto index = voter_set_->voterIndex(signed_precommit.id);
-          index.has_value()) {
-        if (precommit_equivocators_.at(index.value())) {
-          continue;
-        }
-      }
-
-      // Verify signatures
-      if (not vote_crypto_provider_->verifyPrecommit(signed_precommit)) {
-        logger_->error("Round #{}: Received invalid signed prevote from {}",
-                       round_number_,
-                       signed_precommit.id.toHex());
-        return false;
-      }
-
-      // check that every signed precommit corresponds to the vote (i.e.
-      // signed_precommits are descendants of the vote). If so add weight of
-      // that voter to the total weight
-
-      if (auto [it, success] = validators.emplace(
-              signed_precommit.id, signed_precommit.block_hash());
-          success) {
-        // New vote
-        if (env_->hasAncestry(vote.block_hash, signed_precommit.block_hash())) {
-          total_weight += voter_set_->voterWeight(signed_precommit.id).value();
-        }
-
-      } else if (equivocators.emplace(signed_precommit.id).second) {
-        // Detected equivocation
-        if (env_->hasAncestry(vote.block_hash, it->second)) {
-          total_weight -= voter_set_->voterWeight(signed_precommit.id).value();
-        }
-
-      } else {
-        // Detected duplicate of equivotation
-        logger_->error(
-            "Round #{}: Received third precommit of caught equivocator from {}",
-            round_number_,
-            signed_precommit.id.toHex());
-        return false;
-      }
-    }
-
-    return total_weight >= threshold_;
   }
 
   bool VotingRoundImpl::validatePrecommitJustification(
