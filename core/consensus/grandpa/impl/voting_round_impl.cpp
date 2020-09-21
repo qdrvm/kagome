@@ -388,8 +388,6 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::WAITING_RUNS);
 
-    attemptToFinalizeRound();
-
     stage_ = Stage::END_WAITING;
 
     logger_->debug("Round #{}: End final stage", round_number_);
@@ -593,10 +591,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onFinalize(const Fin &finalize) {
-    auto c = completable();
-    auto f = finalizable();
-    logger_->debug("debud 0: completable={} finalizable={}", c, f);
-
     // validate message
     auto result =
         validatePrecommitJustification(finalize.vote, finalize.justification);
@@ -708,6 +702,9 @@ namespace kagome::consensus::grandpa {
 
     if (finalizable()) {
       doFinalize();
+      if (on_complete_handler_){
+      	on_complete_handler_();
+      }
       return;
     }
 
@@ -1118,8 +1115,8 @@ namespace kagome::consensus::grandpa {
     // the round-estimate is the highest block in the chain with head
     // `prevote_ghost` that could have supermajority-commits.
     if (precommits_->getTotalWeight() >= threshold_) {
-      auto current_best = prevote_ghost_.has_value() ? prevote_ghost_.value()
-                                                     : last_finalized_block_;
+      auto current_best =
+          precommit_ghost_.has_value() ? precommit_ghost_.value() : last_finalized_block_;
 
       auto best_final_candidate = graph_->findAncestor(
           current_best, possible_to_precommit, VoteWeight::precommitComparator);
