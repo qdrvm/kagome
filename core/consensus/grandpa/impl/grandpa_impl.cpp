@@ -442,8 +442,6 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
                                const Fin &fin) {
-    logger_->debug("Received fin message for round #{}", fin.round_number);
-
     std::shared_ptr<VotingRound> target_round = selectRound(fin.round_number);
     if (not target_round) {
       if (current_round_->roundNumber() < fin.round_number) {

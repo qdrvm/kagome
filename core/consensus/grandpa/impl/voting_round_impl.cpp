@@ -78,7 +78,7 @@ namespace kagome::consensus::grandpa {
     auto index = round_number_ % voter_set_->size();
     isPrimary_ = voter_set_->voters().at(index) == id_;
 
-    logger_->debug("Round #{} is created", round_number_);
+    logger_->debug("Round #{}: is created", round_number_);
   }
 
   VotingRoundImpl::VotingRoundImpl(
@@ -166,7 +166,7 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::START;
 
-    logger_->debug("Start round #{}", round_number_);
+    logger_->debug("Round #{}: Start round", round_number_);
 
     // Start pending mechanism
     pending();
@@ -209,7 +209,7 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::START_PREVOTE;
 
-    logger_->debug("Start prevote stage of round #{}", round_number_);
+    logger_->debug("Round #{}: Start prevote stage", round_number_);
 
     // Continue to receive messages
     // until T>=Tstart + 2 * Duration or round is completable
@@ -227,7 +227,7 @@ namespace kagome::consensus::grandpa {
     timer_.async_wait([this](const boost::system::error_code &ec) {
       if (ec == boost::system::errc::operation_canceled) return;
       if (stage_ == Stage::PREVOTE_RUNS) {
-        logger_->debug("Time of prevote stage of round #{} is out",
+        logger_->debug("Round #{}: Time of prevote stage is out",
                        round_number_);
         endPrevoteStage();
       }
@@ -235,7 +235,7 @@ namespace kagome::consensus::grandpa {
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PREVOTE_RUNS) {
-        logger_->debug("Round #{} became completable", round_number_);
+        logger_->debug("Round #{} is became completable", round_number_);
         endPrevoteStage();
       }
     };
@@ -251,7 +251,7 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::END_PREVOTE;
 
-    logger_->debug("End prevote stage of round #{}", round_number_);
+    logger_->debug("Round #{}: End prevote stage", round_number_);
 
     // Broadcast vote for prevote stage
     doPrevote();
@@ -270,7 +270,7 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::START_PRECOMMIT;
 
-    logger_->debug("Start precommit stage of round #{}", round_number_);
+    logger_->debug("Round #{}: Start precommit stage", round_number_);
 
     // Continue to receive messages
     // until T>=Tstart + 4 * Duration or round is completable
@@ -292,7 +292,7 @@ namespace kagome::consensus::grandpa {
     timer_.async_wait([this](const boost::system::error_code &ec) {
       if (ec == boost::system::errc::operation_canceled) return;
       if (stage_ == Stage::PRECOMMIT_RUNS) {
-        logger_->debug("Time of precommit stage of round #{} is out",
+        logger_->debug("Round #{}: Time of precommit stage is out",
                        round_number_);
         endPrecommitStage();
       }
@@ -300,7 +300,7 @@ namespace kagome::consensus::grandpa {
 
     on_complete_handler_ = [this] {
       if (stage_ == Stage::PRECOMMIT_RUNS) {
-        logger_->debug("Round #{} became completable", round_number_);
+        logger_->debug("Round #{}: Became completable", round_number_);
         endPrecommitStage();
       }
     };
@@ -316,7 +316,7 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::END_PRECOMMIT;
 
-    logger_->debug("End precommit stage of round #{}", round_number_);
+    logger_->debug("Round #{}: End precommit stage", round_number_);
 
     // Broadcast vote for precommit stage
     doPrecommit();
@@ -335,7 +335,7 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::START_WAITING;
 
-    logger_->debug("Start final stage of round #{}", round_number_);
+    logger_->debug("Round #{}: Start final stage", round_number_);
 
     // Continue to receive messages until current round is completable and
     // previous one is finalisable and last filanized better than best filan
@@ -356,30 +356,28 @@ namespace kagome::consensus::grandpa {
                >= previous_round->bestFinalCandidate().block_number;
 
     if (isReadyToEnd) {
-      logger_->debug("Conditions for final stage of round #{} already met",
+      logger_->debug("Round #{}: Conditions for final stage are met already",
                      round_number_);
       stage_ = Stage::WAITING_RUNS;
       endWaitingStage();
       return;
     }
 
-    auto handle_end_condition = [this] {
+    on_complete_handler_ = [this] {
       auto previous_round = previous_round_.lock();
       BOOST_ASSERT(previous_round != nullptr);
 
       bool isReadyToEnd =
-          completable_ && previous_round->finalizedBlock().has_value()
-          && previous_round->finalizedBlock()->block_number
+          finalizable()
+          && finalizedBlock()->block_number
                  >= previous_round->bestFinalCandidate().block_number;
 
       if (isReadyToEnd) {
-        logger_->debug("Conditions for final stage of round #{} are met",
+        logger_->debug("Round #{}: Conditions for final stage are met",
                        round_number_);
         endWaitingStage();
       }
     };
-
-    on_complete_handler_ = handle_end_condition;
 
     stage_ = Stage::WAITING_RUNS;
   }
@@ -394,7 +392,7 @@ namespace kagome::consensus::grandpa {
 
     stage_ = Stage::END_WAITING;
 
-    logger_->debug("End final stage of round #{}", round_number_);
+    logger_->debug("Round #{}: End final stage", round_number_);
 
     // Reset handler of previous round finalizable
     on_complete_handler_ = nullptr;
@@ -411,6 +409,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::end() {
+    logger_->debug("Round #{}: End round", round_number_);
     stage_ = Stage::COMPLETED;
     on_complete_handler_ = nullptr;
     timer_.cancel();
@@ -546,7 +545,7 @@ namespace kagome::consensus::grandpa {
     }
     auto &justification = justification_opt.value();
 
-    logger_->debug("Round #{} was finalized on block #{} hash={}",
+    logger_->debug("Round #{}: Finalizing on block #{} hash={}",
                    round_number_,
                    block.block_number,
                    block.block_hash.toHex());
@@ -1026,8 +1025,11 @@ namespace kagome::consensus::grandpa {
 
       if (changed) {
         logger_->debug(
-            "Round #{}: updatePrevoteGhost->true (prevote ghost was changed)",
-            round_number_);
+            "Round #{}: updatePrevoteGhost->true (prevote ghost was changed to "
+            "block #{} hash={})",
+            round_number_,
+            prevote_ghost_->block_number,
+            prevote_ghost_->block_hash.toHex());
       } else {
         logger_->debug(
             "Round #{}: updatePrevoteGhost->false (prevote ghost was not "
@@ -1068,9 +1070,13 @@ namespace kagome::consensus::grandpa {
 
     if (not new_precommit_ghost.has_value()) {
       new_precommit_ghost = currend_best;
+
+      logger_->debug("Round #{}: updatePrecommitGhost <- not finalizable",
+                     round_number_);
     } else {
       logger_->debug("Round #{}: updatePrecommitGhost <- finalizable",
                      round_number_);
+
       finalized_ = new_precommit_ghost.value();
     }
 
@@ -1079,8 +1085,11 @@ namespace kagome::consensus::grandpa {
 
     if (changed) {
       logger_->debug(
-          "Round #{}: updatePrecommitGhost->true (precommit ghost was changed)",
-          round_number_);
+          "Round #{}: updatePrecommitGhost->true (precommit ghost was changed "
+          "to block #{} hash={})",
+          round_number_,
+          precommit_ghost_->block_number,
+          precommit_ghost_->block_hash.toHex());
       return true;
     }
 
@@ -1539,6 +1548,8 @@ namespace kagome::consensus::grandpa {
     }
     attemptToFinalizeRound();
 
+	  // Note: Pending interval must be longer than total voting time:
+	  //  2*Duration + 2*Duration + Gap
     pending_timer_.expires_from_now(std::max<Clock::Duration>(
         duration_ * 10,
         std::chrono::seconds(15)));  // Should be longer than precommit timer
@@ -1548,7 +1559,7 @@ namespace kagome::consensus::grandpa {
             const boost::system::error_code &ec) {
           if (ec == boost::system::errc::operation_canceled) return;
           if (auto self = wp.lock()) {
-            self->logger_->debug("Round #{} pending...", self->round_number_);
+            self->logger_->debug("Round #{}: Pending...", self->round_number_);
             self->pending();
           }
         });
