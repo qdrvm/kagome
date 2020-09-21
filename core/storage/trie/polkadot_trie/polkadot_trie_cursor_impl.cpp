@@ -4,11 +4,14 @@
  */
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
+
 #include <spdlog/spdlog.h>
 
+#include "macro/unreachable.hpp"
 #include "common/buffer_back_insert_iterator.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
+
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             PolkadotTrieCursorImpl::Error,
@@ -133,10 +136,10 @@ namespace kagome::storage::trie {
                         or current_mismatch == current->key_nibbles.end();
       // if current choice is lexicographically less or equal to the left part
       // of the sought key, we just take the closest node with value
-      bool lessOrEq =
+      bool less_or_eq =
           (part_equal and left_mismatch == left_nibbles.end())
           or (not part_equal and *left_mismatch < *current_mismatch);
-      if (lessOrEq) {
+      if (less_or_eq) {
         switch (current->getTrieType()) {
           case NodeType::BranchEmptyValue:
           case NodeType::BranchWithValue: {
@@ -186,9 +189,9 @@ namespace kagome::storage::trie {
       // if the left part of the key is longer than the current of
       // lexicographically greater than the current, we must return to its
       // parent and find a child greater than the current one
-      bool longerOrBigger =
+      bool longer_or_bigger =
           longer or (not part_equal and *left_mismatch > *current_mismatch);
-      if (longerOrBigger) {
+      if (longer_or_bigger) {
         while (not last_visited_child_.empty()) {
           auto [parent, idx] = last_visited_child_.back();
           last_visited_child_.pop_back();
@@ -204,7 +207,7 @@ namespace kagome::storage::trie {
         return outcome::success();
       }
     }
-    BOOST_ASSERT_MSG(false, "Unreachable");
+    UNREACHABLE
   }
 
   outcome::result<PolkadotTrieCursorImpl::NodePtr>
