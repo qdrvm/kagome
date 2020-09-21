@@ -397,8 +397,6 @@ namespace kagome::consensus::grandpa {
     // Reset handler of previous round finalizable
     on_complete_handler_ = nullptr;
 
-    // Stop pending
-    pending_timer_.cancel();
 
     // Play new round
     // spec: Play-Grandpa-round(r + 1);
@@ -413,7 +411,6 @@ namespace kagome::consensus::grandpa {
     stage_ = Stage::COMPLETED;
     on_complete_handler_ = nullptr;
     timer_.cancel();
-    pending_timer_.cancel();
   }
 
   void VotingRoundImpl::doProposal() {
@@ -1564,7 +1561,7 @@ namespace kagome::consensus::grandpa {
 	  //  2*Duration + 2*Duration + Gap
     pending_timer_.expires_from_now(std::max<Clock::Duration>(
         duration_ * 10,
-        std::chrono::seconds(15)));  // Should be longer than precommit timer
+        std::chrono::seconds(30)));
     pending_timer_.async_wait(
         [wp = std::weak_ptr<VotingRoundImpl>(
              std::static_pointer_cast<VotingRoundImpl>(shared_from_this()))](
