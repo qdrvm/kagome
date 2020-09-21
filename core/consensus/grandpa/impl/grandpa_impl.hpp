@@ -9,13 +9,13 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
-#include "consensus/grandpa/movable_round_state.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
+#include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
@@ -83,9 +83,13 @@ namespace kagome::consensus::grandpa {
 
     void onCompletedRound(outcome::result<MovableRoundState> round_state_res);
 
+    // Note: Duration value was gotten from substrate
+    // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
+    // Perhaps, 333ms is not enough for normal communication during the round
+    static constexpr Clock::Duration round_time_factor_ = std::chrono::milliseconds(2500);
+
     std::shared_ptr<VotingRound> previous_round_;
     std::shared_ptr<VotingRound> current_round_;
-    std::shared_ptr<VotingRound> last_finalised_round_;
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<Environment> environment_;

@@ -121,9 +121,7 @@ namespace kagome::consensus::grandpa {
     GrandpaConfig config{
         .voters = voters,
         .round_number = round_state.round_number,
-        .duration = std::chrono::milliseconds(
-            333),  // Note: Duration value was gotten from substrate:
-                   // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
+        .duration = round_time_factor_,
         .peer_id = keypair_.public_key};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(

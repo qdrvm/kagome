@@ -1501,11 +1501,10 @@ namespace kagome::consensus::grandpa {
     }
     attemptToFinalizeRound();
 
-	  // Note: Pending interval must be longer than total voting time:
-	  //  2*Duration + 2*Duration + Gap
-    pending_timer_.expires_from_now(std::max<Clock::Duration>(
-        duration_ * 10,
-        std::chrono::seconds(30)));
+    // Note: Pending interval must be longer than total voting time:
+    //  2*Duration + 2*Duration + Gap
+    pending_timer_.expires_from_now(
+        std::max<Clock::Duration>(duration_ * 10, std::chrono::seconds(30)));
     pending_timer_.async_wait(
         [wp = std::weak_ptr<VotingRoundImpl>(
              std::static_pointer_cast<VotingRoundImpl>(shared_from_this()))](
