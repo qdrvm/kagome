@@ -118,11 +118,10 @@ namespace kagome::consensus::grandpa {
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.last_finalized_block, environment_);
 
-    GrandpaConfig config{
-        .voters = voters,
-        .round_number = round_state.round_number,
-        .duration = round_time_factor_,
-        .peer_id = keypair_.public_key};
+    GrandpaConfig config{.voters = voters,
+                         .round_number = round_state.round_number,
+                         .duration = round_time_factor_,
+                         .peer_id = keypair_.public_key};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, round_state.round_number, voters);
@@ -275,6 +274,15 @@ namespace kagome::consensus::grandpa {
           peer_id.toHex());
       return;
     }
+    if (previous_round_->voterSetId() != msg.voter_set_id) {
+      // Catching up of different set
+      logger_->debug(
+          "Catch-up request (since round #{}) received from {} was rejected: "
+          "voter set is different",
+          msg.round_number,
+          peer_id.toHex());
+      return;
+    }
     if (previous_round_->roundNumber() < msg.round_number) {
       // Catching up in to the past
       logger_->debug(
@@ -284,13 +292,8 @@ namespace kagome::consensus::grandpa {
           peer_id.toHex());
       return;
     }
-    if (previous_round_->voterSetId() != msg.voter_set_id) {
-      // Catching up of different set
-      logger_->debug(
-          "Catch-up request (since round #{}) received from {} was rejected: "
-          "voter set is different",
-          msg.round_number,
-          peer_id.toHex());
+    if (current_round_->roundNumber() + 2 <= msg.round_number) {
+      current_round_->doCatchUpRequest(peer_id);
       return;
     }
     if (not previous_round_->completable()) {

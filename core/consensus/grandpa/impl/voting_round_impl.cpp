@@ -180,15 +180,13 @@ namespace kagome::consensus::grandpa {
     if (isPrimary_) {
       logger_->debug("Node is primary proposer at round #{}", round_number_);
 
+      auto previous_round = previous_round_.lock();
+      BOOST_ASSERT(previous_round != nullptr);
+
       // Broadcast Fin-message with previous round best final candidate
       //  (or last finalized otherwise)
       // spec: Broadcast(M vr ¡1;Fin (Best-Final-Candidate(r-1)))
-      if (auto previous_round = previous_round_.lock()) {
-        previous_round->attemptToFinalizeRound();
-      }
-
-      auto previous_round = previous_round_.lock();
-      BOOST_ASSERT(previous_round != nullptr);
+      previous_round->attemptToFinalizeRound();
 
       // if Best-Final-Candidate greater than Last-Finalized-Block
       // spec: if Best-Final-Candidate(r ¡ 1) > Last-Finalized-Block
@@ -350,12 +348,12 @@ namespace kagome::consensus::grandpa {
     auto previous_round = previous_round_.lock();
     BOOST_ASSERT(previous_round != nullptr);
 
-    bool isReadyToEnd =
+    const bool is_ready_to_end =
         finalizable()
         && finalizedBlock()->block_number
                >= previous_round->bestFinalCandidate().block_number;
 
-    if (isReadyToEnd) {
+    if (is_ready_to_end) {
       logger_->debug("Round #{}: Conditions for final stage are met already",
                      round_number_);
       stage_ = Stage::WAITING_RUNS;
@@ -367,12 +365,12 @@ namespace kagome::consensus::grandpa {
       auto previous_round = previous_round_.lock();
       BOOST_ASSERT(previous_round != nullptr);
 
-      bool isReadyToEnd =
+      const bool is_ready_to_end =
           finalizable()
           && finalizedBlock()->block_number
                  >= previous_round->bestFinalCandidate().block_number;
 
-      if (isReadyToEnd) {
+      if (is_ready_to_end) {
         logger_->debug("Round #{}: Conditions for final stage are met",
                        round_number_);
         endWaitingStage();
@@ -504,7 +502,7 @@ namespace kagome::consensus::grandpa {
 
     // We should precommit if current state contains prevote and it is
     // either equal to the last round estimate or is descendant of it
-    bool should_precommit =
+    const bool should_precommit =
         best_prevote_candidate == last_round_estimate
         or env_->isEqualOrDescendOf(last_round_estimate.block_hash,
                                     best_prevote_candidate.block_hash);
@@ -702,23 +700,21 @@ namespace kagome::consensus::grandpa {
 
     if (finalizable()) {
       doFinalize();
-      if (on_complete_handler_){
-      	on_complete_handler_();
+      if (on_complete_handler_) {
+        on_complete_handler_();
       }
       return;
     }
 
-    if (logger_->level() >= spdlog::level::level_enum::debug) {
-      if (not completable_) {
-        logger_->debug("Round #{}: Round not finalized yet: not completable",
-                       round_number_);
-      } else if (not finalized_.has_value()) {
-        logger_->debug("Round #{}: Round not finalized yet: not finalizable",
-                       round_number_);
-      } else {
-        logger_->debug("Round #{}: Round not finalized yet: unknown reason",
-                       round_number_);
-      }
+    if (not completable_) {
+      logger_->debug("Round #{}: Round not finalized yet: not completable",
+                     round_number_);
+    } else if (not finalized_.has_value()) {
+      logger_->debug("Round #{}: Round not finalized yet: not finalizable",
+                     round_number_);
+    } else {
+      logger_->debug("Round #{}: Round not finalized yet: unknown reason",
+                     round_number_);
     }
   }
 
@@ -769,8 +765,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    auto result = onSignedPrevote(prevote);
-    if (result.has_failure()) {
+    if (auto result = onSignedPrevote(prevote); result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return;
       }
@@ -813,8 +808,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    auto result = onSignedPrecommit(precommit);
-    if (result.has_failure()) {
+    if (auto result = onSignedPrecommit(precommit); result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return;
       }
@@ -1115,8 +1109,9 @@ namespace kagome::consensus::grandpa {
     // the round-estimate is the highest block in the chain with head
     // `prevote_ghost` that could have supermajority-commits.
     if (precommits_->getTotalWeight() >= threshold_) {
-      auto current_best =
-          precommit_ghost_.has_value() ? precommit_ghost_.value() : last_finalized_block_;
+      auto current_best = precommit_ghost_.has_value()
+                              ? precommit_ghost_.value()
+                              : last_finalized_block_;
 
       auto best_final_candidate = graph_->findAncestor(
           current_best, possible_to_precommit, VoteWeight::precommitComparator);

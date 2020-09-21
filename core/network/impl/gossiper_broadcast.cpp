@@ -178,7 +178,7 @@ namespace kagome::network {
                          s->remotePeerId().value().toBase58(),
                          res.error().message());
         } else {
-          logger_->error("Message sent to {}",
+          logger_->debug("Message sent to {}",
                          s->remotePeerId().value().toBase58());
         }
       });
