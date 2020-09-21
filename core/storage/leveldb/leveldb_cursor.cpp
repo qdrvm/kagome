@@ -12,19 +12,19 @@ namespace kagome::storage {
   LevelDB::Cursor::Cursor(std::shared_ptr<leveldb::Iterator> it)
       : i_(std::move(it)) {}
 
-  outcome::result<void> LevelDB::Cursor::seekToFirst() {
+  outcome::result<bool> LevelDB::Cursor::seekFirst() {
     i_->SeekToFirst();
-    return outcome::success();
+    return isValid();
   }
 
-  outcome::result<void> LevelDB::Cursor::seek(const Buffer &key) {
+  outcome::result<bool> LevelDB::Cursor::seek(const Buffer &key) {
     i_->Seek(make_slice(key));
-    return outcome::success();
+    return isValid();
   }
 
-  outcome::result<void> LevelDB::Cursor::seekToLast() {
+  outcome::result<bool> LevelDB::Cursor::seekLast() {
     i_->SeekToLast();
-    return outcome::success();
+    return isValid();
   }
 
   bool LevelDB::Cursor::isValid() const {
@@ -41,12 +41,14 @@ namespace kagome::storage {
     return outcome::success();
   }
 
-  outcome::result<Buffer> LevelDB::Cursor::key() const {
-    return make_buffer(i_->key());
+  boost::optional<Buffer> LevelDB::Cursor::key() const {
+    return isValid() ? boost::make_optional(make_buffer(i_->key()))
+                     : boost::none;
   }
 
-  outcome::result<Buffer> LevelDB::Cursor::value() const {
-    return make_buffer(i_->value());
+  boost::optional<Buffer> LevelDB::Cursor::value() const {
+    return isValid() ? boost::make_optional(make_buffer(i_->value()))
+                     : boost::none;
   }
 
 }  // namespace kagome::storage
