@@ -19,8 +19,9 @@ namespace kagome::api::system::request {
   }
 
   outcome::result<std::string> Name::execute() {
-    // It should be implementation name, according to
-    // https://github.com/paritytech/substrate/blob/0227ff513a045305efee0d8c2cb6025bcefb69ff/client/rpc-api/src/system/helpers.rs#L29
+    // In Polkadot it is just hardcoded string of client's implementation name:
+    // https://github.com/paritytech/polkadot/blob/c68aee352b84321b6a5691d38e20550577d60a45/cli/src/command.rs#L34
+    // So I assume we can safely use our client's name ehre
     return "Soramitsu Kagome";
   }
 
