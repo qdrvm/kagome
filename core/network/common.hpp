@@ -9,7 +9,7 @@
 #include "libp2p/peer/protocol.hpp"
 
 namespace kagome::network {
-  const libp2p::peer::Protocol kSyncProtocol = "/polkadot-sync/1.0.0";
+  const libp2p::peer::Protocol kSyncProtocol = "/{}/sync/2";
   const libp2p::peer::Protocol kGossipProtocol = "/polkadot-gossip/1.0.0";
 }  // namespace kagome::network
 

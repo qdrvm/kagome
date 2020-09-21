@@ -16,6 +16,7 @@
 #include "network/rpc.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
+#include "application/configuration_storage.hpp"
 
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
@@ -26,14 +27,16 @@ namespace kagome::network {
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<Gossiper> gossiper,
       const PeerList &peer_list,
-      const OwnPeerInfo &own_peer_info)
+      const OwnPeerInfo &own_peer_info,
+      std::shared_ptr<kagome::application::ConfigurationStorage> config)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
         extrinsic_observer_{std::move(extrinsic_observer)},
         gossiper_{std::move(gossiper)},
-        log_{common::createLogger("RouterLibp2p")} {
+        log_{common::createLogger("RouterLibp2p")},
+        config_(std::move(config)) {
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
@@ -58,7 +61,8 @@ namespace kagome::network {
 
   void RouterLibp2p::init() {
     host_.setProtocolHandler(
-        kSyncProtocol, [self{shared_from_this()}](auto &&stream) {
+        fmt::format(kSyncProtocol.data(), config_->protocolId()),
+        [self{shared_from_this()}](auto &&stream) {
           self->handleSyncProtocol(std::forward<decltype(stream)>(stream));
         });
     host_.setProtocolHandler(

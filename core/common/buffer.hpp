@@ -223,7 +223,7 @@ namespace kagome::common {
      const std::string_view toString() const;
 
     /**
-     * @brief return content of bytearray as string
+     * @brief return content of bytearray as a string copy data
      * @note Does not ensure correct encoding
      * @return string
      */

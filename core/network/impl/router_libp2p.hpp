@@ -25,6 +25,10 @@
 #include "network/types/own_peer_info.hpp"
 #include "network/types/peer_list.hpp"
 
+namespace kagome::application {
+  class ConfigurationStorage;
+}
+
 namespace kagome::network {
   class RouterLibp2p : public Router,
                        public std::enable_shared_from_this<RouterLibp2p> {
@@ -37,7 +41,8 @@ namespace kagome::network {
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<Gossiper> gossiper,
         const PeerList &peer_list,
-        const OwnPeerInfo &own_info);
+        const OwnPeerInfo &own_info,
+        std::shared_ptr<kagome::application::ConfigurationStorage> config);
 
     ~RouterLibp2p() override = default;
 
@@ -64,6 +69,7 @@ namespace kagome::network {
     std::shared_ptr<Gossiper> gossiper_;
     std::weak_ptr<network::LoopbackStream> loopback_stream_;
     common::Logger log_;
+    std::shared_ptr<kagome::application::ConfigurationStorage> config_;
   };
 }  // namespace kagome::network
 
