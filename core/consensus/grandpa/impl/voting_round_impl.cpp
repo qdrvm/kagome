@@ -417,6 +417,12 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doProposal() {
+    // Don't change early defined prymary vote
+    if (primary_vote_.has_value()) {
+      sendProposal(convertToPrimaryPropose(primary_vote_.value()));
+      return;
+    }
+
     // Send primary propose
     // @spec Broadcast(M vr ¡1;Prim (Best-Final-Candidate(r-1)))
 
@@ -451,8 +457,11 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doPrevote() {
-    BOOST_ASSERT_MSG(not prevote_.has_value(),
-                     "Prevote must be once for a round");
+    // Don't change defined vote to avoid equivocation
+    if (prevote_.has_value()) {
+      sendPrevote(convertToPrevote(prevote_.value()));
+      return;
+    }
 
     auto previous_round = previous_round_.lock();
     BOOST_ASSERT(previous_round != nullptr);
@@ -486,8 +495,11 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doPrecommit() {
-    BOOST_ASSERT_MSG(not precommit_.has_value(),
-                     "Precommit must be once for a round");
+    // Don't change defined vote to avoid equivocation
+    if (precommit_.has_value()) {
+      sendPrecommit(convertToPrecommit(precommit_.value()));
+      return;
+    }
 
     auto previous_round = previous_round_.lock();
     BOOST_ASSERT(previous_round != nullptr);
