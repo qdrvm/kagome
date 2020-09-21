@@ -800,8 +800,8 @@ namespace kagome::consensus::grandpa {
     if (updatePrevoteGhost()) {
       if (updatePrecommitGhost()) {
         updateCompletability();
-        attemptToFinalizeRound();
       }
+      attemptToFinalizeRound();
     }
   }
 
@@ -845,8 +845,8 @@ namespace kagome::consensus::grandpa {
 
     if (updatePrecommitGhost()) {
       updateCompletability();
-      attemptToFinalizeRound();
     }
+    attemptToFinalizeRound();
   }
 
   outcome::result<void> VotingRoundImpl::onSignedPrevote(
