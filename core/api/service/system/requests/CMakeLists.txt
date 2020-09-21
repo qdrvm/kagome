@@ -7,6 +7,7 @@ add_library(api_system_requests
     name.cpp
     version.cpp
     chain.cpp
+    chain_type.cpp
     properties.cpp
     )
 

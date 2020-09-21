@@ -19,11 +19,9 @@ namespace kagome::api::system::request {
   }
 
   outcome::result<std::string> Name::execute() {
-    // TODO(xDimon): Ensure if implementation is correct, and remove exception
-    throw jsonrpc::InternalErrorFault(
-        "Internal error: method is known, but not yet implemented");
-
-    return api_->getConfig()->name();
+    // It should be implementation name, according to
+    // https://github.com/paritytech/substrate/blob/0227ff513a045305efee0d8c2cb6025bcefb69ff/client/rpc-api/src/system/helpers.rs#L29
+    return "Soramitsu Kagome";
   }
 
 }  // namespace kagome::api::system::request
