@@ -10,12 +10,13 @@
 #include "core/runtime/mock_memory.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "mock/core/storage/map_cursor_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/outcome/dummy_error.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
@@ -28,9 +29,9 @@ using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
 using kagome::storage::changes_trie::ChangesTrackerMock;
-using kagome::storage::face::MapCursorMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
+using kagome::storage::trie::PolkadotTrieCursorMock;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -288,12 +289,10 @@ TEST_F(StorageExtensionTest, NextKey) {
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
-  EXPECT_CALL(*trie_batch_, cursor())
+  EXPECT_CALL(*trie_batch_, trieCursor())
       .WillOnce(Invoke([&key, &expected_next_key]() {
-        auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
-        EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(outcome::success()));
-        EXPECT_CALL(*cursor, next()).WillOnce(Return(outcome::success()));
-        EXPECT_CALL(*cursor, isValid()).WillOnce(Return(true));
+        auto cursor = std::make_unique<PolkadotTrieCursorMock>();
+        EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
         EXPECT_CALL(*cursor, key()).WillOnce(Return(expected_next_key));
         return cursor;
       }));
@@ -328,11 +327,10 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
-  EXPECT_CALL(*trie_batch_, cursor()).WillOnce(Invoke([&key]() {
-    auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
-    EXPECT_CALL(*cursor, seek(key)).WillOnce(Return(outcome::success()));
-    EXPECT_CALL(*cursor, next()).WillOnce(Return(outcome::success()));
-    EXPECT_CALL(*cursor, isValid()).WillOnce(Return(false));
+  EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
+    auto cursor = std::make_unique<PolkadotTrieCursorMock>();
+    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));
 
@@ -353,24 +351,30 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
  * @when using ext_storage_next_key_version_1 to obtain the next key
  * @then an invalid address is returned
  */
-TEST_F(StorageExtensionTest, NextKeyInvalidKey) {
+TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
   WasmPointer key_pointer = 43;
   WasmSize key_size = 8;
   Buffer key(key_size, 'k');
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
-  EXPECT_CALL(*trie_batch_, cursor()).WillOnce(Invoke([&key]() {
-    auto cursor = std::make_unique<MapCursorMock<Buffer, Buffer>>();
-    EXPECT_CALL(*cursor, seek(key))
-        .WillOnce(Return(
-            kagome::storage::trie::PolkadotTrieCursor::Error::NOT_FOUND));
+  EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
+    auto cursor = std::make_unique<PolkadotTrieCursorMock>();
+    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));
 
-  auto next_key_span = storage_extension_->ext_storage_next_key_version_1(
+  EXPECT_CALL(*memory_, storeBuffer(_))
+      .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
+        EXPECT_OUTCOME_TRUE(
+            key_opt, kagome::scale::decode<boost::optional<Buffer>>(buffer));
+        EXPECT_EQ(key_opt, boost::none);
+        return 0;
+      }));
+
+  storage_extension_->ext_storage_next_key_version_1(
       WasmResult{key_pointer, key_size}.combine());
-  ASSERT_EQ(next_key_span, -1);
 }
 
 /**
@@ -463,7 +467,7 @@ INSTANTIATE_TEST_CASE_P(Instance,
                             /// success case
                             outcome::success(),
                             /// failure with arbitrary error code
-                            outcome::failure(std::error_code())),
+                            outcome::failure(testutil::DummyError::ERROR)),
                         // empty argument for the macro
 );
 
