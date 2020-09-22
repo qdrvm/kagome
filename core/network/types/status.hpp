@@ -6,9 +6,9 @@
 #ifndef KAGOME_CORE_NETWORK_TYPES_STATUS_HPP
 #define KAGOME_CORE_NETWORK_TYPES_STATUS_HPP
 
-#include <libp2p/peer/peer_info.hpp>
 #include <vector>
 #include <algorithm>
+#include <libp2p/peer/peer_info.hpp>
 
 #include "network/types/roles.hpp"
 #include "primitives/common.hpp"
@@ -18,6 +18,11 @@ using kagome::primitives::BlockHash;
 
 namespace kagome::network {
 
+  /**
+   * Is the structure to send to a new connected peer. It contains common
+   * information about current peer and used by the remote peer to detect the
+   * posibility of the correct communication with it.
+   */
   struct Status {
     /**
      * Protocol version.

@@ -13,17 +13,28 @@
 
 namespace tools::containers {
 
+  /**
+   * Default allocator to create objects inside cache.
+   * @tparam Type of the object to be created
+   * @note the allocation and construction must be incapsulated
+   */
   template <typename Type>
   struct ObjsCacheDefAlloc {
     template <typename... __args>
     Type *allocate(__args &&... args) {
-      return new (std::nothrow) Type(std::forward<__args>(args)...); // NOLINT
+      return new (std::nothrow) Type(std::forward<__args>(args)...);  // NOLINT
     }
     void deallocate(Type *obj) {
-      delete obj; // NOLINT
+      delete obj;  // NOLINT
     }
   };
 
+  /**
+   * Single type cache container. Contains the set of objects to be cached.
+   * @tparam T is the type ob objects to be contained.
+   * @tparam Alloc is the allocator type
+   * @see ObjsCacheDefAlloc
+   */
   template <typename T, typename Alloc = ObjsCacheDefAlloc<T>>
   struct ObjectsCache {
     static_assert(std::is_array<T>::value == false,
@@ -41,20 +52,34 @@ namespace tools::containers {
     ObjectsCache() = default;
     ObjectsCache(Alloc &alloc) : allocator_(alloc) {}
 
+    /**
+     * Destroy cached objects.
+     */
     virtual ~ObjectsCache() {
       for (auto *s : cache_) {
         allocator_.deallocate(s);
       }
     }
 
+    /**
+     * Extracts raw pointer to the object from the cache.
+     * @return ptr to the object
+     */
     Type *getCachedObject() {
       return getRawPtr();
     }
 
+    /**
+     * Returns raw pointer to the object back to cache.
+     */
     void setCachedObject(Type *const ptr) {
       setRawPtr(ptr);
     }
 
+    /**
+     * Pops object from cache and returns a shared_ptr, contained this object.
+     * @note after shared_ptr destruction, object will return back to the cache.
+     */
     ObjectPtr getSharedCachedObject() {
       return ObjectPtr(getRawPtr(), [&](auto *obj) mutable { setRawPtr(obj); });
     }
@@ -86,12 +111,21 @@ namespace tools::containers {
     }
   };
 
+  /**
+   * Cache item entry.
+   * @tparam T is the type of the objects to be contained in cache.
+   */
   template <typename T>
   struct CacheUnit {
     using Type =
         typename std::remove_pointer<typename std::decay<T>::type>::type;
   };
 
+  /**
+   * The set of caches with different cached objects.
+   * @tparam T CacheUnit description of the cached type
+   * @tparam ARGS the set of CacheUnit descriptions
+   */
   template <typename T, typename... ARGS>
   struct ObjectsCacheManager : public ObjectsCache<typename T::Type>,
                                public ObjectsCacheManager<ARGS...> {};
@@ -103,6 +137,9 @@ namespace tools::containers {
 #define KAGOME_CACHE_UNIT(type) tools::containers::CacheUnit<type>
 #endif  // KAGOME_CACHE_UNIT
 
+/**
+ * Set of macro to define/declare object container and to define functions to communicate with it.
+ */
 #ifndef KAGOME_DECLARE_CACHE
 #define KAGOME_DECLARE_CACHE(prefix, ...) \
         using prefix##_cache_type = tools::containers::ObjectsCacheManager<__VA_ARGS__>; \
