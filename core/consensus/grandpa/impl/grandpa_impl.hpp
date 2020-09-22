@@ -3,18 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
-#define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
+#ifndef KAGOME_CONSENSUS_GRANDPA_GRANDPAIMPL
+#define KAGOME_CONSENSUS_GRANDPA_GRANDPAIMPL
 
 #include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/grandpa_observer.hpp"
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "consensus/authority/authority_manager.hpp"
-#include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
+#include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
@@ -25,6 +26,7 @@
 namespace kagome::consensus::grandpa {
 
   class GrandpaImpl : public Grandpa,
+                      public GrandpaObserver,
                       public std::enable_shared_from_this<GrandpaImpl> {
    public:
     ~GrandpaImpl() override = default;
@@ -48,25 +50,43 @@ namespace kagome::consensus::grandpa {
     /** @see AppStateManager::takeControl */
     void stop();
 
+    // Catch-up methods
+
+    void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
+                          const network::CatchUpRequest &msg) override;
+
+    void onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
+                           const network::CatchUpResponse &msg) override;
+
+    // Voting methods
+
+    void onVoteMessage(const libp2p::peer::PeerId &peer_id,
+                       const VoteMessage &msg) override;
+
+    void onFinalize(const libp2p::peer::PeerId &peer_id,
+                    const Fin &fin) override;
+
+    // Round processing method
+
     void executeNextRound() override;
-
-    void onVoteMessage(const VoteMessage &msg) override;
-
-    void onFinalize(const Fin &f) override;
 
    private:
     std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);
     outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
-    outcome::result<CompletedRound> getLastCompletedRound() const;
+    outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(
-        RoundNumber previous_round_number,
-        std::shared_ptr<const RoundState> previous_round_state);
+        const MovableRoundState &round_state);
 
     std::shared_ptr<VotingRound> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);
 
-    void onCompletedRound(outcome::result<CompletedRound> completed_round_res);
+    void onCompletedRound(outcome::result<MovableRoundState> round_state_res);
+
+    // Note: Duration value was gotten from substrate
+    // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
+    // Perhaps, 333ms is not enough for normal communication during the round
+    const Clock::Duration round_time_factor_ = std::chrono::milliseconds(250);
 
     std::shared_ptr<VotingRound> previous_round_;
     std::shared_ptr<VotingRound> current_round_;
@@ -86,4 +106,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_GRANDPAIMPL
+#endif  // KAGOME_CONSENSUS_GRANDPA_GRANDPAIMPL

@@ -10,7 +10,7 @@
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/syncing_babe_observer.hpp"
-#include "consensus/grandpa/impl/syncing_round_observer.hpp"
+#include "consensus/grandpa/impl/syncing_grandpa_observer.hpp"
 #include "injector/application_injector.hpp"
 #include "injector/validating_node_injector.hpp"
 #include "runtime/dummy/grandpa_api_dummy.hpp"
@@ -54,7 +54,7 @@ namespace kagome::injector {
         di::bind<network::BabeObserver>.to(
             [](auto const &inj) { return get_babe(inj); }),
 
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::SyncingRoundObserver>(),
+        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
         di::bind<application::KeyStorage>.to(
             [app_config](const auto &injector) {
               return get_key_storage(app_config->keystore_path(), injector);
