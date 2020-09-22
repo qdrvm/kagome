@@ -211,11 +211,11 @@ namespace kagome::storage::trie {
         if (parent->key_nibbles == key_nibbles) {
           return parent;
         }
-        return nullptr;
-      case T::Special:
         break;
+      case T::Special:
+        return Error::INVALID_NODE_TYPE;
     }
-    return Error::INVALID_NODE_TYPE;
+    return nullptr;
   }
 
   outcome::result<std::list<std::pair<PolkadotTrieImpl::BranchPtr, uint8_t>>>
