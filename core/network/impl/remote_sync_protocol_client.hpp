@@ -13,14 +13,20 @@
 
 #include "common/logger.hpp"
 
+namespace kagome::application {
+  class ConfigurationStorage;
+}
+
 namespace kagome::network {
 
   class RemoteSyncProtocolClient
       : public network::SyncProtocolClient,
         public std::enable_shared_from_this<RemoteSyncProtocolClient> {
    public:
-    RemoteSyncProtocolClient(libp2p::Host &host,
-                             libp2p::peer::PeerInfo peer_info);
+    RemoteSyncProtocolClient(
+        libp2p::Host &host,
+        libp2p::peer::PeerInfo peer_info,
+        std::shared_ptr<kagome::application::ConfigurationStorage> config);
 
     void requestBlocks(
         const network::BlocksRequest &request,
@@ -31,6 +37,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     const libp2p::peer::PeerInfo peer_info_;
     common::Logger log_;
+    std::shared_ptr<kagome::application::ConfigurationStorage> config_;
   };
 }  // namespace kagome::network
 

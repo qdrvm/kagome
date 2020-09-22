@@ -7,15 +7,22 @@
 
 #include "common/visitor.hpp"
 #include "network/common.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
+#include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/rpc.hpp"
+#include "network/adapters/protobuf_block_request.hpp"
+#include "network/adapters/protobuf_block_response.hpp"
+#include "application/configuration_storage.hpp"
 
 namespace kagome::network {
+
   RemoteSyncProtocolClient::RemoteSyncProtocolClient(
-      libp2p::Host &host, libp2p::peer::PeerInfo peer_info)
+      libp2p::Host &host,
+      libp2p::peer::PeerInfo peer_info,
+      std::shared_ptr<kagome::application::ConfigurationStorage> config)
       : host_{host},
         peer_info_{std::move(peer_info)},
-        log_(common::createLogger("RemoteSyncProtocolClient")) {}
+        log_(common::createLogger("RemoteSyncProtocolClient")),
+        config_(std::move(config)) {}
 
   void RemoteSyncProtocolClient::requestBlocks(
       const network::BlocksRequest &request,
@@ -34,8 +41,12 @@ namespace kagome::network {
                         request.to->toHex());
           }
         });
-    network::RPC<network::ScaleMessageReadWriter>::
+    network::RPC<network::ProtobufMessageReadWriter>::
         write<network::BlocksRequest, network::BlocksResponse>(
-            host_, peer_info_, network::kSyncProtocol, request, std::move(cb));
+            host_,
+            peer_info_,
+            fmt::format(network::kSyncProtocol.data(), config_->protocolId()),
+            request,
+            std::move(cb));
   }
 }  // namespace kagome::network

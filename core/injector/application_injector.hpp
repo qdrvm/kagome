@@ -495,6 +495,7 @@ namespace kagome::injector {
     auto peer_infos = configuration_storage->getBootNodes().peers;
 
     auto host = injector.template create<sptr<libp2p::Host>>();
+
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     auto block_header_repository =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
@@ -508,7 +509,7 @@ namespace kagome::injector {
       if (peer_info.id != current_peer_info.id) {
         res->clients.emplace_back(
             std::make_shared<network::RemoteSyncProtocolClient>(
-                *host, std::move(peer_info)));
+                *host, std::move(peer_info), std::move(configuration_storage)));
       } else {
         res->clients.emplace_back(
             std::make_shared<network::DummySyncProtocolClient>());
