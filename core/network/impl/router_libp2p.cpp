@@ -25,7 +25,7 @@ namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
       libp2p::Host &host,
       std::shared_ptr<BabeObserver> babe_observer,
-      std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
+      std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<Gossiper> gossiper,
@@ -141,24 +141,36 @@ namespace kagome::network {
 
   void RouterLibp2p::readGossipMessage(std::shared_ptr<Stream> stream) const {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-    read_writer->read<GossipMessage>(
-        [self{shared_from_this()},
-         stream = std::move(stream)](auto &&msg_res) mutable {
-          if (!msg_res) {
-            self->log_->error("error while reading gossip message: {}",
-                              msg_res.error().message());
-            return stream->reset();
-          }
+    read_writer->read<GossipMessage>([wp = weak_from_this(),
+                                      stream = std::move(stream)](
+                                         auto &&msg_res) mutable {
+      auto self = wp.lock();
+      if (not self) return;
 
-          if (!self->processGossipMessage(msg_res.value())) {
-            stream->reset();
-            return;
-          }
-          self->readGossipMessage(stream);
-        });
+      if (not msg_res) {
+        self->log_->error("error while reading gossip message: {}",
+                          msg_res.error().message());
+        return stream->reset();
+      }
+
+      auto peer_id_res = stream->remotePeerId();
+      if (not peer_id_res.has_value()) {
+        self->log_->error("can't get peer_id for gossip message: {}",
+                          msg_res.error().message());
+        return stream->reset();
+      }
+
+      if (!self->processGossipMessage(peer_id_res.value(), msg_res.value())) {
+        stream->reset();
+        return;
+      }
+
+      self->readGossipMessage(stream);
+    });
   }
 
-  bool RouterLibp2p::processGossipMessage(const GossipMessage &msg) const {
+  bool RouterLibp2p::processGossipMessage(const libp2p::peer::PeerId &peer_id,
+                                          const GossipMessage &msg) const {
     using MsgType = GossipMessage::Type;
 
     switch (msg.type) {
@@ -174,22 +186,47 @@ namespace kagome::network {
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }
-      case MsgType::CONSENSUS: {
-        auto vote_msg_res =
-            scale::decode<consensus::grandpa::VoteMessage>(msg.data);
-        if (vote_msg_res) {
-          grandpa_observer_->onVoteMessage(vote_msg_res.value());
-          return true;
+      case GossipMessage::Type::CONSENSUS: {
+        auto grandpa_msg_res = scale::decode<GrandpaMessage>(msg.data);
+
+        if (not grandpa_msg_res) {
+          log_->error("error while decoding a consensus (grandpa) message: {}",
+                      grandpa_msg_res.error().message());
+          return false;
         }
 
-        auto fin_msg_res = scale::decode<consensus::grandpa::Fin>(msg.data);
-        if (fin_msg_res) {
-          grandpa_observer_->onFinalize(fin_msg_res.value());
-          return true;
-        }
+        auto &grandpa_msg = grandpa_msg_res.value();
 
-        log_->error("error while decoding a consensus message");
-        return false;
+        return visit_in_place(
+            grandpa_msg,
+            [this, &peer_id](const network::GrandpaVoteMessage &vote_message) {
+              grandpa_observer_->onVoteMessage(peer_id, vote_message);
+              return true;
+            },
+            [this, &peer_id](const network::GrandpaPreCommit &fin_message) {
+              grandpa_observer_->onFinalize(peer_id, fin_message);
+              return true;
+            },
+            [](const GrandpaNeighborPacket &neighbor_packet) {
+              BOOST_ASSERT_MSG(false,
+                               "Unimplemented variant (GrandpaNeighborPacket) "
+                               "of consensus (grandpa) message");
+              return false;
+            },
+            [this, &peer_id](const network::CatchUpRequest &catch_up_request) {
+              grandpa_observer_->onCatchUpRequest(peer_id, catch_up_request);
+              return true;
+            },
+            [this,
+             &peer_id](const network::CatchUpResponse &catch_up_response) {
+              grandpa_observer_->onCatchUpResponse(peer_id, catch_up_response);
+              return true;
+            },
+            [](const auto &...) {
+              BOOST_ASSERT_MSG(
+                  false, "Unknown variant of consensus (grandpa) message");
+              return false;
+            });
       }
       case MsgType::TRANSACTIONS: {
         auto txs_msg_res =
@@ -220,7 +257,8 @@ namespace kagome::network {
         log_->error("BlockRequest message processing is not implemented yet");
         return false;
       }
-      case GossipMessage::Type::UNKNOWN: {
+      case GossipMessage::Type::UNKNOWN:
+      default: {
         log_->error("unknown message type is set");
         return false;
       }

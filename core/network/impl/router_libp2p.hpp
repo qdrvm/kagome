@@ -9,7 +9,8 @@
 #include <memory>
 
 #include "common/logger.hpp"
-#include "consensus/grandpa/round_observer.hpp"
+#include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/grandpa_observer.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -36,7 +37,7 @@ namespace kagome::network {
     RouterLibp2p(
         libp2p::Host &host,
         std::shared_ptr<BabeObserver> babe_observer,
-        std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
+        std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<Gossiper> gossiper,
@@ -61,11 +62,12 @@ namespace kagome::network {
     /**
      * Process a received gossip message
      */
-    bool processGossipMessage(const GossipMessage &msg) const;
+    bool processGossipMessage(const libp2p::peer::PeerId &peer_id,
+                              const GossipMessage &msg) const;
 
     libp2p::Host &host_;
     std::shared_ptr<BabeObserver> babe_observer_;
-    std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer_;
+    std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<Gossiper> gossiper_;

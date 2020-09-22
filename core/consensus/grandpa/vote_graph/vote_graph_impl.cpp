@@ -112,34 +112,49 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> VoteGraphImpl::append(const BlockInfo &block) {
-    OUTCOME_TRY(ancestry,
-                chain_->getAncestry(base_.block_hash, block.block_hash));
-    ancestry.push_back(base_.block_hash);
-
-    size_t ancestorIndex = 0;
-    for (size_t i = 0u, size = ancestry.size(); i < size; ++i) {
-      auto &ancestor = ancestry[i];
-      if (auto entryIt = entries_.find(ancestor); entryIt != entries_.end()) {
-        Entry &entry = entryIt->second;
-        entry.descendents.push_back(block.block_hash);
-        ancestorIndex = i;
-        break;
-      }
+    if (base_.block_hash == block.block_hash) {
+      return outcome::success();
     }
 
-    BOOST_ASSERT_MSG(!ancestry.empty(),
+    OUTCOME_TRY(ancestry,
+                chain_->getAncestry(base_.block_hash, block.block_hash));
+
+    BOOST_ASSERT_MSG(not ancestry.empty(),
                      "ancestry always contains at least 1 element - base");
+    BOOST_ASSERT_MSG(
+        ancestry.front() == block.block_hash,
+        "ancestry always contains provided block as the first element");
+    BOOST_ASSERT_MSG(ancestry.back() == base_.block_hash,
+                     "ancestry always contains base block as the last element");
 
-    BlockHash ancestorHash = ancestry[ancestorIndex];
-    ancestry.resize(ancestorIndex + 1);
+    auto entryIt = entries_.end();
 
-    Entry newEntry;
-    newEntry.number = block.block_number;
-    newEntry.ancestors = ancestry;
+    // Find first (best) ancestor among those presented in the entries,
+    // and take corresponding entry
+    auto ancectryIt = std::find_if(
+        ancestry.begin() + 1, ancestry.end(), [this, &entryIt](auto &ancestor) {
+          return entryIt = entries_.find(ancestor), entryIt != entries_.end();
+        });
+    BOOST_ASSERT(ancectryIt != ancestry.end());
 
-    entries_.insert({block.block_hash, std::move(newEntry)});
+    // Found entry is got block as descendant
+    Entry &entry = entryIt->second;
+    entry.descendents.push_back(block.block_hash);
+
+    // Needed ancestries is ancestries from parent to ancestor represented in
+    // found entry
+    std::vector<BlockHash> ancestors(ancestry.begin() + 1, ancectryIt + 1);
+
+    // Block will become a head instead his oldest ancestor
+    BlockHash ancestorHash = ancestors.back();
     heads_.erase(ancestorHash);
     heads_.insert(block.block_hash);
+
+    // New entry is got ancestors and added to entries container
+    Entry newEntry;
+    newEntry.number = block.block_number;
+    newEntry.ancestors = std::move(ancestors);
+    entries_.insert({block.block_hash, std::move(newEntry)});
 
     return outcome::success();
   }

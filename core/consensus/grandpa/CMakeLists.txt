@@ -71,7 +71,7 @@ target_link_libraries(grandpa
     )
 
 add_library(syncing_round_observer
-    impl/syncing_round_observer.cpp
+        impl/syncing_grandpa_observer.cpp
     )
 target_link_libraries(syncing_round_observer
     logger

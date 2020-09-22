@@ -17,7 +17,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
   using E = kagome::storage::trie::PolkadotTrieImpl::Error;
   switch (e) {
     case E::INVALID_NODE_TYPE:
-      return "The node type is invalid";
+      return "The trie node type is invalid";
   }
   return "Unknown error";
 }
@@ -213,9 +213,9 @@ namespace kagome::storage::trie {
         }
         break;
       case T::Special:
-        break;
+        return Error::INVALID_NODE_TYPE;
     }
-    return Error::INVALID_NODE_TYPE;
+    return nullptr;
   }
 
   outcome::result<std::list<std::pair<PolkadotTrieImpl::BranchPtr, uint8_t>>>

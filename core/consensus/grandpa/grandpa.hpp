@@ -6,16 +6,16 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA
 #define KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA
 
-#include "consensus/grandpa/round_observer.hpp"
+#include "consensus/grandpa/grandpa_observer.hpp"
 
 namespace kagome::consensus::grandpa {
 
   /**
    * Launches grandpa voting rounds
    */
-  class Grandpa : public RoundObserver {
+  class Grandpa {
    public:
-    ~Grandpa() override = default;
+    virtual ~Grandpa() = default;
 
     virtual void executeNextRound() = 0;
   };

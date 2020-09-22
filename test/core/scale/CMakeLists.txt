@@ -16,6 +16,7 @@ addtest(scale_compact_test
 target_link_libraries(scale_compact_test
     scale
     buffer
+    blob
     )
 
 addtest(scale_fixed_test

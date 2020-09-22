@@ -18,8 +18,7 @@ namespace kagome::storage::trie {
     KeyNibbles() = default;
 
     explicit KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
-    KeyNibbles(std::initializer_list<uint8_t> b)
-        : Buffer{b} {}
+    KeyNibbles(std::initializer_list<uint8_t> b) : Buffer{b} {}
 
     KeyNibbles &operator=(common::Buffer b) {
       Buffer::operator=(std::move(b));
