@@ -23,7 +23,7 @@ namespace kagome::storage::trie {
     /**
      * Won't consider changes not written back to the parent batch
      */
-    std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
+    std::unique_ptr<BufferMapCursor> cursor() override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;
 

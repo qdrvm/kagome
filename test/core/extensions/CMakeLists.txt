@@ -34,5 +34,4 @@ addtest(storage_extension_test
     )
 target_link_libraries(storage_extension_test
     storage_extension
-    dummy_error
     )

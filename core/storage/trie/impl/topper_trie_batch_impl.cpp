@@ -40,9 +40,9 @@ namespace kagome::storage::trie {
     return Error::PARENT_EXPIRED;
   }
 
-  std::unique_ptr<PolkadotTrieCursor> TopperTrieBatchImpl::trieCursor() {
+  std::unique_ptr<BufferMapCursor> TopperTrieBatchImpl::cursor() {
     if (auto p = parent_.lock(); p != nullptr) {
-      return p->trieCursor();
+      return p->cursor();
     }
     return nullptr;
   }
