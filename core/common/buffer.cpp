@@ -164,6 +164,14 @@ namespace kagome::common {
     return *this;
   }
 
+  std::string Buffer::asString() const {
+    return std::string{data_.begin(), data_.end()};
+  }
+
+  outcome::result<Buffer> Buffer::fromString(const std::string &src) {
+    return Buffer({src.begin(), src.end()});
+  }
+
   Buffer Buffer::subbuffer(size_t offset, size_t length) const {
     return Buffer(gsl::make_span(*this).subspan(offset, length));
   }

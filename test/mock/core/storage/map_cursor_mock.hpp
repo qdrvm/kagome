@@ -15,19 +15,19 @@ namespace kagome::storage::face {
   template <typename K, typename V>
   class MapCursorMock: public MapCursor<K, V> {
    public:
-    MOCK_METHOD0(seekToFirst, outcome::result<void> ());
+    MOCK_METHOD0(seekFirst, outcome::result<bool> ());
 
-    MOCK_METHOD1_T(seek, outcome::result<void> (const K &key));
+    MOCK_METHOD1_T(seek, outcome::result<bool> (const K &key));
 
-    MOCK_METHOD0(seekToLast, outcome::result<void> ());
+    MOCK_METHOD0(seekLast, outcome::result<bool> ());
 
     MOCK_CONST_METHOD0(isValid, bool());
 
     MOCK_METHOD0(next, outcome::result<void>());
     MOCK_METHOD0(prev, outcome::result<void>());
 
-    MOCK_CONST_METHOD0_T(key, outcome::result<K>());
-    MOCK_CONST_METHOD0_T(value, outcome::result<V>());
+    MOCK_CONST_METHOD0_T(key, boost::optional<K>());
+    MOCK_CONST_METHOD0_T(value, boost::optional<V>());
   };
 
 }

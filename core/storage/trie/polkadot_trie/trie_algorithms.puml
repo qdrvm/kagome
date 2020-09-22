@@ -1,0 +1,24 @@
+@startuml lower bound algorithm
+start
+
+:left nibbles := key_nibbles<
+:current := trie root<
+while () is (yes)
+    if (**length**(//left_nibbles//) <= **length**(//current_nibbles//) and
+        //common_length// == **length**(//left_nibbles//) or
+        //left_nibbles// < //current_nibbles//) then (yes)
+        :current or its least descendant with a value>
+        detach
+    else if (**length**(//left_nibbles//) > **length**(//current_nibbles//) and
+     //common_length// == **length**(current_nibbles) and
+     there is child with //idx// >= //left_nibbles//[0]) then (yes)
+       :go to current's child by nibble greater than //left_nibbles//[0];
+
+    else
+        :go to parent and find a child greater than current,
+        repeat until found or reached root;
+        detach
+    endif
+end while
+:unreachable;
+@enduml

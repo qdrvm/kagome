@@ -14,7 +14,7 @@ namespace kagome::network {
   /// Lowest version we support
   static constexpr uint32_t MIN_VERSION = 3;
 
-  const libp2p::peer::Protocol kSyncProtocol = "/polkadot-sync/1.0.0";
+  const libp2p::peer::Protocol kSyncProtocol = "/{}/sync/2";
   const libp2p::peer::Protocol kGossipProtocol = "/polkadot-gossip/1.0.0";
   const libp2p::peer::Protocol kSupProtocol = "/substrate/sup/" + std::to_string(CURRENT_VERSION);
 }  // namespace kagome::network

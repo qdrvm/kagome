@@ -18,7 +18,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::api::Session;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::storage::LevelDB;

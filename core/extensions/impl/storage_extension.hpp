@@ -173,10 +173,15 @@ namespace kagome::extensions {
 
     outcome::result<common::Buffer> get(const common::Buffer &key) const;
 
-    outcome::result<boost::optional<common::Buffer>> getStorageNextKey(
-        const common::Buffer &key) const;
+    /**
+     * @return error if any, a key if the next key exists
+     * none otherwise
+     */
+    outcome::result<boost::optional<common::Buffer>>
+    getStorageNextKey(const common::Buffer &key) const;
 
-    boost::optional<common::Buffer> calcStorageChangesRoot(common::Hash256 parent) const;
+    boost::optional<common::Buffer> calcStorageChangesRoot(
+        common::Hash256 parent) const;
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<runtime::WasmMemory> memory_;
@@ -185,6 +190,7 @@ namespace kagome::extensions {
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };
+
 }  // namespace kagome::extensions
 
 #endif  // KAGOME_STORAGE_EXTENSIONS_EXTENSION_HPP

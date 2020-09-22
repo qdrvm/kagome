@@ -222,6 +222,18 @@ namespace kagome::common {
      */
      const std::string_view toString() const;
 
+    /**
+     * @brief return content of bytearray as a string copy data
+     * @note Does not ensure correct encoding
+     * @return string
+     */
+    std::string asString() const;
+
+    /**
+     * @brief stores content of a string to byte array
+     */
+    static outcome::result<Buffer> fromString(const std::string &src);
+
    private:
     std::vector<uint8_t> data_;
 
