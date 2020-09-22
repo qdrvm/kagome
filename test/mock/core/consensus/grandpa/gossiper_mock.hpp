@@ -14,8 +14,14 @@ namespace kagome::consensus::grandpa {
 
   class GossiperMock : public Gossiper {
    public:
-    MOCK_METHOD1(vote, void(const VoteMessage &msg));
-    MOCK_METHOD1(finalize, void(const Fin &fin));
+    MOCK_METHOD2(catchUpRequest,
+                 void(const libp2p::peer::PeerId &,
+                      const network::CatchUpRequest &));
+    MOCK_METHOD2(catchUpResponse,
+                 void(const libp2p::peer::PeerId &,
+                      const network::CatchUpResponse &));
+    MOCK_METHOD1(vote, void(const network::GrandpaVoteMessage &));
+    MOCK_METHOD1(finalize, void(const network::GrandpaPreCommit &));
   };
 
 }  // namespace kagome::consensus::grandpa

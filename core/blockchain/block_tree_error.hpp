@@ -20,6 +20,7 @@ namespace kagome::blockchain {
     HASH_FAILED,
     NO_SUCH_BLOCK,
     INCORRECT_ARGS,
+    NO_SOME_BLOCK_IN_CHAIN,
     INTERNAL_ERROR
   };
 }  // namespace kagome::blockchain

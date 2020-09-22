@@ -12,15 +12,9 @@ namespace kagome::consensus::grandpa {
 
   class VoteTrackerImpl : public VoteTracker {
    public:
-    using PushResult = typename VoteTracker::PushResult;
-    using VotingMessage = typename VoteTracker::VotingMessage;
-    using EquivocatoryVotingMessage =
-        typename VoteTracker::EquivocatoryVotingMessage;
-    using VoteVariant = typename VoteTracker::VoteVariant;
-
-    ~VoteTrackerImpl() override = default;
-
     PushResult push(const VotingMessage &vote, size_t weight) override;
+
+    void unpush(const VotingMessage &vote, size_t weight) override;
 
     std::vector<VoteVariant> getMessages() const override;
 

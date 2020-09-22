@@ -10,8 +10,6 @@
 
 namespace kagome::consensus::grandpa {
 
-  using VotingMessage = VoteTracker::VotingMessage;
-
   VoteTracker::PushResult VoteTrackerImpl::push(const VotingMessage &vote,
                                                 size_t weight) {
     auto vote_it = messages_.find(vote.id);
@@ -51,9 +49,25 @@ namespace kagome::consensus::grandpa {
     return PushResult::DUPLICATED;
   }
 
-  std::vector<typename VoteTracker::VoteVariant> VoteTrackerImpl::getMessages()
-      const {
-    std::vector<typename VoteTracker::VoteVariant> prevotes;
+  void VoteTrackerImpl::unpush(const VotingMessage &vote, size_t weight) {
+    auto vote_it = messages_.find(vote.id);
+    if (vote_it == messages_.end()) {
+      return;
+    }
+    auto &existing_vote = vote_it->second;
+    visit_in_place(
+        existing_vote,
+        [&](const VotingMessage &voting_message) {
+          if (voting_message == vote) {
+            messages_.erase(vote_it);
+            total_weight_ -= weight;
+          }
+        },
+        [](const auto &...) {});
+  }
+
+  std::vector<VoteVariant> VoteTrackerImpl::getMessages() const {
+    std::vector<VoteVariant> prevotes;
     // the actual number may be bigger, but it's a good guess
     prevotes.reserve(messages_.size());
     for (const auto &[key, value] : messages_) {

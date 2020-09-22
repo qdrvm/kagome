@@ -6,10 +6,11 @@
 #ifndef KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP
 #define KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP
 
-#include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
-
 #include <gtest/gtest.h>
+
 #include <rapidjson/document.h>
+
+#include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/consensus/grandpa/chain_mock.hpp"
 #include "testutil/outcome.hpp"
@@ -18,10 +19,10 @@ using namespace kagome;
 using namespace consensus;
 using namespace grandpa;
 
-using ::testing::_;
-using ::testing::Return;
+using testing::_;
+using testing::Return;
 
-struct VoteGraphFixture : public ::testing::Test {
+struct VoteGraphFixture : public testing::Test {
   const BlockHash GENESIS_HASH = "genesis"_H;
 
   std::shared_ptr<ChainMock> chain = std::make_shared<ChainMock>();

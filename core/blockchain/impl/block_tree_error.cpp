@@ -22,6 +22,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeError, e) {
       return "block with such hash cannot be found in the local storage";
     case E::INCORRECT_ARGS:
       return "arguments, which were provided, are incorrect";
+    case E::NO_SOME_BLOCK_IN_CHAIN:
+      return "one of the blocks for getting the chain was not found in the "
+             "local storage";
     case E::INTERNAL_ERROR:
       return "internal error happened";
   }

@@ -41,20 +41,32 @@ namespace kagome::network {
 
     void blockAnnounce(const BlockAnnounce &announce) override;
 
-    void vote(const consensus::grandpa::VoteMessage &msg) override;
+    void vote(const network::GrandpaVoteMessage &msg) override;
 
-    void finalize(const consensus::grandpa::Fin &fin) override;
+    void finalize(const network::GrandpaPreCommit &msg) override;
+
+    void catchUpRequest(const libp2p::peer::PeerId &peer_id,
+                        const CatchUpRequest &catch_up_request) override;
+
+    void catchUpResponse(const libp2p::peer::PeerId &peer_id,
+                         const CatchUpResponse &catch_up_response) override;
 
     void addStream(std::shared_ptr<libp2p::connection::Stream> stream) override;
 
    private:
+    void send(const libp2p::peer::PeerId &peer_id, GossipMessage &&msg);
     void broadcast(GossipMessage &&msg);
 
     libp2p::Host &host_;
+
     std::unordered_map<libp2p::peer::PeerInfo,
                        std::shared_ptr<libp2p::connection::Stream>>
         streams_;
-    std::vector<std::shared_ptr<libp2p::connection::Stream>> syncing_streams_{};
+
+    std::unordered_map<libp2p::peer::PeerId,
+                       std::shared_ptr<libp2p::connection::Stream>>
+        syncing_streams_;
+
     common::Logger logger_;
   };
 }  // namespace kagome::network
