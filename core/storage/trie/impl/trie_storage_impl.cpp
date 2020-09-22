@@ -77,7 +77,7 @@ namespace kagome::storage::trie {
         serializer_,
         changes_,
         std::move(trie_res.value()),
-        [this](auto const &new_root) {
+        [this](const auto &new_root) {
           root_hash_ = new_root;
           logger_->debug("Update state root: {}", root_hash_);
         });
@@ -106,7 +106,7 @@ namespace kagome::storage::trie {
         serializer_,
         changes_,
         std::move(trie_res.value()),
-        [this](auto const &new_root) {
+        [this](const auto &new_root) {
           root_hash_ = new_root;
           logger_->debug("Update state root: {}", root_hash_);
         });
