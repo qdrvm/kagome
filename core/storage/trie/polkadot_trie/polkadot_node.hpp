@@ -55,13 +55,8 @@ namespace kagome::storage::trie {
     virtual bool isDummy() const = 0;
 
     // just to avoid static_casts every time you need a switch on a node type
-    Type getTrieType() const noexcept {
+    Type getTrieType() const {
       return static_cast<Type>(getType());
-    }
-
-    bool isBranch() const noexcept {
-      auto type = getTrieType();
-      return type == Type::BranchWithValue or type == Type::BranchEmptyValue;
     }
 
     KeyNibbles key_nibbles;

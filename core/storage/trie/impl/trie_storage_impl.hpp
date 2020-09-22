@@ -15,6 +15,10 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "subscription/subscription_engine.hpp"
 
+namespace kagome::api {
+  class Session;
+}
+
 namespace kagome::storage::trie {
 
   class TrieStorageImpl : public TrieStorage {

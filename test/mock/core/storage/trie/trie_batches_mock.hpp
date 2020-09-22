@@ -17,7 +17,7 @@ namespace kagome::storage::trie {
     MOCK_CONST_METHOD1(get,
                        outcome::result<common::Buffer>(const common::Buffer &));
 
-    MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
+    MOCK_METHOD0(cursor, std::unique_ptr<BufferMapCursor>());
 
     MOCK_CONST_METHOD1(contains, bool(const common::Buffer &));
 
@@ -49,7 +49,7 @@ namespace kagome::storage::trie {
     MOCK_CONST_METHOD1(get,
                        outcome::result<common::Buffer>(const common::Buffer &));
 
-    MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
+    MOCK_METHOD0(cursor, std::unique_ptr<BufferMapCursor>());
 
     MOCK_CONST_METHOD1(contains, bool(const common::Buffer &));
 
