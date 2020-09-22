@@ -943,7 +943,7 @@ namespace kagome::consensus::grandpa {
 
   bool VotingRoundImpl::updatePrevoteGhost() {
     if (prevotes_->getTotalWeight() < threshold_) {
-      logger_->debug(
+      logger_->trace(
           "Round #{}: updatePrevoteGhost->false (not reached threshold)",
           round_number_);
       return false;
@@ -972,14 +972,14 @@ namespace kagome::consensus::grandpa {
       prevote_ghost_ = new_prevote_ghost.value();
 
       if (changed) {
-        logger_->debug(
+        logger_->trace(
             "Round #{}: updatePrevoteGhost->true (prevote ghost was changed to "
             "block #{} hash={})",
             round_number_,
             prevote_ghost_->block_number,
             prevote_ghost_->block_hash.toHex());
       } else {
-        logger_->debug(
+        logger_->trace(
             "Round #{}: updatePrevoteGhost->false (prevote ghost was not "
             "changed)",
             round_number_);
@@ -987,7 +987,7 @@ namespace kagome::consensus::grandpa {
       return changed || new_prevote_ghost == last_finalized_block_;
     }
 
-    logger_->debug(
+    logger_->trace(
         "Round #{}: updatePrevoteGhost->false (no new prevote ghost)",
         round_number_);
     return false;
@@ -995,7 +995,7 @@ namespace kagome::consensus::grandpa {
 
   bool VotingRoundImpl::updatePrecommitGhost() {
     if (precommits_->getTotalWeight() < threshold_) {
-      logger_->debug(
+      logger_->trace(
           "Round #{}: updatePrecommitGhost->false (not reached threshold)",
           round_number_);
       return false;
@@ -1019,10 +1019,10 @@ namespace kagome::consensus::grandpa {
     if (not new_precommit_ghost.has_value()) {
       new_precommit_ghost = currend_best;
 
-      logger_->debug("Round #{}: updatePrecommitGhost <- not finalizable",
+      logger_->trace("Round #{}: updatePrecommitGhost <- not finalizable",
                      round_number_);
     } else {
-      logger_->debug("Round #{}: updatePrecommitGhost <- finalizable",
+      logger_->trace("Round #{}: updatePrecommitGhost <- finalizable",
                      round_number_);
 
       finalized_ = new_precommit_ghost.value();
@@ -1032,7 +1032,7 @@ namespace kagome::consensus::grandpa {
     precommit_ghost_ = new_precommit_ghost.value();
 
     if (changed) {
-      logger_->debug(
+      logger_->trace(
           "Round #{}: updatePrecommitGhost->true (precommit ghost was changed "
           "to block #{} hash={})",
           round_number_,
@@ -1122,7 +1122,7 @@ namespace kagome::consensus::grandpa {
           current_best, possible_to_precommit, VoteWeight::precommitComparator);
       if (best_final_candidate.has_value()) {
         best_final_candidate_ = best_final_candidate;
-        logger_->debug(
+        logger_->trace(
             "Round #{}: updateCompletability <- best_final_candidate is "
             "updated by precommit_ghost with given equvocations (block #{} "
             "hash={})",
@@ -1130,14 +1130,14 @@ namespace kagome::consensus::grandpa {
             best_final_candidate_->block_number,
             best_final_candidate_->block_hash);
       } else {
-        logger_->debug(
+        logger_->trace(
             "Round #{}: updateCompletability <- best_final_candidate is not "
             "updated by precommit_ghost based on prevote_ghost",
             round_number_);
       }
     } else {
       best_final_candidate_ = prevote_ghost_;
-      logger_->debug(
+      logger_->trace(
           "Round #{}: updateCompletability <- update best_final_candidate by "
           "prevote_ghost_ (block #{} hash={})",
           round_number_,
@@ -1159,7 +1159,7 @@ namespace kagome::consensus::grandpa {
             && best_final_candidate_ == bestPrevoteCandidate()) {
           completable_ = true;
         } else {
-          logger_->debug(
+          logger_->trace(
               "Round #{}: updateCompletability <- precommit ghost (block #{} "
               "hash={}) based on best prevote is different from "
               "best_final_candidate (block #{} hash={})",
@@ -1171,7 +1171,7 @@ namespace kagome::consensus::grandpa {
         }
       }
     } else {
-      logger_->debug(
+      logger_->trace(
           "Round #{}: updateCompletability <- no best_final_candidate",
           round_number_);
     }
@@ -1183,9 +1183,9 @@ namespace kagome::consensus::grandpa {
     }
 
     if (completable_) {
-      logger_->debug("Round #{}: updateCompletability->true", round_number_);
+      logger_->trace("Round #{}: updateCompletability->true", round_number_);
     } else {
-      logger_->debug("Round #{}: updateCompletability->false", round_number_);
+      logger_->trace("Round #{}: updateCompletability->false", round_number_);
     }
 
     return completable_;
@@ -1340,14 +1340,14 @@ namespace kagome::consensus::grandpa {
           current_best, possible_to_precommit, VoteWeight::precommitComparator);
       if (best_final_candidate.has_value()) {
         best_final_candidate_ = best_final_candidate;
-        logger_->debug(
+        logger_->trace(
             "Round #{}: bestFinalCandidate <- best_final_candidate is updated "
             "by precommit_ghost with given equvocations (block #{} hash={})",
             round_number_,
             best_final_candidate_->block_number,
             best_final_candidate_->block_hash);
       } else {
-        logger_->debug(
+        logger_->trace(
             "Round #{}: bestFinalCandidate <- best_final_candidate is not "
             "updated by precommit_ghost based on prevote_ghost",
             round_number_);
@@ -1356,7 +1356,7 @@ namespace kagome::consensus::grandpa {
       auto current_best = prevote_ghost_.has_value() ? prevote_ghost_.value()
                                                      : last_finalized_block_;
       best_final_candidate_ = current_best;
-      logger_->debug(
+      logger_->trace(
           "Round #{}: bestFinalCandidate <- update best_final_candidate by "
           "prevote_ghost_ (block #{} hash={})",
           round_number_,
@@ -1378,7 +1378,7 @@ namespace kagome::consensus::grandpa {
             && best_final_candidate_ == bestPrevoteCandidate()) {
           completable_ = true;
         } else {
-          logger_->debug(
+          logger_->trace(
               "Round #{}: bestFinalCandidate <- precommit ghost (block #{} "
               "hash={}) based on best prevote is different from "
               "best_final_candidate (block #{} hash={})",
@@ -1390,7 +1390,7 @@ namespace kagome::consensus::grandpa {
         }
       }
     } else {
-      logger_->debug("Round #{}: bestFinalCandidate <- no best_final_candidate",
+      logger_->trace("Round #{}: bestFinalCandidate <- no best_final_candidate",
                      round_number_);
     }
 
