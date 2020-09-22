@@ -247,15 +247,15 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::PREVOTE_RUNS);
 
+    timer_.cancel();
+    on_complete_handler_ = nullptr;
+
     stage_ = Stage::END_PREVOTE;
 
     logger_->debug("Round #{}: End prevote stage", round_number_);
 
     // Broadcast vote for prevote stage
     doPrevote();
-
-    timer_.cancel();
-    on_complete_handler_ = nullptr;
 
     startPrecommitStage();
   }
@@ -312,15 +312,15 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::PRECOMMIT_RUNS);
 
+    timer_.cancel();
+    on_complete_handler_ = nullptr;
+
     stage_ = Stage::END_PRECOMMIT;
 
     logger_->debug("Round #{}: End precommit stage", round_number_);
 
     // Broadcast vote for precommit stage
     doPrecommit();
-
-    timer_.cancel();
-    on_complete_handler_ = nullptr;
 
     startWaitingStage();
   }
@@ -386,14 +386,16 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::WAITING_RUNS);
 
+    // Reset handler of previous round finalizable
+    on_complete_handler_ = nullptr;
+
+    // Final attemption to finalize round what sould be success
+    BOOST_ASSERT(finalizable());
     attemptToFinalizeRound();
 
     stage_ = Stage::END_WAITING;
 
     logger_->debug("Round #{}: End final stage", round_number_);
-
-    // Reset handler of previous round finalizable
-    on_complete_handler_ = nullptr;
 
     // Play new round
     // spec: Play-Grandpa-round(r + 1);
