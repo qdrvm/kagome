@@ -25,7 +25,7 @@ namespace kagome::api {
         std::shared_ptr<api::ApiService> const &api_service) override;
 
 
-    outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(
+    outcome::result<std::vector<common::Buffer>> getKeysPaged(
         const boost::optional<common::Buffer> &prefix,
         uint32_t keys_amount,
         const boost::optional<common::Buffer> &prev_key,
