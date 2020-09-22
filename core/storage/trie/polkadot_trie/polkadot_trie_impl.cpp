@@ -8,7 +8,7 @@
 #include <functional>
 #include <utility>
 
-#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
 using kagome::common::Buffer;
@@ -139,9 +139,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::updateBranch(
-      BranchPtr parent,
-      const KeyNibbles &key_nibbles,
-      const NodePtr &node) {
+      BranchPtr parent, const KeyNibbles &key_nibbles, const NodePtr &node) {
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
 
     if (length == parent->key_nibbles.size()) {
@@ -214,10 +212,10 @@ namespace kagome::storage::trie {
           return parent;
         }
         break;
-      default:
-        return Error::INVALID_NODE_TYPE;
+      case T::Special:
+        break;
     }
-    return nullptr;
+    return Error::INVALID_NODE_TYPE;
   }
 
   outcome::result<std::list<std::pair<PolkadotTrieImpl::BranchPtr, uint8_t>>>
@@ -258,8 +256,8 @@ namespace kagome::storage::trie {
     return TrieError::NO_VALUE;
   }
 
-  std::unique_ptr<BufferMapCursor> PolkadotTrieImpl::cursor() {
-    return std::make_unique<PolkadotTrieCursor>(*this);
+  std::unique_ptr<PolkadotTrieCursor> PolkadotTrieImpl::trieCursor() {
+    return std::make_unique<PolkadotTrieCursorImpl>(*this);
   }
 
   bool PolkadotTrieImpl::contains(const common::Buffer &key) const {
@@ -325,9 +323,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::handleDeletion(
-      const BranchPtr &parent,
-      NodePtr node,
-      const KeyNibbles &key_nibbles) {
+      const BranchPtr &parent, NodePtr node, const KeyNibbles &key_nibbles) {
     auto newRoot = std::move(node);
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
     auto bitmap = parent->childrenBitmap();

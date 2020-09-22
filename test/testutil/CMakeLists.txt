@@ -6,8 +6,3 @@ add_subdirectory(primitives)
 add_subdirectory(runtime)
 add_subdirectory(storage)
 add_subdirectory(outcome)
-
-add_library(testutil INTERFACE)
-target_link_libraries(testutil INTERFACE
-    testutil_peer
-    )

@@ -17,6 +17,12 @@ namespace kagome::storage::trie {
    public:
     ~TrieBatch() override = default;
 
+    std::unique_ptr<BufferMapCursor> cursor() final {
+      return trieCursor();
+    }
+
+    virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() = 0;
+
     /**
      * Remove all trie entries which key begins with the supplied prefix
      */
