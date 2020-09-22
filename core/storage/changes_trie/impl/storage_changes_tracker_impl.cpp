@@ -52,8 +52,7 @@ namespace kagome::storage::changes_trie {
       const common::Buffer &value,
       bool is_new_entry) {
     auto change_it = extrinsics_changes_.find(key);
-    auto r = get_extrinsic_index_();
-    OUTCOME_TRY(idx_bytes, r);
+    OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
     OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));
 
     // if key was already changed in the same block, just add extrinsic to
