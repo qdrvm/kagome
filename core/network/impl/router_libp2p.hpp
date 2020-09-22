@@ -9,7 +9,8 @@
 #include <memory>
 
 #include "common/logger.hpp"
-#include "consensus/grandpa/round_observer.hpp"
+#include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/grandpa_observer.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -25,6 +26,10 @@
 #include "network/types/own_peer_info.hpp"
 #include "network/types/peer_list.hpp"
 
+namespace kagome::application {
+  class ConfigurationStorage;
+}
+
 namespace kagome::network {
   class RouterLibp2p : public Router,
                        public std::enable_shared_from_this<RouterLibp2p> {
@@ -32,12 +37,13 @@ namespace kagome::network {
     RouterLibp2p(
         libp2p::Host &host,
         std::shared_ptr<BabeObserver> babe_observer,
-        std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
+        std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<Gossiper> gossiper,
         const PeerList &peer_list,
-        const OwnPeerInfo &own_info);
+        const OwnPeerInfo &own_info,
+        std::shared_ptr<kagome::application::ConfigurationStorage> config);
 
     ~RouterLibp2p() override = default;
 
@@ -54,16 +60,18 @@ namespace kagome::network {
     /**
      * Process a received gossip message
      */
-    bool processGossipMessage(const GossipMessage &msg) const;
+    bool processGossipMessage(const libp2p::peer::PeerId &peer_id,
+                              const GossipMessage &msg) const;
 
     libp2p::Host &host_;
     std::shared_ptr<BabeObserver> babe_observer_;
-    std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer_;
+    std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<Gossiper> gossiper_;
     std::weak_ptr<network::LoopbackStream> loopback_stream_;
     common::Logger log_;
+    std::shared_ptr<kagome::application::ConfigurationStorage> config_;
   };
 }  // namespace kagome::network
 

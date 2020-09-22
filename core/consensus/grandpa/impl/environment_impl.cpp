@@ -30,14 +30,19 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(
       const BlockHash &base, const BlockHash &block) const {
-    // if base equal to block, then return empty list
+    // if base equal to block, then return list with single block
     if (base == block) {
-      return std::vector<BlockHash>{};
+      return std::vector<BlockHash>{base};
     }
+
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
-    std::vector<BlockHash> result_chain(chain.size() - 2);
-    std::move(chain.rbegin() + 1, chain.rend() - 1, result_chain.begin());
-    return result_chain;
+    std::reverse(chain.begin(), chain.end());
+    return std::move(chain);
+  }
+
+  bool EnvironmentImpl::hasAncestry(const BlockHash &base,
+                                    const BlockHash &block) const {
+    return base == block ? true : block_tree_->hasDirectChain(base, block);
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
@@ -66,17 +71,47 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  outcome::result<void> EnvironmentImpl::onCatchUpRequested(
+      const libp2p::peer::PeerId &peer_id,
+      MembershipCounter set_id,
+      RoundNumber round_number) {
+    network::CatchUpRequest message{.round_number = round_number,
+                                    .voter_set_id = set_id};
+    gossiper_->catchUpRequest(peer_id, message);
+    logger_->debug("Catch-Up-Request sent from round #{}", round_number);
+    return outcome::success();
+  }
+
+  outcome::result<void> EnvironmentImpl::onCatchUpResponsed(
+      const libp2p::peer::PeerId &peer_id,
+      MembershipCounter set_id,
+      RoundNumber round_number,
+      GrandpaJustification prevote_justification,
+      GrandpaJustification precommit_justification,
+      BlockInfo best_final_candidate) {
+    network::CatchUpResponse message{
+        .voter_set_id = set_id,
+        .round_number = round_number,
+        .prevote_justification = std::move(prevote_justification),
+        .precommit_justification = std::move(precommit_justification),
+        .best_final_candidate = best_final_candidate};
+    gossiper_->catchUpResponse(peer_id, message);
+    logger_->debug("Catch-Up-Response sent upto round {}", round_number);
+    return outcome::success();
+  }
+
   outcome::result<void> EnvironmentImpl::onProposed(
       RoundNumber round,
       MembershipCounter set_id,
       const SignedMessage &propose) {
     BOOST_ASSERT(propose.is<PrimaryPropose>());
-    VoteMessage message{
-        .round_number = round, .counter = set_id, .vote = propose};
+    network::GrandpaVoteMessage message{
+        {.round_number = round, .counter = set_id, .vote = propose}};
     gossiper_->vote(message);
-    logger_->debug("Primary proposed block with hash {} in grandpa round {}",
-                   propose.block_hash().toHex(),
-                   round);
+    logger_->debug("Round #{}: Proposed block #{} with hash {}",
+                   round,
+                   propose.block_number(),
+                   propose.block_hash().toHex());
     return outcome::success();
   }
 
@@ -85,12 +120,13 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &prevote) {
     BOOST_ASSERT(prevote.is<Prevote>());
-    VoteMessage message{
-        .round_number = round, .counter = set_id, .vote = prevote};
+    network::GrandpaVoteMessage message{
+        {.round_number = round, .counter = set_id, .vote = prevote}};
     gossiper_->vote(message);
-    logger_->debug("Prevoted block with hash {} in grandpa round {}",
-                   prevote.block_hash().toHex(),
-                   round);
+    logger_->debug("Round #{}: Prevoted block #{} with hash {}",
+                   round,
+                   prevote.block_number(),
+                   prevote.block_hash().toHex());
     return outcome::success();
   }
 
@@ -99,12 +135,13 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &precommit) {
     BOOST_ASSERT(precommit.is<Precommit>());
-    VoteMessage message{
-        .round_number = round, .counter = set_id, .vote = precommit};
+    network::GrandpaVoteMessage message{
+        {.round_number = round, .counter = set_id, .vote = precommit}};
     gossiper_->vote(message);
-    logger_->debug("Precommitted block with hash {} in grandpa round {}",
-                   precommit.block_hash().toHex(),
-                   round);
+    logger_->debug("Round #{}: Precommitted block #{} with hash {}",
+                   round,
+                   precommit.block_number(),
+                   precommit.block_hash().toHex());
     return outcome::success();
   }
 
@@ -112,11 +149,13 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
-    logger_->debug("Committed block with hash: {} with number: {}",
-                   vote.block_hash,
-                   vote.block_number);
-    gossiper_->finalize(Fin{
-        .round_number = round, .vote = vote, .justification = justification});
+    logger_->debug("Round #{}: Committed block #{} with hash {}",
+                   round,
+                   vote.block_number,
+                   vote.block_hash.toHex());
+    network::GrandpaPreCommit message{
+        {.round_number = round, .vote = vote, .justification = justification}};
+    gossiper_->finalize(message);
     return outcome::success();
   }
 
@@ -126,11 +165,12 @@ namespace kagome::consensus::grandpa {
     on_completed_.connect(on_completed_slot);
   }
 
-  void EnvironmentImpl::onCompleted(outcome::result<CompletedRound> round) {
+  void EnvironmentImpl::onCompleted(
+      outcome::result<MovableRoundState> round_state) {
     BOOST_ASSERT_MSG(
         not on_completed_.empty(),
         "Completed signal in environment cannot be empty when it is invoked");
-    on_completed_(round);
+    on_completed_(round_state);
   }
 
   outcome::result<void> EnvironmentImpl::finalize(
@@ -139,6 +179,18 @@ namespace kagome::consensus::grandpa {
     primitives::Justification justification;
     justification.data.put(scale::encode(grandpa_jusitification).value());
     return block_tree_->finalize(block_hash, justification);
+  }
+
+  outcome::result<GrandpaJustification> EnvironmentImpl::getJustification(
+      const BlockHash &block_hash) {
+    OUTCOME_TRY(encoded_justification,
+                block_tree_->getBlockJustification(block_hash));
+
+    OUTCOME_TRY(
+        grandpa_jusitification,
+        scale::decode<GrandpaJustification>(encoded_justification.data));
+
+    return outcome::success(std::move(grandpa_jusitification));
   }
 
 }  // namespace kagome::consensus::grandpa

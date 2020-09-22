@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
+#ifndef KAGOME_CONSENSUS_GRANDPA_STRUCTS_
+#define KAGOME_CONSENSUS_GRANDPA_STRUCTS_
 
 #include <boost/asio/steady_timer.hpp>
 #include <boost/variant.hpp>
+#include <common/buffer.hpp>
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "common/logger.hpp"
 #include "common/visitor.hpp"
 #include "common/wrapper.hpp"
 #include "consensus/grandpa/common.hpp"
@@ -29,9 +31,10 @@ namespace kagome::consensus::grandpa {
   using PrimaryPropose =
       primitives::detail::BlockInfoT<struct PrimaryProposeTag>;
 
-  using Vote = boost::variant<Prevote,
-                              Precommit,
-                              PrimaryPropose>;  // order is important
+  /// Note: order of types in variant matters
+  using Vote = boost::variant<Prevote,          // 0
+                              Precommit,        // 1
+                              PrimaryPropose>;  // 2
 
   struct SignedMessage {
     Vote message;
@@ -90,6 +93,10 @@ namespace kagome::consensus::grandpa {
     Message first;
     Message second;
   };
+
+  using VotingMessage = SignedMessage;
+  using EquivocatoryVotingMessage = std::pair<VotingMessage, VotingMessage>;
+  using VoteVariant = boost::variant<VotingMessage, EquivocatoryVotingMessage>;
 
   namespace detail {
     /// Proof of an equivocation (double-vote) in a given round.
@@ -178,4 +185,4 @@ namespace kagome::consensus::grandpa {
   };
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
+#endif  // KAGOME_CONSENSUS_GRANDPA_STRUCTS_

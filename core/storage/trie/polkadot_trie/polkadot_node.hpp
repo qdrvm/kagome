@@ -18,8 +18,7 @@ namespace kagome::storage::trie {
     KeyNibbles() = default;
 
     explicit KeyNibbles(common::Buffer b) : Buffer{std::move(b)} {}
-    KeyNibbles(std::initializer_list<uint8_t> b)
-        : Buffer{b} {}
+    KeyNibbles(std::initializer_list<uint8_t> b) : Buffer{b} {}
 
     KeyNibbles &operator=(common::Buffer b) {
       Buffer::operator=(std::move(b));
@@ -55,8 +54,13 @@ namespace kagome::storage::trie {
     virtual bool isDummy() const = 0;
 
     // just to avoid static_casts every time you need a switch on a node type
-    Type getTrieType() const {
+    Type getTrieType() const noexcept {
       return static_cast<Type>(getType());
+    }
+
+    bool isBranch() const noexcept {
+      auto type = getTrieType();
+      return type == Type::BranchWithValue or type == Type::BranchEmptyValue;
     }
 
     KeyNibbles key_nibbles;

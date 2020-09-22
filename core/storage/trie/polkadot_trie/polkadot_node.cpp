@@ -25,7 +25,7 @@ namespace kagome::storage::trie {
   uint8_t BranchNode::childrenNum() const {
     return std::count_if(children.begin(),
                          children.end(),
-                         [](auto const &child) { return child; });
+                         [](const auto &child) { return child; });
     ;
   }
 
