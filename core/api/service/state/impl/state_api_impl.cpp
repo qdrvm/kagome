@@ -24,6 +24,41 @@ namespace kagome::api {
     BOOST_ASSERT(nullptr != runtime_core_);
   }
 
+  outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(
+      const boost::optional<common::Buffer> &prefix_opt,
+      uint32_t keys_amount,
+      const boost::optional<common::Buffer> &prev_key_opt,
+      const boost::optional<primitives::BlockHash> &block_hash_opt) const {
+    auto prefix = prefix_opt.value_or(common::Buffer{});
+    auto prev_key = prev_key_opt.value_or(prefix);
+    auto block_hash = block_hash_opt.value_or(block_tree_->getLastFinalized().block_hash);
+
+    OUTCOME_TRY(header, block_repo_->getBlockHeader(block_hash));
+    OUTCOME_TRY(initial_trie_reader,
+                storage_->getEphemeralBatchAt(header.state_root));
+    auto cursor = initial_trie_reader->trieCursor();
+    OUTCOME_TRY(cursor->seekUpperBound(prev_key));
+
+    std::vector<common::Buffer> result{};
+    result.reserve(keys_amount);
+    for (uint32_t i = 0; i < keys_amount; i++) {
+      if (!cursor->isValid()) {
+        break;
+      }
+      BOOST_ASSERT(cursor->key());
+      auto key = cursor->key().value();
+
+      // make sure our key begins with prefix
+      if (not std::equal(prefix.begin(), prefix.end(), key.begin())){
+        break;
+      }
+      BOOST_ASSERT(cursor->value());
+      result.push_back(cursor->value().value());
+    }
+
+    return result;
+  }
+
   outcome::result<common::Buffer> StateApiImpl::getStorage(
       const common::Buffer &key) const {
     auto last_finalized = block_tree_->getLastFinalized();
