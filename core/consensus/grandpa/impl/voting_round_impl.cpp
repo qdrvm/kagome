@@ -386,6 +386,8 @@ namespace kagome::consensus::grandpa {
     }
     BOOST_ASSERT(stage_ == Stage::WAITING_RUNS);
 
+    attemptToFinalizeRound();
+
     stage_ = Stage::END_WAITING;
 
     logger_->debug("Round #{}: End final stage", round_number_);
@@ -997,7 +999,8 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    auto currend_best = last_finalized_block_;
+    auto currend_best = prevote_ghost_.has_value() ? prevote_ghost_.value()
+                                                   : last_finalized_block_;
 
     auto posible_to_finalize = [this](const VoteWeight &vote_weight) {
       return vote_weight

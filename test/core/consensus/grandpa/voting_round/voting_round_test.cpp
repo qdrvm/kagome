@@ -537,21 +537,26 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   EXPECT_CALL(*env_, finalize(best_block_hash, _))
       .WillOnce(Return(outcome::success()));
 
-  // check if completed round state is as expected
-  MovableRoundState expected_round_state{
-      .round_number = round_number_,
-      .last_finalized_block = finalized_block,
-      .finalized = {{best_block_number, best_block_hash}}};
+  {
+    // check that expected fin message was sent
+    auto matcher = [&](const outcome::result<MovableRoundState> &result) {
+      if (not result.has_value()) {
+        return false;
+      }
+      const auto &state = result.value();
 
-  EXPECT_CALL(
-      *env_,
-      onCompleted(outcome::result<MovableRoundState>(expected_round_state)))
-      .WillRepeatedly(Return());
+      // check if completed round state is as expected
+      return state.round_number == round_number_
+             and state.last_finalized_block == finalized_block
+             and state.finalized.has_value()
+             and state.finalized->block_number == best_block_number
+             and state.finalized->block_hash == best_block_hash;
+    };
 
-  EXPECT_CALL(*env_, onCompleted(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*env_, onCompleted(Truly(matcher))).WillRepeatedly(Return());
+  }
 
   round_->play();
 
-  //  io_context_->run();
   io_context_->run_for(duration_ * 6);
 }
