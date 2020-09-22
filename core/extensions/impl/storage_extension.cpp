@@ -131,9 +131,12 @@ namespace kagome::extensions {
 
     auto key = memory_->loadN(key_ptr, key_size);
     boost::optional<uint32_t> res{boost::none};
-    if (auto data = get(key, offset, value_size)) {
-      memory_->storeBuffer(value_ptr, data.value());
-      res = value_size;
+    if (const auto& data_res = get(key); data_res) {
+      const auto& data = data_res.value();
+      auto offset_data = data.subbuffer(std::min<size_t>(offset, data.size()));
+      auto written = std::min<size_t>(offset_data.size(), value_size);
+      memory_->storeBuffer(value_ptr, offset_data.resize(written));
+      res = offset_data.size();
     }
     return memory_->storeBuffer(scale::encode(res).value());
   }
@@ -424,8 +427,6 @@ namespace kagome::extensions {
       std::terminate();
     }
     const auto &hash = codec.hash256(enc.value());
-
-    std::cout << "res hash = " << hash.toHex() << std::endl;
 
     auto res = memory_->storeBuffer(hash);
     return runtime::WasmResult(res).address;
