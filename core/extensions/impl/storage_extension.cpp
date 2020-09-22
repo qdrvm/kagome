@@ -132,10 +132,10 @@ namespace kagome::extensions {
     auto key = memory_->loadN(key_ptr, key_size);
     boost::optional<uint32_t> res{boost::none};
     if (const auto& data_res = get(key); data_res) {
-      const auto& data = data_res.value();
-      auto offset_data = data.subbuffer(std::min<size_t>(offset, data.size()));
+      const auto& data = gsl::make_span(data_res.value());
+      auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
-      memory_->storeBuffer(value_ptr, offset_data.resize(written));
+      memory_->storeBuffer(value_ptr, offset_data.subspan(0, written));
       res = offset_data.size();
     }
     return memory_->storeBuffer(scale::encode(res).value());
