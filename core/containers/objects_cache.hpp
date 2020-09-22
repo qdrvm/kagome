@@ -7,6 +7,7 @@
 #define KAGOME_CONTAINERS_OBJECTS_CACHE_HPP
 
 #include <mutex>
+#include <vector>
 #include <memory>
 #include <type_traits>
 
@@ -16,10 +17,10 @@ namespace tools::containers {
   struct ObjsCacheDefAlloc {
     template <typename... __args>
     Type *allocate(__args &&... args) {
-      return new (std::nothrow) Type(std::forward<__args>(args)...);
+      return new (std::nothrow) Type(std::forward<__args>(args)...); // NOLINT
     }
     void deallocate(Type *obj) {
-      delete obj;
+      delete obj; // NOLINT
     }
   };
 
