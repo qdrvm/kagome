@@ -211,7 +211,7 @@ namespace kagome::storage::trie {
         if (parent->key_nibbles == key_nibbles) {
           return parent;
         }
-        break;
+        return nullptr;
       case T::Special:
         break;
     }

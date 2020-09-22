@@ -434,9 +434,7 @@ namespace kagome::injector {
     for (const auto &[key, val] : genesis_raw_configs) {
       spdlog::debug(
           "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
-      if (auto res = batch.value()->put(key, val); not res) {
-        common::raise(res.error());
-      }
+      batch.value()->put(key, val).value();
     }
     if (auto res = batch.value()->commit(); not res) {
       common::raise(res.error());
