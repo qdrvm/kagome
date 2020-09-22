@@ -17,12 +17,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
   using E = kagome::storage::trie::PolkadotTrieImpl::Error;
   switch (e) {
     case E::INVALID_NODE_TYPE:
-      return "The node type is invalid";
+      return "The trie node type is invalid";
   }
   return "Unknown error";
 }
 
 namespace kagome::storage::trie {
+
   PolkadotTrieImpl::PolkadotTrieImpl(ChildRetrieveFunctor f)
       : retrieve_child_{std::move(f)} {
     BOOST_ASSERT(retrieve_child_);
@@ -197,15 +198,14 @@ namespace kagome::storage::trie {
     switch (parent->getTrieType()) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
-        auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
-        if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
+        if (parent->key_nibbles == key_nibbles or key_nibbles.empty()) {
           return parent;
         }
-        if ((parent->key_nibbles.subbuffer(0, length) == key_nibbles)
-            && key_nibbles.size() < parent->key_nibbles.size()) {
+        if (key_nibbles.size() < parent->key_nibbles.size()) {
           return nullptr;
         }
         auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
+        auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
         OUTCOME_TRY(n, retrieveChild(parent_as_branch, key_nibbles[length]));
         return getNode(n, key_nibbles.subspan(length + 1));
       }
@@ -232,11 +232,13 @@ namespace kagome::storage::trie {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
         auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
-        if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
+        if (parent->key_nibbles == key_nibbles or key_nibbles.empty()) {
           return Path{};
         }
-        if ((parent->key_nibbles.subbuffer(0, length) == key_nibbles)
-            && key_nibbles.size() < parent->key_nibbles.size()) {
+        auto common_nibbles =
+            gsl::make_span(parent->key_nibbles.data(), length);
+        if (key_nibbles == common_nibbles
+            and key_nibbles.size() < parent->key_nibbles.size()) {
           return Path{};
         }
         auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
@@ -289,7 +291,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::deleteNode(
       NodePtr parent, const KeyNibbles &key_nibbles) {
-    if (!parent) {
+    if (parent == nullptr) {
       return nullptr;
     }
     using T = PolkadotNode::Type;
@@ -299,7 +301,7 @@ namespace kagome::storage::trie {
       case T::BranchEmptyValue: {
         auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
         auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
-        if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
+        if (parent->key_nibbles == key_nibbles or key_nibbles.empty()) {
           parent->value = boost::none;
           newRoot = parent;
         } else {
@@ -313,7 +315,7 @@ namespace kagome::storage::trie {
         return std::move(n);
       }
       case T::Leaf:
-        if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
+        if (parent->key_nibbles == key_nibbles or key_nibbles.empty()) {
           return nullptr;
         }
         return parent;
@@ -330,7 +332,7 @@ namespace kagome::storage::trie {
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
     auto bitmap = parent->childrenBitmap();
     // turn branch node left with no children to a leaf node
-    if (bitmap == 0 && parent->value) {
+    if (bitmap == 0 and parent->value) {
       newRoot = std::make_shared<LeafNode>(key_nibbles.subspan(0, length),
                                            parent->value);
     } else if (parent->childrenNum() == 1 && !parent->value) {
@@ -349,7 +351,7 @@ namespace kagome::storage::trie {
         newKey.putBuffer(child->key_nibbles);
         newRoot = std::make_shared<LeafNode>(newKey, child->value);
       } else if (child->getTrieType() == T::BranchEmptyValue
-                 || child->getTrieType() == T::BranchWithValue) {
+                 or child->getTrieType() == T::BranchWithValue) {
         auto branch = std::make_shared<BranchNode>();
         branch->key_nibbles.putBuffer(parent->key_nibbles)
             .putUint8(idx)
@@ -374,21 +376,25 @@ namespace kagome::storage::trie {
     }
     if (parent->key_nibbles.size() >= prefix_nibbles.size()) {
       // if this is the node to be detached -- detach it
-      if (parent->key_nibbles.subbuffer(0, prefix_nibbles.size())
-          == prefix_nibbles) {
+      bool prefix_equal = std::equal(prefix_nibbles.begin(),
+                                     prefix_nibbles.end(),
+                                     parent->key_nibbles.begin());
+      if (prefix_equal) {
         return nullptr;
       }
       return parent;
     }
     // if parent's key is smaller and it is not a prefix of the prefix, don't
     // change anything
-    if (prefix_nibbles.subbuffer(0, parent->key_nibbles.size())
-        != parent->key_nibbles) {
+    bool prefix_equal = std::equal(parent->key_nibbles.begin(),
+                                   parent->key_nibbles.end(),
+                                   prefix_nibbles.begin());
+    if (not prefix_equal) {
       return parent;
     }
     using T = PolkadotNode::Type;
     if (parent->getTrieType() == T::BranchWithValue
-        || parent->getTrieType() == T::BranchEmptyValue) {
+        or parent->getTrieType() == T::BranchEmptyValue) {
       auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
       auto length = getCommonPrefixLength(parent->key_nibbles, prefix_nibbles);
       OUTCOME_TRY(child, retrieveChild(branch, prefix_nibbles[length]));
@@ -407,22 +413,11 @@ namespace kagome::storage::trie {
     return retrieve_child_(std::move(parent), idx);
   }
 
-  uint32_t PolkadotTrieImpl::getCommonPrefixLength(const KeyNibbles &pref1,
-                                                   const KeyNibbles &pref2) const {
-    size_t length = 0;
-    auto min = pref1.size();
-
-    if (pref1.size() > pref2.size()) {
-      min = pref2.size();
-    }
-
-    for (; length < min; length++) {
-      if (pref1[length] != pref2[length]) {
-        break;
-      }
-    }
-
-    return length;
+  uint32_t PolkadotTrieImpl::getCommonPrefixLength(
+      const KeyNibbles &first, const KeyNibbles &second) const {
+    auto &&[it1, it2] =
+        std::mismatch(first.begin(), first.end(), second.begin(), second.end());
+    return it1 - first.begin();
   }
 
 }  // namespace kagome::storage::trie
