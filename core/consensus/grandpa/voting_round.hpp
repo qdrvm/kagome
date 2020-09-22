@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTING_ROUND_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_VOTING_ROUND_HPP
+#ifndef KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
+#define KAGOME_CONSENSUS_GRANDPA_VOTINGROUND
 
+#include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/round_observer.hpp"
-#include "consensus/grandpa/round_state.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -17,11 +17,55 @@ namespace kagome::consensus::grandpa {
   struct VotingRound : public std::enable_shared_from_this<VotingRound> {
     virtual ~VotingRound() = default;
 
+    // Getters
+
     virtual RoundNumber roundNumber() const = 0;
-    virtual std::shared_ptr<const RoundState> state() const = 0;
+    virtual MembershipCounter voterSetId() const = 0;
+
+    /**
+     * Round is completable when we have block (stored in
+     * current_state_.finalized) for which we have supermajority on both
+     * prevotes and precommits
+     */
+    virtual bool completable() const = 0;
+
+    virtual bool finalizable() const = 0;
+
+    /// Block finalized in previous round (when current one was created)
+    virtual BlockInfo lastFinalizedBlock() const = 0;
+
+    /**
+     * Best block from descendants of previous round best-final-candidate
+     * @see spec: Best-PreVote-Candidate
+     */
+    virtual BlockInfo bestPrevoteCandidate() = 0;
+
+    /**
+     * Block what has prevote supermajority.
+     * @see spec: Best-PreVote-Candidate
+     * @see spec: Ghost-Function
+     */
+    virtual BlockInfo bestPrecommitCandidate() = 0;
+
+    /**
+     * Block what has precommit supermajority.
+     * Should be descendant or equal of Best-PreVote-Candidate
+     * @see spec: Best-Final-Candidate
+     * @see spec: Ghost-Function
+     */
+    virtual BlockInfo bestFinalCandidate() = 0;
+
+    /// Block is finalized at the round
+    virtual boost::optional<BlockInfo> finalizedBlock() const = 0;
+
+    virtual MovableRoundState state() const = 0;
+
+    // Control lifecycle
 
     virtual void play() = 0;
     virtual void end() = 0;
+
+    // Doing some activity
 
     /**
      * During the primary propose we:
@@ -35,30 +79,39 @@ namespace kagome::consensus::grandpa {
      */
     virtual void doProposal() = 0;
 
-    /**
-     * 1. Waits until start_time_ + duration * 2 or round is completable
-     * 2. Constructs prevote (\see constructPrevote) and broadcasts it
-     */
+    /// Calculate prevote and broadcast signed prevote message
     virtual void doPrevote() = 0;
 
-    /**
-     * 1. Waits until start_time_ + duration * 4 or round is completable
-     * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
-     */
+    /// Calculate precommit and broadcast signed precommit message
     virtual void doPrecommit() = 0;
 
-    // executes algorithm Attempt-To-Finalize-Round(r)
-    virtual bool tryFinalize() = 0;
+    /// Broadcast Fin message
+    virtual void doFinalize() = 0;
 
-    virtual void onFinalize(const Fin &f) = 0;
+    /// Make a Cathc-Up-Request and send to the peer that has been overtaken by
+    ///  the current round
+    virtual void doCatchUpRequest(const libp2p::peer::PeerId &peer_id) = 0;
 
-    virtual void onPrimaryPropose(const SignedMessage &primary_propose) = 0;
+    /// Make Cathc-Up-Response based on current round and send to requesting
+    /// peer
+    virtual void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) = 0;
+
+    // Handling inner messages
+
+    virtual void onProposal(const SignedMessage &primary_propose) = 0;
 
     virtual void onPrevote(const SignedMessage &prevote) = 0;
 
     virtual void onPrecommit(const SignedMessage &precommit) = 0;
+
+    virtual void onFinalize(const Fin &f) = 0;
+
+    // Auxiliary methods
+
+    /// executes algorithm Attempt-To-Finalize-Round
+    virtual void attemptToFinalizeRound() = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_VOTING_ROUND_HPP
+#endif  // KAGOME_CONSENSUS_GRANDPA_VOTINGROUND

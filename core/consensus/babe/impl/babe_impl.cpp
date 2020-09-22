@@ -180,9 +180,9 @@ namespace kagome::consensus {
     switch (current_state_) {
       case BabeState::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
-        // need t know VRF threshold for validation. To calculate that we need
-        // to have weights of the authorities and to get it we need to have
-        // the latest state of a blockchain
+        //  need t know VRF threshold for validation. To calculate that we need
+        //  to have weights of the authorities and to get it we need to have
+        //  the latest state of a blockchain
 
         // synchronize missing blocks with their bodies
         log_->info("Catching up to block number: {}", announce.header.number);

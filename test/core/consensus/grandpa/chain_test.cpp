@@ -17,7 +17,6 @@ using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::BlockTreeMock;
 using kagome::common::Blob;
 using kagome::common::Hash256;
 using kagome::consensus::grandpa::Chain;
@@ -84,31 +83,79 @@ class ChainTest : public testing::Test {
  * @given chain api instance referring to a block tree with 4 blocks in its
  * chain
  * @when obtaining the ancestry from the end of the chain to the beginning
- * @then 2 blocks in between the head and the tail of the chain are returned
+ * @then 4 blocks of the chain are returned
  */
-TEST_F(ChainTest, Ancestry) {
+TEST_F(ChainTest, GetAncestry) {
   auto h1 = "010101"_hash256;
   auto h2 = "020202"_hash256;
   auto h3 = "030303"_hash256;
   auto h4 = "040404"_hash256;
   EXPECT_CALL(*tree, getChainByBlocks(h1, h4))
       .WillOnce(Return(std::vector<Hash256>{h1, h2, h3, h4}));
-  EXPECT_OUTCOME_TRUE(blocks, chain->getAncestry(h1, h4));
-  std::vector<Hash256> expected{h3, h2};
+  ASSERT_OUTCOME_SUCCESS(blocks, chain->getAncestry(h1, h4));
+  std::vector<Hash256> expected{h4, h3, h2, h1};
+  ASSERT_EQ(blocks, expected);
+}
+
+/**
+ * @given chain api instance referring to a block tree with 2 blocks in its
+ * chain
+ * @when obtaining the ancestry from the end of the chain to the beginning
+ * @then 2 blocks of the chain are returned
+ */
+TEST_F(ChainTest, GetAncestryOfChild) {
+  auto h1 = "010101"_hash256;
+  auto h2 = "020202"_hash256;
+
+  EXPECT_CALL(*tree, getChainByBlocks(h1, h2))
+      .WillOnce(Return(std::vector<Hash256>{h1, h2}));
+  ASSERT_OUTCOME_SUCCESS(blocks, chain->getAncestry(h1, h2));
+  std::vector<Hash256> expected{h2, h1};
+  ASSERT_EQ(blocks, expected);
+}
+
+/**
+ * @given no special
+ * @when obtaining the ancestry from h1 to itself
+ * @then single block is returned, getChainByBlocks was not called
+ */
+TEST_F(ChainTest, GetAncestryOfItself) {
+  auto h1 = "010101"_hash256;
+
+  EXPECT_CALL(*tree, getChainByBlocks(_, _)).Times(0);
+  ASSERT_OUTCOME_SUCCESS(blocks, chain->getAncestry(h1, h1));
+  std::vector<Hash256> expected{h1};
   ASSERT_EQ(blocks, expected);
 }
 
 /**
  * @given chain api instance referring to a block tree with 4 blocks in its
  * chain
- * @when obtaining the ancestry from h1 to itself
- * @then empty list is returned
+ * @when checking if ancestry exists from the end of the chain to the beginning
+ * @then true is returned
  */
-TEST_F(ChainTest, AncestryOfItself) {
+TEST_F(ChainTest, HasAncestry) {
   auto h1 = "010101"_hash256;
-  EXPECT_OUTCOME_TRUE(blocks, chain->getAncestry(h1, h1));
-  std::vector<Hash256> expected{};
-  ASSERT_EQ(blocks, expected);
+  auto h2 = "020202"_hash256;
+  auto h3 = "030303"_hash256;
+
+  EXPECT_CALL(*tree, hasDirectChain(h1, h2)).WillOnce(Return(true));
+  ASSERT_TRUE(chain->hasAncestry(h1, h2));
+
+  EXPECT_CALL(*tree, hasDirectChain(h3, h2)).WillOnce(Return(false));
+  ASSERT_FALSE(chain->hasAncestry(h3, h2));
+}
+
+/**
+ * @given no special
+ * @when obtaining the ancestry from h1 to itself
+ * @then true is returned, getChainByBlocks was not called
+ */
+TEST_F(ChainTest, HasAncestryOfItself) {
+  auto h1 = "010101"_hash256;
+
+  EXPECT_CALL(*tree, hasDirectChain(_, _)).Times(0);
+  ASSERT_TRUE(chain->hasAncestry(h1, h1));
 }
 
 /**
@@ -122,7 +169,7 @@ TEST_F(ChainTest, BestChainContaining) {
   auto h = mockTree();
   EXPECT_CALL(*tree, getBestContaining(_, _))
       .WillOnce(Return(BlockInfo{42, h[3]}));
-  EXPECT_OUTCOME_TRUE(r, chain->bestChainContaining(h[2]));
+  ASSERT_OUTCOME_SUCCESS(r, chain->bestChainContaining(h[2]));
 
   ASSERT_EQ(h[3], r.block_hash);
 }
@@ -138,12 +185,11 @@ TEST_F(ChainTest, IsEqualOrDescendantOf) {
   auto h1 = "010101"_hash256;
   auto h2 = "020202"_hash256;
   auto h3 = "030303"_hash256;
-  EXPECT_CALL(*tree, getChainByBlocks(h3, h2))
-      .WillOnce(Return(outcome::failure(boost::system::error_code())));
-  EXPECT_CALL(*tree, getChainByBlocks(h1, h3))
-      .WillOnce(Return(std::vector<BlockHash>{h1, h2, h3}));
+  EXPECT_CALL(*tree, hasDirectChain(h2, h2)).Times(0);
+  EXPECT_CALL(*tree, hasDirectChain(h3, h1)).WillOnce(Return(false));
+  EXPECT_CALL(*tree, hasDirectChain(h1, h3)).WillOnce(Return(true));
 
-  ASSERT_TRUE(chain->isEqualOrDescendOf("01"_hash256, "01"_hash256));
-  ASSERT_FALSE(chain->isEqualOrDescendOf(h3, h2));
+  ASSERT_TRUE(chain->isEqualOrDescendOf(h2, h2));
+  ASSERT_FALSE(chain->isEqualOrDescendOf(h3, h1));
   ASSERT_TRUE(chain->isEqualOrDescendOf(h1, h3));
 }

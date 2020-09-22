@@ -19,7 +19,7 @@ namespace kagome::consensus::grandpa {
 
   class EnvironmentImpl : public Environment {
     using OnCompleted =
-        boost::signals2::signal<void(outcome::result<CompletedRound>)>;
+        boost::signals2::signal<void(outcome::result<MovableRoundState>)>;
     using OnCompletedSlotType = OnCompleted::slot_type;
 
    public:
@@ -36,10 +36,26 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockHash &base,
         const primitives::BlockHash &block) const override;
 
+    bool hasAncestry(const primitives::BlockHash &base,
+                     const primitives::BlockHash &block) const override;
+
     outcome::result<BlockInfo> bestChainContaining(
         const primitives::BlockHash &base) const override;
 
     // Environment methods
+
+    outcome::result<void> onCatchUpRequested(
+        const libp2p::peer::PeerId &peer_id,
+        MembershipCounter set_id,
+        RoundNumber round_number) override;
+
+    outcome::result<void> onCatchUpResponsed(
+        const libp2p::peer::PeerId &peer_id,
+        MembershipCounter set_id,
+        RoundNumber round_number,
+        GrandpaJustification prevote_justification,
+        GrandpaJustification precommit_justification,
+        BlockInfo best_final_candidate) override;
 
     outcome::result<void> onProposed(RoundNumber round,
                                      MembershipCounter set_id,
@@ -61,11 +77,16 @@ namespace kagome::consensus::grandpa {
 
     void doOnCompleted(const CompleteHandler &) override;
 
-    void onCompleted(outcome::result<CompletedRound> round) override;
+    void onCompleted(outcome::result<MovableRoundState> round) override;
 
     outcome::result<void> finalize(
         const primitives::BlockHash &block_hash,
         const GrandpaJustification &justification) override;
+
+    // Getters
+
+    outcome::result<GrandpaJustification> getJustification(
+        const BlockHash &block_hash) override;
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;

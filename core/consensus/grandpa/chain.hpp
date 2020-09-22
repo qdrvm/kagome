@@ -22,13 +22,22 @@ namespace kagome::consensus::grandpa {
     virtual ~Chain() = default;
 
     /**
-     * @brief Get the ancestry of a {@param block} up to but not including the
-     * {@param base} hash. Should be in reverse order from block's parent.
+     * @brief Get the ancestry of a {@param block} up to the {@param base} hash.
+     * Should be in reverse order from block's parent.
      * @return If the block is not a descendent of base, returns an error.
      */
     virtual outcome::result<std::vector<primitives::BlockHash>> getAncestry(
         const primitives::BlockHash &base,
         const primitives::BlockHash &block) const = 0;
+
+    /**
+     * @brief Check if block is ancestor for second one
+     * @param base is potential ancestor
+     * @param block is testee block
+     * @return true, if \param base is ancestor for \param block
+     */
+    virtual bool hasAncestry(const primitives::BlockHash &base,
+                             const primitives::BlockHash &block) const = 0;
 
     /**
      * @returns the hash of the best block whose chain contains the given
@@ -43,8 +52,8 @@ namespace kagome::consensus::grandpa {
      * given {@param base}.
      */
     inline bool isEqualOrDescendOf(const primitives::BlockHash &base,
-                            const primitives::BlockHash &block) const {
-      return base == block ? true : getAncestry(base, block).has_value();
+                                   const primitives::BlockHash &block) const {
+      return base == block ? true : hasAncestry(base, block);
     }
   };
 

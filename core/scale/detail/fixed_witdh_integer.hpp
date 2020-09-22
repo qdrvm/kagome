@@ -29,9 +29,9 @@ namespace kagome::scale::detail {
             typename I = std::decay_t<T>,
             typename = std::enable_if_t<std::is_integral<I>::value>>
   void encodeInteger(T value, S &out) {  // no need to take integers by &&
-    constexpr size_t size = sizeof(T);
+    constexpr size_t size = sizeof(I);
     constexpr size_t bits = size * 8;
-    boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
+    boost::endian::endian_buffer<boost::endian::order::little, I, bits> buf{};
     buf = value;  // cannot initialize, only assign
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -103,8 +103,8 @@ namespace kagome::scale::detail {
     // in unsigned form it means that value is more than
     // a value 2^(bits_number-1)
     bool is_positive_signed = v < sign_bit[size - 1];
-    if (std::is_unsigned<T>() || is_positive_signed) {
-      return static_cast<T>(v);
+    if (std::is_unsigned<I>() || is_positive_signed) {
+      return static_cast<I>(v);
     }
 
     // T is signed integer type and the value v is negative
@@ -114,7 +114,7 @@ namespace kagome::scale::detail {
     // the bitwise negation operation affects higher bits as well
     // but it doesn't spoil the result
     // static_cast to smaller size cuts them off
-    T sv = -static_cast<T>((~v) + 1);
+    T sv = -static_cast<I>((~v) + 1);
 
     return sv;
   }

@@ -184,13 +184,14 @@ namespace kagome::scale {
       CompactInteger size{0u};
       *this >> size;
 
-      if (size > std::numeric_limits<size_type>::max()) {
-        common::raise(DecodeError::TOO_MANY_ITEMS);
-      }
       auto item_count = size.convert_to<size_type>();
 
       std::vector<mutableT> vec;
-      vec.resize(item_count);
+      try {
+        vec.resize(item_count);
+      } catch (const std::bad_alloc &) {
+        common::raise(DecodeError::TOO_MANY_ITEMS);
+      }
 
       for (size_type i = 0u; i < item_count; ++i) {
         *this >> vec[i];
@@ -216,13 +217,15 @@ namespace kagome::scale {
       CompactInteger size{0u};
       *this >> size;
 
-      if (size > std::numeric_limits<size_type>::max()) {
-        common::raise(DecodeError::TOO_MANY_ITEMS);
-      }
       auto item_count = size.convert_to<size_type>();
 
       std::list<T> lst;
-      lst.reserve(item_count);
+      try {
+        lst.reserve(item_count);
+      } catch (const std::bad_alloc &) {
+        common::raise(DecodeError::TOO_MANY_ITEMS);
+      }
+
       for (size_type i = 0u; i < item_count; ++i) {
         lst.emplace_back();
         *this >> lst.back();
@@ -278,6 +281,17 @@ namespace kagome::scale {
      */
     uint8_t nextByte();
 
+    using ByteSpan = gsl::span<const uint8_t>;
+    using SpanIterator = ByteSpan::const_iterator;
+    using SizeType = ByteSpan::size_type;
+
+    ByteSpan span() const {
+      return span_;
+    }
+    SizeType currentIndex() const {
+      return current_index_;
+    }
+
    private:
     bool decodeBool();
     /**
@@ -309,10 +323,6 @@ namespace kagome::scale {
         tryDecodeAsOneOfVariant<I + 1>(v, i);
       }
     }
-
-    using ByteSpan = gsl::span<const uint8_t>;
-    using SpanIterator = ByteSpan::const_iterator;
-    using SizeType = ByteSpan::size_type;
 
     ByteSpan span_;
     SpanIterator current_iterator_;
