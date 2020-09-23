@@ -8,6 +8,7 @@
 #include "api/jrpc/jrpc_method.hpp"
 #include "api/jrpc/value_converter.hpp"
 #include "api/service/chain/requests/get_block_hash.hpp"
+#include "api/service/chain/requests/get_header.hpp"
 
 namespace kagome::api::chain {
 
@@ -24,6 +25,9 @@ namespace kagome::api::chain {
   void ChainJrpcProcessor::registerHandlers() {
     server_->registerHandler("chain_getBlockHash",
                              Handler<request::GetBlockhash>(api_));
+
+    server_->registerHandler("chain_getHeader",
+                             Handler<request::RequestType<int32_t, boost::optional<std::string>>>(api_));
   }
 
 }  // namespace kagome::api::chain
