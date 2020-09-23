@@ -10,6 +10,7 @@
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
+#include "primitives/block_header.hpp"
 
 namespace kagome::api {
   /**
@@ -49,8 +50,8 @@ namespace kagome::api {
     virtual outcome::result<std::vector<BlockHash>> getBlockHash(
         gsl::span<const ValueType> values) const = 0;
 
-    virtual outcome::result<int32_t> getHeader(std::string_view hash) = 0;
-    virtual outcome::result<int32_t> getHeader() = 0;
+    virtual outcome::result<primitives::BlockHeader> getHeader(std::string_view hash) = 0;
+    virtual outcome::result<primitives::BlockHeader> getHeader() = 0;
   };
 
 }  // namespace kagome::api

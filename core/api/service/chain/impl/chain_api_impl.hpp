@@ -31,12 +31,14 @@ namespace kagome::api {
     outcome::result<std::vector<BlockHash>> getBlockHash(
         gsl::span<const ValueType> values) const override;
 
-    outcome::result<int32_t> getHeader(std::string_view hash) override {
-      return 10;
+    outcome::result<primitives::BlockHeader> getHeader(std::string_view hash) override {
+      OUTCOME_TRY(h, primitives::BlockHash::fromHex(hash));
+      return block_repo_->getBlockHeader(h);
     }
 
-    outcome::result<int32_t> getHeader() override {
-      return 10;
+    outcome::result<primitives::BlockHeader> getHeader() override {
+      auto last = block_tree_->getLastFinalized();
+      return block_repo_->getBlockHeader(last.block_hash);
     }
 
    private:
