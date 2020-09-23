@@ -15,14 +15,17 @@ namespace kagome::api::state::request {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
     auto &param0 = params[0];
-    if (not param0.IsString()) {
+
+    if (not param0.IsString() and not param0.IsNil()) {
       throw jsonrpc::InvalidParametersFault(
           "Parameter '[prefix]' must be a hex string");
     }
-    auto &&prefix_str = param0.AsString();
-    if (prefix_str == "null") {
+
+    if (param0.IsNil()) {
       prefix_ = common::Buffer();
     } else {
+      // here param0 is string
+      auto &&prefix_str = param0.AsString();
       OUTCOME_TRY(key, common::unhexWith0x(prefix_str));
       prefix_ = common::Buffer(std::move(key));
     }

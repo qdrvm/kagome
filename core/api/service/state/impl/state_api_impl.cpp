@@ -31,13 +31,23 @@ namespace kagome::api {
       const boost::optional<primitives::BlockHash> &block_hash_opt) const {
     auto prefix = prefix_opt.value_or(common::Buffer{});
     auto prev_key = prev_key_opt.value_or(prefix);
-    auto block_hash = block_hash_opt.value_or(block_tree_->getLastFinalized().block_hash);
+    auto block_hash =
+        block_hash_opt.value_or(block_tree_->getLastFinalized().block_hash);
 
     OUTCOME_TRY(header, block_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(initial_trie_reader,
                 storage_->getEphemeralBatchAt(header.state_root));
     auto cursor = initial_trie_reader->trieCursor();
-    OUTCOME_TRY(cursor->seekUpperBound(prev_key));
+
+    // if prev_key is bigger than prefix, then set cursor to the next key after
+    // prev_key
+    if (prev_key > prefix) {
+      OUTCOME_TRY(cursor->seekUpperBound(prev_key));
+    }
+    // otherwise set cursor to key that is next to or equal to prefix
+    else {
+      OUTCOME_TRY(cursor->seekLowerBound(prefix));
+    }
 
     std::vector<common::Buffer> result{};
     result.reserve(keys_amount);
@@ -47,13 +57,16 @@ namespace kagome::api {
       }
       BOOST_ASSERT(cursor->key());
       auto key = cursor->key().value();
+      BOOST_ASSERT_MSG(initial_trie_reader->get(key).has_value(),
+                       "Found key does not exist");
 
       // make sure our key begins with prefix
-      if (not std::equal(prefix.begin(), prefix.end(), key.begin())){
+      if (not std::equal(prefix.begin(), prefix.end(), key.begin())) {
         break;
       }
       BOOST_ASSERT(cursor->value());
       result.push_back(cursor->value().value());
+      OUTCOME_TRY(cursor->next());
     }
 
     return result;

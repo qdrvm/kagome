@@ -21,7 +21,8 @@ namespace kagome::common {
    */
   class Buffer : public boost::equality_comparable<Buffer>,
                  public boost::equality_comparable<gsl::span<uint8_t>>,
-                 public boost::equality_comparable<std::vector<uint8_t>> {
+                 public boost::equality_comparable<std::vector<uint8_t>>,
+                 public boost::less_than_comparable<Buffer> {
    public:
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
@@ -220,7 +221,7 @@ namespace kagome::common {
      * @note Does not ensure correct encoding
      * @return string
      */
-     const std::string_view toString() const;
+    const std::string_view toString() const;
 
     /**
      * @brief return content of bytearray as a string copy data
