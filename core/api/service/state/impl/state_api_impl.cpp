@@ -65,7 +65,7 @@ namespace kagome::api {
         break;
       }
       BOOST_ASSERT(cursor->value());
-      result.push_back(cursor->value().value());
+      result.push_back(cursor->key().value());
       OUTCOME_TRY(cursor->next());
     }
 
