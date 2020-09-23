@@ -45,10 +45,9 @@ namespace kagome::api::chain::request {
   struct RequestType {
    private:
     std::tuple<Types...> params_;
-    std::shared_ptr<ChainApi> api_;
 
    public:
-    explicit RequestType(std::shared_ptr<ChainApi> &api) : api_(api){};
+    RequestType() = default;
     virtual ~RequestType() = default;
 
     virtual outcome::result<ResultType> execute() = 0;

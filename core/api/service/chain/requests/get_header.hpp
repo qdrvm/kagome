@@ -12,13 +12,10 @@ namespace kagome::api::chain::request {
 
   struct GetHeader final : RequestType<int32_t, boost::optional<std::string>> {
     using BaseType = RequestType<int32_t, boost::optional<std::string>>;
-
-    explicit GetHeader(std::shared_ptr<ChainApi> &api)
-        : BaseType(api), api_(api) {}
+    explicit GetHeader(std::shared_ptr<ChainApi> &api) : api_(api) {}
 
     outcome::result<int32_t> execute() override {
-      if (auto &param_0 = getParam<0>())
-        return api_->getHeader(*param_0);
+      if (const auto &param_0 = getParam<0>()) return api_->getHeader(*param_0);
 
       return api_->getHeader();
     }
