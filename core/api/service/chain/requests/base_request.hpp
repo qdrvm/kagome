@@ -43,8 +43,14 @@ namespace kagome::api::chain::request {
 
   template <typename ResultType, typename... Types>
   struct RequestType {
+   private:
+    std::tuple<Types...> params_;
+    std::shared_ptr<ChainApi> api_;
+
+   public:
     explicit RequestType(std::shared_ptr<ChainApi> &api) : api_(api){};
-    virtual ~RequestType() = 0;
+    virtual ~RequestType() = default;
+
     virtual outcome::result<ResultType> execute() = 0;
 
     RequestType(const RequestType &) = delete;
@@ -63,17 +69,20 @@ namespace kagome::api::chain::request {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
 
-   private:
-    std::tuple<Types...> params_;
-    std::shared_ptr<ChainApi> api_;
+    template<size_t I>
+    auto getParam() -> typename std::tuple_element<I, decltype(params_)>::type & {
+      static_assert(I < std::tuple_size<decltype(params_)>::value, "Incorrect index.");
+      return std::get<I>(params_);
+    }
 
+   private:
     KAGOME_LOAD_VALUE(int32_t) {
       if (!src.IsInteger32())
         throw jsonrpc::InvalidParametersFault("invalid argument");
 
       dst = src.AsInteger32();
       return outcome::success();
-    };
+    }
 
     KAGOME_LOAD_VALUE(std::string) {
       if (!src.IsString())
@@ -81,7 +90,7 @@ namespace kagome::api::chain::request {
 
       dst = src.AsString();
       return outcome::success();
-    };
+    }
   };
 #undef KAGOME_LOAD_VALUE
 

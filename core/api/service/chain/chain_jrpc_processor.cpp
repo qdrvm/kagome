@@ -27,7 +27,7 @@ namespace kagome::api::chain {
                              Handler<request::GetBlockhash>(api_));
 
     server_->registerHandler("chain_getHeader",
-                             Handler<request::RequestType<int32_t, boost::optional<std::string>>>(api_));
+                             Handler<request::GetHeader>(api_));
   }
 
 }  // namespace kagome::api::chain

@@ -48,6 +48,9 @@ namespace kagome::api {
      */
     virtual outcome::result<std::vector<BlockHash>> getBlockHash(
         gsl::span<const ValueType> values) const = 0;
+
+    virtual outcome::result<int32_t> getHeader(std::string_view hash) = 0;
+    virtual outcome::result<int32_t> getHeader() = 0;
   };
 
 }  // namespace kagome::api

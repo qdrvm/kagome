@@ -31,6 +31,14 @@ namespace kagome::api {
     outcome::result<std::vector<BlockHash>> getBlockHash(
         gsl::span<const ValueType> values) const override;
 
+    outcome::result<int32_t> getHeader(std::string_view hash) override {
+      return 10;
+    }
+
+    outcome::result<int32_t> getHeader() override {
+      return 10;
+    }
+
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
