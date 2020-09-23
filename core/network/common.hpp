@@ -9,8 +9,14 @@
 #include "libp2p/peer/protocol.hpp"
 
 namespace kagome::network {
+  /// Current protocol version.
+  static constexpr uint32_t CURRENT_VERSION = 6;
+  /// Lowest version we support
+  static constexpr uint32_t MIN_VERSION = 3;
+
   const libp2p::peer::Protocol kSyncProtocol = "/{}/sync/2";
   const libp2p::peer::Protocol kGossipProtocol = "/polkadot-gossip/1.0.0";
+  const libp2p::peer::Protocol kSupProtocol = "/substrate/sup/" + std::to_string(CURRENT_VERSION);
 }  // namespace kagome::network
 
 #endif  // KAGOME_NETWORK_COMMON_HPP

@@ -5,6 +5,8 @@
 
 #include "network/impl/router_libp2p.hpp"
 
+#include <libp2p/basic/message_read_writer_uvarint.hpp>
+
 #include "consensus/grandpa/structs.hpp"
 #include "network/common.hpp"
 #include "network/types/block_announce.hpp"
@@ -12,6 +14,7 @@
 #include "network/types/blocks_response.hpp"
 #include "network/types/peer_list.hpp"
 #include "scale/scale.hpp"
+#include "network/types/status.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/rpc.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
@@ -114,6 +117,26 @@ namespace kagome::network {
       std::shared_ptr<Stream> stream) const {
     gossiper_->addStream(stream);
     return readGossipMessage(std::move(stream));
+  }
+
+  void RouterLibp2p::handleSupProtocol(std::shared_ptr<Stream> stream) const {
+    Status status_msg;
+    status_msg.version = CURRENT_VERSION;
+    status_msg.min_supported_version = MIN_VERSION;
+
+    GossipMessage msg;
+    msg.type = GossipMessage::Type::STATUS;
+    msg.data.put(scale::encode(status_msg).value());
+
+    ScaleMessageReadWriter rw(
+        std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
+            std::move(stream)));
+
+    rw.write(msg, [self{shared_from_this()}](auto &&res) {
+      if (!res)
+        self->log_->error("Could not broadcast, reason: {}",
+                          res.error().message());
+    });
   }
 
   void RouterLibp2p::readGossipMessage(std::shared_ptr<Stream> stream) const {
