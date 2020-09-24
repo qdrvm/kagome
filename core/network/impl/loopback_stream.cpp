@@ -26,11 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, LoopbackStream::Error, e) {
 }
 
 namespace kagome::network {
-  LoopbackStream::LoopbackStream(
-      libp2p::peer::PeerInfo own_peer_info,
-      std::shared_ptr<boost::asio::io_context> io_context)
-      : own_peer_info_(std::move(own_peer_info)),
-        io_context_(std::move(io_context)) {}
+  LoopbackStream::LoopbackStream(libp2p::peer::PeerInfo own_peer_info)
+      : own_peer_info_(std::move(own_peer_info)) {}
 
   bool LoopbackStream::isClosedForRead() const {
     return !is_readable_;

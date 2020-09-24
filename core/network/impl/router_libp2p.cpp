@@ -31,8 +31,7 @@ namespace kagome::network {
       std::shared_ptr<Gossiper> gossiper,
       const PeerList &peer_list,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<kagome::application::ConfigurationStorage> config,
-      std::shared_ptr<boost::asio::io_context> io_context)
+      std::shared_ptr<kagome::application::ConfigurationStorage> config)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
@@ -54,9 +53,7 @@ namespace kagome::network {
       if (peer_info.id != own_peer_info.id) {
         gossiper_->reserveStream(peer_info, {});
       } else {
-        BOOST_ASSERT_MSG(io_context != nullptr, "io_context is nullptr");
-        auto stream = std::make_shared<LoopbackStream>(own_peer_info,
-                                                       std::move(io_context));
+        auto stream = std::make_shared<LoopbackStream>(own_peer_info);
         loopback_stream_ = stream;
         gossiper_->reserveStream(own_peer_info, std::move(stream));
       }

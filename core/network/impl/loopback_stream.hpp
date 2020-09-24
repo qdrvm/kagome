@@ -27,8 +27,7 @@ namespace kagome::network {
       INTERNAL_ERROR
     };
 
-    LoopbackStream(libp2p::peer::PeerInfo own_peer_info,
-                   std::shared_ptr<boost::asio::io_context> io_context);
+    LoopbackStream(libp2p::peer::PeerInfo own_peer_info);
 
     bool isClosedForRead() const override;
     bool isClosedForWrite() const override;
@@ -73,8 +72,6 @@ namespace kagome::network {
               bool some);
 
     libp2p::peer::PeerInfo own_peer_info_;
-
-    std::shared_ptr<boost::asio::io_context> io_context_;
 
     common::Logger log_ = common::createLogger("LoopbackStream");
 
