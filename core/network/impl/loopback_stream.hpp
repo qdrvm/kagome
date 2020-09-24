@@ -27,7 +27,7 @@ namespace kagome::network {
       INTERNAL_ERROR
     };
 
-    LoopbackStream(libp2p::peer::PeerInfo own_peer_info);
+    explicit LoopbackStream(libp2p::peer::PeerInfo own_peer_info);
 
     bool isClosedForRead() const override;
     bool isClosedForWrite() const override;
