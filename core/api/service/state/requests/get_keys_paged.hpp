@@ -16,7 +16,8 @@
 namespace kagome::api::state::request {
 
   /**
-   * Request processor for state_GetKeysPaged RPC
+   * Request processor for state_GetKeysPaged RPC:
+   * https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#state_getkeyspaged
    */
   class GetKeysPaged final {
    public:
