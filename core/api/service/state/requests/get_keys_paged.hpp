@@ -37,7 +37,7 @@ namespace kagome::api::state::request {
    private:
     std::shared_ptr<StateApi> api_;
     boost::optional<common::Buffer> prefix_{};
-    uint32_t keys_amount_;
+    uint32_t keys_amount_{};
     boost::optional<common::Buffer> prev_key_{};
     boost::optional<primitives::BlockHash> at_{};
   };
