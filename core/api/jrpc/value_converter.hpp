@@ -13,6 +13,8 @@
 #include "common/visitor.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
+#include "primitives/digest.hpp"
+#include "primitives/block_header.hpp"
 
 namespace kagome::api {
   inline jsonrpc::Value makeValue(common::Hash256 const &);
@@ -20,7 +22,9 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(primitives::Extrinsic const &);
   inline jsonrpc::Value makeValue(primitives::Version const &);
   inline jsonrpc::Value makeValue(uint32_t const &);
+  inline jsonrpc::Value makeValue(uint64_t const &);
   inline jsonrpc::Value makeValue(primitives::Api const &);
+  inline jsonrpc::Value makeValue(primitives::DigestItem const &);
 
   template <size_t S>
   inline jsonrpc::Value makeValue(const common::Blob<S> &);
@@ -41,7 +45,24 @@ namespace kagome::api {
     return std::vector<uint8_t>{val.begin(), val.end()};
   }
 
+  inline jsonrpc::Value makeValue(primitives::DigestItem const &val) {
+    using namespace primitives;
+    return kagome::visit_in_place(
+        val,
+        [](const ChangesTrieRoot &val) {
+          return makeValue(static_cast<common::Hash256>(val));
+        },
+        [](auto &) {
+          // NOT_IMPL
+          return jsonrpc::Value();
+        });
+  }
+
   inline jsonrpc::Value makeValue(uint32_t const &val) {
+    return makeValue(static_cast<int64_t>(val));
+  }
+
+  inline jsonrpc::Value makeValue(uint64_t const &val) {
     return makeValue(static_cast<int64_t>(val));
   }
 
@@ -90,6 +111,27 @@ namespace kagome::api {
     data["implVersion"] = makeValue(val.impl_version);
 
     data["apis"] = makeValue(val.apis);
+    return std::move(data);
+  }
+
+  inline jsonrpc::Value makeValue(const primitives::BlockHeader &val) {
+    using jStruct = jsonrpc::Value::Struct;
+    using jArray = jsonrpc::Value::Array;
+
+    jStruct data;
+    data["parentHash"] = makeValue(val.parent_hash);
+    data["number"] = makeValue(val.number);
+    data["stateRoot"] = makeValue(val.state_root);
+    data["extrinsicsRoot"] = makeValue(val.extrinsics_root);
+
+    jArray logs;
+    logs.reserve(val.digest.size());
+    for (auto &d : val.digest) logs.emplace_back(makeValue(d));
+
+    jStruct digest;
+    data["logs"] = std::move(logs);
+
+    data["digest"] = std::move(digest);
     return std::move(data);
   }
 
