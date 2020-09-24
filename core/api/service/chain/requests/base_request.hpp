@@ -34,12 +34,12 @@ namespace kagome::api::chain::request {
 #endif  // KAGOME_LOAD_VALUE
 
 #define KAGOME_LOAD_VALUE(type) \
-  outcome::result<void> loadValue(boost::optional<type> &dst, const jsonrpc::Value &src) { \
+  void loadValue(boost::optional<type> &dst, const jsonrpc::Value &src) { \
     type t; \
     loadValue(t, src); \
     dst = std::move(t); \
   } \
-  outcome::result<void> loadValue(type &dst, const jsonrpc::Value &src)
+  void loadValue(type &dst, const jsonrpc::Value &src)
 
   template <typename ResultType, typename... Types>
   struct RequestType {
@@ -68,9 +68,11 @@ namespace kagome::api::chain::request {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
 
-    template<size_t I>
-    auto getParam() -> typename std::tuple_element<I, decltype(params_)>::type & {
-      static_assert(I < std::tuple_size<decltype(params_)>::value, "Incorrect index.");
+    template <size_t I>
+    auto getParam() ->
+        typename std::tuple_element<I, decltype(params_)>::type & {
+      static_assert(I < std::tuple_size<decltype(params_)>::value,
+                    "Incorrect index.");
       return std::get<I>(params_);
     }
 
@@ -80,7 +82,6 @@ namespace kagome::api::chain::request {
         throw jsonrpc::InvalidParametersFault("invalid argument");
 
       dst = src.AsInteger32();
-      return outcome::success();
     }
 
     KAGOME_LOAD_VALUE(std::string) {
@@ -88,7 +89,6 @@ namespace kagome::api::chain::request {
         throw jsonrpc::InvalidParametersFault("invalid argument");
 
       dst = src.AsString();
-      return outcome::success();
     }
   };
 #undef KAGOME_LOAD_VALUE
