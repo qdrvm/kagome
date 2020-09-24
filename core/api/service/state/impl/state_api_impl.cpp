@@ -57,8 +57,8 @@ namespace kagome::api {
       }
       BOOST_ASSERT(cursor->key());
       auto key = cursor->key().value();
-      BOOST_ASSERT_MSG(initial_trie_reader->get(key).has_value(),
-                       "Found key does not exist");
+//      BOOST_ASSERT_MSG(initial_trie_reader->get(key).has_value(),
+//                       "Found key does not exist");
 
       // make sure our key begins with prefix
       if (not std::equal(prefix.begin(), prefix.end(), key.begin())) {

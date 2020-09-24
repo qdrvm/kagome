@@ -20,6 +20,13 @@ namespace kagome::api {
 
     MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
 
+    MOCK_CONST_METHOD4(getKeysPaged,
+                       outcome::result<std::vector<common::Buffer>>(
+                           const boost::optional<common::Buffer> &,
+                           uint32_t,
+                           const boost::optional<common::Buffer> &,
+                           const boost::optional<primitives::BlockHash> &));
+
     MOCK_CONST_METHOD1(
         getStorage, outcome::result<common::Buffer>(const common::Buffer &key));
     MOCK_CONST_METHOD2(
