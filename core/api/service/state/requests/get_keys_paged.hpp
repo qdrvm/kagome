@@ -15,6 +15,9 @@
 
 namespace kagome::api::state::request {
 
+  /**
+   * Request processor for state_GetKeysPaged RPC
+   */
   class GetKeysPaged final {
    public:
     GetKeysPaged(GetKeysPaged const &) = delete;
@@ -23,7 +26,8 @@ namespace kagome::api::state::request {
     GetKeysPaged(GetKeysPaged &&) = default;
     GetKeysPaged &operator=(GetKeysPaged &&) = default;
 
-    explicit GetKeysPaged(std::shared_ptr<StateApi> api) : api_(std::move(api)){};
+    explicit GetKeysPaged(std::shared_ptr<StateApi> api)
+        : api_(std::move(api)){};
     ~GetKeysPaged() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
@@ -39,6 +43,5 @@ namespace kagome::api::state::request {
   };
 
 }  // namespace kagome::api::state::request
-
 
 #endif  // KAGOME_CORE_API_SERVICE_STATE_REQUESTS_GET_KEYS_PAGED_HPP
