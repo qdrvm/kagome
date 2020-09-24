@@ -46,8 +46,7 @@ namespace kagome::api::state::request {
           "Parameter '[prev_key]' must be a hex string of encoded optional of "
           "bytes");
     }
-    auto prev_key_str = params[2].AsString();
-    OUTCOME_TRY(prev_key, common::unhexWith0x(prev_key_str));
+    OUTCOME_TRY(prev_key, common::unhexWith0x(params[2].AsString()));
     prev_key_ = common::Buffer{prev_key};
 
     if (params.size() == 3) {
@@ -59,8 +58,7 @@ namespace kagome::api::state::request {
       throw jsonrpc::InvalidParametersFault(
           "Parameter '[at]' must be a hex string of encoded optional of bytes");
     }
-    auto at_str = params[3].AsString();
-    OUTCOME_TRY(at_span, common::unhexWith0x(at_str));
+    OUTCOME_TRY(at_span, common::unhexWith0x(params[3].AsString()));
     OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
     at_ = at;
 
