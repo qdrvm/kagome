@@ -43,7 +43,8 @@ namespace kagome::network {
         std::shared_ptr<Gossiper> gossiper,
         const PeerList &peer_list,
         const OwnPeerInfo &own_info,
-        std::shared_ptr<kagome::application::ConfigurationStorage> config);
+        std::shared_ptr<kagome::application::ConfigurationStorage> config,
+        std::shared_ptr<boost::asio::io_context> io_context);
 
     ~RouterLibp2p() override = default;
 

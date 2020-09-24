@@ -7,19 +7,19 @@
 
 #include <libp2p/basic/message_read_writer_uvarint.hpp>
 
+#include "application/configuration_storage.hpp"
 #include "consensus/grandpa/structs.hpp"
+#include "network/adapters/protobuf_block_request.hpp"
+#include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
+#include "network/helpers/protobuf_message_read_writer.hpp"
+#include "network/rpc.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
 #include "network/types/peer_list.hpp"
-#include "scale/scale.hpp"
 #include "network/types/status.hpp"
-#include "network/helpers/protobuf_message_read_writer.hpp"
-#include "network/rpc.hpp"
-#include "network/adapters/protobuf_block_request.hpp"
-#include "network/adapters/protobuf_block_response.hpp"
-#include "application/configuration_storage.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
@@ -31,7 +31,8 @@ namespace kagome::network {
       std::shared_ptr<Gossiper> gossiper,
       const PeerList &peer_list,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<kagome::application::ConfigurationStorage> config)
+      std::shared_ptr<kagome::application::ConfigurationStorage> config,
+      std::shared_ptr<boost::asio::io_context> io_context)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
@@ -49,16 +50,16 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
 
-    // FIXME(xDimon): https://github.com/soramitsu/kagome/issues/495
-    //  Uncomment after issue will be resolved
     for (const auto &peer_info : peer_list.peers) {
-      // if (peer_info.id != own_peer_info.id) {
-      gossiper_->reserveStream(peer_info, {});
-      // } else {
-      //   auto stream = std::make_shared<LoopbackStream>(own_peer_info);
-      //   loopback_stream_ = stream;
-      //   gossiper_->reserveStream(own_peer_info, std::move(stream));
-      // }
+      if (peer_info.id != own_peer_info.id) {
+        gossiper_->reserveStream(peer_info, {});
+      } else {
+        BOOST_ASSERT_MSG(io_context != nullptr, "io_context is nullptr");
+        auto stream = std::make_shared<LoopbackStream>(own_peer_info,
+                                                       std::move(io_context));
+        loopback_stream_ = stream;
+        gossiper_->reserveStream(own_peer_info, std::move(stream));
+      }
     }
   }
 

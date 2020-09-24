@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/asio/post.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
 #include "network/impl/loopback_stream.hpp"
@@ -25,8 +26,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, LoopbackStream::Error, e) {
 }
 
 namespace kagome::network {
-  LoopbackStream::LoopbackStream(libp2p::peer::PeerInfo own_peer_info)
-      : own_peer_info_(std::move(own_peer_info)) {}
+  LoopbackStream::LoopbackStream(
+      libp2p::peer::PeerInfo own_peer_info,
+      std::shared_ptr<boost::asio::io_context> io_context)
+      : own_peer_info_(std::move(own_peer_info)),
+        io_context_(std::move(io_context)) {}
 
   bool LoopbackStream::isClosedForRead() const {
     return !is_readable_;
@@ -85,28 +89,46 @@ namespace kagome::network {
   void LoopbackStream::write(gsl::span<const uint8_t> in,
                              size_t bytes,
                              libp2p::basic::Writer::WriteCallbackFunc cb) {
+    log_->trace("lsb::write() call for {} bytes", bytes);
     if (is_reset_) {
+      log_->trace("lsb::write() failed: Stream is reset");
       return cb(Error::IS_RESET);
     }
     if (!is_writable_) {
+      log_->trace("lsb::write() failed: Stream is closed for write");
       return cb(Error::IS_CLOSED_FOR_WRITES);
     }
     if (bytes == 0 || in.empty() || static_cast<size_t>(in.size()) < bytes) {
+      log_->trace("lsb::write() failed: Invalid argument");
       return cb(Error::INVALID_ARGUMENT);
     }
 
     if (boost::asio::buffer_copy(buffer_.prepare(bytes),
                                  boost::asio::const_buffer(in.data(), bytes))
         != bytes) {
+      log_->trace("lsb::write() failed: Can't copy to buffer");
       return cb(Error::INTERNAL_ERROR);
     }
     buffer_.commit(bytes);
+    log_->trace("lsb::write(): buffer filled upto {} bytes", buffer_.size());
 
+    log_->trace("lsb::write(): enter to callback");
     cb(outcome::success(bytes));
+    log_->trace("lsb::write(): return from callback");
 
-    if (data_notifyee_) {
-      data_notifyee_(buffer_.size());
-    }
+    log_->trace("lsb::write(): postpone data notification");
+    io_context_->post([wp = weak_from_this()] {
+      auto self = wp.lock();
+      if (not self) return;
+      if (self->buffer_.size() == 0) return;
+
+      if (auto cb = std::move(self->data_notifyee_)) {
+        self->log_->trace("lsb::Enter to data notifyee (buffer size is {})",
+                          self->buffer_.size());
+        cb(self->buffer_.size());
+        self->log_->trace("lsb::Return from data notifyee");
+      }
+    });
   }
 
   void LoopbackStream::writeSome(gsl::span<const uint8_t> in,
@@ -119,13 +141,18 @@ namespace kagome::network {
                             size_t bytes,
                             libp2p::basic::Reader::ReadCallbackFunc cb,
                             bool some) {
+    log_->trace(
+        "lsb::read() call for {} {} bytes", some ? "up to" : "exactly", bytes);
     if (is_reset_) {
+      log_->trace("lsb::read() failed: Stream is reset");
       return cb(Error::IS_RESET);
     }
     if (!is_readable_) {
+      log_->trace("lsb::write() failed: Stream is closed for read");
       return cb(Error::IS_CLOSED_FOR_READS);
     }
     if (bytes == 0 || out.empty() || static_cast<size_t>(out.size()) < bytes) {
+      log_->trace("lsb::write() failed: Invalid argument");
       return cb(Error::INVALID_ARGUMENT);
     }
 
@@ -136,9 +163,18 @@ namespace kagome::network {
                         out,
                         bytes,
                         some](outcome::result<size_t> res) mutable {
+      self->log_->trace("lsb::read()::read_lambda() for {} {} bytes",
+                        some ? "up to" : "exact",
+                        bytes);
       if (!res) {
         self->data_notified_ = true;
-        cb(res);
+
+        self->log_->trace("lsb::read()::read_lambda() failed: {}",
+                          res.error().message());
+
+        self->log_->trace("lsb::read()::read_lambda(): enter to callback");
+        cb(res.as_failure());
+        self->log_->trace("lsb::read()::read_lambda(): return from callback");
         return;
       }
       if (self->buffer_.size() >= (some ? 1 : bytes)) {
@@ -147,12 +183,27 @@ namespace kagome::network {
                                      self->buffer_.data(),
                                      to_read)
             != to_read) {
+          self->log_->trace(
+              "lsb::read()::read_lambda() failed: Can't copy from buffer");
           return cb(Error::INTERNAL_ERROR);
         }
 
         self->buffer_.consume(to_read);
         self->data_notified_ = true;
+        self->log_->trace(
+            "lsb::read()::read_lambda(): buffer drained by {} bytes upto {}",
+            to_read,
+            self->buffer_.size());
+
+        self->log_->trace("lsb::read()::read_lambda(): enter to callback");
         cb(to_read);
+        self->log_->trace("lsb::read()::read_lambda(): return from callback");
+      } else {
+        self->log_->trace(
+            "lsb::read()::read_lambda(): not enough data in buffer "
+            "(needs at least {} bytes, has {})",
+            some ? 1 : bytes,
+            self->buffer_.size());
       }
     };
 
@@ -160,11 +211,15 @@ namespace kagome::network {
     data_notified_ = false;
     read_lambda(0);
     if (data_notified_) {
+      log_->trace("lsb::read() is done");
       return;
     }
 
     // subscribe to new data updates
-    data_notifyee_ = std::move(read_lambda);
+    if (not data_notifyee_) {
+      log_->trace("lsb::read(): data notifyee was set");
+      data_notifyee_ = std::move(read_lambda);
+    }
   };
 
 }  // namespace kagome::network
