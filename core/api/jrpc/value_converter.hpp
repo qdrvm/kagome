@@ -7,62 +7,58 @@
 #define KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP
 
 #include <vector>
-
 #include <jsonrpc-lean/value.h>
+
 #include "common/blob.hpp"
 #include "common/visitor.hpp"
+#include "primitives/block_header.hpp"
+#include "primitives/digest.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
-#include "primitives/digest.hpp"
-#include "primitives/block_header.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::api {
-  inline jsonrpc::Value makeValue(common::Hash256 const &);
-  inline jsonrpc::Value makeValue(common::Buffer const &);
-  inline jsonrpc::Value makeValue(primitives::Extrinsic const &);
-  inline jsonrpc::Value makeValue(primitives::Version const &);
-  inline jsonrpc::Value makeValue(uint32_t const &);
-  inline jsonrpc::Value makeValue(uint64_t const &);
-  inline jsonrpc::Value makeValue(primitives::Api const &);
-  inline jsonrpc::Value makeValue(primitives::DigestItem const &);
+  inline jsonrpc::Value makeValue(const common::Hash256 &);
+  inline jsonrpc::Value makeValue(const common::Buffer &);
+  inline jsonrpc::Value makeValue(const primitives::Extrinsic &);
+  inline jsonrpc::Value makeValue(const primitives::Version &);
+  inline jsonrpc::Value makeValue(const uint32_t &);
+  inline jsonrpc::Value makeValue(const uint64_t &);
+  inline jsonrpc::Value makeValue(const primitives::Api &);
+  inline jsonrpc::Value makeValue(const primitives::DigestItem &);
 
   template <size_t S>
   inline jsonrpc::Value makeValue(const common::Blob<S> &);
   template <typename T>
-  inline jsonrpc::Value makeValue(T const &);
+  inline jsonrpc::Value makeValue(const T &);
   template <class T>
   inline jsonrpc::Value makeValue(const std::vector<T> &);
   template <class T1, class T2>
   inline jsonrpc::Value makeValue(const boost::variant<T1, T2> &);
 
   template <typename T>
-  inline jsonrpc::Value makeValue(T const &val) {
+  inline jsonrpc::Value makeValue(const T &val) {
     return jsonrpc::Value(val);
   }
 
   template <size_t S>
-  inline jsonrpc::Value makeValue(common::Blob<S> const &val) {
+  inline jsonrpc::Value makeValue(const common::Blob<S> &val) {
     return std::vector<uint8_t>{val.begin(), val.end()};
   }
 
-  inline jsonrpc::Value makeValue(primitives::DigestItem const &val) {
-    using namespace primitives;
-    return kagome::visit_in_place(
-        val,
-        [](const ChangesTrieRoot &val) {
-          return makeValue(static_cast<common::Hash256>(val));
-        },
-        [](auto &) {
-          // NOT_IMPL
-          return jsonrpc::Value();
-        });
+  inline jsonrpc::Value makeValue(const primitives::DigestItem &val) {
+    auto result = scale::encode(val);
+    if (result.has_error())
+      throw jsonrpc::InternalErrorFault("Unable to encode arguments.");
+
+    return makeValue(result.value());
   }
 
-  inline jsonrpc::Value makeValue(uint32_t const &val) {
+  inline jsonrpc::Value makeValue(const uint32_t &val) {
     return makeValue(static_cast<int64_t>(val));
   }
 
-  inline jsonrpc::Value makeValue(uint64_t const &val) {
+  inline jsonrpc::Value makeValue(const uint64_t &val) {
     return makeValue(static_cast<int64_t>(val));
   }
 
@@ -126,10 +122,12 @@ namespace kagome::api {
 
     jArray logs;
     logs.reserve(val.digest.size());
-    for (auto &d : val.digest) logs.emplace_back(makeValue(d));
+    for (auto &d : val.digest) {
+      logs.emplace_back(makeValue(d));
+    }
 
     jStruct digest;
-    data["logs"] = std::move(logs);
+    digest["logs"] = std::move(logs);
 
     data["digest"] = std::move(digest);
     return std::move(data);

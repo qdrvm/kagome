@@ -9,8 +9,8 @@
 #include <boost/variant.hpp>
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
-#include "primitives/common.hpp"
 #include "primitives/block_header.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::api {
   /**
@@ -54,7 +54,8 @@ namespace kagome::api {
      * @param hash hex-string of a block to retrieve
      * @return BlockHeader data structure
      */
-    virtual outcome::result<primitives::BlockHeader> getHeader(std::string_view hash) = 0;
+    virtual outcome::result<primitives::BlockHeader> getHeader(
+        std::string_view hash) = 0;
 
     /**
      * Returns header of a last finalized block.

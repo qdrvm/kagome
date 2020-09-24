@@ -6,39 +6,38 @@
 #ifndef KAGOME_CHAIN_BASE_REQUEST_HPP
 #define KAGOME_CHAIN_BASE_REQUEST_HPP
 
-#include <tuple>
 #include <jsonrpc-lean/request.h>
 #include <boost/optional.hpp>
+#include <functional>
+#include <tuple>
 
 #include "api/service/chain/chain_api.hpp"
 #include "primitives/extrinsic.hpp"
 
 namespace kagome::api::chain::request {
 
-  template <size_t I1, size_t I2>
-  struct is_equal {
-    static constexpr bool value = I1 == I2;
-  };
-
   template <size_t I, size_t Max, typename Tuple, typename F>
   constexpr void loop(Tuple &t, F &&f) {
     static_assert(I <= Max, "Invalid expression!");
-    if constexpr (!is_equal<I, Max>::value) {
+    if constexpr (!std::equal_to<size_t>()(I, Max)) {
       std::forward<F>(f)(I, std::get<I>(t));
       loop<I + 1, Max>(t, std::forward<F>(f));
     }
   }
 
-#ifdef KAGOME_LOAD_VALUE
-#error Already defined!
-#endif  // KAGOME_LOAD_VALUE
+#pragma push_macro("KAGOME_LOAD_VALUE")
+#undef KAGOME_LOAD_VALUE
 
-#define KAGOME_LOAD_VALUE(type) \
+#define KAGOME_LOAD_VALUE(type)                                           \
   void loadValue(boost::optional<type> &dst, const jsonrpc::Value &src) { \
-    type t; \
-    loadValue(t, src); \
-    dst = std::move(t); \
-  } \
+    if (!src.IsNil()) {                                                  \
+      type t;                                                             \
+      loadValue(t, src);                                                  \
+      dst = std::move(t);                                                 \
+    } else {                                                              \
+      dst = boost::none;                                                  \
+    }                                                                     \
+  }                                                                       \
   void loadValue(type &dst, const jsonrpc::Value &src)
 
   template <typename ResultType, typename... Types>
@@ -91,7 +90,7 @@ namespace kagome::api::chain::request {
       dst = src.AsString();
     }
   };
-#undef KAGOME_LOAD_VALUE
+#pragma pop_macro("KAGOME_LOAD_VALUE")
 
 }  // namespace kagome::api::chain::request
 
