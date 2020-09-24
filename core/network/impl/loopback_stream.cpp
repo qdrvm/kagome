@@ -116,19 +116,12 @@ namespace kagome::network {
     cb(outcome::success(bytes));
     log_->trace("lsb::write(): return from callback");
 
-    log_->trace("lsb::write(): postpone data notification");
-    io_context_->post([wp = weak_from_this()] {
-      auto self = wp.lock();
-      if (not self) return;
-      if (self->buffer_.size() == 0) return;
-
-      if (auto cb = std::move(self->data_notifyee_)) {
-        self->log_->trace("lsb::Enter to data notifyee (buffer size is {})",
-                          self->buffer_.size());
-        cb(self->buffer_.size());
-        self->log_->trace("lsb::Return from data notifyee");
-      }
-    });
+    if (auto data_notifyee = std::move(data_notifyee_)) {
+      log_->trace("lsb::Enter to data notifyee (buffer size is {})",
+                  buffer_.size());
+      data_notifyee(buffer_.size());
+      log_->trace("lsb::Return from data notifyee");
+    }
   }
 
   void LoopbackStream::writeSome(gsl::span<const uint8_t> in,
