@@ -100,12 +100,13 @@ namespace kagome::network {
         != bytes) {
       return cb(Error::INTERNAL_ERROR);
     }
+
     buffer_.commit(bytes);
 
     cb(outcome::success(bytes));
 
-    if (data_notifyee_) {
-      data_notifyee_(buffer_.size());
+    if (auto data_notifyee = std::move(data_notifyee_)) {
+      data_notifyee(buffer_.size());
     }
   }
 
@@ -138,11 +139,13 @@ namespace kagome::network {
                         some](outcome::result<size_t> res) mutable {
       if (!res) {
         self->data_notified_ = true;
-        cb(res);
+        cb(res.as_failure());
         return;
       }
+
       if (self->buffer_.size() >= (some ? 1 : bytes)) {
         auto to_read = some ? std::min(self->buffer_.size(), bytes) : bytes;
+
         if (boost::asio::buffer_copy(boost::asio::buffer(out.data(), to_read),
                                      self->buffer_.data(),
                                      to_read)
@@ -151,6 +154,7 @@ namespace kagome::network {
         }
 
         self->buffer_.consume(to_read);
+
         self->data_notified_ = true;
         cb(to_read);
       }
@@ -164,7 +168,9 @@ namespace kagome::network {
     }
 
     // subscribe to new data updates
-    data_notifyee_ = std::move(read_lambda);
+    if (not data_notifyee_) {
+      data_notifyee_ = std::move(read_lambda);
+    }
   };
 
 }  // namespace kagome::network
