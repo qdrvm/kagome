@@ -51,7 +51,7 @@ namespace kagome::api {
     if (result.has_error())
       throw jsonrpc::InternalErrorFault("Unable to encode arguments.");
 
-    return makeValue(result.value());
+    return jsonrpc::Value(common::hex_lower_0x(result.value()));
   }
 
   inline jsonrpc::Value makeValue(const uint32_t &val) {
