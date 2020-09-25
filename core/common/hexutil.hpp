@@ -47,6 +47,13 @@ namespace kagome::common {
   std::string hex_lower(gsl::span<const uint8_t> bytes) noexcept;
 
   /**
+   * @brief Converts bytes to hex representation with prefix 0x
+   * @param array bytes
+   * @return hexstring
+   */
+  std::string hex_lower_0x(gsl::span<const uint8_t> bytes) noexcept;
+
+  /**
    * @brief Converts hex representation to bytes
    * @param array individual chars
    * @param len length of chars
