@@ -6,6 +6,7 @@
 #ifndef KAGOME_NETWORK_IMPL_LOOPBACKSTREAM
 #define KAGOME_NETWORK_IMPL_LOOPBACKSTREAM
 
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <libp2p/connection/stream.hpp>
 
