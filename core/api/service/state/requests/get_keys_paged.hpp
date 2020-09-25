@@ -28,7 +28,9 @@ namespace kagome::api::state::request {
     GetKeysPaged &operator=(GetKeysPaged &&) = default;
 
     explicit GetKeysPaged(std::shared_ptr<StateApi> api)
-        : api_(std::move(api)){};
+        : api_(std::move(api)) {
+      BOOST_ASSERT(api_);
+    };
     ~GetKeysPaged() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
@@ -37,10 +39,10 @@ namespace kagome::api::state::request {
 
    private:
     std::shared_ptr<StateApi> api_;
-    boost::optional<common::Buffer> prefix_{};
+    boost::optional<common::Buffer> prefix_;
     uint32_t keys_amount_{};
-    boost::optional<common::Buffer> prev_key_{};
-    boost::optional<primitives::BlockHash> at_{};
+    boost::optional<common::Buffer> prev_key_;
+    boost::optional<primitives::BlockHash> at_;
   };
 
 }  // namespace kagome::api::state::request

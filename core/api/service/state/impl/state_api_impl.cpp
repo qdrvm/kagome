@@ -51,15 +51,12 @@ namespace kagome::api {
 
     std::vector<common::Buffer> result{};
     result.reserve(keys_amount);
-    for (uint32_t i = 0; i < keys_amount; i++) {
-      if (!cursor->isValid()) {
-        break;
-      }
-      BOOST_ASSERT(cursor->key());
-      auto key = cursor->key().value();
+    for (uint32_t i = 0; i < keys_amount && cursor->isValid(); ++i) {
+      auto key = cursor->key();
+      BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      if (not std::equal(prefix.begin(), prefix.end(), key.begin())) {
+      if (not std::equal(prefix.begin(), prefix.end(), key.value().begin())) {
         break;
       }
       result.push_back(cursor->key().value());

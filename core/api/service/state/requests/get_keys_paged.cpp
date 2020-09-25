@@ -11,7 +11,7 @@ namespace kagome::api::state::request {
 
   outcome::result<void> GetKeysPaged::init(
       const jsonrpc::Request::Parameters &params) {
-    if (params.size() > 4 or params.size() == 1 or params.empty()) {
+    if (params.size() > 4 or params.size() <= 1) {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
     auto &param0 = params[0];
@@ -22,12 +22,13 @@ namespace kagome::api::state::request {
     }
 
     if (param0.IsNil()) {
-      prefix_ = common::Buffer();
-    } else {
-      // here param0 is string
-      auto &&prefix_str = param0.AsString();
-      OUTCOME_TRY(key, common::unhexWith0x(prefix_str));
+      prefix_ = boost::none;    // I suppose none here is better than empty Buffer
+    } else if (param0.IsString()) {
+      OUTCOME_TRY(key, common::unhexWith0x(param0.AsString()));
       prefix_ = common::Buffer(std::move(key));
+    } else {
+      throw jsonrpc::InvalidParametersFault(
+          "Parameter '[prefix]' must be a hex string");
     }
 
     if (not params[1].IsInteger32()) {
