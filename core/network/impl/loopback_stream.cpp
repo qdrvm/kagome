@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/asio/post.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
 #include "network/impl/loopback_stream.hpp"
