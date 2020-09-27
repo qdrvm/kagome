@@ -315,6 +315,7 @@ namespace kagome::extensions {
                                                    runtime::WasmSpan value) {
     auto [key_ptr, key_size] = runtime::WasmResult(key);
     auto [value_ptr, value_size] = runtime::WasmResult(value);
+    logger_->info("key ptr: {}, value ptr: {}", key_ptr, value_ptr);
     ext_set_storage(key_ptr, key_size, value_ptr, value_size);
   }
 
