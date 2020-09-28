@@ -53,6 +53,9 @@ namespace kagome::network {
 
     void addStream(std::shared_ptr<libp2p::connection::Stream> stream) override;
 
+    uint32_t getActiveStreamNumber() override;
+    uint32_t getReservedStreamNumber() override;
+
    private:
     void send(const libp2p::peer::PeerId &peer_id, GossipMessage &&msg);
     void broadcast(GossipMessage &&msg);
@@ -61,7 +64,7 @@ namespace kagome::network {
 
     std::unordered_map<libp2p::peer::PeerInfo,
                        std::shared_ptr<libp2p::connection::Stream>>
-        streams_;
+        reserved_streams_;
 
     std::unordered_map<libp2p::peer::PeerId,
                        std::shared_ptr<libp2p::connection::Stream>>

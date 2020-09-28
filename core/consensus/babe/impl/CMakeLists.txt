@@ -67,10 +67,10 @@ target_link_libraries(babe_synchronizer
     primitives
     )
 
-add_library(syncing_babe_observer
-    syncing_babe_observer.cpp
+add_library(syncing_babe
+    syncing_babe.cpp
     )
-target_link_libraries(syncing_babe_observer
+target_link_libraries(syncing_babe
     logger
     primitives
     )

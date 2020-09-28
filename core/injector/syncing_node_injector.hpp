@@ -7,7 +7,7 @@
 #define KAGOME_CORE_INJECTOR_SYNCING_NODE_INJECTOR_HPP
 
 #include "application/app_config.hpp"
-#include "consensus/babe/impl/syncing_babe_observer.hpp"
+#include "consensus/babe/impl/syncing_babe.hpp"
 #include "consensus/grandpa/impl/syncing_grandpa_observer.hpp"
 #include "injector/application_injector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -68,7 +68,8 @@ namespace kagome::injector {
               return get_peer_info(injector, p2p_port);
             }),
 
-        di::bind<network::BabeObserver>.template to<consensus::SyncingBabeObserver>(),
+        di::bind<consensus::Babe>.template to<consensus::SyncingBabe>(),
+        di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>(),
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
