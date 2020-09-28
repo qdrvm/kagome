@@ -33,7 +33,7 @@ namespace kagome::api::system::request {
     // shouldHavePeers - Should this node have any peers.
     // Might be false for local chains or when running without discovery.
     data["shouldHavePeers"] =
-        makeValue(api_->getGossiper()->getReservedStreamNumber() != 0);
+        makeValue(api_->getConfig()->chainType() != "Development");
 
     return std::move(data);
   }
