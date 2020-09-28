@@ -22,6 +22,6 @@ namespace kagome::storage::trie {
     MOCK_CONST_METHOD0(key, boost::optional<common::Buffer>());
     MOCK_CONST_METHOD0(value, boost::optional<common::Buffer>());
   };
-}
+}  // namespace kagome::storage::trie
 
 #endif  // KAGOME_POLKADOT_TRIE_CURSOR_MOCK_H

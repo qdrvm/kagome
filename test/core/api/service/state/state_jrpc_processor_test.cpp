@@ -12,6 +12,7 @@
 #include "mock/core/api/jrpc/jrpc_server_mock.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using kagome::api::JRpcServer;
 using kagome::api::JRpcServerMock;
@@ -24,6 +25,7 @@ class StateJrpcProcessorTest : public testing::Test {
  public:
   enum struct CallType {
     kCallType_GetRuntimeVersion = 0,
+    kCallType_GetKeysPaged,
     kCallType_GetStorage,
     kCallType_StorageSubscribe,
     kCallType_StorageUnsubscribe,
@@ -45,6 +47,11 @@ class StateJrpcProcessorTest : public testing::Test {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_GetRuntimeVersion,
                              CallContext{.handler = f}));
+        }));
+    EXPECT_CALL(*server, registerHandler("state_getKeysPaged", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(CallType::kCallType_GetKeysPaged,
+                                                CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getStorage", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
@@ -80,20 +87,17 @@ class StateJrpcProcessorTest : public testing::Test {
  * @then the request is successfully processed and the response is valid
  */
 TEST_F(StateJrpcProcessorTest, ProcessRequest) {
-  EXPECT_CALL(*state_api, getStorage(Buffer::fromHex("01234567").value()))
-      .WillOnce(testing::Return(Buffer::fromHex("ABCDEF").value()));
+  auto expected_result = "ABCDEF"_hex2buf;
+
+  EXPECT_CALL(*state_api, getStorage("01234567"_hex2buf))
+      .WillOnce(testing::Return(expected_result));
 
   registerHandlers();
 
   jsonrpc::Request::Parameters params{"0x01234567"};
-  auto result = execute(CallType::kCallType_GetStorage, params).AsArray();
-  std::vector<uint8_t> vec_result(result.size());
-  std::transform(
-      result.begin(), result.end(), vec_result.begin(), [](jsonrpc::Value &v) {
-        return v.AsInteger32();
-      });
-  std::vector<uint8_t> expected_result{171, 205, 239};
-  ASSERT_THAT(expected_result, testing::ContainerEq(vec_result));
+  auto result_hex = execute(CallType::kCallType_GetStorage, params).AsString();
+  EXPECT_OUTCOME_TRUE(result_vec, kagome::common::unhexWith0x(result_hex));
+  ASSERT_EQ(expected_result.toVector(), result_vec);
 }
 
 /**
@@ -102,22 +106,19 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
  * @then the request is successfully processed and the response is valid
  */
 TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
+  auto expected_result = "ABCDEF"_hex2buf;
+
   EXPECT_CALL(*state_api,
-              getStorage(Buffer::fromHex("01234567").value(), "010203"_hash256))
-      .WillOnce(testing::Return(Buffer::fromHex("ABCDEF").value()));
+              getStorage("01234567"_hex2buf, "010203"_hash256))
+      .WillOnce(testing::Return(expected_result));
 
   registerHandlers();
 
   jsonrpc::Request::Parameters params{"0x01234567",
                                       "0x" + ("010203"_hash256).toHex()};
-  auto result = execute(CallType::kCallType_GetStorage, params).AsArray();
-  std::vector<uint8_t> vec_result(result.size());
-  std::transform(
-      result.begin(), result.end(), vec_result.begin(), [](jsonrpc::Value &v) {
-        return v.AsInteger32();
-      });
-  std::vector<uint8_t> expected_result{171, 205, 239};
-  ASSERT_THAT(expected_result, testing::ContainerEq(vec_result));
+  auto result_hex = execute(CallType::kCallType_GetStorage, params).AsString();
+  EXPECT_OUTCOME_TRUE(result_vec, kagome::common::unhexWith0x(result_hex));
+  ASSERT_EQ(expected_result.toVector(), result_vec);
 }
 
 /**

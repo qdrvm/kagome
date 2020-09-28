@@ -24,6 +24,50 @@ namespace kagome::api {
     BOOST_ASSERT(nullptr != runtime_core_);
   }
 
+  outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(
+      const boost::optional<common::Buffer> &prefix_opt,
+      uint32_t keys_amount,
+      const boost::optional<common::Buffer> &prev_key_opt,
+      const boost::optional<primitives::BlockHash> &block_hash_opt) const {
+    const auto &prefix = prefix_opt.value_or(common::Buffer{});
+    const auto &prev_key = prev_key_opt.value_or(prefix);
+    const auto &block_hash =
+        block_hash_opt.value_or(block_tree_->getLastFinalized().block_hash);
+
+    OUTCOME_TRY(header, block_repo_->getBlockHeader(block_hash));
+    OUTCOME_TRY(initial_trie_reader,
+                storage_->getEphemeralBatchAt(header.state_root));
+    auto cursor = initial_trie_reader->trieCursor();
+
+    // if prev_key is bigger than prefix, then set cursor to the next key after
+    // prev_key
+    if (prev_key > prefix) {
+      OUTCOME_TRY(cursor->seekUpperBound(prev_key));
+    }
+    // otherwise set cursor to key that is next to or equal to prefix
+    else {
+      OUTCOME_TRY(cursor->seekLowerBound(prefix));
+    }
+
+    std::vector<common::Buffer> result{};
+    result.reserve(keys_amount);
+    for (uint32_t i = 0; i < keys_amount && cursor->isValid(); ++i) {
+      auto key = cursor->key();
+      BOOST_ASSERT(key.has_value());
+
+      // make sure our key begins with prefix
+      auto min_size = std::min(prefix.size(), key->size());
+      if (not std::equal(
+              prefix.begin(), prefix.begin() + min_size, key.value().begin())) {
+        break;
+      }
+      result.push_back(cursor->key().value());
+      OUTCOME_TRY(cursor->next());
+    }
+
+    return result;
+  }
+
   outcome::result<common::Buffer> StateApiImpl::getStorage(
       const common::Buffer &key) const {
     auto last_finalized = block_tree_->getLastFinalized();

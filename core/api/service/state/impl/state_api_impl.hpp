@@ -24,6 +24,13 @@ namespace kagome::api {
     void setApiService(
         std::shared_ptr<api::ApiService> const &api_service) override;
 
+    outcome::result<std::vector<common::Buffer>> getKeysPaged(
+        const boost::optional<common::Buffer> &prefix,
+        uint32_t keys_amount,
+        const boost::optional<common::Buffer> &prev_key,
+        const boost::optional<primitives::BlockHash> &block_hash_opt)
+        const override;
+
     outcome::result<common::Buffer> getStorage(
         const common::Buffer &key) const override;
     outcome::result<common::Buffer> getStorage(
