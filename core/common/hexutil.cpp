@@ -55,6 +55,16 @@ namespace kagome::common {
     return res;
   }
 
+  std::string hex_lower_0x(gsl::span<const uint8_t> bytes) noexcept {
+    constexpr size_t prefix_len = sizeof("0x") - 1;
+
+    std::string res(bytes.size() * 2 + prefix_len, '\x00');
+    res.replace(0, prefix_len, "0x", prefix_len);
+
+    boost::algorithm::hex_lower(bytes.begin(), bytes.end(), res.begin() + prefix_len);
+    return res;
+  }
+
   outcome::result<std::vector<uint8_t>> unhex(std::string_view hex) {
     std::vector<uint8_t> blob;
     blob.reserve((hex.size() + 1) / 2);

@@ -20,6 +20,7 @@ using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
+using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using testing::Return;
 
@@ -43,6 +44,12 @@ struct ChainApiTest : public ::testing::Test {
   BlockHash hash1;
   BlockHash hash2;
   BlockHash hash3;
+
+  BlockHeader header {
+      .parent_hash = hash1,
+      .state_root = hash2,
+      .extrinsics_root = hash3
+  };
 };
 
 /**
@@ -101,4 +108,35 @@ TEST_F(ChainApiTest, GetBlockHashArray) {
       api->getBlockHash(std::vector<boost::variant<BlockNumber, std::string>>(
           {50, "0x64", 200})));
   ASSERT_EQ(r, std::vector<BlockHash>({hash1, hash2, hash3}));
+}
+
+/**
+ * @given chain api
+ * @when get a block header by hash
+ * @then the correct header will return
+ */
+TEST_F(ChainApiTest, GetHeader) {
+  BlockId a = hash1;
+  EXPECT_CALL(*header_repo, getBlockHeader(a))
+      .WillOnce(Return(header));
+
+  EXPECT_OUTCOME_TRUE(r, api->getHeader(std::string("0x") + hash1.toHex()));
+  ASSERT_EQ(r, header);
+}
+
+/**
+ * @given chain api
+ * @when get a block header
+ * @then last block header will be returned
+ */
+TEST_F(ChainApiTest, GetHeaderLats) {
+  BlockId a = hash1;
+  EXPECT_CALL(*block_tree, getLastFinalized())
+      .WillOnce(Return(BlockInfo(42, hash1)));
+
+  EXPECT_CALL(*header_repo, getBlockHeader(a))
+      .WillOnce(Return(header));
+
+  EXPECT_OUTCOME_TRUE(r, api->getHeader());
+  ASSERT_EQ(r, header);
 }
