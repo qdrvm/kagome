@@ -44,15 +44,19 @@ namespace kagome::network {
   }
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    class Hasher {
-      size_t operator()(
-          const std::reference_wrapper<const libp2p::peer::PeerId> &i) const
-          noexcept {
-        return std::hash<libp2p::peer::PeerId>()(i.get());
+    struct HashtableHelper {
+      using type = std::reference_wrapper<const libp2p::peer::PeerId>;
+      size_t operator()(const type &item) const noexcept {
+        return std::hash<libp2p::peer::PeerId>()(item.get());
+      }
+      bool operator()(const type &lhs, const type &rhs) const noexcept {
+        return lhs.get() == rhs.get();
       }
     };
 
-    std::unordered_set<std::reference_wrapper<const libp2p::peer::PeerId>, Hasher>
+    std::unordered_set<std::reference_wrapper<const libp2p::peer::PeerId>,
+                       HashtableHelper,
+                       HashtableHelper>
         unique_peer_ids;
 
     std::for_each(
@@ -67,7 +71,9 @@ namespace kagome::network {
         });
 
     std::for_each(
-		    reserved_streams_.begin(), reserved_streams_.end(), [&unique_peer_ids](const auto &pair) {
+        reserved_streams_.begin(),
+        reserved_streams_.end(),
+        [&unique_peer_ids](const auto &pair) {
           const auto &[peer_info, stream] = pair;
           if (stream && not stream->isClosed()
               && not std::dynamic_pointer_cast<LoopbackStream>(stream)) {
@@ -174,9 +180,9 @@ namespace kagome::network {
     }
 
     auto stream_it = std::find_if(
-		    reserved_streams_.begin(), reserved_streams_.end(), [peer_id](const auto &item) {
-          return item.first.id == peer_id;
-        });
+        reserved_streams_.begin(),
+        reserved_streams_.end(),
+        [peer_id](const auto &item) { return item.first.id == peer_id; });
     if (stream_it != reserved_streams_.end()) {
       auto &[peerInfo, stream] = *stream_it;
       if (stream && !stream->isClosed()) {
