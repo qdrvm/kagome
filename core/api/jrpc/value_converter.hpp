@@ -67,7 +67,8 @@ namespace kagome::api {
   }
 
   inline jsonrpc::Value makeValue(const common::Buffer &v) {
-    return v.toVector();
+    static const std::string prefix("0x");
+    return prefix + v.toHex();
   }
 
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &v) {
