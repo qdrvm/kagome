@@ -29,9 +29,9 @@ namespace kagome::api {
       uint32_t keys_amount,
       const boost::optional<common::Buffer> &prev_key_opt,
       const boost::optional<primitives::BlockHash> &block_hash_opt) const {
-    const auto& prefix = prefix_opt.value_or(common::Buffer{});
-    const auto& prev_key = prev_key_opt.value_or(prefix);
-    const auto& block_hash =
+    const auto &prefix = prefix_opt.value_or(common::Buffer{});
+    const auto &prev_key = prev_key_opt.value_or(prefix);
+    const auto &block_hash =
         block_hash_opt.value_or(block_tree_->getLastFinalized().block_hash);
 
     OUTCOME_TRY(header, block_repo_->getBlockHeader(block_hash));
@@ -56,7 +56,9 @@ namespace kagome::api {
       BOOST_ASSERT(key.has_value());
 
       // make sure our key begins with prefix
-      if (not std::equal(prefix.begin(), prefix.end(), key.value().begin())) {
+      auto min_size = std::min(prefix.size(), key->size());
+      if (not std::equal(
+              prefix.begin(), prefix.begin() + min_size, key.value().begin())) {
         break;
       }
       result.push_back(cursor->key().value());
