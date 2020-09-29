@@ -47,10 +47,9 @@ namespace kagome::scale {
     OUTCOME_TRY(extract_tuple, extract_length_data(self_encoded, input_len));
     const auto &[new_len, encoded_len, encoded_new_len] = extract_tuple;
 
-    auto replace_len = [new_len = new_len, encoded_new_len = encoded_new_len](
+    auto replace_len = [new_len = new_len](
                            std::vector<uint8_t> &dest) {
       auto e = scale::encode(CompactInteger{new_len}).value();
-      BOOST_ASSERT(encoded_new_len == e.size());
       std::copy(e.begin(), e.end(), dest.begin());
     };
 
