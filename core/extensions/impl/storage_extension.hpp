@@ -7,6 +7,7 @@
 #define KAGOME_EXTENSIONS_STORAGE_EXTENSION_HPP
 
 #include <cstdint>
+#include <stack>
 
 #include "common/logger.hpp"
 #include "runtime/trie_storage_provider.hpp"
@@ -97,6 +98,23 @@ namespace kagome::extensions {
      */
     void ext_storage_root(runtime::WasmPointer result) const;
 
+    // ------------------------Transaction operations--------------------------
+
+    /**
+     * @see Extension::ext_storage_start_transaction
+     */
+    void ext_storage_start_transaction();
+
+    /**
+     * @see Extension::ext_storage_rollback_transaction
+     */
+    void ext_storage_rollback_transaction();
+
+    /**
+     * @see Extension::ext_storage_commit_transaction
+     */
+    void ext_storage_commit_transaction();
+
     // ------------------------ VERSION 1 ------------------------
 
     /**
@@ -177,8 +195,8 @@ namespace kagome::extensions {
      * @return error if any, a key if the next key exists
      * none otherwise
      */
-    outcome::result<boost::optional<common::Buffer>>
-    getStorageNextKey(const common::Buffer &key) const;
+    outcome::result<boost::optional<common::Buffer>> getStorageNextKey(
+        const common::Buffer &key) const;
 
     boost::optional<common::Buffer> calcStorageChangesRoot(
         common::Hash256 parent) const;

@@ -5,10 +5,24 @@
 
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, TransactionError, e) {
+  using E = kagome::runtime::TransactionError;
+  switch (e) {
+    case E::NO_TRANSACTIONS_WERE_STARTED:
+      return "no transaction were started";
+  }
+  return "unknown TransactionError";
+}
+
 namespace kagome::runtime {
+  using storage::trie::TopperTrieBatch;
+  using storage::trie::TopperTrieBatchImpl;
+  using storage::trie::TrieStorage;
 
   TrieStorageProviderImpl::TrieStorageProviderImpl(
-      std::shared_ptr<storage::trie::TrieStorage> trie_storage)
+      std::shared_ptr<TrieStorage> trie_storage)
       : trie_storage_(std::move(trie_storage)) {
     BOOST_ASSERT(trie_storage_ != nullptr);
   }
@@ -60,10 +74,40 @@ namespace kagome::runtime {
   }
 
   outcome::result<common::Buffer> TrieStorageProviderImpl::forceCommit() {
-    if(persistent_batch_ != nullptr) {
+    if (persistent_batch_ != nullptr) {
       return persistent_batch_->commit();
     }
     return common::Buffer{};
+  }
+
+  outcome::result<void> TrieStorageProviderImpl::startTransaction() {
+    stack_of_batches_.emplace(current_batch_);
+    current_batch_ =
+        std::make_shared<TopperTrieBatchImpl>(std::move(current_batch_));
+    return outcome::success();
+  }
+
+  outcome::result<void> TrieStorageProviderImpl::rollbackTransaction() {
+    if (stack_of_batches_.empty()) {
+      return TransactionError::NO_TRANSACTIONS_WERE_STARTED;
+    }
+
+    current_batch_ = std::move(stack_of_batches_.top());
+    return outcome::success();
+  }
+
+  outcome::result<void> TrieStorageProviderImpl::commitTransaction() {
+    if (stack_of_batches_.empty()) {
+      return TransactionError::NO_TRANSACTIONS_WERE_STARTED;
+    }
+
+    auto commitee_batch =
+        std::dynamic_pointer_cast<TopperTrieBatch>(current_batch_);
+    BOOST_ASSERT(commitee_batch != nullptr);
+    OUTCOME_TRY(commitee_batch->writeBack());
+
+    current_batch_ = std::move(stack_of_batches_.top());
+    return outcome::success();
   }
 
 }  // namespace kagome::runtime

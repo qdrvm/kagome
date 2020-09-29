@@ -116,6 +116,18 @@ namespace kagome::extensions {
     return storage_ext_.ext_storage_root(result);
   }
 
+  void ExtensionImpl::ext_storage_start_transaction() {
+    return storage_ext_.ext_storage_start_transaction();
+  }
+
+  void ExtensionImpl::ext_storage_rollback_transaction() {
+    return storage_ext_.ext_storage_rollback_transaction();
+  }
+
+  void ExtensionImpl::ext_storage_commit_transaction() {
+    return storage_ext_.ext_storage_commit_transaction();
+  }
+
   runtime::WasmSpan ExtensionImpl::ext_storage_next_key_version_1(
       runtime::WasmSpan key) const {
     return storage_ext_.ext_storage_next_key_version_1(key);
