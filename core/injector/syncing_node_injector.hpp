@@ -8,16 +8,16 @@
 
 #include "application/app_config.hpp"
 #include "consensus/babe/impl/syncing_babe_observer.hpp"
-#include "consensus/grandpa/impl/syncing_round_observer.hpp"
+#include "consensus/grandpa/impl/syncing_grandpa_observer.hpp"
 #include "injector/application_injector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 
 namespace kagome::injector {
   namespace di = boost::di;
 
-  template<typename Injector>
-  auto get_peer_info(const Injector &injector,
-                          uint16_t p2p_port) -> sptr<network::OwnPeerInfo> {
+  template <typename Injector>
+  auto get_peer_info(const Injector &injector, uint16_t p2p_port)
+      -> sptr<network::OwnPeerInfo> {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
       return *initialized;
@@ -69,7 +69,7 @@ namespace kagome::injector {
             }),
 
         di::bind<network::BabeObserver>.template to<consensus::SyncingBabeObserver>(),
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::SyncingRoundObserver>(),
+        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }

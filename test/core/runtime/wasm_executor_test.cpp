@@ -35,7 +35,6 @@
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
 
-using kagome::api::Session;
 using kagome::common::Buffer;
 using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;

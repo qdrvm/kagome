@@ -132,9 +132,12 @@ namespace kagome::extensions {
 
     auto key = memory_->loadN(key_ptr, key_size);
     boost::optional<uint32_t> res{boost::none};
-    if (auto data = get(key, offset, value_size)) {
-      memory_->storeBuffer(value_ptr, data.value());
-      res = value_size;
+    if (const auto& data_res = get(key); data_res) {
+      auto data = gsl::make_span(data_res.value());
+      auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
+      auto written = std::min<size_t>(offset_data.size(), value_size);
+      memory_->storeBuffer(value_ptr, offset_data.subspan(0, written));
+      res = offset_data.size();
     }
     return memory_->storeBuffer(scale::encode(res).value());
   }
@@ -260,14 +263,9 @@ namespace kagome::extensions {
   outcome::result<boost::optional<Buffer>> StorageExtension::getStorageNextKey(
       const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
-    auto cursor = batch->cursor();
-    OUTCOME_TRY(cursor->seek(key));
-    OUTCOME_TRY(cursor->next());
-    if (cursor->isValid()) {
-      OUTCOME_TRY(next_key, cursor->key());
-      return boost::make_optional(next_key);
-    }
-    return boost::none;
+    auto cursor = batch->trieCursor();
+    OUTCOME_TRY(cursor->seekUpperBound(key));
+    return cursor->key();
   }
 
   void StorageExtension::ext_storage_set_version_1(runtime::WasmSpan key,
@@ -363,8 +361,8 @@ namespace kagome::extensions {
                      res.error().message());
       return kErrorSpan;
     }
-    auto &&key_opt = res.value();
-    if (auto enc_res = scale::encode(key_opt); enc_res.has_value()) {
+    auto && next_key_opt = res.value();
+    if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
     } else {  // NOLINT(readability-else-after-return)
       logger_->error(
@@ -449,8 +447,6 @@ namespace kagome::extensions {
       std::terminate();
     }
     const auto &hash = codec.hash256(enc.value());
-
-    std::cout << "res hash = " << hash.toHex() << std::endl;
 
     auto res = memory_->storeBuffer(hash);
     return runtime::WasmResult(res).address;

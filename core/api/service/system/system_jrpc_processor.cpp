@@ -7,6 +7,7 @@
 
 #include "api/jrpc/jrpc_method.hpp"
 #include "api/service/system/requests/chain.hpp"
+#include "api/service/system/requests/chain_type.hpp"
 #include "api/service/system/requests/name.hpp"
 #include "api/service/system/requests/properties.hpp"
 #include "api/service/system/requests/version.hpp"
@@ -29,6 +30,8 @@ namespace kagome::api::system {
     server_->registerHandler("system_version", Handler<request::Version>(api_));
 
     server_->registerHandler("system_chain", Handler<request::Chain>(api_));
+
+    server_->registerHandler("system_chainType", Handler<request::ChainType>(api_));
 
     server_->registerHandler("system_properties",
                              Handler<request::Properties>(api_));

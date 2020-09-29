@@ -20,7 +20,7 @@ namespace kagome::network {
    * Response to the BlockRequest
    */
   struct BlocksResponse {
-    primitives::BlocksRequestId id;
+    primitives::BlocksRequestId id{0ull};
     std::vector<primitives::BlockData> blocks{};
   };
 

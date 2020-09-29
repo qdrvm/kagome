@@ -100,21 +100,21 @@ TEST_F(VoteTrackerTest, GetMessages) {
             [&m](auto &v) {
               return kagome::visit_in_place(
                   v,
-                  [&](const typename decltype(
-                      this->tracker)::VotingMessage &voting_message) {
+                  [&](const VotingMessage &voting_message) {
                     return m.id == voting_message.id
                            && m.block_hash() == voting_message.block_hash();
                   },
-                  [&](const typename decltype(
-                      this->tracker)::EquivocatoryVotingMessage
+                  [&](const EquivocatoryVotingMessage
                           &equivocatory_voting_message) {
-                    auto first_id = equivocatory_voting_message.first.id;
-                    auto first_block_hash =
+                    const auto &first_id = equivocatory_voting_message.first.id;
+                    const auto &first_block_hash =
                         equivocatory_voting_message.first.block_hash();
 
-                    auto second_id = equivocatory_voting_message.second.id;
-                    auto second_block_hash =
+                    const auto &second_id =
+                        equivocatory_voting_message.second.id;
+                    const auto &second_block_hash =
                         equivocatory_voting_message.second.block_hash();
+
                     return (m.id == first_id
                             && m.block_hash() == first_block_hash)
                            || (m.id == second_id

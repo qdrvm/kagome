@@ -35,7 +35,16 @@ namespace kagome::network {
    * Block attributes as set of bits
    */
   struct BlockAttributes {
-    std::bitset<8> attributes;
+    enum { kBitCount = 8 };
+    std::bitset<kBitCount> attributes;
+
+    template<typename T> void load(T t) {
+      static_assert(std::is_integral<T>::value, "Must be integral type.");
+      static_assert(sizeof(T) * 8 >= kBitCount, "Size of T must be more than bit count.");
+
+      attributes.reset();
+      attributes |= t;
+    }
   };
 
   /**

@@ -20,7 +20,7 @@ namespace kagome::api::system::request {
   }
 
   outcome::result<std::string> Chain::execute() {
-    return api_->getConfig()->chainType();
+    return api_->getConfig()->name();
   }
 
 }  // namespace kagome::api::system::request

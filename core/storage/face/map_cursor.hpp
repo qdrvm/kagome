@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MAP_CURSOR_HPP
-#define KAGOME_MAP_CURSOR_HPP
+#ifndef KAGOME_STORAGE_MAP_CURSOR_HPP
+#define KAGOME_STORAGE_MAP_CURSOR_HPP
+
+#include <boost/optional.hpp>
 
 #include "outcome/outcome.hpp"
 
@@ -21,22 +23,25 @@ namespace kagome::storage::face {
 
     /**
      * @brief Same as std::begin(...);
+     * @return error if any, true if trie is not empty, false otherwise
      */
-    virtual outcome::result<void> seekToFirst() = 0;
+    virtual outcome::result<bool> seekFirst() = 0;
 
     /**
      * @brief Find given key and seek iterator to this key.
+     * @return error if any, true if \arg key found, false otherwise
      */
-    virtual outcome::result<void> seek(const K &key) = 0;
+    virtual outcome::result<bool> seek(const K &key) = 0;
 
     /**
      * @brief Same as std::rbegin(...);, e.g. points to the last valid element
+     * @return error if any, true if trie is not empty, false otherwise
      */
-    virtual outcome::result<void> seekToLast() = 0;
+    virtual outcome::result<bool> seekLast() = 0;
 
     /**
-     * @brief Is iterator valid?
-     * @return true if iterator points to the element of map, false otherwise
+     * @brief Is the cursor in a valid state?
+     * @return true if the cursor points to an element of the map, false otherwise
      */
     virtual bool isValid() const = 0;
 
@@ -46,23 +51,18 @@ namespace kagome::storage::face {
     virtual outcome::result<void> next() = 0;
 
     /**
-     * @brief Make step backwards.
+     * @brief Getter for the key of the element currently pointed at.
+     * @return key if isValid()
      */
-    virtual outcome::result<void> prev() = 0;
+    virtual boost::optional<K> key() const = 0;
 
     /**
-     * @brief Getter for key.
-     * @return key
+     * @brief Getter for value of the element currently pointed at.
+     * @return value if isValid()
      */
-    virtual outcome::result<K> key() const = 0;
-
-    /**
-     * @brief Getter for value.
-     * @return value
-     */
-    virtual outcome::result<V> value() const = 0;
+    virtual boost::optional<V> value() const = 0;
   };
 
 }  // namespace kagome::storage::face
 
-#endif  //KAGOME_MAP_CURSOR_HPP
+#endif  //KAGOME_STORAGE_MAP_CURSOR_HPP

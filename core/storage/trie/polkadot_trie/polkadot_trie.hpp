@@ -6,9 +6,10 @@
 #ifndef KAGOME_STORAGE_TRIE_POLKADOT_TRIE_HPP
 #define KAGOME_STORAGE_TRIE_POLKADOT_TRIE_HPP
 
-#include "storage/face/generic_maps.hpp"
+#include "storage/buffer_map_types.hpp"
 
 #include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 
 namespace kagome::storage::trie {
 
@@ -38,20 +39,24 @@ namespace kagome::storage::trie {
     virtual outcome::result<NodePtr> retrieveChild(BranchPtr parent,
                                                    uint8_t idx) const = 0;
 
-    // TODO(Harrm) Make key nibbles type distinguishable with just key
     /**
      * @returns a node which is a descendant of \arg parent found by following
-     * \arg key_nibbles
+     * \arg key_nibbles (includes parent's key nibbles)
      */
     virtual outcome::result<NodePtr> getNode(
         NodePtr parent, const KeyNibbles &key_nibbles) const = 0;
-
     /**
      * @returns a sequence of nodes in between \arg parent and the node found by
      * following \arg key_nibbles. The parent is included, the end node isn't.
      */
     virtual outcome::result<std::list<std::pair<BranchPtr, uint8_t>>> getPath(
         NodePtr parent, const KeyNibbles &key_nibbles) const = 0;
+
+    virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() = 0;
+
+    std::unique_ptr<BufferMapCursor> cursor() final {
+      return trieCursor();
+    }
   };
 
 }  // namespace kagome::storage::trie
