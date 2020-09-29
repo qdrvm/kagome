@@ -117,3 +117,14 @@ addtest(storage_wasm_provider_test
 target_link_libraries(storage_wasm_provider_test
     storage_wasm_provider
     )
+
+addtest(trie_storage_provider_test
+    trie_storage_provider_test.cpp
+    )
+target_link_libraries(trie_storage_provider_test
+    trie_storage_provider
+    in_memory_storage
+    trie_storage_backend
+    polkadot_trie_factory
+    trie_serializer
+    )
