@@ -23,6 +23,12 @@ namespace kagome::api {
     virtual void setApiService(
         const std::shared_ptr<api::ApiService> &api_service) = 0;
 
+    virtual outcome::result<std::vector<common::Buffer>> getKeysPaged(
+        const boost::optional<common::Buffer> &prefix,
+        uint32_t keys_amount,
+        const boost::optional<common::Buffer> &prev_key,
+        const boost::optional<primitives::BlockHash> &block_hash_opt) const = 0;
+
     virtual outcome::result<common::Buffer> getStorage(
         const common::Buffer &key) const = 0;
     virtual outcome::result<common::Buffer> getStorage(

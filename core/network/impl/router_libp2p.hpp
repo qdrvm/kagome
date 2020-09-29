@@ -54,6 +54,8 @@ namespace kagome::network {
 
     void handleGossipProtocol(std::shared_ptr<Stream> stream) const override;
 
+    void handleSupProtocol(std::shared_ptr<Stream> stream) const override;
+
    private:
     void readGossipMessage(std::shared_ptr<Stream> stream) const;
 

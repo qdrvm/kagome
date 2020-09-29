@@ -12,6 +12,7 @@ target_link_libraries(http_listener_test
     api_transport
     api_service
     buffer
+    blob
     )
 
 addtest(ws_listener_test
@@ -23,4 +24,5 @@ target_link_libraries(ws_listener_test
     api_transport
     api_service
     buffer
+    blob
     )

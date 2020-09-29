@@ -5,18 +5,21 @@
 
 #include "network/impl/router_libp2p.hpp"
 
+#include <libp2p/basic/message_read_writer_uvarint.hpp>
+
+#include "application/configuration_storage.hpp"
 #include "consensus/grandpa/structs.hpp"
+#include "network/adapters/protobuf_block_request.hpp"
+#include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
+#include "network/helpers/protobuf_message_read_writer.hpp"
+#include "network/rpc.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
 #include "network/types/peer_list.hpp"
+#include "network/types/status.hpp"
 #include "scale/scale.hpp"
-#include "network/helpers/protobuf_message_read_writer.hpp"
-#include "network/rpc.hpp"
-#include "network/adapters/protobuf_block_request.hpp"
-#include "network/adapters/protobuf_block_response.hpp"
-#include "application/configuration_storage.hpp"
 
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
@@ -46,16 +49,14 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
 
-    // FIXME(xDimon): https://github.com/soramitsu/kagome/issues/495
-    //  Uncomment after issue will be resolved
     for (const auto &peer_info : peer_list.peers) {
-      // if (peer_info.id != own_peer_info.id) {
-      gossiper_->reserveStream(peer_info, {});
-      // } else {
-      //   auto stream = std::make_shared<LoopbackStream>(own_peer_info);
-      //   loopback_stream_ = stream;
-      //   gossiper_->reserveStream(own_peer_info, std::move(stream));
-      // }
+      if (peer_info.id != own_peer_info.id) {
+        gossiper_->reserveStream(peer_info, {});
+      } else {
+        auto stream = std::make_shared<LoopbackStream>(own_peer_info);
+        loopback_stream_ = stream;
+        gossiper_->reserveStream(own_peer_info, std::move(stream));
+      }
     }
   }
 
@@ -114,6 +115,26 @@ namespace kagome::network {
       std::shared_ptr<Stream> stream) const {
     gossiper_->addStream(stream);
     return readGossipMessage(std::move(stream));
+  }
+
+  void RouterLibp2p::handleSupProtocol(std::shared_ptr<Stream> stream) const {
+    Status status_msg;
+    status_msg.version = CURRENT_VERSION;
+    status_msg.min_supported_version = MIN_VERSION;
+
+    GossipMessage msg;
+    msg.type = GossipMessage::Type::STATUS;
+    msg.data.put(scale::encode(status_msg).value());
+
+    ScaleMessageReadWriter rw(
+        std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
+            std::move(stream)));
+
+    rw.write(msg, [self{shared_from_this()}](auto &&res) {
+      if (!res)
+        self->log_->error("Could not broadcast, reason: {}",
+                          res.error().message());
+    });
   }
 
   void RouterLibp2p::readGossipMessage(std::shared_ptr<Stream> stream) const {
