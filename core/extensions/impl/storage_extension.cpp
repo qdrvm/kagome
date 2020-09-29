@@ -119,7 +119,9 @@ namespace kagome::extensions {
       runtime::WasmSize value_length,
       runtime::WasmSize value_offset) {
     auto key = memory_->loadN(key_data, key_length);
+    logger_->trace("loaded 'key', ptr: {}, len: {}", key_data, key_length);
     auto data = get(key, value_offset, value_length);
+    logger_->trace("loaded 'data', ptr: {}, len: {}", value_data, value_length);
     if (not data) {
       logger_->trace("ext_get_storage_into. Val by key {} not found",
                      key.toHex());
