@@ -5,29 +5,34 @@
 
 #include "scale/encode_append.hpp"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+using ::testing::ContainerEq;
+using ::testing::ElementsAre;
 
 namespace kagome::scale {
 
-  TEST(EncodeAppend, AppendVecTest) {
-    std::vector<uint8_t> a{1, 2, 3, 4, 5};
-    std::vector<uint8_t> b{6, 7, 8, 9, 10};
+  TEST(EncodeAppend, Append) {
+    std::vector<uint32_t> inp1({1, 2, 3, 4, 5});
+    std::vector<EncodeOpaqueValue> vec_inp1(
+        {EncodeOpaqueValue{scale::encode(inp1).value()}});
 
-    std::vector<uint8_t> concat{};
-    concat.insert(concat.end(), a.begin(), a.end());
-    concat.insert(concat.end(), b.begin(), b.end());
+    std::vector<uint8_t> res{};
+    auto encoded_concat_res = append_or_new_vec_with_any_item(res, vec_inp1);
 
-    auto encoded_a = scale::encode(a).value();
-    // auto encoded_b = scale::encode(b).value();
+    ASSERT_THAT(
+        encoded_concat_res.value(),
+        ContainerEq(std::vector<uint8_t>({4, 20, 1, 0, 0, 0, 2, 0, 0, 0, 3,
+                                          0, 0,  0, 4, 0, 0, 0, 5, 0, 0, 0})));
 
-    auto encoded_concat_res =
-        append_or_new_vec_with_any_item(encoded_a, b);
-    ASSERT_TRUE(encoded_concat_res.has_value());
-    auto decoded_concat_res =
-        scale::decode<std::vector<uint8_t>>(encoded_concat_res.value());
-    ASSERT_TRUE(decoded_concat_res.has_value())
-        << decoded_concat_res.error().message();
-    ASSERT_EQ(concat, decoded_concat_res.value());
+    std::vector<EncodeOpaqueValue> vec_inp2(
+        {EncodeOpaqueValue{scale::encode(uint32_t{2}).value()}});
+    encoded_concat_res = append_or_new_vec_with_any_item(res, vec_inp2);
+
+    ASSERT_THAT(encoded_concat_res.value(),
+                ContainerEq(std::vector<uint8_t>({8, 20, 1, 0, 0, 0, 2, 0, 0,
+                                                  0, 3,  0, 0, 0, 4, 0, 0, 0,
+                                                  5, 0,  0, 0, 2, 0, 0, 0})));
   }
-
 }  // namespace kagome::scale

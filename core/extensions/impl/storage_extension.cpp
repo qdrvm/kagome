@@ -380,16 +380,19 @@ namespace kagome::extensions {
     auto [append_ptr, append_size] = runtime::WasmResult(append_span);
     auto key_bytes = memory_->loadN(key_ptr, key_size);
     auto append_bytes = memory_->loadN(append_ptr, append_size);
+    auto vec_append_bytes =
+        std::vector<scale::EncodeOpaqueValue>({{.v = append_bytes.toVector()}});
     if (auto val_res = get(key_bytes)) {
       auto &val = val_res.value().toVector();
-      scale::append_or_new_vec_with_any_item(val, append_bytes.toVector());
+      scale::append_or_new_vec_with_any_item(val, vec_append_bytes);
 
       auto batch = storage_provider_->getCurrentBatch();
       auto put_result =
           batch->put(common::Buffer{key_bytes}, common::Buffer{val});
       if (not put_result) {
         logger_->error(
-            "ext_storage_append_version_1 failed, due to fail in trie db with reason: {}",
+            "ext_storage_append_version_1 failed, due to fail in trie db with "
+            "reason: {}",
             put_result.error().message());
       }
     }
