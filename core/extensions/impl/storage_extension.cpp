@@ -242,7 +242,7 @@ namespace kagome::extensions {
   void StorageExtension::ext_storage_start_transaction() {
     auto res = storage_provider_->startTransaction();
     if (res.has_error()) {
-      logger_->error("Storage transaction start was failed: {}",
+      logger_->error("Storage transaction start has failed: {}",
                      res.error().message());
       throw std::runtime_error(res.error().message());
     }
@@ -251,7 +251,7 @@ namespace kagome::extensions {
   void StorageExtension::ext_storage_rollback_transaction() {
     auto res = storage_provider_->rollbackTransaction();
     if (res.has_error()) {
-      logger_->error("Storage transaction rollback was failed: {}",
+      logger_->error("Storage transaction rollback has failed: {}",
                      res.error().message());
       throw std::runtime_error(res.error().message());
     }
@@ -260,7 +260,7 @@ namespace kagome::extensions {
   void StorageExtension::ext_storage_commit_transaction() {
     auto res = storage_provider_->commitTransaction();
     if (res.has_error()) {
-      logger_->error("Storage transaction commit was failed: {}",
+      logger_->error("Storage transaction commit has failed: {}",
                      res.error().message());
       throw std::runtime_error(res.error().message());
     }
