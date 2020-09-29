@@ -11,7 +11,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, TransactionError, e) {
   using E = kagome::runtime::TransactionError;
   switch (e) {
     case E::NO_TRANSACTIONS_WERE_STARTED:
-      return "no transaction were started";
+      return "no transactions were started";
   }
   return "unknown TransactionError";
 }
@@ -93,6 +93,7 @@ namespace kagome::runtime {
     }
 
     current_batch_ = std::move(stack_of_batches_.top());
+    stack_of_batches_.pop();
     return outcome::success();
   }
 
@@ -107,6 +108,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(commitee_batch->writeBack());
 
     current_batch_ = std::move(stack_of_batches_.top());
+    stack_of_batches_.pop();
     return outcome::success();
   }
 
