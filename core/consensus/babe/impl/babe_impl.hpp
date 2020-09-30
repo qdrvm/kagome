@@ -6,7 +6,7 @@
 #ifndef KAGOME_BABE_IMPL_HPP
 #define KAGOME_BABE_IMPL_HPP
 
-#include "consensus/babe.hpp"
+#include "consensus/babe/babe.hpp"
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <memory>
@@ -29,17 +29,6 @@
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::consensus {
-
-  enum class BabeState {
-    WAIT_BLOCK,   // Node is just executed and waits for the new block to sync
-                  // missing blocks
-    CATCHING_UP,  // Node received first block announce and started fetching
-                  // blocks between announced one and the latest finalized one
-    NEED_SLOT_TIME,  // Missing blocks were received, now slot time should be
-                     // calculated
-    SYNCHRONIZED  // All missing blocks were received and applied, slot time was
-                  // calculated, current peer can start block production
-  };
 
   inline const auto kTimestampId =
       primitives::InherentIdentifier::fromString("timstap0").value();
@@ -89,9 +78,9 @@ namespace kagome::consensus {
     void runEpoch(Epoch epoch,
                   BabeTimePoint starting_slot_finish_time) override;
 
-    void onBlockAnnounce(const network::BlockAnnounce &announce) override;
+    State getCurrentState() const override;
 
-    BabeMeta getBabeMeta() const;
+    void onBlockAnnounce(const network::BlockAnnounce &announce) override;
 
    private:
     /**
@@ -146,7 +135,7 @@ namespace kagome::consensus {
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
 
-    BabeState current_state_{BabeState::WAIT_BLOCK};
+    State current_state_{State::WAIT_BLOCK};
 
     Epoch current_epoch_;
 
