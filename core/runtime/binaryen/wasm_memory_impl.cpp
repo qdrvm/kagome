@@ -33,7 +33,7 @@ namespace kagome::runtime::binaryen {
      * We use this condition to avoid deallocated_ pointers fixup
      */
     BOOST_ASSERT(offset_ <= kMaxMemorySize - new_size);
-    if (new_size > size_) {
+    if (new_size >= size_) {
       size_ = new_size;
       return memory_->resize(new_size);
     }
