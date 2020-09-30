@@ -9,7 +9,6 @@
 #include "application/app_config.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
-#include "consensus/babe/impl/syncing_babe_observer.hpp"
 #include "consensus/grandpa/impl/syncing_grandpa_observer.hpp"
 #include "injector/application_injector.hpp"
 #include "injector/validating_node_injector.hpp"

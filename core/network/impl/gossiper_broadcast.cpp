@@ -17,7 +17,75 @@ namespace kagome::network {
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    streams_.emplace(peer_info, std::move(stream));
+    reserved_streams_.emplace(peer_info, std::move(stream));
+  }
+
+  void GossiperBroadcast::addStream(
+      std::shared_ptr<libp2p::connection::Stream> stream) {
+    auto peer_id_res = stream->remotePeerId();
+    if (not peer_id_res.has_value()) {
+      logger_->error("Can't get peer_id: {}", peer_id_res.error().message());
+      return stream->reset();
+    }
+    auto &peer_id = peer_id_res.value();
+
+    auto syncing_stream_it = syncing_streams_.find(peer_id);
+    if (syncing_stream_it != syncing_streams_.end()) {
+      if (syncing_stream_it->second != stream) {
+        syncing_stream_it->second->reset();
+        syncing_stream_it->second.swap(stream);
+        logger_->debug("Syncing stream (peer_id={}) was replaced",
+                       peer_id.toHex());
+      }
+      return;
+    }
+
+    logger_->debug("Syncing stream (peer_id={}) was emplaced", peer_id.toHex());
+  }
+
+  uint32_t GossiperBroadcast::getActiveStreamNumber() {
+    struct HashtableHelper {
+      using type = std::reference_wrapper<const libp2p::peer::PeerId>;
+      size_t operator()(const type &item) const noexcept {
+        return std::hash<libp2p::peer::PeerId>()(item.get());
+      }
+      bool operator()(const type &lhs, const type &rhs) const noexcept {
+        return lhs.get() == rhs.get();
+      }
+    };
+
+    std::unordered_set<std::reference_wrapper<const libp2p::peer::PeerId>,
+                       HashtableHelper,
+                       HashtableHelper>
+        unique_peer_ids;
+
+    std::for_each(
+        syncing_streams_.begin(),
+        syncing_streams_.end(),
+        [&unique_peer_ids](const auto &pair) {
+          const auto &[peer_id, stream] = pair;
+          if (stream && not stream->isClosed()
+              && not std::dynamic_pointer_cast<LoopbackStream>(stream)) {
+            unique_peer_ids.emplace(peer_id);
+          }
+        });
+
+    std::for_each(
+        reserved_streams_.begin(),
+        reserved_streams_.end(),
+        [&unique_peer_ids](const auto &pair) {
+          const auto &[peer_info, stream] = pair;
+          if (stream && not stream->isClosed()
+              && not std::dynamic_pointer_cast<LoopbackStream>(stream)) {
+            unique_peer_ids.emplace(peer_info.id);
+          }
+        });
+
+    return unique_peer_ids.size();
+  }
+
+  uint32_t GossiperBroadcast::getReservedStreamNumber() {
+    return reserved_streams_.size();
   }
 
   void GossiperBroadcast::transactionAnnounce(
@@ -84,29 +152,6 @@ namespace kagome::network {
     send(peer_id, std::move(message));
   }
 
-  void GossiperBroadcast::addStream(
-      std::shared_ptr<libp2p::connection::Stream> stream) {
-    auto peer_id_res = stream->remotePeerId();
-    if (not peer_id_res.has_value()) {
-      logger_->error("Can't get peer_id: {}", peer_id_res.error().message());
-      return stream->reset();
-    }
-    auto &peer_id = peer_id_res.value();
-
-    auto syncing_stream_it = syncing_streams_.find(peer_id);
-    if (syncing_stream_it != syncing_streams_.end()) {
-      if (syncing_stream_it->second != stream) {
-        syncing_stream_it->second->reset();
-        syncing_stream_it->second.swap(stream);
-        logger_->debug("Syncing stream (peer_id={}) was replaced",
-                       peer_id.toHex());
-      }
-      return;
-    }
-
-    logger_->debug("Syncing stream (peer_id={}) was emplaced", peer_id.toHex());
-  }
-
   void GossiperBroadcast::send(const libp2p::peer::PeerId &peer_id,
                                GossipMessage &&msg) {
     auto msg_send_lambda = [msg, this](auto stream) {
@@ -135,10 +180,10 @@ namespace kagome::network {
     }
 
     auto stream_it = std::find_if(
-        streams_.begin(), streams_.end(), [peer_id](const auto &item) {
-          return item.first.id == peer_id;
-        });
-    if (stream_it != streams_.end()) {
+        reserved_streams_.begin(),
+        reserved_streams_.end(),
+        [peer_id](const auto &item) { return item.first.id == peer_id; });
+    if (stream_it != reserved_streams_.end()) {
       auto &[peerInfo, stream] = *stream_it;
       if (stream && !stream->isClosed()) {
         msg_send_lambda(stream);
@@ -159,7 +204,7 @@ namespace kagome::network {
               }
 
               // save the stream and send the message
-              self->streams_[info] = stream_res.value();
+              self->reserved_streams_[info] = stream_res.value();
               msg_send_lambda(std::move(stream_res.value()));
             });
       }
@@ -197,7 +242,7 @@ namespace kagome::network {
         stream_it = syncing_streams_.erase(stream_it);
       }
     }
-    for (const auto &[peerInfo, stream] : streams_) {
+    for (const auto &[peerInfo, stream] : reserved_streams_) {
       if (stream && !stream->isClosed()) {
         msg_send_lambda(stream);
         continue;
@@ -219,7 +264,7 @@ namespace kagome::network {
             }
 
             // save the stream and send the message
-            self->streams_[info] = stream_res.value();
+            self->reserved_streams_[info] = stream_res.value();
             msg_send_lambda(std::move(stream_res.value()));
           });
     }

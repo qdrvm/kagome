@@ -7,6 +7,8 @@
 #define KAGOME_API_SYSTEMAPI
 
 #include "application/configuration_storage.hpp"
+#include "consensus/babe/babe.hpp"
+#include "network/gossiper.hpp"
 
 namespace kagome::api {
 
@@ -17,6 +19,10 @@ namespace kagome::api {
 
     virtual std::shared_ptr<application::ConfigurationStorage> getConfig()
         const = 0;
+
+    virtual std::shared_ptr<consensus::Babe> getBabe() const = 0;
+
+    virtual std::shared_ptr<network::Gossiper> getGossiper() const = 0;
   };
 
 }  // namespace kagome::api

@@ -20,13 +20,30 @@ namespace kagome::network {
   struct Gossiper : public ExtrinsicGossiper,
                     public consensus::BabeGossiper,
                     public consensus::grandpa::Gossiper {
+    /**
+     * @brief It is assigning special stream for peer
+     * @param info - PeerInfo is assigned to stream
+     * @param stream - assignee stream
+     */
     virtual void reserveStream(
         const libp2p::peer::PeerInfo &info,
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
-    // Add new stream to gossip
+    /**
+     * Add new stream to gossip
+     */
     virtual void addStream(
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
+
+    /**
+     * @returns number of active (opened) streams
+     */
+    virtual uint32_t getActiveStreamNumber() = 0;
+
+    /**
+     * @returns number of reserved streams
+     */
+    virtual uint32_t getReservedStreamNumber() = 0;
   };
 }  // namespace kagome::network
 

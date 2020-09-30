@@ -8,6 +8,7 @@
 #include "api/jrpc/jrpc_method.hpp"
 #include "api/service/system/requests/chain.hpp"
 #include "api/service/system/requests/chain_type.hpp"
+#include "api/service/system/requests/health.hpp"
 #include "api/service/system/requests/name.hpp"
 #include "api/service/system/requests/properties.hpp"
 #include "api/service/system/requests/version.hpp"
@@ -25,16 +26,19 @@ namespace kagome::api::system {
   using Handler = kagome::api::Method<Request, SystemApi>;
 
   void SystemJrpcProcessor::registerHandlers() {
-    server_->registerHandler("system_name", Handler<request::Name>(api_));
-
-    server_->registerHandler("system_version", Handler<request::Version>(api_));
-
     server_->registerHandler("system_chain", Handler<request::Chain>(api_));
 
-    server_->registerHandler("system_chainType", Handler<request::ChainType>(api_));
+    server_->registerHandler("system_chainType",
+                             Handler<request::ChainType>(api_));
+
+    server_->registerHandler("system_health", Handler<request::Health>(api_));
+
+    server_->registerHandler("system_name", Handler<request::Name>(api_));
 
     server_->registerHandler("system_properties",
                              Handler<request::Properties>(api_));
+
+    server_->registerHandler("system_version", Handler<request::Version>(api_));
   }
 
 }  // namespace kagome::api::system
