@@ -148,8 +148,11 @@ namespace kagome::runtime::binaryen {
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
         len = buffer.size();
+        logger_->trace("Try allocate for arg, len {}", len);
         ptr = memory->allocate(len);
+        logger_->trace("Allocated ptr {}", ptr);
         memory->storeBuffer(ptr, common::Buffer(std::move(buffer)));
+        logger_->trace("Stored buffer");
       }
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
