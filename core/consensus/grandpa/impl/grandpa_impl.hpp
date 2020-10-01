@@ -106,6 +106,10 @@ namespace kagome::consensus::grandpa {
     bool isReady_ = false;
     std::shared_ptr<consensus::Babe> babe_;
 
+    const Clock::Duration catch_up_request_suppression_duration_ =
+        std::chrono::seconds(15);
+    Clock::TimePoint catch_up_request_suppressed_until_;
+
     common::Logger logger_ = common::createLogger("Grandpa");
   };
 

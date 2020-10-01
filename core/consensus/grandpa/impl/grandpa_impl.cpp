@@ -49,6 +49,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(babe_ != nullptr);
 
     app_state_manager_->takeControl(*this);
+    catch_up_request_suppressed_until_ = clock_->now();
   }
 
   bool GrandpaImpl::prepare() {
@@ -78,7 +79,7 @@ namespace kagome::consensus::grandpa {
     }
     auto &round_state = round_state_res.value();
 
-    logger_->debug("Grandpa is starting with round #{}",
+    logger_->debug("Grandpa will be started with round #{}",
                    round_state.round_number + 1);
 
     current_round_ = makeInitialRound(round_state);
@@ -305,7 +306,11 @@ namespace kagome::consensus::grandpa {
       return;
     }
     if (current_round_->roundNumber() + 2 <= msg.round_number) {
-      current_round_->doCatchUpRequest(peer_id);
+      if (catch_up_request_suppressed_until_ > clock_->now()) {
+        catch_up_request_suppressed_until_ =
+            clock_->now() + catch_up_request_suppression_duration_;
+        current_round_->doCatchUpRequest(peer_id);
+      }
       return;
     }
     if (not previous_round_->completable()) {
@@ -405,6 +410,8 @@ namespace kagome::consensus::grandpa {
     current_round_ = std::move(round);
 
     executeNextRound();
+
+    catch_up_request_suppressed_until_ = clock_->now();
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -416,7 +423,11 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
       if (current_round_->roundNumber() + 2 <= msg.round_number) {
-        current_round_->doCatchUpRequest(peer_id);
+        if (catch_up_request_suppressed_until_ > clock_->now()) {
+          catch_up_request_suppressed_until_ =
+              clock_->now() + catch_up_request_suppression_duration_;
+          current_round_->doCatchUpRequest(peer_id);
+        }
       }
       return;
     }
@@ -469,7 +480,11 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> target_round = selectRound(fin.round_number);
     if (not target_round) {
       if (current_round_->roundNumber() < fin.round_number) {
-        current_round_->doCatchUpRequest(peer_id);
+        if (catch_up_request_suppressed_until_ > clock_->now()) {
+          catch_up_request_suppressed_until_ =
+              clock_->now() + catch_up_request_suppression_duration_;
+          current_round_->doCatchUpRequest(peer_id);
+        }
       }
       return;
     }
