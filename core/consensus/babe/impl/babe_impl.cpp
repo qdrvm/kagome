@@ -124,6 +124,9 @@ namespace kagome::consensus {
 
       current_state_ = State::SYNCHRONIZED;
       runEpoch(epoch, starting_slot_finish_time);
+      if (auto on_synchronized = std::move(on_synchronized_)) {
+        on_synchronized();
+      }
     } else {
       log_->debug("Babe is starting with syncing from block #{}, hash={}",
                   best_block_number,
@@ -212,6 +215,15 @@ namespace kagome::consensus {
       case State::SYNCHRONIZED:
         block_executor_->processNextBlock(announce.header, [](auto &) {});
         break;
+    }
+  }
+
+  void BabeImpl::doOnSynchronized(std::function<void()> handler) {
+    on_synchronized_ = std::move(handler);
+    if (current_state_ == State::SYNCHRONIZED) {
+      if (auto on_synchronized = std::move(on_synchronized_)) {
+        on_synchronized();
+      }
     }
   }
 
@@ -524,6 +536,10 @@ namespace kagome::consensus {
       epoch.authorities = next_epoch_digest_res.value().authorities;
 
       runEpoch(epoch, first_slot_ending_time);
+
+      if (auto on_synchronized = std::move(on_synchronized_)) {
+        on_synchronized();
+      }
     }
   }
 }  // namespace kagome::consensus

@@ -13,6 +13,7 @@
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "consensus/authority/authority_manager.hpp"
+#include "consensus/babe/babe.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
@@ -39,7 +40,8 @@ namespace kagome::consensus::grandpa {
                 const crypto::ED25519Keypair &keypair,
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
-                std::shared_ptr<authority::AuthorityManager> authority_manager);
+                std::shared_ptr<authority::AuthorityManager> authority_manager,
+                std::shared_ptr<consensus::Babe> babe);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -100,6 +102,9 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
+
+    bool isReady_ = false;
+    std::shared_ptr<consensus::Babe> babe_;
 
     common::Logger logger_ = common::createLogger("Grandpa");
   };
