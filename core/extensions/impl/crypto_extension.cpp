@@ -108,14 +108,14 @@ namespace kagome::extensions {
       auto single_verification_result = verification_queue.front().get();
       if (single_verification_result == 0) {
         batch_verify_.reset();
-        return runtime::WasmSize(0);
+        return kVerifyBatchFail;
       }
       BOOST_ASSERT_MSG(single_verification_result == 1,
                        "Positive result must be equal 1");
       verification_queue.pop();
     }
 
-    return runtime::WasmSize(1);
+    return kVerifyBatchSuccess;
   }
 
   runtime::WasmSize CryptoExtension::ext_ed25519_verify(
@@ -123,9 +123,6 @@ namespace kagome::extensions {
       runtime::WasmSize msg_len,
       runtime::WasmPointer sig_data,
       runtime::WasmPointer pubkey_data) {
-    static constexpr uint32_t kVerifySuccess = 0;
-    static constexpr uint32_t kVerifyFail = 1;
-
     auto msg = memory_->loadN(msg_data, msg_len).toVector();
     auto sig_bytes =
         memory_->loadN(sig_data, ed25519_constants::SIGNATURE_SIZE).toVector();
@@ -139,32 +136,32 @@ namespace kagome::extensions {
                          std::move(pk_bytes)]() mutable -> runtime::WasmSize {
       auto self = wp.lock();
       if (not self) {
-        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+        BOOST_UNREACHABLE_RETURN(kEd25519VerifyFail);
       }
 
       auto signature_res = crypto::ED25519Signature::fromSpan(sig_bytes);
       if (!signature_res) {
-        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+        BOOST_UNREACHABLE_RETURN(kEd25519VerifyFail);
       }
       auto &&signature = signature_res.value();
 
       auto pubkey_res = crypto::ED25519PublicKey::fromSpan(pk_bytes);
       if (!pubkey_res) {
-        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+        BOOST_UNREACHABLE_RETURN(kEd25519VerifyFail);
       }
       auto pubkey = pubkey_res.value();
 
       auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
       auto is_succeeded = result && result.value();
 
-      return is_succeeded ? kVerifySuccess : kVerifyFail;
+      return is_succeeded ? kEd25519VerifySuccess : kEd25519VerifyFail;
     };
 
     if (batch_verify_.has_value()) {
       auto &verification_queue = batch_verify_.value();
       verification_queue.emplace(
           std::async(std::launch::deferred, std::move(verifier)));
-      return kVerifySuccess;
+      return kEd25519VerifySuccess;
     }
 
     return verifier();
@@ -175,9 +172,6 @@ namespace kagome::extensions {
       runtime::WasmSize msg_len,
       runtime::WasmPointer sig_data,
       runtime::WasmPointer pubkey_data) {
-    static constexpr uint32_t kVerifySuccess = 0;
-    static constexpr uint32_t kVerifyFail = 1;
-
     auto msg = memory_->loadN(msg_data, msg_len).toVector();
     auto sig_bytes =
         memory_->loadN(sig_data, sr25519_constants::SIGNATURE_SIZE).toVector();
@@ -191,32 +185,32 @@ namespace kagome::extensions {
                          std::move(pk_bytes)]() mutable -> runtime::WasmSize {
       auto self = wp.lock();
       if (not self) {
-        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+        BOOST_UNREACHABLE_RETURN(kSr25519VerifyFail);
       }
 
       auto signature_res = crypto::SR25519Signature::fromSpan(sig_bytes);
       if (!signature_res) {
-        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+        BOOST_UNREACHABLE_RETURN(kSr25519VerifyFail);
       }
       auto &&signature = signature_res.value();
 
       auto pubkey_res = crypto::ED25519PublicKey::fromSpan(pk_bytes);
       if (!pubkey_res) {
-        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+        BOOST_UNREACHABLE_RETURN(kSr25519VerifyFail);
       }
       auto pubkey = pubkey_res.value();
 
       auto result = self->sr25519_provider_->verify(signature, msg, pubkey);
       auto is_succeeded = result && result.value();
 
-      return is_succeeded ? kVerifySuccess : kVerifyFail;
+      return is_succeeded ? kSr25519VerifySuccess : kSr25519VerifyFail;
     };
 
     if (batch_verify_.has_value()) {
       auto &verification_queue = batch_verify_.value();
       verification_queue.emplace(
           std::async(std::launch::deferred, std::move(verifier)));
-      return kVerifySuccess;
+      return kSr25519VerifySuccess;
     }
 
     return verifier();

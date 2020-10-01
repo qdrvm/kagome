@@ -30,6 +30,13 @@ namespace kagome::extensions {
    */
   class CryptoExtension : public std::enable_shared_from_this<CryptoExtension> {
    public:
+    static constexpr uint32_t kVerifyBatchSuccess = 1;
+    static constexpr uint32_t kVerifyBatchFail = 0;
+    static constexpr uint32_t kSr25519VerifySuccess = 1;
+    static constexpr uint32_t kSr25519VerifyFail = 0;
+    static constexpr uint32_t kEd25519VerifySuccess = 1;
+    static constexpr uint32_t kEd25519VerifyFail = 0;
+
     CryptoExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
