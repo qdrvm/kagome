@@ -28,7 +28,7 @@ namespace kagome::extensions {
   /**
    * Implements extension functions related to cryptography
    */
-  class CryptoExtension : std::enable_shared_from_this<CryptoExtension> {
+  class CryptoExtension : public std::enable_shared_from_this<CryptoExtension> {
    public:
     CryptoExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
