@@ -90,38 +90,84 @@ namespace kagome::extensions {
     memory_->storeBuffer(out_ptr, hash);
   }
 
+  void CryptoExtension::ext_start_batch_verify() {
+    if (batch_verify_.has_value()) {
+      throw std::runtime_error("Previous batch_verify is not finished");
+    }
+
+    batch_verify_.emplace();
+  }
+
+  runtime::WasmSize CryptoExtension::ext_finish_batch_verify() {
+    if (not batch_verify_.has_value()) {
+      throw std::runtime_error("No batch_verify is started");
+    }
+
+    auto &verification_queue = batch_verify_.value();
+    while (not verification_queue.empty()) {
+      auto single_verification_result = verification_queue.front().get();
+      if (single_verification_result == 0) {
+        batch_verify_.reset();
+        return runtime::WasmSize(0);
+      }
+      BOOST_ASSERT_MSG(single_verification_result == 1,
+                       "Positive result must be equal 1");
+      verification_queue.pop();
+    }
+
+    return runtime::WasmSize(1);
+  }
+
   runtime::WasmSize CryptoExtension::ext_ed25519_verify(
       runtime::WasmPointer msg_data,
       runtime::WasmSize msg_len,
       runtime::WasmPointer sig_data,
       runtime::WasmPointer pubkey_data) {
-    // for some reason, 0 and 5 are used in the reference implementation, so
-    // it's better to stick to them in ours, at least for now
     static constexpr uint32_t kVerifySuccess = 0;
-    static constexpr uint32_t kVerifyFail = 5;
+    static constexpr uint32_t kVerifyFail = 1;
 
-    auto msg = memory_->loadN(msg_data, msg_len);
+    auto msg = memory_->loadN(msg_data, msg_len).toVector();
     auto sig_bytes =
         memory_->loadN(sig_data, ed25519_constants::SIGNATURE_SIZE).toVector();
-
-    auto signature_res = crypto::ED25519Signature::fromSpan(sig_bytes);
-    if (!signature_res) {
-      BOOST_UNREACHABLE_RETURN(kVerifyFail);
-    }
-    auto &&signature = signature_res.value();
-
-    auto pubkey_bytes =
+    auto pk_bytes =
         memory_->loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE).toVector();
-    auto pubkey_res = crypto::ED25519PublicKey::fromSpan(pubkey_bytes);
-    if (!pubkey_res) {
-      BOOST_UNREACHABLE_RETURN(kVerifyFail);
+
+    auto verifier = [wp = weak_from_this(),
+                     msg = std::move(msg),
+                     sig_bytes = std::move(sig_bytes),
+                     pk_bytes =
+                         std::move(pk_bytes)]() mutable -> runtime::WasmSize {
+      auto self = wp.lock();
+      if (not self) {
+        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+      }
+
+      auto signature_res = crypto::ED25519Signature::fromSpan(sig_bytes);
+      if (!signature_res) {
+        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+      }
+      auto &&signature = signature_res.value();
+
+      auto pubkey_res = crypto::ED25519PublicKey::fromSpan(pk_bytes);
+      if (!pubkey_res) {
+        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+      }
+      auto pubkey = pubkey_res.value();
+
+      auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
+      auto is_succeeded = result && result.value();
+
+      return is_succeeded ? kVerifySuccess : kVerifyFail;
+    };
+
+    if (batch_verify_.has_value()) {
+      auto &verification_queue = batch_verify_.value();
+      verification_queue.emplace(
+          std::async(std::launch::deferred, std::move(verifier)));
+      return kVerifySuccess;
     }
-    auto pubkey = pubkey_res.value();
 
-    auto result = ed25519_provider_->verify(signature, msg, pubkey);
-    auto is_succeeded = result && result.value();
-
-    return is_succeeded ? kVerifySuccess : kVerifyFail;
+    return verifier();
   }
 
   runtime::WasmSize CryptoExtension::ext_sr25519_verify(
@@ -129,32 +175,51 @@ namespace kagome::extensions {
       runtime::WasmSize msg_len,
       runtime::WasmPointer sig_data,
       runtime::WasmPointer pubkey_data) {
-    // for some reason, 0 and 5 are used in the reference implementation, so
-    // it's better to stick to them in ours, at least for now
     static constexpr uint32_t kVerifySuccess = 0;
-    static constexpr uint32_t kVerifyFail = 5;
+    static constexpr uint32_t kVerifyFail = 1;
 
-    auto msg = memory_->loadN(msg_data, msg_len);
-    auto signature_buffer =
-        memory_->loadN(sig_data, sr25519_constants::SIGNATURE_SIZE);
+    auto msg = memory_->loadN(msg_data, msg_len).toVector();
+    auto sig_bytes =
+        memory_->loadN(sig_data, sr25519_constants::SIGNATURE_SIZE).toVector();
+    auto pk_bytes =
+        memory_->loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE).toVector();
 
-    auto pubkey_buffer =
-        memory_->loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE);
-    auto key_res = crypto::SR25519PublicKey::fromSpan(pubkey_buffer);
-    if (!key_res) {
-      BOOST_UNREACHABLE_RETURN(kVerifyFail);
+    auto verifier = [wp = weak_from_this(),
+                     msg = std::move(msg),
+                     sig_bytes = std::move(sig_bytes),
+                     pk_bytes =
+                         std::move(pk_bytes)]() mutable -> runtime::WasmSize {
+      auto self = wp.lock();
+      if (not self) {
+        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+      }
+
+      auto signature_res = crypto::SR25519Signature::fromSpan(sig_bytes);
+      if (!signature_res) {
+        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+      }
+      auto &&signature = signature_res.value();
+
+      auto pubkey_res = crypto::ED25519PublicKey::fromSpan(pk_bytes);
+      if (!pubkey_res) {
+        BOOST_UNREACHABLE_RETURN(kVerifyFail);
+      }
+      auto pubkey = pubkey_res.value();
+
+      auto result = self->sr25519_provider_->verify(signature, msg, pubkey);
+      auto is_succeeded = result && result.value();
+
+      return is_succeeded ? kVerifySuccess : kVerifyFail;
+    };
+
+    if (batch_verify_.has_value()) {
+      auto &verification_queue = batch_verify_.value();
+      verification_queue.emplace(
+          std::async(std::launch::deferred, std::move(verifier)));
+      return kVerifySuccess;
     }
-    auto &&key = key_res.value();
 
-    crypto::SR25519Signature signature{};
-    std::copy_n(signature_buffer.begin(),
-                sr25519_constants::SIGNATURE_SIZE,
-                signature.begin());
-
-    auto res = sr25519_provider_->verify(signature, msg, key);
-    bool is_succeeded = res && res.value();
-
-    return is_succeeded ? kVerifySuccess : kVerifyFail;
+    return verifier();
   }
 
   void CryptoExtension::ext_twox_64(runtime::WasmPointer data,

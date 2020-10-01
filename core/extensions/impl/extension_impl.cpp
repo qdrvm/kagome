@@ -225,6 +225,14 @@ namespace kagome::extensions {
     crypto_ext_.ext_keccak_256(data, len, out);
   }
 
+  void ExtensionImpl::ext_start_batch_verify() {
+    crypto_ext_.ext_start_batch_verify();
+  }
+
+  runtime::WasmSize ExtensionImpl::ext_finish_batch_verify() {
+    return crypto_ext_.ext_finish_batch_verify();
+  }
+
   runtime::WasmSize ExtensionImpl::ext_ed25519_verify(
       runtime::WasmPointer msg_data,
       runtime::WasmSize msg_len,
@@ -369,5 +377,4 @@ namespace kagome::extensions {
     return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig,
                                                                         msg);
   }
-
 }  // namespace kagome::extensions
