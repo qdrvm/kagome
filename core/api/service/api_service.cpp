@@ -96,6 +96,22 @@ namespace kagome::api {
                       });
                 }
               });
+          
+          session_context.events_subscription->setCallback(
+              [wp](SessionPtr &session,
+                   const auto &key,
+                   const auto &header) {
+                if (auto self = wp.lock()) {
+                  jsonrpc::Value::Struct params;
+                  params["result"] = api::makeValue(header.get());
+                  params["subscription"] = 0;
+
+                  self->server_->processJsonData(
+                      params, [&](const std::string &response) {
+                        session->respond(response);
+                      });
+                }
+              });
         }
 
         session->connectOnRequest(
