@@ -82,6 +82,8 @@ namespace kagome::consensus {
 
     void onBlockAnnounce(const network::BlockAnnounce &announce) override;
 
+    void doOnSynchronized(std::function<void()> handler) override;
+
    private:
     /**
      * Run the next Babe slot
@@ -151,6 +153,8 @@ namespace kagome::consensus {
     BabeTimePoint next_slot_finish_time_;
 
     boost::optional<ExecutionStrategy> execution_strategy_;
+
+    std::function<void()> on_synchronized_;
 
     common::Logger log_;
   };
