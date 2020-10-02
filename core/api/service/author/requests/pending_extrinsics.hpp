@@ -13,6 +13,11 @@
 
 namespace kagome::api::author::request {
 
+  /**
+   * @brief Returns all pending extrinsics, potentially grouped by sender.
+   * @see
+   * https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#author_pendingextrinsics
+   */
   class PendingExtrinsics final {
    public:
     explicit PendingExtrinsics(std::shared_ptr<AuthorApi> api)
