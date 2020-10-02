@@ -142,7 +142,8 @@ namespace kagome::injector {
     auto subscription_engine =
         injector.template create<SubscriptionEnginePtr>();
 
-    auto events_engine = injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
+    auto events_engine =
+        injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
 
     auto app_state_manager =
         injector
@@ -324,7 +325,8 @@ namespace kagome::injector {
 
     auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
-    auto &&events_engine = injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
+    auto &&events_engine =
+        injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
 
     auto &&tree =
         blockchain::BlockTreeImpl::create(std::move(header_repo),

@@ -38,10 +38,10 @@ namespace kagome::api {
     using SubscribedSessionPtr = std::shared_ptr<SubscribedSessionType>;
 
     using SubscriptionEngineType =
-    subscription::SubscriptionEngine<common::Buffer,
-        SessionPtr,
-        common::Buffer,
-        primitives::BlockHash>;
+        subscription::SubscriptionEngine<common::Buffer,
+                                         SessionPtr,
+                                         common::Buffer,
+                                         primitives::BlockHash>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
     struct SessionExecutionContext {
@@ -88,7 +88,8 @@ namespace kagome::api {
     outcome::result<uint32_t> subscribeNewHeads();
 
    private:
-    boost::optional<SessionExecutionContext> findSessionById(Session::SessionId id);
+    boost::optional<SessionExecutionContext> findSessionById(
+        Session::SessionId id);
     void removeSessionById(Session::SessionId id);
     SessionExecutionContext storeSessionWithId(
         Session::SessionId id, const std::shared_ptr<Session> &session);

@@ -129,7 +129,7 @@ namespace kagome::blockchain {
                              std::move(meta),
                              std::move(extrinsic_observer),
                              std::move(hasher),
-    std::move(events_engine)};
+                             std::move(events_engine)};
     return std::make_shared<BlockTreeImpl>(std::move(block_tree));
   }
 
@@ -263,7 +263,8 @@ namespace kagome::blockchain {
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
     OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
 
-    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads, header);
+    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads,
+                           header);
     log_->info(
         "Finalized block number {} with hash {}", node->depth, block.toHex());
     return outcome::success();

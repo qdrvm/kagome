@@ -34,7 +34,8 @@ namespace kagome::api {
     outcome::result<std::vector<BlockHash>> getBlockHash(
         gsl::span<const ValueType> values) const override;
 
-    outcome::result<primitives::BlockHeader> getHeader(std::string_view hash) override {
+    outcome::result<primitives::BlockHeader> getHeader(
+        std::string_view hash) override {
       OUTCOME_TRY(h, primitives::BlockHash::fromHexWithPrefix(hash));
       return block_repo_->getBlockHeader(h);
     }

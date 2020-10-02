@@ -80,7 +80,8 @@ namespace kagome::api {
                   out_data.emplace_back(api::makeValue(key));
                   out_data.emplace_back(api::makeValue(data));
 
-                  /// TODO(iceseer): PRE-475 make event notofication depending in blocks, to butch them in a single message
+                  /// TODO(iceseer): PRE-475 make event notofication depending
+                  /// in blocks, to butch them in a single message
 
                   jsonrpc::Value::Struct result;
                   result["changes"] = std::move(out_data);
@@ -98,9 +99,7 @@ namespace kagome::api {
               });
 
           session_context.events_subscription->setCallback(
-              [wp](SessionPtr &session,
-                   const auto &key,
-                   const auto &header) {
+              [wp](SessionPtr &session, const auto &key, const auto &header) {
                 if (auto self = wp.lock()) {
                   jsonrpc::Value::Struct params;
                   params["result"] = api::makeValue(header.get());

@@ -20,8 +20,8 @@
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_observer.hpp"
-#include "transaction_pool/transaction_pool.hpp"
 #include "primitives/event_types.hpp"
+#include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::blockchain {
   /**

@@ -14,14 +14,12 @@
 
 namespace kagome::api {
   class Session;
-}  // kagome::api
+}  // namespace kagome::api
 
 namespace kagome::primitives {
   struct BlockHeader;
 
-  enum struct SubscriptionEventType : uint32_t {
-    kNewHeads = 1
-  };
+  enum struct SubscriptionEventType : uint32_t { kNewHeads = 1 };
 }  // namespace kagome::primitives
 
 namespace kagome::subscription {
@@ -30,7 +28,7 @@ namespace kagome::subscription {
 
   template <typename Key, typename Type, typename... Arguments>
   class Subscriber;
-}  // kagome::subscription
+}  // namespace kagome::subscription
 
 namespace kagome::subscriptions {
   using EventsSubscribedSessionType =
@@ -46,6 +44,6 @@ namespace kagome::subscriptions {
       std::reference_wrapper<primitives::BlockHeader>>;
   using EventsSubscriptionEnginePtr =
       std::shared_ptr<EventsSubscriptionEngineType>;
-}  // kagome::subscriptions
+}  // namespace kagome::subscriptions
 
 #endif  // KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
