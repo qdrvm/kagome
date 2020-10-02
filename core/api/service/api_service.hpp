@@ -17,6 +17,7 @@
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "primitives/common.hpp"
+#include "primitives/event_types.hpp"
 #include "subscription/subscriber.hpp"
 
 namespace kagome::api {
@@ -36,12 +37,25 @@ namespace kagome::api {
                                  primitives::BlockHash>;
     using SubscribedSessionPtr = std::shared_ptr<SubscribedSessionType>;
 
+    using EventsSubscribedSessionType =
+        subscription::Subscriber<primitives::SubscriptionEventType, SessionPtr>;
+    using EventsSubscribedSessionPtr = std::shared_ptr<EventsSubscribedSessionType>;
+
     using SubscriptionEngineType =
-        subscription::SubscriptionEngine<common::Buffer,
-                                         SessionPtr,
-                                         common::Buffer,
-                                         primitives::BlockHash>;
+    subscription::SubscriptionEngine<common::Buffer,
+        SessionPtr,
+        common::Buffer,
+        primitives::BlockHash>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
+
+    using EventsSubscriptionEngineType =
+    subscription::SubscriptionEngine<primitives::SubscriptionEventType, SessionPtr>;
+    using EventsSubscriptionEnginePtr = std::shared_ptr<EventsSubscriptionEngineType>;
+
+    struct SessionExecutionContext {
+      SubscribedSessionPtr storage_subscription;
+      EventsSubscribedSessionPtr events_subscription;
+    };
 
    public:
     template <class T>
@@ -59,7 +73,8 @@ namespace kagome::api {
         std::vector<std::shared_ptr<Listener>> listeners,
         std::shared_ptr<JRpcServer> server,
         const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
-        SubscriptionEnginePtr subscription_engine);
+        SubscriptionEnginePtr subscription_engine,
+        EventsSubscriptionEnginePtr events_engine);
 
     virtual ~ApiService() = default;
 
@@ -79,9 +94,9 @@ namespace kagome::api {
         const std::vector<uint32_t> &subscription_id);
 
    private:
-    SubscribedSessionPtr findSessionById(Session::SessionId id);
+    boost::optional<SessionExecutionContext> findSessionById(Session::SessionId id);
     void removeSessionById(Session::SessionId id);
-    SubscribedSessionPtr storeSessionWithId(
+    SessionExecutionContext storeSessionWithId(
         Session::SessionId id, const std::shared_ptr<Session> &session);
 
    private:
@@ -91,9 +106,13 @@ namespace kagome::api {
     common::Logger logger_;
 
     std::mutex subscribed_sessions_cs_;
-    std::unordered_map<Session::SessionId, SubscribedSessionPtr>
+    std::unordered_map<Session::SessionId, SessionExecutionContext>
         subscribed_sessions_;
-    SubscriptionEnginePtr subscription_engine_;
+
+    struct {
+      SubscriptionEnginePtr storage;
+      EventsSubscriptionEnginePtr events;
+    } subscription_engines_;
   };
 }  // namespace kagome::api
 

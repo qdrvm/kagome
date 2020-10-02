@@ -13,6 +13,7 @@ namespace kagome::api::chain::request {
   struct SubscribeNewHeads final : RequestType<uint32_t> {
     using ReturnType = uint32_t;
     using BaseType = RequestType<ReturnType>;
+
     explicit SubscribeNewHeads(std::shared_ptr<ChainApi> &api) : api_(api) {
       BOOST_ASSERT(api_);
     }

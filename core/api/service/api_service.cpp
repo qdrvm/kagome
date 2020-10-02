@@ -34,12 +34,14 @@ namespace kagome::api {
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
       const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
-      SubscriptionEnginePtr subscription_engine)
+      SubscriptionEnginePtr subscription_engine,
+      EventsSubscriptionEnginePtr events_engine)
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{common::createLogger("Api service")},
-        subscription_engine_(std::move(subscription_engine)) {
+        subscription_engines_{.storage = std::move(subscription_engine),
+                              .events = std::move(events_engine)} {
     BOOST_ASSERT(thread_pool_);
     for ([[maybe_unused]] const auto &listener : listeners_) {
       BOOST_ASSERT(listener != nullptr);
@@ -51,6 +53,9 @@ namespace kagome::api {
 
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
+
+    BOOST_ASSERT(subscription_engines_.events);
+    BOOST_ASSERT(subscription_engines_.storage);
   }
 
   bool ApiService::prepare() {
@@ -63,34 +68,34 @@ namespace kagome::api {
         }
 
         if (SessionType::kWs == session->type()) {
-          auto subscribed_session =
+          auto session_context =
               self->storeSessionWithId(session->id(), session);
-          subscribed_session->setCallback([wp](SessionPtr &session,
-                                               const auto &key,
-                                               const auto &data,
-                                               const auto &block) {
-            if (auto self = wp.lock()) {
-              jsonrpc::Value::Array out_data;
-              out_data.emplace_back(api::makeValue(key));
-              out_data.emplace_back(api::makeValue(data));
+          session_context.storage_subscription->setCallback(
+              [wp](SessionPtr &session,
+                   const auto &key,
+                   const auto &data,
+                   const auto &block) {
+                if (auto self = wp.lock()) {
+                  jsonrpc::Value::Array out_data;
+                  out_data.emplace_back(api::makeValue(key));
+                  out_data.emplace_back(api::makeValue(data));
 
-              /// TODO(iceseer): PRE-475 make event notofication depending in
-              /// blocks, to butch them in a single message
+                  /// TODO(iceseer): PRE-475 make event notofication depending in blocks, to butch them in a single message
 
-              jsonrpc::Value::Struct result;
-              result["changes"] = std::move(out_data);
-              result["block"] = api::makeValue(block);
+                  jsonrpc::Value::Struct result;
+                  result["changes"] = std::move(out_data);
+                  result["block"] = api::makeValue(block);
 
-              jsonrpc::Value::Struct params;
-              params["result"] = std::move(result);
-              params["subscription"] = 0;
+                  jsonrpc::Value::Struct params;
+                  params["result"] = std::move(result);
+                  params["subscription"] = 0;
 
-              self->server_->processJsonData(params,
-                                             [&](const std::string &response) {
-                                               session->respond(response);
-                                             });
-            }
-          });
+                  self->server_->processJsonData(
+                      params, [&](const std::string &response) {
+                        session->respond(response);
+                      });
+                }
+              });
         }
 
         session->connectOnRequest(
@@ -106,9 +111,9 @@ namespace kagome::api {
               threaded_info.storeSessionId(session->id());
               std::unique_ptr<void, decltype(thread_session_auto_release)>
 
-                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                  thread_session_keeper(reinterpret_cast<void *>(0xff),
-                                        std::move(thread_session_auto_release));
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              thread_session_keeper(reinterpret_cast<void *>(0xff),
+                                    std::move(thread_session_auto_release));
 
               // process new request
               self->server_->processData(
@@ -142,22 +147,28 @@ namespace kagome::api {
     logger_->debug("Service stopped");
   }
 
-  ApiService::SubscribedSessionPtr ApiService::findSessionById(
-      Session::SessionId id) {
+  boost::optional<ApiService::SessionExecutionContext>
+  ApiService::findSessionById(Session::SessionId id) {
     std::lock_guard guard(subscribed_sessions_cs_);
     if (auto it = subscribed_sessions_.find(id);
         subscribed_sessions_.end() != it)
       return it->second;
 
-    return nullptr;
+    return boost::none;
   }
 
-  ApiService::SubscribedSessionPtr ApiService::storeSessionWithId(
+  ApiService::SessionExecutionContext ApiService::storeSessionWithId(
       Session::SessionId id, const std::shared_ptr<Session> &session) {
     std::lock_guard guard(subscribed_sessions_cs_);
     auto &&[it, inserted] = subscribed_sessions_.emplace(
         id,
-        std::make_shared<SubscribedSessionType>(subscription_engine_, session));
+        ApiService::SessionExecutionContext{
+            .storage_subscription = std::make_shared<SubscribedSessionType>(
+                subscription_engines_.storage, session),
+            .events_subscription =
+                std::make_shared<EventsSubscribedSessionType>(
+                    subscription_engines_.events, session),
+        });
 
     BOOST_ASSERT(inserted);
     return std::move(it->second);
@@ -171,7 +182,8 @@ namespace kagome::api {
   outcome::result<uint32_t> ApiService::subscribeSessionToKeys(
       const std::vector<common::Buffer> &keys) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
-      if (auto session = findSessionById(*session_id)) {
+      if (auto session_context = findSessionById(*session_id)) {
+        auto &session = session_context->storage_subscription;
         const auto id = session->generateSubscriptionSetId();
         for (auto &key : keys) {
           /// TODO(iceseer): PRE-476 make move data to subscription
@@ -189,7 +201,8 @@ namespace kagome::api {
   outcome::result<void> ApiService::unsubscribeSessionFromIds(
       const std::vector<uint32_t> &subscription_ids) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id) {
-      if (auto session = findSessionById(*session_id)) {
+      if (auto session_context = findSessionById(*session_id)) {
+        auto &session = session_context->storage_subscription;
         for (auto id : subscription_ids) session->unsubscribe(id);
         return outcome::success();
       }
