@@ -219,11 +219,10 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::doOnSynchronized(std::function<void()> handler) {
-    on_synchronized_ = std::move(handler);
     if (current_state_ == State::SYNCHRONIZED) {
-      if (auto on_synchronized = std::move(on_synchronized_)) {
-        on_synchronized();
-      }
+      handler();
+    } else {
+      on_synchronized_ = std::move(handler);
     }
   }
 

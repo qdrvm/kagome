@@ -99,7 +99,7 @@ namespace kagome::consensus::grandpa {
         boost::asio::post(*self->io_context_, [wp] {
           if (auto self = wp.lock()) {
             self->executeNextRound();
-            self->isReady_ = true;
+            self->is_ready_ = true;
           }
         });
       }
@@ -276,7 +276,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
-    if (not isReady_) {
+    if (not is_ready_) {
       return;
     }
     if (previous_round_ == nullptr) {
@@ -338,7 +338,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
-    if (not isReady_) {
+    if (not is_ready_) {
       return;
     }
     BOOST_ASSERT(current_round_ != nullptr);
@@ -416,7 +416,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
-    if (not isReady_) {
+    if (not is_ready_) {
       return;
     }
 
@@ -473,7 +473,7 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
                                const Fin &fin) {
-    if (not isReady_) {
+    if (not is_ready_) {
       return;
     }
 

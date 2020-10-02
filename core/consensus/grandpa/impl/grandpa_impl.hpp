@@ -103,7 +103,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
 
-    bool isReady_ = false;
+    bool is_ready_ = false;
     std::shared_ptr<consensus::Babe> babe_;
 
     const Clock::Duration catch_up_request_suppression_duration_ =
