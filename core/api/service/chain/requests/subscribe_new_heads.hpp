@@ -6,7 +6,7 @@
 #ifndef KAGOME_CHAIN_SUBSCRIBE_NEW_HEADS_HPP
 #define KAGOME_CHAIN_SUBSCRIBE_NEW_HEADS_HPP
 
-#include "api/service/chain/requests/base_request.hpp"
+#include "api/service/base_request.hpp"
 
 namespace kagome::api::chain::request {
 
