@@ -96,7 +96,7 @@ namespace kagome::api {
                       });
                 }
               });
-          
+
           session_context.events_subscription->setCallback(
               [wp](SessionPtr &session,
                    const auto &key,

@@ -29,6 +29,9 @@ namespace kagome::api::chain {
 
     server_->registerHandler("chain_getHeader",
                              Handler<request::GetHeader>(api_));
+
+    server_->registerHandler("chain_subscribeNewHeads",
+                             Handler<request::SubscribeNewHeads>(api_));
   }
 
 }  // namespace kagome::api::chain
