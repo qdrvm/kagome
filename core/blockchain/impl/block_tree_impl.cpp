@@ -147,7 +147,9 @@ namespace kagome::blockchain {
         tree_meta_{std::move(meta)},
         extrinsic_observer_{std::move(extrinsic_observer)},
         hasher_{std::move(hasher)},
-        events_engine_(std::move(events_engine)) {}
+        events_engine_(std::move(events_engine)) {
+    BOOST_ASSERT(events_engine_);
+  }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
       const primitives::BlockHeader &header) {
@@ -259,7 +261,9 @@ namespace kagome::blockchain {
     tree_->parent.reset();
 
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
+    OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
 
+    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads, header);
     log_->info(
         "Finalized block number {} with hash {}", node->depth, block.toHex());
     return outcome::success();
