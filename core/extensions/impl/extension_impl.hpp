@@ -82,6 +82,12 @@ namespace kagome::extensions {
 
     void ext_storage_root(runtime::WasmPointer result) const override;
 
+    void ext_storage_start_transaction() override;
+
+    void ext_storage_rollback_transaction() override;
+
+    void ext_storage_commit_transaction() override;
+
     // ------------------------ Storage extensions v1 ------------------------
 
     void ext_storage_set_version_1(runtime::WasmSpan key,
