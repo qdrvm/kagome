@@ -37,10 +37,6 @@ namespace kagome::api {
                                  primitives::BlockHash>;
     using SubscribedSessionPtr = std::shared_ptr<SubscribedSessionType>;
 
-    using EventsSubscribedSessionType =
-        subscription::Subscriber<primitives::SubscriptionEventType, SessionPtr>;
-    using EventsSubscribedSessionPtr = std::shared_ptr<EventsSubscribedSessionType>;
-
     using SubscriptionEngineType =
     subscription::SubscriptionEngine<common::Buffer,
         SessionPtr,
@@ -48,13 +44,9 @@ namespace kagome::api {
         primitives::BlockHash>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
-    using EventsSubscriptionEngineType =
-    subscription::SubscriptionEngine<primitives::SubscriptionEventType, SessionPtr>;
-    using EventsSubscriptionEnginePtr = std::shared_ptr<EventsSubscriptionEngineType>;
-
     struct SessionExecutionContext {
       SubscribedSessionPtr storage_subscription;
-      EventsSubscribedSessionPtr events_subscription;
+      subscriptions::EventsSubscribedSessionPtr events_subscription;
     };
 
    public:
@@ -74,7 +66,7 @@ namespace kagome::api {
         std::shared_ptr<JRpcServer> server,
         const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
         SubscriptionEnginePtr subscription_engine,
-        EventsSubscriptionEnginePtr events_engine);
+        subscriptions::EventsSubscriptionEnginePtr events_engine);
 
     virtual ~ApiService() = default;
 
@@ -113,7 +105,7 @@ namespace kagome::api {
 
     struct {
       SubscriptionEnginePtr storage;
-      EventsSubscriptionEnginePtr events;
+      subscriptions::EventsSubscriptionEnginePtr events;
     } subscription_engines_;
   };
 }  // namespace kagome::api

@@ -35,7 +35,7 @@ namespace kagome::api {
       std::shared_ptr<JRpcServer> server,
       const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
       SubscriptionEnginePtr subscription_engine,
-      EventsSubscriptionEnginePtr events_engine)
+      subscriptions::EventsSubscriptionEnginePtr events_engine)
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners)),
         server_(std::move(server)),
@@ -166,7 +166,7 @@ namespace kagome::api {
             .storage_subscription = std::make_shared<SubscribedSessionType>(
                 subscription_engines_.storage, session),
             .events_subscription =
-                std::make_shared<EventsSubscribedSessionType>(
+                std::make_shared<subscriptions::EventsSubscribedSessionType>(
                     subscription_engines_.events, session),
         });
 
