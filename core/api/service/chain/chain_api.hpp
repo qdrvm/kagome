@@ -7,6 +7,8 @@
 #define KAGOME_API_CHAIN_API_HPP
 
 #include <boost/variant.hpp>
+
+#include "api/service/api_service.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_header.hpp"
@@ -22,6 +24,9 @@ namespace kagome::api {
     using BlockNumber = primitives::BlockNumber;
     using BlockHash = kagome::primitives::BlockHash;
     using ValueType = boost::variant<BlockNumber, std::string>;
+
+    virtual void setApiService(
+        const std::shared_ptr<api::ApiService> &api_service) = 0;
 
     /**
      * @return last finalized block hash
@@ -62,6 +67,12 @@ namespace kagome::api {
      * @return BlockHeader data structure
      */
     virtual outcome::result<primitives::BlockHeader> getHeader() = 0;
+
+    /**
+     * Subscribes to events of New Heads type.
+     * @return id of the subscription
+     */
+    virtual outcome::result<uint32_t> subscribeNewHeads() = 0;
   };
 
 }  // namespace kagome::api

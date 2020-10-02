@@ -19,7 +19,7 @@ namespace kagome::api::chain::request {
     }
 
     outcome::result<ReturnType> execute() override {
-      static_assert(false, "not_impl");
+      return api_->subscribeNewHeads();
     }
 
    private:

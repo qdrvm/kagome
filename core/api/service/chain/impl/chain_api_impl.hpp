@@ -21,6 +21,9 @@ namespace kagome::api {
     ChainApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
                  std::shared_ptr<blockchain::BlockTree> block_tree);
 
+    void setApiService(
+        std::shared_ptr<api::ApiService> const &api_service) override;
+
     outcome::result<BlockHash> getBlockHash() const override;
 
     outcome::result<BlockHash> getBlockHash(BlockNumber value) const override;
@@ -41,9 +44,12 @@ namespace kagome::api {
       return block_repo_->getBlockHeader(last.block_hash);
     }
 
+    outcome::result<uint32_t> subscribeNewHeads() override;
+
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::weak_ptr<api::ApiService> api_service_;
   };
 }  // namespace kagome::api
 

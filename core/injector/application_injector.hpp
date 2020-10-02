@@ -141,6 +141,12 @@ namespace kagome::injector {
                                          primitives::BlockHash>>;
     auto subscription_engine =
         injector.template create<SubscriptionEnginePtr>();
+
+    using EventsEnginePtr = std::shared_ptr<
+        subscription::SubscriptionEngine<primitives::SubscriptionEventType,
+                                         std::shared_ptr<api::Session>>>;
+    auto events_engine = injector.template create<EventsEnginePtr>();
+
     auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
@@ -167,10 +173,15 @@ namespace kagome::injector {
                                           std::move(listeners),
                                           std::move(server),
                                           processors,
-                                          std::move(subscription_engine));
+                                          std::move(subscription_engine),
+                                          std::move(events_engine));
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());
+
+    auto chain_api = injector.template create<std::shared_ptr<api::ChainApi>>();
+    chain_api->setApiService(initialized.value());
+
     return initialized.value();
   }
 

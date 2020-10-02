@@ -93,6 +93,8 @@ namespace kagome::api {
     outcome::result<void> unsubscribeSessionFromIds(
         const std::vector<uint32_t> &subscription_id);
 
+    outcome::result<uint32_t> subscribeNewHeads();
+
    private:
     boost::optional<SessionExecutionContext> findSessionById(Session::SessionId id);
     void removeSessionById(Session::SessionId id);
