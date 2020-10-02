@@ -17,6 +17,11 @@ namespace kagome::api {
     dispatcher.AddMethod(name, std::move(method));
   }
 
+  std::vector<std::string> JRpcServerImpl::getHandlerNames() {
+    auto &dispatcher = jsonrpc_handler_.GetDispatcher();
+    return dispatcher.GetMethodNames();
+  }
+
   void JRpcServerImpl::processJsonData(const jsonrpc::Value &from,
                                        const ResponseHandler &cb) {
     using Response = jsonrpc::Response;
