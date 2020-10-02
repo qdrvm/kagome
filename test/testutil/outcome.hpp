@@ -153,21 +153,21 @@
     }                                                    \
   }
 
-#define ASSERT_OUTCOME_ERROR(_expression_, _failure_)                     \
+#define ASSERT_OUTCOME_ERROR(_expression_, _error_)                       \
   {                                                                       \
     auto &&result = (_expression_);                                       \
     if (result.has_error()) {                                             \
-      if (_failure_ != result.as_failure()) {                             \
-        GTEST_FATAL_FAILURE_("Outcome of: " #_expression_                 \
+      if (result != outcome::failure(_error_)) {                          \
+        GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                \
             << "  Actual:   Error '" << result.error().message() << "'\n" \
             << "Expected:   Error '"                                      \
-            << outcome::result<void>(_failure_).error().message() << "'"; \
+            << outcome::result<void>(_error_).error().message() << "'";   \
       }                                                                   \
     } else {                                                              \
       GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                  \
           << "  Actual:   Success\n"                                      \
           << "Expected:   Error '"                                        \
-          << outcome::result<void>(_failure_).error().message() << "'";   \
+          << outcome::result<void>(_error_).error().message() << "'";     \
     }                                                                     \
   }
 
@@ -180,7 +180,7 @@
   }
 
 #define EXPECT_OUTCOME_SOME_ERROR(_result_, _expression_) \
-  [[maybe_unused]] auto &&_result_ = (_expression_);                       \
+  [[maybe_unused]] auto &&_result_ = (_expression_);      \
   if (not _result_.has_error()) {                         \
     GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_) \
         << "  Actual:   Success\n"                        \
@@ -188,9 +188,9 @@
   }
 
 #define EXPECT_OUTCOME_ERROR(_result_, _expression_, _error_)             \
-  [[maybe_unused]] auto &&_result_ = (_expression_);                                       \
+  [[maybe_unused]] auto &&_result_ = (_expression_);                      \
   if (_result_.has_error()) {                                             \
-    if (_result_.as_failure() != outcome::result<void>(_error_)) {        \
+    if (_result_ != outcome::failure(_error_)) {                          \
       GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)               \
           << "  Actual:   Error '" << _result_.error().message() << "'\n" \
           << "Expected:   Error '"                                        \
