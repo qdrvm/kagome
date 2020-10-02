@@ -7,7 +7,6 @@
 #define KAGOME_EXTENSIONS_STORAGE_EXTENSION_HPP
 
 #include <cstdint>
-#include <stack>
 
 #include "common/logger.hpp"
 #include "runtime/trie_storage_provider.hpp"

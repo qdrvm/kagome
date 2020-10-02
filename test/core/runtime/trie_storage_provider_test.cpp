@@ -96,14 +96,14 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
     ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->startTransaction());
     auto batch1 = storage_provider_->getCurrentBatch();
 
-    /// @than 1. top level state is not changed, tx1 state like top level state
+    /// @that 1. top level state is not changed, tx1 state like top level state
     check(batch0, "-----");
     check(batch1, "-----");
 
     /// @when 2. change one of values
     ASSERT_OUTCOME_SUCCESS_TRY(batch1->put("A"_buf, "1"_buf));
 
-    /// @than 2. top level state is not changed, tx1 state is changed
+    /// @that 2. top level state is not changed, tx1 state is changed
     check(batch0, "-----");
     check(batch1, "1----");
 
@@ -112,7 +112,7 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
       ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->startTransaction());
       auto batch2 = storage_provider_->getCurrentBatch();
 
-      /// @than 3. top level and tx1 state are not changed, tx2 state like tx1
+      /// @that 3. top level and tx1 state are not changed, tx2 state like tx1
       /// state
       check(batch0, "-----");
       check(batch1, "1----");
@@ -121,7 +121,7 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
       /// @when 4. change next value
       ASSERT_OUTCOME_SUCCESS_TRY(batch2->put("B"_buf, "2"_buf));
 
-      /// @than 4. top level and tx1 state are not changed, tx2 state is changed
+      /// @that 4. top level and tx1 state are not changed, tx2 state is changed
       check(batch0, "-----");
       check(batch1, "1----");
       check(batch2, "12---");
@@ -131,7 +131,7 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
         ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->startTransaction());
         auto batch3 = storage_provider_->getCurrentBatch();
 
-        /// @than 5. top level, tx1, tx2 state are not changed, tx3 state like
+        /// @that 5. top level, tx1, tx2 state are not changed, tx3 state like
         /// tx2 state
         check(batch0, "-----");
         check(batch1, "1----");
@@ -141,7 +141,7 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
         /// @when 6. change next value
         ASSERT_OUTCOME_SUCCESS_TRY(batch3->put("C"_buf, "3"_buf));
 
-        /// @than 6. top level, tx1 and tx2 state are not changed, tx3 state is
+        /// @that 6. top level, tx1 and tx2 state are not changed, tx3 state is
         /// changed
         check(batch0, "-----");
         check(batch1, "1----");
@@ -151,7 +151,7 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
         /// @when 7. commit tx3
         ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->commitTransaction());
 
-        /// @than 7. top level and tx1 state are not changed, tx2 state became
+        /// @that 7. top level and tx1 state are not changed, tx2 state became
         /// like tx3
         check(batch0, "-----");
         check(batch1, "1----");
@@ -162,7 +162,7 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
       /// @when 8. change next value
       ASSERT_OUTCOME_SUCCESS_TRY(batch2->put("D"_buf, "2"_buf));
 
-      /// @than 8. top level and tx1 state are not changed, tx2 state is changed
+      /// @that 8. top level and tx1 state are not changed, tx2 state is changed
       check(batch0, "-----");
       check(batch1, "1----");
       check(batch2, "1232-");
@@ -170,7 +170,7 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
       /// @when 9. rollback tx2
       ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->rollbackTransaction());
 
-      /// @than 9. top level and tx1 state are not changed, tx2 state does not
+      /// @that 9. top level and tx1 state are not changed, tx2 state does not
       /// matter anymore
       check(batch0, "-----");
       check(batch1, "1----");
@@ -179,14 +179,14 @@ TEST_F(TrieStorageProviderTest, NestedTransactions) {
     /// @when 10. change next value
     ASSERT_OUTCOME_SUCCESS_TRY(batch1->put("E"_buf, "1"_buf));
 
-    /// @than 10. top level is not changed, tx1 state is changed
+    /// @that 10. top level is not changed, tx1 state is changed
     check(batch0, "-----");
     check(batch1, "1---1");
 
     /// @when 11. commit tx3
     ASSERT_OUTCOME_SUCCESS_TRY(storage_provider_->commitTransaction());
 
-    /// @than 11. top level became like tx1 state
+    /// @that 11. top level became like tx1 state
     check(batch0, "1---1");
     check(batch1, "1---1");
   }
