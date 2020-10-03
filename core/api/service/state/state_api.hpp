@@ -39,6 +39,7 @@ namespace kagome::api {
         const std::vector<common::Buffer> &keys) = 0;
     virtual outcome::result<void> unsubscribeStorage(
         const std::vector<uint32_t> &subscription_id) = 0;
+    virtual outcome::result<std::vector<uint8_t>> getMetadata() = 0;
   };
 
 }  // namespace kagome::api

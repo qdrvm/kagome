@@ -13,15 +13,18 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
       std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<runtime::Core> runtime_core)
+      std::shared_ptr<runtime::Core> runtime_core,
+      std::shared_ptr<runtime::Metadata> metadata)
       : block_repo_{std::move(block_repo)},
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
-        runtime_core_{std::move(runtime_core)} {
+        runtime_core_{std::move(runtime_core)},
+        metadata_(std::move(metadata)) {
     BOOST_ASSERT(nullptr != block_repo_);
     BOOST_ASSERT(nullptr != storage_);
     BOOST_ASSERT(nullptr != block_tree_);
     BOOST_ASSERT(nullptr != runtime_core_);
+    BOOST_ASSERT(nullptr != metadata_);
   }
 
   outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(
@@ -108,5 +111,9 @@ namespace kagome::api {
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
+  }
+
+  outcome::result<std::vector<uint8_t>> StateApiImpl::getMetadata() {
+    return metadata_->metadata();
   }
 }  // namespace kagome::api
