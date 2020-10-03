@@ -10,8 +10,8 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "runtime/core.hpp"
-#include "storage/trie/trie_storage.hpp"
 #include "runtime/metadata.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::api {
 

@@ -11,11 +11,11 @@
 #include <boost/optional.hpp>
 #include <vector>
 
+#include "api/service/chain/requests/base_request.hpp"
 #include "api/service/state/state_api.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_id.hpp"
-#include "api/service/chain/requests/base_request.hpp"
 
 namespace kagome::api::state::request {
 

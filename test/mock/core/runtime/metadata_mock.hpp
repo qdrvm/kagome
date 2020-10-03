@@ -14,9 +14,7 @@ namespace kagome::runtime {
 
   class MetadataMock : public Metadata {
    public:
-    MOCK_METHOD0(
-        metadata,
-        outcome::result<Metadata::OpaqueMetadata>());
+    MOCK_METHOD0(metadata, outcome::result<Metadata::OpaqueMetadata>());
   };
 
 }  // namespace kagome::runtime

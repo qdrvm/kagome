@@ -6,8 +6,8 @@
 #include <gtest/gtest.h>
 
 #include "api/service/state/impl/state_api_impl.hpp"
-#include "api/service/state/requests/subscribe_storage.hpp"
 #include "api/service/state/requests/get_metadata.hpp"
+#include "api/service/state/requests/subscribe_storage.hpp"
 #include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -50,7 +50,8 @@ namespace kagome::api {
     auto runtime_core = std::make_shared<CoreMock>();
     auto metadata = std::make_shared<MetadataMock>();
 
-    api::StateApiImpl api{block_header_repo, storage, block_tree, runtime_core, metadata};
+    api::StateApiImpl api{
+        block_header_repo, storage, block_tree, runtime_core, metadata};
 
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
@@ -191,7 +192,8 @@ namespace kagome::api {
     auto runtime_core = std::make_shared<CoreMock>();
     auto metadata = std::make_shared<MetadataMock>();
 
-    api::StateApiImpl api{block_header_repo, storage, block_tree, runtime_core, metadata};
+    api::StateApiImpl api{
+        block_header_repo, storage, block_tree, runtime_core, metadata};
 
     primitives::Version test_version{.spec_name = "dummy_sn",
                                      .impl_name = "dummy_in",
@@ -310,11 +312,10 @@ namespace kagome::api {
     auto get_metadata =
         std::make_shared<api::state::request::GetMetadata>(state_api);
 
-    std::vector<uint8_t> data = { 0x11, 0x22, 0x33 };
+    std::vector<uint8_t> data = {0x11, 0x22, 0x33};
 
     jsonrpc::Request::Parameters params;
-    EXPECT_CALL(*state_api, getMetadata())
-        .WillOnce(testing::Return(data));
+    EXPECT_CALL(*state_api, getMetadata()).WillOnce(testing::Return(data));
 
     EXPECT_OUTCOME_SUCCESS(r, get_metadata->init(params));
     EXPECT_OUTCOME_TRUE(result, get_metadata->execute());
