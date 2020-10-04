@@ -19,9 +19,9 @@
 
 namespace kagome::api::state::request {
 
-  struct GetMetadata final : chain::request::RequestType<std::vector<uint8_t>> {
+  struct GetMetadata final : chain::request::RequestType<std::string> {
    public:
-    using ReturnType = std::vector<uint8_t>;
+    using ReturnType = std::string;
 
     GetMetadata(GetMetadata const &) = delete;
     GetMetadata &operator=(GetMetadata const &) = delete;

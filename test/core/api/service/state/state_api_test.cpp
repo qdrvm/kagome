@@ -312,7 +312,7 @@ namespace kagome::api {
     auto get_metadata =
         std::make_shared<api::state::request::GetMetadata>(state_api);
 
-    std::vector<uint8_t> data = {0x11, 0x22, 0x33};
+    std::string data = "test_data";
 
     jsonrpc::Request::Parameters params;
     EXPECT_CALL(*state_api, getMetadata()).WillOnce(testing::Return(data));

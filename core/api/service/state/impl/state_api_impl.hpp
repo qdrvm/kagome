@@ -44,7 +44,7 @@ namespace kagome::api {
         const std::vector<common::Buffer> &keys) override;
     outcome::result<void> unsubscribeStorage(
         const std::vector<uint32_t> &subscription_id) override;
-    outcome::result<std::vector<uint8_t>> getMetadata() override;
+    outcome::result<std::string> getMetadata() override;
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;

@@ -4,6 +4,7 @@
  */
 
 #include "api/service/state/impl/state_api_impl.hpp"
+#include "common/hexutil.hpp"
 
 #include <utility>
 
@@ -113,7 +114,8 @@ namespace kagome::api {
         "Internal error. Api service not initialized.");
   }
 
-  outcome::result<std::vector<uint8_t>> StateApiImpl::getMetadata() {
-    return metadata_->metadata();
+  outcome::result<std::string> StateApiImpl::getMetadata() {
+    OUTCOME_TRY(data, metadata_->metadata());
+    return common::hex_lower_0x(data);
   }
 }  // namespace kagome::api

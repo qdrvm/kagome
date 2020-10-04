@@ -27,7 +27,6 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const uint64_t &);
   inline jsonrpc::Value makeValue(const primitives::Api &);
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
-  inline jsonrpc::Value makeValue(const std::vector<uint8_t> &val);
 
   template <size_t S>
   inline jsonrpc::Value makeValue(const common::Blob<S> &);
@@ -62,10 +61,6 @@ namespace kagome::api {
 
   inline jsonrpc::Value makeValue(const uint64_t &val) {
     return makeValue(static_cast<int64_t>(val));
-  }
-
-  inline jsonrpc::Value makeValue(const std::vector<uint8_t> &val) {
-    return common::hex_lower_0x(val);
   }
 
   inline jsonrpc::Value makeValue(const common::Hash256 &v) {
