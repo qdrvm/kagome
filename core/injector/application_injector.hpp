@@ -509,7 +509,7 @@ namespace kagome::injector {
       if (peer_info.id != current_peer_info.id) {
         res->clients.emplace_back(
             std::make_shared<network::RemoteSyncProtocolClient>(
-                *host, std::move(peer_info), std::move(configuration_storage)));
+                *host, std::move(peer_info), configuration_storage));
       } else {
         res->clients.emplace_back(
             std::make_shared<network::DummySyncProtocolClient>());

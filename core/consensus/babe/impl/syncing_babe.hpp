@@ -32,6 +32,8 @@ namespace kagome::consensus {
 
     void onBlockAnnounce(const network::BlockAnnounce &announce) override;
 
+    void doOnSynchronized(std::function<void()> handler) override{};
+
    private:
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
   };

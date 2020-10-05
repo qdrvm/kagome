@@ -68,6 +68,11 @@ namespace kagome::consensus {
      * @returns current state
      */
     virtual State getCurrentState() const = 0;
+
+    /**
+     * Calls @param handler when Babe will be synchronized
+     */
+    virtual void doOnSynchronized(std::function<void()> handler) = 0;
   };
 }  // namespace kagome::consensus
 

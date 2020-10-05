@@ -29,8 +29,14 @@ namespace kagome::runtime::binaryen {
   }
 
   void WasmMemoryImpl::resize(runtime::WasmSize new_size) {
-    size_ = new_size;
-    return memory_->resize(new_size);
+    /**
+     * We use this condition to avoid deallocated_ pointers fixup
+     */
+    BOOST_ASSERT(offset_ <= kMaxMemorySize - new_size);
+    if (new_size >= size_) {
+      size_ = new_size;
+      return memory_->resize(new_size);
+    }
   }
 
   WasmPointer WasmMemoryImpl::allocate(WasmSize size) {
@@ -40,6 +46,7 @@ namespace kagome::runtime::binaryen {
     const auto ptr = offset_;
     const auto new_offset = ptr + size;
 
+    BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
       return 0;
     }
@@ -72,8 +79,8 @@ namespace kagome::runtime::binaryen {
       // grow memory and allocate in new space
       return growAlloc(size);
     }
+    allocated_[ptr] = deallocated_[ptr];
     deallocated_.erase(ptr);
-    allocated_[ptr] = size;
     return ptr;
   }
 

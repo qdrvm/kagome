@@ -131,7 +131,7 @@ namespace kagome::extensions {
 
     auto key = memory_->loadN(key_ptr, key_size);
     boost::optional<uint32_t> res{boost::none};
-    if (const auto& data_res = get(key); data_res) {
+    if (const auto &data_res = get(key); data_res) {
       auto data = gsl::make_span(data_res.value());
       auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
@@ -237,6 +237,33 @@ namespace kagome::extensions {
     }
     const auto &root = res.value();
     memory_->storeBuffer(result, root);
+  }
+
+  void StorageExtension::ext_storage_start_transaction() {
+    auto res = storage_provider_->startTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction start has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
+    }
+  }
+
+  void StorageExtension::ext_storage_rollback_transaction() {
+    auto res = storage_provider_->rollbackTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction rollback has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
+    }
+  }
+
+  void StorageExtension::ext_storage_commit_transaction() {
+    auto res = storage_provider_->commitTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction commit has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
+    }
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
@@ -360,7 +387,7 @@ namespace kagome::extensions {
                      res.error().message());
       return kErrorSpan;
     }
-    auto && next_key_opt = res.value();
+    auto &&next_key_opt = res.value();
     if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
     } else {  // NOLINT(readability-else-after-return)

@@ -10,8 +10,8 @@
 #include <functional>
 
 #include "runtime/types.hpp"
-#include "runtime/wasm_result.hpp"
 #include "runtime/wasm_memory.hpp"
+#include "runtime/wasm_result.hpp"
 
 namespace kagome::extensions {
   /**
@@ -143,6 +143,21 @@ namespace kagome::extensions {
      * @param result is the pointer where the root will be written
      */
     virtual void ext_storage_root(runtime::WasmPointer result) const = 0;
+
+    /**
+     * @brief Starts new (possible is nested) transaction
+     */
+    virtual void ext_storage_start_transaction() = 0;
+
+    /**
+     * @brief Rollback last started transaction
+     */
+    virtual void ext_storage_rollback_transaction() = 0;
+
+    /**
+     * @brief Commit last started transaction
+     */
+    virtual void ext_storage_commit_transaction() = 0;
 
     // ------------------------ Storage extensions v1 ------------------------
 
