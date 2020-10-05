@@ -105,6 +105,8 @@ namespace kagome::api {
         {static_cast<char *>(rbuffer_.data().data()), bytes_transferred});
 
     rbuffer_.consume(bytes_transferred);
+
+    asyncRead();
   }
 
   void WsSession::onWrite(boost::system::error_code ec,
@@ -115,8 +117,6 @@ namespace kagome::api {
     }
 
     wbuffer_.consume(bytes_transferred);
-
-    asyncRead();
   }
 
   void WsSession::reportError(boost::system::error_code ec,

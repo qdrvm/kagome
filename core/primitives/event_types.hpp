@@ -8,7 +8,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
+#include "primitives/version.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 
@@ -19,7 +21,12 @@ namespace kagome::api {
 namespace kagome::primitives {
   struct BlockHeader;
 
-  enum struct SubscriptionEventType : uint32_t { kNewHeads = 1 };
+  enum struct SubscriptionEventType : uint32_t {
+    kNewHeads = 1,
+    kFinalizedHeads = 2,
+    kAllHeads = 3,
+    kRuntimeVersion = 4
+  };
 }  // namespace kagome::primitives
 
 namespace kagome::subscription {
@@ -31,17 +38,21 @@ namespace kagome::subscription {
 }  // namespace kagome::subscription
 
 namespace kagome::subscriptions {
-  using EventsSubscribedSessionType =
-      subscription::Subscriber<primitives::SubscriptionEventType,
-                               std::shared_ptr<api::Session>,
-                               std::reference_wrapper<primitives::BlockHeader>>;
+  using EventsSubscribedSessionType = subscription::Subscriber<
+      primitives::SubscriptionEventType,
+      std::shared_ptr<api::Session>,
+      boost::variant<std::reference_wrapper<std::nullopt_t>,
+                     std::reference_wrapper<primitives::BlockHeader>,
+                     std::reference_wrapper<primitives::Version>>>;
   using EventsSubscribedSessionPtr =
       std::shared_ptr<EventsSubscribedSessionType>;
 
   using EventsSubscriptionEngineType = subscription::SubscriptionEngine<
       primitives::SubscriptionEventType,
       std::shared_ptr<api::Session>,
-      std::reference_wrapper<primitives::BlockHeader>>;
+      boost::variant<std::reference_wrapper<std::nullopt_t>,
+                     std::reference_wrapper<primitives::BlockHeader>,
+                     std::reference_wrapper<primitives::Version>>>;
   using EventsSubscriptionEnginePtr =
       std::shared_ptr<EventsSubscriptionEngineType>;
 }  // namespace kagome::subscriptions

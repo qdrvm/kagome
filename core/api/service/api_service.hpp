@@ -88,6 +88,8 @@ namespace kagome::api {
     outcome::result<uint32_t> subscribeNewHeads();
     outcome::result<bool> unsubscribeNewHeads(int64_t id);
 
+    outcome::result<uint32_t> subscribeRuntimeVersion();
+
    private:
     boost::optional<SessionExecutionContext> findSessionById(
         Session::SessionId id);

@@ -9,6 +9,7 @@ add_library(api_state_requests
     get_runtime_version.cpp
     subscribe_storage.cpp
     unsubscribe_storage.cpp
+    subscribe_runtime_version.cpp
     )
 
 target_link_libraries(api_state_requests
