@@ -26,6 +26,11 @@ namespace kagome::api {
     void registerHandler(const std::string &name, Method method) override;
 
     /**
+     * @return name of handlers
+     */
+    std::vector<std::string> getHandlerNames() override;
+
+    /**
      * @brief handles decoded network message
      * @param request json request string
      * @param cb callback
