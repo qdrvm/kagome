@@ -182,6 +182,11 @@ namespace kagome::transaction_pool {
     return ready;
   }
 
+  const std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>>
+      &TransactionPoolImpl::getPendingTransactions() const {
+    return imported_txs_;
+  }
+
   outcome::result<std::vector<Transaction>> TransactionPoolImpl::removeStale(
       const primitives::BlockId &at) {
     OUTCOME_TRY(number, header_repo_->getNumberById(at));

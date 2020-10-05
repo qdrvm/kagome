@@ -23,6 +23,13 @@ namespace kagome::transaction_pool {
     virtual ~TransactionPool() = default;
 
     /**
+     * @return pending transactions
+     */
+    virtual const std::unordered_map<Transaction::Hash,
+                                     std::shared_ptr<Transaction>>
+        &getPendingTransactions() const = 0;
+
+    /**
      * Import one verified transaction to the pool. If it has unresolved
      * dependencies (requires tags of transactions that are not in the pool
      * yet), it will wait in the pool until its dependencies are solved, in
