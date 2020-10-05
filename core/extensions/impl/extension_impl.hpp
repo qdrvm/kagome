@@ -153,6 +153,10 @@ namespace kagome::extensions {
                         runtime::WasmSize len,
                         runtime::WasmPointer out) override;
 
+    void ext_start_batch_verify() override;
+
+    runtime::WasmSize ext_finish_batch_verify() override;
+
     runtime::WasmSize ext_ed25519_verify(
         runtime::WasmPointer msg_data,
         runtime::WasmSize msg_len,

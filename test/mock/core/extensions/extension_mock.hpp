@@ -93,6 +93,10 @@ namespace kagome::extensions {
                                    runtime::WasmSize msg_len,
                                    runtime::WasmPointer out_ptr));
 
+    MOCK_METHOD0(ext_start_batch_verify, void());
+
+    MOCK_METHOD0(ext_finish_batch_verify, runtime::WasmSize());
+
     MOCK_METHOD4(ext_ed25519_verify,
                  runtime::WasmSize(runtime::WasmPointer msg_data,
                                    runtime::WasmSize msg_len,
