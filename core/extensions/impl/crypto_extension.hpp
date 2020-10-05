@@ -6,6 +6,10 @@
 #ifndef KAGOME_CRYPTO_EXTENSION_HPP
 #define KAGOME_CRYPTO_EXTENSION_HPP
 
+#include <future>
+#include <optional>
+#include <queue>
+
 #include "common/logger.hpp"
 #include "crypto/bip39/bip39_types.hpp"
 #include "crypto/crypto_store.hpp"
@@ -24,8 +28,15 @@ namespace kagome::extensions {
   /**
    * Implements extension functions related to cryptography
    */
-  class CryptoExtension {
+  class CryptoExtension : public std::enable_shared_from_this<CryptoExtension> {
    public:
+    static constexpr uint32_t kVerifyBatchSuccess = 1;
+    static constexpr uint32_t kVerifyBatchFail = 0;
+    static constexpr uint32_t kSr25519VerifySuccess = 1;
+    static constexpr uint32_t kSr25519VerifyFail = 0;
+    static constexpr uint32_t kEd25519VerifySuccess = 1;
+    static constexpr uint32_t kEd25519VerifyFail = 0;
+
     CryptoExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
@@ -55,6 +66,16 @@ namespace kagome::extensions {
     void ext_keccak_256(runtime::WasmPointer data,
                         runtime::WasmSize len,
                         runtime::WasmPointer out_ptr);
+
+    /**
+     * @see Extension::ext_start_batch_verify
+     */
+    void ext_start_batch_verify();
+
+    /**
+     * @see Extension::ext_finish_batch_verify
+     */
+    runtime::WasmSize ext_finish_batch_verify();
 
     /**
      * @see Extension::ext_ed25519_verify
@@ -206,6 +227,7 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
+    std::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
     common::Logger logger_;
   };
 }  // namespace kagome::extensions

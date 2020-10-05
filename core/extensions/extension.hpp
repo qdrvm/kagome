@@ -341,6 +341,23 @@ namespace kagome::extensions {
                                 runtime::WasmPointer out) = 0;
 
     /**
+     * @brief Starts the verification extension. The extension is a separate
+     * background process and is used to parallel-verify signatures which are
+     * pushed to the batch with ext_crypto_.._verify
+     */
+    virtual void ext_start_batch_verify() = 0;
+
+    /**
+     * @brief Finish verifying the batch of signatures since the last call to
+     * this function. Blocks until all the signatures are verified.
+     * @throws runtime_error if no verification extension is registered
+     * (ext_crypto_start_batch_verify (E.3.15) tchwas not called.)
+     * @returns an i32 integer value equal to 1 if all the signatures are valid
+     * or a value equal to 0 if one or more of the signatures are invalid.
+     */
+    virtual runtime::WasmSize ext_finish_batch_verify() = 0;
+
+    /**
      * Verify the signature over the ed25519 message
      * @param msg_data - msg to be verified
      * @param msg_len - length of the msg

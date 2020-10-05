@@ -168,6 +168,8 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_set_storage\" (func $ext_set_storage (type 6)))\n"
       "  (import \"env\" \"ext_clear_prefix\" (func $ext_clear_prefix (type 0)))\n"
       "  (import \"env\" \"ext_exists_storage\" (func $ext_exists_storage (type 3)))\n"
+      "  (import \"env\" \"ext_start_batch_verify\" (func $ext_start_batch_verify (type 11)))\n"
+      "  (import \"env\" \"ext_finish_batch_verify\" (func $ext_finish_batch_verify (type 35)))\n"
       "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_ed25519_verify\" (func $ext_ed25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_storage_root\" (func $ext_storage_root (type 1)))\n"
@@ -177,6 +179,8 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
 
       /// version 1
+      "  (import \"env\" \"ext_crypto_start_batch_verify\" (func $ext_crypto_start_batch_verify_version_1 (type 11)))\n"
+      "  (import \"env\" \"ext_crypto_finish_batch_verify\" (func $ext_crypto_finish_batch_verify_version_1 (type 35)))\n"
       "  (import \"env\" \"ext_crypto_ed25519_public_keys_version_1\" (func $ext_crypto_ed25519_public_keys_version_1 (type 29)))\n"
       "  (import \"env\" \"ext_crypto_ed25519_generate_version_1\" (func $ext_crypto_ed25519_generate_version_1 (type 30)))\n"
       "  (import \"env\" \"ext_crypto_ed25519_sign_version_1\" (func $ext_crypto_ed25519_sign_version_1 (type 31)))\n"

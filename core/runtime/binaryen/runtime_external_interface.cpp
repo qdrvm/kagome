@@ -44,8 +44,13 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_blake2_128 = "ext_blake2_128";
   const static wasm::Name ext_blake2_256 = "ext_blake2_256";
   const static wasm::Name ext_keccak_256 = "ext_keccak_256";
+
+  const static wasm::Name ext_start_batch_verify = "ext_start_batch_verify";
+  const static wasm::Name ext_finish_batch_verify = "ext_finish_batch_verify";
+
   const static wasm::Name ext_ed25519_verify = "ext_ed25519_verify";
   const static wasm::Name ext_sr25519_verify = "ext_sr25519_verify";
+
   const static wasm::Name ext_twox_64 = "ext_twox_64";
   const static wasm::Name ext_twox_128 = "ext_twox_128";
   const static wasm::Name ext_twox_256 = "ext_twox_256";
@@ -92,6 +97,11 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_storage_next_key_version_1 =
       "ext_storage_next_key_version_1";
 
+  const static wasm::Name ext_crypto_start_batch_verify_version_1 =
+      "ext_crypto_start_batch_verify_version_1";
+  const static wasm::Name ext_crypto_finish_batch_verify_version_1 =
+      "ext_crypto_finish_batch_verify_version_1";
+
   const static wasm::Name ext_crypto_ed25519_public_keys_version_1 =
       "ext_crypto_ed25519_public_keys_version_1";
   const static wasm::Name ext_crypto_ed25519_generate_version_1 =
@@ -135,7 +145,8 @@ namespace kagome::runtime::binaryen {
                      "storage provider is nullptr");
     auto memory_impl =
         std::make_shared<WasmMemoryImpl>(&(ShellExternalInterface::memory));
-    extension_ = extension_factory->createExtension(memory_impl, std::move(storage_provider));
+    extension_ = extension_factory->createExtension(
+        memory_impl, std::move(storage_provider));
   }
 
   wasm::Literal RuntimeExternalInterface::callImport(
@@ -298,6 +309,20 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal();
       }
 
+      // ext_start_batch_verify
+      if (import->base == ext_start_batch_verify) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        extension_->ext_start_batch_verify();
+        return wasm::Literal();
+      }
+
+      // ext_finish_batch_verify
+      if (import->base == ext_start_batch_verify) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        auto res = extension_->ext_finish_batch_verify();
+        return wasm::Literal(res);
+      }
+
       /// ext_ed25519_verify
       if (import->base == ext_ed25519_verify) {
         checkArguments(import->base.c_str(), 4, arguments.size());
@@ -351,6 +376,22 @@ namespace kagome::runtime::binaryen {
       // ----------------------- api version 1 ---------------------------
 
       // ----------------------- crypto functions ------------------------
+
+	    // ext_crypto_start_batch_verify_version_1
+	    if (import->base == ext_crypto_start_batch_verify_version_1) {
+		    checkArguments(import->base.c_str(), 0, arguments.size());
+		    extension_->ext_start_batch_verify();
+		    return wasm::Literal();
+	    }
+
+	    // ext_crypto_start_batch_verify_version_1
+	    if (import->base == ext_crypto_start_batch_verify_version_1) {
+		    checkArguments(import->base.c_str(), 0, arguments.size());
+		    auto res = extension_->ext_finish_batch_verify();
+		    return wasm::Literal(res);
+	    }
+
+
       /// ext_crypto_ed25519_public_keys_version_1
       if (import->base == ext_crypto_ed25519_public_keys_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
