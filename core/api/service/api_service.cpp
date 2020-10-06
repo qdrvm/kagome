@@ -24,6 +24,8 @@ namespace {
       return bound_session_id_;
     }
   } threaded_info;
+
+
 }  // namespace
 
 namespace kagome::api {
@@ -245,6 +247,20 @@ namespace kagome::api {
     }
     throw jsonrpc::InternalErrorFault(
         "Internal error. No session was bound to subscription.");
+  }
+
+  outcome::result<bool> ApiService::unsubscribeNewHeads(uint32_t id){
+    if (auto session_id = threaded_info.fetchSessionId(); session_id) {
+      if (auto session_context = findSessionById(*session_id)) {
+        auto &session = session_context->events_subscription;
+        session->unsubscribe(id);
+        return outcome::success();
+      }
+      throw jsonrpc::InternalErrorFault(
+          "Internal error. No session was stored for subscription.");
+    }
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. No session was binded to subscription.");
   }
 
   outcome::result<void> ApiService::unsubscribeSessionFromIds(

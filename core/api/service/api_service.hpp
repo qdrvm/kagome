@@ -86,6 +86,7 @@ namespace kagome::api {
         const std::vector<uint32_t> &subscription_id);
 
     outcome::result<uint32_t> subscribeNewHeads();
+    outcome::result<bool> unsubscribeNewHeads(uint32_t id);
 
    private:
     boost::optional<SessionExecutionContext> findSessionById(

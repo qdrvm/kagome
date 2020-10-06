@@ -73,6 +73,12 @@ namespace kagome::api {
      * @return id of the subscription
      */
     virtual outcome::result<uint32_t> subscribeNewHeads() = 0;
+
+    /**
+     * Unsubscribes from events of New Heads type.
+     * @return bool with unsubscription result
+     */
+    virtual outcome::result<bool> unsubscribeNewHeads(uint32_t id) = 0;
   };
 
 }  // namespace kagome::api
