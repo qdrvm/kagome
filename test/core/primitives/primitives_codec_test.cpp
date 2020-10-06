@@ -112,10 +112,6 @@ TEST_F(Primitives, EncodeBlockHeaderSuccess) {
   ASSERT_EQ(block_header_, decoded_header);
 }
 
-TEST_F(Primitives, SS) {
-  EXPECT_OUTCOME_TRUE(ss, decode<std::vector<uint8_t>>(std::vector<uint8_t>({4, 0, 0, 0, 0, 0, 0, 0, 192, 37, 122, 9, 0, 0, 0, 0, 2, 0, 0})));
-}
-
 /**
  * @given predefined extrinsic containing sequence {12, 1, 2, 3}
  * @when encodeExtrinsic is applied

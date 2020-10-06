@@ -14,7 +14,7 @@ addtest(scale_encode_append_test
     scale_encode_append_test.cpp
     )
 target_link_libraries(scale_encode_append_test
-    scale
+    scale_encode_append
     )
 
 addtest(scale_compact_test

@@ -7,10 +7,8 @@
 
 #include <forward_list>
 
-#include "primitives/block_id.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/encode_append.hpp"
-#include "storage/changes_trie/impl/changes_trie.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
@@ -379,13 +377,10 @@ namespace kagome::extensions {
     auto key_bytes = memory_->loadN(key_ptr, key_size);
     auto append_bytes = memory_->loadN(append_ptr, append_size);
 
-    std::vector<uint8_t> val{};
-    if (auto val_res = get(key_bytes)) {
-      val = val_res.value().toVector();
-    }
+    auto val_res = get(key_bytes);
+    auto val = val_res ? val_res.value().toVector() : std::vector<uint8_t>{};
 
-    if (scale::append_or_new_vec(val, append_bytes)
-        .has_value()) {
+    if (scale::append_or_new_vec(val, append_bytes).has_value()) {
       auto batch = storage_provider_->getCurrentBatch();
       auto put_result =
           batch->put(common::Buffer{key_bytes}, common::Buffer{val});
@@ -398,7 +393,6 @@ namespace kagome::extensions {
       }
       return;
     }
-
   }
 
   namespace {

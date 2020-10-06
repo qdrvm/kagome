@@ -9,6 +9,15 @@
 
 namespace kagome::scale {
 
+  /**
+   * @param data Scale encoded vector of EncodeOpaqueValues
+   * @return tuple containing:
+   *  1. new length of vector after inserting there one more EncodeOpaqueValues
+   *  2. current length of CompactInteger-scale-encoded length of
+   * EncodeOpaqueValues vector
+   *  3. length of CompactInteger-scale-encoded length of EncodeOpaqueValues
+   * vector after insertion there one more EncodeOpaqueValue
+   */
   outcome::result<std::tuple<uint32_t, uint32_t, uint32_t>> extract_length_data(
       const std::vector<uint8_t> &data) {
     OUTCOME_TRY(len, scale::decode<CompactInteger>(data));
@@ -53,7 +62,8 @@ namespace kagome::scale {
     self_encoded.reserve(encoded_new_len + (self_encoded.size() - encoded_len)
                          + opaque_value.v.size());
 
-    // shift encoded new len by one element to give space for
+    // shift encoded new len by one element to give space for new Compact
+    // encoded length
     const auto shift_size = 1;  // encoded_new_len - encoded_len is always 1
     self_encoded.resize(self_encoded.size() + shift_size);
     std::rotate(
