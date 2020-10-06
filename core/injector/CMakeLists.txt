@@ -63,6 +63,7 @@ target_link_libraries(application_injector
     binaryen_wasm_executor
     authority_manager
     system_api_service
+    rpc_api_service
     )
 
 add_library(syncing_node_injector
@@ -71,7 +72,7 @@ add_library(syncing_node_injector
 target_link_libraries(syncing_node_injector
     application_injector
     syncing_round_observer
-    syncing_babe_observer
+    syncing_babe
     )
 
 add_library(validating_node_injector

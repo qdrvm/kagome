@@ -23,6 +23,17 @@ namespace kagome::consensus {
    public:
     ~Babe() override = default;
 
+    enum class State {
+      WAIT_BLOCK,   // Node is just executed and waits for the new block to sync
+                    // missing blocks
+      CATCHING_UP,  // Node received first block announce and started fetching
+                    // blocks between announced one and the latest finalized one
+      NEED_SLOT_TIME,  // Missing blocks were received, now slot time should be
+                       // calculated
+      SYNCHRONIZED  // All missing blocks were received and applied, slot time
+                    // was calculated, current peer can start block production
+    };
+
     enum class ExecutionStrategy {
       /// Start on last epoch
       START,
@@ -52,6 +63,16 @@ namespace kagome::consensus {
      */
     virtual void runEpoch(Epoch epoch,
                           BabeTimePoint starting_slot_finish_time) = 0;
+
+    /**
+     * @returns current state
+     */
+    virtual State getCurrentState() const = 0;
+
+    /**
+     * Calls @param handler when Babe will be synchronized
+     */
+    virtual void doOnSynchronized(std::function<void()> handler) = 0;
   };
 }  // namespace kagome::consensus
 

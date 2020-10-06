@@ -9,6 +9,7 @@ add_library(api_system_requests
     chain.cpp
     chain_type.cpp
     properties.cpp
+    health.cpp
     )
 
 target_link_libraries(api_system_requests

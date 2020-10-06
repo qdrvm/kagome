@@ -32,6 +32,9 @@ namespace kagome::transaction_pool {
     TransactionPoolImpl &operator=(TransactionPoolImpl &&) = delete;
     TransactionPoolImpl &operator=(const TransactionPoolImpl &) = delete;
 
+    const std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>>
+        &getPendingTransactions() const override;
+
     outcome::result<void> submitOne(Transaction &&tx) override;
     outcome::result<void> submit(std::vector<Transaction> txs) override;
 

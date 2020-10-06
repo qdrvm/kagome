@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// taken from here
+// https://github.com/mjosaarinen/blake2_mjosref/blob/master/blake2s.h
+
 #ifndef CORE_BLAKE2S_HASH
 #define CORE_BLAKE2S_HASH
 

@@ -26,7 +26,8 @@ namespace kagome::consensus::grandpa {
       const crypto::ED25519Keypair &keypair,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context,
-      std::shared_ptr<authority::AuthorityManager> authority_manager)
+      std::shared_ptr<authority::AuthorityManager> authority_manager,
+      std::shared_ptr<consensus::Babe> babe)
       : app_state_manager_(std::move(app_state_manager)),
         environment_{std::move(environment)},
         storage_{std::move(storage)},
@@ -35,7 +36,8 @@ namespace kagome::consensus::grandpa {
         keypair_{keypair},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
-        authority_manager_(std::move(authority_manager)) {
+        authority_manager_(std::move(authority_manager)),
+        babe_(babe) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -44,8 +46,10 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
+    BOOST_ASSERT(babe_ != nullptr);
 
     app_state_manager_->takeControl(*this);
+    catch_up_request_suppressed_until_ = clock_->now();
   }
 
   bool GrandpaImpl::prepare() {
@@ -75,7 +79,7 @@ namespace kagome::consensus::grandpa {
     }
     auto &round_state = round_state_res.value();
 
-    logger_->debug("Grandpa is starting with round #{}",
+    logger_->debug("Grandpa will be started with round #{}",
                    round_state.round_number + 1);
 
     current_round_ = makeInitialRound(round_state);
@@ -88,10 +92,16 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(current_round_->finalizable());
     BOOST_ASSERT(current_round_->finalizedBlock() == round_state.finalized);
 
-    // Planning play next round
-    boost::asio::post(*io_context_, [wp = weak_from_this()] {
+    // Lambda which is executed when voting round is completed.
+    babe_->doOnSynchronized([wp = weak_from_this()] {
       if (auto self = wp.lock()) {
-        self->executeNextRound();
+        // Planning play next round
+        boost::asio::post(*self->io_context_, [wp] {
+          if (auto self = wp.lock()) {
+            self->executeNextRound();
+            self->is_ready_ = true;
+          }
+        });
       }
     });
 
@@ -266,6 +276,9 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
+    if (not is_ready_) {
+      return;
+    }
     if (previous_round_ == nullptr) {
       logger_->debug(
           "Catch-up request (since round #{}) received from {} was rejected: "
@@ -293,7 +306,11 @@ namespace kagome::consensus::grandpa {
       return;
     }
     if (current_round_->roundNumber() + 2 <= msg.round_number) {
-      current_round_->doCatchUpRequest(peer_id);
+      if (catch_up_request_suppressed_until_ > clock_->now()) {
+        catch_up_request_suppressed_until_ =
+            clock_->now() + catch_up_request_suppression_duration_;
+        current_round_->doCatchUpRequest(peer_id);
+      }
       return;
     }
     if (not previous_round_->completable()) {
@@ -321,6 +338,9 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
+    if (not is_ready_) {
+      return;
+    }
     BOOST_ASSERT(current_round_ != nullptr);
     if (current_round_->roundNumber() >= msg.round_number) {
       // Catching up in to the past
@@ -390,14 +410,24 @@ namespace kagome::consensus::grandpa {
     current_round_ = std::move(round);
 
     executeNextRound();
+
+    catch_up_request_suppressed_until_ = clock_->now();
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
+    if (not is_ready_) {
+      return;
+    }
+
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
       if (current_round_->roundNumber() + 2 <= msg.round_number) {
-        current_round_->doCatchUpRequest(peer_id);
+        if (catch_up_request_suppressed_until_ > clock_->now()) {
+          catch_up_request_suppressed_until_ =
+              clock_->now() + catch_up_request_suppression_duration_;
+          current_round_->doCatchUpRequest(peer_id);
+        }
       }
       return;
     }
@@ -443,10 +473,18 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
                                const Fin &fin) {
+    if (not is_ready_) {
+      return;
+    }
+
     std::shared_ptr<VotingRound> target_round = selectRound(fin.round_number);
     if (not target_round) {
       if (current_round_->roundNumber() < fin.round_number) {
-        current_round_->doCatchUpRequest(peer_id);
+        if (catch_up_request_suppressed_until_ > clock_->now()) {
+          catch_up_request_suppressed_until_ =
+              clock_->now() + catch_up_request_suppression_duration_;
+          current_round_->doCatchUpRequest(peer_id);
+        }
       }
       return;
     }

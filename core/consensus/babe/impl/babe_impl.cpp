@@ -122,14 +122,17 @@ namespace kagome::consensus {
       auto starting_slot_finish_time =
           last_epoch_descriptor.starting_slot_finish_time;
 
-      current_state_ = BabeState::SYNCHRONIZED;
+      current_state_ = State::SYNCHRONIZED;
       runEpoch(epoch, starting_slot_finish_time);
+      if (auto on_synchronized = std::move(on_synchronized_)) {
+        on_synchronized();
+      }
     } else {
       log_->debug("Babe is starting with syncing from block #{}, hash={}",
                   best_block_number,
                   best_block_hash);
 
-      current_state_ = BabeState::WAIT_BLOCK;
+      current_state_ = State::WAIT_BLOCK;
     }
     return true;
   }
@@ -176,9 +179,13 @@ namespace kagome::consensus {
     runSlot();
   }
 
+  Babe::State BabeImpl::getCurrentState() const {
+    return current_state_;
+  }
+
   void BabeImpl::onBlockAnnounce(const network::BlockAnnounce &announce) {
     switch (current_state_) {
-      case BabeState::WAIT_BLOCK:
+      case State::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
         //  need t know VRF threshold for validation. To calculate that we need
         //  to have weights of the authorities and to get it we need to have
@@ -186,36 +193,37 @@ namespace kagome::consensus {
 
         // synchronize missing blocks with their bodies
         log_->info("Catching up to block number: {}", announce.header.number);
-        current_state_ = BabeState::CATCHING_UP;
+        current_state_ = State::CATCHING_UP;
         block_executor_->requestBlocks(
             announce.header, [self_weak{weak_from_this()}] {
               if (auto self = self_weak.lock()) {
                 self->log_->info("Catching up is done, getting slot time");
                 // all blocks were successfully applied, now we need to get
                 // slot time
-                self->current_state_ = BabeState::NEED_SLOT_TIME;
+                self->current_state_ = State::NEED_SLOT_TIME;
               }
             });
         break;
-      case BabeState::NEED_SLOT_TIME:
+      case State::NEED_SLOT_TIME:
         // if block is new add it to the storage and sync missing blocks. Then
         // calculate slot time and execute babe
         block_executor_->processNextBlock(
             announce.header,
             [this](const auto &header) { synchronizeSlots(header); });
         break;
-      case BabeState::CATCHING_UP:
-      case BabeState::SYNCHRONIZED:
+      case State::CATCHING_UP:
+      case State::SYNCHRONIZED:
         block_executor_->processNextBlock(announce.header, [](auto &) {});
         break;
     }
   }
 
-  BabeMeta BabeImpl::getBabeMeta() const {
-    return BabeMeta{current_epoch_,
-                    current_slot_,
-                    slots_leadership_,
-                    next_slot_finish_time_};
+  void BabeImpl::doOnSynchronized(std::function<void()> handler) {
+    if (current_state_ == State::SYNCHRONIZED) {
+      handler();
+    } else {
+      on_synchronized_ = std::move(handler);
+    }
   }
 
   void BabeImpl::runSlot() {
@@ -499,7 +507,7 @@ namespace kagome::consensus {
     first_slot_times_.emplace_back(
         clock_->now() + diff * genesis_configuration_->slot_duration);
     if (observed_slot >= first_production_slot.value()) {
-      current_state_ = BabeState::SYNCHRONIZED;
+      current_state_ = State::SYNCHRONIZED;
       log_->info("Slot time obtained. Peer is synchronized");
 
       // get median as here:
@@ -527,6 +535,10 @@ namespace kagome::consensus {
       epoch.authorities = next_epoch_digest_res.value().authorities;
 
       runEpoch(epoch, first_slot_ending_time);
+
+      if (auto on_synchronized = std::move(on_synchronized_)) {
+        on_synchronized();
+      }
     }
   }
 }  // namespace kagome::consensus

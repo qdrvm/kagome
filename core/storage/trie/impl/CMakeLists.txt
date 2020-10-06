@@ -45,5 +45,6 @@ add_library(trie_storage
 target_link_libraries(trie_storage
     ephemeral_trie_batch
     persistent_trie_batch
+    logger
     )
 kagome_install(trie_storage)
