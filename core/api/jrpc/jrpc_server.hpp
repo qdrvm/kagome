@@ -46,6 +46,7 @@ namespace kagome::api {
 
     /**
      * @brief creates valid jsonrpc response
+     * @param method_name is a name of the method in jsonrpc call
      * @param from is a data source
      * @param cb callback
      */

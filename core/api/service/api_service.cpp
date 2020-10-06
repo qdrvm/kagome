@@ -90,8 +90,11 @@ namespace kagome::api {
                       out_data.emplace_back(api::makeValue(key));
                       out_data.emplace_back(api::makeValue(data));
 
-                      /// TODO(iceseer): PRE-475 make event notofication
-                      /// depending in blocks, to butch them in a single message
+                      /// TODO(iceseer): PRE-475 make event notification
+                      /// depending in packs blocks, to batch them in a single message
+                      /// Because of a spec, we can send an array of changes 
+                      /// in a single message. We can receive here a pack of events and
+                      /// format them in a single json message.
 
                       jsonrpc::Value::Struct result;
                       result["changes"] = std::move(out_data);
