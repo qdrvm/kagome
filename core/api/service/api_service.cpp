@@ -71,7 +71,7 @@ namespace kagome::api {
           auto session_context =
               self->storeSessionWithId(session->id(), session);
           session_context.storage_subscription->setCallback(
-              [wp](SessionPtr &session,
+              [wp](uint32_t set_id, SessionPtr &session,
                    const auto &key,
                    const auto &data,
                    const auto &block) {
@@ -89,7 +89,7 @@ namespace kagome::api {
 
                   jsonrpc::Value::Struct params;
                   params["result"] = std::move(result);
-                  params["subscription"] = 0;
+                  params["subscription"] = api::makeValue(set_id);
 
                   self->server_->processJsonData(
                       params, [&](const std::string &response) {
@@ -99,11 +99,11 @@ namespace kagome::api {
               });
 
           session_context.events_subscription->setCallback(
-              [wp](SessionPtr &session, const auto &key, const auto &header) {
+              [wp](uint32_t set_id, SessionPtr &session, const auto &key, const auto &header) {
                 if (auto self = wp.lock()) {
                   jsonrpc::Value::Struct params;
                   params["result"] = api::makeValue(header.get());
-                  params["subscription"] = 0;
+                  params["subscription"] = api::makeValue(set_id);
 
                   self->server_->processJsonData(
                       params, [&](const std::string &response) {

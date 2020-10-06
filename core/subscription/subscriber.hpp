@@ -27,13 +27,13 @@ namespace kagome::subscription {
     using KeyType = Key;
     using ValueType = Type;
     using HashType = size_t;
-    using SubscriptionSetId = uint64_t;
 
     using SubscriptionEngineType =
         SubscriptionEngine<KeyType, ValueType, Arguments...>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
+    using SubscriptionSetId = typename SubscriptionEngineType::SubscriptionSetId;
 
-    using CallbackFnType = std::function<void(ValueType&, const KeyType &, const Arguments &...)>;
+    using CallbackFnType = std::function<void(SubscriptionSetId, ValueType&, const KeyType &, const Arguments &...)>;
 
    private:
     using SubscriptionsContainer =
@@ -85,7 +85,7 @@ namespace kagome::subscription {
       /// Here we check first local subscriptions because of strong connection
       /// with SubscriptionEngine.
       if (inserted)
-        it->second = engine_->subscribe(key, this->weak_from_this());
+        it->second = engine_->subscribe(id, key, this->weak_from_this());
     }
 
     void unsubscribe(SubscriptionSetId id, const KeyType &key) {
@@ -120,8 +120,8 @@ namespace kagome::subscription {
       subscriptions_sets_.clear();
     }
 
-    void on_notify(const KeyType &key, const Arguments &... args) {
-      if (nullptr != on_notify_callback_) on_notify_callback_(object_, key, args...);
+    void on_notify(SubscriptionSetId set_id, const KeyType &key, const Arguments &... args) {
+      if (nullptr != on_notify_callback_) on_notify_callback_(set_id, object_, key, args...);
     }
   };
 

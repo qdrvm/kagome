@@ -51,7 +51,7 @@ TEST_F(SubscriptionEngineTest, SubscriberRegistration) {
                                                 SubscriptionTargetMock,
                                                 std::string_view,
                                                 int32_t>>(engine_);
-  subscriber->setCallback([&](auto &, const auto &key, std::string_view data_1, int32_t data_2) {
+  subscriber->setCallback([&](auto set_id, auto &, const auto &key, std::string_view data_1, int32_t data_2) {
     target.test_call(data_1, data_2);
   });
 
@@ -79,7 +79,7 @@ TEST_F(SubscriptionEngineTest, NegSubscriberRegistration) {
                                                 std::string_view,
                                                 int32_t>>(engine_);
   subscriber->setCallback(
-      [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
+      [&](auto set_id, auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
 
   const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, "100");
@@ -105,7 +105,7 @@ TEST_F(SubscriptionEngineTest, SubUnsub) {
       std::string_view,
       int32_t>>(engine_);
   subscriber->setCallback(
-      [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
+      [&](auto set_id, auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
 
   const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
@@ -135,7 +135,7 @@ TEST_F(SubscriptionEngineTest, DeleteSub) {
         std::string_view,
         int32_t>>(engine_);
     subscriber->setCallback(
-        [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
+        [&](auto set_id, auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
 
     const auto id = subscriber->generateSubscriptionSetId();
     subscriber->subscribe(id, key);
@@ -160,7 +160,7 @@ TEST_F(SubscriptionEngineTest, MultiSub) {
                                                 std::string_view,
                                                 int32_t>>(engine_);
   subscriber->setCallback(
-      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
+      [&](auto set_id, auto &, auto &key, std::string_view data_1, int32_t data_2) {
         target.test_call(data_1, data_2);
       });
 
@@ -191,7 +191,7 @@ TEST_F(SubscriptionEngineTest, UnsubscribeSub) {
       std::string_view,
       int32_t>>(engine_);
   subscriber->setCallback(
-      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
+      [&](auto set_id, auto &, auto &key, std::string_view data_1, int32_t data_2) {
         target.test_call(data_1, data_2);
       });
 
@@ -222,7 +222,7 @@ TEST_F(SubscriptionEngineTest, UnsubscribeAllSub) {
       std::string_view,
       int32_t>>(engine_);
   subscriber->setCallback(
-      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
+      [&](auto set_id, auto &, auto &key, std::string_view data_1, int32_t data_2) {
         ASSERT_FALSE(true);
       });
 
@@ -251,7 +251,7 @@ TEST_F(SubscriptionEngineTest, UnsubscribeStreamSub) {
       std::string_view,
       int32_t>>(engine_);
   subscriber->setCallback(
-      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
+      [&](auto set_id, auto &, auto &key, std::string_view data_1, int32_t data_2) {
         ASSERT_FALSE(true);
       });
 
