@@ -186,7 +186,7 @@ namespace kagome::api {
         });
 
     BOOST_ASSERT(inserted);
-    return std::move(it->second);
+    return it->second;
   }
 
   void ApiService::removeSessionById(Session::SessionId id) {
