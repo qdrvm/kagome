@@ -36,7 +36,8 @@ namespace kagome::api {
      * Response callback type
      */
     using ResponseHandler = std::function<void(const std::string &)>;
-    using FormatterHandler = std::function<void(outcome::result<std::string_view>)>;
+    using FormatterHandler =
+        std::function<void(outcome::result<std::string_view>)>;
 
     /**
      * @brief creates valid jsonrpc response

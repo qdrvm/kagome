@@ -5,9 +5,7 @@
 
 #include "api/jrpc/jrpc_server_impl.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::api,
-                            JRpcServerImpl::Error,
-                            e) {
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, JRpcServerImpl::Error, e) {
   using E = kagome::api::JRpcServerImpl::Error;
   switch (e) {
     case E::JSON_FORMAT_FAILED:
@@ -45,7 +43,7 @@ namespace kagome::api {
 
       auto &&formatted_response = writer->GetData();
       cb(std::string_view(formatted_response->GetData(),
-                     formatted_response->GetSize()));
+                          formatted_response->GetSize()));
     } catch (const Fault &ex) {
       cb(outcome::failure(Error::JSON_FORMAT_FAILED));
     }
