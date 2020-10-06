@@ -30,7 +30,7 @@ namespace kagome::api::chain::request {
 
 #define KAGOME_LOAD_VALUE(type)                                           \
   void loadValue(boost::optional<type> &dst, const jsonrpc::Value &src) { \
-    if (!src.IsNil()) {                                                  \
+    if (!src.IsNil()) {                                                   \
       type t;                                                             \
       loadValue(t, src);                                                  \
       dst = std::move(t);                                                 \
@@ -81,6 +81,13 @@ namespace kagome::api::chain::request {
         throw jsonrpc::InvalidParametersFault("invalid argument");
 
       dst = src.AsInteger32();
+    }
+
+    KAGOME_LOAD_VALUE(int64_t) {
+      if (!src.IsInteger64())
+        throw jsonrpc::InvalidParametersFault("invalid argument");
+
+      dst = src.AsInteger64();
     }
 
     KAGOME_LOAD_VALUE(std::string) {

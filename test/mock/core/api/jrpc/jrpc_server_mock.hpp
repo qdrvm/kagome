@@ -20,8 +20,10 @@ namespace kagome::api {
     MOCK_METHOD0(getHandlerNames, std::vector<std::string>());
     MOCK_METHOD2(processData,
                  void(std::string_view request, const ResponseHandler &cb));
-    MOCK_METHOD2(processJsonData,
-                 void(jsonrpc::Value const &from, ResponseHandler const &cb));
+    MOCK_METHOD3(processJsonData,
+                 void(std::string,
+                      const jsonrpc::Request::Parameters &,
+                      FormatterHandler const &cb));
   };
 
 }  // namespace kagome::api

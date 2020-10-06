@@ -6,7 +6,7 @@
 #ifndef KAGOME_CHAIN_GET_HEADER_HPP
 #define KAGOME_CHAIN_GET_HEADER_HPP
 
-#include "api/service/chain/requests/base_request.hpp"
+#include "api/service/base_request.hpp"
 
 namespace kagome::api::chain::request {
 

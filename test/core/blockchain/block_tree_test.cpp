@@ -37,11 +37,15 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillOnce(Return(finalized_block_header_));
 
+    auto events_engine =
+        std::make_shared<subscriptions::EventsSubscriptionEngineType>();
+
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         kLastFinalizedBlockId,
                                         extrinsic_observer_,
-                                        hasher_)
+                                        hasher_,
+                                        events_engine)
                       .value();
   }
 
@@ -189,6 +193,8 @@ TEST_F(BlockTreeTest, Finalize) {
   Block new_block{header, body};
   auto hash = addBlock(new_block);
 
+  primitives::BlockId bid = hash;
+
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
   EXPECT_CALL(*storage_, getJustification(primitives::BlockId(hash)))
@@ -197,6 +203,8 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
       .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, getBlockHeader(bid))
+      .WillRepeatedly(Return(outcome::success(header)));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
