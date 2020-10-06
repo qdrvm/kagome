@@ -20,6 +20,12 @@ target_link_libraries(scale
     Boost::boost
     buffer
     )
-
-
 kagome_install(scale)
+
+add_library(scale_encode_append
+    encode_append.cpp
+    )
+target_link_libraries(scale_encode_append
+    scale
+    )
+kagome_install(scale_encode_append)

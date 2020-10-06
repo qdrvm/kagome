@@ -505,7 +505,8 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   Buffer vals_encoded;
   {
     // @when there is no value by given key in trie
-    EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(outcome::failure(boost::system::error_code{})));
+    EXPECT_CALL(*trie_batch_, get(key_data))
+        .WillOnce(Return(outcome::failure(boost::system::error_code{})));
 
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
@@ -528,6 +529,50 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     vals.push_back(
         kagome::scale::EncodeOpaqueValue{value_data2_encoded.toVector()});
     vals_encoded = Buffer(kagome::scale::encode(vals).value());
+    EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
+        .WillOnce(Return(outcome::success()));
+
+    storage_extension_->ext_storage_append_version_1(key.combine(),
+                                                     value2.combine());
+  }
+}
+
+TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
+  // @given key and two values
+  WasmResult key(43, 43);
+  Buffer key_data(key.length, 'k');
+
+  Buffer value_data1(42, '1');
+  Buffer value_data1_encoded{kagome::scale::encode(value_data1).value()};
+  WasmResult value1(42, value_data1_encoded.size());
+
+  Buffer value_data2(43, '2');
+  Buffer value_data2_encoded{kagome::scale::encode(value_data2).value()};
+  WasmResult value2(45, value_data2_encoded.size());
+
+  // @given wasm memory that can provide these key and values
+  EXPECT_CALL(*memory_, loadN(key.address, key.length))
+      .WillRepeatedly(Return(key_data));
+  EXPECT_CALL(*memory_, loadN(value2.address, value2.length))
+      .WillOnce(Return(value_data2_encoded));
+
+  // @when vals contains (2^6 - 1) elements (high limit for one-byte compact
+  // integers)
+  std::vector<kagome::scale::EncodeOpaqueValue> vals(
+      kagome::scale::compact::EncodingCategoryLimits::kMinUint16 - 1,
+      kagome::scale::EncodeOpaqueValue{value_data1_encoded.toVector()});
+  Buffer vals_encoded = Buffer(kagome::scale::encode(vals).value());
+
+  {
+    // @when encoded vals is stored by given key
+    EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(vals_encoded));
+
+    // @when storage is inserted by one more value by the same key
+    vals.push_back(
+        kagome::scale::EncodeOpaqueValue{value_data2_encoded.toVector()});
+    vals_encoded = Buffer(kagome::scale::encode(vals).value());
+
+    // @then everything fine: storage is inserted with vals with new value
     EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
 

@@ -19,7 +19,7 @@ namespace kagome::scale {
         {EncodeOpaqueValue{scale::encode(inp1).value()}});
 
     std::vector<uint8_t> res{};
-    auto encoded_concat_res = append_or_new_vec_with_any_item(res, vec_inp1);
+    auto encoded_concat_res = append_or_new_vec(res, vec_inp1);
 
     ASSERT_THAT(
         encoded_concat_res.value(),
@@ -28,7 +28,7 @@ namespace kagome::scale {
 
     std::vector<EncodeOpaqueValue> vec_inp2(
         {EncodeOpaqueValue{scale::encode(uint32_t{2}).value()}});
-    encoded_concat_res = append_or_new_vec_with_any_item(res, vec_inp2);
+    encoded_concat_res = append_or_new_vec(res, vec_inp2);
 
     ASSERT_THAT(encoded_concat_res.value(),
                 ContainerEq(std::vector<uint8_t>({8, 20, 1, 0, 0, 0, 2, 0, 0,
