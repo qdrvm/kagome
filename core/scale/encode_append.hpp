@@ -11,7 +11,7 @@
 
 namespace kagome::scale {
 
-  outcome::result<std::tuple<uint32_t, uint32_t, uint32_t>> extract_length_data(
+  inline outcome::result<std::tuple<uint32_t, uint32_t, uint32_t>> extract_length_data(
       const std::vector<uint8_t> &data, size_t input_len) {
     OUTCOME_TRY(len, scale::decode<CompactInteger>(data));
     auto new_len = (len + input_len).convert_to<uint32_t>();
@@ -33,14 +33,15 @@ namespace kagome::scale {
     return s;
   }
 
-  outcome::result<std::vector<uint8_t>> append_or_new_vec_with_any_item(
+  inline outcome::result<std::vector<uint8_t>> append_or_new_vec_with_any_item(
       std::vector<uint8_t> &self_encoded,
-      const std::vector<EncodeOpaqueValue> &input) {
-    auto input_len = input.size();
+      const std::vector<uint8_t> &input) {
+    std::vector<EncodeOpaqueValue> vec_input = std::vector<scale::EncodeOpaqueValue>({{.v = input}});
+    auto input_len = 1;
 
     // No data present, just encode the given input data.
     if (self_encoded.empty()) {
-      self_encoded = scale::encode(input).value();
+      self_encoded = scale::encode(vec_input).value();
       return self_encoded;
     }
 
@@ -58,7 +59,7 @@ namespace kagome::scale {
     if (encoded_len == encoded_new_len) {
       replace_len(self_encoded);
       //      self_encoded.reserve(self_encoded.size() + input.size());
-      for (const auto &input_el : input) {
+      for (const auto &input_el : vec_input) {
         self_encoded.insert(
             self_encoded.end(), input_el.v.begin(), input_el.v.end());
       }
@@ -79,7 +80,7 @@ namespace kagome::scale {
                self_encoded.begin() + encoded_len,
                self_encoded.end());
     // res.insert(res.end(), input.begin(), input.end());
-    for (const auto &input_el : input) {
+    for (const auto &input_el : vec_input) {
       res.insert(res.end(), input_el.v.begin(), input_el.v.end());
     }
     return res;

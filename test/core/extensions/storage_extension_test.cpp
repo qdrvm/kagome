@@ -10,10 +10,10 @@
 #include "core/runtime/mock_memory.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
+#include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/wasm_result.hpp"
-#include "scale/scale.hpp"
+#include "scale/encode_append.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -292,7 +292,8 @@ TEST_F(StorageExtensionTest, NextKey) {
   EXPECT_CALL(*trie_batch_, trieCursor())
       .WillOnce(Invoke([&key, &expected_next_key]() {
         auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-        EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
+        EXPECT_CALL(*cursor, seekUpperBound(key))
+            .WillOnce(Return(outcome::success()));
         EXPECT_CALL(*cursor, key()).WillOnce(Return(expected_next_key));
         return cursor;
       }));
@@ -329,7 +330,8 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
 
   EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*cursor, seekUpperBound(key))
+        .WillOnce(Return(outcome::success()));
     EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));
@@ -360,7 +362,8 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
 
   EXPECT_CALL(*trie_batch_, trieCursor()).WillOnce(Invoke([&key]() {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
-    EXPECT_CALL(*cursor, seekUpperBound(key)).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*cursor, seekUpperBound(key))
+        .WillOnce(Return(outcome::success()));
     EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
     return cursor;
   }));
@@ -476,6 +479,62 @@ INSTANTIATE_TEST_CASE_P(Instance,
                             outcome::failure(testutil::DummyError::ERROR)),
                         // empty argument for the macro
 );
+
+TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
+  // @given key and two values
+  WasmResult key(43, 43);
+  Buffer key_data(key.length, 'k');
+
+  Buffer value_data1(42, '1');
+  Buffer value_data1_encoded{kagome::scale::encode(value_data1).value()};
+  WasmResult value1(42, value_data1_encoded.size());
+
+  Buffer value_data2(43, '2');
+  Buffer value_data2_encoded{kagome::scale::encode(value_data2).value()};
+  WasmResult value2(45, value_data2_encoded.size());
+
+  // @given wasm memory that can provide these key and values
+  EXPECT_CALL(*memory_, loadN(key.address, key.length))
+      .WillRepeatedly(Return(key_data));
+  EXPECT_CALL(*memory_, loadN(value1.address, value1.length))
+      .WillOnce(Return(value_data1_encoded));
+  EXPECT_CALL(*memory_, loadN(value2.address, value2.length))
+      .WillOnce(Return(value_data2_encoded));
+
+  std::vector<kagome::scale::EncodeOpaqueValue> vals;
+  Buffer vals_encoded;
+  {
+    // @when there is no value by given key in trie
+    EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(outcome::failure(boost::system::error_code{})));
+
+    // @then storage is inserted by scale encoded vector containing
+    // EncodeOpaqueValue with value1
+    vals.push_back(
+        kagome::scale::EncodeOpaqueValue{value_data1_encoded.toVector()});
+    vals_encoded = Buffer(kagome::scale::encode(vals).value());
+    EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
+        .WillOnce(Return(outcome::success()));
+
+    storage_extension_->ext_storage_append_version_1(key.combine(),
+                                                     value1.combine());
+  }
+
+  {
+    // @when there is a value by given key (inserted above)
+    EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(vals_encoded));
+
+    // @then storage is inserted by scale encoded vector containing two
+    // EncodeOpaqueValues with value1 and value2
+    vals.push_back(
+        kagome::scale::EncodeOpaqueValue{value_data2_encoded.toVector()});
+    vals_encoded = Buffer(kagome::scale::encode(vals).value());
+    EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
+        .WillOnce(Return(outcome::success()));
+
+    storage_extension_->ext_storage_append_version_1(key.combine(),
+                                                     value2.combine());
+  }
+}
 
 /**
  * @given a set of values, which ordered trie hash we want to calculate from

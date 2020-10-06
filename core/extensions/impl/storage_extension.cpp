@@ -132,7 +132,7 @@ namespace kagome::extensions {
 
     auto key = memory_->loadN(key_ptr, key_size);
     boost::optional<uint32_t> res{boost::none};
-    if (const auto& data_res = get(key); data_res) {
+    if (const auto &data_res = get(key); data_res) {
       auto data = gsl::make_span(data_res.value());
       auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
@@ -361,7 +361,7 @@ namespace kagome::extensions {
                      res.error().message());
       return kErrorSpan;
     }
-    auto && next_key_opt = res.value();
+    auto &&next_key_opt = res.value();
     if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
     } else {  // NOLINT(readability-else-after-return)
@@ -378,22 +378,24 @@ namespace kagome::extensions {
     auto [append_ptr, append_size] = runtime::WasmResult(append_span);
     auto key_bytes = memory_->loadN(key_ptr, key_size);
     auto append_bytes = memory_->loadN(append_ptr, append_size);
-    auto vec_append_bytes =
-        std::vector<scale::EncodeOpaqueValue>({{.v = append_bytes.toVector()}});
     if (auto val_res = get(key_bytes)) {
       auto &val = val_res.value().toVector();
-      scale::append_or_new_vec_with_any_item(val, vec_append_bytes);
-
-      auto batch = storage_provider_->getCurrentBatch();
-      auto put_result =
-          batch->put(common::Buffer{key_bytes}, common::Buffer{val});
-      if (not put_result) {
-        logger_->error(
-            "ext_storage_append_version_1 failed, due to fail in trie db with "
-            "reason: {}",
-            put_result.error().message());
+      if (scale::append_or_new_vec_with_any_item(val, append_bytes.toVector())
+              .has_value()) {
+        auto batch = storage_provider_->getCurrentBatch();
+        auto put_result =
+            batch->put(common::Buffer{key_bytes}, common::Buffer{val});
+        if (not put_result) {
+          logger_->error(
+              "ext_storage_append_version_1 failed, due to fail in trie db "
+              "with "
+              "reason: {}",
+              put_result.error().message());
+        }
+        return;
       }
     }
+
   }
 
   namespace {
