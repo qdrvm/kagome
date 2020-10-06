@@ -69,115 +69,114 @@ namespace kagome::api {
 
   bool ApiService::prepare() {
     for (const auto &listener : listeners_) {
-      auto on_new_session =
-          [wp = weak_from_this()](const sptr<Session> &session) mutable {
-            auto self = wp.lock();
-            if (!self) {
-              return;
-            }
+      auto on_new_session = [wp = weak_from_this()](
+                                const sptr<Session> &session) mutable {
+        auto self = wp.lock();
+        if (!self) {
+          return;
+        }
 
-            if (SessionType::kWs == session->type()) {
-              auto session_context =
-                  self->storeSessionWithId(session->id(), session);
-              session_context.storage_subscription->setCallback(
-                  [wp](uint32_t set_id,
-                       SessionPtr &session,
-                       const auto &key,
-                       const auto &data,
-                       const auto &block) {
-                    if (auto self = wp.lock()) {
-                      jsonrpc::Value::Array out_data;
-                      out_data.emplace_back(api::makeValue(key));
-                      out_data.emplace_back(api::makeValue(data));
+        if (SessionType::kWs == session->type()) {
+          auto session_context =
+              self->storeSessionWithId(session->id(), session);
+          session_context.storage_subscription->setCallback(
+              [wp](uint32_t set_id,
+                   SessionPtr &session,
+                   const auto &key,
+                   const auto &data,
+                   const auto &block) {
+                if (auto self = wp.lock()) {
+                  jsonrpc::Value::Array out_data;
+                  out_data.emplace_back(api::makeValue(key));
+                  out_data.emplace_back(api::makeValue(data));
 
-                      /// TODO(iceseer): PRE-475 make event notification
-                      /// depending in packs blocks, to batch them in a single message
-                      /// Because of a spec, we can send an array of changes 
-                      /// in a single message. We can receive here a pack of events and
-                      /// format them in a single json message.
+                  /// TODO(iceseer): PRE-475 make event notification depending
+                  /// in packs blocks, to batch them in a single message Because
+                  /// of a spec, we can send an array of changes in a single
+                  /// message. We can receive here a pack of events and format
+                  /// them in a single json message.
 
-                      jsonrpc::Value::Struct result;
-                      result["changes"] = std::move(out_data);
-                      result["block"] = api::makeValue(block);
+                  jsonrpc::Value::Struct result;
+                  result["changes"] = std::move(out_data);
+                  result["block"] = api::makeValue(block);
 
-                      jsonrpc::Value::Struct p;
-                      p["result"] = std::move(result);
-                      p["subscription"] = api::makeValue(set_id);
+                  jsonrpc::Value::Struct p;
+                  p["result"] = std::move(result);
+                  p["subscription"] = api::makeValue(set_id);
 
-                      jsonrpc::Request::Parameters params;
-                      params.push_back(std::move(p));
-                      self->server_->processJsonData(
-                          "state_storage", params, [&](const auto &response) {
-                            if (response.has_value())
-                              session->respond(response.value());
-                            else
-                              self->logger_->error("process Json data failed => {}",
-                                                   response.error().message());
-                          });
-                    }
-                  });
+                  jsonrpc::Request::Parameters params;
+                  params.push_back(std::move(p));
+                  self->server_->processJsonData(
+                      "state_storage", params, [&](const auto &response) {
+                        if (response.has_value())
+                          session->respond(response.value());
+                        else
+                          self->logger_->error("process Json data failed => {}",
+                                               response.error().message());
+                      });
+                }
+              });
 
-              session_context.events_subscription->setCallback(
-                  [wp](uint32_t set_id,
-                       SessionPtr &session,
-                       const auto &key,
-                       const auto &header) {
-                    if (auto self = wp.lock()) {
-                      jsonrpc::Value::Struct p;
-                      p["result"] = api::makeValue(header.get());
-                      p["subscription"] = api::makeValue(set_id);
+          session_context.events_subscription->setCallback(
+              [wp](uint32_t set_id,
+                   SessionPtr &session,
+                   const auto &key,
+                   const auto &header) {
+                if (auto self = wp.lock()) {
+                  jsonrpc::Value::Struct p;
+                  p["result"] = api::makeValue(header);
+                  p["subscription"] = api::makeValue(set_id);
 
-                      jsonrpc::Request::Parameters params;
-                      params.push_back(std::move(p));
-                      self->server_->processJsonData(
-                          "chain_newHead", params, [&](const auto &response) {
-                            if (response.has_value())
-                              session->respond(response.value());
-                            else
-                              self->logger_->error("process Json data failed => {}",
-                                                   response.error().message());
-                          });
-                    }
-                  });
-            }
+                  jsonrpc::Request::Parameters params;
+                  params.push_back(std::move(p));
+                  self->server_->processJsonData(
+                      "chain_newHead", params, [&](const auto &response) {
+                        if (response.has_value())
+                          session->respond(response.value());
+                        else
+                          self->logger_->error("process Json data failed => {}",
+                                               response.error().message());
+                      });
+                }
+              });
+        }
 
-            session->connectOnRequest(
-                [wp](std::string_view request,
-                     std::shared_ptr<Session> session) mutable {
-                  auto self = wp.lock();
-                  if (not self) return;
+        session->connectOnRequest(
+            [wp](std::string_view request,
+                 std::shared_ptr<Session> session) mutable {
+              auto self = wp.lock();
+              if (not self) return;
 
-                  auto thread_session_auto_release = [](void *) {
-                    threaded_info.releaseSessionId();
-                  };
+              auto thread_session_auto_release = [](void *) {
+                threaded_info.releaseSessionId();
+              };
 
-                  threaded_info.storeSessionId(session->id());
+              threaded_info.storeSessionId(session->id());
 
-                  /**
-                   * Unique ptr object to autorelease sessions.
-                   * 0xff if a random not null value to jump 
-                   * internal nullptr check.
-                   */
-                  std::unique_ptr<void, decltype(thread_session_auto_release)>
+              /**
+               * Unique ptr object to autorelease sessions.
+               * 0xff if a random not null value to jump internal nullptr check.
+               */
+              std::unique_ptr<void, decltype(thread_session_auto_release)>
                   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                   thread_session_keeper(reinterpret_cast<void *>(0xff),
                                         std::move(thread_session_auto_release));
 
-                  // process new request
-                  self->server_->processData(
-                      std::string(request),
-                      [session = std::move(session)](
-                          const std::string &response) mutable {
-                        // process response
-                        session->respond(response);
-                      });
-                });
+              // process new request
+              self->server_->processData(
+                  std::string(request),
+                  [session = std::move(session)](
+                      const std::string &response) mutable {
+                    // process response
+                    session->respond(response);
+                  });
+            });
 
-            session->connectOnCloseHandler(
-                [wp](Session::SessionId id, SessionType /*type*/) {
-                  if (auto self = wp.lock()) self->removeSessionById(id);
-                });
-          };
+        session->connectOnCloseHandler(
+            [wp](Session::SessionId id, SessionType /*type*/) {
+              if (auto self = wp.lock()) self->removeSessionById(id);
+            });
+      };
 
       listener->setHandlerForNewSession(std::move(on_new_session));
     }
