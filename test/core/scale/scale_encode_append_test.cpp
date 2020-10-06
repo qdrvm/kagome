@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 
 using ::testing::ContainerEq;
-using ::testing::ElementsAre;
 
 namespace kagome::scale {
 
@@ -22,6 +21,7 @@ namespace kagome::scale {
     auto encoded_concat_res = append_or_new_vec(res, inp1_encoded);
 
     ASSERT_TRUE(encoded_concat_res.has_value());
+    // vector below obtained by debugging substrate
     ASSERT_THAT(res, ContainerEq(std::vector<uint8_t>({4, 20, 1, 0, 0, 0, 2, 0,
                                                        0, 0,  3, 0, 0, 0, 4, 0,
                                                        0, 0,  5, 0, 0, 0})));
@@ -32,6 +32,7 @@ namespace kagome::scale {
     encoded_concat_res = append_or_new_vec(res, inp2_encoded);
 
     ASSERT_TRUE(encoded_concat_res.has_value());
+    // vector below obtained by debugging substrate
     ASSERT_THAT(res,
                 ContainerEq(std::vector<uint8_t>({8, 20, 1, 0, 0, 0, 2, 0, 0,
                                                   0, 3,  0, 0, 0, 4, 0, 0, 0,
