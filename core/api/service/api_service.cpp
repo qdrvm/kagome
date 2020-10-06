@@ -87,13 +87,18 @@ namespace kagome::api {
                   result["changes"] = std::move(out_data);
                   result["block"] = api::makeValue(block);
 
-                  jsonrpc::Value::Struct params;
-                  params["result"] = std::move(result);
-                  params["subscription"] = api::makeValue(set_id);
+                  jsonrpc::Value::Struct p;
+                  p["result"] = std::move(result);
+                  p["subscription"] = api::makeValue(set_id);
 
-                  self->server_->processJsonData(
-                      params, [&](const std::string &response) {
-                        session->respond(response);
+                  jsonrpc::Request::Parameters params;
+                  params.push_back(std::move(p));
+                  self->server_->processJsonData("state_storage",
+                      params, [&](const auto &response) {
+                        if (response.has_value())
+                          session->respond(response.value());
+                        else
+                          self->logger_->error("ERROR => {}", response.error().message());
                       });
                 }
               });
@@ -101,13 +106,18 @@ namespace kagome::api {
           session_context.events_subscription->setCallback(
               [wp](uint32_t set_id, SessionPtr &session, const auto &key, const auto &header) {
                 if (auto self = wp.lock()) {
-                  jsonrpc::Value::Struct params;
-                  params["result"] = api::makeValue(header.get());
-                  params["subscription"] = api::makeValue(set_id);
+                  jsonrpc::Value::Struct p;
+                  p["result"] = api::makeValue(header.get());
+                  p["subscription"] = api::makeValue(set_id);
 
-                  self->server_->processJsonData(
-                      params, [&](const std::string &response) {
-                        session->respond(response);
+                  jsonrpc::Request::Parameters params;
+                  params.push_back(std::move(p));
+                  self->server_->processJsonData("chain_newHead",
+                      params, [&](const auto &response) {
+                        if (response.has_value())
+                          session->respond(response.value());
+                        else
+                          self->logger_->error("ERROR => {}", response.error().message());
                       });
                 }
               });
@@ -124,8 +134,11 @@ namespace kagome::api {
               };
 
               threaded_info.storeSessionId(session->id());
-              std::unique_ptr<void, decltype(thread_session_auto_release)>
 
+              /**
+               * Unique ptr object to autorelease sessions.
+               */
+              std::unique_ptr<void, decltype(thread_session_auto_release)>
               // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
               thread_session_keeper(reinterpret_cast<void *>(0xff),
                                     std::move(thread_session_auto_release));
