@@ -29,6 +29,7 @@ namespace kagome::api {
                  outcome::result<primitives::BlockHeader>(std::string_view));
     MOCK_METHOD0(getHeader, outcome::result<primitives::BlockHeader>());
     MOCK_METHOD0(subscribeNewHeads, outcome::result<uint32_t>());
+    MOCK_METHOD1(unsubscribeNewHeads, outcome::result<bool>(int64_t));
   };
 
 }  // namespace kagome::api

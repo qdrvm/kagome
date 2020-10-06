@@ -86,7 +86,7 @@ namespace kagome::api {
         const std::vector<uint32_t> &subscription_id);
 
     outcome::result<uint32_t> subscribeNewHeads();
-    outcome::result<bool> unsubscribeNewHeads(uint32_t id);
+    outcome::result<bool> unsubscribeNewHeads(int64_t id);
 
    private:
     boost::optional<SessionExecutionContext> findSessionById(
@@ -94,6 +94,15 @@ namespace kagome::api {
     void removeSessionById(Session::SessionId id);
     SessionExecutionContext storeSessionWithId(
         Session::SessionId id, const std::shared_ptr<Session> &session);
+
+    template <typename Func>
+    auto for_session(kagome::api::Session::SessionId id, Func &&f) {
+      if (auto session_context = findSessionById(id))
+        return std::forward<Func>(f)(*session_context);
+
+      throw jsonrpc::InternalErrorFault(
+          "Internal error. No session was stored for subscription.");
+    }
 
    private:
     std::shared_ptr<api::RpcThreadPool> thread_pool_;

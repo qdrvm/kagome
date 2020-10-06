@@ -83,6 +83,13 @@ namespace kagome::api::chain::request {
       dst = src.AsInteger32();
     }
 
+    KAGOME_LOAD_VALUE(int64_t) {
+      if (!src.IsInteger64())
+        throw jsonrpc::InvalidParametersFault("invalid argument");
+
+      dst = src.AsInteger64();
+    }
+
     KAGOME_LOAD_VALUE(std::string) {
       if (!src.IsString())
         throw jsonrpc::InvalidParametersFault("invalid argument");

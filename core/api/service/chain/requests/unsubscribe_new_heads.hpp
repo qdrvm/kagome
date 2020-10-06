@@ -10,7 +10,7 @@
 
 namespace kagome::api::chain::request {
 
-  struct UnsubscribeNewHeads final : RequestType<bool, uint32_t> {
+  struct UnsubscribeNewHeads final : RequestType<bool, int64_t> {
     using ReturnType = bool;
     using BaseType = RequestType<ReturnType>;
 
@@ -19,7 +19,7 @@ namespace kagome::api::chain::request {
     }
 
     outcome::result<ReturnType> execute() override {
-      return api_->unsubscribeNewHeads();
+      return api_->unsubscribeNewHeads(getParam<0>());
     }
 
    private:

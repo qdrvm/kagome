@@ -148,12 +148,12 @@ TEST_F(ChainApiTest, GetHeaderLats) {
  */
 TEST(StateApiTest, SubscribeStorage) {
   auto chain_api = std::make_shared<ChainApiMock>();
-  auto p = std::dynamic_pointer_cast<ChainApi>(chain_api);
-  auto sub = std::make_shared<SubscribeNewHeads>(p);
-
   EXPECT_CALL(*chain_api, subscribeNewHeads()).WillOnce(testing::Return(55));
 
+  auto p = std::static_pointer_cast<ChainApi>(chain_api);
+  auto sub = std::make_shared<SubscribeNewHeads>(p);
   jsonrpc::Request::Parameters params;
+
   EXPECT_OUTCOME_SUCCESS(r, sub->init(params));
   EXPECT_OUTCOME_TRUE(result, sub->execute());
   ASSERT_EQ(result, 55);

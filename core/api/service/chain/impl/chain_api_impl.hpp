@@ -46,7 +46,7 @@ namespace kagome::api {
     }
 
     outcome::result<uint32_t> subscribeNewHeads() override;
-    outcome::result<bool> unsubscribeNewHeads(uint32_t id) override;
+    outcome::result<bool> unsubscribeNewHeads(int64_t id) override;
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
