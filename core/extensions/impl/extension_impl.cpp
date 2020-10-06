@@ -116,6 +116,18 @@ namespace kagome::extensions {
     return storage_ext_.ext_storage_root(result);
   }
 
+  void ExtensionImpl::ext_storage_start_transaction() {
+    return storage_ext_.ext_storage_start_transaction();
+  }
+
+  void ExtensionImpl::ext_storage_rollback_transaction() {
+    return storage_ext_.ext_storage_rollback_transaction();
+  }
+
+  void ExtensionImpl::ext_storage_commit_transaction() {
+    return storage_ext_.ext_storage_commit_transaction();
+  }
+
   runtime::WasmSpan ExtensionImpl::ext_storage_next_key_version_1(
       runtime::WasmSpan key) const {
     return storage_ext_.ext_storage_next_key_version_1(key);
@@ -223,6 +235,14 @@ namespace kagome::extensions {
                                      runtime::WasmSize len,
                                      runtime::WasmPointer out) {
     crypto_ext_.ext_keccak_256(data, len, out);
+  }
+
+  void ExtensionImpl::ext_start_batch_verify() {
+    crypto_ext_.ext_start_batch_verify();
+  }
+
+  runtime::WasmSize ExtensionImpl::ext_finish_batch_verify() {
+    return crypto_ext_.ext_finish_batch_verify();
   }
 
   runtime::WasmSize ExtensionImpl::ext_ed25519_verify(
@@ -369,5 +389,4 @@ namespace kagome::extensions {
     return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig,
                                                                         msg);
   }
-
 }  // namespace kagome::extensions

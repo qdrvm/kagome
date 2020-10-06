@@ -8,8 +8,8 @@
 
 #include <boost/optional.hpp>
 
-#include "outcome/outcome.hpp"
 #include "common/blob.hpp"
+#include "outcome/outcome.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome::runtime {
@@ -73,6 +73,17 @@ namespace kagome::runtime {
      * Commits persistent changes even if the current batch is not persistent
      */
     virtual outcome::result<common::Buffer> forceCommit() = 0;
+
+    // ------ Transaction methods ------
+
+    /// Start nested transaction
+    virtual outcome::result<void> startTransaction() = 0;
+
+    /// Rollback and finish last started transaction
+    virtual outcome::result<void> rollbackTransaction() = 0;
+
+    /// Commit and finish last started transaction
+    virtual outcome::result<void> commitTransaction() = 0;
   };
 
 }  // namespace kagome::runtime

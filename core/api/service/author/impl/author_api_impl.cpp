@@ -76,8 +76,17 @@ namespace kagome::api {
 
   outcome::result<std::vector<primitives::Extrinsic>>
   AuthorApiImpl::pendingExtrinsics() {
-    BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
-    return outcome::failure(boost::system::error_code{});
+    auto &pending_txs = pool_->getPendingTransactions();
+
+    std::vector<primitives::Extrinsic> result;
+    result.reserve(pending_txs.size());
+
+    std::transform(pending_txs.begin(),
+                   pending_txs.end(),
+                   std::back_inserter(result),
+                   [](auto &it) { return it.second->ext; });
+
+    return result;
   }
 
   outcome::result<std::vector<common::Hash256>> AuthorApiImpl::removeExtrinsic(

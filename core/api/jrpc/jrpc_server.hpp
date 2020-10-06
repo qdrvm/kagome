@@ -33,6 +33,11 @@ namespace kagome::api {
     virtual void registerHandler(const std::string &name, Method method) = 0;
 
     /**
+     * @return name of handlers
+     */
+    virtual std::vector<std::string> getHandlerNames() = 0;
+
+    /**
      * Response callback type
      */
     using ResponseHandler = std::function<void(const std::string &)>;

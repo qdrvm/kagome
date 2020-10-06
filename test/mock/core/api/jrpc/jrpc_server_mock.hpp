@@ -17,6 +17,7 @@ namespace kagome::api {
     ~JRpcServerMock() override = default;
 
     MOCK_METHOD2(registerHandler, void(const std::string &name, Method method));
+    MOCK_METHOD0(getHandlerNames, std::vector<std::string>());
     MOCK_METHOD2(processData,
                  void(std::string_view request, const ResponseHandler &cb));
     MOCK_METHOD3(processJsonData,

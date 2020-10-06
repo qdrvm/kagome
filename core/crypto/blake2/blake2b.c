@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// taken from here
+// https://github.com/mjosaarinen/blake2_mjosref/blob/master/blake2b.c
+
 // blake2b.c
 // A simple BLAKE2b Reference Implementation.
 
