@@ -14,6 +14,10 @@ namespace kagome::api {
 
   class JRpcServerImpl : public JRpcServer {
    public:
+    enum class Error {
+      JSON_FORMAT_FAILED = 1,
+    };
+
     JRpcServerImpl();
 
     ~JRpcServerImpl() override = default;
@@ -43,8 +47,9 @@ namespace kagome::api {
      * @param from is a data source
      * @param cb callback
      */
-    void processJsonData(const jsonrpc::Value &from,
-                         const ResponseHandler &cb) override;
+    void processJsonData(std::string method_name,
+                         const jsonrpc::Request::Parameters &from,
+                         const FormatterHandler &cb) override;
 
    private:
     /// json rpc server instance
@@ -54,5 +59,7 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::api, JRpcServerImpl::Error);
 
 #endif  // KAGOME_API_JRPC_SERVER_IMPL_HPP

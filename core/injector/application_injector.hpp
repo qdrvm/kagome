@@ -143,6 +143,10 @@ namespace kagome::injector {
                                          primitives::BlockHash>>;
     auto subscription_engine =
         injector.template create<SubscriptionEnginePtr>();
+
+    auto events_engine =
+        injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
+
     auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
@@ -171,10 +175,15 @@ namespace kagome::injector {
                                           std::move(listeners),
                                           std::move(server),
                                           processors,
-                                          std::move(subscription_engine));
+                                          std::move(subscription_engine),
+                                          std::move(events_engine));
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());
+
+    auto chain_api = injector.template create<std::shared_ptr<api::ChainApi>>();
+    chain_api->setApiService(initialized.value());
+
     return initialized.value();
   }
 
@@ -320,12 +329,16 @@ namespace kagome::injector {
 
     auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
+    auto &&events_engine =
+        injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
+
     auto &&tree =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
                                           storage,
                                           block_id,
                                           std::move(extrinsic_observer),
-                                          std::move(hasher));
+                                          std::move(hasher),
+                                          std::move(events_engine));
     if (!tree) {
       common::raise(tree.error());
     }

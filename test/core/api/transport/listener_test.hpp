@@ -21,11 +21,14 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
+#include "primitives/event_types.hpp"
 
 using namespace kagome::api;
 using namespace kagome::common;
 using namespace kagome::subscription;
 using namespace kagome::primitives;
+using kagome::subscriptions::EventsSubscriptionEnginePtr;
+using kagome::subscriptions::EventsSubscriptionEngineType;
 
 template <typename ListenerImpl,
           typename =
@@ -95,6 +98,7 @@ struct ListenerTest : public ::testing::Test {
       SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
   std::shared_ptr<SubscriptionEngineType> subscription_engine =
       std::make_shared<SubscriptionEngineType>();
+  EventsSubscriptionEnginePtr events_engine = std::make_shared<EventsSubscriptionEngineType>();
 
   sptr<ApiService> service = std::make_shared<ApiService>(
       app_state_manager,
@@ -102,7 +106,8 @@ struct ListenerTest : public ::testing::Test {
       std::vector<std::shared_ptr<Listener>>{listener},
       server,
       processors,
-      subscription_engine);
+      subscription_engine,
+      events_engine);
 };
 
 #endif  // KAGOME_TEST_CORE_API_TRANSPORT_LISTENER_TEST_HPP

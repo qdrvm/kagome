@@ -15,14 +15,21 @@ namespace kagome::api {
   class ChainApiMock : public ChainApi {
    public:
     ~ChainApiMock() override = default;
+    MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
 
     MOCK_CONST_METHOD0(getBlockHash, outcome::result<BlockHash>());
     MOCK_CONST_METHOD1(getBlockHash, outcome::result<BlockHash>(uint32_t));
     MOCK_CONST_METHOD1(getBlockHash,
                        outcome::result<BlockHash>(std::string_view));
+    MOCK_CONST_METHOD1(getBlockHash, outcome::result<BlockHash>(BlockNumber));
     MOCK_CONST_METHOD1(
         getBlockHash,
         outcome::result<std::vector<BlockHash>>(gsl::span<const ValueType>));
+    MOCK_METHOD1(getHeader,
+                 outcome::result<primitives::BlockHeader>(std::string_view));
+    MOCK_METHOD0(getHeader, outcome::result<primitives::BlockHeader>());
+    MOCK_METHOD0(subscribeNewHeads, outcome::result<uint32_t>());
+    MOCK_METHOD1(unsubscribeNewHeads, outcome::result<bool>(int64_t));
   };
 
 }  // namespace kagome::api
