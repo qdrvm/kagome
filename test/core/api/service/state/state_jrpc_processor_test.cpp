@@ -25,6 +25,7 @@ class StateJrpcProcessorTest : public testing::Test {
  public:
   enum struct CallType {
     kCallType_GetRuntimeVersion = 0,
+    kCallType_SubscribeRuntimeVersion,
     kCallType_GetKeysPaged,
     kCallType_GetStorage,
     kCallType_StorageSubscribe,
@@ -48,10 +49,16 @@ class StateJrpcProcessorTest : public testing::Test {
               std::make_pair(CallType::kCallType_GetRuntimeVersion,
                              CallContext{.handler = f}));
         }));
+    EXPECT_CALL(*server, registerHandler("state_subscribeRuntimeVersion", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(
+              std::make_pair(CallType::kCallType_SubscribeRuntimeVersion,
+                             CallContext{.handler = f}));
+        }));
     EXPECT_CALL(*server, registerHandler("state_getKeysPaged", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
-          call_contexts_.emplace(std::make_pair(CallType::kCallType_GetKeysPaged,
-                                                CallContext{.handler = f}));
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_GetKeysPaged, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getStorage", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
@@ -65,8 +72,9 @@ class StateJrpcProcessorTest : public testing::Test {
         }));
     EXPECT_CALL(*server, registerHandler("state_unsubscribeStorage", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
-          call_contexts_.emplace(std::make_pair(
-              CallType::kCallType_StorageUnsubscribe, CallContext{.handler = f}));
+          call_contexts_.emplace(
+              std::make_pair(CallType::kCallType_StorageUnsubscribe,
+                             CallContext{.handler = f}));
         }));
     processor.registerHandlers();
   }
@@ -108,8 +116,7 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
 TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
   auto expected_result = "ABCDEF"_hex2buf;
 
-  EXPECT_CALL(*state_api,
-              getStorage("01234567"_hex2buf, "010203"_hash256))
+  EXPECT_CALL(*state_api, getStorage("01234567"_hex2buf, "010203"_hash256))
       .WillOnce(testing::Return(expected_result));
 
   registerHandlers();
@@ -200,7 +207,7 @@ TEST_F(StateJrpcProcessorTest, ProcessSubscribeStorage) {
  * @then the request is successfully processed and the response is valid
  */
 TEST_F(StateJrpcProcessorTest, ProcessUnsubscribeStorage) {
-  std::vector<uint32_t> subscription_ids = { 10 };
+  std::vector<uint32_t> subscription_ids = {10};
   EXPECT_CALL(*state_api, unsubscribeStorage(subscription_ids))
       .WillOnce(testing::Return(outcome::success()));
 

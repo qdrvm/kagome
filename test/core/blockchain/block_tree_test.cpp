@@ -210,6 +210,8 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(bid))
       .WillRepeatedly(Return(outcome::success(header)));
+  EXPECT_CALL(*runtime_core_, version(_))
+      .WillRepeatedly(Return(primitives::Version{}));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
