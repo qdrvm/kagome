@@ -42,6 +42,7 @@ namespace kagome::api {
     MOCK_METHOD1(
         unsubscribeStorage,
         outcome::result<void>(const std::vector<uint32_t> &subscription_id));
+    MOCK_METHOD0(getMetadata, outcome::result<std::string>());
   };
 }  // namespace kagome::api
 

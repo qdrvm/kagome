@@ -11,6 +11,7 @@
 
 #include "common/blob.hpp"
 #include "common/visitor.hpp"
+#include "common/hexutil.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/extrinsic.hpp"
