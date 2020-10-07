@@ -348,7 +348,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
 
   ASSERT_EQ(crypto_ext_->ext_ed25519_verify(
                 input_data, input_size, sig_data_ptr, pub_key_data_ptr),
-            0);
+            CryptoExtension::kEd25519VerifySuccess);
 }
 
 /**
@@ -379,7 +379,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
 
   ASSERT_EQ(crypto_ext_->ext_ed25519_verify(
                 input_data, input_size, sig_data_ptr, pub_key_data_ptr),
-            5);
+            CryptoExtension::kEd25519VerifyFail);
 }
 
 /**
@@ -402,7 +402,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
 
   ASSERT_EQ(crypto_ext_->ext_sr25519_verify(
                 input_data, input_size, sig_data_ptr, pub_key_data_ptr),
-            0);
+            CryptoExtension::kSr25519VerifySuccess);
 }
 
 /**
@@ -431,7 +431,89 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
 
   ASSERT_EQ(crypto_ext_->ext_sr25519_verify(
                 input_data, input_size, sig_data_ptr, pub_key_data_ptr),
-            5);
+            CryptoExtension::kSr25519VerifyFail);
+}
+
+/**
+ * @given initialized crypto extention without started batch
+ * @when trying to finish batch
+ * @then exception is thrown
+ */
+TEST_F(CryptoExtensionTest, VerificationBatching_FinishWithoutStart) {
+  ASSERT_THROW(crypto_ext_->ext_finish_batch_verify(), std::runtime_error);
+}
+
+/**
+ * @given initialized crypto extention without started batch
+ * @when trying to start batch twice
+ * @then exception is thrown at second call
+ */
+TEST_F(CryptoExtensionTest, VerificationBatching_StartAgainWithoutFinish) {
+  ASSERT_NO_THROW(crypto_ext_->ext_start_batch_verify());
+  ASSERT_THROW(crypto_ext_->ext_start_batch_verify(), std::runtime_error);
+}
+
+/**
+ * @given initialized crypto extention without started batch
+ * @when start batch, check valid signature, and finish batch
+ * @then verification returns positive, batch result is positive too
+ */
+TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndSuccess) {
+  auto pub_key = gsl::span<uint8_t>(sr25519_keypair.public_key);
+  auto valid_signature = Buffer(sr25519_signature);
+
+  WasmPointer input_data = 0;
+  WasmSize input_size = input.size();
+  WasmPointer sig_data_ptr = 42;
+  WasmPointer pub_key_data_ptr = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data_ptr, sr25519_constants::PUBLIC_SIZE))
+      .WillOnce(Return(Buffer(pub_key)));
+  EXPECT_CALL(*memory_, loadN(sig_data_ptr, sr25519_constants::SIGNATURE_SIZE))
+      .WillOnce(Return(valid_signature));
+
+  ASSERT_NO_THROW(crypto_ext_->ext_start_batch_verify());
+
+  WasmSize result_in_place = crypto_ext_->ext_sr25519_verify(
+      input_data, input_size, sig_data_ptr, pub_key_data_ptr);
+  ASSERT_EQ(result_in_place, CryptoExtension::kSr25519VerifySuccess);
+
+  WasmSize final_result;
+  ASSERT_NO_THROW(final_result = crypto_ext_->ext_finish_batch_verify());
+  ASSERT_EQ(final_result, CryptoExtension::kVerifyBatchSuccess);
+}
+
+/**
+ * @given initialized crypto extention without started batch
+ * @when start batch, check valid signature, and finish batch
+ * @then verification returns positive, but batch returns negative result
+ */
+TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndInvalid) {
+  auto pub_key = gsl::span<uint8_t>(sr25519_keypair.public_key);
+  auto invalid_signature = Buffer(sr25519_signature);
+  ++invalid_signature[0];
+
+  WasmPointer input_data = 0;
+  WasmSize input_size = input.size();
+  WasmPointer sig_data_ptr = 42;
+  WasmPointer pub_key_data_ptr = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data_ptr, sr25519_constants::PUBLIC_SIZE))
+      .WillOnce(Return(Buffer(pub_key)));
+  EXPECT_CALL(*memory_, loadN(sig_data_ptr, sr25519_constants::SIGNATURE_SIZE))
+      .WillOnce(Return(invalid_signature));
+
+  ASSERT_NO_THROW(crypto_ext_->ext_start_batch_verify());
+
+  WasmSize result_in_place = crypto_ext_->ext_sr25519_verify(
+      input_data, input_size, sig_data_ptr, pub_key_data_ptr);
+  ASSERT_EQ(result_in_place, CryptoExtension::kSr25519VerifySuccess);
+
+  WasmSize final_result;
+  ASSERT_NO_THROW(final_result = crypto_ext_->ext_finish_batch_verify());
+  ASSERT_EQ(final_result, CryptoExtension::kVerifyBatchFail);
 }
 
 /**

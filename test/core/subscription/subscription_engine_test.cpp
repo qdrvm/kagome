@@ -51,9 +51,12 @@ TEST_F(SubscriptionEngineTest, SubscriberRegistration) {
                                                 SubscriptionTargetMock,
                                                 std::string_view,
                                                 int32_t>>(engine_);
-  subscriber->setCallback([&](auto &, const auto &key, std::string_view data_1, int32_t data_2) {
-    target.test_call(data_1, data_2);
-  });
+  subscriber->setCallback(
+      [&](auto set_id,
+          auto &,
+          const auto &key,
+          std::string_view data_1,
+          int32_t data_2) { target.test_call(data_1, data_2); });
 
   EXPECT_CALL(target, test_call(data_1, data_2));
   const auto id = subscriber->generateSubscriptionSetId();
@@ -78,8 +81,11 @@ TEST_F(SubscriptionEngineTest, NegSubscriberRegistration) {
                                                 SubscriptionTargetMock,
                                                 std::string_view,
                                                 int32_t>>(engine_);
-  subscriber->setCallback(
-      [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
+  subscriber->setCallback([&](auto set_id,
+                              auto &target,
+                              auto &key,
+                              std::string_view data_1,
+                              int32_t data_2) { ASSERT_FALSE(true); });
 
   const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, "100");
@@ -91,7 +97,8 @@ TEST_F(SubscriptionEngineTest, NegSubscriberRegistration) {
 
 /**
  * @given a subscription engine
- * @when we add a subscriber and then make unsubscribe to the other key and make notification
+ * @when we add a subscriber and then make unsubscribe to the other key and make
+ * notification
  * @then we NOT expect subscriber call
  */
 TEST_F(SubscriptionEngineTest, SubUnsub) {
@@ -101,11 +108,14 @@ TEST_F(SubscriptionEngineTest, SubUnsub) {
   int32_t data_2 = 105;
 
   auto subscriber = std::make_shared<Subscriber<std::string_view,
-      SubscriptionTargetMock,
-      std::string_view,
-      int32_t>>(engine_);
-  subscriber->setCallback(
-      [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
+                                                SubscriptionTargetMock,
+                                                std::string_view,
+                                                int32_t>>(engine_);
+  subscriber->setCallback([&](auto set_id,
+                              auto &target,
+                              auto &key,
+                              std::string_view data_1,
+                              int32_t data_2) { ASSERT_FALSE(true); });
 
   const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
@@ -131,11 +141,14 @@ TEST_F(SubscriptionEngineTest, DeleteSub) {
   {
     SubscriptionTargetMock target;
     auto subscriber = std::make_shared<Subscriber<std::string_view,
-        SubscriptionTargetMock,
-        std::string_view,
-        int32_t>>(engine_);
-    subscriber->setCallback(
-        [&](auto &target, auto &key, std::string_view data_1, int32_t data_2) { ASSERT_FALSE(true); });
+                                                  SubscriptionTargetMock,
+                                                  std::string_view,
+                                                  int32_t>>(engine_);
+    subscriber->setCallback([&](auto set_id,
+                                auto &target,
+                                auto &key,
+                                std::string_view data_1,
+                                int32_t data_2) { ASSERT_FALSE(true); });
 
     const auto id = subscriber->generateSubscriptionSetId();
     subscriber->subscribe(id, key);
@@ -160,9 +173,11 @@ TEST_F(SubscriptionEngineTest, MultiSub) {
                                                 std::string_view,
                                                 int32_t>>(engine_);
   subscriber->setCallback(
-      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
-        target.test_call(data_1, data_2);
-      });
+      [&](auto set_id,
+          auto &,
+          auto &key,
+          std::string_view data_1,
+          int32_t data_2) { target.test_call(data_1, data_2); });
 
   EXPECT_CALL(target, test_call(data_1, data_2));
 
@@ -187,13 +202,15 @@ TEST_F(SubscriptionEngineTest, UnsubscribeSub) {
 
   SubscriptionTargetMock target;
   auto subscriber = std::make_shared<Subscriber<std::string_view,
-      SubscriptionTargetMock,
-      std::string_view,
-      int32_t>>(engine_);
+                                                SubscriptionTargetMock,
+                                                std::string_view,
+                                                int32_t>>(engine_);
   subscriber->setCallback(
-      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
-        target.test_call(data_1, data_2);
-      });
+      [&](auto set_id,
+          auto &,
+          auto &key,
+          std::string_view data_1,
+          int32_t data_2) { target.test_call(data_1, data_2); });
 
   EXPECT_CALL(target, test_call(data_1, data_2));
 
@@ -218,13 +235,14 @@ TEST_F(SubscriptionEngineTest, UnsubscribeAllSub) {
 
   SubscriptionTargetMock target;
   auto subscriber = std::make_shared<Subscriber<std::string_view,
-      SubscriptionTargetMock,
-      std::string_view,
-      int32_t>>(engine_);
-  subscriber->setCallback(
-      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
-        ASSERT_FALSE(true);
-      });
+                                                SubscriptionTargetMock,
+                                                std::string_view,
+                                                int32_t>>(engine_);
+  subscriber->setCallback([&](auto set_id,
+                              auto &,
+                              auto &key,
+                              std::string_view data_1,
+                              int32_t data_2) { ASSERT_FALSE(true); });
 
   const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
@@ -247,13 +265,14 @@ TEST_F(SubscriptionEngineTest, UnsubscribeStreamSub) {
 
   SubscriptionTargetMock target;
   auto subscriber = std::make_shared<Subscriber<std::string_view,
-      SubscriptionTargetMock,
-      std::string_view,
-      int32_t>>(engine_);
-  subscriber->setCallback(
-      [&](auto &, auto &key, std::string_view data_1, int32_t data_2) {
-        ASSERT_FALSE(true);
-      });
+                                                SubscriptionTargetMock,
+                                                std::string_view,
+                                                int32_t>>(engine_);
+  subscriber->setCallback([&](auto set_id,
+                              auto &,
+                              auto &key,
+                              std::string_view data_1,
+                              int32_t data_2) { ASSERT_FALSE(true); });
 
   const auto id = subscriber->generateSubscriptionSetId();
   subscriber->subscribe(id, key);
@@ -264,4 +283,3 @@ TEST_F(SubscriptionEngineTest, UnsubscribeStreamSub) {
 
   engine_->notify(key, data_1, data_2);
 }
-

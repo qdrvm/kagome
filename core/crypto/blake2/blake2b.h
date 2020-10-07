@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// taken from here
+// https://github.com/mjosaarinen/blake2_mjosref/blob/master/blake2b.h
+
 #ifndef CORE_BLAKE2B_H
 #define CORE_BLAKE2B_H
 

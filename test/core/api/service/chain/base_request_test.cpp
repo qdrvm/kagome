@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "api/service/chain/requests/base_request.hpp"
+#include "api/service/base_request.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

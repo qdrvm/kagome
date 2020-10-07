@@ -14,6 +14,10 @@ namespace kagome::transaction_pool {
 
   class TransactionPoolMock : public TransactionPool {
    public:
+    MOCK_CONST_METHOD0(getPendingTransactions,
+                       std::unordered_map<Transaction::Hash,
+                                          std::shared_ptr<Transaction>> &());
+
     outcome::result<void> submitOne(Transaction &&tx) {
       return submitOne(tx);
     }

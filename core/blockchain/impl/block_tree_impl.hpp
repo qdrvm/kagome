@@ -20,6 +20,7 @@
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_observer.hpp"
+#include "primitives/event_types.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::blockchain {
@@ -99,7 +100,8 @@ namespace kagome::blockchain {
         std::shared_ptr<BlockStorage> storage,
         const primitives::BlockId &last_finalized_block,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        subscriptions::EventsSubscriptionEnginePtr events_engine);
 
     ~BlockTreeImpl() override = default;
 
@@ -170,7 +172,8 @@ namespace kagome::blockchain {
         std::shared_ptr<TreeNode> tree,
         std::shared_ptr<TreeMeta> meta,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        subscriptions::EventsSubscriptionEnginePtr events_engine);
 
     /**
      * Update local meta with the provided node
@@ -207,6 +210,7 @@ namespace kagome::blockchain {
     std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
+    subscriptions::EventsSubscriptionEnginePtr events_engine_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");
   };
 }  // namespace kagome::blockchain
