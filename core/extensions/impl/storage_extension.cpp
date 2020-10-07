@@ -413,8 +413,7 @@ namespace kagome::extensions {
           batch->put(common::Buffer{key_bytes}, common::Buffer{val});
       if (not put_result) {
         logger_->error(
-            "ext_storage_append_version_1 failed, due to fail in trie db "
-            "with "
+            "ext_storage_append_version_1 failed, due to fail in trie db with "
             "reason: {}",
             put_result.error().message());
       }
