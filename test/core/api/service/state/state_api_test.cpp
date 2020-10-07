@@ -305,7 +305,7 @@ namespace kagome::api {
   /**
    * @given state api
    * @when call getMetadata
-   * @then we recieve correct data
+   * @then we receive correct data
    */
   TEST(StateApiTest, GetMetadata) {
     auto state_api = std::make_shared<StateApiMock>();

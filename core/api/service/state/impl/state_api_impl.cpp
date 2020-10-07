@@ -20,7 +20,7 @@ namespace kagome::api {
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
         runtime_core_{std::move(runtime_core)},
-        metadata_(std::move(metadata)) {
+        metadata_{std::move(metadata)} {
     BOOST_ASSERT(nullptr != block_repo_);
     BOOST_ASSERT(nullptr != storage_);
     BOOST_ASSERT(nullptr != block_tree_);
