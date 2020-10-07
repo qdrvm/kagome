@@ -7,6 +7,7 @@
 
 #include "api/jrpc/jrpc_method.hpp"
 #include "api/service/state/requests/get_keys_paged.hpp"
+#include "api/service/state/requests/get_metadata.hpp"
 #include "api/service/state/requests/get_runtime_version.hpp"
 #include "api/service/state/requests/get_storage.hpp"
 #include "api/service/state/requests/subscribe_storage.hpp"
@@ -39,6 +40,9 @@ namespace kagome::api::state {
 
     server_->registerHandler("state_unsubscribeStorage",
                              Handler<request::UnsubscribeStorage>(api_));
+
+    server_->registerHandler("state_getMetadata",
+                             Handler<request::GetMetadata>(api_));
   }
 
 }  // namespace kagome::api::state
