@@ -128,7 +128,7 @@ namespace kagome::api {
                    std::back_inserter(apis),
                    [](const auto &api) {
                      jArray api_data;
-                     api_data.emplace_back(jString(api.first.toHex()));
+                     api_data.emplace_back(jString("0x" + api.first.toHex()));
                      api_data.emplace_back(makeValue(api.second));
                      return api_data;
                    });
