@@ -110,6 +110,9 @@ namespace kagome::api {
 
   inline jsonrpc::Value makeValue(const primitives::Version &val) {
     using jStruct = jsonrpc::Value::Struct;
+    using jArray = jsonrpc::Value::Array;
+    using jString = jsonrpc::Value::String;
+
     jStruct data;
     data["authoringVersion"] = makeValue(val.authoring_version);
 
@@ -119,7 +122,18 @@ namespace kagome::api {
     data["specVersion"] = makeValue(val.spec_version);
     data["implVersion"] = makeValue(val.impl_version);
 
-    data["apis"] = makeValue(val.apis);
+    jArray apis;
+    std::transform(val.apis.begin(),
+                   val.apis.end(),
+                   std::back_inserter(apis),
+                   [](const auto &api) {
+                     jArray api_data;
+                     api_data.emplace_back(jString(api.first.toHex()));
+                     api_data.emplace_back(makeValue(api.second));
+                     return api_data;
+                   });
+
+    data["apis"] = std::move(apis);
     return std::move(data);
   }
 
