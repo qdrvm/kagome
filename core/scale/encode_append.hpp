@@ -30,6 +30,13 @@ namespace kagome::scale {
    * Adds to scale encoded vector of EncodeOpaqueValue another
    * EncodeOpaqueValue. If current vector is empty, then it is replaced by new
    * EncodeOpaqueValue
+   * In other words what actually happens could be implemented like that:
+   * @code{.cpp}
+   * auto vec = scale::decode<vector<EncodeOpaqueValue>>(self_encoded);
+   * vec.push_back(scale::encode(EncodeOpaqueValue(input));
+   * self_encoded = scale::encode(vec);
+   * @endcode
+   * but actual implementation a bit more optimal
    * @param self_encoded Current encoded vector of EncodeOpaqueValue
    * @param input is a vector, that is encoded as EncodeOpaqueValue and added to
    * @param self_encoded
