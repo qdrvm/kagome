@@ -409,7 +409,7 @@ namespace kagome::extensions {
 
     if (scale::append_or_new_vec(val.toVector(), append_bytes).has_value()) {
       auto batch = storage_provider_->getCurrentBatch();
-      auto &&put_result = batch->put(key_bytes, common::Buffer{val});
+      auto &&put_result = batch->put(key_bytes, std::move(val));
       if (not put_result) {
         logger_->error(
             "ext_storage_append_version_1 failed, due to fail in trie db with "
