@@ -88,7 +88,7 @@ namespace kagome::api {
                 if (auto self = wp.lock()) {
                   jsonrpc::Value::Array out_data;
                   out_data.emplace_back(api::makeValue(key));
-                  out_data.emplace_back(api::makeValue(data));
+                  out_data.emplace_back(api::makeValue(hex_lower_0x(data)));
 
                   /// TODO(iceseer): PRE-475 make event notification depending
                   /// in packs blocks, to batch them in a single message Because
