@@ -404,11 +404,8 @@ namespace kagome::extensions {
     auto key_bytes = memory_->loadN(key_ptr, key_size);
     auto append_bytes = memory_->loadN(append_ptr, append_size);
 
-    common::Buffer val{};
-
-    if (auto &&val_res = get(key_bytes)) {
-      val = std::move(val_res.value());
-    }
+    auto &&val_res = get(key_bytes);
+    auto &&val = val_res ? std::move(val_res.value()) : common::Buffer();
 
     if (scale::append_or_new_vec(val.toVector(), append_bytes).has_value()) {
       auto batch = storage_provider_->getCurrentBatch();

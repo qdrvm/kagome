@@ -48,26 +48,23 @@ namespace kagome::scale {
 
     // If old and new encoded len is equal, we don't need to copy the
     // already encoded data.
-    if (encoded_len == encoded_new_len) {
-      replace_len(self_encoded);
+    if (encoded_len != encoded_new_len) {
+      // reserve place for new len, old vector and new vector
+      self_encoded.reserve(encoded_new_len + (self_encoded.size() - encoded_len)
+                           + opaque_value.v.size());
+
+      // shift encoded new len by one element to give space for new Compact
+      // encoded length
+      const auto shift_size = 1;  // encoded_new_len - encoded_len is always 1
+      BOOST_ASSERT(encoded_new_len - encoded_len == shift_size);
+      self_encoded.resize(self_encoded.size() + shift_size);
+      std::rotate(self_encoded.rbegin(),
+                  self_encoded.rbegin() + 1,
+                  self_encoded.rend());
+    } else {
+      // reserve place for existing and new vector
       self_encoded.reserve(self_encoded.size() + opaque_value.v.size());
-
-      self_encoded.insert(
-          self_encoded.end(), opaque_value.v.begin(), opaque_value.v.end());
-
-      return outcome::success();
     }
-
-    // reserve place for new len, old vector and new vector
-    self_encoded.reserve(encoded_new_len + (self_encoded.size() - encoded_len)
-                         + opaque_value.v.size());
-
-    // shift encoded new len by one element to give space for new Compact
-    // encoded length
-    const auto shift_size = 1;  // encoded_new_len - encoded_len is always 1
-    self_encoded.resize(self_encoded.size() + shift_size);
-    std::rotate(
-        self_encoded.rbegin(), self_encoded.rbegin() + 1, self_encoded.rend());
     replace_len(self_encoded);
     self_encoded.insert(
         self_encoded.end(), opaque_value.v.begin(), opaque_value.v.end());
