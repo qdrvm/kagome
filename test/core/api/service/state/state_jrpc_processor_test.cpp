@@ -26,6 +26,7 @@ class StateJrpcProcessorTest : public testing::Test {
   enum struct CallType {
     kCallType_GetRuntimeVersion = 0,
     kCallType_SubscribeRuntimeVersion,
+    kCallType_UnsubscribeRuntimeVersion,
     kCallType_GetKeysPaged,
     kCallType_GetStorage,
     kCallType_StorageSubscribe,
@@ -54,6 +55,12 @@ class StateJrpcProcessorTest : public testing::Test {
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(
               std::make_pair(CallType::kCallType_SubscribeRuntimeVersion,
+                             CallContext{.handler = f}));
+        }));
+    EXPECT_CALL(*server, registerHandler("state_unsubscribeRuntimeVersion", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(
+              std::make_pair(CallType::kCallType_UnsubscribeRuntimeVersion,
                              CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_getKeysPaged", _))

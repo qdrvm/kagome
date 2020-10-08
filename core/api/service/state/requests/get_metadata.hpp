@@ -19,21 +19,12 @@
 
 namespace kagome::api::state::request {
 
-  struct GetMetadata final : chain::request::RequestType<std::string> {
+  struct GetMetadata final : details::RequestType<std::string> {
    public:
-    using ReturnType = std::string;
-
-    GetMetadata(GetMetadata const &) = delete;
-    GetMetadata &operator=(GetMetadata const &) = delete;
-
-    GetMetadata(GetMetadata &&) = default;
-    GetMetadata &operator=(GetMetadata &&) = default;
-
     explicit GetMetadata(std::shared_ptr<StateApi> api)
         : api_(std::move(api)){};
-    ~GetMetadata() = default;
 
-    outcome::result<ReturnType> execute() {
+    outcome::result<Return> execute() {
       return api_->getMetadata();
     }
 
