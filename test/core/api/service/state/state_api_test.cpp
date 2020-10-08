@@ -6,12 +6,14 @@
 #include <gtest/gtest.h>
 
 #include "api/service/state/impl/state_api_impl.hpp"
+#include "api/service/state/requests/get_metadata.hpp"
 #include "api/service/state/requests/subscribe_storage.hpp"
 #include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/runtime/metadata_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -27,6 +29,7 @@ using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::runtime::CoreMock;
+using kagome::runtime::MetadataMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::TrieStorageMock;
 using testing::_;
@@ -45,8 +48,10 @@ namespace kagome::api {
     auto block_header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     auto block_tree = std::make_shared<BlockTreeMock>();
     auto runtime_core = std::make_shared<CoreMock>();
+    auto metadata = std::make_shared<MetadataMock>();
 
-    api::StateApiImpl api{block_header_repo, storage, block_tree, runtime_core};
+    api::StateApiImpl api{
+        block_header_repo, storage, block_tree, runtime_core, metadata};
 
     EXPECT_CALL(*block_tree, getLastFinalized())
         .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
@@ -79,9 +84,10 @@ namespace kagome::api {
       block_header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
       block_tree_ = std::make_shared<BlockTreeMock>();
       auto runtime_core = std::make_shared<CoreMock>();
+      auto metadata = std::make_shared<MetadataMock>();
 
       api_ = std::make_shared<api::StateApiImpl>(
-          block_header_repo_, storage, block_tree_, runtime_core);
+          block_header_repo_, storage, block_tree_, runtime_core, metadata);
 
       EXPECT_CALL(*block_tree_, getLastFinalized())
           .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
@@ -184,8 +190,10 @@ namespace kagome::api {
     auto block_header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     auto block_tree = std::make_shared<BlockTreeMock>();
     auto runtime_core = std::make_shared<CoreMock>();
+    auto metadata = std::make_shared<MetadataMock>();
 
-    api::StateApiImpl api{block_header_repo, storage, block_tree, runtime_core};
+    api::StateApiImpl api{
+        block_header_repo, storage, block_tree, runtime_core, metadata};
 
     primitives::Version test_version{.spec_name = "dummy_sn",
                                      .impl_name = "dummy_in",
@@ -294,4 +302,23 @@ namespace kagome::api {
                          common::UnhexError::NON_HEX_INPUT);
   }
 
+  /**
+   * @given state api
+   * @when call getMetadata
+   * @then we receive correct data
+   */
+  TEST(StateApiTest, GetMetadata) {
+    auto state_api = std::make_shared<StateApiMock>();
+    auto get_metadata =
+        std::make_shared<api::state::request::GetMetadata>(state_api);
+
+    std::string data = "test_data";
+
+    jsonrpc::Request::Parameters params;
+    EXPECT_CALL(*state_api, getMetadata()).WillOnce(testing::Return(data));
+
+    EXPECT_OUTCOME_SUCCESS(r, get_metadata->init(params));
+    EXPECT_OUTCOME_TRUE(result, get_metadata->execute());
+    ASSERT_EQ(result, data);
+  }
 }  // namespace kagome::api

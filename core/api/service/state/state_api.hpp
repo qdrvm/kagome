@@ -44,6 +44,7 @@ namespace kagome::api {
     virtual outcome::result<uint32_t> subscribeRuntimeVersion() = 0;
     virtual outcome::result<void> unsubscribeRuntimeVersion(
         uint32_t subscription_id) = 0;
+    virtual outcome::result<std::string> getMetadata() = 0;
   };
 
 }  // namespace kagome::api

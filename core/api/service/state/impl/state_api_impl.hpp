@@ -10,6 +10,7 @@
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "runtime/core.hpp"
+#include "runtime/metadata.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::api {
@@ -19,7 +20,8 @@ namespace kagome::api {
     StateApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
                  std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
                  std::shared_ptr<blockchain::BlockTree> block_tree,
-                 std::shared_ptr<runtime::Core> runtime_core);
+                 std::shared_ptr<runtime::Core> runtime_core,
+                 std::shared_ptr<runtime::Metadata> metadata);
 
     void setApiService(
         std::shared_ptr<api::ApiService> const &api_service) override;
@@ -48,6 +50,8 @@ namespace kagome::api {
     outcome::result<void> unsubscribeRuntimeVersion(
         uint32_t subscription_id) override;
 
+    outcome::result<std::string> getMetadata() override;
+
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
@@ -55,6 +59,7 @@ namespace kagome::api {
     std::shared_ptr<runtime::Core> runtime_core_;
 
     std::weak_ptr<api::ApiService> api_service_;
+    std::shared_ptr<runtime::Metadata> metadata_;
   };
 
 }  // namespace kagome::api
