@@ -6,6 +6,7 @@
 #include "scale/scale_encoder_stream.hpp"
 
 #include "common/outcome_throw.hpp"
+#include "scale/compact_len_utils.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/types.hpp"
 
@@ -35,20 +36,6 @@ namespace kagome::scale {
       scale::detail::encodeInteger<uint32_t>(v, out);
     }
 
-    // calculate number of bytes required
-    size_t countBytes(CompactInteger v) {
-      if (0 == v) {
-        return 1;
-      }
-
-      size_t counter = 0;
-      while (v > 0) {
-        ++counter;
-        v >>= 8;
-      }
-
-      return counter;
-    }
     /**
      * @brief compact-encodes CompactInteger
      * @param value source CompactInteger value
@@ -77,7 +64,7 @@ namespace kagome::scale {
       }
 
       // number of bytes required to represent value
-      size_t bigIntLength = countBytes(value);
+      size_t bigIntLength = compact::countBytes(value);
 
       // number of bytes to scale-encode value
       // 1 byte is reserved for header
