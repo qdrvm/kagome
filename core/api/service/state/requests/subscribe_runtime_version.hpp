@@ -6,31 +6,25 @@
 #ifndef KAGOME_API_STATE_REQUEST_SUBSCRIBERUNTIMEVERSION
 #define KAGOME_API_STATE_REQUEST_SUBSCRIBERUNTIMEVERSION
 
-#include <jsonrpc-lean/request.h>
-#include <boost/optional.hpp>
+#include "api/service/base_request.hpp"
 
 #include "api/service/state/state_api.hpp"
-#include "common/buffer.hpp"
-#include "outcome/outcome.hpp"
-#include "primitives/block_id.hpp"
 
 namespace kagome::api::state::request {
 
-  class SubscribeRuntimeVersion final {
-   public:
-    SubscribeRuntimeVersion(const SubscribeRuntimeVersion &) = delete;
-    SubscribeRuntimeVersion &operator=(const SubscribeRuntimeVersion &) =
-        delete;
+  struct SubscribeRuntimeVersion final : details::RequestType<uint32_t> {
+    explicit SubscribeRuntimeVersion(std::shared_ptr<StateApi> &api)
+        : api_(api) {
+      BOOST_ASSERT(api_);
+    }
 
-    SubscribeRuntimeVersion(SubscribeRuntimeVersion &&) = default;
-    SubscribeRuntimeVersion &operator=(SubscribeRuntimeVersion &&) = default;
-
-    explicit SubscribeRuntimeVersion(std::shared_ptr<StateApi> api)
-        : api_(std::move(api)){};
-    ~SubscribeRuntimeVersion() = default;
-
-    outcome::result<void> init(const jsonrpc::Request::Parameters &params);
-    outcome::result<void> execute();
+    outcome::result<Return> execute() override {
+      if (auto result = api_->subscribeRuntimeVersion();
+          not result.has_value()) {
+        return result.as_failure();
+      }
+      return outcome::success();
+    }
 
    private:
     std::shared_ptr<StateApi> api_;

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_EXTRINSIC_REQUEST_PENDING_EXTRINSICS_HPP
-#define KAGOME_CORE_API_SERVICE_EXTRINSIC_REQUEST_PENDING_EXTRINSICS_HPP
+#ifndef KAGOME_API_AUTHOR_REQUEST_PENDINGEXTRINSICS
+#define KAGOME_API_AUTHOR_REQUEST_PENDINGEXTRINSICS
 
-#include <jsonrpc-lean/request.h>
+#include "api/service/base_request.hpp"
+#include "primitives/extrinsic.hpp"
 
 #include "api/service/author/author_api.hpp"
-#include "primitives/extrinsic.hpp"
 
 namespace kagome::api::author::request {
 
@@ -18,14 +18,15 @@ namespace kagome::api::author::request {
    * @see
    * https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#author_pendingextrinsics
    */
-  class PendingExtrinsics final {
+  class PendingExtrinsics final
+      : public details::RequestType<std::vector<primitives::Extrinsic>> {
    public:
     explicit PendingExtrinsics(std::shared_ptr<AuthorApi> api)
         : api_(std::move(api)){};
 
-    outcome::result<void> init(const jsonrpc::Request::Parameters &params);
-
-    outcome::result<std::vector<primitives::Extrinsic>> execute();
+    outcome::result<Return> execute() {
+      return api_->pendingExtrinsics();
+    }
 
    private:
     std::shared_ptr<AuthorApi> api_;
@@ -33,4 +34,4 @@ namespace kagome::api::author::request {
 
 }  // namespace kagome::api::author::request
 
-#endif  // KAGOME_CORE_API_SERVICE_EXTRINSIC_REQUEST_PENDING_EXTRINSICS_HPP
+#endif  // KAGOME_API_AUTHOR_REQUEST_PENDINGEXTRINSICS

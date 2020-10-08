@@ -252,12 +252,13 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<bool> ApiService::unsubscribeNewHeads(int64_t id) {
+  outcome::result<void> ApiService::unsubscribeNewHeads(
+      uint32_t subscription_id) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionExecutionContext &session_context) {
         auto &session = session_context.events_subscription;
-        session->unsubscribe(id);
-        return true;
+        session->unsubscribe(subscription_id);
+        return outcome::success();
       });
     });
   }
@@ -276,6 +277,17 @@ namespace kagome::api {
     }
     throw jsonrpc::InternalErrorFault(
         "Internal error. No session was bound to subscription.");
+  }
+
+  outcome::result<void> ApiService::unsubscribeRuntimeVersion(
+      uint32_t subscription_id) {
+    return for_this_session([&](kagome::api::Session::SessionId tid) {
+      return for_session(tid, [&](SessionExecutionContext &session_context) {
+        auto &session = session_context.events_subscription;
+        session->unsubscribe(subscription_id);
+        return outcome::success();
+      });
+    });
   }
 
   outcome::result<void> ApiService::unsubscribeSessionFromIds(

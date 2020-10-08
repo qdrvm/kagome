@@ -92,15 +92,6 @@ namespace kagome::api {
     return runtime_core_->version(at);
   }
 
-  outcome::result<uint32_t> StateApiImpl::subscribeRuntimeVersion() {
-    if (auto api_service = api_service_.lock()) {
-      return api_service->subscribeRuntimeVersion();
-    }
-
-    throw jsonrpc::InternalErrorFault(
-        "Internal error. Api service not initialized.");
-  }
-
   outcome::result<uint32_t> StateApiImpl::subscribeStorage(
       const std::vector<common::Buffer> &keys) {
     if (auto api_service = api_service_.lock())
@@ -118,4 +109,24 @@ namespace kagome::api {
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
   }
+
+  outcome::result<uint32_t> StateApiImpl::subscribeRuntimeVersion() {
+    if (auto api_service = api_service_.lock()) {
+      return api_service->subscribeRuntimeVersion();
+    }
+
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
+  }
+
+  outcome::result<void> StateApiImpl::unsubscribeRuntimeVersion(
+      uint32_t subscription_id) {
+    if (auto api_service = api_service_.lock()) {
+      return api_service->unsubscribeRuntimeVersion(subscription_id);
+    }
+
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
+  }
+
 }  // namespace kagome::api

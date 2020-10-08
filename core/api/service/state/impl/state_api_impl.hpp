@@ -37,14 +37,16 @@ namespace kagome::api {
         const common::Buffer &key,
         const primitives::BlockHash &at) const override;
 
-    outcome::result<primitives::Version> getRuntimeVersion(
-        const boost::optional<primitives::BlockHash> &at) const override;
-    outcome::result<uint32_t> subscribeRuntimeVersion() override;
-
     outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) override;
     outcome::result<void> unsubscribeStorage(
         const std::vector<uint32_t> &subscription_id) override;
+
+    outcome::result<primitives::Version> getRuntimeVersion(
+        const boost::optional<primitives::BlockHash> &at) const override;
+    outcome::result<uint32_t> subscribeRuntimeVersion() override;
+    outcome::result<void> unsubscribeRuntimeVersion(
+        uint32_t subscription_id) override;
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;

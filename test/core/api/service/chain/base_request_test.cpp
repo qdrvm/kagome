@@ -12,14 +12,14 @@
 using kagome::common::Buffer;
 struct BaseRequestTest : public ::testing::Test {
   struct TestRequestInt32
-      : kagome::api::chain::request::RequestType<int32_t, int32_t> {
+      : kagome::api::details::RequestType<int32_t, int32_t> {
     outcome::result<int32_t> execute() override {
       return 0;
     }
   };
 
   struct TestRequestStr
-      : kagome::api::chain::request::RequestType<int32_t, std::string> {
+      : kagome::api::details::RequestType<int32_t, std::string> {
     outcome::result<int32_t> execute() override {
       return 0;
     }
