@@ -11,16 +11,10 @@
 namespace kagome::scale::compact {
   // calculate number of bytes required
   inline size_t countBytes(CompactInteger v) {
-    if (0 == v) {
-      return 1;
-    }
-
     size_t counter = 0;
-    while (v > 0) {
+    do {
       ++counter;
-      v >>= 8;
-    }
-
+    } while((v >>= 8) != 0);
     return counter;
   }
 

@@ -404,13 +404,15 @@ namespace kagome::extensions {
     auto key_bytes = memory_->loadN(key_ptr, key_size);
     auto append_bytes = memory_->loadN(append_ptr, append_size);
 
-    auto val_res = get(key_bytes);
-    auto val = val_res ? val_res.value().toVector() : std::vector<uint8_t>{};
+    common::Buffer val{};
 
-    if (scale::append_or_new_vec(val, append_bytes).has_value()) {
+    if (auto &&val_res = get(key_bytes)) {
+      val = std::move(val_res.value());
+    }
+
+    if (scale::append_or_new_vec(val.toVector(), append_bytes).has_value()) {
       auto batch = storage_provider_->getCurrentBatch();
-      auto put_result =
-          batch->put(common::Buffer{key_bytes}, common::Buffer{val});
+      auto &&put_result = batch->put(key_bytes, common::Buffer{val});
       if (not put_result) {
         logger_->error(
             "ext_storage_append_version_1 failed, due to fail in trie db with "
