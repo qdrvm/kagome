@@ -7,9 +7,8 @@
 
 #include <forward_list>
 
-#include "primitives/block_id.hpp"
 #include "runtime/wasm_result.hpp"
-#include "storage/changes_trie/impl/changes_trie.hpp"
+#include "scale/encode_append.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
@@ -396,6 +395,29 @@ namespace kagome::extensions {
           enc_res.error().message());
     }
     return kErrorSpan;
+  }
+
+  void StorageExtension::ext_storage_append_version_1(
+      runtime::WasmSpan key_span, runtime::WasmSpan append_span) const {
+    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
+    auto [append_ptr, append_size] = runtime::WasmResult(append_span);
+    auto key_bytes = memory_->loadN(key_ptr, key_size);
+    auto append_bytes = memory_->loadN(append_ptr, append_size);
+
+    auto &&val_res = get(key_bytes);
+    auto &&val = val_res ? std::move(val_res.value()) : common::Buffer();
+
+    if (scale::append_or_new_vec(val.toVector(), append_bytes).has_value()) {
+      auto batch = storage_provider_->getCurrentBatch();
+      auto &&put_result = batch->put(key_bytes, std::move(val));
+      if (not put_result) {
+        logger_->error(
+            "ext_storage_append_version_1 failed, due to fail in trie db with "
+            "reason: {}",
+            put_result.error().message());
+      }
+      return;
+    }
   }
 
   namespace {

@@ -133,6 +133,11 @@ namespace kagome::extensions {
     return storage_ext_.ext_storage_next_key_version_1(key);
   }
 
+  void ExtensionImpl::ext_storage_append_version_1(
+      runtime::WasmSpan key, runtime::WasmSpan value) const {
+    return storage_ext_.ext_storage_append_version_1(key, value);
+  }
+
   void ExtensionImpl::ext_storage_set_version_1(runtime::WasmSpan key,
                                                 runtime::WasmSpan value) {
     return storage_ext_.ext_storage_set_version_1(key, value);
@@ -376,6 +381,10 @@ namespace kagome::extensions {
   runtime::WasmResult ExtensionImpl::ext_misc_runtime_version_version_1(
       runtime::WasmSpan data) const {
     return misc_ext_.ext_misc_runtime_version_version_1(data);
+  }
+
+  void ExtensionImpl::ext_misc_print_utf8_version_1(runtime::WasmSpan data) const {
+    return misc_ext_.ext_misc_print_utf8_version_1(data);
   }
 
   runtime::WasmSpan ExtensionImpl::ext_crypto_secp256k1_ecdsa_recover_v1(

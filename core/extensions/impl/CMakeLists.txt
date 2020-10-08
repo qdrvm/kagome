@@ -58,5 +58,6 @@ target_link_libraries(storage_extension
     blob
     logger
     ordered_trie_hash
+    scale_encode_append
     )
 kagome_install(storage_extension)

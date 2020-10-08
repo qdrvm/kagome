@@ -22,7 +22,7 @@ namespace kagome::scale {
   using CompactInteger = boost::multiprecision::cpp_int;
 
   /// @brief OptionalBool is internal extended bool type
-  enum class OptionalBool : uint8_t { NONE = 0u, FALSE = 1u, TRUE = 2u };
+  enum class OptionalBool : uint8_t { NONE = 0u, TRUE = 1u, FALSE = 2u };
 }  // namespace kagome::scale
 
 namespace kagome::scale::compact {
