@@ -33,15 +33,21 @@ namespace kagome::api {
         getStorage,
         outcome::result<common::Buffer>(const common::Buffer &key,
                                         const primitives::BlockHash &at));
-    MOCK_CONST_METHOD1(getRuntimeVersion,
-                       outcome::result<primitives::Version>(
-                           boost::optional<primitives::BlockHash> const &at));
+
     MOCK_METHOD1(
         subscribeStorage,
         outcome::result<uint32_t>(std::vector<common::Buffer> const &keys));
     MOCK_METHOD1(
         unsubscribeStorage,
         outcome::result<void>(const std::vector<uint32_t> &subscription_id));
+
+    MOCK_CONST_METHOD1(getRuntimeVersion,
+                       outcome::result<primitives::Version>(
+                           boost::optional<primitives::BlockHash> const &at));
+    MOCK_METHOD0(subscribeRuntimeVersion, outcome::result<uint32_t>());
+    MOCK_METHOD1(unsubscribeRuntimeVersion,
+                 outcome::result<void>(uint32_t subscription_id));
+
     MOCK_METHOD0(getMetadata, outcome::result<std::string>());
   };
 }  // namespace kagome::api

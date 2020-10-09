@@ -10,15 +10,12 @@
 
 namespace kagome::api::chain::request {
 
-  struct UnsubscribeNewHeads final : RequestType<bool, int64_t> {
-    using ReturnType = bool;
-    using BaseType = RequestType<ReturnType>;
-
+  struct UnsubscribeNewHeads final : details::RequestType<void, uint32_t> {
     explicit UnsubscribeNewHeads(std::shared_ptr<ChainApi> &api) : api_(api) {
       BOOST_ASSERT(api_);
     }
 
-    outcome::result<ReturnType> execute() override {
+    outcome::result<Return> execute() override {
       return api_->unsubscribeNewHeads(getParam<0>());
     }
 

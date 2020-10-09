@@ -28,6 +28,12 @@ namespace kagome::api {
     BOOST_ASSERT(nullptr != metadata_);
   }
 
+  void StateApiImpl::setApiService(
+      std::shared_ptr<api::ApiService> const &api_service) {
+    BOOST_ASSERT(api_service != nullptr);
+    api_service_ = api_service;
+  }
+
   outcome::result<std::vector<common::Buffer>> StateApiImpl::getKeysPaged(
       const boost::optional<common::Buffer> &prefix_opt,
       uint32_t keys_amount,
@@ -90,12 +96,6 @@ namespace kagome::api {
     return runtime_core_->version(at);
   }
 
-  void StateApiImpl::setApiService(
-      std::shared_ptr<api::ApiService> const &api_service) {
-    BOOST_ASSERT(api_service != nullptr);
-    api_service_ = api_service;
-  }
-
   outcome::result<uint32_t> StateApiImpl::subscribeStorage(
       const std::vector<common::Buffer> &keys) {
     if (auto api_service = api_service_.lock())
@@ -109,6 +109,25 @@ namespace kagome::api {
       const std::vector<uint32_t> &subscription_id) {
     if (auto api_service = api_service_.lock())
       return api_service->unsubscribeSessionFromIds(subscription_id);
+
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
+  }
+
+  outcome::result<uint32_t> StateApiImpl::subscribeRuntimeVersion() {
+    if (auto api_service = api_service_.lock()) {
+      return api_service->subscribeRuntimeVersion();
+    }
+
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
+  }
+
+  outcome::result<void> StateApiImpl::unsubscribeRuntimeVersion(
+      uint32_t subscription_id) {
+    if (auto api_service = api_service_.lock()) {
+      return api_service->unsubscribeRuntimeVersion(subscription_id);
+    }
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");

@@ -133,6 +133,8 @@ namespace kagome::api {
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
     boost::beast::flat_buffer wbuffer_;  ///< write buffer
 
+    std::atomic_bool writing_in_progress_ = false;
+
     SessionId const id_;
     common::Logger logger_ =
         common::createLogger("websocket session");  ///< logger instance

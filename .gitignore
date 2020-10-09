@@ -43,3 +43,4 @@ ninja_build_release
 _builds
 _logs
 _build
+examples/network/ldb*

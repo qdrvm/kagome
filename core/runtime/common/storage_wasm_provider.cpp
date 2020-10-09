@@ -14,8 +14,7 @@ namespace kagome::runtime {
 
     last_state_root_ = storage_->getRootHash();
     auto batch = storage_->getEphemeralBatch();
-    BOOST_ASSERT_MSG(batch.has_value(),
-                     "Error getting a batch of the storage");
+    BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
     auto state_code_res = batch.value()->get(kRuntimeKey);
     BOOST_ASSERT_MSG(state_code_res.has_value(),
                      "Runtime code does not exist in the storage");
@@ -30,8 +29,7 @@ namespace kagome::runtime {
     last_state_root_ = current_state_root;
 
     auto batch = storage_->getEphemeralBatch();
-    BOOST_ASSERT_MSG(batch.has_value(),
-                     "Error getting a batch of the storage");
+    BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
     auto state_code_res = batch.value()->get(kRuntimeKey);
     BOOST_ASSERT_MSG(state_code_res.has_value(),
                      "Runtime code does not exist in the storage");
