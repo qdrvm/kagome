@@ -8,7 +8,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
 
 #include "primitives/version.hpp"
 #include "subscription/subscriber.hpp"
@@ -41,7 +40,7 @@ namespace kagome::subscriptions {
   using EventsSubscribedSessionType = subscription::Subscriber<
       primitives::SubscriptionEventType,
       std::shared_ptr<api::Session>,
-      boost::variant<std::reference_wrapper<std::nullopt_t>,
+      boost::variant<std::reference_wrapper<boost::none_t>,
                      std::reference_wrapper<primitives::BlockHeader>,
                      std::reference_wrapper<primitives::Version>>>;
   using EventsSubscribedSessionPtr =
@@ -50,7 +49,7 @@ namespace kagome::subscriptions {
   using EventsSubscriptionEngineType = subscription::SubscriptionEngine<
       primitives::SubscriptionEventType,
       std::shared_ptr<api::Session>,
-      boost::variant<std::reference_wrapper<std::nullopt_t>,
+      boost::variant<std::reference_wrapper<boost::none_t>,
                      std::reference_wrapper<primitives::BlockHeader>,
                      std::reference_wrapper<primitives::Version>>>;
   using EventsSubscriptionEnginePtr =
