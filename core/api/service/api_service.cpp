@@ -264,19 +264,15 @@ namespace kagome::api {
   }
 
   outcome::result<uint32_t> ApiService::subscribeRuntimeVersion() {
-    if (auto session_id = threaded_info.fetchSessionId(); session_id) {
-      if (auto session_context = findSessionById(*session_id)) {
-        auto &session = session_context->events_subscription;
+    return for_this_session([&](kagome::api::Session::SessionId tid) {
+      return for_session(tid, [&](SessionExecutionContext &session_context) {
+        auto &session = session_context.events_subscription;
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
                            primitives::SubscriptionEventType::kRuntimeVersion);
-        return static_cast<uint32_t>(id);
-      }
-      throw jsonrpc::InternalErrorFault(
-          "Internal error. No session was stored for subscription.");
-    }
-    throw jsonrpc::InternalErrorFault(
-        "Internal error. No session was bound to subscription.");
+        return outcome::success();
+      });
+    });
   }
 
   outcome::result<void> ApiService::unsubscribeRuntimeVersion(

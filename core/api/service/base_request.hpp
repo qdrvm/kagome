@@ -25,21 +25,6 @@ namespace kagome::api::details {
     }
   }
 
-#pragma push_macro("KAGOME_LOAD_VALUE")
-#undef KAGOME_LOAD_VALUE
-
-#define KAGOME_LOAD_VALUE(type)                                           \
-  void loadValue(boost::optional<type> &dst, const jsonrpc::Value &src) { \
-    if (!src.IsNil()) {                                                   \
-      type t;                                                             \
-      loadValue(t, src);                                                  \
-      dst = std::move(t);                                                 \
-    } else {                                                              \
-      dst = boost::none;                                                  \
-    }                                                                     \
-  }                                                                       \
-  void loadValue(type &dst, const jsonrpc::Value &src)
-
   template <typename ResultType, typename... ArgumentTypes>
   struct RequestType {
    public:
@@ -82,7 +67,7 @@ namespace kagome::api::details {
     }
 
    private:
-    template <typename T, typename = std::enable_if<std::is_integral_v<T>>>
+    template <typename T>
     void loadValue(boost::optional<T> &dst, const jsonrpc::Value &src) {
       if (!src.IsNil()) {
         T t;
@@ -95,8 +80,9 @@ namespace kagome::api::details {
 
     template <typename T, typename = std::enable_if<std::is_integral_v<T>>>
     void loadValue(T &dst, const jsonrpc::Value &src) {
-      if (!src.IsInteger32() and !src.IsInteger64())
+      if (not src.IsInteger32() and not src.IsInteger64()) {
         throw jsonrpc::InvalidParametersFault("invalid argument type");
+      }
 
       auto num = src.AsInteger64();
       if (num < std::numeric_limits<T>::min()
@@ -106,27 +92,20 @@ namespace kagome::api::details {
       dst = num;
     }
 
-    KAGOME_LOAD_VALUE(bool) {
-      if (src.IsBoolean()) {
-        dst = src.AsBoolean();
-      } else if (src.IsInteger32() or src.IsInteger64()) {
-        auto num = src.AsInteger64();
-        if (num & ~1) {
-          throw jsonrpc::InvalidParametersFault("invalid argument value");
-        }
-        dst = num;
+    void loadValue(bool &dst, const jsonrpc::Value &src) {
+      if (not src.IsBoolean()) {
+        throw jsonrpc::InvalidParametersFault("invalid argument type");
       }
-      throw jsonrpc::InvalidParametersFault("invalid argument type");
+      dst = src.AsBoolean();
     }
 
-    KAGOME_LOAD_VALUE(std::string) {
-      if (!src.IsString())
-        throw jsonrpc::InvalidParametersFault("invalid argument");
-
+    void loadValue(std::string &dst, const jsonrpc::Value &src) {
+      if (not src.IsString()) {
+        throw jsonrpc::InvalidParametersFault("invalid argument type");
+      }
       dst = src.AsString();
     }
   };
-#pragma pop_macro("KAGOME_LOAD_VALUE")
 
 }  // namespace kagome::api::details
 
