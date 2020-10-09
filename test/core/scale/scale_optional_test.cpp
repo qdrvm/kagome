@@ -147,7 +147,7 @@ TEST(ScaleTest, EncodeOptionalBoolSuccess) {
   for (auto &&v : values) {
     ASSERT_NO_THROW((s << v));
   }
-  ASSERT_EQ(s.data(), (ByteArray{2, 1, 0}));
+  ASSERT_EQ(s.data(), (ByteArray{1, 2, 0}));
 }
 
 /**
@@ -189,7 +189,7 @@ TEST(Scale, DecodeOptionalBoolSuccess) {
 
   EXPECT_OUTCOME_TRUE(res, decode<FourOptBools>(bytes))
   ASSERT_EQ(res.b1, boost::none);
-  ASSERT_EQ(res.b2, optbool(false));
-  ASSERT_EQ(res.b3, optbool(true));
-  ASSERT_EQ(res.b4 , optbool(false));
+  ASSERT_EQ(res.b2, optbool(true));
+  ASSERT_EQ(res.b3, optbool(false));
+  ASSERT_EQ(res.b4 , optbool(true));
 }

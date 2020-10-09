@@ -82,6 +82,12 @@ namespace kagome::extensions {
 
     void ext_storage_root(runtime::WasmPointer result) const override;
 
+    void ext_storage_start_transaction() override;
+
+    void ext_storage_rollback_transaction() override;
+
+    void ext_storage_commit_transaction() override;
+
     // ------------------------ Storage extensions v1 ------------------------
 
     void ext_storage_set_version_1(runtime::WasmSpan key,
@@ -103,6 +109,9 @@ namespace kagome::extensions {
 
     runtime::WasmSpan ext_storage_next_key_version_1(
         runtime::WasmSpan key) const override;
+
+    void ext_storage_append_version_1(runtime::WasmSpan key,
+                                      runtime::WasmSpan value) const override;
 
     runtime::WasmPointer ext_trie_blake2_256_root_version_1(
         runtime::WasmSpan values_data) override;
@@ -146,6 +155,10 @@ namespace kagome::extensions {
     void ext_keccak_256(runtime::WasmPointer data,
                         runtime::WasmSize len,
                         runtime::WasmPointer out) override;
+
+    void ext_start_batch_verify() override;
+
+    runtime::WasmSize ext_finish_batch_verify() override;
 
     runtime::WasmSize ext_ed25519_verify(
         runtime::WasmPointer msg_data,
@@ -232,6 +245,8 @@ namespace kagome::extensions {
 
     runtime::WasmResult ext_misc_runtime_version_version_1(
         runtime::WasmSpan data) const override;
+
+    void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const override;
 
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;

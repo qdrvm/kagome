@@ -9,6 +9,7 @@
 #include <jsonrpc-lean/dispatcher.h>
 #include <jsonrpc-lean/response.h>
 #include <jsonrpc-lean/value.h>
+#include <outcome/outcome.hpp>
 
 #include <functional>
 
@@ -32,17 +33,26 @@ namespace kagome::api {
     virtual void registerHandler(const std::string &name, Method method) = 0;
 
     /**
+     * @return name of handlers
+     */
+    virtual std::vector<std::string> getHandlerNames() = 0;
+
+    /**
      * Response callback type
      */
     using ResponseHandler = std::function<void(const std::string &)>;
+    using FormatterHandler =
+        std::function<void(outcome::result<std::string_view>)>;
 
     /**
      * @brief creates valid jsonrpc response
+     * @param method_name is a name of the method in jsonrpc call
      * @param from is a data source
      * @param cb callback
      */
-    virtual void processJsonData(const jsonrpc::Value &from,
-                                 const ResponseHandler &cb) = 0;
+    virtual void processJsonData(std::string method_name,
+                                 const jsonrpc::Request::Parameters &from,
+                                 const FormatterHandler &cb) = 0;
 
     /**
      * @brief handles decoded network message

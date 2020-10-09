@@ -16,6 +16,8 @@
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
+#include "api/service/rpc/rpc_jrpc_processor.hpp"
+#include "api/service/rpc/impl/rpc_api_impl.hpp"
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/state_jrpc_processor.hpp"
 #include "api/service/system/impl/system_api_impl.hpp"
@@ -141,6 +143,10 @@ namespace kagome::injector {
                                          primitives::BlockHash>>;
     auto subscription_engine =
         injector.template create<SubscriptionEnginePtr>();
+
+    auto events_engine =
+        injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
+
     auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
@@ -159,7 +165,9 @@ namespace kagome::injector {
         injector
             .template create<std::shared_ptr<api::chain::ChainJrpcProcessor>>(),
         injector.template create<
-            std::shared_ptr<api::system::SystemJrpcProcessor>>()};
+            std::shared_ptr<api::system::SystemJrpcProcessor>>(),
+        injector.template create<
+            std::shared_ptr<api::rpc::RpcJRpcProcessor>>()};
 
     initialized =
         std::make_shared<api::ApiService>(std::move(app_state_manager),
@@ -167,10 +175,15 @@ namespace kagome::injector {
                                           std::move(listeners),
                                           std::move(server),
                                           processors,
-                                          std::move(subscription_engine));
+                                          std::move(subscription_engine),
+                                          std::move(events_engine));
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());
+
+    auto chain_api = injector.template create<std::shared_ptr<api::ChainApi>>();
+    chain_api->setApiService(initialized.value());
+
     return initialized.value();
   }
 
@@ -316,12 +329,16 @@ namespace kagome::injector {
 
     auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
+    auto &&events_engine =
+        injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
+
     auto &&tree =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
                                           storage,
                                           block_id,
                                           std::move(extrinsic_observer),
-                                          std::move(hasher));
+                                          std::move(hasher),
+                                          std::move(events_engine));
     if (!tree) {
       common::raise(tree.error());
     }
@@ -509,7 +526,7 @@ namespace kagome::injector {
       if (peer_info.id != current_peer_info.id) {
         res->clients.emplace_back(
             std::make_shared<network::RemoteSyncProtocolClient>(
-                *host, std::move(peer_info), std::move(configuration_storage)));
+                *host, std::move(peer_info), configuration_storage));
       } else {
         res->clients.emplace_back(
             std::make_shared<network::DummySyncProtocolClient>());
@@ -644,6 +661,7 @@ namespace kagome::injector {
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
+        di::bind<api::RpcApi>.template to<api::RpcApiImpl>(),
         di::bind<api::ApiService>.to([](const auto &injector) {
           return get_jrpc_api_service(injector);
         }),

@@ -7,9 +7,8 @@
 
 #include <forward_list>
 
-#include "primitives/block_id.hpp"
 #include "runtime/wasm_result.hpp"
-#include "storage/changes_trie/impl/changes_trie.hpp"
+#include "scale/encode_append.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
@@ -131,7 +130,7 @@ namespace kagome::extensions {
 
     auto key = memory_->loadN(key_ptr, key_size);
     boost::optional<uint32_t> res{boost::none};
-    if (const auto& data_res = get(key); data_res) {
+    if (const auto &data_res = get(key); data_res) {
       auto data = gsl::make_span(data_res.value());
       auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
@@ -237,6 +236,33 @@ namespace kagome::extensions {
     }
     const auto &root = res.value();
     memory_->storeBuffer(result, root);
+  }
+
+  void StorageExtension::ext_storage_start_transaction() {
+    auto res = storage_provider_->startTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction start has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
+    }
+  }
+
+  void StorageExtension::ext_storage_rollback_transaction() {
+    auto res = storage_provider_->rollbackTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction rollback has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
+    }
+  }
+
+  void StorageExtension::ext_storage_commit_transaction() {
+    auto res = storage_provider_->commitTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction commit has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
+    }
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
@@ -360,7 +386,7 @@ namespace kagome::extensions {
                      res.error().message());
       return kErrorSpan;
     }
-    auto && next_key_opt = res.value();
+    auto &&next_key_opt = res.value();
     if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
       return memory_->storeBuffer(enc_res.value());
     } else {  // NOLINT(readability-else-after-return)
@@ -369,6 +395,29 @@ namespace kagome::extensions {
           enc_res.error().message());
     }
     return kErrorSpan;
+  }
+
+  void StorageExtension::ext_storage_append_version_1(
+      runtime::WasmSpan key_span, runtime::WasmSpan append_span) const {
+    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
+    auto [append_ptr, append_size] = runtime::WasmResult(append_span);
+    auto key_bytes = memory_->loadN(key_ptr, key_size);
+    auto append_bytes = memory_->loadN(append_ptr, append_size);
+
+    auto &&val_res = get(key_bytes);
+    auto &&val = val_res ? std::move(val_res.value()) : common::Buffer();
+
+    if (scale::append_or_new_vec(val.toVector(), append_bytes).has_value()) {
+      auto batch = storage_provider_->getCurrentBatch();
+      auto &&put_result = batch->put(key_bytes, std::move(val));
+      if (not put_result) {
+        logger_->error(
+            "ext_storage_append_version_1 failed, due to fail in trie db with "
+            "reason: {}",
+            put_result.error().message());
+      }
+      return;
+    }
   }
 
   namespace {

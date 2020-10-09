@@ -10,8 +10,8 @@
 #include <functional>
 
 #include "runtime/types.hpp"
-#include "runtime/wasm_result.hpp"
 #include "runtime/wasm_memory.hpp"
+#include "runtime/wasm_result.hpp"
 
 namespace kagome::extensions {
   /**
@@ -144,6 +144,21 @@ namespace kagome::extensions {
      */
     virtual void ext_storage_root(runtime::WasmPointer result) const = 0;
 
+    /**
+     * @brief Starts new (possible is nested) transaction
+     */
+    virtual void ext_storage_start_transaction() = 0;
+
+    /**
+     * @brief Rollback last started transaction
+     */
+    virtual void ext_storage_rollback_transaction() = 0;
+
+    /**
+     * @brief Commit last started transaction
+     */
+    virtual void ext_storage_commit_transaction() = 0;
+
     // ------------------------ Storage extensions v1 ------------------------
 
     /**
@@ -208,6 +223,19 @@ namespace kagome::extensions {
      */
     virtual runtime::WasmSpan ext_storage_next_key_version_1(
         runtime::WasmSpan key) const = 0;
+
+    /**
+     * Appends the scale encoded value to the scale encoded storage item at the
+     * given key
+     * @param key memory span containing key
+     * @param value memory span containing value that should be appended to
+     * storage item under the @param key
+     *
+     * @note This assumes specific format of the storage item. Also there is no
+     * way to undo this operation.
+     */
+    virtual void ext_storage_append_version_1(
+        runtime::WasmSpan key, runtime::WasmSpan value) const = 0;
 
     /**
      * Conducts a 256-bit Blake2 trie root formed from the iterated items.
@@ -324,6 +352,23 @@ namespace kagome::extensions {
     virtual void ext_keccak_256(runtime::WasmPointer data,
                                 runtime::WasmSize len,
                                 runtime::WasmPointer out) = 0;
+
+    /**
+     * @brief Starts the verification extension. The extension is a separate
+     * background process and is used to parallel-verify signatures which are
+     * pushed to the batch with ext_crypto_.._verify
+     */
+    virtual void ext_start_batch_verify() = 0;
+
+    /**
+     * @brief Finish verifying the batch of signatures since the last call to
+     * this function. Blocks until all the signatures are verified.
+     * @throws runtime_error if no verification extension is registered
+     * (ext_crypto_start_batch_verify (E.3.15) tchwas not called.)
+     * @returns an i32 integer value equal to 1 if all the signatures are valid
+     * or a value equal to 0 if one or more of the signatures are invalid.
+     */
+    virtual runtime::WasmSize ext_finish_batch_verify() = 0;
 
     /**
      * Verify the signature over the ed25519 message
@@ -489,6 +534,9 @@ namespace kagome::extensions {
     virtual uint64_t ext_chain_id() const = 0;
 
     virtual runtime::WasmResult ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const = 0;
+
+    virtual void ext_misc_print_utf8_version_1(
         runtime::WasmSpan data) const = 0;
   };
 }  // namespace kagome::extensions

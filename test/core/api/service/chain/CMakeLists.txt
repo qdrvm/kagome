@@ -13,6 +13,7 @@ target_link_libraries(chain_api_test
     api_jrpc_server
     api_transport
     blob
+    state_api_service
     )
 
 addtest(base_request_test

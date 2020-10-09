@@ -112,7 +112,8 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage,
       const primitives::BlockId &last_finalized_block,
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
-      std::shared_ptr<crypto::Hasher> hasher) {
+      std::shared_ptr<crypto::Hasher> hasher,
+      subscriptions::EventsSubscriptionEnginePtr events_engine) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
     // create meta structures from the retrieved header
@@ -127,7 +128,8 @@ namespace kagome::blockchain {
                              std::move(tree),
                              std::move(meta),
                              std::move(extrinsic_observer),
-                             std::move(hasher)};
+                             std::move(hasher),
+                             std::move(events_engine)};
     return std::make_shared<BlockTreeImpl>(std::move(block_tree));
   }
 
@@ -137,13 +139,17 @@ namespace kagome::blockchain {
       std::shared_ptr<TreeNode> tree,
       std::shared_ptr<TreeMeta> meta,
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      subscriptions::EventsSubscriptionEnginePtr events_engine)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
         extrinsic_observer_{std::move(extrinsic_observer)},
-        hasher_{std::move(hasher)} {}
+        hasher_{std::move(hasher)},
+        events_engine_(std::move(events_engine)) {
+    BOOST_ASSERT(events_engine_);
+  }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
       const primitives::BlockHeader &header) {
@@ -255,7 +261,10 @@ namespace kagome::blockchain {
     tree_->parent.reset();
 
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
+    OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
 
+    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads,
+                           header);
     log_->info(
         "Finalized block number {} with hash {}", node->depth, block.toHex());
     return outcome::success();

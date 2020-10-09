@@ -17,6 +17,7 @@
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "primitives/common.hpp"
+#include "primitives/event_types.hpp"
 #include "subscription/subscriber.hpp"
 
 namespace kagome::api {
@@ -43,6 +44,11 @@ namespace kagome::api {
                                          primitives::BlockHash>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
+    struct SessionExecutionContext {
+      SubscribedSessionPtr storage_subscription;
+      subscriptions::EventsSubscribedSessionPtr events_subscription;
+    };
+
    public:
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -59,7 +65,8 @@ namespace kagome::api {
         std::vector<std::shared_ptr<Listener>> listeners,
         std::shared_ptr<JRpcServer> server,
         const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
-        SubscriptionEnginePtr subscription_engine);
+        SubscriptionEnginePtr subscription_engine,
+        subscriptions::EventsSubscriptionEnginePtr events_engine);
 
     virtual ~ApiService() = default;
 
@@ -78,11 +85,24 @@ namespace kagome::api {
     outcome::result<void> unsubscribeSessionFromIds(
         const std::vector<uint32_t> &subscription_id);
 
+    outcome::result<uint32_t> subscribeNewHeads();
+    outcome::result<bool> unsubscribeNewHeads(int64_t id);
+
    private:
-    SubscribedSessionPtr findSessionById(Session::SessionId id);
+    boost::optional<SessionExecutionContext> findSessionById(
+        Session::SessionId id);
     void removeSessionById(Session::SessionId id);
-    SubscribedSessionPtr storeSessionWithId(
+    SessionExecutionContext storeSessionWithId(
         Session::SessionId id, const std::shared_ptr<Session> &session);
+
+    template <typename Func>
+    auto for_session(kagome::api::Session::SessionId id, Func &&f) {
+      if (auto session_context = findSessionById(id))
+        return std::forward<Func>(f)(*session_context);
+
+      throw jsonrpc::InternalErrorFault(
+          "Internal error. No session was stored for subscription.");
+    }
 
    private:
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
@@ -91,9 +111,13 @@ namespace kagome::api {
     common::Logger logger_;
 
     std::mutex subscribed_sessions_cs_;
-    std::unordered_map<Session::SessionId, SubscribedSessionPtr>
+    std::unordered_map<Session::SessionId, SessionExecutionContext>
         subscribed_sessions_;
-    SubscriptionEnginePtr subscription_engine_;
+
+    struct {
+      SubscriptionEnginePtr storage;
+      subscriptions::EventsSubscriptionEnginePtr events;
+    } subscription_engines_;
   };
 }  // namespace kagome::api
 

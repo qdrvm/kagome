@@ -57,4 +57,11 @@ namespace kagome::extensions {
     return runtime::WasmResult{memory_->storeBuffer(error_res)};
   }
 
+  void MiscExtension::ext_misc_print_utf8_version_1(
+      runtime::WasmSpan data) const {
+    auto [ptr, len] = runtime::splitSpan(data);
+    auto buf = memory_->loadN(ptr, len);
+    logger_->info("{}", buf.toString());
+  }
+
 }  // namespace kagome::extensions

@@ -29,6 +29,12 @@ namespace kagome::api {
     return block_repo_->getHashByNumber(value);
   }
 
+  void ChainApiImpl::setApiService(
+      std::shared_ptr<api::ApiService> const &api_service) {
+    BOOST_ASSERT(api_service != nullptr);
+    api_service_ = api_service;
+  }
+
   outcome::result<BlockHash> ChainApiImpl::getBlockHash(
       std::string_view value) const {
     // despite w3f specification says, that request contains 32-bit
@@ -56,6 +62,22 @@ namespace kagome::api {
     }
 
     return results;
+  }
+
+  outcome::result<bool> ChainApiImpl::unsubscribeNewHeads(int64_t id) {
+    if (auto api_service = api_service_.lock())
+      return api_service->unsubscribeNewHeads(id);
+
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
+  }
+
+  outcome::result<uint32_t> ChainApiImpl::subscribeNewHeads() {
+    if (auto api_service = api_service_.lock())
+      return api_service->subscribeNewHeads();
+
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
   }
 
 }  // namespace kagome::api
