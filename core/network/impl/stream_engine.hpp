@@ -39,12 +39,6 @@ namespace kagome::network {
     using ProtocolMap = std::unordered_map<Protocol, SubscriberPtr>;
     using PeerMap = std::unordered_map<PeerInfo, ProtocolMap>;
 
-    explicit StreamEngine(Host &host)
-        : host_{host},
-          reserved_streams_engine_{std::make_shared<SubscriptionEngine>()},
-          syncing_streams_engine_{std::make_shared<SubscriptionEngine>()},
-          logger_{common::createLogger("StreamEngine")} {}
-
    public:
     StreamEngine(const StreamEngine &) = delete;
     StreamEngine &operator=(const StreamEngine &) = delete;
@@ -53,6 +47,11 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = default;
 
     ~StreamEngine() = default;
+    explicit StreamEngine(Host &host)
+        : host_{host},
+          reserved_streams_engine_{std::make_shared<SubscriptionEngine>()},
+          syncing_streams_engine_{std::make_shared<SubscriptionEngine>()},
+          logger_{common::createLogger("StreamEngine")} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&... args) {
@@ -142,6 +141,11 @@ namespace kagome::network {
                               }
                             });
           });
+    }
+
+    template <typename T>
+    void broadcast(const Protocol &protocol, T &&msg) {
+      // syncing_streams_engine_->notify(protocol, msg);
     }
 
     uint32_t count() const {

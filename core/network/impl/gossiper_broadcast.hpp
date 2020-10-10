@@ -69,10 +69,11 @@ namespace kagome::network {
     uint32_t getActiveStreamNumber() override;
 
    private:
-    void send(const libp2p::peer::PeerId &peer_id, const libp2p::peer::Protocol &protocol, GossipMessage &&msg);
-    void broadcast(GossipMessage &&msg);
+    void send(const libp2p::peer::PeerId &peer_id,
+              const libp2p::peer::Protocol &protocol,
+              GossipMessage &&msg);
+    void broadcast(const libp2p::peer::Protocol &protocol, GossipMessage &&msg);
 
-    libp2p::Host &host_;
     common::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
   };
