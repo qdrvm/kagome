@@ -31,12 +31,7 @@ namespace kagome::network {
     enum ReservedStreamSetId { kLoopback = 1, kRemote };
 
    private:
-    using SubscriptionEngine =
-        subscription::SubscriptionEngine<Protocol, std::shared_ptr<Stream>>;
-    using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngine>;
-    using SubscriberType = SubscriptionEngine::SubscriberType;
-    using SubscriberPtr = std::shared_ptr<SubscriberType>;
-    using ProtocolMap = std::unordered_map<Protocol, SubscriberPtr>;
+    using ProtocolMap = std::unordered_map<Protocol, std::shared_ptr<Stream>>;
     using PeerMap = std::unordered_map<PeerInfo, ProtocolMap>;
 
    public:
@@ -48,10 +43,7 @@ namespace kagome::network {
 
     ~StreamEngine() = default;
     explicit StreamEngine(Host &host)
-        : host_{host},
-          reserved_streams_engine_{std::make_shared<SubscriptionEngine>()},
-          syncing_streams_engine_{std::make_shared<SubscriptionEngine>()},
-          logger_{common::createLogger("StreamEngine")} {}
+        : host_{host}, logger_{common::createLogger("StreamEngine")} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&... args) {
@@ -63,15 +55,9 @@ namespace kagome::network {
                      ReservedStreamSetId stream_set_id,
                      std::shared_ptr<Stream> stream) {
       BOOST_ASSERT(!protocol.empty());
-
       auto &protocols = reserved_streams_[peer_info];
       BOOST_ASSERT(protocols.find(protocol) == protocols.end());
-
-      auto subscriber =
-          SubscriberType::create(reserved_streams_engine_, std::move(stream));
-      subscriber->subscribe(stream_set_id, protocol);
-
-      protocols.emplace(protocol, std::move(subscriber));
+      protocols.emplace(protocol, std::move(stream));
     }
 
     outcome::result<void> add(const Protocol &protocol,
@@ -82,19 +68,18 @@ namespace kagome::network {
       OUTCOME_TRY(peer, from(stream));
       bool existing = false;
 
-      forSubscriber(peer, protocol, [&](auto, auto &peer, auto &subscriber) {
-        existing = true;
-        if (subscriber->get() != stream) {
-          uploadStream(subscriber, stream);
-          logger_->debug("Stream (peer_id={}) was stored", peer.id.toHex());
-        }
-      });
+      forSubscriber(
+          peer, protocol, [&](auto type, auto &peer, auto &subscriber) {
+            existing = true;
+            if (subscriber != stream) {
+              uploadStream(type, peer, protocol, stream);
+              logger_->debug("Stream (peer_id={}) was stored", peer.id.toHex());
+            }
+          });
       if (existing) return outcome::success();
 
       auto &proto_map = syncing_streams_[peer];
-      proto_map.emplace(
-          protocol,
-          SubscriberType::create(syncing_streams_engine_, std::move(stream)));
+      proto_map.emplace(protocol, std::move(stream));
       logger_->debug("Syncing stream (peer_id={}) was emplaced",
                      peer.id.toHex());
     }
@@ -111,53 +96,55 @@ namespace kagome::network {
 
     template <typename T>
     void send(const PeerInfo &peer, const Protocol &protocol, T &&msg) {
-      forSubscriber(
-          peer, protocol, [&](auto type, auto &peer, auto &subscriber) {
-            BOOST_ASSERT(subscriber);
-            if (auto stream = subscriber->get()) {
-              send(std::move(stream), std::move(msg));
-              return;
-            }
+      forSubscriber(peer, protocol, [&](auto type, auto &peer, auto stream) {
+        if (stream) {
+          send(std::move(stream), std::move(msg));
+          return;
+        }
 
-            BOOST_ASSERT(type == PeerType::kReserved);
-            host_.newStream(peer,
-                            protocol,
-                            [wself{weak_from_this()},
-                             subscriber,
-                             peer,
-                             msg{std::move(msg)}](auto &&stream_res) mutable {
-                              if (auto self = wself.lock()) {
-                                if (!stream_res) {
-                                  self->logger_->error(
-                                      "Could not send message to {} Error: {}",
-                                      peer.id.toBase58(),
-                                      stream_res.error().message());
-                                  return;
-                                }
-
-                                auto stream = std::move(stream_res.value());
-                                self->uploadStream(subscriber, stream);
-                                self->send(stream, std::move(msg));
-                              }
-                            });
-          });
+        BOOST_ASSERT(type == PeerType::kReserved);
+        updateStream(peer, protocol, std::move(msg));
+      });
     }
 
     template <typename T>
-    void broadcast(const Protocol &protocol, T &&msg) {
-      // syncing_streams_engine_->notify(protocol, msg);
+    void broadcast(const Protocol &protocol, T msg) {
+      for (auto &peer_map : syncing_streams_) {
+        ProtocolDescriptor descriptor{.proto_map = peer_map.second,
+                                      .type = PeerType::kSyncing};
+        forProtocol(descriptor, protocol, [&](auto stream) {
+          BOOST_ASSERT(stream);
+          send(std::move(stream), msg);
+        });
+      }
+      for (auto &peer_map : reserved_streams_) {
+        ProtocolDescriptor descriptor{.proto_map = peer_map.second,
+                                      .type = PeerType::kReserved};
+        forProtocol(descriptor, protocol, [&](auto stream) {
+          if (stream) {
+            send(std::move(stream), msg);
+            return;
+          }
+          updateStream(peer_map.first, protocol, msg);
+        });
+      }
     }
 
     uint32_t count() const {
-      return syncing_streams_engine_->size() + reserved_streams_engine_->size();
+      uint32_t c = 0;
+      for (auto &i : syncing_streams_) {
+        c += i.second.size();
+      }
+      for (auto &i : reserved_streams_) {
+        c += i.second.size();
+      }
+      return c;
     }
 
    private:
     Host &host_;
     common::Logger logger_;
 
-    SubscriptionEnginePtr reserved_streams_engine_;
-    SubscriptionEnginePtr syncing_streams_engine_;
     PeerMap reserved_streams_;
     PeerMap syncing_streams_;
 
@@ -184,11 +171,16 @@ namespace kagome::network {
       return from(std::move(peer_id_res.value()));
     }
 
-    void uploadStream(SubscriberPtr &dst,
-                      std::shared_ptr<Stream> &stream) const {
-      BOOST_ASSERT(dst && stream);
-      dst->get()->reset();
-      std::atomic_store(&dst->get(), stream);
+    void uploadStream(PeerType type,
+                      const PeerInfo &peer,
+                      const Protocol &proto,
+                      std::shared_ptr<Stream> stream) {
+      BOOST_ASSERT(stream);
+      auto &previous = type == PeerType::kSyncing
+                           ? syncing_streams_[peer][proto]
+                           : reserved_streams_[peer][proto];
+      if (previous) previous->reset();
+      previous = std::move(stream);
     }
 
     boost::optional<ProtocolDescriptor> findPeer(const PeerInfo &peer) {
@@ -225,7 +217,7 @@ namespace kagome::network {
         auto &sub = it->second;
         BOOST_ASSERT(sub);
         if (proto_descriptor.type == PeerType::kSyncing
-            && (!sub->get() || sub->get()->isClosed()))
+            && (!sub || sub->isClosed()))
           proto_map.erase(it);
         else
           std::forward<F>(f)(it->second);
@@ -240,6 +232,28 @@ namespace kagome::network {
           std::forward<F>(f)(_.type, peer, subscriber);
         });
       });
+    }
+
+    template <typename T>
+    void updateStream(const PeerInfo &peer, const Protocol &protocol, T msg) {
+      host_.newStream(
+          peer,
+          protocol,
+          [wself{weak_from_this()}, protocol, peer, msg{std::move(msg)}](
+              auto &&stream_res) mutable {
+            if (auto self = wself.lock()) {
+              if (!stream_res) {
+                self->logger_->error("Could not send message to {} Error: {}",
+                                     peer.id.toBase58(),
+                                     stream_res.error().message());
+                return;
+              }
+
+              auto stream = std::move(stream_res.value());
+              self->uploadStream(PeerType::kReserved, peer, protocol, stream);
+              self->send(stream, std::move(msg));
+            }
+          });
     }
   };
 
