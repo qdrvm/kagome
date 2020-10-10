@@ -20,6 +20,7 @@
 #include "subscription/subscription_engine.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
+#include "network/impl/stream_engine.hpp"
 
 namespace kagome::network {
   /**
