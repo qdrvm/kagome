@@ -21,46 +21,40 @@ namespace kagome::network {
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
+      const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
+    auto &protocols = reserved_streams_[peer_info];
+    BOOST_ASSERT(protocols.find(protocol) == protocols.end());
 
-    reserved_streams_.emplace(
-        peer_info,
+    protocols.emplace(
+        protocol,
         SubscriberType::create(reserved_streams_engine_, std::move(stream)));
   }
 
   outcome::result<void> GossiperBroadcast::addStream(
+      const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
     OUTCOME_TRY(peer, from(stream));
 
-    auto updateIfExists = [&](auto &subscribers) {
-      if (auto it = subscribers.find(peer); it != subscribers.end()) {
-        if (it->second != stream)
-          uploadStream(it->second, stream);
-        return true;
+    bool existing = false;
+    forSubscriber(peer, protocol, [&](auto &subscriber) {
+      existing = true;
+      if (subscriber->get() != stream) {
+        uploadStream(subscriber, stream);
+        logger_->debug("Stream (peer_id={}) was stored", peer.id.toHex());
       }
-      return false;
-    };
+    });
+    if (existing) return outcome::success();
 
-    if (updateIfExists(syncing_streams_)) {
-      logger_->debug("Syncing stream (peer_id={}) was stored",
-                     peer.id.toHex());
-      return outcome::success();
-    }
-
-    if (updateIfExists(reserved_streams_)) {
-      logger_->debug("Reserved stream (peer_id={}) was stored",
-                     peer.id.toHex());
-      return outcome::success();
-    }
-
-    syncing_streams_.emplace(
-        peer,
+    auto &proto_map = syncing_streams_[peer];
+    proto_map.emplace(
+        protocol,
         SubscriberType::create(syncing_streams_engine_, std::move(stream)));
     logger_->debug("Syncing stream (peer_id={}) was emplaced", peer.id.toHex());
   }
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    return syncing_streams_.size() + reserved_streams_.size();
+    return syncing_streams_engine_->size() + reserved_streams_engine_->size();
   }
 
   void GossiperBroadcast::transactionAnnounce(

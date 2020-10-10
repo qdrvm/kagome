@@ -27,12 +27,14 @@ namespace kagome::network {
      */
     virtual void reserveStream(
         const libp2p::peer::PeerInfo &info,
+        const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
     /**
      * Add new stream to gossip
      */
     virtual outcome::result<void> addStream(
+        const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
     /**
