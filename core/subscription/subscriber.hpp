@@ -28,6 +28,7 @@ namespace kagome::subscription {
     using KeyType = Key;
     using ValueType = Type;
     using HashType = size_t;
+    using ThisType = Subscriber<Key, Type, Arguments...>;
 
     using SubscriptionEngineType =
         SubscriptionEngine<KeyType, ValueType, Arguments...>;
@@ -63,6 +64,11 @@ namespace kagome::subscription {
       /// Unsubscribe all
       for (auto &[_, subscriptions] : subscriptions_sets_)
         for (auto &[key, it] : subscriptions) engine_->unsubscribe(key, it);
+    }
+
+    template <typename... ArgumentTypes>
+    static std::shared_ptr<ThisType> create(ArgumentTypes &&... args) {
+      return std::make_shared<ThisType>(std::forward<ArgumentTypes>(args)...);
     }
 
     Subscriber(const Subscriber &) = delete;
@@ -127,6 +133,10 @@ namespace kagome::subscription {
                    const Arguments &... args) {
       if (nullptr != on_notify_callback_)
         on_notify_callback_(set_id, object_, key, args...);
+    }
+
+    ValueType &get() {
+      return object_;
     }
   };
 

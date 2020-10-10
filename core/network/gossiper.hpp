@@ -32,18 +32,13 @@ namespace kagome::network {
     /**
      * Add new stream to gossip
      */
-    virtual void addStream(
+    virtual outcome::result<void> addStream(
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
     /**
      * @returns number of active (opened) streams
      */
     virtual uint32_t getActiveStreamNumber() = 0;
-
-    /**
-     * @returns number of reserved streams
-     */
-    virtual uint32_t getReservedStreamNumber() = 0;
   };
 }  // namespace kagome::network
 
