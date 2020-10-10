@@ -26,7 +26,8 @@ namespace kagome::network {
     using Stream = libp2p::connection::Stream;
     using Host = libp2p::Host;
 
-    enum struct ReservedStreamSetId { kLoopback = 1, kRemote };
+    enum PeerType { kSyncing = 1, kReserved };
+    enum ReservedStreamSetId { kLoopback = 1, kRemote };
 
    private:
     using SubscriptionEngine =
@@ -53,21 +54,29 @@ namespace kagome::network {
 
     void addReserved(const PeerInfo &peer_info,
                      const Protocol &protocol,
+                     ReservedStreamSetId stream_set_id,
                      std::shared_ptr<Stream> stream) {
+      BOOST_ASSERT(!protocol.empty());
+
       auto &protocols = reserved_streams_[peer_info];
       BOOST_ASSERT(protocols.find(protocol) == protocols.end());
 
-      protocols.emplace(
-          protocol,
-          SubscriberType::create(reserved_streams_engine_, std::move(stream)));
+      auto subscriber =
+          SubscriberType::create(reserved_streams_engine_, std::move(stream));
+      subscriber->subscribe(stream_set_id, protocol);
+
+      protocols.emplace(protocol, std::move(subscriber));
     }
 
-    outcome::result<void> addStream(const Protocol &protocol,
-                                    std::shared_ptr<Stream> stream) {
-      OUTCOME_TRY(peer, from(stream));
+    outcome::result<void> add(const Protocol &protocol,
+                              std::shared_ptr<Stream> stream) {
+      BOOST_ASSERT(stream);
+      BOOST_ASSERT(!protocol.empty());
 
+      OUTCOME_TRY(peer, from(stream));
       bool existing = false;
-      forSubscriber(peer, protocol, [&](auto &subscriber) {
+
+      forSubscriber(peer, protocol, [&](auto, auto &subscriber) {
         existing = true;
         if (subscriber->get() != stream) {
           uploadStream(subscriber, stream);
@@ -96,10 +105,14 @@ namespace kagome::network {
 
     template <typename T>
     void send(const PeerInfo &peer, const Protocol &protocol, T &&msg) {
-      forSubscriber(peer, protocol, [&](auto &subscriber) {
-        BOOST_ASSERT(subscriber && subscriber->get());
+      forSubscriber(peer, protocol, [&](auto, auto &subscriber) {
+        BOOST_ASSERT(subscriber);
         send(subscriber->get(), std::move(msg));
       });
+    }
+
+    uint32_t count() const {
+      return syncing_streams_engine_->size() + reserved_streams_engine_->size();
     }
 
    private:
@@ -113,7 +126,7 @@ namespace kagome::network {
 
     struct ProtocolDescriptor {
       std::reference_wrapper<ProtocolMap> proto_map;
-      bool is_syncing;
+      PeerType type;
     };
 
     PeerInfo from(PeerId &pid) const {
@@ -151,11 +164,11 @@ namespace kagome::network {
 
       if (auto proto_map = find_if_exists(syncing_streams_))
         return ProtocolDescriptor{.proto_map = std::move(*proto_map),
-                                  .is_syncing = true};
+                                  .type = PeerType::kSyncing};
 
       if (auto proto_map = find_if_exists(reserved_streams_))
         return ProtocolDescriptor{.proto_map = std::move(*proto_map),
-                                  .is_syncing = false};
+                                  .type = PeerType::kReserved};
 
       return boost::none;
     }
@@ -173,8 +186,9 @@ namespace kagome::network {
       auto &proto_map = proto_descriptor.proto_map.get();
       if (auto it = proto_map.find(proto); it != proto_map.end()) {
         auto &sub = it->second;
-        BOOST_ASSERT(sub && sub->get());
-        if (proto_descriptor.is_syncing && sub->get()->isClosed())
+        BOOST_ASSERT(sub);
+        if (proto_descriptor.type == PeerType::kSyncing
+            && (!sub->get() || sub->get()->isClosed()))
           proto_map.erase(it);
         else
           std::forward<F>(f)(it->second);
@@ -185,8 +199,8 @@ namespace kagome::network {
     void forSubscriber(const PeerInfo &peer, const Protocol &proto, F &&f) {
       forPeer(peer, [&](auto &_) {
         forProtocol(_, proto, [&](auto &subscriber) {
-          BOOST_ASSERT(subscriber && subscriber->get());
-          std::forward<F>(f)(subscriber);
+          BOOST_ASSERT(subscriber);
+          std::forward<F>(f)(_.type, subscriber);
         });
       });
     }

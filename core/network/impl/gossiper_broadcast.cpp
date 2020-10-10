@@ -15,46 +15,37 @@ namespace kagome::network {
 
   GossiperBroadcast::GossiperBroadcast(libp2p::Host &host)
       : host_{host},
-        reserved_streams_engine_{ std::make_shared<SubscriptionEngine>() },
-        syncing_streams_engine_{ std::make_shared<SubscriptionEngine>() },
-        logger_{common::createLogger("GossiperBroadcast")} {}
+        logger_{common::createLogger("GossiperBroadcast")},
+        stream_engine_{host} {}
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
       const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    auto &protocols = reserved_streams_[peer_info];
-    BOOST_ASSERT(protocols.find(protocol) == protocols.end());
+    stream_engine_.addReserved(peer_info,
+                               protocol,
+                               StreamEngine::ReservedStreamSetId::kRemote,
+                               std::move(stream));
+  }
 
-    protocols.emplace(
-        protocol,
-        SubscriberType::create(reserved_streams_engine_, std::move(stream)));
+  void GossiperBroadcast::reserveLoopbackStream(
+      const libp2p::peer::PeerInfo &peer_info,
+      const libp2p::peer::Protocol &protocol,
+      std::shared_ptr<libp2p::connection::Stream> stream) {
+    stream_engine_.addReserved(peer_info,
+                               protocol,
+                               StreamEngine::ReservedStreamSetId::kLoopback,
+                               std::move(stream));
   }
 
   outcome::result<void> GossiperBroadcast::addStream(
       const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    OUTCOME_TRY(peer, from(stream));
-
-    bool existing = false;
-    forSubscriber(peer, protocol, [&](auto &subscriber) {
-      existing = true;
-      if (subscriber->get() != stream) {
-        uploadStream(subscriber, stream);
-        logger_->debug("Stream (peer_id={}) was stored", peer.id.toHex());
-      }
-    });
-    if (existing) return outcome::success();
-
-    auto &proto_map = syncing_streams_[peer];
-    proto_map.emplace(
-        protocol,
-        SubscriberType::create(syncing_streams_engine_, std::move(stream)));
-    logger_->debug("Syncing stream (peer_id={}) was emplaced", peer.id.toHex());
+    return  stream_engine_.add(protocol, std::move(stream));
   }
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    return syncing_streams_engine_->size() + reserved_streams_engine_->size();
+    return stream_engine_.count();
   }
 
   void GossiperBroadcast::transactionAnnounce(
