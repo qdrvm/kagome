@@ -16,13 +16,13 @@ namespace kagome::network {
   GossiperBroadcast::GossiperBroadcast(libp2p::Host &host)
       : host_{host},
         logger_{common::createLogger("GossiperBroadcast")},
-        stream_engine_{host} {}
+        stream_engine_{StreamEngine::create(host)} {}
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
       const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    stream_engine_.addReserved(peer_info,
+    stream_engine_->addReserved(peer_info,
                                protocol,
                                StreamEngine::ReservedStreamSetId::kRemote,
                                std::move(stream));
@@ -32,7 +32,7 @@ namespace kagome::network {
       const libp2p::peer::PeerInfo &peer_info,
       const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    stream_engine_.addReserved(peer_info,
+    stream_engine_->addReserved(peer_info,
                                protocol,
                                StreamEngine::ReservedStreamSetId::kLoopback,
                                std::move(stream));
@@ -41,11 +41,11 @@ namespace kagome::network {
   outcome::result<void> GossiperBroadcast::addStream(
       const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    return  stream_engine_.add(protocol, std::move(stream));
+    return  stream_engine_->add(protocol, std::move(stream));
   }
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    return stream_engine_.count();
+    return stream_engine_->count();
   }
 
   void GossiperBroadcast::transactionAnnounce(
@@ -112,7 +112,7 @@ namespace kagome::network {
     send(peer_id, std::move(message));
   }
 
-  void GossiperBroadcast::send(const libp2p::peer::PeerId &peer_id,
+  void GossiperBroadcast::send(const libp2p::peer::PeerId &peer_id, const libp2p::peer::Protocol &protocol,
                                GossipMessage &&msg) {
 
 
@@ -129,16 +129,21 @@ namespace kagome::network {
 
     // If stream exists then send them the msg
     // If stream is closed it is removed
-    auto syncing_stream_it = syncing_streams_.find(peer_id);
-    if (syncing_stream_it != syncing_streams_.end()) {
+    //auto syncing_stream_it = syncing_streams_.find(peer_id);
+    //if (syncing_stream_it != syncing_streams_.end()) {
       /*auto &stream = syncing_stream_it->second;
       if (stream && !stream->isClosed()) {
         msg_send_lambda(stream);
       } else {
         syncing_streams_.erase(syncing_stream_it);
       }*/
-      return;
-    }
+//      return;
+  //  }
+
+    stream_engine_->send(StreamEngine::PeerInfo{
+        .id = peer_id,
+        .addresses = {}
+    })
 
     auto stream_it = std::find_if(
         reserved_streams_.begin(),
