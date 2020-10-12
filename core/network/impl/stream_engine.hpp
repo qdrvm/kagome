@@ -42,8 +42,8 @@ namespace kagome::network {
     StreamEngine(const StreamEngine &) = delete;
     StreamEngine &operator=(const StreamEngine &) = delete;
 
-    StreamEngine(StreamEngine &&) = default;
-    StreamEngine &operator=(StreamEngine &&) = default;
+    StreamEngine(StreamEngine &&) = delete;
+    StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
     explicit StreamEngine(Host &host)
@@ -90,11 +90,13 @@ namespace kagome::network {
     template <typename T>
     void send(std::shared_ptr<Stream> stream, const T &msg) {
       BOOST_ASSERT(stream);
-      ScaleMessageReadWriter read_writer(std::move(stream));
-      read_writer.write(msg, [this](auto &&res) {
-        if (!res)
-          logger_->error("Could not send message, reason: {}",
-                         res.error().message());
+
+      auto read_writer =
+          std::make_shared<ScaleMessageReadWriter>(std::move(stream));
+      read_writer->write(msg, [self{shared_from_this()}](auto &&res) {
+        if (self && !res)
+          self->logger_->error("Could not send message, reason: {}",
+                               res.error().message());
       });
     }
 
@@ -123,27 +125,19 @@ namespace kagome::network {
       BOOST_ASSERT(!protocol.empty());
 
       std::shared_lock cs(streams_cs_);
-      for (auto &peer_map : syncing_streams_) {
-        forProtocol(ProtocolDescriptor{.proto_map = peer_map.second,
-                                       .type = PeerType::kSyncing},
+      forEachPeer([&](const auto &peer, auto type, auto &proto_map) {
+        forProtocol(ProtocolDescriptor{.proto_map = proto_map, .type = type},
                     protocol,
                     [&](auto stream) {
-                      BOOST_ASSERT(stream);
-                      send(std::move(stream), *msg);
-                    });
-      }
-      for (auto &peer_map : reserved_streams_) {
-        forProtocol(ProtocolDescriptor{.proto_map = peer_map.second,
-                                       .type = PeerType::kReserved},
-                    protocol,
-                    [&](auto stream) {
+                      BOOST_ASSERT(type == PeerType::kReserved || stream);
                       if (stream) {
                         send(std::move(stream), *msg);
                         return;
                       }
-                      updateStream(peer_map.first, protocol, msg);
+                      BOOST_ASSERT(type == PeerType::kReserved);
+                      updateStream(peer, protocol, msg);
                     });
-      }
+      });
     }
 
     template <typename F>
@@ -218,6 +212,16 @@ namespace kagome::network {
     void forPeer(const PeerInfo &peer, F &&f) {
       if (auto proto_descriptor = findPeer(peer))
         std::forward<F>(f)(*proto_descriptor);
+    }
+
+    template <typename F>
+    void forEachPeer(F &&f) {
+      for (auto &peer_map : syncing_streams_)
+        std::forward<F>(f)(peer_map.first, PeerType::kSyncing, peer_map.second);
+
+      for (auto &peer_map : reserved_streams_)
+        std::forward<F>(f)(
+            peer_map.first, PeerType::kReserved, peer_map.second);
     }
 
     template <typename F>
