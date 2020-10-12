@@ -32,6 +32,12 @@ namespace kagome::network {
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
     /**
+     * @brief Need to store self peer info
+     * @param peer_info is the peer info of the peer
+     */
+    virtual void storeSelfPeer(const libp2p::peer::PeerInfo &peer_info) = 0;
+
+    /**
      * Add new stream to gossip
      */
     virtual outcome::result<void> addStream(

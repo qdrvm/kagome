@@ -46,6 +46,8 @@ namespace kagome::network {
         const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) override;
 
+    void storeSelfPeer(const libp2p::peer::PeerInfo &peer_info) override;
+
     void transactionAnnounce(const TransactionAnnounce &announce) override;
 
     void blockAnnounce(const BlockAnnounce &announce) override;
@@ -74,6 +76,7 @@ namespace kagome::network {
 
     common::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
+    boost::optional<libp2p::peer::PeerInfo> peer_info_;
   };
 }  // namespace kagome::network
 

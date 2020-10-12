@@ -25,6 +25,11 @@ namespace kagome::network {
     stream_engine_->addReserved(peer_info, protocol, std::move(stream));
   }
 
+  void GossiperBroadcast::storeSelfPeer(
+      const libp2p::peer::PeerInfo &peer_info) {
+    peer_info_ = peer_info;
+  }
+
   outcome::result<void> GossiperBroadcast::addStream(
       const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
@@ -32,7 +37,10 @@ namespace kagome::network {
   }
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    return stream_engine_->count();
+    BOOST_ASSERT(peer_info_);
+    return stream_engine_->count([&](const StreamEngine::PeerInfo &peer) {
+      return *peer_info_ == peer;
+    });
   }
 
   void GossiperBroadcast::transactionAnnounce(

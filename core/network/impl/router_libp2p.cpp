@@ -49,13 +49,15 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
 
+    gossiper_->storeSelfPeer(own_peer_info);
     for (const auto &peer_info : peer_list.peers) {
       if (peer_info.id != own_peer_info.id) {
-        gossiper_->reserveStream(peer_info, {});
+        gossiper_->reserveStream(peer_info, kGossipProtocol, {});
       } else {
         auto stream = std::make_shared<LoopbackStream>(own_peer_info);
         loopback_stream_ = stream;
-        gossiper_->reserveStream(own_peer_info, std::move(stream));
+        gossiper_->reserveStream(
+            own_peer_info, kGossipProtocol, std::move(stream));
       }
     }
   }
@@ -113,7 +115,7 @@ namespace kagome::network {
 
   void RouterLibp2p::handleGossipProtocol(
       std::shared_ptr<Stream> stream) const {
-    gossiper_->addStream(stream);
+    gossiper_->addStream(kGossipProtocol, stream);
     return readGossipMessage(std::move(stream));
   }
 

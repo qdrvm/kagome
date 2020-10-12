@@ -146,14 +146,16 @@ namespace kagome::network {
       }
     }
 
-    uint32_t count() const {
+    template <typename F>
+    uint32_t count(F &&filter) const {
       uint32_t c = 0;
-      for (auto &i : syncing_streams_) {
-        c += i.second.size();
-      }
-      for (auto &i : reserved_streams_) {
-        c += i.second.size();
-      }
+      auto enumerate = [&](const PeerMap &pm) {
+        for (const auto &i : pm) {
+          if (filter(i.first)) c += i.second.size();
+        }
+      };
+      enumerate(syncing_streams_);
+      enumerate(reserved_streams_);
       return c;
     }
 
