@@ -73,7 +73,7 @@ namespace kagome::network {
           peer, protocol, [&](auto type, auto &peer, auto &subscriber) {
             existing = true;
             if (subscriber != stream) {
-              uploadStream(type, peer, protocol, stream);
+              uploadStream(type, peer, protocol, std::move(stream));
               logger_->debug("Stream (peer_id={}) was stored", peer.id.toHex());
             }
           });
@@ -102,6 +102,7 @@ namespace kagome::network {
               const Protocol &protocol,
               std::shared_ptr<T> msg) {
       BOOST_ASSERT(msg);
+      BOOST_ASSERT(!protocol.empty());
 
       std::shared_lock cs(streams_cs_);
       forSubscriber(peer, protocol, [&](auto type, auto &peer, auto stream) {
@@ -118,26 +119,29 @@ namespace kagome::network {
     template <typename T>
     void broadcast(const Protocol &protocol, std::shared_ptr<T> msg) {
       BOOST_ASSERT(msg);
+      BOOST_ASSERT(!protocol.empty());
 
       std::shared_lock cs(streams_cs_);
       for (auto &peer_map : syncing_streams_) {
-        ProtocolDescriptor descriptor{.proto_map = peer_map.second,
-                                      .type = PeerType::kSyncing};
-        forProtocol(descriptor, protocol, [&](auto stream) {
-          BOOST_ASSERT(stream);
-          send(std::move(stream), *msg);
-        });
+        forProtocol(ProtocolDescriptor{.proto_map = peer_map.second,
+                                       .type = PeerType::kSyncing},
+                    protocol,
+                    [&](auto stream) {
+                      BOOST_ASSERT(stream);
+                      send(std::move(stream), *msg);
+                    });
       }
       for (auto &peer_map : reserved_streams_) {
-        ProtocolDescriptor descriptor{.proto_map = peer_map.second,
-                                      .type = PeerType::kReserved};
-        forProtocol(descriptor, protocol, [&](auto stream) {
-          if (stream) {
-            send(std::move(stream), msg);
-            return;
-          }
-          updateStream(peer_map.first, protocol, msg);
-        });
+        forProtocol(ProtocolDescriptor{.proto_map = peer_map.second,
+                                       .type = PeerType::kReserved},
+                    protocol,
+                    [&](auto stream) {
+                      if (stream) {
+                        send(std::move(stream), msg);
+                        return;
+                      }
+                      updateStream(peer_map.first, protocol, msg);
+                    });
       }
     }
 
