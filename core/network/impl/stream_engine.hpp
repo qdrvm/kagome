@@ -33,6 +33,11 @@ namespace kagome::network {
     using ProtocolMap = std::unordered_map<Protocol, std::shared_ptr<Stream>>;
     using PeerMap = std::unordered_map<PeerInfo, ProtocolMap>;
 
+    struct ProtocolDescriptor {
+      std::reference_wrapper<ProtocolMap> proto_map;
+      PeerType type;
+    };
+
    public:
     StreamEngine(const StreamEngine &) = delete;
     StreamEngine &operator=(const StreamEngine &) = delete;
@@ -137,7 +142,7 @@ namespace kagome::network {
                     protocol,
                     [&](auto stream) {
                       if (stream) {
-                        send(std::move(stream), msg);
+                        send(std::move(stream), *msg);
                         return;
                       }
                       updateStream(peer_map.first, protocol, msg);
@@ -164,11 +169,6 @@ namespace kagome::network {
     PeerMap reserved_streams_;
     PeerMap syncing_streams_;
 
-    struct ProtocolDescriptor {
-      std::reference_wrapper<ProtocolMap> proto_map;
-      PeerType type;
-    };
-
     PeerInfo from(PeerId &pid) const {
       return PeerInfo{.id = pid, .addresses = {}};
     }
@@ -192,6 +192,21 @@ namespace kagome::network {
                       const Protocol &proto,
                       std::shared_ptr<Stream> stream) {
       BOOST_ASSERT(stream);
+
+      /**
+       * These ASSERTS checks that this peer exists in the only container
+       * (reserved or syncing).
+       */
+      BOOST_ASSERT(
+          !((type == PeerType::kSyncing)
+            && (syncing_streams_.find(peer) != syncing_streams_.end()))
+          != !((type == PeerType::kReserved)
+               && (reserved_streams_.find(peer) != reserved_streams_.end())));
+
+      BOOST_ASSERT(
+          !(syncing_streams_.find(peer) == syncing_streams_.end())
+          != !(reserved_streams_.find(peer) == reserved_streams_.end()));
+
       auto &previous = type == PeerType::kSyncing
                            ? syncing_streams_[peer][proto]
                            : reserved_streams_[peer][proto];
