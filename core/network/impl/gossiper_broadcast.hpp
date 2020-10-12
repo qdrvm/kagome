@@ -10,23 +10,21 @@
 #include <unordered_map>
 
 #include "common/logger.hpp"
+#include "containers/objects_cache.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
+#include "libp2p/peer/protocol.hpp"
 #include "network/gossiper.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/peer_list.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
-#include "libp2p/peer/protocol.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
-#include "network/impl/stream_engine.hpp"
-#include "containers/objects_cache.hpp"
 
 namespace kagome::network {
-  KAGOME_DECLARE_CACHE(stream_engine,
-                       KAGOME_CACHE_UNIT(GossipMessage)
-  );
+  KAGOME_DECLARE_CACHE(stream_engine, KAGOME_CACHE_UNIT(GossipMessage));
 
   /**
    * Sends gossip messages using broadcast strategy
@@ -45,11 +43,6 @@ namespace kagome::network {
 
     void reserveStream(
         const libp2p::peer::PeerInfo &peer_info,
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) override;
-
-    void reserveLoopbackStream(
-        const libp2p::peer::PeerInfo &info,
         const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) override;
 

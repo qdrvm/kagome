@@ -31,16 +31,6 @@ namespace kagome::network {
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
     /**
-     * @brief It is assigning loopback stream for peer
-     * @param info - PeerInfo is assigned to stream
-     * @param stream - assignee stream
-     */
-    virtual void reserveLoopbackStream(
-        const libp2p::peer::PeerInfo &info,
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) = 0;
-
-    /**
      * Add new stream to gossip
      */
     virtual outcome::result<void> addStream(

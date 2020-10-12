@@ -12,10 +12,10 @@
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
-#include "subscription/subscriber.hpp"
-#include "subscription/subscription_engine.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
+#include "subscription/subscriber.hpp"
+#include "subscription/subscription_engine.hpp"
 
 namespace kagome::network {
 
@@ -28,7 +28,6 @@ namespace kagome::network {
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
     enum PeerType { kSyncing = 1, kReserved };
-    enum ReservedStreamSetId { kLoopback = 1, kRemote };
 
    private:
     using ProtocolMap = std::unordered_map<Protocol, std::shared_ptr<Stream>>;
@@ -52,9 +51,10 @@ namespace kagome::network {
 
     void addReserved(const PeerInfo &peer_info,
                      const Protocol &protocol,
-                     ReservedStreamSetId stream_set_id,
                      std::shared_ptr<Stream> stream) {
       BOOST_ASSERT(!protocol.empty());
+
+      std::unique_lock cs(streams_cs_);
       auto &protocols = reserved_streams_[peer_info];
       BOOST_ASSERT(protocols.find(protocol) == protocols.end());
       protocols.emplace(protocol, std::move(stream));
@@ -68,6 +68,7 @@ namespace kagome::network {
       OUTCOME_TRY(peer, from(stream));
       bool existing = false;
 
+      std::unique_lock cs(streams_cs_);
       forSubscriber(
           peer, protocol, [&](auto type, auto &peer, auto &subscriber) {
             existing = true;
@@ -86,7 +87,8 @@ namespace kagome::network {
     }
 
     template <typename T>
-    void send(std::shared_ptr<Stream> stream, T &&msg) {
+    void send(std::shared_ptr<Stream> stream, const T &msg) {
+      BOOST_ASSERT(stream);
       ScaleMessageReadWriter read_writer(std::move(stream));
       read_writer.write(msg, [this](auto &&res) {
         if (!res)
@@ -96,10 +98,15 @@ namespace kagome::network {
     }
 
     template <typename T>
-    void send(const PeerInfo &peer, const Protocol &protocol, T &&msg) {
+    void send(const PeerInfo &peer,
+              const Protocol &protocol,
+              std::shared_ptr<T> msg) {
+      BOOST_ASSERT(msg);
+
+      std::shared_lock cs(streams_cs_);
       forSubscriber(peer, protocol, [&](auto type, auto &peer, auto stream) {
         if (stream) {
-          send(std::move(stream), std::move(msg));
+          send(std::move(stream), *msg);
           return;
         }
 
@@ -110,15 +117,15 @@ namespace kagome::network {
 
     template <typename T>
     void broadcast(const Protocol &protocol, std::shared_ptr<T> msg) {
-//      auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, T);
-//      (*shared_msg) = std::forward<T>(msg);
+      BOOST_ASSERT(msg);
 
+      std::shared_lock cs(streams_cs_);
       for (auto &peer_map : syncing_streams_) {
         ProtocolDescriptor descriptor{.proto_map = peer_map.second,
                                       .type = PeerType::kSyncing};
         forProtocol(descriptor, protocol, [&](auto stream) {
           BOOST_ASSERT(stream);
-          send(std::move(stream), msg);
+          send(std::move(stream), *msg);
         });
       }
       for (auto &peer_map : reserved_streams_) {
@@ -149,6 +156,7 @@ namespace kagome::network {
     Host &host_;
     common::Logger logger_;
 
+    std::shared_mutex streams_cs_;
     PeerMap reserved_streams_;
     PeerMap syncing_streams_;
 
@@ -239,7 +247,9 @@ namespace kagome::network {
     }
 
     template <typename T>
-    void updateStream(const PeerInfo &peer, const Protocol &protocol, T msg) {
+    void updateStream(const PeerInfo &peer,
+                      const Protocol &protocol,
+                      std::shared_ptr<T> msg) {
       host_.newStream(
           peer,
           protocol,
@@ -253,9 +263,10 @@ namespace kagome::network {
                 return;
               }
 
+              std::unique_lock cs(self->streams_cs_);
               auto stream = std::move(stream_res.value());
               self->uploadStream(PeerType::kReserved, peer, protocol, stream);
-              self->send(stream, std::move(msg));
+              self->send(stream, *msg);
             }
           });
     }

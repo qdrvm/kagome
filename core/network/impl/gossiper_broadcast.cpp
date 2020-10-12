@@ -5,8 +5,8 @@
 
 #include "network/impl/gossiper_broadcast.hpp"
 
-#include <memory> 
 #include <atomic>
+#include <memory>
 
 #include "network/common.hpp"
 #include "network/impl/loopback_stream.hpp"
@@ -22,20 +22,7 @@ namespace kagome::network {
       const libp2p::peer::PeerInfo &peer_info,
       const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    stream_engine_->addReserved(peer_info,
-                                protocol,
-                                StreamEngine::ReservedStreamSetId::kRemote,
-                                std::move(stream));
-  }
-
-  void GossiperBroadcast::reserveLoopbackStream(
-      const libp2p::peer::PeerInfo &peer_info,
-      const libp2p::peer::Protocol &protocol,
-      std::shared_ptr<libp2p::connection::Stream> stream) {
-    stream_engine_->addReserved(peer_info,
-                                protocol,
-                                StreamEngine::ReservedStreamSetId::kLoopback,
-                                std::move(stream));
+    stream_engine_->addReserved(peer_info, protocol, std::move(stream));
   }
 
   outcome::result<void> GossiperBroadcast::addStream(
@@ -115,13 +102,19 @@ namespace kagome::network {
   void GossiperBroadcast::send(const libp2p::peer::PeerId &peer_id,
                                const libp2p::peer::Protocol &protocol,
                                GossipMessage &&msg) {
+    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
+    (*shared_msg) = std::forward<GossipMessage>(msg);
+
     stream_engine_->send(StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
                          protocol,
-                         std::move(msg));
+                         std::move(shared_msg));
   }
 
   void GossiperBroadcast::broadcast(const libp2p::peer::Protocol &protocol,
                                     GossipMessage &&msg) {
-    stream_engine_->broadcast(protocol, std::move(msg));
+    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
+    (*shared_msg) = std::forward<GossipMessage>(msg);
+
+    stream_engine_->broadcast(protocol, std::move(shared_msg));
   }
 }  // namespace kagome::network
