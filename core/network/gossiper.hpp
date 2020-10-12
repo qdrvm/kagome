@@ -12,6 +12,7 @@
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/protocol.hpp>
 
 namespace kagome::network {
   /**

@@ -74,14 +74,10 @@ namespace kagome::network {
       bool existing = false;
 
       std::unique_lock cs(streams_cs_);
-      forSubscriber(
-          peer, protocol, [&](auto type, auto &peer, auto &subscriber) {
-            existing = true;
-            if (subscriber != stream) {
-              uploadStream(type, peer, protocol, std::move(stream));
-              logger_->debug("Stream (peer_id={}) was stored", peer.id.toHex());
-            }
-          });
+      forSubscriber(peer, protocol, [&](auto type, auto &subscriber) {
+        existing = true;
+        if (subscriber != stream) uploadStream(subscriber, std::move(stream));
+      });
       if (existing) return outcome::success();
 
       auto &proto_map = syncing_streams_[peer];
@@ -110,9 +106,9 @@ namespace kagome::network {
       BOOST_ASSERT(!protocol.empty());
 
       std::shared_lock cs(streams_cs_);
-      forSubscriber(peer, protocol, [&](auto type, auto &peer, auto stream) {
+      forSubscriber(peer, protocol, [&](auto type, auto &stream) {
         if (stream) {
-          send(std::move(stream), *msg);
+          send(stream, *msg);
           return;
         }
 
@@ -187,31 +183,14 @@ namespace kagome::network {
       return from(std::move(peer_id_res.value()));
     }
 
-    void uploadStream(PeerType type,
-                      const PeerInfo &peer,
-                      const Protocol &proto,
-                      std::shared_ptr<Stream> stream) {
-      BOOST_ASSERT(stream);
-
-      /**
-       * These ASSERTS checks that this peer exists in the only container
-       * (reserved or syncing).
-       */
-      BOOST_ASSERT(
-          !((type == PeerType::kSyncing)
-            && (syncing_streams_.find(peer) != syncing_streams_.end()))
-          != !((type == PeerType::kReserved)
-               && (reserved_streams_.find(peer) != reserved_streams_.end())));
-
-      BOOST_ASSERT(
-          !(syncing_streams_.find(peer) == syncing_streams_.end())
-          != !(reserved_streams_.find(peer) == reserved_streams_.end()));
-
-      auto &previous = type == PeerType::kSyncing
-                           ? syncing_streams_[peer][proto]
-                           : reserved_streams_[peer][proto];
-      if (previous) previous->reset();
-      previous = std::move(stream);
+    void uploadStream(std::shared_ptr<Stream> &dst,
+                      std::shared_ptr<Stream> src) {
+      BOOST_ASSERT(src);
+      if (dst) dst->reset();
+      dst = std::move(src);
+      if (dst->remotePeerId().has_value())
+        logger_->debug("Stream (peer_id={}) was stored",
+                       dst->remotePeerId().value().toHex());
     }
 
     boost::optional<ProtocolDescriptor> findPeer(const PeerInfo &peer) {
@@ -260,7 +239,7 @@ namespace kagome::network {
       forPeer(peer, [&](auto &_) {
         forProtocol(_, proto, [&](auto &subscriber) {
           BOOST_ASSERT(subscriber);
-          std::forward<F>(f)(_.type, peer, subscriber);
+          std::forward<F>(f)(_.type, subscriber);
         });
       });
     }
@@ -284,7 +263,13 @@ namespace kagome::network {
 
               std::unique_lock cs(self->streams_cs_);
               auto stream = std::move(stream_res.value());
-              self->uploadStream(PeerType::kReserved, peer, protocol, stream);
+
+              bool existing = false;
+              self->forSubscriber(peer, protocol, [&](auto, auto &subscriber) {
+                existing = true;
+                self->uploadStream(subscriber, stream);
+              });
+              BOOST_ASSERT(existing);
               self->send(stream, *msg);
             }
           });
