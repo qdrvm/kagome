@@ -21,8 +21,13 @@
 #include "libp2p/peer/protocol.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "containers/objects_cache.hpp"
 
 namespace kagome::network {
+  KAGOME_DECLARE_CACHE(stream_engine,
+                       KAGOME_CACHE_UNIT(GossipMessage)
+  );
+
   /**
    * Sends gossip messages using broadcast strategy
    */

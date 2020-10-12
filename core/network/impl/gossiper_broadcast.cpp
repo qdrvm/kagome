@@ -12,6 +12,7 @@
 #include "network/impl/loopback_stream.hpp"
 
 namespace kagome::network {
+  KAGOME_DEFINE_CACHE(stream_engine);
 
   GossiperBroadcast::GossiperBroadcast(libp2p::Host &host)
       : logger_{common::createLogger("GossiperBroadcast")},

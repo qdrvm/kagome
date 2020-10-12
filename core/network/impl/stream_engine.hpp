@@ -82,6 +82,7 @@ namespace kagome::network {
       proto_map.emplace(protocol, std::move(stream));
       logger_->debug("Syncing stream (peer_id={}) was emplaced",
                      peer.id.toHex());
+      return outcome::success();
     }
 
     template <typename T>
@@ -108,7 +109,10 @@ namespace kagome::network {
     }
 
     template <typename T>
-    void broadcast(const Protocol &protocol, T msg) {
+    void broadcast(const Protocol &protocol, std::shared_ptr<T> msg) {
+//      auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, T);
+//      (*shared_msg) = std::forward<T>(msg);
+
       for (auto &peer_map : syncing_streams_) {
         ProtocolDescriptor descriptor{.proto_map = peer_map.second,
                                       .type = PeerType::kSyncing};
