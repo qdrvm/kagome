@@ -6,7 +6,8 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 
 1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-full-validating-node).
 2. For your convenience make sure you have this binary included into your path:
-```
+```bash
+# from Kagome's root repo:
 PATH=$PATH:build/node/kagome_validating/
 ```
 3. Python 3 installed in the system  
@@ -25,18 +26,18 @@ For this tutorial we will spin up a simple network of a single peer with predefi
 
 To start with let's navigate into the node's folder:
 
-```
-cd node
+```bash
+cd examples/first_kagome_chain
 ```
 
-`node` folder contains necessary configuration files for our tutorial:
+`first_kagome_chain` folder contains necessary configuration files for our tutorial:
 
-* `config/localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block    |
-* `config/localkeystore.json` – file containing the keys for Kagome peer. This is necessary to be able to sign the messages sent by our validating node | 
+* `localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block    |
+* `localkeystore.json` – file containing the keys for Kagome peer. This is necessary to be able to sign the messages sent by our validating node | 
 
-localchain.json contains Alice and Bob accounts. Both have 1000000000000000000000 amount of crypto.
-Their keys can be generated using [subkey](https://substrate.dev/docs/en/ecosystem/subkey) tool:
-```
+`localchain.json` contains Alice and Bob accounts. Both have 1000000000000000000000 amount of crypto.
+Their keys can be generated using [subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey) tool:
+```bash
 subkey inspect //Alice
 # Secret Key URI `//Alice` is account:
 # Secret seed:      0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a
@@ -66,8 +67,6 @@ kagome_validating \
     --genesis config/localchain.json \
     --keystore config/localkeystore.json \
     --leveldb ldb \
-    --rpc_http_port 40363 \
-    --rpc_ws_port 40364
 ```
 
 Let's look at this flags in detail:
