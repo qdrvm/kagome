@@ -39,12 +39,20 @@ namespace kagome::runtime::binaryen {
     }
   }
 
+  /**
+   * Obtain closest multiple of 4 that is greater or equal to given number
+   */
+  template <typename T>
+  T roundUp4(T num_to_round) {
+      return ((num_to_round + 3) & (-4));
+  }
+
   WasmPointer WasmMemoryImpl::allocate(WasmSize size) {
     if (size == 0) {
       return 0;
     }
     const auto ptr = offset_;
-    const auto new_offset = ptr + size;
+    const auto new_offset = roundUp4(ptr + size);  // allign
 
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
