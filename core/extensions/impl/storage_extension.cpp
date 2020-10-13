@@ -368,10 +368,13 @@ namespace kagome::extensions {
     std::copy_n(parent_hash_bytes.begin(),
                 common::Hash256::size(),
                 parent_hash.begin());
-    if (auto result = calcStorageChangesRoot(parent_hash); result.has_value()) {
-      return memory_->storeBuffer(result.value());
-    }
-    return 0;
+
+    auto &&result = calcStorageChangesRoot(parent_hash);
+    auto &&res = result.has_value()
+                     ? boost::make_optional(std::move(result.value()))
+                     : boost::none;
+    return memory_->storeBuffer(
+        common::Buffer{scale::encode(std::move(res)).value()});
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
