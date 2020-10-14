@@ -18,11 +18,18 @@ int main(int argc, char **argv) {
   auto logger = kagome::common::createLogger("Kagome block producing node: ");
   auto configuration = std::make_shared<AppConfigurationImpl>(logger);
 
-  configuration->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating, argc, argv);
-  auto &&app = std::make_shared<kagome::application::ValidatingNodeApplication>(
-      std::move(configuration));
-  app->run();
+  try {
+    configuration->initialize_from_args(
+        AppConfiguration::LoadScheme::kValidating, argc, argv);
 
+    auto &&app =
+        std::make_shared<kagome::application::ValidatingNodeApplication>(
+            std::move(configuration));
+    app->run();
+  } catch (std::exception &e) {
+    logger->error("Caught exception: {}", e.what());
+  } catch (...) {
+    logger->error("Caught exception");
+  }
   return EXIT_SUCCESS;
 }
