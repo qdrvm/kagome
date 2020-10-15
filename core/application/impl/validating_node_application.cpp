@@ -31,6 +31,7 @@ namespace kagome::application {
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_ = injector_.create<sptr<Grandpa>>();
     router_ = injector_.create<sptr<network::Router>>();
+    kad_ = injector_.create<std::shared_ptr<libp2p::protocol::kad::Kad>>();
 
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
@@ -55,8 +56,13 @@ namespace kagome::application {
             std::exit(1);
           }
         }
-        this->router_->init();
+        for (const auto &boot_node : config_storage_->getBootNodes().peers) {
+          kad_->addPeer(boot_node, true);
+        }
+        kad_->start(true);
+        router_->init();
       });
+
       return true;
     });
 

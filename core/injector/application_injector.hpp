@@ -10,7 +10,13 @@
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
+#include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
+#include <libp2p/protocol/common/scheduler.hpp>
+#include <libp2p/protocol/kad/impl/kad_impl.hpp>
+#include <libp2p/protocol/kad/kad.hpp>
+//#include <libp2p/protocol/kademlia/kademlia.hpp>
+//#include <libp2p/protocol/kademlia/impl/kademlia_impl.hpp>
 
 #include "api/service/api_service.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
@@ -72,6 +78,7 @@
 #include "network/impl/dummy_sync_protocol_client.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
+#include "network/impl/kademlia_value_storage.hpp"
 #include "network/impl/remote_sync_protocol_client.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
@@ -639,6 +646,33 @@ namespace kagome::injector {
     return *instance;
   }
 
+  //  template <class Injector>
+  //  std::shared_ptr<libp2p::protocol::kademlia::Kad> get_kademlia(
+  //      const Injector &injector) {
+  //    static auto instance =
+  //        boost::optional<std::shared_ptr<libp2p::protocol::kademlia::Kad>>(
+  //            boost::none);
+  //    if (instance) {
+  //      return *instance;
+  //    }
+  //
+  //    auto host = injector.template create<std::shared_ptr<libp2p::Host>>();
+  //    auto scheduler = injector.template
+  //    create<std::shared_ptr<libp2p::protocol::Scheduler>>();
+  //
+  //    auto storage =
+  //        injector.template create<std::shared_ptr<storage::BufferStorage>>();
+  //
+  //    instance = std::make_shared<libp2p::protocol::kademlia::KadImpl>(
+  //        std::move(host),
+  //        std::move(scheduler),
+  //        std::move(storage),
+  //
+  //        );
+  //
+  //    return *instance;
+  //  }
+
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
                                Ts &&... args) {
@@ -651,6 +685,7 @@ namespace kagome::injector {
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     libp2p::protocol::PingConfig ping_config{};
+    libp2p::protocol::kad::KademliaConfig kademlia_config{};
 
     return di::make_injector(
         // bind configs
@@ -665,6 +700,11 @@ namespace kagome::injector {
         libp2p::injector::makeHostInjector(
             libp2p::injector::useSecurityAdaptors<
                 libp2p::security::Noise>()[di::override]),
+
+        libp2p::injector::makeKademliaInjector(
+            libp2p::injector::useKademliaConfig(kademlia_config)[di::override],
+            di::bind<libp2p::protocol::kad::ValueStoreBackend>()
+                .template to<network::KademliaValueStorage>()[di::override]),
 
         // bind boot nodes
         di::bind<network::PeerList>.to(

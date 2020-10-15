@@ -8,6 +8,8 @@
 
 #include "application/kagome_application.hpp"
 
+#include <libp2p/protocol/kad/kad.hpp>
+
 #include "api/service/api_service.hpp"
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
@@ -59,6 +61,7 @@ namespace kagome::application {
     sptr<Babe> babe_;
     sptr<Grandpa> grandpa_;
     sptr<network::Router> router_;
+    std::shared_ptr<libp2p::protocol::kad::Kad> kad_;
 
     sptr<api::ApiService> jrpc_api_service_;
 

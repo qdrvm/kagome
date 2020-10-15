@@ -68,3 +68,10 @@ target_link_libraries(sync_protocol_observer
     logger
     p2p::p2p_peer_id
     )
+
+add_library(kademlia_value_storage
+    kademlia_value_storage.cpp
+    )
+target_link_libraries(kademlia_value_storage
+    logger
+    )

@@ -8,6 +8,8 @@
 
 #include "application/kagome_application.hpp"
 
+#include <libp2p/protocol/kad/kad.hpp>
+
 #include "application/app_configuration.hpp"
 #include "common/logger.hpp"
 #include "injector/syncing_node_injector.hpp"
@@ -41,6 +43,7 @@ namespace kagome::application {
 
     sptr<ChainSpec> genesis_config_;
     sptr<network::Router> router_;
+    std::shared_ptr<libp2p::protocol::kad::Kad> kad_;
 
     sptr<api::ApiService> jrpc_api_service_;
 
