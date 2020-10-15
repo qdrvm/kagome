@@ -35,7 +35,7 @@ namespace kagome::network {
      * @brief Need to store self peer info
      * @param peer_info is the peer info of the peer
      */
-    virtual void storeSelfPeer(const libp2p::peer::PeerInfo &peer_info) = 0;
+    virtual void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) = 0;
 
     /**
      * Add new stream to gossip

@@ -49,7 +49,7 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
 
-    gossiper_->storeSelfPeer(own_peer_info);
+    gossiper_->storeSelfPeerInfo(own_peer_info);
     for (const auto &peer_info : peer_list.peers) {
       if (peer_info.id != own_peer_info.id) {
         gossiper_->reserveStream(peer_info, kGossipProtocol, {});

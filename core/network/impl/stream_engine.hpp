@@ -19,6 +19,13 @@
 
 namespace kagome::network {
 
+  /**
+   * Is the manager class to manipulate streams. It supports
+   * [Peer] -> [Protocol_0] -> [Stream_0]
+   *        -> [Protocol_1] -> [Stream_1]
+   *        -> [   ....   ] -> [  ....  ]
+   * relationships.
+   */
   struct StreamEngine final : std::enable_shared_from_this<StreamEngine> {
     using PeerInfo = libp2p::peer::PeerInfo;
     using PeerId = libp2p::peer::PeerId;
@@ -27,6 +34,10 @@ namespace kagome::network {
     using Host = libp2p::Host;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
+    /**
+     * Reserved peers are the peers from genesis or event peers connection with
+     * we must support in time. Syncing peers - all the others.
+     */
     enum PeerType { kSyncing = 1, kReserved };
 
    private:
@@ -63,6 +74,9 @@ namespace kagome::network {
       auto &protocols = reserved_streams_[peer_info];
       BOOST_ASSERT(protocols.find(protocol) == protocols.end());
       protocols.emplace(protocol, std::move(stream));
+      logger_->debug("Reserved stream (peer_id={}, protocol={}) was emplaced",
+                     peer_info.id.toHex(),
+                     protocol);
     }
 
     outcome::result<void> add(const Protocol &protocol,
@@ -82,8 +96,9 @@ namespace kagome::network {
 
       auto &proto_map = syncing_streams_[peer];
       proto_map.emplace(protocol, std::move(stream));
-      logger_->debug("Syncing stream (peer_id={}) was emplaced",
-                     peer.id.toHex());
+      logger_->debug("Syncing stream (peer_id={}, protocol={}) was emplaced",
+                     peer.id.toHex(),
+                     protocol);
       return outcome::success();
     }
 
@@ -161,12 +176,10 @@ namespace kagome::network {
     PeerMap reserved_streams_;
     PeerMap syncing_streams_;
 
-    PeerInfo from(PeerId &pid) const {
-      return PeerInfo{.id = pid, .addresses = {}};
-    }
-
-    PeerInfo from(PeerId &&pid) const {
-      return PeerInfo{.id = std::move(pid), .addresses = {}};
+    template <typename TPeerId,
+              typename = std::enable_if<std::is_same_v<PeerId, TPeerId>>>
+    PeerInfo from(TPeerId &&peer_id) const {
+      return PeerInfo{.id = std::forward<TPeerId>(peer_id), .addresses = {}};
     }
 
     outcome::result<PeerInfo> from(std::shared_ptr<Stream> &stream) const {
@@ -174,7 +187,7 @@ namespace kagome::network {
       auto peer_id_res = stream->remotePeerId();
       if (!peer_id_res.has_value()) {
         logger_->error("Can't get peer_id: {}", peer_id_res.error().message());
-        return peer_id_res.error();
+        return peer_id_res.as_failure();
       }
       return from(std::move(peer_id_res.value()));
     }
@@ -231,7 +244,6 @@ namespace kagome::network {
       auto &proto_map = proto_descriptor.proto_map.get();
       if (auto it = proto_map.find(proto); it != proto_map.end()) {
         auto &sub = it->second;
-        BOOST_ASSERT(sub);
         if (proto_descriptor.type == PeerType::kSyncing
             && (!sub || sub->isClosed()))
           proto_map.erase(it);

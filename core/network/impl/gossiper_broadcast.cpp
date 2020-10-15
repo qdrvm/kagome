@@ -14,9 +14,10 @@
 namespace kagome::network {
   KAGOME_DEFINE_CACHE(stream_engine);
 
-  GossiperBroadcast::GossiperBroadcast(libp2p::Host &host)
+  GossiperBroadcast::GossiperBroadcast(
+      StreamEngine::StreamEnginePtr stream_engine)
       : logger_{common::createLogger("GossiperBroadcast")},
-        stream_engine_{StreamEngine::create(host)} {}
+        stream_engine_{std::move(stream_engine)} {}
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
@@ -25,9 +26,9 @@ namespace kagome::network {
     stream_engine_->addReserved(peer_info, protocol, std::move(stream));
   }
 
-  void GossiperBroadcast::storeSelfPeer(
-      const libp2p::peer::PeerInfo &peer_info) {
-    peer_info_ = peer_info;
+  void GossiperBroadcast::storeSelfPeerInfo(
+      const libp2p::peer::PeerInfo &self_info) {
+    self_info_ = self_info;
   }
 
   outcome::result<void> GossiperBroadcast::addStream(
@@ -37,9 +38,9 @@ namespace kagome::network {
   }
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    BOOST_ASSERT(peer_info_);
+    BOOST_ASSERT(self_info_);
     return stream_engine_->count([&](const StreamEngine::PeerInfo &peer) {
-      return *peer_info_ == peer;
+      return *self_info_ != peer;
     });
   }
 
@@ -111,7 +112,7 @@ namespace kagome::network {
                                const libp2p::peer::Protocol &protocol,
                                GossipMessage &&msg) {
     auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
-    (*shared_msg) = std::forward<GossipMessage>(msg);
+    (*shared_msg) = std::move(msg);
 
     stream_engine_->send(StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
                          protocol,
@@ -121,7 +122,7 @@ namespace kagome::network {
   void GossiperBroadcast::broadcast(const libp2p::peer::Protocol &protocol,
                                     GossipMessage &&msg) {
     auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
-    (*shared_msg) = std::forward<GossipMessage>(msg);
+    (*shared_msg) = std::move(msg);
 
     stream_engine_->broadcast(protocol, std::move(shared_msg));
   }

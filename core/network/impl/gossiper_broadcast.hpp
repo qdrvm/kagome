@@ -37,7 +37,7 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    explicit GossiperBroadcast(libp2p::Host &host);
+    explicit GossiperBroadcast(StreamEngine::StreamEnginePtr stream_engine);
 
     ~GossiperBroadcast() override = default;
 
@@ -46,7 +46,7 @@ namespace kagome::network {
         const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) override;
 
-    void storeSelfPeer(const libp2p::peer::PeerInfo &peer_info) override;
+    void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
 
     void transactionAnnounce(const TransactionAnnounce &announce) override;
 
@@ -76,7 +76,7 @@ namespace kagome::network {
 
     common::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
-    boost::optional<libp2p::peer::PeerInfo> peer_info_;
+    boost::optional<libp2p::peer::PeerInfo> self_info_;
   };
 }  // namespace kagome::network
 
