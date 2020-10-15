@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP
 #define KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP
 
-#include <vector>
 #include <jsonrpc-lean/value.h>
+#include <vector>
 
 #include "common/blob.hpp"
 #include "common/visitor.hpp"
@@ -28,14 +28,26 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const primitives::Api &);
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
 
+  inline jsonrpc::Value makeValue(const std::nullptr_t &) {
+    return jsonrpc::Value();
+  }
+  inline jsonrpc::Value makeValue(const std::nullopt_t &) {
+    return jsonrpc::Value();
+  }
+  inline jsonrpc::Value makeValue(const boost::none_t &) {
+    return jsonrpc::Value();
+  }
+
   template <size_t S>
   inline jsonrpc::Value makeValue(const common::Blob<S> &);
   template <typename T>
   inline jsonrpc::Value makeValue(const T &);
   template <class T>
   inline jsonrpc::Value makeValue(const std::vector<T> &);
-  template <class T1, class T2>
-  inline jsonrpc::Value makeValue(const boost::variant<T1, T2> &);
+  template <typename... Ts>
+  inline jsonrpc::Value makeValue(const boost::variant<Ts...> &v);
+  template <typename T>
+  inline jsonrpc::Value makeValue(const std::reference_wrapper<T> &v);
 
   template <typename T>
   inline jsonrpc::Value makeValue(const T &val) {
@@ -99,6 +111,9 @@ namespace kagome::api {
 
   inline jsonrpc::Value makeValue(const primitives::Version &val) {
     using jStruct = jsonrpc::Value::Struct;
+    using jArray = jsonrpc::Value::Array;
+    using jString = jsonrpc::Value::String;
+
     jStruct data;
     data["authoringVersion"] = makeValue(val.authoring_version);
 
@@ -108,7 +123,18 @@ namespace kagome::api {
     data["specVersion"] = makeValue(val.spec_version);
     data["implVersion"] = makeValue(val.impl_version);
 
-    data["apis"] = makeValue(val.apis);
+    jArray apis;
+    std::transform(val.apis.begin(),
+                   val.apis.end(),
+                   std::back_inserter(apis),
+                   [](const auto &api) {
+                     jArray api_data;
+                     api_data.emplace_back(jString(hex_lower_0x(api.first)));
+                     api_data.emplace_back(makeValue(api.second));
+                     return api_data;
+                   });
+
+    data["apis"] = std::move(apis);
     return std::move(data);
   }
 
@@ -135,14 +161,16 @@ namespace kagome::api {
     return std::move(data);
   }
 
-  template <class T1, class T2>
-  inline jsonrpc::Value makeValue(const boost::variant<T1, T2> &v) {
-    return kagome::visit_in_place(
-        v,
-        [](const T1 &value) { return makeValue(value); },
-        [](const T2 &value) { return makeValue(value); });
+  template <typename... Ts>
+  inline jsonrpc::Value makeValue(const boost::variant<Ts...> &v) {
+    return visit_in_place(v,
+                          [](const auto &value) { return makeValue(value); });
   }
 
+  template <typename T>
+  inline jsonrpc::Value makeValue(const std::reference_wrapper<T> &v) {
+    return makeValue(v.get());
+  }
 }  // namespace kagome::api
 
 #endif  // KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP

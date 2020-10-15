@@ -64,17 +64,18 @@ namespace kagome::api {
     return results;
   }
 
-  outcome::result<bool> ChainApiImpl::unsubscribeNewHeads(int64_t id) {
+  outcome::result<uint32_t> ChainApiImpl::subscribeNewHeads() {
     if (auto api_service = api_service_.lock())
-      return api_service->unsubscribeNewHeads(id);
+      return api_service->subscribeNewHeads();
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
   }
 
-  outcome::result<uint32_t> ChainApiImpl::subscribeNewHeads() {
+  outcome::result<void> ChainApiImpl::unsubscribeNewHeads(
+      uint32_t subscription_id) {
     if (auto api_service = api_service_.lock())
-      return api_service->subscribeNewHeads();
+      return api_service->unsubscribeNewHeads(subscription_id);
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");

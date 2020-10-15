@@ -113,7 +113,8 @@ namespace kagome::blockchain {
       const primitives::BlockId &last_finalized_block,
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher,
-      subscriptions::EventsSubscriptionEnginePtr events_engine) {
+      subscriptions::EventsSubscriptionEnginePtr events_engine,
+      std::shared_ptr<runtime::Core> runtime_core) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
     // create meta structures from the retrieved header
@@ -129,7 +130,8 @@ namespace kagome::blockchain {
                              std::move(meta),
                              std::move(extrinsic_observer),
                              std::move(hasher),
-                             std::move(events_engine)};
+                             std::move(events_engine),
+                             std::move(runtime_core)};
     return std::make_shared<BlockTreeImpl>(std::move(block_tree));
   }
 
@@ -140,15 +142,18 @@ namespace kagome::blockchain {
       std::shared_ptr<TreeMeta> meta,
       std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher,
-      subscriptions::EventsSubscriptionEnginePtr events_engine)
+      subscriptions::EventsSubscriptionEnginePtr events_engine,
+      std::shared_ptr<runtime::Core> runtime_core)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
         extrinsic_observer_{std::move(extrinsic_observer)},
         hasher_{std::move(hasher)},
-        events_engine_(std::move(events_engine)) {
+        events_engine_(std::move(events_engine)),
+        runtime_core_(std::move(runtime_core)) {
     BOOST_ASSERT(events_engine_);
+    BOOST_ASSERT(runtime_core_);
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -265,6 +270,15 @@ namespace kagome::blockchain {
 
     events_engine_->notify(primitives::SubscriptionEventType::kNewHeads,
                            header);
+
+    OUTCOME_TRY(new_runtime_version, runtime_core_->version(boost::none));
+    if (not actual_runtime_version_.has_value()
+        || actual_runtime_version_ != new_runtime_version) {
+      actual_runtime_version_ = new_runtime_version;
+      events_engine_->notify(primitives::SubscriptionEventType::kRuntimeVersion,
+                             new_runtime_version);
+    }
+
     log_->info(
         "Finalized block number {} with hash {}", node->depth, block.toHex());
     return outcome::success();

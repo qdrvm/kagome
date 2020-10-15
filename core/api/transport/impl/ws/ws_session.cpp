@@ -44,9 +44,12 @@ namespace kagome::api {
   }
 
   void WsSession::asyncWrite() {
-    stream_.async_write(wbuffer_.data(),
-                        boost::beast::bind_front_handler(&WsSession::onWrite,
-                                                         shared_from_this()));
+    bool val = false;
+    if (writing_in_progress_.compare_exchange_strong(val, true)) {
+      stream_.async_write(wbuffer_.data(),
+                          boost::beast::bind_front_handler(&WsSession::onWrite,
+                                                           shared_from_this()));
+    }
   }
 
   kagome::api::Session::SessionId WsSession::id() const {
@@ -105,6 +108,8 @@ namespace kagome::api {
         {static_cast<char *>(rbuffer_.data().data()), bytes_transferred});
 
     rbuffer_.consume(bytes_transferred);
+
+    asyncRead();
   }
 
   void WsSession::onWrite(boost::system::error_code ec,
@@ -116,7 +121,13 @@ namespace kagome::api {
 
     wbuffer_.consume(bytes_transferred);
 
-    asyncRead();
+	  if (wbuffer_.size() > 0) {
+		  stream_.async_write(wbuffer_.data(),
+		                      boost::beast::bind_front_handler(&WsSession::onWrite,
+		                                                       shared_from_this()));
+	  } else {
+		  writing_in_progress_ = false;
+	  }
   }
 
   void WsSession::reportError(boost::system::error_code ec,

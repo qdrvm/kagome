@@ -332,13 +332,17 @@ namespace kagome::injector {
     auto &&events_engine =
         injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
 
+    auto &&runtime_core =
+        injector.template create<std::shared_ptr<runtime::Core>>();
+
     auto &&tree =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
                                           storage,
                                           block_id,
                                           std::move(extrinsic_observer),
                                           std::move(hasher),
-                                          std::move(events_engine));
+                                          std::move(events_engine),
+                                          std::move(runtime_core));
     if (!tree) {
       common::raise(tree.error());
     }

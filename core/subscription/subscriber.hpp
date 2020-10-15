@@ -6,6 +6,7 @@
 #ifndef KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
 #define KAGOME_SUBSCRIPTION_SUBSCRIBER_HPP
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -46,7 +47,7 @@ namespace kagome::subscription {
     using SubscriptionsSets =
         std::unordered_map<SubscriptionSetId, SubscriptionsContainer>;
 
-    SubscriptionSetId next_id_;
+    std::atomic<SubscriptionSetId> next_id_;
     SubscriptionEnginePtr engine_;
     ValueType object_;
 

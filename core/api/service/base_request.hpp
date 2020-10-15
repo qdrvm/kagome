@@ -14,7 +14,7 @@
 #include "api/service/chain/chain_api.hpp"
 #include "primitives/extrinsic.hpp"
 
-namespace kagome::api::chain::request {
+namespace kagome::api::details {
 
   template <size_t I, size_t Max, typename Tuple, typename F>
   constexpr void loop(Tuple &t, F &&f) {
@@ -25,25 +25,14 @@ namespace kagome::api::chain::request {
     }
   }
 
-#pragma push_macro("KAGOME_LOAD_VALUE")
-#undef KAGOME_LOAD_VALUE
-
-#define KAGOME_LOAD_VALUE(type)                                           \
-  void loadValue(boost::optional<type> &dst, const jsonrpc::Value &src) { \
-    if (!src.IsNil()) {                                                   \
-      type t;                                                             \
-      loadValue(t, src);                                                  \
-      dst = std::move(t);                                                 \
-    } else {                                                              \
-      dst = boost::none;                                                  \
-    }                                                                     \
-  }                                                                       \
-  void loadValue(type &dst, const jsonrpc::Value &src)
-
-  template <typename ResultType, typename... Types>
+  template <typename ResultType, typename... ArgumentTypes>
   struct RequestType {
+   public:
+    using Params = std::tuple<ArgumentTypes...>;
+    using Return = ResultType;
+
    private:
-    std::tuple<Types...> params_;
+    Params params_;
 
    public:
     RequestType() = default;
@@ -58,10 +47,12 @@ namespace kagome::api::chain::request {
     RequestType &operator=(RequestType &&) = delete;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params) {
-      if (params.size() <= sizeof...(Types)) {
-        loop<0, sizeof...(Types)>(params_, [&](const auto ix, auto &dst) {
-          if (ix < params.size()) loadValue(dst, params[ix]);
-        });
+      if (params.size() <= sizeof...(ArgumentTypes)) {
+        loop<0, sizeof...(ArgumentTypes)>(params_,
+                                          [&](const auto ix, auto &dst) {
+                                            if (ix < params.size())
+                                              loadValue(dst, params[ix]);
+                                          });
         return outcome::success();
       }
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
@@ -76,29 +67,46 @@ namespace kagome::api::chain::request {
     }
 
    private:
-    KAGOME_LOAD_VALUE(int32_t) {
-      if (!src.IsInteger32())
-        throw jsonrpc::InvalidParametersFault("invalid argument");
-
-      dst = src.AsInteger32();
+    template <typename T>
+    void loadValue(boost::optional<T> &dst, const jsonrpc::Value &src) {
+      if (!src.IsNil()) {
+        T t;
+        loadValue(t, src);
+        dst = std::move(t);
+      } else {
+        dst = boost::none;
+      }
     }
 
-    KAGOME_LOAD_VALUE(int64_t) {
-      if (!src.IsInteger64())
-        throw jsonrpc::InvalidParametersFault("invalid argument");
+    template <typename T, typename = std::enable_if<std::is_integral_v<T>>>
+    void loadValue(T &dst, const jsonrpc::Value &src) {
+      if (not src.IsInteger32() and not src.IsInteger64()) {
+        throw jsonrpc::InvalidParametersFault("invalid argument type");
+      }
 
-      dst = src.AsInteger64();
+      auto num = src.AsInteger64();
+      if (num < std::numeric_limits<T>::min()
+          or num > std::numeric_limits<T>::max()) {
+        throw jsonrpc::InvalidParametersFault("invalid argument value");
+      }
+      dst = num;
     }
 
-    KAGOME_LOAD_VALUE(std::string) {
-      if (!src.IsString())
-        throw jsonrpc::InvalidParametersFault("invalid argument");
+    void loadValue(bool &dst, const jsonrpc::Value &src) {
+      if (not src.IsBoolean()) {
+        throw jsonrpc::InvalidParametersFault("invalid argument type");
+      }
+      dst = src.AsBoolean();
+    }
 
+    void loadValue(std::string &dst, const jsonrpc::Value &src) {
+      if (not src.IsString()) {
+        throw jsonrpc::InvalidParametersFault("invalid argument type");
+      }
       dst = src.AsString();
     }
   };
-#pragma pop_macro("KAGOME_LOAD_VALUE")
 
-}  // namespace kagome::api::chain::request
+}  // namespace kagome::api::details
 
 #endif  // KAGOME_CHAIN_BASE_REQUEST_HPP

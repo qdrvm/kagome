@@ -14,6 +14,7 @@
 #include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
+#include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
@@ -45,7 +46,8 @@ struct BlockTreeTest : public testing::Test {
                                         kLastFinalizedBlockId,
                                         extrinsic_observer_,
                                         hasher_,
-                                        events_engine)
+                                        events_engine,
+                                        runtime_core_)
                       .value();
   }
 
@@ -93,6 +95,9 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
+
+  std::shared_ptr<runtime::CoreMock> runtime_core_ =
+      std::make_shared<runtime::CoreMock>();
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 
@@ -205,6 +210,8 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(bid))
       .WillRepeatedly(Return(outcome::success(header)));
+  EXPECT_CALL(*runtime_core_, version(_))
+      .WillRepeatedly(Return(primitives::Version{}));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));

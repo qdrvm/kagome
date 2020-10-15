@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_STATE_API_HPP
-#define KAGOME_API_STATE_API_HPP
+#ifndef KAGOME_API_STATEAPI
+#define KAGOME_API_STATEAPI
 
 #include <boost/optional.hpp>
 
@@ -33,15 +33,20 @@ namespace kagome::api {
         const common::Buffer &key) const = 0;
     virtual outcome::result<common::Buffer> getStorage(
         const common::Buffer &key, const primitives::BlockHash &at) const = 0;
-    virtual outcome::result<primitives::Version> getRuntimeVersion(
-        const boost::optional<primitives::BlockHash> &at) const = 0;
+
     virtual outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) = 0;
     virtual outcome::result<void> unsubscribeStorage(
         const std::vector<uint32_t> &subscription_id) = 0;
+
+    virtual outcome::result<primitives::Version> getRuntimeVersion(
+        const boost::optional<primitives::BlockHash> &at) const = 0;
+    virtual outcome::result<uint32_t> subscribeRuntimeVersion() = 0;
+    virtual outcome::result<void> unsubscribeRuntimeVersion(
+        uint32_t subscription_id) = 0;
     virtual outcome::result<std::string> getMetadata() = 0;
   };
 
 }  // namespace kagome::api
 
-#endif  // KAGOME_API_STATE_API_HPP
+#endif  // KAGOME_API_STATEAPI

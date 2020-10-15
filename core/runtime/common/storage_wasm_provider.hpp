@@ -12,9 +12,7 @@
 
 namespace kagome::runtime {
 
-  // key for accessing runtime from storage(hex representation of ":code")
-  inline const common::Buffer kRuntimeKey =
-      common::Buffer::fromHex("3a636f6465").value();
+  inline const common::Buffer kRuntimeKey = common::Buffer().put(":code");
 
   class StorageWasmProvider : public WasmProvider {
    public:
