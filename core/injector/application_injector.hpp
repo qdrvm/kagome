@@ -16,8 +16,8 @@
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
-#include "api/service/rpc/rpc_jrpc_processor.hpp"
 #include "api/service/rpc/impl/rpc_api_impl.hpp"
+#include "api/service/rpc/rpc_jrpc_processor.hpp"
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/state_jrpc_processor.hpp"
 #include "api/service/system/impl/system_api_impl.hpp"
@@ -166,8 +166,8 @@ namespace kagome::injector {
             .template create<std::shared_ptr<api::chain::ChainJrpcProcessor>>(),
         injector.template create<
             std::shared_ptr<api::system::SystemJrpcProcessor>>(),
-        injector.template create<
-            std::shared_ptr<api::rpc::RpcJRpcProcessor>>()};
+        injector
+            .template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>()};
 
     initialized =
         std::make_shared<api::ApiService>(std::move(app_state_manager),
@@ -697,6 +697,7 @@ namespace kagome::injector {
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
+        di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
