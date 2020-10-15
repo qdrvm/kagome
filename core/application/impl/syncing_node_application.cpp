@@ -30,7 +30,7 @@ namespace kagome::application {
   }
 
   void SyncingNodeApplication::run() {
-	  logger_->info("Start as SyncingNode with PID {}", getpid());
+    logger_->info("Start as SyncingNode with PID {}", getpid());
 
     auto res = util::init_directory(chain_path_);
     if (not res) {

@@ -815,9 +815,9 @@ namespace kagome::injector {
         di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
 
         di::bind<network::Router>.to(
-		        [](const auto &injector) { return get_router(injector); }),
+            [](const auto &injector) { return get_router(injector); }),
 
-	  // user-defined overrides...
+        // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }
 

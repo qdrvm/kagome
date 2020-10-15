@@ -29,15 +29,15 @@ namespace kagome::application {
   }
 
   void BlockProducingNodeApplication::run() {
-	  logger_->info("Start as BlockProducingNode with PID {}", getpid());
+    logger_->info("Start as BlockProducingNode with PID {}", getpid());
 
-	  auto res = util::init_directory(chain_path_);
-	  if (not res) {
-		  logger_->critical("Error initalizing chain directory {}: {}",
-		                    chain_path_.native(),
-		                    res.error().message());
-		  exit(EXIT_FAILURE);
-	  }
+    auto res = util::init_directory(chain_path_);
+    if (not res) {
+      logger_->critical("Error initalizing chain directory {}: {}",
+                        chain_path_.native(),
+                        res.error().message());
+      exit(EXIT_FAILURE);
+    }
 
     babe_->setExecutionStrategy(Babe::ExecutionStrategy::SYNC_FIRST);
 

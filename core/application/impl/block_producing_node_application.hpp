@@ -15,9 +15,8 @@ namespace kagome::application {
 
   class BlockProducingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
-    using InjectorType =
-        decltype(injector::makeBlockProducingNodeInjector(
-            std::declval<AppConfiguration const &>()));
+    using InjectorType = decltype(injector::makeBlockProducingNodeInjector(
+        std::declval<AppConfiguration const &>()));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
