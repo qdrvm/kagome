@@ -13,7 +13,7 @@ namespace kagome::network {
    * Propagate transactions in network
    */
   struct PropagatedTransactions {
-    std::vector<primitives::Extrinsic> txs;
+    std::vector<primitives::Extrinsic> extrinsics;
   };
 
   /**

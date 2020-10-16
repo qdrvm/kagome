@@ -70,6 +70,10 @@ namespace kagome::api {
             network::TransactionAnnounce announce;
             announce.extrinsics.push_back(extrinsic);
             gossiper_->transactionAnnounce(announce);
+
+            network::PropagatedTransactions txs;
+            txs.extrinsics.push_back(extrinsic);
+            gossiper_->propagateTransactions(txs);
           }
 
           return hash;

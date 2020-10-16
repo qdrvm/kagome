@@ -7,6 +7,7 @@
 #define KAGOME_CORE_NETWORK_EXTRINSIC_GOSSIPER_HPP
 
 #include "network/types/transaction_announce.hpp"
+#include "network/types/propagate_transactions.hpp"
 
 namespace kagome::network {
   /**
@@ -22,7 +23,8 @@ namespace kagome::network {
     virtual void transactionAnnounce(
         const network::TransactionAnnounce &announce) = 0;
 
-    virtual void propagateTransactions()
+    virtual void propagateTransactions(
+        const network::PropagatedTransactions &txs) = 0;
   };
 }  // namespace kagome::network
 

@@ -54,6 +54,12 @@ namespace kagome::network {
     broadcast(kGossipProtocol, std::move(message));
   }
 
+  void GossiperBroadcast::propagateTransactions(const network::PropagatedTransactions &txs) {
+    logger_->debug("Propagate transactions : {} extrinsics",
+                   txs.extrinsics.size());
+    broadcast(kPropagateTransactionsProtocol, txs);
+  }
+
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
     logger_->debug("Gossip block announce: block number {}",
                    announce.header.number);
@@ -106,24 +112,5 @@ namespace kagome::network {
     message.data.put(scale::encode(GrandpaMessage(catch_up_response)).value());
 
     send(peer_id, kGossipProtocol, std::move(message));
-  }
-
-  void GossiperBroadcast::send(const libp2p::peer::PeerId &peer_id,
-                               const libp2p::peer::Protocol &protocol,
-                               GossipMessage &&msg) {
-    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
-    (*shared_msg) = std::move(msg);
-
-    stream_engine_->send(StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
-                         protocol,
-                         std::move(shared_msg));
-  }
-
-  void GossiperBroadcast::broadcast(const libp2p::peer::Protocol &protocol,
-                                    GossipMessage &&msg) {
-    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
-    (*shared_msg) = std::move(msg);
-
-    stream_engine_->broadcast(protocol, std::move(shared_msg));
   }
 }  // namespace kagome::network

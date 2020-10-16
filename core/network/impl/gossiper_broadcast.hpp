@@ -24,7 +24,9 @@
 #include "subscription/subscription_engine.hpp"
 
 namespace kagome::network {
-  KAGOME_DECLARE_CACHE(stream_engine, KAGOME_CACHE_UNIT(GossipMessage));
+  KAGOME_DECLARE_CACHE(stream_engine,
+                       KAGOME_CACHE_UNIT(GossipMessage),
+                       KAGOME_CACHE_UNIT(PropagatedTransactions));
 
   /**
    * Sends gossip messages using broadcast strategy
@@ -50,6 +52,9 @@ namespace kagome::network {
 
     void transactionAnnounce(const TransactionAnnounce &announce) override;
 
+    void propagateTransactions(
+        const network::PropagatedTransactions &txs) override;
+
     void blockAnnounce(const BlockAnnounce &announce) override;
 
     void vote(const network::GrandpaVoteMessage &msg) override;
@@ -69,10 +74,26 @@ namespace kagome::network {
     uint32_t getActiveStreamNumber() override;
 
    private:
+    template <typename T>
     void send(const libp2p::peer::PeerId &peer_id,
               const libp2p::peer::Protocol &protocol,
-              GossipMessage &&msg);
-    void broadcast(const libp2p::peer::Protocol &protocol, GossipMessage &&msg);
+              T &&msg) {
+      auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
+          stream_engine, typename std::decay<decltype(msg)>::type);
+      (*shared_msg) = std::forward<T>(msg);
+      stream_engine_->send(
+          StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
+          protocol,
+          std::move(shared_msg));
+    }
+
+    template <typename T>
+    void broadcast(const libp2p::peer::Protocol &protocol, T &&msg) {
+      auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
+          stream_engine, typename std::decay<decltype(msg)>::type);
+      (*shared_msg) = std::forward<T>(msg);
+      stream_engine_->broadcast(protocol, std::move(shared_msg));
+    }
 
     common::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
