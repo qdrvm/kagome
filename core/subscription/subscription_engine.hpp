@@ -77,6 +77,13 @@ namespace kagome::subscription {
       return 0ull;
     }
 
+    size_t size() const {
+      std::shared_lock lock(subscribers_map_cs_);
+      size_t count = 0ull;
+      for (auto &it : subscribers_map_) count += it.second.size();
+      return count;
+    }
+
     void notify(const KeyType &key, const Arguments &... args) {
       std::shared_lock lock(subscribers_map_cs_);
       auto it = subscribers_map_.find(key);

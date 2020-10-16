@@ -72,8 +72,8 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
 
   // allocated second memory chunk
   auto ptr2 = memory_.allocate(size2);
-  // second memory chunk is placed right after the first one
-  ASSERT_EQ(ptr2, size1 + ptr1);
+  // second memory chunk is placed right after the first one (alligned by 4)
+  ASSERT_EQ(ptr2, kagome::runtime::binaryen::roundUp<4>(size1 + ptr1));
 }
 
 /**
@@ -116,7 +116,7 @@ TEST_F(MemoryHeapTest, DeallocateNonexistingMemoryChunk) {
 TEST_F(MemoryHeapTest, AllocateAfterDeallocate) {
   // two memory sizes totalling to the total memory size
   const size_t size1 = 2045;
-  const size_t size2 = 2049;
+  const size_t size2 = 2047;
 
   // allocate two memory chunks with total size equal to the memory size
   auto ptr1 = memory_.allocate(size1);
@@ -156,8 +156,8 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
   // memory
   auto ptr3 = memory_.allocate(size1 + 1);
 
-  // memory is allocated on mem offset
-  ASSERT_EQ(ptr3, mem_offset);
+  // memory is allocated on mem offset (aligned by 4)
+  ASSERT_EQ(ptr3, kagome::runtime::binaryen::roundUp<4>(mem_offset));
 }
 
 /**

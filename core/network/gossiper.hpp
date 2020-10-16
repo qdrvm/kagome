@@ -12,6 +12,7 @@
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/protocol.hpp>
 
 namespace kagome::network {
   /**
@@ -27,23 +28,26 @@ namespace kagome::network {
      */
     virtual void reserveStream(
         const libp2p::peer::PeerInfo &info,
+        const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
+
+    /**
+     * @brief Need to store self peer info
+     * @param peer_info is the peer info of the peer
+     */
+    virtual void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) = 0;
 
     /**
      * Add new stream to gossip
      */
-    virtual void addStream(
+    virtual outcome::result<void> addStream(
+        const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) = 0;
 
     /**
      * @returns number of active (opened) streams
      */
     virtual uint32_t getActiveStreamNumber() = 0;
-
-    /**
-     * @returns number of reserved streams
-     */
-    virtual uint32_t getReservedStreamNumber() = 0;
   };
 }  // namespace kagome::network
 

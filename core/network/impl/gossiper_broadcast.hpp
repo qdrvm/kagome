@@ -10,14 +10,22 @@
 #include <unordered_map>
 
 #include "common/logger.hpp"
+#include "containers/objects_cache.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
+#include "libp2p/peer/protocol.hpp"
 #include "network/gossiper.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/peer_list.hpp"
+#include "subscription/subscriber.hpp"
+#include "subscription/subscription_engine.hpp"
 
 namespace kagome::network {
+  KAGOME_DECLARE_CACHE(stream_engine, KAGOME_CACHE_UNIT(GossipMessage));
+
   /**
    * Sends gossip messages using broadcast strategy
    */
@@ -29,13 +37,16 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    explicit GossiperBroadcast(libp2p::Host &host);
+    explicit GossiperBroadcast(StreamEngine::StreamEnginePtr stream_engine);
 
     ~GossiperBroadcast() override = default;
 
     void reserveStream(
         const libp2p::peer::PeerInfo &peer_info,
+        const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) override;
+
+    void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
 
     void transactionAnnounce(const TransactionAnnounce &announce) override;
 
@@ -51,26 +62,21 @@ namespace kagome::network {
     void catchUpResponse(const libp2p::peer::PeerId &peer_id,
                          const CatchUpResponse &catch_up_response) override;
 
-    void addStream(std::shared_ptr<libp2p::connection::Stream> stream) override;
+    outcome::result<void> addStream(
+        const libp2p::peer::Protocol &protocol,
+        std::shared_ptr<libp2p::connection::Stream> stream) override;
 
     uint32_t getActiveStreamNumber() override;
-    uint32_t getReservedStreamNumber() override;
 
    private:
-    void send(const libp2p::peer::PeerId &peer_id, GossipMessage &&msg);
-    void broadcast(GossipMessage &&msg);
-
-    libp2p::Host &host_;
-
-    std::unordered_map<libp2p::peer::PeerInfo,
-                       std::shared_ptr<libp2p::connection::Stream>>
-        reserved_streams_;
-
-    std::unordered_map<libp2p::peer::PeerId,
-                       std::shared_ptr<libp2p::connection::Stream>>
-        syncing_streams_;
+    void send(const libp2p::peer::PeerId &peer_id,
+              const libp2p::peer::Protocol &protocol,
+              GossipMessage &&msg);
+    void broadcast(const libp2p::peer::Protocol &protocol, GossipMessage &&msg);
 
     common::Logger logger_;
+    StreamEngine::StreamEnginePtr stream_engine_;
+    boost::optional<libp2p::peer::PeerInfo> self_info_;
   };
 }  // namespace kagome::network
 
