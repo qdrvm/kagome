@@ -129,6 +129,7 @@ namespace kagome::runtime::binaryen {
   template <size_t X, typename T>
   inline T roundUp(T t) {
     static_assert((X & (X - 1)) == 0, "Must be POW 2!");
+    static_assert(X != 0, "Must not be 0!");
     return (t + (X - 1)) & ~(X - 1);
   }
 

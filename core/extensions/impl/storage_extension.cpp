@@ -373,8 +373,7 @@ namespace kagome::extensions {
     auto &&res = result.has_value()
                      ? boost::make_optional(std::move(result.value()))
                      : boost::none;
-    return memory_->storeBuffer(
-        common::Buffer{scale::encode(std::move(res)).value()});
+    return memory_->storeBuffer(scale::encode(std::move(res)).value());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(

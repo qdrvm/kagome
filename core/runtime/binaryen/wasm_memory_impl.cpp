@@ -44,7 +44,7 @@ namespace kagome::runtime::binaryen {
       return 0;
     }
     const auto ptr = offset_;
-    const auto new_offset = roundUp<4>(ptr + size);  // allign
+    const auto new_offset = roundUp<4>(ptr + size);  // align
 
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
