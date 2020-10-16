@@ -21,6 +21,8 @@ namespace kagome::network {
      */
     virtual void transactionAnnounce(
         const network::TransactionAnnounce &announce) = 0;
+
+    virtual void propagateTransactions()
   };
 }  // namespace kagome::network
 
