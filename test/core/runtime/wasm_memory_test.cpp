@@ -156,7 +156,7 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
   // memory
   auto ptr3 = memory_.allocate(size1 + 1);
 
-  // memory is allocated on mem offset (alligned by 4)
+  // memory is allocated on mem offset (aligned by 4)
   ASSERT_EQ(ptr3, kagome::runtime::binaryen::roundUp<4>(mem_offset));
 }
 
