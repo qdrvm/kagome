@@ -58,7 +58,7 @@ namespace kagome::runtime::binaryen {
     common::Buffer loadN(kagome::runtime::WasmPointer addr,
                          kagome::runtime::WasmSize n) const override;
     std::string loadStr(kagome::runtime::WasmPointer addr,
-                         kagome::runtime::WasmSize n) const override;
+                        kagome::runtime::WasmSize n) const override;
 
     void store8(WasmPointer addr, int8_t value) override;
     void store16(WasmPointer addr, int16_t value) override;
@@ -118,6 +118,20 @@ namespace kagome::runtime::binaryen {
 
     void resizeInternal(WasmSize newSize);
   };
+
+  /**
+     * Obtain closest multiple of X that is greater or equal to given number
+     * @tparam X multiple that is POW of 2
+     * @tparam T type of number
+     * @param t given number
+     * @return closest multiple
+     */
+  template <size_t X, typename T>
+  inline T roundUp(T t) {
+    static_assert((X & (X - 1)) == 0, "Must be POW 2!");
+    static_assert(X != 0, "Must not be 0!");
+    return (t + (X - 1)) & ~(X - 1);
+  }
 
 }  // namespace kagome::runtime::binaryen
 
