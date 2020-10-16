@@ -5,87 +5,43 @@
 
 #include "network/impl/gossiper_broadcast.hpp"
 
+#include <atomic>
+#include <memory>
+
 #include "network/common.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/loopback_stream.hpp"
 
 namespace kagome::network {
+  KAGOME_DEFINE_CACHE(stream_engine);
 
-  GossiperBroadcast::GossiperBroadcast(libp2p::Host &host)
-      : host_{host}, logger_{common::createLogger("GossiperBroadcast")} {}
+  GossiperBroadcast::GossiperBroadcast(
+      StreamEngine::StreamEnginePtr stream_engine)
+      : logger_{common::createLogger("GossiperBroadcast")},
+        stream_engine_{std::move(stream_engine)} {}
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
+      const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    reserved_streams_.emplace(peer_info, std::move(stream));
+    stream_engine_->addReserved(peer_info, protocol, std::move(stream));
   }
 
-  void GossiperBroadcast::addStream(
+  void GossiperBroadcast::storeSelfPeerInfo(
+      const libp2p::peer::PeerInfo &self_info) {
+    self_info_ = self_info;
+  }
+
+  outcome::result<void> GossiperBroadcast::addStream(
+      const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
-    auto peer_id_res = stream->remotePeerId();
-    if (not peer_id_res.has_value()) {
-      logger_->error("Can't get peer_id: {}", peer_id_res.error().message());
-      return stream->reset();
-    }
-    auto &peer_id = peer_id_res.value();
-
-    auto syncing_stream_it = syncing_streams_.find(peer_id);
-    if (syncing_stream_it != syncing_streams_.end()) {
-      if (syncing_stream_it->second != stream) {
-        syncing_stream_it->second->reset();
-        syncing_stream_it->second.swap(stream);
-        logger_->debug("Syncing stream (peer_id={}) was replaced",
-                       peer_id.toHex());
-      }
-      return;
-    }
-
-    logger_->debug("Syncing stream (peer_id={}) was emplaced", peer_id.toHex());
+    return stream_engine_->add(protocol, std::move(stream));
   }
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    struct HashtableHelper {
-      using type = std::reference_wrapper<const libp2p::peer::PeerId>;
-      size_t operator()(const type &item) const noexcept {
-        return std::hash<libp2p::peer::PeerId>()(item.get());
-      }
-      bool operator()(const type &lhs, const type &rhs) const noexcept {
-        return lhs.get() == rhs.get();
-      }
-    };
-
-    std::unordered_set<std::reference_wrapper<const libp2p::peer::PeerId>,
-                       HashtableHelper,
-                       HashtableHelper>
-        unique_peer_ids;
-
-    std::for_each(
-        syncing_streams_.begin(),
-        syncing_streams_.end(),
-        [&unique_peer_ids](const auto &pair) {
-          const auto &[peer_id, stream] = pair;
-          if (stream && not stream->isClosed()
-              && not std::dynamic_pointer_cast<LoopbackStream>(stream)) {
-            unique_peer_ids.emplace(peer_id);
-          }
-        });
-
-    std::for_each(
-        reserved_streams_.begin(),
-        reserved_streams_.end(),
-        [&unique_peer_ids](const auto &pair) {
-          const auto &[peer_info, stream] = pair;
-          if (stream && not stream->isClosed()
-              && not std::dynamic_pointer_cast<LoopbackStream>(stream)) {
-            unique_peer_ids.emplace(peer_info.id);
-          }
-        });
-
-    return unique_peer_ids.size();
-  }
-
-  uint32_t GossiperBroadcast::getReservedStreamNumber() {
-    return reserved_streams_.size();
+    BOOST_ASSERT(self_info_);
+    return stream_engine_->count([&](const StreamEngine::PeerInfo &peer) {
+      return *self_info_ != peer;
+    });
   }
 
   void GossiperBroadcast::transactionAnnounce(
@@ -95,7 +51,7 @@ namespace kagome::network {
     GossipMessage message;
     message.type = GossipMessage::Type::TRANSACTIONS;
     message.data.put(scale::encode(announce).value());
-    broadcast(std::move(message));
+    broadcast(kGossipProtocol, std::move(message));
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
@@ -104,7 +60,7 @@ namespace kagome::network {
     GossipMessage message;
     message.type = GossipMessage::Type::BLOCK_ANNOUNCE;
     message.data.put(scale::encode(announce).value());
-    broadcast(std::move(message));
+    broadcast(kGossipProtocol, std::move(message));
   }
 
   void GossiperBroadcast::vote(
@@ -115,7 +71,7 @@ namespace kagome::network {
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(vote_message)).value());
 
-    broadcast(std::move(message));
+    broadcast(kGossipProtocol, std::move(message));
   }
 
   void GossiperBroadcast::finalize(const network::GrandpaPreCommit &fin) {
@@ -125,7 +81,7 @@ namespace kagome::network {
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(fin)).value());
 
-    broadcast(std::move(message));
+    broadcast(kGossipProtocol, std::move(message));
   }
 
   void GossiperBroadcast::catchUpRequest(
@@ -137,7 +93,7 @@ namespace kagome::network {
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(catch_up_request)).value());
 
-    send(peer_id, std::move(message));
+    send(peer_id, kGossipProtocol, std::move(message));
   }
 
   void GossiperBroadcast::catchUpResponse(
@@ -149,124 +105,25 @@ namespace kagome::network {
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(catch_up_response)).value());
 
-    send(peer_id, std::move(message));
+    send(peer_id, kGossipProtocol, std::move(message));
   }
 
   void GossiperBroadcast::send(const libp2p::peer::PeerId &peer_id,
+                               const libp2p::peer::Protocol &protocol,
                                GossipMessage &&msg) {
-    auto msg_send_lambda = [msg, this](auto stream) {
-      auto read_writer =
-          std::make_shared<ScaleMessageReadWriter>(std::move(stream));
-      read_writer->write(msg, [this](auto &&res) {
-        if (not res) {
-          logger_->error("Could not broadcast, reason: {}",
-                         res.error().message());
-        }
-      });
-    };
+    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
+    (*shared_msg) = std::move(msg);
 
-    // If stream exists then send them the msg
-    // If stream is closed it is removed
-    auto syncing_stream_it = syncing_streams_.find(peer_id);
-    if (syncing_stream_it != syncing_streams_.end()) {
-      auto &stream = syncing_stream_it->second;
-      if (stream && !stream->isClosed()) {
-        msg_send_lambda(stream);
-      } else {
-        // remove this stream
-        syncing_streams_.erase(syncing_stream_it);
-      }
-      return;
-    }
-
-    auto stream_it = std::find_if(
-        reserved_streams_.begin(),
-        reserved_streams_.end(),
-        [peer_id](const auto &item) { return item.first.id == peer_id; });
-    if (stream_it != reserved_streams_.end()) {
-      auto &[peerInfo, stream] = *stream_it;
-      if (stream && !stream->isClosed()) {
-        msg_send_lambda(stream);
-      } else {
-        // if stream does not exist or expired, open a new one
-        host_.newStream(
-            peerInfo,
-            kGossipProtocol,
-            [self{shared_from_this()}, info = peerInfo, msg_send_lambda](
-                auto &&stream_res) mutable {
-              if (!stream_res) {
-                // we will try to open the stream again, when
-                // another gossip message arrives later
-                self->logger_->error("Could not send message to {} Error: {}",
-                                     info.id.toBase58(),
-                                     stream_res.error().message());
-                return;
-              }
-
-              // save the stream and send the message
-              self->reserved_streams_[info] = stream_res.value();
-              msg_send_lambda(std::move(stream_res.value()));
-            });
-      }
-      return;
-    }
+    stream_engine_->send(StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
+                         protocol,
+                         std::move(shared_msg));
   }
 
-  void GossiperBroadcast::broadcast(GossipMessage &&msg) {
-    auto msg_send_lambda = [msg, this](auto stream) {
-      auto s = stream;
-      auto read_writer =
-          std::make_shared<ScaleMessageReadWriter>(std::move(stream));
-      read_writer->write(msg, [this, s](auto &&res) {
-        if (not res) {
-          logger_->error("Could not send message to {}: {}",
-                         s->remotePeerId().value().toBase58(),
-                         res.error().message());
-        } else {
-          logger_->debug("Message sent to {}",
-                         s->remotePeerId().value().toBase58());
-        }
-      });
-    };
+  void GossiperBroadcast::broadcast(const libp2p::peer::Protocol &protocol,
+                                    GossipMessage &&msg) {
+    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
+    (*shared_msg) = std::move(msg);
 
-    // iterate over the existing streams and send them the msg. If stream is
-    // closed it is removed
-    auto stream_it = syncing_streams_.begin();
-    while (stream_it != syncing_streams_.end()) {
-      auto &[peerInfo, stream] = *stream_it;
-      if (stream && !stream->isClosed()) {
-        msg_send_lambda(stream);
-        stream_it++;
-      } else {
-        // remove this stream
-        stream_it = syncing_streams_.erase(stream_it);
-      }
-    }
-    for (const auto &[peerInfo, stream] : reserved_streams_) {
-      if (stream && !stream->isClosed()) {
-        msg_send_lambda(stream);
-        continue;
-      }
-      // if stream does not exist or expired, open a new one
-      host_.newStream(
-          peerInfo,
-          kGossipProtocol,
-          [self{shared_from_this()}, info = peerInfo, msg_send_lambda](
-              auto &&stream_res) mutable {
-            if (!stream_res) {
-              // we will try to open the stream again, when
-              // another gossip message arrives later
-              self->logger_->error(
-                  "Could not send message to {} over new stream: {}",
-                  info.id.toBase58(),
-                  stream_res.error().message());
-              return;
-            }
-
-            // save the stream and send the message
-            self->reserved_streams_[info] = stream_res.value();
-            msg_send_lambda(std::move(stream_res.value()));
-          });
-    }
+    stream_engine_->broadcast(protocol, std::move(shared_msg));
   }
 }  // namespace kagome::network
