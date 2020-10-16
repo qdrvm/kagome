@@ -8,6 +8,7 @@
 #include <atomic>
 #include <memory>
 
+#include "application/configuration_storage.hpp"
 #include "network/common.hpp"
 #include "network/impl/loopback_stream.hpp"
 
@@ -15,9 +16,11 @@ namespace kagome::network {
   KAGOME_DEFINE_CACHE(stream_engine);
 
   GossiperBroadcast::GossiperBroadcast(
-      StreamEngine::StreamEnginePtr stream_engine)
+      StreamEngine::StreamEnginePtr stream_engine,
+      std::shared_ptr<kagome::application::ConfigurationStorage> config)
       : logger_{common::createLogger("GossiperBroadcast")},
-        stream_engine_{std::move(stream_engine)} {}
+        stream_engine_{std::move(stream_engine)},
+        config_{std::move(config)} {}
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
@@ -54,10 +57,13 @@ namespace kagome::network {
     broadcast(kGossipProtocol, std::move(message));
   }
 
-  void GossiperBroadcast::propagateTransactions(const network::PropagatedTransactions &txs) {
+  void GossiperBroadcast::propagateTransactions(
+      const network::PropagatedTransactions &txs) {
     logger_->debug("Propagate transactions : {} extrinsics",
                    txs.extrinsics.size());
-    broadcast(kPropagateTransactionsProtocol, txs);
+    broadcast(fmt::format(kPropagateTransactionsProtocol.data(),
+                          config_->protocolId()),
+              txs);
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {

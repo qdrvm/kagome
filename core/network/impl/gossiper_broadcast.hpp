@@ -23,6 +23,10 @@
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 
+namespace kagome::application {
+  class ConfigurationStorage;
+}
+
 namespace kagome::network {
   KAGOME_DECLARE_CACHE(stream_engine,
                        KAGOME_CACHE_UNIT(GossipMessage),
@@ -39,7 +43,9 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    explicit GossiperBroadcast(StreamEngine::StreamEnginePtr stream_engine);
+    explicit GossiperBroadcast(
+        StreamEngine::StreamEnginePtr stream_engine,
+        std::shared_ptr<kagome::application::ConfigurationStorage> config);
 
     ~GossiperBroadcast() override = default;
 
@@ -98,6 +104,7 @@ namespace kagome::network {
     common::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
     boost::optional<libp2p::peer::PeerInfo> self_info_;
+    std::shared_ptr<kagome::application::ConfigurationStorage> config_;
   };
 }  // namespace kagome::network
 
