@@ -39,6 +39,12 @@ namespace kagome::network {
     virtual void handleGossipProtocol(std::shared_ptr<Stream> stream) const = 0;
 
     /**
+     * Handle stream, which is opened over a Transactions protocol
+     * @param stream to be handled
+     */
+    virtual void handleTransactionsProtocol(std::shared_ptr<Stream> stream) const = 0;
+
+    /**
      * Initiate sup update with remote peer.
      */
      virtual void handleSupProtocol(std::shared_ptr<Stream> stream) const = 0;
