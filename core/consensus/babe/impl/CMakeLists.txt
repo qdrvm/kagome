@@ -47,7 +47,7 @@ add_library(babe
 target_link_libraries(babe
     babe_error
     Boost::boost
-    sr25519::sr25519
+    schnorrkel_crust::schnorrkel_crust
     buffer
     logger
     scale

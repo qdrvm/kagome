@@ -22,7 +22,7 @@
 #include "runtime/tagged_transaction_queue.hpp"
 
 namespace kagome::crypto {
-  class SR25519Provider;
+  class Sr25519Provider;
 }
 
 namespace kagome::consensus {
@@ -46,7 +46,7 @@ namespace kagome::consensus {
         std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<crypto::SR25519Provider> sr25519_provider);
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
 
     enum class ValidationError {
       NO_AUTHORITIES = 1,
@@ -123,7 +123,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::Hasher> hasher_;
 
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
-    std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
+    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
     common::Logger log_;
   };

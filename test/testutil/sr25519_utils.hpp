@@ -13,12 +13,12 @@ namespace sr25519_constants = kagome::crypto::constants::sr25519;
 /**
  * Generate a SR25519 with some seed
  */
-kagome::crypto::SR25519Keypair generateSR25519Keypair() {
+kagome::crypto::Sr25519Keypair generateSr25519Keypair() {
   std::array<uint8_t, sr25519_constants::SEED_SIZE> seed{};
   seed.fill(1);
   std::array<uint8_t, sr25519_constants::KEYPAIR_SIZE> kp;
   sr25519_keypair_from_seed(kp.data(), seed.data());
-  kagome::crypto::SR25519Keypair keypair;
+  kagome::crypto::Sr25519Keypair keypair;
   std::copy(kp.begin(),
             kp.begin() + sr25519_constants::SECRET_SIZE,
             keypair.secret_key.begin());

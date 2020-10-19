@@ -12,16 +12,16 @@
 
 namespace kagome::crypto {
   struct VRFProviderMock : public VRFProvider {
-    MOCK_CONST_METHOD0(generateKeypair, SR25519Keypair());
+    MOCK_CONST_METHOD0(generateKeypair, Sr25519Keypair());
 
     MOCK_CONST_METHOD3(sign,
                        boost::optional<VRFOutput>(const common::Buffer &,
-                                                  const SR25519Keypair &,
+                                                  const Sr25519Keypair &,
                                                   const VRFThreshold &));
     MOCK_CONST_METHOD4(verify,
                        VRFVerifyOutput(const common::Buffer &,
                             const VRFOutput &,
-                            const SR25519PublicKey &,
+                            const Sr25519PublicKey &,
                             const VRFThreshold &));
   };
 }  // namespace kagome::crypto

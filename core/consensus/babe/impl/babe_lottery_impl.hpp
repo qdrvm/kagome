@@ -23,7 +23,7 @@ namespace kagome::consensus {
     SlotsLeadership slotsLeadership(
         const Epoch &epoch,
         const Threshold &threshold,
-        const crypto::SR25519Keypair &keypair) const override;
+        const crypto::Sr25519Keypair &keypair) const override;
 
     Randomness computeRandomness(const Randomness &last_epoch_randomness,
                                  EpochIndex last_epoch_index) override;

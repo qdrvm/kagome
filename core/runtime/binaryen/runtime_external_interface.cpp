@@ -157,6 +157,7 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
+    logger_->trace("Call import {}", import->base);
     // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
       logger_->trace("call import: {}", import->base);

@@ -16,6 +16,7 @@
 #include <boost/optional.hpp>
 
 #include "runtime/wasm_memory.hpp"
+#include "common/logger.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -78,6 +79,7 @@ namespace kagome::runtime::binaryen {
    private:
     wasm::ShellExternalInterface::Memory *memory_;
     WasmSize size_;
+    common::Logger logger_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     WasmPointer offset_;

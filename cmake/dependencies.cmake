@@ -44,8 +44,8 @@ find_package(RapidJSON CONFIG REQUIRED)
 hunter_add_package(Microsoft.GSL)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 
-hunter_add_package(sr25519)
-find_package(sr25519 REQUIRED)
+hunter_add_package(schnorrkel_crust)
+find_package(schnorrkel_crust CONFIG REQUIRED)
 
 hunter_add_package(jsonrpc-lean)
 find_package(jsonrpc-lean REQUIRED)

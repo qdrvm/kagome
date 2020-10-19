@@ -59,13 +59,13 @@ class BlockValidatorTest : public testing::Test {
    * @param block_hash - hash of the block to be sealed
    * @return seal, which was produced, @and public key, which was generated
    */
-  std::pair<Seal, SR25519PublicKey> sealBlock(Block &block,
+  std::pair<Seal, Sr25519PublicKey> sealBlock(Block &block,
                                               Hash256 block_hash) const {
     // generate a new keypair
-    SR25519PublicKey public_key{};
+    Sr25519PublicKey public_key{};
     public_key.fill(8);
 
-    SR25519Signature sr25519_signature{};
+    Sr25519Signature sr25519_signature{};
     sr25519_signature.fill(0);
 
     // seal the block
@@ -84,8 +84,8 @@ class BlockValidatorTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
   std::shared_ptr<VRFProviderMock> vrf_provider_ =
       std::make_shared<VRFProviderMock>();
-  std::shared_ptr<SR25519ProviderMock> sr25519_provider_ =
-      std::make_shared<SR25519ProviderMock>();
+  std::shared_ptr<Sr25519ProviderMock> sr25519_provider_ =
+      std::make_shared<Sr25519ProviderMock>();
 
   BabeBlockValidator validator_{
       tree_, tx_queue_, hasher_, vrf_provider_, sr25519_provider_};

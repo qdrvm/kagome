@@ -19,12 +19,12 @@ namespace kagome::application {
     return std::make_shared<LocalKeyStorage>(std::move(storage));
   }
 
-  kagome::crypto::SR25519Keypair LocalKeyStorage::getLocalSr25519Keypair()
+  kagome::crypto::Sr25519Keypair LocalKeyStorage::getLocalSr25519Keypair()
       const {
     return sr_25519_keypair_;
   }
 
-  kagome::crypto::ED25519Keypair LocalKeyStorage::getLocalEd25519Keypair()
+  kagome::crypto::Ed25519Keypair LocalKeyStorage::getLocalEd25519Keypair()
       const {
     return ed_25519_keypair_;
   }
@@ -41,14 +41,14 @@ namespace kagome::application {
     } catch (pt::json_parser_error &e) {
       return ConfigReaderError::PARSER_ERROR;
     }
-    OUTCOME_TRY(loadSR25519Keys(tree));
-    OUTCOME_TRY(loadED25519Keys(tree));
+    OUTCOME_TRY(loadSr25519Keys(tree));
+    OUTCOME_TRY(loadEd25519Keys(tree));
     OUTCOME_TRY(loadP2PKeys(tree));
 
     return outcome::success();
   }
 
-  outcome::result<void> LocalKeyStorage::loadSR25519Keys(
+  outcome::result<void> LocalKeyStorage::loadSr25519Keys(
       const boost::property_tree::ptree &tree) {
     OUTCOME_TRY(sr_tree, ensure(tree.get_child_optional("sr25519keypair")));
 
@@ -62,16 +62,16 @@ namespace kagome::application {
     OUTCOME_TRY(sr_privkey_buffer, common::unhexWith0x(sr_privkey_str));
 
     OUTCOME_TRY(sr_pubkey,
-                crypto::SR25519PublicKey::fromSpan(sr_pubkey_buffer));
+                crypto::Sr25519PublicKey::fromSpan(sr_pubkey_buffer));
     OUTCOME_TRY(sr_privkey,
-                crypto::SR25519SecretKey::fromSpan(sr_privkey_buffer));
+                crypto::Sr25519SecretKey::fromSpan(sr_privkey_buffer));
 
     sr_25519_keypair_.public_key = sr_pubkey;
     sr_25519_keypair_.secret_key = sr_privkey;
     return outcome::success();
   }
 
-  outcome::result<void> LocalKeyStorage::loadED25519Keys(
+  outcome::result<void> LocalKeyStorage::loadEd25519Keys(
       const boost::property_tree::ptree &tree) {
     auto ed_tree_opt = tree.get_child_optional("ed25519keypair");
     if (not ed_tree_opt) return ConfigReaderError::MISSING_ENTRY;
@@ -87,9 +87,9 @@ namespace kagome::application {
     OUTCOME_TRY(ed_privkey_buffer, common::unhexWith0x(ed_privkey_str));
 
     OUTCOME_TRY(ed_pubkey,
-                crypto::ED25519PublicKey::fromSpan(ed_pubkey_buffer));
+                crypto::Ed25519PublicKey::fromSpan(ed_pubkey_buffer));
     OUTCOME_TRY(ed_privkey,
-                crypto::ED25519PrivateKey::fromSpan(ed_privkey_buffer));
+                crypto::Ed25519PrivateKey::fromSpan(ed_privkey_buffer));
 
     ed_25519_keypair_.public_key = ed_pubkey;
     ed_25519_keypair_.secret_key = ed_privkey;

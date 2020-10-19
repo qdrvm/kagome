@@ -158,7 +158,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<transaction_pool::TransactionPoolMock> tx_pool_;
   std::shared_ptr<BabeGossiperMock> gossiper_;
-  SR25519Keypair keypair_{generateSR25519Keypair()};
+  Sr25519Keypair keypair_{generateSr25519Keypair()};
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;

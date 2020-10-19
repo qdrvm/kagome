@@ -21,7 +21,7 @@ add_library(sr25519_types
 target_link_libraries(sr25519_types
     mp_utils
     blob
-    sr25519::sr25519
+    schnorrkel_crust::schnorrkel_crust
     )
 kagome_install(sr25519_types)
 
@@ -31,7 +31,7 @@ add_library(ed25519_types
     )
 target_link_libraries(ed25519_types
     blob
-    iroha::ed25519
+    schnorrkel_crust::schnorrkel_crust
     )
 kagome_install(ed25519_types)
 
@@ -59,8 +59,9 @@ add_library(ed25519_provider
     ed25519/ed25519_provider_impl.cpp
     )
 target_link_libraries(ed25519_provider
-    p2p::p2p_random_generator # generator from libp2p
     ed25519_types
+    logger
+    schnorrkel_crust::schnorrkel_crust
     )
 kagome_install(ed25519_provider)
 

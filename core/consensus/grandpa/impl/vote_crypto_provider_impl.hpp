@@ -16,8 +16,8 @@ namespace kagome::consensus::grandpa {
    public:
     ~VoteCryptoProviderImpl() override = default;
 
-    VoteCryptoProviderImpl(crypto::ED25519Keypair keypair,
-                           std::shared_ptr<crypto::ED25519Provider> ed_provider,
+    VoteCryptoProviderImpl(crypto::Ed25519Keypair keypair,
+                           std::shared_ptr<crypto::Ed25519Provider> ed_provider,
                            RoundNumber round_number,
                            std::shared_ptr<VoterSet> voter_set);
 
@@ -32,10 +32,10 @@ namespace kagome::consensus::grandpa {
     SignedMessage signPrecommit(const Precommit &precommit) const override;
 
    private:
-    crypto::ED25519Signature voteSignature(const Vote &vote) const;
+    crypto::Ed25519Signature voteSignature(const Vote &vote) const;
 
-    crypto::ED25519Keypair keypair_;
-    std::shared_ptr<crypto::ED25519Provider> ed_provider_;
+    crypto::Ed25519Keypair keypair_;
+    std::shared_ptr<crypto::Ed25519Provider> ed_provider_;
     RoundNumber round_number_;
     std::shared_ptr<VoterSet> voter_set_;
   };

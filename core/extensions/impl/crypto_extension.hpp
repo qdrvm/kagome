@@ -165,7 +165,7 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSize key_type);
+    runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSpan key_type);
 
     /**
      *@see Extension::ext_ed25519_generate

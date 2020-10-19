@@ -40,7 +40,7 @@ namespace kagome::consensus {
       std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<crypto::SR25519Provider> sr25519_provider)
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},

@@ -12,12 +12,12 @@
 
 using kagome::application::ConfigReaderError;
 using kagome::application::LocalKeyStorage;
-using kagome::crypto::ED25519Keypair;
-using kagome::crypto::ED25519PrivateKey;
-using kagome::crypto::ED25519PublicKey;
-using kagome::crypto::SR25519Keypair;
-using kagome::crypto::SR25519PublicKey;
-using kagome::crypto::SR25519SecretKey;
+using kagome::crypto::Ed25519Keypair;
+using kagome::crypto::Ed25519PrivateKey;
+using kagome::crypto::Ed25519PublicKey;
+using kagome::crypto::Sr25519Keypair;
+using kagome::crypto::Sr25519PublicKey;
+using kagome::crypto::Sr25519SecretKey;
 
 class LocalKeyStorageTest : public testing::Test {
  public:
@@ -26,19 +26,19 @@ class LocalKeyStorageTest : public testing::Test {
     auto path = boost::filesystem::path(__FILE__).parent_path().string();
     keystore_path_ = path + "/keystore.json";
 
-    prepareSR25519Keys();
+    prepareSr25519Keys();
     prepareED25519Keys();
     prepareP2PKeys();
   }
 
   // initialise expected sr25519 keys
-  void prepareSR25519Keys() {
+  void prepareSr25519Keys() {
     auto expected_srpubkey =
-        SR25519PublicKey::fromHex(
+        Sr25519PublicKey::fromHex(
             "7ad7336e38e0ddd6635fb4cc88e65ddc0c9fdaa65ecf3d131c9db9c391834450")
             .value();
     auto expected_srprivkey =
-        SR25519SecretKey::fromHex(
+        Sr25519SecretKey::fromHex(
             "e968852cf33994c02e4c81377acb9ce328fc25cb25dc6a7323c742b0e94d830dae"
             "97e44e79872c67fd8a4c29ce6a386fec71e46bc4b2f2f7e9887d770af3ed15")
             .value();
@@ -49,11 +49,11 @@ class LocalKeyStorageTest : public testing::Test {
   // initialise expected ed25519 keys
   void prepareED25519Keys() {
     auto expected_edpubkey =
-        ED25519PublicKey::fromHex(
+        Ed25519PublicKey::fromHex(
             "d046dde66d247e98e6c95366c05b6137ffeb61e9ee8541200569e70ac7632a46")
             .value();
     auto expected_edprivkey =
-        ED25519PrivateKey::fromHex(
+        Ed25519PrivateKey::fromHex(
             "62f4174222f712edc938fa7fbdd06928967e91354e22f6c2aa097451aa5b03e4")
             .value();
     expected_ed_keypair_.secret_key = expected_edprivkey;
@@ -80,8 +80,8 @@ class LocalKeyStorageTest : public testing::Test {
     expected_p2p_keypair_.publicKey = p2p_pubkey;
   }
 
-  SR25519Keypair expected_sr_keypair_;
-  ED25519Keypair expected_ed_keypair_;
+  Sr25519Keypair expected_sr_keypair_;
+  Ed25519Keypair expected_ed_keypair_;
   libp2p::crypto::KeyPair expected_p2p_keypair_;
 
   std::string keystore_path_;
