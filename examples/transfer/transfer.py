@@ -18,7 +18,7 @@ def main():
         call_function='transfer',
         call_params={
             'dest': sys.argv[3],
-            'value': 1 * 10**12
+            'value': int(sys.argv[4]) * 10**12
         }
     )
 
