@@ -260,7 +260,7 @@ namespace kagome::extensions {
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 
-    CryptoExtension crypto_ext_;
+    std::shared_ptr<CryptoExtension> crypto_ext_;
     IOExtension io_ext_;
     MemoryExtension memory_ext_;
     MiscExtension misc_ext_;

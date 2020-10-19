@@ -136,7 +136,7 @@ namespace kagome::extensions {
                          std::move(pk_bytes)]() mutable -> runtime::WasmSize {
       auto self = wp.lock();
       if (not self) {
-        BOOST_UNREACHABLE_RETURN(kEd25519VerifyFail);
+        BOOST_ASSERT(!"This is unreachable");
       }
 
       auto signature_res = crypto::ED25519Signature::fromSpan(sig_bytes);
@@ -185,7 +185,7 @@ namespace kagome::extensions {
                          std::move(pk_bytes)]() mutable -> runtime::WasmSize {
       auto self = wp.lock();
       if (not self) {
-        BOOST_UNREACHABLE_RETURN(kSr25519VerifyFail);
+        BOOST_ASSERT(!"This is unreachable");
       }
 
       auto signature_res = crypto::SR25519Signature::fromSpan(sig_bytes);
