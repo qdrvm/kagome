@@ -148,11 +148,10 @@ namespace kagome::network {
     msg.type = GossipMessage::Type::STATUS;
     msg.data.put(scale::encode(status_msg).value());
 
-    ScaleMessageReadWriter rw(
+    auto rw = std::make_shared<ScaleMessageReadWriter>(
         std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
             std::move(stream)));
-
-    rw.write(msg, [self{shared_from_this()}](auto &&res) {
+    rw->write(msg, [self{shared_from_this()}](auto &&res) {
       if (!res)
         self->log_->error("Could not broadcast, reason: {}",
                           res.error().message());
