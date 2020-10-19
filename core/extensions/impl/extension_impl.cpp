@@ -29,13 +29,14 @@ namespace kagome::extensions {
       MiscExtension::CoreFactoryMethod core_factory_method)
       : memory_(memory),
         storage_provider_(std::move(storage_provider)),
-        crypto_ext_{ std::make_shared<CryptoExtension>(memory,
-                                                       std::move(sr25519_provider),
-                                                       std::move(ed25519_provider),
-                                                       std::move(secp256k1_provider),
-                                                       std::move(hasher),
-                                                       std::move(crypto_store),
-                                                       std::move(bip39_provider)) },
+        crypto_ext_{
+            std::make_shared<CryptoExtension>(memory,
+                                              std::move(sr25519_provider),
+                                              std::move(ed25519_provider),
+                                              std::move(secp256k1_provider),
+                                              std::move(hasher),
+                                              std::move(crypto_store),
+                                              std::move(bip39_provider))},
         io_ext_(memory),
         memory_ext_(memory),
         misc_ext_(DEFAULT_CHAIN_ID, memory, std::move(core_factory_method)),
@@ -383,7 +384,8 @@ namespace kagome::extensions {
     return misc_ext_.ext_misc_runtime_version_version_1(data);
   }
 
-  void ExtensionImpl::ext_misc_print_utf8_version_1(runtime::WasmSpan data) const {
+  void ExtensionImpl::ext_misc_print_utf8_version_1(
+      runtime::WasmSpan data) const {
     return misc_ext_.ext_misc_print_utf8_version_1(data);
   }
 
@@ -396,6 +398,6 @@ namespace kagome::extensions {
   ExtensionImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
     return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig,
-                                                                        msg);
+                                                                         msg);
   }
 }  // namespace kagome::extensions
