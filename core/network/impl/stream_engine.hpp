@@ -256,7 +256,6 @@ namespace kagome::network {
     void forSubscriber(const PeerInfo &peer, const Protocol &proto, F &&f) {
       forPeer(peer, [&](auto &_) {
         forProtocol(_, proto, [&](auto &subscriber) {
-          BOOST_ASSERT(subscriber);
           std::forward<F>(f)(_.type, subscriber);
         });
       });
