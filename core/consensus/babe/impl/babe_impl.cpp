@@ -5,7 +5,6 @@
 
 #include "consensus/babe/impl/babe_impl.hpp"
 
-#include <schnorrkel/schnorrkel.h>
 #include <boost/assert.hpp>
 
 #include "blockchain/block_tree_error.hpp"
