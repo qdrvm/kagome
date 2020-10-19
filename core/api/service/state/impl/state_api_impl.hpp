@@ -51,6 +51,8 @@ namespace kagome::api {
         uint32_t subscription_id) override;
 
     outcome::result<std::string> getMetadata() override;
+    outcome::result<std::string> getMetadata(
+        std::string_view hex_block_hash) override;
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;

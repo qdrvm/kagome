@@ -15,10 +15,11 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<primitives::TransactionValidity>
   TaggedTransactionQueueImpl::validate_transaction(
-      const primitives::Extrinsic &ext) {
+      primitives::TransactionSource source, const primitives::Extrinsic &ext) {
     return execute<TransactionValidity>(
         "TaggedTransactionQueue_validate_transaction",
         CallPersistency::EPHEMERAL,
+        source,
         ext);
   }
 }  // namespace kagome::runtime::binaryen

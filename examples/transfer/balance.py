@@ -1,22 +1,26 @@
-import requests
 import sys
+
+from substrateinterface import SubstrateInterface
 
 def main():
     url = "http://" + sys.argv[1]
 
-    # Example echo method
-    get = {
-        "method": "state_getStorage",
-        "params": [
-            sys.argv[2]],
-        "jsonrpc": "2.0",
-        "id": 0,
-    }
+    substrate = SubstrateInterface(
+        url=url,
+        type_registry_preset='default'
+    )
 
-    response = requests.post(url, json=get)
+    balance_info = substrate.get_runtime_state(
+        module='System',
+        storage_function='Account',
+        params=[sys.argv[2]]
+    ).get('result')
 
-    res = response.json()['result']
-    print("Balance is", int.from_bytes(res, byteorder='little', signed=False))
+    if balance_info:
+        print("\n\nCurrent free balance: {}".format(
+            balance_info.get('data').get('free', 0) / 10**12
+        ))
+
 
 
 if __name__ == "__main__":

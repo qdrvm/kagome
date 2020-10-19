@@ -122,6 +122,7 @@ namespace kagome::api {
 
     data["specVersion"] = makeValue(val.spec_version);
     data["implVersion"] = makeValue(val.impl_version);
+    data["transactionVersion"] = makeValue(val.transaction_version);
 
     jArray apis;
     std::transform(val.apis.begin(),

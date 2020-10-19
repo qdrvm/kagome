@@ -34,7 +34,13 @@ namespace kagome::api::state {
     server_->registerHandler("state_getStorage",
                              Handler<request::GetStorage>(api_));
 
+    server_->registerHandler("state_getStorageAt",
+                             Handler<request::GetStorage>(api_));
+
     server_->registerHandler("state_getRuntimeVersion",
+                             Handler<request::GetRuntimeVersion>(api_));
+
+    server_->registerHandler("chain_getRuntimeVersion",
                              Handler<request::GetRuntimeVersion>(api_));
 
     server_->registerHandler("state_subscribeRuntimeVersion",

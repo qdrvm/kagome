@@ -6,11 +6,15 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 
 1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-full-validating-node).
 2. For your convenience make sure you have this binary included into your path:
-```bash
-# from Kagome's root repo:
-PATH=$PATH:build/node/kagome_validating/
-```
-3. Python 3 installed in the system  
+
+    ```bash
+    # from Kagome's root repo:
+    PATH=$PATH:$(pwd)/build/node/kagome_validating/
+    ```
+   
+3. Python 3 installed in the system with `requests` and `scalecodec` package installed
+
+    > If you are not sure if you have requests package installed in your python run `pip3 install substrate-interface`
 
 ### Tutorial
 
@@ -64,9 +68,14 @@ For this tutorial you can start a single node network as follows:
 
 ```
 kagome_validating \
-    --genesis config/localchain.json \
-    --keystore config/localkeystore.json \
+    --genesis localchain.json \
+    --keystore localkeystore.json \
     --leveldb ldb \
+    --p2p_port 30363 \
+    --rpc_http_port 9933 \
+    --rpc_ws_port 9944 \
+    -s \
+    -f
 ```
 
 Let's look at this flags in detail:
@@ -76,6 +85,7 @@ Let's look at this flags in detail:
 | `--genesis`       | mandatory, genesis configuration file path        |
 | `--keystore`      | mandatory, keystore file path                     |
 | `--leveldb`       | mandatory, leveldb directory path                 |
+| `--p2p_port`      | port for p2p interactions                         |
 | `--rpc_http_port` | port for RPC over HTTP                            |
 | `--rpc_ws_port`   | port for RPC over Websocket protocol              |
 
@@ -89,17 +99,17 @@ Now chain is running on a single node. To query it we can use localhost's ports 
 
 #### Query the balance
 
-Now open second terminal and go to the examples folder, located in the projects root directory.
+Now open second terminal and go to the transfer folder, located in the projects root directory.
 
-`cd examples/`
+`cd examples/transfer`
 
 This folder contains two python scripts:
 
 1. `balance.py <address> <balance_key>` – executes query to kagome, which returns balance of provided account
-    * `<address>` address of the node
-    * `<balance_key>` key of the account's balance. Follow [this](https://www.shawntabrizi.com/substrate/querying-substrate-storage-via-rpc/#storage-map-query) tutorial to find out how to generate such keys
+    * `<address>` address node's http service
+    * `<account_id>` id of account being queried
 2. `transfer.py <address> <extrinsic>` – sends provided extrinsic
-    * `<address>` address of the node
+    * `<address>` address node's http service
     * `<extrinsic>` extrinsic to be executed on a full node
 
 
@@ -107,13 +117,13 @@ This folder contains two python scripts:
 Let's query current balance of Alice's account. This balance is stored under `0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb` key.
 
 ```bash
-python3 balance.py localhost:40363 0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb
+python3 balance.py localhost:9933 0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb
 # Balance is 1000000000000000000000  
 ```
 
 Let's do the same for the Bob's account. His balance key is `0xaa91c89bc225912c164c982c289e170c5a0d0f8802b37d68f88e2821facf4b55`
 ```bash
-python3 balance.py localhost:40363 0xaa91c89bc225912c164c982c289e170c5a0d0f8802b37d68f88e2821facf4b55
+python3 balance.py localhost:9933 0xaa91c89bc225912c164c982c289e170c5a0d0f8802b37d68f88e2821facf4b55
 # Balance is 1000000000000000000000  
 ```
 
@@ -131,7 +141,7 @@ This command will create extrinsic that transfers 1000 from Alice to Bob's accou
 
 To send extrinsic use `transfer.py` script as follows:
 ```bash
-python3 transfer.py localhost:40363 0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f40a68108bf61df0e9d0108ab8b621b354d233067514055fc77542aa84b647608335134d45c4b3040b8c2830217aa8350091774eaf3c22644d8e0c8db54143860000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f
+python3 transfer.py localhost:9933 0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f40a68108bf61df0e9d0108ab8b621b354d233067514055fc77542aa84b647608335134d45c4b3040b8c2830217aa8350091774eaf3c22644d8e0c8db54143860000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f
 # Extrinsic submitted. Response:  {'jsonrpc': '2.0', 'id': 1, 'result': [39, 212, 157, 212, 66, 199, 109, 255, 180, 146, 47, 243, 118, 221, 233, 172, 35, 201, 157, 96, 248, 24, 22, 14, 230, 108, 217, 211, 29, 216, 65, 255]} 
 ```
 

@@ -19,7 +19,8 @@ namespace kagome::runtime::binaryen {
 
     ~MetadataImpl() override = default;
 
-    outcome::result<OpaqueMetadata> metadata() override;
+    outcome::result<OpaqueMetadata> metadata(
+        const boost::optional<primitives::BlockHash> block_hash) override;
   };
 }  // namespace kagome::runtime::binaryen
 
