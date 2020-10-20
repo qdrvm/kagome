@@ -119,31 +119,31 @@ namespace kagome::application {
     load_bool(val, "already_synchronized", is_already_synchronized_);
   }
 
-  void AppConfigurationImpl::validate_config(
+  bool AppConfigurationImpl::validate_config(
       AppConfiguration::LoadScheme scheme) {
     if (genesis_path_.empty()) {
       logger_->error("Node configuration must contain 'genesis' option.");
-      exit(EXIT_FAILURE);
+      return false;
     }
 
     if (leveldb_path_.empty()) {
       logger_->error("Node configuration must contain 'leveldb_path' option.");
-      exit(EXIT_FAILURE);
+      return false;
     }
 
     if (p2p_port_ == 0) {
       logger_->error("p2p port is 0.");
-      exit(EXIT_FAILURE);
+      return false;
     }
 
     if (rpc_ws_port_ == 0) {
       logger_->error("RPC ws port is 0.");
-      exit(EXIT_FAILURE);
+      return false;
     }
 
     if (rpc_http_port_ == 0) {
       logger_->error("RPC http port is 0.");
-      exit(EXIT_FAILURE);
+      return false;
     }
 
     const auto need_keystore =
@@ -152,8 +152,9 @@ namespace kagome::application {
 
     if (need_keystore && keystore_path_.empty()) {
       logger_->error("Node configuration must contain 'keystore_path' option.");
-      exit(EXIT_FAILURE);
+      return false;
     }
+    return true;
   }
 
   void AppConfigurationImpl::read_config_from_file(
@@ -323,7 +324,12 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
-    validate_config(scheme);
+
+    // if something wrong with config print help message
+    if (not validate_config(scheme) ){
+      std::cout << desc << std::endl;
+      return false;
+    }
     return true;
   }
 
