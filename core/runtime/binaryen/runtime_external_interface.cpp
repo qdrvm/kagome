@@ -388,7 +388,7 @@ namespace kagome::runtime::binaryen {
 		    return wasm::Literal();
 	    }
 
-	    // ext_crypto_start_batch_verify_version_1
+	    // ext_crypto_finish_batch_verify_version_1
 	    if (import->base == ext_crypto_finish_batch_verify_version_1) {
 		    checkArguments(import->base.c_str(), 0, arguments.size());
 		    auto res = extension_->ext_finish_batch_verify();

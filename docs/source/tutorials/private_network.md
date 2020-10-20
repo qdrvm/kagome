@@ -21,8 +21,8 @@ kagome_validating \
     -l test_ldb1 --p2p_port 11122 \
     --rpc_http_port 11133 \
     --rpc_ws_port 11144 \
-    -f \
-    -s
+    -single_finalizing_node \
+    -already_synchronized
 ```
 
 ### Execute second validating node  
