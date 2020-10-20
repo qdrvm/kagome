@@ -37,6 +37,6 @@ namespace kagome::runtime::binaryen {
   outcome::result<primitives::AuthorityList> GrandpaApiImpl::authorities(
       const primitives::BlockId &block_id) {
     return execute<primitives::AuthorityList>(
-        "GrandpaApi_grandpa_authorities", CallPersistency::EPHEMERAL, block_id);
+        "GrandpaApi_grandpa_authorities", CallPersistency::EPHEMERAL);
   }
 }  // namespace kagome::runtime::binaryen

@@ -66,7 +66,7 @@ subkey inspect //Bob
 
 For this tutorial you can start a single node network as follows:
 
-```
+```bash
 kagome_validating \
     --genesis localchain.json \
     --keystore localkeystore.json \
@@ -153,7 +153,7 @@ Get the balance of Bob's account:
 python balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 # Current free balance: 999998902.0  
 ```
-We can see that Bob's balance was increased by 1000 as it was set on the subkey command
+We can see that Bob's balance was increased by 1 as it was set on the subkey command
 
 Now let's check Alice's account:
 ```bash
