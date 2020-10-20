@@ -17,8 +17,11 @@ namespace kagome::runtime::binaryen {
 
   GrandpaApiImpl::GrandpaApiImpl(
       const std::shared_ptr<WasmProvider> &wasm_provider,
-      const std::shared_ptr<RuntimeManager> &runtime_manager)
-      : RuntimeApi(wasm_provider, runtime_manager) {}
+      const std::shared_ptr<RuntimeManager> &runtime_manager,
+      const std::shared_ptr<blockchain::BlockHeaderRepository> &header_repo)
+      : RuntimeApi(wasm_provider, runtime_manager), header_repo_{header_repo} {
+    BOOST_ASSERT(header_repo_ != nullptr);
+  }
 
   outcome::result<boost::optional<ScheduledChange>>
   GrandpaApiImpl::pending_change(const Digest &digest) {
@@ -36,7 +39,10 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<primitives::AuthorityList> GrandpaApiImpl::authorities(
       const primitives::BlockId &block_id) {
-    return execute<primitives::AuthorityList>(
-        "GrandpaApi_grandpa_authorities", CallPersistency::EPHEMERAL);
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(block_id));
+    return executeAt<primitives::AuthorityList>(
+        "GrandpaApi_grandpa_authorities",
+        header.state_root,
+        CallPersistency::EPHEMERAL);
   }
 }  // namespace kagome::runtime::binaryen

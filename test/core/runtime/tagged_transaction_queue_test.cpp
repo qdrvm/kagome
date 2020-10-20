@@ -15,6 +15,7 @@ using namespace testing;
 
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
+using kagome::primitives::TransactionSource;
 using kagome::runtime::TaggedTransactionQueue;
 using kagome::runtime::binaryen::TaggedTransactionQueueImpl;
 
@@ -41,5 +42,6 @@ TEST_F(TTQTest, DISABLED_ValidateTransactionSuccess) {
 
   // we test now that the functions above are called sequentially
   // unfortunately, we don't have valid data for validate_transaction to succeed
-  EXPECT_OUTCOME_TRUE_1(ttq_->validate_transaction(ext));
+  EXPECT_OUTCOME_TRUE_1(
+      ttq_->validate_transaction(TransactionSource::External, ext));
 }

@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem.hpp>
 #include <fstream>
 
 #include "core/runtime/runtime_test.hpp"

@@ -35,6 +35,7 @@ using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InvalidTransaction;
 using kagome::primitives::Transaction;
+using kagome::primitives::TransactionSource;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
 using kagome::primitives::ValidTransaction;
@@ -85,7 +86,9 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
   TransactionValidity tv = *valid_transaction;
   gsl::span<const uint8_t> span = gsl::make_span(extrinsic->data);
   EXPECT_CALL(*hasher, blake2b_256(span)).WillOnce(Return(Hash256{}));
-  EXPECT_CALL(*ttq, validate_transaction(*extrinsic)).WillOnce(Return(tv));
+  EXPECT_CALL(*ttq,
+              validate_transaction(TransactionSource::External, *extrinsic))
+      .WillOnce(Return(tv));
   Transaction tr{*extrinsic,
                  extrinsic->data.size(),
                  Hash256{},
@@ -110,7 +113,8 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
  */
 TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
   TransactionValidity tv = InvalidTransaction{1u};
-  EXPECT_CALL(*ttq, validate_transaction(*extrinsic))
+  EXPECT_CALL(*ttq,
+              validate_transaction(TransactionSource::External, *extrinsic))
       .WillOnce(Return(outcome::failure(DummyError::ERROR)));
   EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
   EXPECT_CALL(*transaction_pool, submitOne(_)).Times(0);

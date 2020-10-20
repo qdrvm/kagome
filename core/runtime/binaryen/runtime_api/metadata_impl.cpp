@@ -14,7 +14,7 @@ namespace kagome::runtime::binaryen {
       : RuntimeApi(wasm_provider, runtime_manager) {}
 
   outcome::result<OpaqueMetadata> MetadataImpl::metadata(
-      const boost::optional<primitives::BlockHash> block_hash) {
+      const boost::optional<primitives::BlockHash> &block_hash) {
     if (block_hash) {
       return executeAt<OpaqueMetadata>(
           "Metadata_metadata", *block_hash, CallPersistency::EPHEMERAL);

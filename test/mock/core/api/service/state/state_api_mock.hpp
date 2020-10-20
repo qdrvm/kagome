@@ -49,6 +49,7 @@ namespace kagome::api {
                  outcome::result<void>(uint32_t subscription_id));
 
     MOCK_METHOD0(getMetadata, outcome::result<std::string>());
+    MOCK_METHOD1(getMetadata, outcome::result<std::string>(std::string_view));
   };
 }  // namespace kagome::api
 
