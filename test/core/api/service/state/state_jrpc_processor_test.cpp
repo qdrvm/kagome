@@ -73,6 +73,11 @@ class StateJrpcProcessorTest : public testing::Test {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
         }));
+    EXPECT_CALL(*server, registerHandler("state_getStorageAt", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
+                                                CallContext{.handler = f}));
+        }));
     EXPECT_CALL(*server, registerHandler("state_subscribeStorage", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(std::make_pair(
