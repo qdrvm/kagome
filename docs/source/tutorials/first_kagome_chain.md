@@ -74,8 +74,8 @@ kagome_validating \
     --p2p_port 30363 \
     --rpc_http_port 9933 \
     --rpc_ws_port 9944 \
-    -s \
-    -f
+    --single_finalizing_node \
+    --already_synchronized
 ```
 
 Let's look at this flags in detail:
