@@ -45,6 +45,6 @@ class OffchainWorkerTest : public RuntimeTest {
  * @when offchain_worker() is invoked
  * @then successful result is returned
  */
-TEST_F(OffchainWorkerTest, OffchainWorkerCallSuccess) {
+TEST_F(OffchainWorkerTest, DISABLED_OffchainWorkerCallSuccess) {
   ASSERT_TRUE(api_->offchain_worker(createBlockNumber()));
 }

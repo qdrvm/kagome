@@ -51,6 +51,12 @@ class StateJrpcProcessorTest : public testing::Test {
               std::make_pair(CallType::kCallType_GetRuntimeVersion,
                              CallContext{.handler = f}));
         }));
+    EXPECT_CALL(*server, registerHandler("chain_getRuntimeVersion", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(
+              std::make_pair(CallType::kCallType_SubscribeRuntimeVersion,
+                             CallContext{.handler = f}));
+        }));
     EXPECT_CALL(*server, registerHandler("state_subscribeRuntimeVersion", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(
