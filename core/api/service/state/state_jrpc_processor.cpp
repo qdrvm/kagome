@@ -34,12 +34,16 @@ namespace kagome::api::state {
     server_->registerHandler("state_getStorage",
                              Handler<request::GetStorage>(api_));
 
+    // duplicate of `state_getStorage`. Required for compatibility with
+    // some client
     server_->registerHandler("state_getStorageAt",
                              Handler<request::GetStorage>(api_));
 
     server_->registerHandler("state_getRuntimeVersion",
                              Handler<request::GetRuntimeVersion>(api_));
 
+    // duplicate of `state_getRuntimeVersion`. Required for compatibility with
+    // some client libraries
     server_->registerHandler("chain_getRuntimeVersion",
                              Handler<request::GetRuntimeVersion>(api_));
 
