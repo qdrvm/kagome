@@ -30,6 +30,10 @@ namespace kagome::application {
   class ConfigurationStorage;
 }
 
+namespace kagome::blockchain {
+  class BlockStorage;
+}
+
 namespace kagome::network {
   class RouterLibp2p : public Router,
                        public std::enable_shared_from_this<RouterLibp2p> {
@@ -43,7 +47,8 @@ namespace kagome::network {
         std::shared_ptr<Gossiper> gossiper,
         const PeerList &peer_list,
         const OwnPeerInfo &own_info,
-        std::shared_ptr<kagome::application::ConfigurationStorage> config);
+        std::shared_ptr<kagome::application::ConfigurationStorage> config,
+        std::shared_ptr<blockchain::BlockStorage> storage);
 
     ~RouterLibp2p() override = default;
 
@@ -110,6 +115,7 @@ namespace kagome::network {
     common::Logger log_;
     std::shared_ptr<kagome::application::ConfigurationStorage> config_;
     libp2p::peer::Protocol transactions_protocol_;
+    std::shared_ptr<blockchain::BlockStorage> storage_;
   };
 }  // namespace kagome::network
 

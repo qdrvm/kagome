@@ -12,6 +12,7 @@
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
+#include "blockchain/block_storage.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/rpc.hpp"
 #include "network/types/block_announce.hpp"
@@ -31,7 +32,8 @@ namespace kagome::network {
       std::shared_ptr<Gossiper> gossiper,
       const PeerList &peer_list,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<kagome::application::ConfigurationStorage> config)
+      std::shared_ptr<kagome::application::ConfigurationStorage> config,
+      std::shared_ptr<blockchain::BlockStorage> storage)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
@@ -40,7 +42,8 @@ namespace kagome::network {
         gossiper_{std::move(gossiper)},
         log_{common::createLogger("RouterLibp2p")},
         config_(std::move(config)),
-        transactions_protocol_{fmt::format(kPropagateTransactionsProtocol.data(), config_->protocolId())} {
+        transactions_protocol_{fmt::format(kPropagateTransactionsProtocol.data(), config_->protocolId())},
+  storage_{std::move(storage)} {
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
@@ -49,6 +52,7 @@ namespace kagome::network {
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
+    BOOST_ASSERT(storage_ != nullptr);
 
     gossiper_->storeSelfPeerInfo(own_peer_info);
     for (const auto &peer_info : peer_list.peers) {
@@ -143,6 +147,25 @@ namespace kagome::network {
     Status status_msg;
     status_msg.version = CURRENT_VERSION;
     status_msg.min_supported_version = MIN_VERSION;
+
+    { /// Genesis hash
+      auto genesis_res = storage_->getGenesisBlockHash();
+      if (genesis_res) {
+        status_msg.genesis_hash = std::move(genesis_res.value());
+      } else {
+        log_->error("Could not get genesis hash: {}", genesis_res.error().message());
+        return;
+      }
+    }
+    { /// Best hash
+      auto best_res = storage_->getLastFinalizedBlockHash();
+      if (best_res) {
+        status_msg.best_hash = std::move(best_res.value());
+      } else {
+        log_->error("Could not get best hash: {}", best_res.error().message());
+        return;
+      }
+    }
 
     GossipMessage msg;
     msg.type = GossipMessage::Type::STATUS;
