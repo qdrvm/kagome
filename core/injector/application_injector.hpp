@@ -641,7 +641,7 @@ namespace kagome::injector {
         // inherit host injector
         libp2p::injector::makeHostInjector(
             libp2p::injector::useSecurityAdaptors<
-                libp2p::security::Secio>()[di::override]),
+                libp2p::security::Noise>()[di::override]),
 
         // bind boot nodes
         di::bind<network::PeerList>.to(
