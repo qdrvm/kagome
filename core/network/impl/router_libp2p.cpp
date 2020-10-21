@@ -129,10 +129,64 @@ namespace kagome::network {
   }
 
   void RouterLibp2p::handleTransactionsProtocol(std::shared_ptr<Stream> stream) const {
-    if (gossiper_->addStream(transactions_protocol_, stream))
-      readAsyncMsg<PropagatedTransactions>(std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
-        return self->processPropagateTransactionsMessage(peer_id, msg);
-      });
+    if (gossiper_->addStream(transactions_protocol_, stream)) {
+      /// Handshake
+      {
+        std::vector<uint8_t> buffer(1);
+        gsl::span<uint8_t> b(buffer);
+        stream->read(
+            b,
+            b.size(),
+            [buffer{std::move(buffer)},
+             stream,
+             self{shared_from_this()}] (auto) mutable {
+              gsl::span<uint8_t> b(buffer);
+              stream->write(
+                  b,
+                  b.size(),
+                  [buffer{std::move(buffer)}, stream, self](auto) mutable {
+                    gsl::span<uint8_t> b(buffer);
+                    stream->read(
+                        b,
+                        b.size(),
+                        [buffer{std::move(buffer)}, stream, self](auto res) {
+                          if (res.has_error()) {
+                            self->log_->error("error while reading message: {}",
+                                              res.error().message());
+                          } else {
+                            self->log_->error("Received: {}", res.value());
+                          }
+                          int p = 0;
+                          ++p;
+                        });
+                  });
+            });
+      }
+      {
+      }
+
+      // DATA
+/*      {
+        std::vector<uint8_t> buffer(1);
+        gsl::span<uint8_t> b(buffer);
+        stream->read(b, b.size(), [self](auto res) {
+          if (res.has_error()) {
+            self->log_->error("error while reading message: {}",
+                              res.error().message());
+          } else {
+            self->log_->error("Received: {}", res.value());
+          }
+          int p = 0; ++p;
+        });
+      }*/
+
+      /*      readAsyncMsg<PropagatedTransactions>(
+                std::move(stream),
+                [](auto self, const auto &peer_id, const auto &msg) {
+                  return self->processPropagateTransactionsMessage(peer_id,
+         msg);
+                });*/
+    }
   }
 
   void RouterLibp2p::handleGossipProtocol(
@@ -171,9 +225,7 @@ namespace kagome::network {
     msg.type = GossipMessage::Type::STATUS;
     msg.data.put(scale::encode(status_msg).value());
 
-    auto rw = std::make_shared<ScaleMessageReadWriter>(
-        std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
-            std::move(stream)));
+    auto rw = std::make_shared<ScaleMessageReadWriter>(std::move(stream));
     rw->write(msg, [self{shared_from_this()}](auto &&res) {
       if (!res)
         self->log_->error("Could not broadcast, reason: {}",
