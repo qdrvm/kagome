@@ -92,7 +92,7 @@ namespace kagome::application {
                 crypto::ED25519PrivateKey::fromSpan(ed_privkey_buffer));
 
     ed_25519_keypair_.public_key = ed_pubkey;
-    ed_25519_keypair_.private_key = ed_privkey;
+    ed_25519_keypair_.secret_key = ed_privkey;
     return outcome::success();
   }
 

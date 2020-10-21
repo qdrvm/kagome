@@ -6,11 +6,11 @@
 #include "ed25519_types.hpp"
 
 namespace kagome::crypto {
-  bool ED25519Keypair::operator==(const ED25519Keypair &other) const {
-    return private_key == other.private_key && public_key == other.public_key;
+  bool Ed25519Keypair::operator==(const Ed25519Keypair &other) const {
+    return secret_key == other.secret_key && public_key == other.public_key;
   }
 
-  bool ED25519Keypair::operator!=(const ED25519Keypair &other) const {
+  bool Ed25519Keypair::operator!=(const Ed25519Keypair &other) const {
     return !(*this == other);
   }
 }  // namespace kagome::crypto

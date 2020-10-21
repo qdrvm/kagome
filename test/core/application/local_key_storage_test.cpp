@@ -56,7 +56,7 @@ class LocalKeyStorageTest : public testing::Test {
         ED25519PrivateKey::fromHex(
             "62f4174222f712edc938fa7fbdd06928967e91354e22f6c2aa097451aa5b03e4")
             .value();
-    expected_ed_keypair_.private_key = expected_edprivkey;
+    expected_ed_keypair_.secret_key = expected_edprivkey;
     expected_ed_keypair_.public_key = expected_edpubkey;
   }
 

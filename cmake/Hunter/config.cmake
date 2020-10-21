@@ -20,5 +20,5 @@ hunter_config(libsecp256k1
 
 hunter_config(schnorrkel_crust
     URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/f2ab23af56bba1ba611b7be8d9bbafd63a22dec3.zip
-    SHA1 767099ca5a3ae806a893c7f5cf6e3631da486e3d
+    SHA1 94c4c0024b8d265cd8b7ec191d1c7b88d4fbf43d
     )

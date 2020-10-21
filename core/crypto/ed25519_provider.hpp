@@ -12,30 +12,22 @@
 
 namespace kagome::crypto {
 
-  enum class ED25519ProviderError {
-    FAILED_GENERATE_KEYPAIR = 1,
-    SIGN_UNKNOWN_ERROR,   // unknown error occurred during call to `sign` method
-                          // of bound function
-    VERIFY_UNKNOWN_ERROR  // unknown error occured during call to `verify`
-                          // method of bound function
-  };
-
-  class ED25519Provider {
+  class Ed25519Provider {
    public:
-    virtual ~ED25519Provider() = default;
+    virtual ~Ed25519Provider() = default;
 
     /**
      * Generates random keypair for signing the message
      * @return ed25519 key pair if succeeded of error if failed
      */
-    virtual outcome::result<ED25519Keypair> generateKeypair() const = 0;
+    virtual Ed25519Keypair generateKeypair() const = 0;
 
     /**
      * @brief generates key pair by seed
      * @param seed seed value
      * @return ed25519 key pair
      */
-    virtual ED25519Keypair generateKeypair(const ED25519Seed &seed) const = 0;
+    virtual Ed25519Keypair generateKeypair(const Ed25519Seed &seed) const = 0;
 
     /**
      * Sign message \param msg using \param keypair. If computed value is less
@@ -45,20 +37,18 @@ namespace kagome::crypto {
      * @param message bytes to be signed
      * @return signed message
      */
-    virtual outcome::result<ED25519Signature> sign(
-        const ED25519Keypair &keypair, gsl::span<uint8_t> message) const = 0;
+    virtual outcome::result<Ed25519Signature> sign(
+        const Ed25519Keypair &keypair, gsl::span<uint8_t> message) const = 0;
 
     /**
      * Verifies that \param message was derived using \param public_key on
      * \param signature
      */
     virtual outcome::result<bool> verify(
-        const ED25519Signature &signature,
+        const Ed25519Signature &signature,
         gsl::span<uint8_t> message,
-        const ED25519PublicKey &public_key) const = 0;
+        const Ed25519PublicKey &public_key) const = 0;
   };
 }  // namespace kagome::crypto
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, ED25519ProviderError)
 
 #endif  // KAGOME_CORE_CRYPTO_ED25519_PROVIDER_HPP
