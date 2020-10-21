@@ -5,129 +5,84 @@
 
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 
+#include <random>
+
+extern "C" {
+#include <schnorrkel/schnorrkel.h>
+}
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, Ed25519ProviderImpl::Error, e) {
+  using E = kagome::crypto::Ed25519ProviderImpl::Error;
+  switch (e) {
+    case E::VERIFICATION_FAILED:
+      return "Internal error during ed25519 signature verification";
+    case E::SIGN_FAILED:
+      return "Internal error during ed25519 signing";
+  }
+  return "Unknown error in ed25519 provider";
+}
+
 namespace kagome::crypto {
 
-  outcome::result<ED25519Keypair> ED25519ProviderImpl::generateKeypair() const {
-    private_key_t private_key_low{};
-    public_key_t public_key_low{};
-
-    auto res = ed25519_create_keypair(&private_key_low, &public_key_low);
-    if (res == 0) {
-      return ED25519ProviderError::FAILED_GENERATE_KEYPAIR;
-    }
-
-    auto priv_span = gsl::make_span<uint8_t>(private_key_low.data,
-                                             constants::ed25519::PRIVKEY_SIZE);
-
-    auto pub_span = gsl::make_span<uint8_t>(public_key_low.data,
-                                            constants::ed25519::PUBKEY_SIZE);
-
-    auto &&private_key_high = ED25519PrivateKey::fromSpan(priv_span);
-    if (!private_key_high) {
-      BOOST_UNREACHABLE_RETURN(ED25519Keypair{});
-    }
-
-    auto &&public_key_high = ED25519PublicKey::fromSpan(pub_span);
-    if (!public_key_high) {
-      BOOST_UNREACHABLE_RETURN(ED25519Keypair{});
-    }
-
-    return ED25519Keypair{private_key_high.value(), public_key_high.value()};
+  Ed25519ProviderImpl::Ed25519ProviderImpl(std::shared_ptr<CSPRNG> generator)
+      : generator_{std::move(generator)},
+        logger_{common::createLogger("Ed25519 Provider")} {
+    BOOST_ASSERT(generator_ != nullptr);
   }
 
-  ED25519Keypair ED25519ProviderImpl::generateKeypair(
-      const ED25519Seed &seed) const {
-    private_key_t private_key_low{};
-    public_key_t public_key_low{};
-    std::copy_n(seed.begin(), ED25519Seed::size(), private_key_low.data);
-
-    // derive public key
-    ed25519_derive_public_key(&private_key_low, &public_key_low);
-    ED25519PrivateKey privateKey{seed};
-    auto pub_span = gsl::make_span<uint8_t>(public_key_low.data,
-                                            constants::ed25519::PUBKEY_SIZE);
-    auto &&public_key_high = ED25519PublicKey::fromSpan(pub_span);
-    if (!public_key_high) {
-      BOOST_UNREACHABLE_RETURN(ED25519Keypair{});
-    }
-
-    return ED25519Keypair{privateKey, public_key_high.value()};
+  Ed25519Keypair Ed25519ProviderImpl::generateKeypair() const {
+    auto seed_bytes = generator_->randomBytes(ED25519_SEED_LENGTH);
+    Ed25519Seed seed{};
+    std::copy_n(seed_bytes.begin(), ED25519_SEED_LENGTH, seed.begin());
+    return generateKeypair(seed);
   }
 
-  outcome::result<ED25519Signature> ED25519ProviderImpl::sign(
-      const ED25519Keypair &keypair, gsl::span<uint8_t> message) const {
-    signature_t signature_low{};
-    public_key_t public_key{};
-    private_key_t private_key{};
-    auto private_span = gsl::make_span<uint8_t>(
-        private_key.data, constants::ed25519::PRIVKEY_SIZE);
-    auto public_span = gsl::make_span<uint8_t>(public_key.data,
-                                               constants::ed25519::PUBKEY_SIZE);
-    std::copy_n(keypair.private_key.begin(),
-                constants::ed25519::PRIVKEY_SIZE,
-                private_span.begin());
-    std::copy_n(keypair.public_key.begin(),
-                constants::ed25519::PUBKEY_SIZE,
-                public_span.begin());
-
-    try {
-      ed25519_sign(&signature_low,
-                   message.data(),
-                   message.size(),
-                   &public_key,
-                   &private_key);
-    } catch (...) {
-      return ED25519ProviderError::SIGN_UNKNOWN_ERROR;
-    }
-
-    ED25519Signature signature{};
-    auto signature_span = gsl::make_span<uint8_t>(
-        signature_low.data, constants::ed25519::SIGNATURE_SIZE);
-    std::copy_n(signature_span.begin(),
-                constants::ed25519::SIGNATURE_SIZE,
-                signature.begin());
-
-    return signature;
+  Ed25519Keypair Ed25519ProviderImpl::generateKeypair(
+      const Ed25519Seed &seed) const {
+    std::array<uint8_t, ED25519_KEYPAIR_LENGTH> kp_bytes{};
+    ed25519_keypair_from_seed(kp_bytes.data(), seed.data());
+    Ed25519Keypair kp;
+    std::copy_n(
+        kp_bytes.begin(), ED25519_SECRET_KEY_LENGTH, kp.secret_key.begin());
+    std::copy_n(kp_bytes.begin() + ED25519_SECRET_KEY_LENGTH,
+                ED25519_PUBLIC_KEY_LENGTH,
+                kp.public_key.begin());
+    return kp;
   }
 
-  outcome::result<bool> ED25519ProviderImpl::verify(
-      const ED25519Signature &signature,
+  outcome::result<Ed25519Signature> Ed25519ProviderImpl::sign(
+      const Ed25519Keypair &keypair, gsl::span<uint8_t> message) const {
+    Ed25519Signature sig;
+    std::array<uint8_t, ED25519_KEYPAIR_LENGTH> keypair_bytes;
+    std::copy(keypair.secret_key.begin(),
+              keypair.secret_key.end(),
+              keypair_bytes.begin());
+    std::copy(keypair.public_key.begin(),
+              keypair.public_key.end(),
+              keypair_bytes.begin() + ED25519_SECRET_KEY_LENGTH);
+    auto res = ed25519_sign(
+        sig.data(), keypair_bytes.data(), message.data(), message.size_bytes());
+    if (res != ED25519_RESULT_OK) {
+      logger_->error("Error during ed25519 sign; error code: {}", res);
+      return Error::SIGN_FAILED;
+    }
+    return sig;
+  }
+  outcome::result<bool> Ed25519ProviderImpl::verify(
+      const Ed25519Signature &signature,
       gsl::span<uint8_t> message,
-      const ED25519PublicKey &public_key) const {
-    public_key_t public_key_low{};
-    signature_t signature_low{};
-    auto public_span = gsl::span<uint8_t>(public_key_low.data,
-                                          constants::ed25519::PUBKEY_SIZE);
-    auto signature_span = gsl::span<uint8_t>(
-        signature_low.data, constants::ed25519::SIGNATURE_SIZE);
-
-    std::copy_n(signature.data(),
-                constants::ed25519::SIGNATURE_SIZE,
-                signature_low.data);
-
-    std::copy_n(public_key.data(),
-                constants::ed25519::PUBKEY_SIZE,
-                public_key_low.data);
-
-    try {
-      const auto res = ed25519_verify(
-          &signature_low, message.data(), message.size(), &public_key_low);
-      return res == ED25519_SUCCESS;
-    } catch (...) {
-      return ED25519ProviderError::VERIFY_UNKNOWN_ERROR;
+      const Ed25519PublicKey &public_key) const {
+    auto res = ed25519_verify(signature.data(),
+                              public_key.data(),
+                              message.data(),
+                              message.size_bytes());
+    if (res == ED25519_RESULT_OK) {
+      return true;
     }
+    if (res == ED25519_RESULT_VERIFICATION_FAILED) {
+      return false;
+    }
+    logger_->error("Error verifying a signature; error code: {}", res);
+    return Error::VERIFICATION_FAILED;
   }
 }  // namespace kagome::crypto
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, ED25519ProviderError, e) {
-  using kagome::crypto::ED25519ProviderError;
-  switch (e) {
-    case ED25519ProviderError::FAILED_GENERATE_KEYPAIR:
-      return "failed to generate keypair, maybe problems with random source";
-    case ED25519ProviderError::SIGN_UNKNOWN_ERROR:
-      return "failed to sign message, unknown error occured";
-    case ED25519ProviderError::VERIFY_UNKNOWN_ERROR:
-      return "faield to verify message, unknown error occured";
-  }
-  return "unknown SR25519ProviderError";
-}

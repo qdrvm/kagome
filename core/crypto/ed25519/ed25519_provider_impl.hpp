@@ -3,31 +3,45 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CRYPTO_ED25519_ED25519_PROVIDER_IMPL_HPP
-#define KAGOME_CORE_CRYPTO_ED25519_ED25519_PROVIDER_IMPL_HPP
+#ifndef KAGOME_CRYPTO_ED25519_PROVIDER_IMPL_H
+#define KAGOME_CRYPTO_ED25519_PROVIDER_IMPL_H
 
 #include "crypto/ed25519_provider.hpp"
 
+#include "common/logger.hpp"
+#include "crypto/random_generator.hpp"
+
 namespace kagome::crypto {
 
-  class ED25519ProviderImpl : public ED25519Provider {
+  class Ed25519ProviderImpl: public Ed25519Provider {
    public:
-    ~ED25519ProviderImpl() override = default;
+    enum class Error {
+      VERIFICATION_FAILED = 1,
+      SIGN_FAILED
+    };
 
-    outcome::result<ED25519Keypair> generateKeypair() const override;
+    explicit Ed25519ProviderImpl(std::shared_ptr<CSPRNG> generator);
 
-    ED25519Keypair generateKeypair(const ED25519Seed &seed) const override;
+    Ed25519Keypair generateKeypair() const override;
 
-    outcome::result<kagome::crypto::ED25519Signature> sign(
-        const ED25519Keypair &keypair,
+    Ed25519Keypair generateKeypair(const Ed25519Seed &seed) const override;
+
+    outcome::result<Ed25519Signature> sign(
+        const Ed25519Keypair &keypair,
         gsl::span<uint8_t> message) const override;
 
     outcome::result<bool> verify(
-        const ED25519Signature &signature,
+        const Ed25519Signature &signature,
         gsl::span<uint8_t> message,
-        const ED25519PublicKey &public_key) const override;
+        const Ed25519PublicKey &public_key) const override;
+
+   private:
+    std::shared_ptr<CSPRNG> generator_;
+    common::Logger logger_;
   };
 
 }  // namespace kagome::crypto
 
-#endif  // KAGOME_CORE_CRYPTO_ED25519_ED25519_PROVIDER_IMPL_HPP
+OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, Ed25519ProviderImpl::Error);
+
+#endif  // KAGOME_CRYPTO_ED25519_PROVIDER_IMPL_H
