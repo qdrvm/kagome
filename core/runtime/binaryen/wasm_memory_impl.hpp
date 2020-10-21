@@ -19,6 +19,10 @@
 
 namespace kagome::runtime::binaryen {
 
+  // Alignment for pointers, same with substrate:
+  // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
+  inline const uint8_t kAlignment = 8;
+
   /**
    * Memory implementation for wasm environment
    * Most code is taken from Binaryen's implementation here:
@@ -120,17 +124,28 @@ namespace kagome::runtime::binaryen {
   };
 
   /**
-     * Obtain closest multiple of X that is greater or equal to given number
-     * @tparam X multiple that is POW of 2
-     * @tparam T type of number
-     * @param t given number
-     * @return closest multiple
-     */
+   * Obtain closest multiple of X that is greater or equal to given number
+   * @tparam X multiple that is POW of 2
+   * @tparam T type of number
+   * @param t given number
+   * @return closest multiple
+   */
   template <size_t X, typename T>
   inline T roundUp(T t) {
     static_assert((X & (X - 1)) == 0, "Must be POW 2!");
     static_assert(X != 0, "Must not be 0!");
     return (t + (X - 1)) & ~(X - 1);
+  }
+
+  /**
+   * Obtain closest multiple of kAllignment that is greater or equal to given number
+   * @tparam T T type of number
+   * @param t given number
+   * @return closest multiple
+   */
+  template <typename T>
+  inline T roundUpAlign(T t) {
+    return roundUp<kAlignment>(t);
   }
 
 }  // namespace kagome::runtime::binaryen

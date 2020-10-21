@@ -9,9 +9,9 @@
 
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/impl/extension_impl.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
-#include "testutil/outcome.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
 using kagome::primitives::BlockId;
@@ -31,7 +31,10 @@ class GrandpaTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<GrandpaApiImpl>(wasm_provider_, runtime_manager_);
+    api_ = std::make_shared<GrandpaApiImpl>(
+        wasm_provider_,
+        runtime_manager_,
+        std::make_shared<BlockHeaderRepositoryMock>());
   }
 
   Digest createDigest() const {

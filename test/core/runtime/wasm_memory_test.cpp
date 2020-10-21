@@ -73,7 +73,7 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
   // allocated second memory chunk
   auto ptr2 = memory_.allocate(size2);
   // second memory chunk is placed right after the first one (alligned by 4)
-  ASSERT_EQ(ptr2, kagome::runtime::binaryen::roundUp<4>(size1 + ptr1));
+  ASSERT_EQ(ptr2, kagome::runtime::binaryen::roundUpAlign(size1 + ptr1));
 }
 
 /**
@@ -157,7 +157,7 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
   auto ptr3 = memory_.allocate(size1 + 1);
 
   // memory is allocated on mem offset (aligned by 4)
-  ASSERT_EQ(ptr3, kagome::runtime::binaryen::roundUp<4>(mem_offset));
+  ASSERT_EQ(ptr3, kagome::runtime::binaryen::roundUpAlign(mem_offset));
 }
 
 /**

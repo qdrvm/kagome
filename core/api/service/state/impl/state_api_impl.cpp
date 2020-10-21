@@ -134,7 +134,14 @@ namespace kagome::api {
   }
 
   outcome::result<std::string> StateApiImpl::getMetadata() {
-    OUTCOME_TRY(data, metadata_->metadata());
+    OUTCOME_TRY(data, metadata_->metadata(boost::none));
+    return common::hex_lower_0x(data);
+  }
+
+  outcome::result<std::string> StateApiImpl::getMetadata(
+      std::string_view hex_block_hash) {
+    OUTCOME_TRY(h, primitives::BlockHash::fromHexWithPrefix(hex_block_hash));
+    OUTCOME_TRY(data, metadata_->metadata(h));
     return common::hex_lower_0x(data);
   }
 }  // namespace kagome::api

@@ -39,5 +39,5 @@ class MetadataTest : public RuntimeTest {
  * @then successful result is returned
  */
 TEST_F(MetadataTest, metadata) {
-  ASSERT_TRUE(api_->metadata());
+  ASSERT_TRUE(api_->metadata({}));
 }

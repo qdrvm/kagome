@@ -33,7 +33,9 @@ namespace kagome::api {
 
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
       const primitives::Extrinsic &extrinsic) {
-    OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
+    OUTCOME_TRY(res,
+                api_->validate_transaction(
+                    primitives::TransactionSource::External, extrinsic));
 
     return visit_in_place(
         res,

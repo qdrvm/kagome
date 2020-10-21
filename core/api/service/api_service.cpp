@@ -5,6 +5,8 @@
 
 #include "api/service/api_service.hpp"
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/value_converter.hpp"
 
@@ -162,9 +164,16 @@ namespace kagome::api {
                   thread_session_keeper(reinterpret_cast<void *>(0xff),
                                         std::move(thread_session_auto_release));
 
+              // TODO(kamilsa): remove that string replacement when
+              // https://github.com/soramitsu/kagome/issues/572 resolved
+              std::string str_request(request);
+              boost::replace_all(str_request, " ", "");
+              boost::replace_first(
+                  str_request, "\"params\":null", "\"params\":[null]");
+
               // process new request
               self->server_->processData(
-                  std::string(request),
+                  str_request,
                   [session = std::move(session)](
                       const std::string &response) mutable {
                     // process response

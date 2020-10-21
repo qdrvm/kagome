@@ -19,12 +19,16 @@
 
 namespace kagome::api::state::request {
 
-  struct GetMetadata final : details::RequestType<std::string> {
+  struct GetMetadata final
+      : details::RequestType<std::string, boost::optional<std::string>> {
    public:
     explicit GetMetadata(std::shared_ptr<StateApi> api)
         : api_(std::move(api)){};
 
     outcome::result<Return> execute() {
+      if (const auto &param_0 = getParam<0>()) {
+        return api_->getMetadata(*param_0);
+      }
       return api_->getMetadata();
     }
 

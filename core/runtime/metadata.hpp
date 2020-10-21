@@ -7,6 +7,7 @@
 #define KAGOME_CORE_RUNTIME_METADATA_HPP
 
 #include <outcome/outcome.hpp>
+#include "primitives/common.hpp"
 #include "primitives/opaque_metadata.hpp"
 
 namespace kagome::runtime {
@@ -22,7 +23,8 @@ namespace kagome::runtime {
      * @brief calls metadata method of Metadata runtime api
      * @return opaque metadata object or error
      */
-    virtual outcome::result<OpaqueMetadata> metadata() = 0;
+    virtual outcome::result<OpaqueMetadata> metadata(
+        const boost::optional<primitives::BlockHash> &block_hash) = 0;
   };
 
 }  // namespace kagome::runtime
