@@ -90,6 +90,34 @@ namespace kagome::extensions {
     memory_->storeBuffer(out_ptr, hash);
   }
 
+  void CryptoExtension::ext_start_batch_verify() {
+    if (batch_verify_.has_value()) {
+      throw std::runtime_error("Previous batch_verify is not finished");
+    }
+
+    batch_verify_.emplace();
+  }
+
+  runtime::WasmSize CryptoExtension::ext_finish_batch_verify() {
+    if (not batch_verify_.has_value()) {
+      throw std::runtime_error("No batch_verify is started");
+    }
+
+    auto &verification_queue = batch_verify_.value();
+    while (not verification_queue.empty()) {
+      auto single_verification_result = verification_queue.front().get();
+      if (single_verification_result == kLegacyVerifyFail) {
+        batch_verify_.reset();
+        return kVerifyBatchFail;
+      }
+      BOOST_ASSERT_MSG(single_verification_result == kLegacyVerifySuccess,
+                       "Successful verification result must be equal to 1");
+      verification_queue.pop();
+    }
+
+    return kVerifyBatchSuccess;
+  }
+
   runtime::WasmSize CryptoExtension::ext_ed25519_verify(
       runtime::WasmPointer msg_data,
       runtime::WasmSize msg_len,
@@ -113,10 +141,28 @@ namespace kagome::extensions {
     }
     auto pubkey = pubkey_res.value();
 
-    auto result = ed25519_provider_->verify(signature, msg, pubkey);
-    auto is_succeeded = result && result.value();
+    auto verifier = [self_weak = weak_from_this(),
+                     signature = std::move(signature),
+                     msg = std::move(msg),
+                     pubkey = std::move(pubkey)]() mutable {
+      auto self = self_weak.lock();
+      if (not self) {
+        BOOST_ASSERT(!"This is unreachable");
+      }
 
-    return is_succeeded ? kEd25519LegacyVerifySuccess : kEd25519LegacyVerifyFail;
+      auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
+      auto is_succeeded = result && result.value();
+
+      return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
+    };
+    if (batch_verify_.has_value()) {
+      auto &verification_queue = batch_verify_.value();
+      verification_queue.emplace(
+          std::async(std::launch::deferred, std::move(verifier)));
+      return kLegacyVerifySuccess;
+    }
+
+    return verifier();
   }
 
   runtime::WasmSize CryptoExtension::ext_sr25519_verify(
@@ -124,7 +170,6 @@ namespace kagome::extensions {
       runtime::WasmSize msg_len,
       runtime::WasmPointer sig_data,
       runtime::WasmPointer pubkey_data) {
-
     auto msg = memory_->loadN(msg_data, msg_len);
     auto signature_buffer =
         memory_->loadN(sig_data, sr25519_constants::SIGNATURE_SIZE);
@@ -142,38 +187,27 @@ namespace kagome::extensions {
                 sr25519_constants::SIGNATURE_SIZE,
                 signature.begin());
 
-    auto res = sr25519_provider_->verify(signature, msg, key);
-    bool is_succeeded = res && res.value();
-
-    return is_succeeded ? kSr25519LegacyVerifySuccess : kSr25519LegacyVerifyFail;
-  }
-
-  void CryptoExtension::ext_start_batch_verify() {
-    if (batch_verify_.has_value()) {
-      throw std::runtime_error("Previous batch_verify is not finished");
-    }
-
-    batch_verify_.emplace();
-  }
-
-  runtime::WasmSize CryptoExtension::ext_finish_batch_verify() {
-    if (not batch_verify_.has_value()) {
-      throw std::runtime_error("No batch_verify is started");
-    }
-
-    auto &verification_queue = batch_verify_.value();
-    while (not verification_queue.empty()) {
-      auto single_verification_result = verification_queue.front().get();
-      if (single_verification_result == 0) {
-        batch_verify_.reset();
-        return kVerifyBatchFail;
+    auto verifier = [self_weak = weak_from_this(),
+                     signature = std::move(signature),
+                     msg = std::move(msg),
+                     pubkey = std::move(key)]() mutable {
+      auto self = self_weak.lock();
+      if (not self) {
+        BOOST_ASSERT(!"This is unreachable");
       }
-      BOOST_ASSERT_MSG(single_verification_result == 1,
-                       "Positive result must be equal 1");
-      verification_queue.pop();
+
+      auto res = self->sr25519_provider_->verify(signature, msg, pubkey);
+      bool is_succeeded = res && res.value();
+      return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
+    };
+    if (batch_verify_.has_value()) {
+      auto &verification_queue = batch_verify_.value();
+      verification_queue.emplace(
+          std::async(std::launch::deferred, std::move(verifier)));
+      return kLegacyVerifySuccess;
     }
 
-    return kVerifyBatchSuccess;
+    return verifier();
   }
 
   void CryptoExtension::ext_twox_64(runtime::WasmPointer data,
@@ -427,9 +461,10 @@ namespace kagome::extensions {
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::WasmResult(msg);
     auto res = ext_ed25519_verify(msg_data, msg_len, sig, pubkey_data);
-    if (res == kEd25519LegacyVerifySuccess) return kEd25519VerifySuccess;
-    else return kEd25519VerifyFail;
-
+    if (res == kLegacyVerifySuccess)
+      return kVerifySuccess;
+    else
+      return kVerifyFail;
   }
 
   /**
@@ -546,8 +581,10 @@ namespace kagome::extensions {
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::WasmResult(msg);
     auto res = ext_sr25519_verify(msg_data, msg_len, sig, pubkey_data);
-    if (res == kSr25519LegacyVerifySuccess) return kSr25519VerifySuccess;
-    else return kSr25519VerifyFail;
+    if (res == kLegacyVerifySuccess)
+      return kVerifySuccess;
+    else
+      return kVerifyFail;
   }
 
   namespace {

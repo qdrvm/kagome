@@ -248,8 +248,8 @@ namespace kagome::crypto {
   outcome::result<std::string> CryptoStoreImpl::loadFileContent(
       const boost::filesystem::path &file_path) {
     if (!boost::filesystem::exists(file_path)) {
+      return CryptoStoreError::FILE_DOESNT_EXIST;
     }
-    logger_->trace("Found {} in memory, total number of keys in memory: {}", keys.size(), sr_keys_.size());
 
     std::ifstream file;
     auto close_file = gsl::finally([&file] {

@@ -349,7 +349,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
 
   ASSERT_EQ(crypto_ext_->ext_ed25519_verify(
                 input_data, input_size, sig_data_ptr, pub_key_data_ptr),
-            CryptoExtension::kEd25519LegacyVerifySuccess);
+            CryptoExtension::kLegacyVerifySuccess);
 }
 
 /**
@@ -380,7 +380,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
 
   ASSERT_EQ(crypto_ext_->ext_ed25519_verify(
                 input_data, input_size, sig_data_ptr, pub_key_data_ptr),
-            CryptoExtension::kEd25519LegacyVerifyFail);
+            CryptoExtension::kLegacyVerifyFail);
 }
 
 /**
@@ -403,7 +403,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
 
   ASSERT_EQ(crypto_ext_->ext_sr25519_verify(
                 input_data, input_size, sig_data_ptr, pub_key_data_ptr),
-            CryptoExtension::kSr25519LegacyVerifySuccess);
+            CryptoExtension::kLegacyVerifySuccess);
 }
 
 /**
@@ -432,7 +432,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
 
   ASSERT_EQ(crypto_ext_->ext_sr25519_verify(
                 input_data, input_size, sig_data_ptr, pub_key_data_ptr),
-            CryptoExtension::kSr25519LegacyVerifyFail);
+            CryptoExtension::kLegacyVerifyFail);
 }
 
 /**
@@ -479,7 +479,7 @@ TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndSuccess) {
 
   WasmSize result_in_place = crypto_ext_->ext_sr25519_verify_v1(
      sig_data_ptr, input_span.combine(), pub_key_data_ptr);
-  ASSERT_EQ(result_in_place, CryptoExtension::kSr25519VerifySuccess);
+  ASSERT_EQ(result_in_place, CryptoExtension::kVerifySuccess);
 
   WasmSize final_result;
   ASSERT_NO_THROW(final_result = crypto_ext_->ext_finish_batch_verify());
@@ -509,7 +509,7 @@ TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndInvalid) {
 
   WasmSize result_in_place = crypto_ext_->ext_sr25519_verify_v1(
       sig_data_ptr, input_span.combine(), pub_key_data_ptr);
-  ASSERT_EQ(result_in_place, CryptoExtension::kSr25519VerifySuccess);
+  ASSERT_EQ(result_in_place, CryptoExtension::kVerifySuccess);
 
   ASSERT_ANY_THROW(crypto_ext_->ext_finish_batch_verify());
 }

@@ -32,17 +32,13 @@ namespace kagome::extensions {
    public:
     // for some reason, 0 and 5 are used in the reference implementation, so
     // it's better to stick to them in ours, at least for now
-    static constexpr uint32_t kSr25519LegacyVerifySuccess = 0;
-    static constexpr uint32_t kSr25519LegacyVerifyFail = 5;
-    static constexpr uint32_t kEd25519LegacyVerifySuccess = 0;
-    static constexpr uint32_t kEd25519LegacyVerifyFail = 5;
+    static constexpr uint32_t kLegacyVerifySuccess = 0;
+    static constexpr uint32_t kLegacyVerifyFail = 5;
 
     static constexpr uint32_t kVerifyBatchSuccess = 1;
     static constexpr uint32_t kVerifyBatchFail = 0;
-    static constexpr uint32_t kSr25519VerifySuccess = 1;
-    static constexpr uint32_t kSr25519VerifyFail = 0;
-    static constexpr uint32_t kEd25519VerifySuccess = 1;
-    static constexpr uint32_t kEd25519VerifyFail = 0;
+    static constexpr uint32_t kVerifySuccess = 1;
+    static constexpr uint32_t kVerifyFail = 0;
 
     CryptoExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
@@ -165,7 +161,7 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSpan key_type);
+    runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSize key_type);
 
     /**
      *@see Extension::ext_ed25519_generate
@@ -234,6 +230,7 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
+
     std::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
     common::Logger logger_;
   };

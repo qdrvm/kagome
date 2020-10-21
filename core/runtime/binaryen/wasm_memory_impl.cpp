@@ -37,7 +37,7 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(offset_ <= kMaxMemorySize - new_size);
     if (new_size >= size_) {
       size_ = new_size;
-      memory_->resize(new_size);
+      return memory_->resize(new_size);
     }
   }
 
@@ -51,7 +51,7 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
       logger_->error(
-          "overflow occured while trying to allocate {} bytes at offset x0x{:x}",
+          "overflow occured while trying to allocate {} bytes at offset {}",
           size,
           offset_);
       return 0;
@@ -74,6 +74,7 @@ namespace kagome::runtime::binaryen {
 
     allocated_.erase(ptr);
     deallocated_[ptr] = size;
+
     return size;
   }
 
@@ -108,7 +109,7 @@ namespace kagome::runtime::binaryen {
     // check that we do not exceed max memory size
     if (static_cast<uint32_t>(offset_) > kMaxMemorySize - size) {
       logger_->error(
-          "Memory size exceeded when growing it on {} bytes, offset was 0x{:x}",
+          "Memory size exceeded when growing it on {} bytes, offset was {}",
           size,
           offset_);
       return 0;
