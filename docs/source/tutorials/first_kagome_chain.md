@@ -101,7 +101,7 @@ Now chain is running on a single node. To query it we can use localhost's ports 
 
 #### Query the balance
 
-Now open second terminal and go to the transfer folder, located in the projects root directory.
+Now open second terminal and go to the transfer folder, available from the projects root directory.
 
 `cd examples/transfer`
 
