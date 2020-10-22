@@ -156,19 +156,31 @@ namespace kagome::network {
         std::vector<uint8_t> buffer(1);
         gsl::span<uint8_t> b(buffer);
         stream->read(
-            b, b.size(), [buffer{std::move(buffer)}, stream](auto res) mutable {
+            b,
+            b.size(),
+            [buffer{std::move(buffer)}, stream, self{shared_from_this()}](
+                auto res) mutable {
               if (res.has_error()) {
                 return;
               }
               gsl::span<uint8_t> b(buffer);
               stream->write(
-                  b, b.size(),
-                  [buffer{std::move(buffer)}, stream](auto res) mutable {
+                  b,
+                  b.size(),
+                  [buffer{std::move(buffer)}, stream, self](auto res) mutable {
                     if (res.has_error()) {
                       return;
                     }
-                    gsl::span<uint8_t> b(buffer);
-                    stream->read(b, b.size(),
+
+                    self->readAsyncMsg<PropagatedTransactions>(
+                        std::move(stream),
+                        [](auto self, const auto &peer_id, const auto &msg) {
+                          return self->processPropagateTransactionsMessage(peer_id,
+                                                                           msg);
+                        });
+                    /*gsl::span<uint8_t> b(buffer);
+                    stream->read(b,
+                                 b.size(),
                                  [buffer{std::move(buffer)}, stream](auto res) {
                                    if (res.has_error()) {
                                      int p = 0;
@@ -177,7 +189,7 @@ namespace kagome::network {
                                      int p = 0;
                                      ++p;
                                    }
-                                 });
+                                 });*/
                   });
             });
       }
@@ -220,7 +232,7 @@ namespace kagome::network {
     Status status_msg;
     status_msg.version = CURRENT_VERSION;
     status_msg.min_supported_version = MIN_VERSION;
-    status_msg.best_number = 120'000;
+    status_msg.best_number = 0;
     status_msg.roles.flags.full = 1;
 
     {  /// Genesis hash
