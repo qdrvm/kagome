@@ -11,5 +11,7 @@ target_link_libraries(kagome_validating
     Boost::program_options
     validating_node_application
     app_config_impl
+    p2p::p2p_identify
+    p2p::p2p_ping
     )
 kagome_install(kagome_validating)
