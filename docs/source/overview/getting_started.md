@@ -55,12 +55,11 @@ make kagome_validating -j
 
 #### Build full syncing node
 
-If you'd like to build only full validating node use the following instruction
+If you'd like to build only full syncing node use the following instruction
 
 ```
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make kagome_full_syncing -j
 ```
-
 
