@@ -42,7 +42,7 @@ namespace kagome::network {
     /**
      * Best block number.
      */
-    BlockNumber best_number;
+    uint32_t best_number;
 
     /**
      * Best block hash.
@@ -87,8 +87,9 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Status &v) {
-    return s << v.version << v.min_supported_version << v.roles << v.best_number
-             << v.best_hash << v.genesis_hash << v.chain_status;
+    return s << static_cast<uint8_t>(GossipMessage::Type::STATUS) << v.version
+             << v.min_supported_version << v.roles << v.best_number
+             << v.best_hash << v.genesis_hash;
   }
 
   /**
@@ -101,8 +102,9 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Status &v) {
-    return s >> v.version >> v.min_supported_version >> v.roles >> v.best_number
-           >> v.best_hash >> v.genesis_hash >> v.chain_status;
+    uint8_t _;
+    return s >> _ >> v.version >> v.min_supported_version >> v.roles >> v.best_number
+           >> v.best_hash >> v.genesis_hash;
   }
 
 }  // namespace kagome::network

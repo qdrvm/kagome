@@ -220,6 +220,8 @@ namespace kagome::network {
     Status status_msg;
     status_msg.version = CURRENT_VERSION;
     status_msg.min_supported_version = MIN_VERSION;
+    status_msg.best_number = 120'000;
+    status_msg.roles.flags.full = 1;
 
     {  /// Genesis hash
       auto genesis_res = storage_->getGenesisBlockHash();
@@ -241,12 +243,8 @@ namespace kagome::network {
       }
     }
 
-    GossipMessage msg;
-    msg.type = GossipMessage::Type::STATUS;
-    msg.data.put(scale::encode(status_msg).value());
-
     auto rw = std::make_shared<ScaleMessageReadWriter>(std::move(stream));
-    rw->write(msg, [self{shared_from_this()}](auto &&res) {
+    rw->write(status_msg, [self{shared_from_this()}](auto &&res) {
       if (!res)
         self->log_->error("Could not broadcast, reason: {}",
                           res.error().message());
