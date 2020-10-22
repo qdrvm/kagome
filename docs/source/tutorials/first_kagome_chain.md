@@ -39,7 +39,7 @@ cd examples/first_kagome_chain
 * `localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block    |
 * `localkeystore.json` – file containing the keys for Kagome peer. This is necessary to be able to sign the messages sent by our validating node | 
 
-`localchain.json` contains Alice and Bob accounts. Both have 1000000000000000000000 amount of crypto.
+`localchain.json` contains Alice and Bob accounts. Both have 999998900.0 amount of crypto.
 Their keys can be generated using [subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey) tool:
 ```bash
 subkey inspect //Alice
