@@ -7,7 +7,7 @@
 #include <memory>
 
 #include "api/service/chain/impl/chain_api_impl.hpp"
-#include "api/service/chain/requests/subscribe_new_heads.hpp"
+#include "api/service/chain/requests/subscribe_finalized_heads.hpp"
 #include "mock/core/api/service/chain/chain_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -18,7 +18,7 @@
 using kagome::api::ChainApi;
 using kagome::api::ChainApiImpl;
 using kagome::api::ChainApiMock;
-using kagome::api::chain::request::SubscribeNewHeads;
+using kagome::api::chain::request::SubscribeFinalizedHeads;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
@@ -148,10 +148,10 @@ TEST_F(ChainApiTest, GetHeaderLats) {
  */
 TEST(StateApiTest, SubscribeStorage) {
   auto chain_api = std::make_shared<ChainApiMock>();
-  EXPECT_CALL(*chain_api, subscribeNewHeads()).WillOnce(testing::Return(55));
+  EXPECT_CALL(*chain_api, subscribeFinalizedHeads()).WillOnce(testing::Return(55));
 
   auto p = std::static_pointer_cast<ChainApi>(chain_api);
-  auto sub = std::make_shared<SubscribeNewHeads>(p);
+  auto sub = std::make_shared<SubscribeFinalizedHeads>(p);
   jsonrpc::Request::Parameters params;
 
   EXPECT_OUTCOME_SUCCESS(r, sub->init(params));

@@ -72,12 +72,12 @@ namespace kagome::api {
      * Subscribes to events of New Heads type.
      * @return id of the subscription
      */
-    virtual outcome::result<uint32_t> subscribeNewHeads() = 0;
+    virtual outcome::result<uint32_t> subscribeFinalizedHeads() = 0;
 
     /**
      * Unsubscribes from events of New Heads type.
      */
-    virtual outcome::result<void> unsubscribeNewHeads(
+    virtual outcome::result<void> unsubscribeFinalizedHeads(
         uint32_t subscription_id) = 0;
   };
 

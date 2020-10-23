@@ -45,8 +45,8 @@ namespace kagome::api {
       return block_repo_->getBlockHeader(last.block_hash);
     }
 
-    outcome::result<uint32_t> subscribeNewHeads() override;
-    outcome::result<void> unsubscribeNewHeads(
+    outcome::result<uint32_t> subscribeFinalizedHeads() override;
+    outcome::result<void> unsubscribeFinalizedHeads(
         uint32_t subscription_id) override;
 
    private:

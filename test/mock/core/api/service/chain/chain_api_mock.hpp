@@ -28,8 +28,8 @@ namespace kagome::api {
     MOCK_METHOD1(getHeader,
                  outcome::result<primitives::BlockHeader>(std::string_view));
     MOCK_METHOD0(getHeader, outcome::result<primitives::BlockHeader>());
-    MOCK_METHOD0(subscribeNewHeads, outcome::result<uint32_t>());
-    MOCK_METHOD1(unsubscribeNewHeads, outcome::result<void>(uint32_t));
+    MOCK_METHOD0(subscribeFinalizedHeads, outcome::result<uint32_t>());
+    MOCK_METHOD1(unsubscribeFinalizedHeads, outcome::result<void>(uint32_t));
   };
 
 }  // namespace kagome::api
