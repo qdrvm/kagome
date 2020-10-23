@@ -73,7 +73,7 @@ TEST_F(HasherFixture, twox_128) {
   auto hash = hasher->twox_128(Buffer{"414243444546"_unhex});
   std::vector<uint8_t> match = {
       184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251};
-  ASSERT_EQ(blob2buffer<16>(hash).toVector(), match);
+  ASSERT_EQ(blob2buffer<16>(hash).asVector(), match);
 }
 
 /**
@@ -89,7 +89,7 @@ TEST_F(HasherFixture, twox_256) {
                                 77,  82,  63,  150, 129, 221, 191, 251,
                                 33,  226, 149, 136, 6,   232, 81,  118,
                                 200, 28,  69,  219, 120, 179, 208, 237};
-  ASSERT_EQ(blob2buffer<32>(hash).toVector(), match);
+  ASSERT_EQ(blob2buffer<32>(hash).asVector(), match);
 }
 
 /**
@@ -116,7 +116,7 @@ TEST_F(HasherFixture, blake2_256) {
       "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex;
 
   auto hash = hasher->blake2b_256(buffer);
-  ASSERT_EQ(blob2buffer<32>(hash).toVector(), match);
+  ASSERT_EQ(blob2buffer<32>(hash).asVector(), match);
 }
 
 /**
@@ -129,5 +129,5 @@ TEST_F(HasherFixture, blake2_128) {
   std::vector<uint8_t> match = "de944c5c12e55ee9a07cf5bf4b674995"_unhex;
 
   auto hash = hasher->blake2b_128(buffer);
-  ASSERT_EQ(blob2buffer<16>(hash).toVector(), match);
+  ASSERT_EQ(blob2buffer<16>(hash).asVector(), match);
 }

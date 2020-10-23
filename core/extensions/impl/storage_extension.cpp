@@ -425,7 +425,7 @@ namespace kagome::extensions {
     auto &&val_res = get(key_bytes);
     auto &&val = val_res ? std::move(val_res.value()) : common::Buffer();
 
-    if (scale::append_or_new_vec(val.toVector(), append_bytes).has_value()) {
+    if (scale::append_or_new_vec(val.asVector(), append_bytes).has_value()) {
       auto batch = storage_provider_->getCurrentBatch();
       auto &&put_result = batch->put(key_bytes, std::move(val));
       if (not put_result) {

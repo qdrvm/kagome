@@ -48,7 +48,7 @@ namespace kagome::runtime::binaryen {
 
           *module,
           reinterpret_cast<std::vector<char> const &>(  // NOLINT
-              code.toVector()),
+              code.asVector()),
           false);
 
       try {
@@ -66,9 +66,10 @@ namespace kagome::runtime::binaryen {
   }
 
   std::unique_ptr<WasmModuleInstance> WasmModuleImpl::instantiate(
-      const std::shared_ptr<RuntimeExternalInterface> &externalInterface) const {
-    return std::make_unique<WasmModuleInstanceImpl>(
-        *module_, externalInterface);
+      const std::shared_ptr<RuntimeExternalInterface> &externalInterface)
+      const {
+    return std::make_unique<WasmModuleInstanceImpl>(*module_,
+                                                    externalInterface);
   }
 
 }  // namespace kagome::runtime::binaryen

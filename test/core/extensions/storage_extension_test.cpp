@@ -226,8 +226,8 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
   WasmSize value_length = 2;
   WasmSize value_offset = 3;
   Buffer partial_value(std::vector<uint8_t>{
-      value.toVector().begin() + value_offset,
-      value.toVector().begin() + value_offset + value_length});
+      value.asVector().begin() + value_offset,
+      value.asVector().begin() + value_offset + value_length});
 
   // expect key was loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
@@ -513,7 +513,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     // @then storage is inserted by scale encoded vector containing
     // EncodeOpaqueValue with value1
     vals.push_back(
-        kagome::scale::EncodeOpaqueValue{value_data1_encoded.toVector()});
+        kagome::scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
     vals_encoded = Buffer(kagome::scale::encode(vals).value());
     EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
@@ -529,7 +529,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     // @then storage is inserted by scale encoded vector containing two
     // EncodeOpaqueValues with value1 and value2
     vals.push_back(
-        kagome::scale::EncodeOpaqueValue{value_data2_encoded.toVector()});
+        kagome::scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
     vals_encoded = Buffer(kagome::scale::encode(vals).value());
     EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
@@ -562,7 +562,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
   // integers)
   std::vector<kagome::scale::EncodeOpaqueValue> vals(
       kagome::scale::compact::EncodingCategoryLimits::kMinUint16 - 1,
-      kagome::scale::EncodeOpaqueValue{value_data1_encoded.toVector()});
+      kagome::scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
   Buffer vals_encoded = Buffer(kagome::scale::encode(vals).value());
 
   {
@@ -571,7 +571,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
 
     // @when storage is inserted by one more value by the same key
     vals.push_back(
-        kagome::scale::EncodeOpaqueValue{value_data2_encoded.toVector()});
+        kagome::scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
     vals_encoded = Buffer(kagome::scale::encode(vals).value());
 
     // @then everything fine: storage is inserted with vals with new value

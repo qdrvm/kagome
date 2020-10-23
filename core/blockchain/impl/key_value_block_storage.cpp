@@ -106,12 +106,12 @@ namespace kagome::blockchain {
     // state root type is Hash256, however for consistency with spec root hash
     // returns buffer. So we need this conversion
     OUTCOME_TRY(state_root_blob,
-                common::Hash256::fromSpan(state_root.toVector()));
+                common::Hash256::fromSpan(state_root.asVector()));
 
     auto extrinsics_root_buf = trieRoot({});
     // same reason for conversion as few lines above
     OUTCOME_TRY(extrinsics_root,
-                common::Hash256::fromSpan(extrinsics_root_buf.toVector()));
+                common::Hash256::fromSpan(extrinsics_root_buf.asVector()));
 
     // genesis block initialization
     primitives::Block genesis_block;
