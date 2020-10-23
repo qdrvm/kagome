@@ -13,7 +13,12 @@ namespace kagome::runtime::binaryen {
       const std::shared_ptr<RuntimeManager> &runtime_manager)
       : RuntimeApi(wasm_provider, runtime_manager) {}
 
-  outcome::result<OpaqueMetadata> MetadataImpl::metadata() {
+  outcome::result<OpaqueMetadata> MetadataImpl::metadata(
+      const boost::optional<primitives::BlockHash> &block_hash) {
+    if (block_hash) {
+      return executeAt<OpaqueMetadata>(
+          "Metadata_metadata", *block_hash, CallPersistency::EPHEMERAL);
+    }
     return execute<OpaqueMetadata>("Metadata_metadata",
                                    CallPersistency::EPHEMERAL);
   }

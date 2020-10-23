@@ -84,8 +84,8 @@ namespace kagome::api {
 
   void WsSession::onAccept(boost::system::error_code ec) {
     if (ec) {
-      auto error_message = (ec == WsError::closed) ? "connection was closed"
-                                                   : "unknown error occurred";
+      auto error_message =
+          (ec == WsError::closed) ? "connection was closed" : ec.message();
       reportError(ec, error_message);
       stop();
       return;
@@ -97,8 +97,8 @@ namespace kagome::api {
   void WsSession::onRead(boost::system::error_code ec,
                          std::size_t bytes_transferred) {
     if (ec) {
-      auto error_message = (ec == WsError::closed) ? "connection was closed"
-                                                   : "unknown error occurred";
+      auto error_message =
+          (ec == WsError::closed) ? "connection was closed" : ec.message();
       reportError(ec, error_message);
       stop();
       return;

@@ -6,8 +6,10 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_GRANDPA_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_GRANDPA_IMPL_HPP
 
-#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/grandpa_api.hpp"
+
+#include "blockchain/block_header_repository.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -15,7 +17,8 @@ namespace kagome::runtime::binaryen {
    public:
     explicit GrandpaApiImpl(
         const std::shared_ptr<WasmProvider> &wasm_provider,
-        const std::shared_ptr<RuntimeManager> &runtime_manager);
+        const std::shared_ptr<RuntimeManager> &runtime_manager,
+        const std::shared_ptr<blockchain::BlockHeaderRepository> &header_repo);
 
     ~GrandpaApiImpl() override = default;
 
@@ -27,6 +30,9 @@ namespace kagome::runtime::binaryen {
 
     outcome::result<primitives::AuthorityList> authorities(
         const primitives::BlockId &block_id) override;
+
+   private:
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
   };
 }  // namespace kagome::runtime::binaryen
 

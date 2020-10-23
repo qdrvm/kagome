@@ -87,7 +87,7 @@ namespace kagome::application {
     // clang-format on
 
    private:
-    void validate_config(AppConfiguration::LoadScheme scheme);
+    bool validate_config(AppConfiguration::LoadScheme scheme);
     void read_config_from_file(const std::string &filepath);
 
     bool load_str(const rapidjson::Value &val,

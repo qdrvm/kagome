@@ -37,6 +37,7 @@ using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InvalidTransaction;
 using kagome::primitives::PreRuntime;
+using kagome::primitives::TransactionSource;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::ValidTransaction;
 
@@ -148,7 +149,8 @@ TEST_F(BlockValidatorTest, Success) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   // verifyTransactions
-  EXPECT_CALL(*tx_queue_, validate_transaction(ext_))
+  EXPECT_CALL(*tx_queue_,
+              validate_transaction(TransactionSource::InBlock, ext_))
       .WillOnce(Return(ValidTransaction{}));
 
   auto validate_res = validator_.validateBlock(
@@ -402,7 +404,8 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .WillRepeatedly(
           Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
-  EXPECT_CALL(*tx_queue_, validate_transaction(ext_))
+  EXPECT_CALL(*tx_queue_,
+              validate_transaction(TransactionSource::InBlock, ext_))
       .WillOnce(Return(ValidTransaction{}));
 
   // WHEN
@@ -451,7 +454,8 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   // WHEN
-  EXPECT_CALL(*tx_queue_, validate_transaction(ext_))
+  EXPECT_CALL(*tx_queue_,
+              validate_transaction(TransactionSource::InBlock, ext_))
       .WillOnce(Return(TransactionValidity{InvalidTransaction{}}));
 
   // THEN

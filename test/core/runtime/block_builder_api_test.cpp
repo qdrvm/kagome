@@ -85,6 +85,6 @@ TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderApiTest, FinalizeBlock) {
+TEST_F(BlockBuilderApiTest, DISABLED_FinalizeBlock) {
   EXPECT_OUTCOME_FALSE_1(builder_->finalise_block());
 }

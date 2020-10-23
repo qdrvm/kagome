@@ -75,11 +75,14 @@ namespace kagome::primitives {
     /// List of supported API "features" along with their versions.
     ApisVec apis;
 
+    uint32_t transaction_version = 0u;
+
     bool operator==(const Version &rhs) const {
       return spec_name == rhs.spec_name and impl_name == rhs.impl_name
              and authoring_version == rhs.authoring_version
              and impl_version == rhs.impl_version and apis == rhs.apis
-             and spec_version == rhs.spec_version;
+             and spec_version == rhs.spec_version
+             and transaction_version == rhs.transaction_version;
     }
 
     bool operator!=(const Version &rhs) const {
@@ -98,7 +101,8 @@ namespace kagome::primitives {
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Version &v) {
     return s << v.spec_name << v.impl_name << v.authoring_version
-             << v.spec_version << v.impl_version << v.apis;
+             << v.spec_version << v.impl_version << v.apis
+             << v.transaction_version;
   }
 
   /**
@@ -112,7 +116,8 @@ namespace kagome::primitives {
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Version &v) {
     return s >> v.spec_name >> v.impl_name >> v.authoring_version
-           >> v.spec_version >> v.impl_version >> v.apis;
+           >> v.spec_version >> v.impl_version >> v.apis
+           >> v.transaction_version;
   }
 }  // namespace kagome::primitives
 

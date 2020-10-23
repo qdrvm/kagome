@@ -175,7 +175,8 @@ namespace kagome::consensus {
       const primitives::BlockBody &block_body) const {
     return std::all_of(
         block_body.cbegin(), block_body.cend(), [this](const auto &ext) {
-          auto validation_res = tx_queue_->validate_transaction(ext);
+          auto validation_res = tx_queue_->validate_transaction(
+              primitives::TransactionSource::InBlock, ext);
           if (!validation_res) {
             log_->info("extrinsic validation failed: {}",
                        validation_res.error());
