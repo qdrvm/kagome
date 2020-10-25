@@ -20,6 +20,7 @@
 #include "network/impl/stream_engine.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/peer_list.hpp"
+#include "network/types/no_data_message.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 
@@ -30,6 +31,7 @@ namespace kagome::application {
 namespace kagome::network {
   KAGOME_DECLARE_CACHE(stream_engine,
                        KAGOME_CACHE_UNIT(GossipMessage),
+                       KAGOME_CACHE_UNIT(NoData),
                        KAGOME_CACHE_UNIT(PropagatedTransactions));
 
   /**
@@ -87,10 +89,11 @@ namespace kagome::network {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);
-      stream_engine_->send(
+      stream_engine_->send<typename std::decay<decltype(msg)>::type, NoData>(
           StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
           protocol,
-          std::move(shared_msg));
+          std::move(shared_msg),
+          boost::none);
     }
 
     template <typename T>
@@ -98,7 +101,24 @@ namespace kagome::network {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);
-      stream_engine_->broadcast(protocol, std::move(shared_msg));
+      stream_engine_
+          ->broadcast<typename std::decay<decltype(msg)>::type, NoData>(
+              protocol, std::move(shared_msg), boost::none);
+    }
+
+    template <typename T, typename H>
+    void broadcast(const libp2p::peer::Protocol &protocol, T &&msg, H &&handshake) {
+      auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
+          stream_engine, typename std::decay<decltype(msg)>::type);
+      (*shared_msg) = std::forward<T>(msg);
+
+      auto shared_handshake = KAGOME_EXTRACT_SHARED_CACHE(
+          stream_engine, typename std::decay<decltype(handshake)>::type);
+      (*shared_handshake) = std::forward<H>(handshake);
+
+      stream_engine_
+          ->broadcast<typename std::decay<decltype(msg)>::type, NoData>(
+              protocol, std::move(shared_msg), std::move(shared_handshake));
     }
 
     common::Logger logger_;

@@ -98,7 +98,14 @@ namespace kagome::network {
                                if (auto self = wself.lock())
                                  self->ping_proto_->handle(stream);
                              });
-
+    host_.setProtocolHandler(
+        network::kSupProtocol, [wself{weak_from_this()}](auto &&stream) {
+          if (auto self = wself.lock(); self && stream)
+            if (auto peer_id = stream->remotePeerId())
+              self->log_->info("Handled {} protocol stream from: {}",
+                               network::kSupProtocol,
+                               peer_id.value().toHex());
+        });
     host_.setProtocolHandler(
         kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
           self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
