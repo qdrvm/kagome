@@ -151,70 +151,37 @@ namespace kagome::network {
   void RouterLibp2p::handleTransactionsProtocol(
       std::shared_ptr<Stream> stream) const {
     if (gossiper_->addStream(transactions_protocol_, stream)) {
-      /// Handshake
-      {
-        std::vector<uint8_t> buffer(1);
-        gsl::span<uint8_t> b(buffer);
-        stream->read(
-            b,
-            b.size(),
-            [buffer{std::move(buffer)}, stream, self{shared_from_this()}](
-                auto res) mutable {
-              if (res.has_error()) {
-                return;
-              }
-              gsl::span<uint8_t> b(buffer);
-              stream->write(
-                  b,
-                  b.size(),
-                  [buffer{std::move(buffer)}, stream, self](auto res) mutable {
-                    if (res.has_error()) {
-                      return;
-                    }
+      auto rw =
+          std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream);
+      rw->read([wself{weak_from_this()}, stream, rw](auto read_result) {
+        auto self = wself.lock();
+        if (!self) return;
 
-                    self->readAsyncMsg<PropagatedTransactions>(
-                        std::move(stream),
-                        [](auto self, const auto &peer_id, const auto &msg) {
-                          return self->processPropagateTransactionsMessage(peer_id,
-                                                                           msg);
-                        });
-                    /*gsl::span<uint8_t> b(buffer);
-                    stream->read(b,
-                                 b.size(),
-                                 [buffer{std::move(buffer)}, stream](auto res) {
-                                   if (res.has_error()) {
-                                     int p = 0;
-                                     ++p;
-                                   } else {
-                                     int p = 0;
-                                     ++p;
-                                   }
-                                 });*/
-                  });
-            });
-      }
+        if (!read_result) {
+          self->log_->error("Error while reading handshake: {}",
+                            read_result.error().message());
+          return stream->reset();
+        }
 
-      // DATA
-      /*      {
-              std::vector<uint8_t> buffer(1);
-              gsl::span<uint8_t> b(buffer);
-              stream->read(b, b.size(), [self](auto res) {
-                if (res.has_error()) {
-                  self->log_->error("error while reading message: {}",
-                                    res.error().message());
-                } else {
-                  self->log_->error("Received: {}", res.value());
-                }
-                int p = 0; ++p;
+        BOOST_ASSERT(read_result.value() == nullptr);
+        rw->write({}, [wself, stream](auto write_res) {
+          auto self = wself.lock();
+          if (!self) return;
+
+          if (!write_res) {
+            self->log_->error("Error while writing handshake: {}",
+                              write_res.error().message());
+            return stream->reset();
+          }
+
+          BOOST_ASSERT(write_res.value() == 0);
+          self->readAsyncMsg<PropagatedTransactions>(
+              std::move(stream),
+              [](auto self, const auto &peer_id, const auto &msg) {
+                return self->processPropagateTransactionsMessage(peer_id, msg);
               });
-            }*/
-
-      /*      readAsyncMsg<PropagatedTransactions>(
-                std::move(stream),
-                [](auto self, const auto &peer_id, const auto &msg) {
-                  return self->processPropagateTransactionsMessage(peer_id,
-         msg);
-                });*/
+        });
+      });
     }
   }
 
