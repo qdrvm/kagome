@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_NETWORK_EXTRINSIC_GOSSIPER_HPP
 #define KAGOME_CORE_NETWORK_EXTRINSIC_GOSSIPER_HPP
 
-#include "network/types/transaction_announce.hpp"
 #include "network/types/propagate_transactions.hpp"
+#include "network/types/transaction_announce.hpp"
 
 namespace kagome::network {
   /**

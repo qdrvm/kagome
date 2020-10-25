@@ -8,11 +8,11 @@
 #include <libp2p/basic/message_read_writer_uvarint.hpp>
 
 #include "application/configuration_storage.hpp"
+#include "blockchain/block_storage.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
-#include "blockchain/block_storage.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
 #include "network/rpc.hpp"
 #include "network/types/block_announce.hpp"

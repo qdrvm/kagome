@@ -118,7 +118,8 @@ namespace kagome::network {
     template <typename T, typename H>
     void send(const PeerInfo &peer,
               const Protocol &protocol,
-              std::shared_ptr<T> msg, boost::optional<std::shared_ptr<H>> handshake) {
+              std::shared_ptr<T> msg,
+              boost::optional<std::shared_ptr<H>> handshake) {
       BOOST_ASSERT(msg);
       BOOST_ASSERT(!protocol.empty());
 
@@ -135,7 +136,9 @@ namespace kagome::network {
     }
 
     template <typename T, typename H>
-    void broadcast(const Protocol &protocol, std::shared_ptr<T> msg, boost::optional<std::shared_ptr<H>> handshake) {
+    void broadcast(const Protocol &protocol,
+                   std::shared_ptr<T> msg,
+                   boost::optional<std::shared_ptr<H>> handshake) {
       BOOST_ASSERT(msg);
       BOOST_ASSERT(!protocol.empty());
 
@@ -261,10 +264,20 @@ namespace kagome::network {
       });
     }
 
-    template<typename F, typename H>
-    void forNewStream(const PeerInfo &peer,const Protocol &protocol, boost::optional<std::shared_ptr<H>> handshake, F &&f) {
-      using CallbackResultType = outcome::result<std::shared_ptr<libp2p::connection::Stream>>;
-      host_.newStream(peer,protocol,[peer, handshake{std::move(handshake)}, wself{weak_from_this()}, f{std::forward<F>(f)}](auto &&stream_res) mutable {
+    template <typename F, typename H>
+    void forNewStream(const PeerInfo &peer,
+                      const Protocol &protocol,
+                      boost::optional<std::shared_ptr<H>> handshake,
+                      F &&f) {
+      using CallbackResultType =
+          outcome::result<std::shared_ptr<libp2p::connection::Stream>>;
+      host_.newStream(
+          peer,
+          protocol,
+          [peer,
+           handshake{std::move(handshake)},
+           wself{weak_from_this()},
+           f{std::forward<F>(f)}](auto &&stream_res) mutable {
             if (!stream_res || !handshake) {
               std::forward<F>(f)(std::move(stream_res));
               return;
@@ -276,7 +289,10 @@ namespace kagome::network {
             auto stream = std::move(stream_res.value());
             auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
             BOOST_ASSERT(*handshake);
-            read_writer->write(**handshake, [wself{wself}, read_writer, stream, f{std::forward<F>(f)}](auto &&write_res) mutable {
+            read_writer->write(
+                **handshake,
+                [wself{wself}, read_writer, stream, f{std::forward<F>(f)}](
+                    auto &&write_res) mutable {
                   if (!write_res) {
                     std::forward<F>(f)(CallbackResultType{write_res.error()});
                     return;
@@ -285,13 +301,17 @@ namespace kagome::network {
                   auto self = wself.lock();
                   if (!self) return;
 
-                  read_writer->template read<H>([stream, f{std::forward<F>(f)}] (/*outcome::result<H>*/auto &&read_res) mutable {
-                    if (!read_res) {
-                      std::forward<F>(f)(CallbackResultType{read_res.error()});
-                      return;
-                    }
-                    std::forward<F>(f)(CallbackResultType{std::move(stream)});
-                  });
+                  read_writer->template read<H>(
+                      [stream, f{std::forward<F>(f)}](
+                          /*outcome::result<H>*/ auto &&read_res) mutable {
+                        if (!read_res) {
+                          std::forward<F>(f)(
+                              CallbackResultType{read_res.error()});
+                          return;
+                        }
+                        std::forward<F>(f)(
+                            CallbackResultType{std::move(stream)});
+                      });
                 });
           });
     }

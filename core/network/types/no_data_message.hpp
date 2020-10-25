@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_NETWORK_TYPES_NO_DATA_HPP
 #define KAGOME_CORE_NETWORK_TYPES_NO_DATA_HPP
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 #include "primitives/common.hpp"
 
@@ -16,7 +16,7 @@ namespace kagome::network {
   /**
    * Is the structure without any data.
    */
-  struct NoData { };
+  struct NoData {};
 
   /**
    * @brief compares two Status instances
@@ -36,7 +36,7 @@ namespace kagome::network {
    * @return reference to stream
    */
   template <class Stream,
-      typename = std::enable_if_t<Stream::is_encoder_stream>>
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const NoData &) {
     return s;
   }
@@ -49,7 +49,7 @@ namespace kagome::network {
    * @return reference to stream
    */
   template <class Stream,
-      typename = std::enable_if_t<Stream::is_decoder_stream>>
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, NoData &) {
     return s;
   }

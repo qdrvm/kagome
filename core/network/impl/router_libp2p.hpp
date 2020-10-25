@@ -107,7 +107,7 @@ namespace kagome::network {
         const PropagatedTransactions &msg) const;
 
     /**
-       * Process a received gossip message
+     * Process a received gossip message
      */
     bool processGossipMessage(const libp2p::peer::PeerId &peer_id,
                               const GossipMessage &msg) const;

@@ -63,7 +63,8 @@ namespace kagome::network {
                    txs.extrinsics.size());
     broadcast(fmt::format(kPropagateTransactionsProtocol.data(),
                           config_->protocolId()),
-              txs, NoData{});
+              txs,
+              NoData{});
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {

@@ -19,8 +19,8 @@
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/gossip_message.hpp"
-#include "network/types/peer_list.hpp"
 #include "network/types/no_data_message.hpp"
+#include "network/types/peer_list.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 
@@ -107,7 +107,9 @@ namespace kagome::network {
     }
 
     template <typename T, typename H>
-    void broadcast(const libp2p::peer::Protocol &protocol, T &&msg, H &&handshake) {
+    void broadcast(const libp2p::peer::Protocol &protocol,
+                   T &&msg,
+                   H &&handshake) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);

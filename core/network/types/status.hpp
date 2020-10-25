@@ -6,15 +6,15 @@
 #ifndef KAGOME_CORE_NETWORK_TYPES_STATUS_HPP
 #define KAGOME_CORE_NETWORK_TYPES_STATUS_HPP
 
-#include <vector>
 #include <algorithm>
 #include <libp2p/peer/peer_info.hpp>
+#include <vector>
 
 #include "network/types/roles.hpp"
 #include "primitives/common.hpp"
 
-using kagome::primitives::BlockNumber;
 using kagome::primitives::BlockHash;
+using kagome::primitives::BlockNumber;
 
 namespace kagome::network {
 
@@ -103,8 +103,8 @@ namespace kagome::network {
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Status &v) {
     uint8_t _;
-    return s >> _ >> v.version >> v.min_supported_version >> v.roles >> v.best_number
-           >> v.best_hash >> v.genesis_hash;
+    return s >> _ >> v.version >> v.min_supported_version >> v.roles
+           >> v.best_number >> v.best_hash >> v.genesis_hash;
   }
 
 }  // namespace kagome::network

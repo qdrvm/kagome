@@ -766,8 +766,7 @@ namespace kagome::injector {
               host, bus, io_context, rnd, p);
           return initialized.value();
         }),
-        di::bind<network::Router>.template to(
-            [](auto const &injector) {
+        di::bind<network::Router>.template to([](auto const &injector) {
           static auto initialized =
               boost::optional<sptr<network::RouterLibp2p>>(boost::none);
           if (initialized) {

@@ -15,9 +15,11 @@ namespace kagome::network {
   static constexpr uint32_t MIN_VERSION = 3;
 
   const libp2p::peer::Protocol kSyncProtocol = "/{}/sync/2";
-  const libp2p::peer::Protocol kPropagateTransactionsProtocol = "/{}/transactions/1";
+  const libp2p::peer::Protocol kPropagateTransactionsProtocol =
+      "/{}/transactions/1";
   const libp2p::peer::Protocol kGossipProtocol = "/polkadot-gossip/1.0.0";
-  const libp2p::peer::Protocol kSupProtocol = "/substrate/sup/" + std::to_string(CURRENT_VERSION);
+  const libp2p::peer::Protocol kSupProtocol =
+      "/substrate/sup/" + std::to_string(CURRENT_VERSION);
 }  // namespace kagome::network
 
 #endif  // KAGOME_NETWORK_COMMON_HPP

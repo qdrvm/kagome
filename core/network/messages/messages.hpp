@@ -6,10 +6,10 @@
 #ifndef KAGOME_MESSAGES_MESSAGES_HPP
 #define KAGOME_MESSAGES_MESSAGES_HPP
 
-#include <functional>
-#include <memory>
-#include <gsl/span>
 #include <boost/system/error_code.hpp>
+#include <functional>
+#include <gsl/span>
+#include <memory>
 
 #include "network/adapters/adapter_errors.hpp"
 #include "network/protobuf/api.v1.pb.h"

@@ -39,7 +39,7 @@ namespace kagome::network {
    * @return reference to stream
    */
   template <class Stream,
-      typename = std::enable_if_t<Stream::is_encoder_stream>>
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const PropagatedTransactions &v) {
     return s << v.extrinsics;
   }
@@ -52,7 +52,7 @@ namespace kagome::network {
    * @return reference to stream
    */
   template <class Stream,
-      typename = std::enable_if_t<Stream::is_decoder_stream>>
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, PropagatedTransactions &v) {
     return s >> v.extrinsics;
   }
