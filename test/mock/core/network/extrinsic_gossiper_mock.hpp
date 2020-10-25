@@ -18,6 +18,9 @@ namespace kagome::network {
 
     MOCK_METHOD1(transactionAnnounce,
                  void(const network::TransactionAnnounce &));
+
+    MOCK_METHOD1(propagateTransactions,
+                 void(const network::PropagatedTransactions &));
   };
 
 }  // namespace kagome::api

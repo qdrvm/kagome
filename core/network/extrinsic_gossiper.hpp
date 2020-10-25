@@ -23,6 +23,10 @@ namespace kagome::network {
     virtual void transactionAnnounce(
         const network::TransactionAnnounce &announce) = 0;
 
+    /**
+     * Broadcasts PropagatedTransactions message in network
+     * @param txs to be sent
+     */
     virtual void propagateTransactions(
         const network::PropagatedTransactions &txs) = 0;
   };
