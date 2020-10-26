@@ -24,13 +24,7 @@ namespace kagome::runtime::binaryen {
       WasmModuleInstance &module_instance,
       wasm::Name method_name,
       const std::vector<wasm::Literal> &args) {
-    try {
-      return module_instance.callExport(wasm::Name(method_name), args);
-    } catch (wasm::ExitException &e) {
-      return Error::EXECUTION_ERROR;
-    } catch (wasm::TrapException &e) {
-      return Error::EXECUTION_ERROR;
-    }
+    return module_instance.callExport(wasm::Name(method_name), args);
   }
 
 }  // namespace kagome::runtime::binaryen

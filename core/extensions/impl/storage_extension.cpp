@@ -311,10 +311,8 @@ namespace kagome::extensions {
 
   void StorageExtension::ext_storage_set_version_1(runtime::WasmSpan key,
                                                    runtime::WasmSpan value) {
-    logger_->info("AAAAAAAAAA");
     auto [key_ptr, key_size] = runtime::WasmResult(key);
     auto [value_ptr, value_size] = runtime::WasmResult(value);
-    logger_->info("key ptr: {}, value ptr: {}", key_ptr, value_ptr);
     ext_set_storage(key_ptr, key_size, value_ptr, value_size);
   }
 
