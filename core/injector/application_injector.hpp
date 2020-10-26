@@ -11,12 +11,6 @@
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/injector/kademlia_injector.hpp>
-#include <libp2p/peer/peer_info.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
-#include <libp2p/protocol/kad/impl/kad_impl.hpp>
-#include <libp2p/protocol/kad/kad.hpp>
-//#include <libp2p/protocol/kademlia/kademlia.hpp>
-//#include <libp2p/protocol/kademlia/impl/kademlia_impl.hpp>
 
 #include "api/service/api_service.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
@@ -685,7 +679,8 @@ namespace kagome::injector {
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     libp2p::protocol::PingConfig ping_config{};
-    libp2p::protocol::kad::KademliaConfig kademlia_config{};
+//    libp2p::protocol::kad::KademliaConfig kad_config{};
+    libp2p::protocol::kademlia::Config kademlia_config{};
 
     return di::make_injector(
         // bind configs
@@ -701,10 +696,13 @@ namespace kagome::injector {
             libp2p::injector::useSecurityAdaptors<
                 libp2p::security::Noise>()[di::override]),
 
+        // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(
-            libp2p::injector::useKademliaConfig(kademlia_config)[di::override],
-            di::bind<libp2p::protocol::kad::ValueStoreBackend>()
-                .template to<network::KademliaValueStorage>()[di::override]),
+//            libp2p::injector::useOldKademliaConfig(kad_config)[di::override],
+//            di::bind<libp2p::protocol::kad::ValueStoreBackend>()
+//                .template
+//                to<network::KademliaValueStorage>()[di::override],
+            libp2p::injector::useKademliaConfig(kademlia_config)[di::override]),
 
         // bind boot nodes
         di::bind<network::PeerList>.to(
