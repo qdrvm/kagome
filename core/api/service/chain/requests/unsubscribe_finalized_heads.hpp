@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CHAIN_UNSUBSCRIBE_NEW_HEADS_HPP
-#define KAGOME_CHAIN_UNSUBSCRIBE_NEW_HEADS_HPP
+#ifndef KAGOME_CHAIN_UNSUBSCRIBE_FINALIZED_HEADS_HPP
+#define KAGOME_CHAIN_UNSUBSCRIBE_FINALIZED_HEADS_HPP
 
 #include "api/service/base_request.hpp"
 
@@ -25,4 +25,4 @@ namespace kagome::api::chain::request {
 
 }  // namespace kagome::api::chain::request
 
-#endif  // KAGOME_CHAIN_UNSUBSCRIBE_NEW_HEADS_HPP
+#endif  // KAGOME_CHAIN_UNSUBSCRIBE_FINALIZED_HEADS_HPP

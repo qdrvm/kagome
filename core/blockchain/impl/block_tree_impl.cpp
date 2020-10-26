@@ -174,6 +174,9 @@ namespace kagome::blockchain {
       tree_meta_->deepest_leaf = *new_node;
     }
 
+    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads,
+                           header);
+
     return outcome::success();
   }
 

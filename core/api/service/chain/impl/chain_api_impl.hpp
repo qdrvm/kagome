@@ -49,6 +49,10 @@ namespace kagome::api {
     outcome::result<void> unsubscribeFinalizedHeads(
         uint32_t subscription_id) override;
 
+    outcome::result<uint32_t> subscribeNewHeads() override;
+    outcome::result<void> unsubscribeNewHeads(
+        uint32_t subscription_id) override;
+
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

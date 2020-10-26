@@ -88,6 +88,9 @@ namespace kagome::api {
     outcome::result<uint32_t> subscribeFinalizedHeads();
     outcome::result<void> unsubscribeFinalizedHeads(uint32_t subscription_id);
 
+    outcome::result<uint32_t> subscribeNewHeads();
+    outcome::result<void> unsubscribeNewHeads(uint32_t subscription_id);
+
     outcome::result<uint32_t> subscribeRuntimeVersion();
     outcome::result<void> unsubscribeRuntimeVersion(uint32_t subscription_id);
 

@@ -272,6 +272,28 @@ namespace kagome::api {
     });
   }
 
+  outcome::result<uint32_t> ApiService::subscribeNewHeads() {
+    return for_this_session([&](kagome::api::Session::SessionId tid) {
+      return for_session(tid, [&](SessionExecutionContext &session_context) {
+        auto &session = session_context.events_subscription;
+        const auto id = session->generateSubscriptionSetId();
+        session->subscribe(id, primitives::SubscriptionEventType::kNewHeads);
+        return static_cast<uint32_t>(id);
+      });
+    });
+  }
+
+  outcome::result<void> ApiService::unsubscribeNewHeads(
+      uint32_t subscription_id) {
+    return for_this_session([&](kagome::api::Session::SessionId tid) {
+      return for_session(tid, [&](SessionExecutionContext &session_context) {
+        auto &session = session_context.events_subscription;
+        session->unsubscribe(subscription_id);
+        return outcome::success();
+      });
+    });
+  }
+
   outcome::result<uint32_t> ApiService::subscribeRuntimeVersion() {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionExecutionContext &session_context) {
