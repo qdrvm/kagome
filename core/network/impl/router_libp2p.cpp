@@ -157,39 +157,36 @@ namespace kagome::network {
 
   void RouterLibp2p::handleTransactionsProtocol(
       std::shared_ptr<Stream> stream) const {
-    if (gossiper_->addStream(transactions_protocol_, stream)) {
-      auto rw =
-          std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream);
-      rw->read([wself{weak_from_this()}, stream, rw](auto read_result) {
+    auto rw = std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream);
+    rw->read([wself{weak_from_this()}, stream, rw](auto read_result) {
+      auto self = wself.lock();
+      if (!self) return;
+
+      if (!read_result) {
+        self->log_->error("Error while reading handshake: {}",
+                          read_result.error().message());
+        return stream->reset();
+      }
+
+      BOOST_ASSERT(read_result.value() == nullptr);
+      rw->write({}, [wself, stream](auto write_res) {
         auto self = wself.lock();
         if (!self) return;
 
-        if (!read_result) {
-          self->log_->error("Error while reading handshake: {}",
-                            read_result.error().message());
+        if (!write_res) {
+          self->log_->error("Error while writing handshake: {}",
+                            write_res.error().message());
           return stream->reset();
         }
 
-        BOOST_ASSERT(read_result.value() == nullptr);
-        rw->write({}, [wself, stream](auto write_res) {
-          auto self = wself.lock();
-          if (!self) return;
-
-          if (!write_res) {
-            self->log_->error("Error while writing handshake: {}",
-                              write_res.error().message());
-            return stream->reset();
-          }
-
-          BOOST_ASSERT(write_res.value() == 0);
-          self->readAsyncMsg<PropagatedTransactions>(
-              std::move(stream),
-              [](auto self, const auto &peer_id, const auto &msg) {
-                return self->processPropagateTransactionsMessage(peer_id, msg);
-              });
-        });
+        BOOST_ASSERT(write_res.value() == 0);
+        self->readAsyncMsg<PropagatedTransactions>(
+            std::move(stream),
+            [](auto self, const auto &peer_id, const auto &msg) {
+              return self->processPropagateTransactionsMessage(peer_id, msg);
+            });
       });
-    }
+    });
   }
 
   void RouterLibp2p::handleGossipProtocol(
