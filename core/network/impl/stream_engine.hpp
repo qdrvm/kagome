@@ -274,32 +274,24 @@ namespace kagome::network {
       host_.newStream(
           peer,
           protocol,
-          [peer,
-           handshake{std::move(handshake)},
-           wself{weak_from_this()},
-           f{std::forward<F>(f)}](auto &&stream_res) mutable {
+          [peer, handshake{std::move(handshake)}, f{std::forward<F>(f)}](
+              auto &&stream_res) mutable {
             if (!stream_res || !handshake) {
               std::forward<F>(f)(std::move(stream_res));
               return;
             }
-
-            auto self = wself.lock();
-            if (!self) return;
 
             auto stream = std::move(stream_res.value());
             auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
             BOOST_ASSERT(*handshake);
             read_writer->write(
                 **handshake,
-                [wself{wself}, read_writer, stream, f{std::forward<F>(f)}](
+                [read_writer, stream, f{std::forward<F>(f)}](
                     auto &&write_res) mutable {
                   if (!write_res) {
                     std::forward<F>(f)(CallbackResultType{write_res.error()});
                     return;
                   }
-
-                  auto self = wself.lock();
-                  if (!self) return;
 
                   read_writer->template read<H>(
                       [stream, f{std::forward<F>(f)}](
