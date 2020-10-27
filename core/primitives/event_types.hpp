@@ -50,8 +50,7 @@ namespace kagome::subscriptions {
       primitives::SubscriptionEventType,
       std::shared_ptr<api::Session>,
       boost::variant<std::reference_wrapper<boost::none_t>,
-                     //std::reference_wrapper<primitives::BlockHeader>,
-                      std::reference_wrapper<const primitives::BlockHeader>,
+                     std::reference_wrapper<const primitives::BlockHeader>,
                      std::reference_wrapper<primitives::Version>>>;
   using EventsSubscriptionEnginePtr =
       std::shared_ptr<EventsSubscriptionEngineType>;

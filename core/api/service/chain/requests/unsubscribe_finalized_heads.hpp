@@ -10,8 +10,10 @@
 
 namespace kagome::api::chain::request {
 
-  struct UnsubscribeFinalizedHeads final : details::RequestType<void, uint32_t> {
-    explicit UnsubscribeFinalizedHeads(std::shared_ptr<ChainApi> &api) : api_(api) {
+  struct UnsubscribeFinalizedHeads final
+      : details::RequestType<void, uint32_t> {
+    explicit UnsubscribeFinalizedHeads(std::shared_ptr<ChainApi> &api)
+        : api_(api) {
       BOOST_ASSERT(api_);
     }
 

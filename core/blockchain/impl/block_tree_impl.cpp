@@ -207,7 +207,8 @@ namespace kagome::blockchain {
         std::make_shared<TreeNode>(block_hash, block.header.number, parent);
 
     updateMeta(new_node);
-
+    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads,
+                           block.header);
     return outcome::success();
   }
 

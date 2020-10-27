@@ -10,8 +10,8 @@
 #include "api/service/chain/requests/get_block_hash.hpp"
 #include "api/service/chain/requests/get_header.hpp"
 #include "api/service/chain/requests/subscribe_finalized_heads.hpp"
-#include "api/service/chain/requests/unsubscribe_finalized_heads.hpp"
 #include "api/service/chain/requests/subscribe_new_heads.hpp"
+#include "api/service/chain/requests/unsubscribe_finalized_heads.hpp"
 #include "api/service/chain/requests/unsubscribe_new_heads.hpp"
 
 namespace kagome::api::chain {
@@ -43,6 +43,12 @@ namespace kagome::api::chain {
                              Handler<request::SubscribeNewHeads>(api_));
 
     server_->registerHandler("chain_unsubscribeNewHeads",
+                             Handler<request::UnsubscribeNewHeads>(api_));
+
+    server_->registerHandler("chain_subscribeNewHead",
+                             Handler<request::SubscribeNewHeads>(api_));
+
+    server_->registerHandler("chain_unsubscribeNewHead",
                              Handler<request::UnsubscribeNewHeads>(api_));
   }
 

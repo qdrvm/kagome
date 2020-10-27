@@ -141,6 +141,28 @@ namespace kagome::api {
                       });
                 }
               });
+          session_context.events_subscription->setCallback(
+              [wp](uint32_t set_id,
+                   SessionPtr &session,
+                   const auto &key,
+                   const auto &header) {
+                if (auto self = wp.lock()) {
+                  jsonrpc::Value::Struct p;
+                  p["result"] = api::makeValue(header);
+                  p["subscription"] = api::makeValue(set_id);
+
+                  jsonrpc::Request::Parameters params;
+                  params.push_back(std::move(p));
+                  self->server_->processJsonData(
+                      "chain_finalizedHead", params, [&](const auto &response) {
+                        if (response.has_value())
+                          session->respond(response.value());
+                        else
+                          self->logger_->error("process Json data failed => {}",
+                                               response.error().message());
+                      });
+                }
+              });
         }
 
         session->connectOnRequest(
@@ -255,7 +277,8 @@ namespace kagome::api {
       return for_session(tid, [&](SessionExecutionContext &session_context) {
         auto &session = session_context.events_subscription;
         const auto id = session->generateSubscriptionSetId();
-        session->subscribe(id, primitives::SubscriptionEventType::kFinalizedHeads);
+        session->subscribe(id,
+                           primitives::SubscriptionEventType::kFinalizedHeads);
         return static_cast<uint32_t>(id);
       });
     });
