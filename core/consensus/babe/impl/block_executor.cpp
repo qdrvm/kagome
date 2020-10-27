@@ -233,10 +233,11 @@ namespace kagome::consensus {
     auto t_end = std::chrono::high_resolution_clock::now();
 
     logger_->info(
-        "Imported block with number: {}, hash: {} within {} seconds",
+        "Imported block with number: {}, hash: {} within {} ms",
         block.header.number,
         block_hash.toHex(),
-        std::chrono::duration<double>(t_end - t_start).count());
+        std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
+            .count());
     return outcome::success();
   }
 
