@@ -5,16 +5,8 @@
 
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
+#include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, TransactionError, e) {
-  using E = kagome::runtime::TransactionError;
-  switch (e) {
-    case E::NO_TRANSACTIONS_WERE_STARTED:
-      return "no transactions were started";
-  }
-  return "unknown TransactionError";
-}
 
 namespace kagome::runtime {
   using storage::trie::TopperTrieBatch;
@@ -89,7 +81,7 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::rollbackTransaction() {
     if (stack_of_batches_.empty()) {
-      return TransactionError::NO_TRANSACTIONS_WERE_STARTED;
+      return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
     }
 
     current_batch_ = std::move(stack_of_batches_.top());
@@ -99,7 +91,7 @@ namespace kagome::runtime {
 
   outcome::result<void> TrieStorageProviderImpl::commitTransaction() {
     if (stack_of_batches_.empty()) {
-      return TransactionError::NO_TRANSACTIONS_WERE_STARTED;
+      return RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED;
     }
 
     auto commitee_batch =

@@ -24,12 +24,7 @@ namespace kagome::extensions {
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
 
-    inline void reset() {
-      // rollback will have value until there are opened transactions that need
-      // to be closed
-      while (storage_provider_->rollbackTransaction().has_value()) {
-      };
-    }
+    void reset();
 
     // -------------------------Data storage--------------------------
 

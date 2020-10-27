@@ -59,5 +59,6 @@ target_link_libraries(storage_extension
     logger
     ordered_trie_hash
     scale_encode_append
+    runtime_transaction_error
     )
 kagome_install(storage_extension)
