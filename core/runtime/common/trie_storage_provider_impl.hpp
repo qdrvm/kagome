@@ -11,6 +11,7 @@
 #include <stack>
 
 #include "common/buffer.hpp"
+#include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::runtime {
@@ -53,16 +54,6 @@ namespace kagome::runtime {
     std::shared_ptr<PersistentBatch> persistent_batch_;
   };
 
-  /**
-   * @brief TransactionError enum provides error codes for storage transactions
-   * mechanism
-   */
-  enum class TransactionError {  // 0 is reserved for success
-    NO_TRANSACTIONS_WERE_STARTED = 1,
-  };
-
 }  // namespace kagome::runtime
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, TransactionError)
 
 #endif  // KAGOME_CORE_RUNTIME_COMMON_TRIE_STORAGE_PROVIDER_IMPL

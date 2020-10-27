@@ -7,7 +7,6 @@
 #define KAGOME_CRYPTO_EXTENSION_HPP
 
 #include <future>
-#include <optional>
 #include <queue>
 
 #include "common/logger.hpp"
@@ -45,6 +44,10 @@ namespace kagome::extensions {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<crypto::Bip39Provider> bip39_provider);
+
+    inline void reset() {
+      batch_verify_ = boost::none;
+    }
 
     /**
      * @see Extension::ext_blake2_128
@@ -227,7 +230,7 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
-    std::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
+    boost::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
     common::Logger logger_;
   };
 }  // namespace kagome::extensions

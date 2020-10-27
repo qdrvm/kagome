@@ -8,6 +8,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 
 #include "common/buffer.hpp"
+#include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
@@ -18,7 +19,7 @@
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
-using kagome::runtime::TransactionError;
+using kagome::runtime::RuntimeTransactionError;
 
 class TrieStorageProviderTest : public ::testing::Test {
  public:
@@ -60,10 +61,10 @@ TEST_F(TrieStorageProviderTest, StartTransaction) {
 
 TEST_F(TrieStorageProviderTest, FinishTransactionWithoutStart) {
   ASSERT_OUTCOME_ERROR(storage_provider_->rollbackTransaction(),
-                       TransactionError::NO_TRANSACTIONS_WERE_STARTED);
+                       RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED);
 
   ASSERT_OUTCOME_ERROR(storage_provider_->commitTransaction(),
-                       TransactionError::NO_TRANSACTIONS_WERE_STARTED);
+                       RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED);
 }
 
 TEST_F(TrieStorageProviderTest, NestedTransactions) {

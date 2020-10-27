@@ -28,6 +28,10 @@ namespace kagome::runtime::binaryen {
       return extension_->memory();
     }
 
+    inline void reset() const {
+      return extension_->reset();
+    }
+
    private:
     /**
      * Checks that the number of arguments is as expected and terminates the
