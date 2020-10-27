@@ -179,7 +179,6 @@ namespace kagome::network {
           return stream->reset();
         }
 
-        BOOST_ASSERT(write_res.value() == 0);
         self->readAsyncMsg<PropagatedTransactions>(
             std::move(stream),
             [](auto self, const auto &peer_id, const auto &msg) {
