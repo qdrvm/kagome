@@ -5,6 +5,8 @@
 
 #include "consensus/babe/impl/block_executor.hpp"
 
+#include <chrono>
+
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
@@ -134,6 +136,9 @@ namespace kagome::consensus {
 
   outcome::result<void> BlockExecutor::applyBlock(
       const primitives::Block &block) {
+    // get current time to measure performance if block execution
+    auto t_start = std::chrono::high_resolution_clock::now();
+
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
 
     // check if block body already exists. If so, do not apply
@@ -225,9 +230,13 @@ namespace kagome::consensus {
       }
     }
 
-    logger_->info("Imported block with number: {}, hash: {}",
-                  block.header.number,
-                  block_hash.toHex());
+    auto t_end = std::chrono::high_resolution_clock::now();
+
+    logger_->info(
+        "Imported block with number: {}, hash: {} within {} seconds",
+        block.header.number,
+        block_hash.toHex(),
+        std::chrono::duration<double>(t_end - t_start).count());
     return outcome::success();
   }
 

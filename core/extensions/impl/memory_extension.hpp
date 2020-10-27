@@ -16,8 +16,10 @@ namespace kagome::extensions {
    */
   class MemoryExtension {
    public:
-    ;
+
     explicit MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory);
+
+    void reset();
 
     // ----------------- memory legacy api -----------------
     /**

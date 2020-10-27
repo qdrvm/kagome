@@ -24,6 +24,10 @@ namespace kagome::extensions {
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
 
+    inline void reset() {
+      [[maybe_unused]] auto res = storage_provider_->rollbackTransaction();
+    }
+
     // -------------------------Data storage--------------------------
 
     /**

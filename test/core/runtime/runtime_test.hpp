@@ -65,6 +65,8 @@ class RuntimeTest : public ::testing::Test {
         .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*storage_provider, setToEphemeral())
         .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*storage_provider, rollbackTransaction())
+        .WillByDefault(testing::Return(outcome::success()));
 
     auto random_generator =
         std::make_shared<kagome::crypto::BoostRandomGenerator>();
