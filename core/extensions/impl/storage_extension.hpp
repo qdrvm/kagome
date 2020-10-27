@@ -25,7 +25,10 @@ namespace kagome::extensions {
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
 
     inline void reset() {
-      [[maybe_unused]] auto res = storage_provider_->rollbackTransaction();
+      // rollback will have value until there are opened transactions that need
+      // to be closed
+      while (storage_provider_->rollbackTransaction().has_value()) {
+      };
     }
 
     // -------------------------Data storage--------------------------
