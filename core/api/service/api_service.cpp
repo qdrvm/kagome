@@ -131,36 +131,31 @@ namespace kagome::api {
 
                   jsonrpc::Request::Parameters params;
                   params.push_back(std::move(p));
-                  self->server_->processJsonData(
-                      "chain_newHead", params, [&](const auto &response) {
-                        if (response.has_value())
-                          session->respond(response.value());
-                        else
-                          self->logger_->error("process Json data failed => {}",
-                                               response.error().message());
-                      });
-                }
-              });
-          session_context.events_subscription->setCallback(
-              [wp](uint32_t set_id,
-                   SessionPtr &session,
-                   const auto &key,
-                   const auto &header) {
-                if (auto self = wp.lock()) {
-                  jsonrpc::Value::Struct p;
-                  p["result"] = api::makeValue(header);
-                  p["subscription"] = api::makeValue(set_id);
-
-                  jsonrpc::Request::Parameters params;
-                  params.push_back(std::move(p));
-                  self->server_->processJsonData(
-                      "chain_finalizedHead", params, [&](const auto &response) {
-                        if (response.has_value())
-                          session->respond(response.value());
-                        else
-                          self->logger_->error("process Json data failed => {}",
-                                               response.error().message());
-                      });
+                  if (key == primitives::SubscriptionEventType::kNewHeads) {
+                    self->server_->processJsonData(
+                        "chain_newHead", params, [&](const auto &response) {
+                          if (response.has_value())
+                            session->respond(response.value());
+                          else
+                            self->logger_->error(
+                                "process Json data failed => {}",
+                                response.error().message());
+                        });
+                  }
+                  if (key
+                      == primitives::SubscriptionEventType::kFinalizedHeads) {
+                    self->server_->processJsonData(
+                        "chain_finalizedHead",
+                        params,
+                        [&](const auto &response) {
+                          if (response.has_value())
+                            session->respond(response.value());
+                          else
+                            self->logger_->error(
+                                "process Json data failed => {}",
+                                response.error().message());
+                        });
+                  }
                 }
               });
         }
