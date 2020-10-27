@@ -4,13 +4,15 @@
  */
 
 #include "runtime/binaryen/wasm_memory_impl.hpp"
-#include <runtime/wasm_result.hpp>
+
+#include "runtime/wasm_result.hpp"
 
 namespace kagome::runtime::binaryen {
   WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory,
                                  WasmSize size)
       : memory_(memory),
         size_(size),
+        logger_{common::createLogger("WASM Memory")},
         offset_{1}  // We should allocate very first byte to prohibit allocating
                     // memory at 0 in future, as returning 0 from allocate
                     // method means that wasm memory was exhausted
@@ -35,7 +37,7 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(offset_ <= kMaxMemorySize - new_size);
     if (new_size >= size_) {
       size_ = new_size;
-      return memory_->resize(new_size);
+      memory_->resize(new_size);
     }
   }
 
@@ -48,6 +50,10 @@ namespace kagome::runtime::binaryen {
 
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
+      logger_->error(
+          "overflow occured while trying to allocate {} bytes at offset x0x{:x}",
+          size,
+          offset_);
       return 0;
     }
     if (new_offset <= size_) {
@@ -68,7 +74,6 @@ namespace kagome::runtime::binaryen {
 
     allocated_.erase(ptr);
     deallocated_[ptr] = size;
-
     return size;
   }
 
@@ -102,6 +107,10 @@ namespace kagome::runtime::binaryen {
   WasmPointer WasmMemoryImpl::growAlloc(WasmSize size) {
     // check that we do not exceed max memory size
     if (static_cast<uint32_t>(offset_) > kMaxMemorySize - size) {
+      logger_->error(
+          "Memory size exceeded when growing it on {} bytes, offset was 0x{:x}",
+          size,
+          offset_);
       return 0;
     }
     // try to increase memory size up to offset + size * 4 (we multiply by 4
