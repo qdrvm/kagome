@@ -33,6 +33,7 @@
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/common/runtime_transaction_error.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
 
@@ -65,6 +66,10 @@ class RuntimeTest : public ::testing::Test {
         .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*storage_provider, setToEphemeral())
         .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*storage_provider, rollbackTransaction())
+        .WillByDefault(testing::Return(
+            outcome::failure(kagome::runtime::RuntimeTransactionError::
+                                 NO_TRANSACTIONS_WERE_STARTED)));
 
     auto random_generator =
         std::make_shared<kagome::crypto::BoostRandomGenerator>();

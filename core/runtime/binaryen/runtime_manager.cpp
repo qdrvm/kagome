@@ -118,5 +118,8 @@ namespace kagome::runtime::binaryen {
     return RuntimeEnvironment::create(
         external_interface_, module, state_code);
   }
+  void RuntimeManager::reset() {
+    external_interface_->reset();
+  }
 
 }  // namespace kagome::runtime::binaryen

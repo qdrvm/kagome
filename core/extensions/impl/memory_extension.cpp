@@ -18,6 +18,10 @@ namespace kagome::extensions {
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
   }
 
+  void MemoryExtension::reset() {
+    memory_->reset();
+  }
+
   runtime::WasmPointer MemoryExtension::ext_malloc(runtime::WasmSize size) {
     return memory_->allocate(size);
   }

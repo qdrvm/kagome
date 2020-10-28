@@ -20,10 +20,19 @@ target_link_libraries(const_wasm_provider
 
 kagome_install(const_wasm_provider)
 
+add_library(runtime_transaction_error
+    runtime_transaction_error.cpp
+    )
+target_link_libraries(runtime_transaction_error
+    outcome
+    )
+kagome_install(runtime_transaction_error)
+
 add_library(trie_storage_provider
     trie_storage_provider_impl.cpp
     )
 target_link_libraries(trie_storage_provider
+    runtime_transaction_error
     trie_storage
     )
 kagome_install(trie_storage_provider)

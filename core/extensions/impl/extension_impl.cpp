@@ -49,6 +49,12 @@ namespace kagome::extensions {
     return memory_;
   }
 
+  void ExtensionImpl::reset() {
+    memory_ext_.reset();
+    crypto_ext_->reset();
+    storage_ext_.reset();
+  }
+
   // -------------------------Storage extensions--------------------------
 
   void ExtensionImpl::ext_clear_prefix(runtime::WasmPointer prefix_data,
