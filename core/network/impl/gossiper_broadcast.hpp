@@ -58,8 +58,6 @@ namespace kagome::network {
 
     void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
 
-    void transactionAnnounce(const TransactionAnnounce &announce) override;
-
     void propagateTransactions(
         const network::PropagatedTransactions &txs) override;
 

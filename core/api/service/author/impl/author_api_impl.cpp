@@ -8,7 +8,6 @@
 #include <boost/system/error_code.hpp>
 
 #include "common/visitor.hpp"
-#include "network/types/transaction_announce.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "transaction_pool/transaction_pool.hpp"
@@ -67,10 +66,6 @@ namespace kagome::api {
           OUTCOME_TRY(pool_->submitOne(std::move(transaction)));
 
           if (v.propagate) {
-            network::TransactionAnnounce announce;
-            announce.extrinsics.push_back(extrinsic);
-            gossiper_->transactionAnnounce(announce);
-
             network::PropagatedTransactions txs;
             txs.extrinsics.push_back(extrinsic);
             gossiper_->propagateTransactions(txs);

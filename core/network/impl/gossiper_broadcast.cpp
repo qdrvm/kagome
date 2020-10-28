@@ -47,16 +47,6 @@ namespace kagome::network {
     });
   }
 
-  void GossiperBroadcast::transactionAnnounce(
-      const TransactionAnnounce &announce) {
-    logger_->debug("Gossip tx announce: {} extrinsics",
-                   announce.extrinsics.size());
-    GossipMessage message;
-    message.type = GossipMessage::Type::TRANSACTIONS;
-    message.data.put(scale::encode(announce).value());
-    broadcast(kGossipProtocol, std::move(message));
-  }
-
   void GossiperBroadcast::propagateTransactions(
       const network::PropagatedTransactions &txs) {
     logger_->debug("Propagate transactions : {} extrinsics",

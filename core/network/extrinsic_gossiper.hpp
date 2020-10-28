@@ -7,7 +7,6 @@
 #define KAGOME_CORE_NETWORK_EXTRINSIC_GOSSIPER_HPP
 
 #include "network/types/propagate_transactions.hpp"
-#include "network/types/transaction_announce.hpp"
 
 namespace kagome::network {
   /**
@@ -15,13 +14,6 @@ namespace kagome::network {
    */
   struct ExtrinsicGossiper {
     virtual ~ExtrinsicGossiper() = default;
-
-    /**
-     * Send TxAnnounce message
-     * @param announce to be sent
-     */
-    virtual void transactionAnnounce(
-        const network::TransactionAnnounce &announce) = 0;
 
     /**
      * Broadcasts PropagatedTransactions message in network

@@ -16,9 +16,6 @@ namespace kagome::network {
    public:
     ~ExtrinsicGossiperMock() override = default;
 
-    MOCK_METHOD1(transactionAnnounce,
-                 void(const network::TransactionAnnounce &));
-
     MOCK_METHOD1(propagateTransactions,
                  void(const network::PropagatedTransactions &));
   };
