@@ -131,14 +131,31 @@ namespace kagome::api {
 
                   jsonrpc::Request::Parameters params;
                   params.push_back(std::move(p));
-                  self->server_->processJsonData(
-                      "chain_newHead", params, [&](const auto &response) {
-                        if (response.has_value())
-                          session->respond(response.value());
-                        else
-                          self->logger_->error("process Json data failed => {}",
-                                               response.error().message());
-                      });
+                  if (key == primitives::SubscriptionEventType::kNewHeads) {
+                    self->server_->processJsonData(
+                        "chain_newHead", params, [&](const auto &response) {
+                          if (response.has_value())
+                            session->respond(response.value());
+                          else
+                            self->logger_->error(
+                                "process Json data failed => {}",
+                                response.error().message());
+                        });
+                  }
+                  if (key
+                      == primitives::SubscriptionEventType::kFinalizedHeads) {
+                    self->server_->processJsonData(
+                        "chain_finalizedHead",
+                        params,
+                        [&](const auto &response) {
+                          if (response.has_value())
+                            session->respond(response.value());
+                          else
+                            self->logger_->error(
+                                "process Json data failed => {}",
+                                response.error().message());
+                        });
+                  }
                 }
               });
         }
@@ -246,6 +263,29 @@ namespace kagome::api {
           session->subscribe(id, key);
         }
         return static_cast<uint32_t>(id);
+      });
+    });
+  }
+
+  outcome::result<uint32_t> ApiService::subscribeFinalizedHeads() {
+    return for_this_session([&](kagome::api::Session::SessionId tid) {
+      return for_session(tid, [&](SessionExecutionContext &session_context) {
+        auto &session = session_context.events_subscription;
+        const auto id = session->generateSubscriptionSetId();
+        session->subscribe(id,
+                           primitives::SubscriptionEventType::kFinalizedHeads);
+        return static_cast<uint32_t>(id);
+      });
+    });
+  }
+
+  outcome::result<void> ApiService::unsubscribeFinalizedHeads(
+      uint32_t subscription_id) {
+    return for_this_session([&](kagome::api::Session::SessionId tid) {
+      return for_session(tid, [&](SessionExecutionContext &session_context) {
+        auto &session = session_context.events_subscription;
+        session->unsubscribe(subscription_id);
+        return outcome::success();
       });
     });
   }
