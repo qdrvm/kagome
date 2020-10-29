@@ -174,6 +174,9 @@ namespace kagome::blockchain {
       tree_meta_->deepest_leaf = *new_node;
     }
 
+    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads,
+                           header);
+
     return outcome::success();
   }
 
@@ -204,7 +207,8 @@ namespace kagome::blockchain {
         std::make_shared<TreeNode>(block_hash, block.header.number, parent);
 
     updateMeta(new_node);
-
+    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads,
+                           block.header);
     return outcome::success();
   }
 
@@ -268,7 +272,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
     OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
 
-    events_engine_->notify(primitives::SubscriptionEventType::kNewHeads,
+    events_engine_->notify(primitives::SubscriptionEventType::kFinalizedHeads,
                            header);
 
     OUTCOME_TRY(new_runtime_version, runtime_core_->version(boost::none));
