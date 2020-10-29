@@ -30,7 +30,7 @@ namespace kagome::runtime::binaryen {
       return Error::EXECUTION_ERROR;
     } catch (wasm::TrapException &e) {
       return Error::EXECUTION_ERROR;
-    } 
+    }
   }
 
 }  // namespace kagome::runtime::binaryen

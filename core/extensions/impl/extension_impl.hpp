@@ -35,7 +35,7 @@ namespace kagome::extensions {
     ~ExtensionImpl() override = default;
 
     std::shared_ptr<runtime::WasmMemory> memory() const override;
-        void reset() override;
+    void reset() override;
 
     // -------------------------Storage extensions--------------------------
 
