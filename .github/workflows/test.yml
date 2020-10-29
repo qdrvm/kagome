@@ -11,7 +11,7 @@ env:
   CTEST_OUTPUT_ON_FAILURE: 1
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
-  INDOCKER_IMAGE: soramitsu/kagome-dev:12
+  INDOCKER_IMAGE: soramitsu/kagome-dev:11
   CACHE_VERSION: v03
   CACHE_PATHS: |
     ~/Library/Caches/pip
@@ -49,7 +49,7 @@ jobs:
              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:12 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:11 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -62,7 +62,7 @@ jobs:
   clang-tidy:
       name: "Linux: clang-tidy"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:12
+      container: soramitsu/kagome-dev:11
       steps:
         - uses: actions/checkout@v2
           with:
@@ -82,7 +82,7 @@ jobs:
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:12  # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:11  # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -118,7 +118,7 @@ jobs:
               run: ./housekeeping/docker/release/makeRelease.sh
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:12-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:11-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -143,7 +143,7 @@ jobs:
       needs: [clang-tidy, Linux, MacOS, Alpine]
       name: "Push"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:12-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:11-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
