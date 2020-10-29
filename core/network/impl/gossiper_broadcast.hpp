@@ -125,6 +125,7 @@ namespace kagome::network {
     StreamEngine::StreamEnginePtr stream_engine_;
     boost::optional<libp2p::peer::PeerInfo> self_info_;
     std::shared_ptr<kagome::application::ConfigurationStorage> config_;
+    libp2p::peer::Protocol transactions_protocol_;
   };
 }  // namespace kagome::network
 

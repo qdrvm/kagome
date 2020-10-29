@@ -20,7 +20,9 @@ namespace kagome::network {
       std::shared_ptr<kagome::application::ConfigurationStorage> config)
       : logger_{common::createLogger("GossiperBroadcast")},
         stream_engine_{std::move(stream_engine)},
-        config_{std::move(config)} {}
+        config_{std::move(config)},
+        transactions_protocol_{fmt::format(
+            kPropagateTransactionsProtocol.data(), config_->protocolId())} {}
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
@@ -51,10 +53,7 @@ namespace kagome::network {
       const network::PropagatedTransactions &txs) {
     logger_->debug("Propagate transactions : {} extrinsics",
                    txs.extrinsics.size());
-    broadcast(fmt::format(kPropagateTransactionsProtocol.data(),
-                          config_->protocolId()),
-              txs,
-              NoData{});
+    broadcast(transactions_protocol_, txs, NoData{});
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {

@@ -13,10 +13,9 @@
 #include "network/types/roles.hpp"
 #include "primitives/common.hpp"
 
-using kagome::primitives::BlockHash;
-using kagome::primitives::BlockNumber;
-
 namespace kagome::network {
+
+  using kagome::primitives::BlockHash;
 
   /**
    * Is the structure to send to a new connected peer. It contains common
