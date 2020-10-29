@@ -160,8 +160,6 @@ namespace kagome::runtime::binaryen {
     logger_->trace("Call import {}", import->base);
     // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
-      logger_->trace("call import: {}", import->base);
-
       /// memory externals
       /// ext_malloc
       if (import->base == ext_malloc) {

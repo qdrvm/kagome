@@ -147,7 +147,7 @@ namespace kagome::extensions {
                      pubkey = std::move(pubkey)]() mutable {
       auto self = self_weak.lock();
       if (not self) {
-        BOOST_ASSERT(!"This is unreachable");
+        BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
       }
 
       auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
@@ -178,7 +178,7 @@ namespace kagome::extensions {
         memory_->loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE);
     auto key_res = crypto::Sr25519PublicKey::fromSpan(pubkey_buffer);
     if (!key_res) {
-      BOOST_UNREACHABLE_RETURN(kSr25519LegacyVerifyFail);
+      BOOST_UNREACHABLE_RETURN(kSr25519LegacyVerifyFail)
     }
     auto &&key = key_res.value();
 
@@ -318,17 +318,13 @@ namespace kagome::extensions {
     using ResultType = std::vector<crypto::Ed25519PublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
 
-    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       auto kt = crypto::decodeKeyTypeId(key_type_id);
       logger_->warn("key type '{}' is not officially supported ", kt);
     }
 
     auto public_keys = crypto_store_->getEd25519PublicKeys(key_type_id);
-    logger_->trace("Found {} keys", public_keys.size());
-    for (auto &key : public_keys) {
-      logger_->trace("Key {}", key.toHex());
-    }
     auto buffer = scale::encode(public_keys).value();
 
     return memory_->storeBuffer(buffer);
@@ -379,10 +375,10 @@ namespace kagome::extensions {
    */
   runtime::WasmPointer CryptoExtension::ext_ed25519_generate_v1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
-    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
-      auto kt = crypto::decodeKeyTypeId(key_type_id);
-      logger_->warn("key type '{}' is not officially supported", kt);
+      logger_->warn("key type '{}' is not officially supported",
+                    common::int_to_hex(key_type_id, 8));
     }
 
     auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
@@ -390,26 +386,25 @@ namespace kagome::extensions {
     auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
-      std::terminate();
+      throw std::runtime_error("failed to decode bip39 seed");
     }
+    auto&& seed_opt = seed_res.value();
 
     outcome::result<crypto::Ed25519Keypair> kp_res{{}};
-    boost::optional<std::string> bip39_seed = seed_res.value();
-    if (bip39_seed.has_value()) {
+    if (seed_opt.has_value()) {
       kp_res = crypto_store_->generateEd25519Keypair(key_type_id,
-                                                     bip39_seed.value());
+                                                     seed_opt.value());
     } else {
       kp_res = crypto_store_->generateEd25519KeypairOnDisk(key_type_id);
     }
     if (!kp_res) {
       logger_->error("failed to generate ed25519 key pair: {}",
                      kp_res.error().message());
-      std::terminate();
+      throw std::runtime_error("failed to generate ed25519 key pair");
     }
     auto &key_pair = kp_res.value();
-    runtime::WasmSpan ps = memory_->storeBuffer(key_pair.public_key);
-
-    return runtime::WasmResult(ps).address;
+    runtime::WasmResult res_span {memory_->storeBuffer(key_pair.public_key)};
+    return res_span.combine();
   }
 
   /**
@@ -421,10 +416,10 @@ namespace kagome::extensions {
       runtime::WasmSpan msg) {
     using ResultType = boost::optional<crypto::Ed25519Signature>;
 
-    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
-      logger_->warn("key type '{}' is not supported",
-                    decodeKeyTypeId(key_type_id));
+      logger_->warn("key type '{}' is not officially supported",
+                    common::int_to_hex(key_type_id, 8));
     }
 
     auto public_buffer = memory_->loadN(key, crypto::Ed25519PublicKey::size());
@@ -447,7 +442,6 @@ namespace kagome::extensions {
                      sign.error().message());
       std::terminate();
     }
-
     auto buffer = scale::encode(ResultType(sign.value())).value();
     return memory_->storeBuffer(buffer);
   }
@@ -461,10 +455,10 @@ namespace kagome::extensions {
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::WasmResult(msg);
     auto res = ext_ed25519_verify(msg_data, msg_len, sig, pubkey_data);
-    if (res == kLegacyVerifySuccess)
+    if (res == kLegacyVerifySuccess) {
       return kVerifySuccess;
-    else
-      return kVerifyFail;
+    }
+    return kVerifyFail;
   }
 
   /**
@@ -475,16 +469,12 @@ namespace kagome::extensions {
     using ResultType = std::vector<crypto::Sr25519PublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
 
-    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
-                    crypto::decodeKeyTypeId(key_type_id));
+                    common::int_to_hex(key_type_id, 8));
     }
     auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
-    logger_->trace("Found {} keys", public_keys.size());
-    for (auto &key : public_keys) {
-      logger_->trace("Key {}", key.toHex());
-    }
     auto buffer = scale::encode(public_keys).value();
 
     return memory_->storeBuffer(buffer);
@@ -495,10 +485,10 @@ namespace kagome::extensions {
    */
   runtime::WasmPointer CryptoExtension::ext_sr25519_generate_v1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
-    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
-      auto kt = crypto::decodeKeyTypeId(key_type_id);
-      logger_->warn("key type '{}' is not officially supported", kt);
+      logger_->warn("key type '{}' is not officially supported",
+                    common::int_to_hex(key_type_id, 8));
     }
 
     auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
@@ -540,11 +530,11 @@ namespace kagome::extensions {
     using ResultType = boost::optional<crypto::Sr25519Signature>;
     static const auto error_result =
         scale::encode(ResultType(boost::none)).value();
+    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
 
-    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
-      auto kt = crypto::decodeKeyTypeId(key_type_id);
-      logger_->warn("key type '{}' is not officially supported", kt);
+      logger_->warn("key type '{}' is not officially supported",
+                    common::int_to_hex(key_type_id, 8));
     }
 
     auto public_buffer = memory_->loadN(key, crypto::Sr25519PublicKey::size());
@@ -581,10 +571,10 @@ namespace kagome::extensions {
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::WasmResult(msg);
     auto res = ext_sr25519_verify(msg_data, msg_len, sig, pubkey_data);
-    if (res == kLegacyVerifySuccess)
+    if (res == kLegacyVerifySuccess) {
       return kVerifySuccess;
-    else
-      return kVerifyFail;
+    }
+    return kVerifyFail;
   }
 
   namespace {

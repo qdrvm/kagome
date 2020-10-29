@@ -119,9 +119,7 @@ namespace kagome::extensions {
       runtime::WasmSize value_length,
       runtime::WasmSize value_offset) {
     auto key = memory_->loadN(key_data, key_length);
-    logger_->trace("loaded 'key', ptr: {}, len: {}", key_data, key_length);
     auto data = get(key, value_offset, value_length);
-    logger_->trace("loaded 'data', ptr: {}, len: {}", value_data, value_length);
     if (not data) {
       logger_->trace("ext_get_storage_into. Val by key {} not found",
                      key.toHex());
@@ -313,10 +311,8 @@ namespace kagome::extensions {
 
   void StorageExtension::ext_storage_set_version_1(runtime::WasmSpan key,
                                                    runtime::WasmSpan value) {
-    logger_->info("AAAAAAAAAA");
     auto [key_ptr, key_size] = runtime::WasmResult(key);
     auto [value_ptr, value_size] = runtime::WasmResult(value);
-    logger_->info("key ptr: {}, value ptr: {}", key_ptr, value_ptr);
     ext_set_storage(key_ptr, key_size, value_ptr, value_size);
   }
 

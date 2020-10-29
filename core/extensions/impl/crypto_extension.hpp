@@ -49,6 +49,10 @@ namespace kagome::extensions {
         std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
+    inline void reset() {
+      batch_verify_ = boost::none;
+    }
+
     /**
      * @see Extension::ext_blake2_128
      */
@@ -161,7 +165,7 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSpan key_type);
+    runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSize key_type);
 
     /**
      *@see Extension::ext_ed25519_generate
@@ -230,8 +234,7 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
-
-    std::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
+    boost::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
     common::Logger logger_;
   };
 }  // namespace kagome::extensions

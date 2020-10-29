@@ -22,6 +22,7 @@ namespace kagome::extensions {
     virtual ~Extension() = default;
 
     virtual std::shared_ptr<runtime::WasmMemory> memory() const = 0;
+        virtual void reset() = 0;
     // -------------------------Storage extensions--------------------------
 
     /**
@@ -477,7 +478,8 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    virtual runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSize key_type) = 0;
+    virtual runtime::WasmSpan ext_ed25519_public_keys_v1(
+        runtime::WasmSize key_type) = 0;
 
     /**
      * @see Extension::ext_ed25519_generate

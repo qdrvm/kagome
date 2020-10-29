@@ -52,10 +52,11 @@ namespace kagome::runtime::binaryen {
     outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironmentAt(
         const common::Buffer &state_code, const common::Hash256 &state_root);
 
-    static auto getExternalInterface() {
-        return external_interface_;
-    }
-    
+    /**
+     * Resets state of extensions
+     */
+    void reset();
+
    private:
     outcome::result<RuntimeEnvironment> createRuntimeEnvironment(
         const common::Buffer &state_code);

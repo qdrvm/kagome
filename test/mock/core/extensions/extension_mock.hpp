@@ -206,7 +206,7 @@ namespace kagome::extensions {
     // -------------------------Crypto extensions v1---------------------
 
     MOCK_METHOD1(ext_ed25519_public_keys_v1,
-                 runtime::WasmSpan(runtime::WasmSpan key_type));
+                 runtime::WasmSpan(runtime::WasmSize key_type));
 
     MOCK_METHOD2(ext_ed25519_generate_v1,
                  runtime::WasmPointer(runtime::WasmSize key_type,
