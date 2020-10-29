@@ -76,7 +76,7 @@ MATCHER_P3(VerifySr25519Signature,
   std::copy_n(arg.begin(), Sr25519Signature::size(), signature.begin());
 
   return static_cast<bool>(provider->verify(signature, msg, pubkey));
-};
+}
 
 class CryptoExtensionTest : public ::testing::Test {
  public:
@@ -679,15 +679,18 @@ TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
   WasmSpan res = WasmResult(1, 2).combine();
 
   auto key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
 
   EXPECT_CALL(*crypto_store_, getEd25519PublicKeys(key_type))
       .WillOnce(Return(ed_public_keys));
 
   EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(ed_public_keys_result)))
       .WillOnce(Return(res));
 
-  ASSERT_EQ(crypto_ext_->ext_ed25519_public_keys_v1(key_type), res);
+  ASSERT_EQ(crypto_ext_->ext_ed25519_public_keys_v1(key_type_ptr), res);
 }
 
 /**
@@ -698,16 +701,19 @@ TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
 TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
   WasmSpan res = WasmResult(1, 2).combine();
 
+  auto key_type_ptr = 42u;
   auto key_type = kagome::crypto::key_types::kBabe;
 
   EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(key_type))
       .WillOnce(Return(sr_public_keys));
 
   EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(sr_public_keys_result)))
       .WillOnce(Return(res));
 
-  ASSERT_EQ(crypto_ext_->ext_sr25519_public_keys_v1(key_type), res);
+  ASSERT_EQ(crypto_ext_->ext_sr25519_public_keys_v1(key_type_ptr), res);
 }
 
 /**
@@ -717,6 +723,7 @@ TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
  */
 TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
   auto msg = WasmResult(3, 4).combine();
   auto res = WasmResult(5, 6).combine();
@@ -732,9 +739,11 @@ TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
       .WillOnce(Return(ed25519_keypair));
 
   EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(ed25519_signature_result)))
       .WillOnce(Return(res));
-  ASSERT_EQ(crypto_ext_->ext_ed25519_sign_v1(key_type, key, msg), res);
+  ASSERT_EQ(crypto_ext_->ext_ed25519_sign_v1(key_type_ptr, key, msg), res);
 }
 
 /**
@@ -745,6 +754,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
  */
 TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
   auto msg = WasmResult(3, 4).combine();
   auto res = WasmResult(5, 6).combine();
@@ -754,6 +764,8 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
       .WillOnce(Return(ed_public_key_buffer));
   // load message
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
 
   EXPECT_CALL(*crypto_store_,
               findEd25519Keypair(key_type, ed25519_keypair.public_key))
@@ -764,7 +776,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
               storeBuffer(gsl::span<const uint8_t>(
                   ed_sr_signature_failure_result_buffer)))
       .WillOnce(Return(res));
-  ASSERT_EQ(crypto_ext_->ext_ed25519_sign_v1(key_type, key, msg), res);
+  ASSERT_EQ(crypto_ext_->ext_ed25519_sign_v1(key_type_ptr, key, msg), res);
 }
 
 /**
@@ -774,6 +786,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
  */
 TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
   auto msg = WasmResult(3, 4).combine();
   auto res = WasmResult(5, 6).combine();
@@ -783,6 +796,8 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
       .WillOnce(Return(sr_public_key_buffer));
   // load message
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
 
   EXPECT_CALL(*crypto_store_,
               findSr25519Keypair(key_type, sr25519_keypair.public_key))
@@ -795,7 +810,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
                                          sr25519_keypair.public_key)))
       .WillOnce(Return(res));
 
-  ASSERT_EQ(crypto_ext_->ext_sr25519_sign_v1(key_type, key, msg), res);
+  ASSERT_EQ(crypto_ext_->ext_sr25519_sign_v1(key_type_ptr, key, msg), res);
 }
 
 /**
@@ -806,6 +821,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
  */
 TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
   auto msg = WasmResult(3, 4).combine();
   auto res = WasmResult(5, 6).combine();
@@ -815,6 +831,8 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
       .WillOnce(Return(sr_public_key_buffer));
   // load message
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
 
   EXPECT_CALL(*crypto_store_,
               findSr25519Keypair(key_type, sr25519_keypair.public_key))
@@ -825,7 +843,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
               storeBuffer(gsl::span<const uint8_t>(
                   ed_sr_signature_failure_result_buffer)))
       .WillOnce(Return(res));
-  ASSERT_EQ(crypto_ext_->ext_sr25519_sign_v1(key_type, key, msg), res);
+  ASSERT_EQ(crypto_ext_->ext_sr25519_sign_v1(key_type_ptr, key, msg), res);
 }
 
 /**
@@ -835,6 +853,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
  */
 TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
   auto seed_ptr = WasmResult(3, 4).combine();
 
@@ -845,7 +864,9 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(ed_public_key_buffer)))
       .WillOnce(Return(res));
-  ASSERT_EQ(res, crypto_ext_->ext_ed25519_generate_v1(key_type, seed_ptr));
+  EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  ASSERT_EQ(res, crypto_ext_->ext_ed25519_generate_v1(key_type_ptr, seed_ptr));
 }
 
 /**
@@ -855,6 +876,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
  */
 TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
   auto seed_ptr = WasmResult(3, 4).combine();
 
@@ -862,10 +884,12 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(ed_public_key_buffer)))
       .WillOnce(Return(res));
+  EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*crypto_store_,
               generateEd25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(ed25519_keypair));
-  ASSERT_EQ(res, crypto_ext_->ext_ed25519_generate_v1(key_type, seed_ptr));
+  ASSERT_EQ(res, crypto_ext_->ext_ed25519_generate_v1(key_type_ptr, seed_ptr));
 }
 
 /**
@@ -875,6 +899,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
  */
 TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
   auto seed_ptr = WasmResult(3, 4).combine();
 
@@ -882,10 +907,12 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
       .WillOnce(Return(res));
+  EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
 
   EXPECT_CALL(*crypto_store_, generateSr25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(sr25519_keypair));
-  ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type, seed_ptr));
+  ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type_ptr, seed_ptr));
 }
 
 /**
@@ -895,6 +922,7 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
  */
 TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
   auto seed_ptr = WasmResult(3, 4).combine();
 
@@ -902,10 +930,12 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
       .WillOnce(Return(res));
+  EXPECT_CALL(*memory_,
+              load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*crypto_store_,
               generateSr25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(sr25519_keypair));
-  ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type, seed_ptr));
+  ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type_ptr, seed_ptr));
 }
 
 /**
