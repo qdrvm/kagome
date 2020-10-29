@@ -53,10 +53,12 @@ namespace kagome::network {
             MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
 
         MsgType msg;
-        if (auto msg_res =
-              ProtobufRW::read(msg, *read_res.value(), read_res.value()->begin());
-            !msg_res) {
-          return cb(msg_res.error());
+        if (read_res.value()) {
+          if (auto msg_res =
+                ProtobufRW::read(msg, *read_res.value(), read_res.value()->begin());
+              !msg_res) {
+            return cb(msg_res.error());
+          }
         }
         return cb(std::move(msg));
       });
