@@ -45,10 +45,10 @@ namespace kagome::consensus {
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         gossiper_{std::move(gossiper)},
-        sr25519_provider_{std::move(sr25519_provider)},
         keypair_{keypair},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
+        sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
         log_{common::createLogger("BABE")} {
