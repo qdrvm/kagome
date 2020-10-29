@@ -157,6 +157,7 @@ namespace kagome::runtime::binaryen {
 
       OUTCOME_TRY(res, executor_.call(*module, wasm_name, ll));
       memory->reset();
+      runtime_manager_->reset();
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r(res.geti64());
         auto buffer = memory->loadN(r.address, r.length);

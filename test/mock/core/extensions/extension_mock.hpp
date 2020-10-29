@@ -15,6 +15,7 @@ namespace kagome::extensions {
   class ExtensionMock : public Extension {
    public:
     MOCK_CONST_METHOD0(memory, std::shared_ptr<runtime::WasmMemory>());
+    MOCK_METHOD0(reset, void());
     MOCK_METHOD2(ext_clear_prefix,
                  void(runtime::WasmPointer prefix_data,
                       runtime::WasmSize prefix_length));

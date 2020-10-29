@@ -7,6 +7,7 @@
 
 #include <forward_list>
 
+#include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -30,6 +31,21 @@ namespace kagome::extensions {
     BOOST_ASSERT_MSG(storage_provider_ != nullptr, "storage batch is nullptr");
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
     BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");
+  }
+
+  void StorageExtension::reset() {
+    // rollback will have value until there are opened transactions that need
+    // to be closed
+    while (true) {
+      if (auto res = storage_provider_->rollbackTransaction();
+          res.has_error()) {
+        if (res.error()
+            != runtime::RuntimeTransactionError::NO_TRANSACTIONS_WERE_STARTED) {
+          logger_->error(res.error().message());
+        }
+        break;
+      }
+    };
   }
 
   // -------------------------Data storage--------------------------
