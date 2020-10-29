@@ -45,7 +45,7 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    explicit GossiperBroadcast(
+    GossiperBroadcast(
         StreamEngine::StreamEnginePtr stream_engine,
         std::shared_ptr<kagome::application::ConfigurationStorage> config);
 
@@ -117,7 +117,7 @@ namespace kagome::network {
       (*shared_handshake) = std::forward<H>(handshake);
 
       stream_engine_
-          ->broadcast<typename std::decay<decltype(msg)>::type, NoData>(
+          ->broadcast<typename std::decay_t<decltype(msg)>, NoData>(
               protocol, std::move(shared_msg), std::move(shared_handshake));
     }
 

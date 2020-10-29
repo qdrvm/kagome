@@ -6,9 +6,6 @@
 #ifndef KAGOME_CORE_NETWORK_TYPES_NO_DATA_HPP
 #define KAGOME_CORE_NETWORK_TYPES_NO_DATA_HPP
 
-#include <algorithm>
-#include <vector>
-
 #include "primitives/common.hpp"
 
 namespace kagome::network {
