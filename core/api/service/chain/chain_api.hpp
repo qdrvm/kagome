@@ -69,7 +69,19 @@ namespace kagome::api {
     virtual outcome::result<primitives::BlockHeader> getHeader() = 0;
 
     /**
-     * Subscribes to events of New Heads type.
+     * Subscribes to events of Finalized Heads type.
+     * @return id of the subscription
+     */
+    virtual outcome::result<uint32_t> subscribeFinalizedHeads() = 0;
+
+    /**
+     * Unsubscribes from events of Finalized Heads type.
+     */
+    virtual outcome::result<void> unsubscribeFinalizedHeads(
+        uint32_t subscription_id) = 0;
+
+    /**
+     * Subscribes to events of New Heads type
      * @return id of the subscription
      */
     virtual outcome::result<uint32_t> subscribeNewHeads() = 0;
