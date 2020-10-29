@@ -144,8 +144,11 @@ namespace kagome::api {
     using jArray = jsonrpc::Value::Array;
 
     jStruct data;
+    std::stringstream stream;
+    stream << std::hex << val.number;
+    std::string result("0x" + stream.str());
     data["parentHash"] = makeValue(common::hex_lower_0x(val.parent_hash));
-    data["number"] = makeValue(val.number);
+    data["number"] = makeValue(result);
     data["stateRoot"] = makeValue(common::hex_lower_0x(val.state_root));
     data["extrinsicsRoot"] = makeValue(common::hex_lower_0x(val.extrinsics_root));
 
