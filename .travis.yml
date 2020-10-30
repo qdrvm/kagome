@@ -41,7 +41,9 @@ jobs:
       name: "OSX AppleClang"
       if: type = pull_request OR branch = master
       osx_image: xcode11
-      install: ./housekeeping/macos/dependency.sh
+      install:
+       - ./housekeeping/macos/dependency.sh
+       - export PATH="$HOME/.cargo/bin:$PATH"
       before_cache:
         - brew cleanup
       env:
