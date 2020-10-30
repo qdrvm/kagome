@@ -46,6 +46,8 @@ namespace kagome::network {
         config_(std::move(config)),
         transactions_protocol_{fmt::format(
             kPropagateTransactionsProtocol.data(), config_->protocolId())},
+        block_announces_protocol_{fmt::format(
+            kBlockAnnouncesProtocol.data(), config_->protocolId())},
         storage_{std::move(storage)},
         identify_{std::move(identify)},
         ping_proto_{std::move(ping_proto)} {
@@ -65,12 +67,15 @@ namespace kagome::network {
     for (const auto &peer_info : peer_list.peers) {
       if (peer_info.id != own_peer_info.id) {
         gossiper_->reserveStream(peer_info, transactions_protocol_, {});
+        gossiper_->reserveStream(peer_info, block_announces_protocol_, {});
         gossiper_->reserveStream(peer_info, kGossipProtocol, {});
       } else {
         auto stream = std::make_shared<LoopbackStream>(own_peer_info);
         loopback_stream_ = stream;
         gossiper_->reserveStream(
             own_peer_info, transactions_protocol_, std::move(stream));
+        gossiper_->reserveStream(
+            own_peer_info, block_announces_protocol_, std::move(stream));
         gossiper_->reserveStream(
             own_peer_info, kGossipProtocol, std::move(stream));
       }
@@ -86,6 +91,11 @@ namespace kagome::network {
     host_.setProtocolHandler(transactions_protocol_,
                              [self{shared_from_this()}](auto &&stream) {
                                self->handleTransactionsProtocol(
+                                   std::forward<decltype(stream)>(stream));
+                             });
+    host_.setProtocolHandler(block_announces_protocol_,
+                             [self{shared_from_this()}](auto &&stream) {
+                               self->handleBlockAnnouncesProtocol(
                                    std::forward<decltype(stream)>(stream));
                              });
     host_.setProtocolHandler(identify_->getProtocolId(),
@@ -155,36 +165,30 @@ namespace kagome::network {
         });
   }
 
-  void RouterLibp2p::handleTransactionsProtocol(
-      std::shared_ptr<Stream> stream) const {
-    auto rw = std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream);
-    rw->read([wself{weak_from_this()}, stream, rw](auto read_result) {
-      auto self = wself.lock();
-      if (!self) return;
+  void RouterLibp2p::handleBlockAnnouncesProtocol(std::shared_ptr<Stream> stream) const {
+    readAsyncMsgWithZeroHandshake<BlockAnnounce>(std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
+      BOOST_ASSERT(self);
+      self->log_->info("Received block announce: block number {}",
+                       msg.header.number);
+      self->babe_observer_->onBlockAnnounce(msg);
+      return true;
+    });
+  }
 
-      if (!read_result) {
-        self->log_->error("Error while reading handshake: {}",
-                          read_result.error().message());
-        return stream->reset();
-      }
-
-      BOOST_ASSERT(read_result.value() == nullptr);
-      rw->write({}, [wself, stream](auto write_res) {
-        auto self = wself.lock();
-        if (!self) return;
-
-        if (!write_res) {
-          self->log_->error("Error while writing handshake: {}",
-                            write_res.error().message());
-          return stream->reset();
+  void RouterLibp2p::handleTransactionsProtocol(std::shared_ptr<Stream> stream) const {
+    readAsyncMsgWithZeroHandshake<PropagatedTransactions>(std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
+      BOOST_ASSERT(self);
+      self->log_->info("Received propagated transactions: {} txs",
+                 msg.extrinsics.size());
+      for (auto &extrinsic : msg.extrinsics) {
+        auto result = self->extrinsic_observer_->onTxMessage(extrinsic);
+        if (result) {
+          self->log_->debug("  Received tx {}", result.value());
+        } else {
+          self->log_->debug("  Rejected tx: {}", result.error().message());
         }
-
-        self->readAsyncMsg<PropagatedTransactions>(
-            std::move(stream),
-            [](auto self, const auto &peer_id, const auto &msg) {
-              return self->processPropagateTransactionsMessage(peer_id, msg);
-            });
-      });
+      }
+      return true;
     });
   }
 
@@ -233,38 +237,14 @@ namespace kagome::network {
     });
   }
 
-  bool RouterLibp2p::processPropagateTransactionsMessage(
-      const libp2p::peer::PeerId &peer_id,
-      const PropagatedTransactions &msg) const {
-    log_->info("Received propagated transactions: {} txs",
-               msg.extrinsics.size());
-    for (auto &extrinsic : msg.extrinsics) {
-      auto result = extrinsic_observer_->onTxMessage(extrinsic);
-      if (result) {
-        log_->debug("  Received tx {}", result.value());
-      } else {
-        log_->debug("  Rejected tx: {}", result.error().message());
-      }
-    }
-    return true;
-  }
-
   bool RouterLibp2p::processGossipMessage(const libp2p::peer::PeerId &peer_id,
                                           const GossipMessage &msg) const {
     using MsgType = GossipMessage::Type;
 
     switch (msg.type) {
       case MsgType::BLOCK_ANNOUNCE: {
-        auto msg_res = scale::decode<BlockAnnounce>(msg.data);
-        if (!msg_res) {
-          log_->error("error while decoding a block announce message: {}",
-                      msg_res.error().message());
-          return false;
-        }
-        log_->info("Received block announce: block number {}",
-                   msg_res.value().header.number);
-        babe_observer_->onBlockAnnounce(msg_res.value());
-        return true;
+        BOOST_ASSERT(!"Legacy protocol unsupported!");
+        return false;
       }
       case GossipMessage::Type::CONSENSUS: {
         auto grandpa_msg_res = scale::decode<GrandpaMessage>(msg.data);
@@ -309,25 +289,8 @@ namespace kagome::network {
             });
       }
       case MsgType::TRANSACTIONS: {
-        auto txs_msg_res =
-            scale::decode<std::vector<primitives::Extrinsic>>(msg.data);
-
-        if (not txs_msg_res) {
-          log_->error("error while decoding a transactions message");
-          return false;
-        }
-
-        log_->info("Received tx announce: {} txs", txs_msg_res.value().size());
-
-        for (auto &extrinsic : txs_msg_res.value()) {
-          auto result = extrinsic_observer_->onTxMessage(extrinsic);
-          if (result) {
-            log_->debug("  Received tx {}", result.value());
-          } else {
-            log_->debug("  Rejected tx: {}", result.error().message());
-          }
-        }
-        return true;
+        BOOST_ASSERT(!"Legacy protocol unsupported!");
+        return false;
       }
       case GossipMessage::Type::STATUS: {
         log_->error("Status message processing is not implemented yet");
