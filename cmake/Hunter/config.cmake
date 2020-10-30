@@ -17,8 +17,3 @@ hunter_config(libsecp256k1
     SHA1 179e316b0fe5150f1b05ca70ec2ac1490fe2cb3b
     CMAKE_ARGS SECP256K1_BUILD_TEST=OFF
     )
-
-hunter_config(schnorrkel_crust
-    URL https://github.com/soramitsu/soramitsu-sr25519-crust/archive/f2ab23af56bba1ba611b7be8d9bbafd63a22dec3.zip
-    SHA1 767099ca5a3ae806a893c7f5cf6e3631da486e3d
-    )

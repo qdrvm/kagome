@@ -188,7 +188,7 @@ namespace kagome::extensions {
     // -------------------------Crypto extensions v1---------------------
 
     runtime::WasmSpan ext_ed25519_public_keys_v1(
-            runtime::WasmSize key_type) override;
+        runtime::WasmSize key_type) override;
 
     runtime::WasmPointer ext_ed25519_generate_v1(
         runtime::WasmSize key_type, runtime::WasmSpan seed) override;

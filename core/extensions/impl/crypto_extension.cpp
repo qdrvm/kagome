@@ -111,7 +111,7 @@ namespace kagome::extensions {
         return kVerifyBatchFail;
       }
       BOOST_ASSERT_MSG(single_verification_result == kLegacyVerifySuccess,
-                       "Successful verification result must be equal to 1");
+                       "Successful verification result must be equal to 0");
       verification_queue.pop();
     }
 
@@ -318,7 +318,8 @@ namespace kagome::extensions {
     using ResultType = std::vector<crypto::Ed25519PublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
 
-    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       auto kt = crypto::decodeKeyTypeId(key_type_id);
       logger_->warn("key type '{}' is not officially supported ", kt);
@@ -375,7 +376,8 @@ namespace kagome::extensions {
    */
   runtime::WasmPointer CryptoExtension::ext_ed25519_generate_v1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
-    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
@@ -388,12 +390,12 @@ namespace kagome::extensions {
       logger_->error("failed to decode seed");
       throw std::runtime_error("failed to decode bip39 seed");
     }
-    auto&& seed_opt = seed_res.value();
+    auto &&seed_opt = seed_res.value();
 
     outcome::result<crypto::Ed25519Keypair> kp_res{{}};
     if (seed_opt.has_value()) {
-      kp_res = crypto_store_->generateEd25519Keypair(key_type_id,
-                                                     seed_opt.value());
+      kp_res =
+          crypto_store_->generateEd25519Keypair(key_type_id, seed_opt.value());
     } else {
       kp_res = crypto_store_->generateEd25519KeypairOnDisk(key_type_id);
     }
@@ -403,7 +405,7 @@ namespace kagome::extensions {
       throw std::runtime_error("failed to generate ed25519 key pair");
     }
     auto &key_pair = kp_res.value();
-    runtime::WasmResult res_span {memory_->storeBuffer(key_pair.public_key)};
+    runtime::WasmResult res_span{memory_->storeBuffer(key_pair.public_key)};
     return res_span.combine();
   }
 
@@ -416,7 +418,8 @@ namespace kagome::extensions {
       runtime::WasmSpan msg) {
     using ResultType = boost::optional<crypto::Ed25519Signature>;
 
-    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
@@ -469,7 +472,8 @@ namespace kagome::extensions {
     using ResultType = std::vector<crypto::Sr25519PublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
 
-    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
@@ -485,7 +489,8 @@ namespace kagome::extensions {
    */
   runtime::WasmPointer CryptoExtension::ext_sr25519_generate_v1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
-    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
@@ -530,7 +535,8 @@ namespace kagome::extensions {
     using ResultType = boost::optional<crypto::Sr25519Signature>;
     static const auto error_result =
         scale::encode(ResultType(boost::none)).value();
-    auto key_type_id = static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+    auto key_type_id =
+        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
 
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
