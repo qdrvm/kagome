@@ -98,15 +98,6 @@ namespace kagome::consensus {
                    const Randomness &randomness) const;
 
     /**
-     * Check, if the peer has produced a block in this slot and memorize, if the
-     * peer hasn't
-     * @param peer to be checked
-     * @return true, if the peer has not produced any blocks in this slot, false
-     * otherwise
-     */
-    bool verifyProducer(const BabeBlockHeader &babe_header) const;
-
-    /**
      * Check, if all transactions in the block are valid
      * @return true, if all transactions have passed verification, false
      * otherwise

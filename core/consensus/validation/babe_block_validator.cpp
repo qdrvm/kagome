@@ -94,10 +94,6 @@ namespace kagome::consensus {
       return ValidationError::INVALID_VRF;
     }
 
-    // peer must not send two blocks in one slot
-    if (!verifyProducer(babe_header)) {
-      return ValidationError::TWO_BLOCKS_IN_SLOT;
-    }
     return outcome::success();
   }
 
@@ -143,31 +139,6 @@ namespace kagome::consensus {
       return false;
     }
 
-    return true;
-  }
-
-  bool BabeBlockValidator::verifyProducer(
-      const BabeBlockHeader &babe_header) const {
-    auto peer = babe_header.authority_index;
-
-    auto slot_it = blocks_producers_.find(babe_header.slot_number);
-    if (slot_it == blocks_producers_.end()) {
-      // this peer is the first producer in this slot
-      blocks_producers_.insert({babe_header.slot_number, {peer}});
-      return true;
-    }
-
-    auto &slot = slot_it->second;
-    auto peer_in_slot = slot.find(peer);
-    if (peer_in_slot != slot.end()) {
-      log_->info("authority {} has already produced a block in the slot {}",
-                 peer,
-                 babe_header.slot_number);
-      return false;
-    }
-
-    // OK
-    slot.insert(peer);
     return true;
   }
 
