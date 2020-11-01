@@ -12,7 +12,7 @@ env:
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   INDOCKER_IMAGE: soramitsu/kagome-dev:11
-  CACHE_VERSION: v03
+  CACHE_VERSION: v04
   CACHE_PATHS: |
     ~/Library/Caches/pip
     ~/.cargo
@@ -73,7 +73,7 @@ jobs:
             key: ${{ github.job }}-${{ env.CACHE_VERSION }}
         - name: clang-tidy
           env:
-            # build only generated files, so clang-tidy will work correctl
+            # build only generated files, so clang-tidy will work correctlн
             BUILD_FINAL_TARGET: generated
           run: |
             ./housekeeping/makeBuild.sh
