@@ -73,7 +73,7 @@ jobs:
             key: ${{ github.job }}-${{ env.CACHE_VERSION }}
         - name: clang-tidy
           env:
-            # build only generated files, so clang-tidy will work correctlн
+            # build only generated files, so clang-tidy will work correctly
             BUILD_FINAL_TARGET: generated
           run: |
             ./housekeeping/makeBuild.sh
