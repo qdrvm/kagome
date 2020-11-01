@@ -26,16 +26,16 @@ namespace kagome::crypto {
 
     virtual ~CryptoStore() = default;
 
-    using ED25519Keys = std::vector<ED25519PublicKey>;
-    using SR25519Keys = std::vector<SR25519PublicKey>;
+    using Ed25519Keys = std::vector<Ed25519PublicKey>;
+    using Sr25519Keys = std::vector<Sr25519PublicKey>;
 
     /**
-     * @brief generates ED25519 keypair and stores it in memory
+     * @brief generates Ed25519 keypair and stores it in memory
      * @param key_type key type identifier
      * @param mnemonic_phrase mnemonic phrase
      * @return generated key pair or error
      */
-    virtual outcome::result<ED25519Keypair> generateEd25519Keypair(
+    virtual outcome::result<Ed25519Keypair> generateEd25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) = 0;
 
     /**
@@ -44,17 +44,17 @@ namespace kagome::crypto {
      * @param mnemonic_phrase mnemonic phrase
      * @return generated key pair or error
      */
-    virtual outcome::result<SR25519Keypair> generateSr25519Keypair(
+    virtual outcome::result<Sr25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) = 0;
 
     /**
-     * @brief generates ED25519 keypair and stores it in memory
+     * @brief generates Ed25519 keypair and stores it in memory
      * @param key_type key type identifier
      * @param seed seed for generating keys
      * @return generated key pair
      */
-    virtual ED25519Keypair generateEd25519Keypair(KeyTypeId key_type,
-                                                  const ED25519Seed &seed) = 0;
+    virtual Ed25519Keypair generateEd25519Keypair(KeyTypeId key_type,
+                                                  const Ed25519Seed &seed) = 0;
 
     /**
      * @brief generates SR25519 keypair and stores it in memory
@@ -62,15 +62,15 @@ namespace kagome::crypto {
      * @param seed seed for generating keys
      * @return generated key
      */
-    virtual SR25519Keypair generateSr25519Keypair(KeyTypeId key_type,
-                                                  const SR25519Seed &seed) = 0;
+    virtual Sr25519Keypair generateSr25519Keypair(KeyTypeId key_type,
+                                                  const Sr25519Seed &seed) = 0;
 
     /**
-     * @brief generates ED25519 keypair and stores it on disk
+     * @brief generates Ed25519 keypair and stores it on disk
      * @param key_type key type identifier
      * @return generated key pair or error
      */
-    virtual outcome::result<ED25519Keypair> generateEd25519Keypair(
+    virtual outcome::result<Ed25519Keypair> generateEd25519KeypairOnDisk(
         KeyTypeId key_type) = 0;
 
     /**
@@ -78,7 +78,7 @@ namespace kagome::crypto {
      * @param key_type key type identifier
      * @return generated key pair or error
      */
-    virtual outcome::result<SR25519Keypair> generateSr25519Keypair(
+    virtual outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
         KeyTypeId key_type) = 0;
 
     /**
@@ -87,8 +87,8 @@ namespace kagome::crypto {
      * @param pk public key to look for
      * @return found key pair if exists
      */
-    virtual outcome::result<ED25519Keypair> findEd25519Keypair(
-        KeyTypeId key_type, const ED25519PublicKey &pk) const = 0;
+    virtual outcome::result<Ed25519Keypair> findEd25519Keypair(
+        KeyTypeId key_type, const Ed25519PublicKey &pk) const = 0;
 
     /**
      * @brief searches for key pair
@@ -96,22 +96,22 @@ namespace kagome::crypto {
      * @param pk public key to look for
      * @return found key pair if exists
      */
-    virtual outcome::result<SR25519Keypair> findSr25519Keypair(
-        KeyTypeId key_type, const SR25519PublicKey &pk) const = 0;
+    virtual outcome::result<Sr25519Keypair> findSr25519Keypair(
+        KeyTypeId key_type, const Sr25519PublicKey &pk) const = 0;
 
     /**
-     * @brief searches for ED25519 keys of specified type
+     * @brief searches for Ed25519 keys of specified type
      * @param key_type key type identifier to look for
      * @return vector of found public keys
      */
-    virtual ED25519Keys getEd25519PublicKeys(KeyTypeId key_type) const = 0;
+    virtual Ed25519Keys getEd25519PublicKeys(KeyTypeId key_type) const = 0;
 
     /**
      * @brief searches for SR25519 keys of specified typeED
      * @param key_type key type identifier to look for
      * @return vector of found public keys
      */
-    virtual SR25519Keys getSr25519PublicKeys(KeyTypeId key_type) const = 0;
+    virtual Sr25519Keys getSr25519PublicKeys(KeyTypeId key_type) const = 0;
   };
 }  // namespace kagome::crypto
 

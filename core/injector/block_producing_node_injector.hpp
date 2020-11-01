@@ -32,10 +32,10 @@ namespace kagome::injector {
                                 app_config->rpc_http_endpoint(),
                                 app_config->rpc_ws_endpoint()),
         // bind sr25519 keypair
-        di::bind<crypto::SR25519Keypair>.to(
+        di::bind<crypto::Sr25519Keypair>.to(
             [](auto const &inj) { return get_sr25519_keypair(inj); }),
         // bind ed25519 keypair
-        di::bind<crypto::ED25519Keypair>.to(
+        di::bind<crypto::Ed25519Keypair>.to(
             [](auto const &inj) { return get_ed25519_keypair(inj); }),
         // compose peer keypair
         di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {

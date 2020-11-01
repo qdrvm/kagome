@@ -8,9 +8,11 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/variant.hpp>
+
 #include "common/blob.hpp"
 #include "common/logger.hpp"
 #include "crypto/bip39/bip39_provider.hpp"
+#include "crypto/bip39/mnemonic.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/random_generator.hpp"
@@ -20,7 +22,7 @@
 namespace kagome::crypto {
 
   namespace store {
-    using KeyPair = boost::variant<ED25519Keypair, SR25519Keypair>;
+    using KeyPair = boost::variant<Ed25519Keypair, Sr25519Keypair>;
     using PublicKey = common::Blob<32>;
     using Seed = common::Hash256;
 
@@ -48,8 +50,8 @@ namespace kagome::crypto {
 
     ~CryptoStoreImpl() override = default;
 
-    CryptoStoreImpl(std::shared_ptr<ED25519Provider> ed25519_provider,
-                    std::shared_ptr<SR25519Provider> sr25519_provider,
+    CryptoStoreImpl(std::shared_ptr<Ed25519Provider> ed25519_provider,
+                    std::shared_ptr<Sr25519Provider> sr25519_provider,
                     std::shared_ptr<Secp256k1Provider> secp256k1_provider,
                     std::shared_ptr<Bip39Provider> bip39_provider,
                     std::shared_ptr<CSPRNG> random_generator);
@@ -61,33 +63,33 @@ namespace kagome::crypto {
      */
     outcome::result<void> initialize(Path keys_directory);
 
-    outcome::result<ED25519Keypair> generateEd25519Keypair(
+    outcome::result<Ed25519Keypair> generateEd25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) override;
 
-    outcome::result<SR25519Keypair> generateSr25519Keypair(
+    outcome::result<Sr25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) override;
 
-    ED25519Keypair generateEd25519Keypair(KeyTypeId key_type,
-                                          const ED25519Seed &seed) override;
+    Ed25519Keypair generateEd25519Keypair(
+        KeyTypeId key_type, const Ed25519Seed &seed) override;
 
-    SR25519Keypair generateSr25519Keypair(KeyTypeId key_type,
-                                          const SR25519Seed &seed) override;
+    Sr25519Keypair generateSr25519Keypair(KeyTypeId key_type,
+                                          const Sr25519Seed &seed) override;
 
-    outcome::result<ED25519Keypair> generateEd25519Keypair(
+    outcome::result<Ed25519Keypair> generateEd25519KeypairOnDisk(
         KeyTypeId key_type) override;
 
-    outcome::result<SR25519Keypair> generateSr25519Keypair(
+    outcome::result<Sr25519Keypair> generateSr25519KeypairOnDisk(
         KeyTypeId key_type) override;
 
-    outcome::result<ED25519Keypair> findEd25519Keypair(
-        KeyTypeId key_type, const ED25519PublicKey &pk) const override;
+    outcome::result<Ed25519Keypair> findEd25519Keypair(
+        KeyTypeId key_type, const Ed25519PublicKey &pk) const override;
 
-    outcome::result<SR25519Keypair> findSr25519Keypair(
-        KeyTypeId key_type, const SR25519PublicKey &pk) const override;
+    outcome::result<Sr25519Keypair> findSr25519Keypair(
+        KeyTypeId key_type, const Sr25519PublicKey &pk) const override;
 
-    ED25519Keys getEd25519PublicKeys(KeyTypeId key_type) const override;
+    Ed25519Keys getEd25519PublicKeys(KeyTypeId key_type) const override;
 
-    SR25519Keys getSr25519PublicKeys(KeyTypeId key_type) const override;
+    Sr25519Keys getSr25519PublicKeys(KeyTypeId key_type) const override;
 
    private:
     outcome::result<std::pair<KeyTypeId, store::PublicKey>> parseKeyFileName(
@@ -100,15 +102,103 @@ namespace kagome::crypto {
                                        const store::PublicKey &public_key,
                                        const store::Seed &seed);
 
+    static outcome::result<std::string> loadFileContent(
+        const boost::filesystem::path &file_path);
+
+    template <typename KeypairType,
+              typename SeedType,
+              typename Provider,
+              typename PublicKeyType,
+              typename SecretKeyType>
+    outcome::result<KeypairType> generateKeypair(
+        KeyTypeId key_type,
+        std::string_view mnemonic_phrase,
+        std::shared_ptr<Provider> provider,
+        std::map<KeyTypeId, std::map<PublicKeyType, SecretKeyType>> &keys) {
+      OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
+      OUTCOME_TRY(entropy, bip39_provider_->calculateEntropy(mnemonic.words));
+      OUTCOME_TRY(bip_seed,
+                  bip39_provider_->makeSeed(entropy, mnemonic.password));
+      if (bip_seed.size() < SeedType::size()) {
+        return CryptoStoreError::WRONG_SEED_SIZE;
+      }
+
+      OUTCOME_TRY(seed,
+                  SeedType::fromSpan(
+                      gsl::make_span(bip_seed).subspan(0, SeedType::size())));
+      auto pair = provider->generateKeypair(seed);
+
+      keys[key_type].emplace(pair.public_key, pair.secret_key);
+      return pair;
+    }
+
+    template <typename SeedType,
+              typename PublicKeyType,
+              typename SecretKeyType,
+              typename Provider>
+    std::vector<PublicKeyType> getPublicKeys(
+        KeyTypeId key_type,
+        const std::map<KeyTypeId, std::map<PublicKeyType, SecretKeyType>>
+            &keys_cache,
+        std::shared_ptr<Provider> provider) const {
+      namespace fs = boost::filesystem;
+      std::set<store::PublicKey> found_keys;
+      // iterate over in-memory map
+      if (keys_cache.find(key_type) != keys_cache.end()) {
+        const auto &map = keys_cache.at(key_type);
+        for (const auto &k : map) {
+          found_keys.emplace(k.first);
+        }
+      }
+      bool keys_dir_exists =
+          fs::exists(keys_directory_) and fs::is_directory(keys_directory_);
+      if (not keys_dir_exists) {
+        logger_->error("Failed to open key storage directory: {}",
+                       keys_directory_.string());
+        return {};
+      }
+      for (fs::directory_iterator it{keys_directory_}, end{}; it != end; ++it) {
+        if (!fs::is_regular_file(*it)) {
+          continue;
+        }
+        auto info = parseKeyFileName(it->path().filename().string());
+        if (!info) {
+          continue;
+        }
+        auto &[id, pk] = info.value();
+        if (id == key_type and found_keys.count(pk) == 0) {
+          auto &&content = loadFileContent(it->path());
+          if (!content) {
+            logger_->error("failed to load keyfile {} : {}",
+                           it->path().string(),
+                           content.error().message());
+            continue;
+          }
+          auto &&seed = SeedType::fromHex(content.value());
+          if (!seed) {
+            logger_->error("failed to load seed from keyfile {} : {}",
+                           it->path().string(),
+                           seed.error().message());
+            continue;
+          }
+          auto pair = provider->generateKeypair(seed.value());
+          if (pair.public_key == pk) {
+            found_keys.emplace(pk);
+          }
+        }
+      }
+      return std::vector<PublicKeyType>(found_keys.begin(), found_keys.end());
+    }
+
     Path keys_directory_;
-    std::shared_ptr<ED25519Provider> ed25519_provider_;
-    std::shared_ptr<SR25519Provider> sr25519_provider_;
+    std::shared_ptr<Ed25519Provider> ed25519_provider_;
+    std::shared_ptr<Sr25519Provider> sr25519_provider_;
     std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<Bip39Provider> bip39_provider_;
     std::shared_ptr<CSPRNG> random_generator_;
 
-    std::map<KeyTypeId, std::map<ED25519PublicKey, ED25519PrivateKey>> ed_keys_;
-    std::map<KeyTypeId, std::map<SR25519PublicKey, SR25519SecretKey>> sr_keys_;
+    std::map<KeyTypeId, std::map<Ed25519PublicKey, Ed25519PrivateKey>> ed_keys_;
+    std::map<KeyTypeId, std::map<Sr25519PublicKey, Sr25519SecretKey>> sr_keys_;
     common::Logger logger_;
   };
 }  // namespace kagome::crypto

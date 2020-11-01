@@ -15,4 +15,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::transaction_pool, TransactionPoolError, e) {
     case E::POOL_IS_FULL:
       return "Transaction pool is full";
   }
+  return "Unknown transaction pool error";
 }

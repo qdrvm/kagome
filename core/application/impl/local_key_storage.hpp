@@ -22,8 +22,8 @@ namespace kagome::application {
 
     ~LocalKeyStorage() override = default;
 
-    crypto::SR25519Keypair getLocalSr25519Keypair() const override;
-    crypto::ED25519Keypair getLocalEd25519Keypair() const override;
+    crypto::Sr25519Keypair getLocalSr25519Keypair() const override;
+    crypto::Ed25519Keypair getLocalEd25519Keypair() const override;
     libp2p::crypto::KeyPair getP2PKeypair() const override;
 
    private:
@@ -34,14 +34,14 @@ namespace kagome::application {
      */
     outcome::result<void> loadFromJson(const std::string &file_path);
 
-    outcome::result<void> loadSR25519Keys(
+    outcome::result<void> loadSr25519Keys(
         const boost::property_tree::ptree &tree);
-    outcome::result<void> loadED25519Keys(
+    outcome::result<void> loadEd25519Keys(
         const boost::property_tree::ptree &tree);
     outcome::result<void> loadP2PKeys(const boost::property_tree::ptree &tree);
 
-    crypto::SR25519Keypair sr_25519_keypair_;
-    crypto::ED25519Keypair ed_25519_keypair_;
+    crypto::Sr25519Keypair sr_25519_keypair_;
+    crypto::Ed25519Keypair ed_25519_keypair_;
     libp2p::crypto::KeyPair p2p_keypair_;
   };
 

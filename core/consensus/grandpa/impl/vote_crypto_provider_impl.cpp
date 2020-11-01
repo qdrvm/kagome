@@ -10,8 +10,8 @@
 namespace kagome::consensus::grandpa {
 
   VoteCryptoProviderImpl::VoteCryptoProviderImpl(
-      kagome::crypto::ED25519Keypair keypair,
-      std::shared_ptr<kagome::crypto::ED25519Provider> ed_provider,
+      kagome::crypto::Ed25519Keypair keypair,
+      std::shared_ptr<kagome::crypto::Ed25519Provider> ed_provider,
       RoundNumber round_number,
       std::shared_ptr<VoterSet> voter_set)
       : keypair_{keypair},
@@ -57,7 +57,7 @@ namespace kagome::consensus::grandpa {
     return verified.has_value() and verified.value();
   }
 
-  crypto::ED25519Signature VoteCryptoProviderImpl::voteSignature(
+  crypto::Ed25519Signature VoteCryptoProviderImpl::voteSignature(
       const Vote &vote) const {
     auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
     return ed_provider_->sign(keypair_, payload).value();

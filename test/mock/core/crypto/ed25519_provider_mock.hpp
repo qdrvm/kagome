@@ -12,19 +12,18 @@
 
 namespace kagome::crypto {
 
-  class ED25519ProviderMock : public ED25519Provider {
+  class Ed25519ProviderMock : public Ed25519Provider {
    public:
-    MOCK_CONST_METHOD0(generateKeypair, outcome::result<ED25519Keypair>());
-    MOCK_CONST_METHOD1(generateKeypair,
-                       ED25519Keypair(const ED25519Seed &));
+    Ed25519Keypair;
+    Ed25519Keypair;
     MOCK_CONST_METHOD2(sign,
-                       outcome::result<ED25519Signature>(const ED25519Keypair &,
+                       outcome::result<Ed25519Signature>(const Ed25519Keypair &,
                                                          gsl::span<uint8_t>));
     MOCK_CONST_METHOD3(
         verify,
-        outcome::result<bool>(const ED25519Signature &signature,
+        outcome::result<bool>(const Ed25519Signature &signature,
                               gsl::span<uint8_t> message,
-                              const ED25519PublicKey &public_key));
+                              const Ed25519PublicKey &public_key));
   };
 
 }  // namespace kagome::crypto

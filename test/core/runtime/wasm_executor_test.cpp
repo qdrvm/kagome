@@ -39,11 +39,11 @@ using kagome::common::Buffer;
 using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CryptoStoreImpl;
-using kagome::crypto::ED25519ProviderImpl;
+using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::Pbkdf2ProviderImpl;
 using kagome::crypto::Secp256k1ProviderImpl;
-using kagome::crypto::SR25519ProviderImpl;
+using kagome::crypto::Sr25519ProviderImpl;
 using kagome::primitives::BlockHash;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
@@ -89,8 +89,8 @@ class WasmExecutorTest : public ::testing::Test {
 
     auto random_generator = std::make_shared<BoostRandomGenerator>();
     auto sr25519_provider =
-        std::make_shared<SR25519ProviderImpl>(random_generator);
-    auto ed25519_provider = std::make_shared<ED25519ProviderImpl>();
+        std::make_shared<Sr25519ProviderImpl>(random_generator);
+    auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(random_generator);
     auto secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
     auto hasher = std::make_shared<HasherImpl>();
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();

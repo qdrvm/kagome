@@ -11,7 +11,7 @@
 
 using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
-using kagome::crypto::SR25519Keypair;
+using kagome::crypto::Sr25519Keypair;
 using kagome::crypto::VRFProviderImpl;
 using kagome::crypto::VRFPreOutput;
 using kagome::crypto::VRFThreshold;
@@ -28,8 +28,8 @@ class VRFProviderTest : public testing::Test {
 
  protected:
   std::shared_ptr<VRFProviderImpl> vrf_provider_;
-  SR25519Keypair keypair1_;
-  SR25519Keypair keypair2_;
+  Sr25519Keypair keypair1_;
+  Sr25519Keypair keypair2_;
   Buffer msg_;
 };
 

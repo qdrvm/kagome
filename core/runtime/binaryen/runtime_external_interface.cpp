@@ -121,6 +121,8 @@ namespace kagome::runtime::binaryen {
       "ext_crypto_sr25519_generate_version_1";
   const static wasm::Name ext_crypto_sr25519_sign_version_1 =
       "ext_crypto_sr25519_sign_version_1";
+  const static wasm::Name ext_crypto_sr25519_verify_version_1 =
+      "ext_crypto_sr25519_verify_version_1";
   const static wasm::Name ext_crypto_sr25519_verify_version_2 =
       "ext_crypto_sr25519_verify_version_2";
 
@@ -155,10 +157,9 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
+    logger_->trace("Call import {}", import->base);
     // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
-      logger_->trace("call import: {}", import->base);
-
       /// memory externals
       /// ext_malloc
       if (import->base == ext_malloc) {
@@ -454,6 +455,15 @@ namespace kagome::runtime::binaryen {
         auto res = extension_->ext_sr25519_sign_v1(arguments.at(0).geti32(),
                                                    arguments.at(1).geti32(),
                                                    arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_crypto_sr25519_verify_version_1
+      if (import->base == ext_crypto_sr25519_verify_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = extension_->ext_sr25519_verify_v1(arguments.at(0).geti32(),
+                                                     arguments.at(1).geti64(),
+                                                     arguments.at(2).geti32());
         return wasm::Literal(res);
       }
 

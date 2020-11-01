@@ -361,9 +361,9 @@ namespace kagome::injector {
     auto tracker =
         injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
     auto sr25519_provider =
-        injector.template create<sptr<crypto::SR25519Provider>>();
+        injector.template create<sptr<crypto::Sr25519Provider>>();
     auto ed25519_provider =
-        injector.template create<sptr<crypto::ED25519Provider>>();
+        injector.template create<sptr<crypto::Ed25519Provider>>();
     auto secp256k1_provider =
         injector.template create<sptr<crypto::Secp256k1Provider>>();
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
@@ -574,9 +574,9 @@ namespace kagome::injector {
     }
 
     auto ed25519_provider =
-        injector.template create<sptr<crypto::ED25519Provider>>();
+        injector.template create<sptr<crypto::Ed25519Provider>>();
     auto sr25519_provider =
-        injector.template create<sptr<crypto::SR25519Provider>>();
+        injector.template create<sptr<crypto::Sr25519Provider>>();
     auto secp256k1_provider =
         injector.template create<sptr<crypto::Secp256k1Provider>>();
     auto bip39_provider =
@@ -693,9 +693,9 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
-        di::bind<crypto::ED25519Provider>.template to<crypto::ED25519ProviderImpl>(),
+        di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
-        di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
+        di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
         di::bind<network::StreamEngine>.template to<network::StreamEngine>(),
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),

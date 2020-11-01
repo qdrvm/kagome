@@ -23,6 +23,7 @@
 #include "consensus/babe/impl/block_executor.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "crypto/sr25519_provider.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
@@ -60,7 +61,8 @@ namespace kagome::consensus {
              std::shared_ptr<authorship::Proposer> proposer,
              std::shared_ptr<blockchain::BlockTree> block_tree,
              std::shared_ptr<BabeGossiper> gossiper,
-             crypto::SR25519Keypair keypair,
+             std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+             crypto::Sr25519Keypair keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
              std::unique_ptr<clock::Timer> timer,
@@ -112,7 +114,7 @@ namespace kagome::consensus {
         const crypto::VRFOutput &output,
         primitives::AuthorityIndex authority_index) const;
 
-    primitives::Seal sealBlock(const primitives::Block &block) const;
+    outcome::result<primitives::Seal> sealBlock(const primitives::Block &block) const;
 
     /**
      * To be called if we are far behind other nodes to skip some slots and
@@ -130,9 +132,10 @@ namespace kagome::consensus {
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<BabeGossiper> gossiper_;
-    crypto::SR25519Keypair keypair_;
+    crypto::Sr25519Keypair keypair_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;

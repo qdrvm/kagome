@@ -23,10 +23,6 @@ find_package(leveldb CONFIG REQUIRED)
 hunter_add_package(xxhash)
 find_package(xxhash CONFIG REQUIRED)
 
-# https://docs.hunter.sh/en/latest/packages/pkg/iroha-ed25519.html
-hunter_add_package(iroha-ed25519)
-find_package(ed25519 CONFIG REQUIRED)
-
 # https://docs.hunter.sh/en/latest/packages/pkg/binaryen.html
 hunter_add_package(binaryen)
 find_package(binaryen CONFIG REQUIRED)
@@ -48,8 +44,8 @@ find_package(RapidJSON CONFIG REQUIRED)
 hunter_add_package(Microsoft.GSL)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 
-hunter_add_package(sr25519)
-find_package(sr25519 REQUIRED)
+hunter_add_package(schnorrkel_crust)
+find_package(schnorrkel_crust CONFIG REQUIRED)
 
 hunter_add_package(jsonrpc-lean)
 find_package(jsonrpc-lean REQUIRED)

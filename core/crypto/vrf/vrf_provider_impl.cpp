@@ -15,13 +15,13 @@ namespace kagome::crypto {
   VRFProviderImpl::VRFProviderImpl(std::shared_ptr<CSPRNG> generator)
       : generator_{std::move(generator)} {}
 
-  SR25519Keypair VRFProviderImpl::generateKeypair() const {
+  Sr25519Keypair VRFProviderImpl::generateKeypair() const {
     auto seed = generator_->randomBytes(constants::sr25519::SEED_SIZE);
 
     std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp{};
     sr25519_keypair_from_seed(kp.data(), seed.data());
 
-    SR25519Keypair keypair;
+    Sr25519Keypair keypair;
     std::copy(kp.begin(),
               kp.begin() + constants::sr25519::SECRET_SIZE,
               keypair.secret_key.begin());
@@ -34,7 +34,7 @@ namespace kagome::crypto {
 
   boost::optional<VRFOutput> VRFProviderImpl::sign(
       const common::Buffer &msg,
-      const SR25519Keypair &keypair,
+      const Sr25519Keypair &keypair,
       const VRFThreshold &threshold) const {
     common::Buffer keypair_buf{};
     keypair_buf.put(keypair.secret_key).put(keypair.public_key);
@@ -48,7 +48,7 @@ namespace kagome::crypto {
                                  msg.data(),
                                  msg.size(),
                                  threshold_bytes.data());
-    if (not sign_res.is_less or not (sign_res.result == Sr25519SignatureResult::Ok)) {
+    if (not sign_res.is_less or not (sign_res.result == SR25519_SIGNATURE_RESULT_OK)) {
       return boost::none;
     }
 
@@ -64,7 +64,7 @@ namespace kagome::crypto {
 
   VRFVerifyOutput VRFProviderImpl::verify(const common::Buffer &msg,
                                           const VRFOutput &output,
-                                          const SR25519PublicKey &public_key,
+                                          const Sr25519PublicKey &public_key,
                                           const VRFThreshold &threshold) const {
     auto res = sr25519_vrf_verify(public_key.data(),
                                   msg.data(),
@@ -72,7 +72,7 @@ namespace kagome::crypto {
                                   output.output.data(),
                                   output.proof.data(),
                                   common::uint128_t_to_bytes(threshold).data());
-    return VRFVerifyOutput{.is_valid = res.result == Sr25519SignatureResult::Ok,
+    return VRFVerifyOutput{.is_valid = res.result == SR25519_SIGNATURE_RESULT_OK,
                            .is_less = res.is_less};
   }
 

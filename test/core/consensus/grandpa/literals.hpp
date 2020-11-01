@@ -29,9 +29,9 @@ inline kagome::consensus::grandpa::Id makeId(std::string s) {
   return id;
 }
 
-inline kagome::crypto::ED25519Signature makeSig(std::string s) {
-  assert(s.size() <= kagome::crypto::ED25519Signature::size());
-  kagome::crypto::ED25519Signature sig{};
+inline kagome::crypto::Ed25519Signature makeSig(std::string s) {
+  assert(s.size() <= kagome::crypto::Ed25519Signature::size());
+  kagome::crypto::Ed25519Signature sig{};
   std::copy(s.begin(), s.end(), sig.begin());
   return sig;
 }
@@ -49,7 +49,7 @@ inline kagome::consensus::grandpa::Id operator"" _ID(const char *c, size_t s) {
   return makeId(std::string{c, c + s});
 }
 
-inline kagome::crypto::ED25519Signature operator"" _SIG(const char *c,
+inline kagome::crypto::Ed25519Signature operator"" _SIG(const char *c,
                                                         size_t s) {
   return makeSig(std::string{c, c + s});
 }

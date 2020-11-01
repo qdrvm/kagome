@@ -12,16 +12,16 @@
 
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CSPRNG;
-using kagome::crypto::SR25519Provider;
-using kagome::crypto::SR25519ProviderImpl;
-using kagome::crypto::SR25519PublicKey;
-using kagome::crypto::SR25519SecretKey;
-using kagome::crypto::SR25519Seed;
+using kagome::crypto::Sr25519Provider;
+using kagome::crypto::Sr25519ProviderImpl;
+using kagome::crypto::Sr25519PublicKey;
+using kagome::crypto::Sr25519SecretKey;
+using kagome::crypto::Sr25519Seed;
 
-struct SR25519ProviderTest : public ::testing::Test {
+struct Sr25519ProviderTest : public ::testing::Test {
   void SetUp() override {
     random_generator = std::make_shared<BoostRandomGenerator>();
-    sr25519_provider = std::make_shared<SR25519ProviderImpl>(random_generator);
+    sr25519_provider = std::make_shared<Sr25519ProviderImpl>(random_generator);
 
     std::string_view m = "i am a message";
     message.clear();
@@ -45,7 +45,7 @@ struct SR25519ProviderTest : public ::testing::Test {
   gsl::span<uint8_t> message_span;
   std::vector<uint8_t> message;
   std::shared_ptr<CSPRNG> random_generator;
-  std::shared_ptr<SR25519Provider> sr25519_provider;
+  std::shared_ptr<Sr25519Provider> sr25519_provider;
 };
 
 /**
@@ -53,7 +53,7 @@ struct SR25519ProviderTest : public ::testing::Test {
  * @when generate 2 keypairs, repeat it 10 times
  * @then each time keys are different
  */
-TEST_F(SR25519ProviderTest, GenerateKeysNotEqual) {
+TEST_F(Sr25519ProviderTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
     auto kp1 = sr25519_provider->generateKeypair();
     auto kp2 = sr25519_provider->generateKeypair();
@@ -69,7 +69,7 @@ TEST_F(SR25519ProviderTest, GenerateKeysNotEqual) {
  * @and verify signed message with generated public key
  * @then verification succeeds
  */
-TEST_F(SR25519ProviderTest, SignVerifySuccess) {
+TEST_F(Sr25519ProviderTest, SignVerifySuccess) {
   auto kp = sr25519_provider->generateKeypair();
   EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
   EXPECT_OUTCOME_TRUE(
@@ -86,7 +86,7 @@ TEST_F(SR25519ProviderTest, SignVerifySuccess) {
  * @when generate a keypair @and make public key invalid @and sign message
  * @then sign fails
  */
-TEST_F(SR25519ProviderTest, DISABLED_SignWithInvalidKeyFails) {
+TEST_F(Sr25519ProviderTest, DISABLED_SignWithInvalidKeyFails) {
   auto kp = sr25519_provider->generateKeypair();
   kp.public_key.fill(1);
   EXPECT_OUTCOME_FALSE_1(sr25519_provider->sign(kp, message_span));
@@ -99,7 +99,7 @@ TEST_F(SR25519ProviderTest, DISABLED_SignWithInvalidKeyFails) {
  * @and verify signed message
  * @then verification succeeds, but verification result is false
  */
-TEST_F(SR25519ProviderTest, VerifyWrongKeyFail) {
+TEST_F(Sr25519ProviderTest, VerifyWrongKeyFail) {
   auto kp = sr25519_provider->generateKeypair();
   EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
   // generate another valid key pair and take public one
@@ -122,7 +122,7 @@ TEST_F(SR25519ProviderTest, VerifyWrongKeyFail) {
  * @and verify signed message
  * @then verification fails
  */
-TEST_F(SR25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
+TEST_F(Sr25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
   auto kp = sr25519_provider->generateKeypair();
   EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
   // make public key invalid
@@ -136,12 +136,12 @@ TEST_F(SR25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
  * @when generate key pair by seed
  * @then verifying and secret keys come up with predefined values
  */
-TEST_F(SR25519ProviderTest, GenerateBySeedSuccess) {
-  EXPECT_OUTCOME_TRUE(seed, SR25519Seed::fromHex(hex_seed));
-  EXPECT_OUTCOME_TRUE(public_key, SR25519PublicKey::fromHex(hex_vk));
+TEST_F(Sr25519ProviderTest, GenerateBySeedSuccess) {
+  EXPECT_OUTCOME_TRUE(seed, Sr25519Seed::fromHex(hex_seed));
+  EXPECT_OUTCOME_TRUE(public_key, Sr25519PublicKey::fromHex(hex_vk));
 
   // private key is the same as seed
-  EXPECT_OUTCOME_TRUE(secret_key, SR25519SecretKey::fromHex(hex_sk));
+  EXPECT_OUTCOME_TRUE(secret_key, Sr25519SecretKey::fromHex(hex_sk));
 
   auto &&kp = sr25519_provider->generateKeypair(seed);
 

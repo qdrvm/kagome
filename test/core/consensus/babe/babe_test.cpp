@@ -22,9 +22,9 @@
 #include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
 #include "mock/core/consensus/babe/epoch_storage_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
-#include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -121,6 +121,9 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
     EXPECT_CALL(*app_state_manager_, atShutdown(_)).Times(testing::AnyNumber());
 
+    auto sr25519_provider = std::make_shared<Sr25519ProviderMock>();
+    EXPECT_CALL(*sr25519_provider, sign(_, _)).WillRepeatedly(Return(Sr25519Signature {}));
+
     babe_ = std::make_shared<BabeImpl>(app_state_manager_,
                                        lottery_,
                                        block_executor,
@@ -130,6 +133,7 @@ class BabeTest : public testing::Test {
                                        proposer_,
                                        block_tree_,
                                        gossiper_,
+                                       sr25519_provider,
                                        keypair_,
                                        clock_,
                                        hasher_,
@@ -154,7 +158,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<transaction_pool::TransactionPoolMock> tx_pool_;
   std::shared_ptr<BabeGossiperMock> gossiper_;
-  SR25519Keypair keypair_{generateSR25519Keypair()};
+  Sr25519Keypair keypair_{generateSr25519Keypair()};
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;

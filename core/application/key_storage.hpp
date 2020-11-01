@@ -23,12 +23,12 @@ namespace kagome::application {
     /**
      * Get the node sr25519 keypair, which is used, for example, in BABE
      */
-    virtual crypto::SR25519Keypair getLocalSr25519Keypair() const = 0;
+    virtual crypto::Sr25519Keypair getLocalSr25519Keypair() const = 0;
 
     /**
      * Get the node ed25519 keypair used in GRANDPA consensus
      */
-    virtual crypto::ED25519Keypair getLocalEd25519Keypair() const = 0;
+    virtual crypto::Ed25519Keypair getLocalEd25519Keypair() const = 0;
 
     /**
      * Get the node libp2p keypair, which is used by libp2p network library
