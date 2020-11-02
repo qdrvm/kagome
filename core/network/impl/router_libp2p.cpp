@@ -73,10 +73,6 @@ namespace kagome::network {
         auto stream = std::make_shared<LoopbackStream>(own_peer_info);
         loopback_stream_ = stream;
         gossiper_->reserveStream(
-            own_peer_info, transactions_protocol_, std::move(stream));
-        gossiper_->reserveStream(
-            own_peer_info, block_announces_protocol_, std::move(stream));
-        gossiper_->reserveStream(
             own_peer_info, kGossipProtocol, std::move(stream));
       }
     }
