@@ -12,7 +12,7 @@
 using kagome::application::ConfigurationStorageImpl;
 using kagome::application::GenesisRawConfig;
 using kagome::common::Buffer;
-using kagome::crypto::SR25519PublicKey;
+using kagome::crypto::Sr25519PublicKey;
 using kagome::network::PeerList;
 using libp2p::multi::Multiaddress;
 using libp2p::peer::PeerId;

@@ -74,9 +74,9 @@ class RuntimeTest : public ::testing::Test {
     auto random_generator =
         std::make_shared<kagome::crypto::BoostRandomGenerator>();
     auto sr25519_provider =
-        std::make_shared<kagome::crypto::SR25519ProviderImpl>(random_generator);
+        std::make_shared<kagome::crypto::Sr25519ProviderImpl>(random_generator);
     auto ed25519_provider =
-        std::make_shared<kagome::crypto::ED25519ProviderImpl>();
+        std::make_shared<kagome::crypto::Ed25519ProviderImpl>(random_generator);
     auto secp256k1_provider =
         std::make_shared<kagome::crypto::Secp256k1ProviderImpl>();
     auto hasher = std::make_shared<kagome::crypto::HasherImpl>();

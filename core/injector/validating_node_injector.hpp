@@ -19,31 +19,31 @@ namespace kagome::injector {
 
   // sr25519 kp getter
   template <typename Injector>
-  sptr<crypto::SR25519Keypair> get_sr25519_keypair(const Injector &injector) {
+  sptr<crypto::Sr25519Keypair> get_sr25519_keypair(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<crypto::SR25519Keypair>>(boost::none);
+        boost::optional<sptr<crypto::Sr25519Keypair>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
     auto &key_storage = injector.template create<application::KeyStorage &>();
     auto &&sr25519_kp = key_storage.getLocalSr25519Keypair();
 
-    initialized = std::make_shared<crypto::SR25519Keypair>(sr25519_kp);
+    initialized = std::make_shared<crypto::Sr25519Keypair>(sr25519_kp);
     return initialized.value();
   }
 
   // ed25519 kp getter
   template <typename Injector>
-  sptr<crypto::ED25519Keypair> get_ed25519_keypair(const Injector &injector) {
+  sptr<crypto::Ed25519Keypair> get_ed25519_keypair(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<crypto::ED25519Keypair>>(boost::none);
+        boost::optional<sptr<crypto::Ed25519Keypair>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
     auto &key_storage = injector.template create<application::KeyStorage &>();
     auto &&ed25519_kp = key_storage.getLocalEd25519Keypair();
 
-    initialized = std::make_shared<crypto::ED25519Keypair>(ed25519_kp);
+    initialized = std::make_shared<crypto::Ed25519Keypair>(ed25519_kp);
     return initialized.value();
   }
 
@@ -136,7 +136,8 @@ namespace kagome::injector {
         injector.template create<sptr<authorship::Proposer>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<network::Gossiper>>(),
-        injector.template create<crypto::SR25519Keypair>(),
+        injector.template create<sptr<crypto::Sr25519Provider>>(),
+        injector.template create<crypto::Sr25519Keypair>(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
@@ -155,10 +156,10 @@ namespace kagome::injector {
                                 app_config->rpc_http_endpoint(),
                                 app_config->rpc_ws_endpoint()),
         // bind sr25519 keypair
-        di::bind<crypto::SR25519Keypair>.to(
+        di::bind<crypto::Sr25519Keypair>.to(
             [](auto const &inj) { return get_sr25519_keypair(inj); }),
         // bind ed25519 keypair
-        di::bind<crypto::ED25519Keypair>.to(
+        di::bind<crypto::Ed25519Keypair>.to(
             [](auto const &inj) { return get_ed25519_keypair(inj); }),
         // compose peer keypair
         di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {

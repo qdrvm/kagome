@@ -5,7 +5,6 @@
 
 #include "consensus/babe/impl/babe_impl.hpp"
 
-#include <sr25519/sr25519.h>
 #include <boost/assert.hpp>
 
 #include "blockchain/block_tree_error.hpp"
@@ -30,7 +29,8 @@ namespace kagome::consensus {
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<BabeGossiper> gossiper,
-      crypto::SR25519Keypair keypair,
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+      crypto::Sr25519Keypair keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
@@ -48,6 +48,7 @@ namespace kagome::consensus {
         keypair_{keypair},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
+        sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
         log_{common::createLogger("BABE")} {
@@ -58,6 +59,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(gossiper_);
+    BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(log_);
@@ -308,18 +310,22 @@ namespace kagome::consensus {
     return primitives::PreRuntime{{primitives::kBabeEngineId, encoded_header}};
   }
 
-  primitives::Seal BabeImpl::sealBlock(const primitives::Block &block) const {
+  outcome::result<primitives::Seal> BabeImpl::sealBlock(
+      const primitives::Block &block) const {
     auto pre_seal_encoded_block = scale::encode(block.header).value();
 
     auto pre_seal_hash = hasher_->blake2b_256(pre_seal_encoded_block);
 
     Seal seal{};
-    seal.signature.fill(0);
-    sr25519_sign(seal.signature.data(),
-                 keypair_.public_key.data(),
-                 keypair_.secret_key.data(),
-                 pre_seal_hash.data(),
-                 decltype(pre_seal_hash)::size());
+
+    if (auto signature = sr25519_provider_->sign(keypair_, pre_seal_hash);
+        signature) {
+      seal.signature = signature.value();
+    } else {
+      log_->error("Error signing a block seal: {}",
+                  signature.error().message());
+      return signature.error();
+    }
     auto encoded_seal = common::Buffer(scale::encode(seal).value());
     return primitives::Seal{{primitives::kBabeEngineId, encoded_seal}};
   }
@@ -382,10 +388,14 @@ namespace kagome::consensus {
     }
 
     // seal the block
-    auto seal = sealBlock(block);
+    auto seal_res = sealBlock(block);
+    if (!seal_res) {
+      return log_->error("Failed to seal the block: {}",
+                         seal_res.error().message());
+    }
 
     // add seal digest item
-    block.header.digest.emplace_back(seal);
+    block.header.digest.emplace_back(seal_res.value());
 
     // check that we are still in the middle of the
     if (clock_->now()

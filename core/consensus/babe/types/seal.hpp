@@ -14,7 +14,7 @@ namespace kagome::consensus {
    */
   struct Seal {
     /// Sig_sr25519(Blake2s(block_header))
-    crypto::SR25519Signature signature;
+    crypto::Sr25519Signature signature;
   };
 
   /**

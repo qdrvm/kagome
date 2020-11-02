@@ -6,7 +6,7 @@ version: '3'
 
 services:
   dev:
-    image: soramitsu/kagome-dev:10
+    image: soramitsu/kagome-dev:11
     tty: true
     stdin_open: true
     working_dir: /app

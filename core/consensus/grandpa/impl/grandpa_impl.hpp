@@ -35,9 +35,9 @@ namespace kagome::consensus::grandpa {
     GrandpaImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
                 std::shared_ptr<Environment> environment,
                 std::shared_ptr<storage::BufferStorage> storage,
-                std::shared_ptr<crypto::ED25519Provider> crypto_provider,
+                std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
                 std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-                const crypto::ED25519Keypair &keypair,
+                const crypto::Ed25519Keypair &keypair,
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
@@ -96,9 +96,9 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<storage::BufferStorage> storage_;
-    std::shared_ptr<crypto::ED25519Provider> crypto_provider_;
+    std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
-    crypto::ED25519Keypair keypair_;
+    crypto::Ed25519Keypair keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;

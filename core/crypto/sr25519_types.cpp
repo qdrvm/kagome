@@ -14,11 +14,11 @@ namespace kagome::crypto {
     return !(*this == other);
   }
 
-  bool SR25519Keypair::operator==(const SR25519Keypair &other) const {
+  bool Sr25519Keypair::operator==(const Sr25519Keypair &other) const {
     return secret_key == other.secret_key && public_key == other.public_key;
   }
 
-  bool SR25519Keypair::operator!=(const SR25519Keypair &other) const {
+  bool Sr25519Keypair::operator!=(const Sr25519Keypair &other) const {
     return !(*this == other);
   }
 }  // namespace kagome::crypto

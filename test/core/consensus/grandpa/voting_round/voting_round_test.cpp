@@ -27,8 +27,8 @@ using kagome::clock::SteadyClockImpl;
 using kagome::consensus::grandpa::EnvironmentMock;
 using kagome::consensus::grandpa::GrandpaConfig;
 using kagome::consensus::grandpa::VoteCryptoProviderMock;
-using kagome::crypto::ED25519Keypair;
-using kagome::crypto::ED25519Signature;
+using kagome::crypto::Ed25519Keypair;
+using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
 
 using testing::_;
@@ -141,20 +141,20 @@ class VotingRoundTest : public testing::Test {
   }
 
   SignedMessage preparePrimaryPropose(const Id &id,
-                                      const ED25519Signature &sig,
+                                      const Ed25519Signature &sig,
                                       const PrimaryPropose &primary_propose) {
     return SignedMessage{
         .message = primary_propose, .signature = sig, .id = id};
   }
 
   SignedMessage preparePrevote(const Id &id,
-                               const ED25519Signature &sig,
+                               const Ed25519Signature &sig,
                                const Prevote &prevote) {
     return SignedMessage{.message = prevote, .signature = sig, .id = id};
   }
 
   SignedMessage preparePrecommit(const Id &id,
-                                 const ED25519Signature &sig,
+                                 const Ed25519Signature &sig,
                                  const Precommit &precommit) {
     return SignedMessage{.message = precommit, .signature = sig, .id = id};
   }
@@ -164,15 +164,15 @@ class VotingRoundTest : public testing::Test {
 
   const Id kAlice = "Alice"_ID;
   const size_t kAliceWeight = 4;
-  const ED25519Signature kAliceSignature = "Alice"_SIG;
+  const Ed25519Signature kAliceSignature = "Alice"_SIG;
 
   const Id kBob = "Bob"_ID;
   const size_t kBobWeight = 7;
-  const ED25519Signature kBobSignature = "Bob"_SIG;
+  const Ed25519Signature kBobSignature = "Bob"_SIG;
 
   const Id kEve = "Eve"_ID;
   const size_t kEveWeight = 3;
-  const ED25519Signature kEveSignature = "Eve"_SIG;
+  const Ed25519Signature kEveSignature = "Eve"_SIG;
 
   RoundNumber round_number_{0};
   Duration duration_{100ms};
@@ -180,7 +180,7 @@ class VotingRoundTest : public testing::Test {
   MembershipCounter counter_{0};
   std::shared_ptr<VoterSet> voters_ = std::make_shared<VoterSet>(counter_);
 
-  ED25519Keypair keypair_;
+  Ed25519Keypair keypair_;
   std::shared_ptr<VoteCryptoProviderMock> vote_crypto_provider_ =
       std::make_shared<VoteCryptoProviderMock>();
 

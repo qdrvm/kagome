@@ -15,7 +15,7 @@ namespace kagome::consensus {
     MOCK_CONST_METHOD3(slotsLeadership,
                        SlotsLeadership(const Epoch &,
                                        const Threshold &,
-                                       const crypto::SR25519Keypair &));
+                                       const crypto::Sr25519Keypair &));
 
     MOCK_METHOD2(computeRandomness, Randomness(const Randomness &, EpochIndex));
 

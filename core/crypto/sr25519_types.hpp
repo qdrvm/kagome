@@ -7,7 +7,7 @@
 #define KAGOME_CORE_CRYPTO_VRF_TYPES
 
 extern "C" {
-#include <sr25519/sr25519.h>
+#include <schnorrkel/schnorrkel.h>
 }
 #include <boost/multiprecision/cpp_int.hpp>
 #include <gsl/span>
@@ -71,23 +71,23 @@ namespace kagome::crypto {
     bool is_less;
   };
 
-  using SR25519SecretKey = common::Blob<constants::sr25519::SECRET_SIZE>;
+  using Sr25519SecretKey = common::Blob<constants::sr25519::SECRET_SIZE>;
 
-  using SR25519PublicKey = common::Blob<constants::sr25519::PUBLIC_SIZE>;
+  using Sr25519PublicKey = common::Blob<constants::sr25519::PUBLIC_SIZE>;
 
-  using SR25519Seed = common::Blob<constants::sr25519::SEED_SIZE>;
+  using Sr25519Seed = common::Blob<constants::sr25519::SEED_SIZE>;
 
-  struct SR25519Keypair {
-    SR25519SecretKey secret_key;
-    SR25519PublicKey public_key;
+  struct Sr25519Keypair {
+    Sr25519SecretKey secret_key;
+    Sr25519PublicKey public_key;
 
-    SR25519Keypair() = default;
+    Sr25519Keypair() = default;
 
-    bool operator==(const SR25519Keypair &other) const;
-    bool operator!=(const SR25519Keypair &other) const;
+    bool operator==(const Sr25519Keypair &other) const;
+    bool operator!=(const Sr25519Keypair &other) const;
   };
 
-  using SR25519Signature = common::Blob<constants::sr25519::SIGNATURE_SIZE>;
+  using Sr25519Signature = common::Blob<constants::sr25519::SIGNATURE_SIZE>;
 
   /**
    * @brief outputs object of type VRFOutput to stream

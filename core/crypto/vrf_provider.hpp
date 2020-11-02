@@ -23,7 +23,7 @@ namespace kagome::crypto {
     /**
      * Generates random keypair for signing the message
      */
-    virtual SR25519Keypair generateKeypair() const = 0;
+    virtual Sr25519Keypair generateKeypair() const = 0;
 
     /**
      * Sign message \param msg using \param keypair. If computed value is less
@@ -32,7 +32,7 @@ namespace kagome::crypto {
      */
     virtual boost::optional<VRFOutput> sign(
         const common::Buffer &msg,
-        const SR25519Keypair &keypair,
+        const Sr25519Keypair &keypair,
         const VRFThreshold &threshold) const = 0;
 
     /**
@@ -41,7 +41,7 @@ namespace kagome::crypto {
      */
     virtual VRFVerifyOutput verify(const common::Buffer &msg,
                         const VRFOutput &output,
-                        const SR25519PublicKey &public_key,
+                        const Sr25519PublicKey &public_key,
                         const VRFThreshold &threshold) const = 0;
   };
 }  // namespace kagome::crypto

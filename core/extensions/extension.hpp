@@ -23,6 +23,7 @@ namespace kagome::extensions {
 
     virtual std::shared_ptr<runtime::WasmMemory> memory() const = 0;
     virtual void reset() = 0;
+    
     // -------------------------Storage extensions--------------------------
 
     /**

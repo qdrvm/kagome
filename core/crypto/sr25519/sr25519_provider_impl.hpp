@@ -15,26 +15,26 @@ namespace libp2p::crypto::random {
 
 namespace kagome::crypto {
 
-  class SR25519ProviderImpl : public SR25519Provider {
+  class Sr25519ProviderImpl : public Sr25519Provider {
     using CSPRNG = libp2p::crypto::random::CSPRNG;
 
    public:
-    explicit SR25519ProviderImpl(std::shared_ptr<CSPRNG> generator);
+    explicit Sr25519ProviderImpl(std::shared_ptr<CSPRNG> generator);
 
-    ~SR25519ProviderImpl() override = default;
+    ~Sr25519ProviderImpl() override = default;
 
-    SR25519Keypair generateKeypair() const override;
+    Sr25519Keypair generateKeypair() const override;
 
-    SR25519Keypair generateKeypair(const SR25519Seed &seed) const override;
+    Sr25519Keypair generateKeypair(const Sr25519Seed &seed) const override;
 
-    outcome::result<SR25519Signature> sign(
-        const SR25519Keypair &keypair,
+    outcome::result<Sr25519Signature> sign(
+        const Sr25519Keypair &keypair,
         gsl::span<const uint8_t> message) const override;
 
     outcome::result<bool> verify(
-        const SR25519Signature &signature,
+        const Sr25519Signature &signature,
         gsl::span<const uint8_t> message,
-        const SR25519PublicKey &public_key) const override;
+        const Sr25519PublicKey &public_key) const override;
 
    private:
     std::shared_ptr<CSPRNG> generator_;

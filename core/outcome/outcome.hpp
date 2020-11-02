@@ -12,6 +12,7 @@ namespace outcome {
   using libp2p::outcome::result;
   using libp2p::outcome::success;
   using libp2p::outcome::failure;
-}
+}  // namespace outcome
+
 
 #endif  // KAGOME_OUTCOME_HPP
