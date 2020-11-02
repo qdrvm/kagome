@@ -182,7 +182,9 @@ namespace kagome::network {
     }
     {  /// Best hash
       /// TODO(iceseer): use last finalized and best number
-      auto best_res = storage_->getGenesisBlockHash();//storage_->getLastFinalizedBlockHash();
+      auto best_res =
+          storage_
+              ->getGenesisBlockHash();  // storage_->getLastFinalizedBlockHash();
       if (best_res) {
         status_msg.best_hash = std::move(best_res.value());
       } else {
@@ -192,11 +194,13 @@ namespace kagome::network {
     }
 
     readAsyncMsgWithHandshake<BlockAnnounce>(
-        std::move(stream), std::move(status_msg), [](auto self, const auto &peer_id, const auto &msg) {
+        std::move(stream),
+        std::move(status_msg),
+        [](auto self, const auto &peer_id, const auto &msg) {
           BOOST_ASSERT(self);
           self->log_->info("Received block announce: block number {}",
                            msg.header.number);
-          //self->babe_observer_->onBlockAnnounce(msg);
+          self->babe_observer_->onBlockAnnounce(msg);
           return true;
         });
   }
@@ -204,7 +208,9 @@ namespace kagome::network {
   void RouterLibp2p::handleTransactionsProtocol(
       std::shared_ptr<Stream> stream) const {
     readAsyncMsgWithHandshake<PropagatedTransactions>(
-        std::move(stream), NoData{}, [](auto self, const auto &peer_id, const auto &msg) {
+        std::move(stream),
+        NoData{},
+        [](auto self, const auto &peer_id, const auto &msg) {
           BOOST_ASSERT(self);
           self->log_->info("Received propagated transactions: {} txs",
                            msg.extrinsics.size());

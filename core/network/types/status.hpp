@@ -66,8 +66,7 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Status &v) {
-    return s << v.roles << v.best_number
-             << v.best_hash << v.genesis_hash;
+    return s << v.roles << v.best_number << v.best_hash << v.genesis_hash;
   }
 
   /**
