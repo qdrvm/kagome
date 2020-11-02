@@ -165,6 +165,8 @@ namespace kagome::network {
   void RouterLibp2p::handleBlockAnnouncesProtocol(
       std::shared_ptr<Stream> stream) const {
     Status status_msg;
+
+    /// TODO(iceseer): use last finalized and best number
     status_msg.best_number = 0;
     status_msg.roles.flags.full = 1;
 
@@ -179,7 +181,8 @@ namespace kagome::network {
       }
     }
     {  /// Best hash
-      auto best_res = storage_->getLastFinalizedBlockHash();
+      /// TODO(iceseer): use last finalized and best number
+      auto best_res = storage_->getGenesisBlockHash();//storage_->getLastFinalizedBlockHash();
       if (best_res) {
         status_msg.best_hash = std::move(best_res.value());
       } else {
@@ -193,7 +196,7 @@ namespace kagome::network {
           BOOST_ASSERT(self);
           self->log_->info("Received block announce: block number {}",
                            msg.header.number);
-          self->babe_observer_->onBlockAnnounce(msg);
+          //self->babe_observer_->onBlockAnnounce(msg);
           return true;
         });
   }
