@@ -46,8 +46,8 @@ namespace kagome::network {
         config_(std::move(config)),
         transactions_protocol_{fmt::format(
             kPropagateTransactionsProtocol.data(), config_->protocolId())},
-        block_announces_protocol_{fmt::format(
-            kBlockAnnouncesProtocol.data(), config_->protocolId())},
+        block_announces_protocol_{
+            fmt::format(kBlockAnnouncesProtocol.data(), config_->protocolId())},
         storage_{std::move(storage)},
         identify_{std::move(identify)},
         ping_proto_{std::move(ping_proto)} {
@@ -165,31 +165,35 @@ namespace kagome::network {
         });
   }
 
-  void RouterLibp2p::handleBlockAnnouncesProtocol(std::shared_ptr<Stream> stream) const {
-    readAsyncMsgWithZeroHandshake<BlockAnnounce>(std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
-      BOOST_ASSERT(self);
-      self->log_->info("Received block announce: block number {}",
-                       msg.header.number);
-      self->babe_observer_->onBlockAnnounce(msg);
-      return true;
-    });
+  void RouterLibp2p::handleBlockAnnouncesProtocol(
+      std::shared_ptr<Stream> stream) const {
+    readAsyncMsgWithZeroHandshake<BlockAnnounce>(
+        std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
+          BOOST_ASSERT(self);
+          self->log_->info("Received block announce: block number {}",
+                           msg.header.number);
+          self->babe_observer_->onBlockAnnounce(msg);
+          return true;
+        });
   }
 
-  void RouterLibp2p::handleTransactionsProtocol(std::shared_ptr<Stream> stream) const {
-    readAsyncMsgWithZeroHandshake<PropagatedTransactions>(std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
-      BOOST_ASSERT(self);
-      self->log_->info("Received propagated transactions: {} txs",
-                 msg.extrinsics.size());
-      for (auto &extrinsic : msg.extrinsics) {
-        auto result = self->extrinsic_observer_->onTxMessage(extrinsic);
-        if (result) {
-          self->log_->debug("  Received tx {}", result.value());
-        } else {
-          self->log_->debug("  Rejected tx: {}", result.error().message());
-        }
-      }
-      return true;
-    });
+  void RouterLibp2p::handleTransactionsProtocol(
+      std::shared_ptr<Stream> stream) const {
+    readAsyncMsgWithZeroHandshake<PropagatedTransactions>(
+        std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
+          BOOST_ASSERT(self);
+          self->log_->info("Received propagated transactions: {} txs",
+                           msg.extrinsics.size());
+          for (auto &extrinsic : msg.extrinsics) {
+            auto result = self->extrinsic_observer_->onTxMessage(extrinsic);
+            if (result) {
+              self->log_->debug("  Received tx {}", result.value());
+            } else {
+              self->log_->debug("  Rejected tx: {}", result.error().message());
+            }
+          }
+          return true;
+        });
   }
 
   void RouterLibp2p::handleGossipProtocol(

@@ -102,8 +102,9 @@ namespace kagome::network {
       });
     }
 
-    template<typename T, typename F>
-    void readAsyncMsgWithZeroHandshake(std::shared_ptr<Stream> stream, F &&f) const {
+    template <typename T, typename F>
+    void readAsyncMsgWithZeroHandshake(std::shared_ptr<Stream> stream,
+                                       F &&f) const {
       auto rw =
           std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream);
       rw->read([wself{weak_from_this()},

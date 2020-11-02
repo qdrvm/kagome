@@ -117,9 +117,8 @@ namespace kagome::network {
           stream_engine, typename std::decay<decltype(handshake)>::type);
       (*shared_handshake) = std::forward<H>(handshake);
 
-      stream_engine_
-          ->broadcast<typename std::decay_t<decltype(msg)>, NoData>(
-              protocol, std::move(shared_msg), std::move(shared_handshake));
+      stream_engine_->broadcast<typename std::decay_t<decltype(msg)>, NoData>(
+          protocol, std::move(shared_msg), std::move(shared_handshake));
     }
 
     common::Logger logger_;
