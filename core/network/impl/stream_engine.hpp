@@ -115,10 +115,11 @@ namespace kagome::network {
       });
     }
 
-    template <typename T>
+    template <typename T, typename H>
     void send(const PeerInfo &peer,
               const Protocol &protocol,
-              std::shared_ptr<T> msg) {
+              std::shared_ptr<T> msg,
+              boost::optional<std::shared_ptr<H>> handshake) {
       BOOST_ASSERT(msg);
       BOOST_ASSERT(!protocol.empty());
 
@@ -130,12 +131,14 @@ namespace kagome::network {
         }
 
         BOOST_ASSERT(type == PeerType::kReserved);
-        updateStream(peer, protocol, std::move(msg));
+        updateStream(peer, protocol, std::move(msg), handshake);
       });
     }
 
-    template <typename T>
-    void broadcast(const Protocol &protocol, std::shared_ptr<T> msg) {
+    template <typename T, typename H>
+    void broadcast(const Protocol &protocol,
+                   std::shared_ptr<T> msg,
+                   boost::optional<std::shared_ptr<H>> handshake) {
       BOOST_ASSERT(msg);
       BOOST_ASSERT(!protocol.empty());
 
@@ -150,7 +153,7 @@ namespace kagome::network {
                         return;
                       }
                       BOOST_ASSERT(type == PeerType::kReserved);
-                      updateStream(peer, protocol, msg);
+                      updateStream(peer, protocol, msg, handshake);
                     });
       });
     }
@@ -261,13 +264,59 @@ namespace kagome::network {
       });
     }
 
-    template <typename T>
-    void updateStream(const PeerInfo &peer,
+    template <typename F, typename H>
+    void forNewStream(const PeerInfo &peer,
                       const Protocol &protocol,
-                      std::shared_ptr<T> msg) {
+                      boost::optional<std::shared_ptr<H>> handshake,
+                      F &&f) {
+      using CallbackResultType =
+          outcome::result<std::shared_ptr<libp2p::connection::Stream>>;
       host_.newStream(
           peer,
           protocol,
+          [peer, handshake{std::move(handshake)}, f{std::forward<F>(f)}](
+              auto &&stream_res) mutable {
+            if (!stream_res || !handshake) {
+              std::forward<F>(f)(std::move(stream_res));
+              return;
+            }
+
+            auto stream = std::move(stream_res.value());
+            auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+            BOOST_ASSERT(*handshake);
+            read_writer->write(
+                **handshake,
+                [read_writer, stream, f{std::forward<F>(f)}](
+                    auto &&write_res) mutable {
+                  if (!write_res) {
+                    std::forward<F>(f)(CallbackResultType{write_res.error()});
+                    return;
+                  }
+
+                  read_writer->template read<H>(
+                      [stream, f{std::forward<F>(f)}](
+                          /*outcome::result<H>*/ auto &&read_res) mutable {
+                        if (!read_res) {
+                          std::forward<F>(f)(
+                              CallbackResultType{read_res.error()});
+                          return;
+                        }
+                        std::forward<F>(f)(
+                            CallbackResultType{std::move(stream)});
+                      });
+                });
+          });
+    }
+
+    template <typename T, typename H>
+    void updateStream(const PeerInfo &peer,
+                      const Protocol &protocol,
+                      std::shared_ptr<T> msg,
+                      boost::optional<std::shared_ptr<H>> handshake) {
+      forNewStream(
+          peer,
+          protocol,
+          std::move(handshake),
           [wself{weak_from_this()}, protocol, peer, msg{std::move(msg)}](
               auto &&stream_res) mutable {
             if (auto self = wself.lock()) {

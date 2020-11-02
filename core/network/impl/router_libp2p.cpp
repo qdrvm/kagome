@@ -8,6 +8,7 @@
 #include <libp2p/basic/message_read_writer_uvarint.hpp>
 
 #include "application/configuration_storage.hpp"
+#include "blockchain/block_storage.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
@@ -31,7 +32,10 @@ namespace kagome::network {
       std::shared_ptr<Gossiper> gossiper,
       const PeerList &peer_list,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<kagome::application::ConfigurationStorage> config)
+      std::shared_ptr<kagome::application::ConfigurationStorage> config,
+      std::shared_ptr<blockchain::BlockStorage> storage,
+      std::shared_ptr<libp2p::protocol::Identify> identify,
+      std::shared_ptr<libp2p::protocol::Ping> ping_proto)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
@@ -39,7 +43,12 @@ namespace kagome::network {
         extrinsic_observer_{std::move(extrinsic_observer)},
         gossiper_{std::move(gossiper)},
         log_{common::createLogger("RouterLibp2p")},
-        config_(std::move(config)) {
+        config_(std::move(config)),
+        transactions_protocol_{fmt::format(
+            kPropagateTransactionsProtocol.data(), config_->protocolId())},
+        storage_{std::move(storage)},
+        identify_{std::move(identify)},
+        ping_proto_{std::move(ping_proto)} {
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
@@ -48,14 +57,20 @@ namespace kagome::network {
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(identify_ != nullptr);
+    BOOST_ASSERT(ping_proto_ != nullptr);
 
     gossiper_->storeSelfPeerInfo(own_peer_info);
     for (const auto &peer_info : peer_list.peers) {
       if (peer_info.id != own_peer_info.id) {
+        gossiper_->reserveStream(peer_info, transactions_protocol_, {});
         gossiper_->reserveStream(peer_info, kGossipProtocol, {});
       } else {
         auto stream = std::make_shared<LoopbackStream>(own_peer_info);
         loopback_stream_ = stream;
+        gossiper_->reserveStream(
+            own_peer_info, transactions_protocol_, std::move(stream));
         gossiper_->reserveStream(
             own_peer_info, kGossipProtocol, std::move(stream));
       }
@@ -68,12 +83,39 @@ namespace kagome::network {
         [self{shared_from_this()}](auto &&stream) {
           self->handleSyncProtocol(std::forward<decltype(stream)>(stream));
         });
+    host_.setProtocolHandler(transactions_protocol_,
+                             [self{shared_from_this()}](auto &&stream) {
+                               self->handleTransactionsProtocol(
+                                   std::forward<decltype(stream)>(stream));
+                             });
+    host_.setProtocolHandler(identify_->getProtocolId(),
+                             [wself{weak_from_this()}](auto &&stream) {
+                               if (auto self = wself.lock())
+                                 self->identify_->handle(stream);
+                             });
+    host_.setProtocolHandler(ping_proto_->getProtocolId(),
+                             [wself{weak_from_this()}](auto &&stream) {
+                               if (auto self = wself.lock())
+                                 self->ping_proto_->handle(stream);
+                             });
+    host_.setProtocolHandler(
+        network::kSupProtocol, [wself{weak_from_this()}](auto &&stream) {
+          if (auto self = wself.lock(); self && stream)
+            if (auto peer_id = stream->remotePeerId())
+              self->log_->info("Handled {} protocol stream from: {}",
+                               network::kSupProtocol,
+                               peer_id.value().toHex());
+        });
     host_.setProtocolHandler(
         kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
           self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
         });
     if (auto stream = loopback_stream_.lock()) {
-      readGossipMessage(std::move(stream));
+      readAsyncMsg<GossipMessage>(
+          std::move(stream),
+          [](auto self, const auto &peer_id, const auto &msg) {
+            return self->processGossipMessage(peer_id, msg);
+          });
     }
     host_.start();
     const auto &host_addresses = host_.getAddresses();
@@ -113,60 +155,98 @@ namespace kagome::network {
         });
   }
 
+  void RouterLibp2p::handleTransactionsProtocol(
+      std::shared_ptr<Stream> stream) const {
+    auto rw = std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream);
+    rw->read([wself{weak_from_this()}, stream, rw](auto read_result) {
+      auto self = wself.lock();
+      if (!self) return;
+
+      if (!read_result) {
+        self->log_->error("Error while reading handshake: {}",
+                          read_result.error().message());
+        return stream->reset();
+      }
+
+      BOOST_ASSERT(read_result.value() == nullptr);
+      rw->write({}, [wself, stream](auto write_res) {
+        auto self = wself.lock();
+        if (!self) return;
+
+        if (!write_res) {
+          self->log_->error("Error while writing handshake: {}",
+                            write_res.error().message());
+          return stream->reset();
+        }
+
+        self->readAsyncMsg<PropagatedTransactions>(
+            std::move(stream),
+            [](auto self, const auto &peer_id, const auto &msg) {
+              return self->processPropagateTransactionsMessage(peer_id, msg);
+            });
+      });
+    });
+  }
+
   void RouterLibp2p::handleGossipProtocol(
       std::shared_ptr<Stream> stream) const {
-    gossiper_->addStream(kGossipProtocol, stream);
-    return readGossipMessage(std::move(stream));
+    if (gossiper_->addStream(kGossipProtocol, stream))
+      readAsyncMsg<GossipMessage>(
+          std::move(stream),
+          [](auto self, const auto &peer_id, const auto &msg) {
+            return self->processGossipMessage(peer_id, msg);
+          });
   }
 
   void RouterLibp2p::handleSupProtocol(std::shared_ptr<Stream> stream) const {
     Status status_msg;
     status_msg.version = CURRENT_VERSION;
     status_msg.min_supported_version = MIN_VERSION;
+    status_msg.best_number = 0;
+    status_msg.roles.flags.full = 1;
 
-    GossipMessage msg;
-    msg.type = GossipMessage::Type::STATUS;
-    msg.data.put(scale::encode(status_msg).value());
+    {  /// Genesis hash
+      auto genesis_res = storage_->getGenesisBlockHash();
+      if (genesis_res) {
+        status_msg.genesis_hash = std::move(genesis_res.value());
+      } else {
+        log_->error("Could not get genesis hash: {}",
+                    genesis_res.error().message());
+        return;
+      }
+    }
+    {  /// Best hash
+      auto best_res = storage_->getLastFinalizedBlockHash();
+      if (best_res) {
+        status_msg.best_hash = std::move(best_res.value());
+      } else {
+        log_->error("Could not get best hash: {}", best_res.error().message());
+        return;
+      }
+    }
 
-    ScaleMessageReadWriter rw(
-        std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
-            std::move(stream)));
-
-    rw.write(msg, [self{shared_from_this()}](auto &&res) {
+    auto rw = std::make_shared<ScaleMessageReadWriter>(std::move(stream));
+    rw->write(status_msg, [self{shared_from_this()}](auto &&res) {
       if (!res)
         self->log_->error("Could not broadcast, reason: {}",
                           res.error().message());
     });
   }
 
-  void RouterLibp2p::readGossipMessage(std::shared_ptr<Stream> stream) const {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-    read_writer->read<GossipMessage>([wp = weak_from_this(),
-                                      stream = std::move(stream)](
-                                         auto &&msg_res) mutable {
-      auto self = wp.lock();
-      if (not self) return;
-
-      if (not msg_res) {
-        self->log_->error("error while reading gossip message: {}",
-                          msg_res.error().message());
-        return stream->reset();
+  bool RouterLibp2p::processPropagateTransactionsMessage(
+      const libp2p::peer::PeerId &peer_id,
+      const PropagatedTransactions &msg) const {
+    log_->info("Received propagated transactions: {} txs",
+               msg.extrinsics.size());
+    for (auto &extrinsic : msg.extrinsics) {
+      auto result = extrinsic_observer_->onTxMessage(extrinsic);
+      if (result) {
+        log_->debug("  Received tx {}", result.value());
+      } else {
+        log_->debug("  Rejected tx: {}", result.error().message());
       }
-
-      auto peer_id_res = stream->remotePeerId();
-      if (not peer_id_res.has_value()) {
-        self->log_->error("can't get peer_id for gossip message: {}",
-                          msg_res.error().message());
-        return stream->reset();
-      }
-
-      if (!self->processGossipMessage(peer_id_res.value(), msg_res.value())) {
-        stream->reset();
-        return;
-      }
-
-      self->readGossipMessage(stream);
-    });
+    }
+    return true;
   }
 
   bool RouterLibp2p::processGossipMessage(const libp2p::peer::PeerId &peer_id,

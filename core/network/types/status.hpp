@@ -6,17 +6,16 @@
 #ifndef KAGOME_CORE_NETWORK_TYPES_STATUS_HPP
 #define KAGOME_CORE_NETWORK_TYPES_STATUS_HPP
 
-#include <vector>
 #include <algorithm>
 #include <libp2p/peer/peer_info.hpp>
+#include <vector>
 
 #include "network/types/roles.hpp"
 #include "primitives/common.hpp"
 
-using kagome::primitives::BlockNumber;
-using kagome::primitives::BlockHash;
-
 namespace kagome::network {
+
+  using kagome::primitives::BlockHash;
 
   /**
    * Is the structure to send to a new connected peer. It contains common
@@ -42,7 +41,7 @@ namespace kagome::network {
     /**
      * Best block number.
      */
-    BlockNumber best_number;
+    uint32_t best_number;
 
     /**
      * Best block hash.
@@ -87,8 +86,9 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Status &v) {
-    return s << v.version << v.min_supported_version << v.roles << v.best_number
-             << v.best_hash << v.genesis_hash << v.chain_status;
+    return s << static_cast<uint8_t>(GossipMessage::Type::STATUS) << v.version
+             << v.min_supported_version << v.roles << v.best_number
+             << v.best_hash << v.genesis_hash;
   }
 
   /**
@@ -101,8 +101,9 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Status &v) {
-    return s >> v.version >> v.min_supported_version >> v.roles >> v.best_number
-           >> v.best_hash >> v.genesis_hash >> v.chain_status;
+    uint8_t _;
+    return s >> _ >> v.version >> v.min_supported_version >> v.roles
+           >> v.best_number >> v.best_hash >> v.genesis_hash;
   }
 
 }  // namespace kagome::network

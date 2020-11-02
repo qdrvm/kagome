@@ -8,6 +8,7 @@
 #include <atomic>
 #include <memory>
 
+#include "application/configuration_storage.hpp"
 #include "network/common.hpp"
 #include "network/impl/loopback_stream.hpp"
 
@@ -15,9 +16,13 @@ namespace kagome::network {
   KAGOME_DEFINE_CACHE(stream_engine);
 
   GossiperBroadcast::GossiperBroadcast(
-      StreamEngine::StreamEnginePtr stream_engine)
+      StreamEngine::StreamEnginePtr stream_engine,
+      std::shared_ptr<kagome::application::ConfigurationStorage> config)
       : logger_{common::createLogger("GossiperBroadcast")},
-        stream_engine_{std::move(stream_engine)} {}
+        stream_engine_{std::move(stream_engine)},
+        config_{std::move(config)},
+        transactions_protocol_{fmt::format(
+            kPropagateTransactionsProtocol.data(), config_->protocolId())} {}
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
@@ -44,14 +49,11 @@ namespace kagome::network {
     });
   }
 
-  void GossiperBroadcast::transactionAnnounce(
-      const TransactionAnnounce &announce) {
-    logger_->debug("Gossip tx announce: {} extrinsics",
-                   announce.extrinsics.size());
-    GossipMessage message;
-    message.type = GossipMessage::Type::TRANSACTIONS;
-    message.data.put(scale::encode(announce).value());
-    broadcast(kGossipProtocol, std::move(message));
+  void GossiperBroadcast::propagateTransactions(
+      const network::PropagatedTransactions &txs) {
+    logger_->debug("Propagate transactions : {} extrinsics",
+                   txs.extrinsics.size());
+    broadcast(transactions_protocol_, txs, NoData{});
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
@@ -106,24 +108,5 @@ namespace kagome::network {
     message.data.put(scale::encode(GrandpaMessage(catch_up_response)).value());
 
     send(peer_id, kGossipProtocol, std::move(message));
-  }
-
-  void GossiperBroadcast::send(const libp2p::peer::PeerId &peer_id,
-                               const libp2p::peer::Protocol &protocol,
-                               GossipMessage &&msg) {
-    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
-    (*shared_msg) = std::move(msg);
-
-    stream_engine_->send(StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
-                         protocol,
-                         std::move(shared_msg));
-  }
-
-  void GossiperBroadcast::broadcast(const libp2p::peer::Protocol &protocol,
-                                    GossipMessage &&msg) {
-    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(stream_engine, GossipMessage);
-    (*shared_msg) = std::move(msg);
-
-    stream_engine_->broadcast(protocol, std::move(shared_msg));
   }
 }  // namespace kagome::network

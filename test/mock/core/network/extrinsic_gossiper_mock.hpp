@@ -16,10 +16,10 @@ namespace kagome::network {
    public:
     ~ExtrinsicGossiperMock() override = default;
 
-    MOCK_METHOD1(transactionAnnounce,
-                 void(const network::TransactionAnnounce &));
+    MOCK_METHOD1(propagateTransactions,
+                 void(const network::PropagatedTransactions &));
   };
 
-}  // namespace kagome::api
+}  // namespace kagome::network
 
 #endif  // KAGOME_TEST_CORE_NETWORK_EXTRINSIC_GOSSIPER_MOCK_HPP

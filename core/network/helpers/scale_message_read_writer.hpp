@@ -42,12 +42,14 @@ namespace kagome::network {
               return cb(read_res.error());
             }
 
-            auto msg_res = scale::decode<MsgType>(*read_res.value());
-            if (!msg_res) {
-              return cb(msg_res.error());
+            if (read_res.value()) {
+              auto msg_res = scale::decode<MsgType>(*read_res.value());
+              if (!msg_res) {
+                return cb(msg_res.error());
+              }
+              return cb(std::move(msg_res.value()));
             }
-
-            return cb(std::move(msg_res.value()));
+            return cb(MsgType{});
           });
     }
 

@@ -99,7 +99,7 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
                  true};
   EXPECT_CALL(*transaction_pool, submitOne(tr))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*gossiper, transactionAnnounce(_)).Times(1);
+  EXPECT_CALL(*gossiper, propagateTransactions(_)).Times(1);
   EXPECT_OUTCOME_SUCCESS(hash, api->submitExtrinsic(*extrinsic));
   ASSERT_EQ(hash.value(), Hash256{});
 }
@@ -118,7 +118,7 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
       .WillOnce(Return(outcome::failure(DummyError::ERROR)));
   EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
   EXPECT_CALL(*transaction_pool, submitOne(_)).Times(0);
-  EXPECT_CALL(*gossiper, transactionAnnounce(_)).Times(0);
+  EXPECT_CALL(*gossiper, propagateTransactions(_)).Times(0);
   EXPECT_OUTCOME_ERROR(
       res, api->submitExtrinsic(*extrinsic), DummyError::ERROR);
 }

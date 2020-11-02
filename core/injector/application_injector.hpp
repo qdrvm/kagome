@@ -630,6 +630,8 @@ namespace kagome::injector {
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
+    libp2p::protocol::PingConfig ping_config{};
+
     return di::make_injector(
         // bind configs
         injector::useConfig(rpc_thread_pool_config),
@@ -637,11 +639,12 @@ namespace kagome::injector {
         injector::useConfig(ws_config),
         injector::useConfig(pool_moderator_config),
         injector::useConfig(tp_pool_limits),
+        injector::useConfig(ping_config),
 
         // inherit host injector
         libp2p::injector::makeHostInjector(
             libp2p::injector::useSecurityAdaptors<
-                libp2p::security::Secio>()[di::override]),
+                libp2p::security::Noise>()[di::override]),
 
         // bind boot nodes
         di::bind<network::PeerList>.to(
@@ -661,6 +664,7 @@ namespace kagome::injector {
             [rpc_ws_endpoint](const auto &injector) {
               return get_jrpc_api_ws_listener(injector, rpc_ws_endpoint);
             }),
+        di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>(),
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
@@ -706,7 +710,6 @@ namespace kagome::injector {
             [](auto const &injector) {
               return get_extension_factory(injector);
             }),
-        di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
@@ -749,6 +752,29 @@ namespace kagome::injector {
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
         di::bind<consensus::grandpa::FinalizationObserver>.to(
             [](auto const &inj) { return get_finalization_observer(inj); }),
+        di::bind<network::Router>.template to([](auto const &injector) {
+          static auto initialized =
+              boost::optional<sptr<network::RouterLibp2p>>(boost::none);
+          if (initialized) {
+            return initialized.value();
+          }
+          initialized = std::make_shared<network::RouterLibp2p>(
+              injector.template create<libp2p::Host &>(),
+              injector.template create<sptr<network::BabeObserver>>(),
+              injector
+                  .template create<sptr<consensus::grandpa::GrandpaObserver>>(),
+              injector.template create<sptr<network::SyncProtocolObserver>>(),
+              injector.template create<sptr<network::ExtrinsicObserver>>(),
+              injector.template create<sptr<network::Gossiper>>(),
+              *injector.template create<sptr<network::PeerList>>(),
+              injector.template create<network::OwnPeerInfo &>(),
+              injector.template create<
+                  sptr<kagome::application::ConfigurationStorage>>(),
+              injector.template create<sptr<blockchain::BlockStorage>>(),
+              injector.template create<sptr<libp2p::protocol::Identify>>(),
+              injector.template create<sptr<libp2p::protocol::Ping>>());
+          return initialized.value();
+        }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
