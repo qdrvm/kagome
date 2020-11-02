@@ -18,6 +18,7 @@
 #include "network/types/block_announce.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
+#include "network/types/no_data_message.hpp"
 #include "network/types/peer_list.hpp"
 #include "network/types/status.hpp"
 #include "scale/scale.hpp"
@@ -163,8 +164,32 @@ namespace kagome::network {
 
   void RouterLibp2p::handleBlockAnnouncesProtocol(
       std::shared_ptr<Stream> stream) const {
-    readAsyncMsgWithZeroHandshake<BlockAnnounce>(
-        std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
+    Status status_msg;
+    status_msg.best_number = 0;
+    status_msg.roles.flags.full = 1;
+
+    {  /// Genesis hash
+      auto genesis_res = storage_->getGenesisBlockHash();
+      if (genesis_res) {
+        status_msg.genesis_hash = std::move(genesis_res.value());
+      } else {
+        log_->error("Could not get genesis hash: {}",
+                    genesis_res.error().message());
+        return;
+      }
+    }
+    {  /// Best hash
+      auto best_res = storage_->getLastFinalizedBlockHash();
+      if (best_res) {
+        status_msg.best_hash = std::move(best_res.value());
+      } else {
+        log_->error("Could not get best hash: {}", best_res.error().message());
+        return;
+      }
+    }
+
+    readAsyncMsgWithHandshake<BlockAnnounce>(
+        std::move(stream), std::move(status_msg), [](auto self, const auto &peer_id, const auto &msg) {
           BOOST_ASSERT(self);
           self->log_->info("Received block announce: block number {}",
                            msg.header.number);
@@ -175,8 +200,8 @@ namespace kagome::network {
 
   void RouterLibp2p::handleTransactionsProtocol(
       std::shared_ptr<Stream> stream) const {
-    readAsyncMsgWithZeroHandshake<PropagatedTransactions>(
-        std::move(stream), [](auto self, const auto &peer_id, const auto &msg) {
+    readAsyncMsgWithHandshake<PropagatedTransactions>(
+        std::move(stream), NoData{}, [](auto self, const auto &peer_id, const auto &msg) {
           BOOST_ASSERT(self);
           self->log_->info("Received propagated transactions: {} txs",
                            msg.extrinsics.size());
@@ -204,8 +229,6 @@ namespace kagome::network {
 
   void RouterLibp2p::handleSupProtocol(std::shared_ptr<Stream> stream) const {
     Status status_msg;
-    status_msg.version = CURRENT_VERSION;
-    status_msg.min_supported_version = MIN_VERSION;
     status_msg.best_number = 0;
     status_msg.roles.flags.full = 1;
 

@@ -102,40 +102,32 @@ namespace kagome::network {
       });
     }
 
-    template <typename T, typename F>
-    void readAsyncMsgWithZeroHandshake(std::shared_ptr<Stream> stream,
+    template <typename T, typename H, typename F>
+    void readAsyncMsgWithHandshake(std::shared_ptr<Stream> stream, H &&handshake,
                                        F &&f) const {
-      auto rw =
-          std::make_shared<libp2p::basic::MessageReadWriterUvarint>(stream);
-      rw->read([wself{weak_from_this()},
-                stream{std::move(stream)},
-                rw,
-                f{std::move(f)}](auto read_result) {
-        if (!read_result) {
-          if (auto self = wself.lock())
-            self->log_->error("Error while reading handshake: {}",
-                              read_result.error().message());
-          return stream->reset();
-        }
+      auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+      read_writer->read<std::decay_t<H>>([stream, handshake{std::move(handshake)}, read_writer, wself{weak_from_this()}, f{std::forward<F>(f)}](auto &&read_res) mutable {
+            if (!read_res) {
+              if (auto self = wself.lock())
+                self->log_->error("Error while reading handshake: {}",
+                                  read_res.error().message());
+              return stream->reset();
+            }
+            read_writer->write(
+                handshake,
+                [stream, wself, f{std::forward<F>(f)}](auto &&write_res) mutable {
+                  auto self = wself.lock();
+                  if (!self) return;
 
-        BOOST_ASSERT(read_result.value() == nullptr);
-        rw->write({},
-                  [wself{std::move(wself)},
-                   stream{std::move(stream)},
-                   f{std::move(f)}](auto write_res) mutable {
-                    auto self = wself.lock();
-                    if (!self) return;
-
-                    if (!write_res) {
-                      self->log_->error("Error while writing handshake: {}",
-                                        write_res.error().message());
-                      return stream->reset();
-                    }
-
-                    self->readAsyncMsg<std::decay_t<T>>(std::move(stream),
-                                                        std::forward<F>(f));
-                  });
-      });
+                  if (!write_res) {
+                    self->log_->error("Error while reading handshake: {}",
+                                      write_res.error().message());
+                    return stream->reset();
+                  }
+                  self->readAsyncMsg<std::decay_t<T>>(std::move(stream),
+                                                      std::forward<F>(f));
+                });
+          });
     }
 
     /**
