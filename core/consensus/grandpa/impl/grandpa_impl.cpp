@@ -65,6 +65,8 @@ namespace kagome::consensus::grandpa {
   }
 
   bool GrandpaImpl::start() {
+  	return true; // TODO(xDimon): Remove after kademlia will be implemented
+
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {

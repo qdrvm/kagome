@@ -640,33 +640,6 @@ namespace kagome::injector {
     return *instance;
   }
 
-  //  template <class Injector>
-  //  std::shared_ptr<libp2p::protocol::kademlia::Kad> get_kademlia(
-  //      const Injector &injector) {
-  //    static auto instance =
-  //        boost::optional<std::shared_ptr<libp2p::protocol::kademlia::Kad>>(
-  //            boost::none);
-  //    if (instance) {
-  //      return *instance;
-  //    }
-  //
-  //    auto host = injector.template create<std::shared_ptr<libp2p::Host>>();
-  //    auto scheduler = injector.template
-  //    create<std::shared_ptr<libp2p::protocol::Scheduler>>();
-  //
-  //    auto storage =
-  //        injector.template create<std::shared_ptr<storage::BufferStorage>>();
-  //
-  //    instance = std::make_shared<libp2p::protocol::kademlia::KadImpl>(
-  //        std::move(host),
-  //        std::move(scheduler),
-  //        std::move(storage),
-  //
-  //        );
-  //
-  //    return *instance;
-  //  }
-
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
                                Ts &&... args) {
@@ -679,7 +652,6 @@ namespace kagome::injector {
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     libp2p::protocol::PingConfig ping_config{};
-    //    libp2p::protocol::kad::KademliaConfig kad_config{};
     libp2p::protocol::kademlia::Config kademlia_config{};
 
     return di::make_injector(
@@ -698,10 +670,7 @@ namespace kagome::injector {
 
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(
-//            libp2p::injector::useOldKademliaConfig(kad_config)[di::override],
-//            di::bind<libp2p::protocol::kad::ValueStoreBackend>()
-//                .template to<network::KademliaValueStorage>()[di::override],
-            libp2p::injector::useKademliaConfig(kademlia_config)[di::override]),
+            libp2p::injector::useKademliaConfig(kademlia_config)),
 
         // bind boot nodes
         di::bind<network::PeerList>.to(
@@ -720,7 +689,7 @@ namespace kagome::injector {
         di::bind<api::WsListenerImpl>.to([](const auto &injector) {
           return get_jrpc_api_ws_listener(injector);
         }),
-        di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>(),
+        di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()[di::override],
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),

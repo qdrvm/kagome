@@ -91,6 +91,8 @@ namespace kagome::consensus {
   }
 
   bool BabeImpl::start() {
+	  return true; // TODO(xDimon): Remove after kademlia will be implemented
+
     if (not execution_strategy_.has_value()) {
       log_->critical("Internal error: undefined execution strategy of babe");
       return false;
