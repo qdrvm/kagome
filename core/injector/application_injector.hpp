@@ -679,7 +679,7 @@ namespace kagome::injector {
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     libp2p::protocol::PingConfig ping_config{};
-//    libp2p::protocol::kad::KademliaConfig kad_config{};
+    //    libp2p::protocol::kad::KademliaConfig kad_config{};
     libp2p::protocol::kademlia::Config kademlia_config{};
 
     return di::make_injector(
@@ -700,8 +700,7 @@ namespace kagome::injector {
         libp2p::injector::makeKademliaInjector(
 //            libp2p::injector::useOldKademliaConfig(kad_config)[di::override],
 //            di::bind<libp2p::protocol::kad::ValueStoreBackend>()
-//                .template
-//                to<network::KademliaValueStorage>()[di::override],
+//                .template to<network::KademliaValueStorage>()[di::override],
             libp2p::injector::useKademliaConfig(kademlia_config)[di::override]),
 
         // bind boot nodes

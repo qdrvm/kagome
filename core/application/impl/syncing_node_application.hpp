@@ -43,7 +43,7 @@ namespace kagome::application {
 
     sptr<ChainSpec> genesis_config_;
     sptr<network::Router> router_;
-    std::shared_ptr<libp2p::protocol::kad::Kad> kad_;
+    std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
 
     sptr<api::ApiService> jrpc_api_service_;
 

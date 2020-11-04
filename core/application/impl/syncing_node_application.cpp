@@ -24,7 +24,9 @@ namespace kagome::application {
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     router_ = injector_.create<sptr<network::Router>>();
     chain_path_ = app_config.chain_path(genesis_config_->id());
-    kad_ = injector_.create<std::shared_ptr<libp2p::protocol::kad::Kad>>();
+    kademlia_ =
+        injector_
+            .create<std::shared_ptr<libp2p::protocol::kademlia::Kademlia>>();
 
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
@@ -67,10 +69,12 @@ namespace kagome::application {
                 this->router_->handleGossipProtocol(stream_res.value());
               });
         }
+
         for (const auto &boot_node : config_storage_->getBootNodes().peers) {
-          kad_->addPeer(boot_node, true);
+          kademlia_->addPeer(boot_node, true);
         }
-        kad_->start(true);
+        kademlia_->start();
+
         this->router_->init();
       });
       return true;

@@ -31,8 +31,9 @@ namespace kagome::application {
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_ = injector_.create<sptr<Grandpa>>();
     router_ = injector_.create<sptr<network::Router>>();
-//    kad_ = injector_.create<std::shared_ptr<libp2p::protocol::kad::Kad>>();
-    kademlia_ = injector_.create<std::shared_ptr<libp2p::protocol::kademlia::Kademlia>>();
+    kademlia_ =
+        injector_
+            .create<std::shared_ptr<libp2p::protocol::kademlia::Kademlia>>();
 
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
@@ -57,11 +58,6 @@ namespace kagome::application {
             std::exit(1);
           }
         }
-
-//        for (const auto &boot_node : config_storage_->getBootNodes().peers) {
-//          kad_->addPeer(boot_node, true);
-//        }
-//        kad_->start(true);
 
         for (const auto &boot_node : config_storage_->getBootNodes().peers) {
           kademlia_->addPeer(boot_node, true);
