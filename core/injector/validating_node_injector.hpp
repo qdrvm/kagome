@@ -13,7 +13,7 @@
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "network/types/own_peer_info.hpp"
-#include "runtime/dummy/grandpa_api_dummy.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
 
 namespace kagome::injector {
 
@@ -189,7 +189,7 @@ namespace kagome::injector {
               }
               if (is_only_finalizing) {
                 auto grandpa_api = injector.template create<
-                    sptr<runtime::dummy::GrandpaApiDummy>>();
+                    sptr<runtime::binaryen::GrandpaApiImpl>>();
                 initialized = grandpa_api;
               } else {
                 auto grandpa_api = injector.template create<
