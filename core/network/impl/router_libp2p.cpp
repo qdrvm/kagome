@@ -293,6 +293,8 @@ namespace kagome::network {
     switch (msg.type) {
       case MsgType::BLOCK_ANNOUNCE: {
         BOOST_ASSERT(!"Legacy protocol unsupported!");
+        log_->warn("Legacy protocol message BLOCK_ANNOUNCE from: {}",
+                    peer_id.toHex());
         return false;
       }
       case GossipMessage::Type::CONSENSUS: {
@@ -339,6 +341,8 @@ namespace kagome::network {
       }
       case MsgType::TRANSACTIONS: {
         BOOST_ASSERT(!"Legacy protocol unsupported!");
+        log_->warn("Legacy protocol message TRANSACTIONS from: {}",
+                    peer_id.toHex());
         return false;
       }
       case GossipMessage::Type::STATUS: {
