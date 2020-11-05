@@ -113,6 +113,23 @@ namespace kagome::network {
                                network::kSupProtocol,
                                peer_id.value().toHex());
         });
+    new_connection_handler_ = host_.setOnNewConnectionHandler(
+        [wself{weak_from_this()}](auto &&peer_info) {
+          if (auto self = wself.lock()) {
+            self->host_.newStream(
+                peer_info,
+                self->block_announces_protocol_,
+                [self, peer_info](auto &&stream_res) {
+                  if (!stream_res) {
+                    self->log_->warn("Unable to create stream with {}",
+                                     peer_info.id.toHex());
+                    return;
+                  }
+                  self->gossiper_->addStream(self->block_announces_protocol_,
+                                             stream_res.value());
+                });
+          }
+        });
     host_.setProtocolHandler(
         kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
           self->handleGossipProtocol(std::forward<decltype(stream)>(stream));

@@ -156,6 +156,7 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::Ping> ping_proto_;
+    libp2p::event::Handle new_connection_handler_;
   };
 }  // namespace kagome::network
 
