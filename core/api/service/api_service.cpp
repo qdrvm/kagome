@@ -39,15 +39,15 @@ namespace {
 
 namespace {
   using namespace kagome::api;
-  inline void sendEvent(std::shared_ptr<JRpcServer> server,
-                        std::shared_ptr<Session> session,
-                        kagome::common::Logger logger,
-                        uint32_t set_id,
-                        std::string_view name,
-                        jsonrpc::Value &&value) {
+  template <typename F>
+  inline void forJsonData(std::shared_ptr<JRpcServer> server,
+                          kagome::common::Logger logger,
+                          uint32_t set_id,
+                          std::string_view name,
+                          jsonrpc::Value &&value,
+                          F &&f) {
     BOOST_ASSERT(server);
     BOOST_ASSERT(logger);
-    BOOST_ASSERT(session);
     BOOST_ASSERT(!name.empty());
 
     jsonrpc::Value::Struct response;
@@ -59,15 +59,32 @@ namespace {
 
     server->processJsonData(name.data(), params, [&](const auto &response) {
       if (response.has_value())
-        session->respond(response.value());
+        std::forward<F>(f)(response.value());
       else
         logger->error("process Json data failed => {}",
                       response.error().message());
     });
   }
+  inline void sendEvent(std::shared_ptr<JRpcServer> server,
+                        std::shared_ptr<Session> session,
+                        kagome::common::Logger logger,
+                        uint32_t set_id,
+                        std::string_view name,
+                        jsonrpc::Value &&value) {
+    BOOST_ASSERT(session);
+    forJsonData(server,
+                logger,
+                set_id,
+                name,
+                std::move(value),
+                [session{std::move(session)}](const auto &response) {
+                  session->respond(response);
+                });
+  }
 }
 
 namespace kagome::api {
+  KAGOME_DEFINE_CACHE(api_service);
 
   ApiService::ApiService(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
@@ -195,11 +212,19 @@ namespace kagome::api {
               // process new request
               self->server_->processData(
                   str_request,
-                  [session = std::move(session)](
+                  [&](
                       const std::string &response) mutable {
                     // process response
                     session->respond(response);
                   });
+
+              self->for_session(session->id(), [&](SessionExecutionContext &session_context) {
+                if (session_context.messages)
+                  for (auto &msg : *session_context.messages)
+                    session->respond(msg);
+
+                session_context.messages.reset();
+              });
             });
 
         session->connectOnCloseHandler(
@@ -244,7 +269,7 @@ namespace kagome::api {
                 subscription_engines_.storage, session),
             .events_subscription =
                 std::make_shared<subscriptions::EventsSubscribedSessionType>(
-                    subscription_engines_.events, session),
+                    subscription_engines_.events, session)
         });
 
     BOOST_ASSERT(inserted);
@@ -300,6 +325,13 @@ namespace kagome::api {
         auto &session = session_context.events_subscription;
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id, primitives::SubscriptionEventType::kNewHeads);
+
+        jsonrpc::Value s(10);
+
+        session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(api_service, std::vector<std::string>);
+        forJsonData(server_, logger_, id, "chain_newHead", std::move(s), [&](const auto &result) {
+          session_context.messages->push_back(result.data());
+        });
         return static_cast<uint32_t>(id);
       });
     });

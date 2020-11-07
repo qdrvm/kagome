@@ -9,7 +9,9 @@
 #include <functional>
 #include <mutex>
 #include <unordered_map>
+#include <type_traits>
 
+#include "containers/objects_cache.hpp"
 #include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/transport/listener.hpp"
 #include "api/transport/rpc_thread_pool.hpp"
@@ -21,6 +23,8 @@
 #include "subscription/subscriber.hpp"
 
 namespace kagome::api {
+  KAGOME_DECLARE_CACHE(api_service,
+      KAGOME_CACHE_UNIT(std::vector<std::string>));
 
   class JRpcProcessor;
 
@@ -45,8 +49,11 @@ namespace kagome::api {
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
     struct SessionExecutionContext {
+      using AdditionMessagesType = decltype(KAGOME_EXTRACT_SHARED_CACHE(api_service, std::vector<std::string>));
+
       SubscribedSessionPtr storage_subscription;
       subscriptions::EventsSubscribedSessionPtr events_subscription;
+      AdditionMessagesType messages;
     };
 
    public:
