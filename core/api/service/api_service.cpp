@@ -37,6 +37,36 @@ namespace {
   }
 }  // namespace
 
+namespace {
+  using namespace kagome::api;
+  inline void sendEvent(std::shared_ptr<JRpcServer> server,
+                        std::shared_ptr<Session> session,
+                        kagome::common::Logger logger,
+                        uint32_t set_id,
+                        std::string_view name,
+                        jsonrpc::Value &&value) {
+    BOOST_ASSERT(server);
+    BOOST_ASSERT(logger);
+    BOOST_ASSERT(session);
+    BOOST_ASSERT(!name.empty());
+
+    jsonrpc::Value::Struct response;
+    response["result"] = std::move(value);
+    response["subscription"] = kagome::api::makeValue(set_id);
+
+    jsonrpc::Request::Parameters params;
+    params.push_back(std::move(response));
+
+    server->processJsonData(name.data(), params, [&](const auto &response) {
+      if (response.has_value())
+        session->respond(response.value());
+      else
+        logger->error("process Json data failed => {}",
+                      response.error().message());
+    });
+  }
+}
+
 namespace kagome::api {
 
   ApiService::ApiService(
@@ -102,20 +132,12 @@ namespace kagome::api {
                   result["changes"] = std::move(out_data);
                   result["block"] = api::makeValue(block);
 
-                  jsonrpc::Value::Struct p;
-                  p["result"] = std::move(result);
-                  p["subscription"] = api::makeValue(set_id);
-
-                  jsonrpc::Request::Parameters params;
-                  params.push_back(std::move(p));
-                  self->server_->processJsonData(
-                      "state_storage", params, [&](const auto &response) {
-                        if (response.has_value())
-                          session->respond(response.value());
-                        else
-                          self->logger_->error("process Json data failed => {}",
-                                               response.error().message());
-                      });
+                  sendEvent(self->server_,
+                            session,
+                            self->logger_,
+                            set_id,
+                            "state_storage",
+                            std::move(result));
                 }
               });
 
@@ -125,38 +147,20 @@ namespace kagome::api {
                    const auto &key,
                    const auto &header) {
                 if (auto self = wp.lock()) {
-                  jsonrpc::Value::Struct p;
-                  p["result"] = api::makeValue(header);
-                  p["subscription"] = api::makeValue(set_id);
+              std::string_view name;
+              if (key == primitives::SubscriptionEventType::kNewHeads)
+                name = "chain_newHead";
+              else if (key
+                       == primitives::SubscriptionEventType::kFinalizedHeads)
+                name = "chain_finalizedHead";
 
-                  jsonrpc::Request::Parameters params;
-                  params.push_back(std::move(p));
-                  if (key == primitives::SubscriptionEventType::kNewHeads) {
-                    self->server_->processJsonData(
-                        "chain_newHead", params, [&](const auto &response) {
-                          if (response.has_value())
-                            session->respond(response.value());
-                          else
-                            self->logger_->error(
-                                "process Json data failed => {}",
-                                response.error().message());
-                        });
-                  }
-                  if (key
-                      == primitives::SubscriptionEventType::kFinalizedHeads) {
-                    self->server_->processJsonData(
-                        "chain_finalizedHead",
-                        params,
-                        [&](const auto &response) {
-                          if (response.has_value())
-                            session->respond(response.value());
-                          else
-                            self->logger_->error(
-                                "process Json data failed => {}",
-                                response.error().message());
-                        });
-                  }
-                }
+              sendEvent(self->server_,
+                        session,
+                        self->logger_,
+                        set_id,
+                        name,
+                        api::makeValue(header));
+            }
               });
         }
 

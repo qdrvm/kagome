@@ -58,9 +58,8 @@ void JRpcServerImpl::processJsonData(std::string method_name,
                                    const ResponseHandler &cb) {
     auto &&formatted_response =
         jsonrpc_handler_.HandleRequest(std::string(request));
-    std::string response(formatted_response->GetData(),
-                         formatted_response->GetSize());
-    cb(response);
+    cb(std::string(formatted_response->GetData(),
+                            formatted_response->GetSize()));
   }
 
 }  // namespace kagome::api
