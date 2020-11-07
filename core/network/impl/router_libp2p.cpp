@@ -183,7 +183,7 @@ namespace kagome::network {
       std::shared_ptr<Stream> stream) const {
     Status status_msg;
 
-    /// TODO(iceseer): use last finalized and best number
+    /// TODO(iceseer): #589 use last finalized and best number
     status_msg.best_number = 0;
     status_msg.roles.flags.full = 1;
 
@@ -198,7 +198,7 @@ namespace kagome::network {
       }
     }
     {  /// Best hash
-      /// TODO(iceseer): use last finalized and best number
+      /// TODO(iceseer): #589 use last finalized and best number
       auto best_res =
           storage_
               ->getGenesisBlockHash();  // storage_->getLastFinalizedBlockHash();
