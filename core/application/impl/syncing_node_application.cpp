@@ -45,19 +45,6 @@ namespace kagome::application {
         for (const auto &boot_node : config_storage_->getBootNodes().peers) {
           host.newStream(
               boot_node,
-              network::kSupProtocol,
-              [this, boot_node](const auto &stream_res) {
-                if (not stream_res) {
-                  this->logger_->error(
-                      "Could not establish connection with {}. Error: {}",
-                      boot_node.id.toBase58(),
-                      stream_res.error().message());
-                  return;
-                }
-                this->router_->handleSupProtocol(stream_res.value());
-              });
-          host.newStream(
-              boot_node,
               network::kGossipProtocol,
               [this, boot_node](const auto &stream_res) {
                 if (not stream_res) {

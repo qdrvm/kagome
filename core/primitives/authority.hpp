@@ -37,7 +37,7 @@ namespace kagome::primitives {
   /**
    * Authority index
    */
-  using AuthorityIndex = uint64_t;
+  using AuthorityIndex = uint32_t;
 
   /**
    * Authority, which participate in block production and finalization

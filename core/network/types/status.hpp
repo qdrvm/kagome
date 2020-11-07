@@ -24,16 +24,6 @@ namespace kagome::network {
    */
   struct Status {
     /**
-     * Protocol version.
-     */
-    uint32_t version;
-
-    /**
-     * Minimum supported version.
-     */
-    uint32_t min_supported_version;
-
-    /**
      * Supported roles.
      */
     Roles roles;
@@ -52,11 +42,6 @@ namespace kagome::network {
      * Genesis block hash.
      */
     BlockHash genesis_hash;
-
-    /**
-     * Chain-specific status.
-     */
-    std::vector<uint8_t> chain_status;
   };
 
   /**
@@ -66,14 +51,9 @@ namespace kagome::network {
    * @return true if equal false otherwise
    */
   inline bool operator==(const Status &lhs, const Status &rhs) {
-    return lhs.version == rhs.version
-           && lhs.min_supported_version == rhs.min_supported_version
-           && lhs.roles == rhs.roles && lhs.best_number == rhs.best_number
+    return lhs.roles == rhs.roles && lhs.best_number == rhs.best_number
            && lhs.best_hash == rhs.best_hash
-           && lhs.genesis_hash == rhs.genesis_hash
-           && std::equal(lhs.chain_status.begin(),
-                         lhs.chain_status.end(),
-                         rhs.chain_status.begin());
+           && lhs.genesis_hash == rhs.genesis_hash;
   }
 
   /**
@@ -86,9 +66,7 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Status &v) {
-    return s << static_cast<uint8_t>(GossipMessage::Type::STATUS) << v.version
-             << v.min_supported_version << v.roles << v.best_number
-             << v.best_hash << v.genesis_hash;
+    return s << v.roles << v.best_number << v.best_hash << v.genesis_hash;
   }
 
   /**
@@ -101,9 +79,7 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Status &v) {
-    uint8_t _;
-    return s >> _ >> v.version >> v.min_supported_version >> v.roles
-           >> v.best_number >> v.best_hash >> v.genesis_hash;
+    return s >> v.roles >> v.best_number >> v.best_hash >> v.genesis_hash;
   }
 
 }  // namespace kagome::network

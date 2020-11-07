@@ -21,7 +21,7 @@ namespace kagome::consensus {
     /// output of VRF function
     crypto::VRFOutput vrf_output;
     /// authority index of the producer
-    size_t authority_index{};
+    primitives::AuthorityIndex authority_index{};
   };
 
   /**

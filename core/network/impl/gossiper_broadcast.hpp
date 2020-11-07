@@ -32,6 +32,7 @@ namespace kagome::network {
   KAGOME_DECLARE_CACHE(stream_engine,
                        KAGOME_CACHE_UNIT(GossipMessage),
                        KAGOME_CACHE_UNIT(NoData),
+                       KAGOME_CACHE_UNIT(BlockAnnounce),
                        KAGOME_CACHE_UNIT(PropagatedTransactions));
 
   /**
@@ -116,9 +117,8 @@ namespace kagome::network {
           stream_engine, typename std::decay<decltype(handshake)>::type);
       (*shared_handshake) = std::forward<H>(handshake);
 
-      stream_engine_
-          ->broadcast<typename std::decay_t<decltype(msg)>, NoData>(
-              protocol, std::move(shared_msg), std::move(shared_handshake));
+      stream_engine_->broadcast<typename std::decay_t<decltype(msg)>, NoData>(
+          protocol, std::move(shared_msg), std::move(shared_handshake));
     }
 
     common::Logger logger_;
@@ -126,6 +126,7 @@ namespace kagome::network {
     boost::optional<libp2p::peer::PeerInfo> self_info_;
     std::shared_ptr<kagome::application::ConfigurationStorage> config_;
     libp2p::peer::Protocol transactions_protocol_;
+    libp2p::peer::Protocol block_announces_protocol_;
   };
 }  // namespace kagome::network
 
