@@ -370,6 +370,20 @@ namespace kagome::api {
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
                            primitives::SubscriptionEventType::kRuntimeVersion);
+
+        auto ver = block_tree_->runtimeVersion();
+        if (ver) {
+          session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
+              api_service, std::vector<std::string>);
+          forJsonData(server_,
+                      logger_,
+                      id,
+                      "chain_newHead",
+                      makeValue(*ver),
+                      [&](const auto &result) {
+                        session_context.messages->push_back(result.data());
+                      });
+        }
         return outcome::success();
       });
     });

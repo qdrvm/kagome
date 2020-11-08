@@ -14,6 +14,7 @@
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
+#include "primitives/version.hpp"
 #include "primitives/justification.hpp"
 
 namespace kagome::blockchain {
@@ -55,6 +56,12 @@ namespace kagome::blockchain {
      */
     virtual outcome::result<primitives::Justification> getBlockJustification(
         const primitives::BlockId &block) const = 0;
+
+    /**
+     * Method to get actual runtime version.
+     * @return runtime version.
+     */
+    virtual boost::optional<primitives::Version> runtimeVersion() const = 0;
 
     /**
      * Adds header to the storage

@@ -145,6 +145,10 @@ namespace kagome::blockchain {
         const primitives::BlockHash &top_block,
         const primitives::BlockHash &bottom_block) override;
 
+    boost::optional<primitives::Version> runtimeVersion() const override {
+      return actual_runtime_version_;
+    }
+
     bool hasDirectChain(const primitives::BlockHash &ancestor,
                         const primitives::BlockHash &descendant) override;
 
@@ -215,7 +219,7 @@ namespace kagome::blockchain {
     std::shared_ptr<crypto::Hasher> hasher_;
     subscriptions::EventsSubscriptionEnginePtr events_engine_;
     std::shared_ptr<runtime::Core> runtime_core_;
-    std::optional<primitives::Version> actual_runtime_version_;
+    boost::optional<primitives::Version> actual_runtime_version_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");
   };
 }  // namespace kagome::blockchain
