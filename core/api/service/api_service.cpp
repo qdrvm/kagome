@@ -98,16 +98,19 @@ namespace kagome::api {
       const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
       SubscriptionEnginePtr subscription_engine,
       subscriptions::EventsSubscriptionEnginePtr events_engine,
-      std::shared_ptr<blockchain::BlockTree> block_tree)
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage)
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{common::createLogger("Api service")},
         block_tree_{std::move(block_tree)},
+        trie_storage_{std::move(trie_storage)},
         subscription_engines_{.storage = std::move(subscription_engine),
                               .events = std::move(events_engine)} {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(block_tree_);
+    BOOST_ASSERT(trie_storage_);
     for ([[maybe_unused]] const auto &listener : listeners_) {
       BOOST_ASSERT(listener != nullptr);
     }
@@ -297,9 +300,35 @@ namespace kagome::api {
       return for_session(tid, [&](SessionExecutionContext &session_context) {
         auto &session = session_context.storage_subscription;
         const auto id = session->generateSubscriptionSetId();
+        auto persistent_batch = trie_storage_->getPersistentBatch();
+        BOOST_ASSERT(persistent_batch.has_value());
+
+        auto &pb = persistent_batch.value();
+        BOOST_ASSERT(pb);
+
+        session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
+            api_service, std::vector<std::string>);
         for (auto &key : keys) {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);
+          if (auto res = pb->get(key); res.has_value()) {
+
+            jsonrpc::Value::Array out_data;
+            out_data.emplace_back(api::makeValue(key));
+            out_data.emplace_back(api::makeValue(hex_lower_0x(res.value())));
+
+            jsonrpc::Value::Struct r;
+            r["changes"] = std::move(out_data);
+
+            forJsonData(server_,
+                        logger_,
+                        id,
+                        kRpcEventFinalizedHeads,
+                        std::move(r),
+                        [&](const auto &result) {
+                          session_context.messages->push_back(result.data());
+                        });
+          }
         }
         return static_cast<uint32_t>(id);
       });

@@ -22,6 +22,7 @@
 #include "primitives/common.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/subscriber.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::api {
   KAGOME_DECLARE_CACHE(api_service,
@@ -75,7 +76,8 @@ namespace kagome::api {
         const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
         SubscriptionEnginePtr subscription_engine,
         subscriptions::EventsSubscriptionEnginePtr events_engine,
-        std::shared_ptr<blockchain::BlockTree> block_tree);
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
     virtual ~ApiService() = default;
 
@@ -125,6 +127,7 @@ namespace kagome::api {
     std::shared_ptr<JRpcServer> server_;
     common::Logger logger_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
 
     std::mutex subscribed_sessions_cs_;
     std::unordered_map<Session::SessionId, SessionExecutionContext>
