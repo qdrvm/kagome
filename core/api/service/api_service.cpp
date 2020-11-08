@@ -86,6 +86,10 @@ namespace {
 namespace kagome::api {
   KAGOME_DEFINE_CACHE(api_service);
 
+  const std::string kRpcEventRuntimeVersion = "UnknownTag";
+  const std::string kRpcEventNewHeads = "chain_newHead";
+  const std::string kRpcEventFinalizedHeads = "chain_finalizedHead";
+
   ApiService::ApiService(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
@@ -169,11 +173,14 @@ namespace kagome::api {
                 if (auto self = wp.lock()) {
               std::string_view name;
               if (key == primitives::SubscriptionEventType::kNewHeads)
-                name = "chain_newHead";
+                name = kRpcEventNewHeads;
               else if (key
                        == primitives::SubscriptionEventType::kFinalizedHeads)
-                name = "chain_finalizedHead";
+                name = kRpcEventFinalizedHeads;
+              else if (key == primitives::SubscriptionEventType::kRuntimeVersion)
+                name = kRpcEventRuntimeVersion;
 
+              BOOST_ASSERT(!name.empty());
               sendEvent(self->server_,
                         session,
                         self->logger_,
@@ -306,6 +313,25 @@ namespace kagome::api {
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
                            primitives::SubscriptionEventType::kFinalizedHeads);
+
+        auto header =
+            block_tree_->getBlockHeader(block_tree_->getLastFinalized().block_hash);
+        if (!header.has_error()) {
+          session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
+              api_service, std::vector<std::string>);
+          forJsonData(server_,
+                      logger_,
+                      id,
+                      kRpcEventFinalizedHeads,
+                      makeValue(header.value()),
+                      [&](const auto &result) {
+                        session_context.messages->push_back(result.data());
+                      });
+        } else {
+          logger_->error(
+              "Request block header of the last finalized failed with error: {}",
+              header.error().message());
+        }
         return static_cast<uint32_t>(id);
       });
     });
@@ -337,7 +363,7 @@ namespace kagome::api {
           forJsonData(server_,
                       logger_,
                       id,
-                      "chain_newHead",
+                      kRpcEventNewHeads,
                       makeValue(header.value()),
                       [&](const auto &result) {
                         session_context.messages->push_back(result.data());
@@ -378,7 +404,7 @@ namespace kagome::api {
           forJsonData(server_,
                       logger_,
                       id,
-                      "chain_newHead",
+                      kRpcEventRuntimeVersion,
                       makeValue(*ver),
                       [&](const auto &result) {
                         session_context.messages->push_back(result.data());
