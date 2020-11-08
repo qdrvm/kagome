@@ -241,7 +241,8 @@ namespace kagome::api {
 
                       session_context.messages.reset();
                     });
-              }catch(jsonrpc::InternalErrorFault &) {}
+              } catch (jsonrpc::InternalErrorFault &) {
+              }
             });
 
         session->connectOnCloseHandler(
