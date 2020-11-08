@@ -14,8 +14,8 @@
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
-#include "primitives/version.hpp"
 #include "primitives/justification.hpp"
+#include "primitives/version.hpp"
 
 namespace kagome::blockchain {
   /**

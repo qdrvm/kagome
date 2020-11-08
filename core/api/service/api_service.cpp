@@ -81,7 +81,7 @@ namespace {
                   session->respond(response);
                 });
   }
-}
+}  // namespace
 
 namespace kagome::api {
   KAGOME_DEFINE_CACHE(api_service);
@@ -168,19 +168,21 @@ namespace kagome::api {
                 }
               });
 
-          session_context.events_subscription->setCallback(
-              [wp](uint32_t set_id,
-                   SessionPtr &session,
-                   const auto &key,
-                   const auto &header) {
-                if (auto self = wp.lock()) {
+          session_context.events_subscription->setCallback([wp](uint32_t set_id,
+                                                                SessionPtr
+                                                                    &session,
+                                                                const auto &key,
+                                                                const auto
+                                                                    &header) {
+            if (auto self = wp.lock()) {
               std::string_view name;
               if (key == primitives::SubscriptionEventType::kNewHeads)
                 name = kRpcEventNewHeads;
               else if (key
                        == primitives::SubscriptionEventType::kFinalizedHeads)
                 name = kRpcEventFinalizedHeads;
-              else if (key == primitives::SubscriptionEventType::kRuntimeVersion)
+              else if (key
+                       == primitives::SubscriptionEventType::kRuntimeVersion)
                 name = kRpcEventRuntimeVersion;
 
               BOOST_ASSERT(!name.empty());
@@ -191,7 +193,7 @@ namespace kagome::api {
                         name,
                         api::makeValue(header));
             }
-              });
+          });
         }
 
         session->connectOnRequest(
@@ -211,9 +213,9 @@ namespace kagome::api {
                * 0xff if a random not null value to jump internal nullptr check.
                */
               std::unique_ptr<void, decltype(thread_session_auto_release)>
-                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                  thread_session_keeper(reinterpret_cast<void *>(0xff),
-                                        std::move(thread_session_auto_release));
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              thread_session_keeper(reinterpret_cast<void *>(0xff),
+                                    std::move(thread_session_auto_release));
 
               // TODO(kamilsa): remove that string replacement when
               // https://github.com/soramitsu/kagome/issues/572 resolved
@@ -224,20 +226,19 @@ namespace kagome::api {
 
               // process new request
               self->server_->processData(
-                  str_request,
-                  [&](
-                      const std::string &response) mutable {
+                  str_request, [&](const std::string &response) mutable {
                     // process response
                     session->respond(response);
                   });
 
-              self->for_session(session->id(), [&](SessionExecutionContext &session_context) {
-                if (session_context.messages)
-                  for (auto &msg : *session_context.messages)
-                    session->respond(msg);
+              self->for_session(session->id(),
+                                [&](SessionExecutionContext &session_context) {
+                                  if (session_context.messages)
+                                    for (auto &msg : *session_context.messages)
+                                      session->respond(msg);
 
-                session_context.messages.reset();
-              });
+                                  session_context.messages.reset();
+                                });
             });
 
         session->connectOnCloseHandler(
@@ -282,8 +283,7 @@ namespace kagome::api {
                 subscription_engines_.storage, session),
             .events_subscription =
                 std::make_shared<subscriptions::EventsSubscribedSessionType>(
-                    subscription_engines_.events, session)
-        });
+                    subscription_engines_.events, session)});
 
     BOOST_ASSERT(inserted);
     return it->second;
@@ -306,13 +306,12 @@ namespace kagome::api {
         auto &pb = persistent_batch.value();
         BOOST_ASSERT(pb);
 
-        session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
-            api_service, std::vector<std::string>);
+        session_context.messages =
+            KAGOME_EXTRACT_SHARED_CACHE(api_service, std::vector<std::string>);
         for (auto &key : keys) {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);
           if (auto res = pb->get(key); res.has_value()) {
-
             jsonrpc::Value::Array out_data;
             out_data.emplace_back(api::makeValue(key));
             out_data.emplace_back(api::makeValue(hex_lower_0x(res.value())));
@@ -343,8 +342,8 @@ namespace kagome::api {
         session->subscribe(id,
                            primitives::SubscriptionEventType::kFinalizedHeads);
 
-        auto header =
-            block_tree_->getBlockHeader(block_tree_->getLastFinalized().block_hash);
+        auto header = block_tree_->getBlockHeader(
+            block_tree_->getLastFinalized().block_hash);
         if (!header.has_error()) {
           session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
               api_service, std::vector<std::string>);
@@ -358,7 +357,8 @@ namespace kagome::api {
                       });
         } else {
           logger_->error(
-              "Request block header of the last finalized failed with error: {}",
+              "Request block header of the last finalized failed with error: "
+              "{}",
               header.error().message());
         }
         return static_cast<uint32_t>(id);

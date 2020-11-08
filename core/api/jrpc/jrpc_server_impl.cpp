@@ -30,7 +30,7 @@ namespace kagome::api {
     return dispatcher.GetMethodNames();
   }
 
-void JRpcServerImpl::processJsonData(std::string method_name,
+  void JRpcServerImpl::processJsonData(std::string method_name,
                                        const jsonrpc::Request::Parameters &from,
                                        const FormatterHandler &cb) {
     /*
@@ -59,7 +59,7 @@ void JRpcServerImpl::processJsonData(std::string method_name,
     auto &&formatted_response =
         jsonrpc_handler_.HandleRequest(std::string(request));
     cb(std::string(formatted_response->GetData(),
-                            formatted_response->GetSize()));
+                   formatted_response->GetSize()));
   }
 
 }  // namespace kagome::api
