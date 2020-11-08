@@ -168,6 +168,7 @@ namespace kagome::injector {
             std::shared_ptr<api::system::SystemJrpcProcessor>>(),
         injector
             .template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>()};
+    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
 
     initialized =
         std::make_shared<api::ApiService>(std::move(app_state_manager),
@@ -176,7 +177,8 @@ namespace kagome::injector {
                                           std::move(server),
                                           processors,
                                           std::move(subscription_engine),
-                                          std::move(events_engine));
+                                          std::move(events_engine),
+                                          std::move(block_tree));
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());

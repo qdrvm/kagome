@@ -93,14 +93,17 @@ namespace kagome::api {
       std::shared_ptr<JRpcServer> server,
       const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
       SubscriptionEnginePtr subscription_engine,
-      subscriptions::EventsSubscriptionEnginePtr events_engine)
+      subscriptions::EventsSubscriptionEnginePtr events_engine,
+      std::shared_ptr<blockchain::BlockTree> block_tree)
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{common::createLogger("Api service")},
+        block_tree_{std::move(block_tree)},
         subscription_engines_{.storage = std::move(subscription_engine),
                               .events = std::move(events_engine)} {
     BOOST_ASSERT(thread_pool_);
+    BOOST_ASSERT(block_tree_);
     for ([[maybe_unused]] const auto &listener : listeners_) {
       BOOST_ASSERT(listener != nullptr);
     }
@@ -326,12 +329,24 @@ namespace kagome::api {
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id, primitives::SubscriptionEventType::kNewHeads);
 
-        jsonrpc::Value s(10);
-
-        session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(api_service, std::vector<std::string>);
-        forJsonData(server_, logger_, id, "chain_newHead", std::move(s), [&](const auto &result) {
-          session_context.messages->push_back(result.data());
-        });
+        auto header =
+            block_tree_->getBlockHeader(block_tree_->deepestLeaf().block_hash);
+        if (!header.has_error()) {
+          session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
+              api_service, std::vector<std::string>);
+          forJsonData(server_,
+                      logger_,
+                      id,
+                      "chain_newHead",
+                      makeValue(header.value()),
+                      [&](const auto &result) {
+                        session_context.messages->push_back(result.data());
+                      });
+        } else {
+          logger_->error(
+              "Request block header of the deepest leaf failed with error: {}",
+              header.error().message());
+        }
         return static_cast<uint32_t>(id);
       });
     });

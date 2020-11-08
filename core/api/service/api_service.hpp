@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <type_traits>
 
+#include "blockchain/block_tree.hpp"
 #include "containers/objects_cache.hpp"
 #include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/transport/listener.hpp"
@@ -73,7 +74,8 @@ namespace kagome::api {
         std::shared_ptr<JRpcServer> server,
         const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
         SubscriptionEnginePtr subscription_engine,
-        subscriptions::EventsSubscriptionEnginePtr events_engine);
+        subscriptions::EventsSubscriptionEnginePtr events_engine,
+        std::shared_ptr<blockchain::BlockTree> block_tree);
 
     virtual ~ApiService() = default;
 
@@ -122,6 +124,7 @@ namespace kagome::api {
     std::vector<sptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
     common::Logger logger_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
 
     std::mutex subscribed_sessions_cs_;
     std::unordered_map<Session::SessionId, SessionExecutionContext>
