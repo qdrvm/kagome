@@ -231,14 +231,17 @@ namespace kagome::api {
                     session->respond(response);
                   });
 
-              self->for_session(session->id(),
-                                [&](SessionExecutionContext &session_context) {
-                                  if (session_context.messages)
-                                    for (auto &msg : *session_context.messages)
-                                      session->respond(msg);
+              try {
+                self->for_session(
+                    session->id(),
+                    [&](SessionExecutionContext &session_context) {
+                      if (session_context.messages)
+                        for (auto &msg : *session_context.messages)
+                          session->respond(msg);
 
-                                  session_context.messages.reset();
-                                });
+                      session_context.messages.reset();
+                    });
+              }catch(jsonrpc::InternalErrorFault &) {}
             });
 
         session->connectOnCloseHandler(
