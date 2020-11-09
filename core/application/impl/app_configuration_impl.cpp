@@ -147,12 +147,12 @@ namespace kagome::application {
   bool AppConfigurationImpl::validate_config(
       AppConfiguration::LoadScheme scheme) {
     if (not fs::exists(genesis_path_)) {
-      logger_->error("Path to genesis {} does not exist.");
+      logger_->error("Path to genesis {} does not exist.", genesis_path_);
       return false;
     }
 
     if (not fs::exists(base_path_)) {
-      logger_->error("Base path {} does not exist.");
+      logger_->error("Base path {} does not exist.", base_path_);
       return false;
     }
 
@@ -231,7 +231,7 @@ namespace kagome::application {
     po::options_description desc("General options");
     desc.add_options()
         ("help,h", "show this help message")
-        ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - crit, 6 - no log")
+        ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no log")
         ("config_file,c", po::value<std::string>(), "Filepath to load configuration from.")
         ;
 

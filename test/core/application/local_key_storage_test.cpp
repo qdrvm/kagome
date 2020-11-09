@@ -23,8 +23,7 @@ class LocalKeyStorageTest : public testing::Test {
  public:
   void SetUp() override {
     // setting keystore_path_
-    auto path = boost::filesystem::path(__FILE__).parent_path().string();
-    keystore_path_ = path + "/keystore.json";
+    keystore_path_ = boost::filesystem::path(__FILE__).parent_path().native();
 
     prepareSr25519Keys();
     prepareED25519Keys();
@@ -108,5 +107,5 @@ TEST_F(LocalKeyStorageTest, FileNotFound) {
   keystore_path_ = "aaa";  // invalid path
   auto s = LocalKeyStorage::create(keystore_path_);
   EXPECT_OUTCOME_FALSE(e, s);
-  ASSERT_EQ(e, ConfigReaderError::PARSER_ERROR);
+  ASSERT_EQ(e, LocalKeyStorage::Error::INVALID_KEYSTORE_PATH);
 }

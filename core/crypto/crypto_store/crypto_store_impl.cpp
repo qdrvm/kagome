@@ -132,7 +132,7 @@ namespace kagome::crypto {
   outcome::result<void> CryptoStoreImpl::initialize(Path keys_directory) {
     boost::system::error_code ec {};
     bool does_exist = boost::filesystem::exists(keys_directory, ec);
-    if (not ec) {
+    if (ec) {
       logger_->error("Error initializing crypto store: {}", ec.message());
       return outcome::failure(ec);
     }
@@ -141,7 +141,7 @@ namespace kagome::crypto {
       if (not boost::filesystem::is_directory(keys_directory, ec)) {
         return CryptoStoreError::KEYS_PATH_IS_NOT_DIRECTORY;
       }
-      if (not ec) {
+      if (ec) {
         logger_->error("Error initializing crypto store: {}", ec.message());
         return outcome::failure(ec);
       }
@@ -150,7 +150,7 @@ namespace kagome::crypto {
       if (not boost::filesystem::create_directory(keys_directory, ec)) {
         return CryptoStoreError::FAILED_CREATE_KEYS_DIRECTORY;
       }
-      if (not ec) {
+      if (ec) {
         logger_->error("Error initializing crypto store: {}", ec.message());
         return outcome::failure(ec);
       }

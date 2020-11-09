@@ -56,7 +56,6 @@ namespace kagome::crypto {
       std::string_view mnemonic_phrase) {
     OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
     OUTCOME_TRY(entropy, calculateEntropy(mnemonic.words));
-    OUTCOME_TRY(bip_seed,
-                makeSeed(entropy, mnemonic.password));
+    return makeSeed(entropy, mnemonic.password);
   }
 }  // namespace kagome::crypto

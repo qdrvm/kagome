@@ -31,6 +31,7 @@ namespace kagome::application {
     if (not(fs::exists(keystore_path, ec) and fs::is_directory(keystore_path, ec))) {
       return Error::INVALID_KEYSTORE_PATH;
     }
+    if (ec) return outcome::failure(ec);
     auto storage = LocalKeyStorage();
     OUTCOME_TRY(storage.loadFromJson(keystore_path / "keystore.json"));
     return std::make_shared<LocalKeyStorage>(std::move(storage));

@@ -7,7 +7,7 @@
 
 #define UNWRAP_ERROR_CODE(ec) \
   {                           \
-    if (not(ec)) {            \
+    if (ec) {            \
       return (ec);            \
     }                         \
   }
