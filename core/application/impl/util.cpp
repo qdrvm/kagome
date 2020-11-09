@@ -42,6 +42,7 @@ namespace kagome::application::util {
       }
       UNWRAP_ERROR_CODE(ec)
     }
+    return outcome::success();
   }
 
 }  // namespace kagome::application::util
