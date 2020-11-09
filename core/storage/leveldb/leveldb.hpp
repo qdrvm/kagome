@@ -21,10 +21,6 @@ namespace kagome::storage {
    */
   class LevelDB : public BufferStorage {
    public:
-    enum class Error {
-
-    };
-
     class Batch;
     class Cursor;
 

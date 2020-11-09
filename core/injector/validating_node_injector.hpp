@@ -203,7 +203,7 @@ namespace kagome::injector {
             }),
         di::bind<crypto::CryptoStore>.template to(
             [&app_config](const auto &injector) {
-              return get_crypto_store(app_config, injector);
+              return get_crypto_store(injector);
             })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

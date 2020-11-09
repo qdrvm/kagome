@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 
+#define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
@@ -196,13 +197,16 @@ namespace kagome::injector {
   // jrpc api listener (over HTTP) getter
   template <typename Injector>
   sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
-      const Injector &injector,
-      const boost::asio::ip::tcp::endpoint &endpoint) {
+      const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
+
+    const application::AppConfiguration &config =
+        injector.template create<application::AppConfiguration const &>();
+    auto &endpoint = config.rpc_http_endpoint();
 
     auto app_state_manager =
         injector.template create<sptr<application::AppStateManager>>();
@@ -223,13 +227,15 @@ namespace kagome::injector {
   // jrpc api listener (over Websockets) getter
   template <typename Injector>
   sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
-      const Injector &injector,
-      const boost::asio::ip::tcp::endpoint &endpoint) {
+      const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<api::WsListenerImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
+    const application::AppConfiguration &config =
+        injector.template create<application::AppConfiguration const &>();
+    auto &endpoint = config.rpc_ws_endpoint();
 
     auto app_state_manager =
         injector.template create<sptr<application::AppStateManager>>();
@@ -475,17 +481,21 @@ namespace kagome::injector {
 
   // level db getter
   template <typename Injector>
-  sptr<storage::BufferStorage> get_level_db(const application::AppConfiguration& config,
-                                            const Injector &injector) {
+  sptr<storage::BufferStorage> get_level_db(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<storage::BufferStorage>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    auto genesis_config = injector.template create<sptr<application::GenesisConfig>>();
+    const application::AppConfiguration &config =
+        injector.template create<application::AppConfiguration const &>();
+
+    auto genesis_config =
+        injector.template create<sptr<application::GenesisConfig>>();
     auto options = leveldb::Options{};
     options.create_if_missing = true;
-    auto db = storage::LevelDB::create(config.database_path(genesis_config->id()), options);
+    auto db = storage::LevelDB::create(
+        config.database_path(genesis_config->id()), options);
     if (!db) {
       common::raise(db.error());
     }
@@ -495,20 +505,23 @@ namespace kagome::injector {
 
   // configuration storage getter
   template <typename Injector>
-  std::shared_ptr<application::GenesisConfig> get_genesis_config(
-      const boost::filesystem::path &genesis_path, const Injector &injector) {
+  std::shared_ptr<application::GenesisConfig> get_genesis_config(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<application::GenesisConfig>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    auto config_storage_res =
+    const application::AppConfiguration &config =
+        injector.template create<application::AppConfiguration const &>();
+    auto const& genesis_path = config.genesis_path();
+
+    auto genesis_config_res =
         application::GenesisConfigImpl::create(genesis_path.native());
-    if (config_storage_res.has_error()) {
-      common::raise(config_storage_res.error());
+    if (genesis_config_res.has_error()) {
+      common::raise(genesis_config_res.error());
     }
-    initialized = config_storage_res.value();
-    return config_storage_res.value();
+    initialized = genesis_config_res.value();
+    return genesis_config_res.value();
   }
 
   template <typename Injector>
@@ -572,13 +585,15 @@ namespace kagome::injector {
   }
 
   template <class Injector>
-  sptr<crypto::CryptoStore> get_crypto_store(const application::AppConfiguration& config,
-                                             const Injector &injector) {
+  sptr<crypto::CryptoStore> get_crypto_store(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<crypto::CryptoStore>>(boost::none);
     if (initialized) {
       return *initialized;
     }
+
+    const application::AppConfiguration &config =
+        injector.template create<application::AppConfiguration const &>();
 
     auto ed25519_provider =
         injector.template create<sptr<crypto::Ed25519Provider>>();
@@ -589,7 +604,8 @@ namespace kagome::injector {
     auto bip39_provider =
         injector.template create<sptr<crypto::Bip39Provider>>();
     auto random_generator = injector.template create<sptr<crypto::CSPRNG>>();
-    auto genesis_config = injector.template create<sptr<application::GenesisConfig>>();
+    auto genesis_config =
+        injector.template create<sptr<application::GenesisConfig>>();
 
     auto crypto_store =
         std::make_shared<crypto::CryptoStoreImpl>(std::move(ed25519_provider),
@@ -654,20 +670,19 @@ namespace kagome::injector {
         di::bind<network::PeerList>.to(
             [](auto const &inj) { return get_boot_nodes(inj); }),
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
+        di::bind<application::AppConfiguration>.to(config),
 
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
             di::extension::shared)[boost::di::override],
 
         // bind interfaces
-        di::bind<api::HttpListenerImpl>.to(
-            [rpc_http_endpoint = config.rpc_http_endpoint()](const auto &injector) {
-              return get_jrpc_api_http_listener(injector, rpc_http_endpoint);
-            }),
-        di::bind<api::WsListenerImpl>.to(
-            [rpc_ws_endpoint = config.rpc_ws_endpoint()](const auto &injector) {
-              return get_jrpc_api_ws_listener(injector, rpc_ws_endpoint);
-            }),
+        di::bind<api::HttpListenerImpl>.to([](const auto &injector) {
+          return get_jrpc_api_http_listener(injector);
+        }),
+        di::bind<api::WsListenerImpl>.to([](const auto &injector) {
+          return get_jrpc_api_ws_listener(injector);
+        }),
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>(),
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
@@ -682,9 +697,7 @@ namespace kagome::injector {
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
         di::bind<storage::BufferStorage>.to(
-            [&config](const auto &injector) {
-              return get_level_db(config, injector);
-            }),
+            [](const auto &injector) { return get_level_db(injector); }),
         di::bind<blockchain::BlockStorage>.to(
             [](const auto &injector) { return get_block_storage(injector); }),
         di::bind<blockchain::BlockTree>.to(
@@ -747,9 +760,7 @@ namespace kagome::injector {
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
         di::bind<application::GenesisConfig>.to(
-            [genesis_path = config.genesis_path()](const auto &injector) {
-              return get_genesis_config(genesis_path, injector);
-            }),
+            [](const auto &injector) { return get_genesis_config(injector); }),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),

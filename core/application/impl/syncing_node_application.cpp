@@ -19,11 +19,11 @@ namespace kagome::application {
     // some of them are requested by reference and hence not copied
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
-    config_storage_ = injector_.create<sptr<GenesisConfig>>();
+    genesis_config_ = injector_.create<sptr<GenesisConfig>>();
 
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     router_ = injector_.create<sptr<network::Router>>();
-    chain_path_ = app_config.chain_path(config_storage_->id());
+    chain_path_ = app_config.chain_path(genesis_config_->id());
 
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
@@ -51,7 +51,7 @@ namespace kagome::application {
             std::exit(1);
           }
         }
-        for (const auto &boot_node : config_storage_->getBootNodes().peers) {
+        for (const auto &boot_node : genesis_config_->getBootNodes().peers) {
           host.newStream(
               boot_node,
               network::kGossipProtocol,

@@ -21,10 +21,9 @@ namespace kagome::injector {
   template <typename... Ts>
   auto makeBlockProducingNodeInjector(
       const application::AppConfiguration &app_config, Ts &&... args) {
-    //using namespace boost;  // NOLINT;
 
+    // NOLINT
     return di::make_injector(
-
         // inherit application injector
         makeApplicationInjector(app_config),
         // bind sr25519 keypair
@@ -58,7 +57,7 @@ namespace kagome::injector {
             [boost::di::override],
         di::bind<crypto::CryptoStore>.template to(
             [&app_config](const auto &injector) {
-              return get_crypto_store(app_config, injector);
+              return get_crypto_store(injector);
             })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
