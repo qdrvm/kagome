@@ -86,7 +86,7 @@ namespace {
 namespace kagome::api {
   KAGOME_DEFINE_CACHE(api_service);
 
-  const std::string kRpcEventRuntimeVersion = "UnknownTag";
+  const std::string kRpcEventRuntimeVersion = "state_runtimeVersion";
   const std::string kRpcEventNewHeads = "chain_newHead";
   const std::string kRpcEventFinalizedHeads = "chain_finalizedHead";
 
