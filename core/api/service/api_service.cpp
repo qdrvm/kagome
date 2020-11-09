@@ -89,6 +89,7 @@ namespace kagome::api {
   const std::string kRpcEventRuntimeVersion = "state_runtimeVersion";
   const std::string kRpcEventNewHeads = "chain_newHead";
   const std::string kRpcEventFinalizedHeads = "chain_finalizedHead";
+  const std::string kRpcEventSubscribeStorage = "state_storage";
 
   ApiService::ApiService(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
@@ -164,7 +165,7 @@ namespace kagome::api {
                             session,
                             self->logger_,
                             set_id,
-                            "state_storage",
+                            kRpcEventSubscribeStorage,
                             std::move(result));
                 }
               });
@@ -321,7 +322,7 @@ namespace kagome::api {
             forJsonData(server_,
                         logger_,
                         id,
-                        kRpcEventFinalizedHeads,
+                        kRpcEventSubscribeStorage,
                         std::move(r),
                         [&](const auto &result) {
                           session_context.messages->emplace_back(
