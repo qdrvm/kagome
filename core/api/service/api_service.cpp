@@ -138,7 +138,8 @@ namespace kagome::api {
         if (SessionType::kWs == session->type()) {
           auto session_context =
               self->storeSessionWithId(session->id(), session);
-          session_context.storage_subscription->setCallback(
+          BOOST_ASSERT(session_context);
+          session_context->storage_subscription->setCallback(
               [wp](uint32_t set_id,
                    SessionPtr &session,
                    const auto &key,
@@ -168,7 +169,8 @@ namespace kagome::api {
                 }
               });
 
-          session_context.events_subscription->setCallback([wp](uint32_t set_id,
+          session_context->events_subscription->setCallback([wp](
+                                                                uint32_t set_id,
                                                                 SessionPtr
                                                                     &session,
                                                                 const auto &key,
@@ -269,27 +271,19 @@ namespace kagome::api {
     logger_->debug("Service stopped");
   }
 
-  boost::optional<ApiService::SessionExecutionContext>
-  ApiService::findSessionById(Session::SessionId id) {
-    std::lock_guard guard(subscribed_sessions_cs_);
-    if (auto it = subscribed_sessions_.find(id);
-        subscribed_sessions_.end() != it)
-      return it->second;
-
-    return boost::none;
-  }
-
-  ApiService::SessionExecutionContext ApiService::storeSessionWithId(
-      Session::SessionId id, const std::shared_ptr<Session> &session) {
+  std::shared_ptr<ApiService::SessionExecutionContext>
+  ApiService::storeSessionWithId(Session::SessionId id,
+                                 const std::shared_ptr<Session> &session) {
     std::lock_guard guard(subscribed_sessions_cs_);
     auto &&[it, inserted] = subscribed_sessions_.emplace(
         id,
-        ApiService::SessionExecutionContext{
-            .storage_subscription = std::make_shared<SubscribedSessionType>(
-                subscription_engines_.storage, session),
-            .events_subscription =
-                std::make_shared<subscriptions::EventsSubscribedSessionType>(
-                    subscription_engines_.events, session)});
+        std::make_shared<ApiService::SessionExecutionContext>(
+            ApiService::SessionExecutionContext{
+                .storage_subscription = std::make_shared<SubscribedSessionType>(
+                    subscription_engines_.storage, session),
+                .events_subscription = std::make_shared<
+                    subscriptions::EventsSubscribedSessionType>(
+                    subscription_engines_.events, session)}));
 
     BOOST_ASSERT(inserted);
     return it->second;

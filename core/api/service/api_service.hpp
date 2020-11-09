@@ -115,16 +115,26 @@ namespace kagome::api {
     outcome::result<void> unsubscribeRuntimeVersion(uint32_t subscription_id);
 
    private:
-    boost::optional<SessionExecutionContext> findSessionById(
-        Session::SessionId id);
+    boost::optional<std::shared_ptr<SessionExecutionContext>> findSessionById(
+        Session::SessionId id) {
+      std::lock_guard guard(subscribed_sessions_cs_);
+      if (auto it = subscribed_sessions_.find(id);
+          subscribed_sessions_.end() != it)
+        return it->second;
+
+      return boost::none;
+    }
+
     void removeSessionById(Session::SessionId id);
-    SessionExecutionContext storeSessionWithId(
+    std::shared_ptr<SessionExecutionContext> storeSessionWithId(
         Session::SessionId id, const std::shared_ptr<Session> &session);
 
     template <typename Func>
     auto for_session(kagome::api::Session::SessionId id, Func &&f) {
-      if (auto session_context = findSessionById(id))
-        return std::forward<Func>(f)(*session_context);
+      if (auto session_context = findSessionById(id)) {
+        BOOST_ASSERT(*session_context);
+        return std::forward<Func>(f)(**session_context);
+      }
 
       throw jsonrpc::InternalErrorFault(
           "Internal error. No session was stored for subscription.");
@@ -155,7 +165,8 @@ namespace kagome::api {
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
 
     std::mutex subscribed_sessions_cs_;
-    std::unordered_map<Session::SessionId, SessionExecutionContext>
+    std::unordered_map<Session::SessionId,
+                       std::shared_ptr<SessionExecutionContext>>
         subscribed_sessions_;
 
     struct {
