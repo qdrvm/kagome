@@ -10,7 +10,7 @@
 namespace kagome::runtime::dummy {
 
   GrandpaApiDummy::GrandpaApiDummy(
-      std::shared_ptr<application::AKeyStorage> key_storage)
+      std::shared_ptr<application::KeyStorage> key_storage)
       : key_storage_{std::move(key_storage)} {
     BOOST_ASSERT(key_storage_ != nullptr);
   }

@@ -17,9 +17,9 @@ namespace kagome::application {
   /**
    * Stores crypto keys of the current node
    */
-  class AKeyStorage {
+  class KeyStorage {
    public:
-    virtual ~AKeyStorage() = default;
+    virtual ~KeyStorage() = default;
 
     /**
      * Get the node sr25519 keypair, which is used, for example, in BABE

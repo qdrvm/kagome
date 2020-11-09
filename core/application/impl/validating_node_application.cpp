@@ -27,7 +27,7 @@ namespace kagome::application {
 
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     config_storage_ = injector_.create<sptr<GenesisConfig>>();
-    key_storage_ = injector_.create<sptr<AKeyStorage>>();
+    key_storage_ = injector_.create<sptr<KeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_ = injector_.create<sptr<Grandpa>>();

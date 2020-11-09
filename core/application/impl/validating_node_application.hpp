@@ -56,7 +56,7 @@ namespace kagome::application {
     std::shared_ptr<boost::asio::io_context> io_context_;
 
     sptr<GenesisConfig> config_storage_;
-    sptr<AKeyStorage> key_storage_;
+    sptr<KeyStorage> key_storage_;
     sptr<clock::SystemClock> clock_;
     sptr<Babe> babe_;
     sptr<Grandpa> grandpa_;

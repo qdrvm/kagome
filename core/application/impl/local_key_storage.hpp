@@ -15,7 +15,7 @@
 
 namespace kagome::application {
 
-  class LocalKeyStorage : public AKeyStorage {
+  class LocalKeyStorage : public KeyStorage {
    public:
     enum class Error {
       INVALID_KEYSTORE_PATH = 1

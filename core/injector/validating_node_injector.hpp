@@ -25,7 +25,7 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto &key_storage = injector.template create<application::AKeyStorage &>();
+    auto &key_storage = injector.template create<application::KeyStorage &>();
     auto &&sr25519_kp = key_storage.getLocalSr25519Keypair();
 
     initialized = std::make_shared<crypto::Sr25519Keypair>(sr25519_kp);
@@ -40,7 +40,7 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto &key_storage = injector.template create<application::AKeyStorage &>();
+    auto &key_storage = injector.template create<application::KeyStorage &>();
     auto &&ed25519_kp = key_storage.getLocalEd25519Keypair();
 
     initialized = std::make_shared<crypto::Ed25519Keypair>(ed25519_kp);
@@ -57,7 +57,7 @@ namespace kagome::injector {
     }
 
     // get key storage
-    auto &keys = injector.template create<application::AKeyStorage &>();
+    auto &keys = injector.template create<application::KeyStorage &>();
     auto &&local_pair = keys.getP2PKeypair();
     initialized = std::make_shared<libp2p::crypto::KeyPair>(local_pair);
     return initialized.value();
@@ -74,7 +74,7 @@ namespace kagome::injector {
     }
 
     // get key storage
-    auto &keys = injector.template create<application::AKeyStorage &>();
+    auto &keys = injector.template create<application::KeyStorage &>();
     auto &&local_pair = keys.getP2PKeypair();
     libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
     auto &key_marshaller =
@@ -102,10 +102,10 @@ namespace kagome::injector {
 
   // key storage getter
   template <typename Injector>
-  sptr<application::AKeyStorage> get_key_storage(const application::AppConfiguration & config,
+  sptr<application::KeyStorage> get_key_storage(const application::AppConfiguration & config,
                                                 const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<application::AKeyStorage>>(boost::none);
+        boost::optional<sptr<application::KeyStorage>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -197,7 +197,7 @@ namespace kagome::injector {
               }
               return *initialized;
             })[di::override],
-        di::bind<application::AKeyStorage>.to(
+        di::bind<application::KeyStorage>.to(
             [&app_config](const auto &injector) {
               return get_key_storage(app_config, injector);
             }),

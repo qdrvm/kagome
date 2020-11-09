@@ -50,7 +50,7 @@ namespace kagome::injector {
             [](auto const &inj) { return get_babe(inj); }),
 
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
-        di::bind<application::AKeyStorage>.to(
+        di::bind<application::KeyStorage>.to(
             [&app_config](const auto &injector) {
               return get_key_storage(app_config, injector);
             }),
