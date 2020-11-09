@@ -10,12 +10,6 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
-#define CHECK_ERROR_CODE(ec, message_fmt)          \
-  if (not(ec)) {                                   \
-    logger_->error((message_fmt), (ec).message()); \
-    return false;                                  \
-  }
-
 namespace {
   namespace fs = boost::filesystem;
 
