@@ -158,7 +158,7 @@ namespace kagome::api {
                   /// them in a single json message.
 
                   jsonrpc::Value::Struct result;
-                  result["changes"] = std::move(out_data);
+                  result["changes"] = jsonrpc::Value::Array{std::move(out_data)};
                   result["block"] = api::makeValue(block);
 
                   sendEvent(self->server_,
@@ -317,7 +317,7 @@ namespace kagome::api {
             out_data.emplace_back(api::makeValue(hex_lower_0x(res.value())));
 
             jsonrpc::Value::Struct r;
-            r["changes"] = std::move(out_data);
+            r["changes"] = jsonrpc::Value::Array{std::move(out_data)};
 
             forJsonData(server_,
                         logger_,
