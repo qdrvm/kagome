@@ -25,8 +25,13 @@
 #include "subscription/subscriber.hpp"
 
 namespace kagome::api {
-  KAGOME_DECLARE_CACHE(api_service,
-                       KAGOME_CACHE_UNIT(std::vector<std::string>));
+  template <typename T>
+  using UCachedType = std::unique_ptr<T, void (*)(T *const)>;
+
+  KAGOME_DECLARE_CACHE(
+      api_service,
+      KAGOME_CACHE_UNIT(std::string),
+      KAGOME_CACHE_UNIT(std::vector<UCachedType<std::string>>));
 
   class JRpcProcessor;
 
@@ -51,12 +56,15 @@ namespace kagome::api {
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
     struct SessionExecutionContext {
-      using AdditionMessagesType = decltype(
-          KAGOME_EXTRACT_SHARED_CACHE(api_service, std::vector<std::string>));
+      using AdditionMessageType =
+          decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
+      using AdditionMessagesList = std::vector<AdditionMessageType>;
+      using CachedAdditionMessagesList = decltype(
+          KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
 
       SubscribedSessionPtr storage_subscription;
       subscriptions::EventsSubscribedSessionPtr events_subscription;
-      AdditionMessagesType messages;
+      CachedAdditionMessagesList messages;
     };
 
    public:
@@ -120,6 +128,22 @@ namespace kagome::api {
 
       throw jsonrpc::InternalErrorFault(
           "Internal error. No session was stored for subscription.");
+    }
+
+    template <typename T>
+    inline SessionExecutionContext::AdditionMessageType uploadFromCache(
+        T &&value) {
+      auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string);
+      obj->assign(std::forward<T>(value));
+      return obj;
+    }
+
+    inline SessionExecutionContext::CachedAdditionMessagesList
+    uploadMessagesListFromCache() {
+      auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(
+          api_service, SessionExecutionContext::AdditionMessagesList);
+      obj->clear();
+      return obj;
     }
 
    private:

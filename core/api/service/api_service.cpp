@@ -236,8 +236,10 @@ namespace kagome::api {
                     session->id(),
                     [&](SessionExecutionContext &session_context) {
                       if (session_context.messages)
-                        for (auto &msg : *session_context.messages)
-                          session->respond(msg);
+                        for (auto &msg : *session_context.messages) {
+                          BOOST_ASSERT(msg);
+                          session->respond(*msg);
+                        }
 
                       session_context.messages.reset();
                     });
@@ -310,8 +312,7 @@ namespace kagome::api {
         auto &pb = persistent_batch.value();
         BOOST_ASSERT(pb);
 
-        session_context.messages =
-            KAGOME_EXTRACT_SHARED_CACHE(api_service, std::vector<std::string>);
+        session_context.messages = uploadMessagesListFromCache();
         for (auto &key : keys) {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);
@@ -329,7 +330,8 @@ namespace kagome::api {
                         kRpcEventFinalizedHeads,
                         std::move(r),
                         [&](const auto &result) {
-                          session_context.messages->push_back(result.data());
+                          session_context.messages->emplace_back(
+                              uploadFromCache(result.data()));
                         });
           }
         }
@@ -349,15 +351,15 @@ namespace kagome::api {
         auto header = block_tree_->getBlockHeader(
             block_tree_->getLastFinalized().block_hash);
         if (!header.has_error()) {
-          session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
-              api_service, std::vector<std::string>);
+          session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
                       logger_,
                       id,
                       kRpcEventFinalizedHeads,
                       makeValue(header.value()),
                       [&](const auto &result) {
-                        session_context.messages->push_back(result.data());
+                        session_context.messages->emplace_back(
+                            uploadFromCache(result.data()));
                       });
         } else {
           logger_->error(
@@ -391,15 +393,15 @@ namespace kagome::api {
         auto header =
             block_tree_->getBlockHeader(block_tree_->deepestLeaf().block_hash);
         if (!header.has_error()) {
-          session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
-              api_service, std::vector<std::string>);
+          session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
                       logger_,
                       id,
                       kRpcEventNewHeads,
                       makeValue(header.value()),
                       [&](const auto &result) {
-                        session_context.messages->push_back(result.data());
+                        session_context.messages->emplace_back(
+                            uploadFromCache(result.data()));
                       });
         } else {
           logger_->error(
@@ -432,15 +434,15 @@ namespace kagome::api {
 
         auto ver = block_tree_->runtimeVersion();
         if (ver) {
-          session_context.messages = KAGOME_EXTRACT_SHARED_CACHE(
-              api_service, std::vector<std::string>);
+          session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
                       logger_,
                       id,
                       kRpcEventRuntimeVersion,
                       makeValue(*ver),
                       [&](const auto &result) {
-                        session_context.messages->push_back(result.data());
+                        session_context.messages->emplace_back(
+                            uploadFromCache(result.data()));
                       });
         }
         return outcome::success();
