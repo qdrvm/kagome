@@ -12,11 +12,11 @@ namespace kagome::api {
 
   class SystemApiImpl final : public SystemApi {
    public:
-    SystemApiImpl(std::shared_ptr<application::ConfigurationStorage> config,
+    SystemApiImpl(std::shared_ptr<application::GenesisConfig> config,
                   std::shared_ptr<consensus::Babe> babe,
                   std::shared_ptr<network::Gossiper> gossiper);
 
-    std::shared_ptr<application::ConfigurationStorage> getConfig()
+    std::shared_ptr<application::GenesisConfig> getConfig()
         const override;
 
     std::shared_ptr<consensus::Babe> getBabe() const override;
@@ -24,7 +24,7 @@ namespace kagome::api {
     std::shared_ptr<network::Gossiper> getGossiper() const override;
 
    private:
-    std::shared_ptr<application::ConfigurationStorage> config_;
+    std::shared_ptr<application::GenesisConfig> config_;
     std::shared_ptr<consensus::Babe> babe_;
     std::shared_ptr<network::Gossiper> gossiper_;
   };

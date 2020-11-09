@@ -10,12 +10,12 @@
 namespace kagome::application {
 
   ValidatingNodeApplication::ValidatingNodeApplication(
-      const AppConfigPtr &app_config)
+      const AppConfiguration &app_config)
       : injector_{injector::makeFullNodeInjector(app_config)},
         logger_(common::createLogger("Application")) {
-    spdlog::set_level(app_config->verbosity());
+    spdlog::set_level(app_config.verbosity());
 
-    if (app_config->is_already_synchronized()) {
+    if (app_config.is_already_synchronized()) {
       babe_execution_strategy_ = Babe::ExecutionStrategy::START;
     } else {
       babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;
@@ -26,8 +26,8 @@ namespace kagome::application {
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
-    config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
-    key_storage_ = injector_.create<sptr<KeyStorage>>();
+    config_storage_ = injector_.create<sptr<GenesisConfig>>();
+    key_storage_ = injector_.create<sptr<AKeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_ = injector_.create<sptr<Grandpa>>();

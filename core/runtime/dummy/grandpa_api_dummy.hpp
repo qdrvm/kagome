@@ -20,7 +20,7 @@ namespace kagome::runtime::dummy {
     ~GrandpaApiDummy() override = default;
 
     explicit GrandpaApiDummy(
-        std::shared_ptr<application::KeyStorage> key_storage);
+        std::shared_ptr<application::AKeyStorage> key_storage);
 
     outcome::result<boost::optional<ScheduledChange>> pending_change(
         const Digest &digest) override;
@@ -32,7 +32,7 @@ namespace kagome::runtime::dummy {
         const primitives::BlockId &block_id) override;
 
    private:
-    std::shared_ptr<application::KeyStorage> key_storage_;
+    std::shared_ptr<application::AKeyStorage> key_storage_;
   };
 }  // namespace kagome::runtime::dummy
 

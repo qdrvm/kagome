@@ -69,8 +69,8 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keypair> generateSr25519Keypair(
         KeyTypeId key_type, std::string_view mnemonic_phrase) override;
 
-    Ed25519Keypair generateEd25519Keypair(
-        KeyTypeId key_type, const Ed25519Seed &seed) override;
+    Ed25519Keypair generateEd25519Keypair(KeyTypeId key_type,
+                                          const Ed25519Seed &seed) override;
 
     Sr25519Keypair generateSr25519Keypair(KeyTypeId key_type,
                                           const Sr25519Seed &seed) override;
@@ -115,23 +115,22 @@ namespace kagome::crypto {
         std::string_view mnemonic_phrase,
         std::shared_ptr<Provider> provider,
         std::map<KeyTypeId, std::map<PublicKeyType, SecretKeyType>> &keys) {
-      OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
-      OUTCOME_TRY(entropy, bip39_provider_->calculateEntropy(mnemonic.words));
-      OUTCOME_TRY(bip_seed,
-                  bip39_provider_->makeSeed(entropy, mnemonic.password));
+      OUTCOME_TRY(bip_seed, bip39_provider_->generateSeed(mnemonic_phrase));
       if (bip_seed.size() < SeedType::size()) {
         return CryptoStoreError::WRONG_SEED_SIZE;
       }
-
-      OUTCOME_TRY(seed,
-                  SeedType::fromSpan(
-                      gsl::make_span(bip_seed).subspan(0, SeedType::size())));
+      auto seed_span = gsl::make_span(bip_seed.data(), SeedType::size());
+      OUTCOME_TRY(seed, SeedType::fromSpan(seed_span));
       auto pair = provider->generateKeypair(seed);
-
       keys[key_type].emplace(pair.public_key, pair.secret_key);
       return pair;
     }
 
+    void loadKeys(
+        KeyTypeId key_type,
+        const std::function<void(std::string_view,
+                                 std::string_view,
+                                 store::PublicKey const &)> &on_loaded) const;
     template <typename SeedType,
               typename PublicKeyType,
               typename SecretKeyType,
@@ -153,40 +152,26 @@ namespace kagome::crypto {
       bool keys_dir_exists =
           fs::exists(keys_directory_) and fs::is_directory(keys_directory_);
       if (not keys_dir_exists) {
-        logger_->error("Failed to open key storage directory: {}",
+        logger_->error("Failed to open crypto storage directory: {}",
                        keys_directory_.string());
         return {};
       }
-      for (fs::directory_iterator it{keys_directory_}, end{}; it != end; ++it) {
-        if (!fs::is_regular_file(*it)) {
-          continue;
-        }
-        auto info = parseKeyFileName(it->path().filename().string());
-        if (!info) {
-          continue;
-        }
-        auto &[id, pk] = info.value();
-        if (id == key_type and found_keys.count(pk) == 0) {
-          auto &&content = loadFileContent(it->path());
-          if (!content) {
-            logger_->error("failed to load keyfile {} : {}",
-                           it->path().string(),
-                           content.error().message());
-            continue;
-          }
-          auto &&seed = SeedType::fromHex(content.value());
-          if (!seed) {
-            logger_->error("failed to load seed from keyfile {} : {}",
-                           it->path().string(),
-                           seed.error().message());
-            continue;
-          }
-          auto pair = provider->generateKeypair(seed.value());
-          if (pair.public_key == pk) {
-            found_keys.emplace(pk);
-          }
-        }
-      }
+      loadKeys(key_type,
+               [this, &found_keys, &provider](std::string_view filename,
+                                              std::string_view content,
+                                              store::PublicKey const &pk) {
+                 auto &&seed = SeedType::fromHex(content);
+                 if (!seed) {
+                   logger_->error("failed to load seed from keyfile {} : {}",
+                                  filename,
+                                  seed.error().message());
+                   return;
+                 }
+                 auto pair = provider->generateKeypair(seed.value());
+                 if (pair.public_key == pk) {
+                   found_keys.emplace(pk);
+                 }
+               });
       return std::vector<PublicKeyType>(found_keys.begin(), found_keys.end());
     }
 

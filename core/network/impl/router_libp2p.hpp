@@ -29,7 +29,7 @@
 #include "network/types/peer_list.hpp"
 
 namespace kagome::application {
-  class ConfigurationStorage;
+  class GenesisConfig;
 }
 
 namespace kagome::blockchain {
@@ -49,7 +49,7 @@ namespace kagome::network {
         std::shared_ptr<Gossiper> gossiper,
         const PeerList &peer_list,
         const OwnPeerInfo &own_info,
-        std::shared_ptr<kagome::application::ConfigurationStorage> config,
+        std::shared_ptr<kagome::application::GenesisConfig> config,
         std::shared_ptr<blockchain::BlockStorage> storage,
         std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto);
@@ -150,7 +150,7 @@ namespace kagome::network {
     std::shared_ptr<Gossiper> gossiper_;
     std::weak_ptr<network::LoopbackStream> loopback_stream_;
     common::Logger log_;
-    std::shared_ptr<kagome::application::ConfigurationStorage> config_;
+    std::shared_ptr<kagome::application::GenesisConfig> config_;
     libp2p::peer::Protocol transactions_protocol_;
     libp2p::peer::Protocol block_announces_protocol_;
     std::shared_ptr<blockchain::BlockStorage> storage_;

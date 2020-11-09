@@ -9,8 +9,8 @@
 #include "application/kagome_application.hpp"
 
 #include "api/service/api_service.hpp"
-#include "application/app_config.hpp"
-#include "application/configuration_storage.hpp"
+#include "application/app_configuration.hpp"
+#include "application/genesis_config.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "injector/validating_node_injector.hpp"
 #include "runtime/dummy/grandpa_api_dummy.hpp"
@@ -21,7 +21,7 @@ namespace kagome::application {
     using Babe = consensus::Babe;
     using Grandpa = consensus::grandpa::Grandpa;
     using InjectorType =
-        decltype(injector::makeFullNodeInjector(AppConfigPtr{}));
+        decltype(injector::makeFullNodeInjector(std::declval<const AppConfiguration&>()));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -43,7 +43,7 @@ namespace kagome::application {
      * node
      * @param verbosity level of logging
      */
-    explicit ValidatingNodeApplication(const AppConfigPtr &config);
+    explicit ValidatingNodeApplication(const AppConfiguration &config);
 
     void run() override;
 
@@ -55,8 +55,8 @@ namespace kagome::application {
 
     std::shared_ptr<boost::asio::io_context> io_context_;
 
-    sptr<ConfigurationStorage> config_storage_;
-    sptr<KeyStorage> key_storage_;
+    sptr<GenesisConfig> config_storage_;
+    sptr<AKeyStorage> key_storage_;
     sptr<clock::SystemClock> clock_;
     sptr<Babe> babe_;
     sptr<Grandpa> grandpa_;

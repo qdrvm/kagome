@@ -88,7 +88,7 @@ namespace kagome::crypto {
     auto &&key_type_str = decodeKeyTypeId(key_type);
     auto &&public_key_hex = public_key.toHex();
 
-    return dir.append(key_type_str + public_key_hex);
+    return dir / (key_type_str + public_key_hex);
   }
 
   outcome::result<void> CryptoStoreImpl::storeKeyfile(
@@ -103,6 +103,7 @@ namespace kagome::crypto {
     if (!file.is_open()) {
       return CryptoStoreError::FAILED_OPEN_FILE;
     }
+
 
     file << seed.toHex();
 
@@ -120,7 +121,7 @@ namespace kagome::crypto {
         secp256k1_provider_(std::move(secp256k1_provider)),
         bip39_provider_(std::move(bip39_provider)),
         random_generator_(std::move(random_generator)),
-        logger_(common::createLogger("CryptoStore")) {
+        logger_(common::createLogger("Crypto Store")) {
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
@@ -129,15 +130,29 @@ namespace kagome::crypto {
   }
 
   outcome::result<void> CryptoStoreImpl::initialize(Path keys_directory) {
-    if (boost::filesystem::exists(keys_directory)) {
+    boost::system::error_code ec {};
+    bool does_exist = boost::filesystem::exists(keys_directory, ec);
+    if (not ec) {
+      logger_->error("Error initializing crypto store: {}", ec.message());
+      return outcome::failure(ec);
+    }
+    if (does_exist) {
       // check whether specified path is a directory
-      if (!boost::filesystem::is_directory(keys_directory)) {
+      if (not boost::filesystem::is_directory(keys_directory, ec)) {
         return CryptoStoreError::KEYS_PATH_IS_NOT_DIRECTORY;
+      }
+      if (not ec) {
+        logger_->error("Error initializing crypto store: {}", ec.message());
+        return outcome::failure(ec);
       }
     } else {
       // try create directory
-      if (!boost::filesystem::create_directory(keys_directory)) {
+      if (not boost::filesystem::create_directory(keys_directory, ec)) {
         return CryptoStoreError::FAILED_CREATE_KEYS_DIRECTORY;
+      }
+      if (not ec) {
+        logger_->error("Error initializing crypto store: {}", ec.message());
+        return outcome::failure(ec);
       }
     }
     keys_directory_ = std::move(keys_directory);
@@ -264,6 +279,35 @@ namespace kagome::crypto {
     std::string content;
     file >> content;
     return content;
+  }
+
+  void CryptoStoreImpl::loadKeys(
+      KeyTypeId key_type,
+      const std::function<void(std::string_view,
+                               std::string_view,
+                               const store::PublicKey &)> &on_loaded) const {
+    namespace fs = boost::filesystem;
+
+    for (fs::directory_iterator it{keys_directory_}, end{}; it != end; ++it) {
+      if (!fs::is_regular_file(*it)) {
+        continue;
+      }
+      auto info = parseKeyFileName(it->path().filename().string());
+      if (!info) {
+        continue;
+      }
+      auto &[id, pk] = info.value();
+      if (id == key_type /*and found_keys.count(pk) == 0*/) {
+        auto &&content = loadFileContent(it->path());
+        if (!content) {
+          logger_->error("failed to load keyfile {} : {}",
+                         it->path().string(),
+                         content.error().message());
+          continue;
+        }
+        on_loaded(it->path().string(), content.value(), pk);
+      }
+    }
   }
 
 }  // namespace kagome::crypto

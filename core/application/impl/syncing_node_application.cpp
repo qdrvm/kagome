@@ -5,27 +5,36 @@
 
 #include "application/impl/syncing_node_application.hpp"
 #include "network/common.hpp"
+#include "application/impl/util.hpp"
 
 namespace kagome::application {
 
-  SyncingNodeApplication::SyncingNodeApplication(const AppConfigPtr &app_config)
+  SyncingNodeApplication::SyncingNodeApplication(
+      const AppConfiguration &app_config)
       : injector_{injector::makeSyncingNodeInjector(app_config)},
         logger_{common::createLogger("SyncingNodeApplication")} {
-    spdlog::set_level(app_config->verbosity());
+    spdlog::set_level(app_config.verbosity());
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
+    config_storage_ = injector_.create<sptr<GenesisConfig>>();
+
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
-    config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
     router_ = injector_.create<sptr<network::Router>>();
+    chain_path_ = app_config.chain_path(config_storage_->id());
 
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void SyncingNodeApplication::run() {
     logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+
+    auto res = util::init_directory(chain_path_);
+    if (not res) {
+      logger_->error("Error initalizing chain directory: ", res.error().message());
+    }
 
     app_state_manager_->atLaunch([this] {
       // execute listeners

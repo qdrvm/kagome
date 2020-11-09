@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <fstream>
 
-#include "application/impl/app_config_impl.hpp"
+#include "application/impl/app_configuration_impl.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
@@ -24,10 +24,7 @@ class AppConfigurationTest : public testing::Test {
           "genesis" : "genesis file path"
         },
         "storage" : {
-          "leveldb" : "leveldb file path"
-        },
-        "authority" : {
-          "keystore" : "keystore file path"
+          "base_path" : "base path"
         },
         "network" : {
               "p2p_port" : 456,
@@ -49,10 +46,7 @@ class AppConfigurationTest : public testing::Test {
           "genesis" : 1
         },
         "storage" : {
-          "leveldb" : 2
-        },
-        "authority" : {
-          "keystore" : 3
+          "base_path" : 2
         },
         "network" : {
               "p2p_port" : "13",
@@ -129,14 +123,12 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   char const *args[] = {"/path/",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
-                        "--keystore",
-                        "keystore path"};
+                        "--base_path",
+                        "base path"};
 
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
   ASSERT_EQ(app_config_->p2p_port(), 30363);
   ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
@@ -159,10 +151,8 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
       "/path/",
       "--genesis",
       "genesis_path",
-      "--leveldb",
-      "leveldb_path",
-      "--keystore",
-      "keystore path",
+      "--base_path",
+      "base_path",
       "--rpc_http_host",
       "1.2.3.4",
       "--rpc_ws_host",
@@ -173,9 +163,9 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
       "2222",
   };
 
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
   ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
@@ -190,13 +180,11 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
   char const *args[] = {"/path/",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
-                        "--keystore",
-                        "keystore path"};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                        "--base_path",
+                        "base_path"};
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
   ASSERT_EQ(app_config_->genesis_path(), "genesis_path");
 }
@@ -225,9 +213,9 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
       "2222",
   };
 
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
   ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
@@ -245,13 +233,15 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
       get_endpoint("2.2.2.2", 678);
 
   char const *args[] = {"/path/", "--config_file", config_path.c_str()};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
   ASSERT_EQ(app_config_->genesis_path(), "genesis file path");
-  ASSERT_EQ(app_config_->leveldb_path(), "leveldb file path");
-  ASSERT_EQ(app_config_->keystore_path(), "keystore file path");
+  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+            "base path/test_chain42/keystore");
+  ASSERT_EQ(app_config_->database_path("test_chain42"),
+            "base path/test_chain42/db");
   ASSERT_EQ(app_config_->p2p_port(), 456);
   ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
@@ -272,21 +262,21 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
       get_endpoint("0.0.0.0", 40364);
 
   char const *args[] = {"/path/",
-                        "--keystore",
-                        "keystore_path",
+                        "--base_path",
+                        "base_path",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
                         "--config_file",
                         invalid_config_path.c_str()};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
   ASSERT_EQ(app_config_->genesis_path(), "genesis_path");
-  ASSERT_EQ(app_config_->leveldb_path(), "leveldb_path");
-  ASSERT_EQ(app_config_->keystore_path(), "keystore_path");
+  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+            "base_path/test_chain42/keystore");
+  ASSERT_EQ(app_config_->database_path("test_chain42"),
+            "base_path/test_chain42/db");
   ASSERT_EQ(app_config_->p2p_port(), 30363);
   ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
@@ -306,21 +296,21 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
       get_endpoint("0.0.0.0", 40364);
 
   char const *args[] = {"/path/",
-                        "--keystore",
-                        "keystore_path",
+                        "--base_path",
+                        "base_path",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
                         "--config_file",
                         damaged_config_path.c_str()};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
   ASSERT_EQ(app_config_->genesis_path(), "genesis_path");
-  ASSERT_EQ(app_config_->leveldb_path(), "leveldb_path");
-  ASSERT_EQ(app_config_->keystore_path(), "keystore_path");
+  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+            "base_path/test_chain42/keystore");
+  ASSERT_EQ(app_config_->database_path("test_chain42"),
+            "base_path/test_chain42/db");
   ASSERT_EQ(app_config_->p2p_port(), 30363);
   ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
@@ -340,21 +330,22 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
       get_endpoint("0.0.0.0", 40364);
 
   char const *args[] = {"/path/",
-                        "--keystore",
-                        "keystore_path",
+                        "--base_path",
+                        "base_path",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
                         "--config_file",
                         "<some_file>"};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
-                                    sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+  ASSERT_TRUE(app_config_->initialize_from_args(
+      AppConfiguration::LoadScheme::kValidating,
+      sizeof(args) / sizeof(args[0]),
+      (char **)args));
 
   ASSERT_EQ(app_config_->genesis_path(), "genesis_path");
-  ASSERT_EQ(app_config_->leveldb_path(), "leveldb_path");
-  ASSERT_EQ(app_config_->keystore_path(), "keystore_path");
+  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+            "base_path/test_chain42/keystore");
+  ASSERT_EQ(app_config_->database_path("test_chain42"),
+            "base_path/test_chain42/db");
   ASSERT_EQ(app_config_->p2p_port(), 30363);
   ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
@@ -373,55 +364,49 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTest) {
                         "true",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
-                        "--keystore",
-                        "keystore path"};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                        "--base_path",
+                        "base_path",};
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
   ASSERT_EQ(app_config_->is_only_finalizing(), true);
 }
 
 /**
  * @given new created AppConfigurationImpl
- * @when --leveldb cmd line arg is provided
- * @then we must receive this value from leveldb_path() call
+ * @when --base_path cmd line arg is provided
+ * @then we must receive this value from base_path() call
  */
 TEST_F(AppConfigurationTest, KeystorePathTest) {
-  char const *args[] = {"/path/",
-                        "--keystore",
-                        "keystore_path",
-                        "--genesis",
-                        "genesis_path",
-                        "--leveldb",
-                        "leveldb_path"};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+  char const *args[] = {
+      "/path/", "--genesis", "genesis_path", "--base_path", "base_path"};
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
-  ASSERT_EQ(app_config_->keystore_path(), "keystore_path");
+  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+            "base_path/test_chain42/keystore");
+  ASSERT_EQ(app_config_->database_path("test_chain42"),
+            "base_path/test_chain42/db");
 }
 
 /**
  * @given new created AppConfigurationImpl
- * @when --leveldb cmd line arg is provided
- * @then we must receive this value from leveldb_path() call
+ * @when --base_path cmd line arg is provided
+ * @then we must receive this value from base_path() call
  */
-TEST_F(AppConfigurationTest, LevelDBPathTest) {
-  char const *args[] = {"/path/",
-                        "--genesis",
-                        "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
-                        "--keystore",
-                        "keystore path"};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+TEST_F(AppConfigurationTest, base_pathPathTest) {
+  char const *args[] = {
+      "/path/", "--genesis", "genesis_path", "--base_path", "base_path"};
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
 
-  ASSERT_EQ(app_config_->leveldb_path(), "leveldb_path");
+  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+            "base_path/test_chain42/keystore");
+  ASSERT_EQ(app_config_->database_path("test_chain42"),
+            "base_path/test_chain42/db");
 }
 
 /**
@@ -437,13 +422,11 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
                           "0",
                           "--genesis",
                           "genesis_path",
-                          "--leveldb",
-                          "leveldb_path",
-                          "--keystore",
-                          "keystore path"};
-    app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                          "--base_path",
+                          "base_path",};
+    ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                       sizeof(args) / sizeof(args[0]),
-                                      (char **)args);
+                                      (char **)args));
     ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::trace);
   }
   {
@@ -452,13 +435,11 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
                           "1",
                           "--genesis",
                           "genesis_path",
-                          "--leveldb",
-                          "leveldb_path",
-                          "--keystore",
-                          "keystore path"};
-    app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                          "--base_path",
+                          "base_path",};
+    ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                       sizeof(args) / sizeof(args[0]),
-                                      (char **)args);
+                                      (char **)args));
     ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::debug);
   }
   {
@@ -467,13 +448,11 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
                           "2",
                           "--genesis",
                           "genesis_path",
-                          "--leveldb",
-                          "leveldb_path",
-                          "--keystore",
-                          "keystore path"};
-    app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                          "--base_path",
+                          "base_path",};
+    ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                       sizeof(args) / sizeof(args[0]),
-                                      (char **)args);
+                                      (char **)args));
     ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
   }
   {
@@ -482,13 +461,11 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
                           "3",
                           "--genesis",
                           "genesis_path",
-                          "--leveldb",
-                          "leveldb_path",
-                          "--keystore",
-                          "keystore path"};
-    app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                          "--base_path",
+                          "base_path",};
+    ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                       sizeof(args) / sizeof(args[0]),
-                                      (char **)args);
+                                      (char **)args));
     ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::warn);
   }
   {
@@ -497,13 +474,11 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
                           "4",
                           "--genesis",
                           "genesis_path",
-                          "--leveldb",
-                          "leveldb_path",
-                          "--keystore",
-                          "keystore path"};
-    app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                          "--base_path",
+                          "base_path"};
+    ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                       sizeof(args) / sizeof(args[0]),
-                                      (char **)args);
+                                      (char **)args));
     ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::err);
   }
   {
@@ -512,13 +487,11 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
                           "5",
                           "--genesis",
                           "genesis_path",
-                          "--leveldb",
-                          "leveldb_path",
-                          "--keystore",
-                          "keystore path"};
-    app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                          "--base_path",
+                          "base_path"};
+    ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                       sizeof(args) / sizeof(args[0]),
-                                      (char **)args);
+                                      (char **)args));
     ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::critical);
   }
   {
@@ -527,13 +500,11 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
                           "6",
                           "--genesis",
                           "genesis_path",
-                          "--leveldb",
-                          "leveldb_path",
-                          "--keystore",
-                          "keystore path"};
-    app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                          "--base_path",
+                          "base_path"};
+    ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                       sizeof(args) / sizeof(args[0]),
-                                      (char **)args);
+                                      (char **)args));
     ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::off);
   }
 }
@@ -549,13 +520,11 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
                         "555",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
-                        "--keystore",
-                        "keystore path"};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                        "--base_path",
+                        "base_path"};
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
   ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
 }
 
@@ -569,13 +538,11 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTestTest) {
                         "-f",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
-                        "--keystore",
-                        "keystore path"};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                        "--base_path",
+                        "base_path"};
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
   ASSERT_EQ(app_config_->is_only_finalizing(), true);
 }
 
@@ -589,12 +556,10 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTestTest_2) {
                         "--single_finalizing_node",
                         "--genesis",
                         "genesis_path",
-                        "--leveldb",
-                        "leveldb_path",
-                        "--keystore",
-                        "keystore path"};
-  app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
+                        "--base_path",
+                        "base_path"};
+  ASSERT_TRUE(app_config_->initialize_from_args(AppConfiguration::LoadScheme::kValidating,
                                     sizeof(args) / sizeof(args[0]),
-                                    (char **)args);
+                                    (char **)args));
   ASSERT_EQ(app_config_->is_only_finalizing(), true);
 }

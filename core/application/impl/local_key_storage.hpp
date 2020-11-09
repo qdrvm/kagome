@@ -15,10 +15,14 @@
 
 namespace kagome::application {
 
-  class LocalKeyStorage : public KeyStorage {
+  class LocalKeyStorage : public AKeyStorage {
    public:
+    enum class Error {
+      INVALID_KEYSTORE_PATH = 1
+    };
+
     static outcome::result<std::shared_ptr<LocalKeyStorage>> create(
-        const std::string &keystore_path);
+        const boost::filesystem::path &keystore_path);
 
     ~LocalKeyStorage() override = default;
 
@@ -32,7 +36,7 @@ namespace kagome::application {
     /**
      * Loads a keystore from the provided file
      */
-    outcome::result<void> loadFromJson(const std::string &file_path);
+    outcome::result<void> loadFromJson(const boost::filesystem::path &file_path);
 
     outcome::result<void> loadSr25519Keys(
         const boost::property_tree::ptree &tree);
@@ -46,5 +50,7 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::application, LocalKeyStorage::Error);
 
 #endif  // KAGOME_APPLICATION_LOCAL_KEY_STORAGE_HPP

@@ -6,11 +6,11 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem/path.hpp>
-#include "application/impl/configuration_storage_impl.hpp"
+#include "application/impl/genesis_config_impl.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::application::ConfigurationStorageImpl;
-using kagome::application::GenesisRawConfig;
+using kagome::application::GenesisConfigImpl;
+using kagome::application::GenesisRawData;
 using kagome::common::Buffer;
 using kagome::crypto::Sr25519PublicKey;
 using kagome::network::PeerList;
@@ -45,7 +45,7 @@ class ConfigurationStorageTest : public ::testing::Test {
       boost::filesystem::path(__FILE__).parent_path().string()
       + "/genesis.json";  // < Path to file containing the following configs:
   PeerList expected_boot_nodes_;
-  GenesisRawConfig expected_genesis_config_;
+  GenesisRawData expected_genesis_config_;
 };
 
 /**
@@ -56,7 +56,7 @@ class ConfigurationStorageTest : public ::testing::Test {
 TEST_F(ConfigurationStorageTest, MatchesConfig) {
   // given provided in set up
   // when
-  EXPECT_OUTCOME_TRUE(config_storage, ConfigurationStorageImpl::create(path_));
+  EXPECT_OUTCOME_TRUE(config_storage, GenesisConfigImpl::create(path_));
 
   // then
   ASSERT_EQ(config_storage->getGenesis(), expected_genesis_config_);

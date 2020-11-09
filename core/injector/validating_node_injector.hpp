@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
 
-#include "application/app_config.hpp"
+#include "application/app_configuration.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
@@ -25,7 +25,7 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto &key_storage = injector.template create<application::KeyStorage &>();
+    auto &key_storage = injector.template create<application::AKeyStorage &>();
     auto &&sr25519_kp = key_storage.getLocalSr25519Keypair();
 
     initialized = std::make_shared<crypto::Sr25519Keypair>(sr25519_kp);
@@ -40,7 +40,7 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto &key_storage = injector.template create<application::KeyStorage &>();
+    auto &key_storage = injector.template create<application::AKeyStorage &>();
     auto &&ed25519_kp = key_storage.getLocalEd25519Keypair();
 
     initialized = std::make_shared<crypto::Ed25519Keypair>(ed25519_kp);
@@ -57,7 +57,7 @@ namespace kagome::injector {
     }
 
     // get key storage
-    auto &keys = injector.template create<application::KeyStorage &>();
+    auto &keys = injector.template create<application::AKeyStorage &>();
     auto &&local_pair = keys.getP2PKeypair();
     initialized = std::make_shared<libp2p::crypto::KeyPair>(local_pair);
     return initialized.value();
@@ -74,7 +74,7 @@ namespace kagome::injector {
     }
 
     // get key storage
-    auto &keys = injector.template create<application::KeyStorage &>();
+    auto &keys = injector.template create<application::AKeyStorage &>();
     auto &&local_pair = keys.getP2PKeypair();
     libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
     auto &key_marshaller =
@@ -102,15 +102,17 @@ namespace kagome::injector {
 
   // key storage getter
   template <typename Injector>
-  sptr<application::KeyStorage> get_key_storage(std::string_view keystore_path,
+  sptr<application::AKeyStorage> get_key_storage(const application::AppConfiguration & config,
                                                 const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<application::KeyStorage>>(boost::none);
+        boost::optional<sptr<application::AKeyStorage>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
+    auto chain_id = injector.template create<sptr<application::GenesisConfig>>()->id();
+    auto keystore_path = config.keystore_path(chain_id);
     auto &&result =
-        application::LocalKeyStorage::create(std::string(keystore_path));
+        application::LocalKeyStorage::create(keystore_path);
     if (!result) {
       common::raise(result.error());
     }
@@ -146,15 +148,12 @@ namespace kagome::injector {
   }
 
   template <typename... Ts>
-  auto makeFullNodeInjector(const application::AppConfigPtr &app_config,
+  auto makeFullNodeInjector(const application::AppConfiguration &app_config,
                             Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
-        makeApplicationInjector(app_config->genesis_path(),
-                                app_config->leveldb_path(),
-                                app_config->rpc_http_endpoint(),
-                                app_config->rpc_ws_endpoint()),
+        makeApplicationInjector(app_config),
         // bind sr25519 keypair
         di::bind<crypto::Sr25519Keypair>.to(
             [](auto const &inj) { return get_sr25519_keypair(inj); }),
@@ -167,7 +166,7 @@ namespace kagome::injector {
         })[boost::di::override],
         // compose peer info
         di::bind<network::OwnPeerInfo>.to(
-            [p2p_port{app_config->p2p_port()}](const auto &injector) {
+            [p2p_port{app_config.p2p_port()}](const auto &injector) {
               return get_peer_info(injector, p2p_port);
             }),
         di::bind<consensus::Babe>.to(
@@ -180,7 +179,7 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<runtime::GrandpaApi>.template to(
-            [is_only_finalizing{app_config->is_only_finalizing()}](
+            [is_only_finalizing{app_config.is_only_finalizing()}](
                 const auto &injector) -> sptr<runtime::GrandpaApi> {
               static boost::optional<sptr<runtime::GrandpaApi>> initialized =
                   boost::none;
@@ -198,13 +197,13 @@ namespace kagome::injector {
               }
               return *initialized;
             })[di::override],
-        di::bind<application::KeyStorage>.to(
-            [app_config](const auto &injector) {
-              return get_key_storage(app_config->keystore_path(), injector);
+        di::bind<application::AKeyStorage>.to(
+            [&app_config](const auto &injector) {
+              return get_key_storage(app_config, injector);
             }),
         di::bind<crypto::CryptoStore>.template to(
-            [app_config](const auto &injector) {
-              return get_crypto_store(app_config->keystore_path(), injector);
+            [&app_config](const auto &injector) {
+              return get_crypto_store(app_config, injector);
             })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

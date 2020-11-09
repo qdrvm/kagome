@@ -8,6 +8,7 @@
 
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/crypto/key.hpp>
+
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 
@@ -16,9 +17,9 @@ namespace kagome::application {
   /**
    * Stores crypto keys of the current node
    */
-  class KeyStorage {
+  class AKeyStorage {
    public:
-    virtual ~KeyStorage() = default;
+    virtual ~AKeyStorage() = default;
 
     /**
      * Get the node sr25519 keypair, which is used, for example, in BABE

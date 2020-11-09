@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONFIGURATION_STORAGE_IMPL_HPP
-#define KAGOME_CONFIGURATION_STORAGE_IMPL_HPP
+#ifndef KAGOME_GENESIS_CONFIG_IMPL_HPP
+#define KAGOME_GENESIS_CONFIG_IMPL_HPP
 
-#include "application/configuration_storage.hpp"
+#include "application/genesis_config.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 
 namespace kagome::application {
 
-  class ConfigurationStorageImpl : public ConfigurationStorage {
+  class GenesisConfigImpl : public GenesisConfig {
    public:
-    static outcome::result<std::shared_ptr<ConfigurationStorageImpl>> create(
+    static outcome::result<std::shared_ptr<GenesisConfigImpl>> create(
         const std::string &config_path);
 
-    ~ConfigurationStorageImpl() override = default;
+    ~GenesisConfigImpl() override = default;
 
     const std::string &name() const override {
       return name_;
@@ -69,7 +69,7 @@ namespace kagome::application {
       return consensus_engine_;
     }
 
-    GenesisRawConfig getGenesis() const override {
+    GenesisRawData getGenesis() const override {
       return genesis_;
     }
 
@@ -80,7 +80,7 @@ namespace kagome::application {
     outcome::result<void> loadBootNodes(
         const boost::property_tree::ptree &tree);
 
-    ConfigurationStorageImpl() = default;
+    GenesisConfigImpl() = default;
 
     std::string name_;
     std::string id_;
@@ -92,9 +92,9 @@ namespace kagome::application {
     std::set<primitives::BlockHash> fork_blocks_;
     std::set<primitives::BlockHash> bad_blocks_;
     boost::optional<std::string> consensus_engine_;
-    GenesisRawConfig genesis_;
+    GenesisRawData genesis_;
   };
 
 }  // namespace kagome::application
 
-#endif  // KAGOME_CONFIGURATION_STORAGE_IMPL_HPP
+#endif  // KAGOME_GENESIS_CONFIG_IMPL_HPP

@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APP_CONFIG_HPP
-#define KAGOME_APP_CONFIG_HPP
+#ifndef KAGOME_APP_CONFIGURATION_HPP
+#define KAGOME_APP_CONFIGURATION_HPP
 
-#include <spdlog/spdlog.h>
-#include <boost/asio/ip/tcp.hpp>
+#include <boost/filesystem.hpp>
 #include <memory>
 #include <string>
+
+#include <spdlog/common.h>
+#include <boost/asio/ip/tcp.hpp>
 
 namespace kagome::application {
 
@@ -30,17 +32,25 @@ namespace kagome::application {
     /**
      * @return file path with genesis configuration.
      */
-    virtual const std::string &genesis_path() const = 0;
+    virtual boost::filesystem::path genesis_path() const = 0;
 
     /**
-     * @return keystore directory path.
+     * @return path to the node's directory for the chain \arg chain_id
+     * (contains key storage and database)
      */
-    virtual const std::string &keystore_path() const = 0;
+    virtual boost::filesystem::path chain_path(std::string chain_id) const = 0;
 
     /**
-     * @return leveldb directory path.
+     * @return path to the node's database for the chain \arg chain_id
      */
-    virtual const std::string &leveldb_path() const = 0;
+    virtual boost::filesystem::path database_path(
+        std::string chain_id) const = 0;
+
+    /**
+     * @return path to the node's keystore for the chain \arg chain_id
+     */
+    virtual boost::filesystem::path keystore_path(
+        std::string chain_id) const = 0;
 
     /**
      * @return port for peer to peer interactions.
@@ -75,8 +85,6 @@ namespace kagome::application {
     virtual bool is_already_synchronized() const = 0;
   };
 
-  using AppConfigPtr = std::shared_ptr<AppConfiguration>;
-
 }  // namespace kagome::application
 
-#endif  // KAGOME_APP_CONFIG_HPP
+#endif  // KAGOME_APP_CONFIGURATION_HPP

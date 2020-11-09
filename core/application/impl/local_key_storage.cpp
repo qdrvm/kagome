@@ -6,16 +6,33 @@
 #include "application/impl/local_key_storage.hpp"
 
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/filesystem.hpp>
+
 #include "application/impl/config_reader/error.hpp"
 #include "application/impl/config_reader/pt_util.hpp"
 #include "common/hexutil.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::application, LocalKeyStorage::Error, e) {
+  using E = kagome::application::LocalKeyStorage::Error;
+  switch (e) {
+    case E::INVALID_KEYSTORE_PATH:
+      return "Path to the key storage is invalid";
+  }
+  return "Unknown error in LocalKeyStorage";
+}
+
 namespace kagome::application {
 
+  namespace fs = boost::filesystem;
+
   outcome::result<std::shared_ptr<LocalKeyStorage>> LocalKeyStorage::create(
-      const std::string &keystore_path) {
+      const boost::filesystem::path &keystore_path) {
+    boost::system::error_code ec {};
+    if (not(fs::exists(keystore_path, ec) and fs::is_directory(keystore_path, ec))) {
+      return Error::INVALID_KEYSTORE_PATH;
+    }
     auto storage = LocalKeyStorage();
-    OUTCOME_TRY(storage.loadFromJson(keystore_path));
+    OUTCOME_TRY(storage.loadFromJson(keystore_path / "keystore.json"));
     return std::make_shared<LocalKeyStorage>(std::move(storage));
   }
 
@@ -33,11 +50,11 @@ namespace kagome::application {
     return p2p_keypair_;
   }
 
-  outcome::result<void> LocalKeyStorage::loadFromJson(const std::string &file) {
+  outcome::result<void> LocalKeyStorage::loadFromJson(const boost::filesystem::path &file) {
     namespace pt = boost::property_tree;
     pt::ptree tree;
     try {
-      pt::read_json(file, tree);
+      pt::read_json(file.native(), tree);
     } catch (pt::json_parser_error &e) {
       return ConfigReaderError::PARSER_ERROR;
     }

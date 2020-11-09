@@ -33,6 +33,9 @@ namespace kagome::crypto {
      */
     virtual outcome::result<bip39::Bip39Seed> makeSeed(
         gsl::span<const uint8_t> entropy, std::string_view password) = 0;
+
+    virtual outcome::result<bip39::Bip39Seed> generateSeed(
+        std::string_view mnemonic_phrase) = 0;
   };
 
 }  // namespace kagome::crypto
