@@ -115,6 +115,10 @@ namespace kagome::api {
     outcome::result<void> unsubscribeRuntimeVersion(uint32_t subscription_id);
 
    private:
+    jsonrpc::Value createStateStorageEvent(const common::Buffer &key,
+                                           const common::Buffer &value,
+                                           const primitives::BlockHash &block);
+
     boost::optional<std::shared_ptr<SessionExecutionContext>> findSessionById(
         Session::SessionId id) {
       std::lock_guard guard(subscribed_sessions_cs_);

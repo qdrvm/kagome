@@ -127,6 +127,24 @@ namespace kagome::api {
     BOOST_ASSERT(subscription_engines_.storage);
   }
 
+  jsonrpc::Value ApiService::createStateStorageEvent(
+      const common::Buffer &key,
+      const common::Buffer &value,
+      const primitives::BlockHash &block) {
+    /// TODO(iceseer): PRE-475 make event notification depending
+    /// in packs blocks, to batch them in a single message Because
+    /// of a spec, we can send an array of changes in a single
+    /// message. We can receive here a pack of events and format
+    /// them in a single json message.
+
+    jsonrpc::Value::Struct result;
+    result["changes"] = jsonrpc::Value::Array{jsonrpc::Value::Array{
+        api::makeValue(key), api::makeValue(hex_lower_0x(value))}};
+    result["block"] = api::makeValue(hex_lower_0x(block));
+
+    return result;
+  }
+
   bool ApiService::prepare() {
     for (const auto &listener : listeners_) {
       auto on_new_session = [wp = weak_from_this()](
@@ -147,26 +165,12 @@ namespace kagome::api {
                    const auto &data,
                    const auto &block) {
                 if (auto self = wp.lock()) {
-                  jsonrpc::Value::Array out_data;
-                  out_data.emplace_back(api::makeValue(key));
-                  out_data.emplace_back(api::makeValue(hex_lower_0x(data)));
-
-                  /// TODO(iceseer): PRE-475 make event notification depending
-                  /// in packs blocks, to batch them in a single message Because
-                  /// of a spec, we can send an array of changes in a single
-                  /// message. We can receive here a pack of events and format
-                  /// them in a single json message.
-
-                  jsonrpc::Value::Struct result;
-                  result["changes"] = jsonrpc::Value::Array{std::move(out_data)};
-                  result["block"] = api::makeValue(block);
-
                   sendEvent(self->server_,
                             session,
                             self->logger_,
                             set_id,
                             kRpcEventSubscribeStorage,
-                            std::move(result));
+                            self->createStateStorageEvent(key, data, block));
                 }
               });
 
@@ -307,23 +311,18 @@ namespace kagome::api {
         auto &pb = persistent_batch.value();
         BOOST_ASSERT(pb);
 
+        auto last_finalized = block_tree_->getLastFinalized();
         session_context.messages = uploadMessagesListFromCache();
         for (auto &key : keys) {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);
           if (auto res = pb->get(key); res.has_value()) {
-            jsonrpc::Value::Array out_data;
-            out_data.emplace_back(api::makeValue(key));
-            out_data.emplace_back(api::makeValue(hex_lower_0x(res.value())));
-
-            jsonrpc::Value::Struct r;
-            r["changes"] = jsonrpc::Value::Array{std::move(out_data)};
-
             forJsonData(server_,
                         logger_,
                         id,
                         kRpcEventSubscribeStorage,
-                        std::move(r),
+                        createStateStorageEvent(
+                            key, res.value(), last_finalized.block_hash),
                         [&](const auto &result) {
                           session_context.messages->emplace_back(
                               uploadFromCache(result.data()));
