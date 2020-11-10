@@ -15,14 +15,20 @@ namespace kagome::subscription {
   template <typename Key, typename Type, typename... Arguments>
   class Subscriber;
 
-  template <typename Key, typename Type, typename... Arguments>
+  /**
+   * TODO(Harrm) document
+   * @tparam Event
+   * @tparam Receiver
+   * @tparam Arguments
+   */
+  template <typename Event, typename Receiver, typename... Arguments>
   class SubscriptionEngine final
       : public std::enable_shared_from_this<
-            SubscriptionEngine<Key, Type, Arguments...>> {
+            SubscriptionEngine<Event, Receiver, Arguments...>> {
    public:
-    using KeyType = Key;
-    using ValueType = Type;
-    using SubscriberType = Subscriber<KeyType, ValueType, Arguments...>;
+    using EventType = Event;
+    using ReceiverType = Receiver;
+    using SubscriberType = Subscriber<EventType, ReceiverType, Arguments...>;
     using SubscriberPtr = std::shared_ptr<SubscriberType>;
     using SubscriberWPtr = std::weak_ptr<SubscriberType>;
     using SubscriptionSetId = uint32_t;
@@ -37,7 +43,7 @@ namespace kagome::subscription {
    private:
     template <typename KeyType, typename ValueType, typename... Args>
     friend class Subscriber;
-    using KeyValueContainer = std::unordered_map<KeyType, SubscribersContainer>;
+    using KeyValueContainer = std::unordered_map<EventType, SubscribersContainer>;
 
     mutable std::shared_mutex subscribers_map_cs_;
     KeyValueContainer subscribers_map_;
@@ -53,13 +59,13 @@ namespace kagome::subscription {
     SubscriptionEngine &operator=(const SubscriptionEngine &) = delete;
 
    private:
-    IteratorType subscribe(SubscriptionSetId set_id, const KeyType &key, SubscriberWPtr ptr) {
+    IteratorType subscribe(SubscriptionSetId set_id, const EventType &key, SubscriberWPtr ptr) {
       std::unique_lock lock(subscribers_map_cs_);
       auto &subscribers_list = subscribers_map_[key];
       return subscribers_list.emplace(subscribers_list.end(), std::make_pair(set_id, std::move(ptr)));
     }
 
-    void unsubscribe(const KeyType &key, const IteratorType &it_remove) {
+    void unsubscribe(const EventType &key, const IteratorType &it_remove) {
       std::unique_lock lock(subscribers_map_cs_);
       auto it = subscribers_map_.find(key);
       if (subscribers_map_.end() != it) {
@@ -69,7 +75,7 @@ namespace kagome::subscription {
     }
 
    public:
-    size_t size(const KeyType &key) const {
+    size_t size(const EventType &key) const {
       std::shared_lock lock(subscribers_map_cs_);
       if (auto it = subscribers_map_.find(key); it != subscribers_map_.end())
         return it->second.size();
@@ -84,7 +90,7 @@ namespace kagome::subscription {
       return count;
     }
 
-    void notify(const KeyType &key, const Arguments &... args) {
+    void notify(const EventType &key, const Arguments &... args) {
       std::shared_lock lock(subscribers_map_cs_);
       auto it = subscribers_map_.find(key);
       if (subscribers_map_.end() == it) return;

@@ -53,9 +53,13 @@ namespace kagome::api {
     outcome::result<std::vector<primitives::Extrinsic>> pendingExtrinsics()
         override;
 
-    // TODO(yuraz): probably will be documented later (no task yet)
     outcome::result<std::vector<common::Hash256>> removeExtrinsic(
         const std::vector<primitives::ExtrinsicKey> &keys) override;
+
+    outcome::result<SubscriptionId> submitAndWatchExtrinsic(
+        const Extrinsic &extrinsic) override;
+
+    outcome::result<bool> unwatchExtrinsic(const Extrinsic &extrinsic) override;
 
    private:
     sptr<runtime::TaggedTransactionQueue> api_;

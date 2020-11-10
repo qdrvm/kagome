@@ -18,38 +18,40 @@ namespace kagome::subscription {
   /**
    * Is a wrapper class, which provides subscription to events from
    * SubscriptionEngine
-   * @tparam Key is a type of a subscription Key.
-   * @tparam Type is a type of an object to receive notifications in.
+   * @tparam Event is a type of a subscription event.
+   * @tparam ReceiverType is a type of an object to receive notifications in.
    * @tparam Arguments is a set of types of objects needed to construct Type.
    */
-  template <typename Key, typename Type, typename... Arguments>
+  template <typename Event, typename Receiver, typename... Arguments>
   class Subscriber final : public std::enable_shared_from_this<
-                               Subscriber<Key, Type, Arguments...>> {
+                               Subscriber<Event, Receiver, Arguments...>> {
    public:
-    using KeyType = Key;
-    using ValueType = Type;
-    using HashType = size_t;
-    using ThisType = Subscriber<Key, Type, Arguments...>;
+    using EventType = Event;
+    using ReceiverType = Receiver;
+    using Hash = size_t;
+    using This = Subscriber<Event, Receiver, Arguments...>;
 
     using SubscriptionEngineType =
-        SubscriptionEngine<KeyType, ValueType, Arguments...>;
+        SubscriptionEngine<EventType, ReceiverType, Arguments...>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
     using SubscriptionSetId =
         typename SubscriptionEngineType::SubscriptionSetId;
 
-    using CallbackFnType = std::function<void(
-        SubscriptionSetId, ValueType &, const KeyType &, const Arguments &...)>;
+    using CallbackFnType = std::function<void(SubscriptionSetId,
+                                              ReceiverType &,
+                                              const EventType &,
+                                              const Arguments &...)>;
 
    private:
     using SubscriptionsContainer =
-        std::unordered_map<KeyType,
+        std::unordered_map<EventType,
                            typename SubscriptionEngineType::IteratorType>;
     using SubscriptionsSets =
         std::unordered_map<SubscriptionSetId, SubscriptionsContainer>;
 
     std::atomic<SubscriptionSetId> next_id_;
     SubscriptionEnginePtr engine_;
-    ValueType object_;
+    ReceiverType object_;
 
     std::mutex subscriptions_cs_;
     SubscriptionsSets subscriptions_sets_;
@@ -68,8 +70,8 @@ namespace kagome::subscription {
     }
 
     template <typename... ArgumentTypes>
-    static std::shared_ptr<ThisType> create(ArgumentTypes &&... args) {
-      return std::make_shared<ThisType>(std::forward<ArgumentTypes>(args)...);
+    static std::shared_ptr<This> create(ArgumentTypes &&... args) {
+      return std::make_shared<This>(std::forward<ArgumentTypes>(args)...);
     }
 
     Subscriber(const Subscriber &) = delete;
@@ -86,7 +88,7 @@ namespace kagome::subscription {
       return ++next_id_;
     }
 
-    void subscribe(SubscriptionSetId id, const KeyType &key) {
+    void subscribe(SubscriptionSetId id, const EventType &key) {
       std::lock_guard lock(subscriptions_cs_);
       auto &&[it, inserted] = subscriptions_sets_[id].emplace(
           key, typename SubscriptionEngineType::IteratorType{});
@@ -97,7 +99,7 @@ namespace kagome::subscription {
         it->second = engine_->subscribe(id, key, this->weak_from_this());
     }
 
-    void unsubscribe(SubscriptionSetId id, const KeyType &key) {
+    void unsubscribe(SubscriptionSetId id, const EventType &key) {
       std::lock_guard<std::mutex> lock(subscriptions_cs_);
       if (auto set_it = subscriptions_sets_.find(id);
           set_it != subscriptions_sets_.end()) {
@@ -130,13 +132,13 @@ namespace kagome::subscription {
     }
 
     void on_notify(SubscriptionSetId set_id,
-                   const KeyType &key,
+                   const EventType &key,
                    const Arguments &... args) {
       if (nullptr != on_notify_callback_)
         on_notify_callback_(set_id, object_, key, args...);
     }
 
-    ValueType &get() {
+    ReceiverType &get() {
       return object_;
     }
   };

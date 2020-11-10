@@ -96,4 +96,15 @@ namespace kagome::api {
     return outcome::failure(boost::system::error_code{});
   }
 
+  outcome::result<AuthorApi::SubscriptionId>
+  AuthorApiImpl::submitAndWatchExtrinsic(
+      const AuthorApi::Extrinsic &extrinsic) {
+
+  }
+
+  outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(
+      const AuthorApi::Extrinsic &extrinsic) {
+
+  }
+
 }  // namespace kagome::api

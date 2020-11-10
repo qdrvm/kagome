@@ -7,8 +7,8 @@
 #define KAGOME_CORE_API_EXTRINSIC_EXTRINSIC_API_HPP
 
 #include "common/blob.hpp"
-#include "primitives/extrinsic.hpp"
 #include "primitives/author_api_primitives.hpp"
+#include "primitives/extrinsic.hpp"
 
 namespace kagome::api {
   class AuthorApi {
@@ -40,6 +40,21 @@ namespace kagome::api {
     // TODO(yuraz): will be documented later (no task yet)
     virtual outcome::result<std::vector<Hash256>> removeExtrinsic(
         const std::vector<ExtrinsicKey> &keys) = 0;
+
+    /**
+     * Submit an extrinsic and watch.
+     */
+    virtual outcome::result<SubscriptionId> submitAndWatchExtrinsic(
+        const Extrinsic &extrinsic) = 0;
+
+    /**
+     * Unsubscribe from extrinsic watching.
+     * @see AuthorApi::submitAndWatchExtrinsic
+     * @return true if the subscriber was unsubscribed, false if there was no
+     * subscriber.
+     */
+    virtual outcome::result<bool> unwatchExtrinsic(
+        const Extrinsic &extrinsic) = 0;
   };
 }  // namespace kagome::api
 

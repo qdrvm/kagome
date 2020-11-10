@@ -12,6 +12,7 @@
 
 namespace {
   thread_local class {
+   private:
     boost::optional<kagome::api::Session::SessionId> bound_session_id_ =
         boost::none;
 
@@ -282,13 +283,13 @@ namespace kagome::api {
 
   bool ApiService::start() {
     thread_pool_->start();
-    logger_->debug("Service started");
+    logger_->debug("API Service started");
     return true;
   }
 
   void ApiService::stop() {
     thread_pool_->stop();
-    logger_->debug("Service stopped");
+    logger_->debug("API Service stopped");
   }
 
   std::shared_ptr<ApiService::SessionExecutionContext>
