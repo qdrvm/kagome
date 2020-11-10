@@ -69,8 +69,7 @@ For this tutorial you can start a single node network as follows:
 ```bash
 kagome_validating \
     --genesis localchain.json \
-    --keystore localkeystore.json \
-    --leveldb ldb \
+    --base_path /tmp \
     --p2p_port 30363 \
     --rpc_http_port 9933 \
     --rpc_ws_port 9944 \
@@ -83,8 +82,7 @@ Let's look at this flags in detail:
 | Flag              | Description                                       |
 |-------------------|---------------------------------------------------|
 | `--genesis`       | mandatory, genesis configuration file path        |
-| `--keystore`      | mandatory, keystore file path                     |
-| `--leveldb`       | mandatory, leveldb directory path                 |
+| `--base_path`       | mandatory, base kagome directory path                 |
 | `--p2p_port`      | port for p2p interactions                         |
 | `--rpc_http_port` | port for RPC over HTTP                            |
 | `--rpc_ws_port`   | port for RPC over Websocket protocol              |
