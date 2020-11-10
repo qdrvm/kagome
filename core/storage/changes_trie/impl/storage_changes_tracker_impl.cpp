@@ -37,6 +37,8 @@ namespace kagome::storage::changes_trie {
     parent_hash_ = new_parent_hash;
     parent_number_ = new_parent_number;
     // new block -- new extrinsics
+    actual_val_.clear();
+
     extrinsics_changes_.clear();
     new_entries_.clear();
     return outcome::success();
@@ -65,12 +67,17 @@ namespace kagome::storage::changes_trie {
         new_entries_.insert(key);
       }
     }
-    subscription_engine_->notify(key, value, parent_hash_);
+    actual_val_[key] = value;
     return outcome::success();
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onRemove(
       const common::Buffer &key) {
+    for (auto &[key, value] : actual_val_)
+      subscription_engine_->notify(key, value, parent_hash_);
+
+    actual_val_.clear();
+
     auto change_it = extrinsics_changes_.find(key);
     OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
     OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));
