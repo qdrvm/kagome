@@ -8,15 +8,22 @@
 
 #include "storage/trie/trie_batches.hpp"
 
+#include <deque>
+
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "subscription/subscriber.hpp"
+#include "primitives/block_id.hpp"
+#include "primitives/event_types.hpp"
 
 namespace kagome::storage::trie {
 
   class TopperTrieBatchImpl : public TopperTrieBatch {
+
    public:
     enum class Error { PARENT_EXPIRED = 1 };
 
-    explicit TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
+    TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent,
+                        subscriptions::SubscriptionEnginePtr subscription_engine);
 
     outcome::result<Buffer> get(const Buffer &key) const override;
 
@@ -38,8 +45,9 @@ namespace kagome::storage::trie {
     bool wasClearedByPrefix(const Buffer& key) const;
 
     std::map<Buffer, boost::optional<Buffer>> cache_;
-    std::list<Buffer> cleared_prefixes_;
+    std::deque<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
+    subscriptions::SubscriptionEnginePtr subscription_engine_;
   };
 
 }  // namespace kagome::storage::trie

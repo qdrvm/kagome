@@ -392,7 +392,10 @@ namespace kagome::storage::trie {
     if (parent->getTrieType() == T::BranchWithValue
         or parent->getTrieType() == T::BranchEmptyValue) {
       auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
-      auto length = getCommonPrefixLength(parent->key_nibbles, prefix_nibbles);
+
+      const auto length = parent->key_nibbles.size();
+      BOOST_ASSERT(length == getCommonPrefixLength(parent->key_nibbles, prefix_nibbles));
+
       OUTCOME_TRY(child, retrieveChild(branch, prefix_nibbles[length]));
       if (child == nullptr) {
         return parent;
