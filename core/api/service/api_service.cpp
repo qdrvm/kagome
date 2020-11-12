@@ -174,33 +174,36 @@ namespace kagome::api {
                 }
               });
 
-          session_context->events_subscription->setCallback([wp](
-                                                                uint32_t set_id,
-                                                                SessionPtr
-                                                                    &session,
-                                                                const auto &key,
-                                                                const auto
-                                                                    &header) {
-            if (auto self = wp.lock()) {
-              std::string_view name;
-              if (key == primitives::SubscriptionEventType::kNewHeads)
-                name = kRpcEventNewHeads;
-              else if (key
-                       == primitives::SubscriptionEventType::kFinalizedHeads)
-                name = kRpcEventFinalizedHeads;
-              else if (key
-                       == primitives::SubscriptionEventType::kRuntimeVersion)
-                name = kRpcEventRuntimeVersion;
+          session_context->events_subscription->setCallback(
+              [wp](uint32_t set_id,
+                   SessionPtr &session,
+                   const auto &key,
+                   const auto &header) {
+                if (auto self = wp.lock()) {
+                  std::string_view name;
+                  switch (key) {
+                    case primitives::SubscriptionEventType::kNewHeads: {
+                      name = kRpcEventNewHeads;
+                    } break;
+                    case primitives::SubscriptionEventType::kFinalizedHeads: {
+                      name = kRpcEventFinalizedHeads;
+                    } break;
+                    case primitives::SubscriptionEventType::kRuntimeVersion: {
+                      name = kRpcEventRuntimeVersion;
+                    } break;
+                    default:
+                      break;
+                  }
 
-              BOOST_ASSERT(!name.empty());
-              sendEvent(self->server_,
-                        session,
-                        self->logger_,
-                        set_id,
-                        name,
-                        api::makeValue(header));
-            }
-          });
+                  BOOST_ASSERT(!name.empty());
+                  sendEvent(self->server_,
+                            session,
+                            self->logger_,
+                            set_id,
+                            name,
+                            api::makeValue(header));
+                }
+              });
         }
 
         session->connectOnRequest(
