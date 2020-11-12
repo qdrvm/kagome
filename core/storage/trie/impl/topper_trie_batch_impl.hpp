@@ -10,15 +10,14 @@
 
 #include <deque>
 
-#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
-#include "subscription/subscriber.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "subscription/subscriber.hpp"
 
 namespace kagome::storage::trie {
 
   class TopperTrieBatchImpl : public TopperTrieBatch {
-
    public:
     enum class Error { PARENT_EXPIRED = 1 };
 
@@ -41,7 +40,7 @@ namespace kagome::storage::trie {
     outcome::result<void> writeBack() override;
 
    private:
-    bool wasClearedByPrefix(const Buffer& key) const;
+    bool wasClearedByPrefix(const Buffer &key) const;
 
     std::map<Buffer, boost::optional<Buffer>> cache_;
     std::deque<Buffer> cleared_prefixes_;

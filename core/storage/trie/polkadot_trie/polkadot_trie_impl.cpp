@@ -394,7 +394,8 @@ namespace kagome::storage::trie {
       auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
 
       const auto length = parent->key_nibbles.size();
-      BOOST_ASSERT(length == getCommonPrefixLength(parent->key_nibbles, prefix_nibbles));
+      BOOST_ASSERT(
+          length == getCommonPrefixLength(parent->key_nibbles, prefix_nibbles));
 
       OUTCOME_TRY(child, retrieveChild(branch, prefix_nibbles[length]));
       if (child == nullptr) {

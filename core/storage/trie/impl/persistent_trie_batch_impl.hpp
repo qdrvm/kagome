@@ -6,11 +6,11 @@
 #ifndef KAGOME_STORAGE_TRIE_IMPL_PERSISTENT_TRIE_BATCH
 #define KAGOME_STORAGE_TRIE_IMPL_PERSISTENT_TRIE_BATCH
 
+#include "primitives/event_types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
-#include "primitives/event_types.hpp"
 
 namespace kagome::storage::trie {
 
@@ -53,6 +53,7 @@ namespace kagome::storage::trie {
 
 }  // namespace kagome::storage::trie
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PersistentTrieBatchImpl::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie,
+                          PersistentTrieBatchImpl::Error);
 
 #endif  // KAGOME_STORAGE_TRIE_IMPL_PERSISTENT_TRIE_BATCH

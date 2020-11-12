@@ -51,12 +51,13 @@ namespace kagome::storage::changes_trie {
 
   void StorageChangesTrackerImpl::onCommit() {
     for (auto &[key, value] : actual_val_)
-        subscription_engine_->notify(key, value, parent_hash_);
+      subscription_engine_->notify(key, value, parent_hash_);
   }
 
   void StorageChangesTrackerImpl::onClearPrefix(const common::Buffer &prefix) {
     for (auto it = actual_val_.lower_bound(prefix);
-         it != actual_val_.end() && it->first.subbuffer(0, prefix.size()) == prefix;
+         it != actual_val_.end()
+         && it->first.subbuffer(0, prefix.size()) == prefix;
          ++it)
       it->second.clear();
   }

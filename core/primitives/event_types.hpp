@@ -6,15 +6,16 @@
 #ifndef KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
 #define KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
 
+#include <boost/none_t.hpp>
+#include <boost/variant.hpp>
 #include <cstdint>
 #include <memory>
-#include <boost/variant.hpp>
-#include <boost/none_t.hpp>
 
+#include "common/buffer.hpp"
+#include "primitives/block_id.hpp"
 #include "primitives/version.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
-#include "primitives/block_id.hpp"
 
 namespace kagome::api {
   class Session;

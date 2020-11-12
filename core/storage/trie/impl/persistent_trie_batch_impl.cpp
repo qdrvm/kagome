@@ -10,7 +10,9 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PersistentTrieBatchImpl::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
+                            PersistentTrieBatchImpl::Error,
+                            e) {
   using E = kagome::storage::trie::PersistentTrieBatchImpl::Error;
   switch (e) {
     case E::ASYNC_OPERATION_FAILED:

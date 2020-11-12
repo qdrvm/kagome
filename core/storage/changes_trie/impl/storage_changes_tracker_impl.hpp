@@ -13,7 +13,6 @@ namespace kagome::storage::trie {
 namespace kagome::storage::changes_trie {
 
   class StorageChangesTrackerImpl : public ChangesTracker {
-
    public:
     enum class Error {
       EXTRINSIC_IDX_GETTER_UNINITIALIZED = 1,

@@ -22,8 +22,7 @@ namespace kagome::storage::trie {
 
   TopperTrieBatchImpl::TopperTrieBatchImpl(
       const std::shared_ptr<TrieBatch> &parent)
-      : parent_(parent) {
-  }
+      : parent_(parent) {}
 
   outcome::result<Buffer> TopperTrieBatchImpl::get(const Buffer &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
