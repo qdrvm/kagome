@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <memory>
 #include <boost/variant.hpp>
+#include <boost/none_t.hpp>
 
 #include "primitives/version.hpp"
 #include "subscription/subscriber.hpp"

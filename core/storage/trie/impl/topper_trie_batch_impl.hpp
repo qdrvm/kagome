@@ -22,8 +22,7 @@ namespace kagome::storage::trie {
    public:
     enum class Error { PARENT_EXPIRED = 1 };
 
-    TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent,
-                        subscriptions::SubscriptionEnginePtr subscription_engine);
+    TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
 
     outcome::result<Buffer> get(const Buffer &key) const override;
 
@@ -47,7 +46,6 @@ namespace kagome::storage::trie {
     std::map<Buffer, boost::optional<Buffer>> cache_;
     std::deque<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
-    subscriptions::SubscriptionEnginePtr subscription_engine_;
   };
 
 }  // namespace kagome::storage::trie

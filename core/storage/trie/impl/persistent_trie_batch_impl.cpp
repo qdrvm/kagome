@@ -10,6 +10,15 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PersistentTrieBatchImpl::Error, e) {
+  using E = kagome::storage::trie::PersistentTrieBatchImpl::Error;
+  switch (e) {
+    case E::ASYNC_OPERATION_FAILED:
+      return "Async operation executed with error";
+  }
+  return "Unknown error";
+}
+
 namespace kagome::storage::trie {
 
   const common::Buffer EXTRINSIC_INDEX_KEY =
@@ -23,7 +32,7 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-      std::unique_ptr<PolkadotTrie> trie,
+      std::shared_ptr<PolkadotTrie> trie,
       RootChangedEventHandler &&handler)
       : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
@@ -35,14 +44,21 @@ namespace kagome::storage::trie {
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
                  or not changes_.has_value());
     BOOST_ASSERT(trie_ != nullptr);
+  }
+
+  void PersistentTrieBatchImpl::init() {
     if (changes_) {
+      std::weak_ptr<PolkadotTrie> wptr = trie_;
       changes_.value()->setExtrinsicIdxGetter(
-          [this]() -> outcome::result<Buffer> {
-            auto res = trie_->get(EXTRINSIC_INDEX_KEY);
-            if (res.has_error() and res.error() == TrieError::NO_VALUE) {
-              return NO_EXTRINSIC_INDEX_VALUE;
+          [wptr{std::move(wptr)}]() -> outcome::result<Buffer> {
+            if (auto trie = wptr.lock()) {
+              auto res = trie->get(EXTRINSIC_INDEX_KEY);
+              if (res.has_error() and res.error() == TrieError::NO_VALUE) {
+                return NO_EXTRINSIC_INDEX_VALUE;
+              }
+              return res;
             }
-            return res;
+            return Error::ASYNC_OPERATION_FAILED;
           });
     }
   }
@@ -50,6 +66,9 @@ namespace kagome::storage::trie {
   outcome::result<Buffer> PersistentTrieBatchImpl::commit() {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
     root_changed_handler_(root);
+    if (changes_.has_value()) {
+      changes_.value()->onCommit();
+    }
     return std::move(root);
   }
 
@@ -77,6 +96,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PersistentTrieBatchImpl::clearPrefix(
       const Buffer &prefix) {
     // TODO(Harrm): notify changes tracker
+    changes_.value()->onClearPrefix(prefix);
     return trie_->clearPrefix(prefix);
   }
 

@@ -26,7 +26,7 @@ namespace kagome::storage::trie {
 
     outcome::result<common::Buffer> storeTrie(PolkadotTrie &trie) override;
 
-    outcome::result<std::unique_ptr<PolkadotTrie>> retrieveTrie(
+    outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
         const common::Buffer &db_key) const override;
 
    private:

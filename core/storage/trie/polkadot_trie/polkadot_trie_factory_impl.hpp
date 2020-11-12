@@ -16,7 +16,7 @@ namespace kagome::storage::trie {
 
     std::unique_ptr<PolkadotTrie> createEmpty(
         ChildRetrieveFunctor f) const override;
-    std::unique_ptr<PolkadotTrie> createFromRoot(
+    std::shared_ptr<PolkadotTrie> createFromRoot(
         PolkadotTrie::NodePtr root,
         ChildRetrieveFunctor f) const override;
 

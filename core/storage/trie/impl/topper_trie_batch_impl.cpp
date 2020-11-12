@@ -21,11 +21,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
 namespace kagome::storage::trie {
 
   TopperTrieBatchImpl::TopperTrieBatchImpl(
-      const std::shared_ptr<TrieBatch> &parent,
-      subscriptions::SubscriptionEnginePtr subscription_engine)
-      : parent_(parent),
-        subscription_engine_{std::move(subscription_engine)} {
-    BOOST_ASSERT(subscription_engine_);
+      const std::shared_ptr<TrieBatch> &parent)
+      : parent_(parent) {
   }
 
   outcome::result<Buffer> TopperTrieBatchImpl::get(const Buffer &key) const {
@@ -109,14 +106,13 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
-    if (auto p = parent_.lock(); p != nullptr) {
-      for (auto &prefix : cleared_prefixes_) {
+    if (auto p = parent_.lock()) {
+      for (const auto &prefix : cleared_prefixes_) {
         OUTCOME_TRY(p->clearPrefix(prefix));
       }
       for (auto it = cache_.begin(); it != cache_.end(); it++) {
         if (it->second.has_value()) {
           OUTCOME_TRY(p->put(it->first, it->second.value()));
-          subscription_engine_->notify(it->first, it->second.value(), common::Hash256{});
         } else {
           OUTCOME_TRY(p->remove(it->first));
         }
@@ -127,7 +123,7 @@ namespace kagome::storage::trie {
   }
 
   bool TopperTrieBatchImpl::wasClearedByPrefix(const Buffer &key) const {
-    for (auto prefix : cleared_prefixes_) {
+    for (const auto &prefix : cleared_prefixes_) {
       auto key_end = key.begin();
       std::advance(key_end, std::min(key.size(), prefix.size()) - 1);
       auto is_cleared = std::equal(key.begin(), key_end, prefix.begin());

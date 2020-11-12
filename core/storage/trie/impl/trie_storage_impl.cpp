@@ -72,7 +72,7 @@ namespace kagome::storage::trie {
                      root_hash_.toHex());
       return trie_res.error();
     }
-    return std::make_unique<PersistentTrieBatchImpl>(
+    auto batch_impl = std::make_unique<PersistentTrieBatchImpl>(
         codec_,
         serializer_,
         changes_,
@@ -81,6 +81,8 @@ namespace kagome::storage::trie {
           root_hash_ = new_root;
           logger_->debug("Update state root: {}", root_hash_);
         });
+    batch_impl->init();
+    return batch_impl;
   }
 
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
@@ -101,7 +103,7 @@ namespace kagome::storage::trie {
                      root.toHex());
       return trie_res.error();
     }
-    return std::make_unique<PersistentTrieBatchImpl>(
+    auto batch_impl = std::make_unique<PersistentTrieBatchImpl>(
         codec_,
         serializer_,
         changes_,
@@ -110,6 +112,8 @@ namespace kagome::storage::trie {
           root_hash_ = new_root;
           logger_->debug("Update state root: {}", root_hash_);
         });
+    batch_impl->init();
+    return batch_impl;
   }
 
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
