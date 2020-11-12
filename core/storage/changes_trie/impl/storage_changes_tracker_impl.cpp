@@ -22,7 +22,7 @@ namespace kagome::storage::changes_trie {
   StorageChangesTrackerImpl::StorageChangesTrackerImpl(
       std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
       std::shared_ptr<storage::trie::Codec> codec,
-      SubscriptionEnginePtr subscription_engine)
+      subscriptions::SubscriptionEnginePtr subscription_engine)
       : trie_factory_(std::move(trie_factory)),
         codec_(std::move(codec)),
         parent_number_{std::numeric_limits<primitives::BlockNumber>::max()},
@@ -49,6 +49,18 @@ namespace kagome::storage::changes_trie {
     get_extrinsic_index_ = std::move(f);
   }
 
+  void StorageChangesTrackerImpl::onCommit() {
+    for (auto &[key, value] : actual_val_)
+        subscription_engine_->notify(key, value, parent_hash_);
+  }
+
+  void StorageChangesTrackerImpl::onClearPrefix(const common::Buffer &prefix) {
+    for (auto it = actual_val_.lower_bound(prefix);
+         it != actual_val_.end() && it->first.subbuffer(0, prefix.size()) == prefix;
+         ++it)
+      it->second.clear();
+  }
+
   outcome::result<void> StorageChangesTrackerImpl::onPut(
       const common::Buffer &key,
       const common::Buffer &value,
@@ -73,10 +85,7 @@ namespace kagome::storage::changes_trie {
 
   outcome::result<void> StorageChangesTrackerImpl::onRemove(
       const common::Buffer &key) {
-    for (auto &[key, value] : actual_val_)
-      subscription_engine_->notify(key, value, parent_hash_);
-
-    actual_val_.clear();
+    actual_val_[key].clear();
 
     auto change_it = extrinsics_changes_.find(key);
     OUTCOME_TRY(idx_bytes, get_extrinsic_index_());

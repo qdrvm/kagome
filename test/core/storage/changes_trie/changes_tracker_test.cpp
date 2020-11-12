@@ -67,6 +67,7 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       factory->createEmpty(
           [](auto branch, auto idx) { return branch->children.at(idx); }),
       [](auto &buf) {});
+  batch->init();
 
   EXPECT_OUTCOME_TRUE_1(
       batch->put(":extrinsic_index"_buf, Buffer{scale::encode(42).value()}));
