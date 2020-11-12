@@ -22,8 +22,8 @@
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 #include "crypto/hasher.hpp"
-#include "crypto/sr25519_types.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
@@ -35,6 +35,8 @@ namespace kagome::consensus {
       primitives::InherentIdentifier::fromString("timstap0").value();
   inline const auto kBabeSlotId =
       primitives::InherentIdentifier::fromString("babeslot").value();
+
+  enum class SlotsCalculationStrategy { FromZero, FromUnixEpoch };
 
   class BabeImpl : public Babe, public std::enable_shared_from_this<BabeImpl> {
    public:
@@ -114,7 +116,8 @@ namespace kagome::consensus {
         const crypto::VRFOutput &output,
         primitives::AuthorityIndex authority_index) const;
 
-    outcome::result<primitives::Seal> sealBlock(const primitives::Block &block) const;
+    outcome::result<primitives::Seal> sealBlock(
+        const primitives::Block &block) const;
 
     /**
      * To be called if we are far behind other nodes to skip some slots and
@@ -141,6 +144,7 @@ namespace kagome::consensus {
         authority_update_observer_;
 
     State current_state_{State::WAIT_BLOCK};
+    SlotsCalculationStrategy slots_calculation_strategy_;
 
     Epoch current_epoch_;
 

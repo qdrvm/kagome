@@ -51,6 +51,7 @@ namespace kagome::consensus {
         sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
+        slots_calculation_strategy_{SlotsCalculationStrategy::FromUnixEpoch},
         log_{common::createLogger("BABE")} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
@@ -77,6 +78,9 @@ namespace kagome::consensus {
     app_state_manager_->atLaunch([this] { return start(); });
   }
 
+//  using TimePoint = clock::SystemClock::TimePoint;
+//  using Duration = clock::SystemClock::Duration;
+
   bool BabeImpl::start() {
     if (not execution_strategy_.has_value()) {
       log_->critical("Internal error: undefined execution strategy of babe");
@@ -89,8 +93,24 @@ namespace kagome::consensus {
     if (auto res = epoch_storage_->getLastEpoch(); res.has_value()) {
       last_epoch_descriptor = res.value();
     } else {
+      switch (slots_calculation_strategy_) {
+        case SlotsCalculationStrategy::FromZero:
+          last_epoch_descriptor.start_slot = 0;
+          break;
+        case SlotsCalculationStrategy::FromUnixEpoch:
+          auto now = clock_->now();
+          auto time_since_epoch = now.time_since_epoch();
+          auto epoch_start_point =
+              std::chrono::system_clock::from_time_t(0);
+
+          auto ticks_since_epoch = time_since_epoch.count();
+          last_epoch_descriptor.start_slot = static_cast<BabeSlotNumber>(
+              ticks_since_epoch
+              / genesis_configuration_->slot_duration.count());
+          break;
+      }
+
       last_epoch_descriptor.epoch_number = 0;
-      last_epoch_descriptor.start_slot = 0;
       last_epoch_descriptor.epoch_duration =
           genesis_configuration_->epoch_length;
       last_epoch_descriptor.starting_slot_finish_time =
@@ -276,7 +296,7 @@ namespace kagome::consensus {
 
   void BabeImpl::finishSlot() {
     auto slot_leadership =
-        slots_leadership_[current_slot_ % current_epoch_.epoch_duration];
+        slots_leadership_[current_slot_ - current_epoch_.start_slot];
     if (slot_leadership) {
       log_->debug("Peer {} is leader (vrfOutput: {}, proof: {})",
                   keypair_.public_key.toHex(),
@@ -529,8 +549,20 @@ namespace kagome::consensus {
           first_slot_times_[first_slot_times_.size() / 2];
 
       Epoch epoch;
-      epoch.epoch_index =
-          *first_production_slot / genesis_configuration_->epoch_length;
+      switch (slots_calculation_strategy_){
+        case SlotsCalculationStrategy::FromZero:
+          epoch.epoch_index =
+              *first_production_slot / genesis_configuration_->epoch_length;
+          break;
+        case SlotsCalculationStrategy::FromUnixEpoch:
+          auto slot_duration = genesis_configuration_->slot_duration;
+          auto ticks_since_epoch = clock_->now().time_since_epoch().count();
+          auto genesis_slot = static_cast<BabeSlotNumber>(ticks_since_epoch
+              / slot_duration.count());
+          epoch.epoch_index = (*first_production_slot - genesis_slot)
+              / genesis_configuration_->epoch_length;
+          break;
+      }
       epoch.start_slot = *first_production_slot;
       epoch.epoch_duration = genesis_configuration_->epoch_length;
       auto next_epoch_digest_res =
