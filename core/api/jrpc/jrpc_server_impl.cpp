@@ -5,6 +5,8 @@
 
 #include "api/jrpc/jrpc_server_impl.hpp"
 
+#include "api/jrpc/custom_json_writer.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, JRpcServerImpl::Error, e) {
   using E = kagome::api::JRpcServerImpl::Error;
   switch (e) {
@@ -41,12 +43,12 @@ namespace kagome::api {
     using Value = jsonrpc::Value;
     using Fault = jsonrpc::Fault;
 
-    auto writer = format_handler_.CreateWriter();
+    JsonWriter writer;
     try {
       Response response(std::move(method_name), from, Value(0));
-      response.Write(*writer);
+      response.Write(writer);
 
-      auto &&formatted_response = writer->GetData();
+      auto &&formatted_response = writer.GetData();
       cb(std::string_view(formatted_response->GetData(),
                           formatted_response->GetSize()));
     } catch (const Fault &ex) {

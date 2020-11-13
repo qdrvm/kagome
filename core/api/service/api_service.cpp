@@ -52,7 +52,7 @@ namespace {
 
     jsonrpc::Value::Struct response;
     response["result"] = std::move(value);
-    response["subscription"] = kagome::api::makeValue(set_id);
+    response["subscription"] = makeValue(set_id);
 
     jsonrpc::Request::Parameters params;
     params.push_back(std::move(response));
@@ -178,7 +178,7 @@ namespace kagome::api {
               [wp](uint32_t set_id,
                    SessionPtr &session,
                    const auto &key,
-                   const auto &header) {
+                   const auto &data) {
                 if (auto self = wp.lock()) {
                   std::string_view name;
                   switch (key) {
@@ -201,7 +201,7 @@ namespace kagome::api {
                             self->logger_,
                             set_id,
                             name,
-                            api::makeValue(header));
+                            api::makeValue(data));
                 }
               });
         }

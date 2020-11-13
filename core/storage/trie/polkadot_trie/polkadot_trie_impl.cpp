@@ -61,12 +61,12 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieImpl::clearPrefix(
-      const common::Buffer &prefix) {
+      const common::Buffer &prefix, const OnDetachCallback &callback) {
     if (not root_) {
       return outcome::success();
     }
     auto key_nibbles = PolkadotCodec::keyToNibbles(prefix);
-    OUTCOME_TRY(new_root, detachNode(root_, key_nibbles));
+    OUTCOME_TRY(new_root, detachNode(root_, key_nibbles, callback));
     root_ = new_root;
 
     return outcome::success();
@@ -366,7 +366,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::detachNode(
-      const NodePtr &parent, const KeyNibbles &prefix_nibbles) {
+      const NodePtr &parent, const KeyNibbles &prefix_nibbles, const OnDetachCallback &callback) {
     if (parent == nullptr) {
       return nullptr;
     }
@@ -401,11 +401,27 @@ namespace kagome::storage::trie {
       if (child == nullptr) {
         return parent;
       }
-      OUTCOME_TRY(n, detachNode(child, prefix_nibbles.subspan(length + 1)));
+      OUTCOME_TRY(n, detachNode(child, prefix_nibbles.subspan(length + 1), callback));
+      auto to_detach = branch->children.at(prefix_nibbles[length]);
       branch->children.at(prefix_nibbles[length]) = n;
+
+      notify_is_detached(to_detach, callback);
       return branch;
     }
     return parent;
+  }
+
+  void PolkadotTrieImpl::notify_is_detached(const PolkadotTrie::NodePtr &node, const OnDetachCallback &callback) {
+    if (node) {
+      if (node->isBranch()) {
+        auto branch = std::dynamic_pointer_cast<BranchNode>(node);
+        for (auto &child : branch->children)
+          notify_is_detached(child, callback);
+      }
+
+      auto key = PolkadotCodec::nibblesToKey(node->key_nibbles);
+      callback(key, std::move(node->value));
+    }
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::retrieveChild(
