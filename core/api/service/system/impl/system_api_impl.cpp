@@ -10,7 +10,7 @@
 namespace kagome::api {
 
   SystemApiImpl::SystemApiImpl(
-      std::shared_ptr<application::GenesisConfig> config,
+      std::shared_ptr<application::ChainSpec> config,
       std::shared_ptr<consensus::Babe> babe,
       std::shared_ptr<network::Gossiper> gossiper)
       : config_(std::move(config)),
@@ -21,7 +21,7 @@ namespace kagome::api {
     BOOST_ASSERT(gossiper_ != nullptr);
   }
 
-  std::shared_ptr<application::GenesisConfig> SystemApiImpl::getConfig()
+  std::shared_ptr<application::ChainSpec> SystemApiImpl::getConfig()
       const {
     return config_;
   }

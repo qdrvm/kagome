@@ -39,7 +39,7 @@ namespace kagome::application {
 
     sptr<boost::asio::io_context> io_context_;
 
-    sptr<GenesisConfig> genesis_config_;
+    sptr<ChainSpec> genesis_config_;
     sptr<network::Router> router_;
 
     sptr<api::ApiService> jrpc_api_service_;

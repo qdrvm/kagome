@@ -30,7 +30,7 @@
 #include "api/transport/rpc_thread_pool.hpp"
 #include "application/app_configuration.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
-#include "application/impl/genesis_config_impl.hpp"
+#include "application/impl/chain_spec_impl.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -125,7 +125,7 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto &cfg = injector.template create<application::GenesisConfig &>();
+    auto &cfg = injector.template create<application::ChainSpec &>();
 
     initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
     return initialized.value();
@@ -170,9 +170,6 @@ namespace kagome::injector {
             std::shared_ptr<api::system::SystemJrpcProcessor>>(),
         injector
             .template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>()};
-    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
-    const auto &trie_storage =
-        injector.template create<sptr<storage::trie::TrieStorage>>();
 
     initialized =
         std::make_shared<api::ApiService>(std::move(app_state_manager),
@@ -181,9 +178,7 @@ namespace kagome::injector {
                                           std::move(server),
                                           processors,
                                           std::move(subscription_engine),
-                                          std::move(events_engine),
-                                          std::move(block_tree),
-                                          std::move(trie_storage));
+                                          std::move(events_engine));
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());
@@ -455,7 +450,7 @@ namespace kagome::injector {
       return initialized.value();
     }
     auto configuration_storage =
-        injector.template create<sptr<application::GenesisConfig>>();
+        injector.template create<sptr<application::ChainSpec>>();
     const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
     auto trie_storage =
@@ -491,7 +486,7 @@ namespace kagome::injector {
         injector.template create<application::AppConfiguration const &>();
 
     auto genesis_config =
-        injector.template create<sptr<application::GenesisConfig>>();
+        injector.template create<sptr<application::ChainSpec>>();
     auto options = leveldb::Options{};
     options.create_if_missing = true;
     auto db = storage::LevelDB::create(
@@ -505,9 +500,9 @@ namespace kagome::injector {
 
   // configuration storage getter
   template <typename Injector>
-  std::shared_ptr<application::GenesisConfig> get_genesis_config(const Injector &injector) {
+  std::shared_ptr<application::ChainSpec> get_genesis_config(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<application::GenesisConfig>>(boost::none);
+        boost::optional<sptr<application::ChainSpec>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -516,7 +511,7 @@ namespace kagome::injector {
     auto const& genesis_path = config.genesis_path();
 
     auto genesis_config_res =
-        application::GenesisConfigImpl::create(genesis_path.native());
+        application::ChainSpecImpl::create(genesis_path.native());
     if (genesis_config_res.has_error()) {
       common::raise(genesis_config_res.error());
     }
@@ -531,9 +526,9 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto configuration_storage =
-        injector.template create<sptr<application::GenesisConfig>>();
-    auto peer_infos = configuration_storage->getBootNodes().peers;
+    auto genesis_config =
+        injector.template create<sptr<application::ChainSpec>>();
+    auto peer_infos = genesis_config->getBootNodes().peers;
 
     auto host = injector.template create<sptr<libp2p::Host>>();
 
@@ -550,7 +545,7 @@ namespace kagome::injector {
       if (peer_info.id != current_peer_info.id) {
         res->clients.emplace_back(
             std::make_shared<network::RemoteSyncProtocolClient>(
-                *host, std::move(peer_info), configuration_storage));
+                *host, std::move(peer_info), genesis_config));
       } else {
         res->clients.emplace_back(
             std::make_shared<network::DummySyncProtocolClient>());
@@ -605,19 +600,19 @@ namespace kagome::injector {
         injector.template create<sptr<crypto::Bip39Provider>>();
     auto random_generator = injector.template create<sptr<crypto::CSPRNG>>();
     auto genesis_config =
-        injector.template create<sptr<application::GenesisConfig>>();
-
-    auto crypto_store =
-        std::make_shared<crypto::CryptoStoreImpl>(std::move(ed25519_provider),
-                                                  std::move(sr25519_provider),
-                                                  std::move(secp256k1_provider),
-                                                  std::move(bip39_provider),
-                                                  std::move(random_generator));
+        injector.template create<sptr<application::ChainSpec>>();
 
     auto path = config.keystore_path(genesis_config->id());
-    if (auto &&res = crypto_store->initialize(path); res) {
-      common::raise(res.error());
+    auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
+    if (not key_file_storage_res) {
+      common::raise(key_file_storage_res.error());
     }
+    auto crypto_store =
+        std::make_shared<crypto::CryptoStoreImpl>(std::make_shared<crypto::Ed25519Suite>(std::move(ed25519_provider)),
+                                                  std::make_shared<crypto::Sr25519Suite>(std::move(sr25519_provider)),
+                                                  std::move(bip39_provider),
+                                                  std::shared_ptr<crypto::KeyFileStorage>(std::move(key_file_storage_res.value())));
+
     initialized = crypto_store;
 
     return *initialized;
@@ -722,7 +717,7 @@ namespace kagome::injector {
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
-        di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
+        di::bind<crypto::CryptoStore>.template to([](auto const& injector) { return get_crypto_store(injector); }),
         di::bind<extensions::ExtensionFactory>.template to(
             [](auto const &injector) {
               return get_extension_factory(injector);
@@ -759,7 +754,7 @@ namespace kagome::injector {
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
-        di::bind<application::GenesisConfig>.to(
+        di::bind<application::ChainSpec>.to(
             [](const auto &injector) { return get_genesis_config(injector); }),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
@@ -784,7 +779,7 @@ namespace kagome::injector {
               *injector.template create<sptr<network::PeerList>>(),
               injector.template create<network::OwnPeerInfo &>(),
               injector
-                  .template create<sptr<kagome::application::GenesisConfig>>(),
+                  .template create<sptr<kagome::application::ChainSpec>>(),
               injector.template create<sptr<blockchain::BlockStorage>>(),
               injector.template create<sptr<libp2p::protocol::Identify>>(),
               injector.template create<sptr<libp2p::protocol::Ping>>());

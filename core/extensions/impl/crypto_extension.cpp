@@ -326,7 +326,12 @@ namespace kagome::extensions {
     }
 
     auto public_keys = crypto_store_->getEd25519PublicKeys(key_type_id);
-    auto buffer = scale::encode(public_keys).value();
+    if(not public_keys) {
+      auto msg = "error loading public keys: {}" + public_keys.error().message();
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+    auto buffer = scale::encode(public_keys.value()).value();
 
     return memory_->storeBuffer(buffer);
   }
@@ -479,7 +484,12 @@ namespace kagome::extensions {
                     common::int_to_hex(key_type_id, 8));
     }
     auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
-    auto buffer = scale::encode(public_keys).value();
+    if(not public_keys) {
+      auto msg = "error loading public keys: {}" + public_keys.error().message();
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+    auto buffer = scale::encode(public_keys.value()).value();
 
     return memory_->storeBuffer(buffer);
   }

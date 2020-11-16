@@ -7,7 +7,6 @@
 #define KAGOME_CORE_INJECTOR_BLOCK_PRODUCING_NODE_INJECTOR_HPP
 
 #include "application/app_configuration.hpp"
-#include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/grandpa/impl/syncing_grandpa_observer.hpp"
 #include "injector/application_injector.hpp"
@@ -22,7 +21,6 @@ namespace kagome::injector {
   auto makeBlockProducingNodeInjector(
       const application::AppConfiguration &app_config, Ts &&... args) {
 
-    // NOLINT
     return di::make_injector(
         // inherit application injector
         makeApplicationInjector(app_config),
@@ -38,8 +36,8 @@ namespace kagome::injector {
         })[boost::di::override],
         // peer info
         di::bind<network::OwnPeerInfo>.to(
-            [p2p_port{app_config.p2p_port()}](const auto &injector) {
-              return get_peer_info(injector, p2p_port);
+            [](const auto &injector) {
+              return get_peer_info(injector);
             }),
 
         di::bind<consensus::Babe>.to(
@@ -49,14 +47,10 @@ namespace kagome::injector {
             [](auto const &inj) { return get_babe(inj); }),
 
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
-        di::bind<application::KeyStorage>.to(
-            [&app_config](const auto &injector) {
-              return get_key_storage(app_config, injector);
-            }),
         di::bind<runtime::GrandpaApi>.template to<runtime::dummy::GrandpaApiDummy>()
             [boost::di::override],
         di::bind<crypto::CryptoStore>.template to(
-            [&app_config](const auto &injector) {
+            [](const auto &injector) {
               return get_crypto_store(injector);
             })[boost::di::override],
         // user-defined overrides...

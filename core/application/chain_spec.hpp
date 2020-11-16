@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_GENESIS_CONFIG_HPP
-#define KAGOME_GENESIS_CONFIG_HPP
+#ifndef KAGOME_CHAIN_SPEC_HPP
+#define KAGOME_CHAIN_SPEC_HPP
 
 #include <libp2p/peer/peer_info.hpp>
 #include "application/genesis_raw_data.hpp"
@@ -19,9 +19,9 @@ namespace kagome::application {
    * Stores configuration of a kagome node and provides convenience
    * methods for accessing config parameters
    */
-  class GenesisConfig {
+  class ChainSpec {
    public:
-    virtual ~GenesisConfig() = default;
+    virtual ~ChainSpec() = default;
 
     virtual const std::string &name() const = 0;
 
@@ -56,4 +56,4 @@ namespace kagome::application {
 
 }  // namespace kagome::application
 
-#endif  // KAGOME_GENESIS_CONFIG_HPP
+#endif  // KAGOME_CHAIN_SPEC_HPP

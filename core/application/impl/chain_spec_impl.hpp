@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_GENESIS_CONFIG_IMPL_HPP
-#define KAGOME_GENESIS_CONFIG_IMPL_HPP
+#ifndef KAGOME_CHAIN_SPEC_IMPL_HPP
+#define KAGOME_CHAIN_SPEC_IMPL_HPP
 
-#include "application/genesis_config.hpp"
+#include "application/chain_spec.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 
 namespace kagome::application {
 
-  class GenesisConfigImpl : public GenesisConfig {
+  class ChainSpecImpl : public ChainSpec {
    public:
-    static outcome::result<std::shared_ptr<GenesisConfigImpl>> create(
+    static outcome::result<std::shared_ptr<ChainSpecImpl>> create(
         const std::string &config_path);
 
-    ~GenesisConfigImpl() override = default;
+    ~ChainSpecImpl() override = default;
 
     const std::string &name() const override {
       return name_;
@@ -80,7 +80,7 @@ namespace kagome::application {
     outcome::result<void> loadBootNodes(
         const boost::property_tree::ptree &tree);
 
-    GenesisConfigImpl() = default;
+    ChainSpecImpl() = default;
 
     std::string name_;
     std::string id_;
@@ -97,4 +97,4 @@ namespace kagome::application {
 
 }  // namespace kagome::application
 
-#endif  // KAGOME_GENESIS_CONFIG_IMPL_HPP
+#endif  // KAGOME_CHAIN_SPEC_IMPL_HPP

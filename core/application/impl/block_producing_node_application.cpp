@@ -18,8 +18,7 @@ namespace kagome::application {
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
-    genesis_config_ = injector_.create<sptr<GenesisConfig>>();
-    key_storage_ = injector_.create<sptr<KeyStorage>>();
+    genesis_config_ = injector_.create<sptr<ChainSpec>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     babe_ = injector_.create<sptr<Babe>>();
     router_ = injector_.create<sptr<network::Router>>();

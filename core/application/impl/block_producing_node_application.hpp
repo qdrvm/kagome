@@ -43,8 +43,7 @@ namespace kagome::application {
 
     sptr<boost::asio::io_context> io_context_;
 
-    sptr<GenesisConfig> genesis_config_;
-    sptr<KeyStorage> key_storage_;
+    sptr<ChainSpec> genesis_config_;
     sptr<clock::SystemClock> clock_;
     sptr<Babe> babe_;
     sptr<network::Router> router_;

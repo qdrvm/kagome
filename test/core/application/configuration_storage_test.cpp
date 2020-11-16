@@ -6,10 +6,10 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem/path.hpp>
-#include "application/impl/genesis_config_impl.hpp"
+#include "application/impl/chain_spec_impl.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::application::GenesisConfigImpl;
+using kagome::application::ChainSpecImpl;
 using kagome::application::GenesisRawData;
 using kagome::common::Buffer;
 using kagome::crypto::Sr25519PublicKey;
@@ -56,7 +56,7 @@ class ConfigurationStorageTest : public ::testing::Test {
 TEST_F(ConfigurationStorageTest, MatchesConfig) {
   // given provided in set up
   // when
-  EXPECT_OUTCOME_TRUE(config_storage, GenesisConfigImpl::create(path_));
+  EXPECT_OUTCOME_TRUE(config_storage, ChainSpecImpl::create(path_));
 
   // then
   ASSERT_EQ(config_storage->getGenesis(), expected_genesis_config_);

@@ -48,7 +48,7 @@ target_link_libraries(block_producing_node_application
     )
 
 add_library(configuration_storage
-    impl/genesis_config_impl.cpp
+    impl/chain_spec_impl.cpp
     )
 target_link_libraries(configuration_storage
     Boost::filesystem
@@ -57,18 +57,6 @@ target_link_libraries(configuration_storage
     buffer
     sr25519_types
     config_reader_error
-    )
-
-add_library(local_key_storage
-    impl/local_key_storage.cpp
-    )
-target_link_libraries(local_key_storage
-    primitives
-    config_reader_error
-    Boost::filesystem
-    sr25519_types
-    ed25519_types
-    p2p::p2p_crypto_key
     )
 
 add_library(app_state_manager

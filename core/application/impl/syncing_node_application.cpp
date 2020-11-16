@@ -19,7 +19,7 @@ namespace kagome::application {
     // some of them are requested by reference and hence not copied
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
-    genesis_config_ = injector_.create<sptr<GenesisConfig>>();
+    genesis_config_ = injector_.create<sptr<ChainSpec>>();
 
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     router_ = injector_.create<sptr<network::Router>>();

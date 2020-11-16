@@ -29,6 +29,8 @@ namespace kagome::crypto {
 
     using Ed25519Keys = std::vector<Ed25519PublicKey>;
     using Sr25519Keys = std::vector<Sr25519PublicKey>;
+    using Ed25519Keypairs = std::vector<Ed25519Keypair>;
+    using Sr25519Keypairs = std::vector<Sr25519Keypair>;
 
     /**
      * @brief generates Ed25519 keypair and stores it in memory
@@ -105,14 +107,29 @@ namespace kagome::crypto {
      * @param key_type key type identifier to look for
      * @return vector of found public keys
      */
-    virtual Ed25519Keys getEd25519PublicKeys(KeyTypeId key_type) const = 0;
+    virtual outcome::result<Ed25519Keys> getEd25519PublicKeys(KeyTypeId key_type) const = 0;
 
     /**
-     * @brief searches for SR25519 keys of specified typeED
+     * @brief searches for SR25519 keys of specified type
      * @param key_type key type identifier to look for
      * @return vector of found public keys
      */
-    virtual Sr25519Keys getSr25519PublicKeys(KeyTypeId key_type) const = 0;
+    virtual outcome::result<Sr25519Keys> getSr25519PublicKeys(KeyTypeId key_type) const = 0;
+
+    /**
+     * @return current GRANDPA session key pair
+     */
+    virtual boost::optional<Ed25519Keypair> getGrandpaKeypair() const = 0;
+
+    /**
+     * @return current BABE session key pair
+     */
+    virtual boost::optional<Sr25519Keypair> getBabeKeypair() const = 0;
+
+    /**
+     * @return current LibP2P keypair
+     */
+    virtual boost::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const = 0;
   };
 }  // namespace kagome::crypto
 

@@ -8,7 +8,7 @@
 #include <atomic>
 #include <memory>
 
-#include "application/genesis_config.hpp"
+#include "application/chain_spec.hpp"
 #include "network/common.hpp"
 #include "network/impl/loopback_stream.hpp"
 
@@ -17,7 +17,7 @@ namespace kagome::network {
 
   GossiperBroadcast::GossiperBroadcast(
       StreamEngine::StreamEnginePtr stream_engine,
-      std::shared_ptr<kagome::application::GenesisConfig> config)
+      std::shared_ptr<kagome::application::ChainSpec> config)
       : logger_{common::createLogger("GossiperBroadcast")},
         stream_engine_{std::move(stream_engine)},
         config_{std::move(config)},

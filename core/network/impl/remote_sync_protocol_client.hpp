@@ -14,7 +14,7 @@
 #include "common/logger.hpp"
 
 namespace kagome::application {
-  class GenesisConfig;
+  class ChainSpec;
 }
 
 namespace kagome::network {
@@ -26,7 +26,7 @@ namespace kagome::network {
     RemoteSyncProtocolClient(
         libp2p::Host &host,
         libp2p::peer::PeerInfo peer_info,
-        std::shared_ptr<kagome::application::GenesisConfig> config);
+        std::shared_ptr<kagome::application::ChainSpec> config);
 
     void requestBlocks(
         const network::BlocksRequest &request,
@@ -37,7 +37,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     const libp2p::peer::PeerInfo peer_info_;
     common::Logger log_;
-    std::shared_ptr<kagome::application::GenesisConfig> config_;
+    std::shared_ptr<kagome::application::ChainSpec> config_;
   };
 }  // namespace kagome::network
 
