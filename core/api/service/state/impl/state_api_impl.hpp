@@ -41,7 +41,7 @@ namespace kagome::api {
 
     outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) override;
-    outcome::result<void> unsubscribeStorage(
+    outcome::result<bool> unsubscribeStorage(
         const std::vector<uint32_t> &subscription_id) override;
 
     outcome::result<primitives::Version> getRuntimeVersion(

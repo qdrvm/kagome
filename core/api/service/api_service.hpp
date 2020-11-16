@@ -102,7 +102,7 @@ namespace kagome::api {
     outcome::result<uint32_t> subscribeSessionToKeys(
         const std::vector<common::Buffer> &keys);
 
-    outcome::result<void> unsubscribeSessionFromIds(
+    outcome::result<bool> unsubscribeSessionFromIds(
         const std::vector<uint32_t> &subscription_id);
 
     outcome::result<uint32_t> subscribeFinalizedHeads();

@@ -233,7 +233,7 @@ TEST_F(StateJrpcProcessorTest, ProcessSubscribeStorage) {
 TEST_F(StateJrpcProcessorTest, ProcessUnsubscribeStorage) {
   std::vector<uint32_t> subscription_ids = {10};
   EXPECT_CALL(*state_api, unsubscribeStorage(subscription_ids))
-      .WillOnce(testing::Return(outcome::success()));
+      .WillOnce(testing::Return(true));
 
   registerHandlers();
 

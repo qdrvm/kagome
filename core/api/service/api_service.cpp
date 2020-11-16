@@ -470,13 +470,13 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<void> ApiService::unsubscribeSessionFromIds(
+  outcome::result<bool> ApiService::unsubscribeSessionFromIds(
       const std::vector<uint32_t> &subscription_ids) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionExecutionContext &session_context) {
         auto &session = session_context.storage_subscription;
         for (auto id : subscription_ids) session->unsubscribe(id);
-        return outcome::success();
+        return true;
       });
     });
   }
