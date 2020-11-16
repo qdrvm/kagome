@@ -40,7 +40,7 @@ namespace kagome::consensus {
                                    from,
                                    to,
                                    network::Direction::DESCENDING,
-                                   boost::none};
+                                   10};
 
     return pollClients(request, authority_index, block_list_handler);
   }

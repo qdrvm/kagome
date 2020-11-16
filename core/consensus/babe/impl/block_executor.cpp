@@ -98,24 +98,28 @@ namespace kagome::consensus {
         to,
         authority_index,
         [self_wp{weak_from_this()},
-         next(std::move(next))](const std::vector<primitives::Block> &blocks) {
+         next(std::move(next)), to, authority_index](const std::vector<primitives::Block> &blocks) mutable {
           auto self = self_wp.lock();
           if (not self) return;
 
+          bool sync_complete = false;
+          primitives::BlockHash last_received_hash;
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
+            sync_complete = true;
           } else {
             auto front_block_hex =
                 self->hasher_
                     ->blake2b_256(scale::encode(blocks.front().header).value())
                     .toHex();
-            auto back_block_hex =
+            last_received_hash =
                 self->hasher_
-                    ->blake2b_256(scale::encode(blocks.back().header).value())
-                    .toHex();
-            self->logger_->info("Received blocks from: {}, to {}",
+                    ->blake2b_256(scale::encode(blocks.back().header).value());
+            self->logger_->info("Received blocks from: {}, to {}, count {}",
                                 front_block_hex,
-                                back_block_hex);
+                                last_received_hash.toHex(),
+                                blocks.size());
+            sync_complete = to == last_received_hash;
           }
           for (const auto &block : blocks) {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
@@ -130,7 +134,10 @@ namespace kagome::consensus {
               break;
             }
           }
-          next();
+          if (sync_complete)
+            next();
+          else
+            self->requestBlocks(last_received_hash, to, authority_index, std::move(next));
         });
   }
 
