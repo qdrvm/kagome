@@ -13,6 +13,7 @@
 #include "common/visitor.hpp"
 #include "common/hexutil.hpp"
 #include "primitives/block_header.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
@@ -27,6 +28,8 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const uint64_t &);
   inline jsonrpc::Value makeValue(const primitives::Api &);
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
+  inline jsonrpc::Value makeValue(const primitives::BlockData &);
+  inline jsonrpc::Value makeValue(const primitives::BlockHeader &);
 
   inline jsonrpc::Value makeValue(const std::nullptr_t &) {
     return jsonrpc::Value();
@@ -98,6 +101,14 @@ namespace kagome::api {
     return value;
   }
 
+  template <class T>
+  inline jsonrpc::Value makeValue(const boost::optional<T> &val) {
+    if (!val)
+      return jsonrpc::Value{};
+
+    return makeValue(*val);
+  }
+
   inline jsonrpc::Value makeValue(const primitives::Api &val) {
     using VectorType = jsonrpc::Value::Array;
     VectorType data;
@@ -162,6 +173,20 @@ namespace kagome::api {
     digest["logs"] = std::move(logs);
 
     data["digest"] = std::move(digest);
+    return std::move(data);
+  }
+
+  inline jsonrpc::Value makeValue(const primitives::BlockData &val) {
+    using jStruct = jsonrpc::Value::Struct;
+    using jArray = jsonrpc::Value::Array;
+
+    jStruct block;
+    block["extrinsics"] = makeValue(val.body);
+    block["header"] = makeValue(val.header);
+
+    jStruct data;
+    data["block"] = std::move(block);
+    data["justification"] = makeValue(val.justification->data);
     return std::move(data);
   }
 

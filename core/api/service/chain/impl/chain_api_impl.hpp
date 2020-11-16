@@ -11,6 +11,7 @@
 #include "api/service/chain/chain_api.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "blockchain/block_storage.hpp"
 
 namespace kagome::api {
 
@@ -19,7 +20,8 @@ namespace kagome::api {
     ~ChainApiImpl() override = default;
 
     ChainApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
-                 std::shared_ptr<blockchain::BlockTree> block_tree);
+                 std::shared_ptr<blockchain::BlockTree> block_tree,
+                 std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     void setApiService(
         std::shared_ptr<api::ApiService> const &api_service) override;
@@ -45,6 +47,16 @@ namespace kagome::api {
       return block_repo_->getBlockHeader(last.block_hash);
     }
 
+    outcome::result<primitives::BlockData> getBlock(std::string_view hash) override {
+      OUTCOME_TRY(h, primitives::BlockHash::fromHexWithPrefix(hash));
+      return block_storage_->getBlockData(h);
+    }
+
+    outcome::result<primitives::BlockData> getBlock() override {
+      auto last = block_tree_->getLastFinalized();
+      return block_storage_->getBlockData(last.block_hash);
+    }
+
     outcome::result<uint32_t> subscribeFinalizedHeads() override;
     outcome::result<void> unsubscribeFinalizedHeads(
         uint32_t subscription_id) override;
@@ -57,6 +69,7 @@ namespace kagome::api {
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<api::ApiService> api_service_;
+    std::shared_ptr<blockchain::BlockStorage> block_storage_;
   };
 }  // namespace kagome::api
 
