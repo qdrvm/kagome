@@ -45,40 +45,40 @@ namespace kagome::crypto {
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519Keypair(
       KeyTypeId key_type, std::string_view mnemonic_phrase) {
     OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *ed_suite_));
-    initEdCache(key_type);
-    ed_caches_.at(key_type).insert(kp.public_key, kp.secret_key);
+    getCache(ed_suite_, ed_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
     return kp;
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
       KeyTypeId key_type, std::string_view mnemonic_phrase) {
     OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *sr_suite_));
-    initSrCache(key_type);
-    sr_caches_.at(key_type).insert(kp.public_key, kp.secret_key);
+    getCache(sr_suite_, sr_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
     return kp;
   }
 
   Ed25519Keypair CryptoStoreImpl::generateEd25519Keypair(
       KeyTypeId key_type, const Ed25519Seed &seed) {
     auto kp = ed_suite_->generateKeypair(seed);
-    initEdCache(key_type);
-    ed_caches_.at(key_type).insert(kp.public_key, kp.secret_key);
+    getCache(ed_suite_, ed_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
     return kp;
   }
 
   Sr25519Keypair CryptoStoreImpl::generateSr25519Keypair(
       KeyTypeId key_type, const Sr25519Seed &seed) {
     auto kp = sr_suite_->generateKeypair(seed);
-    initSrCache(key_type);
-    sr_caches_.at(key_type).insert(kp.public_key, kp.secret_key);
+    getCache(sr_suite_, sr_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
     return kp;
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519KeypairOnDisk(
       KeyTypeId key_type) {
     auto kp = ed_suite_->generateRandomKeypair();
-    initEdCache(key_type);
-    ed_caches_.at(key_type).insert(kp.public_key, kp.secret_key);
+    getCache(ed_suite_, ed_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
         file_storage_->saveKeypair(key_type, kp.public_key, kp.secret_key));
     return kp;
@@ -87,8 +87,8 @@ namespace kagome::crypto {
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519KeypairOnDisk(
       KeyTypeId key_type) {
     auto kp = sr_suite_->generateRandomKeypair();
-    initSrCache(key_type);
-    sr_caches_.at(key_type).insert(kp.public_key, kp.secret_key);
+    getCache(sr_suite_, sr_caches_, key_type)
+        .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
         file_storage_->saveKeypair(key_type, kp.public_key, kp.secret_key));
     return kp;
@@ -96,8 +96,7 @@ namespace kagome::crypto {
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::findEd25519Keypair(
       KeyTypeId key_type, const Ed25519PublicKey &pk) const {
-    initEdCache(key_type);
-    auto kp_opt = ed_caches_.at(key_type).searchKeypair(pk);
+    auto kp_opt = getCache(ed_suite_, ed_caches_, key_type).searchKeypair(pk);
     if (kp_opt) {
       return kp_opt.value();
     }
@@ -112,8 +111,7 @@ namespace kagome::crypto {
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::findSr25519Keypair(
       KeyTypeId key_type, const Sr25519PublicKey &pk) const {
-    initSrCache(key_type);
-    auto kp_opt = sr_caches_.at(key_type).searchKeypair(pk);
+    auto kp_opt = getCache(sr_suite_, sr_caches_, key_type).searchKeypair(pk);
     if (kp_opt) {
       return kp_opt.value();
     }
@@ -128,40 +126,39 @@ namespace kagome::crypto {
 
   outcome::result<CryptoStoreImpl::Ed25519Keys>
   CryptoStoreImpl::getEd25519PublicKeys(KeyTypeId key_type) const {
-    initEdCache(key_type);
-    return getPublicKeys(key_type, ed_caches_.at(key_type), *ed_suite_);
+    return getPublicKeys(
+        key_type, getCache(ed_suite_, ed_caches_, key_type), *ed_suite_);
   }
 
   outcome::result<CryptoStoreImpl::Sr25519Keys>
   CryptoStoreImpl::getSr25519PublicKeys(KeyTypeId key_type) const {
-    initSrCache(key_type);
-    return getPublicKeys(key_type, sr_caches_.at(key_type), *sr_suite_);
+    return getPublicKeys(
+        key_type, getCache(sr_suite_, sr_caches_, key_type), *sr_suite_);
   }
 
   boost::optional<Ed25519Keypair> CryptoStoreImpl::getGrandpaKeypair() const {
-    initEdCache(KEY_TYPE_GRAN);
-    return ed_caches_.at(KEY_TYPE_GRAN).getSessionKey();
+    return getCache(ed_suite_, ed_caches_, KEY_TYPE_GRAN).getSessionKey();
   }
 
   boost::optional<Sr25519Keypair> CryptoStoreImpl::getBabeKeypair() const {
-    initSrCache(KEY_TYPE_BABE);
-    return sr_caches_.at(KEY_TYPE_BABE).getSessionKey();
+    return getCache(sr_suite_, sr_caches_, KEY_TYPE_BABE).getSessionKey();
   }
 
   boost::optional<libp2p::crypto::KeyPair> CryptoStoreImpl::getLibp2pKeypair()
       const {
-    initEdCache(KEY_TYPE_LP2P);
-    auto kp = ed_caches_.at(KEY_TYPE_LP2P).getSessionKey();
+    auto kp = getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P).getSessionKey();
     if (kp) {
       auto &secret_key = kp.value().secret_key;
       auto &public_key = kp.value().public_key;
+      libp2p::crypto::PublicKey lp2p_public{
+          {libp2p::crypto::Key::Type::Ed25519,
+           std::vector<uint8_t>{public_key.cbegin(), public_key.cend()}}};
+      libp2p::crypto::PrivateKey lp2p_private{
+          {libp2p::crypto::Key::Type::Ed25519,
+           std::vector<uint8_t>{secret_key.cbegin(), secret_key.cend()}}};
       return libp2p::crypto::KeyPair{
-          .publicKey{
-              libp2p::crypto::Key::Type::Ed25519,
-              std::vector<uint8_t>{public_key.cbegin(), public_key.cend()}},
-          .privateKey{
-              libp2p::crypto::Key::Type::Ed25519,
-              std::vector<uint8_t>{secret_key.cbegin(), secret_key.cend()}},
+          .publicKey = lp2p_public,
+          .privateKey = lp2p_private,
       };
     }
     return boost::none;

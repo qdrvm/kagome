@@ -302,3 +302,46 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
       crypto_store->getSr25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE).value();
   ASSERT_THAT(keys, testing::UnorderedElementsAreArray(sr_babe_keys));
 }
+
+TEST_F(CryptoStoreTest, SessionKeys) {
+  ASSERT_FALSE(crypto_store->getGrandpaKeypair());
+  ASSERT_FALSE(crypto_store->getBabeKeypair());
+  ASSERT_FALSE(crypto_store->getLibp2pKeypair());
+  EXPECT_OUTCOME_TRUE(
+      pair1,
+      crypto_store->generateSr25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_BABE))
+  EXPECT_OUTCOME_TRUE(
+      pair2,
+      crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_GRAN))
+  EXPECT_OUTCOME_TRUE(
+      pair3,
+      crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_LP2P))
+  ASSERT_TRUE(crypto_store->getGrandpaKeypair());
+  ASSERT_EQ(crypto_store->getGrandpaKeypair().value(), pair2);
+  ASSERT_TRUE(crypto_store->getBabeKeypair());
+  ASSERT_EQ(crypto_store->getBabeKeypair().value(), pair1);
+  ASSERT_TRUE(crypto_store->getLibp2pKeypair());
+  ASSERT_THAT(pair3.secret_key,
+              testing::ElementsAreArray(
+                  crypto_store->getLibp2pKeypair().value().privateKey.data));
+}
+
+TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
+  auto csprng = std::make_shared<BoostRandomGenerator>();
+  auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(csprng);
+  auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>(csprng);
+
+  auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
+  auto bip39_provider =
+      std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
+  auto keystore_path = boost::filesystem::path(__FILE__).parent_path()
+                       / "subkey_keys" / "keystore";
+  auto crypto_store = std::make_shared<CryptoStoreImpl>(
+      std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
+      std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
+      bip39_provider,
+      kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
+  EXPECT_OUTCOME_TRUE(
+      keys, crypto_store->getEd25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE));
+  ASSERT_EQ(keys.size(), 1);
+}

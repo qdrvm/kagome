@@ -114,7 +114,8 @@ namespace kagome::crypto {
           }
         }
       }
-      std::move(cached_keys.begin(), cached_keys.end(), std::back_inserter(res));
+      std::move(
+          cached_keys.begin(), cached_keys.end(), std::back_inserter(res));
       return res;
     }
 
@@ -131,16 +132,18 @@ namespace kagome::crypto {
       return suite.generateKeypair(seed);
     }
 
-    void initEdCache(KeyTypeId type) const {
-      if (ed_caches_.find(type) == ed_caches_.end()) {
-        ed_caches_.insert({type, KeyCache{type, ed_suite_}});
+    template <typename Suite>
+    KeyCache<Suite> &getCache(
+        std::shared_ptr<Suite> suite,
+        std::unordered_map<KeyTypeId, KeyCache<Suite>> &caches,
+        KeyTypeId type) const {
+      auto it = caches.find(type);
+      if (it == caches.end()) {
+        auto&& [new_it, success] = caches.insert({type, KeyCache{type, suite}});
+        BOOST_ASSERT(success);
+        it = new_it;
       }
-    }
-
-    void initSrCache(KeyTypeId type) const {
-      if (sr_caches_.find(type) == sr_caches_.end()) {
-        sr_caches_.insert({type, KeyCache{type, sr_suite_}});
-      }
+      return it->second;
     }
 
     mutable std::unordered_map<KeyTypeId, KeyCache<Ed25519Suite>> ed_caches_;
