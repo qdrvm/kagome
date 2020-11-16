@@ -137,16 +137,33 @@ namespace kagome::crypto {
   }
 
   boost::optional<Ed25519Keypair> CryptoStoreImpl::getGrandpaKeypair() const {
-    return getCache(ed_suite_, ed_caches_, KEY_TYPE_GRAN).getSessionKey();
+    auto keys = getEd25519PublicKeys(KEY_TYPE_GRAN);
+    if (not keys or keys.value().empty()) {
+      return boost::none;
+    }
+    auto kp = findEd25519Keypair(KEY_TYPE_GRAN, keys.value().at(0));
+    return kp ? boost::make_optional(kp.value()) : boost::none;
   }
 
   boost::optional<Sr25519Keypair> CryptoStoreImpl::getBabeKeypair() const {
-    return getCache(sr_suite_, sr_caches_, KEY_TYPE_BABE).getSessionKey();
+    auto keys = getSr25519PublicKeys(KEY_TYPE_BABE);
+    if (not keys) {
+      return boost::none;
+    }
+    if (keys.value().empty()) {
+      return boost::none;
+    }
+    auto kp = findSr25519Keypair(KEY_TYPE_BABE, keys.value().at(0));
+    return kp ? boost::make_optional(kp.value()) : boost::none;
   }
 
   boost::optional<libp2p::crypto::KeyPair> CryptoStoreImpl::getLibp2pKeypair()
       const {
-    auto kp = getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P).getSessionKey();
+    auto keys = getEd25519PublicKeys(KEY_TYPE_LP2P);
+    if (not keys or keys.value().empty()) {
+      return boost::none;
+    }
+    auto kp = findEd25519Keypair(KEY_TYPE_LP2P, keys.value().at(0));
     if (kp) {
       auto &secret_key = kp.value().secret_key;
       auto &public_key = kp.value().public_key;

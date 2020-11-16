@@ -287,7 +287,7 @@ namespace kagome::injector {
 
             consensus::grandpa::VoterSet voters{0};
             for (const auto &weighted_authority : weighted_authorities) {
-              voters.insert(weighted_authority.id.id,
+              voters.insert(primitives::GrandpaSessionKey {weighted_authority.id.id},
                             weighted_authority.weight);
               spdlog::debug("Added to grandpa authorities: {}, weight: {}",
                             weighted_authority.id.id.toHex(),

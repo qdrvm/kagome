@@ -85,12 +85,12 @@ namespace kagome::consensus {
     auto [seal, babe_header] = babe_digests;
 
     // signature in seal of the header must be valid
-    if (!verifySignature(header, babe_header, seal, authority_id.id)) {
+    if (!verifySignature(header, babe_header, seal, primitives::BabeSessionKey{authority_id.id})) {
       return ValidationError::INVALID_SIGNATURE;
     }
 
     // VRF must prove that the peer is the leader of the slot
-    if (!verifyVRF(babe_header, authority_id.id, threshold, randomness)) {
+    if (!verifyVRF(babe_header, primitives::BabeSessionKey{authority_id.id}, threshold, randomness)) {
       return ValidationError::INVALID_VRF;
     }
 
@@ -101,7 +101,7 @@ namespace kagome::consensus {
       const primitives::BlockHeader &header,
       const BabeBlockHeader &babe_header,
       const Seal &seal,
-      const primitives::SessionKey &public_key) const {
+      const primitives::BabeSessionKey &public_key) const {
     // firstly, take hash of the block's header without Seal, which is the last
     // digest
     auto unsealed_header = header;
@@ -118,7 +118,7 @@ namespace kagome::consensus {
   }
 
   bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header,
-                                     const primitives::SessionKey &public_key,
+                                     const primitives::BabeSessionKey &public_key,
                                      const Threshold &threshold,
                                      const Randomness &randomness) const {
     // verify VRF output

@@ -99,6 +99,9 @@ namespace kagome::crypto {
             logger_->error("Error reading key seed from key file storage");
             continue;
           }
+          /// TODO(Harrm) Add policies to emit a warning when found a keypair
+          /// with incompatible type and algorithm (e. g. ed25519 BABE keypair,
+          /// whereas BABE has to be sr25519 only)
           auto seed_res = suite.toSeed(seed_bytes.value());
           if (not seed_res) {
             // cannot create a seed from file content; suppose it belongs to a
@@ -139,7 +142,7 @@ namespace kagome::crypto {
         KeyTypeId type) const {
       auto it = caches.find(type);
       if (it == caches.end()) {
-        auto&& [new_it, success] = caches.insert({type, KeyCache{type, suite}});
+        auto &&[new_it, success] = caches.insert({type, KeyCache{type, suite}});
         BOOST_ASSERT(success);
         it = new_it;
       }

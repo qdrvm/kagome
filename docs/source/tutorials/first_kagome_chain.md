@@ -36,8 +36,8 @@ cd examples/first_kagome_chain
 
 `first_kagome_chain` folder contains necessary configuration files for our tutorial:
 
-* `localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block    |
-* `localkeystore.json` – file containing the keys for Kagome peer. This is necessary to be able to sign the messages sent by our validating node | 
+* `localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block
+* `base_path` – Directory, containing kagome base path. It contains several dirs, each one named with the chain id, which data it stores (`dev` in this case). Data for each chain consists of `db/` (will be initialized on node startup) and `keystore/` (keys to sign the messages sent by our validating node). The latter has to exist prior to the node start. This behaviour will be improved in the future.
 
 `localchain.json` contains Alice and Bob accounts. Both have 999998900.0 amount of crypto.
 Their keys can be generated using [subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey) tool:
@@ -69,7 +69,7 @@ For this tutorial you can start a single node network as follows:
 ```bash
 kagome_validating \
     --genesis localchain.json \
-    --base_path /tmp \
+    --base_path base_path \
     --p2p_port 30363 \
     --rpc_http_port 9933 \
     --rpc_ws_port 9944 \

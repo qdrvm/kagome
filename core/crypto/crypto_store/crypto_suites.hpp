@@ -100,7 +100,8 @@ namespace kagome::crypto {
 
     outcome::result<PublicKey> toPublicKey(
         gsl::span<const uint8_t> bytes) const noexcept override {
-      return Ed25519PublicKey::fromSpan(bytes);
+      OUTCOME_TRY(blob, Ed25519PublicKey::fromSpan(bytes));
+      return Ed25519PublicKey{blob};
     }
 
     outcome::result<Seed> toSeed(
@@ -146,7 +147,8 @@ namespace kagome::crypto {
 
     outcome::result<PublicKey> toPublicKey(
         gsl::span<const uint8_t> bytes) const noexcept override {
-      return Sr25519PublicKey::fromSpan(bytes);
+      OUTCOME_TRY(blob, Sr25519PublicKey::fromSpan(bytes));
+      return Sr25519PublicKey{std::move(blob)};
     }
 
     outcome::result<Seed> toSeed(

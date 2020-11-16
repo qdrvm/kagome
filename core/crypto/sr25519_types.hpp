@@ -71,9 +71,8 @@ namespace kagome::crypto {
     bool is_less;
   };
 
-  using Sr25519SecretKey = common::Blob<constants::sr25519::SECRET_SIZE>;
-
-  using Sr25519PublicKey = common::Blob<constants::sr25519::PUBLIC_SIZE>;
+  KAGOME_BLOB_STRICT_TYPEDEF(Sr25519SecretKey, constants::sr25519::SECRET_SIZE);
+  KAGOME_BLOB_STRICT_TYPEDEF(Sr25519PublicKey, constants::sr25519::PUBLIC_SIZE);
 
   using Sr25519Seed = common::Blob<constants::sr25519::SEED_SIZE>;
 
@@ -87,7 +86,7 @@ namespace kagome::crypto {
     bool operator!=(const Sr25519Keypair &other) const;
   };
 
-  using Sr25519Signature = common::Blob<constants::sr25519::SIGNATURE_SIZE>;
+  KAGOME_BLOB_STRICT_TYPEDEF(Sr25519Signature, constants::sr25519::SIGNATURE_SIZE);
 
   /**
    * @brief outputs object of type VRFOutput to stream
@@ -116,5 +115,26 @@ namespace kagome::crypto {
   }
 
 }  // namespace kagome::crypto
+
+template<>
+struct std::hash<kagome::crypto::Sr25519SecretKey> {
+  auto operator()(const kagome::crypto::Sr25519SecretKey &key) const {
+    return boost::hash_range(key.cbegin(), key.cend());  // NOLINT
+  }
+};
+
+template<>
+struct std::hash<kagome::crypto::Sr25519PublicKey> {
+  auto operator()(const kagome::crypto::Sr25519PublicKey &key) const {
+    return boost::hash_range(key.cbegin(), key.cend());  // NOLINT
+  }
+};
+
+template<>
+struct std::hash<kagome::crypto::Sr25519Signature> {
+  auto operator()(const kagome::crypto::Sr25519Signature &sig) const {
+    return boost::hash_range(sig.cbegin(), sig.cend());  // NOLINT
+  }
+};
 
 #endif  // KAGOME_CORE_CRYPTO_VRF_TYPES

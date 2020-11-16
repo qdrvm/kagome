@@ -11,7 +11,7 @@ namespace kagome::application {
 
   ValidatingNodeApplication::ValidatingNodeApplication(
       const AppConfiguration &app_config)
-      : injector_{injector::makeFullNodeInjector(app_config)},
+      : injector_{injector::makeValidatingNodeInjector(app_config)},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(app_config.verbosity());
 

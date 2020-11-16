@@ -148,7 +148,7 @@ namespace kagome::injector {
   }
 
   template <typename... Ts>
-  auto makeFullNodeInjector(const application::AppConfiguration &app_config,
+  auto makeValidatingNodeInjector(const application::AppConfiguration &app_config,
                             Ts &&... args) {
     using namespace boost;  // NOLINT;
 
