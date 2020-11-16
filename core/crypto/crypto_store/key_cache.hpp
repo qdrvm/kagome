@@ -30,6 +30,9 @@ namespace kagome::crypto {
     }
 
     void insert(PublicKey pubkey, PrivateKey privkey) {
+      if (not session_key_) {
+        session_key_ = suite_->composeKeypair(pubkey, privkey);
+      }
       cache_.emplace(std::move(pubkey), std::move(privkey));
     }
 
