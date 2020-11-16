@@ -11,6 +11,10 @@
 #include "crypto/sr25519_provider.hpp"
 
 namespace kagome::crypto {
+
+  /**
+   * Combination of several crypto primitives belonging to one algorithm
+   */
   template <typename PublicKeyT,
             typename PrivateKeyT,
             typename KeypairT,
@@ -23,14 +27,41 @@ namespace kagome::crypto {
 
     virtual ~CryptoSuite() = default;
 
+    /**
+     * Genereate a keypair from \param seed (mind that in some algorithms a seed
+     * is a private key)
+     */
     virtual Keypair generateKeypair(const Seed &seed) const noexcept = 0;
+    /**
+     * Generate a random keypair (randomness source is determined by an
+     * underlying crypto provider)
+     */
     virtual Keypair generateRandomKeypair() const noexcept = 0;
+
+    /**
+     * Create a keypair from a public key and a private key
+     * @note Although it is typically just a structure with two fields, from the
+     * compiler point of view they all are different types, thus this
+     * convenience method emerges
+     */
     virtual Keypair composeKeypair(PublicKey pub,
                                    PrivateKey priv) const noexcept = 0;
+    /**
+     * Extrace the private key and the public key from a keypair
+     * @see composeKeypair()
+     */
     virtual std::pair<PublicKey, PrivateKey> decomposeKeypair(
         const Keypair &kp) const noexcept = 0;
+
+    /**
+     * Create a public key from its bytes
+     */
     virtual outcome::result<PublicKey> toPublicKey(
         gsl::span<const uint8_t> bytes) const noexcept = 0;
+
+    /**
+     * Create a seed from its bytes
+     */
     virtual outcome::result<Seed> toSeed(
         gsl::span<const uint8_t> bytes) const noexcept = 0;
   };

@@ -303,10 +303,19 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
   ASSERT_THAT(keys, testing::UnorderedElementsAreArray(sr_babe_keys));
 }
 
+/**
+ * @given an empty crypto storage
+ * @when having inserted keys into it
+ * @then session keys are initialized with inserted keys of the corresponding
+ * types
+ */
 TEST_F(CryptoStoreTest, SessionKeys) {
+  // GIVEN
   ASSERT_FALSE(crypto_store->getGrandpaKeypair());
   ASSERT_FALSE(crypto_store->getBabeKeypair());
   ASSERT_FALSE(crypto_store->getLibp2pKeypair());
+
+  // WHEN
   EXPECT_OUTCOME_TRUE(
       pair1,
       crypto_store->generateSr25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_BABE))
@@ -316,6 +325,8 @@ TEST_F(CryptoStoreTest, SessionKeys) {
   EXPECT_OUTCOME_TRUE(
       pair3,
       crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_LP2P))
+
+  // THEN
   ASSERT_TRUE(crypto_store->getGrandpaKeypair());
   ASSERT_EQ(crypto_store->getGrandpaKeypair().value(), pair2);
   ASSERT_TRUE(crypto_store->getBabeKeypair());
@@ -326,6 +337,10 @@ TEST_F(CryptoStoreTest, SessionKeys) {
                   crypto_store->getLibp2pKeypair().value().privateKey.data));
 }
 
+/**
+ * Currently incompatible with subkey because subkey doesn't append key type to
+ * filename
+ */
 TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
   auto csprng = std::make_shared<BoostRandomGenerator>();
   auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(csprng);

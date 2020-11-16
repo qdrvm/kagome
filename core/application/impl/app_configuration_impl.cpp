@@ -34,7 +34,7 @@ namespace {
 
 namespace kagome::application {
 
-  AppConfigurationImpl::AppConfigurationImpl(kagome::common::Logger logger)
+  AppConfigurationImpl::AppConfigurationImpl(common::Logger logger)
       : p2p_port_(def_p2p_port),
         verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
         is_only_finalizing_(def_is_only_finalizing),

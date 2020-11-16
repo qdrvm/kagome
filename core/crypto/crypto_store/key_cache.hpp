@@ -6,9 +6,9 @@
 #ifndef KAGOME_KEY_CACHE_HPP
 #define KAGOME_KEY_CACHE_HPP
 
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
-#include <memory>
 
 #include <boost/optional.hpp>
 
@@ -16,6 +16,12 @@
 
 namespace kagome::crypto {
 
+  /**
+   * In-memory cache of keys belonging to the same crypto suite and the same key
+   * type
+   * @see crypto_suites.hpp
+   * @see key_type.hpp
+   */
   template <typename CryptoSuite>
   class KeyCache {
    public:
@@ -30,12 +36,17 @@ namespace kagome::crypto {
     }
 
     void insert(PublicKey pubkey, PrivateKey privkey) {
+      // this should be refactored in the future, the session key should be
+      // determined by either node's config or node's internal logic
       if (not session_key_) {
         session_key_ = suite_->composeKeypair(pubkey, privkey);
       }
       cache_.emplace(std::move(pubkey), std::move(privkey));
     }
 
+    /**
+     * Session keys are short-living keys used by the node
+     */
     boost::optional<Keypair> const &getSessionKey() const noexcept {
       return session_key_;
     }
@@ -62,6 +73,6 @@ namespace kagome::crypto {
     std::unordered_map<PublicKey, PrivateKey> cache_;
     std::shared_ptr<CryptoSuite> suite_;
   };
-}
+}  // namespace kagome::crypto
 
 #endif  // KAGOME_KEY_CACHE_HPP
