@@ -21,12 +21,14 @@ namespace kagome::storage::trie {
    public:
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
-    using OnDetachCallback = std::function<void(const common::Buffer &key, boost::optional<common::Buffer> &&value)>;
+    using OnDetachCallback = std::function<void(
+        const common::Buffer &key, boost::optional<common::Buffer> &&value)>;
 
     /**
      * Remove all trie entries which key begins with the supplied prefix
      */
-    virtual outcome::result<void> clearPrefix(const common::Buffer &prefix, const OnDetachCallback &callback) = 0;
+    virtual outcome::result<void> clearPrefix(
+        const common::Buffer &prefix, const OnDetachCallback &callback) = 0;
 
     /**
      * @return the root node of the trie

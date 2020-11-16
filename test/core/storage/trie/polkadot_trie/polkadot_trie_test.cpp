@@ -309,17 +309,20 @@ TEST_F(TrieTest, ClearPrefix) {
   for (auto &entry : data) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
   }
-  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("bar"_buf));
+  EXPECT_OUTCOME_TRUE_1(
+      trie->clearPrefix("bar"_buf, [](const auto &, auto &&) {}));
   ASSERT_TRUE(trie->contains("bat"_buf));
   ASSERT_TRUE(trie->contains("batch"_buf));
   ASSERT_FALSE(trie->contains("bark"_buf));
   ASSERT_FALSE(trie->contains("barnacle"_buf));
 
-  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("batc"_buf));
+  EXPECT_OUTCOME_TRUE_1(
+      trie->clearPrefix("batc"_buf, [](const auto &, auto &&) {}));
   ASSERT_TRUE(trie->contains("bat"_buf));
   ASSERT_FALSE(trie->contains("batch"_buf));
 
-  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("b"_buf));
+  EXPECT_OUTCOME_TRUE_1(
+      trie->clearPrefix("b"_buf, [](const auto &, auto &&) {}));
   ASSERT_FALSE(trie->contains("bat"_buf));
   ASSERT_TRUE(trie->empty());
 }
@@ -400,6 +403,8 @@ TEST_F(TrieTest, GetNodeReturnsNullptrWhenNotFound) {
   for (auto &entry : TrieTest::data) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
   }
-  EXPECT_OUTCOME_TRUE(res, trie->getNode(trie->getRoot(), KeyNibbles{"01020304050607"_hex2buf}));
+  EXPECT_OUTCOME_TRUE(
+      res,
+      trie->getNode(trie->getRoot(), KeyNibbles{"01020304050607"_hex2buf}));
   ASSERT_EQ(res, nullptr) << res->value->toHex();
 }

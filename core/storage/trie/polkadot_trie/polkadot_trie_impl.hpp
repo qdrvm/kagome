@@ -50,7 +50,9 @@ namespace kagome::storage::trie {
     /**
      * Remove all entries, which key starts with the prefix
      */
-    outcome::result<void> clearPrefix(const common::Buffer &prefix, const OnDetachCallback &callback) override;
+    outcome::result<void> clearPrefix(
+        const common::Buffer &prefix,
+        const OnDetachCallback &callback) override;
 
     // value will be copied
     outcome::result<void> put(const common::Buffer &key,
@@ -71,7 +73,8 @@ namespace kagome::storage::trie {
     bool empty() const override;
 
    private:
-    void notify_is_detached(const NodePtr &parent, const OnDetachCallback &callback);
+    void notify_is_detached(const NodePtr &parent,
+                            const OnDetachCallback &callback);
 
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const KeyNibbles &key_nibbles,
@@ -88,7 +91,8 @@ namespace kagome::storage::trie {
                                             const KeyNibbles &key_nibbles);
     // remove a node with its children
     outcome::result<NodePtr> detachNode(const NodePtr &parent,
-                                        const KeyNibbles &prefix_nibbles, const OnDetachCallback &callback);
+                                        const KeyNibbles &prefix_nibbles,
+                                        const OnDetachCallback &callback);
 
     uint32_t getCommonPrefixLength(const KeyNibbles &pref1,
                                    const KeyNibbles &pref2) const;

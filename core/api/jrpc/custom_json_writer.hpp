@@ -1,30 +1,30 @@
-// This file is derived from xsonrpc Copyright (C) 2015 Erik Johansson <erik@ejohansson.se>
-// This file is part of jsonrpc-lean, a c++11 JSON-RPC client/server library.
-//
-// Modifications and additions Copyright (C) 2015 Adriano Maia <tony@stark.im>
-//
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #ifndef KAGOME_CUSTOM_JSON_WRITER_HPP
 #define KAGOME_CUSTOM_JSON_WRITER_HPP
 
-#include <jsonrpc-lean/writer.h>
 #include <jsonrpc-lean/json.h>
+#include <jsonrpc-lean/jsonformatteddata.h>
 #include <jsonrpc-lean/util.h>
 #include <jsonrpc-lean/value.h>
-#include <jsonrpc-lean/jsonformatteddata.h>
+#include <jsonrpc-lean/writer.h>
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
-namespace rapidjson { typedef ::std::size_t SizeType; }
+namespace rapidjson {
+  typedef ::std::size_t SizeType;
+}
 
-#include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 namespace kagome::api {
 
   class JsonWriter final : public jsonrpc::Writer {
    public:
-    JsonWriter() : myRequestData(new jsonrpc::JsonFormattedData()) {
-    }
+    JsonWriter() : myRequestData(new jsonrpc::JsonFormattedData()) {}
 
     // Writer
     std::shared_ptr<jsonrpc::FormattedData> GetData() override {
@@ -39,23 +39,29 @@ namespace kagome::api {
       // Empty
     }
 
-    void StartRequest(const std::string& methodName, const jsonrpc::Value& id) override {
+    void StartRequest(const std::string &methodName,
+                      const jsonrpc::Value &id) override {
       myRequestData->Writer.StartObject();
 
-      myRequestData->Writer.Key(jsonrpc::json::JSONRPC_NAME, sizeof(jsonrpc::json::JSONRPC_NAME) - 1);
-      myRequestData->Writer.String(jsonrpc::json::JSONRPC_VERSION_2_0, sizeof(jsonrpc::json::JSONRPC_VERSION_2_0) - 1);
+      myRequestData->Writer.Key(jsonrpc::json::JSONRPC_NAME,
+                                sizeof(jsonrpc::json::JSONRPC_NAME) - 1);
+      myRequestData->Writer.String(
+          jsonrpc::json::JSONRPC_VERSION_2_0,
+          sizeof(jsonrpc::json::JSONRPC_VERSION_2_0) - 1);
 
-      myRequestData->Writer.Key(jsonrpc::json::METHOD_NAME, sizeof(jsonrpc::json::METHOD_NAME) - 1);
+      myRequestData->Writer.Key(jsonrpc::json::METHOD_NAME,
+                                sizeof(jsonrpc::json::METHOD_NAME) - 1);
       myRequestData->Writer.String(methodName.data(), methodName.size(), true);
 
       WriteId(id);
 
-      myRequestData->Writer.Key(jsonrpc::json::PARAMS_NAME, sizeof(jsonrpc::json::PARAMS_NAME) - 1);
-      //myRequestData->Writer.StartObject();
+      myRequestData->Writer.Key(jsonrpc::json::PARAMS_NAME,
+                                sizeof(jsonrpc::json::PARAMS_NAME) - 1);
+      // myRequestData->Writer.StartObject();
     }
 
     void EndRequest() override {
-      //myRequestData->Writer.EndObject();
+      // myRequestData->Writer.EndObject();
       myRequestData->Writer.EndObject();
     }
 
@@ -67,26 +73,33 @@ namespace kagome::api {
       // Empty
     }
 
-    void StartResponse(const jsonrpc::Value& id) override {
+    void StartResponse(const jsonrpc::Value &id) override {
       myRequestData->Writer.StartObject();
 
-      myRequestData->Writer.Key(jsonrpc::json::JSONRPC_NAME, sizeof(jsonrpc::json::JSONRPC_NAME) - 1);
-      myRequestData->Writer.String(jsonrpc::json::JSONRPC_VERSION_2_0, sizeof(jsonrpc::json::JSONRPC_VERSION_2_0) - 1);
+      myRequestData->Writer.Key(jsonrpc::json::JSONRPC_NAME,
+                                sizeof(jsonrpc::json::JSONRPC_NAME) - 1);
+      myRequestData->Writer.String(
+          jsonrpc::json::JSONRPC_VERSION_2_0,
+          sizeof(jsonrpc::json::JSONRPC_VERSION_2_0) - 1);
 
       WriteId(id);
 
-      myRequestData->Writer.Key(jsonrpc::json::RESULT_NAME, sizeof(jsonrpc::json::RESULT_NAME) - 1);
+      myRequestData->Writer.Key(jsonrpc::json::RESULT_NAME,
+                                sizeof(jsonrpc::json::RESULT_NAME) - 1);
     }
 
     void EndResponse() override {
       myRequestData->Writer.EndObject();
     }
 
-    void StartFaultResponse(const jsonrpc::Value& id) override {
+    void StartFaultResponse(const jsonrpc::Value &id) override {
       myRequestData->Writer.StartObject();
 
-      myRequestData->Writer.Key(jsonrpc::json::JSONRPC_NAME, sizeof(jsonrpc::json::JSONRPC_NAME) - 1);
-      myRequestData->Writer.String(jsonrpc::json::JSONRPC_VERSION_2_0, sizeof(jsonrpc::json::JSONRPC_VERSION_2_0) - 1);
+      myRequestData->Writer.Key(jsonrpc::json::JSONRPC_NAME,
+                                sizeof(jsonrpc::json::JSONRPC_NAME) - 1);
+      myRequestData->Writer.String(
+          jsonrpc::json::JSONRPC_VERSION_2_0,
+          sizeof(jsonrpc::json::JSONRPC_VERSION_2_0) - 1);
 
       WriteId(id);
     }
@@ -95,14 +108,17 @@ namespace kagome::api {
       myRequestData->Writer.EndObject();
     }
 
-    void WriteFault(int32_t code, const std::string& string) override {
-      myRequestData->Writer.Key(jsonrpc::json::ERROR_NAME, sizeof(jsonrpc::json::ERROR_NAME) - 1);
+    void WriteFault(int32_t code, const std::string &string) override {
+      myRequestData->Writer.Key(jsonrpc::json::ERROR_NAME,
+                                sizeof(jsonrpc::json::ERROR_NAME) - 1);
       myRequestData->Writer.StartObject();
 
-      myRequestData->Writer.Key(jsonrpc::json::ERROR_CODE_NAME, sizeof(jsonrpc::json::ERROR_CODE_NAME) - 1);
+      myRequestData->Writer.Key(jsonrpc::json::ERROR_CODE_NAME,
+                                sizeof(jsonrpc::json::ERROR_CODE_NAME) - 1);
       myRequestData->Writer.Int(code);
 
-      myRequestData->Writer.Key(jsonrpc::json::ERROR_MESSAGE_NAME, sizeof(jsonrpc::json::ERROR_MESSAGE_NAME) - 1);
+      myRequestData->Writer.Key(jsonrpc::json::ERROR_MESSAGE_NAME,
+                                sizeof(jsonrpc::json::ERROR_MESSAGE_NAME) - 1);
       myRequestData->Writer.String(string.data(), string.size(), true);
 
       myRequestData->Writer.EndObject();
@@ -124,7 +140,7 @@ namespace kagome::api {
       myRequestData->Writer.EndObject();
     }
 
-    void StartStructElement(const std::string& name) override {
+    void StartStructElement(const std::string &name) override {
       myRequestData->Writer.Key(name.data(), name.size(), true);
     }
 
@@ -132,7 +148,7 @@ namespace kagome::api {
       // Empty
     }
 
-    void WriteBinary(const char* data, size_t size) override {
+    void WriteBinary(const char *data, size_t size) override {
       myRequestData->Writer.String(data, size, true);
     }
 
@@ -156,20 +172,22 @@ namespace kagome::api {
       myRequestData->Writer.Int64(value);
     }
 
-    void Write(const std::string& value) override {
+    void Write(const std::string &value) override {
       myRequestData->Writer.String(value.data(), value.size(), true);
     }
 
-    void Write(const tm& value) override {
+    void Write(const tm &value) override {
       Write(jsonrpc::util::FormatIso8601DateTime(value));
     }
 
    private:
-    void WriteId(const jsonrpc::Value& id) {
+    void WriteId(const jsonrpc::Value &id) {
       if (id.IsString() || id.IsInteger32() || id.IsInteger64() || id.IsNil()) {
-        myRequestData->Writer.Key(jsonrpc::json::ID_NAME, sizeof(jsonrpc::json::ID_NAME) - 1);
+        myRequestData->Writer.Key(jsonrpc::json::ID_NAME,
+                                  sizeof(jsonrpc::json::ID_NAME) - 1);
         if (id.IsString()) {
-          myRequestData->Writer.String(id.AsString().data(), id.AsString().size(), true);
+          myRequestData->Writer.String(
+              id.AsString().data(), id.AsString().size(), true);
         } else if (id.IsInteger32()) {
           myRequestData->Writer.Int(id.AsInteger32());
         } else if (id.IsInteger64()) {
@@ -183,6 +201,6 @@ namespace kagome::api {
     std::shared_ptr<jsonrpc::JsonFormattedData> myRequestData;
   };
 
-} // namespace jsonrpc
+}  // namespace kagome::api
 
-#endif // KAGOME_CUSTOM_JSON_WRITER_HPP
+#endif  // KAGOME_CUSTOM_JSON_WRITER_HPP

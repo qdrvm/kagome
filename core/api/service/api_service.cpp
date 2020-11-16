@@ -138,8 +138,9 @@ namespace kagome::api {
     /// them in a single json message.
 
     jsonrpc::Value::Struct result;
-    result["changes"] = jsonrpc::Value::Array{jsonrpc::Value::Array{
-        api::makeValue(key), api::makeValue(hex_lower_0x(value))}};
+    result["changes"] =
+        jsonrpc::Value::Array{jsonrpc::Value{jsonrpc::Value::Array{
+            api::makeValue(key), api::makeValue(hex_lower_0x(value))}}};
     result["block"] = api::makeValue(hex_lower_0x(block));
 
     return result;

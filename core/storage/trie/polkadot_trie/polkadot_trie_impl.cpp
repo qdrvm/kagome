@@ -366,7 +366,9 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::detachNode(
-      const NodePtr &parent, const KeyNibbles &prefix_nibbles, const OnDetachCallback &callback) {
+      const NodePtr &parent,
+      const KeyNibbles &prefix_nibbles,
+      const OnDetachCallback &callback) {
     if (parent == nullptr) {
       return nullptr;
     }
@@ -401,7 +403,8 @@ namespace kagome::storage::trie {
       if (child == nullptr) {
         return parent;
       }
-      OUTCOME_TRY(n, detachNode(child, prefix_nibbles.subspan(length + 1), callback));
+      OUTCOME_TRY(
+          n, detachNode(child, prefix_nibbles.subspan(length + 1), callback));
       auto to_detach = branch->children.at(prefix_nibbles[length]);
       branch->children.at(prefix_nibbles[length]) = n;
 
@@ -411,7 +414,8 @@ namespace kagome::storage::trie {
     return parent;
   }
 
-  void PolkadotTrieImpl::notify_is_detached(const PolkadotTrie::NodePtr &node, const OnDetachCallback &callback) {
+  void PolkadotTrieImpl::notify_is_detached(const PolkadotTrie::NodePtr &node,
+                                            const OnDetachCallback &callback) {
     if (node) {
       if (node->isBranch()) {
         auto branch = std::dynamic_pointer_cast<BranchNode>(node);
