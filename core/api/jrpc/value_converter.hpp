@@ -88,7 +88,8 @@ namespace kagome::api {
   }
 
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &v) {
-    return v.data.toHex();
+    static const std::string prefix("0x");
+    return prefix + v.data.toHex();
   }
 
   template <class T>
