@@ -138,11 +138,10 @@ TEST_F(ChainApiTest, GetBlockHashArray) {
  */
 TEST_F(ChainApiTest, GetHeader) {
   BlockId a = hash1;
-  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(header));
+  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
 
-  EXPECT_OUTCOME_TRUE(r, api->
-                         (std::string("0x") + hash1.toHex()));
-  ASSERT_EQ(r, header);
+  EXPECT_OUTCOME_TRUE(r, api->getHeader(std::string("0x") + hash1.toHex()));
+  ASSERT_EQ(r, *data.header);
 }
 
 /**
@@ -155,10 +154,10 @@ TEST_F(ChainApiTest, GetHeaderLats) {
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo(42, hash1)));
 
-  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(header));
+  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
 
   EXPECT_OUTCOME_TRUE(r, api->getHeader());
-  ASSERT_EQ(r, header);
+  ASSERT_EQ(r, *data.header);
 }
 
 /**
@@ -168,27 +167,26 @@ TEST_F(ChainApiTest, GetHeaderLats) {
  */
 TEST_F(ChainApiTest, GetBlock) {
   BlockId a = hash1;
-  EXPECT_CALL(*header_repo, getBlock(a)).WillOnce(Return(header));
+  EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
 
-  EXPECT_OUTCOME_TRUE(r, api->
-      (std::string("0x") + hash1.toHex()));
-  ASSERT_EQ(r, header);
+  EXPECT_OUTCOME_TRUE(r, api->getBlock(std::string("0x") + hash1.toHex()));
+  ASSERT_EQ(r, data);
 }
 
 /**
  * @given chain api
- * @when get a block header
- * @then last block header will be returned
+ * @when get a block data
+ * @then last block data will be returned
  */
-TEST_F(ChainApiTest, GetHeaderLats) {
+TEST_F(ChainApiTest, GetLastBlock) {
   BlockId a = hash1;
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo(42, hash1)));
 
-  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(header));
+  EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
 
-  EXPECT_OUTCOME_TRUE(r, api->getHeader());
-  ASSERT_EQ(r, header);
+  EXPECT_OUTCOME_TRUE(r, api->getBlock());
+  ASSERT_EQ(r, data);
 }
 
 /**
