@@ -29,7 +29,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
 }
 
 namespace {
-  template <class T>
+  template <class T,
+            typename = std::enable_if<std::is_integral_v<T> and sizeof(T) == 1>>
   kagome::crypto::KeyTypeId keyTypeFromBytes(gsl::span<const T> bytes) {
     BOOST_ASSERT_MSG(bytes.size() == 4, "Wrong span size");
 
@@ -147,9 +148,6 @@ namespace kagome::crypto {
     }
 
     std::ifstream file;
-    auto close_file = gsl::finally([&file] {
-      if (file.is_open()) file.close();
-    });
 
     file.open(file_path.string(), std::ios::in);
     if (!file.is_open()) {
@@ -158,9 +156,7 @@ namespace kagome::crypto {
 
     std::string content;
     file >> content;
-    logger_->trace("Loaded seed {} from {}",
-                   content,
-                   file_path.native());
+    logger_->trace("Loaded seed {} from {}", content, file_path.native());
     return content;
   }
 

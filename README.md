@@ -74,9 +74,9 @@ docker run -it --rm soramitsu/kagome:0.0.1 kagome_full_syncing
 ---
 **Note**
 
-At the moment launch from the existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
+At the moment launch from the existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
 ```
-rm -rf ldb
+rm -rf db
 ```
 ---
 
@@ -102,9 +102,9 @@ If transaction was successfully applied we should see the following output:
 ---
 **Note**
 
-Same note as for full syncing node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
+Same note as for full syncing node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
 ```
-rm -rf ldb_syncing
+rm -rf db
 ```
 ---
 
@@ -112,7 +112,7 @@ To launch kagome syncing node execute:
 ```
 cd node/
 PATH=$PATH:../build/node/kagome_full_syncing/
-kagome_full_syncing --genesis config/polkadot-v06.json -l ldb_syncing -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
+kagome_full_syncing --genesis config/polkadot-v06.json -d syncing_base -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.
@@ -125,9 +125,9 @@ ___
 
 ### Configuration Details
 * To execute kagome node you need to provide it with genesis config, keys and leveldb files
-* Example genesis config file can be found in `node/config/polkadot-v06.json`
-* Example keys file can be found in `node/config/keystore.json`
-* To create leveldb storage file just provide any path into `kagome_validating` or `kagome_full_syncing` executable.
+* Example genesis config file can be found in `examples/first_kagome_chain/localchain.json`
+* Example base path dir can be found in `examples/first_kagome_chain/base_path`
+* To create leveldb storage file just provide any base path into `kagome_full_syncing` executable (mind that `kagome_validating` requires keys to start).
 
 
 ### Build Kagome

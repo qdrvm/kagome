@@ -147,10 +147,7 @@ namespace kagome::crypto {
 
   boost::optional<Sr25519Keypair> CryptoStoreImpl::getBabeKeypair() const {
     auto keys = getSr25519PublicKeys(KEY_TYPE_BABE);
-    if (not keys) {
-      return boost::none;
-    }
-    if (keys.value().empty()) {
+    if (not keys or keys.value().empty()) {
       return boost::none;
     }
     auto kp = findSr25519Keypair(KEY_TYPE_BABE, keys.value().at(0));

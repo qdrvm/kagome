@@ -226,8 +226,7 @@ namespace kagome::injector {
 
   // jrpc api listener (over Websockets) getter
   template <typename Injector>
-  sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
-      const Injector &injector) {
+  sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<api::WsListenerImpl>>(boost::none);
     if (initialized) {
@@ -292,8 +291,9 @@ namespace kagome::injector {
 
             consensus::grandpa::VoterSet voters{0};
             for (const auto &weighted_authority : weighted_authorities) {
-              voters.insert(primitives::GrandpaSessionKey {weighted_authority.id.id},
-                            weighted_authority.weight);
+              voters.insert(
+                  primitives::GrandpaSessionKey{weighted_authority.id.id},
+                  weighted_authority.weight);
               spdlog::debug("Added to grandpa authorities: {}, weight: {}",
                             weighted_authority.id.id.toHex(),
                             weighted_authority.weight);
@@ -505,7 +505,8 @@ namespace kagome::injector {
 
   // configuration storage getter
   template <typename Injector>
-  std::shared_ptr<application::ChainSpec> get_genesis_config(const Injector &injector) {
+  std::shared_ptr<application::ChainSpec> get_genesis_config(
+      const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<application::ChainSpec>>(boost::none);
     if (initialized) {
@@ -513,7 +514,7 @@ namespace kagome::injector {
     }
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto const& genesis_path = config.genesis_path();
+    auto const &genesis_path = config.genesis_path();
 
     auto genesis_config_res =
         application::ChainSpecImpl::create(genesis_path.native());
@@ -612,11 +613,12 @@ namespace kagome::injector {
     if (not key_file_storage_res) {
       common::raise(key_file_storage_res.error());
     }
-    auto crypto_store =
-        std::make_shared<crypto::CryptoStoreImpl>(std::make_shared<crypto::Ed25519Suite>(std::move(ed25519_provider)),
-                                                  std::make_shared<crypto::Sr25519Suite>(std::move(sr25519_provider)),
-                                                  std::move(bip39_provider),
-                                                  std::shared_ptr<crypto::KeyFileStorage>(std::move(key_file_storage_res.value())));
+    auto crypto_store = std::make_shared<crypto::CryptoStoreImpl>(
+        std::make_shared<crypto::Ed25519Suite>(std::move(ed25519_provider)),
+        std::make_shared<crypto::Sr25519Suite>(std::move(sr25519_provider)),
+        std::move(bip39_provider),
+        std::shared_ptr<crypto::KeyFileStorage>(
+            std::move(key_file_storage_res.value())));
 
     initialized = crypto_store;
 
@@ -722,7 +724,8 @@ namespace kagome::injector {
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
-        di::bind<crypto::CryptoStore>.template to([](auto const& injector) { return get_crypto_store(injector); }),
+        di::bind<crypto::CryptoStore>.template to(
+            [](auto const &injector) { return get_crypto_store(injector); }),
         di::bind<extensions::ExtensionFactory>.template to(
             [](auto const &injector) {
               return get_extension_factory(injector);
@@ -783,8 +786,7 @@ namespace kagome::injector {
               injector.template create<sptr<network::Gossiper>>(),
               *injector.template create<sptr<network::PeerList>>(),
               injector.template create<network::OwnPeerInfo &>(),
-              injector
-                  .template create<sptr<kagome::application::ChainSpec>>(),
+              injector.template create<sptr<kagome::application::ChainSpec>>(),
               injector.template create<sptr<blockchain::BlockStorage>>(),
               injector.template create<sptr<libp2p::protocol::Identify>>(),
               injector.template create<sptr<libp2p::protocol::Ping>>());

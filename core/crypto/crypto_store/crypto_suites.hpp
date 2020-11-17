@@ -32,6 +32,7 @@ namespace kagome::crypto {
      * is a private key)
      */
     virtual Keypair generateKeypair(const Seed &seed) const noexcept = 0;
+
     /**
      * Generate a random keypair (randomness source is determined by an
      * underlying crypto provider)

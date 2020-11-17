@@ -29,6 +29,11 @@ namespace kagome::crypto {
     KEY_NOT_FOUND,
   };
 
+  /// TODO(Harrm) Add policies to emit a warning when found a keypair
+  /// with incompatible type and algorithm (e. g. ed25519 BABE keypair,
+  /// whereas BABE has to be sr25519 only) or when trying to generate more
+  /// keypair than there should be (e. g. more than one libp2p keypair is a
+  /// suspicious behaviour)
   class CryptoStoreImpl : public CryptoStore {
    public:
     CryptoStoreImpl(std::shared_ptr<Ed25519Suite> ed_suite,
@@ -85,9 +90,13 @@ namespace kagome::crypto {
       res.reserve(keys.size());
       for (auto &key : keys) {
         OUTCOME_TRY(pk, suite.toPublicKey(key));
-        if (cached_keys.find(pk) != cached_keys.end()) {
-          cached_keys.erase(pk);
+        auto erased = cached_keys.erase(pk);
+        // if we erased pk from cache, it means it was there and thus was a valid
+        // cached key, which we can collect to our result
+        if (erased == 1) {
           res.emplace_back(std::move(pk));
+
+        // otherwise, pk was not found in cache and has to be loaded and checked
         } else {
           // need to check if the read key's algorithm belongs to the given
           // CryptoSuite
@@ -99,9 +108,6 @@ namespace kagome::crypto {
             logger_->error("Error reading key seed from key file storage");
             continue;
           }
-          /// TODO(Harrm) Add policies to emit a warning when found a keypair
-          /// with incompatible type and algorithm (e. g. ed25519 BABE keypair,
-          /// whereas BABE has to be sr25519 only)
           auto seed_res = suite.toSeed(seed_bytes.value());
           if (not seed_res) {
             // cannot create a seed from file content; suppose it belongs to a

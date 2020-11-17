@@ -19,8 +19,7 @@ namespace kagome::application {
   class ValidatingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
     using Grandpa = consensus::grandpa::Grandpa;
-    using InjectorType =
-        decltype(injector::makeValidatingNodeInjector(
+    using InjectorType = decltype(injector::makeValidatingNodeInjector(
         std::declval<const AppConfiguration &>()));
 
     template <class T>
