@@ -14,10 +14,14 @@ namespace kagome::api {
 
   ChainApiImpl::ChainApiImpl(
       std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
-      std::shared_ptr<blockchain::BlockTree> block_tree)
-      : block_repo_{std::move(block_repo)}, block_tree_{std::move(block_tree)} {
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<blockchain::BlockStorage> block_storage)
+      : block_repo_{std::move(block_repo)},
+        block_tree_{std::move(block_tree)},
+        block_storage_{std::move(block_storage)} {
     BOOST_ASSERT_MSG(block_repo_ != nullptr, "block repo parameter is nullptr");
     BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree parameter is nullptr");
+    BOOST_ASSERT(block_storage_);
   }
 
   outcome::result<BlockHash> ChainApiImpl::getBlockHash() const {

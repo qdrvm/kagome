@@ -10,8 +10,9 @@
 #include <vector>
 
 #include "common/blob.hpp"
-#include "common/visitor.hpp"
 #include "common/hexutil.hpp"
+#include "common/visitor.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/extrinsic.hpp"
@@ -27,6 +28,8 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const uint64_t &);
   inline jsonrpc::Value makeValue(const primitives::Api &);
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
+  inline jsonrpc::Value makeValue(const primitives::BlockData &);
+  inline jsonrpc::Value makeValue(const primitives::BlockHeader &);
 
   inline jsonrpc::Value makeValue(const std::nullptr_t &) {
     return jsonrpc::Value();
@@ -85,7 +88,8 @@ namespace kagome::api {
   }
 
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &v) {
-    return v.data.toHex();
+    static const std::string prefix("0x");
+    return prefix + v.data.toHex();
   }
 
   template <class T>
@@ -96,6 +100,13 @@ namespace kagome::api {
       value.push_back(std::move(makeValue(item)));
     }
     return value;
+  }
+
+  template <class T>
+  inline jsonrpc::Value makeValue(const boost::optional<T> &val) {
+    if (!val) return jsonrpc::Value{};
+
+    return makeValue(*val);
   }
 
   inline jsonrpc::Value makeValue(const primitives::Api &val) {
@@ -150,7 +161,8 @@ namespace kagome::api {
     data["parentHash"] = makeValue(common::hex_lower_0x(val.parent_hash));
     data["number"] = makeValue(result);
     data["stateRoot"] = makeValue(common::hex_lower_0x(val.state_root));
-    data["extrinsicsRoot"] = makeValue(common::hex_lower_0x(val.extrinsics_root));
+    data["extrinsicsRoot"] =
+        makeValue(common::hex_lower_0x(val.extrinsics_root));
 
     jArray logs;
     logs.reserve(val.digest.size());
@@ -162,6 +174,20 @@ namespace kagome::api {
     digest["logs"] = std::move(logs);
 
     data["digest"] = std::move(digest);
+    return std::move(data);
+  }
+
+  inline jsonrpc::Value makeValue(const primitives::BlockData &val) {
+    using jStruct = jsonrpc::Value::Struct;
+    using jArray = jsonrpc::Value::Array;
+
+    jStruct block;
+    block["extrinsics"] = makeValue(val.body);
+    block["header"] = makeValue(val.header);
+
+    jStruct data;
+    data["block"] = std::move(block);
+    data["justification"] = makeValue(val.justification->data);
     return std::move(data);
   }
 
