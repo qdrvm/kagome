@@ -66,6 +66,9 @@ namespace kagome::network {
     void handleTransactionsProtocol(
         std::shared_ptr<Stream> stream) const override;
 
+    void handleBlockAnnouncesProtocol(
+        std::shared_ptr<Stream> stream) const override;
+
     void handleSupProtocol(std::shared_ptr<Stream> stream) const override;
 
    private:
@@ -99,12 +102,39 @@ namespace kagome::network {
       });
     }
 
-    /**
-     * Process a received Propagate Transactions message
-     */
-    bool processPropagateTransactionsMessage(
-        const libp2p::peer::PeerId &peer_id,
-        const PropagatedTransactions &msg) const;
+    template <typename T, typename H, typename F>
+    void readAsyncMsgWithHandshake(std::shared_ptr<Stream> stream,
+                                   H &&handshake,
+                                   F &&f) const {
+      auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+      read_writer->read<std::decay_t<H>>([stream,
+                                          handshake{std::move(handshake)},
+                                          read_writer,
+                                          wself{weak_from_this()},
+                                          f{std::forward<F>(f)}](
+                                             auto &&read_res) mutable {
+        if (!read_res) {
+          if (auto self = wself.lock())
+            self->log_->error("Error while reading handshake: {}",
+                              read_res.error().message());
+          return stream->reset();
+        }
+        read_writer->write(
+            handshake,
+            [stream, wself, f{std::forward<F>(f)}](auto &&write_res) mutable {
+              auto self = wself.lock();
+              if (!self) return;
+
+              if (!write_res) {
+                self->log_->error("Error while reading handshake: {}",
+                                  write_res.error().message());
+                return stream->reset();
+              }
+              self->readAsyncMsg<std::decay_t<T>>(std::move(stream),
+                                                  std::forward<F>(f));
+            });
+      });
+    }
 
     /**
      * Process a received gossip message
@@ -122,9 +152,11 @@ namespace kagome::network {
     common::Logger log_;
     std::shared_ptr<kagome::application::ConfigurationStorage> config_;
     libp2p::peer::Protocol transactions_protocol_;
+    libp2p::peer::Protocol block_announces_protocol_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::Ping> ping_proto_;
+    libp2p::event::Handle new_connection_handler_;
   };
 }  // namespace kagome::network
 

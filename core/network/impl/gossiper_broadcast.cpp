@@ -22,7 +22,9 @@ namespace kagome::network {
         stream_engine_{std::move(stream_engine)},
         config_{std::move(config)},
         transactions_protocol_{fmt::format(
-            kPropagateTransactionsProtocol.data(), config_->protocolId())} {}
+            kPropagateTransactionsProtocol.data(), config_->protocolId())},
+        block_announces_protocol_{fmt::format(kBlockAnnouncesProtocol.data(),
+                                              config_->protocolId())} {}
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
@@ -57,12 +59,8 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
-    logger_->debug("Gossip block announce: block number {}",
-                   announce.header.number);
-    GossipMessage message;
-    message.type = GossipMessage::Type::BLOCK_ANNOUNCE;
-    message.data.put(scale::encode(announce).value());
-    broadcast(kGossipProtocol, std::move(message));
+    logger_->debug("Block announce: block number {}", announce.header.number);
+    broadcast(block_announces_protocol_, announce, NoData{});
   }
 
   void GossiperBroadcast::vote(

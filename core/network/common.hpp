@@ -17,6 +17,8 @@ namespace kagome::network {
   const libp2p::peer::Protocol kSyncProtocol = "/{}/sync/2";
   const libp2p::peer::Protocol kPropagateTransactionsProtocol =
       "/{}/transactions/1";
+  const libp2p::peer::Protocol kBlockAnnouncesProtocol =
+      "/{}/block-announces/1";
   const libp2p::peer::Protocol kGossipProtocol = "/polkadot-gossip/1.0.0";
   const libp2p::peer::Protocol kSupProtocol =
       "/substrate/sup/" + std::to_string(CURRENT_VERSION);
