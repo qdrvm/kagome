@@ -23,9 +23,17 @@ namespace kagome::storage::trie {
     using BranchPtr = std::shared_ptr<BranchNode>;
 
     /**
+     * This callback is called when a node is detached from a trie. It is called
+     * for each leaf from the detached node subtree
+     */
+    using OnDetachCallback = std::function<void(
+        const common::Buffer &key, boost::optional<common::Buffer> &&value)>;
+
+    /**
      * Remove all trie entries which key begins with the supplied prefix
      */
-    virtual outcome::result<void> clearPrefix(const common::Buffer &prefix) = 0;
+    virtual outcome::result<void> clearPrefix(
+        const common::Buffer &prefix, const OnDetachCallback &callback) = 0;
 
     /**
      * @return the root node of the trie

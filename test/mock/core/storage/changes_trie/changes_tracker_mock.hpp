@@ -25,6 +25,8 @@ namespace kagome::storage::changes_trie {
         outcome::result<void>(primitives::BlockHash new_parent_hash,
                               primitives::BlockNumber new_parent_number));
 
+    MOCK_METHOD0(onCommit, void());
+    MOCK_METHOD1(onClearPrefix, void(const common::Buffer &));
     MOCK_METHOD3(onPut,
                  outcome::result<void>(const common::Buffer &key,
                                        const common::Buffer &value,

@@ -24,6 +24,8 @@ namespace kagome::blockchain {
                        outcome::result<primitives::Justification>(
                            const primitives::BlockId &));
 
+    MOCK_CONST_METHOD0(runtimeVersion, boost::optional<primitives::Version>());
+
     MOCK_METHOD1(addBlockHeader,
                  outcome::result<void>(const primitives::BlockHeader &));
 

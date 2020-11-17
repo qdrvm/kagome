@@ -72,7 +72,7 @@ namespace kagome::storage::trie {
                      root_hash_.toHex());
       return trie_res.error();
     }
-    return std::make_unique<PersistentTrieBatchImpl>(
+    return PersistentTrieBatchImpl::create(
         codec_,
         serializer_,
         changes_,
@@ -101,7 +101,7 @@ namespace kagome::storage::trie {
                      root.toHex());
       return trie_res.error();
     }
-    return std::make_unique<PersistentTrieBatchImpl>(
+    return PersistentTrieBatchImpl::create(
         codec_,
         serializer_,
         changes_,

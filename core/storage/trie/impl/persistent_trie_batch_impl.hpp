@@ -6,6 +6,9 @@
 #ifndef KAGOME_STORAGE_TRIE_IMPL_PERSISTENT_TRIE_BATCH
 #define KAGOME_STORAGE_TRIE_IMPL_PERSISTENT_TRIE_BATCH
 
+#include <memory>
+
+#include "primitives/event_types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
@@ -16,12 +19,15 @@ namespace kagome::storage::trie {
   class PersistentTrieBatchImpl : public PersistentTrieBatch {
    public:
     using RootChangedEventHandler = std::function<void(const common::Buffer &)>;
+    enum class Error {
+      NO_TRIE = 1,
+    };
 
-    PersistentTrieBatchImpl(
+    static std::unique_ptr<PersistentTrieBatchImpl> create(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-        std::unique_ptr<PolkadotTrie> trie,
+        std::shared_ptr<PolkadotTrie> trie,
         RootChangedEventHandler &&handler);
     ~PersistentTrieBatchImpl() override = default;
 
@@ -38,13 +44,25 @@ namespace kagome::storage::trie {
     outcome::result<void> remove(const Buffer &key) override;
 
    private:
+    PersistentTrieBatchImpl(
+        std::shared_ptr<Codec> codec,
+        std::shared_ptr<TrieSerializer> serializer,
+        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+        std::shared_ptr<PolkadotTrie> trie,
+        RootChangedEventHandler &&handler);
+
+    void init();
+
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
-    std::unique_ptr<PolkadotTrie> trie_;
+    std::shared_ptr<PolkadotTrie> trie_;
     RootChangedEventHandler root_changed_handler_;
   };
 
 }  // namespace kagome::storage::trie
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie,
+                          PersistentTrieBatchImpl::Error);
 
 #endif  // KAGOME_STORAGE_TRIE_IMPL_PERSISTENT_TRIE_BATCH

@@ -6,9 +6,13 @@
 #ifndef KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
 #define KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
 
+#include <boost/none_t.hpp>
+#include <boost/variant.hpp>
 #include <cstdint>
 #include <memory>
 
+#include "common/buffer.hpp"
+#include "primitives/block_id.hpp"
 #include "primitives/version.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
@@ -37,15 +41,6 @@ namespace kagome::subscription {
 }  // namespace kagome::subscription
 
 namespace kagome::subscriptions {
-  using EventsSubscribedSessionType = subscription::Subscriber<
-      primitives::SubscriptionEventType,
-      std::shared_ptr<api::Session>,
-      boost::variant<std::reference_wrapper<boost::none_t>,
-                     std::reference_wrapper<const primitives::BlockHeader>,
-                     std::reference_wrapper<primitives::Version>>>;
-  using EventsSubscribedSessionPtr =
-      std::shared_ptr<EventsSubscribedSessionType>;
-
   using EventsSubscriptionEngineType = subscription::SubscriptionEngine<
       primitives::SubscriptionEventType,
       std::shared_ptr<api::Session>,
@@ -54,6 +49,21 @@ namespace kagome::subscriptions {
                      std::reference_wrapper<primitives::Version>>>;
   using EventsSubscriptionEnginePtr =
       std::shared_ptr<EventsSubscriptionEngineType>;
+  using EventsSubscribedSessionType =
+      EventsSubscriptionEngineType::SubscriberType;
+  using EventsSubscribedSessionPtr =
+      std::shared_ptr<EventsSubscribedSessionType>;
+
+  using SubscriptionEngineType =
+      subscription::SubscriptionEngine<common::Buffer,
+                                       std::shared_ptr<api::Session>,
+                                       common::Buffer,
+                                       primitives::BlockHash>;
+  using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
+
+  using SubscribedSessionType = SubscriptionEngineType::SubscriberType;
+  using SubscribedSessionPtr = std::shared_ptr<SubscribedSessionType>;
+
 }  // namespace kagome::subscriptions
 
 #endif  // KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP

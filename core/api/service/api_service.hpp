@@ -8,19 +8,30 @@
 
 #include <functional>
 #include <mutex>
+#include <type_traits>
 #include <unordered_map>
 
 #include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/transport/listener.hpp"
 #include "api/transport/rpc_thread_pool.hpp"
 #include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
+#include "containers/objects_cache.hpp"
 #include "primitives/common.hpp"
 #include "primitives/event_types.hpp"
+#include "storage/trie/trie_storage.hpp"
 #include "subscription/subscriber.hpp"
 
 namespace kagome::api {
+  template <typename T>
+  using UCachedType = std::unique_ptr<T, void (*)(T *const)>;
+
+  KAGOME_DECLARE_CACHE(
+      api_service,
+      KAGOME_CACHE_UNIT(std::string),
+      KAGOME_CACHE_UNIT(std::vector<UCachedType<std::string>>));
 
   class JRpcProcessor;
 
@@ -45,8 +56,15 @@ namespace kagome::api {
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
 
     struct SessionExecutionContext {
+      using AdditionMessageType =
+          decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
+      using AdditionMessagesList = std::vector<AdditionMessageType>;
+      using CachedAdditionMessagesList = decltype(
+          KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
+
       SubscribedSessionPtr storage_subscription;
       subscriptions::EventsSubscribedSessionPtr events_subscription;
+      CachedAdditionMessagesList messages;
     };
 
    public:
@@ -66,7 +84,9 @@ namespace kagome::api {
         std::shared_ptr<JRpcServer> server,
         const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
         SubscriptionEnginePtr subscription_engine,
-        subscriptions::EventsSubscriptionEnginePtr events_engine);
+        subscriptions::EventsSubscriptionEnginePtr events_engine,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
     virtual ~ApiService() = default;
 
@@ -95,19 +115,49 @@ namespace kagome::api {
     outcome::result<void> unsubscribeRuntimeVersion(uint32_t subscription_id);
 
    private:
-    boost::optional<SessionExecutionContext> findSessionById(
-        Session::SessionId id);
+    jsonrpc::Value createStateStorageEvent(const common::Buffer &key,
+                                           const common::Buffer &value,
+                                           const primitives::BlockHash &block);
+
+    boost::optional<std::shared_ptr<SessionExecutionContext>> findSessionById(
+        Session::SessionId id) {
+      std::lock_guard guard(subscribed_sessions_cs_);
+      if (auto it = subscribed_sessions_.find(id);
+          subscribed_sessions_.end() != it)
+        return it->second;
+
+      return boost::none;
+    }
+
     void removeSessionById(Session::SessionId id);
-    SessionExecutionContext storeSessionWithId(
+    std::shared_ptr<SessionExecutionContext> storeSessionWithId(
         Session::SessionId id, const std::shared_ptr<Session> &session);
 
     template <typename Func>
     auto for_session(kagome::api::Session::SessionId id, Func &&f) {
-      if (auto session_context = findSessionById(id))
-        return std::forward<Func>(f)(*session_context);
+      if (auto session_context = findSessionById(id)) {
+        BOOST_ASSERT(*session_context);
+        return std::forward<Func>(f)(**session_context);
+      }
 
       throw jsonrpc::InternalErrorFault(
           "Internal error. No session was stored for subscription.");
+    }
+
+    template <typename T>
+    inline SessionExecutionContext::AdditionMessageType uploadFromCache(
+        T &&value) {
+      auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string);
+      obj->assign(std::forward<T>(value));
+      return obj;
+    }
+
+    inline SessionExecutionContext::CachedAdditionMessagesList
+    uploadMessagesListFromCache() {
+      auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(
+          api_service, SessionExecutionContext::AdditionMessagesList);
+      obj->clear();
+      return obj;
     }
 
    private:
@@ -115,9 +165,12 @@ namespace kagome::api {
     std::vector<sptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
     common::Logger logger_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
 
     std::mutex subscribed_sessions_cs_;
-    std::unordered_map<Session::SessionId, SessionExecutionContext>
+    std::unordered_map<Session::SessionId,
+                       std::shared_ptr<SessionExecutionContext>>
         subscribed_sessions_;
 
     struct {

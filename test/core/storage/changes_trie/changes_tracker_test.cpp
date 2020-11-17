@@ -60,7 +60,7 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       std::make_shared<StorageChangesTrackerImpl>(
           factory, codec, subscription_engine);
   EXPECT_OUTCOME_TRUE_1(changes_tracker->onBlockChange("aaa"_hash256, 42));
-  auto batch = std::make_shared<PersistentTrieBatchImpl>(
+  auto batch = PersistentTrieBatchImpl::create(
       codec,
       serializer,
       boost::make_optional(changes_tracker),

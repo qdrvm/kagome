@@ -92,11 +92,11 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::clearPrefix(const Buffer &prefix) {
-    for (auto &p : cache_) {
-      if (p.first.subbuffer(0, prefix.size()) == prefix) {
-        cache_[p.first] = boost::none;
-      }
-    }
+    for (auto it = cache_.lower_bound(prefix);
+         it != cache_.end() && it->first.subbuffer(0, prefix.size()) == prefix;
+         ++it)
+      it->second = boost::none;
+
     cleared_prefixes_.push_back(prefix);
     if (parent_.lock() != nullptr) {
       return outcome::success();
@@ -105,12 +105,11 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
-    if (auto p = parent_.lock(); p != nullptr) {
-      auto it = cache_.begin();
-      for (auto &prefix : cleared_prefixes_) {
+    if (auto p = parent_.lock()) {
+      for (const auto &prefix : cleared_prefixes_) {
         OUTCOME_TRY(p->clearPrefix(prefix));
       }
-      for (; it != cache_.end(); it++) {
+      for (auto it = cache_.begin(); it != cache_.end(); it++) {
         if (it->second.has_value()) {
           OUTCOME_TRY(p->put(it->first, it->second.value()));
         } else {
@@ -123,7 +122,7 @@ namespace kagome::storage::trie {
   }
 
   bool TopperTrieBatchImpl::wasClearedByPrefix(const Buffer &key) const {
-    for (auto prefix : cleared_prefixes_) {
+    for (const auto &prefix : cleared_prefixes_) {
       auto key_end = key.begin();
       std::advance(key_end, std::min(key.size(), prefix.size()) - 1);
       auto is_cleared = std::equal(key.begin(), key_end, prefix.begin());

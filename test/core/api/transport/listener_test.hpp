@@ -19,14 +19,20 @@
 #include "mock/core/api/transport/api_stub.hpp"
 #include "mock/core/api/transport/jrpc_processor_stub.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "primitives/event_types.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
-#include "primitives/event_types.hpp"
 
 using namespace kagome::api;
 using namespace kagome::common;
 using namespace kagome::subscription;
 using namespace kagome::primitives;
+using kagome::blockchain::BlockTree;
+using kagome::blockchain::BlockTreeMock;
+using kagome::storage::trie::TrieStorage;
+using kagome::storage::trie::TrieStorageMock;
 using kagome::subscriptions::EventsSubscriptionEnginePtr;
 using kagome::subscriptions::EventsSubscriptionEngineType;
 
@@ -98,7 +104,12 @@ struct ListenerTest : public ::testing::Test {
       SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
   std::shared_ptr<SubscriptionEngineType> subscription_engine =
       std::make_shared<SubscriptionEngineType>();
-  EventsSubscriptionEnginePtr events_engine = std::make_shared<EventsSubscriptionEngineType>();
+  EventsSubscriptionEnginePtr events_engine =
+      std::make_shared<EventsSubscriptionEngineType>();
+
+  std::shared_ptr<BlockTree> block_tree = std::make_shared<BlockTreeMock>();
+  std::shared_ptr<TrieStorage> trie_storage =
+      std::make_shared<TrieStorageMock>();
 
   sptr<ApiService> service = std::make_shared<ApiService>(
       app_state_manager,
@@ -107,7 +118,9 @@ struct ListenerTest : public ::testing::Test {
       server,
       processors,
       subscription_engine,
-      events_engine);
+      events_engine,
+      block_tree,
+      trie_storage);
 };
 
 #endif  // KAGOME_TEST_CORE_API_TRANSPORT_LISTENER_TEST_HPP

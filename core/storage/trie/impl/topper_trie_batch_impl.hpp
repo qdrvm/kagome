@@ -8,7 +8,12 @@
 
 #include "storage/trie/trie_batches.hpp"
 
+#include <deque>
+
+#include "primitives/block_id.hpp"
+#include "primitives/event_types.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "subscription/subscriber.hpp"
 
 namespace kagome::storage::trie {
 
@@ -35,10 +40,10 @@ namespace kagome::storage::trie {
     outcome::result<void> writeBack() override;
 
    private:
-    bool wasClearedByPrefix(const Buffer& key) const;
+    bool wasClearedByPrefix(const Buffer &key) const;
 
     std::map<Buffer, boost::optional<Buffer>> cache_;
-    std::list<Buffer> cleared_prefixes_;
+    std::deque<Buffer> cleared_prefixes_;
     std::weak_ptr<TrieBatch> parent_;
   };
 
