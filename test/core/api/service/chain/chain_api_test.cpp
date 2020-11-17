@@ -11,6 +11,7 @@
 #include "mock/core/api/service/chain/chain_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "primitives/block_header.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -21,6 +22,7 @@ using kagome::api::ChainApiMock;
 using kagome::api::chain::request::SubscribeFinalizedHeads;
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTreeMock;
+using kagome::blockchain::BlockStorageMock;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
@@ -33,7 +35,8 @@ struct ChainApiTest : public ::testing::Test {
   void SetUp() override {
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     block_tree = std::make_shared<BlockTreeMock>();
-    api = std::make_shared<ChainApiImpl>(header_repo, block_tree);
+    block_storage = std::make_shared<BlockStorageMock>();
+    api = std::make_shared<ChainApiImpl>(header_repo, block_tree, block_storage);
     hash1 =
         "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256;
     hash2 =
@@ -45,6 +48,7 @@ struct ChainApiTest : public ::testing::Test {
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo;
   std::shared_ptr<BlockTreeMock> block_tree;
   std::shared_ptr<ChainApi> api;
+  std::shared_ptr<BlockStorageMock> block_storage;
 
   BlockHash hash1;
   BlockHash hash2;
