@@ -97,8 +97,8 @@ class StateJrpcProcessorTest : public testing::Test {
         }));
     EXPECT_CALL(*server, registerHandler("state_getMetadata", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
-          call_contexts_.emplace(std::make_pair(
-              CallType::kCallType_GetMetadata, CallContext{.handler = f}));
+          call_contexts_.emplace(std::make_pair(CallType::kCallType_GetMetadata,
+                                                CallContext{.handler = f}));
         }));
     processor.registerHandlers();
   }
@@ -231,15 +231,14 @@ TEST_F(StateJrpcProcessorTest, ProcessSubscribeStorage) {
  * @then the request is successfully processed and the response is valid
  */
 TEST_F(StateJrpcProcessorTest, ProcessUnsubscribeStorage) {
-  std::vector<uint32_t> subscription_ids = {10};
-  EXPECT_CALL(*state_api, unsubscribeStorage(subscription_ids))
+  int32_t subscription_id = 10;
+  EXPECT_CALL(*state_api,
+              unsubscribeStorage(std::vector<uint32_t>{
+                  static_cast<uint32_t>(subscription_id)}))
       .WillOnce(testing::Return(true));
 
   registerHandlers();
 
-  jsonrpc::Value::Array data;
-  data.emplace_back(10);
-
-  jsonrpc::Request::Parameters params{data};
+  jsonrpc::Request::Parameters params{jsonrpc::Value(subscription_id)};
   execute(CallType::kCallType_StorageUnsubscribe, params);
 }

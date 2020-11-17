@@ -26,7 +26,7 @@ namespace kagome::api::state::request {
     UnsubscribeStorage &operator=(UnsubscribeStorage &&) = default;
 
     explicit UnsubscribeStorage(std::shared_ptr<StateApi> api)
-        : api_(std::move(api)) { };
+        : api_(std::move(api)){};
     ~UnsubscribeStorage() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);

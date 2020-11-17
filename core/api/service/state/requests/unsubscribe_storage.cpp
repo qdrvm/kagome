@@ -15,7 +15,8 @@ namespace kagome::api::state::request {
 
     auto &id = params[0];
     if (!id.IsInteger32()) {
-      throw jsonrpc::InvalidParametersFault( "Parameter 'params' must be an integer value of subscriber ID");
+      throw jsonrpc::InvalidParametersFault(
+          "Parameter 'params' must be an integer value of subscriber ID");
     }
 
     subscriber_id_.emplace_back(id.AsInteger32());
