@@ -13,23 +13,17 @@ namespace kagome::api::state::request {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
 
-    auto &ids = params[0];
-    if (!ids.IsArray()) {
+    auto &id = params[0];
+    if (!id.IsInteger32()) {
       throw jsonrpc::InvalidParametersFault(
-          "Parameter 'params' must be a UINT array of the subscription ids");
+          "Parameter 'params' must be an integer value of subscriber ID");
     }
 
-    subscriber_id_.reserve(ids.AsArray().size());
-    for (auto &id : ids.AsArray()) {
-      if (!id.IsInteger32())
-        throw jsonrpc::InvalidParametersFault( "Parameter 'params' must be an integer value of subscriber ID");
-
-      subscriber_id_.emplace_back(id.AsInteger32());
-    }
+    subscriber_id_.emplace_back(id.AsInteger32());
     return outcome::success();
   }
 
-  outcome::result<void> UnsubscribeStorage::execute() {
+  outcome::result<bool> UnsubscribeStorage::execute() {
     return api_->unsubscribeStorage(subscriber_id_);
   }
 

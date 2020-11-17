@@ -105,7 +105,7 @@ namespace kagome::api {
         "Internal error. Api service not initialized.");
   }
 
-  outcome::result<void> StateApiImpl::unsubscribeStorage(
+  outcome::result<bool> StateApiImpl::unsubscribeStorage(
       const std::vector<uint32_t> &subscription_id) {
     if (auto api_service = api_service_.lock())
       return api_service->unsubscribeSessionFromIds(subscription_id);
