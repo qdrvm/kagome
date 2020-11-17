@@ -13,6 +13,9 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "primitives/block_header.hpp"
+#include "primitives/block_data.hpp"
+#include "primitives/extrinsic.hpp"
+#include "primitives/block.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -26,9 +29,12 @@ using kagome::blockchain::BlockStorageMock;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
+using kagome::primitives::BlockData;
+using kagome::primitives::BlockBody;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
+using kagome::primitives::Extrinsic;
 using testing::Return;
 
 struct ChainApiTest : public ::testing::Test {
@@ -54,8 +60,17 @@ struct ChainApiTest : public ::testing::Test {
   BlockHash hash2;
   BlockHash hash3;
 
-  BlockHeader header{
-      .parent_hash = hash1, .state_root = hash2, .extrinsics_root = hash3};
+  BlockData data{
+      .hash = "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256,
+      .header = BlockHeader{.parent_hash = hash1,
+                                       .state_root = hash2,
+                                       .extrinsics_root = hash3},
+                 .body = BlockBody{
+                     Extrinsic{.data = Buffer::fromHex("0011eedd33").value()},
+                     Extrinsic{.data = Buffer::fromHex("55ff35").value()}},
+  .receipt{},
+  .message_queue{},
+  .justification{}};
 };
 
 /**
@@ -125,7 +140,38 @@ TEST_F(ChainApiTest, GetHeader) {
   BlockId a = hash1;
   EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(header));
 
-  EXPECT_OUTCOME_TRUE(r, api->getHeader(std::string("0x") + hash1.toHex()));
+  EXPECT_OUTCOME_TRUE(r, api->
+                         (std::string("0x") + hash1.toHex()));
+  ASSERT_EQ(r, header);
+}
+
+/**
+ * @given chain api
+ * @when get a block header
+ * @then last block header will be returned
+ */
+TEST_F(ChainApiTest, GetHeaderLats) {
+  BlockId a = hash1;
+  EXPECT_CALL(*block_tree, getLastFinalized())
+      .WillOnce(Return(BlockInfo(42, hash1)));
+
+  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(header));
+
+  EXPECT_OUTCOME_TRUE(r, api->getHeader());
+  ASSERT_EQ(r, header);
+}
+
+/**
+ * @given chain api
+ * @when get a block by hash
+ * @then the correct block data will return
+ */
+TEST_F(ChainApiTest, GetBlock) {
+  BlockId a = hash1;
+  EXPECT_CALL(*header_repo, getBlock(a)).WillOnce(Return(header));
+
+  EXPECT_OUTCOME_TRUE(r, api->
+      (std::string("0x") + hash1.toHex()));
   ASSERT_EQ(r, header);
 }
 
