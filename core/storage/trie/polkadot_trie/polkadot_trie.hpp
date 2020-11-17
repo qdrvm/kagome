@@ -21,6 +21,11 @@ namespace kagome::storage::trie {
    public:
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
+
+    /**
+     * This callback is called when node detached from trie. It calls for an
+     * each leaf with key-value from detached node subtree
+     */
     using OnDetachCallback = std::function<void(
         const common::Buffer &key, boost::optional<common::Buffer> &&value)>;
 

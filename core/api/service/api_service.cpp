@@ -39,6 +39,17 @@ namespace {
 
 namespace {
   using namespace kagome::api;
+
+  /**
+   * Method to format json-data event into json-string representation.
+   * @tparam F is a functor type to be called with correct formatted string
+   * @param server pointer to jrpc-server
+   * @param logger pointer to logger
+   * @param set_id subscription set id
+   * @param name is an event name
+   * @param value event value to be formatted
+   * @param f is a functor, to process the result
+   */
   template <typename F>
   inline void forJsonData(std::shared_ptr<JRpcServer> server,
                           kagome::common::Logger logger,

@@ -5,6 +5,8 @@
 
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 
+#include <memory>
+
 #include "scale/scale.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
@@ -15,8 +17,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             e) {
   using E = kagome::storage::trie::PersistentTrieBatchImpl::Error;
   switch (e) {
-    case E::ASYNC_OPERATION_FAILED:
-      return "Async operation executed with error";
+    case E::NO_TRIE:
+      return "Trie was not created or already was destructed.";
   }
   return "Unknown error";
 }
@@ -29,6 +31,22 @@ namespace kagome::storage::trie {
   // sometimes there is no extrinsic index for a runtime call
   const common::Buffer NO_EXTRINSIC_INDEX_VALUE{
       scale::encode(0xffffffff).value()};
+
+  std::unique_ptr<PersistentTrieBatchImpl> PersistentTrieBatchImpl::create(
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<TrieSerializer> serializer,
+      boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+      std::shared_ptr<PolkadotTrie> trie,
+      RootChangedEventHandler &&handler) {
+    std::unique_ptr<PersistentTrieBatchImpl> ptr(
+        new PersistentTrieBatchImpl(std::move(codec),
+                                    std::move(serializer),
+                                    std::move(changes),
+                                    std::move(trie),
+                                    std::move(handler)));
+    ptr->init();
+    return ptr;
+  }
 
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
       std::shared_ptr<Codec> codec,
@@ -60,7 +78,7 @@ namespace kagome::storage::trie {
               }
               return res;
             }
-            return Error::ASYNC_OPERATION_FAILED;
+            return Error::NO_TRIE;
           });
     }
   }
@@ -97,7 +115,6 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::clearPrefix(
       const Buffer &prefix) {
-    // TODO(Harrm): notify changes tracker
     if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
     return trie_->clearPrefix(prefix, [&](const auto &key, auto &&) {
       if (changes_.has_value()) changes_.value()->onRemove(key);

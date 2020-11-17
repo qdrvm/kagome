@@ -22,6 +22,9 @@ namespace rapidjson {
 
 namespace kagome::api {
 
+  /**
+   * Custom JsonWriter to format events for pub-sub rpc.
+   */
   class JsonWriter final : public jsonrpc::Writer {
    public:
     JsonWriter() : myRequestData(new jsonrpc::JsonFormattedData()) {}
@@ -57,11 +60,9 @@ namespace kagome::api {
 
       myRequestData->Writer.Key(jsonrpc::json::PARAMS_NAME,
                                 sizeof(jsonrpc::json::PARAMS_NAME) - 1);
-      // myRequestData->Writer.StartObject();
     }
 
     void EndRequest() override {
-      // myRequestData->Writer.EndObject();
       myRequestData->Writer.EndObject();
     }
 

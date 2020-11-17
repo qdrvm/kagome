@@ -48,7 +48,7 @@ namespace kagome::storage::changes_trie {
     virtual void onCommit() = 0;
 
     /**
-     * Supposed to be called whed clear by prefix called.
+     * Supposed to be called when clear by prefix called.
      */
     virtual void onClearPrefix(const common::Buffer &prefix) = 0;
 
