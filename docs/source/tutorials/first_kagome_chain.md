@@ -30,7 +30,7 @@ For this tutorial we will spin up a simple network of a single peer with predefi
 
 To start with let's navigate into the node's folder:
 
-```bash
+```shell script
 cd examples/first_kagome_chain
 ```
 
@@ -41,7 +41,7 @@ cd examples/first_kagome_chain
 
 `localchain.json` contains Alice and Bob accounts. Both have 999998900.0 amount of crypto.
 Their keys can be generated using [subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey) tool:
-```bash
+```shell script
 subkey inspect //Alice
 # Secret Key URI `//Alice` is account:
 # Secret seed:      0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a
@@ -66,7 +66,7 @@ subkey inspect //Bob
 
 For this tutorial you can start a single node network as follows:
 
-```bash
+```shell script
 kagome_validating \
     --genesis localchain.json \
     --base_path base_path \
@@ -118,13 +118,13 @@ This folder contains two python scripts:
 
 Let's query current balance of Alice's account.
 
-```bash
+```shell script
 python3 balance.py localhost:9933 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 # Current free balance: 999998897.549684  
 ```
 
 Let's do the same for the Bob's account.
-```bash
+```shell script
 python3 balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 # Current free balance: 999998901.0  
 ```
@@ -136,7 +136,7 @@ We can generate extrinsic using the following command:
 This command will create extrinsic that transfers 1000 from Alice to Bob's account (Alice's account is defined by secret seed and Bob's account by account id). To define on which blockchain this extrinsic is going to be executed we provide subkey with genesis hash `b86008325a917cd553b122702d1346bf6f132db4ea17155a9eec733413dc9ecf` which corresponds to the hash of the genesis block of our chain.
 
 To send extrinsic use `transfer.py` script as follows:
-```bash
+```shell script
 python3 transfer.py localhost:9933 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty 1
 # Extrinsic submitted. Response:  {'jsonrpc': '2.0', 'id': 1, 'result': [39, 212, 157, 212, 66, 199, 109, 255, 180, 146, 47, 243, 118, 221, 233, 172, 35, 201, 157, 96, 248, 24, 22, 14, 230, 108, 217, 211, 29, 216, 65, 255]} 
 ```
@@ -147,14 +147,14 @@ Now let's check that extrinsic was actually applied:
 
 Get the balance of Bob's account:
 
-```bash
+```shell script
 python3 balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 # Current free balance: 999998902.0  
 ```
 We can see that Bob's balance was increased by 1 as it was set on the subkey command
 
 Now let's check Alice's account:
-```bash
+```shell script
 python3 balance.py localhost:9933 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 Current free balance: 999998895.0993682  
 ```

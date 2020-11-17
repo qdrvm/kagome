@@ -4,7 +4,7 @@ In this tutorial we will learn how to start a blockchain network with a validato
 
 First go to tutorial's folder:
 
-```bash
+```shell script
 cd examples/network
 ```
 
@@ -14,11 +14,11 @@ First we execute validating node in the similar way we did it during previous tu
 
 To start with let's navigate into the node's folder:
 
-```bash
+```shell script
 kagome_validating \
     --genesis testchain.json \
-    --keystore testkeystore1.json \
-    -l test_ldb1 --p2p_port 11122 \
+    --base_path validating1 \
+    --p2p_port 11122 \
     --rpc_http_port 11133 \
     --rpc_ws_port 11144 \
     --single_finalizing_node \
@@ -29,10 +29,10 @@ kagome_validating \
 
 Now that validating node is up and running, second node can join the network by bootstrapping from the first node. Command will look very similar.
 
-```
-kagome_validating --genesis testchain.json \
-    --keystore testkeystore2.json \
-    -l test_ldb2 \
+```shell script
+kagome_validating \
+    --genesis testchain.json \
+    --base_path validating2 \
     --p2p_port 11222 \
     --rpc_http_port 11233 \
     --rpc_ws_port 11244
@@ -55,8 +55,8 @@ Syncing node cannot participate in either block production or block finalization
 
 To start syncing node `kagome_full_syncing` binary is used as follows:
 
-```
-kagome_full_syncing --genesis testchain.json -leveldb syncing_ldb1 --p2p_port 21122 --rpc_http_port 21133 --rpc_ws_port 21144
+```shell script
+kagome_full_syncing --genesis testchain.json --base_path syncing1 --p2p_port 21122 --rpc_http_port 21133 --rpc_ws_port 21144
 ```
 
 Note that trie root is the same with validating nodes. When syncing node receives block announcement it first synchronizes missing blocks and then listens to the new blocks and finalization. 
@@ -67,7 +67,7 @@ Like in previous tutorial we will send transfer from Alice to Bob to check that 
 
 We can send transaction on any of the node, as it will be propagated to the block producing nodes and stored in their transaction pools until transactions is included to the block:
 
-```bash
+```shell script
 # from kagome root directory
 cd examples/transfer
 python3 transfer.py localhost:9933 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty 2
