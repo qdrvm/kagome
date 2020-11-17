@@ -69,10 +69,7 @@ struct ChainApiTest : public ::testing::Test {
                             .extrinsics_root = hash3},
       .body =
           BlockBody{Extrinsic{.data = Buffer::fromHex("0011eedd33").value()},
-                    Extrinsic{.data = Buffer::fromHex("55ff35").value()}},
-      .receipt{},
-      .message_queue{},
-      .justification{}};
+                    Extrinsic{.data = Buffer::fromHex("55ff35").value()}}};
 };
 
 /**
