@@ -10,8 +10,8 @@
 
 #include "api/service/chain/chain_api.hpp"
 #include "blockchain/block_header_repository.hpp"
-#include "blockchain/block_tree.hpp"
 #include "blockchain/block_storage.hpp"
+#include "blockchain/block_tree.hpp"
 
 namespace kagome::api {
 
@@ -47,7 +47,8 @@ namespace kagome::api {
       return block_repo_->getBlockHeader(last.block_hash);
     }
 
-    outcome::result<primitives::BlockData> getBlock(std::string_view hash) override {
+    outcome::result<primitives::BlockData> getBlock(
+        std::string_view hash) override {
       OUTCOME_TRY(h, primitives::BlockHash::fromHexWithPrefix(hash));
       return block_storage_->getBlockData(h);
     }

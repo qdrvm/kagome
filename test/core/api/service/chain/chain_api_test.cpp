@@ -10,12 +10,12 @@
 #include "api/service/chain/requests/subscribe_finalized_heads.hpp"
 #include "mock/core/api/service/chain/chain_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
-#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
-#include "primitives/block_header.hpp"
-#include "primitives/block_data.hpp"
-#include "primitives/extrinsic.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "primitives/block.hpp"
+#include "primitives/block_data.hpp"
+#include "primitives/block_header.hpp"
+#include "primitives/extrinsic.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -24,13 +24,13 @@ using kagome::api::ChainApiImpl;
 using kagome::api::ChainApiMock;
 using kagome::api::chain::request::SubscribeFinalizedHeads;
 using kagome::blockchain::BlockHeaderRepositoryMock;
-using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::BlockStorageMock;
+using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
+using kagome::primitives::BlockBody;
+using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
-using kagome::primitives::BlockData;
-using kagome::primitives::BlockBody;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
@@ -42,7 +42,8 @@ struct ChainApiTest : public ::testing::Test {
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     block_tree = std::make_shared<BlockTreeMock>();
     block_storage = std::make_shared<BlockStorageMock>();
-    api = std::make_shared<ChainApiImpl>(header_repo, block_tree, block_storage);
+    api =
+        std::make_shared<ChainApiImpl>(header_repo, block_tree, block_storage);
     hash1 =
         "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256;
     hash2 =
@@ -61,16 +62,17 @@ struct ChainApiTest : public ::testing::Test {
   BlockHash hash3;
 
   BlockData data{
-      .hash = "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256,
+      .hash =
+          "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256,
       .header = BlockHeader{.parent_hash = hash1,
-                                       .state_root = hash2,
-                                       .extrinsics_root = hash3},
-                 .body = BlockBody{
-                     Extrinsic{.data = Buffer::fromHex("0011eedd33").value()},
-                     Extrinsic{.data = Buffer::fromHex("55ff35").value()}},
-  .receipt{},
-  .message_queue{},
-  .justification{}};
+                            .state_root = hash2,
+                            .extrinsics_root = hash3},
+      .body =
+          BlockBody{Extrinsic{.data = Buffer::fromHex("0011eedd33").value()},
+                    Extrinsic{.data = Buffer::fromHex("55ff35").value()}},
+      .receipt{},
+      .message_queue{},
+      .justification{}};
 };
 
 /**
@@ -196,7 +198,8 @@ TEST_F(ChainApiTest, GetLastBlock) {
  */
 TEST(StateApiTest, SubscribeStorage) {
   auto chain_api = std::make_shared<ChainApiMock>();
-  EXPECT_CALL(*chain_api, subscribeFinalizedHeads()).WillOnce(testing::Return(55));
+  EXPECT_CALL(*chain_api, subscribeFinalizedHeads())
+      .WillOnce(testing::Return(55));
 
   auto p = std::static_pointer_cast<ChainApi>(chain_api);
   auto sub = std::make_shared<SubscribeFinalizedHeads>(p);

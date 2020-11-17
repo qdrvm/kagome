@@ -10,10 +10,10 @@
 #include <vector>
 
 #include "common/blob.hpp"
-#include "common/visitor.hpp"
 #include "common/hexutil.hpp"
-#include "primitives/block_header.hpp"
+#include "common/visitor.hpp"
 #include "primitives/block_data.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
@@ -104,8 +104,7 @@ namespace kagome::api {
 
   template <class T>
   inline jsonrpc::Value makeValue(const boost::optional<T> &val) {
-    if (!val)
-      return jsonrpc::Value{};
+    if (!val) return jsonrpc::Value{};
 
     return makeValue(*val);
   }
@@ -162,7 +161,8 @@ namespace kagome::api {
     data["parentHash"] = makeValue(common::hex_lower_0x(val.parent_hash));
     data["number"] = makeValue(result);
     data["stateRoot"] = makeValue(common::hex_lower_0x(val.state_root));
-    data["extrinsicsRoot"] = makeValue(common::hex_lower_0x(val.extrinsics_root));
+    data["extrinsicsRoot"] =
+        makeValue(common::hex_lower_0x(val.extrinsics_root));
 
     jArray logs;
     logs.reserve(val.digest.size());

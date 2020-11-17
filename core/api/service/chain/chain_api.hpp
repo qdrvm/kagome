@@ -11,8 +11,8 @@
 #include "api/service/api_service.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
-#include "primitives/block_header.hpp"
 #include "primitives/block_data.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::api {
