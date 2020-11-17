@@ -49,10 +49,6 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
         di::bind<runtime::GrandpaApi>.template to<runtime::dummy::GrandpaApiDummy>()
             [boost::di::override],
-        di::bind<crypto::CryptoStore>.template to(
-            [](const auto &injector) {
-              return get_crypto_store(injector);
-            })[boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }

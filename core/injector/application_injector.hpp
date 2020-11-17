@@ -586,25 +586,15 @@ namespace kagome::injector {
   }
 
   template <class Injector>
-  sptr<crypto::CryptoStore> get_crypto_store(const Injector &injector) {
+  sptr<crypto::KeyFileStorage> get_key_file_storage(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<crypto::CryptoStore>>(boost::none);
+        boost::optional<sptr<crypto::KeyFileStorage>>(boost::none);
     if (initialized) {
       return *initialized;
     }
 
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-
-    auto ed25519_provider =
-        injector.template create<sptr<crypto::Ed25519Provider>>();
-    auto sr25519_provider =
-        injector.template create<sptr<crypto::Sr25519Provider>>();
-    auto secp256k1_provider =
-        injector.template create<sptr<crypto::Secp256k1Provider>>();
-    auto bip39_provider =
-        injector.template create<sptr<crypto::Bip39Provider>>();
-    auto random_generator = injector.template create<sptr<crypto::CSPRNG>>();
     auto genesis_config =
         injector.template create<sptr<application::ChainSpec>>();
 
@@ -613,14 +603,7 @@ namespace kagome::injector {
     if (not key_file_storage_res) {
       common::raise(key_file_storage_res.error());
     }
-    auto crypto_store = std::make_shared<crypto::CryptoStoreImpl>(
-        std::make_shared<crypto::Ed25519Suite>(std::move(ed25519_provider)),
-        std::make_shared<crypto::Sr25519Suite>(std::move(sr25519_provider)),
-        std::move(bip39_provider),
-        std::shared_ptr<crypto::KeyFileStorage>(
-            std::move(key_file_storage_res.value())));
-
-    initialized = crypto_store;
+    initialized = std::move(key_file_storage_res.value());
 
     return *initialized;
   }
@@ -724,8 +707,9 @@ namespace kagome::injector {
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
-        di::bind<crypto::CryptoStore>.template to(
-            [](auto const &injector) { return get_crypto_store(injector); }),
+        di::bind<crypto::KeyFileStorage>.template to(
+            [](auto const &injector) { return get_key_file_storage(injector); }),
+        di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
         di::bind<extensions::ExtensionFactory>.template to(
             [](auto const &injector) {
               return get_extension_factory(injector);
