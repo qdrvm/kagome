@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_CONSENSUS_BABE_IMPL_BLOCK_EXECUTOR_HPP
 #define KAGOME_CORE_CONSENSUS_BABE_IMPL_BLOCK_EXECUTOR_HPP
 
+#include <libp2p/peer/peer_id.hpp>
+
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
@@ -42,6 +44,7 @@ namespace kagome::consensus {
      * time
      */
     void processNextBlock(
+        const libp2p::peer::PeerId &peer_id,
         const primitives::BlockHeader &header,
         const std::function<void(const primitives::BlockHeader &)>
             &new_block_handler);
@@ -51,7 +54,7 @@ namespace kagome::consensus {
      * @param new_header header defining new block
      * @param next action after the sync is done
      */
-    void requestBlocks(const primitives::BlockHeader &new_header,
+    void requestBlocks(const libp2p::peer::PeerId &peer_id, const primitives::BlockHeader &new_header,
                        std::function<void()> &&next);
 
     /**
@@ -62,7 +65,7 @@ namespace kagome::consensus {
      */
     void requestBlocks(const primitives::BlockId &from,
                        const primitives::BlockHash &to,
-                       primitives::AuthorityIndex authority_index,
+                       const libp2p::peer::PeerId &peer_id,
                        std::function<void()> &&next);
 
    private:

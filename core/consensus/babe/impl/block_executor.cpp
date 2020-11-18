@@ -6,6 +6,7 @@
 #include "consensus/babe/impl/block_executor.hpp"
 
 #include <chrono>
+#include <libp2p/peer/peer_id.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -49,6 +50,7 @@ namespace kagome::consensus {
   }
 
   void BlockExecutor::processNextBlock(
+      const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHeader &header,
       const std::function<void(const primitives::BlockHeader &)>
           &new_block_handler) {
@@ -68,15 +70,15 @@ namespace kagome::consensus {
         // we should request blocks between last finalized one and received
         // block
         requestBlocks(
-            last_hash, block_hash, babe_header.authority_index, [] {});
+            last_hash, block_hash, peer_id, [] {});
       } else {
         requestBlocks(
-            header.parent_hash, block_hash, babe_header.authority_index, [] {});
+            header.parent_hash, block_hash, peer_id, [] {});
       }
     }
   }
 
-  void BlockExecutor::requestBlocks(const primitives::BlockHeader &new_header,
+  void BlockExecutor::requestBlocks(const libp2p::peer::PeerId &peer_id, const primitives::BlockHeader &new_header,
                                     std::function<void()> &&next) {
     const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
     auto new_block_hash =
@@ -85,18 +87,18 @@ namespace kagome::consensus {
     auto [_, babe_header] = getBabeDigests(new_header).value();
     return requestBlocks(last_hash,
                          new_block_hash,
-                         babe_header.authority_index,
+                         peer_id,
                          std::move(next));
   }
 
   void BlockExecutor::requestBlocks(const primitives::BlockId &from,
                                     const primitives::BlockHash &to,
-                                    primitives::AuthorityIndex authority_index,
+                                    const libp2p::peer::PeerId &peer_id,
                                     std::function<void()> &&next) {
     babe_synchronizer_->request(
         from,
         to,
-        authority_index,
+        10,//peer_id
         [self_wp{weak_from_this()},
          next(std::move(next))](const std::vector<primitives::Block> &blocks) {
           auto self = self_wp.lock();

@@ -217,7 +217,7 @@ namespace kagome::network {
           BOOST_ASSERT(self);
           self->log_->info("Received block announce: block number {}",
                            msg.header.number);
-          self->babe_observer_->onBlockAnnounce(msg);
+          self->babe_observer_->onBlockAnnounce(peer_id, msg);
           return true;
         });
   }

@@ -37,10 +37,9 @@ namespace kagome::consensus {
     // were added to immitate substrate's enum type for BabePreDigest where our
     // BabeBlockHeader is Primary type and missing weight. For now just set
     // weight to 1
-    uint8_t fake_type_index = 0;
-    uint32_t fake_weight = 1;
+    uint8_t fake_type_index = 1;
     return s << fake_type_index << bh.authority_index << bh.slot_number
-             << fake_weight << bh.vrf_output;
+             << bh.vrf_output;
   }
 
   /**
@@ -54,9 +53,10 @@ namespace kagome::consensus {
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
     uint8_t fake_type_index = 0;
-    uint32_t fake_weight = 0;
-    return s >> fake_type_index >> bh.authority_index >> bh.slot_number
-           >> fake_weight >> bh.vrf_output;
+    s >> fake_type_index >> bh.authority_index >> bh.slot_number;
+
+    if (fake_type_index == 1 || fake_type_index == 3) s >> bh.vrf_output;
+    return s;
   }
 }  // namespace kagome::consensus
 
