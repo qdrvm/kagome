@@ -37,7 +37,7 @@
     }                                                                      \
                                                                            \
     static outcome::result<class_name> fromHex(std::string_view hex) {     \
-      OUTCOME_TRY(blob, Blob<blob_size>::fromHex(hex));                      \
+      OUTCOME_TRY(blob, Blob<blob_size>::fromHex(hex));                    \
       return class_name{std::move(blob)};                                  \
     }                                                                      \
                                                                            \
