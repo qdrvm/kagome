@@ -33,6 +33,10 @@ namespace kagome::network {
         std::function<void(outcome::result<network::BlocksResponse>)> cb)
         override;
 
+    boost::optional<std::reference_wrapper<const libp2p::peer::PeerId>> peerId() const override {
+      return std::reference_wrapper<const libp2p::peer::PeerId>{peer_info_.id};
+    }
+
    private:
     libp2p::Host &host_;
     const libp2p::peer::PeerInfo peer_info_;

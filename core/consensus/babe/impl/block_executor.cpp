@@ -98,7 +98,7 @@ namespace kagome::consensus {
     babe_synchronizer_->request(
         from,
         to,
-        10,//peer_id
+        peer_id,
         [self_wp{weak_from_this()},
          next(std::move(next))](const std::vector<primitives::Block> &blocks) {
           auto self = self_wp.lock();

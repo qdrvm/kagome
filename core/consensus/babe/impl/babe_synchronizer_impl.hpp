@@ -28,7 +28,7 @@ namespace kagome::consensus {
 
     void request(const primitives::BlockId &from,
                  const primitives::BlockHash &to,
-                 primitives::AuthorityIndex authority_index,
+                 const libp2p::peer::PeerId &peer_id,
                  const BlocksHandler &block_list_handler) override;
 
    private:
@@ -47,7 +47,7 @@ namespace kagome::consensus {
      * @param requested_blocks_handler handler of received blocks
      */
     void pollClients(network::BlocksRequest request,
-                     primitives::AuthorityIndex authority_index,
+                     const libp2p::peer::PeerId &peer_id,
                      const BlocksHandler &requested_blocks_handler) const;
 
     std::shared_ptr<network::SyncClientsSet> sync_clients_;

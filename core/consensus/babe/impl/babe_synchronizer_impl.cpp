@@ -25,7 +25,7 @@ namespace kagome::consensus {
 
   void BabeSynchronizerImpl::request(const primitives::BlockId &from,
                                      const primitives::BlockHash &to,
-                                     primitives::AuthorityIndex authority_index,
+                                     const libp2p::peer::PeerId &peer_id,
                                      const BlocksHandler &block_list_handler) {
     std::string from_str = visit_in_place(
         from,
@@ -42,7 +42,7 @@ namespace kagome::consensus {
                                    network::Direction::DESCENDING,
                                    boost::none};
 
-    return pollClients(request, authority_index, block_list_handler);
+    return pollClients(request, peer_id, block_list_handler);
   }
 
   std::shared_ptr<network::SyncProtocolClient>
@@ -101,9 +101,20 @@ namespace kagome::consensus {
 
   void BabeSynchronizerImpl::pollClients(
       network::BlocksRequest request,
-      primitives::AuthorityIndex authority_index,
+      const libp2p::peer::PeerId &peer_id,
       const BlocksHandler &requested_blocks_handler) const {
-    auto next_client = sync_clients_->clients[authority_index];
+
+    std::shared_ptr<network::SyncProtocolClient> next_client;
+    for (auto &client : sync_clients_->clients) {
+      if (client->peerId() && (*client->peerId()).get() == peer_id) {
+        next_client = client;
+        break;
+      }
+    }
+    if (!next_client) {
+      logger_->error("Could not find client to make syncronization. Skip.");
+      return;
+    }
 
     next_client->requestBlocks(
         request,

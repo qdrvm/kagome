@@ -29,7 +29,7 @@ namespace kagome::network {
       if (t.max) msg.set_max_blocks(*t.max);
       if (t.to) msg.set_to_block(t.to->toString());
 
-      msg.set_direction(static_cast<::api::v1::Direction>(t.direction));
+      msg.set_direction(static_cast<::api::v1::Direction>(::api::v1::Direction::Ascending));
       kagome::visit_in_place(
           t.from,
           [&](const primitives::BlockHash &v) { msg.set_hash(v.toString()); },
