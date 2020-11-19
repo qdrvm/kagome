@@ -70,7 +70,7 @@ target_link_libraries(sync_protocol_observer
     )
 
 add_library(kademlia_value_storage
-    kademlia_value_storage.cpp
+    kademlia_storage_backend.cpp
     )
 target_link_libraries(kademlia_value_storage
     logger

@@ -72,7 +72,7 @@
 #include "network/impl/dummy_sync_protocol_client.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
-#include "network/impl/kademlia_value_storage.hpp"
+#include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/remote_sync_protocol_client.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
