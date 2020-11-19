@@ -6,7 +6,7 @@
 #ifndef KAGOME_API_SYSTEMAPI
 #define KAGOME_API_SYSTEMAPI
 
-#include "application/configuration_storage.hpp"
+#include "application/chain_spec.hpp"
 #include "consensus/babe/babe.hpp"
 #include "network/gossiper.hpp"
 
@@ -17,7 +17,7 @@ namespace kagome::api {
    public:
     virtual ~SystemApi() = default;
 
-    virtual std::shared_ptr<application::ConfigurationStorage> getConfig()
+    virtual std::shared_ptr<application::ChainSpec> getConfig()
         const = 0;
 
     virtual std::shared_ptr<consensus::Babe> getBabe() const = 0;

@@ -147,7 +147,7 @@ namespace kagome::consensus {
    */
   boost::optional<uint64_t> getAuthorityIndex(
       const primitives::AuthorityList &authorities,
-      const primitives::SessionKey &authority_key) {
+      const primitives::BabeSessionKey &authority_key) {
     auto it = std::find_if(authorities.begin(),
                            authorities.end(),
                            [&authority_key](const auto &authority) {

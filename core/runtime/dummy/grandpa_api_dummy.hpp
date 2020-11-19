@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_DUMMY_GRANDPAAPIDUMMY
 #define KAGOME_CORE_RUNTIME_DUMMY_GRANDPAAPIDUMMY
 
-#include "application/key_storage.hpp"
 #include "runtime/grandpa_api.hpp"
+#include "crypto/crypto_store.hpp"
 
 namespace kagome::runtime::dummy {
 
@@ -20,7 +20,7 @@ namespace kagome::runtime::dummy {
     ~GrandpaApiDummy() override = default;
 
     explicit GrandpaApiDummy(
-        std::shared_ptr<application::KeyStorage> key_storage);
+        std::shared_ptr<crypto::CryptoStore> crypto_store);
 
     outcome::result<boost::optional<ScheduledChange>> pending_change(
         const Digest &digest) override;
@@ -32,7 +32,7 @@ namespace kagome::runtime::dummy {
         const primitives::BlockId &block_id) override;
 
    private:
-    std::shared_ptr<application::KeyStorage> key_storage_;
+    std::shared_ptr<crypto::CryptoStore> crypto_store_;
   };
 }  // namespace kagome::runtime::dummy
 

@@ -6,16 +6,24 @@ target_link_libraries(config_reader_error
     outcome
     )
 
+add_library(application_util
+    impl/util.cpp
+    )
+target_link_libraries(application_util
+    Boost::filesystem
+    )
+
 add_library(validating_node_application
     impl/validating_node_application.cpp
     )
 target_link_libraries(validating_node_application
     validating_node_injector
     blob
+    application_util
     )
 
 add_library(app_config_impl
-    impl/app_config_impl.cpp
+    impl/app_configuration_impl.cpp
     )
 target_link_libraries(app_config_impl
     Boost::program_options
@@ -27,6 +35,7 @@ add_library(syncing_node_application
 target_link_libraries(syncing_node_application
     syncing_node_injector
     blob
+    application_util
     )
 
 add_library(block_producing_node_application
@@ -35,10 +44,11 @@ add_library(block_producing_node_application
 target_link_libraries(block_producing_node_application
     block_producing_node_injector
     blob
+    application_util
     )
 
 add_library(configuration_storage
-    impl/configuration_storage_impl.cpp
+    impl/chain_spec_impl.cpp
     )
 target_link_libraries(configuration_storage
     Boost::filesystem
@@ -47,18 +57,6 @@ target_link_libraries(configuration_storage
     buffer
     sr25519_types
     config_reader_error
-    )
-
-add_library(local_key_storage
-    impl/local_key_storage.cpp
-    )
-target_link_libraries(local_key_storage
-    primitives
-    config_reader_error
-    Boost::filesystem
-    sr25519_types
-    ed25519_types
-    p2p::p2p_crypto_key
     )
 
 add_library(app_state_manager

@@ -64,7 +64,7 @@ namespace kagome::authority {
     }
     auto save_res =
         storage_->put(SCHEDULER_TREE, common::Buffer(data_res.value()));
-    if (save_res.has_value()) {
+    if (!save_res.has_value()) {
       log_->critical("Can't store current state");
       return;
     }

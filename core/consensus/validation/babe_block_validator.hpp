@@ -81,7 +81,7 @@ namespace kagome::consensus {
     bool verifySignature(const primitives::BlockHeader &header,
                          const BabeBlockHeader &babe_header,
                          const Seal &seal,
-                         const primitives::SessionKey &public_key) const;
+                         const primitives::BabeSessionKey &public_key) const;
 
     /**
      * Verify that vrf value contained in babe_header is less than threshold and
@@ -93,7 +93,7 @@ namespace kagome::consensus {
      * @return true if vrf is valid, false otherwise
      */
     bool verifyVRF(const BabeBlockHeader &babe_header,
-                   const primitives::SessionKey &public_key,
+                   const primitives::BabeSessionKey &public_key,
                    const Threshold &threshold,
                    const Randomness &randomness) const;
 

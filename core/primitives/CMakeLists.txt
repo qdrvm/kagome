@@ -19,7 +19,7 @@ add_library(primitives
     transaction_validity.hpp
     transaction_validity.cpp
     version.hpp
-    )
+    session_key.hpp)
 target_link_libraries(primitives
     buffer
     scale

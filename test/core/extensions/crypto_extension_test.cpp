@@ -678,7 +678,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
 TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
   WasmSpan res = WasmResult(1, 2).combine();
 
-  auto key_type = kagome::crypto::key_types::kBabe;
+  auto key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
 
   EXPECT_CALL(*crypto_store_, getEd25519PublicKeys(key_type))
@@ -702,7 +702,7 @@ TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
   WasmSpan res = WasmResult(1, 2).combine();
 
   auto key_type_ptr = 42u;
-  auto key_type = kagome::crypto::key_types::kBabe;
+  auto key_type = kagome::crypto::KEY_TYPE_BABE;
 
   EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(key_type))
       .WillOnce(Return(sr_public_keys));
@@ -722,7 +722,7 @@ TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
  * @then we get a valid signature
  */
 TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
-  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
   auto msg = WasmResult(3, 4).combine();
@@ -753,7 +753,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
  * @then we get a valid serialized error
  */
 TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
-  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
   auto msg = WasmResult(3, 4).combine();
@@ -785,7 +785,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
  * @then we get a valid signature
  */
 TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
-  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
   auto msg = WasmResult(3, 4).combine();
@@ -820,7 +820,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
  * @then we get a valid serialized error
  */
 TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
-  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
   auto msg = WasmResult(3, 4).combine();
@@ -852,7 +852,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
  * @then a new ed25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
-  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
   auto seed_ptr = WasmResult(3, 4).combine();
@@ -875,7 +875,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
  * @then a new ed25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
-  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
   auto seed_ptr = WasmResult(3, 4).combine();
@@ -898,7 +898,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
  * @then a new sr25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
-  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
   auto seed_ptr = WasmResult(3, 4).combine();
@@ -921,7 +921,7 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
  * @then a new sr25519 keypair is successfully generated and stored
  */
 TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
-  kagome::runtime::WasmSize key_type = kagome::crypto::key_types::kBabe;
+  kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
   auto seed_ptr = WasmResult(3, 4).combine();

@@ -10,17 +10,14 @@
 #include <functional>
 
 #include "primitives/common.hpp"
+#include "primitives/session_key.hpp"
 
 namespace kagome::primitives {
+
   using AuthorityWeight = uint64_t;
 
-  /**
-   * Authority id
-   */
   struct AuthorityId {
-    // TODO(kamilsa): id types should be different for Babe and Grandpa
-    // Authority Ids
-    SessionKey id;
+    GenericSessionKey id;
 
     bool operator==(const AuthorityId &other) const {
       return id == other.id;

@@ -9,7 +9,8 @@
 #include <cstdint>
 
 #include <boost/operators.hpp>
-#include "primitives/session_key.hpp"
+
+#include "common/blob.hpp"
 
 namespace kagome::primitives {
   using BlocksRequestId = uint64_t;

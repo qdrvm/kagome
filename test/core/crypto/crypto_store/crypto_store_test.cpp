@@ -5,11 +5,12 @@
 
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 
+#include <gmock/gmock.h>
+
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
-#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
 #include "testutil/outcome.hpp"
@@ -28,18 +29,17 @@ using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519Provider;
 using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::Ed25519PublicKey;
+using kagome::crypto::Ed25519Suite;
 using kagome::crypto::KeyTypeId;
+using kagome::crypto::KnownKeyTypeId;
 using kagome::crypto::Pbkdf2Provider;
 using kagome::crypto::Pbkdf2ProviderImpl;
-using kagome::crypto::Secp256k1Provider;
-using kagome::crypto::Secp256k1ProviderImpl;
 using kagome::crypto::Sr25519Keypair;
 using kagome::crypto::Sr25519Provider;
 using kagome::crypto::Sr25519ProviderImpl;
 using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
-
-using namespace kagome::crypto::key_types;
+using kagome::crypto::Sr25519Suite;
 
 static CryptoStoreImpl::Path crypto_store_test_directory =
     boost::filesystem::temp_directory_path() / "crypto_store_test";
@@ -51,17 +51,16 @@ struct CryptoStoreTest : public test::BaseFS_Test {
     auto csprng = std::make_shared<BoostRandomGenerator>();
     auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(csprng);
     auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>(csprng);
-    auto secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     bip39_provider =
         std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
-    crypto_store =
-        std::make_shared<CryptoStoreImpl>(std::move(ed25519_provider),
-                                          std::move(sr25519_provider),
-                                          std::move(secp256k1_provider),
-                                          bip39_provider,
-                                          std::move(csprng));
+    crypto_store = std::make_shared<CryptoStoreImpl>(
+        std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
+        std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
+        bip39_provider,
+        kagome::crypto::KeyFileStorage::createAt(crypto_store_test_directory)
+            .value());
 
     mnemonic =
         "ozone drill grab fiber curtain grace pudding thank cruise elder eight "
@@ -72,7 +71,7 @@ struct CryptoStoreTest : public test::BaseFS_Test {
                         Blob<32>::fromHex("a4681403ba5b6a3f3bd0b0604ce439a78244"
                                           "c7d43b127ec35cd8325602dd47fd"));
     seed = s;
-    key_type = kBabe;
+    key_type = KnownKeyTypeId::KEY_TYPE_BABE;
 
     EXPECT_OUTCOME_TRUE(
         ed_publ,
@@ -94,10 +93,6 @@ struct CryptoStoreTest : public test::BaseFS_Test {
             "ec96cb0816b67b045baae21841952a61ecb0612a109293e10c5453b950659c0a8b"
             "35b6d6196f33169334e36a05d624d9996d07243f9f71e638e3bc29a5330ec9"));
     sr_pair = {sr_secr, sr_publ};
-
-    EXPECT_OUTCOME_TRUE_MSG_1(
-        crypto_store->initialize(crypto_store_test_directory),
-        "initialization failed");
   }
 
   bool isStoredOnDisk(KeyTypeId kt, const Blob<32> &public_key) {
@@ -148,10 +143,6 @@ TEST_F(CryptoStoreTest, generateEd25519KeypairMnemonicSuccess) {
  * @and generated key pair is stored in memory
  */
 TEST_F(CryptoStoreTest, generateSr25519KeypairMnemonicSuccess) {
-  EXPECT_OUTCOME_FALSE(
-      err, crypto_store->findSr25519Keypair(key_type, ed_pair.public_key));
-  ASSERT_EQ(err, CryptoStoreError::KEY_NOT_FOUND);
-
   EXPECT_OUTCOME_TRUE(pair,
                       crypto_store->generateSr25519Keypair(key_type, mnemonic));
   ASSERT_EQ(pair, sr_pair);
@@ -251,22 +242,29 @@ TEST_F(CryptoStoreTest, generateSr25519KeypairStoreSuccess) {
  * @then collection of all ed25519 public keys of provided type is returned
  */
 TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
-  EXPECT_OUTCOME_TRUE(pair1, crypto_store->generateEd25519KeypairOnDisk(kBabe));
-  EXPECT_OUTCOME_TRUE(pair2, crypto_store->generateEd25519KeypairOnDisk(kBabe));
+  EXPECT_OUTCOME_TRUE(pair1,
+                      crypto_store->generateEd25519KeypairOnDisk(
+                          KnownKeyTypeId::KEY_TYPE_BABE));
+  EXPECT_OUTCOME_TRUE(pair2,
+                      crypto_store->generateEd25519KeypairOnDisk(
+                          KnownKeyTypeId::KEY_TYPE_BABE));
   EXPECT_OUTCOME_SUCCESS(pair3,
-                         crypto_store->generateEd25519KeypairOnDisk(kLp2p));
+                         crypto_store->generateEd25519KeypairOnDisk(
+                             KnownKeyTypeId::KEY_TYPE_LP2P));
   EXPECT_OUTCOME_SUCCESS(pair4,
-                         crypto_store->generateSr25519KeypairOnDisk(kBabe));
+                         crypto_store->generateSr25519KeypairOnDisk(
+                             KnownKeyTypeId::KEY_TYPE_BABE));
   EXPECT_OUTCOME_SUCCESS(pair5,
-                         crypto_store->generateSr25519KeypairOnDisk(kAcco));
+                         crypto_store->generateSr25519KeypairOnDisk(
+                             KnownKeyTypeId::KEY_TYPE_ACCO));
 
   std::set<Ed25519PublicKey> ed_babe_keys_set = {pair1.public_key,
                                                  pair2.public_key};
   std::vector<Ed25519PublicKey> ed_babe_keys(ed_babe_keys_set.begin(),
                                              ed_babe_keys_set.end());
-
-  auto &&keys = crypto_store->getEd25519PublicKeys(kBabe);
-  ASSERT_EQ(ed_babe_keys, keys);
+  auto keys =
+      crypto_store->getEd25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE).value();
+  ASSERT_THAT(keys, testing::UnorderedElementsAreArray(ed_babe_keys));
 }
 
 /**
@@ -275,20 +273,86 @@ TEST_F(CryptoStoreTest, getEd25519PublicKeysSuccess) {
  * @then collection of all sr25519 public keys of provided type is returned
  */
 TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
-  EXPECT_OUTCOME_TRUE(pair1, crypto_store->generateSr25519KeypairOnDisk(kBabe));
-  EXPECT_OUTCOME_TRUE(pair2, crypto_store->generateSr25519KeypairOnDisk(kBabe));
+  EXPECT_OUTCOME_TRUE(pair1,
+                      crypto_store->generateSr25519KeypairOnDisk(
+                          KnownKeyTypeId::KEY_TYPE_BABE));
+  EXPECT_OUTCOME_TRUE(pair2,
+                      crypto_store->generateSr25519KeypairOnDisk(
+                          KnownKeyTypeId::KEY_TYPE_BABE));
   EXPECT_OUTCOME_SUCCESS(pair3,
-                         crypto_store->generateSr25519KeypairOnDisk(kLp2p));
+                         crypto_store->generateSr25519KeypairOnDisk(
+                             KnownKeyTypeId::KEY_TYPE_LP2P));
   EXPECT_OUTCOME_SUCCESS(pair4,
-                         crypto_store->generateEd25519KeypairOnDisk(kBabe));
+                         crypto_store->generateEd25519KeypairOnDisk(
+                             KnownKeyTypeId::KEY_TYPE_BABE));
   EXPECT_OUTCOME_SUCCESS(pair5,
-                         crypto_store->generateEd25519KeypairOnDisk(kAcco));
+                         crypto_store->generateEd25519KeypairOnDisk(
+                             KnownKeyTypeId::KEY_TYPE_ACCO));
 
   std::set<Sr25519PublicKey> sr_babe_keys_set = {pair1.public_key,
                                                  pair2.public_key};
   std::vector<Sr25519PublicKey> sr_babe_keys(sr_babe_keys_set.begin(),
                                              sr_babe_keys_set.end());
 
-  auto &&keys = crypto_store->getSr25519PublicKeys(kBabe);
-  ASSERT_EQ(sr_babe_keys, keys);
+  auto keys =
+      crypto_store->getSr25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE).value();
+  ASSERT_THAT(keys, testing::UnorderedElementsAreArray(sr_babe_keys));
+}
+
+/**
+ * @given an empty crypto storage
+ * @when having inserted keys into it
+ * @then session keys are initialized with inserted keys of the corresponding
+ * types
+ */
+TEST_F(CryptoStoreTest, SessionKeys) {
+  // GIVEN
+  ASSERT_FALSE(crypto_store->getGrandpaKeypair());
+  ASSERT_FALSE(crypto_store->getBabeKeypair());
+  ASSERT_FALSE(crypto_store->getLibp2pKeypair());
+
+  // WHEN
+  EXPECT_OUTCOME_TRUE(
+      pair1,
+      crypto_store->generateSr25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_BABE))
+  EXPECT_OUTCOME_TRUE(
+      pair2,
+      crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_GRAN))
+  EXPECT_OUTCOME_TRUE(
+      pair3,
+      crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_LP2P))
+
+  // THEN
+  ASSERT_TRUE(crypto_store->getGrandpaKeypair());
+  ASSERT_EQ(crypto_store->getGrandpaKeypair().value(), pair2);
+  ASSERT_TRUE(crypto_store->getBabeKeypair());
+  ASSERT_EQ(crypto_store->getBabeKeypair().value(), pair1);
+  ASSERT_TRUE(crypto_store->getLibp2pKeypair());
+  ASSERT_THAT(pair3.secret_key,
+              testing::ElementsAreArray(
+                  crypto_store->getLibp2pKeypair().value().privateKey.data));
+}
+
+/**
+ * Currently incompatible with subkey because subkey doesn't append key type to
+ * filename
+ */
+TEST(CryptoStoreCompatibilityTest, DISABLED_SubkeyCompat) {
+  auto csprng = std::make_shared<BoostRandomGenerator>();
+  auto ed25519_provider = std::make_shared<Ed25519ProviderImpl>(csprng);
+  auto sr25519_provider = std::make_shared<Sr25519ProviderImpl>(csprng);
+
+  auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
+  auto bip39_provider =
+      std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider));
+  auto keystore_path = boost::filesystem::path(__FILE__).parent_path()
+                       / "subkey_keys" / "keystore";
+  auto crypto_store = std::make_shared<CryptoStoreImpl>(
+      std::make_shared<Ed25519Suite>(std::move(ed25519_provider)),
+      std::make_shared<Sr25519Suite>(std::move(sr25519_provider)),
+      bip39_provider,
+      kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
+  EXPECT_OUTCOME_TRUE(
+      keys, crypto_store->getEd25519PublicKeys(KnownKeyTypeId::KEY_TYPE_BABE));
+  ASSERT_EQ(keys.size(), 1);
 }

@@ -37,8 +37,8 @@ namespace tools::containers {
    */
   template <typename T, typename Alloc = ObjsCacheDefAlloc<T>>
   struct ObjectsCache {
-    static_assert(std::is_array<T>::value == false,
-                  "array can not be used such way");
+    static_assert(std::is_array_v<T> == false,
+                  "Arrays are not allowed in ObjectsCache");
 
     using Type = T;
     using ObjectPtr = std::shared_ptr<Type>;

@@ -6,10 +6,11 @@
 #ifndef KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
 #define KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP
 
-#include <boost/none_t.hpp>
-#include <boost/variant.hpp>
 #include <cstdint>
 #include <memory>
+
+#include <boost/none_t.hpp>
+#include <boost/variant.hpp>
 
 #include "common/buffer.hpp"
 #include "primitives/block_id.hpp"

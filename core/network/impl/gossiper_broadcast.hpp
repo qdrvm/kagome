@@ -25,7 +25,7 @@
 #include "subscription/subscription_engine.hpp"
 
 namespace kagome::application {
-  class ConfigurationStorage;
+  class ChainSpec;
 }
 
 namespace kagome::network {
@@ -48,7 +48,7 @@ namespace kagome::network {
    public:
     GossiperBroadcast(
         StreamEngine::StreamEnginePtr stream_engine,
-        std::shared_ptr<kagome::application::ConfigurationStorage> config);
+        std::shared_ptr<kagome::application::ChainSpec> config);
 
     ~GossiperBroadcast() override = default;
 
@@ -124,7 +124,7 @@ namespace kagome::network {
     common::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
     boost::optional<libp2p::peer::PeerInfo> self_info_;
-    std::shared_ptr<kagome::application::ConfigurationStorage> config_;
+    std::shared_ptr<kagome::application::ChainSpec> config_;
     libp2p::peer::Protocol transactions_protocol_;
     libp2p::peer::Protocol block_announces_protocol_;
   };

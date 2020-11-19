@@ -7,7 +7,7 @@
 
 #include <libp2p/basic/message_read_writer_uvarint.hpp>
 
-#include "application/configuration_storage.hpp"
+#include "application/chain_spec.hpp"
 #include "blockchain/block_storage.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
@@ -33,7 +33,7 @@ namespace kagome::network {
       std::shared_ptr<Gossiper> gossiper,
       const PeerList &peer_list,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<kagome::application::ConfigurationStorage> config,
+      std::shared_ptr<kagome::application::ChainSpec> config,
       std::shared_ptr<blockchain::BlockStorage> storage,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto)

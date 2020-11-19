@@ -232,3 +232,5 @@ TEST_F(TrieBatchTest, TopperBatchAtomic) {
   ASSERT_TRUE(p_batch->contains("678"_buf));
   ASSERT_FALSE(p_batch->contains("123"_buf));
 }
+
+/// TODO(Harrm): #595 test clearPrefix

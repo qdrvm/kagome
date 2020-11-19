@@ -20,7 +20,7 @@ using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Return;
 
-using kagome::crypto::key_types::kBabe;
+using kagome::crypto::KEY_TYPE_BABE;
 using kagome::extensions::Extension;
 using kagome::extensions::ExtensionFactoryMock;
 using kagome::extensions::ExtensionMock;
@@ -617,7 +617,7 @@ TEST_F(REITest, ext_sr25519_verify_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
-  WasmSize key_type = kBabe;
+  WasmSize key_type = KEY_TYPE_BABE;
   WasmSpan res = WasmResult(1, 2).combine();
 
   EXPECT_CALL(*extension_, ext_ed25519_public_keys_v1(key_type))
@@ -637,7 +637,7 @@ TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_generate_v1_Test) {
-  WasmSize key_type = kBabe;
+  WasmSize key_type = KEY_TYPE_BABE;
   WasmSpan seed = WasmResult(1, 2).combine();
 
   WasmPointer res = 4;
@@ -660,7 +660,7 @@ TEST_F(REITest, ext_ed25519_generate_v1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_sign_v1_Test) {
-  WasmSize key_type = kBabe;
+  WasmSize key_type = KEY_TYPE_BABE;
   WasmPointer key = 1;
   WasmSpan msg = WasmResult(33, 2).combine();
   WasmSpan res = WasmResult(35, 25).combine();
@@ -711,7 +711,7 @@ TEST_F(REITest, ext_ed25519_verify_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
-  WasmSize key_type = kBabe;
+  WasmSize key_type = KEY_TYPE_BABE;
 
   WasmSpan res = WasmResult(1, 2).combine();
 
@@ -732,7 +732,7 @@ TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_generate_v1_Test) {
-  WasmSize key_type = kBabe;
+  WasmSize key_type = KEY_TYPE_BABE;
   WasmSpan seed = WasmResult(1, 2).combine();
 
   WasmPointer res = 4;
@@ -755,7 +755,7 @@ TEST_F(REITest, ext_sr25519_generate_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_sign_v1_Test) {
-  WasmSize key_type = kBabe;
+  WasmSize key_type = KEY_TYPE_BABE;
   WasmPointer key = 1;
   WasmSpan msg = WasmResult(33, 2).combine();
   WasmSpan res = WasmResult(35, 25).combine();
@@ -1084,7 +1084,7 @@ TEST_F(REITest, ext_storage_set_version_1_Test) {
 }
 
 TEST_F(REITest, ext_storage_get_version_1_Test) {
-  WasmSize key_type = kBabe;
+  WasmSize key_type = KEY_TYPE_BABE;
   WasmSpan res = WasmResult(1, 2).combine();
 
   EXPECT_CALL(*extension_, ext_storage_get_version_1(key_type))
@@ -1174,7 +1174,7 @@ TEST_F(REITest, ext_storage_clear_prefix_version_1_Test) {
 }
 
 TEST_F(REITest, ext_storage_changes_root_version_1_Test) {
-  WasmSize key_type = kBabe;
+  WasmSize key_type = KEY_TYPE_BABE;
   WasmSpan res = 2;
 
   EXPECT_CALL(*extension_, ext_storage_changes_root_version_1(key_type))

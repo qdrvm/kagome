@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "application/impl/configuration_storage_impl.hpp"
+#include "application/impl/chain_spec_impl.hpp"
 
 #include <boost/property_tree/json_parser.hpp>
 #include <libp2p/multi/multiaddress.hpp>
@@ -14,9 +14,8 @@
 
 namespace kagome::application {
 
-  outcome::result<std::shared_ptr<ConfigurationStorageImpl>>
-  ConfigurationStorageImpl::create(const std::string &path) {
-    auto config_storage = std::make_shared<ConfigurationStorageImpl>(ConfigurationStorageImpl());
+  outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::create(const std::string &path) {
+    auto config_storage = std::make_shared<ChainSpecImpl>(ChainSpecImpl());
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
     return config_storage;
@@ -24,7 +23,7 @@ namespace kagome::application {
 
   namespace pt = boost::property_tree;
 
-  outcome::result<void> ConfigurationStorageImpl::loadFromJson(
+  outcome::result<void> ChainSpecImpl::loadFromJson(
       const std::string &file_path) {
     pt::ptree tree;
     try {
@@ -42,7 +41,7 @@ namespace kagome::application {
     return outcome::success();
   }
 
-  outcome::result<void> ConfigurationStorageImpl::loadFields(
+  outcome::result<void> ChainSpecImpl::loadFields(
       const boost::property_tree::ptree &tree) {
     OUTCOME_TRY(name, ensure(tree.get_child_optional("name")));
     name_ = name.get<std::string>("");
@@ -122,7 +121,7 @@ namespace kagome::application {
     return outcome::success();
   }
 
-  outcome::result<void> ConfigurationStorageImpl::loadGenesis(
+  outcome::result<void> ChainSpecImpl::loadGenesis(
       const boost::property_tree::ptree &tree) {
     OUTCOME_TRY(genesis_tree, ensure(tree.get_child_optional("genesis")));
     OUTCOME_TRY(genesis_raw_tree,
@@ -148,7 +147,7 @@ namespace kagome::application {
     return outcome::success();
   }
 
-  outcome::result<void> ConfigurationStorageImpl::loadBootNodes(
+  outcome::result<void> ChainSpecImpl::loadBootNodes(
       const boost::property_tree::ptree &tree) {
     OUTCOME_TRY(boot_nodes, ensure(tree.get_child_optional("bootNodes")));
     for (auto &v : boot_nodes) {
