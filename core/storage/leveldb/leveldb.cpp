@@ -14,18 +14,18 @@
 #include "storage/leveldb/leveldb_util.hpp"
 
 namespace kagome::storage {
+  namespace fs  = boost::filesystem;
 
   outcome::result<std::shared_ptr<LevelDB>> LevelDB::create(
-      std::string_view path, leveldb::Options options) {
+      const fs::path &path, leveldb::Options options) {
     leveldb::DB *db = nullptr;
-    auto status = leveldb::DB::Open(options, std::string(path), &db);
+    auto status = leveldb::DB::Open(options, path.native(), &db);
     if (status.ok()) {
       auto l = std::make_unique<LevelDB>();
       l->db_ = std::unique_ptr<leveldb::DB>(db);
       l->logger_ = common::createLogger("leveldb");
       return l;
     }
-
     return error_as_result<std::shared_ptr<LevelDB>>(status);
   }
 

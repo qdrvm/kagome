@@ -29,8 +29,9 @@ namespace kagome::runtime::binaryen {
   outcome::result<Version> CoreImpl::version(
       const boost::optional<primitives::BlockHash> &block_hash) {
     if (block_hash) {
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash.value()));
       return executeAt<Version>(
-          "Core_version", *block_hash, CallPersistency::EPHEMERAL);
+          "Core_version", header.state_root, CallPersistency::EPHEMERAL);
     }
     return execute<Version>("Core_version", CallPersistency::EPHEMERAL);
   }

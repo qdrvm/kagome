@@ -5,10 +5,23 @@
 
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 
+#include <memory>
+
 #include "scale/scale.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
+                            PersistentTrieBatchImpl::Error,
+                            e) {
+  using E = kagome::storage::trie::PersistentTrieBatchImpl::Error;
+  switch (e) {
+    case E::NO_TRIE:
+      return "Trie was not created or already was destructed.";
+  }
+  return "Unknown error";
+}
 
 namespace kagome::storage::trie {
 
@@ -19,11 +32,27 @@ namespace kagome::storage::trie {
   const common::Buffer NO_EXTRINSIC_INDEX_VALUE{
       scale::encode(0xffffffff).value()};
 
+  std::unique_ptr<PersistentTrieBatchImpl> PersistentTrieBatchImpl::create(
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<TrieSerializer> serializer,
+      boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+      std::shared_ptr<PolkadotTrie> trie,
+      RootChangedEventHandler &&handler) {
+    std::unique_ptr<PersistentTrieBatchImpl> ptr(
+        new PersistentTrieBatchImpl(std::move(codec),
+                                    std::move(serializer),
+                                    std::move(changes),
+                                    std::move(trie),
+                                    std::move(handler)));
+    ptr->init();
+    return ptr;
+  }
+
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-      std::unique_ptr<PolkadotTrie> trie,
+      std::shared_ptr<PolkadotTrie> trie,
       RootChangedEventHandler &&handler)
       : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
@@ -35,14 +64,21 @@ namespace kagome::storage::trie {
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
                  or not changes_.has_value());
     BOOST_ASSERT(trie_ != nullptr);
+  }
+
+  void PersistentTrieBatchImpl::init() {
     if (changes_) {
+      std::weak_ptr<PolkadotTrie> wptr = trie_;
       changes_.value()->setExtrinsicIdxGetter(
-          [this]() -> outcome::result<Buffer> {
-            auto res = trie_->get(EXTRINSIC_INDEX_KEY);
-            if (res.has_error() and res.error() == TrieError::NO_VALUE) {
-              return NO_EXTRINSIC_INDEX_VALUE;
+          [wptr{std::move(wptr)}]() -> outcome::result<Buffer> {
+            if (auto trie = wptr.lock()) {
+              auto res = trie->get(EXTRINSIC_INDEX_KEY);
+              if (res.has_error() and res.error() == TrieError::NO_VALUE) {
+                return NO_EXTRINSIC_INDEX_VALUE;
+              }
+              return res;
             }
-            return res;
+            return Error::NO_TRIE;
           });
     }
   }
@@ -50,6 +86,9 @@ namespace kagome::storage::trie {
   outcome::result<Buffer> PersistentTrieBatchImpl::commit() {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
     root_changed_handler_(root);
+    if (changes_.has_value()) {
+      changes_.value()->onCommit();
+    }
     return std::move(root);
   }
 
@@ -76,8 +115,10 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::clearPrefix(
       const Buffer &prefix) {
-    // TODO(Harrm): notify changes tracker
-    return trie_->clearPrefix(prefix);
+    if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
+    return trie_->clearPrefix(prefix, [&](const auto &key, auto &&) {
+      if (changes_.has_value()) changes_.value()->onRemove(key);
+    });
   }
 
   outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,

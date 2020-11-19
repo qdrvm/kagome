@@ -891,6 +891,7 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
     }
+    BOOST_UNREACHABLE_RETURN({});
   }
 
   outcome::result<void> VotingRoundImpl::onSignedPrecommit(

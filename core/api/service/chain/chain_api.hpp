@@ -11,6 +11,7 @@
 #include "api/service/api_service.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 
@@ -67,6 +68,19 @@ namespace kagome::api {
      * @return BlockHeader data structure
      */
     virtual outcome::result<primitives::BlockHeader> getHeader() = 0;
+
+    /**
+     * @param hash hex-string of a block to retrieve
+     * @return BlockData data structure
+     */
+    virtual outcome::result<primitives::BlockData> getBlock(
+        std::string_view hash) = 0;
+
+    /**
+     * Returns header of a last finalized block.
+     * @return BlockData data structure
+     */
+    virtual outcome::result<primitives::BlockData> getBlock() = 0;
 
     /**
      * Subscribes to events of Finalized Heads type.

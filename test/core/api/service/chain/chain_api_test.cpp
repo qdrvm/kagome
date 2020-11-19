@@ -10,8 +10,12 @@
 #include "api/service/chain/requests/subscribe_finalized_heads.hpp"
 #include "mock/core/api/service/chain/chain_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "primitives/block.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/block_header.hpp"
+#include "primitives/extrinsic.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -20,20 +24,26 @@ using kagome::api::ChainApiImpl;
 using kagome::api::ChainApiMock;
 using kagome::api::chain::request::SubscribeFinalizedHeads;
 using kagome::blockchain::BlockHeaderRepositoryMock;
+using kagome::blockchain::BlockStorageMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
+using kagome::primitives::BlockBody;
+using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
+using kagome::primitives::Extrinsic;
 using testing::Return;
 
 struct ChainApiTest : public ::testing::Test {
   void SetUp() override {
     header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     block_tree = std::make_shared<BlockTreeMock>();
-    api = std::make_shared<ChainApiImpl>(header_repo, block_tree);
+    block_storage = std::make_shared<BlockStorageMock>();
+    api =
+        std::make_shared<ChainApiImpl>(header_repo, block_tree, block_storage);
     hash1 =
         "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256;
     hash2 =
@@ -45,13 +55,21 @@ struct ChainApiTest : public ::testing::Test {
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo;
   std::shared_ptr<BlockTreeMock> block_tree;
   std::shared_ptr<ChainApi> api;
+  std::shared_ptr<BlockStorageMock> block_storage;
 
   BlockHash hash1;
   BlockHash hash2;
   BlockHash hash3;
 
-  BlockHeader header{
-      .parent_hash = hash1, .state_root = hash2, .extrinsics_root = hash3};
+  BlockData data{
+      .hash =
+          "4fee9b1803132954978652e4d73d4ec5b0dffae3832449cd5e4e4081d539aa22"_hash256,
+      .header = BlockHeader{.parent_hash = hash1,
+                            .state_root = hash2,
+                            .extrinsics_root = hash3},
+      .body =
+          BlockBody{Extrinsic{.data = Buffer::fromHex("0011eedd33").value()},
+                    Extrinsic{.data = Buffer::fromHex("55ff35").value()}}};
 };
 
 /**
@@ -119,10 +137,10 @@ TEST_F(ChainApiTest, GetBlockHashArray) {
  */
 TEST_F(ChainApiTest, GetHeader) {
   BlockId a = hash1;
-  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(header));
+  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
 
   EXPECT_OUTCOME_TRUE(r, api->getHeader(std::string("0x") + hash1.toHex()));
-  ASSERT_EQ(r, header);
+  ASSERT_EQ(r, *data.header);
 }
 
 /**
@@ -135,10 +153,39 @@ TEST_F(ChainApiTest, GetHeaderLats) {
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(Return(BlockInfo(42, hash1)));
 
-  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(header));
+  EXPECT_CALL(*header_repo, getBlockHeader(a)).WillOnce(Return(*data.header));
 
   EXPECT_OUTCOME_TRUE(r, api->getHeader());
-  ASSERT_EQ(r, header);
+  ASSERT_EQ(r, *data.header);
+}
+
+/**
+ * @given chain api
+ * @when get a block by hash
+ * @then the correct block data will return
+ */
+TEST_F(ChainApiTest, GetBlock) {
+  BlockId a = hash1;
+  EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
+
+  EXPECT_OUTCOME_TRUE(r, api->getBlock(std::string("0x") + hash1.toHex()));
+  ASSERT_EQ(r, data);
+}
+
+/**
+ * @given chain api
+ * @when get a block data
+ * @then last block data will be returned
+ */
+TEST_F(ChainApiTest, GetLastBlock) {
+  BlockId a = hash1;
+  EXPECT_CALL(*block_tree, getLastFinalized())
+      .WillOnce(Return(BlockInfo(42, hash1)));
+
+  EXPECT_CALL(*block_storage, getBlockData(a)).WillOnce(Return(data));
+
+  EXPECT_OUTCOME_TRUE(r, api->getBlock());
+  ASSERT_EQ(r, data);
 }
 
 /**
@@ -148,7 +195,8 @@ TEST_F(ChainApiTest, GetHeaderLats) {
  */
 TEST(StateApiTest, SubscribeStorage) {
   auto chain_api = std::make_shared<ChainApiMock>();
-  EXPECT_CALL(*chain_api, subscribeFinalizedHeads()).WillOnce(testing::Return(55));
+  EXPECT_CALL(*chain_api, subscribeFinalizedHeads())
+      .WillOnce(testing::Return(55));
 
   auto p = std::static_pointer_cast<ChainApi>(chain_api);
   auto sub = std::make_shared<SubscribeFinalizedHeads>(p);

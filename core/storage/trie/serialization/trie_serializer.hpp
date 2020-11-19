@@ -33,7 +33,7 @@ namespace kagome::storage::trie {
      * Fetches a trie from the storage. A nullptr is returned in case that there
      * is no entry for provided key.
      */
-    virtual outcome::result<std::unique_ptr<PolkadotTrie>> retrieveTrie(
+    virtual outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
         const common::Buffer &db_key) const = 0;
   };
 

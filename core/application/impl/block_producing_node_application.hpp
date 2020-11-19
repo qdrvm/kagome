@@ -8,7 +8,7 @@
 
 #include "application/kagome_application.hpp"
 
-#include "application/app_config.hpp"
+#include "application/app_configuration.hpp"
 #include "injector/block_producing_node_injector.hpp"
 
 namespace kagome::application {
@@ -16,7 +16,8 @@ namespace kagome::application {
   class BlockProducingNodeApplication : public KagomeApplication {
     using Babe = consensus::Babe;
     using InjectorType =
-        decltype(injector::makeBlockProducingNodeInjector(AppConfigPtr{}));
+        decltype(injector::makeBlockProducingNodeInjector(
+            std::declval<AppConfiguration const &>()));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -30,7 +31,7 @@ namespace kagome::application {
     /**
      * @param kagome_config kagome configuration parameters
      */
-    explicit BlockProducingNodeApplication(const AppConfigPtr &app_config);
+    explicit BlockProducingNodeApplication(const AppConfiguration &app_config);
 
     void run() override;
 
@@ -42,8 +43,7 @@ namespace kagome::application {
 
     sptr<boost::asio::io_context> io_context_;
 
-    sptr<ConfigurationStorage> config_storage_;
-    sptr<KeyStorage> key_storage_;
+    sptr<ChainSpec> genesis_config_;
     sptr<clock::SystemClock> clock_;
     sptr<Babe> babe_;
     sptr<network::Router> router_;

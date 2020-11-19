@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONFIGURATION_STORAGE_HPP
-#define KAGOME_CONFIGURATION_STORAGE_HPP
+#ifndef KAGOME_CHAIN_SPEC_HPP
+#define KAGOME_CHAIN_SPEC_HPP
 
 #include <libp2p/peer/peer_info.hpp>
-#include "application/genesis_raw_config.hpp"
+#include "application/genesis_raw_data.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "network/types/peer_list.hpp"
@@ -16,12 +16,12 @@
 namespace kagome::application {
 
   /**
-   * Stores configuration of a kagome application and provides convenience
+   * Stores configuration of a kagome node and provides convenience
    * methods for accessing config parameters
    */
-  class ConfigurationStorage {
+  class ChainSpec {
    public:
-    virtual ~ConfigurationStorage() = default;
+    virtual ~ChainSpec() = default;
 
     virtual const std::string &name() const = 0;
 
@@ -51,9 +51,9 @@ namespace kagome::application {
     /**
      * @return genesis block of the chain
      */
-    virtual GenesisRawConfig getGenesis() const = 0;
+    virtual GenesisRawData getGenesis() const = 0;
   };
 
 }  // namespace kagome::application
 
-#endif  // KAGOME_CONFIGURATION_STORAGE_HPP
+#endif  // KAGOME_CHAIN_SPEC_HPP

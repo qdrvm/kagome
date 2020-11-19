@@ -9,12 +9,12 @@
 
 #include "crypto/crypto_store/key_type.hpp"
 
-using kagome::crypto::key_types::kAcco;
-using kagome::crypto::key_types::kAudi;
-using kagome::crypto::key_types::kBabe;
-using kagome::crypto::key_types::kGran;
-using kagome::crypto::key_types::kImon;
-using kagome::crypto::key_types::kLp2p;
+using kagome::crypto::KEY_TYPE_ACCO;
+using kagome::crypto::KEY_TYPE_AUDI;
+using kagome::crypto::KEY_TYPE_BABE;
+using kagome::crypto::KEY_TYPE_GRAN;
+using kagome::crypto::KEY_TYPE_LP2P;
+using kagome::crypto::KEY_TYPE_IMON;
 
 using kagome::crypto::decodeKeyTypeId;
 using kagome::crypto::KeyTypeId;
@@ -48,11 +48,11 @@ TEST_P(KeyTypeTest, DecodeSuccess) {
 
 INSTANTIATE_TEST_CASE_P(KeyTypeTestCases,
                         KeyTypeTest,
-                        ::testing::Values(good(kBabe, "babe"),
-                                          good(kGran, "gran"),
-                                          good(kAcco, "acco"),
-                                          good(kImon, "imon"),
-                                          good(kAudi, "audi"),
-                                          good(kLp2p, "lp2p"),
-                                          bad(kBabe - 5, "babe"),
-                                          bad(kBabe + 1000, "babe")));
+                        ::testing::Values(good(KEY_TYPE_BABE, "babe"),
+                                          good(KEY_TYPE_GRAN, "gran"),
+                                          good(KEY_TYPE_ACCO, "acco"),
+                                          good(KEY_TYPE_IMON, "imon"),
+                                          good(KEY_TYPE_AUDI, "audi"),
+                                          good(KEY_TYPE_LP2P, "lp2p"),
+                                          bad(KEY_TYPE_BABE - 5, "babe"),
+                                          bad(KEY_TYPE_BABE + 1000, "babe")));

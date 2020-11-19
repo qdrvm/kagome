@@ -41,6 +41,17 @@ namespace kagome::storage::changes_trie {
     virtual outcome::result<void> onPut(const common::Buffer &key,
                                         const common::Buffer &value,
                                         bool new_entry) = 0;
+
+    /**
+     * Supposed to be called when entry commits.
+     */
+    virtual void onCommit() = 0;
+
+    /**
+     * Supposed to be called when clear by prefix called.
+     */
+    virtual void onClearPrefix(const common::Buffer &prefix) = 0;
+
     /**
      * Supposed to be called when an entry is removed from the tracked storage
      */

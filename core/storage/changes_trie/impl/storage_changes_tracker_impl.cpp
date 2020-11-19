@@ -22,7 +22,7 @@ namespace kagome::storage::changes_trie {
   StorageChangesTrackerImpl::StorageChangesTrackerImpl(
       std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
       std::shared_ptr<storage::trie::Codec> codec,
-      SubscriptionEnginePtr subscription_engine)
+      subscriptions::SubscriptionEnginePtr subscription_engine)
       : trie_factory_(std::move(trie_factory)),
         codec_(std::move(codec)),
         parent_number_{std::numeric_limits<primitives::BlockNumber>::max()},
@@ -37,6 +37,8 @@ namespace kagome::storage::changes_trie {
     parent_hash_ = new_parent_hash;
     parent_number_ = new_parent_number;
     // new block -- new extrinsics
+    actual_val_.clear();
+
     extrinsics_changes_.clear();
     new_entries_.clear();
     return outcome::success();
@@ -45,6 +47,19 @@ namespace kagome::storage::changes_trie {
   void StorageChangesTrackerImpl::setExtrinsicIdxGetter(
       GetExtrinsicIndexDelegate f) {
     get_extrinsic_index_ = std::move(f);
+  }
+
+  void StorageChangesTrackerImpl::onCommit() {
+    for (auto &[key, value] : actual_val_)
+      subscription_engine_->notify(key, value, parent_hash_);
+  }
+
+  void StorageChangesTrackerImpl::onClearPrefix(const common::Buffer &prefix) {
+    for (auto it = actual_val_.lower_bound(prefix);
+         it != actual_val_.end()
+         && it->first.subbuffer(0, prefix.size()) == prefix;
+         ++it)
+      it->second.clear();
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onPut(
@@ -65,12 +80,14 @@ namespace kagome::storage::changes_trie {
         new_entries_.insert(key);
       }
     }
-    subscription_engine_->notify(key, value, parent_hash_);
+    actual_val_[key] = value;
     return outcome::success();
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onRemove(
       const common::Buffer &key) {
+    actual_val_[key].clear();
+
     auto change_it = extrinsics_changes_.find(key);
     OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
     OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));

@@ -84,12 +84,12 @@ class RuntimeTest : public ::testing::Test {
         std::make_shared<kagome::crypto::Pbkdf2ProviderImpl>();
     auto bip39_provider =
         std::make_shared<kagome::crypto::Bip39ProviderImpl>(pbkdf2_provider);
-    auto crypto_store =
-        std::make_shared<kagome::crypto::CryptoStoreImpl>(ed25519_provider,
-                                                          sr25519_provider,
-                                                          secp256k1_provider,
-                                                          bip39_provider,
-                                                          random_generator);
+    auto keystore_path = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("kagome_keystore_test_dir");
+    auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
+        std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider),
+        std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider),
+        bip39_provider,
+        kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
     changes_tracker_ =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
 

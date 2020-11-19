@@ -25,6 +25,9 @@ namespace kagome::crypto {
     outcome::result<bip39::Bip39Seed> makeSeed(
         gsl::span<const uint8_t> entropy, std::string_view password) override;
 
+    outcome::result<bip39::Bip39Seed> generateSeed(
+        std::string_view mnemonic_phrase) override;
+
    private:
     std::shared_ptr<Pbkdf2Provider> pbkdf2_provider_;
     bip39::Dictionary dictionary_;

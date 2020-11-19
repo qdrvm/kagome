@@ -9,11 +9,11 @@
 #include "storage/trie/trie_storage.hpp"
 
 #include "common/logger.hpp"
+#include "primitives/event_types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
-#include "subscription/subscription_engine.hpp"
 
 namespace kagome::storage::trie {
 

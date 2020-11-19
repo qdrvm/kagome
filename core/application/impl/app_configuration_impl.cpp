@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "application/impl/app_config_impl.hpp"
+#include "application/impl/app_configuration_impl.hpp"
 
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
@@ -11,6 +11,8 @@
 #include <iostream>
 
 namespace {
+  namespace fs = boost::filesystem;
+
   template <typename T, typename Func>
   inline void find_argument(boost::program_options::variables_map &vm,
                             char const *name,
@@ -32,16 +34,33 @@ namespace {
 
 namespace kagome::application {
 
-  AppConfigurationImpl::AppConfigurationImpl(kagome::common::Logger logger)
-      : logger_(std::move(logger)),
+  AppConfigurationImpl::AppConfigurationImpl(common::Logger logger)
+      : p2p_port_(def_p2p_port),
+        verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
+        is_only_finalizing_(def_is_only_finalizing),
+        is_already_synchronized_(def_is_already_synchronized),
+        logger_(std::move(logger)),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
-        rpc_ws_port_(def_rpc_ws_port),
-        p2p_port_(def_p2p_port),
-        verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
-        is_only_finalizing_(def_is_only_finalizing),
-        is_already_synchronized_(def_is_already_synchronized) {}
+        rpc_ws_port_(def_rpc_ws_port) {}
+
+  fs::path AppConfigurationImpl::genesis_path() const {
+    return genesis_path_.native();
+  }
+
+  boost::filesystem::path AppConfigurationImpl::chain_path(
+      std::string chain_id) const {
+    return base_path_ / chain_id;
+  }
+
+  fs::path AppConfigurationImpl::database_path(std::string chain_id) const {
+    return chain_path(chain_id) / "db";
+  }
+
+  fs::path AppConfigurationImpl::keystore_path(std::string chain_id) const {
+    return chain_path(chain_id) / "keystore";
+  }
 
   AppConfigurationImpl::FilePtr AppConfigurationImpl::open_file(
       const std::string &filepath) {
@@ -95,15 +114,15 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
-    load_str(val, "genesis", genesis_path_);
+    std::string genesis_path_str;
+    load_str(val, "genesis", genesis_path_str);
+    genesis_path_ = fs::path(genesis_path_str);
   }
 
   void AppConfigurationImpl::parse_storage_segment(rapidjson::Value &val) {
-    load_str(val, "leveldb", leveldb_path_);
-  }
-
-  void AppConfigurationImpl::parse_authority_segment(rapidjson::Value &val) {
-    load_str(val, "keystore", keystore_path_);
+    std::string base_path_str;
+    load_str(val, "base_path", base_path_str);
+    base_path_ = fs::path(base_path_str);
   }
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
@@ -121,13 +140,13 @@ namespace kagome::application {
 
   bool AppConfigurationImpl::validate_config(
       AppConfiguration::LoadScheme scheme) {
-    if (genesis_path_.empty()) {
-      logger_->error("Node configuration must contain 'genesis' option.");
+    if (not fs::exists(genesis_path_)) {
+      logger_->error("Path to genesis {} does not exist.", genesis_path_);
       return false;
     }
 
-    if (leveldb_path_.empty()) {
-      logger_->error("Node configuration must contain 'leveldb_path' option.");
+    if (not fs::exists(base_path_)) {
+      logger_->error("Base path {} does not exist.", base_path_);
       return false;
     }
 
@@ -146,14 +165,6 @@ namespace kagome::application {
       return false;
     }
 
-    const auto need_keystore =
-        (AppConfiguration::LoadScheme::kBlockProducing == scheme)
-        || (AppConfiguration::LoadScheme::kValidating == scheme);
-
-    if (need_keystore && keystore_path_.empty()) {
-      logger_->error("Node configuration must contain 'keystore_path' option.");
-      return false;
-    }
     return true;
   }
 
@@ -183,10 +194,10 @@ namespace kagome::application {
       return;
     }
 
-    for (auto &handler : handlers) {
+    for (auto &handler : handlers_) {
       auto it = document.FindMember(handler.segment_name);
       if (document.MemberEnd() != it) {
-        (this->*handler.handler)(it->value);
+        handler.handler(it->value);
       }
     }
   }
@@ -214,7 +225,7 @@ namespace kagome::application {
     po::options_description desc("General options");
     desc.add_options()
         ("help,h", "show this help message")
-        ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - crit, 6 - no log")
+        ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no log")
         ("config_file,c", po::value<std::string>(), "Filepath to load configuration from.")
         ;
 
@@ -225,12 +236,8 @@ namespace kagome::application {
 
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
-        ("leveldb,l", po::value<std::string>(), "required, leveldb directory path")
-        ;
-
-    po::options_description authority_desc("Authority options");
-    authority_desc.add_options()
-        ("keystore,k", po::value<std::string>(), "required, keystore file path")
+        ("base_path,d", po::value<std::string>(),
+            "required, node base path (keeps storage and keys for known chains)")
         ;
 
     po::options_description network_desc("Network options");
@@ -259,7 +266,6 @@ namespace kagome::application {
 
     desc.add(blockhain_desc)
         .add(storage_desc)
-        .add(authority_desc)
         .add(network_desc)
         .add(additional_desc);
 
@@ -295,10 +301,7 @@ namespace kagome::application {
         vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });
 
     find_argument<std::string>(
-        vm, "leveldb", [&](std::string const &val) { leveldb_path_ = val; });
-
-    find_argument<std::string>(
-        vm, "keystore", [&](std::string const &val) { keystore_path_ = val; });
+        vm, "base_path", [&](std::string const &val) { base_path_ = val; });
 
     find_argument<uint16_t>(
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
@@ -326,7 +329,7 @@ namespace kagome::application {
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
 
     // if something wrong with config print help message
-    if (not validate_config(scheme) ){
+    if (not validate_config(scheme)) {
       std::cout << desc << std::endl;
       return false;
     }

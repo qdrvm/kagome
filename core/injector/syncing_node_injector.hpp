@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_INJECTOR_SYNCING_NODE_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_SYNCING_NODE_INJECTOR_HPP
 
-#include "application/app_config.hpp"
+#include "application/app_configuration.hpp"
 #include "consensus/babe/impl/syncing_babe.hpp"
 #include "consensus/grandpa/impl/syncing_grandpa_observer.hpp"
 #include "injector/application_injector.hpp"
@@ -16,8 +16,7 @@ namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename Injector>
-  auto get_peer_info(const Injector &injector, uint16_t p2p_port)
-      -> sptr<network::OwnPeerInfo> {
+  auto get_peer_info(const Injector &injector) -> sptr<network::OwnPeerInfo> {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
       return *initialized;
@@ -34,8 +33,11 @@ namespace kagome::injector {
             key_marshaller.marshal(public_key).value())
             .value();
     spdlog::debug("Received peer id: {}", peer_id.toBase58());
+
+    const auto &config =
+        injector.template create<const application::AppConfiguration &>();
     std::string multiaddress_str =
-        "/ip4/0.0.0.0/tcp/" + std::to_string(p2p_port);
+        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2p_port());
     spdlog::debug("Received multiaddr: {}", multiaddress_str);
     auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
     if (!multiaddress) {
@@ -50,23 +52,18 @@ namespace kagome::injector {
   }
 
   template <typename... Ts>
-  auto makeSyncingNodeInjector(const application::AppConfigPtr &app_config,
+  auto makeSyncingNodeInjector(const application::AppConfiguration &app_config,
                                Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
 
         // inherit application injector
-        makeApplicationInjector(app_config->genesis_path(),
-                                app_config->leveldb_path(),
-                                app_config->rpc_http_endpoint(),
-                                app_config->rpc_ws_endpoint()),
+        makeApplicationInjector(app_config),
 
         // peer info
         di::bind<network::OwnPeerInfo>.to(
-            [p2p_port{app_config->p2p_port()}](const auto &injector) {
-              return get_peer_info(injector, p2p_port);
-            }),
+            [](const auto &injector) { return get_peer_info(injector); }),
 
         di::bind<consensus::Babe>.template to<consensus::SyncingBabe>(),
         di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>(),

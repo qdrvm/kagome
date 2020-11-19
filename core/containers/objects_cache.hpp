@@ -6,10 +6,10 @@
 #ifndef KAGOME_CONTAINERS_OBJECTS_CACHE_HPP
 #define KAGOME_CONTAINERS_OBJECTS_CACHE_HPP
 
-#include <mutex>
-#include <vector>
 #include <memory>
+#include <mutex>
 #include <type_traits>
+#include <vector>
 
 namespace tools::containers {
 
@@ -37,8 +37,8 @@ namespace tools::containers {
    */
   template <typename T, typename Alloc = ObjsCacheDefAlloc<T>>
   struct ObjectsCache {
-    static_assert(std::is_array<T>::value == false,
-                  "array can not be used such way");
+    static_assert(std::is_array_v<T> == false,
+                  "Arrays are not allowed in ObjectsCache");
 
     using Type = T;
     using ObjectPtr = std::shared_ptr<Type>;
@@ -138,36 +138,54 @@ namespace tools::containers {
 #endif  // KAGOME_CACHE_UNIT
 
 /**
- * Set of macro to define/declare object container and to define functions to communicate with it.
+ * Set of macro to define/declare object container and to define functions to
+ * communicate with it.
  */
 #ifndef KAGOME_DECLARE_CACHE
-#define KAGOME_DECLARE_CACHE(prefix, ...) \
-        using prefix##_cache_type = tools::containers::ObjectsCacheManager<__VA_ARGS__>; \
-        extern prefix##_cache_type prefix##_cache; \
-        template <typename T> inline T *prefix##_get_from_cache() { \
-            return static_cast<tools::containers::ObjectsCache<T> *>(&prefix##_cache)->getCachedObject(); \
-        } \
-        template <typename T> inline void prefix##_set_to_cache(T *const ptr) { \
-            static_cast<tools::containers::ObjectsCache<T> *>(&prefix##_cache)->setCachedObject(ptr); \
-        } \
-        template <typename T> inline std::shared_ptr<T> prefix##_get_shared_from_cache() { \
-            return static_cast<tools::containers::ObjectsCache<T> *>(&prefix##_cache)->getSharedCachedObject(); \
-        } \
-        template <typename T> inline std::unique_ptr<T, void (*)(T *const)> prefix##_get_unique_from_cache() { \
-            return std::unique_ptr<T, void (*)(T *const)>(prefix##_get_from_cache<T>(), &prefix##_set_to_cache<T>); \
-        }
+#define KAGOME_DECLARE_CACHE(prefix, ...)                                     \
+  using prefix##_cache_type =                                                 \
+      tools::containers::ObjectsCacheManager<__VA_ARGS__>;                    \
+  template <typename T>                                                       \
+  using prefix##_UCachedType = std::unique_ptr<T, void (*)(T *const)>;        \
+  extern prefix##_cache_type prefix##_cache;                                  \
+  template <typename T>                                                       \
+  inline T *prefix##_get_from_cache() {                                       \
+    return static_cast<tools::containers::ObjectsCache<T> *>(&prefix##_cache) \
+        ->getCachedObject();                                                  \
+  }                                                                           \
+  template <typename T>                                                       \
+  inline void prefix##_set_to_cache(T *const ptr) {                           \
+    static_cast<tools::containers::ObjectsCache<T> *>(&prefix##_cache)        \
+        ->setCachedObject(ptr);                                               \
+  }                                                                           \
+  template <typename T>                                                       \
+  inline std::shared_ptr<T> prefix##_get_shared_from_cache() {                \
+    return static_cast<tools::containers::ObjectsCache<T> *>(&prefix##_cache) \
+        ->getSharedCachedObject();                                            \
+  }                                                                           \
+  template <typename T>                                                       \
+  inline prefix##_UCachedType<T> prefix##_get_unique_from_cache() {           \
+    return prefix##_UCachedType<T>(prefix##_get_from_cache<T>(),              \
+                                   &prefix##_set_to_cache<T>);                \
+  }
 #endif  // KAGOME_DECLARE_CACHE
+
+#ifndef KAGOME_UNIQUE_TYPE_CACHE
+#define KAGOME_UNIQUE_TYPE_CACHE(prefix, type) prefix##_UCachedType<type>
+#endif  // KAGOME_UNIQUE_TYPE_CACHE
 
 #ifndef KAGOME_DEFINE_CACHE
 #define KAGOME_DEFINE_CACHE(prefix) prefix##_cache_type prefix##_cache;
 #endif  // KAGOME_DEFINE_CACHE
 
 #ifndef KAGOME_EXTRACT_SHARED_CACHE
-#define KAGOME_EXTRACT_SHARED_CACHE(prefix, type) prefix##_get_shared_from_cache<type>()
+#define KAGOME_EXTRACT_SHARED_CACHE(prefix, type) \
+  prefix##_get_shared_from_cache<type>()
 #endif  // KAGOME_EXTRACT_SHARED_CACHE
 
 #ifndef KAGOME_EXTRACT_UNIQUE_CACHE
-#define KAGOME_EXTRACT_UNIQUE_CACHE(prefix, type) prefix##_get_unique_from_cache<type>()
+#define KAGOME_EXTRACT_UNIQUE_CACHE(prefix, type) \
+  prefix##_get_unique_from_cache<type>()
 #endif  // KAGOME_EXTRACT_UNIQUE_CACHE
 
 #ifndef KAGOME_EXTRACT_RAW_CACHE
@@ -178,6 +196,6 @@ namespace tools::containers {
 #define KAGOME_INSERT_RAW_CACHE(prefix, obj) prefix##_set_to_cache(obj)
 #endif  // KAGOME_INSERT_RAW_CACHE
 
-}
+}  // namespace tools::containers
 
-#endif//KAGOME_CONTAINERS_OBJECTS_CACHE_HPP
+#endif  // KAGOME_CONTAINERS_OBJECTS_CACHE_HPP
