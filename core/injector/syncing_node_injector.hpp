@@ -34,7 +34,7 @@ namespace kagome::injector {
             .value();
     spdlog::debug("Received peer id: {}", peer_id.toBase58());
 
-    auto config =
+    const auto &config =
         injector.template create<const application::AppConfiguration &>();
     std::string multiaddress_str =
         "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2p_port());
