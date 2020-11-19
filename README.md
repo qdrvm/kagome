@@ -82,9 +82,9 @@ rm -rf db
 
 To launch kagome validating node execute:
 ```
-cd node/
-PATH=$PATH:../build/node/kagome_validating/
-kagome_validating --genesis config/polkadot-v06.json --base_path config/keystore.json -l ldb
+cd examples/first_kagome_chain
+PATH=$PATH:../../build/node/kagome_validating/
+kagome_validating --genesis localchain.json --base_path base_path
 ```
 
 This command executes kagome validating node which can receive extrinsics locally on port using http: `40363`. Simple transfer transaction can be sent as follows:
@@ -110,9 +110,9 @@ rm -rf db
 
 To launch kagome syncing node execute:
 ```
-cd node/
-PATH=$PATH:../build/node/kagome_full_syncing/
-kagome_full_syncing --genesis config/polkadot-v06.json -d syncing_base -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
+cd examples/network
+PATH=$PATH:../../build/node/kagome_full_syncing/
+kagome_full_syncing --genesis testchain.json -d syncing1 -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.
@@ -124,10 +124,10 @@ The ports, which are not set in the app arguments, will take a default value. In
 ___
 
 ### Configuration Details
-* To execute kagome node you need to provide it with genesis config, keys and leveldb files
-* Example genesis config file can be found in `examples/first_kagome_chain/localchain.json`
-* Example base path dir can be found in `examples/first_kagome_chain/base_path`
-* To create leveldb storage file just provide any base path into `kagome_full_syncing` executable (mind that `kagome_validating` requires keys to start).
+To run a kagome node, you need to provide to it a genesis config, cryptographic keys and a place to store db files.
+* Example of a genesis config file can be found in `examples/first_kagome_chain/localchain.json`
+* Example of a base path dir can be found in `examples/first_kagome_chain/base_path`
+* To create leveldb files, just provide any base path into `kagome_full_syncing` executable (mind that `kagome_validating` requires keys to start).
 
 
 ### Build Kagome
