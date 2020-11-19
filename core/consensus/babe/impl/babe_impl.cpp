@@ -78,8 +78,19 @@ namespace kagome::consensus {
     app_state_manager_->atLaunch([this] { return start(); });
   }
 
-//  using TimePoint = clock::SystemClock::TimePoint;
-//  using Duration = clock::SystemClock::Duration;
+  //  using TimePoint = clock::SystemClock::TimePoint;
+  //  using Duration = clock::SystemClock::Duration;
+
+  BabeTimePoint closestNextTimeMultiple(BabeTimePoint from,
+                                        BabeDuration multiple) {
+    if (multiple.count() == 0) return from;
+
+    auto remainder = from.time_since_epoch() % multiple;
+    //    if (remainder == 0)
+    //      return numToRound;
+
+    return from + multiple - remainder;
+  }
 
   bool BabeImpl::start() {
     if (not execution_strategy_.has_value()) {
@@ -100,8 +111,7 @@ namespace kagome::consensus {
         case SlotsCalculationStrategy::FromUnixEpoch:
           auto now = clock_->now();
           auto time_since_epoch = now.time_since_epoch();
-          auto epoch_start_point =
-              std::chrono::system_clock::from_time_t(0);
+          auto epoch_start_point = std::chrono::system_clock::from_time_t(0);
 
           auto ticks_since_epoch = time_since_epoch.count();
           last_epoch_descriptor.start_slot = static_cast<BabeSlotNumber>(
@@ -114,8 +124,8 @@ namespace kagome::consensus {
       last_epoch_descriptor.epoch_duration =
           genesis_configuration_->epoch_length;
       last_epoch_descriptor.starting_slot_finish_time =
-          std::chrono::system_clock::now()
-          + genesis_configuration_->slot_duration;
+          closestNextTimeMultiple(std::chrono::system_clock::now(),
+                                  genesis_configuration_->slot_duration);
     }
 
     if (execution_strategy_.value() != ExecutionStrategy::SYNC_FIRST) {
@@ -182,10 +192,15 @@ namespace kagome::consensus {
   void BabeImpl::runEpoch(Epoch epoch,
                           BabeTimePoint starting_slot_finish_time) {
     BOOST_ASSERT(!epoch.authorities.empty());
-    log_->debug("starting an epoch with index {}. Session key: {}",
-                epoch.epoch_index,
-                keypair_.public_key.toHex());
 
+    log_->debug(
+        "starting an epoch with index {}. Session key: {}. First slot ending "
+        "time: {}",
+        epoch.epoch_index,
+        keypair_.public_key.toHex(),
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            starting_slot_finish_time.time_since_epoch())
+            .count());
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
 
@@ -524,45 +539,69 @@ namespace kagome::consensus {
     auto [_, babe_header] = babe_digests_res.value();
     auto observed_slot = babe_header.slot_number;
 
-    if (not first_production_slot) {
-      first_production_slot = observed_slot + kSlotTail;
-      log_->info("Peer will start produce blocks at slot number: {}",
-                 *first_production_slot);
+    if (slots_calculation_strategy_ == SlotsCalculationStrategy::FromZero) {
+      if (not first_production_slot) {
+        first_production_slot = observed_slot + kSlotTail;
+        log_->info("Peer will start produce blocks at slot number: {}",
+                   *first_production_slot);
+      }
+
+      // get the difference between observed slot and the one that we are trying
+      // to launch
+      auto diff = *first_production_slot - observed_slot;
+
+      first_slot_times_.emplace_back(
+          clock_->now() + diff * genesis_configuration_->slot_duration);
+      if (observed_slot >= first_production_slot.value()) {
+        current_state_ = State::SYNCHRONIZED;
+        log_->info("Slot time obtained. Peer is synchronized");
+
+        // get median as here:
+        // https://en.cppreference.com/w/cpp/algorithm/nth_element
+        std::nth_element(
+            first_slot_times_.begin(),
+            first_slot_times_.begin() + first_slot_times_.size() / 2,
+            first_slot_times_.end());
+        BabeTimePoint first_slot_ending_time =
+            first_slot_times_[first_slot_times_.size() / 2];
+
+        Epoch epoch;
+
+        epoch.epoch_index =
+            *first_production_slot / genesis_configuration_->epoch_length;
+        epoch.start_slot = *first_production_slot;
+        epoch.epoch_duration = genesis_configuration_->epoch_length;
+        auto next_epoch_digest_res =
+            epoch_storage_->getEpochDescriptor(epoch.epoch_index);
+        if (not next_epoch_digest_res) {
+          log_->error(
+              "Could not fetch epoch descriptor for epoch {}. Reason: {}",
+              epoch.epoch_index,
+              next_epoch_digest_res.error().message());
+          return;
+        }
+        epoch.randomness = next_epoch_digest_res.value().randomness;
+        epoch.authorities = next_epoch_digest_res.value().authorities;
+
+        runEpoch(epoch, first_slot_ending_time);
+
+        if (auto on_synchronized = std::move(on_synchronized_)) {
+          on_synchronized();
+        }
+      }
     }
 
-    // get the difference between observed slot and the one that we are trying
-    // to launch
-    auto diff = *first_production_slot - observed_slot;
-
-    first_slot_times_.emplace_back(
-        clock_->now() + diff * genesis_configuration_->slot_duration);
-    if (observed_slot >= first_production_slot.value()) {
-      current_state_ = State::SYNCHRONIZED;
-      log_->info("Slot time obtained. Peer is synchronized");
-
-      // get median as here:
-      // https://en.cppreference.com/w/cpp/algorithm/nth_element
-      std::nth_element(first_slot_times_.begin(),
-                       first_slot_times_.begin() + first_slot_times_.size() / 2,
-                       first_slot_times_.end());
-      BabeTimePoint first_slot_ending_time =
-          first_slot_times_[first_slot_times_.size() / 2];
-
+    else if (slots_calculation_strategy_
+             == SlotsCalculationStrategy::FromUnixEpoch) {
       Epoch epoch;
-      switch (slots_calculation_strategy_){
-        case SlotsCalculationStrategy::FromZero:
-          epoch.epoch_index =
-              *first_production_slot / genesis_configuration_->epoch_length;
-          break;
-        case SlotsCalculationStrategy::FromUnixEpoch:
-          auto slot_duration = genesis_configuration_->slot_duration;
-          auto ticks_since_epoch = clock_->now().time_since_epoch().count();
-          auto genesis_slot = static_cast<BabeSlotNumber>(ticks_since_epoch
-              / slot_duration.count());
-          epoch.epoch_index = (*first_production_slot - genesis_slot)
-              / genesis_configuration_->epoch_length;
-          break;
-      }
+
+      auto slot_duration = genesis_configuration_->slot_duration;
+      auto ticks_since_epoch = clock_->now().time_since_epoch().count();
+      auto genesis_slot = static_cast<BabeSlotNumber>(ticks_since_epoch
+                                                      / slot_duration.count());
+      epoch.epoch_index = (*first_production_slot - genesis_slot)
+                          / genesis_configuration_->epoch_length;
+
       epoch.start_slot = *first_production_slot;
       epoch.epoch_duration = genesis_configuration_->epoch_length;
       auto next_epoch_digest_res =
@@ -576,7 +615,17 @@ namespace kagome::consensus {
       epoch.randomness = next_epoch_digest_res.value().randomness;
       epoch.authorities = next_epoch_digest_res.value().authorities;
 
-      runEpoch(epoch, first_slot_ending_time);
+      auto last_known_epoch = epoch_storage_->getLastEpoch().value();
+
+      auto last_epoch_starting_slot = last_known_epoch.start_slot;
+      auto last_epoch_first_epoch_starting_time =
+          last_known_epoch.starting_slot_finish_time;
+
+      auto new_epoch_first_slot_ending_time =
+          last_epoch_first_epoch_starting_time
+          + (epoch.start_slot - last_epoch_starting_slot) * slot_duration;
+
+      runEpoch(epoch, new_epoch_first_slot_ending_time);
 
       if (auto on_synchronized = std::move(on_synchronized_)) {
         on_synchronized();
