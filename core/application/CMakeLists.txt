@@ -24,7 +24,7 @@ target_link_libraries(validating_node_application
 
 add_library(app_config_impl
     impl/app_configuration_impl.cpp
-    impl/util.hpp impl/util.cpp)
+    )
 target_link_libraries(app_config_impl
     Boost::program_options
     )

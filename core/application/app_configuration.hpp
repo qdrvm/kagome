@@ -6,12 +6,12 @@
 #ifndef KAGOME_APP_CONFIGURATION_HPP
 #define KAGOME_APP_CONFIGURATION_HPP
 
-#include <boost/filesystem.hpp>
 #include <memory>
 #include <string>
 
 #include <spdlog/common.h>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/filesystem.hpp>
 
 namespace kagome::application {
 
