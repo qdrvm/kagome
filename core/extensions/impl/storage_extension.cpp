@@ -216,24 +216,8 @@ namespace kagome::extensions {
   }
 
   runtime::WasmSize StorageExtension::ext_storage_changes_root(
-      runtime::WasmPointer parent_hash_data, runtime::WasmPointer result) {
-    if (not storage_provider_->isCurrentlyPersistent()) {
-      logger_->error(
-          "ext_storage_changes_root failed: called in ephemeral environment");
-      return 0;
-    }
-    auto parent_hash_bytes =
-        memory_->loadN(parent_hash_data, common::Hash256::size());
-    common::Hash256 parent_hash;
-    std::copy_n(parent_hash_bytes.begin(),
-                common::Hash256::size(),
-                parent_hash.begin());
-
-    if (auto result_buf = calcStorageChangesRoot(parent_hash);
-        result_buf.has_value()) {
-      memory_->storeBuffer(result, result_buf.value());
-      return result_buf.value().size();
-    }
+      runtime::WasmPointer, runtime::WasmPointer) {
+    // Changes trie us currently disabled in polkadot
     return 0;
   }
 
@@ -376,20 +360,10 @@ namespace kagome::extensions {
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
-      runtime::WasmSpan parent_hash_data) {
-    auto parent_hash_span = runtime::WasmResult(parent_hash_data);
-    auto parent_hash_bytes =
-        memory_->loadN(parent_hash_span.address, parent_hash_span.length);
-    common::Hash256 parent_hash;
-    std::copy_n(parent_hash_bytes.begin(),
-                common::Hash256::size(),
-                parent_hash.begin());
-
-    auto &&result = calcStorageChangesRoot(parent_hash);
-    auto &&res = result.has_value()
-                     ? boost::make_optional(std::move(result.value()))
-                     : boost::none;
-    return memory_->storeBuffer(scale::encode(std::move(res)).value());
+      runtime::WasmSpan) {
+    // Changes trie us currently disabled in polkadot
+    return memory_->storeBuffer(
+        scale::encode<boost::optional<Buffer>>(boost::none).value());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
