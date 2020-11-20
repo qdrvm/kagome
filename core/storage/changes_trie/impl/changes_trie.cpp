@@ -15,6 +15,7 @@ namespace kagome::storage::changes_trie {
       std::shared_ptr<storage::trie::Codec> codec,
       const ExtrinsicsChanges &extinsics_changes,
       const ChangesTrieConfig &config) {
+    BOOST_ASSERT(false);
     BOOST_ASSERT(trie_factory != nullptr);
     auto changes_storage = trie_factory->createEmpty();
 
