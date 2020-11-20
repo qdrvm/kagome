@@ -367,7 +367,7 @@ namespace kagome::consensus {
       return log_->error("cannot propose a block: {}",
                          babe_pre_digest_res.error().message());
     }
-    auto babe_pre_digest = babe_pre_digest_res.value();
+    auto &babe_pre_digest = babe_pre_digest_res.value();
 
     // create new block
     auto pre_seal_block_res =
