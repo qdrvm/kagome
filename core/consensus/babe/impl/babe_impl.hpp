@@ -144,7 +144,7 @@ namespace kagome::consensus {
         authority_update_observer_;
 
     State current_state_{State::WAIT_BLOCK};
-    SlotsCalculationStrategy slots_calculation_strategy_;
+    const SlotsCalculationStrategy slots_calculation_strategy_;
 
     Epoch current_epoch_;
 

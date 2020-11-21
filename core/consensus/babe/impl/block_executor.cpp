@@ -134,6 +134,8 @@ namespace kagome::consensus {
         });
   }
 
+  auto getBlockTimestamp(const primitives::Block &block){block.body.}
+
   outcome::result<void> BlockExecutor::applyBlock(
       const primitives::Block &block) {
     // get current time to measure performance if block execution
@@ -156,7 +158,21 @@ namespace kagome::consensus {
 
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
-    auto [seal, babe_header] = babe_digests;
+    const auto &[seal, babe_header] = babe_digests;
+
+    {
+      // add information about epoch to epoch storage
+      if (block_tree_->deepestLeaf().block_number == 0) {
+        BOOST_ASSERT(block.header.number == 1);
+        OUTCOME_TRY(epoch_storage_->setLastEpoch(LastEpochDescriptor{
+            .epoch_number = 0,
+            .start_slot = babe_header.slot_number,
+            .epoch_duration = genesis_configuration_->epoch_length,
+            .starting_slot_finish_time =
+                BabeTimePoint{babe_header.slot_number
+                              * genesis_configuration_->slot_duration}}));
+      }
+    }
 
     auto epoch_index =
         babe_header.slot_number / genesis_configuration_->epoch_length;
