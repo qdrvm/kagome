@@ -83,6 +83,11 @@ namespace kagome::application {
      * @return true if need to force block production
      */
     virtual bool is_already_synchronized() const = 0;
+
+    /**
+     * @return max blocks count per response while syncing
+     */
+     virtual int32_t max_blocks_in_response() const = 0;
   };
 
 }  // namespace kagome::application
