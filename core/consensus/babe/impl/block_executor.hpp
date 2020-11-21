@@ -60,7 +60,7 @@ namespace kagome::consensus {
      * @param to last block of syncing block
      * @param next action after the sync is done
      */
-    void requestBlocks(const primitives::BlockId &from,
+    void requestBlocks(const primitives::BlockHash &from,
                        const primitives::BlockHash &to,
                        primitives::AuthorityIndex authority_index,
                        std::function<void()> &&next);

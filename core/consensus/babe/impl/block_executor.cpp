@@ -89,7 +89,7 @@ namespace kagome::consensus {
                          std::move(next));
   }
 
-  void BlockExecutor::requestBlocks(const primitives::BlockId &from,
+  void BlockExecutor::requestBlocks(const primitives::BlockHash &from,
                                     const primitives::BlockHash &to,
                                     primitives::AuthorityIndex authority_index,
                                     std::function<void()> &&next) {
@@ -98,28 +98,28 @@ namespace kagome::consensus {
         to,
         authority_index,
         [self_wp{weak_from_this()},
-         next(std::move(next)), to, authority_index](const std::vector<primitives::Block> &blocks) mutable {
+         next(std::move(next)), to, from, authority_index](const std::vector<primitives::Block> &blocks) mutable {
           auto self = self_wp.lock();
           if (not self) return;
 
           bool sync_complete = false;
           primitives::BlockHash last_received_hash;
+          primitives::BlockHash front_block_hash;
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
             sync_complete = true;
           } else {
-            auto front_block_hex =
+            front_block_hash =
                 self->hasher_
-                    ->blake2b_256(scale::encode(blocks.front().header).value())
-                    .toHex();
+                    ->blake2b_256(scale::encode(blocks.front().header).value());
             last_received_hash =
                 self->hasher_
                     ->blake2b_256(scale::encode(blocks.back().header).value());
             self->logger_->info("Received blocks from: {}, to {}, count {}",
-                                front_block_hex,
+                                front_block_hash.toHex(),
                                 last_received_hash.toHex(),
                                 blocks.size());
-            sync_complete = to == last_received_hash;
+            sync_complete = from == front_block_hash;
           }
           for (const auto &block : blocks) {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
@@ -140,10 +140,10 @@ namespace kagome::consensus {
           else {
             self->logger_->info(
                 "Request next page of blocks: from {}, to {}, count {}",
-                last_received_hash.toHex(),
-                to.toHex());
+                from.toHex(),
+                front_block_hash.toHex());
             self->requestBlocks(
-                last_received_hash, to, authority_index, std::move(next));
+                from, front_block_hash, authority_index, std::move(next));
           }
         });
   }
