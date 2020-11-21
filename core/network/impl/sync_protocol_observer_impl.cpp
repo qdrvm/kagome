@@ -8,6 +8,7 @@
 #include <boost/assert.hpp>
 
 #include "network/common.hpp"
+#include "application/app_configuration.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,
                             SyncProtocolObserverImpl::Error,
@@ -76,14 +77,19 @@ namespace kagome::network {
     auto ascending_direction =
         request.direction == network::Direction::ASCENDING;
     blockchain::BlockTree::BlockHashVecRes chain_hash_res{{}};
+
+    int32_t request_count = application::AppConfiguration::absolut_min_blocks_in_response;
+    if (request.max)
+      request_count = std::min(std::max(static_cast<uint32_t>(application::AppConfiguration::absolut_min_blocks_in_response), *request.max), static_cast<uint32_t>(application::AppConfiguration::absolut_max_blocks_in_response));
+
     if (!request.to) {
       // if there's no "stop" block, get as many as possible
       chain_hash_res = block_tree_->getChainByBlock(
-          from_hash, ascending_direction, maxRequestBlocks);
+          from_hash, ascending_direction,  request_count);
     } else {
       // else, both blocks are specified
       OUTCOME_TRY(chain_hash,
-                  block_tree_->getChainByBlocks(from_hash, *request.to));
+                  block_tree_->getChainByBlocks(from_hash, *request.to, static_cast<uint32_t>(request_count)));
       if (ascending_direction) {
         std::reverse(chain_hash.begin(), chain_hash.end());
       }

@@ -137,6 +137,9 @@ namespace kagome::consensus {
           if (sync_complete)
             next();
           else
+            self->logger_->info("Request next page of blocks: from {}, to {}, count {}",
+                                last_received_hash.toHex(),
+                                to.toHex());
             self->requestBlocks(last_received_hash, to, authority_index, std::move(next));
         });
   }
