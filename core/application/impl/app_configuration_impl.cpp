@@ -30,8 +30,22 @@ namespace {
   const int def_verbosity = 2;
   const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
-  const int32_t def_max_blocks_in_response = 10;
+  const int32_t absolut_min_blocks_in_response = 10;
   const int32_t absolut_max_blocks_in_response = 1000;
+
+  static_assert(absolut_min_blocks_in_response
+                    <= absolut_max_blocks_in_response,
+                "Check max and min page bounding values!");
+  static_assert(static_cast<uint32_t>(absolut_min_blocks_in_response)
+                        > std::numeric_limits<uint32_t>::min()
+                    && static_cast<uint32_t>(absolut_min_blocks_in_response)
+                           < std::numeric_limits<uint32_t>::max(),
+                "Check page size value validity!");
+  static_assert(static_cast<uint32_t>(absolut_max_blocks_in_response)
+                        > std::numeric_limits<uint32_t>::min()
+                    && static_cast<uint32_t>(absolut_max_blocks_in_response)
+                           < std::numeric_limits<uint32_t>::max(),
+                "Check page size value validity!");
 }  // namespace
 
 namespace kagome::application {
@@ -175,9 +189,9 @@ namespace kagome::application {
       return false;
     }
 
-    // pagination page size bounded [def_max_blocks_in_response, absolut_max_blocks_in_response]
+    // pagination page size bounded [absolut_min_blocks_in_response, absolut_max_blocks_in_response]
     max_blocks_in_response_ =
-        std::min(std::max(def_max_blocks_in_response, max_blocks_in_response_),
+        std::min(std::max(absolut_min_blocks_in_response, max_blocks_in_response_),
                  absolut_max_blocks_in_response);
     return true;
   }

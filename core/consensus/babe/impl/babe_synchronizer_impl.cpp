@@ -14,9 +14,11 @@
 
 namespace kagome::consensus {
   BabeSynchronizerImpl::BabeSynchronizerImpl(
-      std::shared_ptr<network::SyncClientsSet> sync_clients)
+      std::shared_ptr<network::SyncClientsSet> sync_clients,
+      const application::AppConfiguration &app_configuration)
       : sync_clients_{std::move(sync_clients)},
-        logger_{common::createLogger("BabeSynchronizer")} {
+        logger_{common::createLogger("BabeSynchronizer")},
+        app_configuration_(app_configuration) {
     BOOST_ASSERT(sync_clients_);
     BOOST_ASSERT(std::all_of(sync_clients_->clients.begin(),
                              sync_clients_->clients.end(),
@@ -40,7 +42,7 @@ namespace kagome::consensus {
                                    from,
                                    to,
                                    network::Direction::DESCENDING,
-                                   10};
+                                   static_cast<uint32_t>(app_configuration_.max_blocks_in_response())};
 
     return pollClients(request, authority_index, block_list_handler);
   }
