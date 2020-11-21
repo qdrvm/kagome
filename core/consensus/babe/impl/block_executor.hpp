@@ -66,6 +66,11 @@ namespace kagome::consensus {
                        std::function<void()> &&next);
 
    private:
+    enum ExecutorState {
+      kReadyState = 0,
+      kSyncState = 1,
+    };
+    std::atomic<ExecutorState> sync_state_;
     // should only be invoked when parent of block exists
     outcome::result<void> applyBlock(const primitives::Block &block);
 

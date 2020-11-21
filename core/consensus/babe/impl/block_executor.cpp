@@ -26,7 +26,7 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer)
-      : block_tree_{std::move(block_tree)},
+      : sync_state_(kReadyState), block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         genesis_configuration_{std::move(configuration)},
         babe_synchronizer_{std::move(babe_synchronizer)},
@@ -64,11 +64,17 @@ namespace kagome::consensus {
       auto [_, babe_header] = getBabeDigests(header).value();
 
       if (not block_tree_->getBlockHeader(header.parent_hash)) {
-        const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
-        // we should request blocks between last finalized one and received
-        // block
-        requestBlocks(
-            last_hash, block_hash, babe_header.authority_index, [] {});
+        if (sync_state_ == kReadyState) {
+          sync_state_ = kSyncState;
+          const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
+          // we should request blocks between last finalized one and received
+          // block
+          requestBlocks(
+              last_hash, block_hash, babe_header.authority_index, [wself{weak_from_this()}] {
+                if (auto self = wself.lock())
+                  self->sync_state_ = kReadyState;
+              });
+        }
       } else {
         requestBlocks(
             header.parent_hash, block_hash, babe_header.authority_index, [] {});
