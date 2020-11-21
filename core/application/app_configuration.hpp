@@ -20,6 +20,23 @@ namespace kagome::application {
    */
   class AppConfiguration {
    public:
+    static constexpr int32_t absolut_min_blocks_in_response = 10;
+    static constexpr int32_t absolut_max_blocks_in_response = 128;
+
+    static_assert(absolut_min_blocks_in_response
+                  <= absolut_max_blocks_in_response,
+                  "Check max and min page bounding values!");
+    static_assert(static_cast<uint32_t>(absolut_min_blocks_in_response)
+                  > std::numeric_limits<uint32_t>::min()
+                  && static_cast<uint32_t>(absolut_min_blocks_in_response)
+                     < std::numeric_limits<uint32_t>::max(),
+                  "Check page size value validity!");
+    static_assert(static_cast<uint32_t>(absolut_max_blocks_in_response)
+                  > std::numeric_limits<uint32_t>::min()
+                  && static_cast<uint32_t>(absolut_max_blocks_in_response)
+                     < std::numeric_limits<uint32_t>::max(),
+                  "Check page size value validity!");
+
     enum struct LoadScheme {
       kBlockProducing,
       kValidating,

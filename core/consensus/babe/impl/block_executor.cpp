@@ -131,16 +131,20 @@ namespace kagome::consensus {
               self->logger_->warn(
                   "Could not apply block during synchronizing slots.Error: {}",
                   apply_res.error().message());
+              sync_complete = true;
               break;
             }
           }
           if (sync_complete)
             next();
-          else
-            self->logger_->info("Request next page of blocks: from {}, to {}, count {}",
-                                last_received_hash.toHex(),
-                                to.toHex());
-            self->requestBlocks(last_received_hash, to, authority_index, std::move(next));
+          else {
+            self->logger_->info(
+                "Request next page of blocks: from {}, to {}, count {}",
+                last_received_hash.toHex(),
+                to.toHex());
+            self->requestBlocks(
+                last_received_hash, to, authority_index, std::move(next));
+          }
         });
   }
 
