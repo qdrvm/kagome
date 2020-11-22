@@ -9,11 +9,13 @@
 #include <cstdint>
 #include <memory>
 
+#include <libp2p/peer/peer_id.hpp>
 #include <boost/none_t.hpp>
 #include <boost/variant.hpp>
 
 #include "common/buffer.hpp"
 #include "primitives/block_id.hpp"
+
 #include "primitives/version.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
@@ -24,47 +26,69 @@ namespace kagome::api {
 
 namespace kagome::primitives {
   struct BlockHeader;
+}
 
-  enum struct SubscriptionEventType : uint32_t {
+namespace kagome::primitives::events {
+
+  enum struct ChainEventType : uint32_t {
     kNewHeads = 1,
     kFinalizedHeads = 2,
     kAllHeads = 3,
     kRuntimeVersion = 4
   };
-}  // namespace kagome::primitives
 
-namespace kagome::subscription {
-  template <typename Key, typename Type, typename... Arguments>
-  class SubscriptionEngine;
+  enum class ExtrinsicLifecycleEvent {
+    FUTURE,
+    READY,
+    BROADCAST,
+    IN_BLOCK,
+    RETRACTED,
+    FINALITY_TIMEOUT,
+    FINALIZED,
+    USURPED,
+    DROPPED,
+    INVALID
+  };
 
-  template <typename Key, typename Type, typename... Arguments>
-  class Subscriber;
-}  // namespace kagome::subscription
+  struct BroadcastEventParams {
+    std::vector<libp2p::peer::PeerId> peers;
+  };
 
-namespace kagome::subscriptions {
-  using EventsSubscriptionEngineType = subscription::SubscriptionEngine<
-      primitives::SubscriptionEventType,
-      std::shared_ptr<api::Session>,
-      boost::variant<std::reference_wrapper<boost::none_t>,
-                     std::reference_wrapper<const primitives::BlockHeader>,
-                     std::reference_wrapper<primitives::Version>>>;
-  using EventsSubscriptionEnginePtr =
-      std::shared_ptr<EventsSubscriptionEngineType>;
-  using EventsSubscribedSessionType =
-      EventsSubscriptionEngineType::SubscriberType;
-  using EventsSubscribedSessionPtr =
-      std::shared_ptr<EventsSubscribedSessionType>;
+  struct InBlockEventParams {
+    primitives::BlockHash block;
+  };
+  struct RetractedEventParams {
+    primitives::BlockHash retracted_block;
+  };
 
-  using SubscriptionEngineType =
-      subscription::SubscriptionEngine<common::Buffer,
-                                       std::shared_ptr<api::Session>,
-                                       common::Buffer,
-                                       primitives::BlockHash>;
-  using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
+  struct FinalityTimeoutEventParams {
+    primitives::BlockHash block;
+  };
 
-  using SubscribedSessionType = SubscriptionEngineType::SubscriberType;
-  using SubscribedSessionPtr = std::shared_ptr<SubscribedSessionType>;
+  struct FinalizedEventParams {
+    primitives::BlockHash block;
+  };
 
-}  // namespace kagome::subscriptions
+  struct UsurpedEventParams {
+    common::Hash256 transaction_hash;
+  };
+
+  template <typename T>
+  using ref = std::reference_wrapper<T>;
+
+  using ExtrinsicLifecycleEventParams =
+      std::variant<boost::none_t,
+                   ref<BroadcastEventParams>,
+                   ref<InBlockEventParams>,
+                   ref<RetractedEventParams>,
+                   ref<FinalityTimeoutEventParams>,
+                   ref<FinalizedEventParams>,
+                   ref<UsurpedEventParams>>;
+
+  using ChainEventParams = boost::variant<boost::none_t,
+                                          ref<const primitives::BlockHeader>,
+                                          ref<primitives::Version>>;
+
+}  // namespace kagome::primitives::events
 
 #endif  // KAGOME_CORE_PRIMITIVES_EVENT_TYPES_HPP

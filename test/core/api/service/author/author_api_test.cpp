@@ -15,6 +15,8 @@
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
+#include "subscription/subscriber.hpp"
+#include "subscription/subscription_engine.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -39,6 +41,8 @@ using kagome::primitives::TransactionSource;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
 using kagome::primitives::ValidTransaction;
+using kagome::subscription::Subscriber;
+using kagome::subscription::SubscriptionEngine;
 
 using ::testing::_;
 using ::testing::ByRef;
@@ -62,14 +66,25 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<ValidTransaction> valid_transaction;    ///< valid transaction instance
   Hash256 deepest_hash;                        ///< hash of deepest leaf
   sptr<BlockInfo> deepest_leaf;                ///< deepest leaf block info
+  sptr<SubscriptionEngine<AuthorApiImpl::ExtrinsicLifecycleEvent,
+                          boost::none_t,
+                          AuthorApiImpl::ExtrinsicLifecycleEventParams>>
+      sub_engine;
 
   void SetUp() override {
+    sub_engine = std::make_shared<
+        SubscriptionEngine<AuthorApiImpl::ExtrinsicLifecycleEvent,
+                           boost::none_t,
+                           AuthorApiImpl::ExtrinsicLifecycleEventParams>>();
+    auto subscriber =
+        std::make_unique<AuthorApiImpl::Subscriber>(sub_engine, boost::none);
+
     hasher = std::make_shared<HasherMock>();
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     gossiper = std::make_shared<ExtrinsicGossiperMock>();
     api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, gossiper);
+        ttq, transaction_pool, hasher, gossiper, std::move(subscriber));
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});
@@ -121,4 +136,11 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
   EXPECT_CALL(*gossiper, propagateTransactions(_)).Times(0);
   EXPECT_OUTCOME_ERROR(
       res, api->submitExtrinsic(*extrinsic), DummyError::ERROR);
+}
+
+TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
+  EXPECT_OUTCOME_TRUE(id, api->submitAndWatchExtrinsic(*extrinsic))
+  sub_engine->notify(AuthorApiImpl::ExtrinsicLifecycleEvent::FUTURE, boost::none);
+  sub_engine->notify(AuthorApiImpl::ExtrinsicLifecycleEvent::BROADCAST, boost::none);
+
 }

@@ -6,10 +6,12 @@
 #include "api/service/author/impl/author_api_impl.hpp"
 
 #include <boost/system/error_code.hpp>
+#include <boost/assert.hpp>
 
 #include "common/visitor.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
+#include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
@@ -17,17 +19,26 @@ namespace kagome::api {
       sptr<runtime::TaggedTransactionQueue> api,
       sptr<transaction_pool::TransactionPool> pool,
       sptr<crypto::Hasher> hasher,
-      std::shared_ptr<network::ExtrinsicGossiper> gossiper)
+      std::shared_ptr<network::ExtrinsicGossiper> gossiper,
+      std::unique_ptr<Subscriber> subscriber)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)},
         gossiper_{std::move(gossiper)},
+        subscriber_{std::move(subscriber)},
         logger_{common::createLogger("AuthorApi")} {
     BOOST_ASSERT_MSG(api_ != nullptr, "author api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
     BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
+    BOOST_ASSERT_MSG(subscriber_ != nullptr, "subscriber is nullptr");
+
+    auto set_id = subscriber_->generateSubscriptionSetId();
+    subscriber_->setCallback(
+        [](auto set_id, auto &receiver, auto &event, auto &param) {
+
+        });
   }
 
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
@@ -99,12 +110,14 @@ namespace kagome::api {
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(
       const AuthorApi::Extrinsic &extrinsic) {
-
+    BOOST_ASSERT_MSG(false, "Not implemented");
+    return 0;
   }
 
   outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(
       const AuthorApi::Extrinsic &extrinsic) {
-
+    BOOST_ASSERT_MSG(false, "Not implemented");
+    return false;
   }
 
 }  // namespace kagome::api

@@ -12,41 +12,34 @@
 #include <unordered_map>
 
 namespace kagome::subscription {
-  template <typename Key, typename Type, typename... Arguments>
+  template <typename Event, typename Receiver, typename... Arguments>
   class Subscriber;
+
+  using SubscriptionSetId = uint32_t;
 
   /**
    * TODO(Harrm) document
    * @tparam Event
    * @tparam Receiver
-   * @tparam Arguments
+   * @tparam EventParams
    */
-  template <typename Event, typename Receiver, typename... Arguments>
+  template <typename Event, typename Receiver, typename... EventParams>
   class SubscriptionEngine final
       : public std::enable_shared_from_this<
-            SubscriptionEngine<Event, Receiver, Arguments...>> {
+            SubscriptionEngine<Event, Receiver, EventParams...>> {
    public:
     using EventType = Event;
     using ReceiverType = Receiver;
-    using SubscriberType = Subscriber<EventType, ReceiverType, Arguments...>;
+    using SubscriberType = Subscriber<EventType, ReceiverType, EventParams...>;
     using SubscriberPtr = std::shared_ptr<SubscriberType>;
-    using SubscriberWPtr = std::weak_ptr<SubscriberType>;
-    using SubscriptionSetId = uint32_t;
+    using SubscriberWeakPtr = std::weak_ptr<SubscriberType>;
 
     /// List is preferable here because this container iterators remain
     /// alive after removal from the middle of the container
     /// TODO(iceseer): PRE-476 remove processor cache penalty, while iterating, using
     /// custom allocator
-    using SubscribersContainer = std::list<std::pair<SubscriptionSetId,SubscriberWPtr>>;
+    using SubscribersContainer = std::list<std::pair<SubscriptionSetId, SubscriberWeakPtr>>;
     using IteratorType = typename SubscribersContainer::iterator;
-
-   private:
-    template <typename KeyType, typename ValueType, typename... Args>
-    friend class Subscriber;
-    using KeyValueContainer = std::unordered_map<EventType, SubscribersContainer>;
-
-    mutable std::shared_mutex subscribers_map_cs_;
-    KeyValueContainer subscribers_map_;
 
    public:
     SubscriptionEngine() = default;
@@ -59,7 +52,15 @@ namespace kagome::subscription {
     SubscriptionEngine &operator=(const SubscriptionEngine &) = delete;
 
    private:
-    IteratorType subscribe(SubscriptionSetId set_id, const EventType &key, SubscriberWPtr ptr) {
+    template <typename KeyType, typename ValueType, typename... Args>
+    friend class Subscriber;
+    using KeyValueContainer = std::unordered_map<EventType, SubscribersContainer>;
+
+    mutable std::shared_mutex subscribers_map_cs_;
+    KeyValueContainer subscribers_map_;
+
+    IteratorType subscribe(SubscriptionSetId set_id, const EventType &key,
+                           SubscriberWeakPtr ptr) {
       std::unique_lock lock(subscribers_map_cs_);
       auto &subscribers_list = subscribers_map_[key];
       return subscribers_list.emplace(subscribers_list.end(), std::make_pair(set_id, std::move(ptr)));
@@ -90,7 +91,7 @@ namespace kagome::subscription {
       return count;
     }
 
-    void notify(const EventType &key, const Arguments &... args) {
+    void notify(const EventType &key, const EventParams &... args) {
       std::shared_lock lock(subscribers_map_cs_);
       auto it = subscribers_map_.find(key);
       if (subscribers_map_.end() == it) return;

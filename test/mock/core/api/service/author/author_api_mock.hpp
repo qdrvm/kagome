@@ -18,6 +18,10 @@ namespace kagome::api {
 
     MOCK_METHOD1(submitExtrinsic, outcome::result<Hash256>(const Extrinsic &));
 
+    MOCK_METHOD1(submitAndWatchExtrinsic, outcome::result<SubscriptionId>(const Extrinsic &));
+
+    MOCK_METHOD1(unwatchExtrinsic, outcome::result<bool>(const Extrinsic &));
+
     MOCK_METHOD0(pendingExtrinsics, outcome::result<std::vector<Extrinsic>>());
 
     MOCK_METHOD1(removeExtrinsic,

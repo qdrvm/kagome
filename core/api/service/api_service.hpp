@@ -41,29 +41,56 @@ namespace kagome::api {
   class ApiService final : public std::enable_shared_from_this<ApiService> {
     using SessionPtr = std::shared_ptr<Session>;
 
-    using SubscribedSessionType =
-        subscription::Subscriber<common::Buffer,
-                                 SessionPtr,
-                                 common::Buffer,
-                                 primitives::BlockHash>;
-    using SubscribedSessionPtr = std::shared_ptr<SubscribedSessionType>;
+    /// subscription set id from subscription::SubscriptionEngine
+    using SubscriptionSetId = subscription::SubscriptionSetId;
 
-    using SubscriptionEngineType =
+    /// subscription id for pubsub API methods
+    using PubsubSubscriptionId = uint32_t;
+
+    using StorageSubscriptionEngine =
         subscription::SubscriptionEngine<common::Buffer,
                                          SessionPtr,
                                          common::Buffer,
                                          primitives::BlockHash>;
-    using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
+    using StorageSubscriptionEnginePtr =
+        std::shared_ptr<StorageSubscriptionEngine>;
 
-    struct SessionExecutionContext {
+    using StorageEventSubscriber = StorageSubscriptionEngine::SubscriberType;
+    using StorageEventSubscriberPtr = std::shared_ptr<StorageEventSubscriber>;
+
+    using ChainSubscriptionEngine =
+        subscription::SubscriptionEngine<primitives::events::ChainEventType,
+                                         SessionPtr,
+                                         primitives::events::ChainEventParams>;
+    using ChainSubscriptionEnginePtr = std::shared_ptr<ChainSubscriptionEngine>;
+
+    using ChainEventSubscriber = ChainSubscriptionEngine::SubscriberType;
+    using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
+
+    using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
+        primitives::events::ExtrinsicLifecycleEvent,
+        SessionPtr,
+        primitives::events::ExtrinsicLifecycleEventParams>;
+    using ExtrinsicSubscriptionEnginePtr =
+        std::shared_ptr<ExtrinsicSubscriptionEngine>;
+
+    using ExtrinsicEventSubscriber =
+        ExtrinsicSubscriptionEngine::SubscriberType;
+    using ExtrinsicEventSubscriberPtr =
+        std::shared_ptr<ExtrinsicEventSubscriber>;
+
+    using Buffer = common::Buffer;
+
+    struct SessionSubscriptions {
       using AdditionMessageType =
-          decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
+      decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
       using AdditionMessagesList = std::vector<AdditionMessageType>;
       using CachedAdditionMessagesList = decltype(
-          KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
+      KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
 
-      SubscribedSessionPtr storage_subscription;
-      subscriptions::EventsSubscribedSessionPtr events_subscription;
+      StorageEventSubscriberPtr storage_sub;
+      ChainEventSubscriberPtr chain_sub;
+      ExtrinsicEventSubscriberPtr ext_sub;
       CachedAdditionMessagesList messages;
     };
 
@@ -83,10 +110,12 @@ namespace kagome::api {
         std::vector<std::shared_ptr<Listener>> listeners,
         std::shared_ptr<JRpcServer> server,
         const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
-        SubscriptionEnginePtr subscription_engine,
-        subscriptions::EventsSubscriptionEnginePtr events_engine,
+        StorageSubscriptionEnginePtr storage_sub_engine,
+        ChainSubscriptionEnginePtr chain_sub_engine,
+        ExtrinsicSubscriptionEnginePtr ext_sub_engine,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage);
+
 
     virtual ~ApiService() = default;
 
@@ -103,16 +132,19 @@ namespace kagome::api {
         const std::vector<common::Buffer> &keys);
 
     outcome::result<bool> unsubscribeSessionFromIds(
-        const std::vector<uint32_t> &subscription_id);
+        const std::vector<PubsubSubscriptionId> &subscription_id);
 
-    outcome::result<uint32_t> subscribeFinalizedHeads();
-    outcome::result<void> unsubscribeFinalizedHeads(uint32_t subscription_id);
+    outcome::result<PubsubSubscriptionId> subscribeFinalizedHeads();
+    outcome::result<void> unsubscribeFinalizedHeads(
+        PubsubSubscriptionId subscription_id);
 
-    outcome::result<uint32_t> subscribeNewHeads();
-    outcome::result<void> unsubscribeNewHeads(uint32_t subscription_id);
+    outcome::result<PubsubSubscriptionId> subscribeNewHeads();
+    outcome::result<void> unsubscribeNewHeads(
+        PubsubSubscriptionId subscription_id);
 
-    outcome::result<uint32_t> subscribeRuntimeVersion();
-    outcome::result<void> unsubscribeRuntimeVersion(uint32_t subscription_id);
+    outcome::result<PubsubSubscriptionId> subscribeRuntimeVersion();
+    outcome::result<void> unsubscribeRuntimeVersion(
+        PubsubSubscriptionId subscription_id);
 
    private:
     jsonrpc::Value createStateStorageEvent(const common::Buffer &key,
@@ -128,10 +160,27 @@ namespace kagome::api {
 
       return boost::none;
     }
-
     void removeSessionById(Session::SessionId id);
-    std::shared_ptr<SessionExecutionContext> storeSessionWithId(
+    std::shared_ptr<SessionSubscriptions> storeSessionWithId(
         Session::SessionId id, const std::shared_ptr<Session> &session);
+
+    void onSessionRequest(std::string_view request,
+                          std::shared_ptr<Session> session);
+    void onSessionClose(Session::SessionId id, SessionType);
+    void onStorageEvent(SubscriptionSetId set_id,
+                        SessionPtr &session,
+                        const Buffer &key,
+                        const Buffer &data,
+                        const common::Hash256 &block);
+    void onChainEvent(SubscriptionSetId set_id,
+                      SessionPtr &session,
+                      primitives::events::ChainEventType event_type,
+                      const primitives::events::ChainEventParams &params);
+    void onExtrinsicEvent(
+        SubscriptionSetId set_id,
+        SessionPtr &session,
+        primitives::events::ExtrinsicLifecycleEvent event_type,
+        const primitives::events::ExtrinsicLifecycleEventParams &params);
 
     template <typename Func>
     auto for_session(kagome::api::Session::SessionId id, Func &&f) {
@@ -160,7 +209,6 @@ namespace kagome::api {
       return obj;
     }
 
-   private:
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<sptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
@@ -170,12 +218,13 @@ namespace kagome::api {
 
     std::mutex subscribed_sessions_cs_;
     std::unordered_map<Session::SessionId,
-                       std::shared_ptr<SessionExecutionContext>>
+                       std::shared_ptr<SessionSubscriptions>>
         subscribed_sessions_;
 
     struct {
-      SubscriptionEnginePtr storage;
-      subscriptions::EventsSubscriptionEnginePtr events;
+      StorageSubscriptionEnginePtr storage;
+      ChainSubscriptionEnginePtr chain;
+      ExtrinsicSubscriptionEnginePtr ext;
     } subscription_engines_;
   };
 }  // namespace kagome::api

@@ -34,8 +34,6 @@ namespace kagome::subscription {
     using SubscriptionEngineType =
         SubscriptionEngine<EventType, ReceiverType, Arguments...>;
     using SubscriptionEnginePtr = std::shared_ptr<SubscriptionEngineType>;
-    using SubscriptionSetId =
-        typename SubscriptionEngineType::SubscriptionSetId;
 
     using CallbackFnType = std::function<void(SubscriptionSetId,
                                               ReceiverType &,
@@ -59,21 +57,22 @@ namespace kagome::subscription {
     CallbackFnType on_notify_callback_;
 
    public:
-    template <typename... Args>
-    explicit Subscriber(SubscriptionEnginePtr &ptr, Args &&... args)
-        : next_id_(0ull), engine_(ptr), object_(std::forward<Args>(args)...) {}
+    template <typename... SubscriberConstructorArgs>
+    explicit Subscriber(SubscriptionEnginePtr &ptr, SubscriberConstructorArgs &&... args)
+        : next_id_(0ull), engine_(ptr), object_(std::forward<SubscriberConstructorArgs>(args)...) {}
 
     ~Subscriber() {
-      /// Unsubscribe all
+      // Unsubscribe all
       for (auto &[_, subscriptions] : subscriptions_sets_)
-        for (auto &[key, it] : subscriptions) engine_->unsubscribe(key, it);
+        for (auto &[key, it] : subscriptions)
+          engine_->unsubscribe(key, it);
     }
-
+/*
     template <typename... ArgumentTypes>
     static std::shared_ptr<This> create(ArgumentTypes &&... args) {
       return std::make_shared<This>(std::forward<ArgumentTypes>(args)...);
     }
-
+*/
     Subscriber(const Subscriber &) = delete;
     Subscriber &operator=(const Subscriber &) = delete;
 

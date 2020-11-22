@@ -10,6 +10,13 @@
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/value_converter.hpp"
 
+#define UNWRAP_WEAK_PTR(callback)   \
+  [wp](auto &&... params) mutable { \
+    if (auto self = wp.lock()) {    \
+      self->callback(params...);    \
+    }                               \
+  }
+
 namespace {
   thread_local class {
    private:
@@ -109,8 +116,9 @@ namespace kagome::api {
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
       const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
-      SubscriptionEnginePtr subscription_engine,
-      subscriptions::EventsSubscriptionEnginePtr events_engine,
+      StorageSubscriptionEnginePtr storage_sub_engine,
+      ChainSubscriptionEnginePtr chain_sub_engine,
+      ExtrinsicSubscriptionEnginePtr ext_sub_engine,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage)
       : thread_pool_(std::move(thread_pool)),
@@ -119,8 +127,9 @@ namespace kagome::api {
         logger_{common::createLogger("Api service")},
         block_tree_{std::move(block_tree)},
         trie_storage_{std::move(trie_storage)},
-        subscription_engines_{.storage = std::move(subscription_engine),
-                              .events = std::move(events_engine)} {
+        subscription_engines_{.storage = std::move(storage_sub_engine),
+                              .chain = std::move(chain_sub_engine),
+                              .ext = std::move(ext_sub_engine)} {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
@@ -135,8 +144,9 @@ namespace kagome::api {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
 
-    BOOST_ASSERT(subscription_engines_.events);
+    BOOST_ASSERT(subscription_engines_.chain);
     BOOST_ASSERT(subscription_engines_.storage);
+    BOOST_ASSERT(subscription_engines_.ext);
   }
 
   jsonrpc::Value ApiService::createStateStorageEvent(
@@ -168,6 +178,11 @@ namespace kagome::api {
         }
 
         if (SessionType::kWs == session->type()) {
+          auto session_subs = self->storeSessionWithId(session->id(), session);
+          BOOST_ASSERT(session_subs);
+          session_subs.storage_sub->setCallback(UNWRAP_WEAK_PTR(onStorageEvent));
+          session_subs.chain_sub->setCallback(UNWRAP_WEAK_PTR(onChainEvent));
+          session_subs.ext_sub->setCallback(UNWRAP_WEAK_PTR(onExtrinsicEvent));
           auto session_context =
               self->storeSessionWithId(session->id(), session);
           BOOST_ASSERT(session_context);
@@ -219,6 +234,8 @@ namespace kagome::api {
               });
         }
 
+        session->connectOnRequest(UNWRAP_WEAK_PTR(onSessionRequest));
+        session->connectOnCloseHandler(UNWRAP_WEAK_PTR(onSessionClose));
         session->connectOnRequest(
             [wp](std::string_view request,
                  std::shared_ptr<Session> session) mutable {
@@ -315,11 +332,11 @@ namespace kagome::api {
     subscribed_sessions_.erase(id);
   }
 
-  outcome::result<uint32_t> ApiService::subscribeSessionToKeys(
-      const std::vector<common::Buffer> &keys) {
+  outcome::result<ApiService::PubsubSubscriptionId>
+  ApiService::subscribeSessionToKeys(const std::vector<common::Buffer> &keys) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionExecutionContext &session_context) {
-        auto &session = session_context.storage_subscription;
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.storage_sub;
         const auto id = session->generateSubscriptionSetId();
         auto persistent_batch = trie_storage_->getPersistentBatch();
         BOOST_ASSERT(persistent_batch.has_value());
@@ -350,12 +367,14 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<uint32_t> ApiService::subscribeFinalizedHeads() {
+  outcome::result<ApiService::PubsubSubscriptionId>
+  ApiService::subscribeFinalizedHeads() {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionExecutionContext &session_context) {
-        auto &session = session_context.events_subscription;
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
+                           primitives::events::ChainEventType::kFinalizedHeads);
                            primitives::SubscriptionEventType::kFinalizedHeads);
 
         auto header = block_tree_->getBlockHeader(
@@ -383,21 +402,23 @@ namespace kagome::api {
   }
 
   outcome::result<void> ApiService::unsubscribeFinalizedHeads(
-      uint32_t subscription_id) {
+      PubsubSubscriptionId subscription_id) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionExecutionContext &session_context) {
-        auto &session = session_context.events_subscription;
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.chain_sub;
         session->unsubscribe(subscription_id);
         return outcome::success();
       });
     });
   }
 
-  outcome::result<uint32_t> ApiService::subscribeNewHeads() {
+  outcome::result<ApiService::PubsubSubscriptionId>
+  ApiService::subscribeNewHeads() {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionExecutionContext &session_context) {
-        auto &session = session_context.events_subscription;
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
+        session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
         session->subscribe(id, primitives::SubscriptionEventType::kNewHeads);
 
         auto header =
@@ -424,22 +445,24 @@ namespace kagome::api {
   }
 
   outcome::result<void> ApiService::unsubscribeNewHeads(
-      uint32_t subscription_id) {
+      PubsubSubscriptionId subscription_id) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionExecutionContext &session_context) {
-        auto &session = session_context.events_subscription;
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.chain_sub;
         session->unsubscribe(subscription_id);
         return outcome::success();
       });
     });
   }
 
-  outcome::result<uint32_t> ApiService::subscribeRuntimeVersion() {
+  outcome::result<ApiService::PubsubSubscriptionId>
+  ApiService::subscribeRuntimeVersion() {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionExecutionContext &session_context) {
-        auto &session = session_context.events_subscription;
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
+                           primitives::events::ChainEventType::kRuntimeVersion);
                            primitives::SubscriptionEventType::kRuntimeVersion);
 
         auto ver = block_tree_->runtimeVersion();
@@ -461,10 +484,10 @@ namespace kagome::api {
   }
 
   outcome::result<void> ApiService::unsubscribeRuntimeVersion(
-      uint32_t subscription_id) {
+      PubsubSubscriptionId subscription_id) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionExecutionContext &session_context) {
-        auto &session = session_context.events_subscription;
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.chain_sub;
         session->unsubscribe(subscription_id);
         return outcome::success();
       });
@@ -472,14 +495,125 @@ namespace kagome::api {
   }
 
   outcome::result<bool> ApiService::unsubscribeSessionFromIds(
-      const std::vector<uint32_t> &subscription_ids) {
+      const std::vector<PubsubSubscriptionId> &subscription_ids) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionExecutionContext &session_context) {
-        auto &session = session_context.storage_subscription;
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.storage_sub;
         for (auto id : subscription_ids) session->unsubscribe(id);
         return true;
       });
     });
   }
+
+  void ApiService::onSessionRequest(std::string_view request,
+                                    std::shared_ptr<Session> session) {
+    auto thread_session_auto_release = [](void *) {
+      threaded_info.releaseSessionId();
+    };
+
+    threaded_info.storeSessionId(session->id());
+
+    /**
+     * Unique ptr object to autorelease sessions.
+     * 0xff if a random not null value to jump internal nullptr check.
+     */
+    std::unique_ptr<void, decltype(thread_session_auto_release)>
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        thread_session_keeper(reinterpret_cast<void *>(0xff),
+                              std::move(thread_session_auto_release));
+
+    // TODO(kamilsa): remove that string replacement when
+    // https://github.com/soramitsu/kagome/issues/572 resolved
+    std::string str_request(request);
+    boost::replace_all(str_request, " ", "");
+    boost::replace_first(str_request, "\"params\":null", "\"params\":[null]");
+
+    // process new request
+    server_->processData(
+        str_request,
+        [session = std::move(session)](const std::string &response) mutable {
+          // process response
+          session->respond(response);
+        });
+  }
+
+  void ApiService::onSessionClose(Session::SessionId id, SessionType) {
+    removeSessionById(id);
+  }
+
+  void ApiService::onStorageEvent(SubscriptionSetId set_id,
+                                  SessionPtr &session,
+                                  const Buffer &key,
+                                  const Buffer &data,
+                                  const common::Hash256 &block) {
+    jsonrpc::Value::Array out_data;
+    out_data.emplace_back(api::makeValue(key));
+    out_data.emplace_back(api::makeValue(hex_lower_0x(data)));
+
+    /// TODO(iceseer): PRE-475 make event notification depending
+    /// in packs blocks, to batch them in a single message Because
+    /// of a spec, we can send an array of changes in a single
+    /// message. We can receive here a pack of events and format
+    /// them in a single json message.
+
+    jsonrpc::Value::Struct result;
+    result["changes"] = std::move(out_data);
+    result["block"] = api::makeValue(block);
+
+    jsonrpc::Value::Struct p;
+    p["result"] = std::move(result);
+    p["subscription"] = api::makeValue(set_id);
+
+    jsonrpc::Request::Parameters params;
+    params.push_back(std::move(p));
+    server_->processJsonData(
+        "state_storage", params, [&](const auto &response) {
+          if (response.has_value())
+            session->respond(response.value());
+          else
+            logger_->error("process Json data failed => {}",
+                                 response.error().message());
+        });
+  }
+
+  void ApiService::onChainEvent(
+      SubscriptionSetId set_id,
+      SessionPtr &session,
+      primitives::events::ChainEventType event_type,
+      const primitives::events::ChainEventParams &params) {
+
+    jsonrpc::Value::Struct p;
+    p["result"] = api::makeValue(header);
+    p["subscription"] = api::makeValue(set_id);
+
+    jsonrpc::Request::Parameters params;
+    params.push_back(std::move(p));
+    if (event_type == primitives::events::ChainEventType::kNewHeads) {
+      self->server_->processJsonData(
+          "chain_newHead", params, [&](const auto &response) {
+            if (response.has_value())
+              session->respond(response.value());
+            else
+              self->logger_->error("process Json data failed => {}",
+                                   response.error().message());
+          });
+    }
+    if (event_type == primitives::events::ChainEventType::kFinalizedHeads) {
+      self->server_->processJsonData(
+          "chain_finalizedHead", params, [&](const auto &response) {
+            if (response.has_value())
+              session->respond(response.value());
+            else
+              self->logger_->error("process Json data failed => {}",
+                                   response.error().message());
+          });
+    }
+  }
+
+  void ApiService::onExtrinsicEvent(
+      SubscriptionSetId set_id,
+      SessionPtr &session,
+      primitives::events::ExtrinsicLifecycleEvent event_type,
+      const primitives::events::ExtrinsicLifecycleEventParams &params) {}
 
 }  // namespace kagome::api
