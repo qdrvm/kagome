@@ -361,7 +361,8 @@ namespace kagome::blockchain {
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block,
       const uint32_t max_count) {
-    return getChainByBlocks(top_block, bottom_block, boost::make_optional(max_count));
+    return getChainByBlocks(
+        top_block, bottom_block, boost::make_optional(max_count));
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(

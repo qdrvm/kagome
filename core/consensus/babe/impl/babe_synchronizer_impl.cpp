@@ -37,12 +37,13 @@ namespace kagome::consensus {
 
     static std::random_device rd{};
     static std::uniform_int_distribution<primitives::BlocksRequestId> dis{};
-    network::BlocksRequest request{dis(rd),
-                                   network::BlocksRequest::kBasicAttributes,
-                                   from,
-                                   to,
-                                   network::Direction::DESCENDING,
-                                   static_cast<uint32_t>(app_configuration_.max_blocks_in_response())};
+    network::BlocksRequest request{
+        dis(rd),
+        network::BlocksRequest::kBasicAttributes,
+        from,
+        to,
+        network::Direction::DESCENDING,
+        static_cast<uint32_t>(app_configuration_.max_blocks_in_response())};
 
     return pollClients(request, authority_index, block_list_handler);
   }

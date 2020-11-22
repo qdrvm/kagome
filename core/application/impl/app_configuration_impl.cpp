@@ -44,7 +44,7 @@ namespace kagome::application {
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
-  max_blocks_in_response_(absolut_max_blocks_in_response) {}
+        max_blocks_in_response_(absolut_max_blocks_in_response) {}
 
   fs::path AppConfigurationImpl::genesis_path() const {
     return genesis_path_.native();
@@ -105,8 +105,8 @@ namespace kagome::application {
   }
 
   bool AppConfigurationImpl::load_i32(const rapidjson::Value &val,
-                char const *name,
-                int32_t &target) {
+                                      char const *name,
+                                      int32_t &target) {
     if (auto m = val.FindMember(name);
         val.MemberEnd() != m && m->value.IsInt()) {
       target = m->value.GetInt();
@@ -174,10 +174,11 @@ namespace kagome::application {
       return false;
     }
 
-    // pagination page size bounded [absolut_min_blocks_in_response, absolut_max_blocks_in_response]
-    max_blocks_in_response_ =
-        std::min(std::max(absolut_min_blocks_in_response, max_blocks_in_response_),
-                 absolut_max_blocks_in_response);
+    // pagination page size bounded [absolut_min_blocks_in_response,
+    // absolut_max_blocks_in_response]
+    max_blocks_in_response_ = std::min(
+        std::max(absolut_min_blocks_in_response, max_blocks_in_response_),
+        absolut_max_blocks_in_response);
     return true;
   }
 
@@ -320,8 +321,9 @@ namespace kagome::application {
     find_argument<uint16_t>(
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
 
-    find_argument<int32_t>(
-        vm, "max_blocks_in_response", [&](int32_t val) { max_blocks_in_response_ = val; });
+    find_argument<int32_t>(vm, "max_blocks_in_response", [&](int32_t val) {
+      max_blocks_in_response_ = val;
+    });
 
     find_argument<int32_t>(vm, "verbosity", [&](int32_t val) {
       if (val >= SPDLOG_LEVEL_TRACE && val <= SPDLOG_LEVEL_OFF)

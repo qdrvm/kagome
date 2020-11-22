@@ -14,9 +14,9 @@
 #include <queue>
 #include <unordered_set>
 
-#include "blockchain/block_tree_error.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
@@ -138,10 +138,9 @@ namespace kagome::blockchain {
     BlockHashVecRes getChainByBlock(
         const primitives::BlockHash &block) override;
 
-    BlockHashVecRes getChainByBlocks(
-        const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block,
-        const uint32_t max_count) override;
+    BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
+                                     const primitives::BlockHash &bottom_block,
+                                     const uint32_t max_count) override;
 
     BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
                                     bool ascending,
@@ -201,27 +200,29 @@ namespace kagome::blockchain {
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
 
-    BlockHashVecRes getChainByBlocks(
-        const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block, boost::optional<uint32_t> max_count) {
-
+    BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
+                                     const primitives::BlockHash &bottom_block,
+                                     boost::optional<uint32_t> max_count) {
       OUTCOME_TRY(from, header_repo_->getNumberByHash(top_block));
       OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
 
       std::vector<primitives::BlockHash> result;
-      if (to <= from)
-        return result;
+      if (to <= from) return result;
 
       const uint64_t response_length =
-          max_count ? std::min(to - from + 1, static_cast<uint64_t>(*max_count)) : to - from + 1;
-      log_->trace("Try to create {} length chain from number {} to {}.", response_length, from, to);
+          max_count ? std::min(to - from + 1, static_cast<uint64_t>(*max_count))
+                    : to - from + 1;
+      log_->trace("Try to create {} length chain from number {} to {}.",
+                  response_length,
+                  from,
+                  to);
 
       result.reserve(response_length);
       result.emplace_back(top_block);
 
       const auto end = from + response_length;
       auto ix = from + 1;
-      while(ix < end) {
+      while (ix < end) {
         OUTCOME_TRY(hash, header_repo_->getHashByNumber(ix));
         result.emplace_back(hash);
         ++ix;

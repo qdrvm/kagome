@@ -8,8 +8,8 @@
 
 #include "consensus/babe/babe_synchronizer.hpp"
 
-#include "common/logger.hpp"
 #include "application/app_configuration.hpp"
+#include "common/logger.hpp"
 #include "network/types/sync_clients_set.hpp"
 
 namespace kagome::consensus {
@@ -26,7 +26,7 @@ namespace kagome::consensus {
 
     BabeSynchronizerImpl(
         std::shared_ptr<network::SyncClientsSet> sync_clients,
-        const application::AppConfiguration & app_configuration);
+        const application::AppConfiguration &app_configuration);
 
     void request(const primitives::BlockId &from,
                  const primitives::BlockHash &to,
@@ -54,7 +54,7 @@ namespace kagome::consensus {
 
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
     common::Logger logger_;
-    const application::AppConfiguration & app_configuration_;
+    const application::AppConfiguration &app_configuration_;
   };
 }  // namespace kagome::consensus
 

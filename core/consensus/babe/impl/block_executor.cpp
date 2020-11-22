@@ -26,7 +26,8 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer)
-      : sync_state_(kReadyState), block_tree_{std::move(block_tree)},
+      : sync_state_(kReadyState),
+        block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         genesis_configuration_{std::move(configuration)},
         babe_synchronizer_{std::move(babe_synchronizer)},
@@ -66,14 +67,17 @@ namespace kagome::consensus {
       if (not block_tree_->getBlockHeader(header.parent_hash)) {
         if (sync_state_ == kReadyState) {
           sync_state_ = kSyncState;
-          const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
+          const auto &[last_number, last_hash] =
+              block_tree_->getLastFinalized();
           // we should request blocks between last finalized one and received
           // block
-          requestBlocks(
-              last_hash, block_hash, babe_header.authority_index, [wself{weak_from_this()}] {
-                if (auto self = wself.lock())
-                  self->sync_state_ = kReadyState;
-              });
+          requestBlocks(last_hash,
+                        block_hash,
+                        babe_header.authority_index,
+                        [wself{weak_from_this()}] {
+                          if (auto self = wself.lock())
+                            self->sync_state_ = kReadyState;
+                        });
         }
       } else {
         requestBlocks(
@@ -104,7 +108,11 @@ namespace kagome::consensus {
         to,
         authority_index,
         [self_wp{weak_from_this()},
-         next(std::move(next)), to, from, authority_index](const std::vector<primitives::Block> &blocks) mutable {
+         next(std::move(next)),
+         to,
+         from,
+         authority_index](
+            const std::vector<primitives::Block> &blocks) mutable {
           auto self = self_wp.lock();
           if (not self) return;
 
@@ -115,12 +123,10 @@ namespace kagome::consensus {
             self->logger_->warn("Received empty list of blocks");
             sync_complete = true;
           } else {
-            first_received_hash =
-                self->hasher_
-                    ->blake2b_256(scale::encode(blocks.front().header).value());
-            last_received_hash =
-                self->hasher_
-                    ->blake2b_256(scale::encode(blocks.back().header).value());
+            first_received_hash = self->hasher_->blake2b_256(
+                scale::encode(blocks.front().header).value());
+            last_received_hash = self->hasher_->blake2b_256(
+                scale::encode(blocks.back().header).value());
             self->logger_->info("Received blocks from: {}, to {}, count {}",
                                 first_received_hash.toHex(),
                                 last_received_hash.toHex(),
@@ -131,7 +137,7 @@ namespace kagome::consensus {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
@@ -144,10 +150,9 @@ namespace kagome::consensus {
           if (sync_complete)
             next();
           else {
-            self->logger_->info(
-                "Request next page of blocks: from {}, to {}",
-                last_received_hash.toHex(),
-                to.toHex());
+            self->logger_->info("Request next page of blocks: from {}, to {}",
+                                last_received_hash.toHex(),
+                                to.toHex());
             self->requestBlocks(
                 last_received_hash, to, authority_index, std::move(next));
           }
@@ -245,7 +250,7 @@ namespace kagome::consensus {
       if (res.has_error()
           && res
                  != outcome::failure(
-                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+                        transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
         return res;
       }
     }
