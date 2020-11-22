@@ -214,7 +214,7 @@ namespace kagome::blockchain {
 
       const uint64_t response_length =
           max_count ? std::min(to - from + 1, static_cast<uint64_t>(*max_count)) : to - from + 1;
-      log_->info("Try to create {} length chain from number {} to {}.", response_length, from, to);
+      log_->trace("Try to create {} length chain from number {} to {}.", response_length, from, to);
 
       result.reserve(response_length);
       result.emplace_back(top_block);
