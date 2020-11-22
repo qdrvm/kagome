@@ -39,12 +39,12 @@ namespace kagome::application {
         verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
         is_only_finalizing_(def_is_only_finalizing),
         is_already_synchronized_(def_is_already_synchronized),
+        max_blocks_in_response_(absolut_max_blocks_in_response),
         logger_(std::move(logger)),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
-        rpc_ws_port_(def_rpc_ws_port),
-        max_blocks_in_response_(absolut_max_blocks_in_response) {}
+        rpc_ws_port_(def_rpc_ws_port) {}
 
   fs::path AppConfigurationImpl::genesis_path() const {
     return genesis_path_.native();
