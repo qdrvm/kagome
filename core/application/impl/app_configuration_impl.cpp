@@ -44,7 +44,7 @@ namespace kagome::application {
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
-  max_blocks_in_response_(absolut_min_blocks_in_response) {}
+  max_blocks_in_response_(absolut_max_blocks_in_response) {}
 
   fs::path AppConfigurationImpl::genesis_path() const {
     return genesis_path_.native();
