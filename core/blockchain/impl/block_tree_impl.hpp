@@ -201,57 +201,30 @@ namespace kagome::blockchain {
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
 
-    template<typename F>
     BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block, F &&filter) {
+        const primitives::BlockHash &bottom_block, boost::optional<uint32_t> max_count) {
+
+      OUTCOME_TRY(from, header_repo_->getNumberByHash(top_block));
+      OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
+
       std::vector<primitives::BlockHash> result;
-
-      auto top_block_node_ptr = tree_->getByHash(top_block);
-      auto bottom_block_node_ptr = tree_->getByHash(bottom_block);
-
-      // if both nodes are in our light tree, we can use this representation only
-      if (top_block_node_ptr && bottom_block_node_ptr) {
-        if (top_block_node_ptr->depth > bottom_block_node_ptr->depth) {
-          return result;
-        }
-        auto current_node = bottom_block_node_ptr;
-        while (current_node != top_block_node_ptr && std::forward<F>(filter)(current_node->block_hash)) {
-          result.push_back(current_node->block_hash);
-          if (auto parent = current_node->parent; !parent.expired()) {
-            current_node = parent.lock();
-          } else {
-            log_->warn(
-                "impossible to get chain by blocks: "
-                "most probably, block {} is not an ancestor of {}",
-                top_block.toHex(),
-                bottom_block.toHex());
-            return BlockTreeError::INCORRECT_ARGS;
-          }
-        }
-        if (std::forward<F>(filter)(top_block_node_ptr->block_hash))
-          result.push_back(top_block_node_ptr->block_hash);
-        std::reverse(result.begin(), result.end());
+      if (to <= from)
         return result;
-      }
 
-      // else, we need to use a database
-      auto current_hash = bottom_block;
-      while (current_hash != top_block && std::forward<F>(filter)(current_hash)) {
-        result.push_back(current_hash);
-        auto current_header_res = header_repo_->getBlockHeader(current_hash);
-        if (!current_header_res) {
-          log_->warn(
-              "impossible to get chain by blocks: "
-              "intermediate block {} was not added to block tree before",
-              current_hash.toHex());
-          return BlockTreeError::NO_SOME_BLOCK_IN_CHAIN;
-        }
-        current_hash = current_header_res.value().parent_hash;
+      const uint64_t response_length =
+          max_count ? std::min(to - from + 1, static_cast<uint64_t>(*max_count)) : to - from + 1;
+      log_->info("Try to create {} length chain from number {} to {}.", response_length, from, to);
+
+      result.reserve(response_length);
+      result.emplace_back(top_block);
+
+      const auto end = from + response_length;
+      auto ix = from + 1;
+      while(ix++ < end) {
+        OUTCOME_TRY(hash, header_repo_->getHashByNumber(ix));
+        result.emplace_back(hash);
       }
-      if (std::forward<F>(filter)(current_hash))
-        result.push_back(current_hash);
-      std::reverse(result.begin(), result.end());
       return result;
     }
 

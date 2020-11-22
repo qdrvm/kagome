@@ -362,19 +362,13 @@ namespace kagome::blockchain {
       const primitives::BlockHash &bottom_block,
       const uint32_t max_count) {
     auto remains = max_count;
-    return getChainByBlocks(top_block, bottom_block, [&](const auto &) {
-      const auto success = remains > 0;
-      remains -= success ? 1 : 0;
-      return success;
-    });
+    return getChainByBlocks(top_block, bottom_block, max_count);
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block) {
-    return getChainByBlocks(top_block, bottom_block, [](const auto &) {
-      return true;
-    });
+    return getChainByBlocks(top_block, bottom_block, boost::none);
   }
 
   bool BlockTreeImpl::hasDirectChain(const primitives::BlockHash &ancestor,

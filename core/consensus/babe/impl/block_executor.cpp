@@ -110,22 +110,22 @@ namespace kagome::consensus {
 
           bool sync_complete = false;
           primitives::BlockHash last_received_hash;
-          primitives::BlockHash front_block_hash;
+          primitives::BlockHash first_received_hash;
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
             sync_complete = true;
           } else {
-            front_block_hash =
+            first_received_hash =
                 self->hasher_
                     ->blake2b_256(scale::encode(blocks.front().header).value());
             last_received_hash =
                 self->hasher_
                     ->blake2b_256(scale::encode(blocks.back().header).value());
             self->logger_->info("Received blocks from: {}, to {}, count {}",
-                                front_block_hash.toHex(),
+                                first_received_hash.toHex(),
                                 last_received_hash.toHex(),
                                 blocks.size());
-            sync_complete = from == front_block_hash;
+            sync_complete = to == last_received_hash;
           }
           for (const auto &block : blocks) {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
@@ -145,11 +145,11 @@ namespace kagome::consensus {
             next();
           else {
             self->logger_->info(
-                "Request next page of blocks: from {}, to {}, count {}",
-                from.toHex(),
-                front_block_hash.toHex());
+                "Request next page of blocks: from {}, to {}",
+                last_received_hash.toHex(),
+                to.toHex());
             self->requestBlocks(
-                from, front_block_hash, authority_index, std::move(next));
+                last_received_hash, to, authority_index, std::move(next));
           }
         });
   }
