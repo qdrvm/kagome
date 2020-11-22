@@ -221,9 +221,10 @@ namespace kagome::blockchain {
 
       const auto end = from + response_length;
       auto ix = from + 1;
-      while(ix++ < end) {
+      while(ix < end) {
         OUTCOME_TRY(hash, header_repo_->getHashByNumber(ix));
         result.emplace_back(hash);
+        ++ix;
       }
       return result;
     }
