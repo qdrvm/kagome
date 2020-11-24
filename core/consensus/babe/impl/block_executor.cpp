@@ -13,6 +13,15 @@
 #include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutor::Error, e) {
+  using E = kagome::consensus::BlockExecutor::Error;
+  switch (e) {
+    case E::INVALID_BLOCK:
+      return "Invalid block";
+  }
+  return "Unknown error";
+}
+
 namespace kagome::consensus {
 
   BlockExecutor::BlockExecutor(
@@ -112,7 +121,7 @@ namespace kagome::consensus {
          to,
          from,
          authority_index](
-            const std::vector<primitives::Block> &blocks) mutable {
+            const std::vector<primitives::BlockData> &blocks) mutable {
           auto self = self_wp.lock();
           if (not self) return;
 
@@ -160,7 +169,15 @@ namespace kagome::consensus {
   }
 
   outcome::result<void> BlockExecutor::applyBlock(
-      const primitives::Block &block) {
+      const primitives::BlockData &b) {
+    if (!b.header) {
+      logger_->warn("Skipping blockwithout header.");
+      return Error::INVALID_BLOCK;
+    }
+    primitives::Block block;
+    block.header = *b.header;
+    if (b.body)
+      block.body = *b.body;
     // get current time to measure performance if block execution
     auto t_start = std::chrono::high_resolution_clock::now();
 
@@ -229,6 +246,9 @@ namespace kagome::consensus {
 
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
+
+    if (b.justification)
+      block_tree_->finalize(block_hash, *b.justification);
 
     // observe possible changes of authorities
     for (auto &digest_item : block_without_seal_digest.header.digest) {

@@ -22,6 +22,10 @@ namespace kagome::consensus {
 
   class BlockExecutor : public std::enable_shared_from_this<BlockExecutor> {
    public:
+    enum class Error {
+      INVALID_BLOCK = 1,
+    };
+
     BlockExecutor(std::shared_ptr<blockchain::BlockTree> block_tree,
                   std::shared_ptr<runtime::Core> core,
                   std::shared_ptr<primitives::BabeConfiguration> configuration,
@@ -72,7 +76,7 @@ namespace kagome::consensus {
     };
     std::atomic<ExecutorState> sync_state_;
     // should only be invoked when parent of block exists
-    outcome::result<void> applyBlock(const primitives::Block &block);
+    outcome::result<void> applyBlock(const primitives::BlockData &block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
@@ -88,5 +92,7 @@ namespace kagome::consensus {
   };
 
 }  // namespace kagome::consensus
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BlockExecutor::Error);
 
 #endif  // KAGOME_CORE_CONSENSUS_BABE_IMPL_BLOCK_EXECUTOR_HPP

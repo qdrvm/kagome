@@ -117,10 +117,7 @@ namespace kagome::consensus {
           if (auto self = self_wp.lock()) {
             // if response exists then get blocks and send them to handle
             if (response_res and not response_res.value().blocks.empty()) {
-              auto blocks_opt = getBlocks(response_res.value());
-              if (blocks_opt) {
-                return requested_blocks_handler(blocks_opt.value());
-              }
+              return requested_blocks_handler(response_res.value().blocks);
             } else if (not response_res) {
               self->logger_->error("Could not sync. Error: {}",
                                    response_res.error().message());
