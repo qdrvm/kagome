@@ -200,14 +200,75 @@ namespace kagome::blockchain {
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
 
+    boost::optional<std::vector<primitives::BlockHash>> tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
+                                     const primitives::BlockHash &bottom_block,
+                                     boost::optional<uint32_t> max_count) {
+      auto from = tree_->getByHash(top_block);
+      auto to = tree_->getByHash(bottom_block);
+
+      if (from && to) {
+        std::vector<primitives::BlockHash> result;
+        if (from->depth > to->depth) return result;
+
+        const uint64_t in_tree_branch_len = to->depth - from->depth + 1;
+        const uint64_t response_length =
+            max_count ? std::min(in_tree_branch_len,
+                                 static_cast<uint64_t>(*max_count))
+                      : in_tree_branch_len;
+        log_->trace("Try to create {} length chain from number {} to {}.",
+                    response_length,
+                    from,
+                    to);
+
+        std::vector<std::shared_ptr<TreeNode>> stack;
+        stack.reserve(in_tree_branch_len);
+
+        std::vector<std::shared_ptr<TreeNode>> to_check;
+        to_check.emplace_back(from);
+
+        while (!to_check.empty()) {
+          auto target = to_check.back();
+          to_check.pop_back();
+
+          if (target == to) {
+            stack.emplace_back(target);
+            break;
+          }
+
+          auto parent = target->parent.lock();
+          while (!stack.empty() && parent != stack.back()) {
+            stack.pop_back();
+          }
+
+          stack.emplace_back(target);
+          std::copy(target->children.begin(),
+                    target->children.end(),
+                    std::back_inserter(to_check));
+        }
+        stack.resize(response_length);
+        result.reserve(response_length);
+
+        for (auto &s : stack) {
+          result.emplace_back(s->block_hash);
+        }
+        return result;
+      }
+      return boost::none;
+    }
+
     BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
                                      const primitives::BlockHash &bottom_block,
                                      boost::optional<uint32_t> max_count) {
+
+      if (auto from_cache = tryGetChainByBlocksFromCache(top_block, bottom_block, max_count)) {
+        return std::move(from_cache.value());
+      }
+
       OUTCOME_TRY(from, header_repo_->getNumberByHash(top_block));
       OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
 
       std::vector<primitives::BlockHash> result;
-      if (to <= from) return result;
+      if (to < from) return result;
 
       const uint64_t response_length =
           max_count ? std::min(to - from + 1, static_cast<uint64_t>(*max_count))
