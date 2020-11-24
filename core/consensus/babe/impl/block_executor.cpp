@@ -25,7 +25,8 @@ namespace kagome::consensus {
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
-          authority_update_observer)
+          authority_update_observer,
+      SlotsStrategy slots_strategy)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         genesis_configuration_{std::move(configuration)},
@@ -35,6 +36,7 @@ namespace kagome::consensus {
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
+        slots_strategy_{slots_strategy},
         logger_{common::createLogger("BlockExecutor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
@@ -134,8 +136,6 @@ namespace kagome::consensus {
         });
   }
 
-  auto getBlockTimestamp(const primitives::Block &block){block.body.}
-
   outcome::result<void> BlockExecutor::applyBlock(
       const primitives::Block &block) {
     // get current time to measure performance if block execution
@@ -162,14 +162,14 @@ namespace kagome::consensus {
 
     {
       // add information about epoch to epoch storage
-      if (block_tree_->deepestLeaf().block_number == 0) {
-        BOOST_ASSERT(block.header.number == 1);
+      if (slots_strategy_ == SlotsStrategy::FromUnixEpoch
+          and block.header.number == 1) {
         OUTCOME_TRY(epoch_storage_->setLastEpoch(LastEpochDescriptor{
             .epoch_number = 0,
             .start_slot = babe_header.slot_number,
             .epoch_duration = genesis_configuration_->epoch_length,
             .starting_slot_finish_time =
-                BabeTimePoint{babe_header.slot_number
+                BabeTimePoint{(babe_header.slot_number + 1)
                               * genesis_configuration_->slot_duration}}));
       }
     }

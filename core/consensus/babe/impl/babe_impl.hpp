@@ -21,6 +21,7 @@
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
+#include "consensus/babe/types/slots_strategy.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/sr25519_types.hpp"
@@ -35,8 +36,6 @@ namespace kagome::consensus {
       primitives::InherentIdentifier::fromString("timstap0").value();
   inline const auto kBabeSlotId =
       primitives::InherentIdentifier::fromString("babeslot").value();
-
-  enum class SlotsCalculationStrategy { FromZero, FromUnixEpoch };
 
   class BabeImpl : public Babe, public std::enable_shared_from_this<BabeImpl> {
    public:
@@ -69,7 +68,8 @@ namespace kagome::consensus {
              std::shared_ptr<crypto::Hasher> hasher,
              std::unique_ptr<clock::Timer> timer,
              std::shared_ptr<authority::AuthorityUpdateObserver>
-                 authority_update_observer);
+                 authority_update_observer,
+             SlotsStrategy slots_calculation_strategy);
 
     ~BabeImpl() override = default;
 
@@ -142,9 +142,9 @@ namespace kagome::consensus {
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
+    const SlotsStrategy slots_calculation_strategy_;
 
     State current_state_{State::WAIT_BLOCK};
-    const SlotsCalculationStrategy slots_calculation_strategy_;
 
     Epoch current_epoch_;
 

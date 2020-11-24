@@ -78,6 +78,7 @@ namespace kagome::application {
     DECLARE_PROPERTY(spdlog::level::level_enum, verbosity);
     DECLARE_PROPERTY(bool, is_only_finalizing);
     DECLARE_PROPERTY(bool, is_already_synchronized);
+    DECLARE_PROPERTY(bool, is_unix_slots_strategy);
 
    private:
     void parse_general_segment(rapidjson::Value &val);

@@ -30,6 +30,7 @@ namespace {
   const int def_verbosity = 2;
   const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
+  const bool def_is_unix_slots_strategy = false;
 }  // namespace
 
 namespace kagome::application {
@@ -39,6 +40,7 @@ namespace kagome::application {
         verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
         is_only_finalizing_(def_is_only_finalizing),
         is_already_synchronized_(def_is_already_synchronized),
+        is_unix_slots_strategy_(def_is_unix_slots_strategy),
         logger_(std::move(logger)),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
@@ -136,6 +138,7 @@ namespace kagome::application {
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
     load_bool(val, "single_finalizing_node", is_only_finalizing_);
     load_bool(val, "already_synchronized", is_already_synchronized_);
+    load_bool(val, "is_unix_slots_strategy", is_unix_slots_strategy_);
   }
 
   bool AppConfigurationImpl::validate_config(
@@ -253,6 +256,7 @@ namespace kagome::application {
     additional_desc.add_options()
         ("single_finalizing_node,f", "if this is the only finalizing node")
         ("already_synchronized,s", "if need to consider synchronized")
+        ("unix_slots,u", "if slots are calculated from unix epoch")
         ;
     // clang-format on
 
@@ -296,6 +300,9 @@ namespace kagome::application {
 
     if (vm.end() != vm.find("already_synchronized"))
       is_already_synchronized_ = true;
+
+    if (vm.end() != vm.find("unix_slots"))
+      is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
         vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });

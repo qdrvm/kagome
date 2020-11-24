@@ -35,7 +35,8 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<authority::AuthorityUpdateObserver>
-          authority_update_observer)
+          authority_update_observer,
+      SlotsStrategy slots_calculation_strategy)
       : app_state_manager_(std::move(app_state_manager)),
         lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
@@ -51,7 +52,7 @@ namespace kagome::consensus {
         sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
-        slots_calculation_strategy_{SlotsCalculationStrategy::FromUnixEpoch},
+        slots_calculation_strategy_{slots_calculation_strategy},
         log_{common::createLogger("BABE")} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
@@ -105,10 +106,10 @@ namespace kagome::consensus {
       last_epoch_descriptor = res.value();
     } else {
       switch (slots_calculation_strategy_) {
-        case SlotsCalculationStrategy::FromZero:
+        case SlotsStrategy::FromZero:
           last_epoch_descriptor.start_slot = 0;
           break;
-        case SlotsCalculationStrategy::FromUnixEpoch:
+        case SlotsStrategy::FromUnixEpoch:
           auto now = clock_->now();
           auto time_since_epoch = now.time_since_epoch();
           auto epoch_start_point = std::chrono::system_clock::from_time_t(0);
@@ -539,7 +540,7 @@ namespace kagome::consensus {
     auto [_, babe_header] = babe_digests_res.value();
     auto observed_slot = babe_header.slot_number;
 
-    if (slots_calculation_strategy_ == SlotsCalculationStrategy::FromZero) {
+    if (slots_calculation_strategy_ == SlotsStrategy::FromZero) {
       if (not first_production_slot) {
         first_production_slot = observed_slot + kSlotTail;
         log_->info("Peer will start produce blocks at slot number: {}",
@@ -592,7 +593,7 @@ namespace kagome::consensus {
     }
 
     else if (slots_calculation_strategy_
-             == SlotsCalculationStrategy::FromUnixEpoch) {
+             == SlotsStrategy::FromUnixEpoch) {
       //      first_production_slot = babe_header.slot_number + 1;
       //      auto first_epoch_slot = *first_production_slot -
 
