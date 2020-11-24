@@ -40,6 +40,34 @@ namespace kagome::blockchain {
                                     bool finalized)
       : block_hash{hash}, depth{depth}, parent{parent}, finalized{finalized} {}
 
+  boost::optional<std::vector<std::shared_ptr<BlockTreeImpl::TreeNode>>>
+  BlockTreeImpl::TreeNode::getWayTo(const primitives::BlockHash &hash) {
+    std::vector<std::shared_ptr<TreeNode>> stack;
+    std::vector<std::shared_ptr<TreeNode>> to_check;
+    to_check.emplace_back(shared_from_this());
+
+    while (!to_check.empty()) {
+      auto target = to_check.back();
+      to_check.pop_back();
+
+      if (target->block_hash == hash) {
+        stack.emplace_back(target);
+        return std::move(stack);
+      }
+
+      auto parent = target->parent.lock();
+      while (!stack.empty() && parent != stack.back()) {
+        stack.pop_back();
+      }
+
+      stack.emplace_back(target);
+      std::copy(target->children.begin(),
+                target->children.end(),
+                std::back_inserter(to_check));
+    }
+    return boost::none;
+  }
+
   std::shared_ptr<BlockTreeImpl::TreeNode> BlockTreeImpl::TreeNode::getByHash(
       const primitives::BlockHash &hash) {
     // standard BFS
@@ -363,6 +391,34 @@ namespace kagome::blockchain {
       const uint32_t max_count) {
     return getChainByBlocks(
         top_block, bottom_block, boost::make_optional(max_count));
+  }
+
+  boost::optional<std::vector<primitives::BlockHash>> BlockTreeImpl::tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
+                                                                                   const primitives::BlockHash &bottom_block,
+                                                                                   boost::optional<uint32_t> max_count) {
+    if (auto from = tree_->getByHash(top_block)) {
+      if (auto way = from->getWayTo(bottom_block)) {
+        const uint64_t in_tree_branch_len = way->back()->depth - from->depth + 1;
+        const uint64_t response_length =
+            max_count ? std::min(in_tree_branch_len,
+                                 static_cast<uint64_t>(*max_count))
+                      : in_tree_branch_len;
+        log_->trace("Create {} length chain from number {} to {} from cache.",
+                    response_length,
+                    from->depth,
+                    way->back()->depth);
+
+        way->resize(response_length);
+
+        std::vector<primitives::BlockHash> result;
+        result.reserve(response_length);
+        for (auto &s : *way)
+          result.emplace_back(s->block_hash);
+
+        return result;
+      }
+    }
+    return boost::none;
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
