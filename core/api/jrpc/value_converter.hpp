@@ -30,7 +30,7 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
   inline jsonrpc::Value makeValue(const primitives::BlockData &);
   inline jsonrpc::Value makeValue(const primitives::BlockHeader &);
-  inline jsonrpc::Value makeValue(const primitives::Justification&);
+  inline jsonrpc::Value makeValue(const primitives::Justification &);
 
   inline jsonrpc::Value makeValue(const std::nullptr_t &) {
     return jsonrpc::Value();
@@ -178,7 +178,7 @@ namespace kagome::api {
     return std::move(data);
   }
 
-  inline jsonrpc::Value makeValue(const primitives::Justification& val) {
+  inline jsonrpc::Value makeValue(const primitives::Justification &val) {
     return makeValue(val.data);
   }
 
