@@ -56,7 +56,8 @@ namespace kagome::blockchain {
        */
       std::shared_ptr<TreeNode> getByHash(const primitives::BlockHash &hash);
 
-      boost::optional<std::vector<std::shared_ptr<TreeNode>>> getWayTo(const primitives::BlockHash &hash);
+      boost::optional<std::vector<std::shared_ptr<TreeNode>>> getWayTo(
+          const primitives::BlockHash &hash);
 
       bool operator==(const TreeNode &other) const;
       bool operator!=(const TreeNode &other) const;
@@ -202,15 +203,16 @@ namespace kagome::blockchain {
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
 
-    boost::optional<std::vector<primitives::BlockHash>> tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
-                                     const primitives::BlockHash &bottom_block,
-                                     boost::optional<uint32_t> max_count);
+    boost::optional<std::vector<primitives::BlockHash>>
+    tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
+                                 const primitives::BlockHash &bottom_block,
+                                 boost::optional<uint32_t> max_count);
 
     BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
                                      const primitives::BlockHash &bottom_block,
                                      boost::optional<uint32_t> max_count) {
-
-      if (auto from_cache = tryGetChainByBlocksFromCache(top_block, bottom_block, max_count)) {
+      if (auto from_cache = tryGetChainByBlocksFromCache(
+              top_block, bottom_block, max_count)) {
         return std::move(from_cache.value());
       }
 

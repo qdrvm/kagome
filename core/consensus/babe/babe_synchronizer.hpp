@@ -8,8 +8,8 @@
 
 #include "primitives/authority.hpp"
 #include "primitives/block.hpp"
-#include "primitives/block_id.hpp"
 #include "primitives/block_data.hpp"
+#include "primitives/block_id.hpp"
 
 namespace kagome::consensus {
 

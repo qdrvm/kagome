@@ -393,12 +393,15 @@ namespace kagome::blockchain {
         top_block, bottom_block, boost::make_optional(max_count));
   }
 
-  boost::optional<std::vector<primitives::BlockHash>> BlockTreeImpl::tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
-                                                                                   const primitives::BlockHash &bottom_block,
-                                                                                   boost::optional<uint32_t> max_count) {
+  boost::optional<std::vector<primitives::BlockHash>>
+  BlockTreeImpl::tryGetChainByBlocksFromCache(
+      const primitives::BlockHash &top_block,
+      const primitives::BlockHash &bottom_block,
+      boost::optional<uint32_t> max_count) {
     if (auto from = tree_->getByHash(top_block)) {
       if (auto way = from->getWayTo(bottom_block)) {
-        const uint64_t in_tree_branch_len = way->back()->depth - from->depth + 1;
+        const uint64_t in_tree_branch_len =
+            way->back()->depth - from->depth + 1;
         const uint64_t response_length =
             max_count ? std::min(in_tree_branch_len,
                                  static_cast<uint64_t>(*max_count))
@@ -412,8 +415,7 @@ namespace kagome::blockchain {
 
         std::vector<primitives::BlockHash> result;
         result.reserve(response_length);
-        for (auto &s : *way)
-          result.emplace_back(s->block_hash);
+        for (auto &s : *way) result.emplace_back(s->block_hash);
 
         return result;
       }
