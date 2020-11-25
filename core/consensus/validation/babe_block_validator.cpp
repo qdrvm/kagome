@@ -7,13 +7,11 @@
 
 #include <algorithm>
 #include <boost/assert.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include "common/mp_utils.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "scale/scale.hpp"
-#include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
                             BabeBlockValidator::ValidationError,
