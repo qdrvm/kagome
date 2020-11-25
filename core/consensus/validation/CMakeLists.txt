@@ -11,4 +11,5 @@ target_link_libraries(block_validator
     babe_digests_util
     mp_utils
     logger
+    polkadot_trie
     )

@@ -53,6 +53,7 @@ namespace kagome::consensus {
       INVALID_SIGNATURE,
       INVALID_VRF,
       TWO_BLOCKS_IN_SLOT,
+      INVALID_EXTRINSICS_ROOT,
       INVALID_TRANSACTIONS
     };
 
@@ -96,6 +97,9 @@ namespace kagome::consensus {
                    const primitives::BabeSessionKey &public_key,
                    const Threshold &threshold,
                    const Randomness &randomness) const;
+
+    bool verifyExtrinsicsRoot(const common::Hash256 &extrinsics_root,
+                              const primitives::BlockBody &block_body) const;
 
     /**
      * Check, if all transactions in the block are valid

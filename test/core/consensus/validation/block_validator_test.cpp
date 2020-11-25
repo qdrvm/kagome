@@ -16,6 +16,7 @@
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/libp2p/crypto/random_generator_mock.hpp"
 #include "scale/scale.hpp"
+#include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
@@ -51,6 +52,22 @@ namespace sr25519_constants = kagome::crypto::constants::sr25519;
 
 class BlockValidatorTest : public testing::Test {
  public:
+  void SetUp() override {
+    std::vector<common::Buffer> encoded_exts{};
+
+    std::transform(
+        valid_block_.body.begin(),
+        valid_block_.body.end(),
+        std::back_inserter(encoded_exts),
+        [](auto &ext) { return common::Buffer(scale::encode(ext).value()); });
+
+    valid_block_.header.extrinsics_root =
+        Hash256::fromSpan(kagome::storage::trie::calculateOrderedTrieHash(
+                              encoded_exts.begin(), encoded_exts.end())
+                              .value())
+            .value();
+  }
+
   const ConsensusEngineId kEngineId =
       primitives::ConsensusEngineId::fromString("BABE").value();
   /**
@@ -372,11 +389,10 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
 
 /**
  * @given block validator
- * @when validating block, which contains an invalid extrinsic
+ * @when validating block, which contains an invalid extrinsics root
  * @then validation fails
  */
-TEST_F(BlockValidatorTest, InvalidExtrinsic) {
-  // GIVEN
+TEST_F(BlockValidatorTest, InvalidExtrinsicsRoot) {
   auto block_copy = valid_block_;
   block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
@@ -397,20 +413,18 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   auto authority = Authority{{pubkey}, 42};
   babe_epoch_.authorities.emplace_back(authority);
 
+  auto invalid_block = valid_block_;
+  invalid_block.header.extrinsics_root =
+      Hash256();  // set invalid extrinsic root
+
   auto randomness_with_slot =
       Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
-  // WHEN
-  EXPECT_CALL(*tx_queue_,
-              validate_transaction(TransactionSource::InBlock, ext_))
-      .WillOnce(Return(TransactionValidity{InvalidTransaction{}}));
-
-  // THEN
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateBlock(
-          valid_block_, authority.id, threshold_, randomness_));
-  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TRANSACTIONS);
+          invalid_block, authority.id, threshold_, randomness_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_EXTRINSICS_ROOT);
 }
