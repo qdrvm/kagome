@@ -28,10 +28,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
       return "VRF value and output are invalid";
     case E::TWO_BLOCKS_IN_SLOT:
       return "peer tried to distribute several blocks in one slot";
-    case E::INVALID_EXTRINSICS_ROOT:
-      return "block's extrinsics root does not match body's extrinsics";
-    case E::INVALID_TRANSACTIONS:
-      return "one or more transactions in the block are invalid";
   }
   return "unknown error";
 }
@@ -55,32 +51,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(tx_queue_);
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(sr25519_provider_);
-  }
-
-  outcome::result<void> BabeBlockValidator::validateBlock(
-      const primitives::Block &block,
-      const primitives::AuthorityId &authority_id,
-      const Threshold &threshold,
-      const Randomness &randomness) const {
-    OUTCOME_TRY(
-        validateHeader(block.header, authority_id, threshold, randomness));
-
-    // block's extrinsics root should correspond for its extrinsics
-    if (!verifyExtrinsicsRoot(block.header.extrinsics_root, block.body)) {
-      return ValidationError::INVALID_EXTRINSICS_ROOT;
-    }
-
-    // all transactions in the block must be valid
-    /* probably not needed
-    if (!verifyTransactions(block.body)) {
-      return ValidationError::INVALID_TRANSACTIONS;
-    }
-    */
-
-    // there must exist a chain with the block in our storage, which is
-    // specified as a parent of the block we are validating; BlockTree takes
-    // care of this check and returns a specific error, if it fails
-    return outcome::success();
   }
 
   outcome::result<void> BabeBlockValidator::validateHeader(
@@ -158,45 +128,5 @@ namespace kagome::consensus {
     }
 
     return true;
-  }
-
-  bool BabeBlockValidator::verifyExtrinsicsRoot(
-      const common::Hash256 &extrinsics_root,
-      const primitives::BlockBody &block_body) const {
-    using boost::adaptors::transformed;
-    const auto &buf_exts = block_body | transformed([](auto &ext) {
-                             return common::Buffer(scale::encode(ext).value());
-                           });
-
-    if (const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
-            buf_exts.begin(), buf_exts.end());
-        ext_root_res
-        and ext_root_res.value() != common::Buffer(extrinsics_root)) {
-      log_->warn(
-          "Extrinsics root is not valid. Header's extrinsics root: {}, "
-          "calculated from body: {}",
-          extrinsics_root.toHex(),
-          ext_root_res.value().toHex());
-      return false;
-    }
-    return true;
-  }
-
-  bool BabeBlockValidator::verifyTransactions(
-      const primitives::BlockBody &block_body) const {
-    return std::all_of(
-        block_body.cbegin(), block_body.cend(), [this](const auto &ext) {
-          auto validation_res = tx_queue_->validate_transaction(
-              primitives::TransactionSource::InBlock, ext);
-          if (!validation_res) {
-            log_->warn("extrinsic validation failed: {}",
-                       validation_res.error());
-            return false;
-          }
-          return visit_in_place(
-              validation_res.value(),
-              [](const primitives::ValidTransaction &) { return true; },
-              [](const auto &) { return false; });
-        });
   }
 }  // namespace kagome::consensus

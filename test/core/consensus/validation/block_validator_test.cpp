@@ -164,13 +164,8 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
-  // verifyTransactions
-  //  EXPECT_CALL(*tx_queue_,
-  //              validate_transaction(TransactionSource::InBlock, ext_))
-  //      .WillOnce(Return(ValidTransaction{}));
-
-  auto validate_res = validator_.validateBlock(
-      valid_block_, authority.id, threshold_, randomness_);
+  auto validate_res = validator_.validateHeader(
+      valid_block_.header, authority.id, threshold_, randomness_);
   ASSERT_TRUE(validate_res) << validate_res.error().message();
 }
 
@@ -186,8 +181,8 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   // for this test we can just not seal the block - it's the second digest
   EXPECT_OUTCOME_FALSE(
       err,
-      validator_.validateBlock(
-          valid_block_, authority.id, threshold_, randomness_));
+      validator_.validateHeader(
+          valid_block_.header, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, kagome::consensus::DigestError::INVALID_DIGESTS);
 }
 
@@ -217,8 +212,8 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
 
   EXPECT_OUTCOME_FALSE(
       err,
-      validator_.validateBlock(
-          valid_block_, authority.id, threshold_, randomness_));
+      validator_.validateHeader(
+          valid_block_.header, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, consensus::DigestError::INVALID_DIGESTS);
 }
 
@@ -257,8 +252,8 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   // THEN
   EXPECT_OUTCOME_FALSE(
       err,
-      validator_.validateBlock(
-          valid_block_, authority.id, threshold_, randomness_));
+      validator_.validateHeader(
+          valid_block_.header, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -297,8 +292,8 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   // THEN
   EXPECT_OUTCOME_FALSE(
       err,
-      validator_.validateBlock(
-          valid_block_, authority.id, threshold_, randomness_));
+      validator_.validateHeader(
+          valid_block_.header, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -338,8 +333,8 @@ TEST_F(BlockValidatorTest, VRFFail) {
   // THEN
   EXPECT_OUTCOME_FALSE(
       err,
-      validator_.validateBlock(
-          valid_block_, authority.id, threshold_, randomness_));
+      validator_.validateHeader(
+          valid_block_.header, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
@@ -381,94 +376,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   // THEN
   EXPECT_OUTCOME_FALSE(
       err,
-      validator_.validateBlock(
-          valid_block_, authority.id, threshold_, randomness_));
+      validator_.validateHeader(
+          valid_block_.header, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
-
-/**
- * @given block validator
- * @when validating block, which contains an invalid extrinsics root
- * @then validation fails
- */
-TEST_F(BlockValidatorTest, InvalidExtrinsicsRoot) {
-  auto block_copy = valid_block_;
-  block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
-  Hash256 encoded_block_copy_hash{};
-  std::copy(encoded_block_copy.begin(),
-            encoded_block_copy.begin() + Hash256::size(),
-            encoded_block_copy_hash.begin());
-
-  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
-
-  EXPECT_CALL(*hasher_, blake2b_256(_))
-      .WillOnce(Return(encoded_block_copy_hash));
-
-  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
-      .WillOnce(Return(outcome::result<bool>(true)));
-
-  babe_epoch_.authorities.emplace_back();
-  auto authority = Authority{{pubkey}, 42};
-  babe_epoch_.authorities.emplace_back(authority);
-
-  auto invalid_block = valid_block_;
-  invalid_block.header.extrinsics_root =
-      Hash256();  // set invalid extrinsic root
-
-  auto randomness_with_slot =
-      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
-      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
-
-  EXPECT_OUTCOME_FALSE(
-      err,
-      validator_.validateBlock(
-          invalid_block, authority.id, threshold_, randomness_));
-  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_EXTRINSICS_ROOT);
-}
-
-///**
-// * @given block validator
-// * @when validating block, which contains an invalid extrinsic
-// * @then validation fails
-// */
-// TEST_F(BlockValidatorTest, InvalidExtrinsic) {
-//  // GIVEN
-//  auto block_copy = valid_block_;
-//  block_copy.header.digest.pop_back();
-//  auto encoded_block_copy = scale::encode(block_copy.header).value();
-//  Hash256 encoded_block_copy_hash{};
-//  std::copy(encoded_block_copy.begin(),
-//            encoded_block_copy.begin() + Hash256::size(),
-//            encoded_block_copy_hash.begin());
-//
-//  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
-//
-//  EXPECT_CALL(*hasher_, blake2b_256(_))
-//      .WillOnce(Return(encoded_block_copy_hash));
-//
-//  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
-//      .WillOnce(Return(outcome::result<bool>(true)));
-//
-//  babe_epoch_.authorities.emplace_back();
-//  auto authority = Authority{{pubkey}, 42};
-//  babe_epoch_.authorities.emplace_back(authority);
-//
-//  auto randomness_with_slot =
-//      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
-//  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
-//      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
-//
-//  // WHEN
-//  EXPECT_CALL(*tx_queue_,
-//              validate_transaction(TransactionSource::InBlock, ext_))
-//      .WillOnce(Return(TransactionValidity{InvalidTransaction{}}));
-//
-//  // THEN
-//  EXPECT_OUTCOME_FALSE(
-//      err,
-//      validator_.validateBlock(
-//          valid_block_, authority.id, threshold_, randomness_));
-//  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TRANSACTIONS);
-//}

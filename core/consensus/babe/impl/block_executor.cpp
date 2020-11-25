@@ -6,7 +6,6 @@
 #include "consensus/babe/impl/block_executor.hpp"
 
 #include <chrono>
-#include <libp2p/peer/peer_id.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -190,8 +189,8 @@ namespace kagome::consensus {
           .value();
     }
 
-    OUTCOME_TRY(block_validator_->validateBlock(
-        block,
+    OUTCOME_TRY(block_validator_->validateHeader(
+        block.header,
         this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
         threshold,
         this_block_epoch_descriptor.randomness));
