@@ -95,8 +95,8 @@ namespace kagome::application {
   bool AppConfigurationImpl::load_u16(const rapidjson::Value &val,
                                       char const *name,
                                       uint16_t &target) {
-    int32_t i;
-    if (load_i32(val, name, i)
+    uint32_t i;
+    if (load_u32(val, name, i)
         && (i & ~std::numeric_limits<uint16_t>::max()) == 0) {
       target = static_cast<uint16_t>(i);
       return true;
@@ -104,13 +104,16 @@ namespace kagome::application {
     return false;
   }
 
-  bool AppConfigurationImpl::load_i32(const rapidjson::Value &val,
+  bool AppConfigurationImpl::load_u32(const rapidjson::Value &val,
                                       char const *name,
-                                      int32_t &target) {
+                                      uint32_t &target) {
     if (auto m = val.FindMember(name);
         val.MemberEnd() != m && m->value.IsInt()) {
-      target = m->value.GetInt();
-      return true;
+      const auto v = m->value.GetInt();
+      if ((v & (1u << 31u)) == 0) {
+        target = static_cast<uint32_t>(v);
+        return true;
+      }
     }
     return false;
   }
@@ -144,7 +147,7 @@ namespace kagome::application {
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
     load_bool(val, "single_finalizing_node", is_only_finalizing_);
     load_bool(val, "already_synchronized", is_already_synchronized_);
-    load_i32(val, "max_blocks_in_response", max_blocks_in_response_);
+    load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
   }
 
   bool AppConfigurationImpl::validate_config(
@@ -321,7 +324,7 @@ namespace kagome::application {
     find_argument<uint16_t>(
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
 
-    find_argument<int32_t>(vm, "max_blocks_in_response", [&](int32_t val) {
+    find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
       max_blocks_in_response_ = val;
     });
 

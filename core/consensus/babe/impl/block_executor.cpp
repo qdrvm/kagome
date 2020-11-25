@@ -75,6 +75,7 @@ namespace kagome::consensus {
 
       if (not block_tree_->getBlockHeader(header.parent_hash)) {
         if (sync_state_ == kReadyState) {
+          /// We don't have past block, it means we have a gap and must sync
           sync_state_ = kSyncState;
           const auto &[last_number, last_hash] =
               block_tree_->getLastFinalized();

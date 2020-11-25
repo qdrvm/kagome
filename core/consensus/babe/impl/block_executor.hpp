@@ -70,8 +70,13 @@ namespace kagome::consensus {
                        std::function<void()> &&next);
 
    private:
+    /// Possible states of the block executor
     enum ExecutorState {
+      /// Executor had been synced and ready to work.
       kReadyState = 0,
+
+      /// Executor at the syncing state. It doesn't process blocks from the
+      /// past.
       kSyncState = 1,
     };
     std::atomic<ExecutorState> sync_state_;

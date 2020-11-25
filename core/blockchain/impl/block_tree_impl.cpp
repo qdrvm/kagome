@@ -52,7 +52,7 @@ namespace kagome::blockchain {
 
       if (target->block_hash == hash) {
         stack.emplace_back(target);
-        return std::move(stack);
+        return stack;
       }
 
       auto parent = target->parent.lock();
@@ -391,6 +391,42 @@ namespace kagome::blockchain {
       const uint32_t max_count) {
     return getChainByBlocks(
         top_block, bottom_block, boost::make_optional(max_count));
+  }
+
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
+      const primitives::BlockHash &top_block,
+      const primitives::BlockHash &bottom_block,
+      boost::optional<uint32_t> max_count) {
+    if (auto from_cache =
+            tryGetChainByBlocksFromCache(top_block, bottom_block, max_count)) {
+      return std::move(from_cache.value());
+    }
+
+    OUTCOME_TRY(from, header_repo_->getNumberByHash(top_block));
+    OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
+
+    std::vector<primitives::BlockHash> result;
+    if (to < from) return result;
+
+    const uint64_t response_length =
+        max_count ? std::min(to - from + 1, static_cast<uint64_t>(*max_count))
+                  : to - from + 1;
+    log_->trace("Try to create {} length chain from number {} to {}.",
+                response_length,
+                from,
+                to);
+
+    result.reserve(response_length);
+    result.emplace_back(top_block);
+
+    const auto end = from + response_length;
+    auto ix = from + 1;
+    while (ix < end) {
+      OUTCOME_TRY(hash, header_repo_->getHashByNumber(ix));
+      result.emplace_back(hash);
+      ++ix;
+    }
+    return result;
   }
 
   boost::optional<std::vector<primitives::BlockHash>>
