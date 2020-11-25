@@ -392,10 +392,8 @@ namespace kagome::consensus {
 
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
               buf_exts.begin(), buf_exts.end());
-          return ext_root_res.has_value()
-                     ? (ext_root_res.value()
-                        == common::Buffer(block.header.extrinsics_root))
-                     : false;
+          return ext_root_res.has_value() and (ext_root_res.value()
+                        == common::Buffer(block.header.extrinsics_root));
         }(),
         "Extrinsics root does not match extrinsics in the block");
 
