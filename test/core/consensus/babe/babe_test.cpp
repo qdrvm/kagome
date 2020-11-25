@@ -30,6 +30,7 @@
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block.hpp"
+#include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/sr25519_utils.hpp"
 
@@ -122,7 +123,8 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*app_state_manager_, atShutdown(_)).Times(testing::AnyNumber());
 
     auto sr25519_provider = std::make_shared<Sr25519ProviderMock>();
-    EXPECT_CALL(*sr25519_provider, sign(_, _)).WillRepeatedly(Return(Sr25519Signature {}));
+    EXPECT_CALL(*sr25519_provider, sign(_, _))
+        .WillRepeatedly(Return(Sr25519Signature{}));
 
     babe_ = std::make_shared<BabeImpl>(app_state_manager_,
                                        lottery_,
@@ -145,6 +147,16 @@ class BabeTest : public testing::Test {
     epoch_.authorities = expected_config->genesis_authorities;
     epoch_.start_slot = 0;
     epoch_.epoch_index = 0;
+
+    // add extrinsics root to the header
+    std::vector<common::Buffer> encoded_exts(
+        {common::Buffer(scale::encode(extrinsic_).value())});
+    created_block_.header.extrinsics_root =
+        common::Hash256::fromSpan(
+            kagome::storage::trie::calculateOrderedTrieHash(
+                encoded_exts.begin(), encoded_exts.end())
+                .value())
+            .value();
   }
 
   std::shared_ptr<AppStateManagerMock> app_state_manager_;
