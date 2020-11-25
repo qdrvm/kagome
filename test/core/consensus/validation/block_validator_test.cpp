@@ -8,7 +8,6 @@
 #include "common/mp_utils.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
-#include "crypto/random_generator/boost_generator.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
@@ -166,9 +165,9 @@ TEST_F(BlockValidatorTest, Success) {
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   // verifyTransactions
-  EXPECT_CALL(*tx_queue_,
-              validate_transaction(TransactionSource::InBlock, ext_))
-      .WillOnce(Return(ValidTransaction{}));
+  //  EXPECT_CALL(*tx_queue_,
+  //              validate_transaction(TransactionSource::InBlock, ext_))
+  //      .WillOnce(Return(ValidTransaction{}));
 
   auto validate_res = validator_.validateBlock(
       valid_block_, authority.id, threshold_, randomness_);
@@ -428,3 +427,48 @@ TEST_F(BlockValidatorTest, InvalidExtrinsicsRoot) {
           invalid_block, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_EXTRINSICS_ROOT);
 }
+
+///**
+// * @given block validator
+// * @when validating block, which contains an invalid extrinsic
+// * @then validation fails
+// */
+// TEST_F(BlockValidatorTest, InvalidExtrinsic) {
+//  // GIVEN
+//  auto block_copy = valid_block_;
+//  block_copy.header.digest.pop_back();
+//  auto encoded_block_copy = scale::encode(block_copy.header).value();
+//  Hash256 encoded_block_copy_hash{};
+//  std::copy(encoded_block_copy.begin(),
+//            encoded_block_copy.begin() + Hash256::size(),
+//            encoded_block_copy_hash.begin());
+//
+//  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+//
+//  EXPECT_CALL(*hasher_, blake2b_256(_))
+//      .WillOnce(Return(encoded_block_copy_hash));
+//
+//  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
+//      .WillOnce(Return(outcome::result<bool>(true)));
+//
+//  babe_epoch_.authorities.emplace_back();
+//  auto authority = Authority{{pubkey}, 42};
+//  babe_epoch_.authorities.emplace_back(authority);
+//
+//  auto randomness_with_slot =
+//      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+//  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+//      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
+//
+//  // WHEN
+//  EXPECT_CALL(*tx_queue_,
+//              validate_transaction(TransactionSource::InBlock, ext_))
+//      .WillOnce(Return(TransactionValidity{InvalidTransaction{}}));
+//
+//  // THEN
+//  EXPECT_OUTCOME_FALSE(
+//      err,
+//      validator_.validateBlock(
+//          valid_block_, authority.id, threshold_, randomness_));
+//  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TRANSACTIONS);
+//}

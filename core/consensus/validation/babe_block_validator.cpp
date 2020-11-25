@@ -66,16 +66,16 @@ namespace kagome::consensus {
         validateHeader(block.header, authority_id, threshold, randomness));
 
     // block's extrinsics root should correspond for its extrinsics
-    // probably not needed, if it is checked in runtime
     if (!verifyExtrinsicsRoot(block.header.extrinsics_root, block.body)) {
       return ValidationError::INVALID_EXTRINSICS_ROOT;
     }
 
     // all transactions in the block must be valid
-    // probably not needed
+    /* probably not needed
     if (!verifyTransactions(block.body)) {
       return ValidationError::INVALID_TRANSACTIONS;
     }
+    */
 
     // there must exist a chain with the block in our storage, which is
     // specified as a parent of the block we are validating; BlockTree takes
