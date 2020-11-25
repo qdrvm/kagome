@@ -132,16 +132,19 @@ namespace kagome::consensus {
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
             sync_complete = true;
-          } else {
+          } else if (blocks.front().header && blocks.back().header) {
             first_received_hash = self->hasher_->blake2b_256(
-                scale::encode(blocks.front().header).value());
+                scale::encode(*blocks.front().header).value());
             last_received_hash = self->hasher_->blake2b_256(
-                scale::encode(blocks.back().header).value());
+                scale::encode(*blocks.back().header).value());
             self->logger_->info("Received blocks from: {}, to {}, count {}",
                                 first_received_hash.toHex(),
                                 last_received_hash.toHex(),
                                 blocks.size());
             sync_complete = to == last_received_hash;
+          } else {
+            self->logger_->warn("Blocks with empty headers detected.");
+            sync_complete = true;
           }
           for (const auto &block : blocks) {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
