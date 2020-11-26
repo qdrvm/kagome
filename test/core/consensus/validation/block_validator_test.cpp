@@ -232,7 +232,10 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   // only one authority even though we want at least two
   auto authority = Authority{{}, 42};
 
-  EXPECT_CALL(*sr25519_provider_, verify(seal.signature, _, authority.id.id))
+  EXPECT_CALL(
+      *sr25519_provider_,
+      verify(
+          seal.signature, _, kagome::crypto::Sr25519PublicKey{authority.id.id}))
       .WillOnce(Return(false));
 
   // THEN

@@ -52,4 +52,10 @@ namespace kagome::crypto {
     return pbkdf2_provider_->deriveKey(
         entropy, salt, iterations_count, bip39::constants::BIP39_SEED_LEN_512);
   }
+  outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::generateSeed(
+      std::string_view mnemonic_phrase) {
+    OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
+    OUTCOME_TRY(entropy, calculateEntropy(mnemonic.words));
+    return makeSeed(entropy, mnemonic.password);
+  }
 }  // namespace kagome::crypto

@@ -39,6 +39,9 @@ using kagome::common::Buffer;
 using kagome::crypto::Bip39ProviderImpl;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CryptoStoreImpl;
+using kagome::crypto::Ed25519Suite;
+using kagome::crypto::Sr25519Suite;
+using kagome::crypto::KeyFileStorage;
 using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::HasherImpl;
 using kagome::crypto::Pbkdf2ProviderImpl;
@@ -95,11 +98,12 @@ class WasmExecutorTest : public ::testing::Test {
     auto hasher = std::make_shared<HasherImpl>();
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     auto bip39_provider = std::make_shared<Bip39ProviderImpl>(pbkdf2_provider);
-    auto crypto_store = std::make_shared<CryptoStoreImpl>(ed25519_provider,
-                                                          sr25519_provider,
-                                                          secp256k1_provider,
+
+    auto keystore_path = boost::filesystem::temp_directory_path() / "kagome_keystore_test_dir";
+    auto crypto_store = std::make_shared<CryptoStoreImpl>(std::make_shared<Ed25519Suite>(ed25519_provider),
+                                                          std::make_shared<Sr25519Suite>(sr25519_provider),
                                                           bip39_provider,
-                                                          random_generator);
+                                                          KeyFileStorage::createAt(keystore_path).value());
     auto changes_tracker =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
     auto extension_factory =

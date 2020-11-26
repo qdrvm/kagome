@@ -48,7 +48,6 @@ target_link_libraries(application_injector
     gossiper_broadcast
     kagome_router
     leveldb
-    local_key_storage
     outcome
     grandpa
     environment

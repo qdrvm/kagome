@@ -13,7 +13,7 @@ namespace kagome::runtime::binaryen {
   using primitives::Digest;
   using primitives::ForcedChange;
   using primitives::ScheduledChange;
-  using primitives::SessionKey;
+  using primitives::GrandpaSessionKey;
 
   GrandpaApiImpl::GrandpaApiImpl(
       const std::shared_ptr<WasmProvider> &wasm_provider,

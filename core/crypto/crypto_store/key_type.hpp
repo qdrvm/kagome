@@ -21,18 +21,18 @@ namespace kagome::crypto {
    */
   using KeyTypeId = uint32_t;
 
-  namespace key_types {
-    /**
-     * Types are 32bit integers, which represent encoded 4-char strings
-     * Big-endian byte order is used
-     */
-    static constexpr KeyTypeId kBabe = 1650549349u;  // "babe"
-    static constexpr KeyTypeId kGran = 1735549294u;  // "gran"
-    static constexpr KeyTypeId kAcco = 1633903471u;  // "acco"
-    static constexpr KeyTypeId kImon = 1768779630u;  // "imon"
-    static constexpr KeyTypeId kAudi = 1635083369u;  // "audi"
-    static constexpr KeyTypeId kLp2p = 1819292272u;  // "lp2p"
-  }  // namespace supported_key_types
+  /**
+   * Types are 32bit integers, which represent encoded 4-char strings
+   * Big-endian byte order is used
+   */
+  enum KnownKeyTypeId : KeyTypeId {
+    KEY_TYPE_BABE = 1650549349u, // BABE, sr25519
+    KEY_TYPE_GRAN = 1735549294u, // GRANDPA, ed25519
+    KEY_TYPE_ACCO = 1633903471u, // Account control [sr25519, ed25519, secp256k1]
+    KEY_TYPE_IMON = 1768779630u, // I'm Online, sr25519
+    KEY_TYPE_AUDI = 1635083369u, // Account discovery [sr25519, ed25519, secp256k1]
+    KEY_TYPE_LP2P = 1819292272u  // LibP2P
+  };
 
   /**
    * @brief makes string representation of KeyTypeId

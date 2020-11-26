@@ -10,9 +10,9 @@
 namespace kagome::runtime::dummy {
 
   GrandpaApiDummy::GrandpaApiDummy(
-      std::shared_ptr<application::KeyStorage> key_storage)
-      : key_storage_{std::move(key_storage)} {
-    BOOST_ASSERT(key_storage_ != nullptr);
+      std::shared_ptr<crypto::CryptoStore> crypto_store)
+      : crypto_store_{std::move(crypto_store)} {
+    BOOST_ASSERT(crypto_store_ != nullptr);
   }
 
   outcome::result<boost::optional<primitives::ScheduledChange>>
@@ -27,7 +27,8 @@ namespace kagome::runtime::dummy {
   }
   outcome::result<primitives::AuthorityList> GrandpaApiDummy::authorities(
       const primitives::BlockId &block_id) {
+    OUTCOME_TRY(keys, crypto_store_->getEd25519PublicKeys(crypto::KEY_TYPE_GRAN));
     return primitives::AuthorityList{
-        {{key_storage_->getLocalEd25519Keypair().public_key}, 1}};
+        {{keys.at(0)}, 1}};
   }
 }  // namespace kagome::runtime::dummy
