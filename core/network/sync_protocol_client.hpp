@@ -7,8 +7,9 @@
 #define KAGOME_SYNC_PROTOCOL_CLIENT_HPP
 
 #include <functional>
-
+#include <libp2p/peer/peer_id.hpp>
 #include <outcome/outcome.hpp>
+
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
 
@@ -27,6 +28,9 @@ namespace kagome::network {
     virtual void requestBlocks(
         const BlocksRequest &request,
         std::function<void(outcome::result<BlocksResponse>)> cb) = 0;
+
+    virtual boost::optional<std::reference_wrapper<const libp2p::peer::PeerId>>
+    peerId() const = 0;
   };
 }  // namespace kagome::network
 
