@@ -79,16 +79,11 @@ namespace kagome::consensus {
     app_state_manager_->atLaunch([this] { return start(); });
   }
 
-  //  using TimePoint = clock::SystemClock::TimePoint;
-  //  using Duration = clock::SystemClock::Duration;
-
   BabeTimePoint closestNextTimeMultiple(BabeTimePoint from,
                                         BabeDuration multiple) {
     if (multiple.count() == 0) return from;
 
     auto remainder = from.time_since_epoch() % multiple;
-    //    if (remainder == 0)
-    //      return numToRound;
 
     return from + multiple - remainder;
   }
@@ -594,9 +589,6 @@ namespace kagome::consensus {
 
     else if (slots_calculation_strategy_
              == SlotsStrategy::FromUnixEpoch) {
-      //      first_production_slot = babe_header.slot_number + 1;
-      //      auto first_epoch_slot = *first_production_slot -
-
       Epoch epoch;
 
       auto last_known_epoch = epoch_storage_->getLastEpoch().value();
