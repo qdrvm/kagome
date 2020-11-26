@@ -26,8 +26,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
       return "VRF value and output are invalid";
     case E::TWO_BLOCKS_IN_SLOT:
       return "peer tried to distribute several blocks in one slot";
-    case E::INVALID_TRANSACTIONS:
-      return "one or more transactions in the block are invalid";
   }
   return "unknown error";
 }
@@ -53,25 +51,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(sr25519_provider_);
   }
 
-  outcome::result<void> BabeBlockValidator::validateBlock(
-      const primitives::Block &block,
-      const primitives::AuthorityId &authority_id,
-      const Threshold &threshold,
-      const Randomness &randomness) const {
-    OUTCOME_TRY(
-        validateHeader(block.header, authority_id, threshold, randomness));
-
-    // all transactions in the block must be valid
-    if (!verifyTransactions(block.body)) {
-      return ValidationError::INVALID_TRANSACTIONS;
-    }
-
-    // there must exist a chain with the block in our storage, which is
-    // specified as a parent of the block we are validating; BlockTree takes
-    // care of this check and returns a specific error, if it fails
-    return outcome::success();
-  }
-
   outcome::result<void> BabeBlockValidator::validateHeader(
       const primitives::BlockHeader &header,
       const primitives::AuthorityId &authority_id,
@@ -82,15 +61,21 @@ namespace kagome::consensus {
 
     // get BABE-specific digests, which must be inside of this block
     OUTCOME_TRY(babe_digests, getBabeDigests(header));
-    auto [seal, babe_header] = babe_digests;
+    const auto &[seal, babe_header] = babe_digests;
 
     // signature in seal of the header must be valid
-    if (!verifySignature(header, babe_header, seal, primitives::BabeSessionKey{authority_id.id})) {
+    if (!verifySignature(header,
+                         babe_header,
+                         seal,
+                         primitives::BabeSessionKey{authority_id.id})) {
       return ValidationError::INVALID_SIGNATURE;
     }
 
     // VRF must prove that the peer is the leader of the slot
-    if (!verifyVRF(babe_header, primitives::BabeSessionKey{authority_id.id}, threshold, randomness)) {
+    if (!verifyVRF(babe_header,
+                   primitives::BabeSessionKey{authority_id.id},
+                   threshold,
+                   randomness)) {
       return ValidationError::INVALID_VRF;
     }
 
@@ -117,10 +102,11 @@ namespace kagome::consensus {
     return res && res.value();
   }
 
-  bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header,
-                                     const primitives::BabeSessionKey &public_key,
-                                     const Threshold &threshold,
-                                     const Randomness &randomness) const {
+  bool BabeBlockValidator::verifyVRF(
+      const BabeBlockHeader &babe_header,
+      const primitives::BabeSessionKey &public_key,
+      const Threshold &threshold,
+      const Randomness &randomness) const {
     // verify VRF output
     auto randomness_with_slot =
         Buffer{}
@@ -140,23 +126,5 @@ namespace kagome::consensus {
     }
 
     return true;
-  }
-
-  bool BabeBlockValidator::verifyTransactions(
-      const primitives::BlockBody &block_body) const {
-    return std::all_of(
-        block_body.cbegin(), block_body.cend(), [this](const auto &ext) {
-          auto validation_res = tx_queue_->validate_transaction(
-              primitives::TransactionSource::InBlock, ext);
-          if (!validation_res) {
-            log_->info("extrinsic validation failed: {}",
-                       validation_res.error());
-            return false;
-          }
-          return visit_in_place(
-              validation_res.value(),
-              [](const primitives::ValidTransaction &) { return true; },
-              [](const auto &) { return false; });
-        });
   }
 }  // namespace kagome::consensus

@@ -57,6 +57,7 @@ target_link_libraries(babe
     babe_digests_util
     threshold_util
     block_executor
+    polkadot_trie
     )
 
 add_library(babe_synchronizer

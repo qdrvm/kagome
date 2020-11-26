@@ -6,6 +6,7 @@
 #include "consensus/babe/impl/babe_impl.hpp"
 
 #include <boost/assert.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
@@ -17,6 +18,7 @@
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
+#include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 namespace kagome::consensus {
   BabeImpl::BabeImpl(
@@ -366,7 +368,7 @@ namespace kagome::consensus {
       return log_->error("cannot propose a block: {}",
                          babe_pre_digest_res.error().message());
     }
-    auto babe_pre_digest = babe_pre_digest_res.value();
+    const auto &babe_pre_digest = babe_pre_digest_res.value();
 
     // create new block
     auto pre_seal_block_res =
@@ -377,6 +379,19 @@ namespace kagome::consensus {
     }
 
     auto block = pre_seal_block_res.value();
+
+    // Ensure block's extrinsics root matches extrinsics in block's body
+    BOOST_ASSERT_MSG(
+        [&block] {
+          using boost::adaptors::transformed;
+          const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
+              block.body | transformed([](const auto &ext) {
+                return common::Buffer{scale::encode(ext).value()};
+              }));
+          return ext_root_res.has_value() and (ext_root_res.value()
+                        == common::Buffer(block.header.extrinsics_root));
+        }(),
+        "Extrinsics root does not match extrinsics in the block");
 
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
         next_epoch_digest_res) {
