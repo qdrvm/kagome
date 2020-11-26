@@ -4,8 +4,8 @@
  */
 
 #include "application/impl/syncing_node_application.hpp"
-#include "network/common.hpp"
 #include "application/impl/util.hpp"
+#include "network/common.hpp"
 
 namespace kagome::application {
 
@@ -24,10 +24,6 @@ namespace kagome::application {
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     router_ = injector_.create<sptr<network::Router>>();
     chain_path_ = app_config.chain_path(genesis_config_->id());
-    kademlia_ =
-        injector_
-            .create<std::shared_ptr<libp2p::protocol::kademlia::Kademlia>>();
-
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
@@ -36,7 +32,8 @@ namespace kagome::application {
 
     auto res = util::init_directory(chain_path_);
     if (not res) {
-      logger_->error("Error initalizing chain directory: ", res.error().message());
+      logger_->error("Error initalizing chain directory: ",
+                     res.error().message());
     }
 
     app_state_manager_->atLaunch([this] {
@@ -48,13 +45,13 @@ namespace kagome::application {
         for (const auto &ma : current_peer_info.addresses) {
           auto listen = host.listen(ma);
           if (not listen) {
-            logger_->error("Cannot listen address {}. Error: {}",
-                           ma.getStringAddress(),
-                           listen.error().message());
+            logger_->critical("Cannot listen address {}. Error: {}",
+                              ma.getStringAddress(),
+                              listen.error().message());
             std::exit(1);
           }
         }
-        for (const auto &boot_node : genesis_config_->getBootNodes().peers) {
+        for (const auto &boot_node : genesis_config_->getBootNodes()) {
           host.newStream(
               boot_node,
               network::kGossipProtocol,
@@ -69,13 +66,6 @@ namespace kagome::application {
                 this->router_->handleGossipProtocol(stream_res.value());
               });
         }
-
-        for (const auto &boot_node : config_storage_->getBootNodes().peers) {
-          kademlia_->addPeer(boot_node, true);
-        }
-        kademlia_->start();
-
-        this->router_->init();
       });
       return true;
     });

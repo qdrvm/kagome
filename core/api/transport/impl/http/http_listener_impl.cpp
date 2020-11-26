@@ -56,9 +56,9 @@ namespace kagome::api {
   }
 
   void HttpListenerImpl::stop() {
-    assert(acceptor_);
-
-    acceptor_->cancel();
+    if (acceptor_) {
+      acceptor_->cancel();
+    }
   }
 
   void HttpListenerImpl::setHandlerForNewSession(

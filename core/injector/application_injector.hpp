@@ -73,6 +73,7 @@
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
+#include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/remote_sync_protocol_client.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
@@ -107,6 +108,7 @@
 
 namespace kagome::injector {
   namespace di = boost::di;
+  namespace fs = boost::filesystem;
 
   template <typename C>
   auto useConfig(C c) {
@@ -121,15 +123,15 @@ namespace kagome::injector {
   using uptr = std::unique_ptr<T>;
 
   template <typename Injector>
-  sptr<network::PeerList> get_boot_nodes(const Injector &injector) {
+  const network::BootstrapNodes& get_bootstrap_nodes(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<network::PeerList>>(boost::none);
+        boost::optional<network::BootstrapNodes>(boost::none);
     if (initialized) {
       return initialized.value();
     }
     auto &cfg = injector.template create<application::ChainSpec &>();
 
-    initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
+    initialized = cfg.getBootNodes();
     return initialized.value();
   }
 
@@ -499,7 +501,12 @@ namespace kagome::injector {
     auto db = storage::LevelDB::create(
         config.database_path(genesis_config->id()), options);
     if (!db) {
-      common::raise(db.error());
+      spdlog::critical("Can't create LevelDB in {}: {}",
+                       fs::absolute(config.database_path(genesis_config->id()),
+                                    fs::current_path())
+                           .native(),
+                       db.error().message());
+      exit(EXIT_FAILURE);
     }
     initialized = db.value();
     return initialized.value();
@@ -534,9 +541,9 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto genesis_config =
-        injector.template create<sptr<application::ChainSpec>>();
-    auto peer_infos = genesis_config->getBootNodes().peers;
+	  auto genesis_config =
+			  injector.template create<sptr<application::ChainSpec>>();
+    auto peer_infos = genesis_config->getBootNodes();
 
     auto host = injector.template create<sptr<libp2p::Host>>();
 
@@ -673,8 +680,8 @@ namespace kagome::injector {
             libp2p::injector::useKademliaConfig(kademlia_config)),
 
         // bind boot nodes
-        di::bind<network::PeerList>.to(
-            [](auto const &inj) { return get_boot_nodes(inj); }),
+        di::bind<network::BootstrapNodes>.to(
+            [](auto const &inj) { return get_bootstrap_nodes(inj); }),
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
 
@@ -689,7 +696,8 @@ namespace kagome::injector {
         di::bind<api::WsListenerImpl>.to([](const auto &injector) {
           return get_jrpc_api_ws_listener(injector);
         }),
-        di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()[di::override],
+        di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
+            [di::override],
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
@@ -785,21 +793,22 @@ namespace kagome::injector {
             return initialized.value();
           }
           initialized = std::make_shared<network::RouterLibp2p>(
+              injector.template create<std::shared_ptr<application::AppStateManager>>(),
               injector.template create<libp2p::Host &>(),
+              injector.template create<network::OwnPeerInfo &>(),
+              injector.template create<network::BootstrapNodes>(),
               injector.template create<sptr<network::BabeObserver>>(),
-              injector
-                  .template create<sptr<consensus::grandpa::GrandpaObserver>>(),
+              injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),
               injector.template create<sptr<network::SyncProtocolObserver>>(),
               injector.template create<sptr<network::ExtrinsicObserver>>(),
               injector.template create<sptr<network::Gossiper>>(),
-              *injector.template create<sptr<network::PeerList>>(),
-              injector.template create<network::OwnPeerInfo &>(),
               injector.template create<sptr<kagome::application::ChainSpec>>(),
               injector.template create<sptr<blockchain::BlockStorage>>(),
               injector.template create<sptr<libp2p::protocol::Identify>>(),
               injector.template create<sptr<libp2p::protocol::Ping>>());
           return initialized.value();
         }),
+        di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

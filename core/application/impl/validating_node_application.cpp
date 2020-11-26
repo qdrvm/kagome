@@ -31,44 +31,14 @@ namespace kagome::application {
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_ = injector_.create<sptr<Grandpa>>();
     router_ = injector_.create<sptr<network::Router>>();
-    kademlia_ =
-        injector_
-            .create<std::shared_ptr<libp2p::protocol::kademlia::Kademlia>>();
 
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void ValidatingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
+    logger_->info("Start as ValidatingNode with PID {}", getpid());
 
     babe_->setExecutionStrategy(babe_execution_strategy_);
-
-    app_state_manager_->atLaunch([this] {
-      // execute listeners
-      io_context_->post([this] {
-        const auto &current_peer_info =
-            injector_.template create<network::OwnPeerInfo>();
-        auto &host = injector_.template create<libp2p::Host &>();
-        for (const auto &ma : current_peer_info.addresses) {
-          auto listen = host.listen(ma);
-          if (not listen) {
-            logger_->error("Cannot listen address {}. Error: {}",
-                           ma.getStringAddress(),
-                           listen.error().message());
-            std::exit(1);
-          }
-        }
-
-        for (const auto &boot_node : config_storage_->getBootNodes().peers) {
-          kademlia_->addPeer(boot_node, true);
-        }
-        kademlia_->start();
-
-        router_->init();
-      });
-
-      return true;
-    });
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });

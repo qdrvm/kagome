@@ -20,7 +20,6 @@
 #include "network/impl/stream_engine.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/no_data_message.hpp"
-#include "network/types/peer_list.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 

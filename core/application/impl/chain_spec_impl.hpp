@@ -31,7 +31,7 @@ namespace kagome::application {
       return chain_type_;
     }
 
-    network::PeerList getBootNodes() const override {
+    const network::BootstrapNodes &getBootNodes() const override {
       return boot_nodes_;
     }
 
@@ -85,7 +85,7 @@ namespace kagome::application {
     std::string name_;
     std::string id_;
     std::string chain_type_;
-    network::PeerList boot_nodes_;
+    network::BootstrapNodes boot_nodes_;
     std::vector<std::pair<std::string, size_t>> telemetry_endpoints_;
     std::string protocol_id_{"sup"};
     std::map<std::string, std::string> properties_;

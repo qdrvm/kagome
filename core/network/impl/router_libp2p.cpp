@@ -18,26 +18,30 @@
 #include "network/types/block_announce.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
+#include "network/types/bootstrap_nodes.hpp"
 #include "network/types/no_data_message.hpp"
-#include "network/types/peer_list.hpp"
 #include "network/types/status.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       libp2p::Host &host,
+      const OwnPeerInfo &own_info,
+      const BootstrapNodes &bootstrap_nodes,
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<Gossiper> gossiper,
-      const PeerList &peer_list,
-      const OwnPeerInfo &own_peer_info,
       std::shared_ptr<kagome::application::ChainSpec> config,
       std::shared_ptr<blockchain::BlockStorage> storage,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto)
-      : host_{host},
+      : app_state_manager_{app_state_manager},
+        host_{host},
+        own_info_{own_info},
+        bootstrap_nodes_{bootstrap_nodes},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
@@ -52,6 +56,8 @@ namespace kagome::network {
         storage_{std::move(storage)},
         identify_{std::move(identify)},
         ping_proto_{std::move(ping_proto)} {
+    BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
+                     "app state manager is nullptr");
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
@@ -59,27 +65,29 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
-    BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
+    BOOST_ASSERT_MSG(not bootstrap_nodes.empty(), "peer list is empty");
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
 
-    gossiper_->storeSelfPeerInfo(own_peer_info);
-    for (const auto &peer_info : peer_list.peers) {
-      if (peer_info.id != own_peer_info.id) {
+    gossiper_->storeSelfPeerInfo(own_info_);
+    for (const auto &peer_info : bootstrap_nodes_) {
+      if (peer_info.id != own_info_.id) {
         gossiper_->reserveStream(peer_info, transactions_protocol_, {});
         gossiper_->reserveStream(peer_info, block_announces_protocol_, {});
         gossiper_->reserveStream(peer_info, kGossipProtocol, {});
       } else {
-        auto stream = std::make_shared<LoopbackStream>(own_peer_info);
+        auto stream = std::make_shared<LoopbackStream>(own_info_);
         loopback_stream_ = stream;
         gossiper_->reserveStream(
-            own_peer_info, kGossipProtocol, std::move(stream));
+            own_info_, kGossipProtocol, std::move(stream));
       }
     }
+
+    app_state_manager_->takeControl(*this);
   }
 
-  void RouterLibp2p::init() {
+  bool RouterLibp2p::prepare() {
     host_.setProtocolHandler(
         fmt::format(kSyncProtocol.data(), config_->protocolId()),
         [self{shared_from_this()}](auto &&stream) {
@@ -113,6 +121,11 @@ namespace kagome::network {
                                network::kSupProtocol,
                                peer_id.value().toHex());
         });
+    host_.setProtocolHandler(
+        kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
+          self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
+        });
+
     new_connection_handler_ = host_.setOnNewConnectionHandler(
         [wself{weak_from_this()}](auto &&peer_info) {
           if (auto self = wself.lock()) {
@@ -125,15 +138,16 @@ namespace kagome::network {
                                      peer_info.id.toHex());
                     return;
                   }
-                  self->gossiper_->addStream(self->block_announces_protocol_,
-                                             stream_res.value());
+                  [[maybe_unused]] auto res = self->gossiper_->addStream(
+                      self->block_announces_protocol_, stream_res.value());
                 });
           }
         });
-    host_.setProtocolHandler(
-        kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
-          self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
-        });
+
+    return true;
+  }
+
+  bool RouterLibp2p::start() {
     if (auto stream = loopback_stream_.lock()) {
       readAsyncMsg<GossipMessage>(
           std::move(stream),
@@ -141,12 +155,36 @@ namespace kagome::network {
             return self->processGossipMessage(peer_id, msg);
           });
     }
+
     host_.start();
+
+    for (const auto &ma : own_info_.addresses) {
+      auto listen = host_.listen(ma);
+      if (not listen) {
+        log_->error("Cannot listen address {}. Error: {}",
+                    ma.getStringAddress(),
+                    listen.error().message());
+      }
+    }
+
     const auto &host_addresses = host_.getAddresses();
-    BOOST_ASSERT_MSG(not host_addresses.empty(), "Host addresses empty");
+    if (host_addresses.empty()) {
+      log_->critical("Host addresses is empty");
+      return false;
+    }
+
     log_->info("Started listening with peer id: {} on address: {}",
                host_.getId().toBase58(),
                host_addresses.front().getStringAddress());
+
+    return true;
+  }
+
+  void RouterLibp2p::stop() {
+    new_connection_handler_.unsubscribe();
+    if (host_.getNetwork().getListener().isStarted()) {
+      host_.stop();
+    }
   }
 
   void RouterLibp2p::handleSyncProtocol(

@@ -304,7 +304,6 @@ namespace kagome::application {
       std::cerr << "Error: " << e.what() << '\n'
                 << "Try run with option '--help' for more information"
                 << std::endl;
-
       return false;
     }
 

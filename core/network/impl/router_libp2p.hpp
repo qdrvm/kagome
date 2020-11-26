@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
@@ -24,9 +25,9 @@
 #include "network/impl/loopback_stream.hpp"
 #include "network/router.hpp"
 #include "network/sync_protocol_observer.hpp"
+#include "network/types/bootstrap_nodes.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/own_peer_info.hpp"
-#include "network/types/peer_list.hpp"
 
 namespace kagome::application {
   class ChainSpec;
@@ -41,14 +42,15 @@ namespace kagome::network {
                        public std::enable_shared_from_this<RouterLibp2p> {
    public:
     RouterLibp2p(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
+        const OwnPeerInfo &own_info,
+        const BootstrapNodes &bootstrap_nodes,
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<Gossiper> gossiper,
-        const PeerList &peer_list,
-        const OwnPeerInfo &own_info,
         std::shared_ptr<kagome::application::ChainSpec> config,
         std::shared_ptr<blockchain::BlockStorage> storage,
         std::shared_ptr<libp2p::protocol::Identify> identify,
@@ -56,7 +58,14 @@ namespace kagome::network {
 
     ~RouterLibp2p() override = default;
 
-    void init() override;
+    /** @see AppStateManager::takeControl */
+    bool prepare();
+
+    /** @see AppStateManager::takeControl */
+    bool start();
+
+    /** @see AppStateManager::takeControl */
+    void stop();
 
     void handleSyncProtocol(
         const std::shared_ptr<Stream> &stream) const override;
@@ -142,7 +151,10 @@ namespace kagome::network {
     bool processGossipMessage(const libp2p::peer::PeerId &peer_id,
                               const GossipMessage &msg) const;
 
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
+    const OwnPeerInfo &own_info_;
+    const BootstrapNodes &bootstrap_nodes_;
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;

@@ -14,7 +14,8 @@
 
 namespace kagome::application {
 
-  outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::create(const std::string &path) {
+  outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::create(
+      const std::string &path) {
     auto config_storage = std::make_shared<ChainSpecImpl>(ChainSpecImpl());
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
@@ -158,7 +159,7 @@ namespace kagome::application {
       OUTCOME_TRY(peer_id, libp2p::peer::PeerId::fromBase58(peer_id_base58));
       libp2p::peer::PeerInfo info{.id = std::move(peer_id),
                                   .addresses = {std::move(multiaddr)}};
-      boot_nodes_.peers.push_back(info);
+      boot_nodes_.emplace_back(std::move(info));
     }
     return outcome::success();
   }
