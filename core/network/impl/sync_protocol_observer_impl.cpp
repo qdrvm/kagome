@@ -79,13 +79,12 @@ namespace kagome::network {
     blockchain::BlockTree::BlockHashVecRes chain_hash_res{{}};
 
     uint32_t request_count =
-        application::AppConfiguration::absolut_min_blocks_in_response;
+        application::AppConfiguration::kAbsolutMinBlocksInResponse;
     if (request.max)
-      request_count = std::min(
-          std::max(
-              application::AppConfiguration::absolut_min_blocks_in_response,
-              *request.max),
-          application::AppConfiguration::absolut_max_blocks_in_response);
+      request_count = std::clamp(
+          *request.max,
+          application::AppConfiguration::kAbsolutMinBlocksInResponse,
+          application::AppConfiguration::kAbsolutMaxBlocksInResponse);
 
     if (!request.to) {
       // if there's no "stop" block, get as many as possible

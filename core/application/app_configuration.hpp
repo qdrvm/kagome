@@ -20,11 +20,10 @@ namespace kagome::application {
    */
   class AppConfiguration {
    public:
-    static constexpr uint32_t absolut_min_blocks_in_response = 10;
-    static constexpr uint32_t absolut_max_blocks_in_response = 128;
+    static constexpr uint32_t kAbsolutMinBlocksInResponse = 10;
+    static constexpr uint32_t kAbsolutMaxBlocksInResponse = 128;
 
-    static_assert(absolut_min_blocks_in_response
-                      <= absolut_max_blocks_in_response,
+    static_assert(kAbsolutMinBlocksInResponse <= kAbsolutMaxBlocksInResponse,
                   "Check max and min page bounding values!");
 
     enum struct LoadScheme {

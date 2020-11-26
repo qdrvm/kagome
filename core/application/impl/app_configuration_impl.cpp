@@ -39,7 +39,7 @@ namespace kagome::application {
         verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
         is_only_finalizing_(def_is_only_finalizing),
         is_already_synchronized_(def_is_already_synchronized),
-        max_blocks_in_response_(absolut_max_blocks_in_response),
+        max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         logger_(std::move(logger)),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
@@ -177,11 +177,11 @@ namespace kagome::application {
       return false;
     }
 
-    // pagination page size bounded [absolut_min_blocks_in_response,
-    // absolut_max_blocks_in_response]
-    max_blocks_in_response_ = std::min(
-        std::max(absolut_min_blocks_in_response, max_blocks_in_response_),
-        absolut_max_blocks_in_response);
+    // pagination page size bounded [kAbsolutMinBlocksInResponse,
+    // kAbsolutMaxBlocksInResponse]
+    max_blocks_in_response_ = std::clamp(max_blocks_in_response_,
+                                         kAbsolutMinBlocksInResponse,
+                                         kAbsolutMaxBlocksInResponse);
     return true;
   }
 

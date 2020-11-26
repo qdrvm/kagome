@@ -41,12 +41,12 @@ namespace kagome::blockchain {
       : block_hash{hash}, depth{depth}, parent{parent}, finalized{finalized} {}
 
   boost::optional<std::vector<std::shared_ptr<BlockTreeImpl::TreeNode>>>
-  BlockTreeImpl::TreeNode::getWayTo(const primitives::BlockHash &hash) {
+  BlockTreeImpl::TreeNode::getPathTo(const primitives::BlockHash &hash) {
     std::vector<std::shared_ptr<TreeNode>> stack;
     std::vector<std::shared_ptr<TreeNode>> to_check;
     to_check.emplace_back(shared_from_this());
 
-    while (!to_check.empty()) {
+    do {
       auto target = to_check.back();
       to_check.pop_back();
 
@@ -64,7 +64,7 @@ namespace kagome::blockchain {
       std::copy(target->children.begin(),
                 target->children.end(),
                 std::back_inserter(to_check));
-    }
+    } while (!to_check.empty());
     return boost::none;
   }
 
@@ -435,7 +435,7 @@ namespace kagome::blockchain {
       const primitives::BlockHash &bottom_block,
       boost::optional<uint32_t> max_count) {
     if (auto from = tree_->getByHash(top_block)) {
-      if (auto way = from->getWayTo(bottom_block)) {
+      if (auto way = from->getPathTo(bottom_block)) {
         const uint64_t in_tree_branch_len =
             way->back()->depth - from->depth + 1;
         const uint64_t response_length =

@@ -56,7 +56,7 @@ namespace kagome::blockchain {
        */
       std::shared_ptr<TreeNode> getByHash(const primitives::BlockHash &hash);
 
-      boost::optional<std::vector<std::shared_ptr<TreeNode>>> getWayTo(
+      boost::optional<std::vector<std::shared_ptr<TreeNode>>> getPathTo(
           const primitives::BlockHash &hash);
 
       bool operator==(const TreeNode &other) const;
