@@ -11,7 +11,8 @@ namespace kagome::consensus {
       std::shared_ptr<consensus::BlockExecutor> block_executor)
       : block_executor_{std::move(block_executor)} {}
 
-  void SyncingBabe::onBlockAnnounce(const libp2p::peer::PeerId &peer_id, const network::BlockAnnounce &announce) {
+  void SyncingBabe::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
+                                    const network::BlockAnnounce &announce) {
     block_executor_->processNextBlock(peer_id, announce.header, [](auto &) {});
   }
 

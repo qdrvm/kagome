@@ -22,8 +22,8 @@
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 #include "crypto/hasher.hpp"
-#include "crypto/sr25519_types.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
@@ -82,7 +82,8 @@ namespace kagome::consensus {
 
     State getCurrentState() const override;
 
-    void onBlockAnnounce(const libp2p::peer::PeerId &peer_id, const network::BlockAnnounce &announce) override;
+    void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
+                         const network::BlockAnnounce &announce) override;
 
     void doOnSynchronized(std::function<void()> handler) override;
 
@@ -114,7 +115,8 @@ namespace kagome::consensus {
         const crypto::VRFOutput &output,
         primitives::AuthorityIndex authority_index) const;
 
-    outcome::result<primitives::Seal> sealBlock(const primitives::Block &block) const;
+    outcome::result<primitives::Seal> sealBlock(
+        const primitives::Block &block) const;
 
     /**
      * To be called if we are far behind other nodes to skip some slots and

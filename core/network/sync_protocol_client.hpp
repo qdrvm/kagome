@@ -29,7 +29,8 @@ namespace kagome::network {
         const BlocksRequest &request,
         std::function<void(outcome::result<BlocksResponse>)> cb) = 0;
 
-    virtual boost::optional<std::reference_wrapper<const libp2p::peer::PeerId>> peerId() const = 0;
+    virtual boost::optional<std::reference_wrapper<const libp2p::peer::PeerId>>
+    peerId() const = 0;
   };
 }  // namespace kagome::network
 

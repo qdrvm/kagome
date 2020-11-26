@@ -54,7 +54,8 @@ namespace kagome::consensus {
      * @param new_header header defining new block
      * @param next action after the sync is done
      */
-    void requestBlocks(const libp2p::peer::PeerId &peer_id, const primitives::BlockHeader &new_header,
+    void requestBlocks(const libp2p::peer::PeerId &peer_id,
+                       const primitives::BlockHeader &new_header,
                        std::function<void()> &&next);
 
     /**

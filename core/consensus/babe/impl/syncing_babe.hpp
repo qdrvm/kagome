@@ -30,7 +30,8 @@ namespace kagome::consensus {
       return State::WAIT_BLOCK;
     };
 
-    void onBlockAnnounce(const libp2p::peer::PeerId &peer_id, const network::BlockAnnounce &announce) override;
+    void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
+                         const network::BlockAnnounce &announce) override;
 
     void doOnSynchronized(std::function<void()> handler) override{};
 

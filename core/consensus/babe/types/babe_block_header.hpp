@@ -55,6 +55,8 @@ namespace kagome::consensus {
     uint8_t fake_type_index = 0;
     s >> fake_type_index >> bh.authority_index >> bh.slot_number;
 
+    /// 1 and 3 are for capability with substrate. Only this types have
+    /// vrf_output data
     if (fake_type_index == 1 || fake_type_index == 3) s >> bh.vrf_output;
     return s;
   }

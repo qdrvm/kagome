@@ -69,26 +69,22 @@ namespace kagome::consensus {
         const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
         // we should request blocks between last finalized one and received
         // block
-        requestBlocks(
-            last_hash, block_hash, peer_id, [] {});
+        requestBlocks(last_hash, block_hash, peer_id, [] {});
       } else {
-        requestBlocks(
-            header.parent_hash, block_hash, peer_id, [] {});
+        requestBlocks(header.parent_hash, block_hash, peer_id, [] {});
       }
     }
   }
 
-  void BlockExecutor::requestBlocks(const libp2p::peer::PeerId &peer_id, const primitives::BlockHeader &new_header,
+  void BlockExecutor::requestBlocks(const libp2p::peer::PeerId &peer_id,
+                                    const primitives::BlockHeader &new_header,
                                     std::function<void()> &&next) {
     const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
     BOOST_ASSERT(new_header.number >= last_number);
     auto [_, babe_header] = getBabeDigests(new_header).value();
-    return requestBlocks(last_hash,
-                         new_block_hash,
-                         peer_id,
-                         std::move(next));
+    return requestBlocks(last_hash, new_block_hash, peer_id, std::move(next));
   }
 
   void BlockExecutor::requestBlocks(const primitives::BlockId &from,
@@ -123,7 +119,7 @@ namespace kagome::consensus {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
@@ -227,7 +223,7 @@ namespace kagome::consensus {
       if (res.has_error()
           && res
                  != outcome::failure(
-                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+                        transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
         return res;
       }
     }

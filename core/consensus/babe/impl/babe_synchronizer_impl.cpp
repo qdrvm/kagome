@@ -103,7 +103,6 @@ namespace kagome::consensus {
       network::BlocksRequest request,
       const libp2p::peer::PeerId &peer_id,
       const BlocksHandler &requested_blocks_handler) const {
-
     std::shared_ptr<network::SyncProtocolClient> next_client;
     for (auto &client : sync_clients_->clients) {
       if (client->peerId() && (*client->peerId()).get() == peer_id) {
