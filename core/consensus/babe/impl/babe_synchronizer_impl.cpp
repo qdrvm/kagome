@@ -14,9 +14,11 @@
 
 namespace kagome::consensus {
   BabeSynchronizerImpl::BabeSynchronizerImpl(
-      std::shared_ptr<network::SyncClientsSet> sync_clients)
+      std::shared_ptr<network::SyncClientsSet> sync_clients,
+      const application::AppConfiguration &app_configuration)
       : sync_clients_{std::move(sync_clients)},
-        logger_{common::createLogger("BabeSynchronizer")} {
+        logger_{common::createLogger("BabeSynchronizer")},
+        app_configuration_(app_configuration) {
     BOOST_ASSERT(sync_clients_);
     BOOST_ASSERT(std::all_of(sync_clients_->clients.begin(),
                              sync_clients_->clients.end(),
@@ -35,12 +37,13 @@ namespace kagome::consensus {
 
     static std::random_device rd{};
     static std::uniform_int_distribution<primitives::BlocksRequestId> dis{};
-    network::BlocksRequest request{dis(rd),
-                                   network::BlocksRequest::kBasicAttributes,
-                                   from,
-                                   to,
-                                   network::Direction::DESCENDING,
-                                   boost::none};
+    network::BlocksRequest request{
+        dis(rd),
+        network::BlocksRequest::kBasicAttributes,
+        from,
+        to,
+        network::Direction::DESCENDING,
+        static_cast<uint32_t>(app_configuration_.max_blocks_in_response())};
 
     return pollClients(request, authority_index, block_list_handler);
   }
@@ -114,10 +117,7 @@ namespace kagome::consensus {
           if (auto self = self_wp.lock()) {
             // if response exists then get blocks and send them to handle
             if (response_res and not response_res.value().blocks.empty()) {
-              auto blocks_opt = getBlocks(response_res.value());
-              if (blocks_opt) {
-                return requested_blocks_handler(blocks_opt.value());
-              }
+              return requested_blocks_handler(response_res.value().blocks);
             } else if (not response_res) {
               self->logger_->error("Could not sync. Error: {}",
                                    response_res.error().message());
