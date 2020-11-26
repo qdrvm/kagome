@@ -83,13 +83,10 @@ namespace kagome::consensus {
               block_tree_->getLastFinalized();
           // we should request blocks between last finalized one and received
           // block
-          requestBlocks(last_hash,
-                        block_hash,
-                        peer_id,
-                        [wself{weak_from_this()}] {
-                          if (auto self = wself.lock())
-                            self->sync_state_ = kReadyState;
-                        });
+          requestBlocks(
+              last_hash, block_hash, peer_id, [wself{weak_from_this()}] {
+                if (auto self = wself.lock()) self->sync_state_ = kReadyState;
+              });
         }
       } else {
         requestBlocks(header.parent_hash, block_hash, peer_id, [] {});
@@ -116,11 +113,7 @@ namespace kagome::consensus {
         from,
         to,
         peer_id,
-        [self_wp{weak_from_this()},
-         next(std::move(next)),
-         to,
-         from,
-         authority_index](
+        [self_wp{weak_from_this()}, next(std::move(next)), to, from, peer_id](
             const std::vector<primitives::BlockData> &blocks) mutable {
           auto self = self_wp.lock();
           if (not self) return;
@@ -166,7 +159,7 @@ namespace kagome::consensus {
                                 last_received_hash.toHex(),
                                 to.toHex());
             self->requestBlocks(
-                last_received_hash, to, authority_index, std::move(next));
+                last_received_hash, to, peer_id, std::move(next));
           }
         });
   }
