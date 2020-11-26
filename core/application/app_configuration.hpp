@@ -20,6 +20,12 @@ namespace kagome::application {
    */
   class AppConfiguration {
    public:
+    static constexpr uint32_t kAbsolutMinBlocksInResponse = 10;
+    static constexpr uint32_t kAbsolutMaxBlocksInResponse = 128;
+
+    static_assert(kAbsolutMinBlocksInResponse <= kAbsolutMaxBlocksInResponse,
+                  "Check max and min page bounding values!");
+
     enum struct LoadScheme {
       kBlockProducing,
       kValidating,
@@ -83,6 +89,11 @@ namespace kagome::application {
      * @return true if need to force block production
      */
     virtual bool is_already_synchronized() const = 0;
+
+    /**
+     * @return max blocks count per response while syncing
+     */
+    virtual uint32_t max_blocks_in_response() const = 0;
 
     /**
      * Slots strategy

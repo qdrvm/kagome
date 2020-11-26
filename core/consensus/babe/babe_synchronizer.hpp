@@ -8,6 +8,7 @@
 
 #include "primitives/authority.hpp"
 #include "primitives/block.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/block_id.hpp"
 
 namespace kagome::consensus {
@@ -19,7 +20,7 @@ namespace kagome::consensus {
   class BabeSynchronizer {
    public:
     using BlocksHandler =
-        std::function<void(const std::vector<primitives::Block> &)>;
+        std::function<void(const std::vector<primitives::BlockData> &)>;
 
     virtual ~BabeSynchronizer() = default;
 

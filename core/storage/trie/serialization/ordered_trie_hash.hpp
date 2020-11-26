@@ -46,6 +46,12 @@ namespace kagome::storage::trie {
     return common::Buffer{codec.hash256(enc)};
   }
 
+  template <typename ContainerType>
+  inline outcome::result<common::Buffer> calculateOrderedTrieHash(
+      const ContainerType &container) {
+    return calculateOrderedTrieHash(container.begin(), container.end());
+  }
+
 }  // namespace kagome::storage::trie
 
 #endif  // KAGOME_ORDERED_TRIE_HASH_HPP

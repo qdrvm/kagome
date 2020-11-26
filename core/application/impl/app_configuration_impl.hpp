@@ -78,6 +78,7 @@ namespace kagome::application {
     DECLARE_PROPERTY(spdlog::level::level_enum, verbosity);
     DECLARE_PROPERTY(bool, is_only_finalizing);
     DECLARE_PROPERTY(bool, is_already_synchronized);
+    DECLARE_PROPERTY(uint32_t, max_blocks_in_response);
     DECLARE_PROPERTY(bool, is_unix_slots_strategy);
 
    private:
@@ -117,6 +118,9 @@ namespace kagome::application {
     bool load_u16(const rapidjson::Value &val,
                   char const *name,
                   uint16_t &target);
+    bool load_u32(const rapidjson::Value &val,
+                  char const *name,
+                  uint32_t &target);
     bool load_bool(const rapidjson::Value &val, char const *name, bool &target);
 
     boost::asio::ip::tcp::endpoint get_endpoint_from(const std::string &host,

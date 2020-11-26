@@ -16,6 +16,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
+#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
@@ -54,6 +55,9 @@ namespace kagome::blockchain {
        * can be found
        */
       std::shared_ptr<TreeNode> getByHash(const primitives::BlockHash &hash);
+
+      boost::optional<std::vector<std::shared_ptr<TreeNode>>> getPathTo(
+          const primitives::BlockHash &hash);
 
       bool operator==(const TreeNode &other) const;
       bool operator!=(const TreeNode &other) const;
@@ -137,6 +141,10 @@ namespace kagome::blockchain {
     BlockHashVecRes getChainByBlock(
         const primitives::BlockHash &block) override;
 
+    BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
+                                     const primitives::BlockHash &bottom_block,
+                                     const uint32_t max_count) override;
+
     BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
                                     bool ascending,
                                     uint64_t maximum) override;
@@ -194,6 +202,15 @@ namespace kagome::blockchain {
     outcome::result<primitives::BlockHash> walkBackUntilLess(
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
+
+    boost::optional<std::vector<primitives::BlockHash>>
+    tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
+                                 const primitives::BlockHash &bottom_block,
+                                 boost::optional<uint32_t> max_count);
+
+    BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
+                                     const primitives::BlockHash &bottom_block,
+                                     boost::optional<uint32_t> max_count);
 
     /**
      * @returns the tree leaves sorted by their depth
