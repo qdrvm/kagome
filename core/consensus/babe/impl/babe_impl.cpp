@@ -6,6 +6,7 @@
 #include "consensus/babe/impl/babe_impl.hpp"
 
 #include <boost/assert.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
@@ -382,16 +383,11 @@ namespace kagome::consensus {
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(
         [&block] {
-          std::vector<common::Buffer> buf_exts{};
-          std::transform(block.body.begin(),
-                         block.body.end(),
-                         std::back_inserter(buf_exts),
-                         [](const auto &ext) {
-                           return common::Buffer{scale::encode(ext).value()};
-                         });
-
+          using boost::adaptors::transformed;
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
-              buf_exts.begin(), buf_exts.end());
+              block.body | transformed([](const auto &ext) {
+                return common::Buffer{scale::encode(ext).value()};
+              }));
           return ext_root_res.has_value()
                      ? (ext_root_res.value()
                         == common::Buffer(block.header.extrinsics_root))
