@@ -13,9 +13,9 @@
 #include <libp2p/basic/protobuf_message_read_writer.hpp>
 #include <outcome/outcome.hpp>
 
-#include "network/helpers/message_read_writer.hpp"
-#include "network/adapters/uvar.hpp"
 #include "network/adapters/protobuf.hpp"
+#include "network/adapters/uvar.hpp"
+#include "network/helpers/message_read_writer.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::network {
@@ -33,8 +33,8 @@ namespace kagome::network {
     explicit ProtobufMessageReadWriter(
         const std::shared_ptr<libp2p::basic::ReadWriter> &read_writer)
         : read_writer_(
-            std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
-                read_writer)) {}
+              std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
+                  read_writer)) {}
 
     /**
      * Read a Protobuf message from the channel
@@ -43,25 +43,25 @@ namespace kagome::network {
      */
     template <typename MsgType>
     void read(ReadCallback<MsgType> &&cb) const {
-      read_writer_->read([self{shared_from_this()},
-                          cb = std::move(cb)](auto &&read_res) {
-        if (!read_res) {
-          return cb(read_res.error());
-        }
+      read_writer_->read(
+          [self{shared_from_this()}, cb = std::move(cb)](auto &&read_res) {
+            if (!read_res) {
+              return cb(read_res.error());
+            }
 
-        using ProtobufRW =
-            MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
+            using ProtobufRW =
+                MessageReadWriter<ProtobufMessageAdapter<MsgType>, NoSink>;
 
-        MsgType msg;
-        if (read_res.value()) {
-          if (auto msg_res =
-                ProtobufRW::read(msg, *read_res.value(), read_res.value()->begin());
-              !msg_res) {
-            return cb(msg_res.error());
-          }
-        }
-        return cb(std::move(msg));
-      });
+            MsgType msg;
+            if (read_res.value()) {
+              if (auto msg_res = ProtobufRW::read(
+                      msg, *read_res.value(), read_res.value()->begin());
+                  !msg_res) {
+                return cb(msg_res.error());
+              }
+            }
+            return cb(std::move(msg));
+          });
     }
 
     /**
@@ -83,7 +83,7 @@ namespace kagome::network {
       gsl::span<uint8_t> data(it.base(),
                               out.size() - std::distance(out.begin(), it));
 
-      assert(!data.empty());
+      BOOST_ASSERT(!data.empty());
       read_writer_->write(data,
                           [self{shared_from_this()},
                            out{std::move(out)},

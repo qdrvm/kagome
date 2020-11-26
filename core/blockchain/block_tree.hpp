@@ -153,6 +153,18 @@ namespace kagome::blockchain {
         const primitives::BlockHash &bottom_block) = 0;
 
     /**
+     * Get a chain of blocks
+     * @param top_block - block, which is at the top of the chain
+     * @param bottom_block - block, which is the bottom of the chain
+     * @param max_count - maximum blocks in the chain
+     * @return chain of blocks in top-to-bottom order or error
+     */
+    virtual BlockHashVecRes getChainByBlocks(
+        const primitives::BlockHash &top_block,
+        const primitives::BlockHash &bottom_block,
+        const uint32_t max_count) = 0;
+
+    /**
      * Check if one block is ancestor of second one (direct chain exists)
      * @param ancestor - block, which is at the top of the chain
      * @param descendant - block, which is the bottom of the chain

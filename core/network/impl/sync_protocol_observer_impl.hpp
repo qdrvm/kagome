@@ -23,9 +23,6 @@ namespace kagome::network {
       : public SyncProtocolObserver,
         public std::enable_shared_from_this<SyncProtocolObserverImpl> {
    public:
-    /// how much blocks we can send at once
-    static const size_t maxRequestBlocks = 128u;
-
     enum class Error { DUPLICATE_REQUEST_ID = 1 };
 
     SyncProtocolObserverImpl(
