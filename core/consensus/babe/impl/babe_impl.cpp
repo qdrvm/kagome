@@ -694,11 +694,11 @@ namespace kagome::consensus {
         {
           // calculate new epoch first slot finish time and run epoch
           auto last_epoch_starting_slot = last_known_epoch.start_slot;
-          auto last_epoch_first_epoch_starting_time =
+          auto last_epoch_first_slot_starting_time =
               last_known_epoch.starting_slot_finish_time;
 
           auto new_epoch_first_slot_ending_time =
-              last_epoch_first_epoch_starting_time
+              last_epoch_first_slot_starting_time
               + (epoch.start_slot - last_epoch_starting_slot)
                     * genesis_configuration_->slot_duration;
 
