@@ -116,7 +116,8 @@ class BabeTest : public testing::Test {
                                         epoch_storage_,
                                         tx_pool_,
                                         hasher_,
-                                        grandpa_authority_update_observer_);
+                                        grandpa_authority_update_observer_,
+                                        slots_strategy_);
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
     EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
@@ -140,7 +141,8 @@ class BabeTest : public testing::Test {
                                        clock_,
                                        hasher_,
                                        std::move(timer_mock_),
-                                       grandpa_authority_update_observer_);
+                                       grandpa_authority_update_observer_,
+                                       slots_strategy_);
 
     epoch_.randomness = expected_config->randomness;
     epoch_.epoch_duration = expected_config->epoch_length;
@@ -177,6 +179,7 @@ class BabeTest : public testing::Test {
   testutil::TimerMock *timer_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
+  SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
 
   std::shared_ptr<BabeImpl> babe_;
 
