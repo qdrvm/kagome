@@ -141,13 +141,11 @@ namespace kagome::consensus {
      * Create first epoch where current node will produce blocks
      * @param first_slot_time_estimate when first slot should be launched
      * @param first_production_slot_number
-     * @param new_epoch_descriptor structure with the authorities and randomness of the new epoch
      * @return first production epoch structure
      */
     Epoch prepareFirstEpoch(
         BabeTimePoint first_slot_time_estimate,
-        BabeSlotNumber first_production_slot_number,
-        const NextEpochDescriptor &new_epoch_descriptor) const;
+        BabeSlotNumber first_production_slot_number) const;
     //--------------------------------------------------------------------------
 
     Epoch prepareFirstEpochUnixTime(LastEpochDescriptor last_known_epoch,

@@ -109,7 +109,6 @@ namespace kagome::consensus {
         case SlotsStrategy::FromUnixEpoch:
           auto now = clock_->now();
           auto time_since_epoch = now.time_since_epoch();
-          auto epoch_start_point = std::chrono::system_clock::from_time_t(0);
 
           auto ticks_since_epoch = time_since_epoch.count();
           last_epoch_descriptor.start_slot = static_cast<BabeSlotNumber>(
@@ -571,8 +570,7 @@ namespace kagome::consensus {
 
   Epoch BabeImpl::prepareFirstEpoch(
       BabeTimePoint first_slot_time_estimate,
-      BabeSlotNumber first_production_slot,
-      const NextEpochDescriptor &new_epoch_descriptor) const {
+      BabeSlotNumber first_production_slot) const {
     BOOST_ASSERT_MSG(
         slots_calculation_strategy_ == SlotsStrategy::FromZero,
         "This method can be executed only when slots are counting from zero");

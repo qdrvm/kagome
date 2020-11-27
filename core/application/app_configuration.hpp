@@ -97,7 +97,7 @@ namespace kagome::application {
 
     /**
      * Slots strategy
-     * @return true if we should count `slots as unix_epoch_time() / slot_duration`.
+     * @return true if we should count slots as `unix_epoch_time() / slot_duration`.
      * Otherwise slots are counting from 0 and false is returned
      */
     virtual bool is_unix_slots_strategy() const = 0;
