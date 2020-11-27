@@ -6,6 +6,7 @@
 #include "consensus/babe/impl/block_executor.hpp"
 
 #include <chrono>
+#include <libp2p/peer/peer_id.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
@@ -61,6 +62,7 @@ namespace kagome::consensus {
   }
 
   void BlockExecutor::processNextBlock(
+      const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHeader &header,
       const std::function<void(const primitives::BlockHeader &)>
           &new_block_handler) {
@@ -83,47 +85,37 @@ namespace kagome::consensus {
               block_tree_->getLastFinalized();
           // we should request blocks between last finalized one and received
           // block
-          requestBlocks(last_hash,
-                        block_hash,
-                        babe_header.authority_index,
-                        [wself{weak_from_this()}] {
-                          if (auto self = wself.lock())
-                            self->sync_state_ = kReadyState;
-                        });
+          requestBlocks(
+              last_hash, block_hash, peer_id, [wself{weak_from_this()}] {
+                if (auto self = wself.lock()) self->sync_state_ = kReadyState;
+              });
         }
       } else {
-        requestBlocks(
-            header.parent_hash, block_hash, babe_header.authority_index, [] {});
+        requestBlocks(header.parent_hash, block_hash, peer_id, [] {});
       }
     }
   }
 
-  void BlockExecutor::requestBlocks(const primitives::BlockHeader &new_header,
+  void BlockExecutor::requestBlocks(const libp2p::peer::PeerId &peer_id,
+                                    const primitives::BlockHeader &new_header,
                                     std::function<void()> &&next) {
     const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
     BOOST_ASSERT(new_header.number >= last_number);
     auto [_, babe_header] = getBabeDigests(new_header).value();
-    return requestBlocks(last_hash,
-                         new_block_hash,
-                         babe_header.authority_index,
-                         std::move(next));
+    return requestBlocks(last_hash, new_block_hash, peer_id, std::move(next));
   }
 
   void BlockExecutor::requestBlocks(const primitives::BlockHash &from,
                                     const primitives::BlockHash &to,
-                                    primitives::AuthorityIndex authority_index,
+                                    const libp2p::peer::PeerId &peer_id,
                                     std::function<void()> &&next) {
     babe_synchronizer_->request(
         from,
         to,
-        authority_index,
-        [self_wp{weak_from_this()},
-         next(std::move(next)),
-         to,
-         from,
-         authority_index](
+        peer_id,
+        [self_wp{weak_from_this()}, next(std::move(next)), to, from, peer_id](
             const std::vector<primitives::BlockData> &blocks) mutable {
           auto self = self_wp.lock();
           if (not self) return;
@@ -169,7 +161,7 @@ namespace kagome::consensus {
                                 last_received_hash.toHex(),
                                 to.toHex());
             self->requestBlocks(
-                last_received_hash, to, authority_index, std::move(next));
+                last_received_hash, to, peer_id, std::move(next));
           }
         });
   }

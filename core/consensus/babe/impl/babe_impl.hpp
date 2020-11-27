@@ -84,7 +84,8 @@ namespace kagome::consensus {
 
     State getCurrentState() const override;
 
-    void onBlockAnnounce(const network::BlockAnnounce &announce) override;
+    void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
+                         const network::BlockAnnounce &announce) override;
 
     void doOnSynchronized(std::function<void()> handler) override;
 
