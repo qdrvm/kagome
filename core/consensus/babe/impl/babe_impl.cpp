@@ -457,15 +457,15 @@ namespace kagome::consensus {
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
-      visit_in_place(digest_item,
-                     [&](const primitives::Consensus &consensus_message) {
-                       [[maybe_unused]] auto res =
-                           authority_update_observer_->onConsensus(
-                               consensus_message.consensus_engine_id,
-                               best_block_info,
-                               consensus_message);
-                     },
-                     [](const auto &) {});
+      visit_in_place(
+          digest_item,
+          [&](const primitives::Consensus &consensus_message) {
+            [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
+                consensus_message.consensus_engine_id,
+                best_block_info,
+                consensus_message);
+          },
+          [](const auto &) {});
     }
 
     // add block to the block tree
@@ -568,17 +568,17 @@ namespace kagome::consensus {
     return first_slot_times_[first_slot_times_.size() / 2];
   }
 
-  Epoch BabeImpl::prepareFirstEpoch(
+  Epoch BabeImpl::prepareFirstEpochFromZeroStrategy(
       BabeTimePoint first_slot_time_estimate,
-      BabeSlotNumber first_production_slot) const {
+      BabeSlotNumber first_production_slot_number) const {
     BOOST_ASSERT_MSG(
         slots_calculation_strategy_ == SlotsStrategy::FromZero,
         "This method can be executed only when slots are counting from zero");
 
     Epoch epoch;
     epoch.epoch_index =
-        first_production_slot / genesis_configuration_->epoch_length;
-    epoch.start_slot = first_production_slot;
+        first_production_slot_number / genesis_configuration_->epoch_length;
+    epoch.start_slot = first_production_slot_number;
     epoch.epoch_duration = genesis_configuration_->epoch_length;
 
     auto new_epoch_digest_res =
@@ -604,6 +604,11 @@ namespace kagome::consensus {
   Epoch BabeImpl::prepareFirstEpochUnixTime(
       LastEpochDescriptor last_known_epoch,
       BabeSlotNumber first_production_slot) const {
+    BOOST_ASSERT_MSG(
+        slots_calculation_strategy_ == SlotsStrategy::FromUnixEpoch,
+        "This method can be executed only when slots are counting from unix "
+        "epoch start");
+
     Epoch epoch;
     {
       // get new epoch starting slot
@@ -675,8 +680,8 @@ namespace kagome::consensus {
 
         auto first_slot_ending_time = getFirstSlotTimeEstimate();
 
-        epoch =
-            prepareFirstEpoch(first_slot_ending_time, *first_production_slot);
+        epoch = prepareFirstEpochFromZeroStrategy(first_slot_ending_time,
+                                                  *first_production_slot);
 
         runEpoch(epoch, first_slot_ending_time);
         break;

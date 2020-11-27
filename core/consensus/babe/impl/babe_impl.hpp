@@ -10,7 +10,6 @@
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <memory>
-#include <chrono>
 
 #include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
@@ -141,14 +140,20 @@ namespace kagome::consensus {
     /**
      * Create first epoch where current node will produce blocks
      * @param first_slot_time_estimate when first slot should be launched
-     * @param first_production_slot_number
+     * @param first_production_slot_number slot number where block production starts
      * @return first production epoch structure
      */
-    Epoch prepareFirstEpoch(
+    Epoch prepareFirstEpochFromZeroStrategy(
         BabeTimePoint first_slot_time_estimate,
         BabeSlotNumber first_production_slot_number) const;
     //--------------------------------------------------------------------------
 
+    /**
+     * Create first block production epoch
+     * @param last_known_epoch information about last epoch we know
+     * @param first_production_slot slot number where block production starts
+     * @return first production epoch structure
+     */
     Epoch prepareFirstEpochUnixTime(LastEpochDescriptor last_known_epoch,
                                     BabeSlotNumber first_production_slot) const;
 
