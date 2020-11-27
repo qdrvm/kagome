@@ -555,7 +555,7 @@ namespace kagome::consensus {
         clock_->now() + diff * genesis_configuration_->slot_duration);
   }
 
-  BabeTimePoint BabeImpl::getFirstSlotTimeEstimate() const {
+  BabeTimePoint BabeImpl::getFirstSlotTimeEstimate() {
     BOOST_ASSERT_MSG(
         slots_calculation_strategy_ == SlotsStrategy::FromZero,
         "This method can be executed only when slots are counting from zero");

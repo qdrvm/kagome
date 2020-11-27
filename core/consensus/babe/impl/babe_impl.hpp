@@ -10,6 +10,7 @@
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <memory>
+#include <chrono>
 
 #include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
@@ -135,7 +136,7 @@ namespace kagome::consensus {
      * Get first production slot time
      * @return median of first production slot times estimates
      */
-    BabeTimePoint getFirstSlotTimeEstimate() const;
+    BabeTimePoint getFirstSlotTimeEstimate();
 
     /**
      * Create first epoch where current node will produce blocks
