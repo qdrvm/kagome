@@ -119,6 +119,39 @@ namespace kagome::consensus {
     outcome::result<primitives::Seal> sealBlock(
         const primitives::Block &block) const;
 
+    //--------------------------------------------------------------------------
+    /**
+     * Stores first production slot time estimate to the collection, to take
+     * their median later
+     * @param observed_slot Slot number of current block
+     * @param first_production_slot_number Slot number of the first production slot
+     */
+    void storeFirstSlotTimeEstimate(
+        BabeSlotNumber observed_slot,
+        BabeSlotNumber first_production_slot_number);
+
+    /**
+     * Get first production slot time
+     * @return median of first production slot times estimates
+     */
+    BabeTimePoint getFirstSlotTimeEstimate() const;
+
+    /**
+     * Create first epoch where current node will produce blocks
+     * @param first_slot_time_estimate when first slot should be launched
+     * @param first_production_slot_number
+     * @param new_epoch_descriptor structure with the authorities and randomness of the new epoch
+     * @return first production epoch structure
+     */
+    Epoch prepareFirstEpoch(
+        BabeTimePoint first_slot_time_estimate,
+        BabeSlotNumber first_production_slot_number,
+        const NextEpochDescriptor &new_epoch_descriptor) const;
+    //--------------------------------------------------------------------------
+
+    Epoch prepareFirstEpochUnixTime(LastEpochDescriptor last_known_epoch,
+                                    BabeSlotNumber first_production_slot) const;
+
     /**
      * To be called if we are far behind other nodes to skip some slots and
      * finally synchronize with the network
