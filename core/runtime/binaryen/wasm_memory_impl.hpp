@@ -15,6 +15,7 @@
 
 #include <boost/optional.hpp>
 
+#include "primitives/math.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "common/logger.hpp"
 
@@ -126,20 +127,6 @@ namespace kagome::runtime::binaryen {
   };
 
   /**
-   * Obtain closest multiple of X that is greater or equal to given number
-   * @tparam X multiple that is POW of 2
-   * @tparam T type of number
-   * @param t given number
-   * @return closest multiple
-   */
-  template <size_t X, typename T>
-  inline T roundUp(T t) {
-    static_assert((X & (X - 1)) == 0, "Must be POW 2!");
-    static_assert(X != 0, "Must not be 0!");
-    return (t + (X - 1)) & ~(X - 1);
-  }
-
-  /**
    * Obtain closest multiple of kAllignment that is greater or equal to given number
    * @tparam T T type of number
    * @param t given number
@@ -147,7 +134,7 @@ namespace kagome::runtime::binaryen {
    */
   template <typename T>
   inline T roundUpAlign(T t) {
-    return roundUp<kAlignment>(t);
+    return math::roundUp<kAlignment>(t);
   }
 
 }  // namespace kagome::runtime::binaryen
