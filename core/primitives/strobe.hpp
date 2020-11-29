@@ -66,10 +66,10 @@ namespace kagome::primitives {
       std::memcpy(as<T, kOffset>(), data, N);
     }
 
-    template <size_t N>
-    void absorb(const uint8_t (&src)[N]) {
+    template <typename T, size_t N>
+    void absorb(const T (&src)[N]) {
       for (const auto i : src) {
-        *as<uint8_t>(current_position_++) ^= i;
+        *as<uint8_t>(current_position_++) ^= static_cast<uint8_t>(i);
         if (kStrobeR == current_position_) {
           // TODO: run_f();
         }
@@ -96,11 +96,21 @@ namespace kagome::primitives {
       }
     }
 
-    template <bool kMore, size_t N>
-    void metaAd(const uint8_t (&label)[N]) {
+    template <bool kMore, typename T, size_t N>
+    void metaAd(const T (&label)[N]) {
       beginOp<kMore, kFlag_M | kFlag_A>();
       absorb(label);
     }
+/*
+    fn run_f(&mut self) {
+      self.state[self.pos as usize] ^= self.pos_begin;
+      self.state[(self.pos + 1) as usize] ^= 0x04;
+      self.state[(STROBE_R + 1) as usize] ^= 0x80;
+      keccak::f1600(transmute_state(&mut self.state));
+      self.pos = 0;
+      self.pos_begin = 0;
+    }*/
+
 
    public:
     Strobe()
@@ -108,8 +118,8 @@ namespace kagome::primitives {
             math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))} {
     }
 
-    template <size_t N>
-    void initialize(const uint8_t (&label)[N]) {
+    template <typename T, size_t N>
+    void initialize(const T (&label)[N]) {
       load<0ull>((uint8_t[kBufferSize]){
           0x9c, 0x6d, 0x16, 0x8f, 0xf8, 0xfd, 0x55, 0xda, 0x2a, 0xa7, 0x3c,
           0x23, 0x55, 0x65, 0x35, 0x63, 0xdc, 0xc,  0x47, 0x5c, 0x55, 0x15,
