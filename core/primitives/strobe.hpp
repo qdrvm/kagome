@@ -22,15 +22,15 @@ namespace kagome::primitives {
     static constexpr size_t kAlignment = 8ull;
     static constexpr uint8_t kStrobeR = 166;
 
-    enum Flags : uint8_t {
-      kFlag_NU = 0x00, // no use
-      kFlag_I = 0x01,
-      kFlag_A = 0x02,
-      kFlag_C = 0x04,
-      kFlag_T = 0x08,
-      kFlag_M = 0x10,
-      kFlag_K = 0x20,
-    } current_state_;
+    using Flags = uint8_t;
+    static constexpr Flags kFlag_NU = 0x00;  // no use
+    static constexpr Flags kFlag_I = 0x01;
+    static constexpr Flags kFlag_A = 0x02;
+    static constexpr Flags kFlag_C = 0x04;
+    static constexpr Flags kFlag_T = 0x08;
+    static constexpr Flags kFlag_M = 0x10;
+    static constexpr Flags kFlag_K = 0x20;
+    Flags current_state_;
 
     using Position = uint8_t;
     Position current_position_;
@@ -60,7 +60,7 @@ namespace kagome::primitives {
     }
 
     template <size_t kOffset, typename T, size_t N>
-    constexpr void load(const T (&data)[N]) {  // NOLINT
+    void load(const T (&data)[N]) {  // NOLINT
       static_assert(kOffset + N <= count<T>(), "Load overflows!");
       std::memcpy(as<T, kOffset>(), data, N);
     }
@@ -70,13 +70,13 @@ namespace kagome::primitives {
       for (const auto i : src) {
         *as<uint8_t>(current_position_++) ^= i;
         if (kStrobeR == current_position_) {
-          // run_f();
+          // TODO: run_f();
         }
       }
     }
 
     template <bool kMore, Flags kFlags>
-    void begin_op() {
+    void beginOp() {
       static_assert((kFlags & kFlag_T) == 0, "T flag doesn't support");
       if constexpr (kMore) {
         BOOST_ASSERT(current_state_ == kFlags);
@@ -90,12 +90,16 @@ namespace kagome::primitives {
 
       if constexpr (0 != (kFlags & (kFlag_C | kFlag_K))) {
         if (current_position_ != 0) {
-          // run_f();
+          // TODO: run_f();
         }
       }
     }
 
-
+    template <bool kMore, size_t N>
+    void metaAd(const uint8_t (&label)[N]) {
+      beginOp<kMore, kFlag_M | kFlag_A>();
+      absorb(label);
+    }
 
    public:
     Strobe()
@@ -103,8 +107,9 @@ namespace kagome::primitives {
             math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))} {
     }
 
-    void initialize() {
-      load<0ull>((uint8_t[]){
+    template <size_t N>
+    void initialize(const uint8_t (&label)[N]) {
+      load<0ull>((uint8_t[kBufferSize]){
           0x9c, 0x6d, 0x16, 0x8f, 0xf8, 0xfd, 0x55, 0xda, 0x2a, 0xa7, 0x3c,
           0x23, 0x55, 0x65, 0x35, 0x63, 0xdc, 0xc,  0x47, 0x5c, 0x55, 0x15,
           0x26, 0xf6, 0x73, 0x3b, 0xea, 0x22, 0xf1, 0x6c, 0xb5, 0x7c, 0xd3,
@@ -127,6 +132,8 @@ namespace kagome::primitives {
       current_position_ = 0;
       current_state_ = kFlag_NU;
       begin_position_ = 0;
+
+      metaAd<false>(label);
     }
   };
 
