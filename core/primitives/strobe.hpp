@@ -23,16 +23,17 @@ namespace kagome::primitives {
     static constexpr uint8_t kStrobeR = 166;
 
     using Flags = uint8_t;
-    static constexpr Flags kFlag_NU = 0x00;  // no use
+    using Position = uint8_t;
+
+    static constexpr Flags kFlag_NU = 0x00;  // NU = No Use
     static constexpr Flags kFlag_I = 0x01;
     static constexpr Flags kFlag_A = 0x02;
     static constexpr Flags kFlag_C = 0x04;
     static constexpr Flags kFlag_T = 0x08;
     static constexpr Flags kFlag_M = 0x10;
     static constexpr Flags kFlag_K = 0x20;
-    Flags current_state_;
 
-    using Position = uint8_t;
+    Flags current_state_;
     Position current_position_;
     Position begin_position_;
 
