@@ -60,7 +60,7 @@ static const unsigned keccakf_piln[24] = {10, 7,  11, 17, 18, 3,  5,  16,
 /* generally called after SHA3_KECCAK_SPONGE_WORDS-ctx->capacityWords words
  * are XORed into the state s
  */
-static void keccakf(uint64_t s[25]) {
+void keccakf(uint64_t s[25]) {
   int i, j, round;    // NOLINT
   uint64_t t, bc[5];  // NOLINT
 #define KECCAK_ROUNDS 24
