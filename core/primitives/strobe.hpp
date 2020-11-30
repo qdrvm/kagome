@@ -96,12 +96,6 @@ namespace kagome::primitives {
       }
     }
 
-    template <bool kMore, typename T, size_t N>
-    void metaAd(const T (&label)[N]) {
-      beginOp<kMore, kFlag_M | kFlag_A>();
-      absorb(label);
-    }
-
     void runF() {
       *as<uint8_t>(current_position_) ^= begin_position_;
       *as<uint8_t>(current_position_ + 1) ^= 0x04;
@@ -111,6 +105,28 @@ namespace kagome::primitives {
       current_position_ = 0;
       begin_position_ = 0;
     }
+
+    fn overwrite(&mut self, data: &[u8]) {
+      for byte in data {
+          self.state[self.pos as usize] = *byte;
+          self.pos += 1;
+          if self.pos == STROBE_R {
+            self.run_f();
+          }
+      }
+    }
+
+    fn squeeze(&mut self, data: &mut [u8]) {
+      for byte in data {
+          *byte = self.state[self.pos as usize];
+          self.state[self.pos as usize] = 0;
+          self.pos += 1;
+          if self.pos == STROBE_R {
+            self.run_f();
+          }
+      }
+    }
+
 
    public:
     Strobe()
@@ -155,6 +171,18 @@ namespace kagome::primitives {
       begin_position_ = 0;
 
       metaAd<false>(label);
+    }
+
+    template<bool kMore, typename T, size_t N>
+    void ad(const T (&src)[N]) {
+      beginOp<kMore, FLAG_A>();
+      absorb(src);
+    }
+
+    template <bool kMore, typename T, size_t N>
+    void metaAd(const T (&label)[N]) {
+      beginOp<kMore, kFlag_M | kFlag_A>();
+      absorb(label);
     }
   };
 
