@@ -7,11 +7,11 @@
 #define KAGOME_LE_BE_HPP
 
 #ifdef _MSC_VER
-# define LE_BE_SWAP32 _byteswap_ulong
-# define LE_BE_SWAP64 _byteswap_uint64
-#else//_MSC_VER
-# define LE_BE_SWAP32 __builtin_bswap32
-# define LE_BE_SWAP64 __builtin_bswap64
-#endif//_MSC_VER
+#define LE_BE_SWAP32 _byteswap_ulong
+#define LE_BE_SWAP64 _byteswap_uint64
+#else  //_MSC_VER
+#define LE_BE_SWAP32 __builtin_bswap32
+#define LE_BE_SWAP64 __builtin_bswap64
+#endif  //_MSC_VER
 
 #endif  // KAGOME_LE_BE_HPP

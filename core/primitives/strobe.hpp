@@ -6,14 +6,14 @@
 #ifndef KAGOME_STROBE_HPP
 #define KAGOME_STROBE_HPP
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 #include <cstring>
 #include <type_traits>
 
-#include "runtime/binaryen/wasm_memory_impl.hpp"
-#include "primitives/math.hpp"
 #include "crypto/keccak/keccak.h"
+#include "primitives/math.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 
 namespace kagome::primitives {
 
@@ -127,17 +127,16 @@ namespace kagome::primitives {
       begin_position_ = 0;
     }
 
-    Strobe(const Strobe&) = delete;
-    Strobe& operator=(const Strobe&) = delete;
+    Strobe(const Strobe &) = delete;
+    Strobe &operator=(const Strobe &) = delete;
 
-    Strobe(Strobe&&) = delete;
-    Strobe& operator=(Strobe&&) = delete;
+    Strobe(Strobe &&) = delete;
+    Strobe &operator=(Strobe &&) = delete;
 
    public:
     Strobe()
-        : buffer_{reinterpret_cast<uint8_t *>(
-            math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))} {
-    }
+        : buffer_{reinterpret_cast<uint8_t *>(math::roundUp<kAlignment>(
+              reinterpret_cast<uintptr_t>(raw_data)))} {}
 
     template <typename T, size_t N>
     void initialize(const T (&label)[N]) {
@@ -203,6 +202,6 @@ namespace kagome::primitives {
     }
   };
 
-}
+}  // namespace kagome::primitives
 
-#endif//KAGOME_STROBE_HPP
+#endif  // KAGOME_STROBE_HPP

@@ -15,9 +15,9 @@
 
 #include <boost/optional.hpp>
 
+#include "common/logger.hpp"
 #include "primitives/math.hpp"
 #include "runtime/wasm_memory.hpp"
-#include "common/logger.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -127,7 +127,8 @@ namespace kagome::runtime::binaryen {
   };
 
   /**
-   * Obtain closest multiple of kAllignment that is greater or equal to given number
+   * Obtain closest multiple of kAllignment that is greater or equal to given
+   * number
    * @tparam T T type of number
    * @param t given number
    * @return closest multiple

@@ -11,12 +11,12 @@
 namespace kagome::math {
 
   /**
- * Obtain closest multiple of X that is greater or equal to given number
- * @tparam X multiple that is POW of 2
- * @tparam T type of number
- * @param t given number
- * @return closest multiple
- */
+   * Obtain closest multiple of X that is greater or equal to given number
+   * @tparam X multiple that is POW of 2
+   * @tparam T type of number
+   * @param t given number
+   * @return closest multiple
+   */
   template <size_t X, typename T>
   inline T roundUp(T t) {
     static_assert((X & (X - 1)) == 0, "Must be POW 2!");
@@ -24,6 +24,6 @@ namespace kagome::math {
     return (t + (X - 1)) & ~(X - 1);
   }
 
-}
+}  // namespace kagome::math
 
-#endif//KAGOME_MATH_HPP
+#endif  // KAGOME_MATH_HPP

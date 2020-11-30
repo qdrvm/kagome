@@ -26,7 +26,7 @@ namespace kagome::primitives {
     void initialize(const T (&label)[N]) {
       strobe_.initialize(
           (uint8_t[11]){'M', 'e', 'r', 'l', 'i', 'n', ' ', 'v', '1', '.', '0'});
-      append_message((uint8_t[]){'d','o','m','-','s','e','p'}, label);
+      append_message((uint8_t[]){'d', 'o', 'm', '-', 's', 'e', 'p'}, label);
     }
 
     template <typename T, size_t N, typename K, size_t M>
@@ -56,6 +56,6 @@ namespace kagome::primitives {
     }
   };
 
-}
+}  // namespace kagome::primitives
 
-#endif//KAGOME_TRANSACRIPT_HPP
+#endif  // KAGOME_TRANSACRIPT_HPP

@@ -9,8 +9,8 @@
 #include "network/adapters/protobuf.hpp"
 
 #include "common/visitor.hpp"
-#include "network/types/blocks_request.hpp"
 #include "macro/LE_BE.hpp"
+#include "network/types/blocks_request.hpp"
 
 namespace kagome::network {
 
