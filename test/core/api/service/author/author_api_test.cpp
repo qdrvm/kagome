@@ -59,21 +59,19 @@ using testutil::DummyError;
 
 class ExtrinsicEventReceiver {
  public:
-  virtual void receive(
-      kagome::subscription::SubscriptionSetId,
-      std::shared_ptr<kagome::api::Session>,
-      const ExtrinsicEventType &,
-      const ExtrinsicLifecycleEvent &) const = 0;
+  virtual void receive(kagome::subscription::SubscriptionSetId,
+                       std::shared_ptr<kagome::api::Session>,
+                       const ExtrinsicEventType &,
+                       const ExtrinsicLifecycleEvent &) const = 0;
 };
 
 class ExtrinsicEventReceiverMock : public ExtrinsicEventReceiver {
  public:
-  MOCK_CONST_METHOD4(
-      receive,
-      void(kagome::subscription::SubscriptionSetId,
-           std::shared_ptr<kagome::api::Session>,
-           const ExtrinsicEventType &,
-           const ExtrinsicLifecycleEvent &));
+  MOCK_CONST_METHOD4(receive,
+                     void(kagome::subscription::SubscriptionSetId,
+                          std::shared_ptr<kagome::api::Session>,
+                          const ExtrinsicEventType &,
+                          const ExtrinsicLifecycleEvent &));
 };
 
 struct AuthorApiTest : public ::testing::Test {
@@ -90,21 +88,28 @@ struct AuthorApiTest : public ::testing::Test {
   Hash256 deepest_hash;                        ///< hash of deepest leaf
   sptr<BlockInfo> deepest_leaf;                ///< deepest leaf block info
   sptr<ExtrinsicSubscriptionEngine> sub_engine;
-  sptr<ExtrinsicEventReceiverMock> event_receiver_;
+  sptr<ExtrinsicEventSubscriber> subscriber;
+  std::map<ExtrinsicEventType, kagome::subscription::SubscriptionSetId> sub_id;
+  sptr<ExtrinsicEventReceiverMock> event_receiver;
 
   void SetUp() override {
     sub_engine = std::make_shared<ExtrinsicSubscriptionEngine>();
-    auto subscriber =
+    subscriber =
         std::make_unique<ExtrinsicEventSubscriber>(sub_engine, nullptr);
-    event_receiver_ = std::make_shared<ExtrinsicEventReceiverMock>();
-    subscriber->subscribe(subscriber->generateSubscriptionSetId(), ExtrinsicEventType::READY);
+    event_receiver = std::make_shared<ExtrinsicEventReceiverMock>();
+    for (auto event : {ExtrinsicEventType::BROADCAST,
+                       ExtrinsicEventType::READY,
+                       ExtrinsicEventType::FUTURE}) {
+      sub_id[event] = subscriber->generateSubscriptionSetId();
+      subscriber->subscribe(sub_id[event], event);
+    }
     subscriber->setCallback(
         [this](
             kagome::subscription::SubscriptionSetId set_id,
             std::shared_ptr<kagome::api::Session> session,
             const kagome::primitives::events::ExtrinsicEventType &type,
             const kagome::primitives::events::ExtrinsicLifecycleEvent &event) {
-          event_receiver_->receive(set_id, session, type, event);
+          event_receiver->receive(set_id, session, type, event);
         });
 
     hasher = std::make_shared<HasherMock>();
@@ -166,6 +171,16 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
       res, api->submitExtrinsic(*extrinsic), DummyError::ERROR);
 }
 
+MATCHER_P(eventsAreEqual, n, "") {
+  return (arg.id == n.id) and (arg.type == n.type);
+}
+
+/**
+ * @given an extrinsic
+ * @when submitting it through author api
+ * @then it is successfully submitted, passed to the transaction pool and
+ * propagated via gossiper, with corresponding events catched
+ */
 TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
   TransactionValidity tv = *valid_transaction;
   gsl::span<const uint8_t> span = gsl::make_span(extrinsic->data);
@@ -182,8 +197,43 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
                  valid_transaction->provides,
                  true};
   EXPECT_CALL(*transaction_pool, submitOne(tr))
-      .WillOnce(Return(outcome::success()));
+      .WillOnce(testing::DoAll(
+          testing::Invoke([this](auto &) {
+            sub_engine->notify(ExtrinsicEventType::FUTURE,
+                               ExtrinsicLifecycleEvent::Future(42));
+            sub_engine->notify(ExtrinsicEventType::READY,
+                               ExtrinsicLifecycleEvent::Ready(42));
+          }),
+          Return(outcome::success())));
 
-  EXPECT_CALL(*gossiper, propagateTransactions(_)).Times(1);
-  EXPECT_OUTCOME_TRUE(id, api->submitAndWatchExtrinsic(*extrinsic))
+  EXPECT_CALL(*gossiper, propagateTransactions(_))
+      .WillOnce(testing::Invoke([this](auto &) {
+        sub_engine->notify(ExtrinsicEventType::BROADCAST,
+                           ExtrinsicLifecycleEvent::Broadcast(42, {}));
+      }));
+
+  {
+    testing::InSequence s;
+    EXPECT_CALL(*event_receiver,
+                receive(sub_id[ExtrinsicEventType::FUTURE],
+                        sptr<kagome::api::Session>(),
+                        ExtrinsicEventType::FUTURE,
+                        eventsAreEqual(ExtrinsicLifecycleEvent::Future(42))))
+        .Times(1);
+    EXPECT_CALL(*event_receiver,
+                receive(sub_id[ExtrinsicEventType::READY],
+                        sptr<kagome::api::Session>(),
+                        ExtrinsicEventType::READY,
+                        eventsAreEqual(ExtrinsicLifecycleEvent::Ready(42))))
+        .Times(1);
+    EXPECT_CALL(
+        *event_receiver,
+        receive(sub_id[ExtrinsicEventType::BROADCAST],
+                sptr<kagome::api::Session>(),
+                ExtrinsicEventType::BROADCAST,
+                eventsAreEqual(ExtrinsicLifecycleEvent::Broadcast(42, {}))))
+        .Times(1);
+  }
+
+  EXPECT_OUTCOME_TRUE_1(api->submitAndWatchExtrinsic(*extrinsic));
 }

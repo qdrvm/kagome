@@ -9,6 +9,7 @@
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/value_converter.hpp"
+#include "api_service.hpp"
 
 #define UNWRAP_WEAK_PTR(callback)   \
   [wp](auto &&... params) mutable { \
@@ -110,7 +111,8 @@ namespace kagome::api {
   const std::string kRpcEventFinalizedHeads = "chain_finalizedHead";
   const std::string kRpcEventSubscribeStorage = "state_storage";
 
-  const std::string kRpcEventSubmitAndWatchExtrinsic = "author_submitAndWatchExtrinsic";
+  const std::string kRpcEventSubmitAndWatchExtrinsic =
+      "author_submitAndWatchExtrinsic";
 
   ApiService::ApiService(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
@@ -183,9 +185,12 @@ namespace kagome::api {
               auto session_context =
                   self->storeSessionWithId(session->id(), session);
               BOOST_ASSERT(session_context);
-              session_context->storage_sub->setCallback(UNWRAP_WEAK_PTR(onStorageEvent));
-              session_context->chain_sub->setCallback(UNWRAP_WEAK_PTR(onChainEvent));
-              session_context->ext_sub->setCallback(UNWRAP_WEAK_PTR(onExtrinsicEvent));
+              session_context->storage_sub->setCallback(
+                  UNWRAP_WEAK_PTR(onStorageEvent));
+              session_context->chain_sub->setCallback(
+                  UNWRAP_WEAK_PTR(onChainEvent));
+              session_context->ext_sub->setCallback(
+                  UNWRAP_WEAK_PTR(onExtrinsicEvent));
             }
 
             session->connectOnRequest(UNWRAP_WEAK_PTR(onSessionRequest));
@@ -219,7 +224,9 @@ namespace kagome::api {
                 .storage_sub = std::make_shared<StorageEventSubscriber>(
                     subscription_engines_.storage, session),
                 .chain_sub = std::make_shared<ChainEventSubscriber>(
-                    subscription_engines_.chain, session)}));
+                    subscription_engines_.chain, session),
+                .ext_sub = std::make_shared<ExtrinsicEventSubscriber>(
+                    subscription_engines_.ext, session)}));
 
     BOOST_ASSERT(inserted);
     return it->second;
@@ -491,8 +498,12 @@ namespace kagome::api {
       SessionPtr &session,
       primitives::events::ExtrinsicEventType event_type,
       const primitives::events::ExtrinsicLifecycleEvent &params) {
-
-    sendEvent(server_, session, logger_, set_id, kRpcEventSubmitAndWatchExtrinsic, api::makeValue(params));
+    sendEvent(server_,
+              session,
+              logger_,
+              set_id,
+              kRpcEventSubmitAndWatchExtrinsic,
+              api::makeValue(params));
   }
 
 }  // namespace kagome::api
