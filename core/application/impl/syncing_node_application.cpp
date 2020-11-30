@@ -4,6 +4,7 @@
  */
 
 #include "application/impl/syncing_node_application.hpp"
+
 #include "application/impl/util.hpp"
 #include "network/common.hpp"
 
@@ -17,58 +18,27 @@ namespace kagome::application {
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
+    genesis_config_ = injector_.create<sptr<ChainSpec>>();
+    BOOST_ASSERT(genesis_config_ != nullptr);
+
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
-    genesis_config_ = injector_.create<sptr<ChainSpec>>();
-
+    chain_path_ = app_config.chain_path(genesis_config_->id());
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     router_ = injector_.create<sptr<network::Router>>();
-    chain_path_ = app_config.chain_path(genesis_config_->id());
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void SyncingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+	  logger_->info("Start as SyncingNode with PID {}", getpid());
 
     auto res = util::init_directory(chain_path_);
     if (not res) {
-      logger_->error("Error initalizing chain directory: ",
-                     res.error().message());
+      logger_->critical("Error initalizing chain directory {}: {}",
+                        chain_path_.native(),
+                        res.error().message());
+      exit(EXIT_FAILURE);
     }
-
-    app_state_manager_->atLaunch([this] {
-      // execute listeners
-      io_context_->post([this] {
-        const auto &current_peer_info =
-            injector_.template create<network::OwnPeerInfo>();
-        auto &host = injector_.template create<libp2p::Host &>();
-        for (const auto &ma : current_peer_info.addresses) {
-          auto listen = host.listen(ma);
-          if (not listen) {
-            logger_->critical("Cannot listen address {}. Error: {}",
-                              ma.getStringAddress(),
-                              listen.error().message());
-            std::exit(1);
-          }
-        }
-        for (const auto &boot_node : genesis_config_->getBootNodes()) {
-          host.newStream(
-              boot_node,
-              network::kGossipProtocol,
-              [this, boot_node](const auto &stream_res) {
-                if (not stream_res) {
-                  this->logger_->error(
-                      "Could not establish connection with {}. Error: {}",
-                      boot_node.id.toBase58(),
-                      stream_res.error().message());
-                  return;
-                }
-                this->router_->handleGossipProtocol(stream_res.value());
-              });
-        }
-      });
-      return true;
-    });
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });

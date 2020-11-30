@@ -65,6 +65,7 @@ target_link_libraries(application_injector
     rpc_api_service
     p2p::p2p_kademlia
     kademlia_storage_backend
+    peer_manager
     )
 
 add_library(syncing_node_injector

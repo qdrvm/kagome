@@ -4,6 +4,7 @@
  */
 
 #include "application/impl/block_producing_node_application.hpp"
+#include "application/impl/util.hpp"
 
 namespace kagome::application {
 
@@ -16,6 +17,7 @@ namespace kagome::application {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
+    chain_path_ = app_config.chain_path(genesis_config_->id());
 
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     genesis_config_ = injector_.create<sptr<ChainSpec>>();
@@ -27,29 +29,17 @@ namespace kagome::application {
   }
 
   void BlockProducingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
+	  logger_->info("Start as BlockProducingNode with PID {}", getpid());
+
+	  auto res = util::init_directory(chain_path_);
+	  if (not res) {
+		  logger_->critical("Error initalizing chain directory {}: {}",
+		                    chain_path_.native(),
+		                    res.error().message());
+		  exit(EXIT_FAILURE);
+	  }
 
     babe_->setExecutionStrategy(Babe::ExecutionStrategy::SYNC_FIRST);
-
-    app_state_manager_->atLaunch([this] {
-      // execute listeners
-      io_context_->post([this] {
-        const auto &current_peer_info =
-            injector_.template create<network::OwnPeerInfo>();
-        auto &host = injector_.template create<libp2p::Host &>();
-        for (const auto &ma : current_peer_info.addresses) {
-          auto listen = host.listen(ma);
-          if (not listen) {
-            logger_->error("Cannot listen address {}. Error: {}",
-                           ma.getStringAddress(),
-                           listen.error().message());
-            std::exit(1);
-          }
-        }
-        this->router_->init();
-      });
-      return true;
-    });
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });

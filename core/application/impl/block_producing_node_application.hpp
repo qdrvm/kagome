@@ -50,6 +50,7 @@ namespace kagome::application {
 
     sptr<api::ApiService> jrpc_api_service_;
 
+    boost::filesystem::path chain_path_;
     common::Logger logger_;
   };
 

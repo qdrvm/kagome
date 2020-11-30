@@ -64,6 +64,7 @@ namespace kagome::application {
 
     Babe::ExecutionStrategy babe_execution_strategy_;
 
+    boost::filesystem::path chain_path_;
     common::Logger logger_;
   };
 

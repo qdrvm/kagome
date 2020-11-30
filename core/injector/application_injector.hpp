@@ -123,15 +123,15 @@ namespace kagome::injector {
   using uptr = std::unique_ptr<T>;
 
   template <typename Injector>
-  const network::BootstrapNodes& get_bootstrap_nodes(const Injector &injector) {
+  sptr<network::BootstrapNodes> get_bootstrap_nodes(const Injector &injector) {
     static auto initialized =
-        boost::optional<network::BootstrapNodes>(boost::none);
+        boost::optional<sptr<network::BootstrapNodes>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
     auto &cfg = injector.template create<application::ChainSpec &>();
 
-    initialized = cfg.getBootNodes();
+    initialized = std::make_shared<network::BootstrapNodes>(cfg.getBootNodes());
     return initialized.value();
   }
 
@@ -541,8 +541,8 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-	  auto genesis_config =
-			  injector.template create<sptr<application::ChainSpec>>();
+    auto genesis_config =
+        injector.template create<sptr<application::ChainSpec>>();
     auto peer_infos = genesis_config->getBootNodes();
 
     auto host = injector.template create<sptr<libp2p::Host>>();
@@ -554,7 +554,7 @@ namespace kagome::injector {
     auto res = std::make_shared<network::SyncClientsSet>();
 
     auto &current_peer_info =
-        injector.template create<network::OwnPeerInfo &>();
+        injector.template create<const network::OwnPeerInfo &>();
     for (auto &peer_info : peer_infos) {
       spdlog::debug("Added peer with id: {}", peer_info.id.toBase58());
       if (peer_info.id != current_peer_info.id) {
@@ -645,6 +645,31 @@ namespace kagome::injector {
             std::shared_ptr<authority::AuthorityManagerImpl>>());
 
     return *instance;
+  }
+
+  template <class Injector>
+  sptr<network::Router> get_router(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<network::Router>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    initialized = std::make_shared<network::RouterLibp2p>(
+        injector
+            .template create<std::shared_ptr<application::AppStateManager>>(),
+        injector.template create<libp2p::Host &>(),
+        injector.template create<sptr<application::ChainSpec>>(),
+        injector.template create<network::OwnPeerInfo &>(),
+        injector.template create<sptr<network::PeerManager>>(),
+        injector.template create<sptr<network::BabeObserver>>(),
+        injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),
+        injector.template create<sptr<network::SyncProtocolObserver>>(),
+        injector.template create<sptr<network::ExtrinsicObserver>>(),
+        injector.template create<sptr<network::Gossiper>>(),
+        injector.template create<sptr<blockchain::BlockStorage>>(),
+        injector.template create<sptr<libp2p::protocol::Identify>>(),
+        injector.template create<sptr<libp2p::protocol::Ping>>());
+    return initialized.value();
   }
 
   template <typename... Ts>
@@ -786,31 +811,12 @@ namespace kagome::injector {
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
         di::bind<consensus::grandpa::FinalizationObserver>.to(
             [](auto const &inj) { return get_finalization_observer(inj); }),
-        di::bind<network::Router>.template to([](auto const &injector) {
-          static auto initialized =
-              boost::optional<sptr<network::RouterLibp2p>>(boost::none);
-          if (initialized) {
-            return initialized.value();
-          }
-          initialized = std::make_shared<network::RouterLibp2p>(
-              injector.template create<std::shared_ptr<application::AppStateManager>>(),
-              injector.template create<libp2p::Host &>(),
-              injector.template create<network::OwnPeerInfo &>(),
-              injector.template create<network::BootstrapNodes>(),
-              injector.template create<sptr<network::BabeObserver>>(),
-              injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),
-              injector.template create<sptr<network::SyncProtocolObserver>>(),
-              injector.template create<sptr<network::ExtrinsicObserver>>(),
-              injector.template create<sptr<network::Gossiper>>(),
-              injector.template create<sptr<kagome::application::ChainSpec>>(),
-              injector.template create<sptr<blockchain::BlockStorage>>(),
-              injector.template create<sptr<libp2p::protocol::Identify>>(),
-              injector.template create<sptr<libp2p::protocol::Ping>>());
-          return initialized.value();
-        }),
         di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
 
-        // user-defined overrides...
+        di::bind<network::Router>.to(
+		        [](const auto &injector) { return get_router(injector); }),
+
+	  // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }
 

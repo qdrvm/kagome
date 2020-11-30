@@ -26,16 +26,16 @@ namespace kagome::network {
         block_announces_protocol_{fmt::format(kBlockAnnouncesProtocol.data(),
                                               config_->protocolId())} {}
 
+  void GossiperBroadcast::storeSelfPeerInfo(
+      const libp2p::peer::PeerInfo &self_info) {
+    self_info_ = self_info;
+  }
+
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
       const libp2p::peer::Protocol &protocol,
       std::shared_ptr<libp2p::connection::Stream> stream) {
     stream_engine_->addReserved(peer_info, protocol, std::move(stream));
-  }
-
-  void GossiperBroadcast::storeSelfPeerInfo(
-      const libp2p::peer::PeerInfo &self_info) {
-    self_info_ = self_info;
   }
 
   outcome::result<void> GossiperBroadcast::addStream(

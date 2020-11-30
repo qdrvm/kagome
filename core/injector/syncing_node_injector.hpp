@@ -16,10 +16,10 @@ namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename Injector>
-  auto get_peer_info(const Injector &injector) -> sptr<network::OwnPeerInfo> {
+  sptr<network::OwnPeerInfo> get_peer_info(const Injector &injector) {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
-      return *initialized;
+      return initialized.value();
     }
 
     // get key storage

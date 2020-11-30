@@ -79,8 +79,7 @@ namespace kagome::injector {
   // peer info getter
   template <typename Injector>
   sptr<network::OwnPeerInfo> get_peer_info(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<network::OwnPeerInfo>>(boost::none);
+   static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
       return initialized.value();
     }

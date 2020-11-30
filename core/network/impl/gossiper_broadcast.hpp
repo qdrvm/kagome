@@ -45,18 +45,21 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    GossiperBroadcast(
-        StreamEngine::StreamEnginePtr stream_engine,
-        std::shared_ptr<kagome::application::ChainSpec> config);
+    GossiperBroadcast(StreamEngine::StreamEnginePtr stream_engine,
+                      std::shared_ptr<application::ChainSpec> config);
 
     ~GossiperBroadcast() override = default;
+
+    void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
 
     void reserveStream(
         const libp2p::peer::PeerInfo &peer_info,
         const libp2p::peer::Protocol &protocol,
         std::shared_ptr<libp2p::connection::Stream> stream) override;
 
-    void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
+    outcome::result<void> addStream(
+        const libp2p::peer::Protocol &protocol,
+        std::shared_ptr<libp2p::connection::Stream> stream) override;
 
     void propagateTransactions(
         const network::PropagatedTransactions &txs) override;
@@ -72,10 +75,6 @@ namespace kagome::network {
 
     void catchUpResponse(const libp2p::peer::PeerId &peer_id,
                          const CatchUpResponse &catch_up_response) override;
-
-    outcome::result<void> addStream(
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) override;
 
     uint32_t getActiveStreamNumber() override;
 
