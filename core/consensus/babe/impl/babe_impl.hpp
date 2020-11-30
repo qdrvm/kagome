@@ -21,6 +21,7 @@
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
+#include "consensus/babe/types/slots_strategy.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/sr25519_types.hpp"
@@ -67,7 +68,8 @@ namespace kagome::consensus {
              std::shared_ptr<crypto::Hasher> hasher,
              std::unique_ptr<clock::Timer> timer,
              std::shared_ptr<authority::AuthorityUpdateObserver>
-                 authority_update_observer);
+                 authority_update_observer,
+             SlotsStrategy slots_calculation_strategy);
 
     ~BabeImpl() override = default;
 
@@ -118,6 +120,43 @@ namespace kagome::consensus {
     outcome::result<primitives::Seal> sealBlock(
         const primitives::Block &block) const;
 
+    //--------------------------------------------------------------------------
+    /**
+     * Stores first production slot time estimate to the collection, to take
+     * their median later
+     * @param observed_slot Slot number of current block
+     * @param first_production_slot_number Slot number of the first production slot
+     */
+    void storeFirstSlotTimeEstimate(
+        BabeSlotNumber observed_slot,
+        BabeSlotNumber first_production_slot_number);
+
+    /**
+     * Get first production slot time
+     * @return median of first production slot times estimates
+     */
+    BabeTimePoint getFirstSlotTimeEstimate();
+
+    /**
+     * Create first epoch where current node will produce blocks
+     * @param first_slot_time_estimate when first slot should be launched
+     * @param first_production_slot_number slot number where block production starts
+     * @return first production epoch structure
+     */
+    Epoch prepareFirstEpochFromZeroStrategy(
+        BabeTimePoint first_slot_time_estimate,
+        BabeSlotNumber first_production_slot_number) const;
+    //--------------------------------------------------------------------------
+
+    /**
+     * Create first block production epoch
+     * @param last_known_epoch information about last epoch we know
+     * @param first_production_slot slot number where block production starts
+     * @return first production epoch structure
+     */
+    Epoch prepareFirstEpochUnixTime(LastEpochDescriptor last_known_epoch,
+                                    BabeSlotNumber first_production_slot) const;
+
     /**
      * To be called if we are far behind other nodes to skip some slots and
      * finally synchronize with the network
@@ -141,6 +180,7 @@ namespace kagome::consensus {
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
+    const SlotsStrategy slots_calculation_strategy_;
 
     State current_state_{State::WAIT_BLOCK};
 

@@ -31,7 +31,7 @@ namespace kagome::consensus {
       const Threshold &threshold,
       const crypto::Sr25519Keypair &keypair) const {
     BabeLottery::SlotsLeadership result;
-    result.reserve(epoch.epoch_duration);
+    result.reserve(epoch.epoch_length);
 
     // randomness || slot number
     Buffer vrf_input(vrf_constants::OUTPUT_SIZE + 8, 0);
@@ -42,8 +42,8 @@ namespace kagome::consensus {
         epoch.randomness.begin(), epoch.randomness.end(), vrf_input.begin());
 
     auto slot_number_begin = vrf_input.begin() + vrf_constants::OUTPUT_SIZE;
-    for (BabeSlotNumber i = epoch.epoch_index * epoch.epoch_duration;
-         i < (epoch.epoch_index + 1) * epoch.epoch_duration;
+    for (BabeSlotNumber i = epoch.start_slot;
+         i < epoch.start_slot + epoch.epoch_length;
          ++i) {
       auto slot_bytes = common::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);

@@ -79,6 +79,7 @@ namespace kagome::application {
     DECLARE_PROPERTY(bool, is_only_finalizing);
     DECLARE_PROPERTY(bool, is_already_synchronized);
     DECLARE_PROPERTY(uint32_t, max_blocks_in_response);
+    DECLARE_PROPERTY(bool, is_unix_slots_strategy);
 
    private:
     void parse_general_segment(rapidjson::Value &val);
