@@ -10,6 +10,7 @@
 
 #include "common/visitor.hpp"
 #include "network/types/blocks_request.hpp"
+#include "macro/LE_BE.hpp"
 
 namespace kagome::network {
 

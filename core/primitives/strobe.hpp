@@ -127,6 +127,12 @@ namespace kagome::primitives {
       begin_position_ = 0;
     }
 
+    Strobe(const Strobe&) = delete;
+    Strobe& operator=(const Strobe&) = delete;
+
+    Strobe(Strobe&&) = delete;
+    Strobe& operator=(Strobe&&) = delete;
+
    public:
     Strobe()
         : buffer_{reinterpret_cast<uint8_t *>(
