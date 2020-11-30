@@ -172,7 +172,7 @@ namespace kagome::api {
     void onExtrinsicEvent(
         SubscriptionSetId set_id,
         SessionPtr &session,
-        primitives::events::ExtrinsicEventType event_type,
+        primitives::ObservedExtrinsicId id,
         const primitives::events::ExtrinsicLifecycleEvent &params);
 
     template <typename Func>

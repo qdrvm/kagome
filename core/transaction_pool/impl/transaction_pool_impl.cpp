@@ -49,7 +49,7 @@ namespace kagome::transaction_pool {
     if (auto [_, ok] = imported_txs_.emplace(tx->hash, tx); !ok) {
       if (tx->ext.observed_id) {
         sub_engine_->notify(
-            ExtrinsicEventType::INVALID,
+            tx->ext.observed_id.value(),
             ExtrinsicLifecycleEvent::Invalid(tx->ext.observed_id.value()));
       }
       return TransactionPoolError::TX_ALREADY_IMPORTED;
@@ -60,7 +60,7 @@ namespace kagome::transaction_pool {
         && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
       if(tx->ext.observed_id) {
         sub_engine_->notify(
-            ExtrinsicEventType::DROPPED,
+            tx->ext.observed_id.value(),
             ExtrinsicLifecycleEvent::Dropped(tx->ext.observed_id.value()));
       }
       imported_txs_.erase(tx->hash);
@@ -104,7 +104,7 @@ namespace kagome::transaction_pool {
     postponed_txs_.push_back(tx);
     if(tx->ext.observed_id) {
       sub_engine_->notify(
-          ExtrinsicEventType::FUTURE,
+          tx->ext.observed_id.value(),
           ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
     }
   }
@@ -133,7 +133,7 @@ namespace kagome::transaction_pool {
     }
     if (tx->ext.observed_id) {
       sub_engine_->notify(
-          ExtrinsicEventType::FUTURE,
+          tx->ext.observed_id.value(),
           ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
     }
   }
@@ -229,7 +229,7 @@ namespace kagome::transaction_pool {
     for (auto &tx_hash : remove_to) {
       OUTCOME_TRY(tx, removeOne(tx_hash));
       sub_engine_->notify(
-          ExtrinsicEventType::DROPPED,
+          tx.ext.observed_id.value(),
           ExtrinsicLifecycleEvent::Dropped(tx.ext.observed_id.value()));
     }
 
@@ -257,7 +257,7 @@ namespace kagome::transaction_pool {
     if (auto [_, ok] = ready_txs_.emplace(tx->hash, tx); ok) {
       if(tx->ext.observed_id) {
         sub_engine_->notify(
-            ExtrinsicEventType::READY,
+            tx->ext.observed_id.value(),
             ExtrinsicLifecycleEvent::Ready(tx->ext.observed_id.value()));
       }
       commitRequiredTags(tx);
@@ -309,7 +309,7 @@ namespace kagome::transaction_pool {
       rollbackProvidedTags(tx);
       if(tx->ext.observed_id) {
         sub_engine_->notify(
-            ExtrinsicEventType::FUTURE,
+            tx->ext.observed_id.value(),
             ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
       }
     }

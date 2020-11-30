@@ -222,7 +222,7 @@ namespace kagome::primitives::events {
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
 
   using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
-      primitives::events::ExtrinsicEventType,
+      primitives::ObservedExtrinsicId,
       std::shared_ptr<api::Session>,
       primitives::events::ExtrinsicLifecycleEvent>;
   using ExtrinsicSubscriptionEnginePtr =

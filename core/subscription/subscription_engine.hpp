@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 namespace kagome::subscription {
+
   template <typename Event, typename Receiver, typename... Arguments>
   class Subscriber;
 
@@ -36,17 +37,18 @@ namespace kagome::subscription {
 
     /// List is preferable here because this container iterators remain
     /// alive after removal from the middle of the container
-    /// TODO(iceseer): PRE-476 remove processor cache penalty, while iterating, using
-    /// custom allocator
-    using SubscribersContainer = std::list<std::pair<SubscriptionSetId, SubscriberWeakPtr>>;
+    /// TODO(iceseer): PRE-476 remove processor cache penalty, while iterating,
+    /// using custom allocator
+    using SubscribersContainer =
+        std::list<std::pair<SubscriptionSetId, SubscriberWeakPtr>>;
     using IteratorType = typename SubscribersContainer::iterator;
 
    public:
     SubscriptionEngine() = default;
     ~SubscriptionEngine() = default;
 
-    SubscriptionEngine(SubscriptionEngine &&) = default; // NOLINT
-    SubscriptionEngine &operator=(SubscriptionEngine &&) = default; // NOLINT
+    SubscriptionEngine(SubscriptionEngine &&) = default;             // NOLINT
+    SubscriptionEngine &operator=(SubscriptionEngine &&) = default;  // NOLINT
 
     SubscriptionEngine(const SubscriptionEngine &) = delete;
     SubscriptionEngine &operator=(const SubscriptionEngine &) = delete;
@@ -54,16 +56,19 @@ namespace kagome::subscription {
    private:
     template <typename KeyType, typename ValueType, typename... Args>
     friend class Subscriber;
-    using KeyValueContainer = std::unordered_map<EventType, SubscribersContainer>;
+    using KeyValueContainer =
+        std::unordered_map<EventType, SubscribersContainer>;
 
     mutable std::shared_mutex subscribers_map_cs_;
     KeyValueContainer subscribers_map_;
 
-    IteratorType subscribe(SubscriptionSetId set_id, const EventType &key,
+    IteratorType subscribe(SubscriptionSetId set_id,
+                           const EventType &key,
                            SubscriberWeakPtr ptr) {
       std::unique_lock lock(subscribers_map_cs_);
       auto &subscribers_list = subscribers_map_[key];
-      return subscribers_list.emplace(subscribers_list.end(), std::make_pair(set_id, std::move(ptr)));
+      return subscribers_list.emplace(subscribers_list.end(),
+                                      std::make_pair(set_id, std::move(ptr)));
     }
 
     void unsubscribe(const EventType &key, const IteratorType &it_remove) {

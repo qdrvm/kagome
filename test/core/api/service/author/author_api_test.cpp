@@ -61,7 +61,7 @@ class ExtrinsicEventReceiver {
  public:
   virtual void receive(kagome::subscription::SubscriptionSetId,
                        std::shared_ptr<kagome::api::Session>,
-                       const ExtrinsicEventType &,
+                       const kagome::primitives::ObservedExtrinsicId &,
                        const ExtrinsicLifecycleEvent &) const = 0;
 };
 
@@ -70,7 +70,7 @@ class ExtrinsicEventReceiverMock : public ExtrinsicEventReceiver {
   MOCK_CONST_METHOD4(receive,
                      void(kagome::subscription::SubscriptionSetId,
                           std::shared_ptr<kagome::api::Session>,
-                          const ExtrinsicEventType &,
+                          const kagome::primitives::ObservedExtrinsicId &,
                           const ExtrinsicLifecycleEvent &));
 };
 
@@ -89,7 +89,8 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<BlockInfo> deepest_leaf;                ///< deepest leaf block info
   sptr<ExtrinsicSubscriptionEngine> sub_engine;
   sptr<ExtrinsicEventSubscriber> subscriber;
-  std::map<ExtrinsicEventType, kagome::subscription::SubscriptionSetId> sub_id;
+  kagome::subscription::SubscriptionSetId sub_id;
+  const kagome::primitives::ObservedExtrinsicId ext_id = 42;
   sptr<ExtrinsicEventReceiverMock> event_receiver;
 
   void SetUp() override {
@@ -97,19 +98,15 @@ struct AuthorApiTest : public ::testing::Test {
     subscriber =
         std::make_unique<ExtrinsicEventSubscriber>(sub_engine, nullptr);
     event_receiver = std::make_shared<ExtrinsicEventReceiverMock>();
-    for (auto event : {ExtrinsicEventType::BROADCAST,
-                       ExtrinsicEventType::READY,
-                       ExtrinsicEventType::FUTURE}) {
-      sub_id[event] = subscriber->generateSubscriptionSetId();
-      subscriber->subscribe(sub_id[event], event);
-    }
+    sub_id = subscriber->generateSubscriptionSetId();
+    subscriber->subscribe(sub_id, 42);
     subscriber->setCallback(
         [this](
             kagome::subscription::SubscriptionSetId set_id,
             std::shared_ptr<kagome::api::Session> session,
-            const kagome::primitives::events::ExtrinsicEventType &type,
+            const kagome::primitives::ObservedExtrinsicId &id,
             const kagome::primitives::events::ExtrinsicLifecycleEvent &event) {
-          event_receiver->receive(set_id, session, type, event);
+          event_receiver->receive(set_id, session, id, event);
         });
 
     hasher = std::make_shared<HasherMock>();
@@ -199,39 +196,38 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
   EXPECT_CALL(*transaction_pool, submitOne(tr))
       .WillOnce(testing::DoAll(
           testing::Invoke([this](auto &) {
-            sub_engine->notify(ExtrinsicEventType::FUTURE,
-                               ExtrinsicLifecycleEvent::Future(42));
-            sub_engine->notify(ExtrinsicEventType::READY,
-                               ExtrinsicLifecycleEvent::Ready(42));
+            sub_engine->notify(ext_id, ExtrinsicLifecycleEvent::Future(ext_id));
+            sub_engine->notify(ext_id, ExtrinsicLifecycleEvent::Ready(ext_id));
           }),
           Return(outcome::success())));
 
   EXPECT_CALL(*gossiper, propagateTransactions(_))
       .WillOnce(testing::Invoke([this](auto &) {
-        sub_engine->notify(ExtrinsicEventType::BROADCAST,
-                           ExtrinsicLifecycleEvent::Broadcast(42, {}));
+        sub_engine->notify(ext_id,
+                           ExtrinsicLifecycleEvent::Broadcast(ext_id, {}));
       }));
 
   {
     testing::InSequence s;
-    EXPECT_CALL(*event_receiver,
-                receive(sub_id[ExtrinsicEventType::FUTURE],
-                        sptr<kagome::api::Session>(),
-                        ExtrinsicEventType::FUTURE,
-                        eventsAreEqual(ExtrinsicLifecycleEvent::Future(42))))
+    EXPECT_CALL(
+        *event_receiver,
+        receive(sub_id,
+                sptr<kagome::api::Session>(),
+                ext_id,
+                eventsAreEqual(ExtrinsicLifecycleEvent::Future(ext_id))))
         .Times(1);
     EXPECT_CALL(*event_receiver,
-                receive(sub_id[ExtrinsicEventType::READY],
+                receive(sub_id,
                         sptr<kagome::api::Session>(),
-                        ExtrinsicEventType::READY,
-                        eventsAreEqual(ExtrinsicLifecycleEvent::Ready(42))))
+                        ext_id,
+                        eventsAreEqual(ExtrinsicLifecycleEvent::Ready(ext_id))))
         .Times(1);
     EXPECT_CALL(
         *event_receiver,
-        receive(sub_id[ExtrinsicEventType::BROADCAST],
+        receive(sub_id,
                 sptr<kagome::api::Session>(),
-                ExtrinsicEventType::BROADCAST,
-                eventsAreEqual(ExtrinsicLifecycleEvent::Broadcast(42, {}))))
+                ext_id,
+                eventsAreEqual(ExtrinsicLifecycleEvent::Broadcast(ext_id, {}))))
         .Times(1);
   }
 

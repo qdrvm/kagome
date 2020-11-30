@@ -381,7 +381,8 @@ namespace kagome::api {
                             uploadFromCache(result.data()));
                       });
         }
-        return static_cast<uint32_t>(id);;
+        return static_cast<uint32_t>(id);
+        ;
       });
     });
   }
@@ -403,11 +404,10 @@ namespace kagome::api {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionSubscriptions &session_context) {
         auto &session_sub = session_context.ext_sub;
-        const auto id = session_sub->generateSubscriptionSetId();
-        session_sub->subscribe(id,
-                               primitives::events::ExtrinsicEventType::FUTURE);
+        const auto sub_id = session_sub->generateSubscriptionSetId();
+        session_sub->subscribe(sub_id, id);
 
-        return static_cast<uint32_t>(id);
+        return static_cast<uint32_t>(sub_id);
       });
     });
   }
@@ -522,7 +522,7 @@ namespace kagome::api {
   void ApiService::onExtrinsicEvent(
       SubscriptionSetId set_id,
       SessionPtr &session,
-      primitives::events::ExtrinsicEventType event_type,
+      primitives::ObservedExtrinsicId ext_id,
       const primitives::events::ExtrinsicLifecycleEvent &params) {
     sendEvent(server_,
               session,
