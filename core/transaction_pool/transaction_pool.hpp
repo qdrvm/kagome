@@ -49,7 +49,7 @@ namespace kagome::transaction_pool {
      * Remove transaction from the pool
      * @param txHash - hash of the removed transaction
      */
-    virtual outcome::result<void> removeOne(
+    virtual outcome::result<Transaction> removeOne(
         const Transaction::Hash &txHash) = 0;
 
     /**

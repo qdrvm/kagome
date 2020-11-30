@@ -10,18 +10,22 @@
 
 namespace kagome::authorship {
 
+  using primitives::events::ExtrinsicEventType;
+  using primitives::events::ExtrinsicSubscriptionEngine;
+  using primitives::events::InBlockEventParams;
+
   BlockBuilderImpl::BlockBuilderImpl(
       primitives::BlockHeader block_header,
-      std::shared_ptr<runtime::BlockBuilder> r_block_builder)
+      std::shared_ptr<runtime::BlockBuilder> block_builder_api)
       : block_header_(std::move(block_header)),
-        r_block_builder_(std::move(r_block_builder)),
+        block_builder_api_(std::move(block_builder_api)),
         logger_{common::createLogger("BlockBuilder")} {
-    BOOST_ASSERT(r_block_builder_ != nullptr);
+    BOOST_ASSERT(block_builder_api_ != nullptr);
   }
 
   outcome::result<void> BlockBuilderImpl::pushExtrinsic(
       const primitives::Extrinsic &extrinsic) {
-    auto apply_res = r_block_builder_->apply_extrinsic(extrinsic);
+    auto apply_res = block_builder_api_->apply_extrinsic(extrinsic);
     if (not apply_res) {
       logger_->warn(
           "Extrinsic {} was not pushed to block. Error during xt application: "
@@ -54,7 +58,7 @@ namespace kagome::authorship {
   }
 
   outcome::result<primitives::Block> BlockBuilderImpl::bake() const {
-    OUTCOME_TRY(finalised_header, r_block_builder_->finalise_block());
+    OUTCOME_TRY(finalised_header, block_builder_api_->finalise_block());
     return primitives::Block{finalised_header, extrinsics_};
   }
 

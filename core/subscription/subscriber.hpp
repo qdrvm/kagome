@@ -67,12 +67,7 @@ namespace kagome::subscription {
         for (auto &[key, it] : subscriptions)
           engine_->unsubscribe(key, it);
     }
-/*
-    template <typename... ArgumentTypes>
-    static std::shared_ptr<This> create(ArgumentTypes &&... args) {
-      return std::make_shared<This>(std::forward<ArgumentTypes>(args)...);
-    }
-*/
+
     Subscriber(const Subscriber &) = delete;
     Subscriber &operator=(const Subscriber &) = delete;
 

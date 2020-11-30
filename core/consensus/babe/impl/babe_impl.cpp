@@ -16,6 +16,7 @@
 #include "consensus/babe/types/seal.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
+#include "primitives/event_types.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::consensus {
@@ -372,7 +373,7 @@ namespace kagome::consensus {
     auto pre_seal_block_res =
         proposer_->propose(best_block_hash, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
-      return log_->error("cannot propose a block: {}",
+      return log_->error("Cannot propose a block: {}",
                          pre_seal_block_res.error().message());
     }
 

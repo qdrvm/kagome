@@ -39,6 +39,27 @@ namespace kagome::api {
    * Service listening for incoming JSON RPC request
    */
   class ApiService final : public std::enable_shared_from_this<ApiService> {
+    using ChainEventSubscriberPtr = primitives::events::ChainEventSubscriberPtr;
+    using StorageEventSubscriberPtr =
+        primitives::events::StorageEventSubscriberPtr;
+    using ExtrinsicEventSubscriberPtr =
+        primitives::events::ExtrinsicEventSubscriberPtr;
+    using ChainSubscriptionEnginePtr =
+        primitives::events::ChainSubscriptionEnginePtr;
+    using StorageSubscriptionEnginePtr =
+        primitives::events::StorageSubscriptionEnginePtr;
+    using ExtrinsicSubscriptionEnginePtr =
+        primitives::events::ExtrinsicSubscriptionEnginePtr;
+    using ChainEventSubscriber = primitives::events::ChainEventSubscriber;
+    using StorageEventSubscriber = primitives::events::StorageEventSubscriber;
+    using ExtrinsicEventSubscriber =
+        primitives::events::ExtrinsicEventSubscriber;
+    using ChainSubscriptionEngine = primitives::events::ChainSubscriptionEngine;
+    using StorageSubscriptionEngine =
+        primitives::events::StorageSubscriptionEngine;
+    using ExtrinsicSubscriptionEngine =
+        primitives::events::ExtrinsicSubscriptionEngine;
+
     using SessionPtr = std::shared_ptr<Session>;
 
     /// subscription set id from subscription::SubscriptionEngine
@@ -47,46 +68,14 @@ namespace kagome::api {
     /// subscription id for pubsub API methods
     using PubsubSubscriptionId = uint32_t;
 
-    using StorageSubscriptionEngine =
-        subscription::SubscriptionEngine<common::Buffer,
-                                         SessionPtr,
-                                         common::Buffer,
-                                         primitives::BlockHash>;
-    using StorageSubscriptionEnginePtr =
-        std::shared_ptr<StorageSubscriptionEngine>;
-
-    using StorageEventSubscriber = StorageSubscriptionEngine::SubscriberType;
-    using StorageEventSubscriberPtr = std::shared_ptr<StorageEventSubscriber>;
-
-    using ChainSubscriptionEngine =
-        subscription::SubscriptionEngine<primitives::events::ChainEventType,
-                                         SessionPtr,
-                                         primitives::events::ChainEventParams>;
-    using ChainSubscriptionEnginePtr = std::shared_ptr<ChainSubscriptionEngine>;
-
-    using ChainEventSubscriber = ChainSubscriptionEngine::SubscriberType;
-    using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
-
-    using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
-        primitives::events::ExtrinsicLifecycleEvent,
-        SessionPtr,
-        primitives::events::ExtrinsicLifecycleEventParams>;
-    using ExtrinsicSubscriptionEnginePtr =
-        std::shared_ptr<ExtrinsicSubscriptionEngine>;
-
-    using ExtrinsicEventSubscriber =
-        ExtrinsicSubscriptionEngine::SubscriberType;
-    using ExtrinsicEventSubscriberPtr =
-        std::shared_ptr<ExtrinsicEventSubscriber>;
-
     using Buffer = common::Buffer;
 
     struct SessionSubscriptions {
       using AdditionMessageType =
-      decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
+          decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
       using AdditionMessagesList = std::vector<AdditionMessageType>;
       using CachedAdditionMessagesList = decltype(
-      KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
+          KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
 
       StorageEventSubscriberPtr storage_sub;
       ChainEventSubscriberPtr chain_sub;
@@ -115,7 +104,6 @@ namespace kagome::api {
         ExtrinsicSubscriptionEnginePtr ext_sub_engine,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage);
-
 
     virtual ~ApiService() = default;
 
@@ -151,7 +139,7 @@ namespace kagome::api {
                                            const common::Buffer &value,
                                            const primitives::BlockHash &block);
 
-    boost::optional<std::shared_ptr<SessionExecutionContext>> findSessionById(
+    boost::optional<std::shared_ptr<SessionSubscriptions>> findSessionById(
         Session::SessionId id) {
       std::lock_guard guard(subscribed_sessions_cs_);
       if (auto it = subscribed_sessions_.find(id);
@@ -179,8 +167,8 @@ namespace kagome::api {
     void onExtrinsicEvent(
         SubscriptionSetId set_id,
         SessionPtr &session,
-        primitives::events::ExtrinsicLifecycleEvent event_type,
-        const primitives::events::ExtrinsicLifecycleEventParams &params);
+        primitives::events::ExtrinsicEventType event_type,
+        const primitives::events::ExtrinsicLifecycleEvent &params);
 
     template <typename Func>
     auto for_session(kagome::api::Session::SessionId id, Func &&f) {
@@ -194,20 +182,34 @@ namespace kagome::api {
     }
 
     template <typename T>
-    inline SessionExecutionContext::AdditionMessageType uploadFromCache(
+    inline SessionSubscriptions::AdditionMessageType uploadFromCache(
         T &&value) {
       auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string);
       obj->assign(std::forward<T>(value));
       return obj;
     }
 
-    inline SessionExecutionContext::CachedAdditionMessagesList
+    inline SessionSubscriptions::CachedAdditionMessagesList
     uploadMessagesListFromCache() {
       auto obj = KAGOME_EXTRACT_UNIQUE_CACHE(
-          api_service, SessionExecutionContext::AdditionMessagesList);
+          api_service, SessionSubscriptions::AdditionMessagesList);
       obj->clear();
       return obj;
     }
+// TODO(Harrm): find a way to fix it
+//    template <typename... Args>
+//    using EventHandler = void (ApiService::*)(Args&&... args);
+//
+//    template <typename... Args>
+//    std::function<void(Args&&...)> unwrapWeakPtr(
+//        std::weak_ptr<ApiService> wp,
+//        EventHandler<Args...> handler) const {
+//      return [wp, handler](Args &&... params) mutable {
+//        if (auto self = wp.lock()) {
+//          std::invoke(handler, self, std::forward<Args>(params)...);
+//        }
+//      };
+//    }
 
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<sptr<Listener>> listeners_;

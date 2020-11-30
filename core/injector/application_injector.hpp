@@ -138,16 +138,15 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    using SubscriptionEnginePtr = std::shared_ptr<
-        subscription::SubscriptionEngine<common::Buffer,
-                                         std::shared_ptr<api::Session>,
-                                         common::Buffer,
-                                         primitives::BlockHash>>;
-    auto subscription_engine =
-        injector.template create<SubscriptionEnginePtr>();
+    auto storage_sub_engine = injector.template create<
+        primitives::events::StorageSubscriptionEnginePtr>();
 
-    auto events_engine =
-        injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
+    auto chain_sub_engine =
+        injector
+            .template create<primitives::events::ChainSubscriptionEnginePtr>();
+
+    auto ext_sub_engine = injector.template create<
+        primitives::events::ExtrinsicSubscriptionEnginePtr>();
 
     auto app_state_manager =
         injector
@@ -180,8 +179,9 @@ namespace kagome::injector {
                                           std::move(listeners),
                                           std::move(server),
                                           processors,
-                                          std::move(subscription_engine),
-                                          std::move(events_engine),
+                                          std::move(storage_sub_engine),
+                                          std::move(chain_sub_engine),
+                                          std::move(ext_sub_engine),
                                           std::move(block_tree),
                                           std::move(trie_storage));
 
@@ -341,8 +341,10 @@ namespace kagome::injector {
 
     auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
-    auto &&events_engine =
-        injector.template create<subscriptions::EventsSubscriptionEnginePtr>();
+    auto &&chain_events_engine =
+        injector.template create<primitives::events::ChainSubscriptionEnginePtr>();
+    auto &&ext_events_engine =
+        injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>();
 
     auto &&runtime_core =
         injector.template create<std::shared_ptr<runtime::Core>>();
@@ -353,7 +355,8 @@ namespace kagome::injector {
                                           block_id,
                                           std::move(extrinsic_observer),
                                           std::move(hasher),
-                                          std::move(events_engine),
+                                          std::move(chain_events_engine),
+                                          std::move(ext_events_engine),
                                           std::move(runtime_core));
     if (!tree) {
       common::raise(tree.error());
@@ -707,8 +710,9 @@ namespace kagome::injector {
         di::bind<crypto::Bip39Provider>.template to<crypto::Bip39ProviderImpl>(),
         di::bind<crypto::Pbkdf2Provider>.template to<crypto::Pbkdf2ProviderImpl>(),
         di::bind<crypto::Secp256k1Provider>.template to<crypto::Secp256k1ProviderImpl>(),
-        di::bind<crypto::KeyFileStorage>.template to(
-            [](auto const &injector) { return get_key_file_storage(injector); }),
+        di::bind<crypto::KeyFileStorage>.template to([](auto const &injector) {
+          return get_key_file_storage(injector);
+        }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
         di::bind<extensions::ExtensionFactory>.template to(
             [](auto const &injector) {

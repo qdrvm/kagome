@@ -110,6 +110,8 @@ namespace kagome::api {
   const std::string kRpcEventFinalizedHeads = "chain_finalizedHead";
   const std::string kRpcEventSubscribeStorage = "state_storage";
 
+  const std::string kRpcEventSubmitAndWatchExtrinsic = "author_submitAndWatchExtrinsic";
+
   ApiService::ApiService(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
@@ -170,133 +172,30 @@ namespace kagome::api {
 
   bool ApiService::prepare() {
     for (const auto &listener : listeners_) {
-      auto on_new_session = [wp = weak_from_this()](
-                                const sptr<Session> &session) mutable {
-        auto self = wp.lock();
-        if (!self) {
-          return;
-        }
+      auto on_new_session =
+          [wp = weak_from_this()](const sptr<Session> &session) mutable {
+            auto self = wp.lock();
+            if (!self) {
+              return;
+            }
 
-        if (SessionType::kWs == session->type()) {
-          auto session_subs = self->storeSessionWithId(session->id(), session);
-          BOOST_ASSERT(session_subs);
-          session_subs.storage_sub->setCallback(UNWRAP_WEAK_PTR(onStorageEvent));
-          session_subs.chain_sub->setCallback(UNWRAP_WEAK_PTR(onChainEvent));
-          session_subs.ext_sub->setCallback(UNWRAP_WEAK_PTR(onExtrinsicEvent));
-          auto session_context =
-              self->storeSessionWithId(session->id(), session);
-          BOOST_ASSERT(session_context);
-          session_context->storage_subscription->setCallback(
-              [wp](uint32_t set_id,
-                   SessionPtr &session,
-                   const auto &key,
-                   const auto &data,
-                   const auto &block) {
-                if (auto self = wp.lock()) {
-                  sendEvent(self->server_,
-                            session,
-                            self->logger_,
-                            set_id,
-                            kRpcEventSubscribeStorage,
-                            self->createStateStorageEvent(key, data, block));
-                }
-              });
+            if (SessionType::kWs == session->type()) {
+              auto session_context =
+                  self->storeSessionWithId(session->id(), session);
+              BOOST_ASSERT(session_context);
+              session_context->storage_sub->setCallback(UNWRAP_WEAK_PTR(onStorageEvent));
+              session_context->chain_sub->setCallback(UNWRAP_WEAK_PTR(onChainEvent));
+              session_context->ext_sub->setCallback(UNWRAP_WEAK_PTR(onExtrinsicEvent));
+            }
 
-          session_context->events_subscription->setCallback(
-              [wp](uint32_t set_id,
-                   SessionPtr &session,
-                   const auto &key,
-                   const auto &data) {
-                if (auto self = wp.lock()) {
-                  std::string_view name;
-                  switch (key) {
-                    case primitives::SubscriptionEventType::kNewHeads: {
-                      name = kRpcEventNewHeads;
-                    } break;
-                    case primitives::SubscriptionEventType::kFinalizedHeads: {
-                      name = kRpcEventFinalizedHeads;
-                    } break;
-                    case primitives::SubscriptionEventType::kRuntimeVersion: {
-                      name = kRpcEventRuntimeVersion;
-                    } break;
-                    default:
-                      break;
-                  }
-
-                  BOOST_ASSERT(!name.empty());
-                  sendEvent(self->server_,
-                            session,
-                            self->logger_,
-                            set_id,
-                            name,
-                            api::makeValue(data));
-                }
-              });
-        }
-
-        session->connectOnRequest(UNWRAP_WEAK_PTR(onSessionRequest));
-        session->connectOnCloseHandler(UNWRAP_WEAK_PTR(onSessionClose));
-        session->connectOnRequest(
-            [wp](std::string_view request,
-                 std::shared_ptr<Session> session) mutable {
-              auto self = wp.lock();
-              if (not self) return;
-
-              auto thread_session_auto_release = [](void *) {
-                threaded_info.releaseSessionId();
-              };
-
-              threaded_info.storeSessionId(session->id());
-
-              /**
-               * Unique ptr object to autorelease sessions.
-               * 0xff if a random not null value to jump internal nullptr check.
-               */
-              std::unique_ptr<void, decltype(thread_session_auto_release)>
-              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-              thread_session_keeper(reinterpret_cast<void *>(0xff),
-                                    std::move(thread_session_auto_release));
-
-              // TODO(kamilsa): remove that string replacement when
-              // https://github.com/soramitsu/kagome/issues/572 resolved
-              std::string str_request(request);
-              boost::replace_all(str_request, " ", "");
-              boost::replace_first(
-                  str_request, "\"params\":null", "\"params\":[null]");
-
-              // process new request
-              self->server_->processData(
-                  str_request, [&](const std::string &response) mutable {
-                    // process response
-                    session->respond(response);
-                  });
-
-              try {
-                self->for_session(
-                    session->id(),
-                    [&](SessionExecutionContext &session_context) {
-                      if (session_context.messages)
-                        for (auto &msg : *session_context.messages) {
-                          BOOST_ASSERT(msg);
-                          session->respond(*msg);
-                        }
-
-                      session_context.messages.reset();
-                    });
-              } catch (jsonrpc::InternalErrorFault &) {
-              }
-            });
-
-        session->connectOnCloseHandler(
-            [wp](Session::SessionId id, SessionType /*type*/) {
-              if (auto self = wp.lock()) self->removeSessionById(id);
-            });
-      };
+            session->connectOnRequest(UNWRAP_WEAK_PTR(onSessionRequest));
+            session->connectOnCloseHandler(UNWRAP_WEAK_PTR(onSessionClose));
+          };
 
       listener->setHandlerForNewSession(std::move(on_new_session));
     }
     return true;
-  }
+  }  // namespace kagome::api
 
   bool ApiService::start() {
     thread_pool_->start();
@@ -309,19 +208,18 @@ namespace kagome::api {
     logger_->debug("API Service stopped");
   }
 
-  std::shared_ptr<ApiService::SessionExecutionContext>
+  std::shared_ptr<ApiService::SessionSubscriptions>
   ApiService::storeSessionWithId(Session::SessionId id,
                                  const std::shared_ptr<Session> &session) {
     std::lock_guard guard(subscribed_sessions_cs_);
     auto &&[it, inserted] = subscribed_sessions_.emplace(
         id,
-        std::make_shared<ApiService::SessionExecutionContext>(
-            ApiService::SessionExecutionContext{
-                .storage_subscription = std::make_shared<SubscribedSessionType>(
+        std::make_shared<ApiService::SessionSubscriptions>(
+            ApiService::SessionSubscriptions{
+                .storage_sub = std::make_shared<StorageEventSubscriber>(
                     subscription_engines_.storage, session),
-                .events_subscription = std::make_shared<
-                    subscriptions::EventsSubscribedSessionType>(
-                    subscription_engines_.events, session)}));
+                .chain_sub = std::make_shared<ChainEventSubscriber>(
+                    subscription_engines_.chain, session)}));
 
     BOOST_ASSERT(inserted);
     return it->second;
@@ -362,7 +260,7 @@ namespace kagome::api {
                         });
           }
         }
-        return static_cast<uint32_t>(id);
+        return static_cast<PubsubSubscriptionId>(id);
       });
     });
   }
@@ -375,7 +273,6 @@ namespace kagome::api {
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
                            primitives::events::ChainEventType::kFinalizedHeads);
-                           primitives::SubscriptionEventType::kFinalizedHeads);
 
         auto header = block_tree_->getBlockHeader(
             block_tree_->getLastFinalized().block_hash);
@@ -392,7 +289,8 @@ namespace kagome::api {
                       });
         } else {
           logger_->error(
-              "Request block header of the last finalized failed with error: "
+              "Request block header of the last finalized "
+              "failed with error: "
               "{}",
               header.error().message());
         }
@@ -419,7 +317,6 @@ namespace kagome::api {
         auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
-        session->subscribe(id, primitives::SubscriptionEventType::kNewHeads);
 
         auto header =
             block_tree_->getBlockHeader(block_tree_->deepestLeaf().block_hash);
@@ -463,7 +360,6 @@ namespace kagome::api {
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
                            primitives::events::ChainEventType::kRuntimeVersion);
-                           primitives::SubscriptionEventType::kRuntimeVersion);
 
         auto ver = block_tree_->runtimeVersion();
         if (ver) {
@@ -529,12 +425,23 @@ namespace kagome::api {
     boost::replace_first(str_request, "\"params\":null", "\"params\":[null]");
 
     // process new request
-    server_->processData(
-        str_request,
-        [session = std::move(session)](const std::string &response) mutable {
-          // process response
-          session->respond(response);
-        });
+    server_->processData(str_request, [&](const std::string &response) mutable {
+      // process response
+      session->respond(response);
+    });
+
+    try {
+      for_session(session->id(), [&](SessionSubscriptions &session_context) {
+        if (session_context.messages)
+          for (auto &msg : *session_context.messages) {
+            BOOST_ASSERT(msg);
+            session->respond(*msg);
+          }
+
+        session_context.messages.reset();
+      });
+    } catch (jsonrpc::InternalErrorFault &) {
+    }
   }
 
   void ApiService::onSessionClose(Session::SessionId id, SessionType) {
@@ -546,74 +453,46 @@ namespace kagome::api {
                                   const Buffer &key,
                                   const Buffer &data,
                                   const common::Hash256 &block) {
-    jsonrpc::Value::Array out_data;
-    out_data.emplace_back(api::makeValue(key));
-    out_data.emplace_back(api::makeValue(hex_lower_0x(data)));
-
-    /// TODO(iceseer): PRE-475 make event notification depending
-    /// in packs blocks, to batch them in a single message Because
-    /// of a spec, we can send an array of changes in a single
-    /// message. We can receive here a pack of events and format
-    /// them in a single json message.
-
-    jsonrpc::Value::Struct result;
-    result["changes"] = std::move(out_data);
-    result["block"] = api::makeValue(block);
-
-    jsonrpc::Value::Struct p;
-    p["result"] = std::move(result);
-    p["subscription"] = api::makeValue(set_id);
-
-    jsonrpc::Request::Parameters params;
-    params.push_back(std::move(p));
-    server_->processJsonData(
-        "state_storage", params, [&](const auto &response) {
-          if (response.has_value())
-            session->respond(response.value());
-          else
-            logger_->error("process Json data failed => {}",
-                                 response.error().message());
-        });
+    sendEvent(server_,
+              session,
+              logger_,
+              set_id,
+              kRpcEventSubscribeStorage,
+              createStateStorageEvent(key, data, block));
   }
 
   void ApiService::onChainEvent(
       SubscriptionSetId set_id,
       SessionPtr &session,
       primitives::events::ChainEventType event_type,
-      const primitives::events::ChainEventParams &params) {
-
-    jsonrpc::Value::Struct p;
-    p["result"] = api::makeValue(header);
-    p["subscription"] = api::makeValue(set_id);
-
-    jsonrpc::Request::Parameters params;
-    params.push_back(std::move(p));
-    if (event_type == primitives::events::ChainEventType::kNewHeads) {
-      self->server_->processJsonData(
-          "chain_newHead", params, [&](const auto &response) {
-            if (response.has_value())
-              session->respond(response.value());
-            else
-              self->logger_->error("process Json data failed => {}",
-                                   response.error().message());
-          });
+      const primitives::events::ChainEventParams &event_params) {
+    std::string_view name;
+    switch (event_type) {
+      case primitives::events::ChainEventType::kNewHeads: {
+        name = kRpcEventNewHeads;
+      } break;
+      case primitives::events::ChainEventType::kFinalizedHeads: {
+        name = kRpcEventFinalizedHeads;
+      } break;
+      case primitives::events::ChainEventType::kRuntimeVersion: {
+        name = kRpcEventRuntimeVersion;
+      } break;
+      default:
+        break;
     }
-    if (event_type == primitives::events::ChainEventType::kFinalizedHeads) {
-      self->server_->processJsonData(
-          "chain_finalizedHead", params, [&](const auto &response) {
-            if (response.has_value())
-              session->respond(response.value());
-            else
-              self->logger_->error("process Json data failed => {}",
-                                   response.error().message());
-          });
-    }
+
+    BOOST_ASSERT(!name.empty());
+    sendEvent(
+        server_, session, logger_, set_id, name, api::makeValue(event_params));
   }
 
   void ApiService::onExtrinsicEvent(
       SubscriptionSetId set_id,
       SessionPtr &session,
-      primitives::events::ExtrinsicLifecycleEvent event_type,
-      const primitives::events::ExtrinsicLifecycleEventParams &params) {}
+      primitives::events::ExtrinsicEventType event_type,
+      const primitives::events::ExtrinsicLifecycleEvent &params) {
+
+    sendEvent(server_, session, logger_, set_id, kRpcEventSubmitAndWatchExtrinsic, api::makeValue(params));
+  }
 
 }  // namespace kagome::api

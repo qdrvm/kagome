@@ -17,7 +17,6 @@ namespace kagome::api {
     using Buffer = common::Buffer;
     using Extrinsic = primitives::Extrinsic;
     using Metadata = primitives::Metadata;
-    using Subscriber = primitives::Subscriber;
     using SubscriptionId = primitives::SubscriptionId;
     using ExtrinsicKey = primitives::ExtrinsicKey;
 
@@ -45,7 +44,7 @@ namespace kagome::api {
      * Submit an extrinsic and watch.
      */
     virtual outcome::result<SubscriptionId> submitAndWatchExtrinsic(
-        const Extrinsic &extrinsic) = 0;
+        Extrinsic extrinsic) = 0;
 
     /**
      * Unsubscribe from extrinsic watching.
@@ -54,7 +53,7 @@ namespace kagome::api {
      * subscriber.
      */
     virtual outcome::result<bool> unwatchExtrinsic(
-        const Extrinsic &extrinsic) = 0;
+        SubscriptionId sub_id) = 0;
   };
 }  // namespace kagome::api
 

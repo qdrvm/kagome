@@ -13,15 +13,22 @@ using kagome::primitives::Transaction;
 
 namespace kagome::transaction_pool {
 
+  using primitives::events::ExtrinsicEventType;
+  using primitives::events::ExtrinsicLifecycleEvent;
+
   TransactionPoolImpl::TransactionPoolImpl(
       std::unique_ptr<PoolModerator> moderator,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+      std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+          sub_engine,
       Limits limits)
       : header_repo_{std::move(header_repo)},
+        sub_engine_{std::move(sub_engine)},
         moderator_{std::move(moderator)},
         limits_{limits} {
     BOOST_ASSERT_MSG(header_repo_ != nullptr, "header repo is nullptr");
     BOOST_ASSERT_MSG(moderator_ != nullptr, "moderator is nullptr");
+    BOOST_ASSERT_MSG(sub_engine_ != nullptr, "moderator is nullptr");
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
@@ -40,12 +47,22 @@ namespace kagome::transaction_pool {
   outcome::result<void> TransactionPoolImpl::submitOne(
       const std::shared_ptr<Transaction> &tx) {
     if (auto [_, ok] = imported_txs_.emplace(tx->hash, tx); !ok) {
+      if (tx->ext.observed_id) {
+        sub_engine_->notify(
+            ExtrinsicEventType::INVALID,
+            ExtrinsicLifecycleEvent::Invalid(tx->ext.observed_id.value()));
+      }
       return TransactionPoolError::TX_ALREADY_IMPORTED;
     }
 
     auto processResult = processTransaction(tx);
     if (processResult.has_error()
         && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
+      if(tx->ext.observed_id) {
+        sub_engine_->notify(
+            ExtrinsicEventType::DROPPED,
+            ExtrinsicLifecycleEvent::Dropped(tx->ext.observed_id.value()));
+      }
       imported_txs_.erase(tx->hash);
     } else {
       logger_->debug("Extrinsic {} with hash {} was added to the pool",
@@ -85,6 +102,11 @@ namespace kagome::transaction_pool {
   void TransactionPoolImpl::postponeTransaction(
       const std::shared_ptr<Transaction> &tx) {
     postponed_txs_.push_back(tx);
+    if(tx->ext.observed_id) {
+      sub_engine_->notify(
+          ExtrinsicEventType::FUTURE,
+          ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
+    }
   }
 
   outcome::result<void> TransactionPoolImpl::processTransactionAsWaiting(
@@ -109,9 +131,14 @@ namespace kagome::transaction_pool {
     for (auto &tag : tx->requires) {
       tx_waits_tag_.emplace(tag, tx);
     }
+    if (tx->ext.observed_id) {
+      sub_engine_->notify(
+          ExtrinsicEventType::FUTURE,
+          ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
+    }
   }
 
-  outcome::result<void> TransactionPoolImpl::removeOne(
+  outcome::result<Transaction> TransactionPoolImpl::removeOne(
       const Transaction::Hash &tx_hash) {
     auto tx_node = imported_txs_.extract(tx_hash);
     if (tx_node.empty()) {
@@ -130,7 +157,7 @@ namespace kagome::transaction_pool {
     logger_->debug("Extrinsic {} with hash {} was removed from the pool",
                    tx->ext.data.toHex(),
                    tx->hash.toHex());
-    return outcome::success();
+    return *tx;
   }
 
   void TransactionPoolImpl::remove(
@@ -200,7 +227,10 @@ namespace kagome::transaction_pool {
     }
 
     for (auto &tx_hash : remove_to) {
-      OUTCOME_TRY(removeOne(tx_hash));
+      OUTCOME_TRY(tx, removeOne(tx_hash));
+      sub_engine_->notify(
+          ExtrinsicEventType::DROPPED,
+          ExtrinsicLifecycleEvent::Dropped(tx.ext.observed_id.value()));
     }
 
     moderator_->updateBan();
@@ -225,6 +255,11 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::setReady(const std::shared_ptr<Transaction> &tx) {
     if (auto [_, ok] = ready_txs_.emplace(tx->hash, tx); ok) {
+      if(tx->ext.observed_id) {
+        sub_engine_->notify(
+            ExtrinsicEventType::READY,
+            ExtrinsicLifecycleEvent::Ready(tx->ext.observed_id.value()));
+      }
       commitRequiredTags(tx);
       commitProvidedTags(tx);
     }
@@ -272,6 +307,11 @@ namespace kagome::transaction_pool {
     if (auto tx_node = ready_txs_.extract(tx->hash); !tx_node.empty()) {
       rollbackRequiredTags(tx);
       rollbackProvidedTags(tx);
+      if(tx->ext.observed_id) {
+        sub_engine_->notify(
+            ExtrinsicEventType::FUTURE,
+            ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
+      }
     }
   }
 

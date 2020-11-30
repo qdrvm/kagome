@@ -15,6 +15,7 @@
 #include "primitives/block_data.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/digest.hpp"
+#include "primitives/event_types.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
 #include "scale/scale.hpp"
@@ -179,7 +180,6 @@ namespace kagome::api {
 
   inline jsonrpc::Value makeValue(const primitives::BlockData &val) {
     using jStruct = jsonrpc::Value::Struct;
-    using jArray = jsonrpc::Value::Array;
 
     jStruct block;
     block["extrinsics"] = makeValue(val.body);
@@ -200,6 +200,72 @@ namespace kagome::api {
   template <typename T>
   inline jsonrpc::Value makeValue(const std::reference_wrapper<T> &v) {
     return makeValue(v.get());
+  }
+
+  inline jsonrpc::Value makeValue(
+      const primitives::events::ExtrinsicLifecycleEvent &event) {
+    using jStruct = jsonrpc::Value::Struct;
+    jStruct value;
+    value["subscription"] = static_cast<int64_t>(event.id);
+    visit_in_place(
+        event.params,
+        [&value, &event](boost::none_t) {
+          switch(event.type) {
+            case primitives::events::ExtrinsicEventType::FUTURE:
+              value["result"] = "future";
+              break;
+            case primitives::events::ExtrinsicEventType::READY:
+              value["result"] = "ready";
+              break;
+            case primitives::events::ExtrinsicEventType::INVALID:
+              value["result"] = "invalid";
+              break;
+            case primitives::events::ExtrinsicEventType::DROPPED:
+              value["result"] = "dropped";
+              break;
+            default:
+              BOOST_UNREACHABLE_RETURN({});
+          }
+        },
+        [&value](const primitives::events::BroadcastEventParams &params) {
+          std::vector<std::string> peers(params.peers.size());
+          std::transform(params.peers.cbegin(),
+                         params.peers.cend(),
+                         peers.begin(),
+                         [](const auto &peer_id) { return peer_id.toHex(); });
+          value.insert(std::pair(
+              "result", jStruct{std::pair{"broadcast", makeValue(peers)}}));
+        },
+        [&value](const primitives::events::InBlockEventParams &params) {
+          value.insert(std::pair(
+              "result",
+              jStruct{std::pair{"inBlock", makeValue(params.block.toHex())}}));
+        },
+        [&value](const primitives::events::RetractedEventParams &params) {
+          value.insert(std::pair(
+              "result",
+              jStruct{std::pair{"retracted",
+                                makeValue(params.retracted_block.toHex())}}));
+        },
+        [&value](const primitives::events::FinalityTimeoutEventParams &params) {
+          value.insert(
+              std::pair("result",
+                        jStruct{std::pair{"finalityTimeout",
+                                          makeValue(params.block.toHex())}}));
+        },
+        [&value](const primitives::events::FinalizedEventParams &params) {
+          value.insert(
+              std::pair("result",
+                        jStruct{std::pair{"finalized",
+                                          makeValue(params.block.toHex())}}));
+        },
+        [&value](const primitives::events::UsurpedEventParams & params) {
+          value.insert(
+              std::pair("result",
+                        jStruct{std::pair{"usurped",
+                                          makeValue(params.transaction_hash.toHex())}}));
+        });
+    return value;
   }
 }  // namespace kagome::api
 

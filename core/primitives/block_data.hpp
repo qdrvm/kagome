@@ -30,13 +30,13 @@ namespace kagome::primitives {
      * @return block, if at least header exists in this BlockData, nothing
      * otherwise
      */
-    boost::optional<primitives::Block> toBlock() const {
+    /*boost::optional<primitives::Block> toBlock() const {
       if (!header) {
         return boost::none;
       }
       return body ? primitives::Block{*header, *body}
                   : primitives::Block{*header};
-    }
+    }*/
   };
 
   /**

@@ -5,8 +5,8 @@
 
 #include "api/service/author/impl/author_api_impl.hpp"
 
-#include <boost/system/error_code.hpp>
 #include <boost/assert.hpp>
+#include <boost/system/error_code.hpp>
 
 #include "common/visitor.hpp"
 #include "primitives/transaction.hpp"
@@ -19,26 +19,17 @@ namespace kagome::api {
       sptr<runtime::TaggedTransactionQueue> api,
       sptr<transaction_pool::TransactionPool> pool,
       sptr<crypto::Hasher> hasher,
-      std::shared_ptr<network::ExtrinsicGossiper> gossiper,
-      std::unique_ptr<Subscriber> subscriber)
+      std::shared_ptr<network::ExtrinsicGossiper> gossiper)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)},
         gossiper_{std::move(gossiper)},
-        subscriber_{std::move(subscriber)},
         logger_{common::createLogger("AuthorApi")} {
     BOOST_ASSERT_MSG(api_ != nullptr, "author api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
     BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
-    BOOST_ASSERT_MSG(subscriber_ != nullptr, "subscriber is nullptr");
-
-    auto set_id = subscriber_->generateSubscriptionSetId();
-    subscriber_->setCallback(
-        [](auto set_id, auto &receiver, auto &event, auto &param) {
-
-        });
   }
 
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
@@ -108,16 +99,17 @@ namespace kagome::api {
   }
 
   outcome::result<AuthorApi::SubscriptionId>
-  AuthorApiImpl::submitAndWatchExtrinsic(
-      const AuthorApi::Extrinsic &extrinsic) {
-    BOOST_ASSERT_MSG(false, "Not implemented");
-    return 0;
+  AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
+    extrinsic.observed_id = latest_id_++;
+    subscribed_ids_.insert(extrinsic.observed_id.value());
+    OUTCOME_TRY(submitExtrinsic(extrinsic));
+    return extrinsic.observed_id.value();
   }
 
   outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(
-      const AuthorApi::Extrinsic &extrinsic) {
-    BOOST_ASSERT_MSG(false, "Not implemented");
-    return false;
+      SubscriptionId sub_id) {
+    bool existed = subscribed_ids_.erase(sub_id) > 0;
+    return existed;
   }
 
 }  // namespace kagome::api

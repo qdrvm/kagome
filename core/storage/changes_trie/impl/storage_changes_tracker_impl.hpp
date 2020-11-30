@@ -22,7 +22,7 @@ namespace kagome::storage::changes_trie {
     StorageChangesTrackerImpl(
         std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
         std::shared_ptr<storage::trie::Codec> codec,
-        subscriptions::SubscriptionEnginePtr subscription_engine);
+        primitives::events::StorageSubscriptionEnginePtr subscription_engine);
 
     /**
      * Functor that returns the current extrinsic index, which is supposed to
@@ -60,7 +60,7 @@ namespace kagome::storage::changes_trie {
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
     GetExtrinsicIndexDelegate get_extrinsic_index_;
-    subscriptions::SubscriptionEnginePtr subscription_engine_;
+    primitives::events::StorageSubscriptionEnginePtr subscription_engine_;
   };
 
 }  // namespace kagome::storage::changes_trie

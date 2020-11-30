@@ -226,7 +226,7 @@ namespace kagome::consensus {
           && res
                  != outcome::failure(
                      transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
-        return res;
+        return res.error();
       }
     }
 

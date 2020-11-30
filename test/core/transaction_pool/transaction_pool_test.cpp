@@ -22,6 +22,7 @@ using kagome::face::ForwardIterator;
 using kagome::face::GenericIterator;
 using kagome::face::GenericList;
 using kagome::primitives::Transaction;
+using kagome::primitives::events::ExtrinsicSubscriptionEngine;
 using kagome::transaction_pool::PoolModerator;
 using kagome::transaction_pool::PoolModeratorMock;
 using kagome::transaction_pool::TransactionPoolError;
@@ -38,9 +39,12 @@ class TransactionPoolTest : public testing::Test {
   void SetUp() override {
     auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
     auto header_repo = std::make_unique<BlockHeaderRepositoryMock>();
+    auto engine = std::make_unique<ExtrinsicSubscriptionEngine>();
+
     pool_ = std::make_shared<TransactionPoolImpl>(
         std::move(moderator),
         std::move(header_repo),
+        std::move(engine),
         TransactionPoolImpl::Limits{3, 4});
   }
 

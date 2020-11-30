@@ -33,8 +33,12 @@ using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::storage::trie::TrieStorage;
 using kagome::storage::trie::TrieStorageMock;
-using kagome::subscriptions::EventsSubscriptionEnginePtr;
-using kagome::subscriptions::EventsSubscriptionEngineType;
+using kagome::primitives::events::ChainSubscriptionEnginePtr;
+using kagome::primitives::events::ChainSubscriptionEngine;
+using kagome::primitives::events::StorageSubscriptionEnginePtr;
+using kagome::primitives::events::StorageSubscriptionEngine;
+using kagome::primitives::events::ExtrinsicSubscriptionEnginePtr;
+using kagome::primitives::events::ExtrinsicSubscriptionEngine;
 
 template <typename ListenerImpl,
           typename =
@@ -102,10 +106,12 @@ struct ListenerTest : public ::testing::Test {
   using SessionPtr = std::shared_ptr<Session>;
   using SubscriptionEngineType =
       SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
-  std::shared_ptr<SubscriptionEngineType> subscription_engine =
-      std::make_shared<SubscriptionEngineType>();
-  EventsSubscriptionEnginePtr events_engine =
-      std::make_shared<EventsSubscriptionEngineType>();
+  std::shared_ptr<StorageSubscriptionEngine> storage_events_engine =
+      std::make_shared<StorageSubscriptionEngine>();
+  ChainSubscriptionEnginePtr chain_events_engine =
+      std::make_shared<ChainSubscriptionEngine>();
+  ExtrinsicSubscriptionEnginePtr ext_events_engine =
+      std::make_shared<ExtrinsicSubscriptionEngine>();
 
   std::shared_ptr<BlockTree> block_tree = std::make_shared<BlockTreeMock>();
   std::shared_ptr<TrieStorage> trie_storage =
@@ -117,8 +123,9 @@ struct ListenerTest : public ::testing::Test {
       std::vector<std::shared_ptr<Listener>>{listener},
       server,
       processors,
-      subscription_engine,
-      events_engine,
+      storage_events_engine,
+      chain_events_engine,
+      ext_events_engine,
       block_tree,
       trie_storage);
 };

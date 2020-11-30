@@ -10,6 +10,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "common/logger.hpp"
+#include "primitives/event_types.hpp"
 #include "transaction_pool/pool_moderator.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -22,6 +23,8 @@ namespace kagome::transaction_pool {
     TransactionPoolImpl(
         std::unique_ptr<PoolModerator> moderator,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+        std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+            sub_engine,
         Limits limits);
 
     TransactionPoolImpl(TransactionPoolImpl &&) = default;
@@ -38,7 +41,7 @@ namespace kagome::transaction_pool {
     outcome::result<void> submitOne(Transaction &&tx) override;
     outcome::result<void> submit(std::vector<Transaction> txs) override;
 
-    outcome::result<void> removeOne(const Transaction::Hash &tx_hash) override;
+    outcome::result<Transaction> removeOne(const Transaction::Hash &tx_hash) override;
     void remove(const std::vector<Transaction::Hash> &tx_hashes) override;
 
     std::map<Transaction::Hash, std::shared_ptr<Transaction>>
@@ -98,6 +101,9 @@ namespace kagome::transaction_pool {
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
     common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
+
+    std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+        sub_engine_;
 
     // bans stale and invalid transactions for some amount of time
     std::unique_ptr<PoolModerator> moderator_;

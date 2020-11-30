@@ -6,6 +6,8 @@
 #ifndef KAGOME_PRIMITIVES_EXTRINSIC_HPP
 #define KAGOME_PRIMITIVES_EXTRINSIC_HPP
 
+#include <boost/optional.hpp>
+
 #include "common/buffer.hpp"
 
 namespace kagome::primitives {
@@ -16,10 +18,17 @@ namespace kagome::primitives {
   using ExtrinsicIndex = uint32_t;
 
   /**
+   * ID of an extrinsic being obserevd
+   * @see autor_submitAndWatchExtrincis pubsub RPC call
+   */
+  using ObservedExtrinsicId = uint32_t;
+
+  /**
    * @brief Extrinsic class represents extrinsic
    */
   struct Extrinsic {
     common::Buffer data;  ///< extrinsic content as byte array
+    boost::optional<ObservedExtrinsicId> observed_id{};
 
     inline bool operator==(const Extrinsic &rhs) const {
       return data == rhs.data;

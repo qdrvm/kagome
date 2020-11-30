@@ -12,6 +12,7 @@ target_link_libraries(api_service
     logger
     app_state_manager
     rpc_thread_pool
+    p2p::p2p_peer_id
     )
 
 add_subdirectory(author)

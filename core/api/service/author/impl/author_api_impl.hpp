@@ -11,6 +11,8 @@
  * https://github.com/paritytech/substrate/blob/e8739300ae3f7f2e7b72f64668573275f2806ea5/core/rpc/src/author/mod.rs#L50-L49
  */
 
+#include <unordered_set>
+
 #include <libp2p/peer/peer_id.hpp>
 
 #include "api/service/author/author_api.hpp"
@@ -36,26 +38,6 @@ namespace kagome::subscription {
 
 namespace kagome::api {
 
-  /**
-    "future" - Transaction is part of the future queue.
-    "ready" - Transaction is part of the ready queue.
-    OBJECT - The transaction has been broadcast to the given peers.
-        "broadcast": ARRAY
-            STRING - PeerId.
-    OBJECT - Transaction has been included in block with given hash.
-        "inBlock": STRING - Hex-encoded hash of the block.
-    OBJECT - "The block this transaction was included in has been retracted.
-        "retracted": STRING - Hex-encoded hash of the block.
-    OBJECT - Maximum number of finality watchers has been reached, old watches
-   are being removed. "finalityTimeout": STRING - Hex-encoded hash of the block.
-    OBJECT - Transaction has been finalized by GRANDPA.
-        "finalized": STRING - Hex-encoded hash of the block.
-    OBJECT - Transaction has been replaced in the pool, by another transaction
-   that provides the same tags (e.g. same sender/nonce). "usurped": STRING -
-   Hex-encoded hash of the transaction. "dropped" - "Transaction has been
-   dropped from the pool because of the limit. "invalid" - "Transaction is no
-   longer valid in the current state.
-   */
   class AuthorApiImpl : public AuthorApi {
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -63,7 +45,6 @@ namespace kagome::api {
     using uptr = std::unique_ptr<T>;
 
    public:
-
     /**
      * @constructor
      * @param api ttq instance shared ptr
@@ -74,8 +55,7 @@ namespace kagome::api {
     AuthorApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
                   std::shared_ptr<transaction_pool::TransactionPool> pool,
                   std::shared_ptr<crypto::Hasher> hasher,
-                  std::shared_ptr<network::ExtrinsicGossiper> gossiper,
-                  std::unique_ptr<Subscriber> subscriber);
+                  std::shared_ptr<network::ExtrinsicGossiper> gossiper);
 
     ~AuthorApiImpl() override = default;
 
@@ -89,17 +69,24 @@ namespace kagome::api {
         const std::vector<primitives::ExtrinsicKey> &keys) override;
 
     outcome::result<SubscriptionId> submitAndWatchExtrinsic(
-        const Extrinsic &extrinsic) override;
+        Extrinsic extrinsic) override;
 
-    outcome::result<bool> unwatchExtrinsic(const Extrinsic &extrinsic) override;
+    outcome::result<bool> unwatchExtrinsic(
+        SubscriptionId subscription_id) override;
 
    private:
+    /// need this in addition to sub id in extrinsics themselves because
+    /// currently extrinsics can be copied and it is thus impossible to
+    /// unsubscribe from them directly
+    std::unordered_set<SubscriptionId> subscribed_ids_;
+
     sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;
     sptr<blockchain::BlockTree> block_tree_;
     sptr<network::ExtrinsicGossiper> gossiper_;
-    uptr<Subscriber> subscriber_;
+
+    std::atomic<primitives::ObservedExtrinsicId> latest_id_ = 0;
 
     common::Logger logger_;
   };

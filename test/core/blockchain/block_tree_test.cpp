@@ -38,15 +38,18 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillOnce(Return(finalized_block_header_));
 
-    auto events_engine =
-        std::make_shared<subscriptions::EventsSubscriptionEngineType>();
+    auto chain_events_engine =
+        std::make_shared<primitives::events::ChainSubscriptionEngine>();
+    auto ext_events_engine =
+        std::make_shared<primitives::events::ExtrinsicSubscriptionEngine>();
 
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         kLastFinalizedBlockId,
                                         extrinsic_observer_,
                                         hasher_,
-                                        events_engine,
+                                        chain_events_engine,
+                                        ext_events_engine,
                                         runtime_core_)
                       .value();
   }
@@ -210,6 +213,8 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, getBlockHeader(bid))
       .WillRepeatedly(Return(outcome::success(header)));
+  EXPECT_CALL(*storage_, getBlockBody(bid))
+      .WillRepeatedly(Return(outcome::success(body)));
   EXPECT_CALL(*runtime_core_, version(_))
       .WillRepeatedly(Return(primitives::Version{}));
 

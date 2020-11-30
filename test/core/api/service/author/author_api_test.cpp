@@ -7,6 +7,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <primitives/event_types.hpp>
 
 #include "common/blob.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
@@ -15,7 +16,6 @@
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
-#include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -41,6 +41,10 @@ using kagome::primitives::TransactionSource;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
 using kagome::primitives::ValidTransaction;
+using kagome::primitives::events::ExtrinsicEventSubscriber;
+using kagome::primitives::events::ExtrinsicEventType;
+using kagome::primitives::events::ExtrinsicLifecycleEvent;
+using kagome::primitives::events::ExtrinsicSubscriptionEngine;
 using kagome::subscription::Subscriber;
 using kagome::subscription::SubscriptionEngine;
 
@@ -52,6 +56,25 @@ using ::testing::ReturnRef;
 
 using testutil::createHash256;
 using testutil::DummyError;
+
+class ExtrinsicEventReceiver {
+ public:
+  virtual void receive(
+      kagome::subscription::SubscriptionSetId,
+      std::shared_ptr<kagome::api::Session>,
+      const ExtrinsicEventType &,
+      const ExtrinsicLifecycleEvent &) const = 0;
+};
+
+class ExtrinsicEventReceiverMock : public ExtrinsicEventReceiver {
+ public:
+  MOCK_CONST_METHOD4(
+      receive,
+      void(kagome::subscription::SubscriptionSetId,
+           std::shared_ptr<kagome::api::Session>,
+           const ExtrinsicEventType &,
+           const ExtrinsicLifecycleEvent &));
+};
 
 struct AuthorApiTest : public ::testing::Test {
   template <class T>
@@ -66,25 +89,30 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<ValidTransaction> valid_transaction;    ///< valid transaction instance
   Hash256 deepest_hash;                        ///< hash of deepest leaf
   sptr<BlockInfo> deepest_leaf;                ///< deepest leaf block info
-  sptr<SubscriptionEngine<AuthorApiImpl::ExtrinsicLifecycleEvent,
-                          boost::none_t,
-                          AuthorApiImpl::ExtrinsicLifecycleEventParams>>
-      sub_engine;
+  sptr<ExtrinsicSubscriptionEngine> sub_engine;
+  sptr<ExtrinsicEventReceiverMock> event_receiver_;
 
   void SetUp() override {
-    sub_engine = std::make_shared<
-        SubscriptionEngine<AuthorApiImpl::ExtrinsicLifecycleEvent,
-                           boost::none_t,
-                           AuthorApiImpl::ExtrinsicLifecycleEventParams>>();
+    sub_engine = std::make_shared<ExtrinsicSubscriptionEngine>();
     auto subscriber =
-        std::make_unique<AuthorApiImpl::Subscriber>(sub_engine, boost::none);
+        std::make_unique<ExtrinsicEventSubscriber>(sub_engine, nullptr);
+    event_receiver_ = std::make_shared<ExtrinsicEventReceiverMock>();
+    subscriber->subscribe(subscriber->generateSubscriptionSetId(), ExtrinsicEventType::READY);
+    subscriber->setCallback(
+        [this](
+            kagome::subscription::SubscriptionSetId set_id,
+            std::shared_ptr<kagome::api::Session> session,
+            const kagome::primitives::events::ExtrinsicEventType &type,
+            const kagome::primitives::events::ExtrinsicLifecycleEvent &event) {
+          event_receiver_->receive(set_id, session, type, event);
+        });
 
     hasher = std::make_shared<HasherMock>();
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     gossiper = std::make_shared<ExtrinsicGossiperMock>();
     api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, gossiper, std::move(subscriber));
+        ttq, transaction_pool, hasher, gossiper);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});
@@ -139,8 +167,23 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
 }
 
 TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
-  EXPECT_OUTCOME_TRUE(id, api->submitAndWatchExtrinsic(*extrinsic))
-  sub_engine->notify(AuthorApiImpl::ExtrinsicLifecycleEvent::FUTURE, boost::none);
-  sub_engine->notify(AuthorApiImpl::ExtrinsicLifecycleEvent::BROADCAST, boost::none);
+  TransactionValidity tv = *valid_transaction;
+  gsl::span<const uint8_t> span = gsl::make_span(extrinsic->data);
+  EXPECT_CALL(*hasher, blake2b_256(span)).WillOnce(Return(Hash256{}));
+  EXPECT_CALL(*ttq,
+              validate_transaction(TransactionSource::External, *extrinsic))
+      .WillOnce(Return(tv));
+  Transaction tr{*extrinsic,
+                 extrinsic->data.size(),
+                 Hash256{},
+                 valid_transaction->priority,
+                 valid_transaction->longevity,
+                 valid_transaction->requires,
+                 valid_transaction->provides,
+                 true};
+  EXPECT_CALL(*transaction_pool, submitOne(tr))
+      .WillOnce(Return(outcome::success()));
 
+  EXPECT_CALL(*gossiper, propagateTransactions(_)).Times(1);
+  EXPECT_OUTCOME_TRUE(id, api->submitAndWatchExtrinsic(*extrinsic))
 }

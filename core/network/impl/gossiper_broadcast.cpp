@@ -17,14 +17,19 @@ namespace kagome::network {
 
   GossiperBroadcast::GossiperBroadcast(
       StreamEngine::StreamEnginePtr stream_engine,
+      std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+          ext_events_engine,
       std::shared_ptr<kagome::application::ChainSpec> config)
       : logger_{common::createLogger("GossiperBroadcast")},
         stream_engine_{std::move(stream_engine)},
+        ext_events_engine_{std::move(ext_events_engine_)},
         config_{std::move(config)},
         transactions_protocol_{fmt::format(
             kPropagateTransactionsProtocol.data(), config_->protocolId())},
         block_announces_protocol_{fmt::format(kBlockAnnouncesProtocol.data(),
-                                              config_->protocolId())} {}
+                                              config_->protocolId())} {
+    BOOST_ASSERT(ext_events_engine_);
+  }
 
   void GossiperBroadcast::reserveStream(
       const libp2p::peer::PeerInfo &peer_info,
@@ -55,6 +60,19 @@ namespace kagome::network {
       const network::PropagatedTransactions &txs) {
     logger_->debug("Propagate transactions : {} extrinsics",
                    txs.extrinsics.size());
+    for (const auto &ext : txs.extrinsics) {
+      if (ext.observed_id) {
+        std::vector<libp2p::peer::PeerId> peers;
+        stream_engine_->forEachPeer(
+            [&peers](const libp2p::peer::PeerInfo &peer_info,
+                     const auto &peer_type,
+                     const auto &peer_map) { peers.push_back(peer_info.id); });
+        ext_events_engine_->notify(
+            primitives::events::ExtrinsicEventType::BROADCAST,
+            primitives::events::ExtrinsicLifecycleEvent::Broadcast(
+                ext.observed_id.value(), std::move(peers)));
+      }
+    }
     broadcast(transactions_protocol_, txs, NoData{});
   }
 
