@@ -71,7 +71,7 @@ namespace kagome::primitives {
       for (const auto i : src) {
         *as<uint8_t>(current_position_++) ^= static_cast<uint8_t>(i);
         if (kStrobeR == current_position_) {
-          // TODO: run_f();
+          runF();
         }
       }
     }
@@ -91,7 +91,7 @@ namespace kagome::primitives {
 
       if constexpr (0 != (kFlags & (kFlag_C | kFlag_K))) {
         if (current_position_ != 0) {
-          // TODO: run_f();
+          runF();
         }
       }
     }
@@ -101,15 +101,16 @@ namespace kagome::primitives {
       beginOp<kMore, kFlag_M | kFlag_A>();
       absorb(label);
     }
-    /*
-        fn run_f(&mut self) {
-          self.state[self.pos as usize] ^= self.pos_begin;
-          self.state[(self.pos + 1) as usize] ^= 0x04;
-          self.state[(STROBE_R + 1) as usize] ^= 0x80;
-          keccak::f1600(transmute_state(&mut self.state));
-          self.pos = 0;
-          self.pos_begin = 0;
-        }*/
+
+    void runF() {
+      *as<uint8_t>(current_position_) ^= begin_position_;
+      *as<uint8_t>(current_position_ + 1) ^= 0x04;
+      *as<uint8_t>(kStrobeR + 1) ^= 0x80;
+      keccakf(as<uint64_t>());
+
+      current_position_ = 0;
+      begin_position_ = 0;
+    }
 
    public:
     Strobe()
