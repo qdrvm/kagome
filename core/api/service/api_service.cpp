@@ -381,7 +381,7 @@ namespace kagome::api {
                             uploadFromCache(result.data()));
                       });
         }
-        return outcome::success();
+        return static_cast<uint32_t>(id);;
       });
     });
   }
@@ -391,6 +391,32 @@ namespace kagome::api {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
+        session->unsubscribe(subscription_id);
+        return outcome::success();
+      });
+    });
+  }
+
+  outcome::result<ApiService::PubsubSubscriptionId>
+  ApiService::subscribeForExtrinsicLifecycle(
+      primitives::ObservedExtrinsicId id) {
+    return for_this_session([&](kagome::api::Session::SessionId tid) {
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session_sub = session_context.ext_sub;
+        const auto id = session_sub->generateSubscriptionSetId();
+        session_sub->subscribe(id,
+                               primitives::events::ExtrinsicEventType::FUTURE);
+
+        return static_cast<uint32_t>(id);
+      });
+    });
+  }
+
+  outcome::result<void> ApiService::unsubscribeFromExtrinsicLifecycle(
+      PubsubSubscriptionId subscription_id) {
+    return for_this_session([&](kagome::api::Session::SessionId tid) {
+      return for_session(tid, [&](SessionSubscriptions &session_context) {
+        auto &session = session_context.ext_sub;
         session->unsubscribe(subscription_id);
         return outcome::success();
       });

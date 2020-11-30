@@ -118,6 +118,7 @@ namespace kagome::api {
     data.emplace_back(makeValue(val.first));
     data.emplace_back(makeValue(val.second));
 
+    //NOLINTNEXTLINE(redundant-move)
     return std::move(data);
   }
 
@@ -148,6 +149,7 @@ namespace kagome::api {
                    });
 
     data["apis"] = std::move(apis);
+    //NOLINTNEXTLINE(redundant-move)
     return std::move(data);
   }
 
@@ -175,6 +177,7 @@ namespace kagome::api {
     digest["logs"] = std::move(logs);
 
     data["digest"] = std::move(digest);
+    //NOLINTNEXTLINE(redundant-move)
     return std::move(data);
   }
 
@@ -188,6 +191,7 @@ namespace kagome::api {
     jStruct data;
     data["block"] = std::move(block);
     data["justification"] = makeValue(val.justification->data);
+    //NOLINTNEXTLINE(redundant-move)
     return std::move(data);
   }
 

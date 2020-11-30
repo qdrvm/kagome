@@ -134,6 +134,11 @@ namespace kagome::api {
     outcome::result<void> unsubscribeRuntimeVersion(
         PubsubSubscriptionId subscription_id);
 
+    outcome::result<PubsubSubscriptionId> subscribeForExtrinsicLifecycle(
+        primitives::ObservedExtrinsicId id);
+    outcome::result<void> unsubscribeFromExtrinsicLifecycle(
+        PubsubSubscriptionId subscription_id);
+
    private:
     jsonrpc::Value createStateStorageEvent(const common::Buffer &key,
                                            const common::Buffer &value,
@@ -196,20 +201,20 @@ namespace kagome::api {
       obj->clear();
       return obj;
     }
-// TODO(Harrm): find a way to fix it
-//    template <typename... Args>
-//    using EventHandler = void (ApiService::*)(Args&&... args);
-//
-//    template <typename... Args>
-//    std::function<void(Args&&...)> unwrapWeakPtr(
-//        std::weak_ptr<ApiService> wp,
-//        EventHandler<Args...> handler) const {
-//      return [wp, handler](Args &&... params) mutable {
-//        if (auto self = wp.lock()) {
-//          std::invoke(handler, self, std::forward<Args>(params)...);
-//        }
-//      };
-//    }
+    // TODO(Harrm): find a way to fix it
+    //    template <typename... Args>
+    //    using EventHandler = void (ApiService::*)(Args&&... args);
+    //
+    //    template <typename... Args>
+    //    std::function<void(Args&&...)> unwrapWeakPtr(
+    //        std::weak_ptr<ApiService> wp,
+    //        EventHandler<Args...> handler) const {
+    //      return [wp, handler](Args &&... params) mutable {
+    //        if (auto self = wp.lock()) {
+    //          std::invoke(handler, self, std::forward<Args>(params)...);
+    //        }
+    //      };
+    //    }
 
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<sptr<Listener>> listeners_;
