@@ -31,6 +31,7 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
   inline jsonrpc::Value makeValue(const primitives::BlockData &);
   inline jsonrpc::Value makeValue(const primitives::BlockHeader &);
+  inline jsonrpc::Value makeValue(const primitives::Justification &);
 
   inline jsonrpc::Value makeValue(const std::nullptr_t &) {
     return jsonrpc::Value();
@@ -89,8 +90,7 @@ namespace kagome::api {
   }
 
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &v) {
-    static const std::string prefix("0x");
-    return prefix + v.data.toHex();
+    return common::hex_lower_0x(scale::encode(v.data).value());
   }
 
   template <class T>
@@ -118,7 +118,6 @@ namespace kagome::api {
     data.emplace_back(makeValue(val.first));
     data.emplace_back(makeValue(val.second));
 
-    //NOLINTNEXTLINE(redundant-move)
     return std::move(data);
   }
 
@@ -149,7 +148,6 @@ namespace kagome::api {
                    });
 
     data["apis"] = std::move(apis);
-    //NOLINTNEXTLINE(redundant-move)
     return std::move(data);
   }
 
@@ -169,7 +167,7 @@ namespace kagome::api {
 
     jArray logs;
     logs.reserve(val.digest.size());
-    for (auto &d : val.digest) {
+    for (const auto &d : val.digest) {
       logs.emplace_back(makeValue(d));
     }
 
@@ -177,8 +175,11 @@ namespace kagome::api {
     digest["logs"] = std::move(logs);
 
     data["digest"] = std::move(digest);
-    //NOLINTNEXTLINE(redundant-move)
     return std::move(data);
+  }
+
+  inline jsonrpc::Value makeValue(const primitives::Justification &val) {
+    return makeValue(val.data);
   }
 
   inline jsonrpc::Value makeValue(const primitives::BlockData &val) {
@@ -190,8 +191,7 @@ namespace kagome::api {
 
     jStruct data;
     data["block"] = std::move(block);
-    data["justification"] = makeValue(val.justification->data);
-    //NOLINTNEXTLINE(redundant-move)
+    data["justification"] = makeValue(val.justification);
     return std::move(data);
   }
 

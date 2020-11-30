@@ -39,6 +39,7 @@ namespace kagome::application {
         verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
         is_only_finalizing_(def_is_only_finalizing),
         is_already_synchronized_(def_is_already_synchronized),
+        max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         logger_(std::move(logger)),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
@@ -94,13 +95,23 @@ namespace kagome::application {
   bool AppConfigurationImpl::load_u16(const rapidjson::Value &val,
                                       char const *name,
                                       uint16_t &target) {
-    auto m = val.FindMember(name);
-    if (val.MemberEnd() != m && m->value.IsInt()) {
-      const auto v = m->value.GetInt();
-      const auto in_range = (v & ~std::numeric_limits<uint16_t>::max()) == 0;
+    uint32_t i;
+    if (load_u32(val, name, i)
+        && (i & ~std::numeric_limits<uint16_t>::max()) == 0) {
+      target = static_cast<uint16_t>(i);
+      return true;
+    }
+    return false;
+  }
 
-      if (in_range) {
-        target = static_cast<uint16_t>(v);
+  bool AppConfigurationImpl::load_u32(const rapidjson::Value &val,
+                                      char const *name,
+                                      uint32_t &target) {
+    if (auto m = val.FindMember(name);
+        val.MemberEnd() != m && m->value.IsInt()) {
+      const auto v = m->value.GetInt();
+      if ((v & (1u << 31u)) == 0) {
+        target = static_cast<uint32_t>(v);
         return true;
       }
     }
@@ -136,6 +147,7 @@ namespace kagome::application {
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
     load_bool(val, "single_finalizing_node", is_only_finalizing_);
     load_bool(val, "already_synchronized", is_already_synchronized_);
+    load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
   }
 
   bool AppConfigurationImpl::validate_config(
@@ -165,6 +177,11 @@ namespace kagome::application {
       return false;
     }
 
+    // pagination page size bounded [kAbsolutMinBlocksInResponse,
+    // kAbsolutMaxBlocksInResponse]
+    max_blocks_in_response_ = std::clamp(max_blocks_in_response_,
+                                         kAbsolutMinBlocksInResponse,
+                                         kAbsolutMaxBlocksInResponse);
     return true;
   }
 
@@ -253,6 +270,7 @@ namespace kagome::application {
     additional_desc.add_options()
         ("single_finalizing_node,f", "if this is the only finalizing node")
         ("already_synchronized,s", "if need to consider synchronized")
+        ("max_blocks_in_response", "max block per response while syncing")
         ;
     // clang-format on
 
@@ -305,6 +323,10 @@ namespace kagome::application {
 
     find_argument<uint16_t>(
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
+
+    find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
+      max_blocks_in_response_ = val;
+    });
 
     find_argument<int32_t>(vm, "verbosity", [&](int32_t val) {
       if (val >= SPDLOG_LEVEL_TRACE && val <= SPDLOG_LEVEL_OFF)

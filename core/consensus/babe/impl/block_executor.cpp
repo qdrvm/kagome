@@ -6,12 +6,22 @@
 #include "consensus/babe/impl/block_executor.hpp"
 
 #include <chrono>
+#include <libp2p/peer/peer_id.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutor::Error, e) {
+  using E = kagome::consensus::BlockExecutor::Error;
+  switch (e) {
+    case E::INVALID_BLOCK:
+      return "Invalid block";
+  }
+  return "Unknown error";
+}
 
 namespace kagome::consensus {
 
@@ -26,7 +36,8 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer)
-      : block_tree_{std::move(block_tree)},
+      : sync_state_(kReadyState),
+        block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         genesis_configuration_{std::move(configuration)},
         babe_synchronizer_{std::move(babe_synchronizer)},
@@ -49,6 +60,7 @@ namespace kagome::consensus {
   }
 
   void BlockExecutor::processNextBlock(
+      const libp2p::peer::PeerId &peer_id,
       const primitives::BlockHeader &header,
       const std::function<void(const primitives::BlockHeader &)>
           &new_block_handler) {
@@ -64,78 +76,105 @@ namespace kagome::consensus {
       auto [_, babe_header] = getBabeDigests(header).value();
 
       if (not block_tree_->getBlockHeader(header.parent_hash)) {
-        const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
-        // we should request blocks between last finalized one and received
-        // block
-        requestBlocks(
-            last_hash, block_hash, babe_header.authority_index, [] {});
+        if (sync_state_ == kReadyState) {
+          /// We don't have past block, it means we have a gap and must sync
+          sync_state_ = kSyncState;
+          const auto &[last_number, last_hash] =
+              block_tree_->getLastFinalized();
+          // we should request blocks between last finalized one and received
+          // block
+          requestBlocks(
+              last_hash, block_hash, peer_id, [wself{weak_from_this()}] {
+                if (auto self = wself.lock()) self->sync_state_ = kReadyState;
+              });
+        }
       } else {
-        requestBlocks(
-            header.parent_hash, block_hash, babe_header.authority_index, [] {});
+        requestBlocks(header.parent_hash, block_hash, peer_id, [] {});
       }
     }
   }
 
-  void BlockExecutor::requestBlocks(const primitives::BlockHeader &new_header,
+  void BlockExecutor::requestBlocks(const libp2p::peer::PeerId &peer_id,
+                                    const primitives::BlockHeader &new_header,
                                     std::function<void()> &&next) {
     const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
     BOOST_ASSERT(new_header.number >= last_number);
     auto [_, babe_header] = getBabeDigests(new_header).value();
-    return requestBlocks(last_hash,
-                         new_block_hash,
-                         babe_header.authority_index,
-                         std::move(next));
+    return requestBlocks(last_hash, new_block_hash, peer_id, std::move(next));
   }
 
-  void BlockExecutor::requestBlocks(const primitives::BlockId &from,
+  void BlockExecutor::requestBlocks(const primitives::BlockHash &from,
                                     const primitives::BlockHash &to,
-                                    primitives::AuthorityIndex authority_index,
+                                    const libp2p::peer::PeerId &peer_id,
                                     std::function<void()> &&next) {
     babe_synchronizer_->request(
         from,
         to,
-        authority_index,
-        [self_wp{weak_from_this()},
-         next(std::move(next))](const std::vector<primitives::Block> &blocks) {
+        peer_id,
+        [self_wp{weak_from_this()}, next(std::move(next)), to, from, peer_id](
+            const std::vector<primitives::BlockData> &blocks) mutable {
           auto self = self_wp.lock();
           if (not self) return;
 
+          bool sync_complete = false;
+          primitives::BlockHash last_received_hash;
+          primitives::BlockHash first_received_hash;
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
+            sync_complete = true;
+          } else if (blocks.front().header && blocks.back().header) {
+            first_received_hash = self->hasher_->blake2b_256(
+                scale::encode(*blocks.front().header).value());
+            last_received_hash = self->hasher_->blake2b_256(
+                scale::encode(*blocks.back().header).value());
+            self->logger_->info("Received blocks from: {}, to {}, count {}",
+                                first_received_hash.toHex(),
+                                last_received_hash.toHex(),
+                                blocks.size());
+            sync_complete = to == last_received_hash;
           } else {
-            auto front_block_hex =
-                self->hasher_
-                    ->blake2b_256(scale::encode(blocks.front().header).value())
-                    .toHex();
-            auto back_block_hex =
-                self->hasher_
-                    ->blake2b_256(scale::encode(blocks.back().header).value())
-                    .toHex();
-            self->logger_->info("Received blocks from: {}, to {}",
-                                front_block_hex,
-                                back_block_hex);
+            self->logger_->warn("Blocks with empty headers detected.");
+            sync_complete = true;
           }
           for (const auto &block : blocks) {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
                   "Could not apply block during synchronizing slots.Error: {}",
                   apply_res.error().message());
+              sync_complete = true;
               break;
             }
           }
-          next();
+          if (sync_complete)
+            next();
+          else {
+            self->logger_->info("Request next page of blocks: from {}, to {}",
+                                last_received_hash.toHex(),
+                                to.toHex());
+            self->requestBlocks(
+                last_received_hash, to, peer_id, std::move(next));
+          }
         });
   }
 
   outcome::result<void> BlockExecutor::applyBlock(
-      const primitives::Block &block) {
+      const primitives::BlockData &b) {
+    if (!b.header) {
+      logger_->warn("Skipping blockwithout header.");
+      return Error::INVALID_BLOCK;
+    }
+
+    /// TODO(iceseer): remove copy.
+    primitives::Block block;
+    block.header = *b.header;
+    if (b.body) block.body = *b.body;
     // get current time to measure performance if block execution
     auto t_start = std::chrono::high_resolution_clock::now();
 
@@ -205,6 +244,8 @@ namespace kagome::consensus {
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
 
+    if (b.justification) block_tree_->finalize(block_hash, *b.justification);
+
     // observe possible changes of authorities
     for (auto &digest_item : block_without_seal_digest.header.digest) {
       OUTCOME_TRY(visit_in_place(
@@ -225,7 +266,7 @@ namespace kagome::consensus {
       if (res.has_error()
           && res
                  != outcome::failure(
-                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+                        transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
         return res.error();
       }
     }

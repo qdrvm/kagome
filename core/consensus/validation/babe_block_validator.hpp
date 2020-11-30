@@ -52,15 +52,8 @@ namespace kagome::consensus {
       NO_AUTHORITIES = 1,
       INVALID_SIGNATURE,
       INVALID_VRF,
-      TWO_BLOCKS_IN_SLOT,
-      INVALID_TRANSACTIONS
+      TWO_BLOCKS_IN_SLOT
     };
-
-    outcome::result<void> validateBlock(
-        const primitives::Block &block,
-        const primitives::AuthorityId &authority_id,
-        const Threshold &threshold,
-        const Randomness &randomness) const override;
 
     outcome::result<void> validateHeader(
         const primitives::BlockHeader &header,
@@ -96,13 +89,6 @@ namespace kagome::consensus {
                    const primitives::BabeSessionKey &public_key,
                    const Threshold &threshold,
                    const Randomness &randomness) const;
-
-    /**
-     * Check, if all transactions in the block are valid
-     * @return true, if all transactions have passed verification, false
-     * otherwise
-     */
-    bool verifyTransactions(const primitives::BlockBody &block_body) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     mutable std::unordered_map<BabeSlotNumber,

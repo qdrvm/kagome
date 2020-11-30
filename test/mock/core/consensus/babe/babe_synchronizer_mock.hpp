@@ -17,7 +17,7 @@ namespace kagome::consensus {
     MOCK_METHOD4(request,
                  void(const primitives::BlockId &,
                       const primitives::BlockHash &,
-                      primitives::AuthorityIndex,
+                      const libp2p::peer::PeerId &peer_id,
                       const BlocksHandler &));
   };
 

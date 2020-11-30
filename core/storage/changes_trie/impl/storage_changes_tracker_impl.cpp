@@ -56,7 +56,7 @@ namespace kagome::storage::changes_trie {
 
   void StorageChangesTrackerImpl::onClearPrefix(const common::Buffer &prefix) {
     for (auto it = actual_val_.lower_bound(prefix);
-         it != actual_val_.end()
+         it != actual_val_.end() && prefix.size() <= it->first.size()
          && it->first.subbuffer(0, prefix.size()) == prefix;
          ++it)
       it->second.clear();

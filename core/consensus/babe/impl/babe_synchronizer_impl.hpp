@@ -8,6 +8,7 @@
 
 #include "consensus/babe/babe_synchronizer.hpp"
 
+#include "application/app_configuration.hpp"
 #include "common/logger.hpp"
 #include "network/types/sync_clients_set.hpp"
 
@@ -23,12 +24,13 @@ namespace kagome::consensus {
    public:
     ~BabeSynchronizerImpl() override = default;
 
-    explicit BabeSynchronizerImpl(
-        std::shared_ptr<network::SyncClientsSet> sync_clients);
+    BabeSynchronizerImpl(
+        std::shared_ptr<network::SyncClientsSet> sync_clients,
+        const application::AppConfiguration &app_configuration);
 
     void request(const primitives::BlockId &from,
                  const primitives::BlockHash &to,
-                 primitives::AuthorityIndex authority_index,
+                 const libp2p::peer::PeerId &peer_id,
                  const BlocksHandler &block_list_handler) override;
 
    private:
@@ -47,11 +49,12 @@ namespace kagome::consensus {
      * @param requested_blocks_handler handler of received blocks
      */
     void pollClients(network::BlocksRequest request,
-                     primitives::AuthorityIndex authority_index,
+                     const libp2p::peer::PeerId &peer_id,
                      const BlocksHandler &requested_blocks_handler) const;
 
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
     common::Logger logger_;
+    const application::AppConfiguration &app_configuration_;
   };
 }  // namespace kagome::consensus
 

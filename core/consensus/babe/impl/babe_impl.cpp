@@ -6,6 +6,7 @@
 #include "consensus/babe/impl/babe_impl.hpp"
 
 #include <boost/assert.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
@@ -18,6 +19,7 @@
 #include "primitives/inherent_data.hpp"
 #include "primitives/event_types.hpp"
 #include "scale/scale.hpp"
+#include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 namespace kagome::consensus {
   BabeImpl::BabeImpl(
@@ -186,7 +188,8 @@ namespace kagome::consensus {
     return current_state_;
   }
 
-  void BabeImpl::onBlockAnnounce(const network::BlockAnnounce &announce) {
+  void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
+                                 const network::BlockAnnounce &announce) {
     switch (current_state_) {
       case State::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
@@ -198,7 +201,7 @@ namespace kagome::consensus {
         log_->info("Catching up to block number: {}", announce.header.number);
         current_state_ = State::CATCHING_UP;
         block_executor_->requestBlocks(
-            announce.header, [self_weak{weak_from_this()}] {
+            peer_id, announce.header, [self_weak{weak_from_this()}] {
               if (auto self = self_weak.lock()) {
                 self->log_->info("Catching up is done, getting slot time");
                 // all blocks were successfully applied, now we need to get
@@ -211,12 +214,14 @@ namespace kagome::consensus {
         // if block is new add it to the storage and sync missing blocks. Then
         // calculate slot time and execute babe
         block_executor_->processNextBlock(
-            announce.header,
-            [this](const auto &header) { synchronizeSlots(header); });
+            peer_id, announce.header, [this](const auto &header) {
+              synchronizeSlots(header);
+            });
         break;
       case State::CATCHING_UP:
       case State::SYNCHRONIZED:
-        block_executor_->processNextBlock(announce.header, [](auto &) {});
+        block_executor_->processNextBlock(
+            peer_id, announce.header, [](auto &) {});
         break;
     }
   }
@@ -367,7 +372,7 @@ namespace kagome::consensus {
       return log_->error("cannot propose a block: {}",
                          babe_pre_digest_res.error().message());
     }
-    auto babe_pre_digest = babe_pre_digest_res.value();
+    const auto &babe_pre_digest = babe_pre_digest_res.value();
 
     // create new block
     auto pre_seal_block_res =
@@ -378,6 +383,19 @@ namespace kagome::consensus {
     }
 
     auto block = pre_seal_block_res.value();
+
+    // Ensure block's extrinsics root matches extrinsics in block's body
+    BOOST_ASSERT_MSG(
+        [&block] {
+          using boost::adaptors::transformed;
+          const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
+              block.body | transformed([](const auto &ext) {
+                return common::Buffer{scale::encode(ext).value()};
+              }));
+          return ext_root_res.has_value() and (ext_root_res.value()
+                        == common::Buffer(block.header.extrinsics_root));
+        }(),
+        "Extrinsics root does not match extrinsics in the block");
 
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
         next_epoch_digest_res) {
@@ -409,15 +427,15 @@ namespace kagome::consensus {
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
-      visit_in_place(
-          digest_item,
-          [&](const primitives::Consensus &consensus_message) {
-            [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
-                consensus_message.consensus_engine_id,
-                best_block_info,
-                consensus_message);
-          },
-          [](const auto &) {});
+      visit_in_place(digest_item,
+                     [&](const primitives::Consensus &consensus_message) {
+                       [[maybe_unused]] auto res =
+                           authority_update_observer_->onConsensus(
+                               consensus_message.consensus_engine_id,
+                               best_block_info,
+                               consensus_message);
+                     },
+                     [](const auto &) {});
     }
 
     // add block to the block tree

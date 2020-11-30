@@ -6,8 +6,11 @@
 #ifndef KAGOME_CORE_CONSENSUS_BABE_BABE_SYNCHRONIZER_HPP
 #define KAGOME_CORE_CONSENSUS_BABE_BABE_SYNCHRONIZER_HPP
 
+#include <libp2p/peer/peer_id.hpp>
+
 #include "primitives/authority.hpp"
 #include "primitives/block.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/block_id.hpp"
 
 namespace kagome::consensus {
@@ -19,7 +22,7 @@ namespace kagome::consensus {
   class BabeSynchronizer {
    public:
     using BlocksHandler =
-        std::function<void(const std::vector<primitives::Block> &)>;
+        std::function<void(const std::vector<primitives::BlockData> &)>;
 
     virtual ~BabeSynchronizer() = default;
 
@@ -31,7 +34,7 @@ namespace kagome::consensus {
      */
     virtual void request(const primitives::BlockId &from,
                          const primitives::BlockHash &to,
-                         primitives::AuthorityIndex authority_index,
+                         const libp2p::peer::PeerId &peer_id,
                          const BlocksHandler &block_list_handler) = 0;
   };
 
