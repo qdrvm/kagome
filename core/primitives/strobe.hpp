@@ -76,6 +76,27 @@ namespace kagome::primitives {
       }
     }
 
+    template <typename T, size_t N>
+    void overwrite(const T (&src)[N]) {
+      for (const auto i : src) {
+        *as<uint8_t>(current_position_++) = static_cast<uint8_t>(i);
+        if (kStrobeR == current_position_) {
+          runF();
+        }
+      }
+    }
+
+    template <typename T, size_t N>
+    void squeeze(T (&src)[N]) {
+      for (auto &i : src) {
+        i = static_cast<T>(*as<uint8_t>(current_position_));
+        *as<uint8_t>(current_position_++) = 0;
+        if (kStrobeR == current_position_) {
+          runF();
+        }
+      }
+    }
+
     template <bool kMore, Flags kFlags>
     void beginOp() {
       static_assert((kFlags & kFlag_T) == 0, "T flag doesn't support");
@@ -106,26 +127,7 @@ namespace kagome::primitives {
       begin_position_ = 0;
     }
 
-    fn overwrite(&mut self, data: &[u8]) {
-      for byte in data {
-          self.state[self.pos as usize] = *byte;
-          self.pos += 1;
-          if self.pos == STROBE_R {
-            self.run_f();
-          }
-      }
-    }
 
-    fn squeeze(&mut self, data: &mut [u8]) {
-      for byte in data {
-          *byte = self.state[self.pos as usize];
-          self.state[self.pos as usize] = 0;
-          self.pos += 1;
-          if self.pos == STROBE_R {
-            self.run_f();
-          }
-      }
-    }
 
 
    public:
