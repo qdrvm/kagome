@@ -13,7 +13,6 @@
 
 #include "crypto/keccak/keccak.h"
 #include "primitives/math.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
 
 namespace kagome::primitives {
 
