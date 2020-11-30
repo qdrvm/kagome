@@ -127,9 +127,6 @@ namespace kagome::primitives {
       begin_position_ = 0;
     }
 
-
-
-
    public:
     Strobe()
         : buffer_{reinterpret_cast<uint8_t *>(
@@ -175,9 +172,9 @@ namespace kagome::primitives {
       metaAd<false>(label);
     }
 
-    template<bool kMore, typename T, size_t N>
+    template <bool kMore, typename T, size_t N>
     void ad(const T (&src)[N]) {
-      beginOp<kMore, FLAG_A>();
+      beginOp<kMore, kFlag_A>();
       absorb(src);
     }
 
@@ -185,6 +182,18 @@ namespace kagome::primitives {
     void metaAd(const T (&label)[N]) {
       beginOp<kMore, kFlag_M | kFlag_A>();
       absorb(label);
+    }
+
+    template <bool kMore, typename T, size_t N>
+    void prf(T (&data)[N]) {
+      beginOp<kMore, kFlag_I | kFlag_A | kFlag_C>();
+      squeeze(data);
+    }
+
+    template <bool kMore, typename T, size_t N>
+    void key(const T (&data)[N]) {
+      beginOp<kMore, kFlag_A | kFlag_C>();
+      overwrite(data);
     }
   };
 
