@@ -24,8 +24,9 @@ namespace kagome::primitives {
 
     template <typename T, size_t N>
     void initialize(const T (&label)[N]) {
-      strobe_.initialize("Merlin v1.0");
-      append_message("dom-sep", label);
+      strobe_.initialize(
+          (uint8_t[11]){'M', 'e', 'r', 'l', 'i', 'n', ' ', 'v', '1', '.', '0'});
+      append_message((uint8_t[]){'d','o','m','-','s','e','p'}, label);
     }
 
     template <typename T, size_t N, typename K, size_t M>
