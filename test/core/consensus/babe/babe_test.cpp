@@ -145,7 +145,7 @@ class BabeTest : public testing::Test {
                                        slots_strategy_);
 
     epoch_.randomness = expected_config->randomness;
-    epoch_.epoch_duration = expected_config->epoch_length;
+    epoch_.epoch_length = expected_config->epoch_length;
     epoch_.authorities = expected_config->genesis_authorities;
     epoch_.start_slot = 0;
     epoch_.epoch_index = 0;

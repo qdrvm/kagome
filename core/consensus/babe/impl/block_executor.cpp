@@ -144,7 +144,7 @@ namespace kagome::consensus {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
@@ -282,7 +282,7 @@ namespace kagome::consensus {
       if (res.has_error()
           && res
                  != outcome::failure(
-                        transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
         return res;
       }
     }

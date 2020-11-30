@@ -85,7 +85,7 @@ namespace kagome::consensus {
                                         BabeDuration multiple) {
     if (multiple.count() == 0) return from;
 
-    auto remainder = from.time_since_epoch() % multiple;
+    const auto remainder = from.time_since_epoch() % multiple;
 
     return from + multiple - remainder;
   }
@@ -107,7 +107,7 @@ namespace kagome::consensus {
           last_epoch_descriptor.start_slot = 0;
           break;
         case SlotsStrategy::FromUnixEpoch:
-          auto now = clock_->now();
+          const auto now = clock_->now();
           auto time_since_epoch = now.time_since_epoch();
 
           auto ticks_since_epoch = time_since_epoch.count();
@@ -145,7 +145,7 @@ namespace kagome::consensus {
       epoch.epoch_index = last_epoch_descriptor.epoch_number;
       epoch.authorities = epoch_digest.authorities;
       epoch.randomness = epoch_digest.randomness;
-      epoch.epoch_duration = last_epoch_descriptor.epoch_duration;
+      epoch.epoch_length = last_epoch_descriptor.epoch_duration;
       epoch.start_slot = last_epoch_descriptor.start_slot;
 
       auto starting_slot_finish_time =
@@ -207,7 +207,7 @@ namespace kagome::consensus {
     [[maybe_unused]] auto res =
         epoch_storage_->setLastEpoch({current_epoch_.epoch_index,
                                       current_epoch_.start_slot,
-                                      current_epoch_.epoch_duration,
+                                      current_epoch_.epoch_length,
                                       starting_slot_finish_time});
 
     runSlot();
@@ -537,7 +537,7 @@ namespace kagome::consensus {
     [[maybe_unused]] auto res =
         epoch_storage_->setLastEpoch({current_epoch_.epoch_index,
                                       current_epoch_.start_slot,
-                                      current_epoch_.epoch_duration,
+                                      current_epoch_.epoch_length,
                                       next_slot_finish_time_});
   }
 
@@ -547,9 +547,10 @@ namespace kagome::consensus {
         slots_calculation_strategy_ == SlotsStrategy::FromZero,
         "This method can be executed only when slots are counting from zero");
 
+    BOOST_ASSERT(first_production_slot >= observed_slot);
     // get the difference between observed slot and the one that we are trying
     // to launch
-    auto diff = first_production_slot - observed_slot;
+    const auto diff = first_production_slot - observed_slot;
 
     first_slot_times_.emplace_back(
         clock_->now() + diff * genesis_configuration_->slot_duration);
@@ -575,30 +576,28 @@ namespace kagome::consensus {
         slots_calculation_strategy_ == SlotsStrategy::FromZero,
         "This method can be executed only when slots are counting from zero");
 
-    Epoch epoch;
-    epoch.epoch_index =
+    const auto ei =
         first_production_slot_number / genesis_configuration_->epoch_length;
-    epoch.start_slot = first_production_slot_number;
-    epoch.epoch_duration = genesis_configuration_->epoch_length;
-
-    auto new_epoch_digest_res =
-        epoch_storage_->getEpochDescriptor(epoch.epoch_index);
-    if (not new_epoch_digest_res) {
+    auto new_epoch_digest_res = epoch_storage_->getEpochDescriptor(ei);
+    if (!new_epoch_digest_res) {
       log_->error(
           "Could not fetch epoch descriptor for epoch {}. Reason: {}. Initial "
           "randomness and authorities will be used",
-          epoch.epoch_index,
+          ei,
           new_epoch_digest_res.error().message());
 
-      // should not do that, will remove when fix next epoch descriptor digest
+      // TODO(kamilsa): (https://github.com/soramitsu/kagome/issues/602), should
+      // not do that, will remove when fix next epoch descriptor digest
       new_epoch_digest_res = NextEpochDescriptor{
           .authorities = genesis_configuration_->genesis_authorities,
           .randomness = genesis_configuration_->randomness};
     }
 
-    epoch.randomness = new_epoch_digest_res.value().randomness;
-    epoch.authorities = new_epoch_digest_res.value().authorities;
-    return epoch;
+    return Epoch{.epoch_index = ei,
+                 .start_slot = first_production_slot_number,
+                 .epoch_length = genesis_configuration_->epoch_length,
+                 .authorities = new_epoch_digest_res.value().authorities,
+                 .randomness = new_epoch_digest_res.value().randomness};
   }
 
   Epoch BabeImpl::prepareFirstEpochUnixTime(
@@ -609,56 +608,50 @@ namespace kagome::consensus {
         "This method can be executed only when slots are counting from unix "
         "epoch start");
 
-    Epoch epoch;
-    {
-      // get new epoch starting slot
-      auto last_epoch_starting_slot = last_known_epoch.start_slot;
-      epoch.start_slot = first_production_slot
-                         - ((first_production_slot - last_epoch_starting_slot)
-                            % epoch.epoch_duration);
-    }
-
+    const auto epoch_duration = genesis_configuration_->epoch_length;
+    const auto start_slot =
+        first_production_slot
+        - ((first_production_slot - last_known_epoch.start_slot)
+           % epoch_duration);
     auto slot_duration = genesis_configuration_->slot_duration;
-    {
-      // get new epoch index
-      auto ticks_since_epoch = clock_->now().time_since_epoch().count();
-      auto genesis_slot = static_cast<BabeSlotNumber>(ticks_since_epoch
-                                                      / slot_duration.count());
-      epoch.epoch_index = (first_production_slot - genesis_slot)
-                          / genesis_configuration_->epoch_length;
+
+    // get new epoch index
+    const auto ticks_since_epoch = clock_->now().time_since_epoch().count();
+    const auto genesis_slot =
+        static_cast<BabeSlotNumber>(ticks_since_epoch / slot_duration.count());
+    const auto epoch_index = (first_production_slot - genesis_slot)
+                             / genesis_configuration_->epoch_length;
+
+    // get epoch's randomness and authorities
+    auto new_epoch_digest_res = epoch_storage_->getEpochDescriptor(epoch_index);
+    if (not new_epoch_digest_res) {
+      log_->error("Could not fetch epoch descriptor for epoch {}. Reason: {}",
+                  epoch_index,
+                  new_epoch_digest_res.error().message());
+      // TODO(kamilsa): (https://github.com/soramitsu/kagome/issues/602), should
+      // not do that, will remove when fix next epoch descriptor digest
+      new_epoch_digest_res = NextEpochDescriptor{
+          .authorities = genesis_configuration_->genesis_authorities,
+          .randomness = genesis_configuration_->randomness};
     }
 
-    epoch.epoch_duration = genesis_configuration_->epoch_length;
-
-    {
-      // get epoch's randomness and authorities
-      auto new_epoch_digest_res =
-          epoch_storage_->getEpochDescriptor(epoch.epoch_index);
-      if (not new_epoch_digest_res) {
-        log_->error("Could not fetch epoch descriptor for epoch {}. Reason: {}",
-                    epoch.epoch_index,
-                    new_epoch_digest_res.error().message());
-        // should not do that, will remove when fix next epoch descriptor digest
-        new_epoch_digest_res = NextEpochDescriptor{
-            .authorities = genesis_configuration_->genesis_authorities,
-            .randomness = genesis_configuration_->randomness};
-      }
-      epoch.randomness = new_epoch_digest_res.value().randomness;
-      epoch.authorities = new_epoch_digest_res.value().authorities;
-    }
-    return epoch;
+    return Epoch{.epoch_index = epoch_index,
+                 .start_slot = start_slot,
+                 .epoch_length = epoch_duration,
+                 .authorities = new_epoch_digest_res.value().authorities,
+                 .randomness = new_epoch_digest_res.value().randomness};
   }
 
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {
     static boost::optional<BabeSlotNumber> first_production_slot = boost::none;
 
-    auto babe_digests_res = getBabeDigests(new_header);
+    const auto &babe_digests_res = getBabeDigests(new_header);
     if (not babe_digests_res) {
       log_->error("Could not get digests: {}",
                   babe_digests_res.error().message());
     }
 
-    auto [_, babe_header] = babe_digests_res.value();
+    const auto &[_, babe_header] = babe_digests_res.value();
     auto observed_slot = babe_header.slot_number;
 
     Epoch epoch;
@@ -678,7 +671,7 @@ namespace kagome::consensus {
         current_state_ = State::SYNCHRONIZED;
         log_->info("Slot time obtained. Peer is synchronized");
 
-        auto first_slot_ending_time = getFirstSlotTimeEstimate();
+        const auto first_slot_ending_time = getFirstSlotTimeEstimate();
 
         epoch = prepareFirstEpochFromZeroStrategy(first_slot_ending_time,
                                                   *first_production_slot);
@@ -687,23 +680,16 @@ namespace kagome::consensus {
         break;
       }
       case SlotsStrategy::FromUnixEpoch: {
-        auto last_known_epoch = epoch_storage_->getLastEpoch().value();
+        const auto last_known_epoch = epoch_storage_->getLastEpoch().value();
         epoch = prepareFirstEpochUnixTime(last_known_epoch,
                                           babe_header.slot_number + 1);
 
-        {
-          // calculate new epoch first slot finish time and run epoch
-          auto last_epoch_starting_slot = last_known_epoch.start_slot;
-          auto last_epoch_first_slot_starting_time =
-              last_known_epoch.starting_slot_finish_time;
+        // calculate new epoch first slot finish time and run epoch
+        const auto new_epoch_first_slot_ending_time = BabeTimePoint{
+            (epoch.start_slot + 1) * genesis_configuration_->slot_duration};
 
-          auto new_epoch_first_slot_ending_time =
-              last_epoch_first_slot_starting_time
-              + (epoch.start_slot - last_epoch_starting_slot)
-                    * genesis_configuration_->slot_duration;
+        runEpoch(epoch, new_epoch_first_slot_ending_time);
 
-          runEpoch(epoch, new_epoch_first_slot_ending_time);
-        }
         break;
       }
     }

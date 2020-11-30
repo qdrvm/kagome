@@ -25,7 +25,7 @@ namespace kagome::consensus {
     BabeSlotNumber start_slot{};
 
     /// duration of the epoch (number of slots it takes)
-    BabeSlotNumber epoch_duration{};
+    BabeSlotNumber epoch_length{};
 
     /// authorities of the epoch with their weights
     primitives::AuthorityList authorities;
@@ -35,7 +35,7 @@ namespace kagome::consensus {
 
     bool operator==(const Epoch &other) const {
       return epoch_index == other.epoch_index && start_slot == other.start_slot
-             && epoch_duration == other.epoch_duration
+             && epoch_length == other.epoch_length
              && authorities == other.authorities
              && randomness == other.randomness;
     }
