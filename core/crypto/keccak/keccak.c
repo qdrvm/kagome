@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "crypto/keccak/keccak.h"
+#include "macro/LE_BE.hpp"
 
 #define SHA3_ASSERT(x)
 #if defined(_MSC_VER)
@@ -65,6 +66,12 @@ void keccakf(uint64_t s[25]) {
   uint64_t t, bc[5];  // NOLINT
 #define KECCAK_ROUNDS 24
 
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+  for (i = 0; i < 25; i++) {
+    s[i] = LE_BE_SWAP64(s[i]);
+  }
+#endif
+
   for (round = 0; round < KECCAK_ROUNDS; round++) {
     /* Theta */
     for (i = 0; i < 5; i++)
@@ -93,6 +100,12 @@ void keccakf(uint64_t s[25]) {
     /* Iota */
     s[0] ^= keccakf_rndc[round];
   }
+
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+  for (i = 0; i < 25; i++) {
+    s[i] = LE_BE_SWAP64(s[i]);
+  }
+#endif
 }
 
 /* *************************** Public Inteface ************************ */
