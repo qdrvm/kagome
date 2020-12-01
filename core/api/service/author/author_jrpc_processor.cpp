@@ -9,6 +9,8 @@
 #include "api/jrpc/value_converter.hpp"
 #include "api/service/author/requests/pending_extrinsics.hpp"
 #include "api/service/author/requests/submit_extrinsic.hpp"
+#include "api/service/author/requests/submit_and_watch_extrinsic.hpp"
+#include "api/service/author/requests/unwatch_extrinsic.hpp"
 
 namespace kagome::api::author {
 
@@ -25,6 +27,12 @@ namespace kagome::api::author {
   void AuthorJRpcProcessor::registerHandlers() {
     server_->registerHandler("author_submitExtrinsic",
                              Handler<request::SubmitExtrinsic>(api_));
+
+    server_->registerHandler("author_submitAndWatchExtrinsic",
+                             Handler<request::SubmitAndWatchExtrinsic>(api_));
+
+    server_->registerHandler("author_unwatchExtrinsic",
+                             Handler<request::UnwatchExtrinsic>(api_));
 
     server_->registerHandler("author_pendingExtrinsics",
                              Handler<request::PendingExtrinsics>(api_));
