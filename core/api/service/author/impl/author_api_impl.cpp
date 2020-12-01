@@ -32,6 +32,12 @@ namespace kagome::api {
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
   }
 
+  void AuthorApiImpl::setApiService(
+      std::shared_ptr<api::ApiService> const &api_service) {
+    BOOST_ASSERT(api_service != nullptr);
+    api_service_ = api_service;
+  }
+
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
       const primitives::Extrinsic &extrinsic) {
     OUTCOME_TRY(res,
@@ -103,11 +109,23 @@ namespace kagome::api {
     extrinsic.observed_id = latest_id_++;
     subscribed_ids_.insert(extrinsic.observed_id.value());
     OUTCOME_TRY(submitExtrinsic(extrinsic));
-    return extrinsic.observed_id.value();
+    if (auto service = api_service_.lock()) {
+      OUTCOME_TRY(sub_id,
+                  service->subscribeForExtrinsicLifecycle(
+                      extrinsic.observed_id.value()));
+      return sub_id;
+    }
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
   }
 
-  outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(
-      SubscriptionId sub_id) {
+  outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(SubscriptionId sub_id) {
+    if (auto service = api_service_.lock()) {
+      OUTCOME_TRY(service->unsubscribeFromExtrinsicLifecycle(sub_id));
+    } else {
+      throw jsonrpc::InternalErrorFault(
+          "Internal error. Api service not initialized.");
+    }
     bool existed = subscribed_ids_.erase(sub_id) > 0;
     return existed;
   }

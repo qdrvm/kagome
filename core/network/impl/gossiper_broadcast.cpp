@@ -68,7 +68,7 @@ namespace kagome::network {
                      const auto &peer_type,
                      const auto &peer_map) { peers.push_back(peer_info.id); });
         ext_events_engine_->notify(
-            primitives::events::ExtrinsicEventType::BROADCAST,
+            ext.observed_id.value(),
             primitives::events::ExtrinsicLifecycleEvent::Broadcast(
                 ext.observed_id.value(), std::move(peers)));
       }

@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_API_EXTRINSIC_EXTRINSIC_API_HPP
 #define KAGOME_CORE_API_EXTRINSIC_EXTRINSIC_API_HPP
 
+#include "api/service/api_service.hpp"
 #include "common/blob.hpp"
 #include "primitives/author_api_primitives.hpp"
 #include "primitives/extrinsic.hpp"
@@ -22,6 +23,10 @@ namespace kagome::api {
 
    public:
     virtual ~AuthorApi() = default;
+
+    virtual void setApiService(
+        std::shared_ptr<api::ApiService> const &api_service) = 0;
+
     /**
      * @brief validates and sends extrinsic to transaction pool
      * @param bytes encoded extrinsic
@@ -52,8 +57,7 @@ namespace kagome::api {
      * @return true if the subscriber was unsubscribed, false if there was no
      * subscriber.
      */
-    virtual outcome::result<bool> unwatchExtrinsic(
-        SubscriptionId sub_id) = 0;
+    virtual outcome::result<bool> unwatchExtrinsic(SubscriptionId sub_id) = 0;
   };
 }  // namespace kagome::api
 

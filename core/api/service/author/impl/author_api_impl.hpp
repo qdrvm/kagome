@@ -15,6 +15,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
+#include "api/service/api_service.hpp"
 #include "api/service/author/author_api.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
@@ -59,6 +60,9 @@ namespace kagome::api {
 
     ~AuthorApiImpl() override = default;
 
+    void setApiService(
+        std::shared_ptr<api::ApiService> const &api_service) override;
+
     outcome::result<common::Hash256> submitExtrinsic(
         const primitives::Extrinsic &extrinsic) override;
 
@@ -75,9 +79,10 @@ namespace kagome::api {
         SubscriptionId subscription_id) override;
 
    private:
-    /// need this in addition to sub id in extrinsics themselves because
-    /// currently extrinsics can be copied and it is thus impossible to
-    /// unsubscribe from them directly
+    /// need this in addition to sub id in extrinsics themselves to remember
+    /// what ids we are subscribed at and return a bool value in unwatch.
+    /// unsubscribe from api service does not yield information whether the
+    /// subscriber was subscribed to the event or not
     std::unordered_set<SubscriptionId> subscribed_ids_;
 
     sptr<runtime::TaggedTransactionQueue> api_;
@@ -85,6 +90,7 @@ namespace kagome::api {
     sptr<crypto::Hasher> hasher_;
     sptr<blockchain::BlockTree> block_tree_;
     sptr<network::ExtrinsicGossiper> gossiper_;
+    std::weak_ptr<api::ApiService> api_service_;
 
     std::atomic<primitives::ObservedExtrinsicId> latest_id_ = 0;
 

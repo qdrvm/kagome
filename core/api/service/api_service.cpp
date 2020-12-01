@@ -301,7 +301,7 @@ namespace kagome::api {
               "{}",
               header.error().message());
         }
-        return static_cast<uint32_t>(id);
+        return static_cast<PubsubSubscriptionId>(id);
       });
     });
   }
@@ -343,7 +343,7 @@ namespace kagome::api {
               "Request block header of the deepest leaf failed with error: {}",
               header.error().message());
         }
-        return static_cast<uint32_t>(id);
+        return static_cast<PubsubSubscriptionId>(id);
       });
     });
   }
@@ -381,7 +381,7 @@ namespace kagome::api {
                             uploadFromCache(result.data()));
                       });
         }
-        return static_cast<uint32_t>(id);
+        return static_cast<PubsubSubscriptionId>(id);
         ;
       });
     });
@@ -407,7 +407,7 @@ namespace kagome::api {
         const auto sub_id = session_sub->generateSubscriptionSetId();
         session_sub->subscribe(sub_id, id);
 
-        return static_cast<uint32_t>(sub_id);
+        return static_cast<PubsubSubscriptionId>(sub_id);
       });
     });
   }

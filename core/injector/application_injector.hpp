@@ -191,6 +191,9 @@ namespace kagome::injector {
     auto chain_api = injector.template create<std::shared_ptr<api::ChainApi>>();
     chain_api->setApiService(initialized.value());
 
+    auto author_api = injector.template create<std::shared_ptr<api::AuthorApi>>();
+    author_api->setApiService(initialized.value());
+
     return initialized.value();
   }
 

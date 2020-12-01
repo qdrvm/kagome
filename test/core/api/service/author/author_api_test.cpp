@@ -99,7 +99,7 @@ struct AuthorApiTest : public ::testing::Test {
         std::make_unique<ExtrinsicEventSubscriber>(sub_engine, nullptr);
     event_receiver = std::make_shared<ExtrinsicEventReceiverMock>();
     sub_id = subscriber->generateSubscriptionSetId();
-    subscriber->subscribe(sub_id, 42);
+    subscriber->subscribe(sub_id, ext_id);
     subscriber->setCallback(
         [this](
             kagome::subscription::SubscriptionSetId set_id,
@@ -231,5 +231,7 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
         .Times(1);
   }
 
-  EXPECT_OUTCOME_TRUE_1(api->submitAndWatchExtrinsic(*extrinsic));
+  // throws because api service is uninitialized
+  EXPECT_THROW(api->submitAndWatchExtrinsic(*extrinsic),
+               jsonrpc::InternalErrorFault);
 }

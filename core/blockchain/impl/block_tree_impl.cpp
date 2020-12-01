@@ -247,7 +247,7 @@ namespace kagome::blockchain {
     for (const auto &ext : block.body) {
       if (ext.observed_id) {
         extrinsic_events_engine_->notify(
-            primitives::events::ExtrinsicEventType::IN_BLOCK,
+            ext.observed_id.value(),
             primitives::events::ExtrinsicLifecycleEvent::InBlock(ext.observed_id.value(), std::move(block_hash)));
       }
     }
@@ -332,7 +332,7 @@ namespace kagome::blockchain {
     for (const auto &ext : body) {
       if (ext.observed_id) {
         extrinsic_events_engine_->notify(
-            primitives::events::ExtrinsicEventType::FINALIZED,
+            ext.observed_id.value(),
             primitives::events::ExtrinsicLifecycleEvent::Finalized(ext.observed_id.value(), std::move(block_hash)));
       }
     }
@@ -694,7 +694,7 @@ namespace kagome::blockchain {
         for (auto &&extrinsic : block_body_res.value()) {
           if (extrinsic.observed_id) {
             extrinsic_events_engine_->notify(
-                primitives::events::ExtrinsicEventType::RETRACTED,
+                extrinsic.observed_id.value(),
                 primitives::events::ExtrinsicLifecycleEvent::Retracted(extrinsic.observed_id.value(), std::move(hash)));
           }
           extrinsics.emplace_back(std::move(extrinsic));
