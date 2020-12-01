@@ -31,23 +31,11 @@ namespace kagome::network {
     self_info_ = self_info;
   }
 
-  void GossiperBroadcast::reserveStream(
-      const libp2p::peer::PeerInfo &peer_info,
-      const libp2p::peer::Protocol &protocol,
-      std::shared_ptr<libp2p::connection::Stream> stream) {
-    stream_engine_->addReserved(peer_info, protocol, std::move(stream));
-  }
-
-  outcome::result<void> GossiperBroadcast::addStream(
-      const libp2p::peer::Protocol &protocol,
-      std::shared_ptr<libp2p::connection::Stream> stream) {
-    return stream_engine_->add(protocol, std::move(stream));
-  }
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
     BOOST_ASSERT(self_info_);
-    return stream_engine_->count([&](const StreamEngine::PeerInfo &peer) {
-      return *self_info_ != peer;
+    return stream_engine_->count([&](const StreamEngine::PeerId &peer) {
+      return self_info_->id != peer;
     });
   }
 

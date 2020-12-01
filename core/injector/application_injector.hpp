@@ -661,6 +661,7 @@ namespace kagome::injector {
         injector.template create<sptr<application::ChainSpec>>(),
         injector.template create<network::OwnPeerInfo &>(),
         injector.template create<sptr<network::PeerManager>>(),
+        injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<sptr<network::BabeObserver>>(),
         injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),
         injector.template create<sptr<network::SyncProtocolObserver>>(),

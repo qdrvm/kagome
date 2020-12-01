@@ -52,15 +52,6 @@ namespace kagome::network {
 
     void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
 
-    void reserveStream(
-        const libp2p::peer::PeerInfo &peer_info,
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) override;
-
-    outcome::result<void> addStream(
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) override;
-
     void propagateTransactions(
         const network::PropagatedTransactions &txs) override;
 
@@ -87,7 +78,7 @@ namespace kagome::network {
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);
       stream_engine_->send<typename std::decay<decltype(msg)>::type, NoData>(
-          StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
+          peer_id,
           protocol,
           std::move(shared_msg),
           boost::none);

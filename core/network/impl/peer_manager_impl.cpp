@@ -59,16 +59,6 @@ namespace kagome::network {
     content_id_ = libp2p::protocol::kademlia::ContentId(
         "kagome");  // TODO(xDimon): use value from config
 
-    //    if (peer_info.id != own_peer_info_.id) {
-    //      gossiper_->reserveStream(peer_info, transactions_protocol_, {});
-    //      gossiper_->reserveStream(peer_info, block_announces_protocol_, {});
-    //      gossiper_->reserveStream(peer_info, kGossipProtocol, {});
-    //    } else {
-    //      auto stream = std::make_shared<LoopbackStream>(own_peer_info);
-    //      loopback_stream_ = stream;
-    //      gossiper_->reserveStream(
-    //          own_peer_info, kGossipProtocol, std::move(stream));
-    //    }
     return true;
   }
 
@@ -119,7 +109,23 @@ namespace kagome::network {
                 self->queue_to_connect_.erase(qtc_it);
               }
 
-              // Reserve streams
+              self->host_->newStream(
+                  peer_info,
+                  fmt::format(kBlockAnnouncesProtocol.data(),
+                              self->config_->protocolId()),
+                  [self, peer_info](auto &&stream_res) {
+                    if (!stream_res) {
+                      self->log_->warn("Unable to create stream with {}",
+                                       peer_info.id.toHex());
+                      return;
+                    }
+                    [[maybe_unused]] auto res = self->stream_engine_->add(
+                        stream_res.value(),
+                        fmt::format(kBlockAnnouncesProtocol.data(),
+                                    self->config_->protocolId()));
+                  });
+
+              // Reserve stream slots for needed protocols
               self->stream_engine_->add(
                   peer_id,
                   fmt::format(kPropagateTransactionsProtocol.data(),
@@ -128,7 +134,6 @@ namespace kagome::network {
                   peer_id,
                   fmt::format(kBlockAnnouncesProtocol.data(),
                               self->config_->protocolId()));
-
               self->stream_engine_->add(peer_id, kGossipProtocol);
             }
           }
@@ -143,7 +148,7 @@ namespace kagome::network {
     discovery_timer_.cancel();
   }
 
-  void PeerManagerImpl::connectToPeer(PeerManager::PeerInfo peer_info) {
+  void PeerManagerImpl::connectToPeer(const PeerInfo &peer_info) {
     auto res =
         host_->getPeerRepository().getAddressRepository().upsertAddresses(
             peer_info.id, peer_info.addresses, libp2p::peer::ttl::kDay);
@@ -152,12 +157,13 @@ namespace kagome::network {
     }
   }
 
-  void PeerManagerImpl::forEachPeer(std::function<void(PeerId)> func) {
+  void PeerManagerImpl::forEachPeer(
+      std::function<void(const PeerId &)> func) const {
     std::for_each(active_peers_.begin(), active_peers_.end(), func);
   }
 
-  void PeerManagerImpl::forOnePeer(PeerManager::PeerId peer_id,
-                                   std::function<void()> func) {
+  void PeerManagerImpl::forOnePeer(const PeerId &peer_id,
+                                   std::function<void()> func) const {
     auto i = active_peers_.find(peer_id);
     if (i != active_peers_.end()) {
       func();
@@ -216,6 +222,9 @@ namespace kagome::network {
               self->queue_to_connect_.emplace_back(*it);
             }
           }
+          if (not providers.empty()) {
+	          align();
+          }
         });
 
     if (not res) {
@@ -262,7 +271,7 @@ namespace kagome::network {
         });
   }
 
-  void PeerManagerImpl::connectToPeer(PeerId peer_id) {
+  void PeerManagerImpl::connectToPeer(const PeerId& peer_id) {
     auto peer_info = host_->getPeerRepository().getPeerInfo(peer_id);
 
     if (peer_info.addresses.empty()) {
@@ -279,7 +288,7 @@ namespace kagome::network {
     host_->connect(peer_info);
   }
 
-  void PeerManagerImpl::disconnectFromPeer(PeerId peer_id) {
+  void PeerManagerImpl::disconnectFromPeer(const PeerId& peer_id) {
     // TODO(xDimon): Find connection and close him
   }
 

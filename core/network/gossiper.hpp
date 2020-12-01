@@ -10,9 +10,7 @@
 #include "consensus/grandpa/gossiper.hpp"
 #include "network/extrinsic_gossiper.hpp"
 
-#include <libp2p/connection/stream.hpp>
 #include <libp2p/peer/peer_info.hpp>
-#include <libp2p/peer/protocol.hpp>
 
 namespace kagome::network {
   /**
@@ -21,23 +19,6 @@ namespace kagome::network {
   struct Gossiper : public ExtrinsicGossiper,
                     public consensus::BabeGossiper,
                     public consensus::grandpa::Gossiper {
-    /**
-     * @brief It is assigning special stream for peer
-     * @param info - PeerInfo is assigned to stream
-     * @param stream - assignee stream
-     */
-    virtual void reserveStream(
-        const libp2p::peer::PeerInfo &info,
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) = 0;
-
-    /**
-     * Add new stream to gossip
-     */
-    virtual outcome::result<void> addStream(
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) = 0;
-
     /**
      * @brief Need to store self peer info
      * @param peer_info is the peer info of the peer

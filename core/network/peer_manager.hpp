@@ -20,10 +20,12 @@ namespace kagome::network {
 
     virtual ~PeerManager() = default;
 
-    virtual void connectToPeer(PeerInfo peer_info) = 0;
+    virtual void connectToPeer(const PeerInfo &peer_info) = 0;
 
-    virtual void forEachPeer(std::function<void(PeerId)> func) = 0;
-    virtual void forOnePeer(PeerId peer_id, std::function<void()> func) = 0;
+    virtual void forEachPeer(
+        std::function<void(const PeerId &)> func) const = 0;
+    virtual void forOnePeer(const PeerId &peer_id,
+                            std::function<void()> func) const = 0;
   };
 }  // namespace kagome::network
 

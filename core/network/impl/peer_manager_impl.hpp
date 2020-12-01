@@ -45,13 +45,14 @@ namespace kagome::network {
     void stop();
 
     /** @see PeerManager::connectToPeer */
-    void connectToPeer(PeerInfo peer_info) override;
+    void connectToPeer(const PeerInfo &peer_info) override;
 
     /** @see PeerManager::forEachPeer */
-    void forEachPeer(std::function<void(PeerId)> func) override;
+    void forEachPeer(std::function<void(const PeerId &)> func) const override;
 
     /** @see PeerManager::forOnePeer */
-    void forOnePeer(PeerId peer_id, std::function<void()> func) override;
+    void forOnePeer(const PeerId &peer_id,
+                    std::function<void()> func) const override;
 
    private:
     /// Announce about himself ondemand
@@ -64,10 +65,13 @@ namespace kagome::network {
     void align();
 
     /// Up streams set for special peer (i.e. new-discovered)
-    void connectToPeer(PeerId peer_id);
+    void connectToPeer(const PeerId& peer_id);
 
     /// Down streams set for new-discovered peer
-    void disconnectFromPeer(PeerId peer_id);
+    void disconnectFromPeer(const PeerId& peer_id);
+
+    /// Keep peer alive
+    void keepAlive(const PeerId& peer_id);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<libp2p::Host> host_;

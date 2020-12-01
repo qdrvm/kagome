@@ -23,6 +23,7 @@
 #include "network/gossiper.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/loopback_stream.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "network/sync_protocol_observer.hpp"
@@ -48,6 +49,7 @@ namespace kagome::network {
         std::shared_ptr<application::ChainSpec> config,
         const OwnPeerInfo &own_info,
         std::shared_ptr<PeerManager> peer_manager,
+        std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
@@ -154,25 +156,21 @@ namespace kagome::network {
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
-    std::shared_ptr<kagome::application::ChainSpec> config_;
+    std::shared_ptr<application::ChainSpec> config_;
     const OwnPeerInfo &own_info_;
     std::shared_ptr<PeerManager> peer_manager_;
+    std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<Gossiper> gossiper_;
-    std::weak_ptr<network::LoopbackStream> loopback_stream_;
+    std::weak_ptr<LoopbackStream> loopback_stream_;
     common::Logger log_;
-
-    libp2p::peer::Protocol sync_protocol_;
-    libp2p::peer::Protocol transactions_protocol_;
-    libp2p::peer::Protocol block_announces_protocol_;
 
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::Ping> ping_proto_;
-    libp2p::event::Handle new_connection_handler_;
   };
 
 }  // namespace kagome::network
