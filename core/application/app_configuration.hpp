@@ -94,6 +94,13 @@ namespace kagome::application {
      * @return max blocks count per response while syncing
      */
     virtual uint32_t max_blocks_in_response() const = 0;
+
+    /**
+     * Slots strategy
+     * @return true if we should count slots as `unix_epoch_time() / slot_duration`.
+     * Otherwise slots are counting from 0 and false is returned
+     */
+    virtual bool is_unix_slots_strategy() const = 0;
   };
 
 }  // namespace kagome::application
