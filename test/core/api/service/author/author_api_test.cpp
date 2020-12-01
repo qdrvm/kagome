@@ -59,7 +59,7 @@ using testutil::DummyError;
 
 class ExtrinsicEventReceiver {
  public:
-  virtual ExtrinsicEventReceiver() = default;
+  virtual ~ExtrinsicEventReceiver() = default;
 
   virtual void receive(kagome::subscription::SubscriptionSetId,
                        std::shared_ptr<kagome::api::Session>,
