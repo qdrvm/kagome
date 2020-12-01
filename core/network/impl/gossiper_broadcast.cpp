@@ -22,7 +22,7 @@ namespace kagome::network {
       std::shared_ptr<kagome::application::ChainSpec> config)
       : logger_{common::createLogger("GossiperBroadcast")},
         stream_engine_{std::move(stream_engine)},
-        ext_events_engine_{std::move(ext_events_engine_)},
+        ext_events_engine_{std::move(ext_events_engine)},
         config_{std::move(config)},
         transactions_protocol_{fmt::format(
             kPropagateTransactionsProtocol.data(), config_->protocolId())},

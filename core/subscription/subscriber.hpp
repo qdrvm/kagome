@@ -18,18 +18,21 @@ namespace kagome::subscription {
   /**
    * Is a wrapper class, which provides subscription to events from
    * SubscriptionEngine
-   * @tparam Event is a type of a subscription event.
-   * @tparam ReceiverType is a type of an object to receive notifications in.
-   * @tparam Arguments is a set of types of objects needed to construct Type.
+   * @tparam EventKey is a type of a particular subscription event (might be a
+   * key from an observed storage or a specific event type from an enumeration).
+   * @tparam ReceiverType is a type of an object which is a part of Subscriber's
+   * internal state and can be accessed on every event notification.
+   * @tparam Arguments is a set of types of objects that are passed on every
+   * event notification.
    */
-  template <typename Event, typename Receiver, typename... Arguments>
+  template <typename EventKey, typename Receiver, typename... Arguments>
   class Subscriber final : public std::enable_shared_from_this<
-                               Subscriber<Event, Receiver, Arguments...>> {
+                               Subscriber<EventKey, Receiver, Arguments...>> {
    public:
-    using EventType = Event;
+    using EventType = EventKey;
     using ReceiverType = Receiver;
     using Hash = size_t;
-    using This = Subscriber<Event, Receiver, Arguments...>;
+    using This = Subscriber<EventKey, Receiver, Arguments...>;
 
     using SubscriptionEngineType =
         SubscriptionEngine<EventType, ReceiverType, Arguments...>;
@@ -58,14 +61,16 @@ namespace kagome::subscription {
 
    public:
     template <typename... SubscriberConstructorArgs>
-    explicit Subscriber(SubscriptionEnginePtr &ptr, SubscriberConstructorArgs &&... args)
-        : next_id_(0ull), engine_(ptr), object_(std::forward<SubscriberConstructorArgs>(args)...) {}
+    explicit Subscriber(SubscriptionEnginePtr &ptr,
+                        SubscriberConstructorArgs &&... args)
+        : next_id_(0ull),
+          engine_(ptr),
+          object_(std::forward<SubscriberConstructorArgs>(args)...) {}
 
     ~Subscriber() {
       // Unsubscribe all
       for (auto &[_, subscriptions] : subscriptions_sets_)
-        for (auto &[key, it] : subscriptions)
-          engine_->unsubscribe(key, it);
+        for (auto &[key, it] : subscriptions) engine_->unsubscribe(key, it);
     }
 
     Subscriber(const Subscriber &) = delete;

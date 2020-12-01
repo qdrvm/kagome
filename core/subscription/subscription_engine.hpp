@@ -19,7 +19,6 @@ namespace kagome::subscription {
   using SubscriptionSetId = uint32_t;
 
   /**
-   * TODO(Harrm) document
    * @tparam EventKey - the type of a specific event from event set (e. g. a key
    * from a storage or a particular kind of event from an enumeration)
    * @tparam Receiver - the type of an object that is a part of a Subscriber
