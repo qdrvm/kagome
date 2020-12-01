@@ -136,7 +136,8 @@ namespace kagome::injector {
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
-        injector.template create<sptr<authority::AuthorityUpdateObserver>>());
+        injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
+        injector.template create<consensus::SlotsStrategy>());
     return *initialized;
   }
 

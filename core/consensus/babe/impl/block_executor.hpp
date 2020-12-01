@@ -13,6 +13,7 @@
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/epoch_storage.hpp"
+#include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "crypto/hasher.hpp"
 #include "primitives/babe_configuration.hpp"
@@ -37,7 +38,8 @@ namespace kagome::consensus {
                   std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<authority::AuthorityUpdateObserver>
-                      authority_update_observer);
+                      authority_update_observer,
+                  SlotsStrategy slots_strategy);
 
     /**
      * Processes next header: if header is observed first it is added to the
@@ -97,6 +99,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
+    const SlotsStrategy slots_strategy_;
     common::Logger logger_;
   };
 

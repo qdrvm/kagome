@@ -35,7 +35,8 @@ namespace kagome::consensus {
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
-          authority_update_observer)
+          authority_update_observer,
+      SlotsStrategy slots_strategy)
       : sync_state_(kReadyState),
         block_tree_{std::move(block_tree)},
         core_{std::move(core)},
@@ -46,6 +47,7 @@ namespace kagome::consensus {
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
+        slots_strategy_{slots_strategy},
         logger_{common::createLogger("BlockExecutor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
@@ -142,7 +144,7 @@ namespace kagome::consensus {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
@@ -195,7 +197,21 @@ namespace kagome::consensus {
 
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
-    auto [seal, babe_header] = babe_digests;
+    const auto &[seal, babe_header] = babe_digests;
+
+    {
+      // add information about epoch to epoch storage
+      if (slots_strategy_ == SlotsStrategy::FromUnixEpoch
+          and block.header.number == 1) {
+        OUTCOME_TRY(epoch_storage_->setLastEpoch(LastEpochDescriptor{
+            .epoch_number = 0,
+            .start_slot = babe_header.slot_number,
+            .epoch_duration = genesis_configuration_->epoch_length,
+            .starting_slot_finish_time =
+                BabeTimePoint{(babe_header.slot_number + 1)
+                              * genesis_configuration_->slot_duration}}));
+      }
+    }
 
     auto epoch_index =
         babe_header.slot_number / genesis_configuration_->epoch_length;

@@ -50,6 +50,7 @@
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
+#include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/finalization_composite.hpp"
@@ -591,6 +592,20 @@ namespace kagome::injector {
     return *initialized;
   }
 
+  template <typename Injector>
+  consensus::SlotsStrategy get_slots_strategy(const Injector &injector) {
+    static auto initialized =
+        boost::optional<consensus::SlotsStrategy>(boost::none);
+    if (not initialized) {
+      const application::AppConfiguration &config =
+          injector.template create<const application::AppConfiguration &>();
+      initialized = config.is_unix_slots_strategy()
+                        ? consensus::SlotsStrategy::FromUnixEpoch
+                        : consensus::SlotsStrategy::FromZero;
+    }
+    return *initialized;
+  }
+
   template <class Injector>
   sptr<crypto::KeyFileStorage> get_key_file_storage(const Injector &injector) {
     static auto initialized =
@@ -701,6 +716,8 @@ namespace kagome::injector {
           return get_babe_configuration(injector);
         }),
         di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
+        di::bind<consensus::SlotsStrategy>.template to(
+            [](const auto &injector) { return get_slots_strategy(injector); }),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
