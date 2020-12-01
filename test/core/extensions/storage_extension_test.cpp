@@ -14,6 +14,7 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/encode_append.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -763,7 +764,6 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
   auto hash_array =
       "eaa57e0e1a41d5a49db5954f95140a4e7c9a4373f7d29c0d667c9978ab4dadcb"_hex2buf;
 
-  using testing::_;
   WasmPointer values_ptr = 1;
   WasmSize values_size = 2;
   WasmSpan dict_data = WasmResult(values_ptr, values_size).combine();
@@ -779,4 +779,28 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
 
   ASSERT_EQ(result,
             storage_extension_->ext_trie_blake2_256_root_version_1(dict_data));
+}
+
+/**
+ * @given no :changes_trie key (which sets the changes trie config) in storage
+ * @when calling ext_storage_changes_root_version_1
+ * @then none is returned, changes trie is empty
+ */
+TEST_F(StorageExtensionTest, ChangesRootEmpty) {
+  auto parent_hash = "123456"_hash256;
+  Buffer parent_hash_buf{gsl::span(parent_hash.data(), parent_hash.size())};
+  WasmResult parent_root_ptr{.address = 1, .length = Hash256::size()};
+  EXPECT_CALL(*memory_, loadN(parent_root_ptr.address, Hash256::size()))
+      .WillOnce(Return(parent_hash_buf));
+
+  EXPECT_CALL(*trie_batch_, get(kagome::common::Buffer{}.put(":changes_trie")))
+      .WillOnce(Return(kagome::storage::trie::TrieError::NO_VALUE));
+
+  WasmPointer result = 1984;
+  Buffer none_bytes {0};
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(none_bytes)))
+      .WillOnce(Return(result));
+
+  auto res = storage_extension_->ext_storage_changes_root_version_1(
+      parent_root_ptr.combine());
 }
