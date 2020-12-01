@@ -74,11 +74,17 @@ namespace kagome::common {
   template <size_t size_>
   class Blob : public std::array<byte_t, size_> {
    public:
+    using const_narref = const byte_t(&)[size_];
+    using const_narptr = const byte_t(*)[size_];
     /**
      * Initialize blob value
      */
     Blob() {
       this->fill(0);
+    }
+
+    const_narref internal_array_reference() const {
+      return *const_narptr(this->data());
     }
 
     /**

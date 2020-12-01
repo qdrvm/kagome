@@ -18,6 +18,7 @@
 #include "crypto/hasher.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
+#include "primitives/transcript.hpp"
 #include "runtime/core.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -89,6 +90,50 @@ namespace kagome::consensus {
     // should only be invoked when parent of block exists
     outcome::result<void> applyBlock(const primitives::BlockData &block);
 
+    /*
+    pub fn make_transcript(
+        randomness: &Randomness,
+        slot_number: u64,
+        epoch: u64,
+    ) -> Transcript {
+      let mut transcript = Transcript::new(&BABE_ENGINE_ID);
+      transcript.append_u64(b"slot number", slot_number);
+      transcript.append_u64(b"current epoch", epoch);
+      transcript.append_message(b"chain randomness", &randomness[..]);
+      transcript
+    }
+    */
+
+    inline primitives::Transcript makeTranscript(
+        const consensus::Randomness &randomness,
+        consensus::BabeSlotNumber slot_number,
+        consensus::EpochIndex epoch) {
+      transcript_.initialize({'B', 'A', 'B', 'E'});
+      transcript_.append_message(
+          {'s', 'l', 'o', 't', ' ', 'n', 'u', 'm', 'b', 'e', 'r'}, slot_number);
+      transcript_.append_message(
+          {'c', 'u', 'r', 'r', 'e', 'n', 't', ' ', 'e', 'p', 'o', 'c', 'h'},
+          epoch);
+      transcript_.append_message({'c',
+                                  'h',
+                                  'a',
+                                  'i',
+                                  'n',
+                                  ' ',
+                                  'r',
+                                  'a',
+                                  'n',
+                                  'd',
+                                  'o',
+                                  'm',
+                                  'n',
+                                  'e',
+                                  's',
+                                  's'},
+                                 randomness.internal_array_reference());
+    }
+
+    primitives::Transcript transcript_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
