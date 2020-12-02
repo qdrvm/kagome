@@ -427,6 +427,7 @@ namespace kagome::storage::trie {
       auto key = PolkadotCodec::nibblesToKey(node->key_nibbles);
       OUTCOME_TRY(callback(key, std::move(node->value)));
     }
+    return outcome::success();
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::retrieveChild(
