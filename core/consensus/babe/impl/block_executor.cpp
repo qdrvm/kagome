@@ -213,8 +213,20 @@ namespace kagome::consensus {
       }
     }
 
-    auto epoch_index =
-        babe_header.slot_number / genesis_configuration_->epoch_length;
+    EpochIndex epoch_index;
+    switch (slots_strategy_) {
+      case SlotsStrategy::FromZero:
+        epoch_index =
+            babe_header.slot_number / genesis_configuration_->epoch_length;
+        break;
+      case SlotsStrategy::FromUnixEpoch:
+        OUTCOME_TRY(last_epoch, epoch_storage_->getLastEpoch());
+        auto last_epoch_start_slot = last_epoch.start_slot;
+        auto last_epoch_index = last_epoch.epoch_number;
+        epoch_index = last_epoch_index + (babe_header.slot_number - last_epoch_start_slot)
+                      / genesis_configuration_->epoch_length;
+        break;
+    }
 
     // TODO (kamilsa): PRE-364 uncomment outcome try and remove dirty workaround
     // below
