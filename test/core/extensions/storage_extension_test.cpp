@@ -790,7 +790,7 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
 TEST_F(StorageExtensionTest, ChangesRootEmpty) {
   auto parent_hash = "123456"_hash256;
   Buffer parent_hash_buf{gsl::span(parent_hash.data(), parent_hash.size())};
-  WasmResult parent_root_ptr{.address = 1, .length = Hash256::size()};
+  WasmResult parent_root_ptr{1, Hash256::size()};
   EXPECT_CALL(*memory_, loadN(parent_root_ptr.address, Hash256::size()))
       .WillOnce(Return(parent_hash_buf));
 
@@ -821,7 +821,7 @@ MATCHER_P(configsAreEqual, n, "") {
 TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
   auto parent_hash = "123456"_hash256;
   Buffer parent_hash_buf{gsl::span(parent_hash.data(), parent_hash.size())};
-  WasmResult parent_root_ptr{.address = 1, .length = Hash256::size()};
+  WasmResult parent_root_ptr{1, Hash256::size()};
   EXPECT_CALL(*memory_, loadN(parent_root_ptr.address, Hash256::size()))
       .WillOnce(Return(parent_hash_buf));
 

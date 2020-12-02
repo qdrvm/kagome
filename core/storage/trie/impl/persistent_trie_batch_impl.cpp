@@ -117,7 +117,9 @@ namespace kagome::storage::trie {
       const Buffer &prefix) {
     if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
     return trie_->clearPrefix(prefix, [&](const auto &key, auto &&) {
-      if (changes_.has_value()) changes_.value()->onRemove(key);
+      if (changes_.has_value()) {
+        OUTCOME_TRY(changes_.value()->onRemove(key));
+      }
     });
   }
 
