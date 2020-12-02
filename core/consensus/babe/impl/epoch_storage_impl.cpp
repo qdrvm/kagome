@@ -46,13 +46,17 @@ namespace kagome::consensus {
 
   outcome::result<void> EpochStorageImpl::setLastEpoch(
       const LastEpochDescriptor &epoch_descriptor) {
-    auto &key = storage::kLastBabeEpochNumberLookupKey;
+    const auto &key = storage::kLastBabeEpochNumberLookupKey;
     auto val = common::Buffer{scale::encode(epoch_descriptor).value()};
+    last_epoch_ = epoch_descriptor;
     return storage_->put(key, val);
   }
 
   outcome::result<LastEpochDescriptor> EpochStorageImpl::getLastEpoch() const {
-    auto &key = storage::kLastBabeEpochNumberLookupKey;
+    if (last_epoch_) {
+      return last_epoch_.value();
+    }
+    const auto &key = storage::kLastBabeEpochNumberLookupKey;
     OUTCOME_TRY(epoch_descriptor, storage_->get(key));
     return scale::decode<LastEpochDescriptor>(epoch_descriptor);
   }

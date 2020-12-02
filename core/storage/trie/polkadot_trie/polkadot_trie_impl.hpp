@@ -73,8 +73,8 @@ namespace kagome::storage::trie {
     bool empty() const override;
 
    private:
-    void notifyIsDetached(const NodePtr &parent,
-                          const OnDetachCallback &callback);
+    outcome::result<void> notifyIsDetached(const NodePtr &parent,
+                                           const OnDetachCallback &callback);
 
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const KeyNibbles &key_nibbles,

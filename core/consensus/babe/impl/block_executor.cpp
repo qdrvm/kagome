@@ -213,8 +213,20 @@ namespace kagome::consensus {
       }
     }
 
-    auto epoch_index =
-        babe_header.slot_number / genesis_configuration_->epoch_length;
+    EpochIndex epoch_index;
+    switch (slots_strategy_) {
+      case SlotsStrategy::FromZero:
+        epoch_index =
+            babe_header.slot_number / genesis_configuration_->epoch_length;
+        break;
+      case SlotsStrategy::FromUnixEpoch:
+        OUTCOME_TRY(last_epoch, epoch_storage_->getLastEpoch());
+        auto last_epoch_start_slot = last_epoch.start_slot;
+        auto last_epoch_index = last_epoch.epoch_number;
+        epoch_index = last_epoch_index + (babe_header.slot_number - last_epoch_start_slot)
+                      / genesis_configuration_->epoch_length;
+        break;
+    }
 
     // TODO (kamilsa): PRE-364 uncomment outcome try and remove dirty workaround
     // below
@@ -260,7 +272,9 @@ namespace kagome::consensus {
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
 
-    if (b.justification) block_tree_->finalize(block_hash, *b.justification);
+    if (b.justification) {
+      OUTCOME_TRY(block_tree_->finalize(block_hash, *b.justification));
+    }
 
     // observe possible changes of authorities
     for (auto &digest_item : block_without_seal_digest.header.digest) {

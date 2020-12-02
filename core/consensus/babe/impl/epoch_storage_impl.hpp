@@ -38,6 +38,8 @@ namespace kagome::consensus {
 
    private:
     std::shared_ptr<storage::BufferStorage> storage_;
+    boost::optional<LastEpochDescriptor>
+        last_epoch_;  // optimization for storing in memory last epoch
   };
 }  // namespace kagome::consensus
 

@@ -216,8 +216,7 @@ namespace kagome::extensions {
   }
 
   runtime::WasmSize StorageExtension::ext_storage_changes_root(
-      runtime::WasmPointer /*parent_hash_data*/, runtime::WasmPointer /*result*/) {
-#if 0 // Changes trie us currently disabled in polkadot
+      runtime::WasmPointer parent_hash_data, runtime::WasmPointer result) {
     if (not storage_provider_->isCurrentlyPersistent()) {
       logger_->error(
           "ext_storage_changes_root failed: called in ephemeral environment");
@@ -235,7 +234,6 @@ namespace kagome::extensions {
       memory_->storeBuffer(result, result_buf.value());
       return result_buf.value().size();
     }
-#endif//0
     return 0;
   }
 
@@ -378,8 +376,7 @@ namespace kagome::extensions {
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
-      runtime::WasmSpan /*parent_hash_data*/) {
-#if 0 // Changes trie us currently disabled in polkadot
+      runtime::WasmSpan parent_hash_data) {
     auto parent_hash_span = runtime::WasmResult(parent_hash_data);
     auto parent_hash_bytes =
         memory_->loadN(parent_hash_span.address, parent_hash_span.length);
@@ -393,9 +390,6 @@ namespace kagome::extensions {
                      ? boost::make_optional(std::move(result.value()))
                      : boost::none;
     return memory_->storeBuffer(scale::encode(std::move(res)).value());
-#endif//0
-    return memory_->storeBuffer(
-        scale::encode<boost::optional<Buffer>>(boost::none).value());
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
@@ -464,7 +458,7 @@ namespace kagome::extensions {
     const auto &pairs = scale::decode<KeyValueCollection>(buffer);
     if (!pairs) {
       logger_->error("failed to decode pairs: {}", pairs.error().message());
-      std::terminate();
+      throw std::runtime_error(pairs.error().message());
     }
 
     auto &&pv = pairs.value();
@@ -492,7 +486,7 @@ namespace kagome::extensions {
     const auto &enc = codec.encodeNode(*trie.getRoot());
     if (!enc) {
       logger_->error("failed to encode trie root: {}", enc.error().message());
-      std::terminate();
+      throw std::runtime_error(enc.error().message());
     }
     const auto &hash = codec.hash256(enc.value());
 
@@ -508,7 +502,7 @@ namespace kagome::extensions {
     const auto &values = scale::decode<ValuesCollection>(buffer);
     if (!values) {
       logger_->error("failed to decode values: {}", values.error().message());
-      std::terminate();
+      throw std::runtime_error(values.error().message());
     }
 
     const auto &collection = values.value();
@@ -518,7 +512,7 @@ namespace kagome::extensions {
       logger_->error(
           "ext_blake2_256_enumerated_trie_root resulted with an error: {}",
           ordered_hash.error().message());
-      std::terminate();
+      throw std::runtime_error(ordered_hash.error().message());
     }
 
     auto res = memory_->storeBuffer(ordered_hash.value());
@@ -528,43 +522,34 @@ namespace kagome::extensions {
   boost::optional<common::Buffer> StorageExtension::calcStorageChangesRoot(
       common::Hash256 parent_hash) const {
     auto batch = storage_provider_->tryGetPersistentBatch().value();
-    boost::optional<storage::changes_trie::ChangesTrieConfig> trie_config;
     auto config_bytes_res = batch->get(CHANGES_CONFIG_KEY);
     if (config_bytes_res.has_error()) {
       if (config_bytes_res.error() != storage::trie::TrieError::NO_VALUE) {
         logger_->error("ext_storage_changes_root resulted with an error: {}",
                        config_bytes_res.error().message());
-        return boost::none;
+        throw std::runtime_error(config_bytes_res.error().message());
       }
-      logger_->debug("ext_storage_changes_root: no changes trie config found");
-      trie_config = boost::none;
-    } else {
-      auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
-          config_bytes_res.value());
-      if (config_res.has_error()) {
-        logger_->error("ext_storage_changes_root resulted with an error: {}",
-                       config_res.error().message());
-        return boost::none;
-      }
-      trie_config = config_res.value();
+      return boost::none;
     }
-
-    // if no config found in the storage, then disable tracking blocks changes
-    if (not trie_config.has_value()) {
-      trie_config = storage::changes_trie::ChangesTrieConfig{
-          .digest_interval = 0, .digest_levels = 0};
+    auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
+        config_bytes_res.value());
+    if (config_res.has_error()) {
+      logger_->error("ext_storage_changes_root resulted with an error: {}",
+                     config_res.error().message());
+      throw std::runtime_error(config_res.error().message());
     }
+    storage::changes_trie::ChangesTrieConfig trie_config = config_res.value();
 
     logger_->debug(
         "ext_storage_changes_root constructing changes trie with parent_hash: "
         "{}",
         parent_hash.toHex());
-    auto trie_hash_res = changes_tracker_->constructChangesTrie(
-        parent_hash, trie_config.value());
+    auto trie_hash_res =
+        changes_tracker_->constructChangesTrie(parent_hash, trie_config);
     if (trie_hash_res.has_error()) {
       logger_->error("ext_storage_changes_root resulted with an error: {}",
                      trie_hash_res.error().message());
-      return boost::none;
+      throw std::runtime_error(trie_hash_res.error().message());
     }
     common::Buffer result_buf(trie_hash_res.value());
     logger_->debug("ext_storage_changes_root with parent_hash {} result is: {}",
