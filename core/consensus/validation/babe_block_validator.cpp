@@ -74,10 +74,11 @@ namespace kagome::consensus {
     }
 
     // VRF must prove that the peer is the leader of the slot
-    if (!verifyVRF(babe_header,
-                   primitives::BabeSessionKey{authority_id.id},
-                   threshold,
-                   randomness)) {
+    if (babe_header.needVRFCheck()
+        && !verifyVRF(babe_header,
+                      primitives::BabeSessionKey{authority_id.id},
+                      threshold,
+                      randomness)) {
       return ValidationError::INVALID_VRF;
     }
 
@@ -119,7 +120,7 @@ namespace kagome::consensus {
         babe_header.slot_number / configuration_->epoch_length;
 
     primitives::Transcript transcript;
-    makeTranscript(transcript, randomness, babe_header.slot_number, epoch_index);
+    makeTranscript(transcript, randomness, babe_header.slot_number, 0);
 
     auto verify_res = vrf_provider_->verify(
         common::Buffer(transcript.data()), babe_header.vrf_output, public_key, threshold);
