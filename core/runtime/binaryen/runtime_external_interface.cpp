@@ -57,7 +57,8 @@ namespace kagome::runtime::binaryen {
 
   const static wasm::Name ext_chain_id = "ext_chain_id";
 
-  const static wasm::Name ext_misc_print_utf8_version_1 = "ext_misc_print_utf8_version_1";
+  const static wasm::Name ext_misc_print_utf8_version_1 =
+      "ext_misc_print_utf8_version_1";
 
   // version 1
   const static wasm::Name ext_hashing_keccak_256_version_1 =
@@ -384,20 +385,19 @@ namespace kagome::runtime::binaryen {
 
       // ----------------------- crypto functions ------------------------
 
-	    // ext_crypto_start_batch_verify_version_1
-	    if (import->base == ext_crypto_start_batch_verify_version_1) {
-		    checkArguments(import->base.c_str(), 0, arguments.size());
-		    extension_->ext_start_batch_verify();
-		    return wasm::Literal();
-	    }
+      // ext_crypto_start_batch_verify_version_1
+      if (import->base == ext_crypto_start_batch_verify_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        extension_->ext_start_batch_verify();
+        return wasm::Literal();
+      }
 
-	    // ext_crypto_finish_batch_verify_version_1
-	    if (import->base == ext_crypto_finish_batch_verify_version_1) {
-		    checkArguments(import->base.c_str(), 0, arguments.size());
-		    auto res = extension_->ext_finish_batch_verify();
-		    return wasm::Literal(res);
-	    }
-
+      // ext_crypto_finish_batch_verify_version_1
+      if (import->base == ext_crypto_finish_batch_verify_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        auto res = extension_->ext_finish_batch_verify();
+        return wasm::Literal(res);
+      }
 
       /// ext_crypto_ed25519_public_keys_version_1
       if (import->base == ext_crypto_ed25519_public_keys_version_1) {
@@ -675,6 +675,12 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_misc_print_utf8_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         extension_->ext_misc_print_utf8_version_1(arguments.at(0).geti64());
+        return wasm::Literal();
+      }
+
+      // TODO(xDimon): It is temporary suppress fails at calling of
+      //  callImport(ext_offchain_index_set_version_1)
+      if (import->base == "ext_offchain_index_set_version_1") {
         return wasm::Literal();
       }
     }
