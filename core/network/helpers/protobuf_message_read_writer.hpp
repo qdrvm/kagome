@@ -83,7 +83,6 @@ namespace kagome::network {
       gsl::span<uint8_t> data(it.base(),
                               out.size() - std::distance(out.begin(), it));
 
-      BOOST_ASSERT(!data.empty());
       read_writer_->write(data,
                           [self{shared_from_this()},
                            out{std::move(out)},
