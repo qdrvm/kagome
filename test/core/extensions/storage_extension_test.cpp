@@ -14,6 +14,7 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/encode_append.hpp"
+#include "storage/changes_trie/changes_trie_config.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -797,10 +798,53 @@ TEST_F(StorageExtensionTest, ChangesRootEmpty) {
       .WillOnce(Return(kagome::storage::trie::TrieError::NO_VALUE));
 
   WasmPointer result = 1984;
-  Buffer none_bytes {0};
+  Buffer none_bytes{0};
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(none_bytes)))
       .WillOnce(Return(result));
 
   auto res = storage_extension_->ext_storage_changes_root_version_1(
       parent_root_ptr.combine());
+  ASSERT_EQ(res, result);
+}
+
+MATCHER_P(configsAreEqual, n, "") {
+  return (arg.digest_interval == n.digest_interval)
+         and (arg.digest_levels == n.digest_levels);
+}
+
+/**
+ * @given existing :changes_trie key (which sets the changes trie config) in
+ * storage and there are accumulated changes
+ * @when calling ext_storage_changes_root_version_1
+ * @then a valid trie root is returned
+ */
+TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
+  auto parent_hash = "123456"_hash256;
+  Buffer parent_hash_buf{gsl::span(parent_hash.data(), parent_hash.size())};
+  WasmResult parent_root_ptr{.address = 1, .length = Hash256::size()};
+  EXPECT_CALL(*memory_, loadN(parent_root_ptr.address, Hash256::size()))
+      .WillOnce(Return(parent_hash_buf));
+
+  kagome::storage::changes_trie::ChangesTrieConfig config{.digest_interval = 0,
+                                                          .digest_levels = 0};
+  EXPECT_CALL(*trie_batch_, get(kagome::common::Buffer{}.put(":changes_trie")))
+      .WillOnce(Return(Buffer(kagome::scale::encode(config).value())));
+
+  auto trie_hash = "deadbeef"_hash256;
+  auto enc_trie_hash =
+      kagome::scale::encode(
+          boost::make_optional((gsl::span(trie_hash.data(), Hash256::size()))))
+          .value();
+  EXPECT_CALL(*changes_tracker_,
+              constructChangesTrie(parent_hash, configsAreEqual(config)))
+      .WillOnce(Return(trie_hash));
+
+  WasmPointer result = 1984;
+  Buffer none_bytes{0};
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(enc_trie_hash)))
+      .WillOnce(Return(result));
+
+  auto res = storage_extension_->ext_storage_changes_root_version_1(
+      parent_root_ptr.combine());
+  ASSERT_EQ(res, result);
 }
