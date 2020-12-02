@@ -38,12 +38,14 @@ namespace kagome::consensus {
       std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider)
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<primitives::BabeConfiguration> configuration)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
         sr25519_provider_{std::move(sr25519_provider)},
+        configuration_{std::move(configuration)},
         log_{common::createLogger("BabeBlockValidator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
@@ -112,8 +114,15 @@ namespace kagome::consensus {
         Buffer{}
             .put(randomness)
             .put(common::uint64_t_to_bytes(babe_header.slot_number));
+
+    const auto epoch_index =
+        babe_header.slot_number / configuration_->epoch_length;
+
+    primitives::Transcript transcript;
+    makeTranscript(transcript, randomness, babe_header.slot_number, epoch_index);
+
     auto verify_res = vrf_provider_->verify(
-        randomness_with_slot, babe_header.vrf_output, public_key, threshold);
+        common::Buffer(transcript.data()), babe_header.vrf_output, public_key, threshold);
     if (not verify_res.is_valid) {
       log_->error("VRF proof in block is not valid");
       return false;

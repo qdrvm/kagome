@@ -20,6 +20,8 @@
 #include "crypto/vrf_provider.hpp"
 #include "primitives/authority.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
+#include "primitives/transcript.hpp"
+#include "primitives/babe_configuration.hpp"
 
 namespace kagome::crypto {
   class Sr25519Provider;
@@ -40,13 +42,15 @@ namespace kagome::consensus {
      * @param tx_queue to validate the extrinsics
      * @param hasher to take hashes
      * @param vrf_provider for VRF-specific operations
+     * @param configuration Babe configuration from genesis
      */
     BabeBlockValidator(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<primitives::BabeConfiguration> configuration);
 
     enum class ValidationError {
       NO_AUTHORITIES = 1,
@@ -90,6 +94,37 @@ namespace kagome::consensus {
                    const Threshold &threshold,
                    const Randomness &randomness) const;
 
+    inline primitives::Transcript &makeTranscript(
+        primitives::Transcript &transcript_,
+        const consensus::Randomness &randomness,
+        consensus::BabeSlotNumber slot_number,
+        consensus::EpochIndex epoch) const {
+      transcript_.initialize({'B', 'A', 'B', 'E'});
+      transcript_.append_message(
+          {'s', 'l', 'o', 't', ' ', 'n', 'u', 'm', 'b', 'e', 'r'}, slot_number);
+      transcript_.append_message(
+          {'c', 'u', 'r', 'r', 'e', 'n', 't', ' ', 'e', 'p', 'o', 'c', 'h'},
+          epoch);
+      transcript_.append_message({'c',
+                                  'h',
+                                  'a',
+                                  'i',
+                                  'n',
+                                  ' ',
+                                  'r',
+                                  'a',
+                                  'n',
+                                  'd',
+                                  'o',
+                                  'm',
+                                  'n',
+                                  'e',
+                                  's',
+                                  's'},
+                                 randomness.internal_array_reference());
+      return transcript_;
+    }
+
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     mutable std::unordered_map<BabeSlotNumber,
                                std::unordered_set<primitives::AuthorityIndex>>
@@ -102,6 +137,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
+    std::shared_ptr<primitives::BabeConfiguration> configuration_;
     common::Logger log_;
   };
 }  // namespace kagome::consensus

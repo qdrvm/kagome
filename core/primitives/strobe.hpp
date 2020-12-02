@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
+#include <gsl/span>
 
 #include "crypto/keccak/keccak.h"
 #include "primitives/math.hpp"
@@ -202,6 +203,10 @@ namespace kagome::primitives {
     void key(const T (&data)[N]) {
       beginOp<kMore, kFlag_A | kFlag_C>();
       overwrite(data);
+    }
+
+    auto data() {
+      return gsl::make_span(as<const uint8_t>(), count<uint8_t>());
     }
   };
 

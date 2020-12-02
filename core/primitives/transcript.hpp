@@ -63,6 +63,10 @@ namespace kagome::primitives {
     void append_message(const T (&label)[N], const uint64_t value) {
       append_message(label, decompose);
     }
+
+    auto data() {
+      return strobe_.data();
+    }
   };
 
 }  // namespace kagome::primitives
