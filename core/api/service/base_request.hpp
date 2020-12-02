@@ -83,11 +83,16 @@ namespace kagome::api::details {
       if (not src.IsInteger32() and not src.IsInteger64()) {
         throw jsonrpc::InvalidParametersFault("invalid argument type");
       }
-
       auto num = src.AsInteger64();
-      if (num < std::numeric_limits<T>::min()
-          or num > std::numeric_limits<T>::max()) {
-        throw jsonrpc::InvalidParametersFault("invalid argument value");
+      if constexpr (std::is_signed_v<T>) {
+        if (num < std::numeric_limits<T>::min()
+            or num > std::numeric_limits<T>::max()) {
+          throw jsonrpc::InvalidParametersFault("invalid argument value");
+        }
+      } else {
+        if (num < 0 or static_cast<T>(num) > std::numeric_limits<T>::max()) {
+          throw jsonrpc::InvalidParametersFault("invalid argument value");
+        }
       }
       dst = num;
     }
