@@ -10,11 +10,13 @@
 
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/kademlia/kademlia.hpp>
+#include <libp2p/protocol/identify/identify.hpp>
 #include <memory>
 #include <queue>
 
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
+#include "clock/clock.hpp"
 #include "common/logger.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -31,7 +33,9 @@ namespace kagome::network {
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<StreamEngine> stream_engine,
+        std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<application::ChainSpec> config,
+        const clock::SteadyClock &clock,
         const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_peer_info);
 
@@ -65,20 +69,22 @@ namespace kagome::network {
     void align();
 
     /// Up streams set for special peer (i.e. new-discovered)
-    void connectToPeer(const PeerId& peer_id);
+    void connectToPeer(const PeerId &peer_id);
 
     /// Down streams set for new-discovered peer
-    void disconnectFromPeer(const PeerId& peer_id);
+    void disconnectFromPeer(const PeerId &peer_id);
 
     /// Keep peer alive
-    void keepAlive(const PeerId& peer_id);
+    void keepAlive(const PeerId &peer_id);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<StreamEngine> stream_engine_;
+    std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<application::ChainSpec> config_;
+    const clock::SteadyClock &clock_;
     const BootstrapNodes &bootstrap_nodes_;
     const OwnPeerInfo &own_peer_info_;
     libp2p::protocol::kademlia::ContentId content_id_;
@@ -87,7 +93,7 @@ namespace kagome::network {
     std::unordered_set<PeerId, std::hash<PeerId>, std::equal_to<PeerId>>
         peers_in_queue_;
     std::deque<std::reference_wrapper<const PeerId>> queue_to_connect_;
-    std::unordered_set<PeerId> active_peers_;
+    std::unordered_map<PeerId, clock::SteadyClock::TimePoint> active_peers_;
     libp2p::protocol::scheduler::Handle announce_timer_;
     libp2p::protocol::scheduler::Handle discovery_timer_;
     libp2p::protocol::scheduler::Handle align_timer_;

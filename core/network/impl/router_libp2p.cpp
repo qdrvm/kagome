@@ -164,6 +164,8 @@ namespace kagome::network {
       }
     }
 
+    identify_->start();
+
     host_.start();
 
     const auto &host_addresses = host_.getAddresses();

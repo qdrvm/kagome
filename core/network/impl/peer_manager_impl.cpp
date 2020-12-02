@@ -20,7 +20,9 @@ namespace kagome::network {
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
+      std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<application::ChainSpec> config,
+      const clock::SteadyClock &clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info)
       : app_state_manager_(std::move(app_state_manager)),
@@ -28,7 +30,9 @@ namespace kagome::network {
         kademlia_(std::move(kademlia)),
         scheduler_(std::move(scheduler)),
         stream_engine_(std::move(stream_engine)),
+        identify_(std::move(identify)),
         config_(std::move(config)),
+        clock_(clock),
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
         log_(common::createLogger("PeerManager")) {
@@ -37,6 +41,7 @@ namespace kagome::network {
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
+    BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(config_ != nullptr);
 
     app_state_manager_->takeControl(*this);
@@ -92,50 +97,69 @@ namespace kagome::network {
     // Watch new connection
     new_connection_handle_ = host_->setOnNewConnectionHandler(
         [wp = weak_from_this()](auto &&peer_info) {
-          if (auto self = wp.lock()) {
-            // Add to active peer list
-            if (auto [ap_it, ok] = self->active_peers_.emplace(peer_info.id);
-                ok) {
-              auto &peer_id = *ap_it;
+          auto self = wp.lock();
+          if (not self) {
+            return;
+          }
 
-              // And remove from queue
-              if (auto piq_it = self->peers_in_queue_.find(peer_id);
-                  piq_it != self->peers_in_queue_.end()) {
-                auto qtc_it = std::find_if(self->queue_to_connect_.cbegin(),
-                                           self->queue_to_connect_.cend(),
-                                           [&peer_id](const auto &item) {
-                                             return peer_id == item.get();
-                                           });
-                self->queue_to_connect_.erase(qtc_it);
-              }
+          self->log_->debug("New connection with peer_id={}",
+                            peer_info.id.toBase58());
+          for (auto addr : peer_info.addresses) {
+            self->log_->debug("  address: {}", addr.getStringAddress());
+          }
 
-              self->host_->newStream(
-                  peer_info,
-                  fmt::format(kBlockAnnouncesProtocol.data(),
-                              self->config_->protocolId()),
-                  [self, peer_info](auto &&stream_res) {
-                    if (!stream_res) {
-                      self->log_->warn("Unable to create stream with {}",
-                                       peer_info.id.toHex());
-                      return;
-                    }
-                    [[maybe_unused]] auto res = self->stream_engine_->add(
-                        stream_res.value(),
-                        fmt::format(kBlockAnnouncesProtocol.data(),
-                                    self->config_->protocolId()));
-                  });
+          for (auto addr : self->identify_->getAllObservedAddresses()) {
+            self->log_->debug("  observed address: {}", addr.getStringAddress());
+          }
 
-              // Reserve stream slots for needed protocols
-              self->stream_engine_->add(
-                  peer_id,
-                  fmt::format(kPropagateTransactionsProtocol.data(),
-                              self->config_->protocolId()));
-              self->stream_engine_->add(
-                  peer_id,
-                  fmt::format(kBlockAnnouncesProtocol.data(),
-                              self->config_->protocolId()));
-              self->stream_engine_->add(peer_id, kGossipProtocol);
+
+          // Skip connection to himself
+          if (self->own_peer_info_.id == peer_info.id) {
+            return;
+          }
+          // Add to active peer list
+          if (auto [ap_it, ok] =
+                  self->active_peers_.emplace(peer_info.id, self->clock_.now());
+              ok) {
+            auto &peer_id = ap_it->first;
+
+            // And remove from queue
+            if (auto piq_it = self->peers_in_queue_.find(peer_id);
+                piq_it != self->peers_in_queue_.end()) {
+              auto qtc_it = std::find_if(self->queue_to_connect_.cbegin(),
+                                         self->queue_to_connect_.cend(),
+                                         [&peer_id](const auto &item) {
+                                           return peer_id == item.get();
+                                         });
+              self->queue_to_connect_.erase(qtc_it);
             }
+
+            self->host_->newStream(
+                peer_info,
+                fmt::format(kBlockAnnouncesProtocol.data(),
+                            self->config_->protocolId()),
+                [self, peer_info](auto &&stream_res) {
+                  if (!stream_res) {
+                    self->log_->warn("Unable to create stream with {}",
+                                     peer_info.id.toHex());
+                    return;
+                  }
+                  [[maybe_unused]] auto res = self->stream_engine_->add(
+                      stream_res.value(),
+                      fmt::format(kBlockAnnouncesProtocol.data(),
+                                  self->config_->protocolId()));
+                });
+
+            // Reserve stream slots for needed protocols
+            self->stream_engine_->add(
+                peer_id,
+                fmt::format(kPropagateTransactionsProtocol.data(),
+                            self->config_->protocolId()));
+            self->stream_engine_->add(
+                peer_id,
+                fmt::format(kBlockAnnouncesProtocol.data(),
+                            self->config_->protocolId()));
+            self->stream_engine_->add(peer_id, kGossipProtocol);
           }
         });
 
@@ -159,7 +183,9 @@ namespace kagome::network {
 
   void PeerManagerImpl::forEachPeer(
       std::function<void(const PeerId &)> func) const {
-    std::for_each(active_peers_.begin(), active_peers_.end(), func);
+    std::for_each(active_peers_.begin(),
+                  active_peers_.end(),
+                  [&func](auto &item) { func(item.first); });
   }
 
   void PeerManagerImpl::forOnePeer(const PeerId &peer_id,
@@ -203,7 +229,8 @@ namespace kagome::network {
           }
           self->discovery_timer_.cancel();
           self->discovery_timer_ = self->scheduler_->schedule(
-              libp2p::protocol::scheduler::toTicks(std::chrono::seconds(300)),
+              libp2p::protocol::scheduler::toTicks(
+                  std::chrono::seconds(res ? 300 : 30)),
               [wp] {
                 if (auto self = wp.lock()) {
                   self->discovery();
@@ -215,22 +242,42 @@ namespace kagome::network {
           }
 
           auto &providers = res.value();
+          bool enqueued = false;
+          self->log_->debug("Found {} providers", providers.size());
           for (auto &provider : providers) {
+            if (self->own_peer_info_.id == provider.id) {
+              self->log_->debug("  Provider peer_id={} - this node",
+                                provider.id.toBase58());
+              continue;
+            }
+            if (self->active_peers_.find(provider.id)
+                != self->active_peers_.end()) {
+              self->log_->debug("  Provider peer_id={} - already in active",
+                                provider.id.toBase58());
+              continue;
+            }
+
             if (auto [it, ok] =
                     self->peers_in_queue_.emplace(std::move(provider.id));
                 ok) {
               self->queue_to_connect_.emplace_back(*it);
+              enqueued = true;
+              self->log_->debug("  Provider peer_id={} - enqueued",
+                                (*it).toBase58());
+            } else {
+              self->log_->debug("  Provider peer_id={} - already in queue",
+                                (*it).toBase58());
             }
           }
-          if (not providers.empty()) {
-	          align();
+          if (enqueued) {
+            self->align();
           }
         });
 
     if (not res) {
       log_->error("Can't discovery new peers: {}", res.error().message());
     }
-  }
+  }  // namespace kagome::network
 
   void PeerManagerImpl::align() {
     size_t target_count = 4;  // TODO(xDimon): use value from config
@@ -253,17 +300,29 @@ namespace kagome::network {
     // Soft limit is exceeded
     if (cur_active_peer > soft_limit) {
       // Get oldest peer
-      PeerId peer_id = *active_peers_.begin();
+      auto &&[oldest_peer_id, oldest_timepoint] = *active_peers_.begin();
+      for (auto &[peer_id, timepoint] : active_peers_) {
+        if (oldest_timepoint > timepoint) {
+          const_cast<PeerId &>(oldest_peer_id) = peer_id;
+        }
+      }
+
+      const auto peer_ttl =
+          std::chrono::minutes(10);  // TODO(xDimon): use value from config
 
       // Hard limit is exceeded OR peer is inactive long time
-      if (cur_active_peer > hard_limit or false) {
+      if (cur_active_peer > hard_limit
+          or oldest_timepoint + peer_ttl < clock_.now()) {
         // Disconnect from peer
-        disconnectFromPeer(peer_id);
+        disconnectFromPeer(oldest_peer_id);
       }
     }
 
+    const auto aligning_period =
+        std::chrono::seconds(5);  // TODO(xDimon): use value from config
+
     align_timer_ = scheduler_->schedule(
-        libp2p::protocol::scheduler::toTicks(std::chrono::seconds(5)),
+        libp2p::protocol::scheduler::toTicks(aligning_period),
         [wp = weak_from_this()] {
           if (auto self = wp.lock()) {
             self->align();
@@ -271,7 +330,7 @@ namespace kagome::network {
         });
   }
 
-  void PeerManagerImpl::connectToPeer(const PeerId& peer_id) {
+  void PeerManagerImpl::connectToPeer(const PeerId &peer_id) {
     auto peer_info = host_->getPeerRepository().getPeerInfo(peer_id);
 
     if (peer_info.addresses.empty()) {
@@ -285,10 +344,17 @@ namespace kagome::network {
       return;
     }
 
+    log_->debug("Try to connect to peer_id={}. In queue: {}",
+                peer_info.id.toBase58(),
+                queue_to_connect_.size());
+    for (auto addr : peer_info.addresses) {
+      log_->debug("  address: {}", addr.getStringAddress());
+    }
+
     host_->connect(peer_info);
   }
 
-  void PeerManagerImpl::disconnectFromPeer(const PeerId& peer_id) {
+  void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
     // TODO(xDimon): Find connection and close him
   }
 
