@@ -123,20 +123,20 @@ namespace kagome::api {
         const std::vector<PubsubSubscriptionId> &subscription_id);
 
     outcome::result<PubsubSubscriptionId> subscribeFinalizedHeads();
-    outcome::result<void> unsubscribeFinalizedHeads(
+    outcome::result<bool> unsubscribeFinalizedHeads(
         PubsubSubscriptionId subscription_id);
 
     outcome::result<PubsubSubscriptionId> subscribeNewHeads();
-    outcome::result<void> unsubscribeNewHeads(
+    outcome::result<bool> unsubscribeNewHeads(
         PubsubSubscriptionId subscription_id);
 
     outcome::result<PubsubSubscriptionId> subscribeRuntimeVersion();
-    outcome::result<void> unsubscribeRuntimeVersion(
+    outcome::result<bool> unsubscribeRuntimeVersion(
         PubsubSubscriptionId subscription_id);
 
     outcome::result<PubsubSubscriptionId> subscribeForExtrinsicLifecycle(
         primitives::ObservedExtrinsicId id);
-    outcome::result<void> unsubscribeFromExtrinsicLifecycle(
+    outcome::result<bool> unsubscribeFromExtrinsicLifecycle(
         PubsubSubscriptionId subscription_id);
 
    private:

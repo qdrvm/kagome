@@ -79,12 +79,6 @@ namespace kagome::api {
         SubscriptionId subscription_id) override;
 
    private:
-    /// need this in addition to sub id in extrinsics themselves to remember
-    /// what ids we are subscribed at and return a bool value in unwatch.
-    /// unsubscribe from api service does not yield information whether the
-    /// subscriber was subscribed to the event or not
-    std::unordered_set<SubscriptionId> subscribed_ids_;
-
     sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;

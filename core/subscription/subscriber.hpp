@@ -32,7 +32,6 @@ namespace kagome::subscription {
     using EventType = EventKey;
     using ReceiverType = Receiver;
     using Hash = size_t;
-    using This = Subscriber<EventKey, Receiver, Arguments...>;
 
     using SubscriptionEngineType =
         SubscriptionEngine<EventType, ReceiverType, Arguments...>;
@@ -98,7 +97,12 @@ namespace kagome::subscription {
         it->second = engine_->subscribe(id, key, this->weak_from_this());
     }
 
-    void unsubscribe(SubscriptionSetId id, const EventType &key) {
+    /**
+     * @param id -- subscription set id that unsubscribes from \arg key
+     * @param key -- event key to unsubscribe from
+     * @return true if was subscribed to \arg key, false otherwise
+     */
+    bool unsubscribe(SubscriptionSetId id, const EventType &key) {
       std::lock_guard<std::mutex> lock(subscriptions_cs_);
       if (auto set_it = subscriptions_sets_.find(id);
           set_it != subscriptions_sets_.end()) {
@@ -107,11 +111,17 @@ namespace kagome::subscription {
         if (subscriptions.end() != it) {
           engine_->unsubscribe(key, it->second);
           subscriptions.erase(it);
+          return true;
         }
       }
+      return false;
     }
 
-    void unsubscribe(SubscriptionSetId id) {
+    /**
+     * @param id -- subscription set id to unsubscribe from
+     * @return true if was subscribed to \arg id, false otherwise
+     */
+    bool unsubscribe(SubscriptionSetId id) {
       std::lock_guard<std::mutex> lock(subscriptions_cs_);
       if (auto set_it = subscriptions_sets_.find(id);
           set_it != subscriptions_sets_.end()) {
@@ -119,7 +129,9 @@ namespace kagome::subscription {
         for (auto &[key, it] : subscriptions) engine_->unsubscribe(key, it);
 
         subscriptions_sets_.erase(set_it);
+        return true;
       }
+      return false;
     }
 
     void unsubscribe() {

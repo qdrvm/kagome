@@ -331,7 +331,7 @@ namespace kagome::injector {
     auto header_repo =
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
-    auto &&storage = injector.template create<sptr<blockchain::BlockStorage>>();
+    auto storage = injector.template create<sptr<blockchain::BlockStorage>>();
 
     auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
 
@@ -340,20 +340,20 @@ namespace kagome::injector {
             ? primitives::BlockId{last_finalized_block_res.value()}
             : primitives::BlockId{0};
 
-    auto &&extrinsic_observer =
+    auto extrinsic_observer =
         injector.template create<sptr<network::ExtrinsicObserver>>();
 
     auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
-    auto &&chain_events_engine =
+    auto chain_events_engine =
         injector.template create<primitives::events::ChainSubscriptionEnginePtr>();
-    auto &&ext_events_engine =
+    auto ext_events_engine =
         injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>();
 
-    auto &&runtime_core =
+    auto runtime_core =
         injector.template create<std::shared_ptr<runtime::Core>>();
 
-    auto &&tree =
+    auto tree =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
                                           storage,
                                           block_id,

@@ -306,13 +306,12 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<void> ApiService::unsubscribeFinalizedHeads(
+  outcome::result<bool> ApiService::unsubscribeFinalizedHeads(
       PubsubSubscriptionId subscription_id) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
-        session->unsubscribe(subscription_id);
-        return outcome::success();
+        return session->unsubscribe(subscription_id);
       });
     });
   }
@@ -348,13 +347,12 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<void> ApiService::unsubscribeNewHeads(
+  outcome::result<bool> ApiService::unsubscribeNewHeads(
       PubsubSubscriptionId subscription_id) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
-        session->unsubscribe(subscription_id);
-        return outcome::success();
+        return session->unsubscribe(subscription_id);
       });
     });
   }
@@ -387,13 +385,12 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<void> ApiService::unsubscribeRuntimeVersion(
+  outcome::result<bool> ApiService::unsubscribeRuntimeVersion(
       PubsubSubscriptionId subscription_id) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
-        session->unsubscribe(subscription_id);
-        return outcome::success();
+        return session->unsubscribe(subscription_id);
       });
     });
   }
@@ -412,13 +409,12 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<void> ApiService::unsubscribeFromExtrinsicLifecycle(
+  outcome::result<bool> ApiService::unsubscribeFromExtrinsicLifecycle(
       PubsubSubscriptionId subscription_id) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.ext_sub;
-        session->unsubscribe(subscription_id);
-        return outcome::success();
+        return session->unsubscribe(subscription_id);
       });
     });
   }

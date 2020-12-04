@@ -107,7 +107,6 @@ namespace kagome::api {
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
     extrinsic.observed_id = latest_id_++;
-    subscribed_ids_.insert(extrinsic.observed_id.value());
     OUTCOME_TRY(submitExtrinsic(extrinsic));
     if (auto service = api_service_.lock()) {
       OUTCOME_TRY(sub_id,
@@ -121,13 +120,12 @@ namespace kagome::api {
 
   outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(SubscriptionId sub_id) {
     if (auto service = api_service_.lock()) {
-      OUTCOME_TRY(service->unsubscribeFromExtrinsicLifecycle(sub_id));
+      OUTCOME_TRY(was_subscribed, service->unsubscribeFromExtrinsicLifecycle(sub_id));
+      return was_subscribed;
     } else {
       throw jsonrpc::InternalErrorFault(
           "Internal error. Api service not initialized.");
     }
-    bool existed = subscribed_ids_.erase(sub_id) > 0;
-    return existed;
   }
 
 }  // namespace kagome::api

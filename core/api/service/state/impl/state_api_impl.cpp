@@ -126,7 +126,7 @@ namespace kagome::api {
   outcome::result<void> StateApiImpl::unsubscribeRuntimeVersion(
       uint32_t subscription_id) {
     if (auto api_service = api_service_.lock()) {
-      return api_service->unsubscribeRuntimeVersion(subscription_id);
+      return api_service->unsubscribeRuntimeVersion(subscription_id).error();
     }
 
     throw jsonrpc::InternalErrorFault(
