@@ -26,7 +26,7 @@ namespace kagome::storage::trie {
      * This callback is called when a node is detached from a trie. It is called
      * for each leaf from the detached node subtree
      */
-    using OnDetachCallback = std::function<void(
+    using OnDetachCallback = std::function<outcome::result<void>(
         const common::Buffer &key, boost::optional<common::Buffer> &&value)>;
 
     /**

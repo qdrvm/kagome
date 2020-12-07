@@ -408,23 +408,26 @@ namespace kagome::storage::trie {
       auto to_detach = branch->children.at(prefix_nibbles[length]);
       branch->children.at(prefix_nibbles[length]) = n;
 
-      notifyIsDetached(to_detach, callback);
+      OUTCOME_TRY(notifyIsDetached(to_detach, callback));
       return branch;
     }
     return parent;
   }
 
-  void PolkadotTrieImpl::notifyIsDetached(const PolkadotTrie::NodePtr &node,
+  outcome::result<void> PolkadotTrieImpl::notifyIsDetached(const PolkadotTrie::NodePtr &node,
                                           const OnDetachCallback &callback) {
     if (node) {
       if (node->isBranch()) {
         auto branch = std::dynamic_pointer_cast<BranchNode>(node);
-        for (auto &child : branch->children) notifyIsDetached(child, callback);
+        for (auto &child : branch->children) {
+          OUTCOME_TRY(notifyIsDetached(child, callback));
+        }
       }
 
       auto key = PolkadotCodec::nibblesToKey(node->key_nibbles);
-      callback(key, std::move(node->value));
+      OUTCOME_TRY(callback(key, std::move(node->value)));
     }
+    return outcome::success();
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::retrieveChild(
