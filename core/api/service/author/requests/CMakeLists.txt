@@ -3,11 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(api_author_requests
-    submit_extrinsic.cpp
-    submit_and_watch_extrinsic.cpp
-    )
+add_library(api_author_requests INTERFACE)
 
-target_link_libraries(api_author_requests
-    Boost::boost
-    )
+target_link_libraries(api_author_requests INTERFACE Boost::boost)

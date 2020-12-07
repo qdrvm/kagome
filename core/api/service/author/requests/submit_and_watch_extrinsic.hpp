@@ -13,18 +13,23 @@
 
 namespace kagome::api::author::request {
 
-  class SubmitAndWatchExtrinsic final {
+  class SubmitAndWatchExtrinsic final
+      : public details::RequestType<primitives::SubscriptionId, std::string> {
    public:
     explicit SubmitAndWatchExtrinsic(std::shared_ptr<AuthorApi> api)
-        : api_(std::move(api)){};
+        : api_(std::move(api)) {
+      BOOST_ASSERT(api_);
+    };
 
-    outcome::result<void> init(const jsonrpc::Request::Parameters &params);
-
-    outcome::result<primitives::SubscriptionId> execute();
+    outcome::result<primitives::SubscriptionId> execute() override {
+      auto ext_hex = getParam<0>();
+      OUTCOME_TRY(buffer, common::unhexWith0x(ext_hex));
+      OUTCOME_TRY(extrinsic, scale::decode<primitives::Extrinsic>(buffer));
+      return api_->submitAndWatchExtrinsic(extrinsic);
+    }
 
    private:
     std::shared_ptr<AuthorApi> api_;
-    primitives::Extrinsic extrinsic_;
   };
 
 }  // namespace kagome::api::author::request

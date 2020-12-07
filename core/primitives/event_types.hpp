@@ -75,27 +75,29 @@ namespace kagome::primitives::events {
     INVALID
   };
 
+  using Hash256Span = gsl::span<const uint8_t, common::Hash256::size()>;
+
   struct BroadcastEventParams {
-    std::vector<libp2p::peer::PeerId> peers;
+    gsl::span<const libp2p::peer::PeerId> peers;
   };
 
   struct InBlockEventParams {
-    primitives::BlockHash block;
+    Hash256Span block;
   };
   struct RetractedEventParams {
-    primitives::BlockHash retracted_block;
+    Hash256Span retracted_block;
   };
 
   struct FinalityTimeoutEventParams {
-    primitives::BlockHash block;
+    Hash256Span block;
   };
 
   struct FinalizedEventParams {
-    primitives::BlockHash block;
+    Hash256Span block;
   };
 
   struct UsurpedEventParams {
-    common::Hash256 transaction_hash;
+    Hash256Span transaction_hash;
   };
 
   template <typename T>
@@ -121,7 +123,7 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent Broadcast(
-        ObservedExtrinsicId id, std::vector<libp2p::peer::PeerId> peers) {
+        ObservedExtrinsicId id, gsl::span<const libp2p::peer::PeerId> peers) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::BROADCAST,
@@ -129,7 +131,7 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent InBlock(ObservedExtrinsicId id,
-                                           primitives::BlockHash block) {
+                                           Hash256Span block) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::IN_BLOCK,
@@ -137,15 +139,16 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent Retracted(
-        ObservedExtrinsicId id, primitives::BlockHash retracted_block) {
+        ObservedExtrinsicId id, Hash256Span retracted_block) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::RETRACTED,
-          Params{RetractedEventParams{.retracted_block = std::move(retracted_block)}}};
+          Params{RetractedEventParams{.retracted_block =
+                                          std::move(retracted_block)}}};
     }
 
     static ExtrinsicLifecycleEvent FinalityTimeout(
-        ObservedExtrinsicId id, primitives::BlockHash block) {
+        ObservedExtrinsicId id, Hash256Span block) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::FINALITY_TIMEOUT,
@@ -153,7 +156,7 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent Finalized(ObservedExtrinsicId id,
-                                             primitives::BlockHash block) {
+                                             Hash256Span block) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::FINALIZED,
@@ -161,11 +164,12 @@ namespace kagome::primitives::events {
     }
 
     static ExtrinsicLifecycleEvent Usurped(ObservedExtrinsicId id,
-                                           common::Hash256 transaction_hash) {
+                                           Hash256Span transaction_hash) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::USURPED,
-          Params{UsurpedEventParams{.transaction_hash = std::move(transaction_hash)}}};
+          Params{UsurpedEventParams{.transaction_hash =
+                                        std::move(transaction_hash)}}};
     }
 
     static ExtrinsicLifecycleEvent Dropped(ObservedExtrinsicId id) {

@@ -214,7 +214,7 @@ namespace kagome::api {
     visit_in_place(
         event.params,
         [&value, &event](boost::none_t) {
-          switch(event.type) {
+          switch (event.type) {
             case primitives::events::ExtrinsicEventType::FUTURE:
               value["result"] = "future";
               break;
@@ -243,31 +243,34 @@ namespace kagome::api {
         [&value](const primitives::events::InBlockEventParams &params) {
           value.insert(std::pair(
               "result",
-              jStruct{std::pair{"inBlock", makeValue(params.block.toHex())}}));
+              jStruct{std::pair{"inBlock",
+                                makeValue(common::hex_lower(params.block))}}));
         },
         [&value](const primitives::events::RetractedEventParams &params) {
           value.insert(std::pair(
               "result",
-              jStruct{std::pair{"retracted",
-                                makeValue(params.retracted_block.toHex())}}));
+              jStruct{std::pair{
+                  "retracted",
+                  makeValue(common::hex_lower(params.retracted_block))}}));
         },
         [&value](const primitives::events::FinalityTimeoutEventParams &params) {
-          value.insert(
-              std::pair("result",
-                        jStruct{std::pair{"finalityTimeout",
-                                          makeValue(params.block.toHex())}}));
+          value.insert(std::pair(
+              "result",
+              jStruct{std::pair{"finalityTimeout",
+                                makeValue(common::hex_lower(params.block))}}));
         },
         [&value](const primitives::events::FinalizedEventParams &params) {
-          value.insert(
-              std::pair("result",
-                        jStruct{std::pair{"finalized",
-                                          makeValue(params.block.toHex())}}));
+          value.insert(std::pair(
+              "result",
+              jStruct{std::pair{"finalized",
+                                makeValue(common::hex_lower(params.block))}}));
         },
-        [&value](const primitives::events::UsurpedEventParams & params) {
-          value.insert(
-              std::pair("result",
-                        jStruct{std::pair{"usurped",
-                                          makeValue(params.transaction_hash.toHex())}}));
+        [&value](const primitives::events::UsurpedEventParams &params) {
+          value.insert(std::pair(
+              "result",
+              jStruct{std::pair{
+                  "usurped",
+                  makeValue(common::hex_lower(params.transaction_hash))}}));
         });
     return value;
   }
