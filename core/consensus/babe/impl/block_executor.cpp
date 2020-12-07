@@ -247,6 +247,7 @@ namespace kagome::consensus {
 
     OUTCOME_TRY(block_validator_->validateHeader(
         block.header,
+        epoch_index,
         this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
         threshold,
         this_block_epoch_descriptor.randomness));

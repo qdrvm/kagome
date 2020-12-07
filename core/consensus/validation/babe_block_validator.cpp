@@ -55,6 +55,7 @@ namespace kagome::consensus {
 
   outcome::result<void> BabeBlockValidator::validateHeader(
       const primitives::BlockHeader &header,
+      const EpochIndex epoch_index,
       const primitives::AuthorityId &authority_id,
       const Threshold &threshold,
       const Randomness &randomness) const {
@@ -76,6 +77,7 @@ namespace kagome::consensus {
     // VRF must prove that the peer is the leader of the slot
     if (babe_header.needVRFCheck()
         && !verifyVRF(babe_header,
+                      epoch_index,
                       primitives::BabeSessionKey{authority_id.id},
                       threshold,
                       randomness)) {
@@ -114,6 +116,7 @@ namespace kagome::consensus {
 
   bool BabeBlockValidator::verifyVRF(
       const BabeBlockHeader &babe_header,
+      const EpochIndex epoch_index,
       const primitives::BabeSessionKey &public_key,
       const Threshold &threshold,
       const Randomness &randomness) const {
@@ -124,11 +127,8 @@ namespace kagome::consensus {
             .put(randomness)
             .put(common::uint64_t_to_bytes(babe_header.slot_number));
 
-    const auto epoch_index =
-        babe_header.slot_number / configuration_->epoch_length;
-
     primitives::Transcript transcript;
-    makeTranscript(transcript, randomness, babe_header.slot_number, 0);
+    makeTranscript(transcript, randomness, babe_header.slot_number, epoch_index);
     auto const state = transcript.state();
 
     ThinTranscript t_out;
