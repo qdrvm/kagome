@@ -326,7 +326,7 @@ namespace kagome::consensus {
   outcome::result<primitives::PreRuntime> BabeImpl::babePreDigest(
       const crypto::VRFOutput &output,
       primitives::AuthorityIndex authority_index) const {
-    BabeBlockHeader babe_header{current_slot_, output, authority_index};
+    BabeBlockHeader babe_header{BabeBlockHeader::kVRFHeader, current_slot_, output, authority_index};
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
       log_->error("cannot encode BabeBlockHeader: {}",

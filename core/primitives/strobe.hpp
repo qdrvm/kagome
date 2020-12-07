@@ -11,6 +11,7 @@
 #include <cstring>
 #include <type_traits>
 #include <gsl/span>
+#include <tuple>
 
 #include "crypto/keccak/keccak.h"
 #include "primitives/math.hpp"
@@ -207,6 +208,10 @@ namespace kagome::primitives {
 
     auto data() {
       return gsl::make_span(as<const uint8_t>(), count<uint8_t>());
+    }
+
+    auto state() const {
+      return std::make_tuple(current_position_, begin_position_, current_state_);
     }
   };
 

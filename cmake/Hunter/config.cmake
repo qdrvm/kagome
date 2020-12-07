@@ -11,6 +11,12 @@ hunter_config(libp2p
     CMAKE_ARGS TESTING=OFF
     )
 
+hunter_config(schnorrkel_crust
+        URL https://github.com/iceseer/soramitsu-sr25519-crust/archive/48c1300d02dad5b26618b42923208f4abb7bada6.zip
+        SHA1 d9ed32e74b1ab340264204277871d7abb383dcb7
+        CMAKE_ARGS TESTING=OFF
+        )
+
 # TODO (yuraz): PRE-451 remove it after collecting libsecp256k1 into hunter config
 hunter_config(libsecp256k1
     URL https://github.com/soramitsu/soramitsu-libsecp256k1/archive/c7630e1bac638c0f16ee66d4dce7b5c49eecbaa5.zip

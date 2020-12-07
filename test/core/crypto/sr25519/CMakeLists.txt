@@ -8,4 +8,6 @@ addtest(sr25519_provider_test
     )
 target_link_libraries(sr25519_provider_test
     sr25519_provider
+    keccak
+        vrf_provider
     )

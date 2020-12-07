@@ -68,6 +68,7 @@ namespace kagome::consensus {
     if (bh.needVRFCheck())
       s >> bh.vrf_output;
 
+    auto has_m = s.hasMore(1);
     return s;
   }
 }  // namespace kagome::consensus

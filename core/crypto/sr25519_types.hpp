@@ -112,7 +112,7 @@ namespace kagome::crypto {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, VRFOutput &o) {
-    return s >> o.output >> o.proof;
+    return s >> o.proof >> o.output;
   }
 
 }  // namespace kagome::crypto
