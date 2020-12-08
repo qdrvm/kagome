@@ -38,6 +38,7 @@ namespace libp2p {
                  void(const peer::PeerInfo &,
                       const ConnectionResultHandler &handler,
                       std::chrono::milliseconds));
+    MOCK_METHOD1(disconnect, void(const peer::PeerId &));
     MOCK_METHOD4(newStream,
                  void(const peer::PeerInfo &p,
                       const peer::Protocol &protocol,

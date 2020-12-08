@@ -79,7 +79,7 @@ namespace kagome::injector {
   // peer info getter
   template <typename Injector>
   sptr<network::OwnPeerInfo> get_peer_info(const Injector &injector) {
-   static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
+    static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
       return initialized.value();
     }
@@ -89,23 +89,21 @@ namespace kagome::injector {
     libp2p::crypto::PublicKey &public_key = local_pair->publicKey;
     auto &key_marshaller =
         injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
+    application::AppConfiguration const &config =
+        injector.template create<application::AppConfiguration const &>();
 
     libp2p::peer::PeerId peer_id =
         libp2p::peer::PeerId::fromPublicKey(
             key_marshaller.marshal(public_key).value())
             .value();
+
+    std::vector<libp2p::multi::Multiaddress> addresses =
+        config.listen_addresses();
+
     spdlog::debug("Received peer id: {}", peer_id.toBase58());
-    application::AppConfiguration const &config =
-        injector.template create<application::AppConfiguration const &>();
-    std::string multiaddress_str =
-        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2p_port());
-    spdlog::debug("Received multiaddr: {}", multiaddress_str);
-    auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
-    if (!multiaddress) {
-      common::raise(multiaddress.error());  // exception
+    for (auto &addr : addresses) {
+      spdlog::debug("Received multiaddr: {}", addr.getStringAddress());
     }
-    std::vector<libp2p::multi::Multiaddress> addresses;
-    addresses.push_back(std::move(multiaddress.value()));
 
     initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
                                                          std::move(addresses));
@@ -141,8 +139,8 @@ namespace kagome::injector {
   }
 
   template <typename... Ts>
-  auto makeValidatingNodeInjector(const application::AppConfiguration &app_config,
-                            Ts &&... args) {
+  auto makeValidatingNodeInjector(
+      const application::AppConfiguration &app_config, Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(

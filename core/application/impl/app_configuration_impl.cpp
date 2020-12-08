@@ -72,6 +72,23 @@ namespace kagome::application {
                                          &std::fclose);
   }
 
+  bool AppConfigurationImpl::load_ma(
+      const rapidjson::Value &val,
+      char const *name,
+      std::vector<libp2p::multi::Multiaddress> &target) {
+    for (auto it = val.FindMember(name); it != val.MemberEnd(); ++it) {
+      auto &value = it->value;
+      auto ma_res = libp2p::multi::Multiaddress::create(
+          std::string(value.GetString(), value.GetStringLength()));
+      if (not ma_res) {
+        return false;
+      }
+      target.emplace_back(std::move(ma_res.value()));
+      return true;
+    }
+    return not target.empty();
+  }
+
   bool AppConfigurationImpl::load_str(const rapidjson::Value &val,
                                       char const *name,
                                       std::string &target) {
@@ -139,6 +156,7 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
+    load_ma(val, "listen-addr", listen_addresses_);
     load_u16(val, "p2p_port", p2p_port_);
     load_str(val, "rpc_http_host", rpc_http_host_);
     load_u16(val, "rpc_http_port", rpc_http_port_);
@@ -262,6 +280,7 @@ namespace kagome::application {
 
     po::options_description network_desc("Network options");
     network_desc.add_options()
+        ("listen-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses the node listens for open connections on")
         ("p2p_port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc_http_host", po::value<std::string>(), "address for RPC over HTTP")
         ("rpc_http_port", po::value<uint16_t>(), "port for RPC over HTTP")
@@ -318,8 +337,7 @@ namespace kagome::application {
     if (vm.end() != vm.find("already_synchronized"))
       is_already_synchronized_ = true;
 
-    if (vm.end() != vm.find("unix_slots"))
-      is_unix_slots_strategy_ = true;
+    if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
         vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });
@@ -329,6 +347,15 @@ namespace kagome::application {
 
     find_argument<uint16_t>(
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
+
+    find_argument<std::vector<std::string>>(
+        vm, "listen-addr", [&](std::vector<std::string> const &val) {
+          for (auto &s : val) {
+            if (auto ma_res = libp2p::multi::Multiaddress::create(s)) {
+              listen_addresses_.emplace_back(std::move(ma_res.value()));
+            }
+          }
+        });
 
     find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
       max_blocks_in_response_ = val;
@@ -363,5 +390,4 @@ namespace kagome::application {
     }
     return true;
   }
-
 }  // namespace kagome::application

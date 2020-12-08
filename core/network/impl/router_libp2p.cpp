@@ -27,9 +27,9 @@ namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       libp2p::Host &host,
-      std::shared_ptr<application::ChainSpec> config,
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<application::ChainSpec> chain_spec,
       const OwnPeerInfo &own_info,
-      std::shared_ptr<PeerManager> peer_manager,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
@@ -41,9 +41,9 @@ namespace kagome::network {
       std::shared_ptr<libp2p::protocol::Ping> ping_proto)
       : app_state_manager_{app_state_manager},
         host_{host},
-        config_(std::move(config)),
+        app_config_(app_config),
+        chain_spec_(std::move(chain_spec)),
         own_info_{own_info},
-        peer_manager_{std::move(peer_manager)},
         stream_engine_{std::move(stream_engine)},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
@@ -56,7 +56,6 @@ namespace kagome::network {
         ping_proto_{std::move(ping_proto)} {
     BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
                      "app state manager is nullptr");
-    BOOST_ASSERT_MSG(peer_manager_ != nullptr, "peer manager is nullptr");
     BOOST_ASSERT_MSG(stream_engine_ != nullptr, "stream engine is nullptr");
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
@@ -65,13 +64,14 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
-    BOOST_ASSERT_MSG(not config_->getBootNodes().empty(), "no bootstrap nodes");
+    BOOST_ASSERT_MSG(not chain_spec_->getBootNodes().empty(),
+                     "no bootstrap nodes");
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
 
     log_->debug("Own peer id: {}", own_info.id.toBase58());
-    for (const auto &peer_info : config_->getBootNodes()) {
+    for (const auto &peer_info : chain_spec_->getBootNodes()) {
       for (auto &addr : peer_info.addresses) {
         log_->debug("Bootstrap node: {}", addr.getStringAddress());
       }
@@ -90,14 +90,14 @@ namespace kagome::network {
 
   bool RouterLibp2p::prepare() {
     host_.setProtocolHandler(
-        fmt::format(kSyncProtocol.data(), config_->protocolId()),
+        fmt::format(kSyncProtocol.data(), chain_spec_->protocolId()),
         [wp = weak_from_this()](auto &&stream) {
           if (auto self = wp.lock()) {
             self->handleSyncProtocol(std::forward<decltype(stream)>(stream));
           }
         });
     host_.setProtocolHandler(fmt::format(kPropagateTransactionsProtocol.data(),
-                                         config_->protocolId()),
+                                         chain_spec_->protocolId()),
                              [wp = weak_from_this()](auto &&stream) {
                                if (auto self = wp.lock()) {
                                  self->handleTransactionsProtocol(
@@ -105,19 +105,13 @@ namespace kagome::network {
                                }
                              });
     host_.setProtocolHandler(
-        fmt::format(kBlockAnnouncesProtocol.data(), config_->protocolId()),
+        fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_->protocolId()),
         [wp = weak_from_this()](auto &&stream) {
           if (auto self = wp.lock()) {
             self->handleBlockAnnouncesProtocol(
                 std::forward<decltype(stream)>(stream));
           }
         });
-    host_.setProtocolHandler(identify_->getProtocolId(),
-                             [wp = weak_from_this()](auto &&stream) {
-                               if (auto self = wp.lock()) {
-                                 self->identify_->handle(stream);
-                               }
-                             });
     host_.setProtocolHandler(ping_proto_->getProtocolId(),
                              [wp = weak_from_this()](auto &&stream) {
                                if (auto self = wp.lock()) {
@@ -155,13 +149,42 @@ namespace kagome::network {
           });
     }
 
-    for (const auto &ma : own_info_.addresses) {
-      auto listen = host_.listen(ma);
-      if (not listen) {
+    // IPv6
+    {
+      auto ma_res = libp2p::multi::Multiaddress::create(
+          "/ip6/::/tcp/" + std::to_string(app_config_.p2p_port()) + "/p2p/"
+          + own_info_.id.toBase58());
+      BOOST_ASSERT(ma_res.has_value());
+      auto &ma = ma_res.value();
+      auto res = host_.listen(ma);
+      if (not res) {
         log_->error("Cannot listen address {}. Error: {}",
                     ma.getStringAddress(),
-                    listen.error().message());
+                    res.error().message());
       }
+    }
+
+    // IPv4
+    {
+      auto ma_res = libp2p::multi::Multiaddress::create(
+          "/ip4/0.0.0.0/tcp/" + std::to_string(app_config_.p2p_port()) + "/p2p/"
+          + own_info_.id.toBase58());
+      BOOST_ASSERT(ma_res.has_value());
+      auto &ma = ma_res.value();
+      auto res = host_.listen(ma);
+      if (not res) {
+        log_->error("Cannot listen address {}. Error: {}",
+                    ma.getStringAddress(),
+                    res.error().message());
+      }
+    }
+
+    auto &addr_repo = host_.getPeerRepository().getAddressRepository();
+    auto upsert_res = addr_repo.upsertAddresses(
+        own_info_.id, own_info_.addresses, libp2p::peer::ttl::kPermanent);
+    if (!upsert_res) {
+      log_->error("Cannot add own addresses to repo: {}",
+                  upsert_res.error().message());
     }
 
     identify_->start();
@@ -174,9 +197,10 @@ namespace kagome::network {
       return false;
     }
 
-    log_->info("Started listening with peer id: {} on address: {}",
-               host_.getId().toBase58(),
-               host_addresses.front().getStringAddress());
+    log_->info("Started with peer id: {}", host_.getId().toBase58());
+    for (auto &addr : host_addresses) {
+      log_->info("Started listening on address: {}", addr.getStringAddress());
+    }
 
     return true;
   }

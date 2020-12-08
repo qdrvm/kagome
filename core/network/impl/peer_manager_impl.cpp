@@ -17,20 +17,20 @@ namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<libp2p::Host> host,
+      std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
-      std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<application::ChainSpec> config,
       const clock::SteadyClock &clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info)
       : app_state_manager_(std::move(app_state_manager)),
         host_(std::move(host)),
+        identify_(std::move(identify)),
         kademlia_(std::move(kademlia)),
         scheduler_(std::move(scheduler)),
         stream_engine_(std::move(stream_engine)),
-        identify_(std::move(identify)),
         config_(std::move(config)),
         clock_(clock),
         bootstrap_nodes_(bootstrap_nodes),
@@ -38,19 +38,16 @@ namespace kagome::network {
         log_(common::createLogger("PeerManager")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(host_ != nullptr);
+    BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
-    BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(config_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
 
   bool PeerManagerImpl::prepare() {
-    // Add themselves into peer routing
-    kademlia_->addPeer(own_peer_info_, true);
-
     if (bootstrap_nodes_.empty()) {
       log_->critical("Have not any bootstrap nodes");
       return false;
@@ -75,6 +72,9 @@ namespace kagome::network {
 
     // Doing first peer finding with peer_id inferred from content_id
     auto res = kademlia_->findPeer(peer_id, [&](auto) {
+      // Add themselves into peer routing
+      kademlia_->addPeer(host_->getPeerInfo(), true);
+
       // Say to world about his providing
       announce();
 
@@ -107,11 +107,6 @@ namespace kagome::network {
           for (auto addr : peer_info.addresses) {
             self->log_->debug("  address: {}", addr.getStringAddress());
           }
-
-          for (auto addr : self->identify_->getAllObservedAddresses()) {
-            self->log_->debug("  observed address: {}", addr.getStringAddress());
-          }
-
 
           // Skip connection to himself
           if (self->own_peer_info_.id == peer_info.id) {
@@ -355,7 +350,18 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
-    // TODO(xDimon): Find connection and close him
+    auto it = active_peers_.find(peer_id);
+    if (it != active_peers_.end()) {
+      host_->disconnect(peer_id);
+      active_peers_.erase(it);
+    }
+  }
+
+  void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
+    auto it = active_peers_.find(peer_id);
+    if (it != active_peers_.end()) {
+      it->second = clock_.now();
+    }
   }
 
 }  // namespace kagome::network

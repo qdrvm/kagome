@@ -6,7 +6,6 @@
 #ifndef KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 
-#define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
@@ -655,12 +654,11 @@ namespace kagome::injector {
       return initialized.value();
     }
     initialized = std::make_shared<network::RouterLibp2p>(
-        injector
-            .template create<std::shared_ptr<application::AppStateManager>>(),
+        injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<libp2p::Host &>(),
+        injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::ChainSpec>>(),
         injector.template create<network::OwnPeerInfo &>(),
-        injector.template create<sptr<network::PeerManager>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<sptr<network::BabeObserver>>(),
         injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),

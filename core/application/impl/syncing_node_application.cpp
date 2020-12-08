@@ -26,6 +26,7 @@ namespace kagome::application {
     chain_path_ = app_config.chain_path(genesis_config_->id());
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     router_ = injector_.create<sptr<network::Router>>();
+    peer_manager_ = injector_.create<sptr<network::PeerManager>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 

@@ -46,6 +46,7 @@ namespace kagome::application {
     sptr<clock::SystemClock> clock_;
     sptr<Babe> babe_;
     sptr<network::Router> router_;
+    std::shared_ptr<network::PeerManager> peer_manager_;
 
     sptr<api::ApiService> jrpc_api_service_;
 

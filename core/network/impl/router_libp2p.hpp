@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "application/app_state_manager.hpp"
+#include "application/app_configuration.hpp"
 #include "common/logger.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
@@ -46,9 +47,9 @@ namespace kagome::network {
     RouterLibp2p(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
-        std::shared_ptr<application::ChainSpec> config,
+        const application::AppConfiguration& app_config,
+        std::shared_ptr<application::ChainSpec> chain_spec,
         const OwnPeerInfo &own_info,
-        std::shared_ptr<PeerManager> peer_manager,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
@@ -156,9 +157,9 @@ namespace kagome::network {
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
-    std::shared_ptr<application::ChainSpec> config_;
+    const application::AppConfiguration& app_config_;
+    std::shared_ptr<application::ChainSpec> chain_spec_;
     const OwnPeerInfo &own_info_;
-    std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;

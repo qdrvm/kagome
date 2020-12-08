@@ -80,6 +80,5 @@ add_library(peer_manager
     peer_manager_impl.cpp
     )
 target_link_libraries(peer_manager
-    p2p::p2p_cid
     logger
     )

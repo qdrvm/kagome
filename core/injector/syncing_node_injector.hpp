@@ -27,24 +27,21 @@ namespace kagome::injector {
     libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
     auto &key_marshaller =
         injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
+    const auto &config =
+        injector.template create<const application::AppConfiguration &>();
 
     libp2p::peer::PeerId peer_id =
         libp2p::peer::PeerId::fromPublicKey(
             key_marshaller.marshal(public_key).value())
             .value();
-    spdlog::debug("Received peer id: {}", peer_id.toBase58());
 
-    const auto &config =
-        injector.template create<const application::AppConfiguration &>();
-    std::string multiaddress_str =
-        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2p_port());
-    spdlog::debug("Received multiaddr: {}", multiaddress_str);
-    auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
-    if (!multiaddress) {
-      common::raise(multiaddress.error());  // exception
+    std::vector<libp2p::multi::Multiaddress> addresses =
+        config.listen_addresses();
+
+    spdlog::debug("Received peer id: {}", peer_id.toBase58());
+    for (auto &addr : addresses) {
+      spdlog::debug("Received multiaddr: {}", addr.getStringAddress());
     }
-    std::vector<libp2p::multi::Multiaddress> addresses;
-    addresses.push_back(std::move(multiaddress.value()));
 
     initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
                                                          std::move(addresses));
@@ -68,6 +65,7 @@ namespace kagome::injector {
         di::bind<consensus::Babe>.template to<consensus::SyncingBabe>(),
         di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>(),
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
+
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }

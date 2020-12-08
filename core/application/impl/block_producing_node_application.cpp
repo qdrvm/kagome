@@ -24,7 +24,7 @@ namespace kagome::application {
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     babe_ = injector_.create<sptr<Babe>>();
     router_ = injector_.create<sptr<network::Router>>();
-
+    peer_manager_ = injector_.create<sptr<network::PeerManager>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 

@@ -72,6 +72,11 @@ namespace kagome::application {
     boost::filesystem::path database_path(std::string chain_id) const override;
     boost::filesystem::path keystore_path(std::string chain_id) const override;
 
+    const std::vector<libp2p::multi::Multiaddress> &listen_addresses()
+        const override {
+      return listen_addresses_;
+    }
+
     DECLARE_PROPERTY(uint16_t, p2p_port);
     DECLARE_PROPERTY(boost::asio::ip::tcp::endpoint, rpc_http_endpoint);
     DECLARE_PROPERTY(boost::asio::ip::tcp::endpoint, rpc_ws_endpoint);
@@ -112,6 +117,9 @@ namespace kagome::application {
 
     void read_config_from_file(const std::string &filepath);
 
+    bool load_ma(const rapidjson::Value &val,
+                  char const *name,
+                  std::vector<libp2p::multi::Multiaddress> &target);
     bool load_str(const rapidjson::Value &val,
                   char const *name,
                   std::string &target);
@@ -128,6 +136,7 @@ namespace kagome::application {
     FilePtr open_file(const std::string &filepath);
 
     kagome::common::Logger logger_;
+    std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
     boost::filesystem::path genesis_path_;

@@ -30,10 +30,10 @@ namespace kagome::network {
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<libp2p::Host> host,
+        std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<StreamEngine> stream_engine,
-        std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<application::ChainSpec> config,
         const clock::SteadyClock &clock,
         const BootstrapNodes &bootstrap_nodes,
@@ -58,6 +58,9 @@ namespace kagome::network {
     void forOnePeer(const PeerId &peer_id,
                     std::function<void()> func) const override;
 
+    /** @see PeerManager::forOnePeer */
+    void keepAlive(const PeerId &peer_id) override;
+
    private:
     /// Announce about himself ondemand
     void announce();
@@ -74,15 +77,12 @@ namespace kagome::network {
     /// Down streams set for new-discovered peer
     void disconnectFromPeer(const PeerId &peer_id);
 
-    /// Keep peer alive
-    void keepAlive(const PeerId &peer_id);
-
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<libp2p::Host> host_;
+    std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<StreamEngine> stream_engine_;
-    std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<application::ChainSpec> config_;
     const clock::SteadyClock &clock_;
     const BootstrapNodes &bootstrap_nodes_;
