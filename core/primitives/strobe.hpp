@@ -16,6 +16,10 @@
 
 namespace kagome::primitives {
 
+  /**
+   * C++ implementation of
+   * https://strobe.sourceforge.io/
+   */
   class Strobe final {
     static constexpr size_t kBufferSize = 200ull;
     static constexpr size_t kAlignment = 8ull;
