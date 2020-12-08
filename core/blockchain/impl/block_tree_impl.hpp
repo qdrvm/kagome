@@ -107,7 +107,8 @@ namespace kagome::blockchain {
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
-        primitives::events::ExtrinsicSubscriptionEnginePtr ext_events_engine,
+        primitives::events::ExtrinsicSubscriptionEnginePtr
+            extrinsic_events_engine,
         std::shared_ptr<runtime::Core> runtime_core);
 
     ~BlockTreeImpl() override = default;

@@ -17,7 +17,6 @@
 #include "consensus/babe/types/seal.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
-#include "primitives/event_types.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 

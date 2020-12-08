@@ -18,17 +18,17 @@ namespace kagome::network {
   GossiperBroadcast::GossiperBroadcast(
       StreamEngine::StreamEnginePtr stream_engine,
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
-          ext_events_engine,
+          extrinsic_events_engine,
       std::shared_ptr<kagome::application::ChainSpec> config)
       : logger_{common::createLogger("GossiperBroadcast")},
         stream_engine_{std::move(stream_engine)},
-        ext_events_engine_{std::move(ext_events_engine)},
+        extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         config_{std::move(config)},
         transactions_protocol_{fmt::format(
             kPropagateTransactionsProtocol.data(), config_->protocolId())},
         block_announces_protocol_{fmt::format(kBlockAnnouncesProtocol.data(),
                                               config_->protocolId())} {
-    BOOST_ASSERT(ext_events_engine_);
+    BOOST_ASSERT(extrinsic_events_engine_);
   }
 
   void GossiperBroadcast::reserveStream(
@@ -67,7 +67,7 @@ namespace kagome::network {
             [&peers](const libp2p::peer::PeerInfo &peer_info,
                      const auto &peer_type,
                      const auto &peer_map) { peers.push_back(peer_info.id); });
-        ext_events_engine_->notify(
+        extrinsic_events_engine_->notify(
             ext.observed_id.value(),
             primitives::events::ExtrinsicLifecycleEvent::Broadcast(
                 ext.observed_id.value(), std::move(peers)));

@@ -121,10 +121,9 @@ namespace kagome::api {
   outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(SubscriptionId sub_id) {
     if (auto service = api_service_.lock()) {
       return service->unsubscribeFromExtrinsicLifecycle(sub_id);
-    } else {
-      throw jsonrpc::InternalErrorFault(
-          "Internal error. Api service not initialized.");
     }
+    throw jsonrpc::InternalErrorFault(
+        "Internal error. Api service not initialized.");
   }
 
 }  // namespace kagome::api

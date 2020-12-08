@@ -28,7 +28,7 @@ namespace kagome::transaction_pool {
         limits_{limits} {
     BOOST_ASSERT_MSG(header_repo_ != nullptr, "header repo is nullptr");
     BOOST_ASSERT_MSG(moderator_ != nullptr, "moderator is nullptr");
-    BOOST_ASSERT_MSG(sub_engine_ != nullptr, "moderator is nullptr");
+    BOOST_ASSERT_MSG(sub_engine_ != nullptr, "sub engine is nullptr");
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
@@ -157,7 +157,7 @@ namespace kagome::transaction_pool {
     logger_->debug("Extrinsic {} with hash {} was removed from the pool",
                    tx->ext.data.toHex(),
                    tx->hash.toHex());
-    return *tx;
+    return std::move(*tx);
   }
 
   void TransactionPoolImpl::remove(

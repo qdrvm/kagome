@@ -343,7 +343,7 @@ namespace kagome::injector {
     auto extrinsic_observer =
         injector.template create<sptr<network::ExtrinsicObserver>>();
 
-    auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
+    auto hasher = injector.template create<sptr<crypto::Hasher>>();
 
     auto chain_events_engine =
         injector.template create<primitives::events::ChainSubscriptionEnginePtr>();

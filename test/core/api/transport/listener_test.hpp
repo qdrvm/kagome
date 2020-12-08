@@ -52,9 +52,7 @@ struct ListenerTest : public ::testing::Test {
   using Context = RpcContext;
   using Socket = boost::asio::ip::tcp::socket;
   using Timer = boost::asio::steady_timer;
-  using Streambuf = boost::asio::streambuf;
   using Duration = boost::asio::steady_timer::duration;
-  using ErrorCode = boost::system::error_code;
 
   std::shared_ptr<Context> main_context = std::make_shared<Context>(1);
   std::shared_ptr<Context> client_context = std::make_shared<Context>(1);
@@ -104,9 +102,7 @@ struct ListenerTest : public ::testing::Test {
       app_state_manager, main_context, listener_config, session_config);
 
   using SessionPtr = std::shared_ptr<Session>;
-  using SubscriptionEngineType =
-      SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
-  std::shared_ptr<StorageSubscriptionEngine> storage_events_engine =
+  StorageSubscriptionEnginePtr storage_events_engine =
       std::make_shared<StorageSubscriptionEngine>();
   ChainSubscriptionEnginePtr chain_events_engine =
       std::make_shared<ChainSubscriptionEngine>();

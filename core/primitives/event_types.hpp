@@ -101,9 +101,12 @@ namespace kagome::primitives::events {
   };
 
   template <typename T>
-  using ref = std::reference_wrapper<const T>;
+  using ref_t = std::reference_wrapper<const T>;
 
   struct ExtrinsicLifecycleEvent {
+    // mind that although sometimes boost::none is used in variants to skip a
+    // parameter, here it literally represents the type of event parameters when
+    // there are none
     using Params = boost::variant<boost::none_t,
                                   BroadcastEventParams,
                                   InBlockEventParams,
@@ -138,8 +141,8 @@ namespace kagome::primitives::events {
           Params{InBlockEventParams{.block = std::move(block)}}};
     }
 
-    static ExtrinsicLifecycleEvent Retracted(
-        ObservedExtrinsicId id, Hash256Span retracted_block) {
+    static ExtrinsicLifecycleEvent Retracted(ObservedExtrinsicId id,
+                                             Hash256Span retracted_block) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::RETRACTED,
@@ -147,8 +150,8 @@ namespace kagome::primitives::events {
                                           std::move(retracted_block)}}};
     }
 
-    static ExtrinsicLifecycleEvent FinalityTimeout(
-        ObservedExtrinsicId id, Hash256Span block) {
+    static ExtrinsicLifecycleEvent FinalityTimeout(ObservedExtrinsicId id,
+                                                   Hash256Span block) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::FINALITY_TIMEOUT,
@@ -185,14 +188,7 @@ namespace kagome::primitives::events {
     ObservedExtrinsicId id;
     ExtrinsicEventType type;
 
-    boost::variant<boost::none_t,
-                   BroadcastEventParams,
-                   InBlockEventParams,
-                   RetractedEventParams,
-                   FinalityTimeoutEventParams,
-                   FinalizedEventParams,
-                   UsurpedEventParams>
-        params;
+    Params params;
 
    private:
     ExtrinsicLifecycleEvent(ObservedExtrinsicId id,
@@ -202,8 +198,8 @@ namespace kagome::primitives::events {
   };
 
   using ChainEventParams = boost::variant<boost::none_t,
-                                          ref<const primitives::BlockHeader>,
-                                          ref<primitives::Version>>;
+                                          ref_t<const primitives::BlockHeader>,
+                                          ref_t<primitives::Version>>;
 
   using StorageSubscriptionEngine =
       subscription::SubscriptionEngine<common::Buffer,

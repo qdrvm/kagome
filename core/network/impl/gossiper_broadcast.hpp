@@ -52,7 +52,7 @@ namespace kagome::network {
     GossiperBroadcast(
         StreamEngine::StreamEnginePtr stream_engine,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
-            ext_events_engine,
+            extrinsic_events_engine,
         std::shared_ptr<kagome::application::ChainSpec> config);
 
     ~GossiperBroadcast() override = default;
@@ -129,7 +129,7 @@ namespace kagome::network {
     common::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
-        ext_events_engine_;
+        extrinsic_events_engine_;
     std::shared_ptr<kagome::application::ChainSpec> config_;
     libp2p::peer::Protocol transactions_protocol_;
     libp2p::peer::Protocol block_announces_protocol_;
