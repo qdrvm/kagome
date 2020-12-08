@@ -6,8 +6,10 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_METADATA_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_METADATA_IMPL_HPP
 
-#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/metadata.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
+
+#include "blockchain/block_header_repository.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -15,12 +17,16 @@ namespace kagome::runtime::binaryen {
    public:
     explicit MetadataImpl(
         const std::shared_ptr<WasmProvider> &wasm_provider,
-        const std::shared_ptr<RuntimeManager> &runtime_manager);
+        const std::shared_ptr<RuntimeManager> &runtime_manager,
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
 
     ~MetadataImpl() override = default;
 
     outcome::result<OpaqueMetadata> metadata(
         const boost::optional<primitives::BlockHash> &block_hash) override;
+
+   private:
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
   };
 }  // namespace kagome::runtime::binaryen
 

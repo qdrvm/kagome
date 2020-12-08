@@ -9,6 +9,7 @@
 
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/impl/extension_impl.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
@@ -16,6 +17,7 @@
 using ::testing::_;
 using ::testing::Return;
 
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::runtime::Metadata;
 using kagome::runtime::binaryen::MetadataImpl;
 
@@ -26,7 +28,10 @@ class MetadataTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<MetadataImpl>(wasm_provider_, runtime_manager_);
+    api_ = std::make_shared<MetadataImpl>(
+        wasm_provider_,
+        runtime_manager_,
+        std::make_shared<BlockHeaderRepositoryMock>());
   }
 
  protected:
