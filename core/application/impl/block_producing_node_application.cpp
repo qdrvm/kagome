@@ -27,7 +27,7 @@ namespace kagome::application {
   }
 
   void BlockProducingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
+    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
 
     babe_->setExecutionStrategy(Babe::ExecutionStrategy::SYNC_FIRST);
 
