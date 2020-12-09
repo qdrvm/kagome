@@ -12,6 +12,7 @@
 #include <spdlog/common.h>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/filesystem.hpp>
+#include <libp2p/multi/multiaddress.hpp>
 
 namespace kagome::application {
 
@@ -64,6 +65,12 @@ namespace kagome::application {
     virtual uint16_t p2p_port() const = 0;
 
     /**
+     * @return multiaddresses of bootstrat nodes
+     */
+    virtual const std::vector<libp2p::multi::Multiaddress> &bootnodes()
+        const = 0;
+
+    /**
      * @return endpoint for RPC over HTTP.
      */
     virtual const boost::asio::ip::tcp::endpoint &rpc_http_endpoint() const = 0;
@@ -97,8 +104,8 @@ namespace kagome::application {
 
     /**
      * Slots strategy
-     * @return true if we should count slots as `unix_epoch_time() / slot_duration`.
-     * Otherwise slots are counting from 0 and false is returned
+     * @return true if we should count slots as `unix_epoch_time() /
+     * slot_duration`. Otherwise slots are counting from 0 and false is returned
      */
     virtual bool is_unix_slots_strategy() const = 0;
   };

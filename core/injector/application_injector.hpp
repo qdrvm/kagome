@@ -126,9 +126,25 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto &cfg = injector.template create<application::ChainSpec &>();
 
-    initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
+    network::PeerList peer_list;
+
+    auto &app_config =
+        injector.template create<application::AppConfiguration &>();
+
+    std::copy(chain_spec.getBootNodes().peers.begin(),
+              chain_spec.getBootNodes().peers.end(),
+              std::back_inserter(peer_list.peers));
+
+    auto &chain_spec = injector.template create<application::ChainSpec &>();
+
+
+    std::copy(chain_spec.getBootNodes().peers.begin(),
+              chain_spec.getBootNodes().peers.end(),
+              std::back_inserter(peer_list.peers));
+
+    initialized =
+        std::make_shared<network::PeerList>(chain_spec.getBootNodes());
     return initialized.value();
   }
 
