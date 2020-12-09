@@ -35,6 +35,7 @@ typedef enum SHA3_RETURN sha3_return_t;
 
 /* For Init or Reset call these: */
 sha3_return_t sha3_Init(void *priv, unsigned bitSize);
+void keccakf(uint64_t s[25]);
 
 void sha3_Init256(void *priv);
 void sha3_Init384(void *priv);

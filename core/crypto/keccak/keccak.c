@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "crypto/keccak/keccak.h"
+#include "macro/endianness_utils.hpp"
 
 #define SHA3_ASSERT(x)
 #if defined(_MSC_VER)
@@ -60,10 +61,16 @@ static const unsigned keccakf_piln[24] = {10, 7,  11, 17, 18, 3,  5,  16,
 /* generally called after SHA3_KECCAK_SPONGE_WORDS-ctx->capacityWords words
  * are XORed into the state s
  */
-static void keccakf(uint64_t s[25]) {
+void keccakf(uint64_t s[25]) {
   int i, j, round;    // NOLINT
   uint64_t t, bc[5];  // NOLINT
 #define KECCAK_ROUNDS 24
+
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+  for (i = 0; i < 25; i++) {
+    s[i] = LE_BE_SWAP64(s[i]);
+  }
+#endif
 
   for (round = 0; round < KECCAK_ROUNDS; round++) {
     /* Theta */
@@ -93,6 +100,12 @@ static void keccakf(uint64_t s[25]) {
     /* Iota */
     s[0] ^= keccakf_rndc[round];
   }
+
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+  for (i = 0; i < 25; i++) {
+    s[i] = LE_BE_SWAP64(s[i]);
+  }
+#endif
 }
 
 /* *************************** Public Inteface ************************ */
