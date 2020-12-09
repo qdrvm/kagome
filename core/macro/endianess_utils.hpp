@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_LE_BE_HPP
-#define KAGOME_LE_BE_HPP
+#ifndef KAGOME_ENDIANESS_UTILS_HPP
+#define KAGOME_ENDIANESS_UTILS_HPP
 
 #ifdef _MSC_VER
 #define LE_BE_SWAP32 _byteswap_ulong
@@ -14,4 +14,4 @@
 #define LE_BE_SWAP64 __builtin_bswap64
 #endif  //_MSC_VER
 
-#endif  // KAGOME_LE_BE_HPP
+#endif  // KAGOME_ENDIANESS_UTILS_HPP
