@@ -228,20 +228,11 @@ namespace kagome::consensus {
         break;
     }
 
-    // TODO (kamilsa): PRE-364 uncomment outcome try and remove dirty workaround
-    // below
-    //    OUTCOME_TRY(this_block_epoch_descriptor,
-    //                epoch_storage_->getEpochDescriptor(epoch_index));
-    auto this_block_epoch_descriptor_res =
-        epoch_storage_->getEpochDescriptor(epoch_index);
-    if (not this_block_epoch_descriptor_res) {  // take authorities and
-                                                // randomness
-                                                // from config
-      this_block_epoch_descriptor_res = NextEpochDescriptor{
-          .authorities = genesis_configuration_->genesis_authorities,
-          .randomness = genesis_configuration_->randomness};
-    }
-    auto this_block_epoch_descriptor = this_block_epoch_descriptor_res.value();
+        OUTCOME_TRY(this_block_epoch_descriptor,
+                    epoch_storage_->getEpochDescriptor(epoch_index));
+
+    BOOST_ASSERT(epoch_storage_->getEpochDescriptor(0));
+    BOOST_ASSERT(epoch_storage_->getEpochDescriptor(1));
 
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         this_block_epoch_descriptor.authorities,
