@@ -325,8 +325,9 @@ namespace kagome::injector {
       auto configuration =
           injector.template create<sptr<primitives::BabeConfiguration>>();
       consensus::NextEpochDescriptor init_epoch_desc{
-          .randomness = configuration->randomness,
-          .authorities = configuration->genesis_authorities};
+          .authorities = configuration->genesis_authorities,
+          .randomness = configuration->randomness
+      };
 
       BOOST_ASSERT(obj);
       const bool init_epoch_desc_ok =
