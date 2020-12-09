@@ -11,11 +11,11 @@
 #include "api/jrpc/value_converter.hpp"
 #include "api_service.hpp"
 
-#define UNWRAP_WEAK_PTR(callback)   \
-  [wp](auto &&... params) mutable { \
-    if (auto self = wp.lock()) {    \
-      self->callback(params...);    \
-    }                               \
+#define UNWRAP_WEAK_PTR(callback)  \
+  [wp](auto &&...params) mutable { \
+    if (auto self = wp.lock()) {   \
+      self->callback(params...);   \
+    }                              \
   }
 
 namespace {
@@ -186,7 +186,12 @@ namespace kagome::api {
                   self->storeSessionWithId(session->id(), session);
               BOOST_ASSERT(session_context);
               session_context->storage_sub->setCallback(
-                  UNWRAP_WEAK_PTR(onStorageEvent));
+                  self->unwrapWeakPtr<SubscriptionSetId,
+                                      SessionPtr &,
+                                      const Buffer &,
+                                      const Buffer &,
+                                      const common::Hash256 &>(
+                      wp, &ApiService::onStorageEvent));
               session_context->chain_sub->setCallback(
                   UNWRAP_WEAK_PTR(onChainEvent));
               session_context->ext_sub->setCallback(
@@ -226,7 +231,8 @@ namespace kagome::api {
                 .chain_sub = std::make_shared<ChainEventSubscriber>(
                     subscription_engines_.chain, session),
                 .ext_sub = std::make_shared<ExtrinsicEventSubscriber>(
-                    subscription_engines_.ext, session)}));
+                    subscription_engines_.ext, session),
+                .messages{}}));
 
     BOOST_ASSERT(inserted);
     return it->second;

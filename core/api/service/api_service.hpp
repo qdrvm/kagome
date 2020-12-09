@@ -74,8 +74,8 @@ namespace kagome::api {
       using AdditionMessageType =
           decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
       using AdditionMessagesList = std::vector<AdditionMessageType>;
-      using CachedAdditionMessagesList = decltype(
-          KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
+      using CachedAdditionMessagesList = decltype(KAGOME_EXTRACT_SHARED_CACHE(
+          api_service, AdditionMessagesList));
 
       StorageEventSubscriberPtr storage_sub;
       ChainEventSubscriberPtr chain_sub;
@@ -202,19 +202,18 @@ namespace kagome::api {
       return obj;
     }
     // TODO(Harrm): find a way to fix it
-    //    template <typename... Args>
-    //    using EventHandler = void (ApiService::*)(Args&&... args);
-    //
-    //    template <typename... Args>
-    //    std::function<void(Args&&...)> unwrapWeakPtr(
-    //        std::weak_ptr<ApiService> wp,
-    //        EventHandler<Args...> handler) const {
-    //      return [wp, handler](Args &&... params) mutable {
-    //        if (auto self = wp.lock()) {
-    //          std::invoke(handler, self, std::forward<Args>(params)...);
-    //        }
-    //      };
-    //    }
+    template <typename... Args>
+    using EventHandler = void (ApiService::*)(Args ...args);
+
+    template <typename... Args>
+    std::function<void(Args &&...)> unwrapWeakPtr(
+        std::weak_ptr<ApiService> wp, EventHandler<Args...> handler) const {
+      return [wp, handler](Args &&...params) mutable {
+        if (auto self = wp.lock()) {
+          std::invoke(handler, self, std::forward<Args>(params)...);
+        }
+      };
+    }
 
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<sptr<Listener>> listeners_;
