@@ -6,8 +6,8 @@
 #)
 
 hunter_config(libp2p
-    URL https://github.com/xDimon/cpp-libp2p/archive/e393296c6e1d9038a8fc4ea20ba3603514e0060d.zip
-    SHA1 268873cee3568d7a9ad79fbb77e51a7b7faa094b
+    URL https://github.com/xDimon/cpp-libp2p/archive/56aecfaec13fdb11155a998177032e9e98039956.zip
+    SHA1 e578970381abcc920ca40086702fc0921cf80896
     CMAKE_ARGS TESTING=OFF
     )
 
