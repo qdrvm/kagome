@@ -450,15 +450,15 @@ namespace kagome::consensus {
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
-      visit_in_place(
-          digest_item,
-          [&](const primitives::Consensus &consensus_message) {
-            [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
-                consensus_message.consensus_engine_id,
-                best_block_info,
-                consensus_message);
-          },
-          [](const auto &) {});
+      visit_in_place(digest_item,
+                     [&](const primitives::Consensus &consensus_message) {
+                       [[maybe_unused]] auto res =
+                           authority_update_observer_->onConsensus(
+                               consensus_message.consensus_engine_id,
+                               best_block_info,
+                               consensus_message);
+                     },
+                     [](const auto &) {});
     }
 
     // add block to the block tree

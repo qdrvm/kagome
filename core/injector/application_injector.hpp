@@ -326,8 +326,7 @@ namespace kagome::injector {
           injector.template create<sptr<primitives::BabeConfiguration>>();
       consensus::NextEpochDescriptor init_epoch_desc{
           .authorities = configuration->genesis_authorities,
-          .randomness = configuration->randomness
-      };
+          .randomness = configuration->randomness};
 
       BOOST_ASSERT(obj);
       const bool init_epoch_desc_ok =
@@ -737,9 +736,8 @@ namespace kagome::injector {
             [](const auto &injector) { return get_slots_strategy(injector); }),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
-        di::bind<consensus::EpochStorage>.to([](auto const &injector) {
-          return get_epoch_storage(injector);
-        }),
+        di::bind<consensus::EpochStorage>.to(
+            [](auto const &injector) { return get_epoch_storage(injector); }),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),

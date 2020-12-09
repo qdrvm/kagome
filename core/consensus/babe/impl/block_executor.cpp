@@ -144,7 +144,7 @@ namespace kagome::consensus {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
@@ -223,13 +223,14 @@ namespace kagome::consensus {
         OUTCOME_TRY(last_epoch, epoch_storage_->getLastEpoch());
         auto last_epoch_start_slot = last_epoch.start_slot;
         auto last_epoch_index = last_epoch.epoch_number;
-        epoch_index = last_epoch_index + (babe_header.slot_number - last_epoch_start_slot)
-                      / genesis_configuration_->epoch_length;
+        epoch_index = last_epoch_index
+                      + (babe_header.slot_number - last_epoch_start_slot)
+                            / genesis_configuration_->epoch_length;
         break;
     }
 
-        OUTCOME_TRY(this_block_epoch_descriptor,
-                    epoch_storage_->getEpochDescriptor(epoch_index));
+    OUTCOME_TRY(this_block_epoch_descriptor,
+                epoch_storage_->getEpochDescriptor(epoch_index));
 
     BOOST_ASSERT(epoch_storage_->getEpochDescriptor(0));
     BOOST_ASSERT(epoch_storage_->getEpochDescriptor(1));
@@ -287,7 +288,7 @@ namespace kagome::consensus {
       if (res.has_error()
           && res
                  != outcome::failure(
-                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+                        transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
         return res;
       }
     }
