@@ -232,9 +232,6 @@ namespace kagome::consensus {
     OUTCOME_TRY(this_block_epoch_descriptor,
                 epoch_storage_->getEpochDescriptor(epoch_index));
 
-    BOOST_ASSERT(epoch_storage_->getEpochDescriptor(0));
-    BOOST_ASSERT(epoch_storage_->getEpochDescriptor(1));
-
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         this_block_epoch_descriptor.authorities,
                                         babe_header.authority_index);
