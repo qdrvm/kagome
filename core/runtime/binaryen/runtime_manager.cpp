@@ -17,6 +17,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
   switch (e) {
     case Error::EMPTY_STATE_CODE:
       return "Provided state code is empty, calling a function is impossible";
+    case Error::NO_PERSISTENT_BATCH:
+      return "No persistent batch in storage provider";
   }
   return "Unknown RuntimeManager error";
 }
@@ -45,11 +47,13 @@ namespace kagome::runtime::binaryen {
   RuntimeManager::createPersistentRuntimeEnvironmentAt(
       const common::Buffer &state_code, const common::Hash256 &state_root) {
     OUTCOME_TRY(storage_provider_->setToPersistentAt(state_root));
+
+    auto persistent_batch = storage_provider_->tryGetPersistentBatch();
+    if (!persistent_batch) return Error::NO_PERSISTENT_BATCH;
+
     auto env = createRuntimeEnvironment(state_code);
-    if (env.has_value()) {
-      env.value().batch =
-          storage_provider_->tryGetPersistentBatch().value()->batchOnTop();
-    }
+    if (env.has_value()) env.value().batch = (*persistent_batch)->batchOnTop();
+
     return env;
   }
 
@@ -64,11 +68,13 @@ namespace kagome::runtime::binaryen {
   RuntimeManager::createPersistentRuntimeEnvironment(
       const common::Buffer &state_code) {
     OUTCOME_TRY(storage_provider_->setToPersistent());
+
+    auto persistent_batch = storage_provider_->tryGetPersistentBatch();
+    if (!persistent_batch) return Error::NO_PERSISTENT_BATCH;
+
     auto env = createRuntimeEnvironment(state_code);
-    if (env.has_value()) {
-      env.value().batch =
-          storage_provider_->tryGetPersistentBatch().value()->batchOnTop();
-    }
+    if (env.has_value()) env.value().batch = (*persistent_batch)->batchOnTop();
+
     return env;
   }
 
@@ -115,8 +121,7 @@ namespace kagome::runtime::binaryen {
       module = modules_.emplace(hash, std::move(new_module)).first->second;
     }
 
-    return RuntimeEnvironment::create(
-        external_interface_, module, state_code);
+    return RuntimeEnvironment::create(external_interface_, module, state_code);
   }
   void RuntimeManager::reset() {
     external_interface_->reset();

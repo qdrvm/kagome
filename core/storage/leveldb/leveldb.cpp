@@ -5,19 +5,22 @@
 
 #include "storage/leveldb/leveldb.hpp"
 
-#include <boost/filesystem.hpp>
-#include <utility>
 #include <iostream>
+#include <utility>
 
+#include "filesystem/common.hpp"
+#include "filesystem/directories.hpp"
 #include "storage/leveldb/leveldb_batch.hpp"
 #include "storage/leveldb/leveldb_cursor.hpp"
 #include "storage/leveldb/leveldb_util.hpp"
 
 namespace kagome::storage {
-  namespace fs  = boost::filesystem;
 
   outcome::result<std::shared_ptr<LevelDB>> LevelDB::create(
-      const fs::path &path, leveldb::Options options) {
+      const filesystem::path &path, leveldb::Options options) {
+    if (!filesystem::createDirectoryRecursive(path))
+      return DatabaseError::DB_PATH_NOT_CREATED;
+
     leveldb::DB *db = nullptr;
     auto status = leveldb::DB::Open(options, path.native(), &db);
     if (status.ok()) {
@@ -55,7 +58,7 @@ namespace kagome::storage {
     }
 
     // not always an actual error so don't log it
-    if(status.IsNotFound()) {
+    if (status.IsNotFound()) {
       return error_as_result<Buffer>(status);
     }
 
