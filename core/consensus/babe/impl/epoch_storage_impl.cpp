@@ -44,6 +44,11 @@ namespace kagome::consensus {
     return scale::decode<NextEpochDescriptor>(encoded_ed);
   }
 
+  bool EpochStorageImpl::exists(EpochIndex epoch_number) const {
+    return storage_->contains(
+        common::Buffer{EPOCH_PREFIX}.putUint64(epoch_number));
+  }
+
   outcome::result<void> EpochStorageImpl::setLastEpoch(
       const LastEpochDescriptor &epoch_descriptor) {
     const auto &key = storage::kLastBabeEpochNumberLookupKey;

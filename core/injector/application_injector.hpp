@@ -322,17 +322,18 @@ namespace kagome::injector {
     if (!obj) {
       obj = std::make_shared<consensus::EpochStorageImpl>(
           injector.template create<sptr<storage::BufferStorage>>());
-      auto configuration =
-          injector.template create<sptr<primitives::BabeConfiguration>>();
-      consensus::NextEpochDescriptor init_epoch_desc{
-          .authorities = configuration->genesis_authorities,
-          .randomness = configuration->randomness};
+      if (!(*obj)->exists(0) || !(*obj)->exists(1)) {
+        auto configuration =
+            injector.template create<sptr<primitives::BabeConfiguration>>();
+        consensus::NextEpochDescriptor init_epoch_desc{
+            .authorities = configuration->genesis_authorities,
+            .randomness = configuration->randomness};
 
-      BOOST_ASSERT(obj);
-      const bool init_epoch_desc_ok =
-          (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value()
-          && (*obj)->addEpochDescriptor(1, init_epoch_desc).has_value();
-      BOOST_ASSERT(init_epoch_desc_ok);
+        const bool init_epoch_desc_ok =
+            (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value()
+            && (*obj)->addEpochDescriptor(1, init_epoch_desc).has_value();
+        BOOST_ASSERT(init_epoch_desc_ok);
+      }
     }
 
     return obj.value();

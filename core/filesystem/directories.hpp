@@ -16,10 +16,7 @@ namespace kagome::filesystem {
    * @return true if path exists, otherwise false
    */
   inline bool createDirectoryRecursive(const path &path) {
-    if (!exists(path))
-      if (!create_directories(path)) return false;
-
-    return true;
+    return exists(path) || create_directories(path);
   }
 
 }  // namespace kagome::filesystem
