@@ -94,7 +94,8 @@ namespace kagome::consensus {
                    const EpochIndex epoch_index,
                    const primitives::BabeSessionKey &public_key,
                    const Threshold &threshold,
-                   const Randomness &randomness) const;
+                   const Randomness &randomness,
+                   const bool checkThreshold) const;
 
     inline primitives::Transcript &makeTranscript(
         primitives::Transcript &transcript_,

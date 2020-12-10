@@ -31,6 +31,11 @@ namespace kagome::consensus {
       return (check_type & kVRFHeader) != 0;
     }
 
+    bool needVRFWithThresholdCheck() const {
+      return (check_type & (kVRFHeader | kSecondaryHeaderCheck)) == kVRFHeader;
+
+    }
+
     bool needAuthorCheck() const {
       return (check_type & kSecondaryHeaderCheck) != 0;
     }

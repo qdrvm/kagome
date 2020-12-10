@@ -80,7 +80,8 @@ namespace kagome::consensus {
                       epoch_index,
                       primitives::BabeSessionKey{authority_id.id},
                       threshold,
-                      randomness)) {
+                      randomness,
+                      babe_header.needVRFWithThresholdCheck())) {
       return ValidationError::INVALID_VRF;
     }
 
@@ -119,7 +120,8 @@ namespace kagome::consensus {
       const EpochIndex epoch_index,
       const primitives::BabeSessionKey &public_key,
       const Threshold &threshold,
-      const Randomness &randomness) const {
+      const Randomness &randomness,
+      const bool checkThreshold) const {
 
     // verify VRF output
     auto randomness_with_slot =
@@ -146,7 +148,7 @@ namespace kagome::consensus {
     }
 
     // verify threshold
-    if (not verify_res.is_less) {
+    if (checkThreshold && not verify_res.is_less) {
       log_->error("VRF value is not less than the threshold");
       return false;
     }
