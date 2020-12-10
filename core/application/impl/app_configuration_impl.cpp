@@ -167,8 +167,8 @@ namespace kagome::application {
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
     load_bool(val, "single_finalizing_node", is_only_finalizing_);
     load_bool(val, "already_synchronized", is_already_synchronized_);
-    load_u32(val, "maxBlocksInResponse", max_blocks_in_response_);
-    load_bool(val, "isUnixSlotsStrategy", is_unix_slots_strategy_);
+    load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
+    load_bool(val, "is_unix_slots_strategy", is_unix_slots_strategy_);
   }
 
   bool AppConfigurationImpl::validate_config(
@@ -274,14 +274,13 @@ namespace kagome::application {
 
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
-        ("base_path,d", po::value<std::string>(),
-            "required, node base path (keeps storage and keys for known chains)")
+        ("base_path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
         ;
 
     po::options_description network_desc("Network options");
     network_desc.add_options()
-        ("makeBootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of makeBootnodes")
-        ("p2pPort,p", po::value<uint16_t>(), "port for peer to peer interactions")
+        ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of makeBootnodes")
+        ("p2p_port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc_http_host", po::value<std::string>(), "address for RPC over HTTP")
         ("rpc_http_port", po::value<uint16_t>(), "port for RPC over HTTP")
         ("rpc_ws_host", po::value<std::string>(), "address for RPC over Websocket protocol")
@@ -292,7 +291,7 @@ namespace kagome::application {
     additional_desc.add_options()
         ("single_finalizing_node,f", "if this is the only finalizing node")
         ("already_synchronized,s", "if need to consider synchronized")
-        ("maxBlocksInResponse", "max block per response while syncing")
+        ("max_blocks_in_response", "max block per response while syncing")
         ("unix_slots,u", "if slots are calculated from unix epoch")
         ;
     // clang-format on
@@ -348,7 +347,7 @@ namespace kagome::application {
 
     std::vector<std::string> boot_nodes;
     find_argument<std::vector<std::string>>(
-        vm, "makeBootnodes", [&](std::vector<std::string> const &val) {
+        vm, "bootnodes", [&](std::vector<std::string> const &val) {
           boot_nodes = val;
         });
     boot_nodes_.reserve(boot_nodes.size());
@@ -371,9 +370,9 @@ namespace kagome::application {
     }
 
     find_argument<uint16_t>(
-        vm, "p2pPort", [&](uint16_t val) { p2p_port_ = val; });
+        vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
 
-    find_argument<uint32_t>(vm, "maxBlocksInResponse", [&](uint32_t val) {
+    find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
       max_blocks_in_response_ = val;
     });
 

@@ -36,10 +36,10 @@ struct BootstrapNodesTest : public ::testing::Test {
   std::string peerB = "/p2p/" + "BBB"_peerid.toBase58();
   std::string peerC = "/p2p/" + "CCC"_peerid.toBase58();
 
-  std::string addr1 = "/ip4/1.1.1.1";
-  std::string addr2 = "/ip4/2.2.2.2";
-  std::string addr3 = "/ip4/3.3.3.3";
-  std::string addr4 = "/ip4/4.4.4.4";
+  std::string addr1 = "/ip4/1.1.1.1/tcp/1111";
+  std::string addr2 = "/ip4/2.2.2.2/tcp/2222";
+  std::string addr3 = "/ip4/3.3.3.3/tcp/3333";
+  std::string addr4 = "/ip4/4.4.4.4/tcp/4444";
 
   std::vector<multi::Multiaddress> acm_bootnodes;
   std::vector<multi::Multiaddress> scm_bootnodes;

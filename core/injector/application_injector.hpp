@@ -563,7 +563,8 @@ namespace kagome::injector {
     }
     auto genesis_config =
         injector.template create<sptr<application::ChainSpec>>();
-    auto &boot_nodes = injector.template create<const network::BootstrapNodes &>();
+    auto &boot_nodes =
+        injector.template create<const network::BootstrapNodes &>();
 
     auto host = injector.template create<sptr<libp2p::Host>>();
 
@@ -694,9 +695,6 @@ namespace kagome::injector {
             libp2p::injector::useSecurityAdaptors<
                 libp2p::security::Noise>()[di::override]),
 
-        // bind boot nodes
-        //        di::bind<network::BootstrapNodes>.to(
-        //            [](auto const &inj) { return get_bootstrap_nodes(inj); }),
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
 

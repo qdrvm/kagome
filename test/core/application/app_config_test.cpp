@@ -36,7 +36,7 @@ class AppConfigurationTest : public testing::Test {
           "base_path" : "%2%"
         },
         "network" : {
-              "p2pPort" : 456,
+              "p2p_port" : 456,
               "rpc_http_host" : "1.1.1.1",
               "rpc_http_port" : 123,
               "rpc_ws_host" : "2.2.2.2",
@@ -58,7 +58,7 @@ class AppConfigurationTest : public testing::Test {
           base_path.native().c_str() : 2
         },
         "network" : {
-              "p2pPort" : "13",
+              "p2p_port" : "13",
               "rpc_http_host" : 7,
               "rpc_http_port" : "1312",
               "rpc_ws_host" : 5,
