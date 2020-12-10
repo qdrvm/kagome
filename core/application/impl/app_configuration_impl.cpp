@@ -36,33 +36,33 @@ namespace {
 namespace kagome::application {
 
   AppConfigurationImpl::AppConfigurationImpl(common::Logger logger)
-      : p2p_port_(def_p2p_port),
+      : logger_(std::move(logger)),
+        p2p_port_(def_p2p_port),
         verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
-        is_only_finalizing_(def_is_only_finalizing),
         is_already_synchronized_(def_is_already_synchronized),
+        is_only_finalizing_(def_is_only_finalizing),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         is_unix_slots_strategy_(def_is_unix_slots_strategy),
-        logger_(std::move(logger)),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port) {}
 
-  fs::path AppConfigurationImpl::genesis_path() const {
+  fs::path AppConfigurationImpl::genesisPath() const {
     return genesis_path_.native();
   }
 
-  boost::filesystem::path AppConfigurationImpl::chain_path(
+  boost::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
     return base_path_ / chain_id;
   }
 
-  fs::path AppConfigurationImpl::database_path(std::string chain_id) const {
-    return chain_path(chain_id) / "db";
+  fs::path AppConfigurationImpl::databasePath(std::string chain_id) const {
+    return chainPath(chain_id) / "db";
   }
 
-  fs::path AppConfigurationImpl::keystore_path(std::string chain_id) const {
-    return chain_path(chain_id) / "keystore";
+  fs::path AppConfigurationImpl::keystorePath(std::string chain_id) const {
+    return chainPath(chain_id) / "keystore";
   }
 
   AppConfigurationImpl::FilePtr AppConfigurationImpl::open_file(
@@ -156,8 +156,8 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
-    load_ma(val, "bootnodes", bootnodes_);
-    load_u16(val, "p2p_port", p2p_port_);
+    load_ma(val, "bootNodes", boot_nodes_);
+    load_u16(val, "p2pPort", p2p_port_);
     load_str(val, "rpc_http_host", rpc_http_host_);
     load_u16(val, "rpc_http_port", rpc_http_port_);
     load_str(val, "rpc_ws_host", rpc_ws_host_);
@@ -167,8 +167,8 @@ namespace kagome::application {
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
     load_bool(val, "single_finalizing_node", is_only_finalizing_);
     load_bool(val, "already_synchronized", is_already_synchronized_);
-    load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
-    load_bool(val, "is_unix_slots_strategy", is_unix_slots_strategy_);
+    load_u32(val, "maxBlocksInResponse", max_blocks_in_response_);
+    load_bool(val, "isUnixSlotsStrategy", is_unix_slots_strategy_);
   }
 
   bool AppConfigurationImpl::validate_config(
@@ -280,8 +280,8 @@ namespace kagome::application {
 
     po::options_description network_desc("Network options");
     network_desc.add_options()
-        ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootnodes")
-        ("p2p_port,p", po::value<uint16_t>(), "port for peer to peer interactions")
+        ("makeBootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of makeBootnodes")
+        ("p2pPort,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc_http_host", po::value<std::string>(), "address for RPC over HTTP")
         ("rpc_http_port", po::value<uint16_t>(), "port for RPC over HTTP")
         ("rpc_ws_host", po::value<std::string>(), "address for RPC over Websocket protocol")
@@ -292,7 +292,7 @@ namespace kagome::application {
     additional_desc.add_options()
         ("single_finalizing_node,f", "if this is the only finalizing node")
         ("already_synchronized,s", "if need to consider synchronized")
-        ("max_blocks_in_response", "max block per response while syncing")
+        ("maxBlocksInResponse", "max block per response while syncing")
         ("unix_slots,u", "if slots are calculated from unix epoch")
         ;
     // clang-format on
@@ -319,7 +319,7 @@ namespace kagome::application {
       po::store(po::parse_command_line(argc, argv, desc), vm);
       po::store(parsed, vm);
       po::notify(vm);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       std::cerr << "Error: " << e.what() << '\n'
                 << "Try run with option '--help' for more information"
                 << std::endl;
@@ -338,8 +338,7 @@ namespace kagome::application {
     if (vm.end() != vm.find("already_synchronized"))
       is_already_synchronized_ = true;
 
-    if (vm.end() != vm.find("unix_slots"))
-      is_unix_slots_strategy_ = true;
+    if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
         vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });
@@ -347,19 +346,34 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "base_path", [&](std::string const &val) { base_path_ = val; });
 
+    std::vector<std::string> boot_nodes;
     find_argument<std::vector<std::string>>(
-        vm, "bootnodes", [&](std::vector<std::string> const &val) {
-          for (auto &s : val) {
-            if (auto ma_res = libp2p::multi::Multiaddress::create(s)) {
-              bootnodes_.emplace_back(std::move(ma_res.value()));
-            }
-          }
+        vm, "makeBootnodes", [&](std::vector<std::string> const &val) {
+          boot_nodes = val;
         });
+    boot_nodes_.reserve(boot_nodes.size());
+    for (auto &addr_str : boot_nodes) {
+      auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
+      if (not ma_res.has_value()) {
+        auto err_msg = "Bootnode is invalid: " + addr_str;
+        logger_->error(err_msg);
+        std::cout << err_msg << std::endl;
+        return false;
+      }
+      auto peer_id_base58_opt = ma_res.value().getPeerId();
+      if (not peer_id_base58_opt) {
+        auto err_msg = "Bootnode has not peer_id: " + addr_str;
+        logger_->error(err_msg);
+        std::cout << err_msg << std::endl;
+        return false;
+      }
+      boot_nodes_.emplace_back(std::move(ma_res.value()));
+    }
 
     find_argument<uint16_t>(
-        vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
+        vm, "p2pPort", [&](uint16_t val) { p2p_port_ = val; });
 
-    find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
+    find_argument<uint32_t>(vm, "maxBlocksInResponse", [&](uint32_t val) {
       max_blocks_in_response_ = val;
     });
 

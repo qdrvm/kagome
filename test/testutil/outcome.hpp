@@ -127,7 +127,7 @@
 
 #define _ASSERT_OUTCOME_SUCCESS_TRY(_result_, _expression_)             \
   auto &&_result_ = (_expression_);                                     \
-  if (not _result_.has_value()) {                                       \
+  if (not(_result_).has_value()) {                                      \
     GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                  \
         << "  Actual:   Error '" << _result_.error().message() << "'\n" \
         << "Expected:   Success";                                       \

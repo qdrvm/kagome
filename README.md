@@ -112,7 +112,7 @@ To launch kagome syncing node execute:
 ```
 cd examples/network
 PATH=$PATH:../../build/node/kagome_full_syncing/
-kagome_full_syncing --genesis testchain.json -d syncing1 -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
+kagome_full_syncing --genesis testchain.json -d syncing1 -v 1 --p2pPort 50541 --rpc_http_port 50542 --rpc_ws_port 50543
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.

@@ -70,7 +70,7 @@ For this tutorial you can start a single node network as follows:
 kagome_validating \
     --genesis localchain.json \
     --base_path base_path \
-    --p2p_port 30363 \
+    --p2pPort 30363 \
     --rpc_http_port 9933 \
     --rpc_ws_port 9944 \
     --single_finalizing_node \
@@ -83,7 +83,7 @@ Let's look at this flags in detail:
 |-------------------|---------------------------------------------------|
 | `--genesis`       | mandatory, genesis configuration file path        |
 | `--base_path`       | mandatory, base kagome directory path                 |
-| `--p2p_port`      | port for p2p interactions                         |
+| `--p2pPort`      | port for p2p interactions                         |
 | `--rpc_http_port` | port for RPC over HTTP                            |
 | `--rpc_ws_port`   | port for RPC over Websocket protocol              |
 | `--single_finalizing_node`   | need to be set if this is the only finalizing node              |

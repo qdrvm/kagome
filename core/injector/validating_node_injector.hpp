@@ -99,7 +99,7 @@ namespace kagome::injector {
     application::AppConfiguration const &config =
         injector.template create<application::AppConfiguration const &>();
     std::string multiaddress_str =
-        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2p_port());
+        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2pPort());
     spdlog::debug("Received multiaddr: {}", multiaddress_str);
     auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
     if (!multiaddress) {
@@ -180,7 +180,7 @@ namespace kagome::injector {
               application::AppConfiguration const &config =
                   injector
                       .template create<application::AppConfiguration const &>();
-              if (config.is_only_finalizing()) {
+              if (config.isOnlyFinalizing()) {
                 auto grandpa_api = injector.template create<
                     sptr<runtime::binaryen::GrandpaApiImpl>>();
                 initialized = grandpa_api;

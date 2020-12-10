@@ -10,7 +10,6 @@
 #include "application/genesis_raw_data.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
-#include "network/types/peer_list.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::application {
@@ -30,7 +29,8 @@ namespace kagome::application {
     virtual const std::string &chainType() const = 0;
 
     /// Return ids of peer nodes of the current node
-    virtual network::PeerList getBootNodes() const = 0;
+    virtual const std::vector<libp2p::multi::Multiaddress> &bootNodes()
+        const = 0;
 
     virtual const std::vector<std::pair<std::string, size_t>>
         &telemetryEndpoints() const = 0;
