@@ -156,8 +156,8 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
-    load_ma(val, "bootNodes", boot_nodes_);
-    load_u16(val, "p2pPort", p2p_port_);
+    load_ma(val, "bootnodes", boot_nodes_);
+    load_u16(val, "p2p_port", p2p_port_);
     load_str(val, "rpc_http_host", rpc_http_host_);
     load_u16(val, "rpc_http_port", rpc_http_port_);
     load_str(val, "rpc_ws_host", rpc_ws_host_);
