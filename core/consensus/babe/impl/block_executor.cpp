@@ -121,21 +121,17 @@ namespace kagome::consensus {
           if (not self) return;
 
           bool sync_complete = false;
-          primitives::BlockHash last_received_hash;
-          primitives::BlockHash first_received_hash;
+          const primitives::BlockHash *last_received_hash = nullptr;
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
             sync_complete = true;
           } else if (blocks.front().header && blocks.back().header) {
-            first_received_hash = self->hasher_->blake2b_256(
-                scale::encode(*blocks.front().header).value());
-            last_received_hash = self->hasher_->blake2b_256(
-                scale::encode(*blocks.back().header).value());
+            auto &first_received_hash = blocks.front().hash;
+            last_received_hash = &blocks.back().hash;
             self->logger_->info("Received blocks from: {}, to {}, count {}",
                                 first_received_hash.toHex(),
-                                last_received_hash.toHex(),
+                                last_received_hash->toHex(),
                                 blocks.size());
-            sync_complete = to == last_received_hash;
           } else {
             self->logger_->warn("Blocks with empty headers detected.");
             sync_complete = true;
@@ -153,15 +149,19 @@ namespace kagome::consensus {
               sync_complete = true;
               break;
             }
+            const auto &block_hash = block.hash;
+            if (to == block_hash) {
+              sync_complete = true;
+            }
           }
           if (sync_complete)
             next();
           else {
             self->logger_->info("Request next page of blocks: from {}, to {}",
-                                last_received_hash.toHex(),
+                                last_received_hash->toHex(),
                                 to.toHex());
             self->requestBlocks(
-                last_received_hash, to, peer_id, std::move(next));
+                *last_received_hash, to, peer_id, std::move(next));
           }
         });
   }
