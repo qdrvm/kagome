@@ -47,10 +47,10 @@ namespace kagome::transaction_pool {
   outcome::result<void> TransactionPoolImpl::submitOne(
       const std::shared_ptr<Transaction> &tx) {
     if (auto [_, ok] = imported_txs_.emplace(tx->hash, tx); !ok) {
-      if (tx->ext.observed_id) {
+      if (auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
         sub_engine_->notify(
-            tx->ext.observed_id.value(),
-            ExtrinsicLifecycleEvent::Invalid(tx->ext.observed_id.value()));
+            key.value(),
+            ExtrinsicLifecycleEvent::Invalid(key.value()));
       }
       return TransactionPoolError::TX_ALREADY_IMPORTED;
     }
@@ -58,10 +58,10 @@ namespace kagome::transaction_pool {
     auto processResult = processTransaction(tx);
     if (processResult.has_error()
         && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
-      if(tx->ext.observed_id) {
+      if (auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
         sub_engine_->notify(
-            tx->ext.observed_id.value(),
-            ExtrinsicLifecycleEvent::Dropped(tx->ext.observed_id.value()));
+            key.value(),
+            ExtrinsicLifecycleEvent::Dropped(key.value()));
       }
       imported_txs_.erase(tx->hash);
     } else {
@@ -102,10 +102,10 @@ namespace kagome::transaction_pool {
   void TransactionPoolImpl::postponeTransaction(
       const std::shared_ptr<Transaction> &tx) {
     postponed_txs_.push_back(tx);
-    if(tx->ext.observed_id) {
+    if(auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
       sub_engine_->notify(
-          tx->ext.observed_id.value(),
-          ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
+          key.value(),
+          ExtrinsicLifecycleEvent::Future(key.value()));
     }
   }
 
@@ -131,10 +131,10 @@ namespace kagome::transaction_pool {
     for (auto &tag : tx->requires) {
       tx_waits_tag_.emplace(tag, tx);
     }
-    if (tx->ext.observed_id) {
+    if (auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
       sub_engine_->notify(
-          tx->ext.observed_id.value(),
-          ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
+          key.value(),
+          ExtrinsicLifecycleEvent::Future(key.value()));
     }
   }
 
@@ -227,10 +227,13 @@ namespace kagome::transaction_pool {
     }
 
     for (auto &tx_hash : remove_to) {
-      OUTCOME_TRY(tx, removeOne(tx_hash));
-      sub_engine_->notify(
-          tx.ext.observed_id.value(),
-          ExtrinsicLifecycleEvent::Dropped(tx.ext.observed_id.value()));
+      OUTCOME_TRY(removeOne(tx_hash));
+      if (auto key = ext_key_repo_->getEventKey(tx_hash); key.has_value()) {
+        sub_engine_->notify(
+            key.value(),
+            ExtrinsicLifecycleEvent::Dropped(key.value()));
+        ext_key_repo_->dropTransaction(tx_hash);
+      }
     }
 
     moderator_->updateBan();
@@ -255,10 +258,10 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::setReady(const std::shared_ptr<Transaction> &tx) {
     if (auto [_, ok] = ready_txs_.emplace(tx->hash, tx); ok) {
-      if(tx->ext.observed_id) {
+      if(auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
         sub_engine_->notify(
-            tx->ext.observed_id.value(),
-            ExtrinsicLifecycleEvent::Ready(tx->ext.observed_id.value()));
+            key.value(),
+            ExtrinsicLifecycleEvent::Ready(key.value()));
       }
       commitRequiredTags(tx);
       commitProvidedTags(tx);
@@ -307,10 +310,10 @@ namespace kagome::transaction_pool {
     if (auto tx_node = ready_txs_.extract(tx->hash); !tx_node.empty()) {
       rollbackRequiredTags(tx);
       rollbackProvidedTags(tx);
-      if(tx->ext.observed_id) {
+      if(auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
         sub_engine_->notify(
-            tx->ext.observed_id.value(),
-            ExtrinsicLifecycleEvent::Future(tx->ext.observed_id.value()));
+            key.value(),
+            ExtrinsicLifecycleEvent::Future(key.value()));
       }
     }
   }

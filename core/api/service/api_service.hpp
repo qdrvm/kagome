@@ -20,9 +20,11 @@
 #include "common/logger.hpp"
 #include "containers/objects_cache.hpp"
 #include "primitives/common.hpp"
+#include "primitives/transaction.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/subscriber.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 
 namespace kagome::api {
   template <typename T>
@@ -135,7 +137,7 @@ namespace kagome::api {
         PubsubSubscriptionId subscription_id);
 
     outcome::result<PubsubSubscriptionId> subscribeForExtrinsicLifecycle(
-        primitives::ObservedExtrinsicId id);
+        std::shared_ptr<primitives::Transaction> tx);
     outcome::result<bool> unsubscribeFromExtrinsicLifecycle(
         PubsubSubscriptionId subscription_id);
 
@@ -172,7 +174,7 @@ namespace kagome::api {
     void onExtrinsicEvent(
         SubscriptionSetId set_id,
         SessionPtr &session,
-        primitives::ObservedExtrinsicId id,
+        primitives::events::SubscribedExtrinsicId id,
         const primitives::events::ExtrinsicLifecycleEvent &params);
 
     template <typename Func>
@@ -232,6 +234,7 @@ namespace kagome::api {
       ChainSubscriptionEnginePtr chain;
       ExtrinsicSubscriptionEnginePtr ext;
     } subscription_engines_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository> extrinsic_event_key_repo_;
   };
 }  // namespace kagome::api
 

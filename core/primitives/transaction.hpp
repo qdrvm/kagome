@@ -12,6 +12,12 @@
 namespace kagome::primitives {
 
   struct Transaction {
+    Transaction(const Transaction&) = delete;
+    Transaction& operator=(const Transaction&) = delete;
+
+    Transaction(Transaction&&) = default;
+    Transaction& operator=(Transaction&&) = default;
+
     /// Hash of tx
     using Hash = common::Hash256;
 
@@ -36,7 +42,7 @@ namespace kagome::primitives {
     /// Number of bytes encoding of the transaction requires.
     size_t bytes{};
 
-    /// Transaction hash (unique)
+    /// Extrinsic hash (non-unique)
     Hash hash;
 
     /// Transaction priority (higher = better)

@@ -61,21 +61,22 @@ namespace kagome::api {
           common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
           size_t length = extrinsic.data.size();
 
-          primitives::Transaction transaction{extrinsic,
-                                              length,
-                                              hash,
-                                              v.priority,
-                                              v.longevity,
-                                              v.requires,
-                                              v.provides,
-                                              v.propagate};
+          auto transaction =
+              std::make_shared<primitives::Transaction>(extrinsic,
+                                                        length,
+                                                        hash,
+                                                        v.priority,
+                                                        v.longevity,
+                                                        v.requires,
+                                                        v.provides,
+                                                        v.propagate);
 
           // send to pool
-          OUTCOME_TRY(pool_->submitOne(std::move(transaction)));
+          OUTCOME_TRY(pool_->submitOne(*transaction));
 
           if (v.propagate) {
             network::PropagatedTransactions txs;
-            txs.extrinsics.push_back(extrinsic);
+            txs.transactions.push_back(transaction);
             gossiper_->propagateTransactions(txs);
           }
 
@@ -106,12 +107,9 @@ namespace kagome::api {
 
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
-    extrinsic.observed_id = latest_id_++;
-    OUTCOME_TRY(submitExtrinsic(extrinsic));
+    OUTCOME_TRY(tx_hash, submitExtrinsic(extrinsic));
     if (auto service = api_service_.lock()) {
-      OUTCOME_TRY(sub_id,
-                  service->subscribeForExtrinsicLifecycle(
-                      extrinsic.observed_id.value()));
+      OUTCOME_TRY(sub_id, service->subscribeForExtrinsicLifecycle(tx_hash));
       return sub_id;
     }
     throw jsonrpc::InternalErrorFault(

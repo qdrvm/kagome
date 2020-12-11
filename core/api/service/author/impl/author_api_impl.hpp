@@ -86,8 +86,6 @@ namespace kagome::api {
     sptr<network::ExtrinsicGossiper> gossiper_;
     std::weak_ptr<api::ApiService> api_service_;
 
-    std::atomic<primitives::ObservedExtrinsicId> latest_id_ = 0;
-
     common::Logger logger_;
   };
 }  // namespace kagome::api

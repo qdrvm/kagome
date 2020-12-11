@@ -60,17 +60,17 @@ namespace kagome::network {
       const network::PropagatedTransactions &txs) {
     logger_->debug("Propagate transactions : {} extrinsics",
                    txs.extrinsics.size());
-    for (const auto &ext : txs.extrinsics) {
-      if (ext.observed_id) {
+    for (const auto &tx : txs.extrinsics) {
+      if (auto key = ext_event_key_repo_->getEventKey(tx); key.value()) {
         std::vector<libp2p::peer::PeerId> peers;
         stream_engine_->forEachPeer(
             [&peers](const libp2p::peer::PeerInfo &peer_info,
                      const auto &peer_type,
                      const auto &peer_map) { peers.push_back(peer_info.id); });
         extrinsic_events_engine_->notify(
-            ext.observed_id.value(),
+            key.value(),
             primitives::events::ExtrinsicLifecycleEvent::Broadcast(
-                ext.observed_id.value(), std::move(peers)));
+                key.value(), std::move(peers)));
       }
     }
     broadcast(transactions_protocol_, txs, NoData{});

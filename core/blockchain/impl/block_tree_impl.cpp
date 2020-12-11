@@ -244,12 +244,13 @@ namespace kagome::blockchain {
     updateMeta(new_node);
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
-    for (const auto &ext : block.body) {
-      if (ext.observed_id) {
+    for (size_t idx = 0; idx < block.body.size(); idx++) {
+      if (auto key =
+          extrinsic_event_key_repo_->getEventKey(block.header.number, idx)) {
         extrinsic_events_engine_->notify(
-            ext.observed_id.value(),
+            key.value(),
             primitives::events::ExtrinsicLifecycleEvent::InBlock(
-                ext.observed_id.value(), std::move(block_hash)));
+                key.value(), std::move(block_hash)));
       }
     }
 
@@ -329,13 +330,15 @@ namespace kagome::blockchain {
           new_runtime_version);
     }
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
+    OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
 
-    for (const auto &ext : body) {
-      if (ext.observed_id) {
+    for (size_t idx = 0; idx < body.size(); idx++) {
+      if (auto key =
+          extrinsic_event_key_repo_->getEventKey(header.number, idx)) {
         extrinsic_events_engine_->notify(
-            ext.observed_id.value(),
+            key.value(),
             primitives::events::ExtrinsicLifecycleEvent::Finalized(
-                ext.observed_id.value(), std::move(block_hash)));
+                key.value(), std::move(block_hash)));
       }
     }
 
@@ -693,14 +696,15 @@ namespace kagome::blockchain {
       auto block_body_res = storage_->getBlockBody(hash);
       if (block_body_res.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
-        for (auto &&extrinsic : block_body_res.value()) {
-          if (extrinsic.observed_id) {
+        for (size_t idx = 0; idx < block_body_res.value().size(); idx++) {
+          if (auto key =
+              extrinsic_event_key_repo_->getEventKey(number, idx)) {
             extrinsic_events_engine_->notify(
-                extrinsic.observed_id.value(),
+                key.value(),
                 primitives::events::ExtrinsicLifecycleEvent::Retracted(
-                    extrinsic.observed_id.value(), std::move(hash)));
+                    key.value(), std::move(hash)));
           }
-          extrinsics.emplace_back(std::move(extrinsic));
+          extrinsics.emplace_back(std::move(block_body_res.value()[idx]));
         }
       }
 

@@ -403,12 +403,13 @@ namespace kagome::api {
 
   outcome::result<ApiService::PubsubSubscriptionId>
   ApiService::subscribeForExtrinsicLifecycle(
-      primitives::ObservedExtrinsicId id) {
+      std::shared_ptr<primitives::Transaction> tx) {
     return for_this_session([&](kagome::api::Session::SessionId tid) {
       return for_session(tid, [&](SessionSubscriptions &session_context) {
         auto &session_sub = session_context.ext_sub;
         const auto sub_id = session_sub->generateSubscriptionSetId();
-        session_sub->subscribe(sub_id, id);
+        const auto key = extrinsic_event_key_repo_->subscribeTransaction(tx->hash);
+        session_sub->subscribe(sub_id, key);
 
         return static_cast<PubsubSubscriptionId>(sub_id);
       });
@@ -524,7 +525,7 @@ namespace kagome::api {
   void ApiService::onExtrinsicEvent(
       SubscriptionSetId set_id,
       SessionPtr &session,
-      primitives::ObservedExtrinsicId ext_id,
+      primitives::events::SubscribedExtrinsicId ext_id,
       const primitives::events::ExtrinsicLifecycleEvent &params) {
     sendEvent(server_,
               session,

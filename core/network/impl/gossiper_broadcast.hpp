@@ -26,6 +26,7 @@
 #include "primitives/event_types.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 
 namespace kagome::application {
   class ChainSpec;
@@ -130,7 +131,8 @@ namespace kagome::network {
     StreamEngine::StreamEnginePtr stream_engine_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
         extrinsic_events_engine_;
-    std::shared_ptr<kagome::application::ChainSpec> config_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository> ext_event_key_repo_;
+    std::shared_ptr<application::ChainSpec> config_;
     libp2p::peer::Protocol transactions_protocol_;
     libp2p::peer::Protocol block_announces_protocol_;
     boost::optional<libp2p::peer::PeerInfo> self_info_;

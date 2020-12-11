@@ -103,6 +103,12 @@ namespace kagome::primitives::events {
   template <typename T>
   using ref_t = std::reference_wrapper<const T>;
 
+  /**
+   * ID of an extrinsic being observed
+   * @see autor_submitAndWatchExtrincis pubsub RPC call
+   */
+  using SubscribedExtrinsicId = uint32_t;
+
   struct ExtrinsicLifecycleEvent {
     // mind that although sometimes boost::none is used in variants to skip a
     // parameter, here it literally represents the type of event parameters when
@@ -115,25 +121,25 @@ namespace kagome::primitives::events {
                                   FinalizedEventParams,
                                   UsurpedEventParams>;
 
-    static ExtrinsicLifecycleEvent Future(ObservedExtrinsicId id) {
+    static ExtrinsicLifecycleEvent Future(SubscribedExtrinsicId id) {
       return ExtrinsicLifecycleEvent{
           id, ExtrinsicEventType::FUTURE, Params{boost::none}};
     }
 
-    static ExtrinsicLifecycleEvent Ready(ObservedExtrinsicId id) {
+    static ExtrinsicLifecycleEvent Ready(SubscribedExtrinsicId id) {
       return ExtrinsicLifecycleEvent{
           id, ExtrinsicEventType::READY, Params{boost::none}};
     }
 
     static ExtrinsicLifecycleEvent Broadcast(
-        ObservedExtrinsicId id, gsl::span<const libp2p::peer::PeerId> peers) {
+        SubscribedExtrinsicId id, gsl::span<const libp2p::peer::PeerId> peers) {
       return ExtrinsicLifecycleEvent{
           id,
           ExtrinsicEventType::BROADCAST,
           Params{BroadcastEventParams{.peers = std::move(peers)}}};
     }
 
-    static ExtrinsicLifecycleEvent InBlock(ObservedExtrinsicId id,
+    static ExtrinsicLifecycleEvent InBlock(SubscribedExtrinsicId id,
                                            Hash256Span block) {
       return ExtrinsicLifecycleEvent{
           id,
@@ -141,7 +147,7 @@ namespace kagome::primitives::events {
           Params{InBlockEventParams{.block = std::move(block)}}};
     }
 
-    static ExtrinsicLifecycleEvent Retracted(ObservedExtrinsicId id,
+    static ExtrinsicLifecycleEvent Retracted(SubscribedExtrinsicId id,
                                              Hash256Span retracted_block) {
       return ExtrinsicLifecycleEvent{
           id,
@@ -150,7 +156,7 @@ namespace kagome::primitives::events {
                                           std::move(retracted_block)}}};
     }
 
-    static ExtrinsicLifecycleEvent FinalityTimeout(ObservedExtrinsicId id,
+    static ExtrinsicLifecycleEvent FinalityTimeout(SubscribedExtrinsicId id,
                                                    Hash256Span block) {
       return ExtrinsicLifecycleEvent{
           id,
@@ -158,7 +164,7 @@ namespace kagome::primitives::events {
           Params{FinalizedEventParams{.block = std::move(block)}}};
     }
 
-    static ExtrinsicLifecycleEvent Finalized(ObservedExtrinsicId id,
+    static ExtrinsicLifecycleEvent Finalized(SubscribedExtrinsicId id,
                                              Hash256Span block) {
       return ExtrinsicLifecycleEvent{
           id,
@@ -166,7 +172,7 @@ namespace kagome::primitives::events {
           Params{FinalizedEventParams{.block = std::move(block)}}};
     }
 
-    static ExtrinsicLifecycleEvent Usurped(ObservedExtrinsicId id,
+    static ExtrinsicLifecycleEvent Usurped(SubscribedExtrinsicId id,
                                            Hash256Span transaction_hash) {
       return ExtrinsicLifecycleEvent{
           id,
@@ -175,23 +181,23 @@ namespace kagome::primitives::events {
                                         std::move(transaction_hash)}}};
     }
 
-    static ExtrinsicLifecycleEvent Dropped(ObservedExtrinsicId id) {
+    static ExtrinsicLifecycleEvent Dropped(SubscribedExtrinsicId id) {
       return ExtrinsicLifecycleEvent{
           id, ExtrinsicEventType::DROPPED, Params{boost::none}};
     }
 
-    static ExtrinsicLifecycleEvent Invalid(ObservedExtrinsicId id) {
+    static ExtrinsicLifecycleEvent Invalid(SubscribedExtrinsicId id) {
       return ExtrinsicLifecycleEvent{
           id, ExtrinsicEventType::INVALID, Params{boost::none}};
     }
 
-    ObservedExtrinsicId id;
+    SubscribedExtrinsicId id;
     ExtrinsicEventType type;
 
     Params params;
 
    private:
-    ExtrinsicLifecycleEvent(ObservedExtrinsicId id,
+    ExtrinsicLifecycleEvent(SubscribedExtrinsicId id,
                             ExtrinsicEventType type,
                             Params params)
         : id{id}, type{type}, params{std::move(params)} {}
@@ -222,7 +228,7 @@ namespace kagome::primitives::events {
   using ChainEventSubscriberPtr = std::shared_ptr<ChainEventSubscriber>;
 
   using ExtrinsicSubscriptionEngine = subscription::SubscriptionEngine<
-      primitives::ObservedExtrinsicId,
+      SubscribedExtrinsicId,
       std::shared_ptr<api::Session>,
       primitives::events::ExtrinsicLifecycleEvent>;
   using ExtrinsicSubscriptionEnginePtr =

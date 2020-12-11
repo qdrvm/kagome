@@ -13,6 +13,7 @@
 #include "primitives/event_types.hpp"
 #include "transaction_pool/pool_moderator.hpp"
 #include "transaction_pool/transaction_pool.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 
 namespace kagome::transaction_pool {
 
@@ -104,6 +105,8 @@ namespace kagome::transaction_pool {
 
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
         sub_engine_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+        ext_key_repo_;
 
     // bans stale and invalid transactions for some amount of time
     std::unique_ptr<PoolModerator> moderator_;
