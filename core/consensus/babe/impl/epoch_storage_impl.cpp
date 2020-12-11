@@ -44,7 +44,7 @@ namespace kagome::consensus {
     return scale::decode<NextEpochDescriptor>(encoded_ed);
   }
 
-  bool EpochStorageImpl::exists(EpochIndex epoch_number) const {
+  bool EpochStorageImpl::contains(EpochIndex epoch_number) const {
     return storage_->contains(
         common::Buffer{EPOCH_PREFIX}.putUint64(epoch_number));
   }

@@ -56,7 +56,7 @@ namespace kagome::consensus {
      * @param epoch_number to check
      * @return true if exists, otherwise false.
      */
-    virtual bool exists(EpochIndex epoch_number) const = 0;
+    virtual bool contains(EpochIndex epoch_number) const = 0;
   };
 }  // namespace kagome::consensus
 

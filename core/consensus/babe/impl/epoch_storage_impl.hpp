@@ -36,7 +36,7 @@ namespace kagome::consensus {
 
     outcome::result<LastEpochDescriptor> getLastEpoch() const override;
 
-    bool exists(EpochIndex epoch_number) const override;
+    bool contains(EpochIndex epoch_number) const override;
 
    private:
     std::shared_ptr<storage::BufferStorage> storage_;

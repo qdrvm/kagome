@@ -322,7 +322,7 @@ namespace kagome::injector {
     if (!obj) {
       obj = std::make_shared<consensus::EpochStorageImpl>(
           injector.template create<sptr<storage::BufferStorage>>());
-      if (!(*obj)->exists(0) || !(*obj)->exists(1)) {
+      if (!(*obj)->contains(0) || !(*obj)->contains(1)) {
         auto configuration =
             injector.template create<sptr<primitives::BabeConfiguration>>();
         consensus::NextEpochDescriptor init_epoch_desc{
