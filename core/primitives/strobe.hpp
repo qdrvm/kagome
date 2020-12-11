@@ -9,9 +9,9 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <type_traits>
 #include <gsl/span>
 #include <tuple>
+#include <type_traits>
 
 #include "crypto/keccak/keccak.h"
 #include "primitives/math.hpp"
@@ -139,8 +139,8 @@ namespace kagome::primitives {
 
    public:
     Strobe()
-        : buffer_{reinterpret_cast<uint8_t *>(
-            math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))},
+        : buffer_{reinterpret_cast<uint8_t *>(math::roundUp<kAlignment>(
+              reinterpret_cast<uintptr_t>(raw_data)))},
           current_position_{*(buffer_ + kBufferSize)},
           begin_position_{*(buffer_ + kBufferSize + 1ull)},
           current_state_{*(buffer_ + kBufferSize + 2ull)} {}
@@ -210,11 +210,6 @@ namespace kagome::primitives {
 
     auto data() {
       return gsl::make_span(as<const uint8_t>(), count<uint8_t>() + 3ull);
-    }
-
-    auto state() const {
-      return std::make_tuple(
-          current_position_, begin_position_, current_state_);
     }
   };
 

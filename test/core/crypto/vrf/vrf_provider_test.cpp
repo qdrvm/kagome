@@ -8,12 +8,6 @@
 #include <gtest/gtest.h>
 #include "crypto/random_generator/boost_generator.hpp"
 #include "common/mp_utils.hpp"
-#include "common/blob.hpp"
-#include "primitives/session_key.hpp"
-#include "primitives/transcript.hpp"
-#include "primitives/babe_configuration.hpp"
-#include "crypto/sr25519_types.hpp"
-#include "consensus/babe/common.hpp"
 
 using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
@@ -21,8 +15,6 @@ using kagome::crypto::Sr25519Keypair;
 using kagome::crypto::VRFProviderImpl;
 using kagome::crypto::VRFPreOutput;
 using kagome::crypto::VRFThreshold;
-
-
 
 class VRFProviderTest : public testing::Test {
  public:
@@ -49,13 +41,7 @@ class VRFProviderTest : public testing::Test {
  */
 TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   // given
-
-
-
-
-
-
-  //////////////////////////////////////////////////////////
+  VRFThreshold threshold{std::numeric_limits<VRFThreshold>::max() - 1};
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
   ASSERT_TRUE(out_opt);

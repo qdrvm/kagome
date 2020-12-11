@@ -89,20 +89,6 @@ namespace kagome::consensus {
     // should only be invoked when parent of block exists
     outcome::result<void> applyBlock(const primitives::BlockData &block);
 
-    /*
-    pub fn make_transcript(
-        randomness: &Randomness,
-        slot_number: u64,
-        epoch: u64,
-    ) -> Transcript {
-      let mut transcript = Transcript::new(&BABE_ENGINE_ID);
-      transcript.append_u64(b"slot number", slot_number);
-      transcript.append_u64(b"current epoch", epoch);
-      transcript.append_message(b"chain randomness", &randomness[..]);
-      transcript
-    }
-    */
-
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;

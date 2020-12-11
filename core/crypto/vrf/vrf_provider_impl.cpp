@@ -39,19 +39,17 @@ namespace kagome::crypto {
     common::Buffer keypair_buf{};
     keypair_buf.put(keypair.secret_key).put(keypair.public_key);
 
-    std::array<uint8_t, 32+64>
+    std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
     auto threshold_bytes = common::uint128_t_to_bytes(threshold);
-    auto sign_res =
-        sr25519_vrf_sign_test(out_proof.data(),
-                                 keypair_buf.data(),
-                                 msg.data(),
-                                 threshold_bytes.data());
-    if (not sign_res.is_less or not (sign_res.result == SR25519_SIGNATURE_RESULT_OK)) {
+    auto sign_res = sr25519_vrf_sign_test(out_proof.data(),
+                                          keypair_buf.data(),
+                                          msg.data(),
+                                          threshold_bytes.data());
+    if (not sign_res.is_less
+        or not(sign_res.result == SR25519_SIGNATURE_RESULT_OK)) {
       return boost::none;
     }
-
-    std::unordered_map<uint32_t, uint32_t> s;
 
     VRFOutput res;
     std::copy_n(
@@ -67,13 +65,15 @@ namespace kagome::crypto {
                                           const VRFOutput &output,
                                           const Sr25519PublicKey &public_key,
                                           const VRFThreshold &threshold) const {
-    auto res = sr25519_vrf_verify_test(public_key.data(),
-                                  msg.data(),
-                                  output.output.data(),
-                                  output.proof.data(),
-                                  common::uint128_t_to_bytes(threshold).data());
-    return VRFVerifyOutput{.is_valid = res.result == SR25519_SIGNATURE_RESULT_OK,
-                           .is_less = res.is_less};
+    auto res =
+        sr25519_vrf_verify_test(public_key.data(),
+                                msg.data(),
+                                output.output.data(),
+                                output.proof.data(),
+                                common::uint128_t_to_bytes(threshold).data());
+    return VRFVerifyOutput{
+        .is_valid = res.result == SR25519_SIGNATURE_RESULT_OK,
+        .is_less = res.is_less};
   }
 
 }  // namespace kagome::crypto

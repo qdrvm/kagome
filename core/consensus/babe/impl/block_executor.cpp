@@ -227,8 +227,8 @@ namespace kagome::consensus {
         const auto last_epoch_index = last_epoch.epoch_number;
         const auto slot_dif = babe_header.slot_number - last_epoch_start_slot;
 
-        epoch_index = last_epoch_index
-                      + slot_dif / genesis_configuration_->epoch_length;
+        epoch_index =
+            last_epoch_index + slot_dif / genesis_configuration_->epoch_length;
         slot_in_epoch = slot_dif % genesis_configuration_->epoch_length;
         break;
     }
@@ -248,7 +248,8 @@ namespace kagome::consensus {
             ->addEpochDescriptor(epoch_index + 1, next_epoch_digest_res.value())
             .value();
       } else {
-        logger_->error("Failed to get next epoch digest for epoch: {}", epoch_index);
+        logger_->error("Failed to get next epoch digest for epoch: {}",
+                       epoch_index);
       }
     }
 

@@ -33,7 +33,6 @@ namespace kagome::consensus {
 
     bool needVRFWithThresholdCheck() const {
       return (check_type & (kVRFHeader | kSecondaryHeaderCheck)) == kVRFHeader;
-
     }
 
     bool needAuthorCheck() const {
@@ -70,8 +69,7 @@ namespace kagome::consensus {
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
     s >> bh.check_type >> bh.authority_index >> bh.slot_number;
-    if (bh.needVRFCheck())
-      s >> bh.vrf_output;
+    if (bh.needVRFCheck()) s >> bh.vrf_output;
 
     auto has_m = s.hasMore(1);
     return s;

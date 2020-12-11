@@ -74,8 +74,8 @@ namespace kagome::common {
   template <size_t size_>
   class Blob : public std::array<byte_t, size_> {
    public:
-    using const_narref = const byte_t(&)[size_];
-    using const_narptr = const byte_t(*)[size_];
+    using const_narref = const byte_t (&)[size_];
+    using const_narptr = const byte_t (*)[size_];
     /**
      * Initialize blob value
      */

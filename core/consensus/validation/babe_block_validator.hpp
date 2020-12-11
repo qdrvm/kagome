@@ -19,9 +19,9 @@
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
 #include "primitives/authority.hpp"
-#include "runtime/tagged_transaction_queue.hpp"
-#include "primitives/transcript.hpp"
 #include "primitives/babe_configuration.hpp"
+#include "primitives/transcript.hpp"
+#include "runtime/tagged_transaction_queue.hpp"
 
 namespace kagome::crypto {
   class Sr25519Provider;
