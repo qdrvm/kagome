@@ -214,18 +214,22 @@ namespace kagome::consensus {
     }
 
     EpochIndex epoch_index;
+    BabeSlotNumber slot_in_epoch;
     switch (slots_strategy_) {
       case SlotsStrategy::FromZero:
         epoch_index =
             babe_header.slot_number / genesis_configuration_->epoch_length;
+        slot_in_epoch = 0ull;
         break;
       case SlotsStrategy::FromUnixEpoch:
         OUTCOME_TRY(last_epoch, epoch_storage_->getLastEpoch());
-        auto last_epoch_start_slot = last_epoch.start_slot;
-        auto last_epoch_index = last_epoch.epoch_number;
+        const auto last_epoch_start_slot = last_epoch.start_slot;
+        const auto last_epoch_index = last_epoch.epoch_number;
+        const auto slot_dif = babe_header.slot_number - last_epoch_start_slot;
+
         epoch_index = last_epoch_index
-                      + (babe_header.slot_number - last_epoch_start_slot)
-                            / genesis_configuration_->epoch_length;
+                      + slot_dif / genesis_configuration_->epoch_length;
+        slot_in_epoch = slot_dif % genesis_configuration_->epoch_length;
         break;
     }
 
@@ -237,12 +241,15 @@ namespace kagome::consensus {
                                         babe_header.authority_index);
 
     // update authorities and randomnesss
-    auto next_epoch_digest_res = getNextEpochDigest(block.header);
-    if (next_epoch_digest_res) {
-      logger_->info("Got next epoch digest for epoch: {}", epoch_index);
-      epoch_storage_
-          ->addEpochDescriptor(epoch_index + 1, next_epoch_digest_res.value())
-          .value();
+    if (0ull == slot_in_epoch) {
+      if (auto next_epoch_digest_res = getNextEpochDigest(block.header)) {
+        logger_->info("Got next epoch digest for epoch: {}", epoch_index);
+        epoch_storage_
+            ->addEpochDescriptor(epoch_index + 1, next_epoch_digest_res.value())
+            .value();
+      } else {
+        logger_->error("Failed to get next epoch digest for epoch: {}", epoch_index);
+      }
     }
 
     OUTCOME_TRY(block_validator_->validateHeader(
