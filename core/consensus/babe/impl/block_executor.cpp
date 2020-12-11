@@ -241,7 +241,7 @@ namespace kagome::consensus {
     if (next_epoch_digest_res) {
       logger_->info("Got next epoch digest for epoch: {}", epoch_index);
       epoch_storage_
-          ->addEpochDescriptor(epoch_index + 2, next_epoch_digest_res.value())
+          ->addEpochDescriptor(epoch_index + 1, next_epoch_digest_res.value())
           .value();
     }
 
