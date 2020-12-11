@@ -20,6 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage, DatabaseError, e) {
       return "IO error";
     case E::NOT_FOUND:
       return "not found";
+    case E::DB_PATH_NOT_CREATED:
+      return "database path was not created";
     case E::UNKNOWN:
       break;
   }

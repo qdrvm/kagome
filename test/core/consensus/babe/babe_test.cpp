@@ -100,12 +100,10 @@ class BabeTest : public testing::Test {
     consensus::NextEpochDescriptor expected_epoch_digest{
         .authorities = expected_config->genesis_authorities,
         .randomness = expected_config->randomness};
-    EXPECT_CALL(*epoch_storage_, addEpochDescriptor(0, expected_epoch_digest))
-        .WillOnce(Return(outcome::success()));
-    EXPECT_CALL(*epoch_storage_, addEpochDescriptor(1, expected_epoch_digest))
-        .WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*epoch_storage_, getEpochDescriptor(0))
+        .WillRepeatedly(Return(expected_epoch_digest));
     EXPECT_CALL(*epoch_storage_, getEpochDescriptor(1))
-        .WillOnce(Return(expected_epoch_digest));
+        .WillRepeatedly(Return(expected_epoch_digest));
 
     auto block_executor =
         std::make_shared<BlockExecutor>(block_tree_,

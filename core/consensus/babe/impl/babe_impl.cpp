@@ -69,15 +69,8 @@ namespace kagome::consensus {
     BOOST_ASSERT(log_);
     BOOST_ASSERT(authority_update_observer_);
 
-    NextEpochDescriptor init_epoch_desc;
-    init_epoch_desc.randomness = genesis_configuration_->randomness;
-    init_epoch_desc.authorities = genesis_configuration_->genesis_authorities;
-    [[maybe_unused]] bool init_epoch_desc_ok =
-        epoch_storage_->addEpochDescriptor(0, init_epoch_desc).has_value()
-        && epoch_storage_->addEpochDescriptor(1, init_epoch_desc).has_value();
-
-    BOOST_ASSERT(init_epoch_desc_ok);
-
+    BOOST_ASSERT(epoch_storage_->getEpochDescriptor(0));
+    BOOST_ASSERT(epoch_storage_->getEpochDescriptor(1));
     app_state_manager_->atLaunch([this] { return start(); });
   }
 
@@ -459,15 +452,15 @@ namespace kagome::consensus {
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
-      visit_in_place(
-          digest_item,
-          [&](const primitives::Consensus &consensus_message) {
-            [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
-                consensus_message.consensus_engine_id,
-                best_block_info,
-                consensus_message);
-          },
-          [](const auto &) {});
+      visit_in_place(digest_item,
+                     [&](const primitives::Consensus &consensus_message) {
+                       [[maybe_unused]] auto res =
+                           authority_update_observer_->onConsensus(
+                               consensus_message.consensus_engine_id,
+                               best_block_info,
+                               consensus_message);
+                     },
+                     [](const auto &) {});
     }
 
     // add block to the block tree
