@@ -19,7 +19,7 @@
 namespace kagome::primitives {
 
   /**
-   * C++ implementation of
+   * C++ implementation(Alexander 'iceseer' Lednev) of
    * https://strobe.sourceforge.io/
    */
   class Strobe final {
@@ -48,6 +48,12 @@ namespace kagome::primitives {
     constexpr T *as() {
       static_assert(kOffset < count<T>(), "Overflow!");
       return (reinterpret_cast<T *>(buffer_) + kOffset);  // NOLINT
+    }
+
+    template <typename T, size_t kOffset = 0ull>
+    constexpr const T *as() const {
+      static_assert(kOffset < count<T>(), "Overflow!");
+      return (reinterpret_cast<const T *>(buffer_) + kOffset);  // NOLINT
     }
 
     template <typename T>
@@ -209,6 +215,10 @@ namespace kagome::primitives {
     }
 
     auto data() {
+      return gsl::make_span(as<const uint8_t>(), count<uint8_t>() + 3ull);
+    }
+
+    auto data() const {
       return gsl::make_span(as<const uint8_t>(), count<uint8_t>() + 3ull);
     }
   };

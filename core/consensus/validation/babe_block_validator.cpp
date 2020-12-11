@@ -115,20 +115,12 @@ namespace kagome::consensus {
       const Threshold &threshold,
       const Randomness &randomness,
       const bool checkThreshold) const {
-    // verify VRF output
-    auto randomness_with_slot =
-        Buffer{}
-            .put(randomness)
-            .put(common::uint64_t_to_bytes(babe_header.slot_number));
-
     primitives::Transcript transcript;
     makeTranscript(
         transcript, randomness, babe_header.slot_number, epoch_index);
 
-    auto verify_res = vrf_provider_->verify(common::Buffer(transcript.data()),
-                                            babe_header.vrf_output,
-                                            public_key,
-                                            threshold);
+    auto verify_res = vrf_provider_->verifyTranscript(
+        transcript, babe_header.vrf_output, public_key, threshold);
     if (not verify_res.is_valid) {
       log_->error("VRF proof in block is not valid");
       return false;

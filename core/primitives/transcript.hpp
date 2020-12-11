@@ -70,6 +70,10 @@ namespace kagome::primitives {
     auto data() {
       return strobe_.data();
     }
+
+    auto data() const {
+      return strobe_.data();
+    }
   };
 
 }  // namespace kagome::primitives

@@ -20,9 +20,20 @@ namespace kagome::crypto {
                                                   const VRFThreshold &));
     MOCK_CONST_METHOD4(verify,
                        VRFVerifyOutput(const common::Buffer &,
-                            const VRFOutput &,
-                            const Sr25519PublicKey &,
-                            const VRFThreshold &));
+                                       const VRFOutput &,
+                                       const Sr25519PublicKey &,
+                                       const VRFThreshold &));
+
+    MOCK_CONST_METHOD3(
+        signTranscript,
+        boost::optional<VRFOutput>(const primitives::Transcript &,
+                                   const Sr25519Keypair &,
+                                   const VRFThreshold &));
+    MOCK_CONST_METHOD4(verifyTranscript,
+                       VRFVerifyOutput(const primitives::Transcript &,
+                                       const VRFOutput &,
+                                       const Sr25519PublicKey &,
+                                       const VRFThreshold &));
   };
 }  // namespace kagome::crypto
 
