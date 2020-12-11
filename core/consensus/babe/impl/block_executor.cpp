@@ -144,7 +144,7 @@ namespace kagome::consensus {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
@@ -223,25 +223,14 @@ namespace kagome::consensus {
         OUTCOME_TRY(last_epoch, epoch_storage_->getLastEpoch());
         auto last_epoch_start_slot = last_epoch.start_slot;
         auto last_epoch_index = last_epoch.epoch_number;
-        epoch_index = last_epoch_index + (babe_header.slot_number - last_epoch_start_slot)
-                      / genesis_configuration_->epoch_length;
+        epoch_index = last_epoch_index
+                      + (babe_header.slot_number - last_epoch_start_slot)
+                            / genesis_configuration_->epoch_length;
         break;
     }
 
-    // TODO (kamilsa): PRE-364 uncomment outcome try and remove dirty workaround
-    // below
-    //    OUTCOME_TRY(this_block_epoch_descriptor,
-    //                epoch_storage_->getEpochDescriptor(epoch_index));
-    auto this_block_epoch_descriptor_res =
-        epoch_storage_->getEpochDescriptor(epoch_index);
-    if (not this_block_epoch_descriptor_res) {  // take authorities and
-                                                // randomness
-                                                // from config
-      this_block_epoch_descriptor_res = NextEpochDescriptor{
-          .authorities = genesis_configuration_->genesis_authorities,
-          .randomness = genesis_configuration_->randomness};
-    }
-    auto this_block_epoch_descriptor = this_block_epoch_descriptor_res.value();
+    OUTCOME_TRY(this_block_epoch_descriptor,
+                epoch_storage_->getEpochDescriptor(epoch_index));
 
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         this_block_epoch_descriptor.authorities,
@@ -296,7 +285,7 @@ namespace kagome::consensus {
       if (res.has_error()
           && res
                  != outcome::failure(
-                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+                        transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
         return res;
       }
     }
