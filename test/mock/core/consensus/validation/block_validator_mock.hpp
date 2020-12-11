@@ -21,9 +21,10 @@ namespace kagome::consensus {
                               const Threshold &threshold,
                               const Randomness &randomness));
 
-    MOCK_CONST_METHOD4(
+    MOCK_CONST_METHOD5(
         validateHeader,
         outcome::result<void>(const primitives::BlockHeader &header,
+                              const EpochIndex epoch_index,
                               const primitives::AuthorityId &authority_id,
                               const Threshold &threshold,
                               const Randomness &randomness));
