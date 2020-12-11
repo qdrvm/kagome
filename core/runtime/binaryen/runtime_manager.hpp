@@ -28,7 +28,7 @@ namespace kagome::runtime::binaryen {
    */
   class RuntimeManager {
    public:
-    enum class Error { EMPTY_STATE_CODE = 1 };
+    enum class Error { EMPTY_STATE_CODE = 1, NO_PERSISTENT_BATCH = 2 };
 
     RuntimeManager(
         std::shared_ptr<extensions::ExtensionFactory> extension_factory,

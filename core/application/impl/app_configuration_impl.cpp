@@ -10,8 +10,10 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
+#include "filesystem/directories.hpp"
+
 namespace {
-  namespace fs = boost::filesystem;
+  namespace fs = kagome::filesystem;
 
   template <typename T, typename Func>
   inline void find_argument(boost::program_options::variables_map &vm,
@@ -178,7 +180,7 @@ namespace kagome::application {
       return false;
     }
 
-    if (not fs::exists(base_path_)) {
+    if (!fs::createDirectoryRecursive(base_path_)) {
       logger_->error("Base path {} does not exist.", base_path_);
       return false;
     }
