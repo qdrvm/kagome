@@ -25,6 +25,8 @@ namespace kagome::consensus {
                  outcome::result<void>(const LastEpochDescriptor &led));
 
     MOCK_CONST_METHOD0(getLastEpoch, outcome::result<LastEpochDescriptor>());
+
+    MOCK_CONST_METHOD1(contains, bool(EpochIndex));
   };
 
 }  // namespace kagome::consensus
