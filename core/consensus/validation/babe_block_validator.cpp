@@ -108,13 +108,6 @@ namespace kagome::consensus {
     return res && res.value();
   }
 
-  struct ThinTranscript {
-    uint8_t data[200];
-    uint8_t pos;
-    uint8_t pos_begin;
-    uint8_t cur_flags;
-  };
-
   bool BabeBlockValidator::verifyVRF(
       const BabeBlockHeader &babe_header,
       const EpochIndex epoch_index,
@@ -131,17 +124,9 @@ namespace kagome::consensus {
 
     primitives::Transcript transcript;
     makeTranscript(transcript, randomness, babe_header.slot_number, epoch_index);
-    auto const state = transcript.state();
-
-    ThinTranscript t_out;
-    auto span_data = transcript.data();
-    std::memcpy(t_out.data, span_data.data(), span_data.size());
-    t_out.pos = std::get<0>(state);
-    t_out.pos_begin = std::get<1>(state);
-    t_out.cur_flags = std::get<2>(state);
 
     auto verify_res = vrf_provider_->verify(
-        common::Buffer(gsl::span<uint8_t>((uint8_t*)&t_out, sizeof(t_out))), babe_header.vrf_output, public_key, threshold);
+        common::Buffer(transcript.data()), babe_header.vrf_output, public_key, threshold);
     if (not verify_res.is_valid) {
       log_->error("VRF proof in block is not valid");
       return false;

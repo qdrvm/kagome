@@ -38,12 +38,11 @@ namespace kagome::primitives {
     static constexpr Flags kFlag_M = 0x10;
     static constexpr Flags kFlag_K = 0x20;
 
-    Flags current_state_;
-    Position current_position_;
-    Position begin_position_;
-
-    uint8_t raw_data[kBufferSize + kAlignment - 1ull];
+    uint8_t raw_data[kBufferSize + kAlignment - 1ull + 3ull];
     uint8_t *const buffer_;
+    Position &current_position_;
+    Position &begin_position_;
+    Flags &current_state_;
 
     template <typename T, size_t kOffset = 0ull>
     constexpr T *as() {
@@ -140,8 +139,11 @@ namespace kagome::primitives {
 
    public:
     Strobe()
-        : buffer_{reinterpret_cast<uint8_t *>(math::roundUp<kAlignment>(
-              reinterpret_cast<uintptr_t>(raw_data)))} {}
+        : buffer_{reinterpret_cast<uint8_t *>(
+            math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))},
+          current_position_{*(buffer_ + kBufferSize)},
+          begin_position_{*(buffer_ + kBufferSize + 1ull)},
+          current_state_{*(buffer_ + kBufferSize + 2ull)} {}
 
     template <typename T, size_t N>
     void initialize(const T (&label)[N]) {
@@ -207,11 +209,12 @@ namespace kagome::primitives {
     }
 
     auto data() {
-      return gsl::make_span(as<const uint8_t>(), count<uint8_t>());
+      return gsl::make_span(as<const uint8_t>(), count<uint8_t>() + 3ull);
     }
 
     auto state() const {
-      return std::make_tuple(current_position_, begin_position_, current_state_);
+      return std::make_tuple(
+          current_position_, begin_position_, current_state_);
     }
   };
 
