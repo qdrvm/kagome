@@ -342,21 +342,22 @@ namespace kagome::application {
     if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
-        vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });
+        vm, "genesis", [&](const std::string &val) { genesis_path_ = val; });
 
     find_argument<std::string>(
-        vm, "base_path", [&](std::string const &val) { base_path_ = val; });
+        vm, "base_path", [&](const std::string &val) { base_path_ = val; });
 
     std::vector<std::string> boot_nodes;
     find_argument<std::vector<std::string>>(
-        vm, "bootnodes", [&](std::vector<std::string> const &val) {
+        vm, "bootnodes", [&](const std::vector<std::string> &val) {
           boot_nodes = val;
         });
     boot_nodes_.reserve(boot_nodes.size());
     for (auto &addr_str : boot_nodes) {
       auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
       if (not ma_res.has_value()) {
-        auto err_msg = "Bootnode '" + addr_str + "' is invalid: " + ma_res.error().message() ;
+        auto err_msg = "Bootnode '" + addr_str
+                       + "' is invalid: " + ma_res.error().message();
         logger_->error(err_msg);
         std::cout << err_msg << std::endl;
         return false;
