@@ -116,10 +116,14 @@ namespace kagome::consensus {
         to,
         peer_id,
         [self_wp{weak_from_this()}, next(std::move(next)), to, from, peer_id](
-            const std::vector<primitives::BlockData> &blocks) mutable {
+            auto blocks_res) mutable {
           auto self = self_wp.lock();
-          if (not self) return;
+          if (!self || !blocks_res) {
+            next();
+            return;
+          }
 
+          const auto &blocks = blocks_res->get();
           bool sync_complete = false;
           const primitives::BlockHash *last_received_hash = nullptr;
           if (blocks.empty()) {
