@@ -4,11 +4,9 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 
 ### Prerequisites
 
-1. Docker container runtime must be installed in your OS
-   ```bash
-   # In Debian-like OS (Debian, Ubuntu, Mint, etc.)
-   apt-get install docker.io
-   ```
+1. Docker container runtime must be installed in your OS. 
+   Manual of that can be found in [official site](https://docs.docker.com/engine/install/).
+
 2. Image of kagome docker container is soramitsu/kagome 
 
    ```bash
@@ -37,9 +35,9 @@ docker run \                        # Run docker container
 
 #### Example
 
-For example we wanna run validating in docker container with configs from [here](first_kagome_chain.md).
+For example we want to run validating node in docker container with configs from [here](first_kagome_chain.md).
 
-Run follow commands: 
+Run the following commands: 
 
 ```bash
 cd examples/first_kagome_chain
