@@ -120,47 +120,6 @@ namespace kagome::injector {
   using uptr = std::unique_ptr<T>;
 
   template <typename Injector>
-  network::BootstrapNodes &get_bootstrap_nodes(const Injector &injector) {
-    static auto initialized =
-        boost::optional<network::BootstrapNodes>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto &chain_spec = injector.template create<application::ChainSpec &>();
-    auto &app_config =
-        injector.template create<const application::AppConfiguration &>();
-
-    std::unordered_map<libp2p::peer::PeerId,
-                       std::set<libp2p::multi::Multiaddress>>
-        addresses_by_peer_id;
-
-    for (auto &src : {chain_spec.bootNodes(), app_config.bootNodes()}) {
-      for (auto &address : src) {
-        auto peer_id_base58_res = address.getPeerId();
-        if (peer_id_base58_res) {
-          auto peer_id_res =
-              libp2p::peer::PeerId::fromBase58(peer_id_base58_res.value());
-          if (peer_id_res.has_value()) {
-            addresses_by_peer_id[peer_id_res.value()].emplace(address);
-          }
-        }
-      }
-    }
-
-    std::vector<libp2p::peer::PeerInfo> bootstrap_nodes;
-    bootstrap_nodes.reserve(addresses_by_peer_id.size());
-    for (auto &item : addresses_by_peer_id) {
-      bootstrap_nodes.emplace_back(libp2p::peer::PeerInfo{
-          .id = item.first,
-          .addresses = {std::make_move_iterator(item.second.begin()),
-                        std::make_move_iterator(item.second.end())}});
-    }
-
-    initialized.emplace(std::move(bootstrap_nodes));
-    return initialized.value();
-  }
-
-  template <typename Injector>
   sptr<api::ApiService> get_jrpc_api_service(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<api::ApiService>>(boost::none);

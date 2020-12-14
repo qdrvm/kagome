@@ -356,14 +356,14 @@ namespace kagome::application {
     for (auto &addr_str : boot_nodes) {
       auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
       if (not ma_res.has_value()) {
-        auto err_msg = "Bootnode is invalid: " + addr_str;
+        auto err_msg = "Bootnode '" + addr_str + "' is invalid: " + ma_res.error().message() ;
         logger_->error(err_msg);
         std::cout << err_msg << std::endl;
         return false;
       }
       auto peer_id_base58_opt = ma_res.value().getPeerId();
       if (not peer_id_base58_opt) {
-        auto err_msg = "Bootnode has not peer_id: " + addr_str;
+        auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
         logger_->error(err_msg);
         std::cout << err_msg << std::endl;
         return false;
