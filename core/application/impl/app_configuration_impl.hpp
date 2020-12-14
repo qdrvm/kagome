@@ -8,6 +8,8 @@
 
 #include "application/app_configuration.hpp"
 
+#include "crypto/ed25519_types.hpp"
+
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
   using SizeType = ::std::size_t;
@@ -72,6 +74,10 @@ namespace kagome::application {
     boost::filesystem::path database_path(std::string chain_id) const override;
     boost::filesystem::path keystore_path(std::string chain_id) const override;
 
+    const boost::optional<crypto::Ed25519PrivateKey> &nodeKey() const override {
+      return node_key_;
+    }
+
     DECLARE_PROPERTY(uint16_t, p2p_port);
     DECLARE_PROPERTY(boost::asio::ip::tcp::endpoint, rpc_http_endpoint);
     DECLARE_PROPERTY(boost::asio::ip::tcp::endpoint, rpc_ws_endpoint);
@@ -127,7 +133,9 @@ namespace kagome::application {
                                                      uint16_t port);
     FilePtr open_file(const std::string &filepath);
 
-    kagome::common::Logger logger_;
+    common::Logger logger_;
+
+    boost::optional<crypto::Ed25519PrivateKey> node_key_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
     boost::filesystem::path genesis_path_;
