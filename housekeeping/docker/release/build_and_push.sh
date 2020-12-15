@@ -19,7 +19,7 @@ TAG=soramitsu/kagome:$VERSION
 CTX_DIR=${BUILD_DIR}/docker_context
 
 # Cleanup docker context
-rm -R ${CTX_DIR}
+rm -Rf ${CTX_DIR}
 mkdir -p ${CTX_DIR}
 
 # Copy binaries
