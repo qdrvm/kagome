@@ -12,6 +12,9 @@
 #include <spdlog/common.h>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
+
+#include "crypto/ed25519_types.hpp"
 
 namespace kagome::application {
 
@@ -59,6 +62,12 @@ namespace kagome::application {
         std::string chain_id) const = 0;
 
     /**
+     * @return the secret key to use for libp2p networking
+     */
+    virtual const boost::optional<crypto::Ed25519PrivateKey> &nodeKey()
+        const = 0;
+
+    /**
      * @return port for peer to peer interactions.
      */
     virtual uint16_t p2p_port() const = 0;
@@ -97,8 +106,8 @@ namespace kagome::application {
 
     /**
      * Slots strategy
-     * @return true if we should count slots as `unix_epoch_time() / slot_duration`.
-     * Otherwise slots are counting from 0 and false is returned
+     * @return true if we should count slots as `unix_epoch_time() /
+     * slot_duration`. Otherwise slots are counting from 0 and false is returned
      */
     virtual bool is_unix_slots_strategy() const = 0;
   };

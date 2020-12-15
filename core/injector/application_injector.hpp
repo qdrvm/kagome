@@ -663,6 +663,70 @@ namespace kagome::injector {
     return *instance;
   }
 
+  template <typename Injector>
+  sptr<libp2p::crypto::KeyPair> get_peer_keypair(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
+
+    if (initialized) {
+      return initialized.value();
+    }
+
+    auto &app_config =
+        injector.template create<const application::AppConfiguration &>();
+    auto &crypto_provider =
+        injector.template create<const crypto::Ed25519Provider &>();
+    auto &crypto_store =
+        injector.template create<const crypto::CryptoStore &>();
+
+    if (app_config.nodeKey()) {
+      spdlog::info("Will use LibP2P keypair from config or args");
+
+      auto provided_keypair =
+          crypto_provider.generateKeypair(app_config.nodeKey().value());
+      BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
+
+      auto &&pub = provided_keypair.public_key;
+      auto &&priv = provided_keypair.secret_key;
+
+      initialized =
+          std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
+              .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
+                             .data = {pub.begin(), pub.end()}}},
+              .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
+                              .data = {priv.begin(), priv.end()}}}});
+      return initialized.value();
+    }
+
+    if (crypto_store.getLibp2pKeypair()) {
+      spdlog::info("Will use LibP2P keypair from key storage");
+
+      auto stored_keypair = crypto_store.getLibp2pKeypair().value();
+
+      initialized =
+          std::make_shared<libp2p::crypto::KeyPair>(std::move(stored_keypair));
+      return initialized.value();
+    }
+
+    spdlog::warn(
+        "Can not get LibP2P keypair from crypto storage. "
+        "Will be temporary generated unique one");
+
+    auto generated_keypair = crypto_provider.generateKeypair();
+
+    auto &&pub = generated_keypair.public_key;
+    auto &&priv = generated_keypair.secret_key;
+
+    initialized =
+        std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
+            .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
+                           .data = {pub.begin(), pub.end()}}},
+            .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
+                            .data = {priv.begin(), priv.end()}}}});
+
+    return initialized.value();
+  }
+
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
                                Ts &&... args) {
@@ -695,6 +759,11 @@ namespace kagome::injector {
             [](auto const &inj) { return get_boot_nodes(inj); }),
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
+
+        // compose peer keypair
+        di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {
+          return get_peer_keypair(inj);
+        })[boost::di::override],
 
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
