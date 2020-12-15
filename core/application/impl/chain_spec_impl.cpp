@@ -154,7 +154,7 @@ namespace kagome::application {
       OUTCOME_TRY(multiaddr,
                   libp2p::multi::Multiaddress::create(v.second.data()));
       OUTCOME_TRY(peer_id_base58, ensure(multiaddr.getPeerId()));
-      OUTCOME_TRY(peer_id, libp2p::peer::PeerId::fromBase58(peer_id_base58));
+      OUTCOME_TRY(libp2p::peer::PeerId::fromBase58(peer_id_base58));
       boot_nodes_.emplace_back(std::move(multiaddr));
     }
     return outcome::success();

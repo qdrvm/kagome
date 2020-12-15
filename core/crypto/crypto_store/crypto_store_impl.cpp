@@ -47,7 +47,7 @@ namespace kagome::crypto {
     OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *ed_suite_));
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
-    return kp;
+    return std::move(kp);
   }
 
   outcome::result<Sr25519Keypair> CryptoStoreImpl::generateSr25519Keypair(
@@ -55,7 +55,7 @@ namespace kagome::crypto {
     OUTCOME_TRY(kp, generateKeypair(mnemonic_phrase, *sr_suite_));
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
-    return kp;
+    return std::move(kp);
   }
 
   Ed25519Keypair CryptoStoreImpl::generateEd25519Keypair(
