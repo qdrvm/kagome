@@ -12,4 +12,5 @@ target_link_libraries(block_validator_test
     testutil_primitives_generator
     sr25519_provider
     mp_utils
+    keccak
     )

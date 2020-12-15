@@ -116,26 +116,26 @@ namespace kagome::consensus {
         to,
         peer_id,
         [self_wp{weak_from_this()}, next(std::move(next)), to, from, peer_id](
-            const std::vector<primitives::BlockData> &blocks) mutable {
+            auto blocks_res) mutable {
           auto self = self_wp.lock();
-          if (not self) return;
+          if (!self || !blocks_res) {
+            next();
+            return;
+          }
 
+          const auto &blocks = blocks_res->get();
           bool sync_complete = false;
-          primitives::BlockHash last_received_hash;
-          primitives::BlockHash first_received_hash;
+          const primitives::BlockHash *last_received_hash = nullptr;
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
             sync_complete = true;
           } else if (blocks.front().header && blocks.back().header) {
-            first_received_hash = self->hasher_->blake2b_256(
-                scale::encode(*blocks.front().header).value());
-            last_received_hash = self->hasher_->blake2b_256(
-                scale::encode(*blocks.back().header).value());
+            auto &first_received_hash = blocks.front().hash;
+            last_received_hash = &blocks.back().hash;
             self->logger_->info("Received blocks from: {}, to {}, count {}",
                                 first_received_hash.toHex(),
-                                last_received_hash.toHex(),
+                                last_received_hash->toHex(),
                                 blocks.size());
-            sync_complete = to == last_received_hash;
           } else {
             self->logger_->warn("Blocks with empty headers detected.");
             sync_complete = true;
@@ -153,15 +153,19 @@ namespace kagome::consensus {
               sync_complete = true;
               break;
             }
+            const auto &block_hash = block.hash;
+            if (to == block_hash) {
+              sync_complete = true;
+            }
           }
           if (sync_complete)
             next();
           else {
             self->logger_->info("Request next page of blocks: from {}, to {}",
-                                last_received_hash.toHex(),
+                                last_received_hash->toHex(),
                                 to.toHex());
             self->requestBlocks(
-                last_received_hash, to, peer_id, std::move(next));
+                *last_received_hash, to, peer_id, std::move(next));
           }
         });
   }
@@ -214,18 +218,22 @@ namespace kagome::consensus {
     }
 
     EpochIndex epoch_index;
+    BabeSlotNumber slot_in_epoch;
     switch (slots_strategy_) {
       case SlotsStrategy::FromZero:
         epoch_index =
             babe_header.slot_number / genesis_configuration_->epoch_length;
+        slot_in_epoch = 0ull;
         break;
       case SlotsStrategy::FromUnixEpoch:
         OUTCOME_TRY(last_epoch, epoch_storage_->getLastEpoch());
-        auto last_epoch_start_slot = last_epoch.start_slot;
-        auto last_epoch_index = last_epoch.epoch_number;
-        epoch_index = last_epoch_index
-                      + (babe_header.slot_number - last_epoch_start_slot)
-                            / genesis_configuration_->epoch_length;
+        const auto last_epoch_start_slot = last_epoch.start_slot;
+        const auto last_epoch_index = last_epoch.epoch_number;
+        const auto slot_dif = babe_header.slot_number - last_epoch_start_slot;
+
+        epoch_index =
+            last_epoch_index + slot_dif / genesis_configuration_->epoch_length;
+        slot_in_epoch = slot_dif % genesis_configuration_->epoch_length;
         break;
     }
 
@@ -237,16 +245,21 @@ namespace kagome::consensus {
                                         babe_header.authority_index);
 
     // update authorities and randomnesss
-    auto next_epoch_digest_res = getNextEpochDigest(block.header);
-    if (next_epoch_digest_res) {
-      logger_->info("Got next epoch digest for epoch: {}", epoch_index);
-      epoch_storage_
-          ->addEpochDescriptor(epoch_index + 2, next_epoch_digest_res.value())
-          .value();
+    if (0ull == slot_in_epoch) {
+      if (auto next_epoch_digest_res = getNextEpochDigest(block.header)) {
+        logger_->info("Got next epoch digest for epoch: {}", epoch_index);
+        epoch_storage_
+            ->addEpochDescriptor(epoch_index + 1, next_epoch_digest_res.value())
+            .value();
+      } else {
+        logger_->error("Failed to get next epoch digest for epoch: {}",
+                       epoch_index);
+      }
     }
 
     OUTCOME_TRY(block_validator_->validateHeader(
         block.header,
+        epoch_index,
         this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
         threshold,
         this_block_epoch_descriptor.randomness));

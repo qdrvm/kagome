@@ -96,7 +96,7 @@ namespace kagome::network {
           chain_hash,
           block_tree_->getChainByBlocks(
               from_hash, *request.to, static_cast<uint32_t>(request_count)));
-      if (ascending_direction) {
+      if (!ascending_direction) {
         std::reverse(chain_hash.begin(), chain_hash.end());
       }
       chain_hash_res = chain_hash;
