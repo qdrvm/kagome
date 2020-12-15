@@ -116,7 +116,7 @@ namespace kagome::consensus {
       const Randomness &randomness,
       const bool checkThreshold) const {
     primitives::Transcript transcript;
-    makeTranscript(
+    prepareTranscript(
         transcript, randomness, babe_header.slot_number, epoch_index);
 
     auto verify_res = vrf_provider_->verifyTranscript(

@@ -97,7 +97,7 @@ namespace kagome::consensus {
                    const Randomness &randomness,
                    const bool checkThreshold) const;
 
-    inline primitives::Transcript &makeTranscript(
+    inline primitives::Transcript &prepareTranscript(
         primitives::Transcript &transcript_,
         const consensus::Randomness &randomness,
         consensus::BabeSlotNumber slot_number,
