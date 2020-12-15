@@ -281,7 +281,7 @@ namespace kagome::application {
 
     po::options_description network_desc("Network options");
     network_desc.add_options()
-        ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of makeBootnodes")
+        ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("p2p_port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc_http_host", po::value<std::string>(), "address for RPC over HTTP")
         ("rpc_http_port", po::value<uint16_t>(), "port for RPC over HTTP")

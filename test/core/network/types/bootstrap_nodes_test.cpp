@@ -7,24 +7,14 @@
 
 #include <gmock/gmock.h>
 
-#include <libp2p/peer/peer_info.hpp>
-
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/chain_spec_mock.hpp"
-#include "testutil/outcome.hpp"
+#include "testutil/literals.hpp"
 
 using namespace kagome::application;
 using namespace kagome::network;
 using namespace libp2p;
 using ::testing::ReturnRef;
-
-peer::PeerId operator""_peerid(const char *c, size_t s) {
-  libp2p::crypto::PublicKey p;
-  p.data = std::vector<uint8_t>(c, c + s);  // NOLINT
-  return libp2p::peer::PeerId::fromPublicKey(
-             libp2p::crypto::ProtobufKey{p.data})
-      .value();
-}
 
 struct BootstrapNodesTest : public ::testing::Test {
   void SetUp() override {
