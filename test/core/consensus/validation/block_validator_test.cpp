@@ -87,7 +87,12 @@ class BlockValidatorTest : public testing::Test {
       std::make_shared<Sr25519ProviderMock>();
 
   BabeBlockValidator validator_{
-      tree_, tx_queue_, hasher_, vrf_provider_, sr25519_provider_};
+      tree_,
+      tx_queue_,
+      hasher_,
+      vrf_provider_,
+      sr25519_provider_,
+      std::make_shared<primitives::BabeConfiguration>()};
 
   // fields for block
   Hash256 parent_hash_ =
@@ -97,8 +102,10 @@ class BlockValidatorTest : public testing::Test {
   VRFPreOutput vrf_value_ = {1, 2, 3, 4, 5};
   VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = {1};
-  BabeBlockHeader babe_header_{
-      slot_number_, {vrf_value_, vrf_proof_}, authority_index_};
+  BabeBlockHeader babe_header_{BabeBlockHeader::kVRFHeader,
+                               slot_number_,
+                               {vrf_value_, vrf_proof_},
+                               authority_index_};
   Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
 
   BlockHeader block_header_{
@@ -144,11 +151,12 @@ TEST_F(BlockValidatorTest, Success) {
   // verifyVRF
   auto randomness_with_slot =
       Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+
+  EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   auto validate_res = validator_.validateHeader(
-      valid_block_.header, authority.id, threshold_, randomness_);
+      valid_block_.header, 0ull, authority.id, threshold_, randomness_);
   ASSERT_TRUE(validate_res) << validate_res.error().message();
 }
 
@@ -165,7 +173,7 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, kagome::consensus::DigestError::INVALID_DIGESTS);
 }
 
@@ -196,7 +204,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, consensus::DigestError::INVALID_DIGESTS);
 }
 
@@ -236,7 +244,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -276,7 +284,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -310,14 +318,15 @@ TEST_F(BlockValidatorTest, VRFFail) {
   // WHEN
   auto randomness_with_slot =
       Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+
+  EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = false, .is_less = true}));
 
   // THEN
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
@@ -353,13 +362,13 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
 
   auto randomness_with_slot =
       Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+  EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = false}));
 
   // THEN
   EXPECT_OUTCOME_FALSE(
       err,
       validator_.validateHeader(
-          valid_block_.header, authority.id, threshold_, randomness_));
+          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }

@@ -317,8 +317,7 @@ namespace kagome::injector {
             .randomness = configuration->randomness};
 
         const bool init_epoch_desc_ok =
-            (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value()
-            && (*obj)->addEpochDescriptor(1, init_epoch_desc).has_value();
+            (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value();
         BOOST_ASSERT(init_epoch_desc_ok);
       }
     }

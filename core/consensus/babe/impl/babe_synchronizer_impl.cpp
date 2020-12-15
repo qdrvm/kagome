@@ -42,7 +42,7 @@ namespace kagome::consensus {
         network::BlocksRequest::kBasicAttributes,
         from,
         to,
-        network::Direction::DESCENDING,
+        network::Direction::ASCENDING,
         static_cast<uint32_t>(app_configuration_.maxBlocksInResponse())};
 
     return pollClients(request, peer_id, block_list_handler);
@@ -127,13 +127,15 @@ namespace kagome::consensus {
           if (auto self = self_wp.lock()) {
             // if response exists then get blocks and send them to handle
             if (response_res and not response_res.value().blocks.empty()) {
-              return requested_blocks_handler(response_res.value().blocks);
+              return requested_blocks_handler(
+                  std::cref(response_res.value().blocks));
             } else if (not response_res) {
               self->logger_->error("Could not sync. Error: {}",
                                    response_res.error().message());
             } else {
               self->logger_->error("Could not sync. Empty response");
             }
+            return requested_blocks_handler(boost::none);
           }
         });
   }

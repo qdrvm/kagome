@@ -28,6 +28,7 @@ namespace kagome::consensus {
      */
     virtual outcome::result<void> validateHeader(
         const primitives::BlockHeader &block_header,
+        const EpochIndex epoch_index,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
         const Randomness &randomness) const = 0;

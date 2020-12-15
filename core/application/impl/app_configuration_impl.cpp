@@ -289,13 +289,13 @@ namespace kagome::application {
         ("rpc_http_port", po::value<uint16_t>(), "port for RPC over HTTP")
         ("rpc_ws_host", po::value<std::string>(), "address for RPC over Websocket protocol")
         ("rpc_ws_port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
+        ("max_blocks_in_response", po::value<int>(), "max block per response while syncing")
         ;
 
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
         ("single_finalizing_node,f", "if this is the only finalizing node")
         ("already_synchronized,s", "if need to consider synchronized")
-        ("max_blocks_in_response", "max block per response while syncing")
         ("unix_slots,u", "if slots are calculated from unix epoch")
         ;
     // clang-format on
@@ -392,8 +392,8 @@ namespace kagome::application {
     find_argument<uint16_t>(
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
 
-    find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
-      max_blocks_in_response_ = val;
+    find_argument<int32_t>(vm, "max_blocks_in_response", [&](int32_t val) {
+      max_blocks_in_response_ = static_cast<uint32_t>(val);
     });
 
     find_argument<int32_t>(vm, "verbosity", [&](int32_t val) {
