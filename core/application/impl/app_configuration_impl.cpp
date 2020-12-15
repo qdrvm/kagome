@@ -39,33 +39,33 @@ namespace {
 namespace kagome::application {
 
   AppConfigurationImpl::AppConfigurationImpl(common::Logger logger)
-      : p2p_port_(def_p2p_port),
+      : logger_(std::move(logger)),
+        p2p_port_(def_p2p_port),
         verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
-        is_only_finalizing_(def_is_only_finalizing),
         is_already_synchronized_(def_is_already_synchronized),
+        is_only_finalizing_(def_is_only_finalizing),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         is_unix_slots_strategy_(def_is_unix_slots_strategy),
-        logger_(std::move(logger)),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port) {}
 
-  fs::path AppConfigurationImpl::genesis_path() const {
+  fs::path AppConfigurationImpl::genesisPath() const {
     return genesis_path_.native();
   }
 
-  boost::filesystem::path AppConfigurationImpl::chain_path(
+  boost::filesystem::path AppConfigurationImpl::chainPath(
       std::string chain_id) const {
     return base_path_ / chain_id;
   }
 
-  fs::path AppConfigurationImpl::database_path(std::string chain_id) const {
-    return chain_path(chain_id) / "db";
+  fs::path AppConfigurationImpl::databasePath(std::string chain_id) const {
+    return chainPath(chain_id) / "db";
   }
 
-  fs::path AppConfigurationImpl::keystore_path(std::string chain_id) const {
-    return chain_path(chain_id) / "keystore";
+  fs::path AppConfigurationImpl::keystorePath(std::string chain_id) const {
+    return chainPath(chain_id) / "keystore";
   }
 
   AppConfigurationImpl::FilePtr AppConfigurationImpl::open_file(
@@ -73,6 +73,23 @@ namespace kagome::application {
     assert(!filepath.empty());
     return AppConfigurationImpl::FilePtr(std::fopen(filepath.c_str(), "r"),
                                          &std::fclose);
+  }
+
+  bool AppConfigurationImpl::load_ma(
+      const rapidjson::Value &val,
+      char const *name,
+      std::vector<libp2p::multi::Multiaddress> &target) {
+    for (auto it = val.FindMember(name); it != val.MemberEnd(); ++it) {
+      auto &value = it->value;
+      auto ma_res = libp2p::multi::Multiaddress::create(
+          std::string(value.GetString(), value.GetStringLength()));
+      if (not ma_res) {
+        return false;
+      }
+      target.emplace_back(std::move(ma_res.value()));
+      return true;
+    }
+    return not target.empty();
   }
 
   bool AppConfigurationImpl::load_str(const rapidjson::Value &val,
@@ -142,6 +159,7 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
+    load_ma(val, "bootnodes", boot_nodes_);
     load_u16(val, "p2p_port", p2p_port_);
     load_str(val, "rpc_http_host", rpc_http_host_);
     load_u16(val, "rpc_http_port", rpc_http_port_);
@@ -259,13 +277,13 @@ namespace kagome::application {
 
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
-        ("base_path,d", po::value<std::string>(),
-            "required, node base path (keeps storage and keys for known chains)")
+        ("base_path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
         ;
 
     po::options_description network_desc("Network options");
     network_desc.add_options()
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
+        ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("p2p_port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc_http_host", po::value<std::string>(), "address for RPC over HTTP")
         ("rpc_http_port", po::value<uint16_t>(), "port for RPC over HTTP")
@@ -304,7 +322,7 @@ namespace kagome::application {
       po::store(po::parse_command_line(argc, argv, desc), vm);
       po::store(parsed, vm);
       po::notify(vm);
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       std::cerr << "Error: " << e.what() << '\n'
                 << "Try run with option '--help' for more information"
                 << std::endl;
@@ -326,10 +344,35 @@ namespace kagome::application {
     if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
-        vm, "genesis", [&](std::string const &val) { genesis_path_ = val; });
+        vm, "genesis", [&](const std::string &val) { genesis_path_ = val; });
 
     find_argument<std::string>(
-        vm, "base_path", [&](std::string const &val) { base_path_ = val; });
+        vm, "base_path", [&](const std::string &val) { base_path_ = val; });
+
+    std::vector<std::string> boot_nodes;
+    find_argument<std::vector<std::string>>(
+        vm, "bootnodes", [&](const std::vector<std::string> &val) {
+          boot_nodes = val;
+        });
+    boot_nodes_.reserve(boot_nodes.size());
+    for (auto &addr_str : boot_nodes) {
+      auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
+      if (not ma_res.has_value()) {
+        auto err_msg = "Bootnode '" + addr_str
+                       + "' is invalid: " + ma_res.error().message();
+        logger_->error(err_msg);
+        std::cout << err_msg << std::endl;
+        return false;
+      }
+      auto peer_id_base58_opt = ma_res.value().getPeerId();
+      if (not peer_id_base58_opt) {
+        auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
+        logger_->error(err_msg);
+        std::cout << err_msg << std::endl;
+        return false;
+      }
+      boot_nodes_.emplace_back(std::move(ma_res.value()));
+    }
 
     boost::optional<std::string> node_key;
     find_argument<std::string>(

@@ -15,7 +15,7 @@ namespace kagome::application {
         logger_(common::createLogger("Application")) {
     spdlog::set_level(app_config.verbosity());
 
-    if (app_config.is_already_synchronized()) {
+    if (app_config.isAlreadySynchronized()) {
       babe_execution_strategy_ = Babe::ExecutionStrategy::START;
     } else {
       babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;

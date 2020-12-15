@@ -43,7 +43,7 @@ namespace kagome::consensus {
         from,
         to,
         network::Direction::ASCENDING,
-        static_cast<uint32_t>(app_configuration_.max_blocks_in_response())};
+        static_cast<uint32_t>(app_configuration_.maxBlocksInResponse())};
 
     return pollClients(request, peer_id, block_list_handler);
   }

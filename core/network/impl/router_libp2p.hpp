@@ -24,9 +24,9 @@
 #include "network/impl/loopback_stream.hpp"
 #include "network/router.hpp"
 #include "network/sync_protocol_observer.hpp"
+#include "network/types/bootstrap_nodes.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/own_peer_info.hpp"
-#include "network/types/peer_list.hpp"
 
 namespace kagome::application {
   class ChainSpec;
@@ -47,7 +47,7 @@ namespace kagome::network {
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<Gossiper> gossiper,
-        const PeerList &peer_list,
+        const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_info,
         std::shared_ptr<kagome::application::ChainSpec> config,
         std::shared_ptr<blockchain::BlockStorage> storage,

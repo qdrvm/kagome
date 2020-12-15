@@ -27,6 +27,7 @@ add_library(app_config_impl
     )
 target_link_libraries(app_config_impl
     Boost::program_options
+    p2p::p2p_multiaddress
     blob
     )
 

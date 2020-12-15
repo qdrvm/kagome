@@ -69,23 +69,43 @@ namespace kagome::application {
                                             int argc,
                                             char **argv);
 
-    boost::filesystem::path genesis_path() const override;
-    boost::filesystem::path chain_path(std::string chain_id) const override;
-    boost::filesystem::path database_path(std::string chain_id) const override;
-    boost::filesystem::path keystore_path(std::string chain_id) const override;
+    boost::filesystem::path genesisPath() const override;
+    boost::filesystem::path chainPath(std::string chain_id) const override;
+    boost::filesystem::path databasePath(std::string chain_id) const override;
+    boost::filesystem::path keystorePath(std::string chain_id) const override;
 
     const boost::optional<crypto::Ed25519PrivateKey> &nodeKey() const override {
       return node_key_;
     }
 
-    DECLARE_PROPERTY(uint16_t, p2p_port);
-    DECLARE_PROPERTY(boost::asio::ip::tcp::endpoint, rpc_http_endpoint);
-    DECLARE_PROPERTY(boost::asio::ip::tcp::endpoint, rpc_ws_endpoint);
-    DECLARE_PROPERTY(spdlog::level::level_enum, verbosity);
-    DECLARE_PROPERTY(bool, is_only_finalizing);
-    DECLARE_PROPERTY(bool, is_already_synchronized);
-    DECLARE_PROPERTY(uint32_t, max_blocks_in_response);
-    DECLARE_PROPERTY(bool, is_unix_slots_strategy);
+    const std::vector<libp2p::multi::Multiaddress> &bootNodes() const override {
+      return boot_nodes_;
+    }
+
+    uint16_t p2pPort() const override {
+      return p2p_port_;
+    }
+    const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const override {
+      return rpc_http_endpoint_;
+    }
+    const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const override {
+      return rpc_ws_endpoint_;
+    }
+    spdlog::level::level_enum verbosity() const override {
+      return verbosity_;
+    }
+    bool isAlreadySynchronized() const override {
+      return is_already_synchronized_;
+    }
+    bool isOnlyFinalizing() const override {
+      return is_only_finalizing_;
+    }
+    uint32_t maxBlocksInResponse() const override {
+      return max_blocks_in_response_;
+    }
+    bool isUnixSlotsStrategy() const override {
+      return is_unix_slots_strategy_;
+    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -118,6 +138,9 @@ namespace kagome::application {
 
     void read_config_from_file(const std::string &filepath);
 
+    bool load_ma(const rapidjson::Value &val,
+                 char const *name,
+                 std::vector<libp2p::multi::Multiaddress> &target);
     bool load_str(const rapidjson::Value &val,
                   char const *name,
                   std::string &target);
@@ -136,6 +159,15 @@ namespace kagome::application {
     common::Logger logger_;
 
     boost::optional<crypto::Ed25519PrivateKey> node_key_;
+    std::vector<libp2p::multi::Multiaddress> boot_nodes_;
+    uint16_t p2p_port_;
+    boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
+    boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
+    spdlog::level::level_enum verbosity_;
+    bool is_already_synchronized_;
+    bool is_only_finalizing_;
+    uint32_t max_blocks_in_response_;
+    bool is_unix_slots_strategy_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
     boost::filesystem::path genesis_path_;

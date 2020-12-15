@@ -13,6 +13,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
+#include <libp2p/multi/multiaddress.hpp>
 
 #include "crypto/ed25519_types.hpp"
 
@@ -41,24 +42,24 @@ namespace kagome::application {
     /**
      * @return file path with genesis configuration.
      */
-    virtual boost::filesystem::path genesis_path() const = 0;
+    virtual boost::filesystem::path genesisPath() const = 0;
 
     /**
      * @return path to the node's directory for the chain \arg chain_id
      * (contains key storage and database)
      */
-    virtual boost::filesystem::path chain_path(std::string chain_id) const = 0;
+    virtual boost::filesystem::path chainPath(std::string chain_id) const = 0;
 
     /**
      * @return path to the node's database for the chain \arg chain_id
      */
-    virtual boost::filesystem::path database_path(
+    virtual boost::filesystem::path databasePath(
         std::string chain_id) const = 0;
 
     /**
      * @return path to the node's keystore for the chain \arg chain_id
      */
-    virtual boost::filesystem::path keystore_path(
+    virtual boost::filesystem::path keystorePath(
         std::string chain_id) const = 0;
 
     /**
@@ -70,17 +71,23 @@ namespace kagome::application {
     /**
      * @return port for peer to peer interactions.
      */
-    virtual uint16_t p2p_port() const = 0;
+    virtual uint16_t p2pPort() const = 0;
+
+    /**
+     * @return multiaddresses of bootstrat nodes
+     */
+    virtual const std::vector<libp2p::multi::Multiaddress> &bootNodes()
+        const = 0;
 
     /**
      * @return endpoint for RPC over HTTP.
      */
-    virtual const boost::asio::ip::tcp::endpoint &rpc_http_endpoint() const = 0;
+    virtual const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const = 0;
 
     /**
      * @return endpoint for RPC over Websocket protocol.
      */
-    virtual const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint() const = 0;
+    virtual const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const = 0;
 
     /**
      * @return log level (0-trace, 5-only critical, 6-no logs).
@@ -90,26 +97,26 @@ namespace kagome::application {
     /**
      * @return true if node in only finalizing mode, otherwise false.
      */
-    virtual bool is_only_finalizing() const = 0;
+    virtual bool isOnlyFinalizing() const = 0;
 
     /**
      * If whole nodes was stopped, would not any active node to synchronize.
      * This option gives ability to continue block production at cold start.
      * @return true if need to force block production
      */
-    virtual bool is_already_synchronized() const = 0;
+    virtual bool isAlreadySynchronized() const = 0;
 
     /**
      * @return max blocks count per response while syncing
      */
-    virtual uint32_t max_blocks_in_response() const = 0;
+    virtual uint32_t maxBlocksInResponse() const = 0;
 
     /**
      * Slots strategy
      * @return true if we should count slots as `unix_epoch_time() /
      * slot_duration`. Otherwise slots are counting from 0 and false is returned
      */
-    virtual bool is_unix_slots_strategy() const = 0;
+    virtual bool isUnixSlotsStrategy() const = 0;
   };
 
 }  // namespace kagome::application
