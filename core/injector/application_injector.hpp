@@ -520,7 +520,8 @@ namespace kagome::injector {
     auto db = storage::LevelDB::create(
         config.database_path(genesis_config->id()), options);
     if (!db) {
-      common::raise(db.error());
+      spdlog::critical("Can't open database: {}", db.error().message());
+      exit(EXIT_FAILURE);
     }
     initialized = db.value();
     return initialized.value();
