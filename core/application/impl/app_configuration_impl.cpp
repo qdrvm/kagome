@@ -10,6 +10,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
+#include "common/hexutil.hpp"
 #include "filesystem/directories.hpp"
 
 namespace {
@@ -264,6 +265,7 @@ namespace kagome::application {
 
     po::options_description network_desc("Network options");
     network_desc.add_options()
+        ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
         ("p2p_port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc_http_host", po::value<std::string>(), "address for RPC over HTTP")
         ("rpc_http_port", po::value<uint16_t>(), "port for RPC over HTTP")
@@ -328,6 +330,21 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "base_path", [&](std::string const &val) { base_path_ = val; });
+
+    boost::optional<std::string> node_key;
+    find_argument<std::string>(
+        vm, "node-key", [&](const std::string &val) { node_key.emplace(val); });
+    if (node_key.has_value()) {
+      auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.get());
+      if (not key_res.has_value()) {
+        auto err_msg = "Node key '" + node_key.get()
+                       + "' is invalid: " + key_res.error().message();
+        logger_->error(err_msg);
+        std::cout << err_msg << std::endl;
+        return false;
+      }
+      node_key_.emplace(std::move(key_res.value()));
+    }
 
     find_argument<uint16_t>(
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
