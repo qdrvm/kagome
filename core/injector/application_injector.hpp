@@ -679,7 +679,7 @@ namespace kagome::injector {
         injector.template create<const crypto::CryptoStore &>();
 
     if (app_config.nodeKey()) {
-      spdlog::info("Will be used LibP2P keypair from config or args");
+      spdlog::info("Will use LibP2P keypair from config or args");
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
@@ -698,7 +698,7 @@ namespace kagome::injector {
     }
 
     if (crypto_store.getLibp2pKeypair()) {
-      spdlog::info("Will be used LibP2P keypair from storage");
+      spdlog::info("Will use LibP2P keypair from key storage");
 
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 
@@ -708,7 +708,7 @@ namespace kagome::injector {
     }
 
     spdlog::warn(
-        "Can get LibP2P keypair from crypto storage. "
+        "Can not get LibP2P keypair from crypto storage. "
         "Will be temporary generated unique one");
 
     auto generated_keypair = crypto_provider.generateKeypair();
