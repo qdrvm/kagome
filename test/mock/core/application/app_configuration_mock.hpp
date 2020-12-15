@@ -25,16 +25,18 @@ namespace kagome::application {
     MOCK_CONST_METHOD1(keystorePath,
                        boost::filesystem::path(std::string chain_id));
 
-    MOCK_CONST_METHOD0(p2pPort, uint16_t());
+    MOCK_CONST_METHOD0(nodeKey,
+                       const boost::optional<crypto::Ed25519PrivateKey> &());
 
     MOCK_CONST_METHOD0(bootNodes,
                        const std::vector<libp2p::multi::Multiaddress> &());
 
+    MOCK_CONST_METHOD0(p2pPort, uint16_t());
+
     MOCK_CONST_METHOD0(rpcHttpEndpoint,
                        const boost::asio::ip::tcp::endpoint &());
 
-    MOCK_CONST_METHOD0(rpcWsEndpoint,
-                       const boost::asio::ip::tcp::endpoint &());
+    MOCK_CONST_METHOD0(rpcWsEndpoint, const boost::asio::ip::tcp::endpoint &());
 
     MOCK_CONST_METHOD0(verbosity, spdlog::level::level_enum());
 

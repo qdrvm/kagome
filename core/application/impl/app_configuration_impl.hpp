@@ -8,6 +8,8 @@
 
 #include "application/app_configuration.hpp"
 
+#include "crypto/ed25519_types.hpp"
+
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
   using SizeType = ::std::size_t;
@@ -71,6 +73,10 @@ namespace kagome::application {
     boost::filesystem::path chainPath(std::string chain_id) const override;
     boost::filesystem::path databasePath(std::string chain_id) const override;
     boost::filesystem::path keystorePath(std::string chain_id) const override;
+
+    const boost::optional<crypto::Ed25519PrivateKey> &nodeKey() const override {
+      return node_key_;
+    }
 
     const std::vector<libp2p::multi::Multiaddress> &bootNodes() const override {
       return boot_nodes_;
@@ -152,6 +158,8 @@ namespace kagome::application {
 
     common::Logger logger_;
 
+    boost::optional<crypto::Ed25519PrivateKey> node_key_;
+    std::vector<libp2p::multi::Multiaddress> boot_nodes_;
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
@@ -160,8 +168,6 @@ namespace kagome::application {
     bool is_only_finalizing_;
     uint32_t max_blocks_in_response_;
     bool is_unix_slots_strategy_;
-
-    std::vector<libp2p::multi::Multiaddress> boot_nodes_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
     boost::filesystem::path genesis_path_;

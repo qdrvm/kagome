@@ -12,7 +12,10 @@
 #include <spdlog/common.h>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
 #include <libp2p/multi/multiaddress.hpp>
+
+#include "crypto/ed25519_types.hpp"
 
 namespace kagome::application {
 
@@ -58,6 +61,12 @@ namespace kagome::application {
      */
     virtual boost::filesystem::path keystorePath(
         std::string chain_id) const = 0;
+
+    /**
+     * @return the secret key to use for libp2p networking
+     */
+    virtual const boost::optional<crypto::Ed25519PrivateKey> &nodeKey()
+        const = 0;
 
     /**
      * @return port for peer to peer interactions.
