@@ -683,6 +683,7 @@ namespace kagome::injector {
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
+      BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
 
       auto &&pub = provided_keypair.public_key;
       auto &&priv = provided_keypair.secret_key;
