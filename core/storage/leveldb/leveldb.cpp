@@ -5,6 +5,7 @@
 
 #include "storage/leveldb/leveldb.hpp"
 
+#include <boost/filesystem.hpp>
 #include <iostream>
 #include <utility>
 
@@ -15,6 +16,7 @@
 #include "storage/leveldb/leveldb_util.hpp"
 
 namespace kagome::storage {
+  namespace fs = boost::filesystem;
 
   outcome::result<std::shared_ptr<LevelDB>> LevelDB::create(
       const filesystem::path &path, leveldb::Options options) {
@@ -22,13 +24,30 @@ namespace kagome::storage {
       return DatabaseError::DB_PATH_NOT_CREATED;
 
     leveldb::DB *db = nullptr;
+
+    auto log = common::createLogger("leveldb");
+
+    auto absolute_path = fs::absolute(path, fs::current_path());
+
+    boost::system::error_code ec;
+    if (not fs::create_directory(absolute_path.native(), ec) and ec.value()) {
+      log->error("Can't create directory {} for database: {}", absolute_path.native(), ec.message());
+      return DatabaseError::IO_ERROR;
+    }
+    if (not fs::is_directory(absolute_path.native())) {
+      log->error("Can't open {} for database: is not a directory", absolute_path.native());
+      return DatabaseError::IO_ERROR;
+    }
+
     auto status = leveldb::DB::Open(options, path.native(), &db);
     if (status.ok()) {
       auto l = std::make_unique<LevelDB>();
       l->db_ = std::unique_ptr<leveldb::DB>(db);
-      l->logger_ = common::createLogger("leveldb");
+      l->logger_ = std::move(log);
       return l;
     }
+
+    log->error("Can't open database in {}: {}", absolute_path.native(), status.ToString());
     return error_as_result<std::shared_ptr<LevelDB>>(status);
   }
 
