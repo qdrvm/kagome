@@ -51,6 +51,19 @@ namespace kagome::injector {
     return initialized.value();
   }
 
+  template <typename Injector>
+  sptr<consensus::SyncingBabe> get_syncing_babe(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<consensus::SyncingBabe>>(boost::none);
+    if (initialized) {
+      return *initialized;
+    }
+
+    initialized = std::make_shared<consensus::SyncingBabe>(
+        injector.template create<sptr<consensus::BlockExecutor>>());
+    return *initialized;
+  }
+
   template <typename... Ts>
   auto makeSyncingNodeInjector(const application::AppConfiguration &app_config,
                                Ts &&... args) {
@@ -65,8 +78,10 @@ namespace kagome::injector {
         di::bind<network::OwnPeerInfo>.to(
             [](const auto &injector) { return get_peer_info(injector); }),
 
-        di::bind<consensus::Babe>.template to<consensus::SyncingBabe>(),
-        di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>(),
+        di::bind<consensus::Babe>.to(
+            [](auto const &inj) { return get_syncing_babe(inj); }),
+        di::bind<network::BabeObserver>.to(
+            [](auto const &inj) { return get_syncing_babe(inj); }),
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

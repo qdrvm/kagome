@@ -47,6 +47,7 @@
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/common.hpp"
+#include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
@@ -59,6 +60,7 @@
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
+#include "consensus/validation/justification_validator_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -714,6 +716,29 @@ namespace kagome::injector {
     return initialized.value();
   }
 
+  template <typename Injector>
+  sptr<consensus::BlockExecutor> get_block_executor(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<consensus::BlockExecutor>>(boost::none);
+    if (initialized) {
+      return *initialized;
+    }
+
+    initialized = std::make_shared<consensus::BlockExecutor>(
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<runtime::Core>>(),
+        injector.template create<sptr<primitives::BabeConfiguration>>(),
+        injector.template create<sptr<consensus::BabeSynchronizer>>(),
+        injector.template create<sptr<consensus::BlockValidator>>(),
+        injector.template create<sptr<consensus::JustificationValidator>>(),
+        injector.template create<sptr<consensus::EpochStorage>>(),
+        injector.template create<sptr<transaction_pool::TransactionPool>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
+        injector.template create<consensus::SlotsStrategy>());
+    return *initialized;
+  }
+
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
                                Ts &&... args) {
@@ -794,6 +819,7 @@ namespace kagome::injector {
         di::bind<consensus::EpochStorage>.to(
             [](auto const &injector) { return get_epoch_storage(injector); }),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
+        di::bind<consensus::JustificationValidator>.template to<consensus::JustificationValidatorImpl>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
@@ -872,6 +898,8 @@ namespace kagome::injector {
               injector.template create<sptr<libp2p::protocol::Ping>>());
           return initialized.value();
         }),
+        di::bind<consensus::BlockExecutor>.to(
+            [](auto const &inj) { return get_block_executor(inj); }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

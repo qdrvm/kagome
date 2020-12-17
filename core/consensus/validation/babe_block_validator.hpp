@@ -97,37 +97,6 @@ namespace kagome::consensus {
                    const Randomness &randomness,
                    const bool checkThreshold) const;
 
-    inline primitives::Transcript &prepareTranscript(
-        primitives::Transcript &transcript_,
-        const consensus::Randomness &randomness,
-        consensus::BabeSlotNumber slot_number,
-        consensus::EpochIndex epoch) const {
-      transcript_.initialize({'B', 'A', 'B', 'E'});
-      transcript_.append_message(
-          {'s', 'l', 'o', 't', ' ', 'n', 'u', 'm', 'b', 'e', 'r'}, slot_number);
-      transcript_.append_message(
-          {'c', 'u', 'r', 'r', 'e', 'n', 't', ' ', 'e', 'p', 'o', 'c', 'h'},
-          epoch);
-      transcript_.append_message({'c',
-                                  'h',
-                                  'a',
-                                  'i',
-                                  'n',
-                                  ' ',
-                                  'r',
-                                  'a',
-                                  'n',
-                                  'd',
-                                  'o',
-                                  'm',
-                                  'n',
-                                  'e',
-                                  's',
-                                  's'},
-                                 randomness.internal_array_reference());
-      return transcript_;
-    }
-
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     mutable std::unordered_map<BabeSlotNumber,
                                std::unordered_set<primitives::AuthorityIndex>>
