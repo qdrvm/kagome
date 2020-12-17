@@ -33,7 +33,8 @@ namespace kagome::api {
      * @return hash of successfully validated extrinsic
      * or error if state is invalid or unknown
      */
-    virtual outcome::result<Hash256> submitExtrinsic(
+    virtual outcome::result<common::Hash256>
+    submitExtrinsic(
         const Extrinsic &extrinsic) = 0;
 
     /**

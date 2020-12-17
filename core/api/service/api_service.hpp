@@ -20,11 +20,11 @@
 #include "common/logger.hpp"
 #include "containers/objects_cache.hpp"
 #include "primitives/common.hpp"
-#include "primitives/transaction.hpp"
 #include "primitives/event_types.hpp"
+#include "primitives/transaction.hpp"
 #include "storage/trie/trie_storage.hpp"
-#include "subscription/subscriber.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
+#include "subscription/subscriber.hpp"
 
 namespace kagome::api {
   template <typename T>
@@ -104,6 +104,8 @@ namespace kagome::api {
         StorageSubscriptionEnginePtr storage_sub_engine,
         ChainSubscriptionEnginePtr chain_sub_engine,
         ExtrinsicSubscriptionEnginePtr ext_sub_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            extrinsic_event_key_repo,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
@@ -137,7 +139,7 @@ namespace kagome::api {
         PubsubSubscriptionId subscription_id);
 
     outcome::result<PubsubSubscriptionId> subscribeForExtrinsicLifecycle(
-        std::shared_ptr<primitives::Transaction> tx);
+        const primitives::Transaction &tx);
     outcome::result<bool> unsubscribeFromExtrinsicLifecycle(
         PubsubSubscriptionId subscription_id);
 
@@ -178,7 +180,7 @@ namespace kagome::api {
         const primitives::events::ExtrinsicLifecycleEvent &params);
 
     template <typename Func>
-    auto for_session(kagome::api::Session::SessionId id, Func &&f) {
+    auto withSession(kagome::api::Session::SessionId id, Func &&f) {
       if (auto session_context = findSessionById(id)) {
         BOOST_ASSERT(*session_context);
         return std::forward<Func>(f)(**session_context);
@@ -203,19 +205,6 @@ namespace kagome::api {
       obj->clear();
       return obj;
     }
-    // TODO(Harrm): find a way to fix it
-    template <typename... Args>
-    using EventHandler = void (ApiService::*)(Args ...args);
-
-    template <typename... Args>
-    std::function<void(Args &&...)> unwrapWeakPtr(
-        std::weak_ptr<ApiService> wp, EventHandler<Args...> handler) const {
-      return [wp, handler](Args &&...params) mutable {
-        if (auto self = wp.lock()) {
-          std::invoke(handler, self, std::forward<Args>(params)...);
-        }
-      };
-    }
 
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<sptr<Listener>> listeners_;
@@ -234,7 +223,8 @@ namespace kagome::api {
       ChainSubscriptionEnginePtr chain;
       ExtrinsicSubscriptionEnginePtr ext;
     } subscription_engines_;
-    std::shared_ptr<subscription::ExtrinsicEventKeyRepository> extrinsic_event_key_repo_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+        extrinsic_event_key_repo_;
   };
 }  // namespace kagome::api
 

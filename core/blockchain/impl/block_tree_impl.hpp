@@ -109,6 +109,8 @@ namespace kagome::blockchain {
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
         primitives::events::ExtrinsicSubscriptionEnginePtr
             extrinsic_events_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core);
 
     ~BlockTreeImpl() override = default;
@@ -192,6 +194,8 @@ namespace kagome::blockchain {
         primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
         primitives::events::ExtrinsicSubscriptionEnginePtr
             extrinsic_events_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core);
 
     /**
@@ -240,7 +244,8 @@ namespace kagome::blockchain {
     std::shared_ptr<crypto::Hasher> hasher_;
     primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
     primitives::events::ExtrinsicSubscriptionEnginePtr extrinsic_events_engine_;
-    std::shared_ptr<subscription::ExtrinsicEventKeyRepository> extrinsic_event_key_repo_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+        extrinsic_event_key_repo_;
     std::shared_ptr<runtime::Core> runtime_core_;
     boost::optional<primitives::Version> actual_runtime_version_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");

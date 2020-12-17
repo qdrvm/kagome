@@ -5,8 +5,8 @@
 
 #include "authorship/impl/block_builder_impl.hpp"
 
-#include "common/visitor.hpp"
 #include "authorship/impl/block_builder_error.hpp"
+#include "common/visitor.hpp"
 
 namespace kagome::authorship {
 
@@ -23,7 +23,7 @@ namespace kagome::authorship {
     BOOST_ASSERT(block_builder_api_ != nullptr);
   }
 
-  outcome::result<void> BlockBuilderImpl::pushExtrinsic(
+  outcome::result<primitives::ExtrinsicIndex> BlockBuilderImpl::pushExtrinsic(
       const primitives::Extrinsic &extrinsic) {
     auto apply_res = block_builder_api_->apply_extrinsic(extrinsic);
     if (not apply_res) {
@@ -40,18 +40,19 @@ namespace kagome::authorship {
         "applied";
     return visit_in_place(
         apply_res.value(),
-        [this, &extrinsic](
-            primitives::ApplyOutcome apply_outcome) -> outcome::result<void> {
+        [this, &extrinsic](primitives::ApplyOutcome apply_outcome)
+            -> outcome::result<primitives::ExtrinsicIndex> {
           switch (apply_outcome) {
             case primitives::ApplyOutcome::SUCCESS:
               extrinsics_.push_back(extrinsic);
-              return outcome::success();
+              return extrinsics_.size() - 1;
             case primitives::ApplyOutcome::FAIL:
               logger_->warn(logger_error_template, extrinsic.data.toHex());
               return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
           }
         },
-        [this, &extrinsic](primitives::ApplyError) -> outcome::result<void> {
+        [this, &extrinsic](primitives::ApplyError)
+            -> outcome::result<primitives::ExtrinsicIndex> {
           logger_->warn(logger_error_template, extrinsic.data.toHex());
           return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
         });

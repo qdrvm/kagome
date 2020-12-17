@@ -24,7 +24,7 @@ namespace kagome::authorship {
         primitives::BlockHeader block_header,
         std::shared_ptr<runtime::BlockBuilder> block_builder_api);
 
-    outcome::result<void> pushExtrinsic(
+    outcome::result<primitives::ExtrinsicIndex> pushExtrinsic(
         const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<primitives::Block> bake() const override;

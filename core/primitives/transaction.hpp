@@ -12,11 +12,7 @@
 namespace kagome::primitives {
 
   struct Transaction {
-    Transaction(const Transaction&) = delete;
-    Transaction& operator=(const Transaction&) = delete;
-
-    Transaction(Transaction&&) = default;
-    Transaction& operator=(Transaction&&) = default;
+    using ObservedId = uint64_t;
 
     /// Hash of tx
     using Hash = common::Hash256;
@@ -35,6 +31,8 @@ namespace kagome::primitives {
      * be placed on-chain.
      */
     using Tag = std::vector<uint8_t>;
+
+    boost::optional<ObservedId> observed_id;
 
     /// Raw extrinsic representing that transaction.
     Extrinsic ext;

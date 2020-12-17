@@ -23,7 +23,7 @@ namespace kagome::authorship {
      * Push extrinsic to wait its inclusion to the block
      * Returns result containing success if xt was pushed, error otherwise
      */
-    virtual outcome::result<void> pushExtrinsic(
+    virtual outcome::result<primitives::ExtrinsicIndex> pushExtrinsic(
         const primitives::Extrinsic &extrinsic) = 0;
 
     /**

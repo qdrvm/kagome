@@ -63,7 +63,7 @@ class ExtrinsicEventReceiver {
 
   virtual void receive(kagome::subscription::SubscriptionSetId,
                        std::shared_ptr<kagome::api::Session>,
-                       const kagome::primitives::ObservedExtrinsicId &,
+                       const kagome::primitives::Transaction::ObservedId &,
                        const ExtrinsicLifecycleEvent &) const = 0;
 };
 
@@ -72,7 +72,7 @@ class ExtrinsicEventReceiverMock : public ExtrinsicEventReceiver {
   MOCK_CONST_METHOD4(receive,
                      void(kagome::subscription::SubscriptionSetId,
                           std::shared_ptr<kagome::api::Session>,
-                          const kagome::primitives::ObservedExtrinsicId &,
+                          const kagome::primitives::Transaction::ObservedId &,
                           const ExtrinsicLifecycleEvent &));
 };
 
@@ -92,7 +92,7 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<ExtrinsicSubscriptionEngine> sub_engine;
   sptr<ExtrinsicEventSubscriber> subscriber;
   kagome::subscription::SubscriptionSetId sub_id;
-  const kagome::primitives::ObservedExtrinsicId ext_id = 42;
+  const kagome::primitives::Transaction::ObservedId ext_id = 42;
   sptr<ExtrinsicEventReceiverMock> event_receiver;
 
   void SetUp() override {
@@ -106,7 +106,7 @@ struct AuthorApiTest : public ::testing::Test {
         [this](
             kagome::subscription::SubscriptionSetId set_id,
             std::shared_ptr<kagome::api::Session> session,
-            const kagome::primitives::ObservedExtrinsicId &id,
+            const kagome::primitives::Transaction::ObservedId &id,
             const kagome::primitives::events::ExtrinsicLifecycleEvent &event) {
           event_receiver->receive(set_id, session, id, event);
         });
@@ -136,7 +136,8 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
   EXPECT_CALL(*ttq,
               validate_transaction(TransactionSource::External, *extrinsic))
       .WillOnce(Return(tv));
-  Transaction tr{*extrinsic,
+  Transaction tr{ext_id,
+                 *extrinsic,
                  extrinsic->data.size(),
                  Hash256{},
                  valid_transaction->priority,
@@ -187,7 +188,8 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
   EXPECT_CALL(*ttq,
               validate_transaction(TransactionSource::External, *extrinsic))
       .WillOnce(Return(tv));
-  Transaction tr{*extrinsic,
+  Transaction tr{ext_id,
+                 *extrinsic,
                  extrinsic->data.size(),
                  Hash256{},
                  valid_transaction->priority,

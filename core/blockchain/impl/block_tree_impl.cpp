@@ -144,6 +144,8 @@ namespace kagome::blockchain {
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       primitives::events::ExtrinsicSubscriptionEnginePtr
           extrinsic_events_engine,
+      std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+          extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
@@ -154,16 +156,17 @@ namespace kagome::blockchain {
         std::make_shared<TreeNode>(hash_res, header.number, nullptr, true);
     auto meta = std::make_shared<TreeMeta>(*tree);
 
-    BlockTreeImpl block_tree{std::move(header_repo),
-                             std::move(storage),
-                             std::move(tree),
-                             std::move(meta),
-                             std::move(extrinsic_observer),
-                             std::move(hasher),
-                             std::move(chain_events_engine),
-                             std::move(extrinsic_events_engine),
-                             std::move(runtime_core)};
-    return std::make_shared<BlockTreeImpl>(std::move(block_tree));
+    auto block_tree = new BlockTreeImpl(std::move(header_repo),
+                                        std::move(storage),
+                                        std::move(tree),
+                                        std::move(meta),
+                                        std::move(extrinsic_observer),
+                                        std::move(hasher),
+                                        std::move(chain_events_engine),
+                                        std::move(extrinsic_events_engine),
+                                        std::move(extrinsic_event_key_repo),
+                                        std::move(runtime_core));
+    return std::shared_ptr<BlockTreeImpl>(std::move(block_tree));
   }
 
   BlockTreeImpl::BlockTreeImpl(
@@ -176,6 +179,8 @@ namespace kagome::blockchain {
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       primitives::events::ExtrinsicSubscriptionEnginePtr
           extrinsic_events_engine,
+      std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+          extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
@@ -185,9 +190,11 @@ namespace kagome::blockchain {
         hasher_{std::move(hasher)},
         chain_events_engine_(std::move(chain_events_engine)),
         extrinsic_events_engine_(std::move(extrinsic_events_engine)),
+        extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
         runtime_core_(std::move(runtime_core)) {
     BOOST_ASSERT(chain_events_engine_);
     BOOST_ASSERT(extrinsic_events_engine_);
+    BOOST_ASSERT(extrinsic_event_key_repo_);
     BOOST_ASSERT(runtime_core_);
   }
 
@@ -245,8 +252,8 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
     for (size_t idx = 0; idx < block.body.size(); idx++) {
-      if (auto key =
-          extrinsic_event_key_repo_->getEventKey(block.header.number, idx)) {
+      if (auto key = extrinsic_event_key_repo_->getEventKey(block.header.number,
+                                                            idx)) {
         extrinsic_events_engine_->notify(
             key.value(),
             primitives::events::ExtrinsicLifecycleEvent::InBlock(
@@ -330,11 +337,10 @@ namespace kagome::blockchain {
           new_runtime_version);
     }
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
-    OUTCOME_TRY(header, storage_->getBlockHeader(node->block_hash));
 
     for (size_t idx = 0; idx < body.size(); idx++) {
       if (auto key =
-          extrinsic_event_key_repo_->getEventKey(header.number, idx)) {
+              extrinsic_event_key_repo_->getEventKey(header.number, idx)) {
         extrinsic_events_engine_->notify(
             key.value(),
             primitives::events::ExtrinsicLifecycleEvent::Finalized(
@@ -697,8 +703,7 @@ namespace kagome::blockchain {
       if (block_body_res.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
         for (size_t idx = 0; idx < block_body_res.value().size(); idx++) {
-          if (auto key =
-              extrinsic_event_key_repo_->getEventKey(number, idx)) {
+          if (auto key = extrinsic_event_key_repo_->getEventKey(number, idx)) {
             extrinsic_events_engine_->notify(
                 key.value(),
                 primitives::events::ExtrinsicLifecycleEvent::Retracted(

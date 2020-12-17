@@ -21,14 +21,17 @@ namespace kagome::transaction_pool {
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
           sub_engine,
+      std::shared_ptr<subscription::ExtrinsicEventKeyRepository> ext_key_repo,
       Limits limits)
       : header_repo_{std::move(header_repo)},
         sub_engine_{std::move(sub_engine)},
+        ext_key_repo_{std::move(ext_key_repo)},
         moderator_{std::move(moderator)},
         limits_{limits} {
     BOOST_ASSERT_MSG(header_repo_ != nullptr, "header repo is nullptr");
     BOOST_ASSERT_MSG(moderator_ != nullptr, "moderator is nullptr");
     BOOST_ASSERT_MSG(sub_engine_ != nullptr, "sub engine is nullptr");
+    BOOST_ASSERT_MSG(ext_key_repo_ != nullptr, "extrinsic event key repository is nullptr");
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
@@ -47,10 +50,9 @@ namespace kagome::transaction_pool {
   outcome::result<void> TransactionPoolImpl::submitOne(
       const std::shared_ptr<Transaction> &tx) {
     if (auto [_, ok] = imported_txs_.emplace(tx->hash, tx); !ok) {
-      if (auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
-        sub_engine_->notify(
-            key.value(),
-            ExtrinsicLifecycleEvent::Invalid(key.value()));
+      if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+        sub_engine_->notify(key.value(),
+                            ExtrinsicLifecycleEvent::Invalid(key.value()));
       }
       return TransactionPoolError::TX_ALREADY_IMPORTED;
     }
@@ -58,10 +60,9 @@ namespace kagome::transaction_pool {
     auto processResult = processTransaction(tx);
     if (processResult.has_error()
         && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
-      if (auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
-        sub_engine_->notify(
-            key.value(),
-            ExtrinsicLifecycleEvent::Dropped(key.value()));
+      if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+        sub_engine_->notify(key.value(),
+                            ExtrinsicLifecycleEvent::Dropped(key.value()));
       }
       imported_txs_.erase(tx->hash);
     } else {
@@ -102,10 +103,9 @@ namespace kagome::transaction_pool {
   void TransactionPoolImpl::postponeTransaction(
       const std::shared_ptr<Transaction> &tx) {
     postponed_txs_.push_back(tx);
-    if(auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
-      sub_engine_->notify(
-          key.value(),
-          ExtrinsicLifecycleEvent::Future(key.value()));
+    if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+      sub_engine_->notify(key.value(),
+                          ExtrinsicLifecycleEvent::Future(key.value()));
     }
   }
 
@@ -131,10 +131,9 @@ namespace kagome::transaction_pool {
     for (auto &tag : tx->requires) {
       tx_waits_tag_.emplace(tag, tx);
     }
-    if (auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
-      sub_engine_->notify(
-          key.value(),
-          ExtrinsicLifecycleEvent::Future(key.value()));
+    if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+      sub_engine_->notify(key.value(),
+                          ExtrinsicLifecycleEvent::Future(key.value()));
     }
   }
 
@@ -227,12 +226,11 @@ namespace kagome::transaction_pool {
     }
 
     for (auto &tx_hash : remove_to) {
-      OUTCOME_TRY(removeOne(tx_hash));
-      if (auto key = ext_key_repo_->getEventKey(tx_hash); key.has_value()) {
-        sub_engine_->notify(
-            key.value(),
-            ExtrinsicLifecycleEvent::Dropped(key.value()));
-        ext_key_repo_->dropTransaction(tx_hash);
+      OUTCOME_TRY(tx, removeOne(tx_hash));
+      if (auto key = ext_key_repo_->getEventKey(tx); key.has_value()) {
+        sub_engine_->notify(key.value(),
+                            ExtrinsicLifecycleEvent::Dropped(key.value()));
+        ext_key_repo_->dropTransaction(tx.observed_id.value());
       }
     }
 
@@ -258,10 +256,9 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::setReady(const std::shared_ptr<Transaction> &tx) {
     if (auto [_, ok] = ready_txs_.emplace(tx->hash, tx); ok) {
-      if(auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
-        sub_engine_->notify(
-            key.value(),
-            ExtrinsicLifecycleEvent::Ready(key.value()));
+      if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+        sub_engine_->notify(key.value(),
+                            ExtrinsicLifecycleEvent::Ready(key.value()));
       }
       commitRequiredTags(tx);
       commitProvidedTags(tx);
@@ -310,10 +307,9 @@ namespace kagome::transaction_pool {
     if (auto tx_node = ready_txs_.extract(tx->hash); !tx_node.empty()) {
       rollbackRequiredTags(tx);
       rollbackProvidedTags(tx);
-      if(auto key = ext_key_repo_->getEventKey(tx->hash); key.has_value()) {
-        sub_engine_->notify(
-            key.value(),
-            ExtrinsicLifecycleEvent::Future(key.value()));
+      if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+        sub_engine_->notify(key.value(),
+                            ExtrinsicLifecycleEvent::Future(key.value()));
       }
     }
   }

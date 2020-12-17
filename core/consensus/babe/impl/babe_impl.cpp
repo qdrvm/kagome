@@ -398,7 +398,7 @@ namespace kagome::consensus {
 
     // create new block
     auto pre_seal_block_res =
-        proposer_->propose(best_block_hash, inherent_data, {babe_pre_digest});
+        proposer_->propose(best_block_number, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
       return log_->error("Cannot propose a block: {}",
                          pre_seal_block_res.error().message());

@@ -24,6 +24,7 @@ namespace kagome::api {
         pool_{std::move(pool)},
         hasher_{std::move(hasher)},
         gossiper_{std::move(gossiper)},
+        last_id_{0},
         logger_{common::createLogger("AuthorApi")} {
     BOOST_ASSERT_MSG(api_ != nullptr, "author api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
@@ -40,48 +41,15 @@ namespace kagome::api {
 
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
       const primitives::Extrinsic &extrinsic) {
-    OUTCOME_TRY(res,
-                api_->validate_transaction(
-                    primitives::TransactionSource::External, extrinsic));
+    OUTCOME_TRY(tx, constructTransaction(extrinsic, boost::none));
 
-    return visit_in_place(
-        res,
-        [&](const primitives::TransactionValidityError &e) {
-          return visit_in_place(
-              e,
-              // return either invalid or unknown validity error
-              [](const auto &validity_error)
-                  -> outcome::result<common::Hash256> {
-                return validity_error;
-              });
-        },
-        [&](const primitives::ValidTransaction &v)
-            -> outcome::result<common::Hash256> {
-          // compose Transaction object
-          common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
-          size_t length = extrinsic.data.size();
-
-          auto transaction =
-              std::make_shared<primitives::Transaction>(extrinsic,
-                                                        length,
-                                                        hash,
-                                                        v.priority,
-                                                        v.longevity,
-                                                        v.requires,
-                                                        v.provides,
-                                                        v.propagate);
-
-          // send to pool
-          OUTCOME_TRY(pool_->submitOne(*transaction));
-
-          if (v.propagate) {
-            network::PropagatedTransactions txs;
-            txs.transactions.push_back(transaction);
-            gossiper_->propagateTransactions(txs);
-          }
-
-          return hash;
-        });
+    if (tx.should_propagate) {
+      gossiper_->propagateTransactions(gsl::make_span(std::vector{tx}));
+    }
+    auto hash = tx.hash;
+    // send to pool
+    OUTCOME_TRY(pool_->submitOne(std::move(tx)));
+    return hash;
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
@@ -107,13 +75,24 @@ namespace kagome::api {
 
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
-    OUTCOME_TRY(tx_hash, submitExtrinsic(extrinsic));
+    OUTCOME_TRY(tx, constructTransaction(extrinsic, last_id_++));
+
+    SubscriptionId sub_id {};
     if (auto service = api_service_.lock()) {
-      OUTCOME_TRY(sub_id, service->subscribeForExtrinsicLifecycle(tx_hash));
-      return sub_id;
+      OUTCOME_TRY(sub_id_, service->subscribeForExtrinsicLifecycle(tx));
+      sub_id = sub_id_;
+    } else {
+      throw jsonrpc::InternalErrorFault(
+          "Internal error. Api service not initialized.");
     }
-    throw jsonrpc::InternalErrorFault(
-        "Internal error. Api service not initialized.");
+    if (tx.should_propagate) {
+      gossiper_->propagateTransactions(gsl::make_span(std::vector{tx}));
+    }
+
+    // send to pool
+    OUTCOME_TRY(pool_->submitOne(std::move(tx)));
+
+    return sub_id;
   }
 
   outcome::result<bool> AuthorApiImpl::unwatchExtrinsic(SubscriptionId sub_id) {
@@ -122,6 +101,44 @@ namespace kagome::api {
     }
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
+  }
+
+  outcome::result<primitives::Transaction> AuthorApiImpl::constructTransaction(
+      primitives::Extrinsic extrinsic,
+      boost::optional<primitives::Transaction::ObservedId> id) const {
+    OUTCOME_TRY(res,
+                api_->validate_transaction(
+                    primitives::TransactionSource::External, extrinsic));
+
+    return visit_in_place(
+        res,
+        [&](const primitives::TransactionValidityError &e) {
+          return visit_in_place(
+              e,
+              // return either invalid or unknown validity error
+              [](const auto &validity_error)
+                  -> outcome::result<primitives::Transaction> {
+                return validity_error;
+              });
+        },
+        [&](const primitives::ValidTransaction &v)
+            -> outcome::result<primitives::Transaction> {
+          // compose Transaction object
+          common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
+          size_t length = extrinsic.data.size();
+
+          primitives::Transaction t{id,
+                                    extrinsic,
+                                    length,
+                                    hash,
+                                    v.priority,
+                                    v.longevity,
+                                    v.requires,
+              v.provides,
+              v.propagate};
+
+          return t;
+        });
   }
 
 }  // namespace kagome::api

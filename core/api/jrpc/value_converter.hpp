@@ -209,70 +209,53 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(
       const primitives::events::ExtrinsicLifecycleEvent &event) {
     using jStruct = jsonrpc::Value::Struct;
-    jStruct value;
-    value["subscription"] = static_cast<int64_t>(event.id);
-    visit_in_place(
+    return visit_in_place(
         event.params,
-        [&value, &event](boost::none_t) {
+        [&event](boost::none_t) -> jsonrpc::Value {
           switch (event.type) {
             case primitives::events::ExtrinsicEventType::FUTURE:
-              value["result"] = "future";
-              break;
+              return "future";
             case primitives::events::ExtrinsicEventType::READY:
-              value["result"] = "ready";
-              break;
+              return "ready";
             case primitives::events::ExtrinsicEventType::INVALID:
-              value["result"] = "invalid";
-              break;
+              return "invalid";
             case primitives::events::ExtrinsicEventType::DROPPED:
-              value["result"] = "dropped";
-              break;
+              return "dropped";
             default:
               BOOST_UNREACHABLE_RETURN({});
           }
         },
-        [&value](const primitives::events::BroadcastEventParams &params) {
+        [](const primitives::events::BroadcastEventParams &params)
+            -> jsonrpc::Value {
           std::vector<std::string> peers(params.peers.size());
           std::transform(params.peers.cbegin(),
                          params.peers.cend(),
                          peers.begin(),
                          [](const auto &peer_id) { return peer_id.toHex(); });
-          value.insert(std::pair(
-              "result", jStruct{std::pair{"broadcast", makeValue(peers)}}));
+          return jStruct{std::pair{"broadcast", makeValue(peers)}};
         },
-        [&value](const primitives::events::InBlockEventParams &params) {
-          value.insert(std::pair(
-              "result",
-              jStruct{std::pair{"inBlock",
-                                makeValue(common::hex_lower(params.block))}}));
+        [](const primitives::events::InBlockEventParams &params) {
+          return jStruct{std::pair{"inBlock",
+                                makeValue(common::hex_lower(params.block))}};
         },
-        [&value](const primitives::events::RetractedEventParams &params) {
-          value.insert(std::pair(
-              "result",
-              jStruct{std::pair{
+        [](const primitives::events::RetractedEventParams &params) {
+          return jStruct{std::pair{
                   "retracted",
-                  makeValue(common::hex_lower(params.retracted_block))}}));
+                  makeValue(common::hex_lower(params.retracted_block))}};
         },
-        [&value](const primitives::events::FinalityTimeoutEventParams &params) {
-          value.insert(std::pair(
-              "result",
-              jStruct{std::pair{"finalityTimeout",
-                                makeValue(common::hex_lower(params.block))}}));
+        [](const primitives::events::FinalityTimeoutEventParams &params) {
+          return jStruct{std::pair{"finalityTimeout",
+                                makeValue(common::hex_lower(params.block))}};
         },
-        [&value](const primitives::events::FinalizedEventParams &params) {
-          value.insert(std::pair(
-              "result",
-              jStruct{std::pair{"finalized",
-                                makeValue(common::hex_lower(params.block))}}));
+        [](const primitives::events::FinalizedEventParams &params) {
+          return jStruct{std::pair{"finalized",
+                                makeValue(common::hex_lower(params.block))}};
         },
-        [&value](const primitives::events::UsurpedEventParams &params) {
-          value.insert(std::pair(
-              "result",
-              jStruct{std::pair{
+        [](const primitives::events::UsurpedEventParams &params) {
+          return jStruct{std::pair{
                   "usurped",
-                  makeValue(common::hex_lower(params.transaction_hash))}}));
+                  makeValue(common::hex_lower(params.transaction_hash))}};
         });
-    return value;
   }
 }  // namespace kagome::api
 

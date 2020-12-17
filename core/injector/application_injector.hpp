@@ -149,6 +149,9 @@ namespace kagome::injector {
     auto ext_sub_engine = injector.template create<
         primitives::events::ExtrinsicSubscriptionEnginePtr>();
 
+    auto ext_event_key_repo = injector.template create<
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>();
+
     auto app_state_manager =
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
@@ -183,6 +186,7 @@ namespace kagome::injector {
                                           std::move(storage_sub_engine),
                                           std::move(chain_sub_engine),
                                           std::move(ext_sub_engine),
+                                          std::move(ext_event_key_repo),
                                           std::move(block_tree),
                                           std::move(trie_storage));
 
@@ -192,7 +196,8 @@ namespace kagome::injector {
     auto chain_api = injector.template create<std::shared_ptr<api::ChainApi>>();
     chain_api->setApiService(initialized.value());
 
-    auto author_api = injector.template create<std::shared_ptr<api::AuthorApi>>();
+    auto author_api =
+        injector.template create<std::shared_ptr<api::AuthorApi>>();
     author_api->setApiService(initialized.value());
 
     return initialized.value();
@@ -369,9 +374,12 @@ namespace kagome::injector {
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
 
     auto chain_events_engine =
-        injector.template create<primitives::events::ChainSubscriptionEnginePtr>();
-    auto ext_events_engine =
-        injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>();
+        injector
+            .template create<primitives::events::ChainSubscriptionEnginePtr>();
+    auto ext_events_engine = injector.template create<
+        primitives::events::ExtrinsicSubscriptionEnginePtr>();
+    auto ext_events_key_repo = injector.template create<
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>();
 
     auto runtime_core =
         injector.template create<std::shared_ptr<runtime::Core>>();
@@ -384,6 +392,7 @@ namespace kagome::injector {
                                           std::move(hasher),
                                           std::move(chain_events_engine),
                                           std::move(ext_events_engine),
+                                          std::move(ext_events_key_repo),
                                           std::move(runtime_core));
     if (!tree) {
       common::raise(tree.error());
@@ -670,7 +679,7 @@ namespace kagome::injector {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     // default values for configurations

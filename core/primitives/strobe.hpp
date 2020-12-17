@@ -11,6 +11,8 @@
 #include <cstring>
 #include <type_traits>
 
+#include <boost/assert.hpp>
+
 #include "crypto/keccak/keccak.h"
 #include "primitives/math.hpp"
 

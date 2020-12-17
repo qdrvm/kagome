@@ -24,9 +24,9 @@
 #include "network/types/no_data_message.hpp"
 #include "network/types/peer_list.hpp"
 #include "primitives/event_types.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
-#include "subscription/extrinsic_event_key_repository.hpp"
 
 namespace kagome::application {
   class ChainSpec;
@@ -37,7 +37,7 @@ namespace kagome::network {
                        KAGOME_CACHE_UNIT(GossipMessage),
                        KAGOME_CACHE_UNIT(NoData),
                        KAGOME_CACHE_UNIT(BlockAnnounce),
-                       KAGOME_CACHE_UNIT(PropagatedTransactions));
+                       KAGOME_CACHE_UNIT(PropagatedExtrinsics));
 
   /**
    * Sends gossip messages using broadcast strategy
@@ -54,6 +54,8 @@ namespace kagome::network {
         StreamEngine::StreamEnginePtr stream_engine,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
             extrinsic_events_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            ext_event_key_repo_,
         std::shared_ptr<kagome::application::ChainSpec> config);
 
     ~GossiperBroadcast() override = default;
@@ -66,7 +68,7 @@ namespace kagome::network {
     void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
 
     void propagateTransactions(
-        const network::PropagatedTransactions &txs) override;
+        gsl::span<const primitives::Transaction> txs) override;
 
     void blockAnnounce(const BlockAnnounce &announce) override;
 
@@ -131,7 +133,8 @@ namespace kagome::network {
     StreamEngine::StreamEnginePtr stream_engine_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
         extrinsic_events_engine_;
-    std::shared_ptr<subscription::ExtrinsicEventKeyRepository> ext_event_key_repo_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+        ext_event_key_repo_;
     std::shared_ptr<application::ChainSpec> config_;
     libp2p::peer::Protocol transactions_protocol_;
     libp2p::peer::Protocol block_announces_protocol_;

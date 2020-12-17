@@ -9,7 +9,7 @@
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/value_converter.hpp"
-#include "api_service.hpp"
+
 
 #define UNWRAP_WEAK_PTR(callback)  \
   [wp](auto &&...params) mutable { \
@@ -37,12 +37,12 @@ namespace {
   } threaded_info;
 
   template <typename Func>
-  auto for_this_session(Func &&f) {
+  auto withThisSession(Func &&f) {
     if (auto session_id = threaded_info.fetchSessionId(); session_id)
       return std::forward<Func>(f)(*session_id);
 
     throw jsonrpc::InternalErrorFault(
-        "Internal error. No session was binded to subscription.");
+        "Internal error. No session was bound to subscription.");
   }
 }  // namespace
 
@@ -98,6 +98,7 @@ namespace {
                 name,
                 std::move(value),
                 [session{std::move(session)}](const auto &response) {
+                  std::cout << "RESPONSE: " << response << "\n";
                   session->respond(response);
                 });
   }
@@ -123,6 +124,8 @@ namespace kagome::api {
       StorageSubscriptionEnginePtr storage_sub_engine,
       ChainSubscriptionEnginePtr chain_sub_engine,
       ExtrinsicSubscriptionEnginePtr ext_sub_engine,
+      std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+          extrinsic_event_key_repo,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage)
       : thread_pool_(std::move(thread_pool)),
@@ -133,7 +136,8 @@ namespace kagome::api {
         trie_storage_{std::move(trie_storage)},
         subscription_engines_{.storage = std::move(storage_sub_engine),
                               .chain = std::move(chain_sub_engine),
-                              .ext = std::move(ext_sub_engine)} {
+                              .ext = std::move(ext_sub_engine)},
+        extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)} {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
@@ -151,6 +155,7 @@ namespace kagome::api {
     BOOST_ASSERT(subscription_engines_.chain);
     BOOST_ASSERT(subscription_engines_.storage);
     BOOST_ASSERT(subscription_engines_.ext);
+    BOOST_ASSERT(extrinsic_event_key_repo_);
   }
 
   jsonrpc::Value ApiService::createStateStorageEvent(
@@ -186,12 +191,7 @@ namespace kagome::api {
                   self->storeSessionWithId(session->id(), session);
               BOOST_ASSERT(session_context);
               session_context->storage_sub->setCallback(
-                  self->unwrapWeakPtr<SubscriptionSetId,
-                                      SessionPtr &,
-                                      const Buffer &,
-                                      const Buffer &,
-                                      const common::Hash256 &>(
-                      wp, &ApiService::onStorageEvent));
+                  UNWRAP_WEAK_PTR(onStorageEvent));
               session_context->chain_sub->setCallback(
                   UNWRAP_WEAK_PTR(onChainEvent));
               session_context->ext_sub->setCallback(
@@ -245,8 +245,8 @@ namespace kagome::api {
 
   outcome::result<ApiService::PubsubSubscriptionId>
   ApiService::subscribeSessionToKeys(const std::vector<common::Buffer> &keys) {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
         const auto id = session->generateSubscriptionSetId();
         auto persistent_batch = trie_storage_->getPersistentBatch();
@@ -280,8 +280,8 @@ namespace kagome::api {
 
   outcome::result<ApiService::PubsubSubscriptionId>
   ApiService::subscribeFinalizedHeads() {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
@@ -314,8 +314,8 @@ namespace kagome::api {
 
   outcome::result<bool> ApiService::unsubscribeFinalizedHeads(
       PubsubSubscriptionId subscription_id) {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
         return session->unsubscribe(subscription_id);
       });
@@ -324,8 +324,8 @@ namespace kagome::api {
 
   outcome::result<ApiService::PubsubSubscriptionId>
   ApiService::subscribeNewHeads() {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
@@ -355,8 +355,8 @@ namespace kagome::api {
 
   outcome::result<bool> ApiService::unsubscribeNewHeads(
       PubsubSubscriptionId subscription_id) {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
         return session->unsubscribe(subscription_id);
       });
@@ -365,8 +365,8 @@ namespace kagome::api {
 
   outcome::result<ApiService::PubsubSubscriptionId>
   ApiService::subscribeRuntimeVersion() {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
         session->subscribe(id,
@@ -393,8 +393,8 @@ namespace kagome::api {
 
   outcome::result<bool> ApiService::unsubscribeRuntimeVersion(
       PubsubSubscriptionId subscription_id) {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
         return session->unsubscribe(subscription_id);
       });
@@ -403,12 +403,16 @@ namespace kagome::api {
 
   outcome::result<ApiService::PubsubSubscriptionId>
   ApiService::subscribeForExtrinsicLifecycle(
-      std::shared_ptr<primitives::Transaction> tx) {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+      const primitives::Transaction &tx) {
+    BOOST_ASSERT_MSG(
+        tx.observed_id,
+        "Transaction should have a unique observed id for subscription");
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session_sub = session_context.ext_sub;
         const auto sub_id = session_sub->generateSubscriptionSetId();
-        const auto key = extrinsic_event_key_repo_->subscribeTransaction(tx->hash);
+        const auto key = extrinsic_event_key_repo_->subscribeTransaction(
+            tx.observed_id.value());
         session_sub->subscribe(sub_id, key);
 
         return static_cast<PubsubSubscriptionId>(sub_id);
@@ -418,8 +422,8 @@ namespace kagome::api {
 
   outcome::result<bool> ApiService::unsubscribeFromExtrinsicLifecycle(
       PubsubSubscriptionId subscription_id) {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.ext_sub;
         return session->unsubscribe(subscription_id);
       });
@@ -428,8 +432,8 @@ namespace kagome::api {
 
   outcome::result<bool> ApiService::unsubscribeSessionFromIds(
       const std::vector<PubsubSubscriptionId> &subscription_ids) {
-    return for_this_session([&](kagome::api::Session::SessionId tid) {
-      return for_session(tid, [&](SessionSubscriptions &session_context) {
+    return withThisSession([&](kagome::api::Session::SessionId tid) {
+      return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
         for (auto id : subscription_ids) session->unsubscribe(id);
         return true;
@@ -467,7 +471,7 @@ namespace kagome::api {
     });
 
     try {
-      for_session(session->id(), [&](SessionSubscriptions &session_context) {
+      withSession(session->id(), [&](SessionSubscriptions &session_context) {
         if (session_context.messages)
           for (auto &msg : *session_context.messages) {
             BOOST_ASSERT(msg);
@@ -527,6 +531,7 @@ namespace kagome::api {
       SessionPtr &session,
       primitives::events::SubscribedExtrinsicId ext_id,
       const primitives::events::ExtrinsicLifecycleEvent &params) {
+    logger_->warn("Extrinsic event, set_id {} ext_id {} id {} type {}", set_id, ext_id, params.id, params.type);
     sendEvent(server_,
               session,
               logger_,

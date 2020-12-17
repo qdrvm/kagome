@@ -18,7 +18,7 @@ namespace kagome::api {
 
     MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
 
-    MOCK_METHOD1(submitExtrinsic, outcome::result<Hash256>(const Extrinsic &));
+    MOCK_METHOD1(submitExtrinsic, outcome::result<common::Hash256>(const Extrinsic &));
 
     MOCK_METHOD1(submitAndWatchExtrinsic, outcome::result<SubscriptionId>(Extrinsic));
 

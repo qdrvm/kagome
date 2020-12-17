@@ -9,8 +9,6 @@
 #include <boost/config.hpp>
 #include <cstring>
 
-#include "outcome/outcome.hpp"
-
 namespace kagome::api {
 
   WsSession::WsSession(Context &context, Configuration config, SessionId id)
@@ -121,18 +119,19 @@ namespace kagome::api {
 
     wbuffer_.consume(bytes_transferred);
 
-	  if (wbuffer_.size() > 0) {
-		  stream_.async_write(wbuffer_.data(),
-		                      boost::beast::bind_front_handler(&WsSession::onWrite,
-		                                                       shared_from_this()));
-	  } else {
-		  writing_in_progress_ = false;
-	  }
+    if (wbuffer_.size() > 0) {
+      stream_.async_write(wbuffer_.data(),
+                          boost::beast::bind_front_handler(&WsSession::onWrite,
+                                                           shared_from_this()));
+    } else {
+      writing_in_progress_ = false;
+    }
   }
 
   void WsSession::reportError(boost::system::error_code ec,
                               std::string_view message) {
-    logger_->error("error occured: {}, code: {}, message: {}", message, ec, ec.message());
+    logger_->error(
+        "error occured: {}, code: {}, message: {}", message, ec, ec.message());
   }
 
 }  // namespace kagome::api
