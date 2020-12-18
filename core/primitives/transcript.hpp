@@ -15,12 +15,6 @@ namespace kagome::primitives {
    * https://github.com/dalek-cryptography/merlin
    */
   class Transcript final {
-    Transcript(const Transcript &) = delete;
-    Transcript &operator=(const Transcript &) = delete;
-
-    Transcript(Transcript &&) = delete;
-    Transcript &operator=(Transcript &&) = delete;
-
     Strobe strobe_;
 
     template <typename T>
@@ -40,6 +34,12 @@ namespace kagome::primitives {
 
    public:
     Transcript() = default;
+
+    Transcript(const Transcript &) = default;
+    Transcript &operator=(const Transcript &) = default;
+
+    Transcript(Transcript &&) = delete;
+    Transcript &operator=(Transcript &&) = delete;
 
     template <typename T, size_t N>
     void initialize(const T (&label)[N]) {
@@ -73,6 +73,10 @@ namespace kagome::primitives {
 
     auto data() const {
       return strobe_.data();
+    }
+
+    bool operator==(const Transcript &other) const {
+      return other.strobe_.data() == strobe_.data();
     }
   };
 

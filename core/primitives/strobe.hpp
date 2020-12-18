@@ -137,19 +137,29 @@ namespace kagome::primitives {
       begin_position_ = 0;
     }
 
-    Strobe(const Strobe &) = delete;
-    Strobe &operator=(const Strobe &) = delete;
-
-    Strobe(Strobe &&) = delete;
-    Strobe &operator=(Strobe &&) = delete;
-
    public:
     Strobe()
-        : buffer_{reinterpret_cast<uint8_t *>(math::roundUp<kAlignment>(
-              reinterpret_cast<uintptr_t>(raw_data)))},
+        : buffer_{reinterpret_cast<uint8_t *>(
+            math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))},
           current_position_{*(buffer_ + kBufferSize)},
           begin_position_{*(buffer_ + kBufferSize + 1ull)},
           current_state_{*(buffer_ + kBufferSize + 2ull)} {}
+
+    Strobe(const Strobe &other) : Strobe() {
+      std::copy(std::begin(other.raw_data),
+                std::end(other.raw_data),
+                std::begin(raw_data));
+    };
+
+    Strobe &operator=(const Strobe &other) {
+      std::copy(std::begin(other.raw_data),
+                std::end(other.raw_data),
+                std::begin(raw_data));
+      return *this;
+    }
+
+    Strobe(Strobe &&) = delete;
+    Strobe &operator=(Strobe &&) = delete;
 
     template <typename T, size_t N>
     void initialize(const T (&label)[N]) {
