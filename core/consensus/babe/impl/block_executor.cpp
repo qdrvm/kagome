@@ -145,6 +145,10 @@ namespace kagome::consensus {
             sync_complete = true;
           }
           for (const auto &block : blocks) {
+            const auto &block_hash = block.hash;
+            if (to == block_hash) {
+              sync_complete = true;
+            }
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
@@ -156,10 +160,6 @@ namespace kagome::consensus {
                   apply_res.error().message());
               sync_complete = true;
               break;
-            }
-            const auto &block_hash = block.hash;
-            if (to == block_hash) {
-              sync_complete = true;
             }
           }
           if (sync_complete)

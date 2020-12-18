@@ -42,7 +42,7 @@ namespace kagome::consensus::grandpa {
 
   bool EnvironmentImpl::hasAncestry(const BlockHash &base,
                                     const BlockHash &block) const {
-    return base == block ? true : block_tree_->hasDirectChain(base, block);
+    return base == block || block_tree_->hasDirectChain(base, block);
   }
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
