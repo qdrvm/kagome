@@ -10,6 +10,7 @@
 
 #include "common/mp_utils.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/validation/prepare_transcript.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "scale/scale.hpp"
 

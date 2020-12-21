@@ -88,7 +88,7 @@ namespace kagome::consensus::grandpa {
     // Note: Duration value was gotten from substrate
     // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
     // Perhaps, 333ms is not enough for normal communication during the round
-    const Clock::Duration round_time_factor_ = std::chrono::milliseconds(250);
+    const Clock::Duration round_time_factor_ = std::chrono::milliseconds(333);
 
     std::shared_ptr<VotingRound> previous_round_;
     std::shared_ptr<VotingRound> current_round_;

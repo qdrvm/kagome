@@ -31,6 +31,8 @@ namespace kagome::consensus {
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<consensus::BabeSynchronizer> babe_synchronizer,
       std::shared_ptr<consensus::BlockValidator> block_validator,
+      std::shared_ptr<consensus::JustificationValidator>
+          justification_validator,
       std::shared_ptr<consensus::EpochStorage> epoch_storage,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -43,6 +45,7 @@ namespace kagome::consensus {
         genesis_configuration_{std::move(configuration)},
         babe_synchronizer_{std::move(babe_synchronizer)},
         block_validator_{std::move(block_validator)},
+        justification_validator_{std::move(justification_validator)},
         epoch_storage_{std::move(epoch_storage)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
@@ -58,6 +61,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
+    BOOST_ASSERT(justification_validator_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -141,10 +145,14 @@ namespace kagome::consensus {
             sync_complete = true;
           }
           for (const auto &block : blocks) {
+            const auto &block_hash = block.hash;
+            if (to == block_hash) {
+              sync_complete = true;
+            }
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
@@ -152,10 +160,6 @@ namespace kagome::consensus {
                   apply_res.error().message());
               sync_complete = true;
               break;
-            }
-            const auto &block_hash = block.hash;
-            if (to == block_hash) {
-              sync_complete = true;
             }
           }
           if (sync_complete)
@@ -275,6 +279,9 @@ namespace kagome::consensus {
     OUTCOME_TRY(block_tree_->addBlock(block));
 
     if (b.justification) {
+      OUTCOME_TRY(justification_validator_->validateJustification(
+          block_hash, *b.justification));
+
       OUTCOME_TRY(block_tree_->finalize(block_hash, *b.justification));
     }
 
@@ -298,7 +305,7 @@ namespace kagome::consensus {
       if (res.has_error()
           && res
                  != outcome::failure(
-                        transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
         return res;
       }
     }

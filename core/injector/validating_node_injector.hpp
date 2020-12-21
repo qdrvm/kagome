@@ -122,8 +122,8 @@ namespace kagome::injector {
   }
 
   template <typename... Ts>
-  auto makeValidatingNodeInjector(const application::AppConfiguration &app_config,
-                            Ts &&... args) {
+  auto makeValidatingNodeInjector(
+      const application::AppConfiguration &app_config, Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(

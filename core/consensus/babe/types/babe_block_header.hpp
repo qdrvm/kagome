@@ -70,8 +70,6 @@ namespace kagome::consensus {
   Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
     s >> bh.check_type >> bh.authority_index >> bh.slot_number;
     if (bh.needVRFCheck()) s >> bh.vrf_output;
-
-    auto has_m = s.hasMore(1);
     return s;
   }
 }  // namespace kagome::consensus

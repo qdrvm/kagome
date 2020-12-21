@@ -8,6 +8,7 @@
 #include "common/buffer.hpp"
 #include "common/mp_utils.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
+#include "consensus/validation/prepare_transcript.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 
@@ -66,22 +67,18 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   vrf_outputs.push_back({uint256_t_to_bytes(3749373), {}});
   vrf_outputs.push_back({uint256_t_to_bytes(1057472095), {}});
 
-  Buffer vrf_input(vrf_constants::OUTPUT_SIZE + 8, 0);
-  std::copy(current_epoch_.randomness.begin(),
-            current_epoch_.randomness.end(),
-            vrf_input.begin());
   for (size_t i = 0; i < current_epoch_.epoch_length; ++i) {
-    auto slot_bytes = uint64_t_to_bytes(i);
-    std::copy(slot_bytes.begin(),
-              slot_bytes.end(),
-              vrf_input.begin() + vrf_constants::OUTPUT_SIZE);
+    primitives::Transcript transcript;
+    prepareTranscript(
+        transcript, current_epoch_.randomness, i, current_epoch_.epoch_index);
+
     if (i == 2) {
       // just random case for testing
-      EXPECT_CALL(*vrf_provider_, sign(vrf_input, keypair_, threshold_))
+      EXPECT_CALL(*vrf_provider_, signTranscript(transcript, keypair_, threshold_))
           .WillOnce(Return(boost::none));
       continue;
     }
-    EXPECT_CALL(*vrf_provider_, sign(vrf_input, keypair_, threshold_))
+    EXPECT_CALL(*vrf_provider_, signTranscript(transcript, keypair_, threshold_))
         .WillOnce(Return(vrf_outputs[i]));
   }
 

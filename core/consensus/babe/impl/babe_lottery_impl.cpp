@@ -10,6 +10,7 @@
 #include <boost/assert.hpp>
 #include "common/buffer.hpp"
 #include "common/mp_utils.hpp"
+#include "consensus/validation/prepare_transcript.hpp"
 
 namespace kagome::consensus {
   using common::Buffer;
@@ -33,21 +34,15 @@ namespace kagome::consensus {
     BabeLottery::SlotsLeadership result;
     result.reserve(epoch.epoch_length);
 
-    // randomness || slot number
-    Buffer vrf_input(vrf_constants::OUTPUT_SIZE + 8, 0);
-
-    // the first part - randomness - is always the same, while the slot number
-    // obviously changes depending on the slot we are computing for
-    std::copy(
-        epoch.randomness.begin(), epoch.randomness.end(), vrf_input.begin());
-
-    auto slot_number_begin = vrf_input.begin() + vrf_constants::OUTPUT_SIZE;
     for (BabeSlotNumber i = epoch.start_slot;
          i < epoch.start_slot + epoch.epoch_length;
          ++i) {
-      auto slot_bytes = common::uint64_t_to_bytes(i);
-      std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
-      auto sign_opt = vrf_provider_->sign(vrf_input, keypair, threshold);
+      primitives::Transcript transcript;
+      prepareTranscript(transcript, epoch.randomness, i, epoch.epoch_index);
+
+      auto sign_opt =
+          vrf_provider_->signTranscript(transcript, keypair, threshold);
+
       result.push_back(sign_opt);
     }
 

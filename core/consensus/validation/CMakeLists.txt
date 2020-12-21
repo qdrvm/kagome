@@ -12,3 +12,13 @@ target_link_libraries(block_validator
     mp_utils
     logger
     )
+
+add_library(justification_validator
+    justification_validator_impl.cpp
+    )
+target_link_libraries(justification_validator
+    outcome
+    babe_digests_util
+    mp_utils
+    logger
+    )
