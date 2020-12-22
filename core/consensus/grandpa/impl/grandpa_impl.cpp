@@ -498,18 +498,8 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> GrandpaImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
-    for (auto &round : {previous_round_, current_round_}) {
-      if (round) {
-        auto res = round->applyJustification(block_info, justification);
-        if (res.has_value()) {
-          return outcome::success();
-        }
-        if (res != outcome::failure(VotingRoundError::INVALID_SIGNATURE)) {
-          return res.as_failure();
-        }
-      }
-    }
-    return VotingRoundError::INVALID_SIGNATURE;
+    BOOST_ASSERT(current_round_);
+    return current_round_->applyJustification(block_info, justification);
   }
 
   void GrandpaImpl::onCompletedRound(
