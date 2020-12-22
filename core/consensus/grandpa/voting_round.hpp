@@ -108,6 +108,10 @@ namespace kagome::consensus::grandpa {
 
     // Auxiliary methods
 
+    virtual outcome::result<void> applyJustification(
+        const BlockInfo &block_info,
+        const GrandpaJustification &justification) = 0;
+
     /// executes algorithm Attempt-To-Finalize-Round
     virtual void attemptToFinalizeRound() = 0;
   };

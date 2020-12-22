@@ -30,7 +30,6 @@ target_link_libraries(application_injector
     babe_synchronizer
     block_tree
     block_validator
-    justification_validator
     buffer
     clock
     sr25519_provider

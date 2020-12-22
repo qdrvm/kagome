@@ -21,10 +21,14 @@ namespace kagome::consensus::grandpa {
     ~SyncingGrandpaObserver() override = default;
     explicit SyncingGrandpaObserver(std::shared_ptr<Environment> environment);
 
-    void onFinalize(const libp2p::peer::PeerId &peer_id, const Fin &f) override;
-
     void onVoteMessage(const libp2p::peer::PeerId &peer_id,
                        const VoteMessage &msg) override;
+
+    void onFinalize(const libp2p::peer::PeerId &peer_id, const Fin &f) override;
+
+    outcome::result<void> applyJustification(
+        const primitives::BlockInfo &block_info,
+        const GrandpaJustification &justification) override;
 
     void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                           const network::CatchUpRequest &msg) override;

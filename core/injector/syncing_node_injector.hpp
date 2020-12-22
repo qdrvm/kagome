@@ -67,7 +67,7 @@ namespace kagome::injector {
 
         di::bind<consensus::Babe>.template to<consensus::SyncingBabe>()[di::override],
         di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>()[di::override],
-        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
+
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }

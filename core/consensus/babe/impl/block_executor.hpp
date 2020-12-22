@@ -14,8 +14,8 @@
 #include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
+#include "consensus/grandpa/environment.hpp"
 #include "consensus/validation/block_validator.hpp"
-#include "consensus/validation/justification_validator.hpp"
 #include "crypto/hasher.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
@@ -35,8 +35,7 @@ namespace kagome::consensus {
                   std::shared_ptr<primitives::BabeConfiguration> configuration,
                   std::shared_ptr<BabeSynchronizer> babe_synchronizer,
                   std::shared_ptr<BlockValidator> block_validator,
-                  std::shared_ptr<consensus::JustificationValidator>
-                      justification_validator,
+                  std::shared_ptr<grandpa::Environment> grandpa_environment,
                   std::shared_ptr<EpochStorage> epoch_storage,
                   std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
                   std::shared_ptr<crypto::Hasher> hasher,
@@ -97,7 +96,7 @@ namespace kagome::consensus {
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
     std::shared_ptr<BlockValidator> block_validator_;
-    std::shared_ptr<consensus::JustificationValidator> justification_validator_;
+    std::shared_ptr<grandpa::Environment> grandpa_environment_;
     std::shared_ptr<EpochStorage> epoch_storage_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;

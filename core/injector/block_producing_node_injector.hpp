@@ -42,7 +42,7 @@ namespace kagome::injector {
         di::bind<network::BabeObserver>.to(
             [](auto const &inj) { return get_babe(inj); }),
 
-        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
+        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>()[di::override],
         di::bind<runtime::GrandpaApi>.template to<runtime::dummy::GrandpaApiDummy>()
             [boost::di::override],
         // user-defined overrides...

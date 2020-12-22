@@ -10,6 +10,7 @@
 
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
+#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "scale/scale.hpp"
@@ -53,6 +54,9 @@ namespace kagome::consensus::grandpa {
   }
 
   bool GrandpaImpl::prepare() {
+    // Set themselves in environment
+    environment_->setJustificationObserver(shared_from_this());
+
     // Lambda which is executed when voting round is completed.
     environment_->doOnCompleted(
         [wp = weak_from_this()](
@@ -96,14 +100,12 @@ namespace kagome::consensus::grandpa {
     babe_->doOnSynchronized([wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         // Planning play next round
-        boost::asio::post(*self->io_context_, [wp] {
-          if (auto self = wp.lock()) {
-            self->executeNextRound();
-            self->is_ready_ = true;
-          }
-        });
+        self->is_ready_ = true;
+        self->current_round_->play();
       }
     });
+
+    executeNextRound();
 
     return true;
   }
@@ -271,7 +273,9 @@ namespace kagome::consensus::grandpa {
     previous_round_.swap(current_round_);
     previous_round_->end();
     current_round_ = makeNextRound(previous_round_);
-    current_round_->play();
+    if (is_ready_) {
+      current_round_->play();
+    }
   }
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
@@ -490,6 +494,22 @@ namespace kagome::consensus::grandpa {
     }
 
     target_round->onFinalize(fin);
+  }
+
+  outcome::result<void> GrandpaImpl::applyJustification(
+      const BlockInfo &block_info, const GrandpaJustification &justification) {
+    for (auto &round : {previous_round_, current_round_}) {
+      if (round) {
+        auto res = round->applyJustification(block_info, justification);
+        if (res.has_value()) {
+          return outcome::success();
+        }
+        if (res != outcome::failure(VotingRoundError::INVALID_SIGNATURE)) {
+          return res.as_failure();
+        }
+      }
+    }
+    return VotingRoundError::INVALID_SIGNATURE;
   }
 
   void GrandpaImpl::onCompletedRound(

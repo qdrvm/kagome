@@ -288,6 +288,11 @@ namespace kagome::authority {
         [this, &block](const primitives::Resume &msg) {
           return applyResume(block, block.block_number + msg.subchain_lenght);
         },
+        [](const Unused<0>&) {
+          // NOTE(xDimon): Does it nothing? Is it valid?
+          // Somtimes runtime makes consensus digest with unused variant.
+          return outcome::success();
+        },
         [](auto &) {
           return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
         });

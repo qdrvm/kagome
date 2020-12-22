@@ -29,6 +29,11 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  outcome::result<void> SyncingGrandpaObserver::applyJustification(
+      const BlockInfo &block_info, const GrandpaJustification &justification) {
+    return outcome::success();
+  }
+
   void SyncingGrandpaObserver::onCatchUpRequest(
       const libp2p::peer::PeerId &peer_id, const network::CatchUpRequest &msg) {
     // do nothing as syncing node does not care about catch-up messages

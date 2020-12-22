@@ -11,6 +11,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "primitives/common.hpp"
 #include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -29,11 +30,10 @@ namespace kagome::consensus {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
-      std::shared_ptr<consensus::BabeSynchronizer> babe_synchronizer,
-      std::shared_ptr<consensus::BlockValidator> block_validator,
-      std::shared_ptr<consensus::JustificationValidator>
-          justification_validator,
-      std::shared_ptr<consensus::EpochStorage> epoch_storage,
+      std::shared_ptr<BabeSynchronizer> babe_synchronizer,
+      std::shared_ptr<BlockValidator> block_validator,
+      std::shared_ptr<grandpa::Environment> grandpa_environment,
+      std::shared_ptr<EpochStorage> epoch_storage,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
@@ -45,7 +45,7 @@ namespace kagome::consensus {
         genesis_configuration_{std::move(configuration)},
         babe_synchronizer_{std::move(babe_synchronizer)},
         block_validator_{std::move(block_validator)},
-        justification_validator_{std::move(justification_validator)},
+        grandpa_environment_{std::move(grandpa_environment)},
         epoch_storage_{std::move(epoch_storage)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
@@ -57,11 +57,11 @@ namespace kagome::consensus {
     BOOST_ASSERT(genesis_configuration_ != nullptr);
     BOOST_ASSERT(babe_synchronizer_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
+    BOOST_ASSERT(grandpa_environment_ != nullptr);
     BOOST_ASSERT(epoch_storage_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
-    BOOST_ASSERT(justification_validator_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -275,14 +275,13 @@ namespace kagome::consensus {
     // apply block
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
 
-    // add block header if it does not exist
+    // add block header if it does not exist.block_hash =
     OUTCOME_TRY(block_tree_->addBlock(block));
 
     if (b.justification) {
-      OUTCOME_TRY(justification_validator_->validateJustification(
-          block_hash, *b.justification));
-
-      OUTCOME_TRY(block_tree_->finalize(block_hash, *b.justification));
+      OUTCOME_TRY(grandpa_environment_->applyJustification(
+          primitives::BlockInfo(block.header.number, block_hash),
+          b.justification.value()));
     }
 
     // observe possible changes of authorities

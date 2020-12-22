@@ -75,7 +75,7 @@ namespace kagome::network {
       BOOST_ASSERT(protocols.find(protocol) == protocols.end());
       protocols.emplace(protocol, std::move(stream));
       logger_->debug("Reserved stream (peer_id={}, protocol={}) was emplaced",
-                     peer_info.id.toHex(),
+                     peer_info.id.toBase58(),
                      protocol);
     }
 
@@ -97,7 +97,7 @@ namespace kagome::network {
       auto &proto_map = syncing_streams_[peer];
       proto_map.emplace(protocol, std::move(stream));
       logger_->debug("Syncing stream (peer_id={}, protocol={}) was emplaced",
-                     peer.id.toHex(),
+                     peer.id.toBase58(),
                      protocol);
       return outcome::success();
     }
@@ -149,10 +149,15 @@ namespace kagome::network {
                     [&](auto stream) {
                       BOOST_ASSERT(type == PeerType::kReserved || stream);
                       if (stream) {
-                        send(std::move(stream), *msg);
+                        if (not stream->isClosed()) {
+                          send(std::move(stream), *msg);
+                        } else {
+                          updateStream(peer, protocol, msg, handshake);
+                        }
                         return;
+                      } else {
+                        BOOST_ASSERT(type == PeerType::kReserved);
                       }
-                      BOOST_ASSERT(type == PeerType::kReserved);
                       updateStream(peer, protocol, msg, handshake);
                     });
       });
@@ -202,7 +207,7 @@ namespace kagome::network {
       dst = std::move(src);
       if (dst->remotePeerId().has_value())
         logger_->debug("Stream (peer_id={}) was stored",
-                       dst->remotePeerId().value().toHex());
+                       dst->remotePeerId().value().toBase58());
     }
 
     boost::optional<ProtocolDescriptor> findPeer(const PeerInfo &peer) {
