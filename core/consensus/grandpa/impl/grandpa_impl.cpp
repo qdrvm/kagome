@@ -257,7 +257,7 @@ namespace kagome::consensus::grandpa {
 
     return MovableRoundState{.round_number = 0,
                              .last_finalized_block = {0, genesis_hash},
-                             .prevotes = {},
+//                             .prevotes = {},
                              .precommits = {},
                              .finalized = {{0, genesis_hash}}};
   }
@@ -365,15 +365,15 @@ namespace kagome::consensus::grandpa {
     MovableRoundState round_state{
         .round_number = msg.round_number,
         .last_finalized_block = msg.best_final_candidate,
-        .prevotes =
-            [&items = msg.prevote_justification.items] {
-              std::vector<VoteVariant> v;
-              std::transform(items.begin(),
-                             items.end(),
-                             std::back_inserter(v),
-                             [](auto &item) { return item; });
-              return v;
-            }(),
+//        .prevotes =
+//            [&items = msg.prevote_justification.items] {
+//              std::vector<VoteVariant> v;
+//              std::transform(items.begin(),
+//                             items.end(),
+//                             std::back_inserter(v),
+//                             [](auto &item) { return item; });
+//              return v;
+//            }(),
         .precommits =
             [&items = msg.precommit_justification.items] {
               std::vector<VoteVariant> v;
@@ -491,8 +491,40 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> GrandpaImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
-    BOOST_ASSERT(current_round_);
-    return current_round_->applyJustification(block_info, justification);
+    if (auto target_round = selectRound(justification.round_number)) {
+      return target_round->applyJustification(block_info, justification);
+    }
+
+    if (current_round_->roundNumber() > justification.round_number) {
+      return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+    }
+
+    if (current_round_->bestPrevoteCandidate().block_number
+        > block_info.block_number) {
+      return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
+    }
+
+    MovableRoundState round_state{.round_number = justification.round_number,
+                                  .last_finalized_block = block_info,
+//                                  .prevotes = {},
+                                  .precommits = {},
+                                  .finalized = block_info};
+
+    auto round = makeInitialRound(round_state);
+    assert(round);
+
+    logger_->debug("Rewind grandpa till round #{} by received justification",
+                   justification.round_number);
+
+    OUTCOME_TRY(round->applyJustification(block_info, justification));
+
+    previous_round_.swap(current_round_);
+    previous_round_->end();
+    current_round_ = std::move(round);
+
+    executeNextRound();
+
+    return outcome::success();
   }
 
   void GrandpaImpl::onCompletedRound(

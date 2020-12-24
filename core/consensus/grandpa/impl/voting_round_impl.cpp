@@ -139,15 +139,15 @@ namespace kagome::consensus::grandpa {
     }
 
     // Apply stored votes
-    for (auto &vote_variant : round_state.prevotes) {
-      visit_in_place(
-          vote_variant,
-          [this](const VotingMessage &vote) { onPrevote(vote); },
-          [this](const EquivocatoryVotingMessage &pair) {
-            onPrevote(pair.first);
-            onPrevote(pair.second);
-          });
-    }
+//    for (auto &vote_variant : round_state.prevotes) {
+//      visit_in_place(
+//          vote_variant,
+//          [this](const VotingMessage &vote) { onPrevote(vote); },
+//          [this](const EquivocatoryVotingMessage &pair) {
+//            onPrevote(pair.first);
+//            onPrevote(pair.second);
+//          });
+//    }
     for (auto &vote_variant : round_state.precommits) {
       visit_in_place(
           vote_variant,
@@ -1449,7 +1449,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(finalized_.has_value());
     return {.round_number = round_number_,
             .last_finalized_block = last_finalized_block_,
-            .prevotes = prevotes_->getMessages(),
+//            .prevotes = prevotes_->getMessages(),
             .precommits = precommits_->getMessages(),
             .finalized = finalized_};
   }
@@ -1468,15 +1468,15 @@ namespace kagome::consensus::grandpa {
                   const SignedMessage &voting_message) {
                 if (env_->isEqualOrDescendOf(estimate.block_hash,
                                              voting_message.block_hash())) {
-                  justification.items.push_back(voting_message);
+                  justification.items.push_back(static_cast<const SignedPrecommit&>(voting_message));
                 }
               },
               [&justification](const EquivocatoryVotingMessage
                                    &equivocatory_voting_message) {
                 justification.items.push_back(
-                    equivocatory_voting_message.first);
+                    static_cast<const SignedPrecommit&>(equivocatory_voting_message.first));
                 justification.items.push_back(
-                    equivocatory_voting_message.second);
+                    static_cast<const SignedPrecommit&>(equivocatory_voting_message.second));
               });
           return justification;
         });
