@@ -70,7 +70,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(authority_update_observer_);
 
     BOOST_ASSERT(epoch_storage_->getEpochDescriptor(0));
-    BOOST_ASSERT(epoch_storage_->getEpochDescriptor(1));
     app_state_manager_->atLaunch([this] { return start(); });
   }
 
@@ -326,7 +325,8 @@ namespace kagome::consensus {
   outcome::result<primitives::PreRuntime> BabeImpl::babePreDigest(
       const crypto::VRFOutput &output,
       primitives::AuthorityIndex authority_index) const {
-    BabeBlockHeader babe_header{current_slot_, output, authority_index};
+    BabeBlockHeader babe_header{
+        BabeBlockHeader::kVRFHeader, current_slot_, output, authority_index};
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
       log_->error("cannot encode BabeBlockHeader: {}",
@@ -425,7 +425,7 @@ namespace kagome::consensus {
         next_epoch_digest_res) {
       log_->info("Obtained next epoch digest");
       if (not epoch_storage_->addEpochDescriptor(
-              current_epoch_.epoch_index + 2, next_epoch_digest_res.value())) {
+              current_epoch_.epoch_index + 1, next_epoch_digest_res.value())) {
         log_->error("Could not add next epoch digest to epoch storage");
       }
     }
@@ -471,9 +471,9 @@ namespace kagome::consensus {
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
         next_epoch_digest_res) {
       log_->info("Got next epoch digest for epoch: {}",
-                 current_epoch_.epoch_index + 2);
+                 current_epoch_.epoch_index + 1);
       if (auto add_epoch_res = epoch_storage_->addEpochDescriptor(
-              current_epoch_.epoch_index + 2, next_epoch_digest_res.value());
+              current_epoch_.epoch_index + 1, next_epoch_digest_res.value());
           not add_epoch_res) {
         log_->error("Could not add next epoch digest. Reason: {}",
                     add_epoch_res.error().message());

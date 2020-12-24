@@ -47,6 +47,7 @@
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/common.hpp"
+#include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
@@ -59,6 +60,7 @@
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
+#include "consensus/validation/justification_validator_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -118,19 +120,6 @@ namespace kagome::injector {
 
   template <class T>
   using uptr = std::unique_ptr<T>;
-
-  template <typename Injector>
-  sptr<network::PeerList> get_boot_nodes(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<network::PeerList>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto &cfg = injector.template create<application::ChainSpec &>();
-
-    initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
-    return initialized.value();
-  }
 
   template <typename Injector>
   sptr<api::ApiService> get_jrpc_api_service(const Injector &injector) {
@@ -215,7 +204,7 @@ namespace kagome::injector {
 
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto &endpoint = config.rpc_http_endpoint();
+    auto &endpoint = config.rpcHttpEndpoint();
 
     auto app_state_manager =
         injector.template create<sptr<application::AppStateManager>>();
@@ -243,7 +232,7 @@ namespace kagome::injector {
     }
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto &endpoint = config.rpc_ws_endpoint();
+    auto &endpoint = config.rpcWsEndpoint();
 
     auto app_state_manager =
         injector.template create<sptr<application::AppStateManager>>();
@@ -338,8 +327,7 @@ namespace kagome::injector {
             .randomness = configuration->randomness};
 
         const bool init_epoch_desc_ok =
-            (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value()
-            && (*obj)->addEpochDescriptor(1, init_epoch_desc).has_value();
+            (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value();
         BOOST_ASSERT(init_epoch_desc_ok);
       }
     }
@@ -534,9 +522,10 @@ namespace kagome::injector {
     auto options = leveldb::Options{};
     options.create_if_missing = true;
     auto db = storage::LevelDB::create(
-        config.database_path(genesis_config->id()), options);
+        config.databasePath(genesis_config->id()), options);
     if (!db) {
-      common::raise(db.error());
+      spdlog::critical("Can't open database: {}", db.error().message());
+      exit(EXIT_FAILURE);
     }
     initialized = db.value();
     return initialized.value();
@@ -553,7 +542,7 @@ namespace kagome::injector {
     }
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto const &genesis_path = config.genesis_path();
+    auto const &genesis_path = config.genesisPath();
 
     auto genesis_config_res =
         application::ChainSpecImpl::create(genesis_path.native());
@@ -573,7 +562,8 @@ namespace kagome::injector {
     }
     auto genesis_config =
         injector.template create<sptr<application::ChainSpec>>();
-    auto peer_infos = genesis_config->getBootNodes().peers;
+    auto &boot_nodes =
+        injector.template create<const network::BootstrapNodes &>();
 
     auto host = injector.template create<sptr<libp2p::Host>>();
 
@@ -585,12 +575,12 @@ namespace kagome::injector {
 
     auto &current_peer_info =
         injector.template create<network::OwnPeerInfo &>();
-    for (auto &peer_info : peer_infos) {
+    for (auto &peer_info : boot_nodes) {
       spdlog::debug("Added peer with id: {}", peer_info.id.toBase58());
       if (peer_info.id != current_peer_info.id) {
         res->clients.emplace_back(
             std::make_shared<network::RemoteSyncProtocolClient>(
-                *host, std::move(peer_info), genesis_config));
+                *host, peer_info, genesis_config));
       } else {
         res->clients.emplace_back(
             std::make_shared<network::DummySyncProtocolClient>());
@@ -631,7 +621,7 @@ namespace kagome::injector {
     if (not initialized) {
       const application::AppConfiguration &config =
           injector.template create<const application::AppConfiguration &>();
-      initialized = config.is_unix_slots_strategy()
+      initialized = config.isUnixSlotsStrategy()
                         ? consensus::SlotsStrategy::FromUnixEpoch
                         : consensus::SlotsStrategy::FromZero;
     }
@@ -651,7 +641,7 @@ namespace kagome::injector {
     auto genesis_config =
         injector.template create<sptr<application::ChainSpec>>();
 
-    auto path = config.keystore_path(genesis_config->id());
+    auto path = config.keystorePath(genesis_config->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
     if (not key_file_storage_res) {
       common::raise(key_file_storage_res.error());
@@ -675,6 +665,93 @@ namespace kagome::injector {
             std::shared_ptr<authority::AuthorityManagerImpl>>());
 
     return *instance;
+  }
+
+  template <typename Injector>
+  sptr<libp2p::crypto::KeyPair> get_peer_keypair(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
+
+    if (initialized) {
+      return initialized.value();
+    }
+
+    auto &app_config =
+        injector.template create<const application::AppConfiguration &>();
+    auto &crypto_provider =
+        injector.template create<const crypto::Ed25519Provider &>();
+    auto &crypto_store =
+        injector.template create<const crypto::CryptoStore &>();
+
+    if (app_config.nodeKey()) {
+      spdlog::info("Will use LibP2P keypair from config or args");
+
+      auto provided_keypair =
+          crypto_provider.generateKeypair(app_config.nodeKey().value());
+      BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
+
+      auto &&pub = provided_keypair.public_key;
+      auto &&priv = provided_keypair.secret_key;
+
+      initialized =
+          std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
+              .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
+                             .data = {pub.begin(), pub.end()}}},
+              .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
+                              .data = {priv.begin(), priv.end()}}}});
+      return initialized.value();
+    }
+
+    if (crypto_store.getLibp2pKeypair()) {
+      spdlog::info("Will use LibP2P keypair from key storage");
+
+      auto stored_keypair = crypto_store.getLibp2pKeypair().value();
+
+      initialized =
+          std::make_shared<libp2p::crypto::KeyPair>(std::move(stored_keypair));
+      return initialized.value();
+    }
+
+    spdlog::warn(
+        "Can not get LibP2P keypair from crypto storage. "
+        "Will be temporary generated unique one");
+
+    auto generated_keypair = crypto_provider.generateKeypair();
+
+    auto &&pub = generated_keypair.public_key;
+    auto &&priv = generated_keypair.secret_key;
+
+    initialized =
+        std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
+            .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
+                           .data = {pub.begin(), pub.end()}}},
+            .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
+                            .data = {priv.begin(), priv.end()}}}});
+
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<consensus::BlockExecutor> get_block_executor(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<consensus::BlockExecutor>>(boost::none);
+    if (initialized) {
+      return *initialized;
+    }
+
+    initialized = std::make_shared<consensus::BlockExecutor>(
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<runtime::Core>>(),
+        injector.template create<sptr<primitives::BabeConfiguration>>(),
+        injector.template create<sptr<consensus::BabeSynchronizer>>(),
+        injector.template create<sptr<consensus::BlockValidator>>(),
+        injector.template create<sptr<consensus::JustificationValidator>>(),
+        injector.template create<sptr<consensus::EpochStorage>>(),
+        injector.template create<sptr<transaction_pool::TransactionPool>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
+        injector.template create<consensus::SlotsStrategy>());
+    return *initialized;
   }
 
   template <typename... Ts>
@@ -704,11 +781,13 @@ namespace kagome::injector {
             libp2p::injector::useSecurityAdaptors<
                 libp2p::security::Noise>()[di::override]),
 
-        // bind boot nodes
-        di::bind<network::PeerList>.to(
-            [](auto const &inj) { return get_boot_nodes(inj); }),
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
+
+        // compose peer keypair
+        di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {
+          return get_peer_keypair(inj);
+        })[boost::di::override],
 
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
@@ -751,10 +830,10 @@ namespace kagome::injector {
         di::bind<consensus::SlotsStrategy>.template to(
             [](const auto &injector) { return get_slots_strategy(injector); }),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
-        di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
         di::bind<consensus::EpochStorage>.to(
             [](auto const &injector) { return get_epoch_storage(injector); }),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
+        di::bind<consensus::JustificationValidator>.template to<consensus::JustificationValidatorImpl>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
@@ -825,7 +904,7 @@ namespace kagome::injector {
               injector.template create<sptr<network::SyncProtocolObserver>>(),
               injector.template create<sptr<network::ExtrinsicObserver>>(),
               injector.template create<sptr<network::Gossiper>>(),
-              *injector.template create<sptr<network::PeerList>>(),
+              injector.template create<const network::BootstrapNodes &>(),
               injector.template create<network::OwnPeerInfo &>(),
               injector.template create<sptr<kagome::application::ChainSpec>>(),
               injector.template create<sptr<blockchain::BlockStorage>>(),
@@ -833,6 +912,8 @@ namespace kagome::injector {
               injector.template create<sptr<libp2p::protocol::Ping>>());
           return initialized.value();
         }),
+        di::bind<consensus::BlockExecutor>.to(
+            [](auto const &inj) { return get_block_executor(inj); }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

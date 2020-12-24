@@ -19,6 +19,8 @@
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
 #include "primitives/authority.hpp"
+#include "primitives/babe_configuration.hpp"
+#include "primitives/transcript.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 
 namespace kagome::crypto {
@@ -40,13 +42,15 @@ namespace kagome::consensus {
      * @param tx_queue to validate the extrinsics
      * @param hasher to take hashes
      * @param vrf_provider for VRF-specific operations
+     * @param configuration Babe configuration from genesis
      */
     BabeBlockValidator(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider);
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<primitives::BabeConfiguration> configuration);
 
     enum class ValidationError {
       NO_AUTHORITIES = 1,
@@ -57,6 +61,7 @@ namespace kagome::consensus {
 
     outcome::result<void> validateHeader(
         const primitives::BlockHeader &header,
+        const EpochIndex epoch_index,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
         const Randomness &randomness) const override;
@@ -86,9 +91,11 @@ namespace kagome::consensus {
      * @return true if vrf is valid, false otherwise
      */
     bool verifyVRF(const BabeBlockHeader &babe_header,
+                   const EpochIndex epoch_index,
                    const primitives::BabeSessionKey &public_key,
                    const Threshold &threshold,
-                   const Randomness &randomness) const;
+                   const Randomness &randomness,
+                   const bool checkThreshold) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     mutable std::unordered_map<BabeSlotNumber,
@@ -102,6 +109,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
+    std::shared_ptr<primitives::BabeConfiguration> configuration_;
     common::Logger log_;
   };
 }  // namespace kagome::consensus

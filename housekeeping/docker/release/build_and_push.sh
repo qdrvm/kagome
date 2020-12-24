@@ -2,7 +2,8 @@
 
 cd "$(dirname $0)/../../.."
 
-BUILD_DIR=${BUILD_DIR:-build}
+BUILD_DIR=${BUILD_DIR:-`pwd`/build}
+
 VERSION="${VERSION:?VERSION variable is not defined}"
 # For github action we need remove ref prefix
 if [ "$VERSION" = "refs/heads/master" ]; then
@@ -15,5 +16,24 @@ fi
 
 TAG=soramitsu/kagome:$VERSION
 
-docker build -t $TAG -f housekeeping/docker/release/Dockerfile ${BUILD_DIR}
+CTX_DIR=${BUILD_DIR}/docker_context
+
+# Cleanup docker context
+rm -Rf ${CTX_DIR}
+mkdir -p ${CTX_DIR}
+
+# Copy binaries
+cp -a ${BUILD_DIR}/node/kagome_full_syncing/kagome_full_syncing ${CTX_DIR}/
+cp -a ${BUILD_DIR}/node/kagome_validating/kagome_validating  ${CTX_DIR}/
+cp -a ${BUILD_DIR}/node/kagome_block_producing/kagome_block_producing ${CTX_DIR}/
+
+# Strip binaries
+strip ${CTX_DIR}/kagome_full_syncing
+strip ${CTX_DIR}/kagome_validating
+strip ${CTX_DIR}/kagome_block_producing
+
+# Make build
+docker build -t $TAG -f housekeeping/docker/release/Dockerfile ${CTX_DIR}
 docker push $TAG
+
+rm -R ${CTX_DIR}

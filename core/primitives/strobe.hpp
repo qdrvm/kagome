@@ -9,6 +9,8 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <gsl/span>
+#include <tuple>
 #include <type_traits>
 
 #include <boost/assert.hpp>
@@ -19,7 +21,7 @@
 namespace kagome::primitives {
 
   /**
-   * C++ implementation of
+   * C++ implementation(Alexander 'iceseer' Lednev) of
    * https://strobe.sourceforge.io/
    */
   class Strobe final {
@@ -38,17 +40,22 @@ namespace kagome::primitives {
     static constexpr Flags kFlag_M = 0x10;
     static constexpr Flags kFlag_K = 0x20;
 
-    Flags current_state_;
-    Position current_position_;
-    Position begin_position_;
-
-    uint8_t raw_data[kBufferSize + kAlignment - 1ull];
+    uint8_t raw_data[kBufferSize + kAlignment - 1ull + 3ull];
     uint8_t *const buffer_;
+    Position &current_position_;
+    Position &begin_position_;
+    Flags &current_state_;
 
     template <typename T, size_t kOffset = 0ull>
     constexpr T *as() {
       static_assert(kOffset < count<T>(), "Overflow!");
       return (reinterpret_cast<T *>(buffer_) + kOffset);  // NOLINT
+    }
+
+    template <typename T, size_t kOffset = 0ull>
+    constexpr const T *as() const {
+      static_assert(kOffset < count<T>(), "Overflow!");
+      return (reinterpret_cast<const T *>(buffer_) + kOffset);  // NOLINT
     }
 
     template <typename T>
@@ -132,16 +139,29 @@ namespace kagome::primitives {
       begin_position_ = 0;
     }
 
-    Strobe(const Strobe &) = delete;
-    Strobe &operator=(const Strobe &) = delete;
+   public:
+    Strobe()
+        : buffer_{reinterpret_cast<uint8_t *>(
+            math::roundUp<kAlignment>(reinterpret_cast<uintptr_t>(raw_data)))},
+          current_position_{*(buffer_ + kBufferSize)},
+          begin_position_{*(buffer_ + kBufferSize + 1ull)},
+          current_state_{*(buffer_ + kBufferSize + 2ull)} {}
+
+    Strobe(const Strobe &other) : Strobe() {
+      std::copy(std::begin(other.raw_data),
+                std::end(other.raw_data),
+                std::begin(raw_data));
+    };
+
+    Strobe &operator=(const Strobe &other) {
+      std::copy(std::begin(other.raw_data),
+                std::end(other.raw_data),
+                std::begin(raw_data));
+      return *this;
+    }
 
     Strobe(Strobe &&) = delete;
     Strobe &operator=(Strobe &&) = delete;
-
-   public:
-    Strobe()
-        : buffer_{reinterpret_cast<uint8_t *>(math::roundUp<kAlignment>(
-              reinterpret_cast<uintptr_t>(raw_data)))} {}
 
     template <typename T, size_t N>
     void initialize(const T (&label)[N]) {
@@ -204,6 +224,14 @@ namespace kagome::primitives {
     void key(const T (&data)[N]) {
       beginOp<kMore, kFlag_A | kFlag_C>();
       overwrite(data);
+    }
+
+    auto data() {
+      return gsl::make_span(as<const uint8_t>(), count<uint8_t>() + 3ull);
+    }
+
+    auto data() const {
+      return gsl::make_span(as<const uint8_t>(), count<uint8_t>() + 3ull);
     }
   };
 

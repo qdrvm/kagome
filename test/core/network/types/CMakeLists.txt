@@ -13,34 +13,34 @@ target_link_libraries(block_request_test
     )
 
 addtest(uvar_adapter_test
-        uvar_adapter_test.cpp
-        )
+    uvar_adapter_test.cpp
+    )
 target_link_libraries(uvar_adapter_test
-        adapter_errors
-        )
+    adapter_errors
+    )
 
 addtest(message_read_writer_test
-        message_read_writer_test.cpp
-        )
+    message_read_writer_test.cpp
+    )
 
 addtest(proto_block_response_test
-        protobuf_block_response_test.cpp
-        )
+    protobuf_block_response_test.cpp
+    )
 target_link_libraries(proto_block_response_test
-        node_api_proto
-        blob
-        scale
-        adapter_errors
-        )
+    node_api_proto
+    blob
+    scale
+    adapter_errors
+    )
 
 addtest(proto_block_request_test
-        protobuf_block_request_test.cpp
-        )
+    protobuf_block_request_test.cpp
+    )
 target_link_libraries(proto_block_request_test
-        node_api_proto
-        blob
-        adapter_errors
-        )
+    node_api_proto
+    blob
+    adapter_errors
+    )
 
 addtest(block_response_test
     blocks_response_test.cpp
@@ -73,3 +73,12 @@ addtest(block_direction_test
 target_link_libraries(block_direction_test
     scale
     )
+
+addtest(bootstrap_nodes_test
+    bootstrap_nodes_test.cpp
+)
+target_link_libraries(bootstrap_nodes_test
+    p2p::p2p
+    buffer
+    blob
+)

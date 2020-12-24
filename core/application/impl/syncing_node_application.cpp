@@ -4,28 +4,27 @@
  */
 
 #include "application/impl/syncing_node_application.hpp"
-#include "network/common.hpp"
 #include "application/impl/util.hpp"
+#include "network/common.hpp"
 
 namespace kagome::application {
 
   SyncingNodeApplication::SyncingNodeApplication(
       const AppConfiguration &app_config)
       : injector_{injector::makeSyncingNodeInjector(app_config)},
-        logger_{common::createLogger("SyncingNodeApplication")} {
+        logger_{common::createLogger("SyncingNodeApplication")},
+
+        // keep important instances, the must exist when injector destroyed
+        // some of them are requested by reference and hence not copied
+        app_config_(injector_.create<const AppConfiguration &>()),
+        chain_spec_(injector_.create<sptr<ChainSpec>>()),
+        chain_path_(app_config.chainPath(chain_spec_->id())),
+        boot_nodes_(injector_.create<const network::BootstrapNodes &>()),
+        app_state_manager_(injector_.create<sptr<AppStateManager>>()),
+        io_context_(injector_.create<sptr<boost::asio::io_context>>()),
+        router_(injector_.create<sptr<network::Router>>()),
+        jrpc_api_service_(injector_.create<sptr<api::ApiService>>()) {
     spdlog::set_level(app_config.verbosity());
-
-    // keep important instances, the must exist when injector destroyed
-    // some of them are requested by reference and hence not copied
-    app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
-
-    genesis_config_ = injector_.create<sptr<ChainSpec>>();
-
-    io_context_ = injector_.create<sptr<boost::asio::io_context>>();
-    router_ = injector_.create<sptr<network::Router>>();
-    chain_path_ = app_config.chain_path(genesis_config_->id());
-
-    jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void SyncingNodeApplication::run() {
@@ -33,7 +32,8 @@ namespace kagome::application {
 
     auto res = util::init_directory(chain_path_);
     if (not res) {
-      logger_->error("Error initalizing chain directory: ", res.error().message());
+      logger_->error("Error initalizing chain directory: ",
+                     res.error().message());
     }
 
     app_state_manager_->atLaunch([this] {
@@ -51,7 +51,7 @@ namespace kagome::application {
             std::exit(1);
           }
         }
-        for (const auto &boot_node : genesis_config_->getBootNodes().peers) {
+        for (auto &boot_node : boot_nodes_) {
           host.newStream(
               boot_node,
               network::kGossipProtocol,

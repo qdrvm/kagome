@@ -138,11 +138,11 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->p2p_port(), 30363);
-  ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->p2pPort(), 30363);
+  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
+  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
-  ASSERT_EQ(app_config_->is_only_finalizing(), false);
+  ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
 /**
@@ -176,14 +176,14 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
+  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
 }
 
 /**
  * @given new created AppConfigurationImpl
  * @when --genesis cmd line arg is provided
- * @then we must receive this value from genesis_path() call
+ * @then we must receive this value from genesisPath() call
  */
 TEST_F(AppConfigurationTest, GenesisPathTest) {
   char const *args[] = {"/path/",
@@ -196,7 +196,7 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesis_path(), genesis_path.native().c_str());
+  ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
 }
 
 /**
@@ -228,8 +228,8 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
+  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
 }
 
 /**
@@ -249,16 +249,16 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesis_path(), genesis_path);
-  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+  ASSERT_EQ(app_config_->genesisPath(), genesis_path);
+  ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
-  ASSERT_EQ(app_config_->database_path("test_chain42"),
+  ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "test_chain42/db");
-  ASSERT_EQ(app_config_->p2p_port(), 456);
-  ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->p2pPort(), 456);
+  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
+  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
-  ASSERT_EQ(app_config_->is_only_finalizing(), true);
+  ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }
 
 /**
@@ -285,16 +285,16 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesis_path(), genesis_path.native().c_str());
-  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+  ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
+  ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
-  ASSERT_EQ(app_config_->database_path("test_chain42"),
+  ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "test_chain42/db");
-  ASSERT_EQ(app_config_->p2p_port(), 30363);
-  ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->p2pPort(), 30363);
+  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
+  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
-  ASSERT_EQ(app_config_->is_only_finalizing(), false);
+  ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
 /**
@@ -320,16 +320,16 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesis_path(), genesis_path.native().c_str());
-  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+  ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
+  ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
-  ASSERT_EQ(app_config_->database_path("test_chain42"),
+  ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "test_chain42/db");
-  ASSERT_EQ(app_config_->p2p_port(), 30363);
-  ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->p2pPort(), 30363);
+  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
+  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
-  ASSERT_EQ(app_config_->is_only_finalizing(), false);
+  ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
 /**
@@ -355,16 +355,16 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesis_path(), genesis_path.native().c_str());
-  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+  ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
+  ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
-  ASSERT_EQ(app_config_->database_path("test_chain42"),
+  ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "test_chain42/db");
-  ASSERT_EQ(app_config_->p2p_port(), 30363);
-  ASSERT_EQ(app_config_->rpc_http_endpoint(), http_endpoint);
-  ASSERT_EQ(app_config_->rpc_ws_endpoint(), ws_endpoint);
+  ASSERT_EQ(app_config_->p2pPort(), 30363);
+  ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
+  ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
-  ASSERT_EQ(app_config_->is_only_finalizing(), false);
+  ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
 /**
@@ -387,7 +387,7 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->is_only_finalizing(), true);
+  ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }
 
 /**
@@ -406,9 +406,9 @@ TEST_F(AppConfigurationTest, KeystorePathTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+  ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
-  ASSERT_EQ(app_config_->database_path("test_chain42"),
+  ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "test_chain42/db");
 }
 
@@ -428,9 +428,9 @@ TEST_F(AppConfigurationTest, base_pathPathTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->keystore_path("test_chain42"),
+  ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
-  ASSERT_EQ(app_config_->database_path("test_chain42"),
+  ASSERT_EQ(app_config_->databasePath("test_chain42"),
             base_path / "test_chain42/db");
 }
 
@@ -585,7 +585,7 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTestTest) {
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
-  ASSERT_EQ(app_config_->is_only_finalizing(), true);
+  ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }
 
 /**
@@ -604,5 +604,5 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTestTest_2) {
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
-  ASSERT_EQ(app_config_->is_only_finalizing(), true);
+  ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }

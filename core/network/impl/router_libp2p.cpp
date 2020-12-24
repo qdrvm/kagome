@@ -18,8 +18,8 @@
 #include "network/types/block_announce.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
+#include "network/types/bootstrap_nodes.hpp"
 #include "network/types/no_data_message.hpp"
-#include "network/types/peer_list.hpp"
 #include "network/types/status.hpp"
 #include "scale/scale.hpp"
 
@@ -31,7 +31,7 @@ namespace kagome::network {
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<Gossiper> gossiper,
-      const PeerList &peer_list,
+      const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<kagome::application::ChainSpec> config,
       std::shared_ptr<blockchain::BlockStorage> storage,
@@ -59,13 +59,13 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
-    BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
+    BOOST_ASSERT_MSG(!bootstrap_nodes.empty(), "bootstrap node list is empty");
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
 
     gossiper_->storeSelfPeerInfo(own_peer_info);
-    for (const auto &peer_info : peer_list.peers) {
+    for (const auto &peer_info : bootstrap_nodes) {
       if (peer_info.id != own_peer_info.id) {
         gossiper_->reserveStream(peer_info, transactions_protocol_, {});
         gossiper_->reserveStream(peer_info, block_announces_protocol_, {});
@@ -125,8 +125,8 @@ namespace kagome::network {
                                      peer_info.id.toHex());
                     return;
                   }
-                  self->gossiper_->addStream(self->block_announces_protocol_,
-                                             stream_res.value());
+                  (void)self->gossiper_->addStream(
+                      self->block_announces_protocol_, stream_res.value());
                 });
           }
         });

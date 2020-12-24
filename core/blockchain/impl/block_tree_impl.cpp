@@ -387,7 +387,7 @@ namespace kagome::blockchain {
     auto start_block_number = block_number_res.value();
 
     primitives::BlockNumber finish_block_number;  // NOLINT
-    if (ascending) {
+    if (!ascending) {
       if (start_block_number < maximum) {
         // we want to finish at the root
         finish_block_number = 0;
@@ -413,7 +413,7 @@ namespace kagome::blockchain {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
 
-    if (!ascending) {
+    if (ascending) {
       return getChainByBlocks(block, finish_block_hash.value());
     }
 

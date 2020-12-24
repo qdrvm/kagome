@@ -274,15 +274,14 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
 
-  EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillRepeatedly(Return(2));
+  EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockHash))
+      .WillRepeatedly(Return(2));
 
-  std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockHash};
-
-  EXPECT_CALL(*header_repo_, getHashByNumber(0))
-      .WillOnce(Return(kFinalizedBlockHash));
+  std::vector<BlockHash> expected_chain{kFinalizedBlockHash, hash1, hash2};
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2, true, 5));
+  EXPECT_OUTCOME_TRUE(
+      chain, block_tree_->getChainByBlock(kFinalizedBlockHash, true, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -311,12 +310,13 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockHash))
       .WillRepeatedly(Return(0));
   EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillRepeatedly(Return(2));
+  EXPECT_CALL(*header_repo_, getHashByNumber(0))
+      .WillOnce(Return(kFinalizedBlockHash));
 
-  std::vector<BlockHash> expected_chain{kFinalizedBlockHash, hash1, hash2};
+  std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockHash};
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(
-      chain, block_tree_->getChainByBlock(kFinalizedBlockHash, false, 5));
+  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2, false, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);

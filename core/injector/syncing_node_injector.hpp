@@ -37,7 +37,7 @@ namespace kagome::injector {
     const auto &config =
         injector.template create<const application::AppConfiguration &>();
     std::string multiaddress_str =
-        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2p_port());
+        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2pPort());
     spdlog::debug("Received multiaddr: {}", multiaddress_str);
     auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
     if (!multiaddress) {
@@ -65,8 +65,8 @@ namespace kagome::injector {
         di::bind<network::OwnPeerInfo>.to(
             [](const auto &injector) { return get_peer_info(injector); }),
 
-        di::bind<consensus::Babe>.template to<consensus::SyncingBabe>(),
-        di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>(),
+        di::bind<consensus::Babe>.template to<consensus::SyncingBabe>()[di::override],
+        di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>()[di::override],
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::SyncingGrandpaObserver>(),
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

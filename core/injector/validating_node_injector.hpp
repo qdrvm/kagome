@@ -56,26 +56,6 @@ namespace kagome::injector {
     return initialized.value();
   }
 
-  template <typename Injector>
-  sptr<libp2p::crypto::KeyPair> get_peer_keypair(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto const &crypto_store =
-        injector.template create<const crypto::CryptoStore &>();
-    auto &&local_pair = crypto_store.getLibp2pKeypair();
-    if (not local_pair) {
-      spdlog::error("Failed to get LibP2P keypair");
-      return nullptr;
-    }
-    initialized = std::make_shared<libp2p::crypto::KeyPair>(local_pair.value());
-    return initialized.value();
-  }
-
   // peer info getter
   template <typename Injector>
   sptr<network::OwnPeerInfo> get_peer_info(const Injector &injector) {
@@ -99,7 +79,7 @@ namespace kagome::injector {
     application::AppConfiguration const &config =
         injector.template create<application::AppConfiguration const &>();
     std::string multiaddress_str =
-        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2p_port());
+        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2pPort());
     spdlog::debug("Received multiaddr: {}", multiaddress_str);
     auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
     if (!multiaddress) {
@@ -142,8 +122,8 @@ namespace kagome::injector {
   }
 
   template <typename... Ts>
-  auto makeValidatingNodeInjector(const application::AppConfiguration &app_config,
-                            Ts &&... args) {
+  auto makeValidatingNodeInjector(
+      const application::AppConfiguration &app_config, Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -154,10 +134,6 @@ namespace kagome::injector {
         // bind ed25519 keypair
         di::bind<crypto::Ed25519Keypair>.to(
             [](auto const &inj) { return get_ed25519_keypair(inj); }),
-        // compose peer keypair
-        di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {
-          return get_peer_keypair(inj);
-        })[boost::di::override],
         // compose peer info
         di::bind<network::OwnPeerInfo>.to(
             [](const auto &injector) { return get_peer_info(injector); }),
@@ -180,7 +156,7 @@ namespace kagome::injector {
               application::AppConfiguration const &config =
                   injector
                       .template create<application::AppConfiguration const &>();
-              if (config.is_only_finalizing()) {
+              if (config.isOnlyFinalizing()) {
                 auto grandpa_api = injector.template create<
                     sptr<runtime::binaryen::GrandpaApiImpl>>();
                 initialized = grandpa_api;
