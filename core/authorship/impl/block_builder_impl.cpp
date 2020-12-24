@@ -30,7 +30,7 @@ namespace kagome::authorship {
       logger_->warn(
           "Extrinsic {} was not pushed to block. Error during xt application: "
           "{}",
-          extrinsic.data.toHex(),
+          extrinsic.data.toHex().substr(0, 8),
           apply_res.error().message());
       return apply_res.error();
     }
@@ -47,13 +47,13 @@ namespace kagome::authorship {
               extrinsics_.push_back(extrinsic);
               return extrinsics_.size() - 1;
             case primitives::ApplyOutcome::FAIL:
-              logger_->warn(logger_error_template, extrinsic.data.toHex());
+              logger_->warn(logger_error_template, extrinsic.data.toHex().substr(0, 8));
               return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
           }
         },
         [this, &extrinsic](primitives::ApplyError)
             -> outcome::result<primitives::ExtrinsicIndex> {
-          logger_->warn(logger_error_template, extrinsic.data.toHex());
+          logger_->warn(logger_error_template, extrinsic.data.toHex().substr(0, 8));
           return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
         });
   }

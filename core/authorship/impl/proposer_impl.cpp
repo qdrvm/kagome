@@ -47,7 +47,7 @@ namespace kagome::authorship {
     auto log_push_error = [this](const primitives::Extrinsic &xt,
                                  std::string_view message) {
       logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
-                    xt.data.toHex(),
+                    xt.data.toHex().substr(0, 8),
                     message);
     };
 
@@ -67,11 +67,12 @@ namespace kagome::authorship {
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
         log_push_error(tx->ext, inserted_res.error().message());
-        return inserted_res.error();
+        continue;
       }
       if (tx->observed_id.has_value()) {
-        extrinsic_event_key_repo_->upgradeTransaction(
-            tx->observed_id.value(), parent_block_number, inserted_res.value());
+        extrinsic_event_key_repo_->upgradeTransaction(tx->observed_id.value(),
+                                                      parent_block_number + 1,
+                                                      inserted_res.value());
       }
     }
 

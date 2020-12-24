@@ -6,12 +6,15 @@
 #ifndef KAGOME_CORE_API_TRANSPORT_IMPL_WS_SESSION_HPP
 #define KAGOME_CORE_API_TRANSPORT_IMPL_WS_SESSION_HPP
 
-#include <boost/asio/strand.hpp>
-#include <boost/beast/core/tcp_stream.hpp>
-#include <boost/beast/websocket.hpp>
 #include <chrono>
 #include <cstdlib>
 #include <memory>
+#include <queue>
+
+#include <boost/asio/strand.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
+#include <boost/beast/websocket.hpp>
+#include <boost/beast/core/multi_buffer.hpp>
 
 #include "api/transport/session.hpp"
 #include "common/logger.hpp"
@@ -38,7 +41,6 @@ namespace kagome::api {
      * @param socket socket instance
      * @param config session configuration
      * @param id session id
-     * @param type of this session
      */
     WsSession(Context &context, Configuration config, SessionId id);
 
@@ -129,15 +131,17 @@ namespace kagome::api {
 
     Configuration config_;  ///< session configuration
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket &>
-        stream_;                         ///< stream
+        stream_;
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
     boost::beast::flat_buffer wbuffer_;  ///< write buffer
+
+    std::queue<std::string> pending_responses_;
 
     std::atomic_bool writing_in_progress_ = false;
 
     SessionId const id_;
     common::Logger logger_ =
-        common::createLogger("websocket session");  ///< logger instance
+        common::createLogger("websocket session");
   };
 
 }  // namespace kagome::api

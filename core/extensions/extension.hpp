@@ -540,6 +540,9 @@ namespace kagome::extensions {
 
     virtual void ext_misc_print_utf8_version_1(
         runtime::WasmSpan data) const = 0;
+
+    virtual void ext_misc_print_num_version_1(uint64_t value) const = 0;
+
   };
 }  // namespace kagome::extensions
 
