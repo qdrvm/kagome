@@ -406,19 +406,20 @@ namespace kagome::consensus {
 
     auto block = pre_seal_block_res.value();
 
-    // Ensure block's extrinsics root matches extrinsics in block's body
-    BOOST_ASSERT_MSG(
-        [&block] {
-          using boost::adaptors::transformed;
-          const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
-              block.body | transformed([](const auto &ext) {
-                return common::Buffer{scale::encode(ext).value()};
-              }));
-          return ext_root_res.has_value()
-                 and (ext_root_res.value()
-                      == common::Buffer(block.header.extrinsics_root));
-        }(),
-        "Extrinsics root does not match extrinsics in the block");
+    {
+      using boost::adaptors::transformed;
+      const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
+          block.body | transformed([](const auto &ext) {
+            return common::Buffer{scale::encode(ext).value()};
+          }));
+      bool roots_match = ext_root_res.has_value()
+                         and (ext_root_res.value()
+                              == common::Buffer(block.header.extrinsics_root));
+      // Ensure block's extrinsics root matches extrinsics in block's body
+      BOOST_ASSERT_MSG(
+          roots_match,
+          "Extrinsics root does not match extrinsics in the block");
+    }
 
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
         next_epoch_digest_res) {
@@ -450,15 +451,15 @@ namespace kagome::consensus {
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
-      visit_in_place(digest_item,
-                     [&](const primitives::Consensus &consensus_message) {
-                       [[maybe_unused]] auto res =
-                           authority_update_observer_->onConsensus(
-                               consensus_message.consensus_engine_id,
-                               best_block_info,
-                               consensus_message);
-                     },
-                     [](const auto &) {});
+      visit_in_place(
+          digest_item,
+          [&](const primitives::Consensus &consensus_message) {
+            [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
+                consensus_message.consensus_engine_id,
+                best_block_info,
+                consensus_message);
+          },
+          [](const auto &) {});
     }
 
     // add block to the block tree
