@@ -15,7 +15,7 @@
 namespace kagome::primitives {
   using BlocksRequestId = uint64_t;
 
-  using BlockNumber = uint64_t;
+  using BlockNumber = uint32_t;
   using BlockHash = common::Hash256;
 
   namespace detail {
