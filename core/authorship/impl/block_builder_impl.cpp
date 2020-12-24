@@ -43,17 +43,19 @@ namespace kagome::authorship {
         [this, &extrinsic](primitives::ApplyOutcome apply_outcome)
             -> outcome::result<primitives::ExtrinsicIndex> {
           switch (apply_outcome) {
+            case primitives::ApplyOutcome::FAIL:
+              logger_->warn(logger_error_template,
+                            extrinsic.data.toHex().substr(0, 8));
+              [[fallthrough]];
             case primitives::ApplyOutcome::SUCCESS:
               extrinsics_.push_back(extrinsic);
               return extrinsics_.size() - 1;
-            case primitives::ApplyOutcome::FAIL:
-              logger_->warn(logger_error_template, extrinsic.data.toHex().substr(0, 8));
-              return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
           }
         },
         [this, &extrinsic](primitives::ApplyError)
             -> outcome::result<primitives::ExtrinsicIndex> {
-          logger_->warn(logger_error_template, extrinsic.data.toHex().substr(0, 8));
+          logger_->warn(logger_error_template,
+                        extrinsic.data.toHex().substr(0, 8));
           return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
         });
   }
