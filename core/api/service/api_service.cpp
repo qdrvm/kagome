@@ -98,7 +98,6 @@ namespace {
                 name,
                 std::move(value),
                 [session{std::move(session)}](const auto &response) {
-                  std::cout << "RESPONSE: " << response << "\n";
                   session->respond(response);
                 });
   }
@@ -232,7 +231,7 @@ namespace kagome::api {
                     subscription_engines_.chain, session),
                 .ext_sub = std::make_shared<ExtrinsicEventSubscriber>(
                     subscription_engines_.ext, session),
-                .messages{}}));
+                .messages={}}));
 
     BOOST_ASSERT(inserted);
     return it->second;
