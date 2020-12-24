@@ -46,16 +46,16 @@
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/common.hpp"
-#include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
+#include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/finalization_composite.hpp"
-#include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
+#include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -317,7 +317,7 @@ namespace kagome::injector {
             .authorities = configuration->genesis_authorities,
             .randomness = configuration->randomness};
 
-        const bool init_epoch_desc_ok =
+        [[maybe_unused]] const bool init_epoch_desc_ok =
             (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value();
         BOOST_ASSERT(init_epoch_desc_ok);
       }

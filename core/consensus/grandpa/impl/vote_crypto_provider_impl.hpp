@@ -32,6 +32,9 @@ namespace kagome::consensus::grandpa {
     SignedMessage signPrecommit(const Precommit &precommit) const override;
 
    private:
+    SignedMessage sign(Vote vote) const;
+    bool verify(const SignedMessage &vote, RoundNumber number) const;
+
     crypto::Ed25519Signature voteSignature(const Vote &vote) const;
 
     crypto::Ed25519Keypair keypair_;

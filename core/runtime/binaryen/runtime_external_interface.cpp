@@ -683,6 +683,12 @@ namespace kagome::runtime::binaryen {
       if (import->base == "ext_offchain_index_set_version_1") {
         return wasm::Literal();
       }
+
+      // TODO(xDimon): It is temporary suppress fails at calling of
+      //  callImport(ext_misc_print_num_version_1)
+      if (import->base == "ext_misc_print_num_version_1") {
+        return wasm::Literal();
+      }
     }
 
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."

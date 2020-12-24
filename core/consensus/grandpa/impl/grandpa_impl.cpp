@@ -72,14 +72,10 @@ namespace kagome::consensus::grandpa {
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
-      // No saved data
-      if (round_state_res
-          != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-        logger_->critical(
-            "Can't retrieve last round data: {}. Stopping grandpa execution",
-            round_state_res.error().message());
-        return false;
-      }
+      logger_->critical(
+          "Can't retrieve last round data: {}. Stopping grandpa execution",
+          round_state_res.error().message());
+      return false;
     }
     auto &round_state = round_state_res.value();
 
@@ -242,9 +238,6 @@ namespace kagome::consensus::grandpa {
     // Fail at retrieve data
     if (last_round_encoded_res
         != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-      logger_->critical(
-          "Can't retrieve last round data: {}. Stopping grandpa execution",
-          last_round_encoded_res.error().message());
       return last_round_encoded_res.as_failure();
     }
 
@@ -252,7 +245,7 @@ namespace kagome::consensus::grandpa {
     auto genesis_hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
     if (not genesis_hash_res.has_value()) {
       logger_->critical(
-          "Can't retrieve genesis block hash: {}. Stopping grandpa execution",
+          "Can't retrieve genesis block hash: {}",
           genesis_hash_res.error().message());
       return genesis_hash_res.as_failure();
     }
