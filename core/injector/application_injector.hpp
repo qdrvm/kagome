@@ -12,7 +12,7 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
-#include "api/service/api_service.hpp"
+#include "api/service/impl/api_service_impl.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
@@ -122,9 +122,9 @@ namespace kagome::injector {
   using uptr = std::unique_ptr<T>;
 
   template <typename Injector>
-  sptr<api::ApiService> get_jrpc_api_service(const Injector &injector) {
+  sptr<api::ApiServiceImpl> get_jrpc_api_service(const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<api::ApiService>>(boost::none);
+        boost::optional<sptr<api::ApiServiceImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -167,7 +167,7 @@ namespace kagome::injector {
         injector.template create<sptr<storage::trie::TrieStorage>>();
 
     initialized =
-        std::make_shared<api::ApiService>(std::move(app_state_manager),
+        std::make_shared<api::ApiServiceImpl>(std::move(app_state_manager),
                                           std::move(rpc_thread_pool),
                                           std::move(listeners),
                                           std::move(server),

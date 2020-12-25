@@ -14,7 +14,9 @@ namespace kagome::authorship {
 
   class BlockBuilderMock : public BlockBuilder {
    public:
-    outcome::result<primitives::ExtrinsicIndex>;
+    MOCK_METHOD1(pushExtrinsic,
+                  outcome::result<primitives::ExtrinsicIndex>(
+                      const primitives::Extrinsic &extrinsic));
     MOCK_CONST_METHOD0(bake, outcome::result<primitives::Block>());
   };
 

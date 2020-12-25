@@ -43,6 +43,9 @@ struct BlockTreeTest : public testing::Test {
     auto ext_events_engine =
         std::make_shared<primitives::events::ExtrinsicSubscriptionEngine>();
 
+    auto extrinsic_event_key_repo =
+        std::make_shared<subscription::ExtrinsicEventKeyRepository>();
+
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         kLastFinalizedBlockId,
@@ -50,6 +53,7 @@ struct BlockTreeTest : public testing::Test {
                                         hasher_,
                                         chain_events_engine,
                                         ext_events_engine,
+                                        extrinsic_event_key_repo,
                                         runtime_core_)
                       .value();
   }

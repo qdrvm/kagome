@@ -108,7 +108,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
   auto res = block_builder_->pushExtrinsic(xt);
 
   // then
-  ASSERT_FALSE(res);
+  ASSERT_TRUE(res);
   EXPECT_OUTCOME_TRUE(block, block_builder_->bake());
   ASSERT_EQ(block.header, expected_header_);
   ASSERT_THAT(block.body, IsEmpty());

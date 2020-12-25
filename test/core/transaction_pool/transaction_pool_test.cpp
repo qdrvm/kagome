@@ -23,6 +23,7 @@ using kagome::face::GenericIterator;
 using kagome::face::GenericList;
 using kagome::primitives::Transaction;
 using kagome::primitives::events::ExtrinsicSubscriptionEngine;
+using kagome::subscription::ExtrinsicEventKeyRepository;
 using kagome::transaction_pool::PoolModerator;
 using kagome::transaction_pool::PoolModeratorMock;
 using kagome::transaction_pool::TransactionPoolError;
@@ -40,11 +41,13 @@ class TransactionPoolTest : public testing::Test {
     auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
     auto header_repo = std::make_unique<BlockHeaderRepositoryMock>();
     auto engine = std::make_unique<ExtrinsicSubscriptionEngine>();
+    auto extrinsic_event_key_repo = std::make_unique<ExtrinsicEventKeyRepository>();
 
     pool_ = std::make_shared<TransactionPoolImpl>(
         std::move(moderator),
         std::move(header_repo),
         std::move(engine),
+        std::move(extrinsic_event_key_repo),
         TransactionPoolImpl::Limits{3, 4});
   }
 

@@ -266,7 +266,7 @@ TEST_F(BabeTest, Success) {
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
   EXPECT_CALL(*block_tree_, deepestLeaf()).WillOnce(Return(best_leaf));
-  EXPECT_CALL(*proposer_, propose(BlockId{best_block_hash_}, _, _))
+  EXPECT_CALL(*proposer_, propose(best_block_number_, _, _))
       .WillOnce(Return(created_block_));
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
   EXPECT_CALL(*block_tree_, addBlock(_)).WillOnce(Return(outcome::success()));

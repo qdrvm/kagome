@@ -7,6 +7,7 @@
 
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
+#include <jsonrpc-lean/fault.h>
 
 #include "common/visitor.hpp"
 #include "primitives/transaction.hpp"

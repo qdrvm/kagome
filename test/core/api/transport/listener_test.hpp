@@ -12,7 +12,8 @@
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
-#include "api/service/api_service.hpp"
+#include "api/service/impl/api_service_impl.hpp"
+#include "api/transport/rpc_thread_pool.hpp"
 #include "application/impl/app_state_manager_impl.hpp"
 #include "common/buffer.hpp"
 #include "core/api/client/http_client.hpp"
@@ -22,6 +23,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/event_types.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -31,14 +33,15 @@ using namespace kagome::subscription;
 using namespace kagome::primitives;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
+using kagome::primitives::events::ChainSubscriptionEngine;
+using kagome::primitives::events::ChainSubscriptionEnginePtr;
+using kagome::primitives::events::ExtrinsicSubscriptionEngine;
+using kagome::primitives::events::ExtrinsicSubscriptionEnginePtr;
+using kagome::primitives::events::StorageSubscriptionEngine;
+using kagome::primitives::events::StorageSubscriptionEnginePtr;
 using kagome::storage::trie::TrieStorage;
 using kagome::storage::trie::TrieStorageMock;
-using kagome::primitives::events::ChainSubscriptionEnginePtr;
-using kagome::primitives::events::ChainSubscriptionEngine;
-using kagome::primitives::events::StorageSubscriptionEnginePtr;
-using kagome::primitives::events::StorageSubscriptionEngine;
-using kagome::primitives::events::ExtrinsicSubscriptionEnginePtr;
-using kagome::primitives::events::ExtrinsicSubscriptionEngine;
+using kagome::subscription::ExtrinsicEventKeyRepository;
 
 template <typename ListenerImpl,
           typename =
@@ -109,11 +112,14 @@ struct ListenerTest : public ::testing::Test {
   ExtrinsicSubscriptionEnginePtr ext_events_engine =
       std::make_shared<ExtrinsicSubscriptionEngine>();
 
+  std::shared_ptr<ExtrinsicEventKeyRepository> ext_event_key_repo =
+      std::make_shared<ExtrinsicEventKeyRepository>();
+
   std::shared_ptr<BlockTree> block_tree = std::make_shared<BlockTreeMock>();
   std::shared_ptr<TrieStorage> trie_storage =
       std::make_shared<TrieStorageMock>();
 
-  sptr<ApiService> service = std::make_shared<ApiService>(
+  sptr<ApiService> service = std::make_shared<ApiServiceImpl>(
       app_state_manager,
       thread_pool,
       std::vector<std::shared_ptr<Listener>>{listener},
@@ -122,6 +128,7 @@ struct ListenerTest : public ::testing::Test {
       storage_events_engine,
       chain_events_engine,
       ext_events_engine,
+      ext_event_key_repo,
       block_tree,
       trie_storage);
 };

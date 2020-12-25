@@ -35,7 +35,6 @@ namespace kagome::subscription {
     using ReceiverType = Receiver;
     using SubscriberType =
         Subscriber<EventKeyType, ReceiverType, EventParams...>;
-    using SubscriberPtr = std::shared_ptr<SubscriberType>;
     using SubscriberWeakPtr = std::weak_ptr<SubscriberType>;
 
     /// List is preferable here because this container iterators remain

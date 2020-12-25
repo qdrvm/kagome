@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/service/api_service.hpp"
+#include "api/service/impl/api_service_impl.hpp"
 
 #include <boost/algorithm/string/replace.hpp>
 
@@ -114,7 +114,7 @@ namespace kagome::api {
   const std::string kRpcEventSubmitAndWatchExtrinsic =
       "author_submitAndWatchExtrinsic";
 
-  ApiService::ApiService(
+  ApiServiceImpl::ApiServiceImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
       std::vector<std::shared_ptr<Listener>> listeners,
@@ -157,7 +157,7 @@ namespace kagome::api {
     BOOST_ASSERT(extrinsic_event_key_repo_);
   }
 
-  jsonrpc::Value ApiService::createStateStorageEvent(
+  jsonrpc::Value ApiServiceImpl::createStateStorageEvent(
       const common::Buffer &key,
       const common::Buffer &value,
       const primitives::BlockHash &block) {
@@ -176,7 +176,7 @@ namespace kagome::api {
     return result;
   }
 
-  bool ApiService::prepare() {
+  bool ApiServiceImpl::prepare() {
     for (const auto &listener : listeners_) {
       auto on_new_session =
           [wp = weak_from_this()](const sptr<Session> &session) mutable {
@@ -206,25 +206,25 @@ namespace kagome::api {
     return true;
   }  // namespace kagome::api
 
-  bool ApiService::start() {
+  bool ApiServiceImpl::start() {
     thread_pool_->start();
     logger_->debug("API Service started");
     return true;
   }
 
-  void ApiService::stop() {
+  void ApiServiceImpl::stop() {
     thread_pool_->stop();
     logger_->debug("API Service stopped");
   }
 
-  std::shared_ptr<ApiService::SessionSubscriptions>
-  ApiService::storeSessionWithId(Session::SessionId id,
+  std::shared_ptr<ApiServiceImpl::SessionSubscriptions>
+  ApiServiceImpl::storeSessionWithId(Session::SessionId id,
                                  const std::shared_ptr<Session> &session) {
     std::lock_guard guard(subscribed_sessions_cs_);
     auto &&[it, inserted] = subscribed_sessions_.emplace(
         id,
-        std::make_shared<ApiService::SessionSubscriptions>(
-            ApiService::SessionSubscriptions{
+        std::make_shared<ApiServiceImpl::SessionSubscriptions>(
+            ApiServiceImpl::SessionSubscriptions{
                 .storage_sub = std::make_shared<StorageEventSubscriber>(
                     subscription_engines_.storage, session),
                 .chain_sub = std::make_shared<ChainEventSubscriber>(
@@ -237,13 +237,13 @@ namespace kagome::api {
     return it->second;
   }
 
-  void ApiService::removeSessionById(Session::SessionId id) {
+  void ApiServiceImpl::removeSessionById(Session::SessionId id) {
     std::lock_guard guard(subscribed_sessions_cs_);
     subscribed_sessions_.erase(id);
   }
 
-  outcome::result<ApiService::PubsubSubscriptionId>
-  ApiService::subscribeSessionToKeys(const std::vector<common::Buffer> &keys) {
+  outcome::result<ApiServiceImpl::PubsubSubscriptionId>
+  ApiServiceImpl::subscribeSessionToKeys(const std::vector<common::Buffer> &keys) {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
@@ -277,8 +277,8 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<ApiService::PubsubSubscriptionId>
-  ApiService::subscribeFinalizedHeads() {
+  outcome::result<ApiServiceImpl::PubsubSubscriptionId>
+  ApiServiceImpl::subscribeFinalizedHeads() {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
@@ -311,7 +311,7 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<bool> ApiService::unsubscribeFinalizedHeads(
+  outcome::result<bool> ApiServiceImpl::unsubscribeFinalizedHeads(
       PubsubSubscriptionId subscription_id) {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
@@ -321,8 +321,8 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<ApiService::PubsubSubscriptionId>
-  ApiService::subscribeNewHeads() {
+  outcome::result<ApiServiceImpl::PubsubSubscriptionId>
+  ApiServiceImpl::subscribeNewHeads() {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
@@ -352,7 +352,7 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<bool> ApiService::unsubscribeNewHeads(
+  outcome::result<bool> ApiServiceImpl::unsubscribeNewHeads(
       PubsubSubscriptionId subscription_id) {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
@@ -362,8 +362,8 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<ApiService::PubsubSubscriptionId>
-  ApiService::subscribeRuntimeVersion() {
+  outcome::result<ApiServiceImpl::PubsubSubscriptionId>
+  ApiServiceImpl::subscribeRuntimeVersion() {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
@@ -390,7 +390,7 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<bool> ApiService::unsubscribeRuntimeVersion(
+  outcome::result<bool> ApiServiceImpl::unsubscribeRuntimeVersion(
       PubsubSubscriptionId subscription_id) {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
@@ -400,8 +400,8 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<ApiService::PubsubSubscriptionId>
-  ApiService::subscribeForExtrinsicLifecycle(
+  outcome::result<ApiServiceImpl::PubsubSubscriptionId>
+  ApiServiceImpl::subscribeForExtrinsicLifecycle(
       const primitives::Transaction &tx) {
     BOOST_ASSERT_MSG(
         tx.observed_id,
@@ -419,7 +419,7 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<bool> ApiService::unsubscribeFromExtrinsicLifecycle(
+  outcome::result<bool> ApiServiceImpl::unsubscribeFromExtrinsicLifecycle(
       PubsubSubscriptionId subscription_id) {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
@@ -429,7 +429,7 @@ namespace kagome::api {
     });
   }
 
-  outcome::result<bool> ApiService::unsubscribeSessionFromIds(
+  outcome::result<bool> ApiServiceImpl::unsubscribeSessionFromIds(
       const std::vector<PubsubSubscriptionId> &subscription_ids) {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
@@ -440,7 +440,7 @@ namespace kagome::api {
     });
   }
 
-  void ApiService::onSessionRequest(std::string_view request,
+  void ApiServiceImpl::onSessionRequest(std::string_view request,
                                     std::shared_ptr<Session> session) {
     auto thread_session_auto_release = [](void *) {
       threaded_info.releaseSessionId();
@@ -483,11 +483,11 @@ namespace kagome::api {
     }
   }
 
-  void ApiService::onSessionClose(Session::SessionId id, SessionType) {
+  void ApiServiceImpl::onSessionClose(Session::SessionId id, SessionType) {
     removeSessionById(id);
   }
 
-  void ApiService::onStorageEvent(SubscriptionSetId set_id,
+  void ApiServiceImpl::onStorageEvent(SubscriptionSetId set_id,
                                   SessionPtr &session,
                                   const Buffer &key,
                                   const Buffer &data,
@@ -500,7 +500,7 @@ namespace kagome::api {
               createStateStorageEvent(key, data, block));
   }
 
-  void ApiService::onChainEvent(
+  void ApiServiceImpl::onChainEvent(
       SubscriptionSetId set_id,
       SessionPtr &session,
       primitives::events::ChainEventType event_type,
@@ -525,7 +525,7 @@ namespace kagome::api {
         server_, session, logger_, set_id, name, api::makeValue(event_params));
   }
 
-  void ApiService::onExtrinsicEvent(
+  void ApiServiceImpl::onExtrinsicEvent(
       SubscriptionSetId set_id,
       SessionPtr &session,
       primitives::events::SubscribedExtrinsicId ext_id,

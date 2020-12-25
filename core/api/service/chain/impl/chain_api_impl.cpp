@@ -5,6 +5,8 @@
 
 #include "api/service/chain/impl/chain_api_impl.hpp"
 
+#include <jsonrpc-lean/fault.h>
+
 #include "common/hexutil.hpp"
 #include "common/visitor.hpp"
 

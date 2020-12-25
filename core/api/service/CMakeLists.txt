@@ -4,8 +4,7 @@
 #
 
 add_library(api_service
-    api_service.hpp
-    api_service.cpp
+    impl/api_service_impl.cpp
     )
 target_link_libraries(api_service
     Boost::boost

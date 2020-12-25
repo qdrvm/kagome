@@ -8,6 +8,8 @@
 
 #include <utility>
 
+#include <jsonrpc-lean/fault.h>
+
 namespace kagome::api {
 
   StateApiImpl::StateApiImpl(

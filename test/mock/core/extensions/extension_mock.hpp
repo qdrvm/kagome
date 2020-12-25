@@ -143,6 +143,7 @@ namespace kagome::extensions {
                        runtime::WasmResult(runtime::WasmSpan));
 
     MOCK_CONST_METHOD1(ext_misc_print_utf8_version_1, void(runtime::WasmSpan));
+    MOCK_CONST_METHOD1(ext_misc_print_num_version_1, void(uint64_t));
 
     MOCK_METHOD0(ext_storage_start_transaction, void());
     MOCK_METHOD0(ext_storage_rollback_transaction, void());

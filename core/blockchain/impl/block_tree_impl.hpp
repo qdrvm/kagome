@@ -8,11 +8,12 @@
 
 #include "blockchain/block_tree.hpp"
 
-#include <boost/optional.hpp>
 #include <functional>
 #include <memory>
 #include <queue>
 #include <unordered_set>
+
+#include <boost/optional.hpp>
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
@@ -22,6 +23,7 @@
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "primitives/event_types.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 #include "runtime/core.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 

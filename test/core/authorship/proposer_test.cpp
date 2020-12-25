@@ -10,6 +10,8 @@
 #include "mock/core/authorship/block_builder_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "primitives/event_types.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -31,7 +33,9 @@ using kagome::primitives::InherentData;
 using kagome::primitives::InherentIdentifier;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::Transaction;
+using kagome::primitives::events::ExtrinsicSubscriptionEngine;
 using kagome::runtime::BlockBuilderApiMock;
+using kagome::subscription::ExtrinsicEventKeyRepository;
 using kagome::transaction_pool::TransactionPoolMock;
 
 // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
@@ -68,11 +72,18 @@ class ProposerTest : public ::testing::Test {
       std::make_shared<TransactionPoolMock>();
   std::shared_ptr<BlockBuilderApiMock> block_builder_api_mock_ =
       std::make_shared<BlockBuilderApiMock>();
+  std::shared_ptr<ExtrinsicSubscriptionEngine> extrinsic_sub_engine_ =
+      std::make_shared<ExtrinsicSubscriptionEngine>();
+  std::shared_ptr<ExtrinsicEventKeyRepository> extrinsic_event_key_repo_ =
+      std::make_shared<ExtrinsicEventKeyRepository>();
 
   BlockBuilderMock *block_builder_;
 
-  ProposerImpl proposer_{
-      block_builder_factory_, transaction_pool_, block_builder_api_mock_};
+  ProposerImpl proposer_{block_builder_factory_,
+                         transaction_pool_,
+                         block_builder_api_mock_,
+                         extrinsic_sub_engine_,
+                         extrinsic_event_key_repo_};
 
   BlockNumber expected_number_{42};
   BlockId expected_block_id_{expected_number_};
@@ -112,7 +123,7 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
 
   // when
   auto block_res =
-      proposer_.propose(expected_block_id_, inherent_data_, inherent_digests_);
+      proposer_.propose(expected_number_, inherent_data_, inherent_digests_);
 
   // then
   ASSERT_TRUE(block_res);
@@ -133,7 +144,7 @@ TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
 
   // when
   auto block_res =
-      proposer_.propose(expected_block_id_, inherent_data_, inherent_digests_);
+      proposer_.propose(expected_number_, inherent_data_, inherent_digests_);
 
   // then
   ASSERT_FALSE(block_res);
@@ -163,7 +174,7 @@ TEST_F(ProposerTest, PushFailed) {
 
   // when
   auto block_res =
-      proposer_.propose(expected_block_id_, inherent_data_, inherent_digests_);
+      proposer_.propose(expected_number_, inherent_data_, inherent_digests_);
 
   // then
   ASSERT_FALSE(block_res);
