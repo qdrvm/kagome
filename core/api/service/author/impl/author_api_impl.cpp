@@ -124,19 +124,18 @@ namespace kagome::api {
         },
         [&](const primitives::ValidTransaction &v)
             -> outcome::result<primitives::Transaction> {
-
           common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
           size_t length = extrinsic.data.size();
 
-          return primitives::Transaction t{id,
-                                           extrinsic,
-                                           length,
-                                           hash,
-                                           v.priority,
-                                           v.longevity,
-                                           v.requires,
-                                           v.provides,
-                                           v.propagate};
+          return primitives::Transaction{id,
+                                         extrinsic,
+                                         length,
+                                         hash,
+                                         v.priority,
+                                         v.longevity,
+                                         v.requires,
+                                         v.provides,
+                                         v.propagate};
         });
   }
 
