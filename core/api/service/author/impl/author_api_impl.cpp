@@ -5,9 +5,9 @@
 
 #include "api/service/author/impl/author_api_impl.hpp"
 
+#include <jsonrpc-lean/fault.h>
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
-#include <jsonrpc-lean/fault.h>
 
 #include "common/visitor.hpp"
 #include "primitives/transaction.hpp"
@@ -78,7 +78,7 @@ namespace kagome::api {
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
     OUTCOME_TRY(tx, constructTransaction(extrinsic, last_id_++));
 
-    SubscriptionId sub_id {};
+    SubscriptionId sub_id{};
     if (auto service = api_service_.lock()) {
       OUTCOME_TRY(sub_id_, service->subscribeForExtrinsicLifecycle(tx));
       sub_id = sub_id_;
@@ -124,21 +124,19 @@ namespace kagome::api {
         },
         [&](const primitives::ValidTransaction &v)
             -> outcome::result<primitives::Transaction> {
-          // compose Transaction object
+
           common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
           size_t length = extrinsic.data.size();
 
-          primitives::Transaction t{id,
-                                    extrinsic,
-                                    length,
-                                    hash,
-                                    v.priority,
-                                    v.longevity,
-                                    v.requires,
-              v.provides,
-              v.propagate};
-
-          return t;
+          return primitives::Transaction t{id,
+                                           extrinsic,
+                                           length,
+                                           hash,
+                                           v.priority,
+                                           v.longevity,
+                                           v.requires,
+                                           v.provides,
+                                           v.propagate};
         });
   }
 
