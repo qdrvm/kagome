@@ -154,8 +154,10 @@ TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
  * @given BlockBuilderApi creating inherent extrinsics @and TransactionPool
  * returning extrinsics
  * @when Proposer created from these BlockBuilderApi and TransactionPool is
- * trying to create block @but push extrinsics to block builder failed
- * @then Block is not created
+ * trying to create block @but push extrinsics to block builder failed with
+ * DispatchError
+ * @then Block is still created, because extrinsics failed with such error are
+ * still included
  */
 TEST_F(ProposerTest, PushFailed) {
   // given
@@ -164,11 +166,15 @@ TEST_F(ProposerTest, PushFailed) {
   EXPECT_CALL(*block_builder_, pushExtrinsic(_))
       .WillOnce(Return(outcome::success()))  // for inherent xt
       .WillOnce(Return(outcome::failure(
-          boost::system::error_code{})));  // for xt from tx pool
+          boost::system::error_code{})));  // for xt from tx pool, will emit
+                                           // Error: Success though
+  EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
       std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
 
+  EXPECT_CALL(*transaction_pool_, removeOne("fakeHash"_hash256))
+      .WillOnce(Return(Transaction{}));
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
       .WillOnce(Return(ready_transactions));
 
@@ -177,5 +183,5 @@ TEST_F(ProposerTest, PushFailed) {
       proposer_.propose(expected_number_, inherent_data_, inherent_digests_);
 
   // then
-  ASSERT_FALSE(block_res);
+  ASSERT_TRUE(block_res);
 }
