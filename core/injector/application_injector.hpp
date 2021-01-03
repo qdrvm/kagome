@@ -734,7 +734,8 @@ namespace kagome::injector {
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<consensus::SlotsStrategy>());
+        injector.template create<consensus::SlotsStrategy>(),
+        injector.template create<sptr<boost::asio::io_context>>());
     return *initialized;
   }
 

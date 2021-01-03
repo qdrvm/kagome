@@ -41,7 +41,8 @@ namespace kagome::consensus {
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<authority::AuthorityUpdateObserver>
                       authority_update_observer,
-                  SlotsStrategy slots_strategy);
+                  SlotsStrategy slots_strategy,
+                  std::shared_ptr<boost::asio::io_context> io_context);
 
     /**
      * Processes next header: if header is observed first it is added to the
@@ -103,7 +104,42 @@ namespace kagome::consensus {
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     const SlotsStrategy slots_strategy_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     common::Logger logger_;
+
+    class AsyncHelper : public std::enable_shared_from_this<AsyncHelper> {
+     public:
+      AsyncHelper() = delete;                         // Default-constructor
+      AsyncHelper(AsyncHelper &&) noexcept = delete;  // Move-constructor
+      AsyncHelper(const AsyncHelper &) = delete;      // Copy-constructor
+
+      AsyncHelper(std::shared_ptr<boost::asio::io_context> context)
+          : std::enable_shared_from_this<AsyncHelper>(),
+            io_context_(std::move(context)){};
+
+      ~AsyncHelper() = default;  // Destructor
+
+      std::function<void()> next() {
+        return [self = shared_from_this()] {
+          self->io_context_->post([wp = self->weak_from_this()] {
+            if (auto self = wp.lock()) {
+              self->func_();
+            }
+          });
+        };
+      }
+
+      void setFunction(std::function<void()> &&func) {
+        func_ = std::move(func);
+      }
+
+      void run() {
+        func_();
+      }
+
+      std::shared_ptr<boost::asio::io_context> io_context_;
+      std::function<void()> func_;
+    };  // namespace kagome::common
   };
 
 }  // namespace kagome::consensus
