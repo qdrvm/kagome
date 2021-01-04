@@ -115,7 +115,7 @@ namespace kagome::transaction_pool {
       const Transaction::Hash &tx_hash) {
     auto tx_node = imported_txs_.extract(tx_hash);
     if (tx_node.empty()) {
-      logger_->debug(
+      logger_->trace(
           "Extrinsic with hash {} was not found in the pool during remove",
           tx_hash);
       return TransactionPoolError::TX_NOT_FOUND;

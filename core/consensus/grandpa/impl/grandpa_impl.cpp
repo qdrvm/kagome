@@ -244,9 +244,8 @@ namespace kagome::consensus::grandpa {
     // No saved data - make from genesis
     auto genesis_hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
     if (not genesis_hash_res.has_value()) {
-      logger_->critical(
-          "Can't retrieve genesis block hash: {}",
-          genesis_hash_res.error().message());
+      logger_->critical("Can't retrieve genesis block hash: {}",
+                        genesis_hash_res.error().message());
       return genesis_hash_res.as_failure();
     }
 
@@ -474,19 +473,18 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    std::shared_ptr<VotingRound> target_round = selectRound(fin.round_number);
-    if (not target_round) {
-      if (current_round_->roundNumber() < fin.round_number) {
-        if (catch_up_request_suppressed_until_ > clock_->now()) {
-          catch_up_request_suppressed_until_ =
-              clock_->now() + catch_up_request_suppression_duration_;
-          current_round_->doCatchUpRequest(peer_id);
-        }
-      }
+    if (fin.justification.round_number != fin.round_number) {
+      logger_->warn("Fin message is inconsistent by round");
       return;
     }
 
-    target_round->onFinalize(fin);
+    if (fin.justification.block_info != fin.vote) {
+      logger_->warn("Fin message is inconsistent by block");
+      return;
+    }
+
+    [[maybe_unused]] auto res =
+        applyJustification(fin.justification.block_info, fin.justification);
   }
 
   outcome::result<void> GrandpaImpl::applyJustification(

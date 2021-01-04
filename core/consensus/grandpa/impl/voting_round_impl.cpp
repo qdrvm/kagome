@@ -1459,7 +1459,8 @@ namespace kagome::consensus::grandpa {
     GrandpaJustification result = std::accumulate(
         votes.begin(),
         votes.end(),
-        GrandpaJustification{},
+        GrandpaJustification{.round_number = round_number_,
+                             .block_info = estimate},
         [this, &estimate](GrandpaJustification &justification,
                           const auto &voting_variant) {
           visit_in_place(
@@ -1468,15 +1469,18 @@ namespace kagome::consensus::grandpa {
                   const SignedMessage &voting_message) {
                 if (env_->isEqualOrDescendOf(estimate.block_hash,
                                              voting_message.block_hash())) {
-                  justification.items.push_back(static_cast<const SignedPrecommit&>(voting_message));
+                  justification.items.push_back(
+                      static_cast<const SignedPrecommit &>(voting_message));
                 }
               },
               [&justification](const EquivocatoryVotingMessage
                                    &equivocatory_voting_message) {
                 justification.items.push_back(
-                    static_cast<const SignedPrecommit&>(equivocatory_voting_message.first));
+                    static_cast<const SignedPrecommit &>(
+                        equivocatory_voting_message.first));
                 justification.items.push_back(
-                    static_cast<const SignedPrecommit&>(equivocatory_voting_message.second));
+                    static_cast<const SignedPrecommit &>(
+                        equivocatory_voting_message.second));
               });
           return justification;
         });
