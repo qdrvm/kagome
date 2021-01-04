@@ -89,6 +89,7 @@ class BabeTest : public testing::Test {
     timer_ = timer_mock_.get();
     grandpa_authority_update_observer_ =
         std::make_shared<AuthorityUpdateObserverMock>();
+    io_context_ = std::make_shared<boost::asio::io_context>();
 
     // add initialization logic
     auto expected_config = std::make_shared<primitives::BabeConfiguration>();
@@ -118,7 +119,8 @@ class BabeTest : public testing::Test {
                                         tx_pool_,
                                         hasher_,
                                         grandpa_authority_update_observer_,
-                                        slots_strategy_);
+                                        slots_strategy_,
+                                        io_context_);
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
     EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
@@ -183,6 +185,7 @@ class BabeTest : public testing::Test {
       grandpa_authority_update_observer_;
 
   SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
+  std::shared_ptr<boost::asio::io_context> io_context_;
 
   std::shared_ptr<BabeImpl> babe_;
 
