@@ -12,11 +12,11 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
-#include "api/service/impl/api_service_impl.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
+#include "api/service/impl/api_service_impl.hpp"
 #include "api/service/rpc/impl/rpc_api_impl.hpp"
 #include "api/service/rpc/rpc_jrpc_processor.hpp"
 #include "api/service/state/impl/state_api_impl.hpp"
@@ -47,9 +47,9 @@
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/common.hpp"
-#include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
+#include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/finalization_observer.hpp"
@@ -168,16 +168,16 @@ namespace kagome::injector {
 
     initialized =
         std::make_shared<api::ApiServiceImpl>(std::move(app_state_manager),
-                                          std::move(rpc_thread_pool),
-                                          std::move(listeners),
-                                          std::move(server),
-                                          processors,
-                                          std::move(storage_sub_engine),
-                                          std::move(chain_sub_engine),
-                                          std::move(ext_sub_engine),
-                                          std::move(ext_event_key_repo),
-                                          std::move(block_tree),
-                                          std::move(trie_storage));
+                                              std::move(rpc_thread_pool),
+                                              std::move(listeners),
+                                              std::move(server),
+                                              processors,
+                                              std::move(storage_sub_engine),
+                                              std::move(chain_sub_engine),
+                                              std::move(ext_sub_engine),
+                                              std::move(ext_event_key_repo),
+                                              std::move(block_tree),
+                                              std::move(trie_storage));
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());

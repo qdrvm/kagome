@@ -166,7 +166,7 @@ namespace kagome::blockchain {
                                         std::move(extrinsic_events_engine),
                                         std::move(extrinsic_event_key_repo),
                                         std::move(runtime_core));
-    return std::shared_ptr<BlockTreeImpl>(std::move(block_tree));
+    return std::shared_ptr<BlockTreeImpl>(block_tree);
   }
 
   BlockTreeImpl::BlockTreeImpl(

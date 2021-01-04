@@ -229,7 +229,7 @@ namespace kagome::network {
         NoData{},
         [](auto self, const auto &peer_id, const auto &msg) {
           BOOST_ASSERT(self);
-          self->log_->info("Received propagated transactions: {} txs",
+          self->log_->info("Received {} propagated transactions",
                            msg.extrinsics.size());
           for (auto &ext : msg.extrinsics) {
             auto result = self->extrinsic_observer_->onTxMessage(ext);

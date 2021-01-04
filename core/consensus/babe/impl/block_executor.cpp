@@ -156,7 +156,7 @@ namespace kagome::consensus {
                 continue;
               }
               self->logger_->warn(
-                  "Could not apply block during synchronizing slots.Error: {}",
+                  "Could not apply block during synchronizing slots. Error: {}",
                   apply_res.error().message());
               sync_complete = true;
               break;
