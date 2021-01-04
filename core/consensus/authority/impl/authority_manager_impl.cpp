@@ -290,7 +290,7 @@ namespace kagome::authority {
         },
         [](const Unused<0>&) {
           // NOTE(xDimon): Does it nothing? Is it valid?
-          // Somtimes runtime makes consensus digest with unused variant.
+          // Sometimes runtime makes consensus digest with unused variant.
           return outcome::success();
         },
         [](auto &) {

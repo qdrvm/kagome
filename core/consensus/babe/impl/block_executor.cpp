@@ -301,7 +301,7 @@ namespace kagome::consensus {
     // apply block
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
 
-    // add block header if it does not exist.block_hash =
+    // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
 
     if (b.justification) {

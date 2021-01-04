@@ -483,8 +483,12 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    [[maybe_unused]] auto res =
+    auto res =
         applyJustification(fin.justification.block_info, fin.justification);
+    if (not res.has_value()) {
+      logger_->warn("Fin message is not applied: {}", res.error().message());
+      return;
+    }
   }
 
   outcome::result<void> GrandpaImpl::applyJustification(
