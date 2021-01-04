@@ -422,26 +422,36 @@ namespace kagome::blockchain {
     OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
 
     std::vector<primitives::BlockHash> result;
-    if (to < from) return result;
+    if (to < from) {
+      return result;
+    }
 
-    const uint64_t response_length =
+    const auto response_length =
         max_count ? std::min(to - from + 1, max_count.value())
                   : (to - from + 1);
+    result.reserve(response_length);
+
     log_->trace("Try to create {} length chain from number {} to {}.",
                 response_length,
                 from,
                 to);
 
-    result.reserve(response_length);
-    result.emplace_back(top_block);
+    auto current_hash = bottom_block;
 
-    const auto end = from + response_length;
-    auto ix = from + 1;
-    while (ix < end) {
-      OUTCOME_TRY(hash, header_repo_->getHashByNumber(ix));
-      result.emplace_back(hash);
-      ++ix;
+    result.emplace_back(current_hash);
+    while (current_hash != top_block && result.size() < response_length) {
+      auto header_res = header_repo_->getBlockHeader(current_hash);
+      if (!header_res) {
+        log_->warn(
+            "impossible to get chain by blocks: "
+            "intermediate block hash={} was not added to block tree before",
+            current_hash.toHex());
+        return BlockTreeError::NO_SOME_BLOCK_IN_CHAIN;
+      }
+      current_hash = header_res.value().parent_hash;
+      result.emplace_back(current_hash);
     }
+    std::reverse(result.begin(), result.end());
     return result;
   }
 
