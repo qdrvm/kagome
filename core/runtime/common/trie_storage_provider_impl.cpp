@@ -69,7 +69,7 @@ namespace kagome::runtime {
     if (persistent_batch_ != nullptr) {
       return persistent_batch_->commit();
     }
-    return common::Buffer{};
+    return trie_storage_->getRootHash();
   }
 
   outcome::result<void> TrieStorageProviderImpl::startTransaction() {
