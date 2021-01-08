@@ -30,7 +30,8 @@ namespace kagome::scale {
     TOO_MANY_ITEMS,         ///< too many items, cannot address them in memory
     WRONG_TYPE_INDEX,       ///< wrong type index, cannot decode variant
     INVALID_DATA,           ///< invalid data
-    OUT_OF_BOUNDARIES       ///< advance went out of boundaries
+    OUT_OF_BOUNDARIES,      ///< advance went out of boundaries
+    UNKNOWN_EXCEPTION
   };
 
   /**
