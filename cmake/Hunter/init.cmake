@@ -22,7 +22,7 @@ set(
 
 set(
     HUNTER_CACHE_SERVERS
-    "https://github.com/soramitsu/hunter-binary-cache;https://github.com/Warchant/hunter-binary-cache;https://github.com/elucideye/hunter-cache;https://github.com/ingenue/hunter-cache"
+    "https://github.com/soramitsu/hunter-binary-cache"
     CACHE
     STRING
     "Binary cache server"
@@ -31,7 +31,7 @@ set(
 include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 
 HunterGate(
-    URL https://github.com/soramitsu/soramitsu-hunter/archive/e1267664bddff6c87503c1d690dabe68604082ce.zip
-    SHA1 35cf109d2f233bfe575452362399ce534baf4114
+    URL https://github.com/soramitsu/soramitsu-hunter/archive/118aaeff6ce234da218cbc7b7e3894fbdd62849c.zip
+    SHA1 e0ab62b4c37f26ace258189c5fd5d7a51fa9b437
     FILEPATH "${CMAKE_SOURCE_DIR}/cmake/Hunter/config.cmake"
 )
