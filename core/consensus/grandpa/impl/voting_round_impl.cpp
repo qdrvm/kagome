@@ -139,22 +139,22 @@ namespace kagome::consensus::grandpa {
     }
 
     // Apply stored votes
-//    for (auto &vote_variant : round_state.prevotes) {
-//      visit_in_place(
-//          vote_variant,
-//          [this](const VotingMessage &vote) { onPrevote(vote); },
-//          [this](const EquivocatoryVotingMessage &pair) {
-//            onPrevote(pair.first);
-//            onPrevote(pair.second);
-//          });
-//    }
-    for (auto &vote_variant : round_state.precommits) {
+
+    auto apply = [&](const auto &vote) {
+      visit_in_place(
+          vote.message,
+          [&](const Prevote &) { VotingRoundImpl::onPrevote(vote); },
+          [&](const Precommit &) { VotingRoundImpl::onPrecommit(vote); },
+          [](auto...) {});
+    };
+
+    for (auto &vote_variant : round_state.votes) {
       visit_in_place(
           vote_variant,
-          [this](const VotingMessage &vote) { onPrecommit(vote); },
-          [this](const EquivocatoryVotingMessage &pair) {
-            onPrecommit(pair.first);
-            onPrecommit(pair.second);
+          [&](const VotingMessage &vote) { apply(vote); },
+          [&](const EquivocatoryVotingMessage &pair) {
+            apply(pair.first);
+            apply(pair.second);
           });
     }
   }
@@ -1447,11 +1447,18 @@ namespace kagome::consensus::grandpa {
 
   MovableRoundState VotingRoundImpl::state() const {
     BOOST_ASSERT(finalized_.has_value());
-    return {.round_number = round_number_,
-            .last_finalized_block = last_finalized_block_,
-//            .prevotes = prevotes_->getMessages(),
-            .precommits = precommits_->getMessages(),
-            .finalized = finalized_};
+    MovableRoundState round_state{.round_number = round_number_,
+                                  .last_finalized_block = last_finalized_block_,
+                                  .votes = precommits_->getMessages(),
+                                  .finalized = finalized_};
+
+    auto prevotes = prevotes_->getMessages();
+    round_state.votes.reserve(round_state.votes.size() + prevotes.size());
+    std::move(prevotes.begin(),
+              prevotes.end(),
+              std::back_inserter(round_state.votes));
+
+    return round_state;
   }
 
   boost::optional<GrandpaJustification> VotingRoundImpl::getJustification(

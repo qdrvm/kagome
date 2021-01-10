@@ -256,8 +256,7 @@ namespace kagome::consensus::grandpa {
 
     return MovableRoundState{.round_number = 0,
                              .last_finalized_block = {0, genesis_hash},
-//                             .prevotes = {},
-                             .precommits = {},
+                             .votes = {},
                              .finalized = {{0, genesis_hash}}};
   }
 
@@ -364,25 +363,16 @@ namespace kagome::consensus::grandpa {
     MovableRoundState round_state{
         .round_number = msg.round_number,
         .last_finalized_block = msg.best_final_candidate,
-//        .prevotes =
-//            [&items = msg.prevote_justification.items] {
-//              std::vector<VoteVariant> v;
-//              std::transform(items.begin(),
-//                             items.end(),
-//                             std::back_inserter(v),
-//                             [](auto &item) { return item; });
-//              return v;
-//            }(),
-        .precommits =
-            [&items = msg.precommit_justification.items] {
-              std::vector<VoteVariant> v;
-              std::transform(items.begin(),
-                             items.end(),
-                             std::back_inserter(v),
-                             [](auto &item) { return item; });
-              return v;
-            }(),
+        .votes = {},
         .finalized = msg.best_final_candidate};
+    std::transform(msg.prevote_justification.items.begin(),
+                   msg.prevote_justification.items.end(),
+                   std::back_inserter(round_state.votes),
+                   [](auto &item) { return item; });
+    std::transform(msg.precommit_justification.items.begin(),
+                   msg.precommit_justification.items.end(),
+                   std::back_inserter(round_state.votes),
+                   [](auto &item) { return item; });
 
     auto round = makeInitialRound(round_state);
     if (round == nullptr) {
@@ -510,8 +500,7 @@ namespace kagome::consensus::grandpa {
 
     MovableRoundState round_state{.round_number = justification.round_number,
                                   .last_finalized_block = block_info,
-//                                  .prevotes = {},
-                                  .precommits = {},
+                                  .votes = {},
                                   .finalized = block_info};
 
     auto round = makeInitialRound(round_state);
