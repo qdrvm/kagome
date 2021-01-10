@@ -8,7 +8,6 @@
 
 #include "application/app_configuration.hpp"
 #include "consensus/babe/impl/syncing_babe.hpp"
-#include "consensus/grandpa/impl/syncing_grandpa_observer.hpp"
 #include "injector/application_injector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 

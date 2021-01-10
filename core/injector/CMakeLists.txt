@@ -70,7 +70,6 @@ add_library(syncing_node_injector
     )
 target_link_libraries(syncing_node_injector
     application_injector
-    syncing_round_observer
     syncing_babe
     )
 
@@ -79,14 +78,4 @@ add_library(validating_node_injector
     )
 target_link_libraries(validating_node_injector
     application_injector
-    grandpa_api_dummy
-    )
-
-add_library(block_producing_node_injector
-    block_producing_node_injector.cpp
-    )
-target_link_libraries(block_producing_node_injector
-    application_injector
-    syncing_round_observer
-    grandpa_api_dummy
     )

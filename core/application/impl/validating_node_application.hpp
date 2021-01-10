@@ -12,7 +12,6 @@
 #include "application/app_configuration.hpp"
 #include "application/chain_spec.hpp"
 #include "injector/validating_node_injector.hpp"
-#include "runtime/dummy/grandpa_api_dummy.hpp"
 
 namespace kagome::application {
 

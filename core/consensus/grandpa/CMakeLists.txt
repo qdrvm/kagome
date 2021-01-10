@@ -70,13 +70,6 @@ target_link_libraries(grandpa
     vote_tracker
     )
 
-add_library(syncing_round_observer
-        impl/syncing_grandpa_observer.cpp
-    )
-target_link_libraries(syncing_round_observer
-    logger
-    )
-
 add_library(finalization_composite
     impl/finalization_composite.cpp
     )

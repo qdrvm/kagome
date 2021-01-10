@@ -31,7 +31,6 @@ namespace kagome::application {
                   "Check max and min page bounding values!");
 
     enum struct LoadScheme {
-      kBlockProducing,
       kValidating,
       kFullSyncing,
     };
