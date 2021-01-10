@@ -31,7 +31,7 @@ set(
 include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 
 HunterGate(
-    URL https://github.com/soramitsu/soramitsu-hunter/archive/cf189ae7509b0e0d44f90b36179551d9ebb4db46.zip
-    SHA1 83755a051599502c53e7317da36e0db5f36412f3
+    URL https://github.com/soramitsu/soramitsu-hunter/archive/e1267664bddff6c87503c1d690dabe68604082ce.zip
+    SHA1 35cf109d2f233bfe575452362399ce534baf4114
     FILEPATH "${CMAKE_SOURCE_DIR}/cmake/Hunter/config.cmake"
 )
