@@ -36,7 +36,7 @@ namespace kagome::consensus::grandpa {
 
     void setJustificationObserver(
         std::weak_ptr<JustificationObserver> justification_observer) override {
-      assert(justification_observer_.expired());
+      BOOST_ASSERT(justification_observer_.expired());
       justification_observer_ = std::move(justification_observer);
     }
 

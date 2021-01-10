@@ -107,18 +107,23 @@ namespace kagome::consensus {
     std::shared_ptr<boost::asio::io_context> io_context_;
     common::Logger logger_;
 
+    /**
+     * Aux class for doing iterable action aynchronously (not all iteration as
+     * solid execution)
+     */
     class AsyncHelper : public std::enable_shared_from_this<AsyncHelper> {
      public:
-      AsyncHelper() = delete;                         // Default-constructor
-      AsyncHelper(AsyncHelper &&) noexcept = delete;  // Move-constructor
-      AsyncHelper(const AsyncHelper &) = delete;      // Copy-constructor
+      AsyncHelper() = delete;
+      AsyncHelper(AsyncHelper &&) noexcept = delete;
+      AsyncHelper(const AsyncHelper &) = delete;
 
       AsyncHelper(std::shared_ptr<boost::asio::io_context> context)
           : std::enable_shared_from_this<AsyncHelper>(),
             io_context_(std::move(context)){};
 
-      ~AsyncHelper() = default;  // Destructor
+      ~AsyncHelper() = default;
 
+      // Does next iteration
       std::function<void()> next() {
         return [self = shared_from_this()] {
           self->io_context_->post([wp = self->weak_from_this()] {
@@ -129,14 +134,17 @@ namespace kagome::consensus {
         };
       }
 
+      // Set up iterable function
       void setFunction(std::function<void()> &&func) {
         func_ = std::move(func);
       }
 
+      // Start function (does first iteration)
       void run() {
         func_();
       }
 
+     private:
       std::shared_ptr<boost::asio::io_context> io_context_;
       std::function<void()> func_;
     };  // namespace kagome::common

@@ -474,12 +474,14 @@ namespace kagome::consensus::grandpa {
     }
 
     if (fin.justification.round_number != fin.round_number) {
-      logger_->warn("Fin message is inconsistent by round");
+      logger_->warn(
+          "Round does not correspond to the fin message it belongs to");
       return;
     }
 
     if (fin.justification.block_info != fin.vote) {
-      logger_->warn("Fin message is inconsistent by block");
+      logger_->warn(
+          "Block does not correspond to the fin message it belongs to");
       return;
     }
 
