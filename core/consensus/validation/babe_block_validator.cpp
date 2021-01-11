@@ -10,6 +10,7 @@
 
 #include "common/mp_utils.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
+#include "consensus/validation/prepare_transcript.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "scale/scale.hpp"
 
@@ -38,12 +39,14 @@ namespace kagome::consensus {
       std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider)
+      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<primitives::BabeConfiguration> configuration)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
         sr25519_provider_{std::move(sr25519_provider)},
+        configuration_{std::move(configuration)},
         log_{common::createLogger("BabeBlockValidator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
@@ -53,6 +56,7 @@ namespace kagome::consensus {
 
   outcome::result<void> BabeBlockValidator::validateHeader(
       const primitives::BlockHeader &header,
+      const EpochIndex epoch_index,
       const primitives::AuthorityId &authority_id,
       const Threshold &threshold,
       const Randomness &randomness) const {
@@ -72,10 +76,13 @@ namespace kagome::consensus {
     }
 
     // VRF must prove that the peer is the leader of the slot
-    if (!verifyVRF(babe_header,
-                   primitives::BabeSessionKey{authority_id.id},
-                   threshold,
-                   randomness)) {
+    if (babe_header.needVRFCheck()
+        && !verifyVRF(babe_header,
+                      epoch_index,
+                      primitives::BabeSessionKey{authority_id.id},
+                      threshold,
+                      randomness,
+                      babe_header.needVRFWithThresholdCheck())) {
       return ValidationError::INVALID_VRF;
     }
 
@@ -104,23 +111,24 @@ namespace kagome::consensus {
 
   bool BabeBlockValidator::verifyVRF(
       const BabeBlockHeader &babe_header,
+      const EpochIndex epoch_index,
       const primitives::BabeSessionKey &public_key,
       const Threshold &threshold,
-      const Randomness &randomness) const {
-    // verify VRF output
-    auto randomness_with_slot =
-        Buffer{}
-            .put(randomness)
-            .put(common::uint64_t_to_bytes(babe_header.slot_number));
-    auto verify_res = vrf_provider_->verify(
-        randomness_with_slot, babe_header.vrf_output, public_key, threshold);
+      const Randomness &randomness,
+      const bool checkThreshold) const {
+    primitives::Transcript transcript;
+    prepareTranscript(
+        transcript, randomness, babe_header.slot_number, epoch_index);
+
+    auto verify_res = vrf_provider_->verifyTranscript(
+        transcript, babe_header.vrf_output, public_key, threshold);
     if (not verify_res.is_valid) {
       log_->error("VRF proof in block is not valid");
       return false;
     }
 
     // verify threshold
-    if (not verify_res.is_less) {
+    if (checkThreshold && not verify_res.is_less) {
       log_->error("VRF value is not less than the threshold");
       return false;
     }

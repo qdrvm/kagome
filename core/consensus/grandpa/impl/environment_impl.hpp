@@ -9,6 +9,7 @@
 #include "consensus/grandpa/environment.hpp"
 
 #include <boost/signals2/signal.hpp>
+
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"

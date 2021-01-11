@@ -23,6 +23,7 @@
 #include "mock/core/consensus/babe/epoch_storage_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
+#include "mock/core/consensus/validation/justification_validator.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
@@ -75,6 +76,7 @@ class BabeTest : public testing::Test {
     babe_synchronizer_ = std::make_shared<BabeSynchronizerMock>();
     trie_db_ = std::make_shared<storage::trie::TrieStorageMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
+    justification_validator_ = std::make_shared<JustificationValidatorMock>();
     epoch_storage_ = std::make_shared<EpochStorageMock>();
     tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
     core_ = std::make_shared<runtime::CoreMock>();
@@ -111,6 +113,7 @@ class BabeTest : public testing::Test {
                                         expected_config,
                                         babe_synchronizer_,
                                         babe_block_validator_,
+                                        justification_validator_,
                                         epoch_storage_,
                                         tx_pool_,
                                         hasher_,
@@ -177,6 +180,8 @@ class BabeTest : public testing::Test {
   testutil::TimerMock *timer_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
+  std::shared_ptr<JustificationValidator> justification_validator_;
+
   SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
 
   std::shared_ptr<BabeImpl> babe_;

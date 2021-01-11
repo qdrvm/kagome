@@ -56,26 +56,6 @@ namespace kagome::injector {
     return initialized.value();
   }
 
-  template <typename Injector>
-  sptr<libp2p::crypto::KeyPair> get_peer_keypair(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto const &crypto_store =
-        injector.template create<const crypto::CryptoStore &>();
-    auto &&local_pair = crypto_store.getLibp2pKeypair();
-    if (not local_pair) {
-      spdlog::error("Failed to get LibP2P keypair");
-      return nullptr;
-    }
-    initialized = std::make_shared<libp2p::crypto::KeyPair>(local_pair.value());
-    return initialized.value();
-  }
-
   // peer info getter
   template <typename Injector>
   sptr<network::OwnPeerInfo> get_peer_info(const Injector &injector) {
@@ -98,7 +78,7 @@ namespace kagome::injector {
             .value();
 
     std::vector<libp2p::multi::Multiaddress> addresses =
-        config.listen_addresses();
+        config.listenAddresses();
 
     spdlog::debug("Received peer id: {}", peer_id.toBase58());
     for (auto &addr : addresses) {
@@ -151,10 +131,6 @@ namespace kagome::injector {
         // bind ed25519 keypair
         di::bind<crypto::Ed25519Keypair>.to(
             [](auto const &inj) { return get_ed25519_keypair(inj); }),
-        // compose peer keypair
-        di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {
-          return get_peer_keypair(inj);
-        })[boost::di::override],
         // compose peer info
         di::bind<network::OwnPeerInfo>.to(
             [](const auto &injector) { return get_peer_info(injector); }),
@@ -177,7 +153,7 @@ namespace kagome::injector {
               application::AppConfiguration const &config =
                   injector
                       .template create<application::AppConfiguration const &>();
-              if (config.is_only_finalizing()) {
+              if (config.isOnlyFinalizing()) {
                 auto grandpa_api = injector.template create<
                     sptr<runtime::binaryen::GrandpaApiImpl>>();
                 initialized = grandpa_api;

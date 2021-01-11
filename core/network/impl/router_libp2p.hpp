@@ -56,6 +56,7 @@ namespace kagome::network {
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<Gossiper> gossiper,
+        const BootstrapNodes &bootstrap_nodes,
         std::shared_ptr<blockchain::BlockStorage> storage,
         std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto);

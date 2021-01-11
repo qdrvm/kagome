@@ -16,12 +16,28 @@ namespace kagome::consensus {
    * Contains specific data, needed in BABE for validation
    */
   struct BabeBlockHeader {
+    static constexpr uint8_t kVRFHeader = 0x01;
+    static constexpr uint8_t kSecondaryHeaderCheck = 0x02;
+
+    uint8_t check_type{};
     /// slot, in which the block was produced
     BabeSlotNumber slot_number{};
     /// output of VRF function
     crypto::VRFOutput vrf_output;
     /// authority index of the producer
     primitives::AuthorityIndex authority_index{};
+
+    bool needVRFCheck() const {
+      return (check_type & kVRFHeader) != 0;
+    }
+
+    bool needVRFWithThresholdCheck() const {
+      return (check_type & (kVRFHeader | kSecondaryHeaderCheck)) == kVRFHeader;
+    }
+
+    bool needAuthorCheck() const {
+      return (check_type & kSecondaryHeaderCheck) != 0;
+    }
   };
 
   /**
@@ -52,12 +68,8 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
-    uint8_t fake_type_index = 0;
-    s >> fake_type_index >> bh.authority_index >> bh.slot_number;
-
-    /// 1 and 3 are for capability with substrate. Only this types have
-    /// vrf_output data
-    if (fake_type_index == 1 || fake_type_index == 3) s >> bh.vrf_output;
+    s >> bh.check_type >> bh.authority_index >> bh.slot_number;
+    if (bh.needVRFCheck()) s >> bh.vrf_output;
     return s;
   }
 }  // namespace kagome::consensus

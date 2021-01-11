@@ -3,7 +3,7 @@
   "id": "kagome",
   "chainType": "Test",
   "bootNodes": [
-    "/ip4/127.0.0.1/tcp/30363/ipfs/QmWfTgC2DEt9FhPoccnh5vT5xM5wqWy37EnAPZFQgqheZ6"
+    "/ip4/127.0.0.1/tcp/30363/p2p/QmWfTgC2DEt9FhPoccnh5vT5xM5wqWy37EnAPZFQgqheZ6"
   ],
   "telemetryEndpoints": [
     [

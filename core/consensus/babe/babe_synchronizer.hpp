@@ -22,7 +22,8 @@ namespace kagome::consensus {
   class BabeSynchronizer {
    public:
     using BlocksHandler =
-        std::function<void(const std::vector<primitives::BlockData> &)>;
+        std::function<void(boost::optional<std::reference_wrapper<
+                               const std::vector<primitives::BlockData>>>)>;
 
     virtual ~BabeSynchronizer() = default;
 

@@ -17,7 +17,7 @@ namespace kagome::application {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
-    chain_path_ = app_config.chain_path(genesis_config_->id());
+    chain_path_ = app_config.chainPath(genesis_config_->id());
 
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     genesis_config_ = injector_.create<sptr<ChainSpec>>();

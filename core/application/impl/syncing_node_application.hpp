@@ -8,7 +8,6 @@
 
 #include "application/kagome_application.hpp"
 
-#include "application/app_configuration.hpp"
 #include "common/logger.hpp"
 #include "injector/syncing_node_injector.hpp"
 
@@ -34,19 +33,17 @@ namespace kagome::application {
    private:
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
+    common::Logger logger_;
+
+    sptr<ChainSpec> chain_spec_;
+    boost::filesystem::path chain_path_;
 
     sptr<AppStateManager> app_state_manager_;
-
     sptr<boost::asio::io_context> io_context_;
-
-    sptr<ChainSpec> genesis_config_;
     sptr<network::Router> router_;
     std::shared_ptr<network::PeerManager> peer_manager_;
-
     sptr<api::ApiService> jrpc_api_service_;
 
-    boost::filesystem::path chain_path_;
-    common::Logger logger_;
   };
 
 }  // namespace kagome::application

@@ -43,8 +43,13 @@ namespace kagome::network {
         if (src_block.message_queue)
           dst_block->set_message_queue(src_block.message_queue->asString());
 
-        if (src_block.justification)
-          dst_block->set_justification(src_block.justification->data.asString());
+        if (src_block.justification) {
+          dst_block->set_justification(
+              src_block.justification->data.asString());
+
+          dst_block->set_is_empty_justification(
+              src_block.justification->data.empty());
+        };
       }
 
       const size_t distance_was = std::distance(out.begin(), loaded);
@@ -88,22 +93,31 @@ namespace kagome::network {
           bodies->emplace_back(std::move(body));
         }
 
-        OUTCOME_TRY(receipt, common::Buffer::fromString(src_block_data.receipt()));
+        OUTCOME_TRY(receipt,
+                    common::Buffer::fromString(src_block_data.receipt()));
 
         OUTCOME_TRY(message_queue,
                     common::Buffer::fromString(src_block_data.message_queue()));
 
-        OUTCOME_TRY(justification,
-                    common::Buffer::fromString(src_block_data.justification()));
 
-        dst_blocks.emplace_back(primitives::BlockData{
-            .hash = hash,
-            .header = std::move(header),
-            .body = std::move(bodies),
-            .receipt = std::move(receipt),
-            .message_queue = std::move(message_queue),
-            .justification =
-                primitives::Justification{std::move(justification)}});
+        boost::optional<primitives::Justification> justification;
+
+        if (not src_block_data.justification().empty()
+            || src_block_data.is_empty_justification()) {
+          OUTCOME_TRY(data,
+                      common::Buffer::fromString(src_block_data.justification()));
+
+          justification.emplace(
+              primitives::Justification{std::move(data)});
+        }
+
+        dst_blocks.emplace_back(
+            primitives::BlockData{.hash = hash,
+                                  .header = std::move(header),
+                                  .body = std::move(bodies),
+                                  .receipt = std::move(receipt),
+                                  .message_queue = std::move(message_queue),
+                                  .justification = std::move(justification)});
       }
 
       std::advance(from, msg.ByteSizeLong());

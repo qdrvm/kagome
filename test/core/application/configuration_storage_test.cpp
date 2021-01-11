@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem/path.hpp>
+
 #include "application/impl/chain_spec_impl.hpp"
 #include "testutil/outcome.hpp"
 
@@ -13,7 +14,6 @@ using kagome::application::ChainSpecImpl;
 using kagome::application::GenesisRawData;
 using kagome::common::Buffer;
 using kagome::crypto::Sr25519PublicKey;
-using kagome::network::BootstrapNodes;
 using libp2p::multi::Multiaddress;
 using libp2p::peer::PeerId;
 using libp2p::peer::PeerInfo;
@@ -23,15 +23,10 @@ class ConfigurationStorageTest : public ::testing::Test {
   void SetUp() override {
     // Fill configs with the same values as in the genesis config from file
     // under the `path_`
-    PeerInfo peer_info{
-        .id =
-            PeerId::fromBase58("QmWfTgC2DEt9FhPoccnh5vT5xM5wqWy37EnAPZFQgqheZ6")
-                .value(),
-        .addresses = {Multiaddress::create(
-                          "/ip4/127.0.0.1/tcp/30363/ipfs/"
-                          "QmWfTgC2DEt9FhPoccnh5vT5xM5wqWy37EnAPZFQgqheZ6")
-                          .value()}};
-    expected_boot_nodes_.push_back(peer_info);
+    expected_boot_nodes_.push_back(
+        Multiaddress::create("/ip4/127.0.0.1/tcp/30363/p2p/"
+                             "QmWfTgC2DEt9FhPoccnh5vT5xM5wqWy37EnAPZFQgqheZ6")
+            .value());
 
     std::vector<std::pair<std::string, std::string>> genesis_raw_configs = {
         std::make_pair("01", "aa"), std::make_pair("02", "bb")};
@@ -44,7 +39,7 @@ class ConfigurationStorageTest : public ::testing::Test {
   std::string path_ =
       boost::filesystem::path(__FILE__).parent_path().string()
       + "/genesis.json";  // < Path to file containing the following configs:
-  BootstrapNodes expected_boot_nodes_;
+  std::vector<libp2p::multi::Multiaddress> expected_boot_nodes_;
   GenesisRawData expected_genesis_config_;
 };
 
@@ -60,5 +55,6 @@ TEST_F(ConfigurationStorageTest, MatchesConfig) {
 
   // then
   ASSERT_EQ(config_storage->getGenesis(), expected_genesis_config_);
-  ASSERT_EQ(config_storage->getBootNodes(), expected_boot_nodes_);
+
+  ASSERT_EQ(config_storage->bootNodes(), expected_boot_nodes_);
 }

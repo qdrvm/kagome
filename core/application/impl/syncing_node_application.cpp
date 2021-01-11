@@ -4,7 +4,6 @@
  */
 
 #include "application/impl/syncing_node_application.hpp"
-
 #include "application/impl/util.hpp"
 #include "network/common.hpp"
 
@@ -18,12 +17,12 @@ namespace kagome::application {
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
-    genesis_config_ = injector_.create<sptr<ChainSpec>>();
-    BOOST_ASSERT(genesis_config_ != nullptr);
+    chain_spec_ = injector_.create<sptr<ChainSpec>>();
+    BOOST_ASSERT(chain_spec_ != nullptr);
 
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
-    chain_path_ = app_config.chain_path(genesis_config_->id());
+    chain_path_ = app_config.chainPath(chain_spec_->id());
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     router_ = injector_.create<sptr<network::Router>>();
     peer_manager_ = injector_.create<sptr<network::PeerManager>>();

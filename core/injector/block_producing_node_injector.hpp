@@ -30,10 +30,6 @@ namespace kagome::injector {
         // bind ed25519 keypair
         di::bind<crypto::Ed25519Keypair>.to(
             [](auto const &inj) { return get_ed25519_keypair(inj); }),
-        // compose peer keypair
-        di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {
-          return get_peer_keypair(inj);
-        })[boost::di::override],
         // peer info
         di::bind<network::OwnPeerInfo>.to(
             [](const auto &injector) {

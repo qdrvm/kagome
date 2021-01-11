@@ -54,7 +54,7 @@ namespace kagome::application {
 
     std::shared_ptr<boost::asio::io_context> io_context_;
 
-    sptr<ChainSpec> genesis_config_;
+    sptr<ChainSpec> chain_spec_;
     sptr<clock::SystemClock> clock_;
     sptr<Babe> babe_;
     sptr<Grandpa> grandpa_;

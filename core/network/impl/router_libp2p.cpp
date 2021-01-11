@@ -36,6 +36,7 @@ namespace kagome::network {
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<Gossiper> gossiper,
+      const BootstrapNodes &bootstrap_nodes,
       std::shared_ptr<blockchain::BlockStorage> storage,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto)
@@ -64,14 +65,13 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
-    BOOST_ASSERT_MSG(not chain_spec_->getBootNodes().empty(),
-                     "no bootstrap nodes");
+    BOOST_ASSERT_MSG(!bootstrap_nodes.empty(), "bootstrap node list is empty");
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
 
     log_->debug("Own peer id: {}", own_info.id.toBase58());
-    for (const auto &peer_info : chain_spec_->getBootNodes()) {
+    for (const auto &peer_info : bootstrap_nodes) {
       for (auto &addr : peer_info.addresses) {
         log_->debug("Bootstrap node: {}", addr.getStringAddress());
       }
@@ -128,6 +128,7 @@ namespace kagome::network {
                                  peer_id.value().toHex());
               }
             }
+
           }
         });
     host_.setProtocolHandler(
@@ -152,7 +153,7 @@ namespace kagome::network {
     // IPv6
     {
       auto ma_res = libp2p::multi::Multiaddress::create(
-          "/ip6/::/tcp/" + std::to_string(app_config_.p2p_port()) + "/p2p/"
+          "/ip6/::/tcp/" + std::to_string(app_config_.p2pPort()) + "/p2p/"
           + own_info_.id.toBase58());
       BOOST_ASSERT(ma_res.has_value());
       auto &ma = ma_res.value();
@@ -167,7 +168,7 @@ namespace kagome::network {
     // IPv4
     {
       auto ma_res = libp2p::multi::Multiaddress::create(
-          "/ip4/0.0.0.0/tcp/" + std::to_string(app_config_.p2p_port()) + "/p2p/"
+          "/ip4/0.0.0.0/tcp/" + std::to_string(app_config_.p2pPort()) + "/p2p/"
           + own_info_.id.toBase58());
       BOOST_ASSERT(ma_res.has_value());
       auto &ma = ma_res.value();
