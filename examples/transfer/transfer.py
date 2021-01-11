@@ -8,7 +8,7 @@ def main():
 
     substrate = SubstrateInterface(
         url=url,
-        type_registry_preset='kusama'
+        type_registry_preset='default'
     )
 
     keypair = Keypair.create_from_seed(sys.argv[2])
