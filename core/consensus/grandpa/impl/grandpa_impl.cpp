@@ -10,6 +10,7 @@
 
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
+#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "scale/scale.hpp"
@@ -53,6 +54,9 @@ namespace kagome::consensus::grandpa {
   }
 
   bool GrandpaImpl::prepare() {
+    // Set themselves in environment
+    environment_->setJustificationObserver(shared_from_this());
+
     // Lambda which is executed when voting round is completed.
     environment_->doOnCompleted(
         [wp = weak_from_this()](
@@ -70,14 +74,10 @@ namespace kagome::consensus::grandpa {
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
-      // No saved data
-      if (round_state_res
-          != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-        logger_->critical(
-            "Can't retrieve last round data: {}. Stopping grandpa execution",
-            round_state_res.error().message());
-        return false;
-      }
+      logger_->critical(
+          "Can't retrieve last round data: {}. Stopping grandpa execution",
+          round_state_res.error().message());
+      return false;
     }
     auto &round_state = round_state_res.value();
 
@@ -98,14 +98,12 @@ namespace kagome::consensus::grandpa {
     babe_->doOnSynchronized([wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         // Planning play next round
-        boost::asio::post(*self->io_context_, [wp] {
-          if (auto self = wp.lock()) {
-            self->executeNextRound();
-            self->is_ready_ = true;
-          }
-        });
+        self->is_ready_ = true;
+        self->current_round_->play();
       }
     });
+
+    executeNextRound();
 
     return true;
   }
@@ -240,18 +238,14 @@ namespace kagome::consensus::grandpa {
     // Fail at retrieve data
     if (last_round_encoded_res
         != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-      logger_->critical(
-          "Can't retrieve last round data: {}. Stopping grandpa execution",
-          last_round_encoded_res.error().message());
       return last_round_encoded_res.as_failure();
     }
 
     // No saved data - make from genesis
     auto genesis_hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
     if (not genesis_hash_res.has_value()) {
-      logger_->critical(
-          "Can't retrieve genesis block hash: {}. Stopping grandpa execution",
-          genesis_hash_res.error().message());
+      logger_->critical("Can't retrieve genesis block hash: {}",
+                        genesis_hash_res.error().message());
       return genesis_hash_res.as_failure();
     }
 
@@ -262,8 +256,7 @@ namespace kagome::consensus::grandpa {
 
     return MovableRoundState{.round_number = 0,
                              .last_finalized_block = {0, genesis_hash},
-                             .prevotes = {},
-                             .precommits = {},
+                             .votes = {},
                              .finalized = {{0, genesis_hash}}};
   }
 
@@ -271,7 +264,9 @@ namespace kagome::consensus::grandpa {
     previous_round_.swap(current_round_);
     previous_round_->end();
     current_round_ = makeNextRound(previous_round_);
-    current_round_->play();
+    if (is_ready_) {
+      current_round_->play();
+    }
   }
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
@@ -368,25 +363,16 @@ namespace kagome::consensus::grandpa {
     MovableRoundState round_state{
         .round_number = msg.round_number,
         .last_finalized_block = msg.best_final_candidate,
-        .prevotes =
-            [&items = msg.prevote_justification.items] {
-              std::vector<VoteVariant> v;
-              std::transform(items.begin(),
-                             items.end(),
-                             std::back_inserter(v),
-                             [](auto &item) { return item; });
-              return v;
-            }(),
-        .precommits =
-            [&items = msg.precommit_justification.items] {
-              std::vector<VoteVariant> v;
-              std::transform(items.begin(),
-                             items.end(),
-                             std::back_inserter(v),
-                             [](auto &item) { return item; });
-              return v;
-            }(),
+        .votes = {},
         .finalized = msg.best_final_candidate};
+    std::transform(msg.prevote_justification.items.begin(),
+                   msg.prevote_justification.items.end(),
+                   std::back_inserter(round_state.votes),
+                   [](auto &item) { return item; });
+    std::transform(msg.precommit_justification.items.begin(),
+                   msg.precommit_justification.items.end(),
+                   std::back_inserter(round_state.votes),
+                   [](auto &item) { return item; });
 
     auto round = makeInitialRound(round_state);
     if (round == nullptr) {
@@ -477,19 +463,61 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    std::shared_ptr<VotingRound> target_round = selectRound(fin.round_number);
-    if (not target_round) {
-      if (current_round_->roundNumber() < fin.round_number) {
-        if (catch_up_request_suppressed_until_ > clock_->now()) {
-          catch_up_request_suppressed_until_ =
-              clock_->now() + catch_up_request_suppression_duration_;
-          current_round_->doCatchUpRequest(peer_id);
-        }
-      }
+    if (fin.justification.round_number != fin.round_number) {
+      logger_->warn(
+          "Round does not correspond to the fin message it belongs to");
       return;
     }
 
-    target_round->onFinalize(fin);
+    if (fin.justification.block_info != fin.vote) {
+      logger_->warn(
+          "Block does not correspond to the fin message it belongs to");
+      return;
+    }
+
+    auto res =
+        applyJustification(fin.justification.block_info, fin.justification);
+    if (not res.has_value()) {
+      logger_->warn("Fin message is not applied: {}", res.error().message());
+      return;
+    }
+  }
+
+  outcome::result<void> GrandpaImpl::applyJustification(
+      const BlockInfo &block_info, const GrandpaJustification &justification) {
+    if (auto target_round = selectRound(justification.round_number)) {
+      return target_round->applyJustification(block_info, justification);
+    }
+
+    if (current_round_->roundNumber() > justification.round_number) {
+      return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+    }
+
+    if (current_round_->bestPrevoteCandidate().block_number
+        > block_info.block_number) {
+      return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
+    }
+
+    MovableRoundState round_state{.round_number = justification.round_number,
+                                  .last_finalized_block = block_info,
+                                  .votes = {},
+                                  .finalized = block_info};
+
+    auto round = makeInitialRound(round_state);
+    assert(round);
+
+    logger_->debug("Rewind grandpa till round #{} by received justification",
+                   justification.round_number);
+
+    OUTCOME_TRY(round->applyJustification(block_info, justification));
+
+    previous_round_.swap(current_round_);
+    previous_round_->end();
+    current_round_ = std::move(round);
+
+    executeNextRound();
+
+    return outcome::success();
   }
 
   void GrandpaImpl::onCompletedRound(

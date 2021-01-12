@@ -42,29 +42,45 @@ namespace kagome::blockchain {
 
   boost::optional<std::vector<std::shared_ptr<BlockTreeImpl::TreeNode>>>
   BlockTreeImpl::TreeNode::getPathTo(const primitives::BlockHash &hash) {
-    std::vector<std::shared_ptr<TreeNode>> stack;
-    std::vector<std::shared_ptr<TreeNode>> to_check;
-    to_check.emplace_back(shared_from_this());
+    std::vector<std::shared_ptr<TreeNode>> stack{shared_from_this()};
+    std::unordered_map<primitives::BlockNumber, size_t> forks;
 
-    do {
-      auto target = to_check.back();
-      to_check.pop_back();
+    bool came_back = false;
+    while (not stack.empty()) {
+      auto &current = stack.back();
 
-      if (target->block_hash == hash) {
-        stack.emplace_back(target);
+      // Found
+      if (current->block_hash == hash) {
         return stack;
       }
 
-      auto parent = target->parent.lock();
-      while (!stack.empty() && parent != stack.back()) {
-        stack.pop_back();
+      // Straight
+      if (current->children.size() == 1) {
+        if (not came_back) {
+          // Go to children
+          stack.push_back(current->children.front());
+          continue;
+        }
+        // else - continue going back
       }
 
-      stack.emplace_back(target);
-      std::copy(target->children.begin(),
-                target->children.end(),
-                std::back_inserter(to_check));
-    } while (!to_check.empty());
+      // Fork
+      if (current->children.size() > 1) {
+        auto &children_index = forks[current->depth];
+        if (children_index < current->children.size()) {
+          // Go to next child
+          stack.push_back(current->children[children_index++]);
+          came_back = false;
+          continue;
+        }
+        // else (no more children) - going back
+      }
+
+      // Going back
+      forks.erase(current->depth);
+      stack.pop_back();
+      came_back = true;
+    }
     return boost::none;
   }
 
@@ -406,26 +422,36 @@ namespace kagome::blockchain {
     OUTCOME_TRY(to, header_repo_->getNumberByHash(bottom_block));
 
     std::vector<primitives::BlockHash> result;
-    if (to < from) return result;
+    if (to < from) {
+      return result;
+    }
 
-    const uint64_t response_length =
-        max_count ? std::min(to - from + 1, static_cast<uint64_t>(*max_count))
-                  : to - from + 1;
+    const auto response_length =
+        max_count ? std::min(to - from + 1, max_count.value())
+                  : (to - from + 1);
+    result.reserve(response_length);
+
     log_->trace("Try to create {} length chain from number {} to {}.",
                 response_length,
                 from,
                 to);
 
-    result.reserve(response_length);
-    result.emplace_back(top_block);
+    auto current_hash = bottom_block;
 
-    const auto end = from + response_length;
-    auto ix = from + 1;
-    while (ix < end) {
-      OUTCOME_TRY(hash, header_repo_->getHashByNumber(ix));
-      result.emplace_back(hash);
-      ++ix;
+    result.emplace_back(current_hash);
+    while (current_hash != top_block && result.size() < response_length) {
+      auto header_res = header_repo_->getBlockHeader(current_hash);
+      if (!header_res) {
+        log_->warn(
+            "impossible to get chain by blocks: "
+            "intermediate block hash={} was not added to block tree before",
+            current_hash.toHex());
+        return BlockTreeError::NO_SOME_BLOCK_IN_CHAIN;
+      }
+      current_hash = header_res.value().parent_hash;
+      result.emplace_back(current_hash);
     }
+    std::reverse(result.begin(), result.end());
     return result;
   }
 
@@ -435,23 +461,24 @@ namespace kagome::blockchain {
       const primitives::BlockHash &bottom_block,
       boost::optional<uint32_t> max_count) {
     if (auto from = tree_->getByHash(top_block)) {
-      if (auto way = from->getPathTo(bottom_block)) {
-        const uint64_t in_tree_branch_len =
-            way->back()->depth - from->depth + 1;
-        const uint64_t response_length =
-            max_count ? std::min(in_tree_branch_len,
-                                 static_cast<uint64_t>(*max_count))
+      if (auto way_opt = from->getPathTo(bottom_block)) {
+        auto &way = way_opt.value();
+        const auto in_tree_branch_len = way.back()->depth - from->depth + 1;
+        const auto response_length =
+            max_count ? std::min(in_tree_branch_len, max_count.value())
                       : in_tree_branch_len;
         log_->trace("Create {} length chain from number {} to {} from cache.",
                     response_length,
                     from->depth,
-                    way->back()->depth);
+                    way.back()->depth);
 
-        way->resize(response_length);
+        way.resize(response_length);
 
         std::vector<primitives::BlockHash> result;
         result.reserve(response_length);
-        for (auto &s : *way) result.emplace_back(s->block_hash);
+        for (auto &s : way) {
+          result.emplace_back(s->block_hash);
+        }
 
         return result;
       }

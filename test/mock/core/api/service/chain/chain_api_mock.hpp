@@ -18,10 +18,9 @@ namespace kagome::api {
     MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
 
     MOCK_CONST_METHOD0(getBlockHash, outcome::result<BlockHash>());
-    MOCK_CONST_METHOD1(getBlockHash, outcome::result<BlockHash>(uint32_t));
+    MOCK_CONST_METHOD1(getBlockHash, outcome::result<BlockHash>(BlockNumber));
     MOCK_CONST_METHOD1(getBlockHash,
                        outcome::result<BlockHash>(std::string_view));
-    MOCK_CONST_METHOD1(getBlockHash, outcome::result<BlockHash>(BlockNumber));
     MOCK_CONST_METHOD1(
         getBlockHash,
         outcome::result<std::vector<BlockHash>>(gsl::span<const ValueType>));

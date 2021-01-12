@@ -45,7 +45,7 @@ namespace kagome::blockchain {
     auto codec = storage::trie::PolkadotCodec();
 
     for (const auto &[key, val] : key_vals) {
-      auto res = trie.put(key, val);
+      [[maybe_unused]] auto res = trie.put(key, val);
       BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie failed");
     }
     auto root = trie.getRoot();
