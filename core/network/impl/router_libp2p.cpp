@@ -236,7 +236,7 @@ namespace kagome::network {
             if (result) {
               self->log_->debug("  Received tx {}", result.value());
             } else {
-              self->log_->error("  Rejected tx: {}", result.error().message());
+              self->log_->debug("  Rejected tx: {}", result.error().message());
             }
           }
           return true;
