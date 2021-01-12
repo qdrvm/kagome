@@ -28,7 +28,7 @@ namespace kagome::runtime::binaryen {
       return module_instance.callExport(wasm::Name(method_name), args);
     } catch (wasm::ExitException &e) {
       return Error::EXECUTION_ERROR;
-    } catch (std::runtime_error &e) {
+    } catch (wasm::TrapException &e) {
       return Error::EXECUTION_ERROR;
     }
   }
