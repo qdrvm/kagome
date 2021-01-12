@@ -10,10 +10,14 @@
 
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/common.hpp"
-#include "consensus/grandpa/structs.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
+#include "consensus/grandpa/structs.hpp"
+#include "primitives/justification.hpp"
 
 namespace kagome::consensus::grandpa {
+
+  class Grandpa;
 
   /**
    * Necessary environment for a voter.
@@ -31,6 +35,12 @@ namespace kagome::consensus::grandpa {
      * commit messages that are sent (e.g. random value in [0, 1] seconds).
      * virtual Timer roundCommitTimer() = 0;
      */
+
+    /**
+     * Sets back-link to Grandpa
+     */
+    virtual void setJustificationObserver(
+        std::weak_ptr<JustificationObserver> justification_observer) = 0;
 
     /**
      * Make cath-up-request
@@ -95,6 +105,18 @@ namespace kagome::consensus::grandpa {
      * Triggered when round \param round is completed
      */
     virtual void onCompleted(outcome::result<MovableRoundState> round) = 0;
+
+    /**
+     * Validate provided {@param justification} for finalization {@param block}.
+     * If it valid finalize {@param block} and save {@param justification} in
+     * storage.
+     * @param block is observed block info
+     * @param justification justification of finalization of provided block
+     * @return nothing or on error
+     */
+    virtual outcome::result<void> applyJustification(
+        const BlockInfo &block_info,
+        const primitives::Justification &justification) = 0;
 
     /**
      * Triggered when blovk \param block justified by \param justification

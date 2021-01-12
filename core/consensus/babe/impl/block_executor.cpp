@@ -11,6 +11,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
+#include "primitives/common.hpp"
 #include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -29,39 +30,40 @@ namespace kagome::consensus {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
-      std::shared_ptr<consensus::BabeSynchronizer> babe_synchronizer,
-      std::shared_ptr<consensus::BlockValidator> block_validator,
-      std::shared_ptr<consensus::JustificationValidator>
-          justification_validator,
-      std::shared_ptr<consensus::EpochStorage> epoch_storage,
+      std::shared_ptr<BabeSynchronizer> babe_synchronizer,
+      std::shared_ptr<BlockValidator> block_validator,
+      std::shared_ptr<grandpa::Environment> grandpa_environment,
+      std::shared_ptr<EpochStorage> epoch_storage,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      SlotsStrategy slots_strategy)
+      SlotsStrategy slots_strategy,
+      std::shared_ptr<boost::asio::io_context> io_context)
       : sync_state_(kReadyState),
         block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         genesis_configuration_{std::move(configuration)},
         babe_synchronizer_{std::move(babe_synchronizer)},
         block_validator_{std::move(block_validator)},
-        justification_validator_{std::move(justification_validator)},
+        grandpa_environment_{std::move(grandpa_environment)},
         epoch_storage_{std::move(epoch_storage)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
         slots_strategy_{slots_strategy},
+        io_context_(std::move(io_context)),
         logger_{common::createLogger("BlockExecutor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(genesis_configuration_ != nullptr);
     BOOST_ASSERT(babe_synchronizer_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
+    BOOST_ASSERT(grandpa_environment_ != nullptr);
     BOOST_ASSERT(epoch_storage_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
-    BOOST_ASSERT(justification_validator_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -119,82 +121,81 @@ namespace kagome::consensus {
         from,
         to,
         peer_id,
-        [self_wp{weak_from_this()}, next(std::move(next)), to, from, peer_id](
+        [wp = weak_from_this(), next(std::move(next)), to, from, peer_id](
             auto blocks_res) mutable {
-          auto self = self_wp.lock();
+          auto self = wp.lock();
           if (!self || !blocks_res) {
             next();
             return;
           }
 
-          const auto &blocks = blocks_res->get();
-          bool sync_complete = false;
-          const primitives::BlockHash *last_received_hash = nullptr;
+          auto &blocks = blocks_res->get();
+
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
-            sync_complete = true;
-          } else if (blocks.front().header && blocks.back().header) {
-            auto &first_received_hash = blocks.front().hash;
-            last_received_hash = &blocks.back().hash;
-            self->logger_->info("Received blocks from: {}, to {}, count {}",
-                                first_received_hash.toHex(),
-                                last_received_hash->toHex(),
-                                blocks.size());
-          } else {
-            self->logger_->warn("Blocks with empty headers detected.");
-            sync_complete = true;
-          }
-
-          uint32_t skipped_blocks_num = 0;
-          primitives::BlockNumber first_skipped{};
-          primitives::BlockNumber last_skipped{};
-          primitives::BlockHash first_skipped_hash{};
-          primitives::BlockHash last_skipped_hash{};
-
-          for (const auto &block : blocks) {
-            const auto &block_hash = block.hash;
-            if (to == block_hash) {
-              sync_complete = true;
-            }
-            if (auto apply_res = self->applyBlock(block); not apply_res) {
-              if (apply_res
-                  == outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
-                skipped_blocks_num++;
-                if (skipped_blocks_num == 1) {
-                  first_skipped = block.header.value().number;
-                  first_skipped_hash = block_hash;
-                }
-                last_skipped_hash = block_hash;
-                last_skipped = block.header.value().number;
-                continue;
-              }
-              self->logger_->warn(
-                  "Could not apply block during synchronizing slots. Error: {}",
-                  apply_res.error().message());
-              sync_complete = true;
-              break;
-            }
-            if (skipped_blocks_num != 0) {
-              self->logger_->info(
-                  "Skipped existing block[s] from {} to {}, hashes {}..{}",
-                  first_skipped,
-                  last_skipped,
-                  first_skipped_hash.toHex().substr(0, 6),
-                  last_skipped_hash.toHex().substr(0, 6));
-            }
-            skipped_blocks_num = 0;
-          }
-
-          if (sync_complete) {
             next();
-          } else {
-            self->logger_->info("Request next page of blocks: from {}, to {}",
-                                last_received_hash->toHex(),
-                                to.toHex());
-            self->requestBlocks(
-                *last_received_hash, to, peer_id, std::move(next));
+            return;
           }
+
+          if (blocks.front().header && blocks.back().header) {
+            self->logger_->info(
+                "Received portion of blocks: {}..{}, count {}",
+                blocks.front().hash.toHex(),
+                blocks.back().hash.toHex(),
+                blocks.size());
+          }
+
+          auto async_helper = std::make_shared<AsyncHelper>(self->io_context_);
+
+          async_helper->setFunction([wp,
+                                     to,
+                                     peer_id,
+                                     on_retrieved = std::move(next),
+                                     next_iteration = async_helper->next(),
+                                     blocks = std::move(blocks),
+                                     i = static_cast<size_t>(0)]() mutable {
+            auto self = wp.lock();
+            if (not self) {
+              return;
+            }
+
+            auto block = std::move(blocks[i++]);  // For free memory asap
+
+            auto apply_res = self->applyBlock(block);
+
+            // Failed
+            if (not apply_res.has_value()
+                && apply_res
+                       != outcome::failure(
+                           blockchain::BlockTreeError::BLOCK_EXISTS)) {
+              self->logger_->warn(
+                  "Could not apply block during synchronizing. Error: {}",
+                  apply_res.error().message());
+              on_retrieved();
+              return;
+            }
+
+            // Portion of blocks is out
+            if (i == blocks.size()) {
+              // Endian block reveived
+              if (to == block.hash) {
+                on_retrieved();
+                return;
+              }
+
+              self->logger_->info("Request next page of blocks: {}..{}",
+                                  block.hash.toHex(),
+                                  to.toHex());
+              self->requestBlocks(
+                  block.hash, to, peer_id, std::move(on_retrieved));
+
+              return;
+            }
+
+            next_iteration();
+          });
+
+          async_helper->run();
         });
   }
 
@@ -216,6 +217,10 @@ namespace kagome::consensus {
 
     // check if block body already exists. If so, do not apply
     if (block_tree_->getBlockBody(block_hash)) {
+      logger_->debug("Skipping existed block number: {}, hash: {}",
+                     block.header.number,
+                     block_hash.toHex());
+
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, block.header));
 
       return blockchain::BlockTreeError::BLOCK_EXISTS;
@@ -300,10 +305,9 @@ namespace kagome::consensus {
     OUTCOME_TRY(block_tree_->addBlock(block));
 
     if (b.justification) {
-      OUTCOME_TRY(justification_validator_->validateJustification(
-          block_hash, *b.justification));
-
-      OUTCOME_TRY(block_tree_->finalize(block_hash, *b.justification));
+      OUTCOME_TRY(grandpa_environment_->applyJustification(
+          primitives::BlockInfo(block.header.number, block_hash),
+          b.justification.value()));
     }
 
     // observe possible changes of authorities

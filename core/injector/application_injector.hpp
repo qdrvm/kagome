@@ -6,7 +6,6 @@
 #ifndef KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 
-#define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
@@ -55,12 +54,12 @@
 #include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/finalization_composite.hpp"
+#include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
-#include "consensus/validation/justification_validator_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -326,7 +325,7 @@ namespace kagome::injector {
             .authorities = configuration->genesis_authorities,
             .randomness = configuration->randomness};
 
-        const bool init_epoch_desc_ok =
+        [[maybe_unused]] const bool init_epoch_desc_ok =
             (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value();
         BOOST_ASSERT(init_epoch_desc_ok);
       }
@@ -745,12 +744,13 @@ namespace kagome::injector {
         injector.template create<sptr<primitives::BabeConfiguration>>(),
         injector.template create<sptr<consensus::BabeSynchronizer>>(),
         injector.template create<sptr<consensus::BlockValidator>>(),
-        injector.template create<sptr<consensus::JustificationValidator>>(),
+        injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<consensus::EpochStorage>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<consensus::SlotsStrategy>());
+        injector.template create<consensus::SlotsStrategy>(),
+        injector.template create<sptr<boost::asio::io_context>>());
     return *initialized;
   }
 
@@ -833,7 +833,6 @@ namespace kagome::injector {
         di::bind<consensus::EpochStorage>.to(
             [](auto const &injector) { return get_epoch_storage(injector); }),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
-        di::bind<consensus::JustificationValidator>.template to<consensus::JustificationValidatorImpl>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::Sr25519Provider>.template to<crypto::Sr25519ProviderImpl>(),
@@ -914,6 +913,11 @@ namespace kagome::injector {
         }),
         di::bind<consensus::BlockExecutor>.to(
             [](auto const &inj) { return get_block_executor(inj); }),
+
+        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

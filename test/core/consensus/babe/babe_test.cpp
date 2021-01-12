@@ -22,8 +22,8 @@
 #include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
 #include "mock/core/consensus/babe/epoch_storage_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
+#include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
-#include "mock/core/consensus/validation/justification_validator.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
@@ -76,7 +76,7 @@ class BabeTest : public testing::Test {
     babe_synchronizer_ = std::make_shared<BabeSynchronizerMock>();
     trie_db_ = std::make_shared<storage::trie::TrieStorageMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
-    justification_validator_ = std::make_shared<JustificationValidatorMock>();
+    grandpa_environment_ = std::make_shared<grandpa::EnvironmentMock>();
     epoch_storage_ = std::make_shared<EpochStorageMock>();
     tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
     core_ = std::make_shared<runtime::CoreMock>();
@@ -89,6 +89,7 @@ class BabeTest : public testing::Test {
     timer_ = timer_mock_.get();
     grandpa_authority_update_observer_ =
         std::make_shared<AuthorityUpdateObserverMock>();
+    io_context_ = std::make_shared<boost::asio::io_context>();
 
     // add initialization logic
     auto expected_config = std::make_shared<primitives::BabeConfiguration>();
@@ -113,12 +114,13 @@ class BabeTest : public testing::Test {
                                         expected_config,
                                         babe_synchronizer_,
                                         babe_block_validator_,
-                                        justification_validator_,
+                                        grandpa_environment_,
                                         epoch_storage_,
                                         tx_pool_,
                                         hasher_,
                                         grandpa_authority_update_observer_,
-                                        slots_strategy_);
+                                        slots_strategy_,
+                                        io_context_);
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
     EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
@@ -167,6 +169,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_db_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
+  std::shared_ptr<grandpa::EnvironmentMock> grandpa_environment_;
   std::shared_ptr<EpochStorageMock> epoch_storage_;
   std::shared_ptr<runtime::CoreMock> core_;
   std::shared_ptr<ProposerMock> proposer_;
@@ -180,9 +183,9 @@ class BabeTest : public testing::Test {
   testutil::TimerMock *timer_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
-  std::shared_ptr<JustificationValidator> justification_validator_;
 
   SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
+  std::shared_ptr<boost::asio::io_context> io_context_;
 
   std::shared_ptr<BabeImpl> babe_;
 

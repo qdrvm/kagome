@@ -68,6 +68,10 @@ namespace kagome::consensus::grandpa {
     void onFinalize(const libp2p::peer::PeerId &peer_id,
                     const Fin &fin) override;
 
+    outcome::result<void> applyJustification(
+        const BlockInfo &block_info,
+        const GrandpaJustification &justification) override;
+
     // Round processing method
 
     void executeNextRound() override;

@@ -62,8 +62,16 @@ namespace kagome::network {
 
     // thirdly, fill the resulting response with data, which we were asked for
     fillBlocksResponse(request, response, chain_hash_res.value());
-    if (not response.blocks.empty()) {
-      log_->debug("Return response: {}", response.blocks[0].hash.toHex());
+    if (response.blocks.empty()) {
+      log_->debug("Return response: empty");
+    } else if (response.blocks.size() == 1) {
+      log_->debug("Return response: {}, count 1",
+                  response.blocks.front().hash.toHex());
+    } else {
+      log_->debug("Return response: {}..{}, count {}",
+                  response.blocks.front().hash.toHex(),
+                  response.blocks.back().hash.toHex(),
+                  response.blocks.size());
     }
 
     requested_ids_.erase(request.id);
@@ -94,12 +102,11 @@ namespace kagome::network {
       // else, both blocks are specified
       OUTCOME_TRY(
           chain_hash,
-          block_tree_->getChainByBlocks(
-              from_hash, *request.to, static_cast<uint32_t>(request_count)));
+          block_tree_->getChainByBlocks(from_hash, *request.to, request_count));
       if (!ascending_direction) {
         std::reverse(chain_hash.begin(), chain_hash.end());
       }
-      chain_hash_res = chain_hash;
+      chain_hash_res = std::move(chain_hash);
     }
     return chain_hash_res;
   }

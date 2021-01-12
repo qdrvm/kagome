@@ -25,12 +25,10 @@ mkdir -p ${CTX_DIR}
 # Copy binaries
 cp -a ${BUILD_DIR}/node/kagome_full_syncing/kagome_full_syncing ${CTX_DIR}/
 cp -a ${BUILD_DIR}/node/kagome_validating/kagome_validating  ${CTX_DIR}/
-cp -a ${BUILD_DIR}/node/kagome_block_producing/kagome_block_producing ${CTX_DIR}/
 
 # Strip binaries
 strip ${CTX_DIR}/kagome_full_syncing
 strip ${CTX_DIR}/kagome_validating
-strip ${CTX_DIR}/kagome_block_producing
 
 # Make build
 docker build -t $TAG -f housekeeping/docker/release/Dockerfile ${CTX_DIR}

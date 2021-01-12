@@ -15,7 +15,7 @@ using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
 int main(int argc, char **argv) {
-  auto logger = kagome::common::createLogger("Kagome block producing node: ");
+  auto logger = kagome::common::createLogger("Kagome block producing and validating node: ");
   AppConfigurationImpl configuration {logger};
 
   if (configuration.initialize_from_args(

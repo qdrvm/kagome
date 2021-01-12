@@ -5,15 +5,17 @@
 
 #include "consensus/grandpa/impl/environment_impl.hpp"
 
+#include <boost/optional/optional_io.hpp>
 #include <utility>
 
-#include <boost/optional/optional_io.hpp>
+#include "consensus/grandpa/justification_observer.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::consensus::grandpa {
 
   using primitives::BlockHash;
   using primitives::BlockNumber;
+  using primitives::Justification;
 
   EnvironmentImpl::EnvironmentImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -171,6 +173,22 @@ namespace kagome::consensus::grandpa {
         not on_completed_.empty(),
         "Completed signal in environment cannot be empty when it is invoked");
     on_completed_(round_state);
+  }
+
+  outcome::result<void> EnvironmentImpl::applyJustification(
+      const BlockInfo &block_info,
+      const primitives::Justification &raw_justification) {
+    auto justification_observer = justification_observer_.lock();
+    BOOST_ASSERT(justification_observer);
+
+    OUTCOME_TRY(
+        justification,
+        scale::decode<grandpa::GrandpaJustification>(raw_justification.data));
+
+    OUTCOME_TRY(
+        justification_observer->applyJustification(block_info, justification));
+
+    return outcome::success();
   }
 
   outcome::result<void> EnvironmentImpl::finalize(

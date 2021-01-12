@@ -110,22 +110,44 @@ namespace kagome::consensus::grandpa {
     };
   }  // namespace detail
 
+  class SignedPrecommit : public SignedMessage {
+    using SignedMessage::SignedMessage;
+  };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const SignedPrecommit &signed_msg) {
+    assert(signed_msg.template is<Precommit>());
+    return s << boost::strict_get<Precommit>(signed_msg.message)
+             << signed_msg.signature << signed_msg.id;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, SignedPrecommit &signed_msg) {
+    signed_msg.message = Precommit{};
+    return s >> boost::strict_get<Precommit>(signed_msg.message)
+           >> signed_msg.signature >> signed_msg.id;
+  }
+
   // justification that contains a list of signed precommits justifying the
   // validity of the block
   struct GrandpaJustification {
-    std::vector<SignedMessage> items;
+    RoundNumber round_number;
+    BlockInfo block_info;
+    std::vector<SignedPrecommit> items;
   };
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const GrandpaJustification &v) {
-    return s << v.items;
+    return s << v.round_number << v.block_info << v.items;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, GrandpaJustification &v) {
-    return s >> v.items;
+    return s >> v.round_number >> v.block_info >> v.items;
   }
 
   /// A commit message which is an aggregate of precommits.

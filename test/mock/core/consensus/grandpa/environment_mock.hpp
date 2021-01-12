@@ -15,6 +15,10 @@ namespace kagome::consensus::grandpa {
 
   class EnvironmentMock : public Environment, public ChainMock {
    public:
+    MOCK_METHOD1(
+        setJustificationObserver,
+        void(std::weak_ptr<JustificationObserver> justification_observer));
+
     MOCK_METHOD3(onProposed,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,
@@ -37,6 +41,11 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD1(doOnCompleted, void(const CompleteHandler &));
 
     MOCK_METHOD1(onCompleted, void(outcome::result<MovableRoundState> state));
+
+    MOCK_METHOD2(
+        applyJustification,
+        outcome::result<void>(const BlockInfo &block_info,
+                              const primitives::Justification &justification));
 
     MOCK_METHOD2(
         finalize,

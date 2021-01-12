@@ -7,6 +7,7 @@
 #define KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPAOBSERVER
 
 #include "consensus/grandpa/catch_up_observer.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/round_observer.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -14,7 +15,9 @@ namespace kagome::consensus::grandpa {
   /**
    * Launches grandpa voting rounds
    */
-  class GrandpaObserver : public RoundObserver, public CatchUpObserver {
+  class GrandpaObserver : public RoundObserver,
+                          public JustificationObserver,
+                          public CatchUpObserver {
    public:
     ~GrandpaObserver() override = default;
   };

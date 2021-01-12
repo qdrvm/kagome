@@ -132,7 +132,7 @@ class RuntimeTest : public ::testing::Test {
     kagome::common::Hash256 parent_hash;
     parent_hash.fill('p');
 
-    size_t number = 1;
+    kagome::primitives::BlockNumber number = 1;
 
     kagome::common::Hash256 state_root;
     state_root.fill('s');
