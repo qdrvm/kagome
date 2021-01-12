@@ -202,7 +202,7 @@ namespace kagome::consensus {
   outcome::result<void> BlockExecutor::applyBlock(
       const primitives::BlockData &b) {
     if (!b.header) {
-      logger_->warn("Skipping blockwithout header.");
+      logger_->warn("Skipping a block without header.");
       return Error::INVALID_BLOCK;
     }
 
@@ -331,7 +331,7 @@ namespace kagome::consensus {
           && res
                  != outcome::failure(
                      transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
-        return res;
+        return res.as_failure();
       }
     }
 

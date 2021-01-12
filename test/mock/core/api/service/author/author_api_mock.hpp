@@ -16,7 +16,13 @@ namespace kagome::api {
    public:
     ~AuthorApiMock() override = default;
 
-    MOCK_METHOD1(submitExtrinsic, outcome::result<Hash256>(const Extrinsic &));
+    MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
+
+    MOCK_METHOD1(submitExtrinsic, outcome::result<common::Hash256>(const Extrinsic &));
+
+    MOCK_METHOD1(submitAndWatchExtrinsic, outcome::result<SubscriptionId>(Extrinsic));
+
+    MOCK_METHOD1(unwatchExtrinsic, outcome::result<bool>(SubscriptionId));
 
     MOCK_METHOD0(pendingExtrinsics, outcome::result<std::vector<Extrinsic>>());
 

@@ -12,6 +12,8 @@
 namespace kagome::primitives {
 
   struct Transaction {
+    using ObservedId = uint64_t;
+
     /// Hash of tx
     using Hash = common::Hash256;
 
@@ -30,13 +32,15 @@ namespace kagome::primitives {
      */
     using Tag = std::vector<uint8_t>;
 
+    boost::optional<ObservedId> observed_id;
+
     /// Raw extrinsic representing that transaction.
     Extrinsic ext;
 
     /// Number of bytes encoding of the transaction requires.
     size_t bytes{};
 
-    /// Transaction hash (unique)
+    /// Extrinsic hash (non-unique)
     Hash hash;
 
     /// Transaction priority (higher = better)

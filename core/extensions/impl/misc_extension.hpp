@@ -48,6 +48,8 @@ namespace kagome::extensions {
 
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const;
 
+    void ext_misc_print_num_version_1(uint64_t value) const;
+
    private:
     CoreFactoryMethod core_factory_method_;
     std::shared_ptr<runtime::WasmMemory> memory_;

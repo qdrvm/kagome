@@ -20,7 +20,7 @@ namespace kagome::network {
      * @param txs to be sent
      */
     virtual void propagateTransactions(
-        const network::PropagatedTransactions &txs) = 0;
+        gsl::span<const primitives::Transaction> txs) = 0;
   };
 }  // namespace kagome::network
 

@@ -25,6 +25,10 @@ namespace kagome::api::details {
     }
   }
 
+  /**
+   * Base for all request classes. Automatically parses request arguments to
+   * \tparam ArgumentTypes. They can be accessed in execute() via getParam<N>().
+   */
   template <typename ResultType, typename... ArgumentTypes>
   struct RequestType {
    public:
@@ -90,7 +94,8 @@ namespace kagome::api::details {
           throw jsonrpc::InvalidParametersFault("invalid argument value");
         }
       } else {
-        if (num < 0 or static_cast<uint64_t>(num) > std::numeric_limits<T>::max()) {
+        if (num < 0
+            or static_cast<uint64_t>(num) > std::numeric_limits<T>::max()) {
           throw jsonrpc::InvalidParametersFault("invalid argument value");
         }
       }

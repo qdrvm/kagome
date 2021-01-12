@@ -35,17 +35,9 @@ namespace kagome::primitives {
   using Metadata = boost::optional<std::shared_ptr<Session>>;
 
   /**
-   * @brief Subscriber primitive
-   */
-  struct Subscriber {
-    uint32_t id{};
-  };
-
-  /**
    * @brief ExtrinsicKey is used as a key to search extrinsic
    */
   using ExtrinsicKey = std::vector<uint8_t>;
-  // TODO(yuraz): PRE-221 investigate and implement Subscriber primitive
 
 }  // namespace kagome::primitives
 

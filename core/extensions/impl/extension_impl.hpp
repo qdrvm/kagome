@@ -249,6 +249,8 @@ namespace kagome::extensions {
 
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const override;
 
+    void ext_misc_print_num_version_1(uint64_t value) const override;
+
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
 

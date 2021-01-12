@@ -5,6 +5,8 @@
 
 #include "api/service/chain/impl/chain_api_impl.hpp"
 
+#include <jsonrpc-lean/fault.h>
+
 #include "common/hexutil.hpp"
 #include "common/visitor.hpp"
 
@@ -79,7 +81,7 @@ namespace kagome::api {
   outcome::result<void> ChainApiImpl::unsubscribeFinalizedHeads(
       uint32_t subscription_id) {
     if (auto api_service = api_service_.lock())
-      return api_service->unsubscribeFinalizedHeads(subscription_id);
+      return api_service->unsubscribeFinalizedHeads(subscription_id).as_failure();
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");
@@ -96,7 +98,7 @@ namespace kagome::api {
   outcome::result<void> ChainApiImpl::unsubscribeNewHeads(
       uint32_t subscription_id) {
     if (auto api_service = api_service_.lock())
-      return api_service->unsubscribeNewHeads(subscription_id);
+      return api_service->unsubscribeNewHeads(subscription_id).as_failure();
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");

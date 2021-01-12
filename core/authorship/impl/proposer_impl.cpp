@@ -10,22 +10,30 @@ namespace kagome::authorship {
   ProposerImpl::ProposerImpl(
       std::shared_ptr<BlockBuilderFactory> block_builder_factory,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
-      std::shared_ptr<runtime::BlockBuilder> r_block_builder)
+      std::shared_ptr<runtime::BlockBuilder> r_block_builder,
+      std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+          ext_sub_engine,
+      std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+          extrinsic_event_key_repo)
       : block_builder_factory_{std::move(block_builder_factory)},
         transaction_pool_{std::move(transaction_pool)},
-        r_block_builder_{std::move(r_block_builder)} {
+        r_block_builder_{std::move(r_block_builder)},
+        ext_sub_engine_{std::move(ext_sub_engine)},
+        extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)} {
     BOOST_ASSERT(block_builder_factory_);
     BOOST_ASSERT(transaction_pool_);
     BOOST_ASSERT(r_block_builder_);
+    BOOST_ASSERT(ext_sub_engine_);
+    BOOST_ASSERT(extrinsic_event_key_repo_);
   }
 
   outcome::result<primitives::Block> ProposerImpl::propose(
-      const primitives::BlockId &parent_block_id,
+      const primitives::BlockNumber &parent_block_number,
       const primitives::InherentData &inherent_data,
       const primitives::Digest &inherent_digest) {
     OUTCOME_TRY(
         block_builder,
-        block_builder_factory_->create(parent_block_id, inherent_digest));
+        block_builder_factory_->create(parent_block_number, inherent_digest));
 
     auto inherent_xts_res =
         r_block_builder_->inherent_extrinsics(inherent_data);
@@ -39,7 +47,7 @@ namespace kagome::authorship {
     auto log_push_error = [this](const primitives::Extrinsic &xt,
                                  std::string_view message) {
       logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
-                    xt.data.toHex(),
+                    xt.data.toHex().substr(0, 8),
                     message);
     };
 
@@ -59,11 +67,16 @@ namespace kagome::authorship {
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
         log_push_error(tx->ext, inserted_res.error().message());
-        return inserted_res.error();
+        continue;
+      }
+      if (tx->observed_id.has_value()) {
+        extrinsic_event_key_repo_->upgradeTransaction(tx->observed_id.value(),
+                                                      parent_block_number + 1,
+                                                      inserted_res.value());
       }
     }
 
-    auto block = block_builder->bake();
+    OUTCOME_TRY(block, block_builder->bake());
 
     for (const auto &[hash, tx] : ready_txs) {
       auto removed_res = transaction_pool_->removeOne(hash);

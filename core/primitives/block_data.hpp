@@ -24,19 +24,6 @@ namespace kagome::primitives {
     boost::optional<common::Buffer> receipt{};
     boost::optional<common::Buffer> message_queue{};
     boost::optional<primitives::Justification> justification{};
-
-    /**
-     * Convert a block data into the block
-     * @return block, if at least header exists in this BlockData, nothing
-     * otherwise
-     */
-    boost::optional<primitives::Block> toBlock() const {
-      if (!header) {
-        return boost::none;
-      }
-      return body ? primitives::Block{*header, *body}
-                  : primitives::Block{*header};
-    }
   };
 
   /**

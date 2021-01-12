@@ -184,6 +184,7 @@ namespace kagome::network {
     PeerMap reserved_streams_;
     PeerMap syncing_streams_;
 
+   public:
     template <typename TPeerId,
               typename = std::enable_if<std::is_same_v<PeerId, TPeerId>>>
     PeerInfo from(TPeerId &&peer_id) const {
@@ -269,6 +270,7 @@ namespace kagome::network {
       });
     }
 
+   private:
     template <typename F, typename H>
     void forNewStream(const PeerInfo &peer,
                       const Protocol &protocol,

@@ -6,6 +6,8 @@
 #ifndef KAGOME_PRIMITIVES_EXTRINSIC_HPP
 #define KAGOME_PRIMITIVES_EXTRINSIC_HPP
 
+#include <boost/optional.hpp>
+
 #include "common/buffer.hpp"
 
 namespace kagome::primitives {

@@ -224,15 +224,15 @@ namespace kagome::network {
 
   void RouterLibp2p::handleTransactionsProtocol(
       std::shared_ptr<Stream> stream) const {
-    readAsyncMsgWithHandshake<PropagatedTransactions>(
+    readAsyncMsgWithHandshake<PropagatedExtrinsics>(
         std::move(stream),
         NoData{},
         [](auto self, const auto &peer_id, const auto &msg) {
           BOOST_ASSERT(self);
-          self->log_->info("Received propagated transactions: {} txs",
+          self->log_->info("Received {} propagated transactions",
                            msg.extrinsics.size());
-          for (auto &extrinsic : msg.extrinsics) {
-            auto result = self->extrinsic_observer_->onTxMessage(extrinsic);
+          for (auto &ext : msg.extrinsics) {
+            auto result = self->extrinsic_observer_->onTxMessage(ext);
             if (result) {
               self->log_->debug("  Received tx {}", result.value());
             } else {

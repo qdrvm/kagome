@@ -11,21 +11,21 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
     case E::WRONG_KEYFILE_NAME:
       return "specified file name is not a valid key file";
     case E::NOT_REGULAR_FILE:
-      return "provided file is not regular";
+      return "provided key file is not regular";
     case E::FAILED_OPEN_FILE:
-      return "failed to open file for reading";
+      return "failed to open key file for reading";
     case E::FILE_DOESNT_EXIST:
-      return "file doesn't exist";
+      return "key file doesn't exist";
     case E::INVALID_FILE_FORMAT:
       return "specified key file is invalid";
     case E::INCONSISTENT_KEYFILE:
       return "key file is inconsistent, public key != derived public key";
     case E::KEYS_PATH_IS_NOT_DIRECTORY:
-      return "specified path is not a directory";
+      return "specified key storage directory path is not a directory";
     case E::FAILED_CREATE_KEYS_DIRECTORY:
-      return "failed to create directory";
+      return "failed to create key storage directory";
   }
-  return "Unknown KeyFileStorage error";
+  return "unknown KeyFileStorage error";
 }
 
 namespace {
@@ -129,7 +129,7 @@ namespace kagome::crypto {
       }
     } else {
       // try create directory
-      if (not boost::filesystem::create_directory(keystore_path_, ec)) {
+      if (not boost::filesystem::create_directories(keystore_path_, ec)) {
         return Error::FAILED_CREATE_KEYS_DIRECTORY;
       }
       if (ec) {

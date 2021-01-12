@@ -17,7 +17,7 @@ namespace kagome::network {
     ~ExtrinsicGossiperMock() override = default;
 
     MOCK_METHOD1(propagateTransactions,
-                 void(const network::PropagatedTransactions &));
+                 void(gsl::span<const primitives::Transaction>));
   };
 
 }  // namespace kagome::network

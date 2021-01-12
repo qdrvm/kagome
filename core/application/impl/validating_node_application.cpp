@@ -36,7 +36,7 @@ namespace kagome::application {
   }
 
   void ValidatingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", __PRETTY_FUNCTION__, getpid());
+    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
 
     babe_->setExecutionStrategy(babe_execution_strategy_);
 

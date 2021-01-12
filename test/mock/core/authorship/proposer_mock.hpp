@@ -15,7 +15,7 @@ namespace kagome::authorship {
    public:
     MOCK_METHOD3(
         propose,
-        outcome::result<primitives::Block>(const primitives::BlockId &,
+        outcome::result<primitives::Block>(const primitives::BlockNumber &,
                                            const primitives::InherentData &,
                                            const primitives::Digest &));
   };

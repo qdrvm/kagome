@@ -64,4 +64,8 @@ namespace kagome::extensions {
     logger_->info("{}", buf.toString());
   }
 
+  void MiscExtension::ext_misc_print_num_version_1(uint64_t value) const {
+    logger_->info("{}", value);
+  }
+
 }  // namespace kagome::extensions
