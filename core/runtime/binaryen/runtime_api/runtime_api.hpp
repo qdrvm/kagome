@@ -139,8 +139,8 @@ namespace kagome::runtime::binaryen {
         logger_->debug("Resetting state to: {}", state_root.value().toHex());
       }
 
-      auto environment = createRuntimeEnvironment(persistency, state_root);
-      auto &&[module, memory, opt_batch] = environment;
+      auto &&[module, memory, opt_batch] =
+          createRuntimeEnvironment(persistency, state_root);
 
       runtime::WasmPointer ptr = 0u;
       runtime::WasmSize len = 0u;

@@ -4,14 +4,14 @@
 #
 
 add_library(api_service
-    api_service.hpp
-    api_service.cpp
+    impl/api_service_impl.cpp
     )
 target_link_libraries(api_service
     Boost::boost
     logger
     app_state_manager
     rpc_thread_pool
+    p2p::p2p_peer_id
     )
 
 add_subdirectory(author)

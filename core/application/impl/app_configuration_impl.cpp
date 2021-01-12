@@ -178,27 +178,39 @@ namespace kagome::application {
   bool AppConfigurationImpl::validate_config(
       AppConfiguration::LoadScheme scheme) {
     if (not fs::exists(genesis_path_)) {
-      logger_->error("Path to genesis {} does not exist.", genesis_path_);
+      logger_->error(
+          "Path to genesis {} does not exist, please specify a valid path with "
+          "-g option",
+          genesis_path_);
       return false;
     }
 
-    if (!fs::createDirectoryRecursive(base_path_)) {
-      logger_->error("Base path {} does not exist.", base_path_);
+    if (base_path_.empty() or !fs::createDirectoryRecursive(base_path_)) {
+      logger_->error(
+          "Base path {} does not exist, please specify a valid path with \"\n"
+          "          \"-d option",
+          base_path_);
       return false;
     }
 
     if (p2p_port_ == 0) {
-      logger_->error("p2p port is 0.");
+      logger_->error(
+          "p2p port is 0, please specify a valid path with \"\n"
+          "          \"-p option");
       return false;
     }
 
     if (rpc_ws_port_ == 0) {
-      logger_->error("RPC ws port is 0.");
+      logger_->error(
+          "RPC ws port is 0, please specify a valid path with \"\n"
+          "          --rpc_ws_port\" option");
       return false;
     }
 
     if (rpc_http_port_ == 0) {
-      logger_->error("RPC http port is 0.");
+      logger_->error(
+          "RPC http port is 0, please specify a valid path with \"\n"
+          "          --rpc_http_port\" option");
       return false;
     }
 
@@ -216,7 +228,10 @@ namespace kagome::application {
 
     auto file = open_file(filepath);
     if (!file) {
-      logger_->error("Configuration file path is invalid: {}", filepath);
+      logger_->error(
+          "Configuration file path is invalid: {}, please specify a valid path "
+          "with -c option",
+          filepath);
       return;
     }
 

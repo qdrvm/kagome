@@ -25,7 +25,7 @@ namespace kagome::runtime {
     virtual ~BlockBuilder() = default;
 
     /**
-     * Apply the given extrinsics.
+     * Apply the given extrinsic.
      */
     virtual outcome::result<primitives::ApplyResult> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) = 0;

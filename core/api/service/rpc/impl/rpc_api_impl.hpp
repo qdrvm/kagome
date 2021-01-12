@@ -7,6 +7,7 @@
 #define KAGOME_API_RPCAPIIMPL
 
 #include "api/service/rpc/rpc_api.hpp"
+#include "api/jrpc/jrpc_server.hpp"
 
 namespace kagome::api {
 

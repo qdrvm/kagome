@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SUBMIT_EXTRINSIC_HPP
-#define KAGOME_SUBMIT_EXTRINSIC_HPP
+#ifndef KAGOME_SUBMIT_AND_WATCH_EXTRINSIC_HPP
+#define KAGOME_SUBMIT_AND_WATCH_EXTRINSIC_HPP
 
 #include <jsonrpc-lean/request.h>
 
@@ -13,19 +13,19 @@
 
 namespace kagome::api::author::request {
 
-  class SubmitExtrinsic final
-      : public details::RequestType<common::Hash256, std::string> {
+  class SubmitAndWatchExtrinsic final
+      : public details::RequestType<primitives::SubscriptionId, std::string> {
    public:
-    explicit SubmitExtrinsic(std::shared_ptr<AuthorApi> api)
+    explicit SubmitAndWatchExtrinsic(std::shared_ptr<AuthorApi> api)
         : api_(std::move(api)) {
       BOOST_ASSERT(api_);
     };
 
-    outcome::result<common::Hash256> execute() override {
+    outcome::result<primitives::SubscriptionId> execute() override {
       auto ext_hex = getParam<0>();
       OUTCOME_TRY(buffer, common::unhexWith0x(ext_hex));
       OUTCOME_TRY(extrinsic, scale::decode<primitives::Extrinsic>(buffer));
-      return api_->submitExtrinsic(extrinsic);
+      return api_->submitAndWatchExtrinsic(extrinsic);
     }
 
    private:
@@ -34,4 +34,4 @@ namespace kagome::api::author::request {
 
 }  // namespace kagome::api::author::request
 
-#endif  // KAGOME_SUBMIT_EXTRINSIC_HPP
+#endif  // KAGOME_SUBMIT_AND_WATCH_EXTRINSIC_HPP

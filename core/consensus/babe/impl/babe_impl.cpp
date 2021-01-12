@@ -400,9 +400,9 @@ namespace kagome::consensus {
 
     // create new block
     auto pre_seal_block_res =
-        proposer_->propose(best_block_hash, inherent_data, {babe_pre_digest});
+        proposer_->propose(best_block_number, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
-      return log_->error("cannot propose a block: {}",
+      return log_->error("Cannot propose a block: {}",
                          pre_seal_block_res.error().message());
     }
 
@@ -410,7 +410,7 @@ namespace kagome::consensus {
 
     // Ensure block's extrinsics root matches extrinsics in block's body
     BOOST_ASSERT_MSG(
-        [&block] {
+        [&block]() {
           using boost::adaptors::transformed;
           const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
               block.body | transformed([](const auto &ext) {
@@ -452,15 +452,15 @@ namespace kagome::consensus {
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
-      visit_in_place(digest_item,
-                     [&](const primitives::Consensus &consensus_message) {
-                       [[maybe_unused]] auto res =
-                           authority_update_observer_->onConsensus(
-                               consensus_message.consensus_engine_id,
-                               best_block_info,
-                               consensus_message);
-                     },
-                     [](const auto &) {});
+      visit_in_place(
+          digest_item,
+          [&](const primitives::Consensus &consensus_message) {
+            [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
+                consensus_message.consensus_engine_id,
+                best_block_info,
+                consensus_message);
+          },
+          [](const auto &) {});
     }
 
     // add block to the block tree

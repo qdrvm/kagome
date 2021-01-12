@@ -174,6 +174,23 @@ namespace kagome::network {
     std::shared_mutex streams_cs_;
     PeerMap streams_;
 
+   public:
+    template <typename TPeerId,
+              typename = std::enable_if<std::is_same_v<PeerId, TPeerId>>>
+    PeerInfo from(TPeerId &&peer_id) const {
+      return PeerInfo{.id = std::forward<TPeerId>(peer_id), .addresses = {}};
+    }
+
+    outcome::result<PeerInfo> from(std::shared_ptr<Stream> &stream) const {
+      BOOST_ASSERT(stream);
+      auto peer_id_res = stream->remotePeerId();
+      if (!peer_id_res.has_value()) {
+        logger_->error("Can't get peer_id: {}", peer_id_res.error().message());
+        return peer_id_res.as_failure();
+      }
+      return from(std::move(peer_id_res.value()));
+    }
+
     void uploadStream(std::shared_ptr<Stream> &dst,
                       std::shared_ptr<Stream> src) {
       BOOST_ASSERT(src);
@@ -238,6 +255,7 @@ namespace kagome::network {
       });
     }
 
+   private:
     template <typename F, typename H>
     void forNewStream(const PeerId &peer_id,
                       const Protocol &protocol,

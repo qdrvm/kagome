@@ -17,20 +17,28 @@ namespace kagome::network {
 
   GossiperBroadcast::GossiperBroadcast(
       StreamEngine::StreamEnginePtr stream_engine,
+      std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+          extrinsic_events_engine,
+      std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+          ext_event_key_repo,
       std::shared_ptr<kagome::application::ChainSpec> config)
       : logger_{common::createLogger("GossiperBroadcast")},
         stream_engine_{std::move(stream_engine)},
+        extrinsic_events_engine_{std::move(extrinsic_events_engine)},
+        ext_event_key_repo_{std::move(ext_event_key_repo)},
         config_{std::move(config)},
         transactions_protocol_{fmt::format(
             kPropagateTransactionsProtocol.data(), config_->protocolId())},
         block_announces_protocol_{fmt::format(kBlockAnnouncesProtocol.data(),
-                                              config_->protocolId())} {}
+                                              config_->protocolId())} {
+    BOOST_ASSERT(extrinsic_events_engine_);
+    BOOST_ASSERT(ext_event_key_repo_);
+  }
 
   void GossiperBroadcast::storeSelfPeerInfo(
       const libp2p::peer::PeerInfo &self_info) {
     self_info_ = self_info;
   }
-
 
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
     BOOST_ASSERT(self_info_);
@@ -40,10 +48,32 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::propagateTransactions(
-      const network::PropagatedTransactions &txs) {
-    logger_->debug("Propagate transactions : {} extrinsics",
-                   txs.extrinsics.size());
-    broadcast(transactions_protocol_, txs, NoData{});
+      gsl::span<const primitives::Transaction> txs) {
+    logger_->debug("Propagate transactions : {} extrinsics", txs.size());
+
+    std::vector<libp2p::peer::PeerId> peers;
+    stream_engine_->forEachPeer(
+        [&peers](const libp2p::peer::PeerId &peer_id, const auto &peer_map) {
+          peers.push_back(peer_id);
+        });
+    if (peers.size() > 1) {
+      for (const auto &tx : txs) {
+        if (auto key = ext_event_key_repo_->getEventKey(tx); key.has_value()) {
+          extrinsic_events_engine_->notify(
+              key.value(),
+              primitives::events::ExtrinsicLifecycleEvent::Broadcast(
+                  key.value(), std::move(peers)));
+        }
+      }
+    }
+
+    PropagatedExtrinsics exts;
+    exts.extrinsics.resize(txs.size());
+    std::transform(
+        txs.begin(), txs.end(), exts.extrinsics.begin(), [](auto &tx) {
+          return tx.ext;
+        });
+    broadcast(transactions_protocol_, exts, NoData{});
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {

@@ -6,21 +6,25 @@
 #ifndef KAGOME_GOSSIPER_BROADCAST_HPP
 #define KAGOME_GOSSIPER_BROADCAST_HPP
 
+#include "network/gossiper.hpp"
+
 #include <gsl/span>
 #include <unordered_map>
 
+#include <libp2p/connection/stream.hpp>
+#include <libp2p/host/host.hpp>
+#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/protocol.hpp>
+
 #include "common/logger.hpp"
 #include "containers/objects_cache.hpp"
-#include "libp2p/connection/stream.hpp"
-#include "libp2p/host/host.hpp"
-#include "libp2p/peer/peer_info.hpp"
-#include "libp2p/peer/protocol.hpp"
-#include "network/gossiper.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/no_data_message.hpp"
+#include "primitives/event_types.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 
@@ -33,7 +37,7 @@ namespace kagome::network {
                        KAGOME_CACHE_UNIT(GossipMessage),
                        KAGOME_CACHE_UNIT(NoData),
                        KAGOME_CACHE_UNIT(BlockAnnounce),
-                       KAGOME_CACHE_UNIT(PropagatedTransactions));
+                       KAGOME_CACHE_UNIT(PropagatedExtrinsics));
 
   /**
    * Sends gossip messages using broadcast strategy
@@ -46,15 +50,20 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    GossiperBroadcast(StreamEngine::StreamEnginePtr stream_engine,
-                      std::shared_ptr<application::ChainSpec> config);
+    GossiperBroadcast(
+        StreamEngine::StreamEnginePtr stream_engine,
+        std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+            extrinsic_events_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            ext_event_key_repo_,
+        std::shared_ptr<kagome::application::ChainSpec> config);
 
     ~GossiperBroadcast() override = default;
 
     void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
 
     void propagateTransactions(
-        const network::PropagatedTransactions &txs) override;
+        gsl::span<const primitives::Transaction> txs) override;
 
     void blockAnnounce(const BlockAnnounce &announce) override;
 
@@ -79,10 +88,7 @@ namespace kagome::network {
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);
       stream_engine_->send<typename std::decay<decltype(msg)>::type, NoData>(
-          peer_id,
-          protocol,
-          std::move(shared_msg),
-          boost::none);
+          peer_id, protocol, std::move(shared_msg), boost::none);
     }
 
     template <typename T>
@@ -113,10 +119,14 @@ namespace kagome::network {
 
     common::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
-    boost::optional<libp2p::peer::PeerInfo> self_info_;
-    std::shared_ptr<kagome::application::ChainSpec> config_;
+    std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+        extrinsic_events_engine_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+        ext_event_key_repo_;
+    std::shared_ptr<application::ChainSpec> config_;
     libp2p::peer::Protocol transactions_protocol_;
     libp2p::peer::Protocol block_announces_protocol_;
+    boost::optional<libp2p::peer::PeerInfo> self_info_;
   };
 }  // namespace kagome::network
 

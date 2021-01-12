@@ -49,7 +49,7 @@ namespace kagome::scale {
       return outcome::failure(e.code());
     }
 
-    return outcome::success(t);
+    return outcome::success(std::move(t));
   }
 }  // namespace kagome::scale
 #endif  // KAGOME_SCALE_HPP

@@ -8,11 +8,12 @@
 
 #include "blockchain/block_tree.hpp"
 
-#include <boost/optional.hpp>
 #include <functional>
 #include <memory>
 #include <queue>
 #include <unordered_set>
+
+#include <boost/optional.hpp>
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
@@ -22,6 +23,7 @@
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "primitives/event_types.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 #include "runtime/core.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -106,7 +108,11 @@ namespace kagome::blockchain {
         const primitives::BlockId &last_finalized_block,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
-        subscriptions::EventsSubscriptionEnginePtr events_engine,
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
+        primitives::events::ExtrinsicSubscriptionEnginePtr
+            extrinsic_events_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core);
 
     ~BlockTreeImpl() override = default;
@@ -135,7 +141,7 @@ namespace kagome::blockchain {
         const primitives::BlockBody &body) override;
 
     outcome::result<void> finalize(
-        const primitives::BlockHash &block,
+        const primitives::BlockHash &block_hash,
         const primitives::Justification &justification) override;
 
     BlockHashVecRes getChainByBlock(
@@ -187,7 +193,11 @@ namespace kagome::blockchain {
         std::shared_ptr<TreeMeta> meta,
         std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher,
-        subscriptions::EventsSubscriptionEnginePtr events_engine,
+        primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
+        primitives::events::ExtrinsicSubscriptionEnginePtr
+            extrinsic_events_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core);
 
     /**
@@ -234,7 +244,10 @@ namespace kagome::blockchain {
     std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
-    subscriptions::EventsSubscriptionEnginePtr events_engine_;
+    primitives::events::ChainSubscriptionEnginePtr chain_events_engine_;
+    primitives::events::ExtrinsicSubscriptionEnginePtr extrinsic_events_engine_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+        extrinsic_event_key_repo_;
     std::shared_ptr<runtime::Core> runtime_core_;
     boost::optional<primitives::Version> actual_runtime_version_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");

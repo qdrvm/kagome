@@ -6,13 +6,13 @@
 #ifndef KAGOME_NETWORK_PROPAGATED_TRANSACTIONS_HPP
 #define KAGOME_NETWORK_PROPAGATED_TRANSACTIONS_HPP
 
-#include "primitives/extrinsic.hpp"
+#include "primitives/transaction.hpp"
 
 namespace kagome::network {
   /**
    * Propagate transactions in network
    */
-  struct PropagatedTransactions {
+  struct PropagatedExtrinsics {
     std::vector<primitives::Extrinsic> extrinsics;
   };
 
@@ -22,12 +22,12 @@ namespace kagome::network {
    * @param rhs second instance
    * @return true if equal false otherwise
    */
-  inline bool operator==(const PropagatedTransactions &lhs,
-                         const PropagatedTransactions &rhs) {
+  inline bool operator==(const PropagatedExtrinsics &lhs,
+                         const PropagatedExtrinsics &rhs) {
     return lhs.extrinsics == rhs.extrinsics;
   }
-  inline bool operator!=(const PropagatedTransactions &lhs,
-                         const PropagatedTransactions &rhs) {
+  inline bool operator!=(const PropagatedExtrinsics &lhs,
+                         const PropagatedExtrinsics &rhs) {
     return !(lhs == rhs);
   }
 
@@ -40,7 +40,7 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const PropagatedTransactions &v) {
+  Stream &operator<<(Stream &s, const PropagatedExtrinsics &v) {
     return s << v.extrinsics;
   }
 
@@ -53,7 +53,7 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, PropagatedTransactions &v) {
+  Stream &operator>>(Stream &s, PropagatedExtrinsics &v) {
     return s >> v.extrinsics;
   }
 }  // namespace kagome::network

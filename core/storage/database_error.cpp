@@ -11,15 +11,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage, DatabaseError, e) {
     case E::OK:
       return "success";
     case E::NOT_SUPPORTED:
-      return "operation is not supported";
+      return "operation is not supported in database";
     case E::CORRUPTION:
-      return "data corruption";
+      return "data corruption in database";
     case E::INVALID_ARGUMENT:
-      return "invalid argument";
+      return "invalid argument to database";
     case E::IO_ERROR:
-      return "IO error";
+      return "IO error in database";
     case E::NOT_FOUND:
-      return "not found";
+      return "entry not found in database";
     case E::DB_PATH_NOT_CREATED:
       return "database path was not created";
     case E::UNKNOWN:

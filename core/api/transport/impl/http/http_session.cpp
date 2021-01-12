@@ -126,6 +126,6 @@ namespace kagome::api {
 
   void HttpSession::reportError(boost::system::error_code ec,
                                 std::string_view message) {
-    logger_->error("error occured:{}, code: {}", message, ec);
+    logger_->error("error occured: {}, code: {}, message: {}", message, ec, ec.message());
   }
 }  // namespace kagome::api
