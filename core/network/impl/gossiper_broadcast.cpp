@@ -63,19 +63,25 @@ namespace kagome::network {
   void GossiperBroadcast::propagateTransactions(
       gsl::span<const primitives::Transaction> txs) {
     logger_->debug("Propagate transactions : {} extrinsics", txs.size());
-    for (const auto &tx : txs) {
-      if (auto key = ext_event_key_repo_->getEventKey(tx); key.has_value()) {
-        std::vector<libp2p::peer::PeerId> peers;
-        stream_engine_->forEachPeer(
-            [&peers](const libp2p::peer::PeerInfo &peer_info,
-                     const auto &peer_type,
-                     const auto &peer_map) { peers.push_back(peer_info.id); });
-        extrinsic_events_engine_->notify(
-            key.value(),
-            primitives::events::ExtrinsicLifecycleEvent::Broadcast(
-                key.value(), std::move(peers)));
+
+    std::vector<libp2p::peer::PeerId> peers;
+    stream_engine_->forEachPeer(
+        [&peers](const libp2p::peer::PeerInfo &peer_info,
+                 const auto &peer_type,
+                 const auto &peer_map) {
+          peers.push_back(peer_info.id);
+        });
+    if (peers.size() > 1) {
+      for (const auto &tx : txs) {
+        if (auto key = ext_event_key_repo_->getEventKey(tx); key.has_value()) {
+          extrinsic_events_engine_->notify(
+              key.value(),
+              primitives::events::ExtrinsicLifecycleEvent::Broadcast(
+                  key.value(), std::move(peers)));
+        }
       }
     }
+
     PropagatedExtrinsics exts;
     exts.extrinsics.resize(txs.size());
     std::transform(

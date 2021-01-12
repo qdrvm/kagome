@@ -10,15 +10,15 @@
 
 #include "common/logger.hpp"
 #include "extensions/extension_factory.hpp"
-#include "runtime/wasm_memory.hpp"
 #include "runtime/trie_storage_provider.hpp"
+#include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime::binaryen {
 
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
     explicit RuntimeExternalInterface(
-        const std::shared_ptr<extensions::ExtensionFactory>& extension_factory,
+        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory,
         std::shared_ptr<TrieStorageProvider> storage_provider);
 
     wasm::Literal callImport(wasm::Function *import,
@@ -30,6 +30,11 @@ namespace kagome::runtime::binaryen {
 
     inline void reset() const {
       return extension_->reset();
+    }
+
+    void trap(const char *why) override {
+      logger_->error("Trap in Binaryen: {}", why);
+      throw std::runtime_error(why);
     }
 
    private:

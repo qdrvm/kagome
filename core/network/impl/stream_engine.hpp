@@ -179,8 +179,7 @@ namespace kagome::network {
     PeerMap reserved_streams_;
     PeerMap syncing_streams_;
 
-   public:  /// Concern for review: as far as I see it does not expose any
-            /// internal logic and can be made public, but I might be wrong
+   public:
     template <typename TPeerId,
               typename = std::enable_if<std::is_same_v<PeerId, TPeerId>>>
     PeerInfo from(TPeerId &&peer_id) const {

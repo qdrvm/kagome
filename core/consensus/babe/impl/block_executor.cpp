@@ -144,6 +144,13 @@ namespace kagome::consensus {
             self->logger_->warn("Blocks with empty headers detected.");
             sync_complete = true;
           }
+
+          uint32_t skipped_blocks_num = 0;
+          primitives::BlockNumber first_skipped{};
+          primitives::BlockNumber last_skipped{};
+          primitives::BlockHash first_skipped_hash{};
+          primitives::BlockHash last_skipped_hash{};
+
           for (const auto &block : blocks) {
             const auto &block_hash = block.hash;
             if (to == block_hash) {
@@ -153,6 +160,13 @@ namespace kagome::consensus {
               if (apply_res
                   == outcome::failure(
                       blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                skipped_blocks_num++;
+                if (skipped_blocks_num == 1) {
+                  first_skipped = block.header.value().number;
+                  first_skipped_hash = block_hash;
+                }
+                last_skipped_hash = block_hash;
+                last_skipped = block.header.value().number;
                 continue;
               }
               self->logger_->warn(
@@ -161,10 +175,20 @@ namespace kagome::consensus {
               sync_complete = true;
               break;
             }
+            if (skipped_blocks_num != 0) {
+              self->logger_->info(
+                  "Skipped existing block[s] from {} to {}, hashes {}..{}",
+                  first_skipped,
+                  last_skipped,
+                  first_skipped_hash.toHex().substr(0, 6),
+                  last_skipped_hash.toHex().substr(0, 6));
+            }
+            skipped_blocks_num = 0;
           }
-          if (sync_complete)
+
+          if (sync_complete) {
             next();
-          else {
+          } else {
             self->logger_->info("Request next page of blocks: from {}, to {}",
                                 last_received_hash->toHex(),
                                 to.toHex());
@@ -177,7 +201,7 @@ namespace kagome::consensus {
   outcome::result<void> BlockExecutor::applyBlock(
       const primitives::BlockData &b) {
     if (!b.header) {
-      logger_->warn("Skipping blockwithout header.");
+      logger_->warn("Skipping a block without header.");
       return Error::INVALID_BLOCK;
     }
 
@@ -194,9 +218,6 @@ namespace kagome::consensus {
     if (block_tree_->getBlockBody(block_hash)) {
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, block.header));
 
-      logger_->debug("Skipping existed block number: {}, hash: {}",
-                     block.header.number,
-                     block_hash.toHex());
       return blockchain::BlockTreeError::BLOCK_EXISTS;
     }
     logger_->info("Applying block number: {}, hash: {}",
@@ -305,7 +326,7 @@ namespace kagome::consensus {
       if (res.has_error()
           && res
                  != outcome::failure(
-                        transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
         return res.as_failure();
       }
     }

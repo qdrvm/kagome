@@ -233,34 +233,37 @@ namespace kagome::api {
         },
         [](const primitives::events::BroadcastEventParams &params)
             -> jsonrpc::Value {
-          return jStruct{std::pair{
-              "broadcast",
-              makeValue(params.peers
-                        | boost::adaptors::transformed([](const auto &peer_id) {
-                            return peer_id.toHex();
-                          }))}};
+          jsonrpc::Value::Array peers;
+          peers.reserve(params.peers.size());
+          std::transform(
+              params.peers.cbegin(),
+              params.peers.cend(),
+              peers.begin(),
+              [](const auto &peer_id) { return makeValue(peer_id.toHex()); });
+          return jStruct{std::pair{"broadcast", std::move(peers)}};
         },
         [](const primitives::events::InBlockEventParams &params) {
-          return jStruct{
-              std::pair{"inBlock", makeValue(common::hex_lower(params.block))}};
+          return jStruct{std::pair{
+              "inBlock", makeValue(common::hex_lower_0x(params.block))}};
         },
         [](const primitives::events::RetractedEventParams &params) {
-          return jStruct{
-              std::pair{"retracted",
-                        makeValue(common::hex_lower(params.retracted_block))}};
+          return jStruct{std::pair{
+              "retracted",
+              makeValue(common::hex_lower_0x(params.retracted_block))}};
         },
         [](const primitives::events::FinalityTimeoutEventParams &params) {
-          return jStruct{std::pair{"finalityTimeout",
-                                   makeValue(common::hex_lower(params.block))}};
+          return jStruct{
+              std::pair{"finalityTimeout",
+                        makeValue(common::hex_lower_0x(params.block))}};
         },
         [](const primitives::events::FinalizedEventParams &params) {
-          return jStruct{std::pair{"finalized",
-                                   makeValue(common::hex_lower(params.block))}};
+          return jStruct{std::pair{
+              "finalized", makeValue(common::hex_lower_0x(params.block))}};
         },
         [](const primitives::events::UsurpedEventParams &params) {
-          return jStruct{
-              std::pair{"usurped",
-                        makeValue(common::hex_lower(params.transaction_hash))}};
+          return jStruct{std::pair{
+              "usurped",
+              makeValue(common::hex_lower_0x(params.transaction_hash))}};
         });
   }
 }  // namespace kagome::api

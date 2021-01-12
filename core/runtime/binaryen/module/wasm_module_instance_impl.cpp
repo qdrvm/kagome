@@ -19,6 +19,6 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal WasmModuleInstanceImpl::callExport(
       wasm::Name name, const wasm::LiteralList &arguments) {
-    return module_instance_->callExport(name, arguments);
+      return module_instance_->callExport(name, arguments);
   }
 }  // namespace kagome::runtime::binaryen

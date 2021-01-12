@@ -191,8 +191,6 @@ namespace kagome::scale {
         vec.resize(item_count);
       } catch (const std::bad_alloc &) {
         common::raise(DecodeError::TOO_MANY_ITEMS);
-      } catch (...) {
-        common::raise(DecodeError::UNKNOWN_EXCEPTION);
       }
 
       for (size_type i = 0u; i < item_count; ++i) {

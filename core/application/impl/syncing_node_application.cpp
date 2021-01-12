@@ -25,6 +25,7 @@ namespace kagome::application {
         router_(injector_.create<sptr<network::Router>>()),
         jrpc_api_service_(injector_.create<sptr<api::ApiService>>()) {
     spdlog::set_level(app_config.verbosity());
+    spdlog::set_pattern("[%H:%M:%S] [%n] [%^%l%$] %v");
   }
 
   void SyncingNodeApplication::run() {

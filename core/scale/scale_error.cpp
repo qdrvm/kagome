@@ -38,8 +38,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, DecodeError, e) {
       return "incorrect source data";
     case DecodeError::OUT_OF_BOUNDARIES:
       return "advance went out of boundaries";
-    case DecodeError::UNKNOWN_EXCEPTION:
-      return "unknown exception in vector decode";
   }
   return "unknown DecodeError";
 }

@@ -111,7 +111,7 @@ TEST_F(RpcLibp2pTest, ReadWithoutResponse) {
  * @then response is received
  */
 TEST_F(RpcLibp2pTest, WriteWithResponse) {
-  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _))
+  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _, _))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
   setWriteExpectations(stream_, encoded_request_.toVector());
@@ -138,7 +138,7 @@ TEST_F(RpcLibp2pTest, WriteWithResponse) {
  * @then the error is properly handled
  */
 TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
-  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _))
+  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _, _))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
   setWriteExpectations(stream_, encoded_request_.toVector());
@@ -166,7 +166,7 @@ TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
  * @then operation completes successfully
  */
 TEST_F(RpcLibp2pTest, WriteWithoutResponse) {
-  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _))
+  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _, _))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
   setWriteExpectations(stream_, encoded_request_.toVector());

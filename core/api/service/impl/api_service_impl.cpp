@@ -111,8 +111,8 @@ namespace kagome::api {
   const std::string kRpcEventFinalizedHeads = "chain_finalizedHead";
   const std::string kRpcEventSubscribeStorage = "state_storage";
 
-  const std::string kRpcEventSubmitAndWatchExtrinsic =
-      "author_submitAndWatchExtrinsic";
+  const std::string kRpcEventUpdateExtrinsic =
+      "author_extrinsicUpdate";
 
   ApiServiceImpl::ApiServiceImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
@@ -535,7 +535,7 @@ namespace kagome::api {
               session,
               logger_,
               set_id,
-              kRpcEventSubmitAndWatchExtrinsic,
+              kRpcEventUpdateExtrinsic,
               api::makeValue(params));
   }
 
