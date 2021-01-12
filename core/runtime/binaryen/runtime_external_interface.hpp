@@ -32,11 +32,6 @@ namespace kagome::runtime::binaryen {
       return extension_->reset();
     }
 
-    void trap(const char *why) override {
-      logger_->error("Trap in Binaryen: {}", why);
-      throw std::runtime_error(why);
-    }
-
    private:
     /**
      * Checks that the number of arguments is as expected and terminates the
