@@ -14,7 +14,7 @@ using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
 int main(int argc, char **argv) {
-  auto logger = kagome::common::createLogger("Kagome full node: ");
+  auto logger = kagome::common::createLogger("Kagome full syncing node: ");
   AppConfigurationImpl configuration{logger};
   if (configuration.initialize_from_args(
           AppConfiguration::LoadScheme::kFullSyncing, argc, argv)) {

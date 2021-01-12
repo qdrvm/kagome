@@ -139,22 +139,22 @@ namespace kagome::consensus::grandpa {
     }
 
     // Apply stored votes
-    for (auto &vote_variant : round_state.prevotes) {
+
+    auto apply = [&](const auto &vote) {
+      visit_in_place(
+          vote.message,
+          [&](const Prevote &) { VotingRoundImpl::onPrevote(vote); },
+          [&](const Precommit &) { VotingRoundImpl::onPrecommit(vote); },
+          [](auto...) {});
+    };
+
+    for (auto &vote_variant : round_state.votes) {
       visit_in_place(
           vote_variant,
-          [this](const VotingMessage &vote) { onPrevote(vote); },
-          [this](const EquivocatoryVotingMessage &pair) {
-            onPrevote(pair.first);
-            onPrevote(pair.second);
-          });
-    }
-    for (auto &vote_variant : round_state.precommits) {
-      visit_in_place(
-          vote_variant,
-          [this](const VotingMessage &vote) { onPrecommit(vote); },
-          [this](const EquivocatoryVotingMessage &pair) {
-            onPrecommit(pair.first);
-            onPrecommit(pair.second);
+          [&](const VotingMessage &vote) { apply(vote); },
+          [&](const EquivocatoryVotingMessage &pair) {
+            apply(pair.first);
+            apply(pair.second);
           });
     }
   }
@@ -592,18 +592,56 @@ namespace kagome::consensus::grandpa {
     return isPrimary(id_);
   }
 
+  outcome::result<void> VotingRoundImpl::applyJustification(
+      const BlockInfo &block_info, const GrandpaJustification &justification) {
+    // validate message
+    auto result = validatePrecommitJustification(block_info, justification);
+    if (not result.has_value()) {
+      env_->onCompleted(result.as_failure());
+      return result.as_failure();
+    }
+
+    auto finalized = env_->finalize(block_info.block_hash, justification);
+    if (not finalized) {
+      return finalized.as_failure();
+    }
+
+    logger_->debug(
+        "Round #{}: Finalisation of round is received for block #{} hash={}",
+        round_number_,
+        block_info.block_number,
+        block_info.block_hash.toHex());
+
+    for (auto &item : justification.items) {
+      visit_in_place(
+          item.message,
+          [this, &item](const Precommit &vote) { onPrecommit(item); },
+          [](auto &...) {});
+    }
+
+    // NOTE: Perhaps it's needless or needs to replace by condition
+    BOOST_ASSERT(finalizable());
+    BOOST_ASSERT(env_->isEqualOrDescendOf(block_info.block_hash,
+                                          finalized_.value().block_hash));
+
+    need_to_notice_at_finalizing_ = false;
+    env_->onCompleted(state());
+
+    return outcome::success();
+  }
+
   void VotingRoundImpl::onFinalize(const Fin &finalize) {
     // validate message
     auto result =
         validatePrecommitJustification(finalize.vote, finalize.justification);
-    if (not result) {
+    if (not result.has_value()) {
       logger_->error(
           "Round #{}: Finalisation is received for block #{} hash={} was "
           "rejected: validation failed",
           round_number_,
           finalize.vote.block_number,
           finalize.vote.block_hash.toHex());
-      env_->onCompleted(VotingRoundError::FIN_VALIDATION_FAILED);
+      env_->onCompleted(result.as_failure());
       return;
     }
 
@@ -642,7 +680,7 @@ namespace kagome::consensus::grandpa {
     env_->onCompleted(state());
   }
 
-  bool VotingRoundImpl::validatePrecommitJustification(
+  outcome::result<void> VotingRoundImpl::validatePrecommitJustification(
       const BlockInfo &vote, const GrandpaJustification &justification) const {
     size_t total_weight = 0;
 
@@ -663,7 +701,7 @@ namespace kagome::consensus::grandpa {
         logger_->error("Round #{}: Received invalid signed precommit from {}",
                        round_number_,
                        signed_precommit.id.toHex());
-        return false;
+        return VotingRoundError::INVALID_SIGNATURE;
       }
 
       // check that every signed precommit corresponds to the vote (i.e.
@@ -690,11 +728,15 @@ namespace kagome::consensus::grandpa {
             "Round #{}: Received third precommit of caught equivocator from {}",
             round_number_,
             signed_precommit.id.toHex());
-        return false;
+        return VotingRoundError::REDUNDANT_EQUIVOCATION;
       }
     }
 
-    return total_weight >= threshold_;
+    if (total_weight < threshold_) {
+      return VotingRoundError::NOT_ENOUGH_WEIGHT;
+    };
+
+    return outcome::success();
   }
 
   void VotingRoundImpl::attemptToFinalizeRound() {
@@ -1405,11 +1447,18 @@ namespace kagome::consensus::grandpa {
 
   MovableRoundState VotingRoundImpl::state() const {
     BOOST_ASSERT(finalized_.has_value());
-    return {.round_number = round_number_,
-            .last_finalized_block = last_finalized_block_,
-            .prevotes = prevotes_->getMessages(),
-            .precommits = precommits_->getMessages(),
-            .finalized = finalized_};
+    MovableRoundState round_state{.round_number = round_number_,
+                                  .last_finalized_block = last_finalized_block_,
+                                  .votes = precommits_->getMessages(),
+                                  .finalized = finalized_};
+
+    auto prevotes = prevotes_->getMessages();
+    round_state.votes.reserve(round_state.votes.size() + prevotes.size());
+    std::move(prevotes.begin(),
+              prevotes.end(),
+              std::back_inserter(round_state.votes));
+
+    return round_state;
   }
 
   boost::optional<GrandpaJustification> VotingRoundImpl::getJustification(
@@ -1417,7 +1466,8 @@ namespace kagome::consensus::grandpa {
     GrandpaJustification result = std::accumulate(
         votes.begin(),
         votes.end(),
-        GrandpaJustification{},
+        GrandpaJustification{.round_number = round_number_,
+                             .block_info = estimate},
         [this, &estimate](GrandpaJustification &justification,
                           const auto &voting_variant) {
           visit_in_place(
@@ -1426,15 +1476,18 @@ namespace kagome::consensus::grandpa {
                   const SignedMessage &voting_message) {
                 if (env_->isEqualOrDescendOf(estimate.block_hash,
                                              voting_message.block_hash())) {
-                  justification.items.push_back(voting_message);
+                  justification.items.push_back(
+                      static_cast<const SignedPrecommit &>(voting_message));
                 }
               },
               [&justification](const EquivocatoryVotingMessage
                                    &equivocatory_voting_message) {
                 justification.items.push_back(
-                    equivocatory_voting_message.first);
+                    static_cast<const SignedPrecommit &>(
+                        equivocatory_voting_message.first));
                 justification.items.push_back(
-                    equivocatory_voting_message.second);
+                    static_cast<const SignedPrecommit &>(
+                        equivocatory_voting_message.second));
               });
           return justification;
         });

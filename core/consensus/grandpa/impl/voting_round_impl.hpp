@@ -110,6 +110,10 @@ namespace kagome::consensus::grandpa {
 
     // Handlers of incoming messages
 
+    outcome::result<void> applyJustification(
+        const BlockInfo &block_info,
+        const GrandpaJustification &justification) override;
+
     /**
      * Triggered when we receive finalization message
      */
@@ -206,7 +210,7 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const;
 
     /// Check if received \param vote has valid \param justification precommit
-    bool validatePrecommitJustification(
+    outcome::result<void> validatePrecommitJustification(
         const BlockInfo &vote, const GrandpaJustification &justification) const;
 
     void sendProposal(const PrimaryPropose &primary_proposal);

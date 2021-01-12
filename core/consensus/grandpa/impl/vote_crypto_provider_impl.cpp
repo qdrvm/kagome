@@ -5,6 +5,7 @@
 
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 
+#include "primitives/common.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -19,42 +20,35 @@ namespace kagome::consensus::grandpa {
         round_number_{round_number},
         voter_set_{std::move(voter_set)} {}
 
-  bool VoteCryptoProviderImpl::verifyPrimaryPropose(
-      const SignedMessage &primary_propose) const {
-    if (!primary_propose.is<PrimaryPropose>()) {
-      return false;
-    }
-    auto payload =
-        scale::encode(primary_propose.message, round_number_, voter_set_->id())
-            .value();
-    auto verified = ed_provider_->verify(
-        primary_propose.signature, payload, primary_propose.id);
-    return verified.has_value() and verified.value();
+  SignedMessage VoteCryptoProviderImpl::sign(Vote vote) const {
+    auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
+    auto signature = ed_provider_->sign(keypair_, payload).value();
+    return {.message = std::move(vote),
+            .signature = signature,
+            .id = keypair_.public_key};
   }
 
-  bool VoteCryptoProviderImpl::verifyPrevote(
-      const SignedMessage &prevote) const {
-    if (!prevote.is<Prevote>()) {
-      return false;
-    }
+  bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,
+                                      RoundNumber number) const {
     auto payload =
-        scale::encode(prevote.message, round_number_, voter_set_->id()).value();
-    auto verified =
-        ed_provider_->verify(prevote.signature, payload, prevote.id);
-    return verified.has_value() and verified.value();
+        scale::encode(vote.message, round_number_, voter_set_->id()).value();
+    auto verifying_result =
+        ed_provider_->verify(vote.signature, payload, vote.id);
+    return verifying_result.has_value() and verifying_result.value();
+  }
+
+  bool VoteCryptoProviderImpl::verifyPrimaryPropose(
+      const SignedMessage &vote) const {
+    return vote.is<PrimaryPropose>() and verify(vote, round_number_);
+  }
+
+  bool VoteCryptoProviderImpl::verifyPrevote(const SignedMessage &vote) const {
+    return vote.is<Prevote>() and verify(vote, round_number_);
   }
 
   bool VoteCryptoProviderImpl::verifyPrecommit(
-      const SignedMessage &precommit) const {
-    if (!precommit.is<Precommit>()) {
-      return false;
-    }
-    auto payload =
-        scale::encode(precommit.message, round_number_, voter_set_->id())
-            .value();
-    auto verified =
-        ed_provider_->verify(precommit.signature, payload, precommit.id);
-    return verified.has_value() and verified.value();
+      const SignedMessage &vote) const {
+    return vote.is<Precommit>() and verify(vote, round_number_);
   }
 
   crypto::Ed25519Signature VoteCryptoProviderImpl::voteSignature(
@@ -65,28 +59,16 @@ namespace kagome::consensus::grandpa {
 
   SignedMessage VoteCryptoProviderImpl::signPrimaryPropose(
       const PrimaryPropose &primary_propose) const {
-    Vote vote(primary_propose);
-    auto sign = voteSignature(vote);
-    return {.message = std::move(vote),
-            .signature = sign,
-            .id = keypair_.public_key};
+    return sign(primary_propose);
   }
 
   SignedMessage VoteCryptoProviderImpl::signPrevote(
       const Prevote &prevote) const {
-    Vote vote(prevote);
-    auto sign = voteSignature(vote);
-    return {.message = std::move(vote),
-            .signature = sign,
-            .id = keypair_.public_key};
+    return sign(prevote);
   }
 
   SignedMessage VoteCryptoProviderImpl::signPrecommit(
       const Precommit &precommit) const {
-    Vote vote(precommit);
-    auto sign = voteSignature(vote);
-    return {.message = std::move(vote),
-            .signature = sign,
-            .id = keypair_.public_key};
+    return sign(precommit);
   }
 }  // namespace kagome::consensus::grandpa

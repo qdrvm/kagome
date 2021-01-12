@@ -6,9 +6,11 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
 
+#include <boost/optional.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
 #include "consensus/grandpa/structs.hpp"
+#include "primitives/justification.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -21,6 +23,7 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Handler of grandpa vote messages
+     * @param peer_id vote owner
      * @param msg vote message
      */
     virtual void onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -28,6 +31,7 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Handler of grandpa finalization messages
+     * @param peer_id finalization sender
      * @param f finalization message
      */
     virtual void onFinalize(const libp2p::peer::PeerId &peer_id,

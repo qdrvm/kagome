@@ -9,7 +9,6 @@
 #include "application/app_configuration.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
-#include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "injector/application_injector.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
@@ -142,10 +141,6 @@ namespace kagome::injector {
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(
             [](auto const &inj) { return get_babe(inj); }),
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<runtime::GrandpaApi>.template to(
             [](const auto &injector) -> sptr<runtime::GrandpaApi> {
               static boost::optional<sptr<runtime::GrandpaApi>> initialized =
@@ -167,6 +162,7 @@ namespace kagome::injector {
               }
               return *initialized;
             })[di::override],
+
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }

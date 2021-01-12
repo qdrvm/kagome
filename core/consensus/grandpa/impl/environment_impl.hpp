@@ -15,6 +15,7 @@
 #include "common/logger.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/gossiper.hpp"
+#include "consensus/grandpa/justification_observer.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -30,6 +31,14 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<Gossiper> gossiper);
 
     ~EnvironmentImpl() override = default;
+
+    // Back link to Grandpa
+
+    void setJustificationObserver(
+        std::weak_ptr<JustificationObserver> justification_observer) override {
+      BOOST_ASSERT(justification_observer_.expired());
+      justification_observer_ = std::move(justification_observer);
+    }
 
     // Chain methods
 
@@ -80,6 +89,10 @@ namespace kagome::consensus::grandpa {
 
     void onCompleted(outcome::result<MovableRoundState> round) override;
 
+    outcome::result<void> applyJustification(
+        const BlockInfo &block_info,
+        const primitives::Justification &justification) override;
+
     outcome::result<void> finalize(
         const primitives::BlockHash &block_hash,
         const GrandpaJustification &justification) override;
@@ -93,6 +106,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repository_;
     std::shared_ptr<Gossiper> gossiper_;
+    std::weak_ptr<JustificationObserver> justification_observer_;
 
     OnCompleted on_completed_;
     common::Logger logger_;

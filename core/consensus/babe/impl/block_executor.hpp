@@ -14,8 +14,8 @@
 #include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
+#include "consensus/grandpa/environment.hpp"
 #include "consensus/validation/block_validator.hpp"
-#include "consensus/validation/justification_validator.hpp"
 #include "crypto/hasher.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
@@ -35,14 +35,14 @@ namespace kagome::consensus {
                   std::shared_ptr<primitives::BabeConfiguration> configuration,
                   std::shared_ptr<BabeSynchronizer> babe_synchronizer,
                   std::shared_ptr<BlockValidator> block_validator,
-                  std::shared_ptr<consensus::JustificationValidator>
-                      justification_validator,
+                  std::shared_ptr<grandpa::Environment> grandpa_environment,
                   std::shared_ptr<EpochStorage> epoch_storage,
                   std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<authority::AuthorityUpdateObserver>
                       authority_update_observer,
-                  SlotsStrategy slots_strategy);
+                  SlotsStrategy slots_strategy,
+                  std::shared_ptr<boost::asio::io_context> io_context);
 
     /**
      * Processes next header: if header is observed first it is added to the
@@ -97,14 +97,57 @@ namespace kagome::consensus {
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
     std::shared_ptr<BlockValidator> block_validator_;
-    std::shared_ptr<consensus::JustificationValidator> justification_validator_;
+    std::shared_ptr<grandpa::Environment> grandpa_environment_;
     std::shared_ptr<EpochStorage> epoch_storage_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     const SlotsStrategy slots_strategy_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     common::Logger logger_;
+
+    /**
+     * Aux class for doing iterable action aynchronously (not all iteration as
+     * solid execution)
+     */
+    class AsyncHelper : public std::enable_shared_from_this<AsyncHelper> {
+     public:
+      AsyncHelper() = delete;
+      AsyncHelper(AsyncHelper &&) noexcept = delete;
+      AsyncHelper(const AsyncHelper &) = delete;
+
+      AsyncHelper(std::shared_ptr<boost::asio::io_context> context)
+          : std::enable_shared_from_this<AsyncHelper>(),
+            io_context_(std::move(context)){};
+
+      ~AsyncHelper() = default;
+
+      // Does next iteration
+      std::function<void()> next() {
+        return [self = shared_from_this()] {
+          self->io_context_->post([wp = self->weak_from_this()] {
+            if (auto self = wp.lock()) {
+              self->func_();
+            }
+          });
+        };
+      }
+
+      // Set up iterable function
+      void setFunction(std::function<void()> &&func) {
+        func_ = std::move(func);
+      }
+
+      // Start function (does first iteration)
+      void run() {
+        func_();
+      }
+
+     private:
+      std::shared_ptr<boost::asio::io_context> io_context_;
+      std::function<void()> func_;
+    };  // namespace kagome::common
   };
 
 }  // namespace kagome::consensus

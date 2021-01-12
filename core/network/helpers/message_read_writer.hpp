@@ -6,12 +6,12 @@
 #ifndef KAGOME_MESSAGE_READ_WRITER_HPP
 #define KAGOME_MESSAGE_READ_WRITER_HPP
 
-#include <functional>
-#include <memory>
-#include <vector>
-#include <gsl/span>
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
+#include <functional>
+#include <gsl/span>
+#include <memory>
+#include <vector>
 
 #include "outcome/outcome.hpp"
 
@@ -24,7 +24,8 @@ namespace kagome::network {
   /**
    * Chain specific messages read-writer
    */
-  template<typename Adapter, typename Ancestor> struct MessageReadWriter final {
+  template <typename Adapter, typename Ancestor>
+  struct MessageReadWriter final {
     using AncestorType = Ancestor;
     using AdapterType = Adapter;
     using BufferContainer = std::vector<uint8_t>;
@@ -35,33 +36,38 @@ namespace kagome::network {
     ~MessageReadWriter() = default;
 
     MessageReadWriter(MessageReadWriter &&) noexcept = default;
-    MessageReadWriter& operator=(MessageReadWriter &&) noexcept = default;
+    MessageReadWriter &operator=(MessageReadWriter &&) noexcept = default;
 
-    MessageReadWriter(const MessageReadWriter&) = delete;
-    MessageReadWriter& operator=(const MessageReadWriter&) = delete;
+    MessageReadWriter(const MessageReadWriter &) = delete;
+    MessageReadWriter &operator=(const MessageReadWriter &) = delete;
 
    public:
-    template<typename T>
+    template <typename T>
     static size_t need_to_reserve(const T &t) {
       return AdapterType::size(t) + AncestorType::need_to_reserve(t);
     }
 
-    template<typename T>
-    static BufferContainer::iterator write(const T &t, BufferContainer &out, size_t reserved = 0ull) {
+    template <typename T>
+    static BufferContainer::iterator write(const T &t,
+                                           BufferContainer &out,
+                                           size_t reserved = 0ull) {
       const auto need_to_reserve = SelfType::need_to_reserve(t);
-      if (need_to_reserve > out.size())
-        out.resize(need_to_reserve);
+      if (need_to_reserve > out.size()) out.resize(need_to_reserve);
 
       const size_t r = AdapterType::size(t) + reserved;
       auto loaded = AncestorType::write(t, out, r);
 
       BOOST_ASSERT(std::distance(out.begin(), loaded) >= 0);
-      BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), loaded)) >= r);
+      BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), loaded))
+                   >= r);
       return AdapterType::write(t, out, loaded);
     }
 
-    template<typename T>
-    static outcome::result<BufferContainer::const_iterator> read(T &out, const BufferContainer &src, BufferContainer::const_iterator from) {
+    template <typename T>
+    static outcome::result<BufferContainer::const_iterator> read(
+        T &out,
+        const BufferContainer &src,
+        BufferContainer::const_iterator from) {
       if (from == src.end())
         return outcome::failure(boost::system::error_code{});
 
@@ -70,7 +76,8 @@ namespace kagome::network {
     }
   };
 
-  template<typename Adapter> struct MessageReadWriter<Adapter, NoSink> final {
+  template <typename Adapter>
+  struct MessageReadWriter<Adapter, NoSink> final {
     using AdapterType = Adapter;
     using BufferContainer = std::vector<uint8_t>;
     using SelfType = MessageReadWriter<AdapterType, NoSink>;
@@ -80,33 +87,37 @@ namespace kagome::network {
     ~MessageReadWriter() = default;
 
     MessageReadWriter(MessageReadWriter &&) noexcept = default;
-    MessageReadWriter& operator=(MessageReadWriter &&) noexcept = default;
+    MessageReadWriter &operator=(MessageReadWriter &&) noexcept = default;
 
-    MessageReadWriter(const MessageReadWriter&) = delete;
-    MessageReadWriter& operator=(const MessageReadWriter&) = delete;
+    MessageReadWriter(const MessageReadWriter &) = delete;
+    MessageReadWriter &operator=(const MessageReadWriter &) = delete;
 
    public:
-    template<typename T>
-    static BufferContainer::iterator write(const T &t, BufferContainer &out, size_t reserved = 0) {
+    template <typename T>
+    static BufferContainer::iterator write(const T &t,
+                                           BufferContainer &out,
+                                           size_t reserved = 0) {
       const auto need_to_reserve = SelfType::need_to_reserve(t);
-      if (need_to_reserve > out.size())
-        out.resize(need_to_reserve);
+      if (need_to_reserve > out.size()) out.resize(need_to_reserve);
 
-      const size_t r = AdapterType::size(t) + reserved;
       BOOST_ASSERT(std::distance(out.begin(), out.end()) >= 0);
-      BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), out.end())) >= r);
+      BOOST_ASSERT(static_cast<size_t>(std::distance(out.begin(), out.end()))
+                   >= AdapterType::size(t) + reserved);
       return AdapterType::write(t, out, out.end());
     }
 
-    template<typename T>
-    static outcome::result<BufferContainer::const_iterator> read(T &out, const BufferContainer &src, BufferContainer::const_iterator from) {
+    template <typename T>
+    static outcome::result<BufferContainer::const_iterator> read(
+        T &out,
+        const BufferContainer &src,
+        BufferContainer::const_iterator from) {
       if (from == src.end())
         return outcome::failure(boost::system::error_code{});
 
       return AdapterType::read(out, src, from);
     }
 
-    template<typename T>
+    template <typename T>
     static size_t need_to_reserve(const T &t) {
       return AdapterType::size(t);
     }

@@ -40,15 +40,6 @@ target_link_libraries(syncing_node_application
     application_util
     )
 
-add_library(block_producing_node_application
-    impl/block_producing_node_application.cpp
-    )
-target_link_libraries(block_producing_node_application
-    block_producing_node_injector
-    blob
-    application_util
-    )
-
 add_library(configuration_storage
     impl/chain_spec_impl.cpp
     )
