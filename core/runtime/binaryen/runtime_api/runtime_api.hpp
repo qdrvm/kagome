@@ -156,14 +156,10 @@ namespace kagome::runtime::binaryen {
 
       wasm::Name wasm_name = std::string(name);
 
-      auto res = executor_.call(*module, wasm_name, ll);
-      if (not res) {
-        logger_->critical("Error calling Runtime method: {}", res.error().message());
-        return res.error();
-      }
+      OUTCOME_TRY(res, executor_.call(*module, wasm_name, ll));
       runtime_manager_->reset();
       if constexpr (!std::is_same_v<void, R>) {
-        WasmResult r(res.value().geti64());
+        WasmResult r(res.geti64());
         auto buffer = memory->loadN(r.address, r.length);
         // TODO (yuraz) PRE-98: after check for memory overflow is done,
         //  refactor it
