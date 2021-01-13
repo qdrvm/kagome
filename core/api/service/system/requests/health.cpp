@@ -35,7 +35,7 @@ namespace kagome::api::system::request {
     data["shouldHavePeers"] =
         makeValue(api_->getConfig()->chainType() != "Development");
 
-    return std::move(data);
+    return data;
   }
 
 }  // namespace kagome::api::system::request

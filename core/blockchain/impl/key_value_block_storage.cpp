@@ -89,7 +89,7 @@ namespace kagome::blockchain {
 
     on_finalized_block_found(finalized_block);
 
-    return std::move(block_storage);
+    return block_storage;
   }
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
@@ -126,7 +126,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
 
     on_genesis_created(genesis_block);
-    return std::move(block_storage);
+    return block_storage;
   }
 
   outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(

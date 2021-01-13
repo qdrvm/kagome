@@ -16,6 +16,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
     case WasmExecutor::Error::EXECUTION_ERROR:
       return "An error occurred during an export call execution";
   }
+  return "Unknown WasmExecutor::Error";
 }
 
 namespace kagome::runtime::binaryen {
