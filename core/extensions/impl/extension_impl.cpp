@@ -390,13 +390,19 @@ namespace kagome::extensions {
     return misc_ext_.ext_misc_runtime_version_version_1(data);
   }
 
+  void ExtensionImpl::ext_misc_print_hex_version_1(
+      runtime::WasmSpan data) const {
+    return misc_ext_.ext_misc_print_hex_version_1(data);
+  }
+
+  void ExtensionImpl::ext_misc_print_num_version_1(
+      uint64_t value) const {
+    return misc_ext_.ext_misc_print_num_version_1(value);
+  }
+
   void ExtensionImpl::ext_misc_print_utf8_version_1(
       runtime::WasmSpan data) const {
     return misc_ext_.ext_misc_print_utf8_version_1(data);
-  }
-
-  void ExtensionImpl::ext_misc_print_num_version_1(uint64_t value) const {
-    return misc_ext_.ext_misc_print_num_version_1(value);
   }
 
   runtime::WasmSpan ExtensionImpl::ext_crypto_secp256k1_ecdsa_recover_v1(

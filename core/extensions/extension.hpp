@@ -538,10 +538,26 @@ namespace kagome::extensions {
     virtual runtime::WasmResult ext_misc_runtime_version_version_1(
         runtime::WasmSpan data) const = 0;
 
-    virtual void ext_misc_print_utf8_version_1(
+    /**
+     * Print a hex value
+     * @param data pointer-size to an array of bytes with hex
+     */
+    virtual void ext_misc_print_hex_version_1(
         runtime::WasmSpan data) const = 0;
 
-    virtual void ext_misc_print_num_version_1(uint64_t value) const = 0;
+    /**
+     * Print a number
+     * @param value - number to be printed
+     */
+    virtual void ext_misc_print_num_version_1(
+        uint64_t value) const = 0;
+
+    /**
+     * Print a UTF-8-encoded string
+     * @param data pointer-size to an array of bytes with UTF-8
+     */
+    virtual void ext_misc_print_utf8_version_1(
+        runtime::WasmSpan data) const = 0;
 
   };
 }  // namespace kagome::extensions
