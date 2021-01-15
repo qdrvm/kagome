@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_EPOCH_STORAGE_HPP
-#define KAGOME_EPOCH_STORAGE_HPP
+#ifndef KAGOME_CONSENSUS_EPOCHSTORAGE
+#define KAGOME_CONSENSUS_EPOCHSTORAGE
 
 #include <boost/optional.hpp>
 
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/last_epoch_descriptor.hpp"
 #include "consensus/babe/types/next_epoch_descriptor.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::consensus {
   /**
@@ -20,22 +21,12 @@ namespace kagome::consensus {
     virtual ~EpochStorage() = default;
 
     /**
-     * Stores epoch's information by its number
-     * @param epoch_number number of stored epoch
-     * @param epoch_descriptor epochs information
-     * @return result with success if epoch was added, error otherwise
-     */
-    virtual outcome::result<void> addEpochDescriptor(
-        EpochIndex epoch_number,
-        const NextEpochDescriptor &epoch_descriptor) = 0;
-
-    /**
-     * Get an epoch by a (\param block_id)
+     * Get an epoch for {@param slot} by a {@param block_hash}
      * @return epoch or nothing, if epoch, in which that block was produced, is
      * unknown to this peer
      */
     virtual outcome::result<NextEpochDescriptor> getEpochDescriptor(
-        EpochIndex epoch_number) const = 0;
+        BabeSlotNumber slot, primitives::BlockHash block_hash) const = 0;
 
     /**
      * Stores epoch's data for last active epoch
@@ -60,4 +51,4 @@ namespace kagome::consensus {
   };
 }  // namespace kagome::consensus
 
-#endif  // KAGOME_EPOCH_STORAGE_HPP
+#endif  // KAGOME_CONSENSUS_EPOCHSTORAGE

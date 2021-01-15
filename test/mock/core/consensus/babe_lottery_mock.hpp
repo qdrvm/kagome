@@ -12,8 +12,9 @@
 
 namespace kagome::consensus {
   struct BabeLotteryMock : public BabeLottery {
-    MOCK_CONST_METHOD3(slotsLeadership,
+    MOCK_CONST_METHOD4(slotsLeadership,
                        SlotsLeadership(const Epoch &,
+                                       const Randomness &,
                                        const Threshold &,
                                        const crypto::Sr25519Keypair &));
 

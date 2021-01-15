@@ -111,7 +111,10 @@ namespace kagome::consensus {
      */
     void finishEpoch();
 
-    BabeLottery::SlotsLeadership getEpochLeadership(const Epoch &epoch) const;
+    BabeLottery::SlotsLeadership getEpochLeadership(
+        const Epoch &epoch,
+        const primitives::AuthorityList &authorities,
+        const Randomness &randomness) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
         const crypto::VRFOutput &output,
@@ -125,7 +128,8 @@ namespace kagome::consensus {
      * Stores first production slot time estimate to the collection, to take
      * their median later
      * @param observed_slot Slot number of current block
-     * @param first_production_slot_number Slot number of the first production slot
+     * @param first_production_slot_number Slot number of the first production
+     * slot
      */
     void storeFirstSlotTimeEstimate(
         BabeSlotNumber observed_slot,
@@ -140,7 +144,8 @@ namespace kagome::consensus {
     /**
      * Create first epoch where current node will produce blocks
      * @param first_slot_time_estimate when first slot should be launched
-     * @param first_production_slot_number slot number where block production starts
+     * @param first_production_slot_number slot number where block production
+     * starts
      * @return first production epoch structure
      */
     Epoch prepareFirstEpochFromZeroStrategy(
@@ -194,7 +199,7 @@ namespace kagome::consensus {
     const uint32_t kSlotTail = 30;
 
     BabeSlotNumber current_slot_{};
-    BabeLottery::SlotsLeadership slots_leadership_;
+    boost::optional<BabeLottery::SlotsLeadership> slots_leadership_;
     BabeTimePoint next_slot_finish_time_;
 
     boost::optional<ExecutionStrategy> execution_strategy_;

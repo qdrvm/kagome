@@ -138,11 +138,10 @@ namespace kagome::consensus {
           }
 
           if (blocks.front().header && blocks.back().header) {
-            self->logger_->info(
-                "Received portion of blocks: {}..{}, count {}",
-                blocks.front().hash.toHex(),
-                blocks.back().hash.toHex(),
-                blocks.size());
+            self->logger_->info("Received portion of blocks: {}..{}, count {}",
+                                blocks.front().hash.toHex(),
+                                blocks.back().hash.toHex(),
+                                blocks.size());
           }
 
           auto async_helper = std::make_shared<AsyncHelper>(self->io_context_);
@@ -268,24 +267,13 @@ namespace kagome::consensus {
     }
 
     OUTCOME_TRY(this_block_epoch_descriptor,
-                epoch_storage_->getEpochDescriptor(epoch_index));
+                epoch_storage_->getEpochDescriptor(babe_header.slot_number,
+                                                   block.header.parent_hash));
 
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         this_block_epoch_descriptor.authorities,
                                         babe_header.authority_index);
 
-    // update authorities and randomnesss
-    if (0ull == slot_in_epoch) {
-      if (auto next_epoch_digest_res = getNextEpochDigest(block.header)) {
-        logger_->info("Got next epoch digest for epoch: {}", epoch_index);
-        epoch_storage_
-            ->addEpochDescriptor(epoch_index + 1, next_epoch_digest_res.value())
-            .value();
-      } else {
-        logger_->error("Failed to get next epoch digest for epoch: {}",
-                       epoch_index);
-      }
-    }
 
     OUTCOME_TRY(block_validator_->validateHeader(
         block.header,

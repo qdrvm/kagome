@@ -5,13 +5,13 @@
 
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
 
-#include "primitives/digest.hpp"
+#include "babe_digests_util.hpp"
+#include "consensus/babe/types/last_epoch_descriptor.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, EpochStorageError, e) {
   using E = kagome::consensus::EpochStorageError;
-
   switch (e) {
     case E::EPOCH_DOES_NOT_EXIST:
       return "Requested epoch does not exist";
@@ -21,32 +21,55 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, EpochStorageError, e) {
 
 namespace kagome::consensus {
 
-  const auto EPOCH_PREFIX = common::Blob<8>::fromString("epchdcr0").value();
-  const auto LAST_EPOCH_INDEX = common::Blob<8>::fromString("lstepind").value();
-
   EpochStorageImpl::EpochStorageImpl(
+      std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<kagome::storage::BufferStorage> storage)
-      : storage_{std::move(storage)} {
+      : babe_configuration_{std::move(babe_configuration)},
+        block_tree_{std::move(block_tree)},
+        storage_{std::move(storage)} {
+    BOOST_ASSERT(babe_configuration_);
+    BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(storage_);
   }
 
-  outcome::result<void> EpochStorageImpl::addEpochDescriptor(
-      EpochIndex epoch_number, const NextEpochDescriptor &epoch_descriptor) {
-    auto key = common::Buffer{EPOCH_PREFIX}.putUint64(epoch_number);
-    auto val = common::Buffer{scale::encode(epoch_descriptor).value()};
-    return storage_->put(key, val);
-  }
-
   outcome::result<NextEpochDescriptor> EpochStorageImpl::getEpochDescriptor(
-      EpochIndex epoch_number) const {
-    auto key = common::Buffer{EPOCH_PREFIX}.putUint64(epoch_number);
-    OUTCOME_TRY(encoded_ed, storage_->get(key));
-    return scale::decode<NextEpochDescriptor>(encoded_ed);
-  }
+      BabeSlotNumber slot, primitives::BlockHash block_hash) const {
+    BabeSlotNumber max_slot = slot - slot % babe_configuration_->epoch_length;
+    bool rewind = true;
 
-  bool EpochStorageImpl::contains(EpochIndex epoch_number) const {
-    return storage_->contains(
-        common::Buffer{EPOCH_PREFIX}.putUint64(epoch_number));
+    for (;;) {
+      if (block_hash == primitives::BlockHash{}) {
+        return NextEpochDescriptor{
+            .authorities = babe_configuration_->genesis_authorities,
+            .randomness = babe_configuration_->randomness};
+      }
+
+      OUTCOME_TRY(header, block_tree_->getBlockHeader(block_hash));
+
+      auto babe_digests_res = getBabeDigests(header);
+      if (not babe_digests_res) {
+        block_hash = header.parent_hash;
+        continue;
+      }
+
+      auto slot_number = babe_digests_res.value().second.slot_number;
+
+      if (rewind) {
+        if (slot_number >= max_slot) {
+          block_hash = header.parent_hash;
+          continue;
+        }
+
+        rewind = false;
+      }
+
+      if (auto digest = getNextEpochDigest(header); digest.has_value()) {
+        return std::move(digest.value());
+      }
+
+      block_hash = header.parent_hash;
+    }
   }
 
   outcome::result<void> EpochStorageImpl::setLastEpoch(

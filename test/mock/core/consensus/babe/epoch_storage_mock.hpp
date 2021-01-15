@@ -14,12 +14,9 @@ namespace kagome::consensus {
 
   class EpochStorageMock : public EpochStorage {
    public:
-    MOCK_METHOD2(addEpochDescriptor,
-                 outcome::result<void>(EpochIndex,
-                                       const NextEpochDescriptor &));
-    MOCK_CONST_METHOD1(
+    MOCK_CONST_METHOD2(
         getEpochDescriptor,
-        outcome::result<NextEpochDescriptor>(EpochIndex epoch_number));
+        outcome::result<NextEpochDescriptor>(BabeSlotNumber slot, primitives::BlockHash));
 
     MOCK_METHOD1(setLastEpoch,
                  outcome::result<void>(const LastEpochDescriptor &led));

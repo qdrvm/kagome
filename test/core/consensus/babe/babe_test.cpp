@@ -103,9 +103,10 @@ class BabeTest : public testing::Test {
     consensus::NextEpochDescriptor expected_epoch_digest{
         .authorities = expected_config->genesis_authorities,
         .randomness = expected_config->randomness};
-    EXPECT_CALL(*epoch_storage_, getEpochDescriptor(0))
+
+    EXPECT_CALL(*epoch_storage_, getEpochDescriptor(_))
         .WillRepeatedly(Return(expected_epoch_digest));
-    EXPECT_CALL(*epoch_storage_, getEpochDescriptor(1))
+    EXPECT_CALL(*epoch_storage_, getEpochDescriptor(_))
         .WillRepeatedly(Return(expected_epoch_digest));
 
     auto block_executor =
@@ -147,9 +148,7 @@ class BabeTest : public testing::Test {
                                        grandpa_authority_update_observer_,
                                        slots_strategy_);
 
-    epoch_.randomness = expected_config->randomness;
     epoch_.epoch_length = expected_config->epoch_length;
-    epoch_.authorities = expected_config->genesis_authorities;
     epoch_.start_slot = 0;
     epoch_.epoch_index = 0;
 
@@ -236,14 +235,14 @@ TEST_F(BabeTest, Success) {
   auto test_begin = real_clock_.now();
 
   // runEpoch
-  epoch_.randomness.fill(0);
-  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, _, keypair_))
+  Randomness randomness;
+  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, randomness, _, keypair_))
       .WillOnce(Return(leadership_));
   Epoch next_epoch = epoch_;
   next_epoch.epoch_index++;
   next_epoch.start_slot += epoch_length_;
 
-  EXPECT_CALL(*lottery_, slotsLeadership(next_epoch, _, keypair_))
+  EXPECT_CALL(*lottery_, slotsLeadership(next_epoch, randomness, _, keypair_))
       .WillOnce(Return(leadership_));
 
   EXPECT_CALL(*trie_db_, getRootHash())

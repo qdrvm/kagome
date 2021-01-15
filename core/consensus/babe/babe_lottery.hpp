@@ -40,6 +40,7 @@ namespace kagome::consensus {
      */
     virtual SlotsLeadership slotsLeadership(
         const Epoch &epoch,
+        const Randomness &randomness,
         const Threshold &threshold,
         const crypto::Sr25519Keypair &keypair) const = 0;
 

@@ -312,28 +312,6 @@ namespace kagome::injector {
     return initialized.value();
   }
 
-  template <typename Injector>
-  sptr<consensus::EpochStorage> get_epoch_storage(const Injector &injector) {
-    static boost::optional<sptr<consensus::EpochStorageImpl>> obj;
-    if (!obj) {
-      obj = std::make_shared<consensus::EpochStorageImpl>(
-          injector.template create<sptr<storage::BufferStorage>>());
-      if (!(*obj)->contains(0) || !(*obj)->contains(1)) {
-        auto configuration =
-            injector.template create<sptr<primitives::BabeConfiguration>>();
-        consensus::NextEpochDescriptor init_epoch_desc{
-            .authorities = configuration->genesis_authorities,
-            .randomness = configuration->randomness};
-
-        [[maybe_unused]] const bool init_epoch_desc_ok =
-            (*obj)->addEpochDescriptor(0, init_epoch_desc).has_value();
-        BOOST_ASSERT(init_epoch_desc_ok);
-      }
-    }
-
-    return obj.value();
-  }
-
   // block tree getter
   template <typename Injector>
   sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
@@ -756,7 +734,7 @@ namespace kagome::injector {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     // default values for configurations
@@ -830,8 +808,7 @@ namespace kagome::injector {
         di::bind<consensus::SlotsStrategy>.template to(
             [](const auto &injector) { return get_slots_strategy(injector); }),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
-        di::bind<consensus::EpochStorage>.to(
-            [](auto const &injector) { return get_epoch_storage(injector); }),
+        di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),

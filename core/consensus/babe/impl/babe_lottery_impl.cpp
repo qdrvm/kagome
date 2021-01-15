@@ -29,6 +29,7 @@ namespace kagome::consensus {
 
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
       const Epoch &epoch,
+      const Randomness &randomness,
       const Threshold &threshold,
       const crypto::Sr25519Keypair &keypair) const {
     BabeLottery::SlotsLeadership result;
@@ -38,7 +39,7 @@ namespace kagome::consensus {
          i < epoch.start_slot + epoch.epoch_length;
          ++i) {
       primitives::Transcript transcript;
-      prepareTranscript(transcript, epoch.randomness, i, epoch.epoch_index);
+      prepareTranscript(transcript, randomness, i, epoch.epoch_index);
 
       auto sign_opt =
           vrf_provider_->signTranscript(transcript, keypair, threshold);

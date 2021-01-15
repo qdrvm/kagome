@@ -69,7 +69,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(log_);
     BOOST_ASSERT(authority_update_observer_);
 
-    BOOST_ASSERT(epoch_storage_->getEpochDescriptor(0));
     app_state_manager_->atLaunch([this] { return start(); });
   }
 
@@ -123,20 +122,8 @@ namespace kagome::consensus {
                   best_block_number,
                   best_block_hash);
 
-      NextEpochDescriptor epoch_digest;
-      if (auto res = epoch_storage_->getEpochDescriptor(
-              last_epoch_descriptor.epoch_number);
-          res.has_value()) {
-        epoch_digest = std::move(res.value());
-      } else {
-        log_->error("Last epoch digest does not exist for initial epoch");
-        return false;
-      }
-
       Epoch epoch;
       epoch.epoch_index = last_epoch_descriptor.epoch_number;
-      epoch.authorities = epoch_digest.authorities;
-      epoch.randomness = epoch_digest.randomness;
       epoch.epoch_length = last_epoch_descriptor.epoch_duration;
       epoch.start_slot = last_epoch_descriptor.start_slot;
 
@@ -180,8 +167,6 @@ namespace kagome::consensus {
 
   void BabeImpl::runEpoch(Epoch epoch,
                           BabeTimePoint starting_slot_finish_time) {
-    BOOST_ASSERT(!epoch.authorities.empty());
-
     log_->debug(
         "starting an epoch with index {}. Session key: {}. First slot ending "
         "time: {}",
@@ -192,8 +177,6 @@ namespace kagome::consensus {
             .count());
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
-
-    slots_leadership_ = getEpochLeadership(current_epoch_);
     next_slot_finish_time_ = starting_slot_finish_time;
 
     [[maybe_unused]] auto res =
@@ -302,8 +285,21 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::finishSlot() {
+    if (not slots_leadership_.has_value()) {
+      auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+
+      auto epoch_res =
+          epoch_storage_->getEpochDescriptor(current_slot_, best_block_hash);
+      BOOST_ASSERT(epoch_res.has_value());
+      auto &epoch = epoch_res.value();
+
+      slots_leadership_ = getEpochLeadership(
+          current_epoch_, epoch.authorities, epoch.randomness);
+    }
+
     auto slot_leadership =
-        slots_leadership_[current_slot_ - current_epoch_.start_slot];
+        slots_leadership_.value()[current_slot_ - current_epoch_.start_slot];
+
     if (slot_leadership) {
       log_->debug("Peer {} is leader (vrfOutput: {}, proof: {})",
                   keypair_.public_key.toHex(),
@@ -384,9 +380,13 @@ namespace kagome::consensus {
                best_block_number,
                best_block_hash);
 
+    auto epoch =
+        epoch_storage_->getEpochDescriptor(current_slot_, best_block_hash);
+
     auto authority_index_res =
-        getAuthorityIndex(current_epoch_.authorities, keypair_.public_key);
+        getAuthorityIndex(epoch.value().authorities, keypair_.public_key);
     BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
+
     // calculate babe_pre_digest
     auto babe_pre_digest_res =
         babePreDigest(output, authority_index_res.value());
@@ -419,15 +419,6 @@ namespace kagome::consensus {
                       == common::Buffer(block.header.extrinsics_root));
         }(),
         "Extrinsics root does not match extrinsics in the block");
-
-    if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
-        next_epoch_digest_res) {
-      log_->info("Obtained next epoch digest");
-      if (not epoch_storage_->addEpochDescriptor(
-              current_epoch_.epoch_index + 1, next_epoch_digest_res.value())) {
-        log_->error("Could not add next epoch digest to epoch storage");
-      }
-    }
 
     // seal the block
     auto seal_res = sealBlock(block);
@@ -467,17 +458,6 @@ namespace kagome::consensus {
       return;
     }
 
-    if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
-        next_epoch_digest_res) {
-      log_->info("Got next epoch digest for epoch: {}",
-                 current_epoch_.epoch_index + 1);
-      if (auto add_epoch_res = epoch_storage_->addEpochDescriptor(
-              current_epoch_.epoch_index + 1, next_epoch_digest_res.value());
-          not add_epoch_res) {
-        log_->error("Could not add next epoch digest. Reason: {}",
-                    add_epoch_res.error().message());
-      }
-    }
 
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
@@ -488,44 +468,24 @@ namespace kagome::consensus {
   }
 
   BabeLottery::SlotsLeadership BabeImpl::getEpochLeadership(
-      const Epoch &epoch) const {
+      const Epoch &epoch,
+      const primitives::AuthorityList &authorities,
+      const Randomness &randomness) const {
     auto authority_index_res =
-        getAuthorityIndex(epoch.authorities, keypair_.public_key);
+        getAuthorityIndex(authorities, keypair_.public_key);
     BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
-                                        epoch.authorities,
+                                        authorities,
                                         authority_index_res.value());
-    return lottery_->slotsLeadership(epoch, threshold, keypair_);
+    return lottery_->slotsLeadership(epoch, randomness, threshold, keypair_);
   }
 
   void BabeImpl::finishEpoch() {
-    // compute new randomness
-    auto next_epoch_digest_res =
-        epoch_storage_->getEpochDescriptor(++current_epoch_.epoch_index);
-    if (not next_epoch_digest_res) {
-      log_->error("Next epoch digest does not exist for epoch {}",
-                  current_epoch_.epoch_index);
-      // TODO (kamilsa): uncomment `return;` and remove next line when
-      // PRE-364 is done. For now assume no changes after epoch
-      //
-      // return.
-      NextEpochDescriptor next_epoch_digest{
-          .authorities = current_epoch_.authorities,
-          .randomness = current_epoch_.randomness};
-
-      epoch_storage_
-          ->addEpochDescriptor(current_epoch_.epoch_index, next_epoch_digest)
-          .value();
-
-      next_epoch_digest_res = next_epoch_digest;
-    }
-
     log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
 
+    ++current_epoch_.epoch_index;
     current_epoch_.start_slot = current_slot_;
-    current_epoch_.authorities = next_epoch_digest_res.value().authorities;
-    current_epoch_.randomness = next_epoch_digest_res.value().randomness;
-    slots_leadership_ = getEpochLeadership(current_epoch_);
+    slots_leadership_.reset();
 
     [[maybe_unused]] auto res =
         epoch_storage_->setLastEpoch({current_epoch_.epoch_index,
@@ -568,29 +528,12 @@ namespace kagome::consensus {
     BOOST_ASSERT_MSG(
         slots_calculation_strategy_ == SlotsStrategy::FromZero,
         "This method can be executed only when slots are counting from zero");
-
-    const auto ei =
+    const auto epoch_index =
         first_production_slot_number / genesis_configuration_->epoch_length;
-    auto new_epoch_digest_res = epoch_storage_->getEpochDescriptor(ei);
-    if (!new_epoch_digest_res) {
-      log_->error(
-          "Could not fetch epoch descriptor for epoch {}. Reason: {}. Initial "
-          "randomness and authorities will be used",
-          ei,
-          new_epoch_digest_res.error().message());
 
-      // TODO(kamilsa): (https://github.com/soramitsu/kagome/issues/602), should
-      // not do that, will remove when fix next epoch descriptor digest
-      new_epoch_digest_res = NextEpochDescriptor{
-          .authorities = genesis_configuration_->genesis_authorities,
-          .randomness = genesis_configuration_->randomness};
-    }
-
-    return Epoch{.epoch_index = ei,
+    return Epoch{.epoch_index = epoch_index,
                  .start_slot = first_production_slot_number,
-                 .epoch_length = genesis_configuration_->epoch_length,
-                 .authorities = new_epoch_digest_res.value().authorities,
-                 .randomness = new_epoch_digest_res.value().randomness};
+                 .epoch_length = genesis_configuration_->epoch_length};
   }
 
   Epoch BabeImpl::prepareFirstEpochUnixTime(
@@ -615,24 +558,9 @@ namespace kagome::consensus {
     const auto epoch_index = (first_production_slot - genesis_slot)
                              / genesis_configuration_->epoch_length;
 
-    // get epoch's randomness and authorities
-    auto new_epoch_digest_res = epoch_storage_->getEpochDescriptor(epoch_index);
-    if (not new_epoch_digest_res) {
-      log_->error("Could not fetch epoch descriptor for epoch {}. Reason: {}",
-                  epoch_index,
-                  new_epoch_digest_res.error().message());
-      // TODO(kamilsa): (https://github.com/soramitsu/kagome/issues/602), should
-      // not do that, will remove when fix next epoch descriptor digest
-      new_epoch_digest_res = NextEpochDescriptor{
-          .authorities = genesis_configuration_->genesis_authorities,
-          .randomness = genesis_configuration_->randomness};
-    }
-
     return Epoch{.epoch_index = epoch_index,
                  .start_slot = start_slot,
-                 .epoch_length = epoch_duration,
-                 .authorities = new_epoch_digest_res.value().authorities,
-                 .randomness = new_epoch_digest_res.value().randomness};
+                 .epoch_length = epoch_duration};
   }
 
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {

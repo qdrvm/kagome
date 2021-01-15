@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_EPOCH_STORAGE_DUMB_HPP
-#define KAGOME_EPOCH_STORAGE_DUMB_HPP
+#ifndef KAGOME_CONSENSUS_EPOCHSTORAGEIMPL
+#define KAGOME_CONSENSUS_EPOCHSTORAGEIMPL
 
 #include "consensus/babe/epoch_storage.hpp"
 
+#include "blockchain/block_tree.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus {
@@ -22,29 +24,40 @@ namespace kagome::consensus {
    public:
     ~EpochStorageImpl() override = default;
 
-    explicit EpochStorageImpl(std::shared_ptr<storage::BufferStorage> storage);
-
-    outcome::result<void> addEpochDescriptor(
-        EpochIndex epoch_number,
-        const NextEpochDescriptor &epoch_descriptor) override;
+    explicit EpochStorageImpl(
+        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<kagome::storage::BufferStorage> storage);
 
     outcome::result<NextEpochDescriptor> getEpochDescriptor(
-        EpochIndex epoch_number) const override;
+        BabeSlotNumber slot, primitives::BlockHash block_hash) const override;
 
     outcome::result<void> setLastEpoch(
         const LastEpochDescriptor &epoch_descriptor) override;
 
     outcome::result<LastEpochDescriptor> getLastEpoch() const override;
 
-    bool contains(EpochIndex epoch_number) const override;
+    bool contains(EpochIndex epoch_number) const override {
+      assert(false);
+    }
 
    private:
-    std::shared_ptr<storage::BufferStorage> storage_;
+    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<kagome::storage::BufferStorage> storage_;
     boost::optional<LastEpochDescriptor>
         last_epoch_;  // optimization for storing in memory last epoch
+
+    struct Node {
+      primitives::BlockHash block_hash;
+
+      std::set<Node> child;
+    };
+
+    std::unordered_map<primitives::BlockHash, std::shared_ptr<Node>> nodes_;
   };
 }  // namespace kagome::consensus
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, EpochStorageError);
 
-#endif  // KAGOME_EPOCH_STORAGE_DUMB_HPP
+#endif  // KAGOME_CONSENSUS_EPOCHSTORAGEIMPL
