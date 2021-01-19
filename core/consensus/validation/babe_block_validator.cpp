@@ -119,6 +119,11 @@ namespace kagome::consensus {
     primitives::Transcript transcript;
     prepareTranscript(
         transcript, randomness, babe_header.slot_number, epoch_index);
+    log_->debug(
+        "prepareTranscript (viryfyVRF): randomness {}, slot {}, epoch {}",
+        randomness,
+        babe_header.slot_number,
+        epoch_index);
 
     auto verify_res = vrf_provider_->verifyTranscript(
         transcript, babe_header.vrf_output, public_key, threshold);

@@ -10,7 +10,6 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
-#include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
@@ -291,7 +290,6 @@ namespace kagome::consensus {
 
       slots_leadership_ = getEpochLeadership(
           current_epoch_, epoch.authorities, epoch.randomness);
-      BOOST_ASSERT(slots_leadership_.has_value());
     }
 
     auto slot_leadership =
@@ -453,6 +451,15 @@ namespace kagome::consensus {
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       log_->error("Could not add block: {}", add_res.error().message());
       return;
+    }
+
+    if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
+        next_epoch_digest_res) {
+      auto &next_epoch_digest = next_epoch_digest_res.value();
+      log_->info("Got next epoch digest in slot {} (block #{}). Randomness: {}",
+                 current_slot_,
+                 block.header.number,
+                 next_epoch_digest.randomness.toHex());
     }
 
     // finally, broadcast the sealed block

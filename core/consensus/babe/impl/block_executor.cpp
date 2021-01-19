@@ -268,11 +268,26 @@ namespace kagome::consensus {
     OUTCOME_TRY(this_block_epoch_descriptor,
                 epoch_storage_->getEpochDescriptor(babe_header.slot_number,
                                                    block.header.parent_hash));
+    logger_->info(
+        "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
+        "block #{}). Randomness: {}",
+        epoch_index,
+        babe_header.slot_number,
+        block.header.number,
+        this_block_epoch_descriptor.randomness.toHex());
 
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         this_block_epoch_descriptor.authorities,
                                         babe_header.authority_index);
 
+    if (auto next_epoch_digest_res = getNextEpochDigest(block.header)) {
+      auto &next_epoch_digest = next_epoch_digest_res.value();
+      logger_->info(
+          "Got next epoch digest in slot {} (block #{}). Randomness: {}",
+          babe_header.slot_number,
+          block.header.number,
+          next_epoch_digest.randomness.toHex());
+    }
 
     OUTCOME_TRY(block_validator_->validateHeader(
         block.header,

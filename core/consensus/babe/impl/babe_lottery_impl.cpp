@@ -43,6 +43,11 @@ namespace kagome::consensus {
          ++i) {
       primitives::Transcript transcript;
       prepareTranscript(transcript, randomness, i, epoch.epoch_index);
+      logger_->debug(
+          "prepareTranscript (leadership): randomness {}, slot {}, epoch {}",
+          randomness,
+          i,
+          epoch.epoch_index);
 
       auto sign_opt =
           vrf_provider_->signTranscript(transcript, keypair, threshold);
