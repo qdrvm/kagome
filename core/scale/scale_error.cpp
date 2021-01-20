@@ -9,44 +9,28 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, EncodeError, e) {
   using kagome::scale::EncodeError;
   switch (e) {
     case EncodeError::NEGATIVE_COMPACT_INTEGER:
-      return "compact integers cannot be negative";
+      return "SCALE encode: compact integers cannot be negative";
     case EncodeError::COMPACT_INTEGER_TOO_BIG:
-      return "compact integers too big";
-    case EncodeError::WRONG_CATEGORY:
-      return "wrong compact encoding category";
-    case EncodeError::WRONG_ALTERNATIVE:
-      return "wrong cast to alternative";
+      return "SCALE encode: compact integer is too big";
     case EncodeError::DEREF_NULLPOINTER:
-      return "dereference of nullptr";
+      return "SCALE encode: attempt to dereference a null ptr";
   }
-  return "unknown EncodeError";
+  return "unknown SCALE EncodeError";
 }
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, DecodeError, e) {
   using kagome::scale::DecodeError;
   switch (e) {
     case DecodeError::NOT_ENOUGH_DATA:
-      return "not enough data to decode";
+      return "SCALE decode: not enough data to decode a value";
     case DecodeError::UNEXPECTED_VALUE:
-      return "unexpected value occured";
+      return "SCALE decode: found an unexpected value when decoding ";
     case DecodeError::TOO_MANY_ITEMS:
-      return "collection has too many items or memory is out or data is "
+      return "SCALE decode: collection has too many items or memory is "
+             "out or data is "
              "damaged, unable to unpack";
     case DecodeError::WRONG_TYPE_INDEX:
-      return "wrong type index, cannot decode variant";
-    case DecodeError::INVALID_DATA:
-      return "incorrect source data";
-    case DecodeError::OUT_OF_BOUNDARIES:
-      return "advance went out of boundaries";
+      return "SCALE decode: wrong type index, cannot decode variant";
   }
-  return "unknown DecodeError";
-}
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, CommonError, e) {
-  using kagome::scale::CommonError;
-  switch (e) {
-    case CommonError::UNKNOWN_ERROR:
-      return "unknown error";
-  }
-  return "unknown CommonError";
+  return "unknown SCALE DecodeError";
 }

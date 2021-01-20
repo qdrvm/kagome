@@ -96,6 +96,17 @@ target_link_libraries(metadata_test
     binaryen_core_api
     )
 
+addtest(system_test
+    system_api_test.cpp
+    )
+target_link_libraries(system_test
+    binaryen_system_api
+    basic_wasm_provider
+    trie_storage
+    binaryen_core_api
+    extension_factory
+    )
+
 addtest(offchain_worker_test
     offchain_worker_test.cpp
     )

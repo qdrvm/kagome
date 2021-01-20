@@ -139,3 +139,11 @@ target_link_libraries(binaryen_babe_api
     binaryen_wasm_executor
     binaryen_runtime_api
     )
+
+add_library(binaryen_system_api
+    runtime_api/system_impl.cpp
+    )
+target_link_libraries(binaryen_system_api
+    binaryen_wasm_executor
+    binaryen_runtime_api
+    )

@@ -5,24 +5,34 @@
 
 #include "api/service/system/impl/system_api_impl.hpp"
 
+#include <queue>
+
 #include <jsonrpc-lean/request.h>
+
+#include "primitives/base58.hpp"
+#include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
 
   SystemApiImpl::SystemApiImpl(
       std::shared_ptr<application::ChainSpec> config,
       std::shared_ptr<consensus::Babe> babe,
-      std::shared_ptr<network::Gossiper> gossiper)
+      std::shared_ptr<network::Gossiper> gossiper,
+      std::shared_ptr<runtime::System> system_api,
+      std::shared_ptr<transaction_pool::TransactionPool> transaction_pool)
       : config_(std::move(config)),
         babe_(std::move(babe)),
-        gossiper_(std::move(gossiper)) {
+        gossiper_(std::move(gossiper)),
+        system_api_(std::move(system_api)),
+        transaction_pool_(std::move(transaction_pool)) {
     BOOST_ASSERT(config_ != nullptr);
     BOOST_ASSERT(babe_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);
+    BOOST_ASSERT(system_api_ != nullptr);
+    BOOST_ASSERT(transaction_pool_ != nullptr);
   }
 
-  std::shared_ptr<application::ChainSpec> SystemApiImpl::getConfig()
-      const {
+  std::shared_ptr<application::ChainSpec> SystemApiImpl::getConfig() const {
     return config_;
   }
 
@@ -32,6 +42,60 @@ namespace kagome::api {
 
   std::shared_ptr<network::Gossiper> SystemApiImpl::getGossiper() const {
     return gossiper_;
+  }
+
+  outcome::result<primitives::AccountNonce> SystemApiImpl::getNonceFor(
+      std::string_view account_address) const {
+    // decode SS58 address: base58(<address-type><address><checksum>)
+    // https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)
+    OUTCOME_TRY(ss58_account_id, primitives::decodeBase58(account_address));
+    primitives::AccountId account_id;
+    // first byte in SS58 is account type, then 32 bytes of the actual account
+    // id, then 2 bytes of checksum
+    BOOST_ASSERT(ss58_account_id.size() == 35);
+    std::copy_n(ss58_account_id.begin() + 1,
+                primitives::AccountId::size(),
+                account_id.begin());
+    OUTCOME_TRY(nonce, system_api_->account_nonce(account_id));
+
+    return adjustNonce(account_id, nonce);
+  }
+
+  primitives::AccountNonce SystemApiImpl::adjustNonce(
+      const primitives::AccountId &account_id,
+      primitives::AccountNonce current_nonce) const {
+    auto txs = transaction_pool_->getReadyTransactions();
+
+    // txs authored by the provided account sorted by nonce
+    std::map<primitives::AccountNonce,
+             std::reference_wrapper<const primitives::Transaction>>
+        sorted_txs;
+
+    for (auto &[tx_hash, tx_ptr] : txs) {
+      // the assumption that the tag with nonce is encoded this way is taken
+      // from substrate
+      auto tag_decode_res = scale::decode<
+          std::tuple<primitives::AccountId, primitives::AccountNonce>>(
+          tx_ptr->provides.at(0));  // substrate assumes that the tag with
+                                    // nonce is the first one
+
+      if (tag_decode_res.has_value()) {
+        auto &&[id, nonce] = std::move(tag_decode_res.value());
+        if (id == account_id) {
+          sorted_txs.emplace(nonce, std::ref(*tx_ptr));
+        }
+      }
+    }
+    // ensure that we consider only continuously growing nonce
+    for (auto &&[tx_nonce, tx] : sorted_txs) {
+      if (tx_nonce == current_nonce) {
+        current_nonce++;
+      } else {
+        break;
+      }
+    }
+
+    return current_nonce;
   }
 
 }  // namespace kagome::api

@@ -127,17 +127,18 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
                                                      const Buffer &value) {
-    return put(key, Buffer{value});  // would have to copy anyway
-  }
-
-  outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
-                                                     Buffer &&value) {
     bool is_new_entry = not trie_->contains(key);
     auto res = trie_->put(key, value);
     if (res and changes_.has_value()) {
       OUTCOME_TRY(changes_.value()->onPut(key, value, is_new_entry));
     }
     return res;
+  }
+
+  outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
+                                                     Buffer &&value) {
+    return put(key, value);  // cannot take possession of value, check the
+                             // const-ref version definition
   }
 
   outcome::result<void> PersistentTrieBatchImpl::remove(const Buffer &key) {
