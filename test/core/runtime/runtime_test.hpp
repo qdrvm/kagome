@@ -22,14 +22,14 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
-#include "storage/trie/impl/trie_storage_impl.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
-#include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
@@ -51,41 +51,25 @@ class RuntimeTest : public ::testing::Test {
     using kagome::storage::trie::PersistentTrieBatch;
     using kagome::storage::trie::PersistentTrieBatchMock;
 
-    /*auto factory = std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();
-    auto codec = std::make_shared<kagome::storage::trie::PolkadotCodec>();
-      leveldb::Options options;
-      options.create_if_missing = true;  // intentionally
-      EXPECT_OUTCOME_TRUE(
-          level_db,
-          LevelDB::create("/tmp/kagome_leveldb_persistency_test", options));
-      auto serializer = std::make_shared<kagome::storage::trie::TrieSerializerImpl>(
-          factory,
-          codec,
-          std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(std::move(level_db),
-                                                   kNodePrefix));
-
-      auto trie_storage_ =
-          kagome::storage::trie::TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
-              .value();*/
-      storage_provider_impl_ =
-        std::make_shared<kagome::runtime::TrieStorageProviderMock>(trie_storage_);
-    /*ON_CALL(*storage_provider_mock_, getCurrentBatch())
+    auto storage_provider =
+        std::make_shared<kagome::runtime::TrieStorageProviderMock>();
+    ON_CALL(*storage_provider, getCurrentBatch())
         .WillByDefault(testing::Invoke(
             []() { return std::make_unique<PersistentTrieBatchMock>(); }));
-    ON_CALL(*storage_provider_mock_, tryGetPersistentBatch())
+    ON_CALL(*storage_provider, tryGetPersistentBatch())
         .WillByDefault(testing::Invoke(
             []() -> boost::optional<std::shared_ptr<PersistentTrieBatch>> {
               return std::shared_ptr<PersistentTrieBatch>(
                   std::make_shared<PersistentTrieBatchMock>());
             }));
-    ON_CALL(*storage_provider_mock_, setToPersistent())
+    ON_CALL(*storage_provider, setToPersistent())
         .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*storage_provider_mock_, setToEphemeral())
+    ON_CALL(*storage_provider, setToEphemeral())
         .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*storage_provider_mock_, rollbackTransaction())
+    ON_CALL(*storage_provider, rollbackTransaction())
         .WillByDefault(testing::Return(
             outcome::failure(kagome::runtime::RuntimeTransactionError::
-                                 NO_TRANSACTIONS_WERE_STARTED)));*/
+                                 NO_TRANSACTIONS_WERE_STARTED)));
 
     auto random_generator =
         std::make_shared<kagome::crypto::BoostRandomGenerator>();
@@ -140,7 +124,7 @@ class RuntimeTest : public ::testing::Test {
         std::make_shared<kagome::runtime::binaryen::RuntimeManager>(
             std::move(extension_factory),
             std::move(module_factory),
-            storage_provider_mock_,
+            std::move(storage_provider),
             std::move(hasher));
   }
 
@@ -181,7 +165,6 @@ class RuntimeTest : public ::testing::Test {
  protected:
   std::shared_ptr<kagome::runtime::WasmProvider> wasm_provider_;
   std::shared_ptr<kagome::runtime::binaryen::RuntimeManager> runtime_manager_;
-  std::shared_ptr<kagome::runtime::TrieStorageProviderImpl> storage_provider_impl_;
   std::shared_ptr<kagome::storage::changes_trie::ChangesTracker>
       changes_tracker_;
 };

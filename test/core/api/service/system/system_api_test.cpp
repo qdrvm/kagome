@@ -98,7 +98,7 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
     encoded_nonces[i] = std::move(enc_nonce);
     ready_txs[Hash256{{static_cast<uint8_t>(i)}}] =
         std::make_shared<Transaction>(
-            Transaction{.provides{encoded_nonces[i]}});
+            Transaction{.provides={encoded_nonces[i]}});
   }
 
   EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions())
