@@ -291,6 +291,7 @@ namespace kagome::consensus {
 
       slots_leadership_ = getEpochLeadership(
           current_epoch_, epoch.authorities, epoch.randomness);
+      BOOST_ASSERT(slots_leadership_.has_value());
     }
 
     auto slot_leadership =

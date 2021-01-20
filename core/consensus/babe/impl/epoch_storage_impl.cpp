@@ -35,6 +35,8 @@ namespace kagome::consensus {
 
   outcome::result<NextEpochDescriptor> EpochStorageImpl::getEpochDescriptor(
       BabeSlotNumber slot, primitives::BlockHash block_hash) const {
+    return block_tree_->getEpochDescriptor(slot, block_hash);
+
     BabeSlotNumber max_slot = slot - slot % babe_configuration_->epoch_length;
     bool rewind = true;
 

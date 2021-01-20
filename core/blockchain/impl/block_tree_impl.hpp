@@ -20,11 +20,14 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
+#include "consensus/babe/common.hpp"
+#include "consensus/babe/types/next_epoch_descriptor.hpp"
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_observer.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
-#include "subscription/extrinsic_event_key_repository.hpp"
 #include "runtime/core.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::blockchain {
@@ -41,15 +44,18 @@ namespace kagome::blockchain {
       TreeNode(primitives::BlockHash hash,
                primitives::BlockNumber depth,
                const std::shared_ptr<TreeNode> &parent,
+               std::shared_ptr<consensus::NextEpochDescriptor> epoch,
                bool finalized = false);
 
       primitives::BlockHash block_hash;
       primitives::BlockNumber depth;
-
       std::weak_ptr<TreeNode> parent;
-
+      std::shared_ptr<consensus::NextEpochDescriptor> epoch;
       bool finalized;
 
+      consensus::BabeSlotNumber babe_slot;
+      std::shared_ptr<consensus::NextEpochDescriptor> epoch_descriptor;
+      std::shared_ptr<TreeNode> previous_epoch_holder;
       std::vector<std::shared_ptr<TreeNode>> children{};
 
       /**
@@ -113,7 +119,8 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<runtime::Core> runtime_core);
+        std::shared_ptr<runtime::Core> runtime_core,
+        std::shared_ptr<primitives::BabeConfiguration> babe_configuration);
 
     ~BlockTreeImpl() override = default;
 
@@ -181,6 +188,10 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
+    outcome::result<consensus::NextEpochDescriptor> getEpochDescriptor(
+        consensus::BabeSlotNumber slot,
+        primitives::BlockHash block_hash) const override;
+
    private:
     /**
      * Private constructor, so that instances are created only through the
@@ -198,7 +209,8 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<runtime::Core> runtime_core);
+        std::shared_ptr<runtime::Core> runtime_core,
+        std::shared_ptr<primitives::BabeConfiguration> babe_configuration);
 
     /**
      * Update local meta with the provided node
@@ -249,6 +261,7 @@ namespace kagome::blockchain {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
     std::shared_ptr<runtime::Core> runtime_core_;
+    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     boost::optional<primitives::Version> actual_runtime_version_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");
   };

@@ -18,6 +18,7 @@ namespace kagome::consensus {
 
   BabeLotteryImpl::BabeLotteryImpl(
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
+      std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<crypto::Hasher> hasher)
       : vrf_provider_{std::move(vrf_provider)},
         hasher_{std::move(hasher)},
@@ -25,6 +26,8 @@ namespace kagome::consensus {
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(logger_);
+    BOOST_ASSERT(configuration);
+    epoch_length_ = configuration->epoch_length;
   }
 
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
@@ -33,10 +36,10 @@ namespace kagome::consensus {
       const Threshold &threshold,
       const crypto::Sr25519Keypair &keypair) const {
     BabeLottery::SlotsLeadership result;
-    result.reserve(epoch.epoch_length);
+    result.reserve(epoch_length_);
 
     for (BabeSlotNumber i = epoch.start_slot;
-         i < epoch.start_slot + epoch.epoch_length;
+         i < epoch.start_slot + epoch_length_;
          ++i) {
       primitives::Transcript transcript;
       prepareTranscript(transcript, randomness, i, epoch.epoch_index);

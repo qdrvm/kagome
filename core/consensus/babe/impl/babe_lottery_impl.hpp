@@ -11,6 +11,7 @@
 
 #include "common/logger.hpp"
 #include "consensus/babe/babe_lottery.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
 
@@ -18,6 +19,7 @@ namespace kagome::consensus {
   class BabeLotteryImpl : public BabeLottery {
    public:
     BabeLotteryImpl(std::shared_ptr<crypto::VRFProvider> vrf_provider,
+                    std::shared_ptr<primitives::BabeConfiguration> configuration,
                     std::shared_ptr<crypto::Hasher> hasher);
 
     SlotsLeadership slotsLeadership(
@@ -34,6 +36,7 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    EpochLength epoch_length_;
 
     /// also known as "rho" (greek letter) in the spec
     std::vector<crypto::VRFPreOutput> last_epoch_vrf_values_;

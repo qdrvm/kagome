@@ -348,6 +348,9 @@ namespace kagome::injector {
 
     auto runtime_core =
         injector.template create<std::shared_ptr<runtime::Core>>();
+    auto babe_configuration =
+        injector
+            .template create<std::shared_ptr<primitives::BabeConfiguration>>();
 
     auto tree =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
@@ -358,7 +361,8 @@ namespace kagome::injector {
                                           std::move(chain_events_engine),
                                           std::move(ext_events_engine),
                                           std::move(ext_events_key_repo),
-                                          std::move(runtime_core));
+                                          std::move(runtime_core),
+                                          std::move(babe_configuration));
     if (!tree) {
       common::raise(tree.error());
     }

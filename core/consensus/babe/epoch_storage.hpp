@@ -41,13 +41,6 @@ namespace kagome::consensus {
      * @return number of epoch that stored as last active, error otherwise
      */
     virtual outcome::result<LastEpochDescriptor> getLastEpoch() const = 0;
-
-    /**
-     * Checks if present epoch index exists in a storage.
-     * @param epoch_number to check
-     * @return true if exists, otherwise false.
-     */
-    virtual bool contains(EpochIndex epoch_number) const = 0;
   };
 }  // namespace kagome::consensus
 

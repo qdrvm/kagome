@@ -16,6 +16,8 @@
 #include "primitives/common.hpp"
 #include "primitives/justification.hpp"
 #include "primitives/version.hpp"
+#include "consensus/babe/types/next_epoch_descriptor.hpp"
+
 
 namespace kagome::blockchain {
   /**
@@ -221,6 +223,14 @@ namespace kagome::blockchain {
      * @return hash of the block
      */
     virtual primitives::BlockInfo getLastFinalized() const = 0;
+
+    /**
+     * Get an epoch for {@param slot} by a {@param block_hash}
+     * @return epoch or nothing, if epoch, in which that block was produced, is
+     * unknown to this peer
+     */
+    virtual outcome::result<consensus::NextEpochDescriptor> getEpochDescriptor(
+        consensus::BabeSlotNumber slot, primitives::BlockHash block_hash) const = 0;
   };
 }  // namespace kagome::blockchain
 
