@@ -50,12 +50,14 @@ namespace kagome::api {
     // https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)
     OUTCOME_TRY(ss58_account_id, primitives::decodeBase58(account_address));
     primitives::AccountId account_id;
+
     // first byte in SS58 is account type, then 32 bytes of the actual account
     // id, then 2 bytes of checksum
     BOOST_ASSERT(ss58_account_id.size() == 35);
     std::copy_n(ss58_account_id.begin() + 1,
                 primitives::AccountId::size(),
                 account_id.begin());
+
     OUTCOME_TRY(nonce, account_nonce_api_->account_nonce(account_id));
 
     return adjustNonce(account_id, nonce);

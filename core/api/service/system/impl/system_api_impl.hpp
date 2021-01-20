@@ -31,10 +31,15 @@ namespace kagome::api {
 
     std::shared_ptr<network::Gossiper> getGossiper() const override;
 
+    /**
+     * The nonce which should be used for the next extrinsic from \arg
+     * account_adderss
+     */
     outcome::result<primitives::AccountNonce> getNonceFor(
         std::string_view account_address) const override;
 
    private:
+    // adjusts the provided nonce considering the pending transactions
     primitives::AccountNonce adjustNonce(
         const primitives::AccountId &account_id,
         primitives::AccountNonce current_nonce) const;
