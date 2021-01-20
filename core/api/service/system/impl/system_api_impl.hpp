@@ -8,7 +8,7 @@
 
 #include "api/service/system/system_api.hpp"
 
-#include "runtime/system.hpp"
+#include "runtime/account_nonce_api.hpp"
 
 namespace kagome::transaction_pool {
   class TransactionPool;
@@ -22,7 +22,7 @@ namespace kagome::api {
         std::shared_ptr<application::ChainSpec> config,
         std::shared_ptr<consensus::Babe> babe,
         std::shared_ptr<network::Gossiper> gossiper,
-        std::shared_ptr<runtime::System> system_api,
+        std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
         std::shared_ptr<transaction_pool::TransactionPool> transaction_pool);
 
     std::shared_ptr<application::ChainSpec> getConfig() const override;
@@ -42,7 +42,7 @@ namespace kagome::api {
     std::shared_ptr<application::ChainSpec> config_;
     std::shared_ptr<consensus::Babe> babe_;
     std::shared_ptr<network::Gossiper> gossiper_;
-    std::shared_ptr<runtime::System> system_api_;
+    std::shared_ptr<runtime::AccountNonceApi> account_nonce_api_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
   };
 

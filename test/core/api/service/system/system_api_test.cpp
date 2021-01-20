@@ -10,6 +10,7 @@
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/consensus/babe/babe_mock.hpp"
 #include "mock/core/network/gossiper_mock.hpp"
+#include "mock/core/runtime/account_nonce_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "testutil/outcome.hpp"
 
@@ -20,6 +21,7 @@ using kagome::common::Hash256;
 using kagome::consensus::babe::BabeMock;
 using kagome::network::GossiperMock;
 using kagome::primitives::Transaction;
+using kagome::runtime::AccountNonceApiMock;
 using kagome::transaction_pool::TransactionPoolMock;
 
 using testing::_;
@@ -32,9 +34,13 @@ class SystemApiTest : public ::testing::Test {
     babe_mock_ = std::make_shared<BabeMock>();
     gossiper_mock_ = std::make_shared<GossiperMock>();
     transaction_pool_mock_ = std::make_shared<TransactionPoolMock>();
+    account_nonce_api_mock_ = std::make_shared<AccountNonceApiMock>();
 
-    system_api_ = std::make_unique<SystemApiImpl>(
-        chain_spec_mock_, babe_mock_, gossiper_mock_, transaction_pool_mock_);
+    system_api_ = std::make_unique<SystemApiImpl>(chain_spec_mock_,
+                                                  babe_mock_,
+                                                  gossiper_mock_,
+                                                  account_nonce_api_mock_,
+                                                  transaction_pool_mock_);
   }
 
  protected:
@@ -44,9 +50,15 @@ class SystemApiTest : public ::testing::Test {
   std::shared_ptr<BabeMock> babe_mock_;
   std::shared_ptr<GossiperMock> gossiper_mock_;
   std::shared_ptr<TransactionPoolMock> transaction_pool_mock_;
+  std::shared_ptr<AccountNonceApiMock> account_nonce_api_mock_;
 
   static constexpr auto kSs58Account =
-      "FJaSzBUAJ1Nwa1u5TbKAFZG5MBtcUouTixdP7hAkmce2SDS";
+      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
+  static inline kagome::crypto::Sr25519PublicKey kAccountId{
+      kagome::common::Blob<32>(std::array<uint8_t, 32>{
+          0xd4, 0x35, 0x93, 0xc7, 0x15, 0xfd, 0xd3, 0x1c, 0x61, 0x14, 0x1a,
+          0xbd, 0x04, 0xa9, 0x9f, 0xd6, 0x82, 0x2c, 0x85, 0x58, 0x85, 0x4c,
+          0xcd, 0xe3, 0x9a, 0x56, 0x84, 0xe7, 0xa5, 0x6d, 0xa2, 0x7d})};
 };
 
 /**
@@ -57,6 +69,8 @@ class SystemApiTest : public ::testing::Test {
 TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
   constexpr auto kInitialNonce = 42;
 
+  EXPECT_CALL(*account_nonce_api_mock_, account_nonce(kAccountId))
+      .WillOnce(Return(kInitialNonce));
   EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions());
 
   EXPECT_OUTCOME_TRUE(nonce, system_api_->getNonceFor(kSs58Account))
@@ -71,14 +85,20 @@ TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
  */
 TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   constexpr auto kInitialNonce = 42;
+
+  EXPECT_CALL(*account_nonce_api_mock_, account_nonce(kAccountId))
+      .WillOnce(Return(kInitialNonce));
+
   constexpr auto kReadyTxNum = 5;
   std::array<std::vector<uint8_t>, kReadyTxNum> encoded_nonces;
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_txs;
   for (size_t i = 0; i < kReadyTxNum; i++) {
-    EXPECT_OUTCOME_TRUE(enc_nonce, kagome::scale::encode(0, i))
+    EXPECT_OUTCOME_TRUE(enc_nonce,
+                        kagome::scale::encode(kAccountId, kInitialNonce + i))
     encoded_nonces[i] = std::move(enc_nonce);
-    ready_txs[Hash256{{static_cast<uint8_t>(i)}}] = std::make_shared<Transaction>(
-        Transaction{.provides{encoded_nonces[i]}});
+    ready_txs[Hash256{{static_cast<uint8_t>(i)}}] =
+        std::make_shared<Transaction>(
+            Transaction{.provides{encoded_nonces[i]}});
   }
 
   EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions())

@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_SYSTEM_HPP
-#define KAGOME_RUNTIME_SYSTEM_HPP
+#ifndef KAGOME_RUNTIME_ACCOUNTNONCEAPI_HPP
+#define KAGOME_RUNTIME_ACCOUNTNONCEAPI_HPP
 
 #include "primitives/account.hpp"
 
 namespace kagome::runtime {
 
-  class System {
+  class AccountNonceApi {
    public:
-    virtual ~System() = default;
+    virtual ~AccountNonceApi() = default;
 
     virtual outcome::result<primitives::AccountNonce> account_nonce(
         const primitives::AccountId & account_id) = 0;
@@ -20,4 +20,4 @@ namespace kagome::runtime {
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_SYSTEM_HPP
+#endif  // KAGOME_ACCOUNTNONCEAPI_HPP

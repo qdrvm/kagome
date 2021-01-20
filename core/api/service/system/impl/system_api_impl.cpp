@@ -18,17 +18,17 @@ namespace kagome::api {
       std::shared_ptr<application::ChainSpec> config,
       std::shared_ptr<consensus::Babe> babe,
       std::shared_ptr<network::Gossiper> gossiper,
-      std::shared_ptr<runtime::System> system_api,
+      std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool)
       : config_(std::move(config)),
         babe_(std::move(babe)),
         gossiper_(std::move(gossiper)),
-        system_api_(std::move(system_api)),
+        account_nonce_api_(std::move(account_nonce_api)),
         transaction_pool_(std::move(transaction_pool)) {
     BOOST_ASSERT(config_ != nullptr);
     BOOST_ASSERT(babe_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);
-    BOOST_ASSERT(system_api_ != nullptr);
+    BOOST_ASSERT(account_nonce_api_ != nullptr);
     BOOST_ASSERT(transaction_pool_ != nullptr);
   }
 
@@ -56,7 +56,7 @@ namespace kagome::api {
     std::copy_n(ss58_account_id.begin() + 1,
                 primitives::AccountId::size(),
                 account_id.begin());
-    OUTCOME_TRY(nonce, system_api_->account_nonce(account_id));
+    OUTCOME_TRY(nonce, account_nonce_api_->account_nonce(account_id));
 
     return adjustNonce(account_id, nonce);
   }
@@ -72,6 +72,8 @@ namespace kagome::api {
         sorted_txs;
 
     for (auto &[tx_hash, tx_ptr] : txs) {
+      if (tx_ptr->provides.empty()) continue;
+
       // the assumption that the tag with nonce is encoded this way is taken
       // from substrate
       auto tag_decode_res = scale::decode<

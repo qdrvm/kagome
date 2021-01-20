@@ -6,13 +6,13 @@
 #ifndef KAGOME_RUNTIME_SYSTEM_MOCK
 #define KAGOME_RUNTIME_SYSTEM_MOCK
 
-#include "runtime/system.hpp"
+#include "runtime/account_nonce_api.hpp"
 
 #include <gmock/gmock.h>
 
 namespace kagome::runtime {
 
-  class SystemMock : public System {
+  class AccountNonceApiMock : public AccountNonceApi {
    public:
     MOCK_METHOD1(account_nonce,
                  outcome::result<primitives::AccountNonce>(
