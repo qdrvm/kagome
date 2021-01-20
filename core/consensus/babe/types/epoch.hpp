@@ -24,12 +24,8 @@ namespace kagome::consensus {
     /// middle of the running epoch
     BabeSlotNumber start_slot{};
 
-    /// duration of the epoch (number of slots it takes)
-    BabeSlotNumber epoch_length{};
-
     bool operator==(const Epoch &other) const {
-      return epoch_index == other.epoch_index && start_slot == other.start_slot
-             && epoch_length == other.epoch_length;
+      return epoch_index == other.epoch_index && start_slot == other.start_slot;
     }
     bool operator!=(const Epoch &other) const {
       return !(*this == other);

@@ -109,8 +109,6 @@ namespace kagome::consensus {
       }
 
       last_epoch_descriptor.epoch_number = 0;
-      last_epoch_descriptor.epoch_duration =
-          genesis_configuration_->epoch_length;
       last_epoch_descriptor.starting_slot_finish_time =
           closestNextTimeMultiple(std::chrono::system_clock::now(),
                                   genesis_configuration_->slot_duration);
@@ -124,7 +122,6 @@ namespace kagome::consensus {
 
       Epoch epoch;
       epoch.epoch_index = last_epoch_descriptor.epoch_number;
-      epoch.epoch_length = last_epoch_descriptor.epoch_duration;
       epoch.start_slot = last_epoch_descriptor.start_slot;
 
       auto starting_slot_finish_time =
@@ -182,7 +179,6 @@ namespace kagome::consensus {
     [[maybe_unused]] auto res =
         epoch_storage_->setLastEpoch({current_epoch_.epoch_index,
                                       current_epoch_.start_slot,
-                                      current_epoch_.epoch_length,
                                       starting_slot_finish_time});
 
     runSlot();
@@ -458,7 +454,6 @@ namespace kagome::consensus {
       return;
     }
 
-
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
     log_->debug("Announced block number {} in slot {} with timestamp {}",
@@ -490,7 +485,6 @@ namespace kagome::consensus {
     [[maybe_unused]] auto res =
         epoch_storage_->setLastEpoch({current_epoch_.epoch_index,
                                       current_epoch_.start_slot,
-                                      current_epoch_.epoch_length,
                                       next_slot_finish_time_});
   }
 
@@ -532,8 +526,7 @@ namespace kagome::consensus {
         first_production_slot_number / genesis_configuration_->epoch_length;
 
     return Epoch{.epoch_index = epoch_index,
-                 .start_slot = first_production_slot_number,
-                 .epoch_length = genesis_configuration_->epoch_length};
+                 .start_slot = first_production_slot_number};
   }
 
   Epoch BabeImpl::prepareFirstEpochUnixTime(
@@ -558,9 +551,7 @@ namespace kagome::consensus {
     const auto epoch_index = (first_production_slot - genesis_slot)
                              / genesis_configuration_->epoch_length;
 
-    return Epoch{.epoch_index = epoch_index,
-                 .start_slot = start_slot,
-                 .epoch_length = epoch_duration};
+    return Epoch{.epoch_index = epoch_index, .start_slot = start_slot};
   }
 
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {

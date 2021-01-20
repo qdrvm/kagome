@@ -37,10 +37,6 @@ namespace kagome::consensus {
 
     outcome::result<LastEpochDescriptor> getLastEpoch() const override;
 
-    bool contains(EpochIndex epoch_number) const override {
-      assert(false);
-    }
-
    private:
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

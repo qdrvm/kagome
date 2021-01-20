@@ -18,9 +18,6 @@ namespace kagome::consensus {
     /// can be non-zero, as the node can join in the middle of the running epoch
     BabeSlotNumber start_slot = 0;
 
-    /// duration of the epoch (number of slots it takes)
-    BabeSlotNumber epoch_duration = 0;
-
     BabeTimePoint starting_slot_finish_time;
   };
 
@@ -31,16 +28,14 @@ namespace kagome::consensus {
         std::chrono::duration_cast<std::chrono::milliseconds>(
             led.starting_slot_finish_time.time_since_epoch())
             .count();
-    return s << led.epoch_number << led.start_slot << led.epoch_duration
-             << starting_slot_finish_time;
+    return s << led.epoch_number << led.start_slot << starting_slot_finish_time;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, LastEpochDescriptor &led) {
     int64_t starting_slot_finish_time;
-    s >> led.epoch_number >> led.start_slot >> led.epoch_duration
-        >> starting_slot_finish_time;
+    s >> led.epoch_number >> led.start_slot >> starting_slot_finish_time;
     led.starting_slot_finish_time =
         BabeTimePoint::clock::time_point()
         + std::chrono::milliseconds(starting_slot_finish_time);

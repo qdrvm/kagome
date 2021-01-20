@@ -239,7 +239,6 @@ namespace kagome::consensus {
         OUTCOME_TRY(epoch_storage_->setLastEpoch(LastEpochDescriptor{
             .epoch_number = 0,
             .start_slot = babe_header.slot_number,
-            .epoch_duration = genesis_configuration_->epoch_length,
             .starting_slot_finish_time =
                 BabeTimePoint{(babe_header.slot_number + 1)
                               * genesis_configuration_->slot_duration}}));
