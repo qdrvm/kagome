@@ -164,8 +164,7 @@ namespace kagome::consensus {
   void BabeImpl::runEpoch(Epoch epoch,
                           BabeTimePoint starting_slot_finish_time) {
     log_->debug(
-        "starting an epoch with index {}. Session key: {}. First slot ending "
-        "time: {}",
+        "Starting an epoch {}. Session key: {}. First slot ending time: {}",
         epoch.epoch_index,
         keypair_.public_key.toHex(),
         std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -237,12 +236,6 @@ namespace kagome::consensus {
     bool rewind_slots;  // NOLINT
     auto slot = current_slot_;
     do {
-      if (current_slot_ != 0
-          and current_slot_ % genesis_configuration_->epoch_length == 0) {
-        // end of the epoch
-        finishEpoch();
-      }
-
       // check that we are really in the middle of the slot, as expected; we can
       // cooperate with a relatively little (kMaxLatency) latency, as our node
       // will be able to retrieve
@@ -258,6 +251,10 @@ namespace kagome::consensus {
 
         current_slot_++;
         next_slot_finish_time_ += genesis_configuration_->slot_duration;
+
+        if (current_epoch_.epoch_index != getEpochNumberBySlot(current_slot_)) {
+          nextEpoch();
+        }
       } else if (slot < current_slot_) {
         log_->info("Slots {}..{} was skipped", slot, current_slot_ - 1);
       }
@@ -283,8 +280,8 @@ namespace kagome::consensus {
     if (not slots_leadership_.has_value()) {
       auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
 
-      auto epoch_res =
-          epoch_storage_->getEpochDescriptor(current_slot_, best_block_hash);
+      auto epoch_res = epoch_storage_->getEpochDescriptor(
+          current_epoch_.epoch_index, best_block_hash);
       BOOST_ASSERT(epoch_res.has_value());
       auto &epoch = epoch_res.value();
 
@@ -310,6 +307,11 @@ namespace kagome::consensus {
 
     ++current_slot_;
     next_slot_finish_time_ += genesis_configuration_->slot_duration;
+
+    if (current_epoch_.epoch_index != getEpochNumberBySlot(current_slot_)) {
+      nextEpoch();
+    }
+
     runSlot();
   }
 
@@ -351,7 +353,9 @@ namespace kagome::consensus {
 
   void BabeImpl::processSlotLeadership(const crypto::VRFOutput &output) {
     // build a block to be announced
-    log_->info("Obtained slot leadership");
+    log_->info("Obtained slot leadership in slot {} epoch {}",
+               current_slot_,
+               current_epoch_.epoch_index);
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -375,8 +379,8 @@ namespace kagome::consensus {
                best_block_number,
                best_block_hash);
 
-    auto epoch =
-        epoch_storage_->getEpochDescriptor(current_slot_, best_block_hash);
+    auto epoch = epoch_storage_->getEpochDescriptor(current_epoch_.epoch_index,
+                                                    best_block_hash);
 
     auto authority_index_res =
         getAuthorityIndex(epoch.value().authorities, keypair_.public_key);
@@ -483,8 +487,10 @@ namespace kagome::consensus {
     return lottery_->slotsLeadership(epoch, randomness, threshold, keypair_);
   }
 
-  void BabeImpl::finishEpoch() {
-    log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
+  void BabeImpl::nextEpoch() {
+    log_->debug("Epoch {} has finished. Start epoch {}",
+                current_epoch_.epoch_index,
+                current_epoch_.epoch_index + 1);
 
     ++current_epoch_.epoch_index;
     current_epoch_.start_slot = current_slot_;
@@ -560,6 +566,14 @@ namespace kagome::consensus {
                              / genesis_configuration_->epoch_length;
 
     return Epoch{.epoch_index = epoch_index, .start_slot = start_slot};
+  }
+
+  EpochIndex BabeImpl::getEpochNumberBySlot(BabeSlotNumber slot_number) const {
+    auto diff =
+        current_epoch_.start_slot
+        - current_epoch_.epoch_index * genesis_configuration_->epoch_length;
+
+    return (slot_number - diff) / genesis_configuration_->epoch_length;
   }
 
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {

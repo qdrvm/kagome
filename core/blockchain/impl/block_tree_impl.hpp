@@ -43,16 +43,24 @@ namespace kagome::blockchain {
     struct TreeNode : public std::enable_shared_from_this<TreeNode> {
       TreeNode(primitives::BlockHash hash,
                primitives::BlockNumber depth,
+               consensus::NextEpochDescriptor &&curr_epoch,
+               consensus::EpochIndex epoch_number,
+               consensus::NextEpochDescriptor &&next_epoch,
+               bool finalized = false);
+
+      TreeNode(primitives::BlockHash hash,
+               primitives::BlockNumber depth,
                const std::shared_ptr<TreeNode> &parent,
-               std::shared_ptr<consensus::NextEpochDescriptor> epoch,
-               consensus::BabeSlotNumber babe_slot,
+               consensus::EpochIndex epoch_number,
+               boost::optional<consensus::NextEpochDescriptor> next_epoch,
                bool finalized = false);
 
       primitives::BlockHash block_hash;
       primitives::BlockNumber depth;
       std::weak_ptr<TreeNode> parent;
+      consensus::EpochIndex epoch_number;
       std::shared_ptr<consensus::NextEpochDescriptor> epoch;
-      consensus::BabeSlotNumber babe_slot;
+      std::shared_ptr<consensus::NextEpochDescriptor> next_epoch;
       bool finalized;
 
       std::vector<std::shared_ptr<TreeNode>> children{};
@@ -188,7 +196,7 @@ namespace kagome::blockchain {
     primitives::BlockInfo getLastFinalized() const override;
 
     outcome::result<consensus::NextEpochDescriptor> getEpochDescriptor(
-        consensus::BabeSlotNumber slot,
+        consensus::EpochIndex epoch_index,
         primitives::BlockHash block_hash) const override;
 
    private:

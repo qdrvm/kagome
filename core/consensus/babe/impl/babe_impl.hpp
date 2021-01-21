@@ -109,7 +109,7 @@ namespace kagome::consensus {
     /**
      * Finish the Babe epoch
      */
-    void finishEpoch();
+    void nextEpoch();
 
     BabeLottery::SlotsLeadership getEpochLeadership(
         const Epoch &epoch,
@@ -161,6 +161,11 @@ namespace kagome::consensus {
      */
     Epoch prepareFirstEpochUnixTime(LastEpochDescriptor last_known_epoch,
                                     BabeSlotNumber first_production_slot) const;
+
+    /**
+     * @returns epoch index by {@param slot_number}
+     */
+    EpochIndex getEpochNumberBySlot(BabeSlotNumber slot_number) const;
 
     /**
      * To be called if we are far behind other nodes to skip some slots and

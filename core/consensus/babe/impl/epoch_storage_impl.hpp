@@ -30,7 +30,8 @@ namespace kagome::consensus {
         std::shared_ptr<kagome::storage::BufferStorage> storage);
 
     outcome::result<NextEpochDescriptor> getEpochDescriptor(
-        BabeSlotNumber slot, primitives::BlockHash block_hash) const override;
+        consensus::EpochIndex epoch_index,
+        primitives::BlockHash block_hash) const override;
 
     outcome::result<void> setLastEpoch(
         const LastEpochDescriptor &epoch_descriptor) override;

@@ -6,18 +6,17 @@
 #ifndef KAGOME_BLOCK_TREE_HPP
 #define KAGOME_BLOCK_TREE_HPP
 
+#include <boost/optional.hpp>
 #include <cstdint>
 #include <vector>
 
-#include <boost/optional.hpp>
-#include <outcome/outcome.hpp>
+#include "consensus/babe/types/next_epoch_descriptor.hpp"
+#include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/justification.hpp"
 #include "primitives/version.hpp"
-#include "consensus/babe/types/next_epoch_descriptor.hpp"
-
 
 namespace kagome::blockchain {
   /**
@@ -225,12 +224,12 @@ namespace kagome::blockchain {
     virtual primitives::BlockInfo getLastFinalized() const = 0;
 
     /**
-     * Get an epoch for {@param slot} by a {@param block_hash}
-     * @return epoch or nothing, if epoch, in which that block was produced, is
-     * unknown to this peer
+     * @returns epoch descriptor for epoch with index {@param epoch_index}
+     * by a block with hash {@param block_hash}, or error if it impossible
      */
     virtual outcome::result<consensus::NextEpochDescriptor> getEpochDescriptor(
-        consensus::BabeSlotNumber slot, primitives::BlockHash block_hash) const = 0;
+        consensus::EpochIndex epoch_index,
+        primitives::BlockHash block_hash) const = 0;
   };
 }  // namespace kagome::blockchain
 

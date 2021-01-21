@@ -266,7 +266,7 @@ namespace kagome::consensus {
     }
 
     OUTCOME_TRY(this_block_epoch_descriptor,
-                epoch_storage_->getEpochDescriptor(babe_header.slot_number,
+                epoch_storage_->getEpochDescriptor(epoch_index,
                                                    block.header.parent_hash));
     logger_->info(
         "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
