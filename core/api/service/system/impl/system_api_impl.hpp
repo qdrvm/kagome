@@ -13,6 +13,9 @@
 namespace kagome::transaction_pool {
   class TransactionPool;
 }
+namespace kagome::crypto {
+  class Hasher;
+}
 
 namespace kagome::api {
 
@@ -23,7 +26,8 @@ namespace kagome::api {
         std::shared_ptr<consensus::Babe> babe,
         std::shared_ptr<network::Gossiper> gossiper,
         std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
-        std::shared_ptr<transaction_pool::TransactionPool> transaction_pool);
+        std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     std::shared_ptr<application::ChainSpec> getConfig() const override;
 
@@ -49,6 +53,7 @@ namespace kagome::api {
     std::shared_ptr<network::Gossiper> gossiper_;
     std::shared_ptr<runtime::AccountNonceApi> account_nonce_api_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
+    std::shared_ptr<crypto::Hasher> hasher_;
   };
 
 }  // namespace kagome::api

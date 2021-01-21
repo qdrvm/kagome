@@ -28,11 +28,21 @@ target_link_libraries(primitives
     )
 kagome_install(primitives)
 
-add_library(base58
-    base58.cpp
+add_library(base58_codec
+    base58_codec.cpp
     )
-target_link_libraries(base58
+target_link_libraries(base58_codec
     buffer
     outcome
     )
-kagome_install(base58)
+kagome_install(base58_codec)
+
+add_library(ss58_codec
+    ss58_codec.cpp
+    )
+target_link_libraries(ss58_codec
+    buffer
+    outcome
+    base58_codec
+    )
+kagome_install(ss58_codec)

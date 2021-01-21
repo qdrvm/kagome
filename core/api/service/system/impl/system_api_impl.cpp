@@ -9,7 +9,7 @@
 
 #include <jsonrpc-lean/request.h>
 
-#include "primitives/base58.hpp"
+#include "primitives/ss58_codec.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
@@ -19,17 +19,20 @@ namespace kagome::api {
       std::shared_ptr<consensus::Babe> babe,
       std::shared_ptr<network::Gossiper> gossiper,
       std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
-      std::shared_ptr<transaction_pool::TransactionPool> transaction_pool)
+      std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
+      std::shared_ptr<crypto::Hasher> hasher)
       : config_(std::move(config)),
         babe_(std::move(babe)),
         gossiper_(std::move(gossiper)),
         account_nonce_api_(std::move(account_nonce_api)),
-        transaction_pool_(std::move(transaction_pool)) {
+        transaction_pool_(std::move(transaction_pool)),
+        hasher_ {std::move(hasher)} {
     BOOST_ASSERT(config_ != nullptr);
     BOOST_ASSERT(babe_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);
     BOOST_ASSERT(account_nonce_api_ != nullptr);
     BOOST_ASSERT(transaction_pool_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
   }
 
   std::shared_ptr<application::ChainSpec> SystemApiImpl::getConfig() const {
@@ -46,18 +49,7 @@ namespace kagome::api {
 
   outcome::result<primitives::AccountNonce> SystemApiImpl::getNonceFor(
       std::string_view account_address) const {
-    // decode SS58 address: base58(<address-type><address><checksum>)
-    // https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)
-    OUTCOME_TRY(ss58_account_id, primitives::decodeBase58(account_address));
-    primitives::AccountId account_id;
-
-    // first byte in SS58 is account type, then 32 bytes of the actual account
-    // id, then 2 bytes of checksum
-    BOOST_ASSERT(ss58_account_id.size() == 35);
-    std::copy_n(ss58_account_id.begin() + 1,
-                primitives::AccountId::size(),
-                account_id.begin());
-
+    OUTCOME_TRY(account_id, primitives::decodeSs58(account_address, *hasher_));
     OUTCOME_TRY(nonce, account_nonce_api_->account_nonce(account_id));
 
     return adjustNonce(account_id, nonce);

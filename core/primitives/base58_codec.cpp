@@ -9,7 +9,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "primitives/base58.hpp"
+#include "primitives/base58_codec.hpp"
 
 /** All alphanumeric characters except for "0", "I", "O", and "l" */
 static const char *pszBase58 =
