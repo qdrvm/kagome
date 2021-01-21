@@ -40,11 +40,13 @@ namespace kagome::blockchain {
       primitives::BlockNumber depth,
       const std::shared_ptr<TreeNode> &parent,
       std::shared_ptr<consensus::NextEpochDescriptor> epoch,
+      consensus::BabeSlotNumber babe_slot,
       bool finalized)
       : block_hash{hash},
         depth{depth},
         parent{parent},
         epoch{std::move(epoch)},
+        babe_slot(babe_slot),
         finalized{finalized} {}
 
   boost::optional<std::vector<std::shared_ptr<BlockTreeImpl::TreeNode>>>
@@ -177,6 +179,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(hash, header_repo->getHashById(last_finalized_block));
 
     std::shared_ptr<consensus::NextEpochDescriptor> epoch;
+    consensus::BabeSlotNumber babe_slot = 0;
     auto hash_tmp = hash;
     for (;;) {
       if (hash_tmp == primitives::BlockHash{}) {
@@ -189,6 +192,14 @@ namespace kagome::blockchain {
 
       OUTCOME_TRY(header_tmp, storage->getBlockHeader(hash_tmp));
 
+      auto babe_digests_res = consensus::getBabeDigests(header_tmp);
+      if (not babe_digests_res) {
+        hash_tmp = header.parent_hash;
+        continue;
+      }
+
+      babe_slot = babe_digests_res.value().second.slot_number;
+
       if (auto digest = consensus::getNextEpochDigest(header_tmp);
           digest.has_value()) {
         epoch = std::make_shared<consensus::NextEpochDescriptor>(
@@ -200,7 +211,7 @@ namespace kagome::blockchain {
     }
 
     auto tree = std::make_shared<TreeNode>(
-        hash, header.number, nullptr, std::move(epoch), true);
+        hash, header.number, nullptr, std::move(epoch), babe_slot,true);
     auto meta = std::make_shared<TreeMeta>(*tree);
 
     auto block_tree = new BlockTreeImpl(std::move(header_repo),
@@ -267,9 +278,15 @@ namespace kagome::blockchain {
       }
     }
 
+    consensus::BabeSlotNumber babe_slot = 0;
+    auto babe_digests_res = consensus::getBabeDigests(header);
+    if (babe_digests_res.has_value()) {
+      babe_slot = babe_digests_res.value().second.slot_number;
+    }
+
     // update local meta with the new block
     auto new_node = std::make_shared<TreeNode>(
-        block_hash, header.number, parent, std::move(epoch));
+        block_hash, header.number, parent, std::move(epoch), babe_slot);
     parent->children.push_back(new_node);
 
     tree_meta_->leaves.insert(new_node->block_hash);
@@ -316,9 +333,15 @@ namespace kagome::blockchain {
       }
     }
 
+    consensus::BabeSlotNumber babe_slot = 0;
+    auto babe_digests_res = consensus::getBabeDigests(block.header);
+    if (babe_digests_res.has_value()) {
+      babe_slot = babe_digests_res.value().second.slot_number;
+    }
+
     // Update local meta with the block
     auto new_node = std::make_shared<TreeNode>(
-        block_hash, block.header.number, parent, std::move(epoch));
+        block_hash, block.header.number, parent, std::move(epoch), babe_slot);
 
     updateMeta(new_node);
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
@@ -361,9 +384,15 @@ namespace kagome::blockchain {
       }
     }
 
+    consensus::BabeSlotNumber babe_slot = 0;
+    auto babe_digests_res = consensus::getBabeDigests(block_header);
+    if (babe_digests_res.has_value()) {
+      babe_slot = babe_digests_res.value().second.slot_number;
+    }
+
     // Update local meta with the block
     auto new_node = std::make_shared<TreeNode>(
-        block_hash, block_header.number, parent, std::move(epoch));
+        block_hash, block_header.number, parent, std::move(epoch), babe_slot);
 
     updateMeta(new_node);
 
@@ -765,7 +794,7 @@ namespace kagome::blockchain {
 
       if (auto digest = consensus::getNextEpochDigest(header);
           digest.has_value()) {
-        auto z = std::move(digest.value());
+        return std::move(digest.value());
       }
 
       block_hash = header.parent_hash;

@@ -45,17 +45,16 @@ namespace kagome::blockchain {
                primitives::BlockNumber depth,
                const std::shared_ptr<TreeNode> &parent,
                std::shared_ptr<consensus::NextEpochDescriptor> epoch,
+               consensus::BabeSlotNumber babe_slot,
                bool finalized = false);
 
       primitives::BlockHash block_hash;
       primitives::BlockNumber depth;
       std::weak_ptr<TreeNode> parent;
       std::shared_ptr<consensus::NextEpochDescriptor> epoch;
+      consensus::BabeSlotNumber babe_slot;
       bool finalized;
 
-      consensus::BabeSlotNumber babe_slot;
-      std::shared_ptr<consensus::NextEpochDescriptor> epoch_descriptor;
-      std::shared_ptr<TreeNode> previous_epoch_holder;
       std::vector<std::shared_ptr<TreeNode>> children{};
 
       /**
