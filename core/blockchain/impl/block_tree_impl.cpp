@@ -211,10 +211,9 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration) {
-    // retrieve the block's header: we need data from it
-    OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
     // create meta structures from the retrieved header
     OUTCOME_TRY(hash, header_repo->getHashById(last_finalized_block));
+    OUTCOME_TRY(number, header_repo->getNumberById(last_finalized_block));
 
     common::Logger log = common::createLogger("BlockTree::create");
 
@@ -231,11 +230,19 @@ namespace kagome::blockchain {
           curr_epoch.emplace(consensus::NextEpochDescriptor{
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
+          log->debug(
+              "EPOCH_DIGEST_IN_BLICKTREE: CURR EPOCH #{}, Randomness: {}",
+              curr_epoch_number.value(),
+              curr_epoch.value().randomness.toHex());
         }
         if (not next_epoch.has_value()) {
           next_epoch.emplace(consensus::NextEpochDescriptor{
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
+          log->debug(
+              "EPOCH_DIGEST_IN_BLICKTREE: NEXT EPOCH #{}+, Randomness: {}",
+              1,
+              next_epoch.value().randomness.toHex());
         }
         break;
       }
@@ -244,7 +251,7 @@ namespace kagome::blockchain {
 
       auto babe_digests_res = consensus::getBabeDigests(header_tmp);
       if (not babe_digests_res) {
-        hash_tmp = header.parent_hash;
+        hash_tmp = header_tmp.parent_hash;
         continue;
       }
 
@@ -275,14 +282,14 @@ namespace kagome::blockchain {
           log->debug(
               "EPOCH_DIGEST_IN_BLICKTREE: NEXT EPOCH #{}+, Randomness: {}",
               epoch_number + 1,
-              digest.value().randomness.toHex());
+              next_epoch.value().randomness.toHex());
         }
         if (epoch_number != curr_epoch_number) {
           curr_epoch.emplace(digest.value());
           log->debug(
               "EPOCH_DIGEST_IN_BLICKTREE: CURR EPOCH #{}, Randomness: {}",
               curr_epoch_number.value(),
-              digest.value().randomness.toHex());
+              curr_epoch.value().randomness.toHex());
           break;
         }
       }
@@ -293,14 +300,14 @@ namespace kagome::blockchain {
     log->debug(
         "EPOCH_DIGEST_IN_BLICKTREE: ROOT, block #{}, hash {}\n"
         "Epoch {}, Current randomness {}, Next randomness {}",
-        header.number,
+        number,
         hash.toHex(),
         curr_epoch_number.value(),
         curr_epoch.value().randomness,
         next_epoch.value().randomness);
 
     auto tree = std::make_shared<TreeNode>(hash,
-                                           header.number,
+                                           number,
                                            std::move(curr_epoch.value()),
                                            curr_epoch_number.value(),
                                            std::move(next_epoch.value()));
