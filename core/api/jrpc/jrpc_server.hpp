@@ -6,12 +6,13 @@
 #ifndef KAGOME_API_JRPC_SERVER_HPP
 #define KAGOME_API_JRPC_SERVER_HPP
 
+#include <functional>
+
 #include <jsonrpc-lean/dispatcher.h>
 #include <jsonrpc-lean/response.h>
 #include <jsonrpc-lean/value.h>
-#include <outcome/outcome.hpp>
 
-#include <functional>
+#include "outcome/outcome.hpp"
 
 namespace kagome::api {
 

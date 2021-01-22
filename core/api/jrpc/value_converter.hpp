@@ -19,6 +19,7 @@
 #include "primitives/digest.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/extrinsic.hpp"
+#include "primitives/runtime_dispatch_info.hpp"
 #include "primitives/version.hpp"
 #include "scale/scale.hpp"
 
@@ -210,6 +211,15 @@ namespace kagome::api {
   template <typename T>
   inline jsonrpc::Value makeValue(const std::reference_wrapper<T> &v) {
     return makeValue(v.get());
+  }
+
+  inline jsonrpc::Value makeValue(const primitives::RuntimeDispatchInfo &v) {
+    using jStruct = jsonrpc::Value::Struct;
+    jStruct res;
+    res["weight"] = makeValue(v.weight);
+    res["partial_fee"] = makeValue(v.partial_fee);
+    res["class"] = makeValue(static_cast<uint8_t>(v.dispatch_class));
+    return res;
   }
 
   inline jsonrpc::Value makeValue(
