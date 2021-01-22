@@ -214,11 +214,21 @@ namespace kagome::api {
   }
 
   inline jsonrpc::Value makeValue(const primitives::RuntimeDispatchInfo &v) {
-    using jStruct = jsonrpc::Value::Struct;
-    jStruct res;
+    jsonrpc::Value::Struct res;
     res["weight"] = makeValue(v.weight);
-    res["partial_fee"] = makeValue(v.partial_fee);
-    res["class"] = makeValue(static_cast<uint8_t>(v.dispatch_class));
+    res["partialFee"] = makeValue(v.partial_fee);
+    using Class = primitives::RuntimeDispatchInfo::DispatchClass;
+    switch (v.dispatch_class) {
+      case Class::Normal:
+        res["class"] = "normal";
+        break;
+      case Class::Mandatory:
+        res["class"] = "mandatory";
+        break;
+      case Class::Operational:
+        res["class"] = "operational";
+        break;
+    }
     return res;
   }
 
