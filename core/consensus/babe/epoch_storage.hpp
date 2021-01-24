@@ -21,14 +21,6 @@ namespace kagome::consensus {
     virtual ~EpochStorage() = default;
 
     /**
-     * @returns epoch descriptor for epoch with index {@param epoch_index}
-     * by a block with hash {@param block_hash}, or error if it impossible
-     */
-    virtual outcome::result<NextEpochDescriptor> getEpochDescriptor(
-        consensus::EpochIndex epoch_index,
-        primitives::BlockHash block_hash) const = 0;
-
-    /**
      * Stores epoch's data for last active epoch
      * @param led LastEpochDescriptor of last active epoch
      * @return result of store

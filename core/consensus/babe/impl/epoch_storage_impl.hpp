@@ -26,12 +26,7 @@ namespace kagome::consensus {
 
     explicit EpochStorageImpl(
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-        std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<kagome::storage::BufferStorage> storage);
-
-    outcome::result<NextEpochDescriptor> getEpochDescriptor(
-        consensus::EpochIndex epoch_index,
-        primitives::BlockHash block_hash) const override;
 
     outcome::result<void> setLastEpoch(
         const LastEpochDescriptor &epoch_descriptor) override;
@@ -40,18 +35,10 @@ namespace kagome::consensus {
 
    private:
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<kagome::storage::BufferStorage> storage_;
-    boost::optional<LastEpochDescriptor>
-        last_epoch_;  // optimization for storing in memory last epoch
 
-    struct Node {
-      primitives::BlockHash block_hash;
-
-      std::set<Node> child;
-    };
-
-    std::unordered_map<primitives::BlockHash, std::shared_ptr<Node>> nodes_;
+    // optimization for storing in memory last epoch
+    boost::optional<LastEpochDescriptor> last_epoch_;
   };
 }  // namespace kagome::consensus
 

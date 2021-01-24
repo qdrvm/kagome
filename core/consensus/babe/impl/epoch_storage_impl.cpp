@@ -23,20 +23,11 @@ namespace kagome::consensus {
 
   EpochStorageImpl::EpochStorageImpl(
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
-      std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<kagome::storage::BufferStorage> storage)
       : babe_configuration_{std::move(babe_configuration)},
-        block_tree_{std::move(block_tree)},
         storage_{std::move(storage)} {
     BOOST_ASSERT(babe_configuration_);
-    BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(storage_);
-  }
-
-  outcome::result<NextEpochDescriptor> EpochStorageImpl::getEpochDescriptor(
-      consensus::EpochIndex epoch_index,
-      primitives::BlockHash block_hash) const {
-    return block_tree_->getEpochDescriptor(epoch_index, block_hash);
   }
 
   outcome::result<void> EpochStorageImpl::setLastEpoch(

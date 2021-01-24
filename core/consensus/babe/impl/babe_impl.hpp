@@ -19,6 +19,7 @@
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_gossiper.hpp"
 #include "consensus/babe/babe_lottery.hpp"
+#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
@@ -69,7 +70,8 @@ namespace kagome::consensus {
              std::unique_ptr<clock::Timer> timer,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
-             SlotsStrategy slots_calculation_strategy);
+             SlotsStrategy slots_calculation_strategy,
+             std::shared_ptr<BabeUtil> babe_util);
 
     ~BabeImpl() override = default;
 
@@ -163,11 +165,6 @@ namespace kagome::consensus {
                                     BabeSlotNumber first_production_slot) const;
 
     /**
-     * @returns epoch index by {@param slot_number}
-     */
-    EpochIndex getEpochNumberBySlot(BabeSlotNumber slot_number) const;
-
-    /**
      * To be called if we are far behind other nodes to skip some slots and
      * finally synchronize with the network
      */
@@ -191,6 +188,7 @@ namespace kagome::consensus {
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     const SlotsStrategy slots_calculation_strategy_;
+    std::shared_ptr<BabeUtil> babe_util_;
 
     State current_state_{State::WAIT_BLOCK};
 

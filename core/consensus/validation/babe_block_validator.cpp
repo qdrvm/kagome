@@ -120,7 +120,7 @@ namespace kagome::consensus {
     prepareTranscript(
         transcript, randomness, babe_header.slot_number, epoch_index);
     log_->debug(
-        "prepareTranscript (viryfyVRF): randomness {}, slot {}, epoch {}",
+        "prepareTranscript (verifyVRF): randomness {}, slot {}, epoch {}",
         randomness,
         babe_header.slot_number,
         epoch_index);

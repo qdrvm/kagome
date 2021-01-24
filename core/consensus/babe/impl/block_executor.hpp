@@ -12,6 +12,7 @@
 #include "common/logger.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_synchronizer.hpp"
+#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -41,7 +42,7 @@ namespace kagome::consensus {
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<authority::AuthorityUpdateObserver>
                       authority_update_observer,
-                  SlotsStrategy slots_strategy,
+                  std::shared_ptr<BabeUtil> babe_util,
                   std::shared_ptr<boost::asio::io_context> io_context);
 
     /**
@@ -103,7 +104,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
-    const SlotsStrategy slots_strategy_;
+    std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     common::Logger logger_;
 

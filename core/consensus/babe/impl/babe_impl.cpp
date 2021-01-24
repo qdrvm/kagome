@@ -37,7 +37,8 @@ namespace kagome::consensus {
       std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      SlotsStrategy slots_calculation_strategy)
+      SlotsStrategy slots_calculation_strategy,
+      std::shared_ptr<BabeUtil> babe_util)
       : app_state_manager_(std::move(app_state_manager)),
         lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
@@ -54,6 +55,7 @@ namespace kagome::consensus {
         timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
         slots_calculation_strategy_{slots_calculation_strategy},
+        babe_util_(std::move(babe_util)),
         log_{common::createLogger("BABE")} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
@@ -67,6 +69,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(log_);
     BOOST_ASSERT(authority_update_observer_);
+    BOOST_ASSERT(babe_util_);
 
     app_state_manager_->atLaunch([this] { return start(); });
   }
@@ -85,8 +88,6 @@ namespace kagome::consensus {
       log_->critical("Internal error: undefined execution strategy of babe");
       return false;
     }
-
-    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
 
     LastEpochDescriptor last_epoch_descriptor;
     if (auto res = epoch_storage_->getLastEpoch(); res.has_value()) {
@@ -112,6 +113,8 @@ namespace kagome::consensus {
           closestNextTimeMultiple(std::chrono::system_clock::now(),
                                   genesis_configuration_->slot_duration);
     }
+
+    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
 
     if (execution_strategy_.value() != ExecutionStrategy::SYNC_FIRST) {
       log_->debug("Babe is starting in epoch #{} with block #{}, hash={}",
@@ -252,7 +255,8 @@ namespace kagome::consensus {
         current_slot_++;
         next_slot_finish_time_ += genesis_configuration_->slot_duration;
 
-        if (current_epoch_.epoch_index != getEpochNumberBySlot(current_slot_)) {
+        if (current_epoch_.epoch_index
+            != babe_util_->slotToEpoch(current_slot_)) {
           nextEpoch();
         }
       } else if (slot < current_slot_) {
@@ -280,7 +284,7 @@ namespace kagome::consensus {
     if (not slots_leadership_.has_value()) {
       auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
 
-      auto epoch_res = epoch_storage_->getEpochDescriptor(
+      auto epoch_res = block_tree_->getEpochDescriptor(
           current_epoch_.epoch_index, best_block_hash);
       BOOST_ASSERT(epoch_res.has_value());
       auto &epoch = epoch_res.value();
@@ -308,7 +312,7 @@ namespace kagome::consensus {
     ++current_slot_;
     next_slot_finish_time_ += genesis_configuration_->slot_duration;
 
-    if (current_epoch_.epoch_index != getEpochNumberBySlot(current_slot_)) {
+    if (current_epoch_.epoch_index != babe_util_->slotToEpoch(current_slot_)) {
       nextEpoch();
     }
 
@@ -379,8 +383,8 @@ namespace kagome::consensus {
                best_block_number,
                best_block_hash);
 
-    auto epoch = epoch_storage_->getEpochDescriptor(current_epoch_.epoch_index,
-                                                    best_block_hash);
+    auto epoch = block_tree_->getEpochDescriptor(current_epoch_.epoch_index,
+                                                 best_block_hash);
 
     auto authority_index_res =
         getAuthorityIndex(epoch.value().authorities, keypair_.public_key);
@@ -468,10 +472,12 @@ namespace kagome::consensus {
 
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
-    log_->debug("Announced block number {} in slot {} with timestamp {}",
-                block.header.number,
-                current_slot_,
-                now);
+    log_->debug(
+        "Announced block number {} in slot {} (epoch {}) with timestamp {}",
+        block.header.number,
+        current_slot_,
+        babe_util_->slotToEpoch(current_slot_),
+        now);
   }
 
   BabeLottery::SlotsLeadership BabeImpl::getEpochLeadership(
@@ -566,14 +572,6 @@ namespace kagome::consensus {
                              / genesis_configuration_->epoch_length;
 
     return Epoch{.epoch_index = epoch_index, .start_slot = start_slot};
-  }
-
-  EpochIndex BabeImpl::getEpochNumberBySlot(BabeSlotNumber slot_number) const {
-    auto diff =
-        current_epoch_.start_slot
-        - current_epoch_.epoch_index * genesis_configuration_->epoch_length;
-
-    return (slot_number - diff) / genesis_configuration_->epoch_length;
   }
 
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {

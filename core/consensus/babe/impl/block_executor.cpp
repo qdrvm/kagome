@@ -38,7 +38,7 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      SlotsStrategy slots_strategy,
+      std::shared_ptr<BabeUtil> babe_util,
       std::shared_ptr<boost::asio::io_context> io_context)
       : sync_state_(kReadyState),
         block_tree_{std::move(block_tree)},
@@ -51,7 +51,7 @@ namespace kagome::consensus {
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
-        slots_strategy_{slots_strategy},
+        babe_util_(std::move(babe_util)),
         io_context_(std::move(io_context)),
         logger_{common::createLogger("BlockExecutor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -64,6 +64,8 @@ namespace kagome::consensus {
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
+    BOOST_ASSERT(babe_util_ != nullptr);
+    BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -234,8 +236,7 @@ namespace kagome::consensus {
 
     {
       // add information about epoch to epoch storage
-      if (slots_strategy_ == SlotsStrategy::FromUnixEpoch
-          and block.header.number == 1) {
+      if (block.header.number == 1) {
         OUTCOME_TRY(epoch_storage_->setLastEpoch(LastEpochDescriptor{
             .epoch_number = 0,
             .start_slot = babe_header.slot_number,
@@ -245,29 +246,11 @@ namespace kagome::consensus {
       }
     }
 
-    EpochIndex epoch_index;
-    BabeSlotNumber slot_in_epoch;
-    switch (slots_strategy_) {
-      case SlotsStrategy::FromZero:
-        epoch_index =
-            babe_header.slot_number / genesis_configuration_->epoch_length;
-        slot_in_epoch = 0ull;
-        break;
-      case SlotsStrategy::FromUnixEpoch:
-        OUTCOME_TRY(last_epoch, epoch_storage_->getLastEpoch());
-        const auto last_epoch_start_slot = last_epoch.start_slot;
-        const auto last_epoch_index = last_epoch.epoch_number;
-        const auto slot_dif = babe_header.slot_number - last_epoch_start_slot;
+    EpochIndex epoch_index = babe_util_->slotToEpoch(babe_header.slot_number);
 
-        epoch_index =
-            last_epoch_index + slot_dif / genesis_configuration_->epoch_length;
-        slot_in_epoch = slot_dif % genesis_configuration_->epoch_length;
-        break;
-    }
-
-    OUTCOME_TRY(this_block_epoch_descriptor,
-                epoch_storage_->getEpochDescriptor(epoch_index,
-                                                   block.header.parent_hash));
+    OUTCOME_TRY(
+        this_block_epoch_descriptor,
+        block_tree_->getEpochDescriptor(epoch_index, block.header.parent_hash));
     logger_->info(
         "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
         "block #{}). Randomness: {}",

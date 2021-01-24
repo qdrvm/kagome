@@ -351,6 +351,8 @@ namespace kagome::injector {
     auto babe_configuration =
         injector
             .template create<std::shared_ptr<primitives::BabeConfiguration>>();
+    auto babe_util =
+        injector.template create<std::shared_ptr<consensus::BabeUtil>>();
 
     auto tree =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
@@ -362,7 +364,8 @@ namespace kagome::injector {
                                           std::move(ext_events_engine),
                                           std::move(ext_events_key_repo),
                                           std::move(runtime_core),
-                                          std::move(babe_configuration));
+                                          std::move(babe_configuration),
+                                          std::move(babe_util));
     if (!tree) {
       common::raise(tree.error());
     }
@@ -731,7 +734,7 @@ namespace kagome::injector {
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<consensus::SlotsStrategy>(),
+        injector.template create<sptr<consensus::BabeUtil>>(),
         injector.template create<sptr<boost::asio::io_context>>());
     return *initialized;
   }

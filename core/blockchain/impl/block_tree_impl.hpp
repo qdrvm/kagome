@@ -20,6 +20,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
+#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/next_epoch_descriptor.hpp"
 #include "crypto/hasher.hpp"
@@ -127,7 +128,8 @@ namespace kagome::blockchain {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
-        std::shared_ptr<primitives::BabeConfiguration> babe_configuration);
+        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+        std::shared_ptr<consensus::BabeUtil> babe_util);
 
     ~BlockTreeImpl() override = default;
 
@@ -217,7 +219,8 @@ namespace kagome::blockchain {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
-        std::shared_ptr<primitives::BabeConfiguration> babe_configuration);
+        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+        std::shared_ptr<consensus::BabeUtil> babe_util);
 
     /**
      * Update local meta with the provided node
@@ -269,6 +272,7 @@ namespace kagome::blockchain {
         extrinsic_event_key_repo_;
     std::shared_ptr<runtime::Core> runtime_core_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
+    std::shared_ptr<const consensus::BabeUtil> babe_util_;
     boost::optional<primitives::Version> actual_runtime_version_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");
   };

@@ -210,7 +210,8 @@ namespace kagome::blockchain {
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
-      std::shared_ptr<primitives::BabeConfiguration> babe_configuration) {
+      std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+      std::shared_ptr<consensus::BabeUtil> babe_util) {
     // create meta structures from the retrieved header
     OUTCOME_TRY(hash, header_repo->getHashById(last_finalized_block));
     OUTCOME_TRY(number, header_repo->getNumberById(last_finalized_block));
@@ -256,7 +257,7 @@ namespace kagome::blockchain {
       }
 
       auto slot_number = babe_digests_res.value().second.slot_number;
-      auto epoch_number = slot_number / babe_configuration->epoch_length;
+      auto epoch_number = babe_util->slotToEpoch(slot_number);
 
       log->debug(
           "EPOCH_DIGEST_IN_BLICKTREE: BLOCK, slot {}, epoch {}, block #{}, "
@@ -323,7 +324,8 @@ namespace kagome::blockchain {
                                         std::move(extrinsic_events_engine),
                                         std::move(extrinsic_event_key_repo),
                                         std::move(runtime_core),
-                                        std::move(babe_configuration));
+                                        std::move(babe_configuration),
+                                        std::move(babe_util));
     return std::shared_ptr<BlockTreeImpl>(block_tree);
   }
 
@@ -340,7 +342,8 @@ namespace kagome::blockchain {
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
-      std::shared_ptr<primitives::BabeConfiguration> babe_configuration)
+      std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+      std::shared_ptr<consensus::BabeUtil> babe_util)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(tree)},
@@ -351,12 +354,14 @@ namespace kagome::blockchain {
         extrinsic_events_engine_(std::move(extrinsic_events_engine)),
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
         runtime_core_(std::move(runtime_core)),
-        babe_configuration_(std::move(babe_configuration)) {
+        babe_configuration_(std::move(babe_configuration)),
+        babe_util_(std::move(babe_util)) {
     BOOST_ASSERT(chain_events_engine_);
     BOOST_ASSERT(extrinsic_events_engine_);
     BOOST_ASSERT(extrinsic_event_key_repo_);
     BOOST_ASSERT(runtime_core_);
     BOOST_ASSERT(babe_configuration_);
+    BOOST_ASSERT(babe_util_);
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -370,8 +375,8 @@ namespace kagome::blockchain {
     consensus::EpochIndex epoch_number = 0;
     auto babe_digests_res = consensus::getBabeDigests(header);
     if (babe_digests_res.has_value()) {
-      epoch_number = babe_digests_res.value().second.slot_number
-                     / babe_configuration_->epoch_length;
+      epoch_number =
+          babe_util_->slotToEpoch(babe_digests_res.value().second.slot_number);
     }
 
     boost::optional<consensus::NextEpochDescriptor> next_epoch;
@@ -422,8 +427,8 @@ namespace kagome::blockchain {
     consensus::EpochIndex epoch_number = 0;
     auto babe_digests_res = consensus::getBabeDigests(block.header);
     if (babe_digests_res.has_value()) {
-      epoch_number = babe_digests_res.value().second.slot_number
-                     / babe_configuration_->epoch_length;
+      auto babe_slot = babe_digests_res.value().second.slot_number;
+      epoch_number = babe_util_->slotToEpoch(babe_slot);
     }
 
     boost::optional<consensus::NextEpochDescriptor> next_epoch;
@@ -473,8 +478,8 @@ namespace kagome::blockchain {
     consensus::EpochIndex epoch_number = 0;
     auto babe_digests_res = consensus::getBabeDigests(block_header);
     if (babe_digests_res.has_value()) {
-      epoch_number = babe_digests_res.value().second.slot_number
-                     / babe_configuration_->epoch_length;
+      auto babe_slot = babe_digests_res.value().second.slot_number;
+      epoch_number = babe_util_->slotToEpoch(babe_slot);
     }
 
     boost::optional<consensus::NextEpochDescriptor> next_epoch;
