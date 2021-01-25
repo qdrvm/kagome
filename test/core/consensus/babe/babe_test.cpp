@@ -77,7 +77,11 @@ class BabeTest : public testing::Test {
     trie_db_ = std::make_shared<storage::trie::TrieStorageMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<grandpa::EnvironmentMock>();
+
     epoch_storage_ = std::make_shared<EpochStorageMock>();
+    EXPECT_CALL(*epoch_storage_, getLastEpoch())
+        .WillOnce(Return(outcome::success(LastEpochDescriptor{})));
+
     tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
     core_ = std::make_shared<runtime::CoreMock>();
     proposer_ = std::make_shared<ProposerMock>();
@@ -92,27 +96,30 @@ class BabeTest : public testing::Test {
     io_context_ = std::make_shared<boost::asio::io_context>();
 
     // add initialization logic
-    auto expected_config = std::make_shared<primitives::BabeConfiguration>();
-    expected_config->slot_duration = slot_duration_;
-    expected_config->randomness.fill(0);
-    expected_config->genesis_authorities = {
+    babe_config_ = std::make_shared<primitives::BabeConfiguration>();
+    babe_config_->slot_duration = 60ms;
+    babe_config_->randomness.fill(0);
+    babe_config_->genesis_authorities = {
         primitives::Authority{{keypair_.public_key}, 1}};
-    expected_config->leadership_rate = {1, 4};
-    expected_config->epoch_length = epoch_length_;
+    babe_config_->leadership_rate = {1, 4};
+    babe_config_->epoch_length = 2;
+
+    babe_util_ = std::make_shared<BabeUtil>(
+        epoch_storage_, babe_config_, slots_strategy_, *clock_);
 
     consensus::NextEpochDescriptor expected_epoch_digest{
-        .authorities = expected_config->genesis_authorities,
-        .randomness = expected_config->randomness};
+        .authorities = babe_config_->genesis_authorities,
+        .randomness = babe_config_->randomness};
 
-    EXPECT_CALL(*epoch_storage_, getEpochDescriptor(_))
+    EXPECT_CALL(*block_tree_, getEpochDescriptor(_, _))
         .WillRepeatedly(Return(expected_epoch_digest));
-    EXPECT_CALL(*epoch_storage_, getEpochDescriptor(_))
+    EXPECT_CALL(*block_tree_, getEpochDescriptor(_, _))
         .WillRepeatedly(Return(expected_epoch_digest));
 
     auto block_executor =
         std::make_shared<BlockExecutor>(block_tree_,
                                         core_,
-                                        expected_config,
+                                        babe_config_,
                                         babe_synchronizer_,
                                         babe_block_validator_,
                                         grandpa_environment_,
@@ -120,7 +127,7 @@ class BabeTest : public testing::Test {
                                         tx_pool_,
                                         hasher_,
                                         grandpa_authority_update_observer_,
-                                        slots_strategy_,
+                                        babe_util_,
                                         io_context_);
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
@@ -136,7 +143,7 @@ class BabeTest : public testing::Test {
                                        block_executor,
                                        trie_db_,
                                        epoch_storage_,
-                                       expected_config,
+                                       babe_config_,
                                        proposer_,
                                        block_tree_,
                                        gossiper_,
@@ -146,9 +153,9 @@ class BabeTest : public testing::Test {
                                        hasher_,
                                        std::move(timer_mock_),
                                        grandpa_authority_update_observer_,
-                                       slots_strategy_);
+                                       slots_strategy_,
+                                       babe_util_);
 
-    epoch_.epoch_length = expected_config->epoch_length;
     epoch_.start_slot = 0;
     epoch_.epoch_index = 0;
 
@@ -182,15 +189,14 @@ class BabeTest : public testing::Test {
   testutil::TimerMock *timer_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
-
   SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
+  std::shared_ptr<primitives::BabeConfiguration> babe_config_;
+  std::shared_ptr<BabeUtil> babe_util_;
   std::shared_ptr<boost::asio::io_context> io_context_;
 
   std::shared_ptr<BabeImpl> babe_;
 
   Epoch epoch_;
-  BabeDuration slot_duration_{60ms};
-  EpochLength epoch_length_{2};
 
   VRFOutput leader_vrf_output_{
       uint256_t_to_bytes(50),
@@ -240,10 +246,7 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(leadership_));
   Epoch next_epoch = epoch_;
   next_epoch.epoch_index++;
-  next_epoch.start_slot += epoch_length_;
-
-  EXPECT_CALL(*lottery_, slotsLeadership(next_epoch, randomness, _, keypair_))
-      .WillOnce(Return(leadership_));
+  next_epoch.start_slot += babe_config_->epoch_length;
 
   EXPECT_CALL(*trie_db_, getRootHash())
       .WillRepeatedly(Return(common::Buffer{}));
@@ -251,14 +254,14 @@ TEST_F(BabeTest, Success) {
   // runSlot (3 times)
   EXPECT_CALL(*clock_, now())
       .WillOnce(Return(test_begin))
-      .WillOnce(Return(test_begin + slot_duration_))
-      .WillOnce(Return(test_begin + slot_duration_))
-      .WillOnce(Return(test_begin + slot_duration_ * 2))
-      .WillOnce(Return(test_begin + slot_duration_ * 2));
+      .WillOnce(Return(test_begin + babe_config_->slot_duration))
+      .WillOnce(Return(test_begin + babe_config_->slot_duration))
+      .WillOnce(Return(test_begin + babe_config_->slot_duration * 2))
+      .WillOnce(Return(test_begin + babe_config_->slot_duration * 2));
 
-  EXPECT_CALL(*timer_, expiresAt(test_begin + slot_duration_));
-  EXPECT_CALL(*timer_, expiresAt(test_begin + slot_duration_ * 2));
-  EXPECT_CALL(*timer_, expiresAt(test_begin + slot_duration_ * 3));
+  EXPECT_CALL(*timer_, expiresAt(test_begin + babe_config_->slot_duration));
+  EXPECT_CALL(*timer_, expiresAt(test_begin + babe_config_->slot_duration * 2));
+  EXPECT_CALL(*timer_, expiresAt(test_begin + babe_config_->slot_duration * 3));
 
   EXPECT_CALL(*timer_, asyncWait(_))
       .WillOnce(testing::InvokeArgument<0>(boost::system::error_code{}))
@@ -267,7 +270,9 @@ TEST_F(BabeTest, Success) {
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
-  EXPECT_CALL(*block_tree_, deepestLeaf()).WillOnce(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, deepestLeaf())
+      .Times(2)
+      .WillRepeatedly(Return(best_leaf));
   EXPECT_CALL(*proposer_, propose(best_block_number_, _, _))
       .WillOnce(Return(created_block_));
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
@@ -280,5 +285,5 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(outcome::success()))
       .WillOnce(Return(outcome::success()));
 
-  babe_->runEpoch(epoch_, test_begin + slot_duration_);
+  babe_->runEpoch(epoch_, test_begin + babe_config_->slot_duration);
 }
