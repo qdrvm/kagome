@@ -222,6 +222,14 @@ namespace kagome::blockchain {
     boost::optional<consensus::NextEpochDescriptor> curr_epoch;
     boost::optional<consensus::NextEpochDescriptor> next_epoch;
     auto hash_tmp = hash;
+
+    // We are going block by block to genesis direction and observes them for
+    // find epoch digest. First found digest if it in the block assigned to the
+    // current epoch will be saved as digest planned for next epoch. First found
+    // digest if it in the block assigned to the early epoch will be saved as
+    // digest for current epoch (and planned for next epoch, if it not defined
+    // yet).
+
     for (;;) {
       if (hash_tmp == primitives::BlockHash{}) {
         if (not curr_epoch_number.has_value()) {
