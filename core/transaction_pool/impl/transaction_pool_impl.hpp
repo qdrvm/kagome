@@ -6,10 +6,9 @@
 #ifndef KAGOME_TRANSACTION_POOL_IMPL_HPP
 #define KAGOME_TRANSACTION_POOL_IMPL_HPP
 
-#include <outcome/outcome.hpp>
-
 #include "blockchain/block_header_repository.hpp"
 #include "common/logger.hpp"
+#include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/pool_moderator.hpp"
@@ -26,8 +25,7 @@ namespace kagome::transaction_pool {
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
             sub_engine,
-        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-            ext_key_repo,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository> ext_key_repo,
         Limits limits);
 
     TransactionPoolImpl(TransactionPoolImpl &&) = default;
@@ -110,14 +108,14 @@ namespace kagome::transaction_pool {
         sub_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository> ext_key_repo_;
 
-    // bans stale and invalid transactions for some amount of time
+    /// bans stale and invalid transactions for some amount of time
     std::unique_ptr<PoolModerator> moderator_;
 
     /// All of imported transaction, contained in the pool
     std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>>
         imported_txs_;
 
-    /// Collection transaction with full-satisfied dependensies
+    /// Collection transaction with full-satisfied dependencies
     std::unordered_map<Transaction::Hash, std::weak_ptr<Transaction>>
         ready_txs_;
 

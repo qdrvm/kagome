@@ -267,8 +267,8 @@ namespace kagome::blockchain {
     updateMeta(new_node);
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
+    log_->info("BODY: {}", block.body.size());
     for (size_t idx = 0; idx < block.body.size(); idx++) {
-      if (block.body.size() > 1)
       if (auto key = extrinsic_event_key_repo_->getEventKey(block.header.number,
                                                             idx)) {
         extrinsic_events_engine_->notify(
