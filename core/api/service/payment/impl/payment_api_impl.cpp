@@ -6,6 +6,7 @@
 #include "api/service/payment/impl/payment_api_impl.hpp"
 
 #include "runtime/transaction_payment_api.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::api {
 
@@ -15,13 +16,9 @@ namespace kagome::api {
     BOOST_ASSERT(api_);
   }
 
-  primitives::RuntimeDispatchInfo PaymentApiImpl::queryInfo(
-      const primitives::Extrinsic &extrinsic, OptionalHashRef at) const {
-    auto res = api_->query_info(extrinsic);
-    return {.weight = 0xBEEF,
-            .dispatch_class =
-                primitives::RuntimeDispatchInfo::DispatchClass::Normal,
-            .partial_fee = 0xDEAD};
+  outcome::result<primitives::RuntimeDispatchInfo> PaymentApiImpl::queryInfo(
+      const primitives::Extrinsic &extrinsic, uint32_t len, OptionalHashRef at) const {
+    return api_->query_info(extrinsic, len);
   }
 
 }  // namespace kagome::api

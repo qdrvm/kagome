@@ -8,6 +8,7 @@
 
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/transaction_payment_api.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::runtime {
   class WasmProvider;
@@ -16,7 +17,8 @@ namespace kagome::runtime {
 
 namespace kagome::runtime::binaryen {
 
-  class TransactionPaymentApiImpl : public RuntimeApi, public TransactionPaymentApi {
+  class TransactionPaymentApiImpl : public RuntimeApi,
+                                    public TransactionPaymentApi {
    public:
     TransactionPaymentApiImpl(
         const std::shared_ptr<WasmProvider> &wasm_provider,
@@ -26,9 +28,12 @@ namespace kagome::runtime::binaryen {
     ~TransactionPaymentApiImpl() override = default;
 
     outcome::result<primitives::RuntimeDispatchInfo> query_info(
-        const primitives::Extrinsic &ext) override {
+        const primitives::Extrinsic &ext, uint32_t len) override {
       return execute<primitives::RuntimeDispatchInfo>(
-          "TransactionPaymentApi_query_info", CallPersistency::EPHEMERAL, ext);
+          "TransactionPaymentApi_query_info",
+          CallPersistency::EPHEMERAL,
+          scale::RawCollection<common::Buffer>{ext.data},
+          len);
     }
   };
 

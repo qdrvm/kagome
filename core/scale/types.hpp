@@ -21,8 +21,30 @@ namespace kagome::scale {
    */
   using CompactInteger = boost::multiprecision::cpp_int;
 
-  /// @brief OptionalBool is internal extended bool type
+  /**
+   * @brief OptionalBool is internal extended bool type
+   */
   enum class OptionalBool : uint8_t { NONE = 0u, TRUE = 1u, FALSE = 2u };
+
+  /**
+   * Wrapper to encode a collection not as a common SCALE-encoded collection,
+   * but just element-wise. Can only be encoded.
+   */
+  template <typename Collection>
+  struct RawCollection {
+    std::decay_t<Collection> collection;
+  };
+
+  template <class Stream,
+            typename Collection,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const RawCollection<Collection> &v) {
+    for (auto &i : v.collection) {
+      s << i;
+    }
+    return s;
+  }
+
 }  // namespace kagome::scale
 
 namespace kagome::scale::compact {

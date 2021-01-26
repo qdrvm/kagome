@@ -17,7 +17,7 @@ namespace kagome::runtime {
     virtual ~TransactionPaymentApi() = default;
 
     virtual outcome::result<primitives::RuntimeDispatchInfo> query_info(
-        const primitives::Extrinsic &ext) = 0;
+        const primitives::Extrinsic &ext, uint32_t len) = 0;
   };
 
 }  // namespace kagome::runtime

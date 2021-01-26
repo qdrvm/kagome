@@ -19,8 +19,9 @@ namespace kagome::api {
     PaymentApiImpl(std::shared_ptr<runtime::TransactionPaymentApi> api);
     ~PaymentApiImpl() override = default;
 
-    primitives::RuntimeDispatchInfo queryInfo(
+    outcome::result<primitives::RuntimeDispatchInfo> queryInfo(
         const primitives::Extrinsic &extrinsic,
+        uint32_t len,
         OptionalHashRef at)
         const override;
 
