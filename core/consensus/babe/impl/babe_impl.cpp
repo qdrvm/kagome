@@ -25,7 +25,6 @@ namespace kagome::consensus {
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
-      std::shared_ptr<EpochStorage> epoch_storage,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -43,7 +42,6 @@ namespace kagome::consensus {
         lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
         trie_storage_{std::move(trie_storage)},
-        epoch_storage_{std::move(epoch_storage)},
         genesis_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
@@ -59,7 +57,6 @@ namespace kagome::consensus {
         log_{common::createLogger("BABE")} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
-    BOOST_ASSERT(epoch_storage_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
@@ -89,8 +86,8 @@ namespace kagome::consensus {
       return false;
     }
 
-    LastEpochDescriptor last_epoch_descriptor;
-    if (auto res = epoch_storage_->getLastEpoch(); res.has_value()) {
+    EpochDescriptor last_epoch_descriptor;
+    if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
       last_epoch_descriptor = res.value();
     } else {
       switch (slots_calculation_strategy_) {
@@ -178,9 +175,9 @@ namespace kagome::consensus {
     next_slot_finish_time_ = starting_slot_finish_time;
 
     [[maybe_unused]] auto res =
-        epoch_storage_->setLastEpoch({current_epoch_.epoch_index,
-                                      current_epoch_.start_slot,
-                                      starting_slot_finish_time});
+        babe_util_->setLastEpoch({current_epoch_.epoch_index,
+                                  current_epoch_.start_slot,
+                                  starting_slot_finish_time});
 
     runSlot();
   }
@@ -503,9 +500,9 @@ namespace kagome::consensus {
     slots_leadership_.reset();
 
     [[maybe_unused]] auto res =
-        epoch_storage_->setLastEpoch({current_epoch_.epoch_index,
-                                      current_epoch_.start_slot,
-                                      next_slot_finish_time_});
+        babe_util_->setLastEpoch({current_epoch_.epoch_index,
+                                  current_epoch_.start_slot,
+                                  next_slot_finish_time_});
   }
 
   void BabeImpl::storeFirstSlotTimeEstimate(
@@ -550,7 +547,7 @@ namespace kagome::consensus {
   }
 
   Epoch BabeImpl::prepareFirstEpochUnixTime(
-      LastEpochDescriptor last_known_epoch,
+      EpochDescriptor last_known_epoch,
       BabeSlotNumber first_production_slot) const {
     BOOST_ASSERT_MSG(
         slots_calculation_strategy_ == SlotsStrategy::FromUnixEpoch,
@@ -612,7 +609,7 @@ namespace kagome::consensus {
         break;
       }
       case SlotsStrategy::FromUnixEpoch: {
-        const auto last_known_epoch = epoch_storage_->getLastEpoch().value();
+        const auto last_known_epoch = babe_util_->getLastEpoch().value();
         epoch = prepareFirstEpochUnixTime(last_known_epoch,
                                           babe_header.slot_number + 1);
 

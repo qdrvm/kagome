@@ -33,7 +33,6 @@ namespace kagome::consensus {
       std::shared_ptr<BabeSynchronizer> babe_synchronizer,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
-      std::shared_ptr<EpochStorage> epoch_storage,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
@@ -47,7 +46,6 @@ namespace kagome::consensus {
         babe_synchronizer_{std::move(babe_synchronizer)},
         block_validator_{std::move(block_validator)},
         grandpa_environment_{std::move(grandpa_environment)},
-        epoch_storage_{std::move(epoch_storage)},
         tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
@@ -60,7 +58,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(babe_synchronizer_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
     BOOST_ASSERT(grandpa_environment_ != nullptr);
-    BOOST_ASSERT(epoch_storage_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
@@ -237,7 +234,7 @@ namespace kagome::consensus {
     {
       // add information about epoch to epoch storage
       if (block.header.number == 1) {
-        OUTCOME_TRY(epoch_storage_->setLastEpoch(LastEpochDescriptor{
+        OUTCOME_TRY(babe_util_->setLastEpoch(EpochDescriptor{
             .epoch_number = 0,
             .start_slot = babe_header.slot_number,
             .starting_slot_finish_time =

@@ -36,19 +36,19 @@ namespace kagome::blockchain {
 
   BlockTreeImpl::TreeNode::TreeNode(primitives::BlockHash hash,
                                     primitives::BlockNumber depth,
-                                    consensus::NextEpochDescriptor &&curr_epoch,
+                                    consensus::EpochDigest &&curr_epoch,
                                     consensus::EpochIndex epoch_number,
-                                    consensus::NextEpochDescriptor &&next_epoch,
+                                    consensus::EpochDigest &&next_epoch,
                                     bool finalized)
       : block_hash{hash},
         depth{depth},
         epoch_number(epoch_number),
         finalized{finalized} {
     this->epoch =
-        std::make_shared<consensus::NextEpochDescriptor>(std::move(curr_epoch));
+        std::make_shared<consensus::EpochDigest>(std::move(curr_epoch));
     this->next_epoch = *epoch == next_epoch
                            ? epoch
-                           : std::make_shared<consensus::NextEpochDescriptor>(
+                           : std::make_shared<consensus::EpochDigest>(
                                std::move(next_epoch));
   }
 
@@ -57,7 +57,7 @@ namespace kagome::blockchain {
       primitives::BlockNumber depth,
       const std::shared_ptr<TreeNode> &parent,
       consensus::EpochIndex epoch_number,
-      boost::optional<consensus::NextEpochDescriptor> next_epoch_opt,
+      boost::optional<consensus::EpochDigest> next_epoch_opt,
       bool finalized)
       : block_hash{hash},
         depth{depth},
@@ -70,7 +70,7 @@ namespace kagome::blockchain {
                                                    : epoch = parent->epoch;
       next_epoch = parent->next_epoch;
     } else {
-      epoch = std::make_shared<consensus::NextEpochDescriptor>(
+      epoch = std::make_shared<consensus::EpochDigest>(
           next_epoch_opt.value());
       next_epoch = epoch;
     }
@@ -80,7 +80,7 @@ namespace kagome::blockchain {
         if (next_epoch_opt == *epoch) {
           next_epoch = epoch;
         } else {
-          next_epoch = std::make_shared<consensus::NextEpochDescriptor>(
+          next_epoch = std::make_shared<consensus::EpochDigest>(
               std::move(next_epoch_opt.value()));
         }
       }
@@ -219,8 +219,8 @@ namespace kagome::blockchain {
     common::Logger log = common::createLogger("BlockTree::create");
 
     boost::optional<consensus::EpochIndex> curr_epoch_number;
-    boost::optional<consensus::NextEpochDescriptor> curr_epoch;
-    boost::optional<consensus::NextEpochDescriptor> next_epoch;
+    boost::optional<consensus::EpochDigest> curr_epoch;
+    boost::optional<consensus::EpochDigest> next_epoch;
     auto hash_tmp = hash;
 
     // We are going block by block to genesis direction and observes them for
@@ -236,7 +236,7 @@ namespace kagome::blockchain {
           curr_epoch_number = 0;
         }
         if (not curr_epoch.has_value()) {
-          curr_epoch.emplace(consensus::NextEpochDescriptor{
+          curr_epoch.emplace(consensus::EpochDigest{
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
           log->trace(
@@ -245,7 +245,7 @@ namespace kagome::blockchain {
               curr_epoch.value().randomness.toHex());
         }
         if (not next_epoch.has_value()) {
-          next_epoch.emplace(consensus::NextEpochDescriptor{
+          next_epoch.emplace(consensus::EpochDigest{
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
           log->trace(
@@ -387,7 +387,7 @@ namespace kagome::blockchain {
           babe_util_->slotToEpoch(babe_digests_res.value().second.slot_number);
     }
 
-    boost::optional<consensus::NextEpochDescriptor> next_epoch;
+    boost::optional<consensus::EpochDigest> next_epoch;
     if (auto digest = consensus::getNextEpochDigest(header);
         digest.has_value()) {
       next_epoch.emplace(std::move(digest.value()));
@@ -439,7 +439,7 @@ namespace kagome::blockchain {
       epoch_number = babe_util_->slotToEpoch(babe_slot);
     }
 
-    boost::optional<consensus::NextEpochDescriptor> next_epoch;
+    boost::optional<consensus::EpochDigest> next_epoch;
     if (auto digest = consensus::getNextEpochDigest(block.header);
         digest.has_value()) {
       next_epoch.emplace(std::move(digest.value()));
@@ -490,7 +490,7 @@ namespace kagome::blockchain {
       epoch_number = babe_util_->slotToEpoch(babe_slot);
     }
 
-    boost::optional<consensus::NextEpochDescriptor> next_epoch;
+    boost::optional<consensus::EpochDigest> next_epoch;
     if (auto digest = consensus::getNextEpochDigest(block_header);
         digest.has_value()) {
       next_epoch.emplace(std::move(digest.value()));
@@ -868,7 +868,7 @@ namespace kagome::blockchain {
     return primitives::BlockInfo{last.depth, last.block_hash};
   }
 
-  outcome::result<consensus::NextEpochDescriptor>
+  outcome::result<consensus::EpochDigest>
   BlockTreeImpl::getEpochDescriptor(consensus::EpochIndex epoch_index,
                                     primitives::BlockHash block_hash) const {
     auto node = tree_->getByHash(block_hash);

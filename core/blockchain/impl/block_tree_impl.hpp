@@ -22,7 +22,7 @@
 #include "common/logger.hpp"
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/common.hpp"
-#include "consensus/babe/types/next_epoch_descriptor.hpp"
+#include "consensus/babe/types/epoch_digest.hpp"
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "primitives/babe_configuration.hpp"
@@ -44,24 +44,24 @@ namespace kagome::blockchain {
     struct TreeNode : public std::enable_shared_from_this<TreeNode> {
       TreeNode(primitives::BlockHash hash,
                primitives::BlockNumber depth,
-               consensus::NextEpochDescriptor &&curr_epoch,
+               consensus::EpochDigest &&curr_epoch,
                consensus::EpochIndex epoch_number,
-               consensus::NextEpochDescriptor &&next_epoch,
+               consensus::EpochDigest &&next_epoch,
                bool finalized = false);
 
       TreeNode(primitives::BlockHash hash,
                primitives::BlockNumber depth,
                const std::shared_ptr<TreeNode> &parent,
                consensus::EpochIndex epoch_number,
-               boost::optional<consensus::NextEpochDescriptor> next_epoch,
+               boost::optional<consensus::EpochDigest> next_epoch,
                bool finalized = false);
 
       primitives::BlockHash block_hash;
       primitives::BlockNumber depth;
       std::weak_ptr<TreeNode> parent;
       consensus::EpochIndex epoch_number;
-      std::shared_ptr<consensus::NextEpochDescriptor> epoch;
-      std::shared_ptr<consensus::NextEpochDescriptor> next_epoch;
+      std::shared_ptr<consensus::EpochDigest> epoch;
+      std::shared_ptr<consensus::EpochDigest> next_epoch;
       bool finalized;
 
       std::vector<std::shared_ptr<TreeNode>> children{};
@@ -197,7 +197,7 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
-    outcome::result<consensus::NextEpochDescriptor> getEpochDescriptor(
+    outcome::result<consensus::EpochDigest> getEpochDescriptor(
         consensus::EpochIndex epoch_index,
         primitives::BlockHash block_hash) const override;
 

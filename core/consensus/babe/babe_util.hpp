@@ -7,59 +7,44 @@
 #define KAGOME_CONSENSUS_BABEUTIL
 
 #include "consensus/babe/common.hpp"
-#include "consensus/babe/epoch_storage.hpp"
-#include "consensus/babe/types/slots_strategy.hpp"
-#include "primitives/babe_configuration.hpp"
+#include "consensus/babe/types/epoch_descriptor.hpp"
 
 namespace kagome::consensus {
 
-  class BabeUtil final {
+  /**
+   * Auxiliary class to calculate epoch index by slot number.
+   * It needed as seperated class because to exclude mutual dependency
+   * blockchain mechanic and block production/validation.
+   */
+  class BabeUtil {
    public:
-    BabeUtil(std::shared_ptr<EpochStorage> epoch_storage,
-             std::shared_ptr<primitives::BabeConfiguration> config,
-             const SlotsStrategy strategy,
-             const BabeClock &clock) {
-      // If we have any known epoch, calculate from than. Otherwise we assume
-      // that we are in the initial epoch and calculate with its rules.
-      if (auto res = epoch_storage->getLastEpoch(); res.has_value()) {
-        auto epoch = res.value();
-        genesis_slot_number_ =
-            epoch.start_slot - epoch.epoch_number * config->epoch_length;
-      } else {
-        switch (strategy) {
-          case SlotsStrategy::FromZero:
-            genesis_slot_number_ = 0;
-            break;
-          case SlotsStrategy::FromUnixEpoch:
-            auto ticks_since_epoch = clock.now().time_since_epoch().count();
-            genesis_slot_number_ = static_cast<BabeSlotNumber>(
-                ticks_since_epoch / config->slot_duration.count());
-            break;
-        }
-      }
-      epoch_length_ = config->epoch_length;
-    }
-    BabeUtil(BabeUtil &&) noexcept = delete;
-    BabeUtil(const BabeUtil &) = delete;
-    BabeUtil &operator=(BabeUtil &&) noexcept = delete;
-    BabeUtil &operator=(BabeUtil const &) = delete;
+    virtual ~BabeUtil() = default;
 
-    EpochIndex slotToEpoch(BabeSlotNumber slot) const {
-      if (slot >= genesis_slot_number_) {
-        return (slot - genesis_slot_number_) / epoch_length_;
-      }
-      return 0;
-    }
-    BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const {
-      if (slot >= genesis_slot_number_) {
-        return (slot - genesis_slot_number_) % epoch_length_;
-      }
-      return 0;
-    }
+    /**
+     * @returns number of epoch by provided {@param slot_number}
+     */
+    virtual EpochIndex slotToEpoch(BabeSlotNumber slot_number) const = 0;
 
-   private:
-    BabeSlotNumber genesis_slot_number_;
-    BabeSlotNumber epoch_length_;
+    /**
+     * @returns ordinal number of the slot in the corresponding epoch by
+     * provided {@param slot_number}
+     */
+    virtual BabeSlotNumber slotInEpoch(BabeSlotNumber slot_number) const = 0;
+
+    /**
+     * Stores epoch's data for last active epoch
+     * @param led LastEpochDescriptor of last active epoch
+     * @return result of store
+     */
+    virtual outcome::result<void> setLastEpoch(
+        const EpochDescriptor &led) = 0;
+
+    /**
+     * Get number of last active epoch
+     * @return number of epoch that stored as last active, error otherwise
+     */
+    virtual outcome::result<EpochDescriptor> getLastEpoch() const = 0;
   };
+
 }  // namespace kagome::consensus
 #endif  // KAGOME_CONSENSUS_BABEUTIL

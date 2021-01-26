@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "consensus/babe/types/next_epoch_descriptor.hpp"
+#include "consensus/babe/types/epoch_digest.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
@@ -228,7 +228,7 @@ namespace kagome::blockchain {
      * Search starts of block with hash {@param block_hash}.
      * @returns epoch descriptor, or error if it impossible.
      */
-    virtual outcome::result<consensus::NextEpochDescriptor> getEpochDescriptor(
+    virtual outcome::result<consensus::EpochDigest> getEpochDescriptor(
         consensus::EpochIndex epoch_index,
         primitives::BlockHash block_hash) const = 0;
   };

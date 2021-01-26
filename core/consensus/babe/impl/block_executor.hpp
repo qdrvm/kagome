@@ -13,7 +13,6 @@
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/validation/block_validator.hpp"
@@ -37,7 +36,6 @@ namespace kagome::consensus {
                   std::shared_ptr<BabeSynchronizer> babe_synchronizer,
                   std::shared_ptr<BlockValidator> block_validator,
                   std::shared_ptr<grandpa::Environment> grandpa_environment,
-                  std::shared_ptr<EpochStorage> epoch_storage,
                   std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<authority::AuthorityUpdateObserver>
@@ -99,7 +97,6 @@ namespace kagome::consensus {
     std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;
-    std::shared_ptr<EpochStorage> epoch_storage_;
     std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<authority::AuthorityUpdateObserver>

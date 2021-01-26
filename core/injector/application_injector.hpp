@@ -48,8 +48,8 @@
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
+#include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
-#include "consensus/babe/impl/epoch_storage_impl.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -730,7 +730,6 @@ namespace kagome::injector {
         injector.template create<sptr<consensus::BabeSynchronizer>>(),
         injector.template create<sptr<consensus::BlockValidator>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
-        injector.template create<sptr<consensus::EpochStorage>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
@@ -815,7 +814,6 @@ namespace kagome::injector {
         di::bind<consensus::SlotsStrategy>.template to(
             [](const auto &injector) { return get_slots_strategy(injector); }),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
-        di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -897,11 +895,11 @@ namespace kagome::injector {
         }),
         di::bind<consensus::BlockExecutor>.to(
             [](auto const &inj) { return get_block_executor(inj); }),
-
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::BabeUtil>.template to<consensus::BabeUtilImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

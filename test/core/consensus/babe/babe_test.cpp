@@ -20,13 +20,12 @@
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_gossiper_mock.hpp"
 #include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
-#include "mock/core/consensus/babe/epoch_storage_mock.hpp"
+#include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
-#include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
@@ -77,11 +76,6 @@ class BabeTest : public testing::Test {
     trie_db_ = std::make_shared<storage::trie::TrieStorageMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<grandpa::EnvironmentMock>();
-
-    epoch_storage_ = std::make_shared<EpochStorageMock>();
-    EXPECT_CALL(*epoch_storage_, getLastEpoch())
-        .WillOnce(Return(outcome::success(LastEpochDescriptor{})));
-
     tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
     core_ = std::make_shared<runtime::CoreMock>();
     proposer_ = std::make_shared<ProposerMock>();
@@ -104,10 +98,10 @@ class BabeTest : public testing::Test {
     babe_config_->leadership_rate = {1, 4};
     babe_config_->epoch_length = 2;
 
-    babe_util_ = std::make_shared<BabeUtil>(
-        epoch_storage_, babe_config_, slots_strategy_, *clock_);
+    babe_util_ = std::make_shared<BabeUtilMock>();
+    EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
-    consensus::NextEpochDescriptor expected_epoch_digest{
+    consensus::EpochDigest expected_epoch_digest{
         .authorities = babe_config_->genesis_authorities,
         .randomness = babe_config_->randomness};
 
@@ -123,7 +117,6 @@ class BabeTest : public testing::Test {
                                         babe_synchronizer_,
                                         babe_block_validator_,
                                         grandpa_environment_,
-                                        epoch_storage_,
                                         tx_pool_,
                                         hasher_,
                                         grandpa_authority_update_observer_,
@@ -142,7 +135,6 @@ class BabeTest : public testing::Test {
                                        lottery_,
                                        block_executor,
                                        trie_db_,
-                                       epoch_storage_,
                                        babe_config_,
                                        proposer_,
                                        block_tree_,
@@ -176,7 +168,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<storage::trie::TrieStorageMock> trie_db_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
   std::shared_ptr<grandpa::EnvironmentMock> grandpa_environment_;
-  std::shared_ptr<EpochStorageMock> epoch_storage_;
   std::shared_ptr<runtime::CoreMock> core_;
   std::shared_ptr<ProposerMock> proposer_;
   std::shared_ptr<BlockTreeMock> block_tree_;
@@ -191,7 +182,7 @@ class BabeTest : public testing::Test {
       grandpa_authority_update_observer_;
   SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
-  std::shared_ptr<BabeUtil> babe_util_;
+  std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<boost::asio::io_context> io_context_;
 
   std::shared_ptr<BabeImpl> babe_;
@@ -281,8 +272,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*gossiper_, blockAnnounce(_))
       .WillOnce(CheckBlockHeader(created_block_.header));
 
-  EXPECT_CALL(*epoch_storage_, setLastEpoch(_))
-      .WillOnce(Return(outcome::success()))
+  EXPECT_CALL(*babe_util_, setLastEpoch(_))
       .WillOnce(Return(outcome::success()));
 
   babe_->runEpoch(epoch_, test_begin + babe_config_->slot_duration);

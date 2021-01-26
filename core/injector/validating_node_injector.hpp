@@ -105,7 +105,6 @@ namespace kagome::injector {
         injector.template create<sptr<consensus::BabeLottery>>(),
         injector.template create<sptr<consensus::BlockExecutor>>(),
         injector.template create<sptr<storage::trie::TrieStorage>>(),
-        injector.template create<sptr<consensus::EpochStorage>>(),
         injector.template create<sptr<primitives::BabeConfiguration>>(),
         injector.template create<sptr<authorship::Proposer>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),

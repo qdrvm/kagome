@@ -10,13 +10,13 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
-#include "consensus/babe/babe_util.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "consensus/babe/types/slots_strategy.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
-#include "mock/core/consensus/babe/epoch_storage_mock.hpp"
+#include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
@@ -60,10 +60,6 @@ struct BlockTreeTest : public testing::Test {
     auto extrinsic_event_key_repo =
         std::make_shared<subscription::ExtrinsicEventKeyRepository>();
 
-    epoch_storage_ = std::make_shared<EpochStorageMock>();
-    EXPECT_CALL(*epoch_storage_, getLastEpoch())
-        .WillOnce(Return(outcome::success(LastEpochDescriptor{})));
-
     clock_ = std::make_shared<SystemClockMock>();
 
     babe_config_ = std::make_shared<primitives::BabeConfiguration>();
@@ -73,8 +69,8 @@ struct BlockTreeTest : public testing::Test {
     babe_config_->leadership_rate = {1, 4};
     babe_config_->epoch_length = 2;
 
-    babe_util_ = std::make_shared<BabeUtil>(
-        epoch_storage_, babe_config_, slots_strategy_, *clock_);
+    babe_util_ = std::make_shared<BabeUtilMock>();
+    EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
@@ -136,11 +132,10 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<runtime::CoreMock> runtime_core_ =
       std::make_shared<runtime::CoreMock>();
 
-  std::shared_ptr<EpochStorageMock> epoch_storage_;
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
-  std::shared_ptr<BabeUtil> babe_util_;
+  std::shared_ptr<BabeUtilMock> babe_util_;
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 

@@ -20,7 +20,6 @@
 #include "consensus/babe/babe_gossiper.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
 #include "crypto/hasher.hpp"
@@ -58,7 +57,6 @@ namespace kagome::consensus {
              std::shared_ptr<BabeLottery> lottery,
              std::shared_ptr<BlockExecutor> block_executor,
              std::shared_ptr<storage::trie::TrieStorage> trie_db,
-             std::shared_ptr<EpochStorage> epoch_storage,
              std::shared_ptr<primitives::BabeConfiguration> configuration,
              std::shared_ptr<authorship::Proposer> proposer,
              std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -161,7 +159,7 @@ namespace kagome::consensus {
      * @param first_production_slot slot number where block production starts
      * @return first production epoch structure
      */
-    Epoch prepareFirstEpochUnixTime(LastEpochDescriptor last_known_epoch,
+    Epoch prepareFirstEpochUnixTime(EpochDescriptor last_known_epoch,
                                     BabeSlotNumber first_production_slot) const;
 
     /**
@@ -175,7 +173,6 @@ namespace kagome::consensus {
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
-    std::shared_ptr<EpochStorage> epoch_storage_;
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

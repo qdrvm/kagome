@@ -84,7 +84,7 @@ namespace kagome::blockchain {
     MOCK_METHOD0(prune, outcome::result<void>());
 
     MOCK_CONST_METHOD2(getEpochDescriptor,
-                       outcome::result<consensus::NextEpochDescriptor>(
+                       outcome::result<consensus::EpochDigest>(
                            consensus::EpochIndex, primitives::BlockHash));
   };
 }  // namespace kagome::blockchain
