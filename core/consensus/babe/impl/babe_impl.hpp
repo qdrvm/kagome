@@ -108,7 +108,7 @@ namespace kagome::consensus {
     /**
      * Finish the Babe epoch
      */
-    void nextEpoch();
+    void startNextEpoch();
 
     BabeLottery::SlotsLeadership getEpochLeadership(
         const EpochDescriptor &epoch,

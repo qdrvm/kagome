@@ -243,7 +243,7 @@ namespace kagome::consensus {
 
         if (current_epoch_.epoch_number
             != babe_util_->slotToEpoch(current_slot_)) {
-          nextEpoch();
+          startNextEpoch();
         }
       } else if (slot < current_slot_) {
         log_->info("Slots {}..{} was skipped", slot, current_slot_ - 1);
@@ -299,7 +299,7 @@ namespace kagome::consensus {
     next_slot_finish_time_ += genesis_configuration_->slot_duration;
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
-      nextEpoch();
+      startNextEpoch();
     }
 
     runSlot();
@@ -479,7 +479,7 @@ namespace kagome::consensus {
     return lottery_->slotsLeadership(epoch, randomness, threshold, keypair_);
   }
 
-  void BabeImpl::nextEpoch() {
+  void BabeImpl::startNextEpoch() {
     log_->debug("Epoch {} has finished. Start epoch {}",
                 current_epoch_.epoch_number,
                 current_epoch_.epoch_number + 1);
