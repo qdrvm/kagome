@@ -19,6 +19,8 @@ namespace kagome::consensus {
              std::shared_ptr<primitives::BabeConfiguration> config,
              const SlotsStrategy strategy,
              const BabeClock &clock) {
+      // If we have any known epoch, calculate from than. Otherwise we assume
+      // that we are in the initial epoch and calculate with its rules.
       if (auto res = epoch_storage->getLastEpoch(); res.has_value()) {
         auto epoch = res.value();
         genesis_slot_number_ =

@@ -231,8 +231,8 @@ namespace kagome::blockchain {
           curr_epoch.emplace(consensus::NextEpochDescriptor{
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
-          log->debug(
-              "EPOCH_DIGEST_IN_BLICKTREE: CURR EPOCH #{}, Randomness: {}",
+          log->trace(
+              "EPOCH_DIGEST_IN_BLOCKTREE: CURR EPOCH #{}, Randomness: {}",
               curr_epoch_number.value(),
               curr_epoch.value().randomness.toHex());
         }
@@ -240,8 +240,8 @@ namespace kagome::blockchain {
           next_epoch.emplace(consensus::NextEpochDescriptor{
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
-          log->debug(
-              "EPOCH_DIGEST_IN_BLICKTREE: NEXT EPOCH #{}+, Randomness: {}",
+          log->trace(
+              "EPOCH_DIGEST_IN_BLOCKTREE: NEXT EPOCH #{}+, Randomness: {}",
               1,
               next_epoch.value().randomness.toHex());
         }
@@ -259,8 +259,8 @@ namespace kagome::blockchain {
       auto slot_number = babe_digests_res.value().second.slot_number;
       auto epoch_number = babe_util->slotToEpoch(slot_number);
 
-      log->debug(
-          "EPOCH_DIGEST_IN_BLICKTREE: BLOCK, slot {}, epoch {}, block #{}, "
+      log->trace(
+          "EPOCH_DIGEST_IN_BLOCKTREE: BLOCK, slot {}, epoch {}, block #{}, "
           "hash {}",
           slot_number,
           epoch_number,
@@ -269,26 +269,26 @@ namespace kagome::blockchain {
 
       if (not curr_epoch_number.has_value()) {
         curr_epoch_number = epoch_number;
-        log->debug("EPOCH_DIGEST_IN_BLICKTREE: CURRENT EPOCH #{}",
+        log->trace("EPOCH_DIGEST_IN_BLOCKTREE: CURRENT EPOCH #{}",
                    curr_epoch_number.value());
       }
 
       if (auto digest = consensus::getNextEpochDigest(header_tmp);
           digest.has_value()) {
-        log->debug("EPOCH_DIGEST_IN_BLICKTREE: DIGEST, Randomness: {}",
+        log->trace("EPOCH_DIGEST_IN_BLOCKTREE: DIGEST, Randomness: {}",
                    digest.value().randomness.toHex());
 
         if (not next_epoch.has_value()) {
           next_epoch.emplace(digest.value());
-          log->debug(
-              "EPOCH_DIGEST_IN_BLICKTREE: NEXT EPOCH #{}+, Randomness: {}",
+          log->trace(
+              "EPOCH_DIGEST_IN_BLOCKTREE: NEXT EPOCH #{}+, Randomness: {}",
               epoch_number + 1,
               next_epoch.value().randomness.toHex());
         }
         if (epoch_number != curr_epoch_number) {
           curr_epoch.emplace(digest.value());
-          log->debug(
-              "EPOCH_DIGEST_IN_BLICKTREE: CURR EPOCH #{}, Randomness: {}",
+          log->trace(
+              "EPOCH_DIGEST_IN_BLOCKTREE: CURR EPOCH #{}, Randomness: {}",
               curr_epoch_number.value(),
               curr_epoch.value().randomness.toHex());
           break;
@@ -298,8 +298,8 @@ namespace kagome::blockchain {
       hash_tmp = header_tmp.parent_hash;
     }
 
-    log->debug(
-        "EPOCH_DIGEST_IN_BLICKTREE: ROOT, block #{}, hash {}\n"
+    log->trace(
+        "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block #{}, hash {}\n"
         "Epoch {}, Current randomness {}, Next randomness {}",
         number,
         hash.toHex(),

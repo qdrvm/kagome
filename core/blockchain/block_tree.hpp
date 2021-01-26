@@ -224,8 +224,9 @@ namespace kagome::blockchain {
     virtual primitives::BlockInfo getLastFinalized() const = 0;
 
     /**
-     * @returns epoch descriptor for epoch with index {@param epoch_index}
-     * by a block with hash {@param block_hash}, or error if it impossible
+     * Finds  epoch descriptor for epoch with index {@param epoch_index}.
+     * Search starts of block with hash {@param block_hash}.
+     * @returns epoch descriptor, or error if it impossible.
      */
     virtual outcome::result<consensus::NextEpochDescriptor> getEpochDescriptor(
         consensus::EpochIndex epoch_index,

@@ -5,7 +5,6 @@
 
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
 
-#include "babe_digests_util.hpp"
 #include "consensus/babe/types/last_epoch_descriptor.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"

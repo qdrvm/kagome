@@ -24,7 +24,7 @@ namespace kagome::consensus {
    public:
     ~EpochStorageImpl() override = default;
 
-    explicit EpochStorageImpl(
+    EpochStorageImpl(
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<kagome::storage::BufferStorage> storage);
 
