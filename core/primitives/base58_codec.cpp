@@ -65,7 +65,7 @@ namespace kagome::primitives {
 
     // Process the characters.
     static_assert(
-        sizeof(mapBase58) / sizeof(mapBase58[0]) == 256,
+        std::size(mapBase58) == 256,
         "mapBase58.size() should be 256");  // guarantee not out of range
 
     while (str.length() > 0 && !std::isspace(str[0])) {

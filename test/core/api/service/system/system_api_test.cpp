@@ -59,6 +59,7 @@ class SystemApiTest : public ::testing::Test {
   std::shared_ptr<AccountNonceApiMock> account_nonce_api_mock_;
   std::shared_ptr<HasherMock> hasher_mock_;
 
+  // Alice's account from subkey
   static constexpr auto kSs58Account =
       "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
   static inline kagome::crypto::Sr25519PublicKey kAccountId{
