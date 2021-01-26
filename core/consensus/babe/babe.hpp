@@ -10,7 +10,7 @@
 
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/babe_meta.hpp"
-#include "consensus/babe/types/epoch.hpp"
+#include "consensus/babe/types/epoch_descriptor.hpp"
 #include "network/babe_observer.hpp"
 
 namespace kagome::consensus {
@@ -50,7 +50,7 @@ namespace kagome::consensus {
     /**
      * Start a Babe production
      * @param epoch - epoch, which is going to be run
-     * @param starting_slot_finish_time - when the slot, from which the BABE
+     * epoch.starting_slot_finish_time - when the slot, from which the BABE
      * starts, ends; for example, we start from
      * 5th slot of the some epoch. Then, we need to set time when 5th slot
      * finishes; most probably, that time will be calculated using Median
@@ -61,8 +61,7 @@ namespace kagome::consensus {
      * @note in fact, it is an implementation of "Invoke-Block-Authoring" from
      * the spec
      */
-    virtual void runEpoch(Epoch epoch,
-                          BabeTimePoint starting_slot_finish_time) = 0;
+    virtual void runEpoch(EpochDescriptor epoch) = 0;
 
     /**
      * @returns current state

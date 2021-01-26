@@ -23,7 +23,7 @@ namespace kagome::consensus {
     /**
      * @returns number of epoch by provided {@param slot_number}
      */
-    virtual EpochIndex slotToEpoch(BabeSlotNumber slot_number) const = 0;
+    virtual EpochNumber slotToEpoch(BabeSlotNumber slot_number) const = 0;
 
     /**
      * @returns ordinal number of the slot in the corresponding epoch by

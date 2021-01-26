@@ -243,15 +243,15 @@ namespace kagome::consensus {
       }
     }
 
-    EpochIndex epoch_index = babe_util_->slotToEpoch(babe_header.slot_number);
+    EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
 
     OUTCOME_TRY(
         this_block_epoch_descriptor,
-        block_tree_->getEpochDescriptor(epoch_index, block.header.parent_hash));
-    logger_->info(
+        block_tree_->getEpochDescriptor(epoch_number, block.header.parent_hash));
+    logger_->trace(
         "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
         "block #{}). Randomness: {}",
-        epoch_index,
+        epoch_number,
         babe_header.slot_number,
         block.header.number,
         this_block_epoch_descriptor.randomness.toHex());
@@ -271,7 +271,7 @@ namespace kagome::consensus {
 
     OUTCOME_TRY(block_validator_->validateHeader(
         block.header,
-        epoch_index,
+        epoch_number,
         this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
         threshold,
         this_block_epoch_descriptor.randomness));

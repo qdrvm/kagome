@@ -149,7 +149,7 @@ class BabeTest : public testing::Test {
                                        babe_util_);
 
     epoch_.start_slot = 0;
-    epoch_.epoch_index = 0;
+    epoch_.epoch_number = 0;
 
     // add extrinsics root to the header
     std::vector<common::Buffer> encoded_exts(
@@ -187,7 +187,7 @@ class BabeTest : public testing::Test {
 
   std::shared_ptr<BabeImpl> babe_;
 
-  Epoch epoch_;
+  EpochDescriptor epoch_;
 
   VRFOutput leader_vrf_output_{
       uint256_t_to_bytes(50),
@@ -235,8 +235,8 @@ TEST_F(BabeTest, Success) {
   Randomness randomness;
   EXPECT_CALL(*lottery_, slotsLeadership(epoch_, randomness, _, keypair_))
       .WillOnce(Return(leadership_));
-  Epoch next_epoch = epoch_;
-  next_epoch.epoch_index++;
+  EpochDescriptor next_epoch = epoch_;
+  next_epoch.epoch_number++;
   next_epoch.start_slot += babe_config_->epoch_length;
 
   EXPECT_CALL(*trie_db_, getRootHash())
@@ -275,5 +275,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*babe_util_, setLastEpoch(_))
       .WillOnce(Return(outcome::success()));
 
-  babe_->runEpoch(epoch_, test_begin + babe_config_->slot_duration);
+  epoch_.starting_slot_finish_time = test_begin + babe_config_->slot_duration;
+
+  babe_->runEpoch(epoch_);
 }

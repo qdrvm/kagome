@@ -39,7 +39,7 @@ struct BabeLotteryTest : public testing::Test {
   std::vector<VRFPreOutput> submitted_vrf_values_{uint256_t_to_bytes(28482),
                                                   uint256_t_to_bytes(57302840),
                                                   uint256_t_to_bytes(8405)};
-  Epoch current_epoch_;
+  EpochDescriptor current_epoch_;
 
   Randomness randomness_{{0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
                           0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
@@ -69,7 +69,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
 
   for (size_t i = 0; i < babe_config_->epoch_length; ++i) {
     primitives::Transcript transcript;
-    prepareTranscript(transcript, randomness_, i, current_epoch_.epoch_index);
+    prepareTranscript(transcript, randomness_, i, current_epoch_.epoch_number);
 
     if (i == 2) {
       // just random case for testing
@@ -109,7 +109,7 @@ TEST_F(BabeLotteryTest, ComputeRandomness) {
   // WHEN
   Buffer concat_values{};
   concat_values.put(randomness_);
-  concat_values.put(uint64_t_to_bytes(current_epoch_.epoch_index));
+  concat_values.put(uint64_t_to_bytes(current_epoch_.epoch_number));
   for (const auto &value : submitted_vrf_values_) {
     concat_values.put(value);
   }
@@ -121,7 +121,7 @@ TEST_F(BabeLotteryTest, ComputeRandomness) {
       .WillOnce(Return(new_randomness));
 
   auto returned_randomness =
-      lottery_.computeRandomness(randomness_, current_epoch_.epoch_index);
+      lottery_.computeRandomness(randomness_, current_epoch_.epoch_number);
 
   // THEN
   ASSERT_EQ(new_randomness, returned_randomness);

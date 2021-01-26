@@ -10,14 +10,21 @@
 
 namespace kagome::consensus {
 
-  /// Information about the epoch (number, starting slot, etc.)
+  /**
+   * Metainformation about the Babe epoch
+   */
   struct EpochDescriptor {
-    EpochIndex epoch_number = 0;
+    EpochNumber epoch_number = 0;
 
     /// starting slot of the epoch
     BabeSlotNumber start_slot = 0;
 
     BabeTimePoint starting_slot_finish_time;
+
+    bool operator==(const EpochDescriptor &other) const {
+      return epoch_number == other.epoch_number
+             && start_slot == other.start_slot;
+    }
   };
 
   template <class Stream,

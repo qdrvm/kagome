@@ -79,8 +79,7 @@ namespace kagome::consensus {
       execution_strategy_ = strategy;
     }
 
-    void runEpoch(Epoch epoch,
-                  BabeTimePoint starting_slot_finish_time) override;
+    void runEpoch(EpochDescriptor epoch) override;
 
     State getCurrentState() const override;
 
@@ -112,7 +111,7 @@ namespace kagome::consensus {
     void nextEpoch();
 
     BabeLottery::SlotsLeadership getEpochLeadership(
-        const Epoch &epoch,
+        const EpochDescriptor &epoch,
         const primitives::AuthorityList &authorities,
         const Randomness &randomness) const;
 
@@ -148,7 +147,7 @@ namespace kagome::consensus {
      * starts
      * @return first production epoch structure
      */
-    Epoch prepareFirstEpochFromZeroStrategy(
+    EpochDescriptor prepareFirstEpochFromZeroStrategy(
         BabeTimePoint first_slot_time_estimate,
         BabeSlotNumber first_production_slot_number) const;
     //--------------------------------------------------------------------------
@@ -159,7 +158,7 @@ namespace kagome::consensus {
      * @param first_production_slot slot number where block production starts
      * @return first production epoch structure
      */
-    Epoch prepareFirstEpochUnixTime(EpochDescriptor last_known_epoch,
+    EpochDescriptor prepareFirstEpochUnixTime(EpochDescriptor last_known_epoch,
                                     BabeSlotNumber first_production_slot) const;
 
     /**
@@ -189,7 +188,7 @@ namespace kagome::consensus {
 
     State current_state_{State::WAIT_BLOCK};
 
-    Epoch current_epoch_;
+    EpochDescriptor current_epoch_;
 
     /// Estimates of the first block production slot time. Input for the median
     /// algorithm

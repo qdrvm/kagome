@@ -23,7 +23,7 @@ namespace kagome::consensus {
         const SlotsStrategy strategy,
         const BabeClock &clock);
 
-    EpochIndex slotToEpoch(BabeSlotNumber slot) const override;
+    EpochNumber slotToEpoch(BabeSlotNumber slot) const override;
 
     BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const override;
 

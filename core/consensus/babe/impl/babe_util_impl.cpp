@@ -44,7 +44,7 @@ namespace kagome::consensus {
     epoch_length_ = babe_configuration_->epoch_length;
   }
 
-  EpochIndex BabeUtilImpl::slotToEpoch(BabeSlotNumber slot) const {
+  EpochNumber BabeUtilImpl::slotToEpoch(BabeSlotNumber slot) const {
     if (slot > genesis_slot_number_) {
       return (slot - genesis_slot_number_) / epoch_length_;
     }

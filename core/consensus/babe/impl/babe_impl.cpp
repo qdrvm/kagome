@@ -119,15 +119,8 @@ namespace kagome::consensus {
                   best_block_number,
                   best_block_hash);
 
-      Epoch epoch;
-      epoch.epoch_index = last_epoch_descriptor.epoch_number;
-      epoch.start_slot = last_epoch_descriptor.start_slot;
-
-      auto starting_slot_finish_time =
-          last_epoch_descriptor.starting_slot_finish_time;
-
       current_state_ = State::SYNCHRONIZED;
-      runEpoch(epoch, starting_slot_finish_time);
+      runEpoch(last_epoch_descriptor);
       if (auto on_synchronized = std::move(on_synchronized_)) {
         on_synchronized();
       }
@@ -161,23 +154,19 @@ namespace kagome::consensus {
     return std::distance(authorities.begin(), it);
   }
 
-  void BabeImpl::runEpoch(Epoch epoch,
-                          BabeTimePoint starting_slot_finish_time) {
+  void BabeImpl::runEpoch(EpochDescriptor epoch) {
     log_->debug(
         "Starting an epoch {}. Session key: {}. First slot ending time: {}",
-        epoch.epoch_index,
+        epoch.epoch_number,
         keypair_.public_key.toHex(),
         std::chrono::duration_cast<std::chrono::milliseconds>(
-            starting_slot_finish_time.time_since_epoch())
+            epoch.starting_slot_finish_time.time_since_epoch())
             .count());
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
-    next_slot_finish_time_ = starting_slot_finish_time;
+    next_slot_finish_time_ = current_epoch_.starting_slot_finish_time;
 
-    [[maybe_unused]] auto res =
-        babe_util_->setLastEpoch({current_epoch_.epoch_index,
-                                  current_epoch_.start_slot,
-                                  starting_slot_finish_time});
+    [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
 
     runSlot();
   }
@@ -252,7 +241,7 @@ namespace kagome::consensus {
         current_slot_++;
         next_slot_finish_time_ += genesis_configuration_->slot_duration;
 
-        if (current_epoch_.epoch_index
+        if (current_epoch_.epoch_number
             != babe_util_->slotToEpoch(current_slot_)) {
           nextEpoch();
         }
@@ -263,7 +252,7 @@ namespace kagome::consensus {
 
     log_->info("Starting a slot {} in epoch {}",
                current_slot_,
-               current_epoch_.epoch_index);
+               current_epoch_.epoch_number);
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(next_slot_finish_time_);
@@ -282,7 +271,7 @@ namespace kagome::consensus {
       auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
 
       auto epoch_res = block_tree_->getEpochDescriptor(
-          current_epoch_.epoch_index, best_block_hash);
+          current_epoch_.epoch_number, best_block_hash);
       BOOST_ASSERT(epoch_res.has_value());
       auto &epoch = epoch_res.value();
 
@@ -304,12 +293,12 @@ namespace kagome::consensus {
 
     log_->debug("Slot {} in epoch {} has finished",
                 current_slot_,
-                current_epoch_.epoch_index);
+                current_epoch_.epoch_number);
 
     ++current_slot_;
     next_slot_finish_time_ += genesis_configuration_->slot_duration;
 
-    if (current_epoch_.epoch_index != babe_util_->slotToEpoch(current_slot_)) {
+    if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       nextEpoch();
     }
 
@@ -356,7 +345,7 @@ namespace kagome::consensus {
     // build a block to be announced
     log_->info("Obtained slot leadership in slot {} epoch {}",
                current_slot_,
-               current_epoch_.epoch_index);
+               current_epoch_.epoch_number);
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -380,7 +369,7 @@ namespace kagome::consensus {
                best_block_number,
                best_block_hash);
 
-    auto epoch = block_tree_->getEpochDescriptor(current_epoch_.epoch_index,
+    auto epoch = block_tree_->getEpochDescriptor(current_epoch_.epoch_number,
                                                  best_block_hash);
 
     auto authority_index_res =
@@ -478,7 +467,7 @@ namespace kagome::consensus {
   }
 
   BabeLottery::SlotsLeadership BabeImpl::getEpochLeadership(
-      const Epoch &epoch,
+      const EpochDescriptor &epoch,
       const primitives::AuthorityList &authorities,
       const Randomness &randomness) const {
     auto authority_index_res =
@@ -492,15 +481,15 @@ namespace kagome::consensus {
 
   void BabeImpl::nextEpoch() {
     log_->debug("Epoch {} has finished. Start epoch {}",
-                current_epoch_.epoch_index,
-                current_epoch_.epoch_index + 1);
+                current_epoch_.epoch_number,
+                current_epoch_.epoch_number + 1);
 
-    ++current_epoch_.epoch_index;
+    ++current_epoch_.epoch_number;
     current_epoch_.start_slot = current_slot_;
     slots_leadership_.reset();
 
     [[maybe_unused]] auto res =
-        babe_util_->setLastEpoch({current_epoch_.epoch_index,
+        babe_util_->setLastEpoch({current_epoch_.epoch_number,
                                   current_epoch_.start_slot,
                                   next_slot_finish_time_});
   }
@@ -533,20 +522,22 @@ namespace kagome::consensus {
     return first_slot_times_[first_slot_times_.size() / 2];
   }
 
-  Epoch BabeImpl::prepareFirstEpochFromZeroStrategy(
+  EpochDescriptor BabeImpl::prepareFirstEpochFromZeroStrategy(
       BabeTimePoint first_slot_time_estimate,
       BabeSlotNumber first_production_slot_number) const {
     BOOST_ASSERT_MSG(
         slots_calculation_strategy_ == SlotsStrategy::FromZero,
         "This method can be executed only when slots are counting from zero");
-    const auto epoch_index =
+    const auto epoch_number =
         first_production_slot_number / genesis_configuration_->epoch_length;
 
-    return Epoch{.epoch_index = epoch_index,
-                 .start_slot = first_production_slot_number};
+    return EpochDescriptor{
+        .epoch_number = epoch_number,
+        .start_slot = first_production_slot_number,
+        .starting_slot_finish_time = first_slot_time_estimate};
   }
 
-  Epoch BabeImpl::prepareFirstEpochUnixTime(
+  EpochDescriptor BabeImpl::prepareFirstEpochUnixTime(
       EpochDescriptor last_known_epoch,
       BabeSlotNumber first_production_slot) const {
     BOOST_ASSERT_MSG(
@@ -565,10 +556,11 @@ namespace kagome::consensus {
     const auto ticks_since_epoch = clock_->now().time_since_epoch().count();
     const auto genesis_slot =
         static_cast<BabeSlotNumber>(ticks_since_epoch / slot_duration.count());
-    const auto epoch_index = (first_production_slot - genesis_slot)
-                             / genesis_configuration_->epoch_length;
+    const auto epoch_number = (first_production_slot - genesis_slot)
+                              / genesis_configuration_->epoch_length;
 
-    return Epoch{.epoch_index = epoch_index, .start_slot = start_slot};
+    return EpochDescriptor{.epoch_number = epoch_number,
+                           .start_slot = start_slot};
   }
 
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {
@@ -583,7 +575,7 @@ namespace kagome::consensus {
     const auto &[_, babe_header] = babe_digests_res.value();
     auto observed_slot = babe_header.slot_number;
 
-    Epoch epoch;
+    EpochDescriptor epoch;
     switch (slots_calculation_strategy_) {
       case SlotsStrategy::FromZero: {
         if (not first_production_slot) {
@@ -605,7 +597,7 @@ namespace kagome::consensus {
         epoch = prepareFirstEpochFromZeroStrategy(first_slot_ending_time,
                                                   *first_production_slot);
 
-        runEpoch(epoch, first_slot_ending_time);
+        runEpoch(epoch);
         break;
       }
       case SlotsStrategy::FromUnixEpoch: {
@@ -614,11 +606,10 @@ namespace kagome::consensus {
                                           babe_header.slot_number + 1);
 
         // calculate new epoch first slot finish time and run epoch
-        const auto new_epoch_first_slot_ending_time = BabeTimePoint{
+        epoch.starting_slot_finish_time = BabeTimePoint{
             (epoch.start_slot + 1) * genesis_configuration_->slot_duration};
 
-        runEpoch(epoch, new_epoch_first_slot_ending_time);
-
+        runEpoch(epoch);
         break;
       }
     }

@@ -8,7 +8,7 @@
 
 #include <boost/optional.hpp>
 
-#include "consensus/babe/types/epoch.hpp"
+#include "consensus/babe/types/epoch_descriptor.hpp"
 #include "crypto/sr25519_types.hpp"
 
 namespace kagome::consensus {
@@ -39,7 +39,7 @@ namespace kagome::consensus {
      * for that slot, value contains VRF value and proof
      */
     virtual SlotsLeadership slotsLeadership(
-        const Epoch &epoch,
+        const EpochDescriptor &epoch,
         const Randomness &randomness,
         const Threshold &threshold,
         const crypto::Sr25519Keypair &keypair) const = 0;
@@ -47,14 +47,14 @@ namespace kagome::consensus {
     /**
      * Compute randomness for the next epoch
      * @param last_epoch_randomness - randomness of the last epoch
-     * @param new_epoch_index - index of the new epoch
+     * @param new_epoch_number - index of the new epoch
      * @return computed randomness
      *
      * @note must be called exactly ONCE per epoch, when it gets changed
      */
     virtual Randomness computeRandomness(
         const Randomness &last_epoch_randomness,
-        EpochLength new_epoch_index) = 0;
+        EpochLength new_epoch_number) = 0;
 
     /**
      * Submit a VRF value for this epoch

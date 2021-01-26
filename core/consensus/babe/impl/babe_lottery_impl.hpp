@@ -23,13 +23,13 @@ namespace kagome::consensus {
                     std::shared_ptr<crypto::Hasher> hasher);
 
     SlotsLeadership slotsLeadership(
-        const Epoch &epoch,
+        const EpochDescriptor &epoch,
         const Randomness &randomness,
         const Threshold &threshold,
         const crypto::Sr25519Keypair &keypair) const override;
 
     Randomness computeRandomness(const Randomness &last_epoch_randomness,
-                                 EpochIndex last_epoch_index) override;
+                                 EpochNumber last_epoch_number) override;
 
     void submitVRFValue(const crypto::VRFPreOutput &value) override;
 

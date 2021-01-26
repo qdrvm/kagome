@@ -13,7 +13,7 @@
 namespace kagome::consensus {
   struct BabeLotteryMock : public BabeLottery {
     MOCK_CONST_METHOD4(slotsLeadership,
-                       SlotsLeadership(const Epoch &,
+                       SlotsLeadership(const EpochDescriptor &,
                                        const Randomness &,
                                        const Threshold &,
                                        const crypto::Sr25519Keypair &));

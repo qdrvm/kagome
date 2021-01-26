@@ -31,7 +31,7 @@ namespace kagome::consensus {
   }
 
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
-      const Epoch &epoch,
+      const EpochDescriptor &epoch,
       const Randomness &randomness,
       const Threshold &threshold,
       const crypto::Sr25519Keypair &keypair) const {
@@ -42,12 +42,12 @@ namespace kagome::consensus {
          i < epoch.start_slot + epoch_length_;
          ++i) {
       primitives::Transcript transcript;
-      prepareTranscript(transcript, randomness, i, epoch.epoch_index);
+      prepareTranscript(transcript, randomness, i, epoch.epoch_number);
       logger_->debug(
           "prepareTranscript (leadership): randomness {}, slot {}, epoch {}",
           randomness,
           i,
-          epoch.epoch_index);
+          epoch.epoch_number);
 
       auto sign_opt =
           vrf_provider_->signTranscript(transcript, keypair, threshold);
@@ -59,13 +59,13 @@ namespace kagome::consensus {
   }
 
   Randomness BabeLotteryImpl::computeRandomness(
-      const Randomness &last_epoch_randomness, EpochIndex last_epoch_index) {
-    static std::unordered_set<EpochIndex> computed_epochs_randomnesses{};
+      const Randomness &last_epoch_randomness, EpochNumber last_epoch_number) {
+    static std::unordered_set<EpochNumber> computed_epochs_randomnesses{};
 
     // the function must never be called twice for the same epoch
-    BOOST_ASSERT(computed_epochs_randomnesses.insert(last_epoch_index).second);
+    BOOST_ASSERT(computed_epochs_randomnesses.insert(last_epoch_number).second);
 
-    // randomness || epoch_index || rho
+    // randomness || epoch_number || rho
     Buffer new_randomness(
         vrf_constants::OUTPUT_SIZE + 8 + last_epoch_vrf_values_.size() * 32, 0);
 
@@ -73,9 +73,9 @@ namespace kagome::consensus {
               last_epoch_randomness.end(),
               new_randomness.begin());
 
-    auto epoch_index_bytes = common::uint64_t_to_bytes(last_epoch_index);
-    std::copy(epoch_index_bytes.begin(),
-              epoch_index_bytes.end(),
+    auto epoch_number_bytes = common::uint64_t_to_bytes(last_epoch_number);
+    std::copy(epoch_number_bytes.begin(),
+              epoch_number_bytes.end(),
               new_randomness.begin() + vrf_constants::OUTPUT_SIZE);
 
     auto new_vrf_value_begin =
