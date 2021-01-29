@@ -23,8 +23,7 @@ namespace kagome::consensus {
 
     void setExecutionStrategy(ExecutionStrategy strategy) override {}
 
-    void runEpoch(Epoch epoch,
-                  BabeTimePoint starting_slot_finish_time) override{};
+    void runEpoch(EpochDescriptor epoch) override{};
 
     State getCurrentState() const override {
       return State::WAIT_BLOCK;

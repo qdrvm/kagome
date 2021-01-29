@@ -10,7 +10,7 @@
 
 #include "common/visitor.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
-#include "consensus/babe/types/next_epoch_descriptor.hpp"
+#include "consensus/babe/types/epoch_digest.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
@@ -36,7 +36,7 @@ namespace kagome::consensus {
   outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
       const primitives::BlockHeader &header);
 
-  outcome::result<NextEpochDescriptor> getNextEpochDigest(
+  outcome::result<EpochDigest> getNextEpochDigest(
       const primitives::BlockHeader &header);
 
 }  // namespace kagome::consensus

@@ -45,7 +45,6 @@ target_link_libraries(application_injector
     api_author_requests
     transaction_pool
     extension_factory
-    epoch_storage
     gossiper_broadcast
     kagome_router
     leveldb
@@ -64,6 +63,7 @@ target_link_libraries(application_injector
     authority_manager
     system_api_service
     rpc_api_service
+    babe_util
     )
 
 add_library(syncing_node_injector

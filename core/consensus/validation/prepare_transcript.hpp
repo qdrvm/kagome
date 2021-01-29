@@ -15,7 +15,7 @@ namespace kagome::consensus {
       primitives::Transcript &transcript,
       const Randomness &randomness,
       BabeSlotNumber slot_number,
-      EpochIndex epoch) {
+      EpochNumber epoch) {
     transcript.initialize({'B', 'A', 'B', 'E'});
     transcript.append_message(
         {'s', 'l', 'o', 't', ' ', 'n', 'u', 'm', 'b', 'e', 'r'}, slot_number);

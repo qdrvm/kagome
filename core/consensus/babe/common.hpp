@@ -24,10 +24,10 @@ namespace kagome::consensus {
   using BabeSlotNumber = uint64_t;
 
   /// number of the epoch in the Babe production
-  using EpochIndex = uint64_t;
+  using EpochNumber = uint64_t;
 
   // number of slots in a single epoch
-  using EpochLength = EpochIndex;
+  using EpochLength = EpochNumber;
 
   /// threshold, which must not be exceeded for the party to be a slot leader
   using Threshold = crypto::VRFThreshold;

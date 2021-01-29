@@ -89,7 +89,7 @@ namespace kagome::authorship {
       }
     }
 
-    return block;
+    return std::move(block);
   }
 
 }  // namespace kagome::authorship

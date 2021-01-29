@@ -40,6 +40,14 @@ target_link_libraries(block_executor
     transaction_pool_error
     )
 
+add_library(babe_util
+    babe_util_impl.cpp
+    )
+target_link_libraries(babe_util
+    primitives
+    scale
+    )
+
 add_library(babe
     babe_impl.cpp
     babe_impl.hpp

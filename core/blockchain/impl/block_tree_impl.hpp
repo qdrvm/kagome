@@ -20,11 +20,15 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
+#include "consensus/babe/babe_util.hpp"
+#include "consensus/babe/common.hpp"
+#include "consensus/babe/types/epoch_digest.hpp"
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_observer.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
-#include "subscription/extrinsic_event_key_repository.hpp"
 #include "runtime/core.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::blockchain {
@@ -40,14 +44,24 @@ namespace kagome::blockchain {
     struct TreeNode : public std::enable_shared_from_this<TreeNode> {
       TreeNode(primitives::BlockHash hash,
                primitives::BlockNumber depth,
+               consensus::EpochDigest &&curr_epoch_digest,
+               consensus::EpochNumber epoch_number,
+               consensus::EpochDigest &&next_epoch_digest,
+               bool finalized = false);
+
+      TreeNode(primitives::BlockHash hash,
+               primitives::BlockNumber depth,
                const std::shared_ptr<TreeNode> &parent,
+               consensus::EpochNumber epoch_number,
+               boost::optional<consensus::EpochDigest> next_epoch_digest,
                bool finalized = false);
 
       primitives::BlockHash block_hash;
       primitives::BlockNumber depth;
-
       std::weak_ptr<TreeNode> parent;
-
+      consensus::EpochNumber epoch_number;
+      std::shared_ptr<consensus::EpochDigest> epoch_digest;
+      std::shared_ptr<consensus::EpochDigest> next_epoch_digest;
       bool finalized;
 
       std::vector<std::shared_ptr<TreeNode>> children{};
@@ -113,7 +127,9 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<runtime::Core> runtime_core);
+        std::shared_ptr<runtime::Core> runtime_core,
+        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+        std::shared_ptr<consensus::BabeUtil> babe_util);
 
     ~BlockTreeImpl() override = default;
 
@@ -181,6 +197,10 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
+    outcome::result<consensus::EpochDigest> getEpochDescriptor(
+        consensus::EpochNumber epoch_number,
+        primitives::BlockHash block_hash) const override;
+
    private:
     /**
      * Private constructor, so that instances are created only through the
@@ -198,7 +218,9 @@ namespace kagome::blockchain {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
-        std::shared_ptr<runtime::Core> runtime_core);
+        std::shared_ptr<runtime::Core> runtime_core,
+        std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
+        std::shared_ptr<consensus::BabeUtil> babe_util);
 
     /**
      * Update local meta with the provided node
@@ -249,6 +271,8 @@ namespace kagome::blockchain {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
     std::shared_ptr<runtime::Core> runtime_core_;
+    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
+    std::shared_ptr<const consensus::BabeUtil> babe_util_;
     boost::optional<primitives::Version> actual_runtime_version_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");
   };
