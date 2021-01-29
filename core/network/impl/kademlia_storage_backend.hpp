@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_KADEMLIAVALUESTORAGE
-#define KAGOME_NETWORK_KADEMLIAVALUESTORAGE
+#ifndef KAGOME_NETWORK_KADEMLIASTORAGEBACKEND
+#define KAGOME_NETWORK_KADEMLIASTORAGEBACKEND
 
 #include <libp2p/protocol/kademlia/storage_backend.hpp>
 
@@ -24,7 +24,6 @@ namespace kagome::network {
         std::shared_ptr<kagome::storage::BufferStorage> storage);
     ~KademliaStorageBackend() override = default;
 
-
     outcome::result<void> putValue(ContentId key, Value value) override;
 
     outcome::result<Value> getValue(const ContentId &key) const override;
@@ -32,10 +31,10 @@ namespace kagome::network {
     outcome::result<void> erase(const ContentId &key) override;
 
    private:
-    std::shared_ptr<storage::BufferStorage> _storage;
+    std::shared_ptr<storage::BufferStorage> storage_;
     common::Logger log_ = common::createLogger("KademliaStorage");
   };
 
 }  // namespace kagome::network
 
-#endif  // KAGOME_NETWORK_KADEMLIAVALUESTORAGE
+#endif  // KAGOME_NETWORK_KADEMLIASTORAGEBACKEND

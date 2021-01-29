@@ -11,7 +11,11 @@
 
 namespace kagome::network {
   /**
-   *
+   * Manage active peers:
+   * - peer discovery (internally)
+   * - provides needed amount of active peers
+   * - connects to specified peer by their id
+   * - apply some func for active peer(s)
    */
   class PeerManager {
    public:
@@ -37,7 +41,7 @@ namespace kagome::network {
         std::function<void(const PeerId &)> func) const = 0;
 
     /**
-     * Apply {@param func} to peer with {@param peer_id} active peer
+     * Apply {@param func} to an active peer with id {@param peer_id}
      */
     virtual void forOnePeer(const PeerId &peer_id,
                             std::function<void()> func) const = 0;

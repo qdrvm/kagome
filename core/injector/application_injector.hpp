@@ -805,8 +805,6 @@ namespace kagome::injector {
             libp2p::injector::useKademliaConfig(kademlia_config)),
 
         // bind boot nodes
-//        di::bind<network::BootstrapNodes>.to(
-//            [](auto const &inj) { return get_bootstrap_nodes(inj); }),
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
 

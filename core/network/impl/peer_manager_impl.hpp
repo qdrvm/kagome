@@ -8,11 +8,12 @@
 
 #include "network/peer_manager.hpp"
 
-#include <libp2p/host/host.hpp>
-#include <libp2p/protocol/kademlia/kademlia.hpp>
-#include <libp2p/protocol/identify/identify.hpp>
 #include <memory>
 #include <queue>
+
+#include <libp2p/host/host.hpp>
+#include <libp2p/protocol/identify/identify.hpp>
+#include <libp2p/protocol/kademlia/kademlia.hpp>
 
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
@@ -65,16 +66,16 @@ namespace kagome::network {
     /// Announce about himself ondemand
     void announce();
 
-    /// Discovery other peers ondemand
+    /// Discover other peers ondemand
     void discovery();
 
-    /// Aligns cinnected stream amount
+    /// Aligns connected stream amount
     void align();
 
-    /// Up streams set for special peer (i.e. new-discovered)
+    /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);
 
-    /// Down streams set for new-discovered peer
+    /// Closes all streams of provided peer
     void disconnectFromPeer(const PeerId &peer_id);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;

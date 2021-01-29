@@ -5,10 +5,11 @@
 
 #include "network/impl/peer_manager_impl.hpp"
 
+#include <memory>
+
 #include <libp2p/host/host.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
 #include <libp2p/protocol/kademlia/kademlia.hpp>
-#include <memory>
 
 #include "network/common.hpp"
 #include "outcome/outcome.hpp"
@@ -49,7 +50,7 @@ namespace kagome::network {
 
   bool PeerManagerImpl::prepare() {
     if (bootstrap_nodes_.empty()) {
-      log_->critical("Have not any bootstrap nodes");
+      log_->critical("Does not have any bootstrap nodes");
       return false;
     }
 
