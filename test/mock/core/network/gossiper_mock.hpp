@@ -14,7 +14,10 @@ namespace kagome::network {
 
   class GossiperMock final : public Gossiper {
    public:
+    // From BabeGossiper
     MOCK_METHOD1(blockAnnounce, void(const BlockAnnounce &announce));
+
+    // From grandpa::Gossiper
     MOCK_METHOD1(vote, void(const GrandpaVoteMessage &vote_message));
     MOCK_METHOD1(finalize, void(const GrandpaPreCommit &message));
 
@@ -26,21 +29,12 @@ namespace kagome::network {
                  void(const libp2p::peer::PeerId &peer_id,
                       const CatchUpResponse &catch_up_response));
 
+    // From ExtrinsicGossiper
     MOCK_METHOD1(propagateTransactions,
                  void(gsl::span<const primitives::Transaction> txs));
 
-    MOCK_METHOD3(reserveStream,
-                 void(const libp2p::peer::PeerInfo &info,
-                      const libp2p::peer::Protocol &protocol,
-                      std::shared_ptr<libp2p::connection::Stream> stream));
-
     MOCK_METHOD1(storeSelfPeerInfo,
                  void(const libp2p::peer::PeerInfo &self_info));
-
-    MOCK_METHOD2(addStream,
-                 outcome::result<void>(
-                     const libp2p::peer::Protocol &protocol,
-                     std::shared_ptr<libp2p::connection::Stream> stream));
 
     MOCK_METHOD0(getActiveStreamNumber, uint32_t());
   };
