@@ -15,8 +15,7 @@ namespace kagome::consensus::babe {
   class BabeMock final : public Babe {
    public:
     MOCK_METHOD1(setExecutionStrategy, void(ExecutionStrategy strategy));
-    MOCK_METHOD2(runEpoch,
-                 void(Epoch epoch, BabeTimePoint starting_slot_finish_time));
+    MOCK_METHOD1(runEpoch, void(EpochDescriptor epoch));
     MOCK_CONST_METHOD0(getCurrentState, State());
 
     MOCK_METHOD1(doOnSynchronized, void(std::function<void()> handler));
