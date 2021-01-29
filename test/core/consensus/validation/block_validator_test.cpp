@@ -116,8 +116,8 @@ class BlockValidatorTest : public testing::Test {
   Block valid_block_{block_header_, block_body_};
 
   Threshold threshold_ = 3820948573;
+  primitives::AuthorityList authorities_;
   Randomness randomness_{uint256_t_to_bytes(475995757021)};
-  Epoch babe_epoch_{.randomness = randomness_};
 };
 
 /**
@@ -143,14 +143,14 @@ TEST_F(BlockValidatorTest, Success) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   auto authority = Authority{{pubkey}, 42};
-  babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(authority);
+  authorities_.emplace_back();
+  authorities_.emplace_back(authority);
 
   EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
       .WillOnce(Return(outcome::result<bool>(true)));
   // verifyVRF
   auto randomness_with_slot =
-      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+      Buffer{}.put(randomness_).put(uint64_t_to_bytes(slot_number_));
 
   EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
@@ -167,7 +167,7 @@ TEST_F(BlockValidatorTest, Success) {
  */
 TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   auto authority = Authority{{}, 42};
-  babe_epoch_.authorities.emplace_back(authority);
+  authorities_.emplace_back(authority);
 
   // for this test we can just not seal the block - it's the second digest
   EXPECT_OUTCOME_FALSE(
@@ -198,8 +198,8 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
   auto authority = Authority{{pubkey}, 42};
-  babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(authority);
+  authorities_.emplace_back();
+  authorities_.emplace_back(authority);
 
   EXPECT_OUTCOME_FALSE(
       err,
@@ -271,9 +271,9 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
       .WillOnce(Return(outcome::result<bool>(false)));
 
-  babe_epoch_.authorities.emplace_back();
+  authorities_.emplace_back();
   auto authority = Authority{{pubkey}, 42};
-  babe_epoch_.authorities.emplace_back(authority);
+  authorities_.emplace_back(authority);
 
   // WHEN
   // mutate seal of the block to make signature invalid
@@ -311,13 +311,13 @@ TEST_F(BlockValidatorTest, VRFFail) {
   EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
       .WillOnce(Return(outcome::result<bool>(true)));
 
-  babe_epoch_.authorities.emplace_back();
+  authorities_.emplace_back();
   auto authority = Authority{{pubkey}, 42};
-  babe_epoch_.authorities.emplace_back(authority);
+  authorities_.emplace_back(authority);
 
   // WHEN
   auto randomness_with_slot =
-      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+      Buffer{}.put(randomness_).put(uint64_t_to_bytes(slot_number_));
 
   EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = false, .is_less = true}));
@@ -353,15 +353,15 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
       .WillOnce(Return(outcome::result<bool>(true)));
 
-  babe_epoch_.authorities.emplace_back();
+  authorities_.emplace_back();
   auto authority = Authority{{pubkey}, 42};
-  babe_epoch_.authorities.emplace_back(authority);
+  authorities_.emplace_back(authority);
 
   // WHEN
   threshold_ = 0;
 
   auto randomness_with_slot =
-      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+      Buffer{}.put(randomness_).put(uint64_t_to_bytes(slot_number_));
   EXPECT_CALL(*vrf_provider_, verifyTranscript(_, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = false}));
 

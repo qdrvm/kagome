@@ -1084,7 +1084,7 @@ namespace kagome::consensus::grandpa {
       return true;
     }
 
-    logger_->debug(
+    logger_->trace(
         "Round #{}: updatePrecommitGhost->false (prevote ghost was not "
         "changed)",
         round_number_);

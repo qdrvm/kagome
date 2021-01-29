@@ -8,7 +8,7 @@
 
 #include <boost/variant.hpp>
 
-#include "consensus/babe/types/next_epoch_descriptor.hpp"
+#include "consensus/babe/types/epoch_digest.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::consensus {
@@ -26,7 +26,7 @@ namespace kagome::consensus {
                      /// information about the _current_ epoch (i.e.
                      /// the one we've just entered) should already
                      /// be available earlier in the chain.
-                     NextEpochDescriptor,  // = 1
+                     EpochDigest,  // = 1
 
                      /// Disable the authority with given index.
                      primitives::AuthorityIndex>  // = 2 Don't know why this
