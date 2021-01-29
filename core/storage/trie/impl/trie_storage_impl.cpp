@@ -54,7 +54,7 @@ namespace kagome::storage::trie {
         codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         changes_{std::move(changes)},
-        logger_{common::createLogger("Trie Storage: ")} {
+        logger_{common::createLogger("Trie Storage")} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() and changes_.value() != nullptr)

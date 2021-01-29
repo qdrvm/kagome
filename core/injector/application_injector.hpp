@@ -84,6 +84,7 @@
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/module/wasm_module_impl.hpp"
+#include "runtime/binaryen/runtime_api/account_nonce_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
@@ -909,6 +910,7 @@ namespace kagome::injector {
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
+        di::bind<runtime::AccountNonceApi>.template to<runtime::binaryen::AccountNonceApiImpl>(),
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
