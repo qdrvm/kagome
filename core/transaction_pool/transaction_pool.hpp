@@ -60,8 +60,7 @@ namespace kagome::transaction_pool {
     virtual void remove(const std::vector<Transaction::Hash> &txHashes) = 0;
 
     /**
-     * @return transactions ready to included in the next block, sorted by their
-     * priority
+     * @return transactions ready to included in the next block
      */
     virtual std::map<Transaction::Hash, std::shared_ptr<Transaction>>
     getReadyTransactions() const = 0;

@@ -20,9 +20,29 @@ add_library(primitives
     transaction_validity.cpp
     version.hpp
     session_key.hpp)
+
 target_link_libraries(primitives
     buffer
     scale
     blob
     )
 kagome_install(primitives)
+
+add_library(base58_codec
+    base58_codec.cpp
+    )
+target_link_libraries(base58_codec
+    buffer
+    outcome
+    )
+kagome_install(base58_codec)
+
+add_library(ss58_codec
+    ss58_codec.cpp
+    )
+target_link_libraries(ss58_codec
+    buffer
+    outcome
+    base58_codec
+    )
+kagome_install(ss58_codec)

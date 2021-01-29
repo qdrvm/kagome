@@ -5,10 +5,11 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
+#include <iostream>
+
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/program_options.hpp>
-#include <iostream>
 
 #include "common/hexutil.hpp"
 #include "filesystem/directories.hpp"

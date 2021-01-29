@@ -8,7 +8,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <jsonrpc-lean/fault.h>
-#include <boost/format.hpp>
 
 #include "common/blob.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"

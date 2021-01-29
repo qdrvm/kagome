@@ -6,6 +6,7 @@
 #include "api/service/system/system_jrpc_processor.hpp"
 
 #include "api/jrpc/jrpc_method.hpp"
+#include "api/service/system/requests/account_next_index.hpp"
 #include "api/service/system/requests/chain.hpp"
 #include "api/service/system/requests/chain_type.hpp"
 #include "api/service/system/requests/health.hpp"
@@ -39,6 +40,11 @@ namespace kagome::api::system {
                              Handler<request::Properties>(api_));
 
     server_->registerHandler("system_version", Handler<request::Version>(api_));
+
+    server_->registerHandler("system_accountNextIndex",
+                             Handler<request::AccountNextIndex>(api_));
+    server_->registerHandler("account_nextIndex",
+                             Handler<request::AccountNextIndex>(api_)); // an alias
   }
 
 }  // namespace kagome::api::system
