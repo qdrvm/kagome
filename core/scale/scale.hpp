@@ -11,7 +11,8 @@
 #include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>
 #include <gsl/span>
-#include <outcome/outcome.hpp>
+
+#include "outcome/outcome.hpp"
 #include "scale/scale_decoder_stream.hpp"
 #include "scale/scale_encoder_stream.hpp"
 

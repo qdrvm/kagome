@@ -14,7 +14,7 @@ namespace kagome::runtime::binaryen {
   class TaggedTransactionQueueImpl : public RuntimeApi,
                                      public TaggedTransactionQueue {
    public:
-    explicit TaggedTransactionQueueImpl(
+    TaggedTransactionQueueImpl(
         const std::shared_ptr<WasmProvider> &wasm_provider,
         const std::shared_ptr<RuntimeManager> &runtime_manager);
 

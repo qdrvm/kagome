@@ -90,7 +90,7 @@ namespace kagome::runtime::binaryen {
      * @param state_root - a hash of the state root to which the state will be
      * reset before executing the export method
      * @param persistency - PERSISTENT if changes made by the method should
-     * persist in the state, EPHEMERAL if they can be discraded
+     * persist in the state, EPHEMERAL if they can be discarded
      * @param args - export method arguments
      * @return a parsed result or an error
      */

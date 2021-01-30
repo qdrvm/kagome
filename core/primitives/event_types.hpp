@@ -15,7 +15,6 @@
 
 #include "common/buffer.hpp"
 #include "primitives/block_id.hpp"
-
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
 #include "subscription/subscriber.hpp"

@@ -6,11 +6,12 @@
 #ifndef KAGOME_BLOCK_TREE_HPP
 #define KAGOME_BLOCK_TREE_HPP
 
+#include <boost/optional.hpp>
 #include <cstdint>
 #include <vector>
 
-#include <boost/optional.hpp>
-#include <outcome/outcome.hpp>
+#include "consensus/babe/types/epoch_digest.hpp"
+#include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
@@ -221,6 +222,15 @@ namespace kagome::blockchain {
      * @return hash of the block
      */
     virtual primitives::BlockInfo getLastFinalized() const = 0;
+
+    /**
+     * Finds epoch descriptor for epoch with index {@param epoch_number}.
+     * Search starts of block with hash {@param block_hash}.
+     * @returns epoch descriptor, or error if it impossible.
+     */
+    virtual outcome::result<consensus::EpochDigest> getEpochDescriptor(
+        consensus::EpochNumber epoch_number,
+        primitives::BlockHash block_hash) const = 0;
   };
 }  // namespace kagome::blockchain
 

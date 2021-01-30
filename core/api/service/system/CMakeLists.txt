@@ -10,6 +10,7 @@ add_library(system_api_service
 target_link_libraries(system_api_service
     api_system_requests
     babe
+    ss58_codec
     )
 
 add_subdirectory(requests)
