@@ -70,6 +70,10 @@ namespace kagome::api {
     return results;
   }
 
+  outcome::result<primitives::BlockHash> ChainApiImpl::getFinalizedHead() const {
+    return block_tree_->getLastFinalized().block_hash;
+  }
+
   outcome::result<uint32_t> ChainApiImpl::subscribeFinalizedHeads() {
     if (auto api_service = api_service_.lock())
       return api_service->subscribeFinalizedHeads();
