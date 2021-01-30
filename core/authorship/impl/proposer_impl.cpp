@@ -44,7 +44,7 @@ namespace kagome::authorship {
     }
     auto inherent_xts = inherent_xts_res.value();
 
-    auto log_push_error = [this](const primitives::Extrinsic &xt,
+    auto log_push_warn = [this](const primitives::Extrinsic &xt,
                                  std::string_view message) {
       logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
                     xt.data.toHex().substr(0, 8),
@@ -55,7 +55,7 @@ namespace kagome::authorship {
       logger_->debug("Adding inherent extrinsic: {}", xt.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
-        log_push_error(xt, inserted_res.error().message());
+        log_push_warn(xt, inserted_res.error().message());
         return inserted_res.error();
       }
     }
@@ -66,7 +66,7 @@ namespace kagome::authorship {
       logger_->debug("Adding extrinsic: {}", tx->ext.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
-        log_push_error(tx->ext, inserted_res.error().message());
+        log_push_warn(tx->ext, inserted_res.error().message());
         continue;
       }
       if (tx->observed_id.has_value()) {
@@ -89,7 +89,7 @@ namespace kagome::authorship {
       }
     }
 
-    return block;
+    return std::move(block);
   }
 
 }  // namespace kagome::authorship

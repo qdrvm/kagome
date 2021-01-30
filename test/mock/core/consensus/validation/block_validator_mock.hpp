@@ -24,7 +24,7 @@ namespace kagome::consensus {
     MOCK_CONST_METHOD5(
         validateHeader,
         outcome::result<void>(const primitives::BlockHeader &header,
-                              const EpochIndex epoch_index,
+                              const EpochNumber epoch_number,
                               const primitives::AuthorityId &authority_id,
                               const Threshold &threshold,
                               const Randomness &randomness));

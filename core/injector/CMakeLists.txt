@@ -41,12 +41,12 @@ target_link_libraries(application_injector
     binaryen_tagged_transaction_queue_api
     binaryen_transaction_payment_api
     binaryen_wasm_executor
+    binaryen_system_api
     trie_storage_provider
     author_api_service
     extrinsic_observer
     transaction_pool
     extension_factory
-    epoch_storage
     gossiper_broadcast
     kagome_router
     leveldb
@@ -64,6 +64,7 @@ target_link_libraries(application_injector
     system_api_service
     payment_api_service
     rpc_api_service
+    babe_util
     )
 
 add_library(syncing_node_injector

@@ -7,7 +7,6 @@
 #define KAGOME_BLOCK_VALIDATOR_HPP
 
 #include <outcome/outcome.hpp>
-#include "consensus/babe/types/epoch.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::consensus {
@@ -28,7 +27,7 @@ namespace kagome::consensus {
      */
     virtual outcome::result<void> validateHeader(
         const primitives::BlockHeader &block_header,
-        const EpochIndex epoch_index,
+        const EpochNumber epoch_number,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
         const Randomness &randomness) const = 0;

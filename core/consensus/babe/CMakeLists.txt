@@ -12,10 +12,3 @@ add_library(babe_error
 target_link_libraries(babe_error
     outcome
     )
-
-add_library(epoch_storage
-    impl/epoch_storage_impl.cpp
-    )
-target_link_libraries(epoch_storage
-    sr25519_types
-    )

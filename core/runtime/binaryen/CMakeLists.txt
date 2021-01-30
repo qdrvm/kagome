@@ -147,3 +147,11 @@ target_link_libraries(binaryen_transaction_payment_api
     binaryen_wasm_executor
     binaryen_runtime_api
     )
+
+add_library(binaryen_system_api
+    runtime_api/account_nonce_api_impl.cpp
+    )
+target_link_libraries(binaryen_system_api
+    binaryen_wasm_executor
+    binaryen_runtime_api
+    )

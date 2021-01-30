@@ -41,9 +41,9 @@ namespace kagome::consensus {
 
     for (const auto &digest :
          gsl::make_span(digests).subspan(0, digests.size() - 1)) {
-      if (auto consensus_dig = getFromVariant<primitives::PreRuntime>(digest);
-          consensus_dig) {
-        if (auto header = scale::decode<BabeBlockHeader>(consensus_dig->data);
+      if (auto pre_runtime = getFromVariant<primitives::PreRuntime>(digest);
+          pre_runtime) {
+        if (auto header = scale::decode<BabeBlockHeader>(pre_runtime->data);
             header) {
           // found the BabeBlockHeader digest; return
           return {babe_seal_res, header.value()};
@@ -54,10 +54,10 @@ namespace kagome::consensus {
     return DigestError::INVALID_DIGESTS;
   }
 
-  outcome::result<NextEpochDescriptor> getNextEpochDigest(
+  outcome::result<EpochDigest> getNextEpochDigest(
       const primitives::BlockHeader &header) {
     // https://github.com/paritytech/substrate/blob/d8df977d024ebeb5330bacac64cf7193a7c242ed/core/consensus/babe/src/lib.rs#L497
-    outcome::result<NextEpochDescriptor> epoch_digest =
+    outcome::result<EpochDigest> epoch_digest =
         DigestError::NEXT_EPOCH_DIGEST_DOES_NOT_EXIST;
 
     for (const auto &log : header.digest) {
@@ -73,7 +73,7 @@ namespace kagome::consensus {
 
               visit_in_place(
                   consensus_log_res.value(),
-                  [&epoch_digest](const NextEpochDescriptor &next_epoch) {
+                  [&epoch_digest](const EpochDigest &next_epoch) {
                     if (not epoch_digest) {
                       epoch_digest = next_epoch;
                     } else {
