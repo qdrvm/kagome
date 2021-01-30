@@ -31,6 +31,7 @@ set(
 include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 
 HunterGate(
-    URL https://github.com/soramitsu/soramitsu-hunter/archive/update/merge-with-cpp-pm.zip
-    SHA1 2cff6842d17c92dd538982bfa6c9c4c708e94f13    FILEPATH "${CMAKE_SOURCE_DIR}/cmake/Hunter/config.cmake"
+    URL https://github.com/soramitsu/soramitsu-hunter/archive/4ef28bbfcf5bf6d496c9d159d9b266cd0ffbbb63.zip
+    SHA1 deb079c8089e36754e7de2bc7f6efe95d9135188
+    FILEPATH "${CMAKE_SOURCE_DIR}/cmake/Hunter/config.cmake"
 )
