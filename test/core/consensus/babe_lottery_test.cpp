@@ -16,6 +16,7 @@ using namespace kagome;
 using namespace crypto;
 using namespace consensus;
 using namespace common;
+using namespace primitives;
 
 using testing::Return;
 
@@ -29,23 +30,22 @@ struct BabeLotteryTest : public testing::Test {
 
   std::shared_ptr<VRFProviderMock> vrf_provider_ =
       std::make_shared<VRFProviderMock>();
+  std::shared_ptr<BabeConfiguration> babe_config_ =
+      std::make_shared<BabeConfiguration>(BabeConfiguration{.epoch_length = 3});
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
 
-  BabeLotteryImpl lottery_{vrf_provider_, hasher_};
+  BabeLotteryImpl lottery_{vrf_provider_, babe_config_, hasher_};
 
   std::vector<VRFPreOutput> submitted_vrf_values_{uint256_t_to_bytes(28482),
                                                   uint256_t_to_bytes(57302840),
                                                   uint256_t_to_bytes(8405)};
-  Epoch current_epoch_{
-      0,
-      0,
-      3,
-      {},
-      Randomness{{
-          0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33,
-          0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22,
-          0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
-      }}};
+  EpochDescriptor current_epoch_;
+
+  Randomness randomness_{{0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
+                          0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
+                          0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
+                          0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44}};
+
   Sr25519Keypair keypair_{};
 
   Threshold threshold_{10};
@@ -67,24 +67,25 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   vrf_outputs.push_back({uint256_t_to_bytes(3749373), {}});
   vrf_outputs.push_back({uint256_t_to_bytes(1057472095), {}});
 
-  for (size_t i = 0; i < current_epoch_.epoch_length; ++i) {
+  for (size_t i = 0; i < babe_config_->epoch_length; ++i) {
     primitives::Transcript transcript;
-    prepareTranscript(
-        transcript, current_epoch_.randomness, i, current_epoch_.epoch_index);
+    prepareTranscript(transcript, randomness_, i, current_epoch_.epoch_number);
 
     if (i == 2) {
       // just random case for testing
-      EXPECT_CALL(*vrf_provider_, signTranscript(transcript, keypair_, threshold_))
+      EXPECT_CALL(*vrf_provider_,
+                  signTranscript(transcript, keypair_, threshold_))
           .WillOnce(Return(boost::none));
       continue;
     }
-    EXPECT_CALL(*vrf_provider_, signTranscript(transcript, keypair_, threshold_))
+    EXPECT_CALL(*vrf_provider_,
+                signTranscript(transcript, keypair_, threshold_))
         .WillOnce(Return(vrf_outputs[i]));
   }
 
   // WHEN
-  auto leadership =
-      lottery_.slotsLeadership(current_epoch_, threshold_, keypair_);
+  auto leadership = lottery_.slotsLeadership(
+      current_epoch_, randomness_, threshold_, keypair_);
 
   // THEN
   ASSERT_TRUE(leadership[0]);
@@ -107,8 +108,8 @@ TEST_F(BabeLotteryTest, ComputeRandomness) {
 
   // WHEN
   Buffer concat_values{};
-  concat_values.put(current_epoch_.randomness);
-  concat_values.put(uint64_t_to_bytes(current_epoch_.epoch_index));
+  concat_values.put(randomness_);
+  concat_values.put(uint64_t_to_bytes(current_epoch_.epoch_number));
   for (const auto &value : submitted_vrf_values_) {
     concat_values.put(value);
   }
@@ -119,8 +120,8 @@ TEST_F(BabeLotteryTest, ComputeRandomness) {
   EXPECT_CALL(*hasher_, blake2b_256(gsl::span<const uint8_t>(concat_values)))
       .WillOnce(Return(new_randomness));
 
-  auto returned_randomness = lottery_.computeRandomness(
-      current_epoch_.randomness, current_epoch_.epoch_index);
+  auto returned_randomness =
+      lottery_.computeRandomness(randomness_, current_epoch_.epoch_number);
 
   // THEN
   ASSERT_EQ(new_randomness, returned_randomness);

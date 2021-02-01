@@ -19,7 +19,7 @@
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_gossiper.hpp"
 #include "consensus/babe/babe_lottery.hpp"
-#include "consensus/babe/epoch_storage.hpp"
+#include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
 #include "crypto/hasher.hpp"
@@ -57,7 +57,6 @@ namespace kagome::consensus {
              std::shared_ptr<BabeLottery> lottery,
              std::shared_ptr<BlockExecutor> block_executor,
              std::shared_ptr<storage::trie::TrieStorage> trie_db,
-             std::shared_ptr<EpochStorage> epoch_storage,
              std::shared_ptr<primitives::BabeConfiguration> configuration,
              std::shared_ptr<authorship::Proposer> proposer,
              std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -69,7 +68,8 @@ namespace kagome::consensus {
              std::unique_ptr<clock::Timer> timer,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
-             SlotsStrategy slots_calculation_strategy);
+             SlotsStrategy slots_calculation_strategy,
+             std::shared_ptr<BabeUtil> babe_util);
 
     ~BabeImpl() override = default;
 
@@ -79,8 +79,7 @@ namespace kagome::consensus {
       execution_strategy_ = strategy;
     }
 
-    void runEpoch(Epoch epoch,
-                  BabeTimePoint starting_slot_finish_time) override;
+    void runEpoch(EpochDescriptor epoch) override;
 
     State getCurrentState() const override;
 
@@ -109,9 +108,12 @@ namespace kagome::consensus {
     /**
      * Finish the Babe epoch
      */
-    void finishEpoch();
+    void startNextEpoch();
 
-    BabeLottery::SlotsLeadership getEpochLeadership(const Epoch &epoch) const;
+    BabeLottery::SlotsLeadership getEpochLeadership(
+        const EpochDescriptor &epoch,
+        const primitives::AuthorityList &authorities,
+        const Randomness &randomness) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
         const crypto::VRFOutput &output,
@@ -125,7 +127,8 @@ namespace kagome::consensus {
      * Stores first production slot time estimate to the collection, to take
      * their median later
      * @param observed_slot Slot number of current block
-     * @param first_production_slot_number Slot number of the first production slot
+     * @param first_production_slot_number Slot number of the first production
+     * slot
      */
     void storeFirstSlotTimeEstimate(
         BabeSlotNumber observed_slot,
@@ -140,10 +143,11 @@ namespace kagome::consensus {
     /**
      * Create first epoch where current node will produce blocks
      * @param first_slot_time_estimate when first slot should be launched
-     * @param first_production_slot_number slot number where block production starts
+     * @param first_production_slot_number slot number where block production
+     * starts
      * @return first production epoch structure
      */
-    Epoch prepareFirstEpochFromZeroStrategy(
+    EpochDescriptor prepareFirstEpochFromZeroStrategy(
         BabeTimePoint first_slot_time_estimate,
         BabeSlotNumber first_production_slot_number) const;
     //--------------------------------------------------------------------------
@@ -154,7 +158,7 @@ namespace kagome::consensus {
      * @param first_production_slot slot number where block production starts
      * @return first production epoch structure
      */
-    Epoch prepareFirstEpochUnixTime(LastEpochDescriptor last_known_epoch,
+    EpochDescriptor prepareFirstEpochUnixTime(EpochDescriptor last_known_epoch,
                                     BabeSlotNumber first_production_slot) const;
 
     /**
@@ -168,7 +172,6 @@ namespace kagome::consensus {
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
-    std::shared_ptr<EpochStorage> epoch_storage_;
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -181,10 +184,11 @@ namespace kagome::consensus {
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     const SlotsStrategy slots_calculation_strategy_;
+    std::shared_ptr<BabeUtil> babe_util_;
 
     State current_state_{State::WAIT_BLOCK};
 
-    Epoch current_epoch_;
+    EpochDescriptor current_epoch_;
 
     /// Estimates of the first block production slot time. Input for the median
     /// algorithm
@@ -194,7 +198,7 @@ namespace kagome::consensus {
     const uint32_t kSlotTail = 30;
 
     BabeSlotNumber current_slot_{};
-    BabeLottery::SlotsLeadership slots_leadership_;
+    boost::optional<BabeLottery::SlotsLeadership> slots_leadership_;
     BabeTimePoint next_slot_finish_time_;
 
     boost::optional<ExecutionStrategy> execution_strategy_;

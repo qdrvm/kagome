@@ -61,7 +61,7 @@ namespace kagome::consensus {
 
     outcome::result<void> validateHeader(
         const primitives::BlockHeader &header,
-        const EpochIndex epoch_index,
+        const EpochNumber epoch_number,
         const primitives::AuthorityId &authority_id,
         const Threshold &threshold,
         const Randomness &randomness) const override;
@@ -91,7 +91,7 @@ namespace kagome::consensus {
      * @return true if vrf is valid, false otherwise
      */
     bool verifyVRF(const BabeBlockHeader &babe_header,
-                   const EpochIndex epoch_index,
+                   const EpochNumber epoch_number,
                    const primitives::BabeSessionKey &public_key,
                    const Threshold &threshold,
                    const Randomness &randomness,

@@ -530,7 +530,6 @@ namespace kagome::api {
       SessionPtr &session,
       primitives::events::SubscribedExtrinsicId ext_id,
       const primitives::events::ExtrinsicLifecycleEvent &params) {
-    logger_->warn("Extrinsic event, set_id {} ext_id {} id {} type {}", set_id, ext_id, params.id, params.type);
     sendEvent(server_,
               session,
               logger_,

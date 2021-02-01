@@ -20,6 +20,7 @@ target_link_libraries(block_tree_test
     block_tree
     block_header_repository
     extrinsic_observer
+    babe_digests_util
     )
 
 addtest(block_storage_test
