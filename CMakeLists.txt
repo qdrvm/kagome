@@ -31,11 +31,6 @@ if(THREADS_HAVE_PTHREAD_ARG)
   link_libraries(pthread)
 endif()
 
-
-include(CheckCXXCompilerFlag)
-include(cmake/dependencies.cmake)
-include(cmake/functions.cmake)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(TESTING      "Build and run test suite"                    ON )
@@ -50,6 +45,11 @@ option(LSAN         "Enable leak sanitizer"                       OFF)
 option(MSAN         "Enable memory sanitizer"                     OFF)
 option(TSAN         "Enable thread sanitizer"                     OFF)
 option(UBSAN        "Enable UB sanitizer"                         OFF)
+
+include(CheckCXXCompilerFlag)
+include(cmake/dependencies.cmake)
+include(cmake/functions.cmake)
+
 include(cmake/san.cmake)
 
 ## setup compilation flags
