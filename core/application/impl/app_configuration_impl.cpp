@@ -409,14 +409,20 @@ namespace kagome::application {
     find_argument<uint16_t>(
         vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
 
+    std::vector<std::string> listen_addr;
     find_argument<std::vector<std::string>>(
-        vm, "listen-addr", [&](std::vector<std::string> const &val) {
-          for (auto &s : val) {
-            if (auto ma_res = libp2p::multi::Multiaddress::create(s)) {
-              listen_addresses_.emplace_back(std::move(ma_res.value()));
-            }
-          }
-        });
+        vm, "listen-addr", [&](const auto &val) { listen_addr = val; });
+    for (auto &s : listen_addr) {
+      auto ma_res = libp2p::multi::Multiaddress::create(s);
+      if (not ma_res) {
+        auto err_msg = "Listening address '" + s
+                       + "' is invalid: " + ma_res.error().message();
+        logger_->error(err_msg);
+        std::cout << err_msg << std::endl;
+        return false;
+      }
+      listen_addresses_.emplace_back(std::move(ma_res.value()));
+    }
 
     find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
       max_blocks_in_response_ = val;
