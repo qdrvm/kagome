@@ -680,7 +680,6 @@ namespace kagome::injector {
         injector.template create<sptr<network::Gossiper>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<libp2p::protocol::Identify>>(),
         injector.template create<sptr<libp2p::protocol::Ping>>());
     return initialized.value();
   }
@@ -772,6 +771,24 @@ namespace kagome::injector {
     return *initialized;
   }
 
+  template <typename Injector>
+  sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<libp2p::protocol::kademlia::Config>>(boost::none);
+    if (initialized) {
+      return *initialized;
+    }
+
+    auto &chain_spec = injector.template create<application::ChainSpec &>();
+
+    initialized = std::make_shared<libp2p::protocol::kademlia::Config>(
+        libp2p::protocol::kademlia::Config{
+            .protocolId = "/" + chain_spec.protocolId() + "/kad"});
+
+    return *initialized;
+  }
+
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
                                Ts &&... args) {
@@ -784,7 +801,6 @@ namespace kagome::injector {
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     libp2p::protocol::PingConfig ping_config{};
-    libp2p::protocol::kademlia::Config kademlia_config{};
 
     return di::make_injector(
         // bind configs
@@ -801,8 +817,10 @@ namespace kagome::injector {
                 libp2p::security::Noise>()[di::override]),
 
         // inherit kademlia injector
-        libp2p::injector::makeKademliaInjector(
-            libp2p::injector::useKademliaConfig(kademlia_config)),
+        libp2p::injector::makeKademliaInjector(),
+        di::bind<libp2p::protocol::kademlia::Config>.to([](auto const &inj) {
+          return get_kademlia_config(inj);
+        })[boost::di::override],
 
         // bind boot nodes
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),

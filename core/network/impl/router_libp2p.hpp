@@ -58,7 +58,6 @@ namespace kagome::network {
         std::shared_ptr<Gossiper> gossiper,
         const BootstrapNodes &bootstrap_nodes,
         std::shared_ptr<blockchain::BlockStorage> storage,
-        std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto);
 
     ~RouterLibp2p() override = default;
@@ -171,7 +170,6 @@ namespace kagome::network {
     common::Logger log_;
 
     std::shared_ptr<blockchain::BlockStorage> storage_;
-    std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::Ping> ping_proto_;
   };
 

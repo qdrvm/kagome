@@ -38,7 +38,6 @@ namespace kagome::network {
       std::shared_ptr<Gossiper> gossiper,
       const BootstrapNodes &bootstrap_nodes,
       std::shared_ptr<blockchain::BlockStorage> storage,
-      std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto)
       : app_state_manager_{app_state_manager},
         host_{host},
@@ -53,7 +52,6 @@ namespace kagome::network {
         gossiper_{std::move(gossiper)},
         log_{common::createLogger("RouterLibp2p")},
         storage_{std::move(storage)},
-        identify_{std::move(identify)},
         ping_proto_{std::move(ping_proto)} {
     BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
                      "app state manager is nullptr");
@@ -67,7 +65,6 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!bootstrap_nodes.empty(), "bootstrap node list is empty");
     BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
 
     log_->debug("Own peer id: {}", own_info.id.toBase58());
@@ -187,8 +184,6 @@ namespace kagome::network {
       log_->error("Cannot add own addresses to repo: {}",
                   upsert_res.error().message());
     }
-
-    identify_->start();
 
     host_.start();
 

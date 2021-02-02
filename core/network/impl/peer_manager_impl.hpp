@@ -11,6 +11,7 @@
 #include <memory>
 #include <queue>
 
+#include <libp2p/event/bus.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/identify/identify.hpp>
 #include <libp2p/protocol/kademlia/kademlia.hpp>
@@ -30,7 +31,7 @@ namespace kagome::network {
    public:
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<libp2p::Host> host,
+        libp2p::Host& host,
         std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
@@ -64,13 +65,7 @@ namespace kagome::network {
     void keepAlive(const PeerId &peer_id) override;
 
    private:
-    /// Announce about himself ondemand
-    void announce();
-
-    /// Discover other peers ondemand
-    void discovery();
-
-    /// Aligns connected stream amount
+    /// Aligns amount of connected streams
     void align();
 
     /// Opens streams set for special peer (i.e. new-discovered)
@@ -80,7 +75,7 @@ namespace kagome::network {
     void disconnectFromPeer(const PeerId &peer_id);
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
-    std::shared_ptr<libp2p::Host> host_;
+    libp2p::Host& host_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
@@ -90,15 +85,12 @@ namespace kagome::network {
     const clock::SteadyClock &clock_;
     const BootstrapNodes &bootstrap_nodes_;
     const OwnPeerInfo &own_peer_info_;
-    libp2p::protocol::kademlia::ContentId content_id_;
 
-    libp2p::event::Handle new_connection_handle_;
+    libp2p::event::Handle add_peer_handle_;
     std::unordered_set<PeerId, std::hash<PeerId>, std::equal_to<PeerId>>
         peers_in_queue_;
     std::deque<std::reference_wrapper<const PeerId>> queue_to_connect_;
     std::unordered_map<PeerId, clock::SteadyClock::TimePoint> active_peers_;
-    libp2p::protocol::scheduler::Handle announce_timer_;
-    libp2p::protocol::scheduler::Handle discovery_timer_;
     libp2p::protocol::scheduler::Handle align_timer_;
 
     common::Logger log_;
