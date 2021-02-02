@@ -44,7 +44,7 @@ namespace kagome::network {
      * Apply {@param func} to an active peer with id {@param peer_id}
      */
     virtual void forOnePeer(const PeerId &peer_id,
-                            std::function<void()> func) const = 0;
+                            std::function<void(const PeerId &)> func) const = 0;
   };
 }  // namespace kagome::network
 

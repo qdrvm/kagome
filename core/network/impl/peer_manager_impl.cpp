@@ -70,106 +70,18 @@ namespace kagome::network {
     add_peer_handle_ =
         host_.getBus()
             .getChannel<libp2p::protocol::kademlia::events::PeerAddedChannel>()
-            .subscribe([wp = weak_from_this()](
-                           const libp2p::peer::PeerId &peer_id) {
-              auto self = wp.lock();
-              if (not self) return;
-
-              // This node
-              if (self->own_peer_info_.id == peer_id) {
-                return;
+            .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
+              if (auto self = wp.lock()) {
+                self->processDiscoveredPeer(peer_id);
               }
-
-              // Already active
-              if (self->active_peers_.find(peer_id)
-                  != self->active_peers_.end()) {
-                return;
-              }
-
-              auto [it, added] =
-                  self->peers_in_queue_.emplace(std::move(peer_id));
-
-              // Already in queue
-              if (not added) {
-                return;
-              }
-
-              self->queue_to_connect_.emplace_back(*it);
-              self->log_->debug("New peer_id={} enqueued", (*it).toBase58());
-              self->align();
             });
 
-    identify_->onIdentifyReceived([wp = weak_from_this()](auto &&peer_id) {
-      auto self = wp.lock();
-      if (not self) {
-        return;
-      }
-
-      // Skip connection to himself
-      if (self->own_peer_info_.id == peer_id) {
-        return;
-      }
-
-      self->log_->debug("New connection with peer_id={}", peer_id.toBase58());
-
-      auto addresses_res =
-          self->host_.getPeerRepository().getAddressRepository().getAddresses(
-              peer_id);
-
-      if (not addresses_res.has_value()) {
-        self->log_->debug("  addresses are not provided");
-        return;
-      }
-
-      auto &addresses = addresses_res.value();
-      for (auto addr : addresses) {
-        self->log_->debug("  address: {}", addr.getStringAddress());
-      }
-
-      PeerInfo peer_info{.id = peer_id, .addresses = std::move(addresses)};
-      self->kademlia_->addPeer(peer_info, false);
-
-      // Add to active peer list
-      if (auto [ap_it, ok] =
-              self->active_peers_.emplace(peer_id, self->clock_.now());
-          ok) {
-        // And remove from queue
-        if (auto piq_it = self->peers_in_queue_.find(peer_id);
-            piq_it != self->peers_in_queue_.end()) {
-          auto qtc_it = std::find_if(
-              self->queue_to_connect_.cbegin(),
-              self->queue_to_connect_.cend(),
-              [&peer_id](const auto &item) { return peer_id == item.get(); });
-          self->queue_to_connect_.erase(qtc_it);
-        }
-
-        self->host_.newStream(
-            peer_info,
-            fmt::format(kBlockAnnouncesProtocol.data(),
-                        self->chain_spec_.protocolId()),
-            [self, peer_info](auto &&stream_res) {
-              if (!stream_res) {
-                self->log_->warn("Unable to create stream with {}",
-                                 peer_info.id.toHex());
-                return;
-              }
-              [[maybe_unused]] auto res = self->stream_engine_->add(
-                  stream_res.value(),
-                  fmt::format(kBlockAnnouncesProtocol.data(),
-                              self->chain_spec_.protocolId()));
-            });
-
-        // Reserve stream slots for needed protocols
-        self->stream_engine_->add(
-            peer_id,
-            fmt::format(kPropagateTransactionsProtocol.data(),
-                        self->chain_spec_.protocolId()));
-        self->stream_engine_->add(peer_id,
-                                  fmt::format(kBlockAnnouncesProtocol.data(),
-                                              self->chain_spec_.protocolId()));
-        self->stream_engine_->add(peer_id, kGossipProtocol);
-      }
-    });
+    identify_->onIdentifyReceived(
+        [wp = weak_from_this()](const PeerId &peer_id) {
+          if (auto self = wp.lock()) {
+            self->processFullyConnectedPeer(peer_id);
+          }
+        });
 
     // Start Identify protocol
     identify_->start();
@@ -197,16 +109,15 @@ namespace kagome::network {
 
   void PeerManagerImpl::forEachPeer(
       std::function<void(const PeerId &)> func) const {
-    std::for_each(active_peers_.begin(),
-                  active_peers_.end(),
-                  [&func](auto &item) { func(item.first); });
+    for (auto &it : active_peers_) {
+      func(it.first);
+    }
   }
 
-  void PeerManagerImpl::forOnePeer(const PeerId &peer_id,
-                                   std::function<void()> func) const {
-    auto i = active_peers_.find(peer_id);
-    if (i != active_peers_.end()) {
-      func();
+  void PeerManagerImpl::forOnePeer(
+      const PeerId &peer_id, std::function<void(const PeerId &)> func) const {
+    if (active_peers_.count(peer_id)) {
+      func(peer_id);
     }
   }
 
@@ -221,8 +132,9 @@ namespace kagome::network {
 
     // Not enough active peers
     if (cur_active_peer < target_count and not queue_to_connect_.empty()) {
-      auto peer_id =
-          std::move(peers_in_queue_.extract(queue_to_connect_.front()).value());
+      auto node = peers_in_queue_.extract(queue_to_connect_.front());
+      auto &peer_id = node.value();
+
       queue_to_connect_.pop_front();
 
       connectToPeer(peer_id);
@@ -298,4 +210,106 @@ namespace kagome::network {
     }
   }
 
+  void PeerManagerImpl::processDiscoveredPeer(const PeerId &peer_id) {
+    // Ignore himself
+    if (own_peer_info_.id == peer_id) {
+      return;
+    }
+
+    // Skip if peer is already active
+    if (active_peers_.find(peer_id) != active_peers_.end()) {
+      return;
+    }
+
+    auto [it, added] = peers_in_queue_.emplace(std::move(peer_id));
+
+    // Already in queue
+    if (not added) {
+      return;
+    }
+
+    queue_to_connect_.emplace_back(*it);
+    log_->debug("New peer_id={} enqueued", (*it).toBase58());
+
+    // Force aligning
+    align();
+  }
+
+  void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
+    // Skip connection to himself
+    if (own_peer_info_.id == peer_id) {
+      return;
+    }
+
+    log_->debug("New connection with peer_id={}", peer_id.toBase58());
+
+    auto addresses_res =
+        host_.getPeerRepository().getAddressRepository().getAddresses(peer_id);
+
+    if (not addresses_res.has_value()) {
+      log_->debug("  addresses are not provided");
+      return;
+    }
+
+    auto &addresses = addresses_res.value();
+    for (auto addr : addresses) {
+      log_->debug("  address: {}", addr.getStringAddress());
+    }
+
+    PeerInfo peer_info{.id = peer_id, .addresses = std::move(addresses)};
+
+    // Add to active peer list
+    if (auto [ap_it, ok] = active_peers_.emplace(peer_id, clock_.now()); ok) {
+      // And remove from queue
+      if (auto piq_it = peers_in_queue_.find(peer_id);
+          piq_it != peers_in_queue_.end()) {
+        auto qtc_it = std::find_if(
+            queue_to_connect_.cbegin(),
+            queue_to_connect_.cend(),
+            [&peer_id](const auto &item) { return peer_id == item.get(); });
+        queue_to_connect_.erase(qtc_it);
+      }
+
+      host_.newStream(
+          peer_info,
+          fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_.protocolId()),
+          [wp = weak_from_this(), peer_info](auto &&stream_res) {
+            auto self = wp.lock();
+            if (not self) return;
+
+            if (!stream_res) {
+              self->log_->warn("Unable to create stream with {}",
+                               peer_info.id.toHex());
+              return;
+            }
+
+            self->log_->debug("Established {} stream with {}",
+                              fmt::format(kBlockAnnouncesProtocol.data(),
+                                          self->chain_spec_.protocolId()),
+                              peer_info.id.toHex());
+
+            // Save initial payload stream (block-announce)
+            [[maybe_unused]] auto res = self->stream_engine_->add(
+                stream_res.value(),
+                fmt::format(kBlockAnnouncesProtocol.data(),
+                            self->chain_spec_.protocolId()));
+
+            // Reserve stream slots for needed protocols
+
+            self->stream_engine_->add(
+                peer_info.id,
+                fmt::format(kPropagateTransactionsProtocol.data(),
+                            self->chain_spec_.protocolId()));
+
+            self->stream_engine_->add(
+                peer_info.id,
+                fmt::format(kBlockAnnouncesProtocol.data(),
+                            self->chain_spec_.protocolId()));
+
+            self->stream_engine_->add(peer_info.id, kGossipProtocol);
+          });
+    }
+
+    kademlia_->addPeer(peer_info, false);
+  }
 }  // namespace kagome::network

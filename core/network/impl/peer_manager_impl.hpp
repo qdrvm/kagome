@@ -60,7 +60,7 @@ namespace kagome::network {
 
     /** @see PeerManager::forOnePeer */
     void forOnePeer(const PeerId &peer_id,
-                    std::function<void()> func) const override;
+                    std::function<void(const PeerId &)> func) const override;
 
     /** @see PeerManager::forOnePeer */
     void keepAlive(const PeerId &peer_id) override;
@@ -68,6 +68,10 @@ namespace kagome::network {
    private:
     /// Aligns amount of connected streams
     void align();
+
+    void processDiscoveredPeer(const PeerId &peer_id);
+
+    void processFullyConnectedPeer(const PeerId &peer_id);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);
