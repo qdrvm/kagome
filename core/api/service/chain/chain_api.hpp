@@ -58,29 +58,31 @@ namespace kagome::api {
 
     /**
      * @param hash hex-string of a block to retrieve
-     * @return BlockHeader data structure
      */
     virtual outcome::result<primitives::BlockHeader> getHeader(
         std::string_view hash) = 0;
 
     /**
      * Returns header of a last finalized block.
-     * @return BlockHeader data structure
      */
     virtual outcome::result<primitives::BlockHeader> getHeader() = 0;
 
     /**
      * @param hash hex-string of a block to retrieve
-     * @return BlockData data structure
      */
     virtual outcome::result<primitives::BlockData> getBlock(
         std::string_view hash) = 0;
 
     /**
      * Returns header of a last finalized block.
-     * @return BlockData data structure
      */
     virtual outcome::result<primitives::BlockData> getBlock() = 0;
+
+    /**
+     * Get hash of the last finalized block in the canon chain.
+     * @returns The hash of the last finalized block
+     */
+    virtual outcome::result<primitives::BlockHash> getFinalizedHead() const = 0;
 
     /**
      * Subscribes to events of Finalized Heads type.
