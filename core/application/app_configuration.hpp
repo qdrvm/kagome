@@ -16,6 +16,7 @@
 #include <libp2p/multi/multiaddress.hpp>
 
 #include "crypto/ed25519_types.hpp"
+#include "network/peering_config.hpp"
 
 namespace kagome::application {
 
@@ -123,30 +124,10 @@ namespace kagome::application {
      */
     virtual bool isUnixSlotsStrategy() const = 0;
 
-    struct PeeringCongif {
-      /// Time of peer inactivity to disconnect
-      std::chrono::seconds peerTtl = std::chrono::minutes(10);
-
-      /// Period of active peers amount aligning
-      std::chrono::seconds aligningPeriod = std::chrono::seconds(5);
-
-      /// Target amount of active peers
-      size_t targetPeerAmount = 4;
-
-      /// Max peers count before start to disconnect of innactive ones
-      size_t softLimit = 8;
-
-      /// Max peers before start forced disconnection
-      size_t hardLimit = 10;
-    };
-
     /**
-     * Slots strategy
-     * @return true if we should count slots as `unix_epoch_time() /
-     * slot_duration`. Otherwise slots are counting from 0 and false is returned
+     * Config for PeerManager
      */
-    virtual const PeeringCongif& peeringCongif() const = 0;
-
+    virtual const network::PeeringConfig &peeringConfig() const = 0;
   };
 
 }  // namespace kagome::application

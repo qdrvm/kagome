@@ -684,6 +684,28 @@ namespace kagome::injector {
     return initialized.value();
   }
 
+  template <class Injector>
+  sptr<network::PeerManager> get_peer_manager(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<network::PeerManager>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    initialized = std::make_shared<network::PeerManagerImpl>(
+        injector.template create<sptr<application::AppStateManager>>(),
+        injector.template create<libp2p::Host &>(),
+        injector.template create<sptr<libp2p::protocol::Identify>>(),
+        injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>(),
+        injector.template create<sptr<libp2p::protocol::Scheduler>>(),
+        injector.template create<sptr<network::StreamEngine>>(),
+        injector.template create<const application::AppConfiguration &>(),
+        injector.template create<const application::ChainSpec &>(),
+        injector.template create<const clock::SteadyClock &>(),
+        injector.template create<const network::BootstrapNodes &>(),
+        injector.template create<const network::OwnPeerInfo &>());
+    return initialized.value();
+  }
+
   template <typename Injector>
   sptr<libp2p::crypto::KeyPair> get_peer_keypair(const Injector &injector) {
     static auto initialized =
@@ -822,7 +844,6 @@ namespace kagome::injector {
           return get_kademlia_config(inj);
         })[boost::di::override],
 
-        // bind boot nodes
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
 
@@ -931,8 +952,8 @@ namespace kagome::injector {
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
         di::bind<consensus::grandpa::FinalizationObserver>.to(
             [](auto const &inj) { return get_finalization_observer(inj); }),
-        di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
-
+        di::bind<network::PeerManager>.to(
+            [](auto const &inj) { return get_peer_manager(inj); }),
         di::bind<network::Router>.to(
             [](const auto &injector) { return get_router(injector); }),
         di::bind<consensus::BlockExecutor>.to(

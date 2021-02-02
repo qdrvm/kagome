@@ -8,8 +8,6 @@
 
 #include "application/app_configuration.hpp"
 
-#include "crypto/ed25519_types.hpp"
-
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
   using SizeType = ::std::size_t;
@@ -111,6 +109,9 @@ namespace kagome::application {
     bool isUnixSlotsStrategy() const override {
       return is_unix_slots_strategy_;
     }
+    const network::PeeringConfig &peeringConfig() const override {
+      return peering_config_;
+    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -180,6 +181,7 @@ namespace kagome::application {
     boost::filesystem::path base_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
+    network::PeeringConfig peering_config_;
   };
 
 }  // namespace kagome::application

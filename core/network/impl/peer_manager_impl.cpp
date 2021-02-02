@@ -23,8 +23,8 @@ namespace kagome::network {
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
-      std::shared_ptr<application::AppConfiguration> app_config,
-      std::shared_ptr<application::ChainSpec> chain_spec,
+      const application::AppConfiguration &app_config,
+      const application::ChainSpec &chain_spec,
       const clock::SteadyClock &clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info)
@@ -34,8 +34,8 @@ namespace kagome::network {
         kademlia_(std::move(kademlia)),
         scheduler_(std::move(scheduler)),
         stream_engine_(std::move(stream_engine)),
-        app_config_(std::move(app_config)),
-        chain_spec_(std::move(chain_spec)),
+        app_config_(app_config),
+        chain_spec_(chain_spec),
         clock_(clock),
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
@@ -45,8 +45,6 @@ namespace kagome::network {
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
-    BOOST_ASSERT(app_config_ != nullptr);
-    BOOST_ASSERT(chain_spec_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
@@ -148,7 +146,7 @@ namespace kagome::network {
         self->host_.newStream(
             peer_info,
             fmt::format(kBlockAnnouncesProtocol.data(),
-                        self->chain_spec_->protocolId()),
+                        self->chain_spec_.protocolId()),
             [self, peer_info](auto &&stream_res) {
               if (!stream_res) {
                 self->log_->warn("Unable to create stream with {}",
@@ -158,17 +156,17 @@ namespace kagome::network {
               [[maybe_unused]] auto res = self->stream_engine_->add(
                   stream_res.value(),
                   fmt::format(kBlockAnnouncesProtocol.data(),
-                              self->chain_spec_->protocolId()));
+                              self->chain_spec_.protocolId()));
             });
 
         // Reserve stream slots for needed protocols
         self->stream_engine_->add(
             peer_id,
             fmt::format(kPropagateTransactionsProtocol.data(),
-                        self->chain_spec_->protocolId()));
+                        self->chain_spec_.protocolId()));
         self->stream_engine_->add(peer_id,
                                   fmt::format(kBlockAnnouncesProtocol.data(),
-                                              self->chain_spec_->protocolId()));
+                                              self->chain_spec_.protocolId()));
         self->stream_engine_->add(peer_id, kGossipProtocol);
       }
     });
@@ -210,9 +208,9 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::align() {
-    const size_t target_count = app_config_->peeringCongif().targetPeerAmount;
-    const size_t soft_limit = app_config_->peeringCongif().softLimit;
-    const size_t hard_limit = app_config_->peeringCongif().hardLimit;
+    const auto target_count = app_config_.peeringConfig().targetPeerAmount;
+    const auto soft_limit = app_config_.peeringConfig().softLimit;
+    const auto hard_limit = app_config_.peeringConfig().hardLimit;
 
     align_timer_.cancel();
 
@@ -237,7 +235,7 @@ namespace kagome::network {
         }
       }
 
-      const auto peer_ttl = app_config_->peeringCongif().peerTtl;
+      const auto peer_ttl = app_config_.peeringConfig().peerTtl;
 
       // Hard limit is exceeded OR peer is inactive long time
       if (cur_active_peer > hard_limit
@@ -247,7 +245,7 @@ namespace kagome::network {
       }
     }
 
-    const auto aligning_period = app_config_->peeringCongif().aligningPeriod;
+    const auto aligning_period = app_config_.peeringConfig().aligningPeriod;
 
     align_timer_ = scheduler_->schedule(
         libp2p::protocol::scheduler::toTicks(aligning_period),
