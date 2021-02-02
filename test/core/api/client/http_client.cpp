@@ -49,7 +49,7 @@ namespace test {
     req.set(HttpField::host, host);
     req.set(HttpField::user_agent, kUserAgent);
     req.set(HttpField::content_type, "text/html");
-    req.set(HttpField::content_length, message.length());
+    req.set(HttpField::content_length, std::to_string(message.length()));
     req.body().assign(message);
 
     boost::system::error_code ec{};

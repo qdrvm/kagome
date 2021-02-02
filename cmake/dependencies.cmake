@@ -1,19 +1,16 @@
 # hunter dependencies
 # https://docs.hunter.sh/en/latest/packages/
 
-# https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
-hunter_add_package(GTest)
-find_package(GTest CONFIG REQUIRED)
-find_package(GMock CONFIG REQUIRED)
+if (TESTING)
+    # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
+    hunter_add_package(GTest)
+    find_package(GTest CONFIG REQUIRED)
+    find_package(GMock CONFIG REQUIRED)
+endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS random filesystem program_options)
 find_package(Boost CONFIG REQUIRED random filesystem program_options)
-
-## TODO: uncomment when it is really needed
-## https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html
-#hunter_add_package(libjson-rpc-cpp)
-#find_package(libjson-rpc-cpp CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/leveldb.html
 hunter_add_package(leveldb)
@@ -66,5 +63,6 @@ find_package(Boost.DI CONFIG REQUIRED)
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
 
+# https://github.com/soramitsu/soramitsu-libsecp256k1
 hunter_add_package(libsecp256k1)
 find_package(libsecp256k1 CONFIG REQUIRED)

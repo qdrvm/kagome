@@ -6,6 +6,7 @@
 #include "network/rpc.hpp"
 
 #include <gtest/gtest.h>
+
 #include "mock/libp2p/basic/read_writer_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
@@ -111,7 +112,9 @@ TEST_F(RpcLibp2pTest, ReadWithoutResponse) {
  * @then response is received
  */
 TEST_F(RpcLibp2pTest, WriteWithResponse) {
-  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _))
+  EXPECT_CALL(
+      host_,
+      newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
   setWriteExpectations(stream_, encoded_request_.toVector());
@@ -138,7 +141,9 @@ TEST_F(RpcLibp2pTest, WriteWithResponse) {
  * @then the error is properly handled
  */
 TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
-  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _))
+  EXPECT_CALL(
+      host_,
+      newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
   setWriteExpectations(stream_, encoded_request_.toVector());
@@ -166,7 +171,9 @@ TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
  * @then operation completes successfully
  */
 TEST_F(RpcLibp2pTest, WriteWithoutResponse) {
-  EXPECT_CALL(host_, newStream(peer_info_, protocol_, _))
+  EXPECT_CALL(
+      host_,
+      newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
   setWriteExpectations(stream_, encoded_request_.toVector());
