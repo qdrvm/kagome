@@ -35,7 +35,8 @@ namespace kagome::network {
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<StreamEngine> stream_engine,
-        std::shared_ptr<application::ChainSpec> config,
+        std::shared_ptr<application::AppConfiguration> app_config,
+        std::shared_ptr<application::ChainSpec> chain_spec,
         const clock::SteadyClock &clock,
         const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_peer_info);
@@ -84,7 +85,8 @@ namespace kagome::network {
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<StreamEngine> stream_engine_;
-    std::shared_ptr<application::ChainSpec> config_;
+    std::shared_ptr<application::AppConfiguration> app_config_;
+    std::shared_ptr<application::ChainSpec> chain_spec_;
     const clock::SteadyClock &clock_;
     const BootstrapNodes &bootstrap_nodes_;
     const OwnPeerInfo &own_peer_info_;

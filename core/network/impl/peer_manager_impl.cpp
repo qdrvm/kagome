@@ -22,7 +22,8 @@ namespace kagome::network {
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
-      std::shared_ptr<application::ChainSpec> config,
+      std::shared_ptr<application::AppConfiguration> app_config,
+      std::shared_ptr<application::ChainSpec> chain_spec,
       const clock::SteadyClock &clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info)
@@ -43,7 +44,8 @@ namespace kagome::network {
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
-    BOOST_ASSERT(config_ != nullptr);
+    BOOST_ASSERT(app_config_ != nullptr);
+    BOOST_ASSERT(chain_spec_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
@@ -58,9 +60,6 @@ namespace kagome::network {
     for (const auto &bootstrap_node : bootstrap_nodes_) {
       kademlia_->addPeer(bootstrap_node, true);
     }
-
-    content_id_ = libp2p::protocol::kademlia::ContentId(
-        "kagome");  // TODO(xDimon): use value from config
 
     return true;
   }
@@ -276,9 +275,9 @@ namespace kagome::network {
   }  // namespace kagome::network
 
   void PeerManagerImpl::align() {
-    size_t target_count = 4;  // TODO(xDimon): use value from config
-    size_t soft_limit = 8;    // TODO(xDimon): use value from config
-    size_t hard_limit = 8;    // TODO(xDimon): use value from config
+    const size_t target_count = app_config_->peeringCongif().targetPeerAmount;
+    const size_t soft_limit = app_config_->peeringCongif().softLimit;
+    const size_t hard_limit = app_config_->peeringCongif().hardLimit;
 
     align_timer_.cancel();
 
@@ -303,8 +302,7 @@ namespace kagome::network {
         }
       }
 
-      const auto peer_ttl =
-          std::chrono::minutes(10);  // TODO(xDimon): use value from config
+      const auto peer_ttl = app_config_->peeringCongif().peerTtl;
 
       // Hard limit is exceeded OR peer is inactive long time
       if (cur_active_peer > hard_limit
@@ -314,8 +312,7 @@ namespace kagome::network {
       }
     }
 
-    const auto aligning_period =
-        std::chrono::seconds(5);  // TODO(xDimon): use value from config
+    const auto aligning_period = app_config_->peeringCongif().aligningPeriod;
 
     align_timer_ = scheduler_->schedule(
         libp2p::protocol::scheduler::toTicks(aligning_period),
