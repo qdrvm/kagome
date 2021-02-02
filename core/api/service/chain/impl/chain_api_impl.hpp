@@ -58,6 +58,8 @@ namespace kagome::api {
       return block_storage_->getBlockData(last.block_hash);
     }
 
+    outcome::result<primitives::BlockHash> getFinalizedHead() const override;
+
     outcome::result<uint32_t> subscribeFinalizedHeads() override;
     outcome::result<void> unsubscribeFinalizedHeads(
         uint32_t subscription_id) override;
