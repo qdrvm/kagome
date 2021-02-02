@@ -92,13 +92,30 @@ namespace kagome::network {
 
     void del(const PeerId &peer_id, const Protocol &protocol) {
       std::unique_lock cs(streams_cs_);
+      auto peer_it = streams_.find(peer_id);
+      if (peer_it != streams_.end()) {
+        auto &protocols = peer_it->second;
+        auto protocol_it = protocols.find(protocol);
+        if (protocol_it != protocols.end()) {
+          protocols.erase(protocol_it);
+          if (protocols.empty()) {
+            streams_.erase(peer_it);
+          }
+        }
+      }
+    }
+
+    void del(const PeerId &peer_id) {
+      std::unique_lock cs(streams_cs_);
       auto it = streams_.find(peer_id);
       if (it != streams_.end()) {
         auto &protocols = it->second;
-        protocols.erase(protocol);
-        if (protocols.empty()) {
-          streams_.erase(it);
+        for (auto &protocol : protocols) {
+          if (protocol.second) {
+            protocol.second->reset();
+          }
         }
+        streams_.erase(it);
       }
     }
 

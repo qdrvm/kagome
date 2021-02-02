@@ -198,7 +198,7 @@ namespace kagome::network {
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
-      host_.disconnect(peer_id);
+      stream_engine_->del(peer_id);
       active_peers_.erase(it);
     }
   }
