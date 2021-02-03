@@ -140,15 +140,25 @@ namespace kagome::network {
       connectToPeer(peer_id);
     }
 
+    // Check disconnected
+    auto protocol =
+        fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_.protocolId());
+    for (auto it = active_peers_.begin(); it != active_peers_.end();) {
+      auto [peer_id, _] = *it++;
+      if (not stream_engine_->isAlive(peer_id, protocol)) {
+        disconnectFromPeer(peer_id);
+      }
+    }
+
     // Soft limit is exceeded
     if (cur_active_peer > soft_limit) {
       // Get oldest peer
-      auto &&[oldest_peer_id, oldest_timepoint] = *active_peers_.begin();
-      for (auto &[peer_id, timepoint] : active_peers_) {
-        if (oldest_timepoint > timepoint) {
-          const_cast<PeerId &>(oldest_peer_id) = peer_id;
-        }
-      }
+      auto it = std::min_element(active_peers_.begin(),
+                                 active_peers_.end(),
+                                 [](const auto &item1, const auto &item2) {
+                                   return item1.second < item2.second;
+                                 });
+      auto &[oldest_peer_id, oldest_timepoint] = *it;
 
       const auto peer_ttl = app_config_.peeringConfig().peerTtl;
 
@@ -258,56 +268,66 @@ namespace kagome::network {
 
     PeerInfo peer_info{.id = peer_id, .addresses = std::move(addresses)};
 
-    // Add to active peer list
-    if (auto [ap_it, ok] = active_peers_.emplace(peer_id, clock_.now()); ok) {
-      // And remove from queue
-      if (auto piq_it = peers_in_queue_.find(peer_id);
-          piq_it != peers_in_queue_.end()) {
-        auto qtc_it = std::find_if(
-            queue_to_connect_.cbegin(),
-            queue_to_connect_.cend(),
-            [&peer_id](const auto &item) { return peer_id == item.get(); });
-        queue_to_connect_.erase(qtc_it);
+    const auto hard_limit = app_config_.peeringConfig().hardLimit;
+
+    size_t cur_active_peer = active_peers_.size();
+
+    // Capacity is allow
+    if (cur_active_peer < hard_limit) {
+      // Add to active peer list
+      if (auto [ap_it, ok] = active_peers_.emplace(peer_id, clock_.now()); ok) {
+        // And remove from queue
+        if (auto piq_it = peers_in_queue_.find(peer_id);
+            piq_it != peers_in_queue_.end()) {
+          auto qtc_it = std::find_if(
+              queue_to_connect_.cbegin(),
+              queue_to_connect_.cend(),
+              [&peer_id](const auto &item) { return peer_id == item.get(); });
+          queue_to_connect_.erase(qtc_it);
+        }
+
+        host_.newStream(
+            peer_info,
+            fmt::format(kBlockAnnouncesProtocol.data(),
+                        chain_spec_.protocolId()),
+            [wp = weak_from_this(), peer_info](auto &&stream_res) {
+              auto self = wp.lock();
+              if (not self) return;
+
+              if (!stream_res) {
+                self->log_->warn("Unable to create stream with {}: ",
+                                 peer_info.id.toBase58(),
+                                 stream_res.error().message());
+                self->disconnectFromPeer(peer_info.id);
+                return;
+              }
+
+              self->log_->debug("Established {} stream with {}",
+                                fmt::format(kBlockAnnouncesProtocol.data(),
+                                            self->chain_spec_.protocolId()),
+                                peer_info.id.toBase58());
+
+              // Save initial payload stream (block-announce)
+              [[maybe_unused]] auto res = self->stream_engine_->add(
+                  stream_res.value(),
+                  fmt::format(kBlockAnnouncesProtocol.data(),
+                              self->chain_spec_.protocolId()));
+
+              // Reserve stream slots for needed protocols
+
+              self->stream_engine_->add(
+                  peer_info.id,
+                  fmt::format(kPropagateTransactionsProtocol.data(),
+                              self->chain_spec_.protocolId()));
+
+              self->stream_engine_->add(
+                  peer_info.id,
+                  fmt::format(kBlockAnnouncesProtocol.data(),
+                              self->chain_spec_.protocolId()));
+
+              self->stream_engine_->add(peer_info.id, kGossipProtocol);
+            });
       }
-
-      host_.newStream(
-          peer_info,
-          fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_.protocolId()),
-          [wp = weak_from_this(), peer_info](auto &&stream_res) {
-            auto self = wp.lock();
-            if (not self) return;
-
-            if (!stream_res) {
-              self->log_->warn("Unable to create stream with {}",
-                               peer_info.id.toHex());
-              return;
-            }
-
-            self->log_->debug("Established {} stream with {}",
-                              fmt::format(kBlockAnnouncesProtocol.data(),
-                                          self->chain_spec_.protocolId()),
-                              peer_info.id.toHex());
-
-            // Save initial payload stream (block-announce)
-            [[maybe_unused]] auto res = self->stream_engine_->add(
-                stream_res.value(),
-                fmt::format(kBlockAnnouncesProtocol.data(),
-                            self->chain_spec_.protocolId()));
-
-            // Reserve stream slots for needed protocols
-
-            self->stream_engine_->add(
-                peer_info.id,
-                fmt::format(kPropagateTransactionsProtocol.data(),
-                            self->chain_spec_.protocolId()));
-
-            self->stream_engine_->add(
-                peer_info.id,
-                fmt::format(kBlockAnnouncesProtocol.data(),
-                            self->chain_spec_.protocolId()));
-
-            self->stream_engine_->add(peer_info.id, kGossipProtocol);
-          });
     }
 
     kademlia_->addPeer(peer_info, false);

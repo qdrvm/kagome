@@ -804,10 +804,13 @@ namespace kagome::injector {
 
     auto &chain_spec = injector.template create<application::ChainSpec &>();
 
-    initialized = std::make_shared<libp2p::protocol::kademlia::Config>(
+    auto kagome_config = std::make_shared<libp2p::protocol::kademlia::Config>(
         libp2p::protocol::kademlia::Config{
-            .protocolId = "/" + chain_spec.protocolId() + "/kad"});
+            .protocolId{"/" + chain_spec.protocolId() + "/kad"},
+            .randomWalk{.interval = std::chrono::minutes(5)}
+        });
 
+    initialized = std::move(kagome_config);
     return *initialized;
   }
 

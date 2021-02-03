@@ -59,7 +59,7 @@ namespace kagome::network {
       std::unique_lock cs(streams_cs_);
       auto &protocols = streams_[peer_id];
       if (protocols.emplace(protocol, nullptr).second) {
-        logger_->debug("Reserved stream (peer_id={}, protocol={}) was emplaced",
+        logger_->debug("Reserved stream (peer_id={}, protocol={})",
                        peer_id.toBase58(),
                        protocol);
       }
@@ -84,7 +84,7 @@ namespace kagome::network {
 
       auto &proto_map = streams_[peer_id];
       proto_map.emplace(protocol, std::move(stream));
-      logger_->debug("Syncing stream (peer_id={}, protocol={}) was emplaced",
+      logger_->debug("Syncing stream (peer_id={}, protocol={})",
                      peer_id.toBase58(),
                      protocol);
       return outcome::success();
@@ -117,6 +117,20 @@ namespace kagome::network {
         }
         streams_.erase(it);
       }
+    }
+
+    bool isAlive(const PeerId &peer_id, const Protocol &protocol) {
+      std::unique_lock cs(streams_cs_);
+      auto peer_it = streams_.find(peer_id);
+      if (peer_it != streams_.end()) {
+        auto &protocols = peer_it->second;
+        auto protocol_it = protocols.find(protocol);
+        if (protocol_it != protocols.end()) {
+          auto& stream = protocol_it->second;
+          return stream && not stream->isClosed();
+        }
+      }
+      return false;
     }
 
     template <typename T>
