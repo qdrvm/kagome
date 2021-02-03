@@ -395,7 +395,8 @@ namespace kagome::consensus::grandpa {
                                ancestry_proof.begin(),
                                ancestry_proof.end());
 
-    auto new_number = base_.block_number - ancestry_proof.size();
+    primitives::BlockNumber new_number =
+        base_.block_number - ancestry_proof.size();
 
     Entry newEntry;
     newEntry.number = new_number;

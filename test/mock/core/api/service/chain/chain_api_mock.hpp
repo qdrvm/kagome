@@ -30,6 +30,8 @@ namespace kagome::api {
     MOCK_METHOD1(getBlock,
                  outcome::result<primitives::BlockData>(std::string_view));
     MOCK_METHOD0(getBlock, outcome::result<primitives::BlockData>());
+    MOCK_CONST_METHOD0(getFinalizedHead, outcome::result<primitives::BlockHash>());
+
     MOCK_METHOD0(subscribeFinalizedHeads, outcome::result<uint32_t>());
     MOCK_METHOD1(unsubscribeFinalizedHeads, outcome::result<void>(uint32_t));
     MOCK_METHOD0(subscribeNewHeads, outcome::result<uint32_t>());
