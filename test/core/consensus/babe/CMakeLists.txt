@@ -9,6 +9,7 @@ addtest(babe_test
 target_link_libraries(babe_test
     babe
     clock
+        waitable_timer
     sr25519_types
     sr25519_provider
     )

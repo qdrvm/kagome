@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "clock/impl/clock_impl.hpp"
+#include "clock/impl/basic_waitable_timer.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -110,18 +111,19 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*block_tree_, getEpochDescriptor(_, _))
         .WillRepeatedly(Return(expected_epoch_digest));
 
-    auto block_executor =
-        std::make_shared<BlockExecutor>(block_tree_,
-                                        core_,
-                                        babe_config_,
-                                        babe_synchronizer_,
-                                        babe_block_validator_,
-                                        grandpa_environment_,
-                                        tx_pool_,
-                                        hasher_,
-                                        grandpa_authority_update_observer_,
-                                        babe_util_,
-                                        io_context_);
+    auto block_executor = std::make_shared<BlockExecutor>(
+        block_tree_,
+        core_,
+        babe_config_,
+        babe_synchronizer_,
+        babe_block_validator_,
+        grandpa_environment_,
+        tx_pool_,
+        hasher_,
+        grandpa_authority_update_observer_,
+        babe_util_,
+        io_context_,
+        std::make_unique<clock::BasicWaitableTimer>(*io_context_));
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
     EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
