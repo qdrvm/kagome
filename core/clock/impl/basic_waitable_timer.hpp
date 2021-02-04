@@ -22,6 +22,10 @@ namespace kagome::clock {
 
     void expiresAt(clock::SystemClock::TimePoint at) override;
 
+    void expiresFor(clock::SystemClock::Duration duration) override;
+
+    void cancel() override;
+
     void asyncWait(
         const std::function<void(const std::error_code &)> &h) override;
 
