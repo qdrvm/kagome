@@ -38,8 +38,10 @@ namespace kagome::consensus {
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util,
-      std::shared_ptr<boost::asio::io_context> io_context)
+      std::shared_ptr<boost::asio::io_context> io_context,
+      std::unique_ptr<clock::Timer> sync_timer)
       : sync_state_(kReadyState),
+        sync_timer_(std::move(sync_timer)),
         block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         genesis_configuration_{std::move(configuration)},
@@ -63,6 +65,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(authority_update_observer_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
     BOOST_ASSERT(io_context_ != nullptr);
+    BOOST_ASSERT(sync_timer_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -90,9 +93,26 @@ namespace kagome::consensus {
               block_tree_->getLastFinalized();
           // we should request blocks between last finalized one and received
           // block
+
+          // TODO(xDimon): Move timeout for request into config
+          sync_timer_->expiresFor(std::chrono::seconds(30));
+          sync_timer_->asyncWait([wp = weak_from_this()](auto e) {
+            if (auto self = wp.lock()) {
+              if (not e) {
+                self->sync_state_ = kReadyState;
+              }
+            }
+          });
+
           requestBlocks(
-              last_hash, block_hash, peer_id, [wself{weak_from_this()}] {
-                if (auto self = wself.lock()) self->sync_state_ = kReadyState;
+              last_hash, block_hash, peer_id, [wp = weak_from_this()] {
+                if (auto self = wp.lock()) {
+                  ExecutorState state = kSyncState;
+                  if (self->sync_state_.compare_exchange_strong(state,
+                                                                kReadyState)) {
+                    self->sync_timer_->cancel();
+                  }
+                }
               });
         }
       } else {
@@ -245,9 +265,9 @@ namespace kagome::consensus {
 
     EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
 
-    OUTCOME_TRY(
-        this_block_epoch_descriptor,
-        block_tree_->getEpochDescriptor(epoch_number, block.header.parent_hash));
+    OUTCOME_TRY(this_block_epoch_descriptor,
+                block_tree_->getEpochDescriptor(epoch_number,
+                                                block.header.parent_hash));
     logger_->trace(
         "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
         "block #{}). Randomness: {}",

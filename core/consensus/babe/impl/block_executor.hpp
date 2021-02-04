@@ -9,6 +9,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "blockchain/block_tree.hpp"
+#include "clock/timer.hpp"
 #include "common/logger.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_synchronizer.hpp"
@@ -41,7 +42,8 @@ namespace kagome::consensus {
                   std::shared_ptr<authority::AuthorityUpdateObserver>
                       authority_update_observer,
                   std::shared_ptr<BabeUtil> babe_util,
-                  std::shared_ptr<boost::asio::io_context> io_context);
+                  std::shared_ptr<boost::asio::io_context> io_context,
+                  std::unique_ptr<clock::Timer> sync_timer);
 
     /**
      * Processes next header: if header is observed first it is added to the
@@ -88,6 +90,7 @@ namespace kagome::consensus {
       kSyncState = 1,
     };
     std::atomic<ExecutorState> sync_state_;
+    std::unique_ptr<clock::Timer> sync_timer_;
     // should only be invoked when parent of block exists
     outcome::result<void> applyBlock(const primitives::BlockData &block);
 
