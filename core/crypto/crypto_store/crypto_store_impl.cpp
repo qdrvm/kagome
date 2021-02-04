@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <gsl/span>
+
 #include "common/visitor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {

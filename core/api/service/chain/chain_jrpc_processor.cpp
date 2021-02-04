@@ -40,6 +40,8 @@ namespace kagome::api::chain {
 
     server_->registerHandler("chain_getFinalizedHead",
                              Handler<request::GetFinalizedHead>(api_));
+    server_->registerHandler("chain_getFinalisedHead",
+                             Handler<request::GetFinalizedHead>(api_));
 
     server_->registerHandler("chain_subscribeFinalizedHeads",
                              Handler<request::SubscribeFinalizedHeads>(api_));

@@ -14,7 +14,14 @@ namespace kagome::application {
 
   class ChainSpecImpl : public ChainSpec {
    public:
-    static outcome::result<std::shared_ptr<ChainSpecImpl>> create(
+    enum class Error {
+      MISSING_ENTRY = 1,
+      MISSING_PEER_ID,
+      PARSER_ERROR,
+      NOT_IMPLEMENTED
+    };
+
+    static outcome::result<std::shared_ptr<ChainSpecImpl>> loadFrom(
         const std::string &config_path);
 
     ~ChainSpecImpl() override = default;
@@ -80,6 +87,17 @@ namespace kagome::application {
     outcome::result<void> loadBootNodes(
         const boost::property_tree::ptree &tree);
 
+    template <typename T>
+    outcome::result<std::decay_t<T>> ensure(std::string_view entry_name,
+                                            boost::optional<T> opt_entry) {
+      if (not opt_entry) {
+        spdlog::error("Required '{}' entry not found in the chain spec",
+                      entry_name);
+        return Error::MISSING_ENTRY;
+      }
+      return opt_entry.value();
+    }
+
     ChainSpecImpl() = default;
 
     std::string name_;
@@ -96,5 +114,7 @@ namespace kagome::application {
   };
 
 }  // namespace kagome::application
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::application, ChainSpecImpl::Error)
 
 #endif  // KAGOME_CHAIN_SPEC_IMPL_HPP

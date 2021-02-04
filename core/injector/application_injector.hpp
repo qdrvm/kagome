@@ -535,7 +535,7 @@ namespace kagome::injector {
     auto const &genesis_path = config.genesisPath();
 
     auto genesis_config_res =
-        application::ChainSpecImpl::create(genesis_path.native());
+        application::ChainSpecImpl::loadFrom(genesis_path.native());
     if (genesis_config_res.has_error()) {
       common::raise(genesis_config_res.error());
     }

@@ -473,6 +473,7 @@ namespace kagome::consensus {
     auto authority_index_res =
         getAuthorityIndex(authorities, keypair_.public_key);
     BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
+    // TODO(Harrm): Add a check for release
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         authorities,
                                         authority_index_res.value());
