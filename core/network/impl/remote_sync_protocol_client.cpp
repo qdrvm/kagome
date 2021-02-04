@@ -17,10 +17,10 @@ namespace kagome::network {
 
   RemoteSyncProtocolClient::RemoteSyncProtocolClient(
       libp2p::Host &host,
-      libp2p::peer::PeerInfo peer_info,
+      libp2p::peer::PeerId peer_id,
       std::shared_ptr<kagome::application::ChainSpec> config)
       : host_{host},
-        peer_info_{std::move(peer_info)},
+        peer_id_{std::move(peer_id)},
         log_(common::createLogger("RemoteSyncProtocolClient")),
         config_(std::move(config)) {}
 
@@ -41,10 +41,13 @@ namespace kagome::network {
                         request.to->toHex());
           }
         });
+
+    auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id_);
+
     network::RPC<network::ProtobufMessageReadWriter>::
         write<network::BlocksRequest, network::BlocksResponse>(
             host_,
-            peer_info_,
+            peer_info,
             fmt::format(network::kSyncProtocol.data(), config_->protocolId()),
             request,
             std::move(cb));

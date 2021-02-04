@@ -25,9 +25,10 @@ namespace kagome::network {
       std::shared_ptr<StreamEngine> stream_engine,
       const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
-      const clock::SteadyClock &clock,
+      std::shared_ptr<clock::SteadyClock> clock,
       const BootstrapNodes &bootstrap_nodes,
-      const OwnPeerInfo &own_peer_info)
+      const OwnPeerInfo &own_peer_info,
+      std::shared_ptr<network::SyncClientsSet> sync_clients)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -36,15 +37,17 @@ namespace kagome::network {
         stream_engine_(std::move(stream_engine)),
         app_config_(app_config),
         chain_spec_(chain_spec),
-        clock_(clock),
+        clock_(std::move(clock)),
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
+        sync_clients_(std::move(sync_clients)),
         log_(common::createLogger("PeerManager")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
+    BOOST_ASSERT(sync_clients_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
@@ -128,30 +131,20 @@ namespace kagome::network {
 
     align_timer_.cancel();
 
-    size_t cur_active_peer = active_peers_.size();
-
-    // Not enough active peers
-    if (cur_active_peer < target_count and not queue_to_connect_.empty()) {
-      auto node = peers_in_queue_.extract(queue_to_connect_.front());
-      auto &peer_id = node.value();
-
-      queue_to_connect_.pop_front();
-
-      connectToPeer(peer_id);
-    }
-
     // Check disconnected
     auto protocol =
         fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_.protocolId());
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, _] = *it++;
       if (not stream_engine_->isAlive(peer_id, protocol)) {
+        // Found disconnected
+        log_->debug("Found dead peer_id={}", peer_id.toBase58());
         disconnectFromPeer(peer_id);
       }
     }
 
     // Soft limit is exceeded
-    if (cur_active_peer > soft_limit) {
+    if (active_peers_.size() > soft_limit) {
       // Get oldest peer
       auto it = std::min_element(active_peers_.begin(),
                                  active_peers_.end(),
@@ -162,11 +155,35 @@ namespace kagome::network {
 
       const auto peer_ttl = app_config_.peeringConfig().peerTtl;
 
-      // Hard limit is exceeded OR peer is inactive long time
-      if (cur_active_peer > hard_limit
-          or oldest_timepoint + peer_ttl < clock_.now()) {
-        // Disconnect from peer
+      if (active_peers_.size() > hard_limit) {
+        // Hard limit is exceeded
+        log_->debug("Hard limit of of active peers is exceeded");
         disconnectFromPeer(oldest_peer_id);
+
+      } else if (oldest_timepoint + peer_ttl < clock_->now()) {
+        // Peer is inactive long time
+        log_->debug("Found inactive peer_id={}", oldest_peer_id.toBase58());
+        disconnectFromPeer(oldest_peer_id);
+
+      } else {
+        log_->debug("No peer for disconnect");
+      }
+    }
+
+    // Not enough active peers
+    if (active_peers_.size() < target_count) {
+      if (not queue_to_connect_.empty()) {
+        auto node = peers_in_queue_.extract(queue_to_connect_.front());
+        auto &peer_id = node.value();
+
+        queue_to_connect_.pop_front();
+
+        connectToPeer(peer_id);
+
+        log_->debug("Remained peers in queue for connect: {}/{}",
+                    queue_to_connect_.size(), peers_in_queue_.size());
+      } else {
+        log_->debug("Queue for connect is empty");
       }
     }
 
@@ -185,6 +202,7 @@ namespace kagome::network {
     auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
 
     if (peer_info.addresses.empty()) {
+      log_->debug("Not found addresses for peer_id={}", peer_id.toBase58());
       return;
     }
 
@@ -192,12 +210,11 @@ namespace kagome::network {
         host_.getNetwork().getConnectionManager().connectedness(peer_info);
     if (connectedness
         == libp2p::network::ConnectionManager::Connectedness::CAN_NOT_CONNECT) {
+      log_->debug("Can not commect to peer_id={}", peer_id.toBase58());
       return;
     }
 
-    log_->debug("Try to connect to peer_id={}. In queue: {}",
-                peer_info.id.toBase58(),
-                queue_to_connect_.size());
+    log_->debug("Try to connect to peer_id={}", peer_info.id.toBase58());
     for (auto addr : peer_info.addresses) {
       log_->debug("  address: {}", addr.getStringAddress());
     }
@@ -208,15 +225,18 @@ namespace kagome::network {
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
+      log_->debug("Disconnect from peer_id={}", peer_id.toBase58());
       stream_engine_->del(peer_id);
       active_peers_.erase(it);
+      log_->debug("Remained {} active peers", active_peers_.size());
     }
+    sync_clients_->remove(peer_id);
   }
 
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
-      it->second = clock_.now();
+      it->second = clock_->now();
     }
   }
 
@@ -239,7 +259,9 @@ namespace kagome::network {
     }
 
     queue_to_connect_.emplace_back(*it);
-    log_->debug("New peer_id={} enqueued", (*it).toBase58());
+    log_->debug("New peer_id={} enqueued. In queue: {}",
+                (*it).toBase58(),
+                queue_to_connect_.size());
 
     // Force aligning
     align();
@@ -275,7 +297,8 @@ namespace kagome::network {
     // Capacity is allow
     if (cur_active_peer < hard_limit) {
       // Add to active peer list
-      if (auto [ap_it, ok] = active_peers_.emplace(peer_id, clock_.now()); ok) {
+      if (auto [ap_it, ok] = active_peers_.emplace(peer_id, clock_->now());
+          ok) {
         // And remove from queue
         if (auto piq_it = peers_in_queue_.find(peer_id);
             piq_it != peers_in_queue_.end()) {
@@ -284,6 +307,10 @@ namespace kagome::network {
               queue_to_connect_.cend(),
               [&peer_id](const auto &item) { return peer_id == item.get(); });
           queue_to_connect_.erase(qtc_it);
+          peers_in_queue_.erase(piq_it);
+
+          log_->debug("Remained peers in queue for connect: {}/{}",
+                      queue_to_connect_.size(), peers_in_queue_.size());
         }
 
         host_.newStream(

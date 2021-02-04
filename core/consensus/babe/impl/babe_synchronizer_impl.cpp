@@ -20,9 +20,6 @@ namespace kagome::consensus {
         logger_{common::createLogger("BabeSynchronizer")},
         app_configuration_(app_configuration) {
     BOOST_ASSERT(sync_clients_);
-    BOOST_ASSERT(std::all_of(sync_clients_->clients.begin(),
-                             sync_clients_->clients.end(),
-                             [](const auto &client) { return client; }));
   }
 
   void BabeSynchronizerImpl::request(const primitives::BlockId &from,
@@ -56,7 +53,7 @@ namespace kagome::consensus {
     // sync_clients_ set can change between the requests, so we need to keep
     // track of the clients we already asked
     std::shared_ptr<network::SyncProtocolClient> next_client;
-    for (const auto &client : sync_clients_->clients) {
+    for (const auto &[it, client] : sync_clients_->clients()) {
       if (polled_clients.find(client) == polled_clients.end()) {
         next_client = client;
         polled_clients.insert(client);
@@ -67,7 +64,7 @@ namespace kagome::consensus {
     if (!next_client) {
       // we asked all clients we could, so start over
       polled_clients.clear();
-      next_client = *sync_clients_->clients.begin();
+      next_client = sync_clients_->clients().begin()->second;
       polled_clients.insert(next_client);
     }
     return next_client;
@@ -106,15 +103,9 @@ namespace kagome::consensus {
       network::BlocksRequest request,
       const libp2p::peer::PeerId &peer_id,
       const BlocksHandler &requested_blocks_handler) const {
-    std::shared_ptr<network::SyncProtocolClient> next_client;
-    for (auto &client : sync_clients_->clients) {
-      if (client->peerId() && (*client->peerId()).get() == peer_id) {
-        next_client = client;
-        break;
-      }
-    }
+    auto next_client = sync_clients_->get(peer_id);
     if (!next_client) {
-      logger_->error("Could not find client to make syncronization. Skip.");
+      logger_->error("Could not make client for syncronization. Skip.");
       return;
     }
 

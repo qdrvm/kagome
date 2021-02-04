@@ -24,6 +24,7 @@
 #include "network/impl/stream_engine.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
+#include "network/types/sync_clients_set.hpp"
 
 namespace kagome::network {
 
@@ -39,9 +40,10 @@ namespace kagome::network {
         std::shared_ptr<StreamEngine> stream_engine,
         const application::AppConfiguration &app_config,
         const application::ChainSpec &chain_spec,
-        const clock::SteadyClock &clock,
+        std::shared_ptr<clock::SteadyClock> clock,
         const BootstrapNodes &bootstrap_nodes,
-        const OwnPeerInfo &own_peer_info);
+        const OwnPeerInfo &own_peer_info,
+        std::shared_ptr<network::SyncClientsSet> sync_clients);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -87,9 +89,10 @@ namespace kagome::network {
     std::shared_ptr<StreamEngine> stream_engine_;
     const application::AppConfiguration &app_config_;
     const application::ChainSpec &chain_spec_;
-    const clock::SteadyClock &clock_;
+    std::shared_ptr<clock::SteadyClock> clock_;
     const BootstrapNodes &bootstrap_nodes_;
     const OwnPeerInfo &own_peer_info_;
+    std::shared_ptr<network::SyncClientsSet> sync_clients_;
 
     libp2p::event::Handle add_peer_handle_;
     std::unordered_set<PeerId, std::hash<PeerId>, std::equal_to<PeerId>>

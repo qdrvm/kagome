@@ -25,7 +25,7 @@ namespace kagome::network {
    public:
     RemoteSyncProtocolClient(
         libp2p::Host &host,
-        libp2p::peer::PeerInfo peer_info,
+        libp2p::peer::PeerId peer_id,
         std::shared_ptr<kagome::application::ChainSpec> config);
 
     void requestBlocks(
@@ -35,12 +35,12 @@ namespace kagome::network {
 
     boost::optional<std::reference_wrapper<const libp2p::peer::PeerId>> peerId()
         const override {
-      return std::reference_wrapper<const libp2p::peer::PeerId>{peer_info_.id};
+      return std::reference_wrapper<const libp2p::peer::PeerId>{peer_id_};
     }
 
    private:
     libp2p::Host &host_;
-    const libp2p::peer::PeerInfo peer_info_;
+    const libp2p::peer::PeerId peer_id_;
     common::Logger log_;
     std::shared_ptr<kagome::application::ChainSpec> config_;
   };
