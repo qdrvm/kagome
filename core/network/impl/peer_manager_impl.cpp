@@ -335,8 +335,8 @@ namespace kagome::network {
                 self->queue_to_connect_.erase(qtc_it);
                 self->peers_in_queue_.erase(piq_it);
                 self->log_->debug("Remained peers in queue for connect: {}/{}",
-                                  queue_to_connect_.size(),
-                                  peers_in_queue_.size());
+                                  self->queue_to_connect_.size(),
+                                  self->peers_in_queue_.size());
               }
             }
 
