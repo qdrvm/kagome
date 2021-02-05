@@ -126,8 +126,25 @@ namespace kagome::network {
         auto &protocols = peer_it->second;
         auto protocol_it = protocols.find(protocol);
         if (protocol_it != protocols.end()) {
-          auto& stream = protocol_it->second;
-          return stream && not stream->isClosed();
+          if (auto stream = protocol_it->second) {
+            return not stream->isClosed();
+          }
+        }
+      }
+      return false;
+    }
+
+    bool isAlive(const PeerId &peer_id) {
+      std::unique_lock cs(streams_cs_);
+      auto peer_it = streams_.find(peer_id);
+      if (peer_it != streams_.end()) {
+        auto &protocols = peer_it->second;
+        for (auto &protocol : protocols) {
+          if (auto stream = protocol.second) {
+            if (not stream->isClosed()) {
+              return true;
+            }
+          }
         }
       }
       return false;
