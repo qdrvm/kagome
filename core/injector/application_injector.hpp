@@ -771,9 +771,9 @@ namespace kagome::injector {
 
     auto kagome_config = std::make_shared<libp2p::protocol::kademlia::Config>(
         libp2p::protocol::kademlia::Config{
-            .protocolId{"/" + chain_spec.protocolId() + "/kad"},
-            .maxBucketSize{100},
-            .randomWalk{.interval = std::chrono::minutes(5)}});
+            .protocolId = "/" + chain_spec.protocolId() + "/kad",
+            .maxBucketSize = 1000,
+            .randomWalk{.interval = std::chrono::minutes(1)}});
 
     initialized = std::move(kagome_config);
     return *initialized;
