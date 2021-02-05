@@ -95,9 +95,9 @@ namespace kagome::network {
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
 
     libp2p::event::Handle add_peer_handle_;
-    std::unordered_set<PeerId, std::hash<PeerId>, std::equal_to<PeerId>>
-        peers_in_queue_;
+    std::unordered_set<PeerId> peers_in_queue_;
     std::deque<std::reference_wrapper<const PeerId>> queue_to_connect_;
+    std::unordered_set<PeerId> connecting_peers_;
     std::unordered_map<PeerId, clock::SteadyClock::TimePoint> active_peers_;
     libp2p::protocol::scheduler::Handle align_timer_;
 
