@@ -26,7 +26,7 @@ namespace kagome::api {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
-      logger_->critical("Failed to prepare a listener: can't {}",
+      logger_->critical("Failed to prepare a listener: {}",
                         exception.what());
       return false;
     } catch (const std::exception &exception) {

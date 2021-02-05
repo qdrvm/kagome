@@ -56,7 +56,7 @@ namespace kagome::api {
     std::atomic<Session::SessionId> next_session_id_;
     std::shared_ptr<SessionImpl> new_session_;
 
-    common::Logger logger_ = common::createLogger("RPC Websocket Listener");
+    common::Logger logger_;
   };
 
 }  // namespace kagome::api
