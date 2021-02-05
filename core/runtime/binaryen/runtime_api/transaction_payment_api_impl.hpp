@@ -28,15 +28,8 @@ namespace kagome::runtime::binaryen {
     ~TransactionPaymentApiImpl() override = default;
 
     outcome::result<primitives::RuntimeDispatchInfo> query_info(
-        const primitives::Extrinsic &ext, uint32_t len) override {
-      // len = 139
-      // 0x84..0f, 137 bytes
-      return execute<primitives::RuntimeDispatchInfo>(
-          "TransactionPaymentApi_query_info",
-          CallPersistency::EPHEMERAL,
-          gsl::span<const uint8_t>(ext.data.data(), ext.data.size()),
-          len);
-    }
+        const primitives::Extrinsic &ext, uint32_t len) override;
+        
   };
 
 }  // namespace kagome::runtime::binaryen

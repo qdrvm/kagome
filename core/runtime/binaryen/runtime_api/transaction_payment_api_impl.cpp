@@ -5,12 +5,10 @@
 
 #include "runtime/binaryen/runtime_api/transaction_payment_api_impl.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
 outcome::result<primitives::RuntimeDispatchInfo> TransactionPaymentApiImpl::query_info(
         const primitives::Extrinsic &ext, uint32_t len) {
-      // len = 139
-      // 0x84..0f, 137 bytes
       return execute<primitives::RuntimeDispatchInfo>(
           "TransactionPaymentApi_query_info",
           CallPersistency::EPHEMERAL,
