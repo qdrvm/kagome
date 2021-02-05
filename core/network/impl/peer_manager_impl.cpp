@@ -58,10 +58,6 @@ namespace kagome::network {
       return false;
     }
 
-    // Add bootstrap nodes into peer routing
-    for (const auto &bootstrap_node : bootstrap_nodes_) {
-      kademlia_->addPeer(bootstrap_node, true);
-    }
 
     return true;
   }
@@ -88,6 +84,11 @@ namespace kagome::network {
 
     // Start Identify protocol
     identify_->start();
+
+    // Enqueue bootstrap nodes as first peers set
+    for (const auto &bootstrap_node : bootstrap_nodes_) {
+      kademlia_->addPeer(bootstrap_node, true);
+    }
 
     // Start Kademlia (processing incoming message and random walking)
     kademlia_->start();
