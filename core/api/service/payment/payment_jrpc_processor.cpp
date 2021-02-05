@@ -22,7 +22,7 @@ namespace kagome::api::payment {
   }
 
   template <typename Request>
-  using Handler = kagome::api::Method<Request, PaymentApi>;
+  using Handler = Method<Request, PaymentApi>;
 
   void PaymentJRpcProcessor::registerHandlers() {
     server_->registerHandler("payment_queryInfo",

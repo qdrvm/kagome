@@ -16,7 +16,8 @@ namespace kagome::api {
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
         config_{std::move(listener_config)},
-        session_config_{session_config} {
+        session_config_{session_config},
+        logger_{common::createLogger("RPC HTTP Listener")} {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
