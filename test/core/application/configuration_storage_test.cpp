@@ -51,7 +51,7 @@ class ConfigurationStorageTest : public ::testing::Test {
 TEST_F(ConfigurationStorageTest, MatchesConfig) {
   // given provided in set up
   // when
-  EXPECT_OUTCOME_TRUE(config_storage, ChainSpecImpl::create(path_));
+  EXPECT_OUTCOME_TRUE(config_storage, ChainSpecImpl::loadFrom(path_));
 
   // then
   ASSERT_EQ(config_storage->getGenesis(), expected_genesis_config_);
