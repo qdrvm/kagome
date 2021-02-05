@@ -5,5 +5,4 @@ add_library(payment_api_service
     )
 target_link_libraries(payment_api_service
     api_service
-
     )
