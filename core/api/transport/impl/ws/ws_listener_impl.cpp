@@ -57,9 +57,9 @@ namespace kagome::api {
   }
 
   void WsListenerImpl::stop() {
-    BOOST_ASSERT(acceptor_);
-
-    acceptor_->cancel();
+    if (acceptor_) {
+      acceptor_->cancel();
+    }
   }
 
   void WsListenerImpl::setHandlerForNewSession(

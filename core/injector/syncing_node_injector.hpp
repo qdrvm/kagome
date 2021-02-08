@@ -15,10 +15,10 @@ namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename Injector>
-  auto get_peer_info(const Injector &injector) -> sptr<network::OwnPeerInfo> {
+  sptr<network::OwnPeerInfo> get_peer_info(const Injector &injector) {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
-      return *initialized;
+      return initialized.value();
     }
 
     // get key storage
@@ -26,24 +26,21 @@ namespace kagome::injector {
     libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
     auto &key_marshaller =
         injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
+    const auto &config =
+        injector.template create<const application::AppConfiguration &>();
 
     libp2p::peer::PeerId peer_id =
         libp2p::peer::PeerId::fromPublicKey(
             key_marshaller.marshal(public_key).value())
             .value();
-    spdlog::debug("Received peer id: {}", peer_id.toBase58());
 
-    const auto &config =
-        injector.template create<const application::AppConfiguration &>();
-    std::string multiaddress_str =
-        "/ip4/0.0.0.0/tcp/" + std::to_string(config.p2pPort());
-    spdlog::debug("Received multiaddr: {}", multiaddress_str);
-    auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
-    if (!multiaddress) {
-      common::raise(multiaddress.error());  // exception
+    std::vector<libp2p::multi::Multiaddress> addresses =
+        config.listenAddresses();
+
+    spdlog::debug("Received peer id: {}", peer_id.toBase58());
+    for (auto &addr : addresses) {
+      spdlog::debug("Received multiaddr: {}", addr.getStringAddress());
     }
-    std::vector<libp2p::multi::Multiaddress> addresses;
-    addresses.push_back(std::move(multiaddress.value()));
 
     initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
                                                          std::move(addresses));

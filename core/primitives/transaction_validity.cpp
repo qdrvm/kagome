@@ -31,6 +31,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InvalidTransaction, e) {
     case E::Custom:
       return "Custom invalid error";
   }
+  return "Unknown InvalidTransaction error";
 }
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, UnknownTransaction, e) {
@@ -44,4 +45,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, UnknownTransaction, e) {
     case E::Custom:
       return "Custom unknown error";
   }
+  return "Unknown UnknownTransaction error";
 }

@@ -186,9 +186,16 @@ namespace kagome::common {
     /**
      * @brief getter for vector of bytes
      */
-    const std::vector<uint8_t> &toVector() const;
+    const std::vector<uint8_t> &asVector() const;
+    std::vector<uint8_t> &asVector();
 
-    std::vector<uint8_t> &toVector();
+    std::vector<uint8_t> toVector() & {
+      return data_;
+    }
+
+    std::vector<uint8_t> toVector() && {
+      return std::move(data_);
+    }
 
     /**
      * Returns a copy of a part of the buffer
@@ -252,7 +259,7 @@ namespace kagome::common {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Buffer &buffer) {
-    return s << buffer.toVector();
+    return s << buffer.asVector();
   }
 
   /**

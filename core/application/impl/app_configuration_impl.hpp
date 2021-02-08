@@ -8,8 +8,6 @@
 
 #include "application/app_configuration.hpp"
 
-#include "crypto/ed25519_types.hpp"
-
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
   using SizeType = ::std::size_t;
@@ -78,6 +76,11 @@ namespace kagome::application {
       return node_key_;
     }
 
+    const std::vector<libp2p::multi::Multiaddress> &listenAddresses()
+        const override {
+      return listen_addresses_;
+    }
+
     const std::vector<libp2p::multi::Multiaddress> &bootNodes() const override {
       return boot_nodes_;
     }
@@ -105,6 +108,9 @@ namespace kagome::application {
     }
     bool isUnixSlotsStrategy() const override {
       return is_unix_slots_strategy_;
+    }
+    const network::PeeringConfig &peeringConfig() const override {
+      return peering_config_;
     }
 
    private:
@@ -159,6 +165,7 @@ namespace kagome::application {
     common::Logger logger_;
 
     boost::optional<crypto::Ed25519PrivateKey> node_key_;
+    std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
@@ -174,6 +181,7 @@ namespace kagome::application {
     boost::filesystem::path base_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
+    network::PeeringConfig peering_config_;
   };
 
 }  // namespace kagome::application

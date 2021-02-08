@@ -6,6 +6,7 @@
 #ifndef KAGOME_STREAM_ENGINE_HPP
 #define KAGOME_STREAM_ENGINE_HPP
 
+#include <numeric>
 #include <unordered_map>
 
 #include "common/logger.hpp"
@@ -34,20 +35,9 @@ namespace kagome::network {
     using Host = libp2p::Host;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
-    /**
-     * Reserved peers are the peers from genesis or event peers connection with
-     * we must support in time. Syncing peers - all the others.
-     */
-    enum PeerType { kSyncing = 1, kReserved };
-
    private:
     using ProtocolMap = std::unordered_map<Protocol, std::shared_ptr<Stream>>;
-    using PeerMap = std::unordered_map<PeerInfo, ProtocolMap>;
-
-    struct ProtocolDescriptor {
-      std::reference_wrapper<ProtocolMap> proto_map;
-      PeerType type;
-    };
+    using PeerMap = std::unordered_map<PeerId, ProtocolMap>;
 
    public:
     StreamEngine(const StreamEngine &) = delete;
@@ -65,41 +55,99 @@ namespace kagome::network {
       return std::make_shared<StreamEngine>(std::forward<Args>(args)...);
     }
 
-    void addReserved(const PeerInfo &peer_info,
-                     const Protocol &protocol,
-                     std::shared_ptr<Stream> stream) {
-      BOOST_ASSERT(!protocol.empty());
-
+    void add(const PeerId &peer_id, const Protocol &protocol) {
       std::unique_lock cs(streams_cs_);
-      auto &protocols = reserved_streams_[peer_info];
-      BOOST_ASSERT(protocols.find(protocol) == protocols.end());
-      protocols.emplace(protocol, std::move(stream));
-      logger_->debug("Reserved stream (peer_id={}, protocol={}) was emplaced",
-                     peer_info.id.toBase58(),
-                     protocol);
+      auto &protocols = streams_[peer_id];
+      if (protocols.emplace(protocol, nullptr).second) {
+        logger_->debug("Reserved stream (peer_id={}, protocol={})",
+                       peer_id.toBase58(),
+                       protocol);
+      }
     }
 
-    outcome::result<void> add(const Protocol &protocol,
-                              std::shared_ptr<Stream> stream) {
-      BOOST_ASSERT(stream);
+    outcome::result<void> add(std::shared_ptr<Stream> stream,
+                              const Protocol &protocol) {
       BOOST_ASSERT(!protocol.empty());
+      BOOST_ASSERT(stream);
 
-      OUTCOME_TRY(peer, from(stream));
+      OUTCOME_TRY(peer_id, stream->remotePeerId());
       bool existing = false;
 
       std::unique_lock cs(streams_cs_);
-      forSubscriber(peer, protocol, [&](auto type, auto &subscriber) {
+      forSubscriber(peer_id, protocol, [&](auto type, auto &subscriber) {
         existing = true;
         if (subscriber != stream) uploadStream(subscriber, std::move(stream));
       });
-      if (existing) return outcome::success();
+      if (existing) {
+        return outcome::success();
+      }
 
-      auto &proto_map = syncing_streams_[peer];
+      auto &proto_map = streams_[peer_id];
       proto_map.emplace(protocol, std::move(stream));
-      logger_->debug("Syncing stream (peer_id={}, protocol={}) was emplaced",
-                     peer.id.toBase58(),
+      logger_->debug("Syncing stream (peer_id={}, protocol={})",
+                     peer_id.toBase58(),
                      protocol);
       return outcome::success();
+    }
+
+    void del(const PeerId &peer_id, const Protocol &protocol) {
+      std::unique_lock cs(streams_cs_);
+      auto peer_it = streams_.find(peer_id);
+      if (peer_it != streams_.end()) {
+        auto &protocols = peer_it->second;
+        auto protocol_it = protocols.find(protocol);
+        if (protocol_it != protocols.end()) {
+          protocols.erase(protocol_it);
+          if (protocols.empty()) {
+            streams_.erase(peer_it);
+          }
+        }
+      }
+    }
+
+    void del(const PeerId &peer_id) {
+      std::unique_lock cs(streams_cs_);
+      auto it = streams_.find(peer_id);
+      if (it != streams_.end()) {
+        auto &protocols = it->second;
+        for (auto &protocol : protocols) {
+          if (protocol.second) {
+            protocol.second->reset();
+          }
+        }
+        streams_.erase(it);
+      }
+    }
+
+    bool isAlive(const PeerId &peer_id, const Protocol &protocol) {
+      std::unique_lock cs(streams_cs_);
+      auto peer_it = streams_.find(peer_id);
+      if (peer_it != streams_.end()) {
+        auto &protocols = peer_it->second;
+        auto protocol_it = protocols.find(protocol);
+        if (protocol_it != protocols.end()) {
+          if (auto stream = protocol_it->second) {
+            return not stream->isClosed();
+          }
+        }
+      }
+      return false;
+    }
+
+    bool isAlive(const PeerId &peer_id) {
+      std::unique_lock cs(streams_cs_);
+      auto peer_it = streams_.find(peer_id);
+      if (peer_it != streams_.end()) {
+        auto &protocols = peer_it->second;
+        for (auto &protocol : protocols) {
+          if (auto stream = protocol.second) {
+            if (not stream->isClosed()) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
     }
 
     template <typename T>
@@ -108,30 +156,32 @@ namespace kagome::network {
 
       auto read_writer =
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
-      read_writer->write(msg, [self{shared_from_this()}](auto &&res) {
-        if (self && !res)
-          self->logger_->error("Could not send message, reason: {}",
-                               res.error().message());
+      read_writer->write(msg, [wp = weak_from_this()](auto &&res) {
+        if (not res) {
+          if (auto self = wp.lock()) {
+            self->logger_->error("Could not send message, reason: {}",
+                                 res.error().message());
+          }
+        }
       });
     }
 
     template <typename T, typename H>
-    void send(const PeerInfo &peer,
+    void send(const PeerId &peer_id,
               const Protocol &protocol,
               std::shared_ptr<T> msg,
               boost::optional<std::shared_ptr<H>> handshake) {
       BOOST_ASSERT(msg);
-      BOOST_ASSERT(!protocol.empty());
+      BOOST_ASSERT(not protocol.empty());
 
       std::shared_lock cs(streams_cs_);
-      forSubscriber(peer, protocol, [&](auto type, auto &stream) {
+      forSubscriber(peer_id, protocol, [&](auto type, auto &stream) {
         if (stream) {
           send(stream, *msg);
           return;
         }
 
-        BOOST_ASSERT(type == PeerType::kReserved);
-        updateStream(peer, protocol, std::move(msg), handshake);
+        updateStream(peer_id, protocol, std::move(msg), handshake);
       });
     }
 
@@ -140,40 +190,29 @@ namespace kagome::network {
                    std::shared_ptr<T> msg,
                    boost::optional<std::shared_ptr<H>> handshake) {
       BOOST_ASSERT(msg);
-      BOOST_ASSERT(!protocol.empty());
+      BOOST_ASSERT(not protocol.empty());
 
       std::shared_lock cs(streams_cs_);
-      forEachPeer([&](const auto &peer, auto type, auto &proto_map) {
-        forProtocol(ProtocolDescriptor{.proto_map = proto_map, .type = type},
-                    protocol,
-                    [&](auto stream) {
-                      BOOST_ASSERT(type == PeerType::kReserved || stream);
-                      if (stream) {
-                        if (not stream->isClosed()) {
-                          send(std::move(stream), *msg);
-                        } else {
-                          updateStream(peer, protocol, msg, handshake);
-                        }
-                        return;
-                      } else {
-                        BOOST_ASSERT(type == PeerType::kReserved);
-                      }
-                      updateStream(peer, protocol, msg, handshake);
-                    });
+      forEachPeer([&](const auto &peer_id, auto &proto_map) {
+        forProtocol(proto_map, protocol, [&](auto stream) {
+          if (stream) {
+            send(std::move(stream), *msg);
+            return;
+          }
+          updateStream(peer_id, protocol, msg, handshake);
+        });
       });
     }
 
     template <typename F>
-    uint32_t count(F &&filter) const {
-      uint32_t c = 0;
-      auto enumerate = [&](const PeerMap &pm) {
-        for (const auto &i : pm) {
-          if (filter(i.first)) c += i.second.size();
+    size_t count(F &&filter) const {
+      size_t result = 0;
+      for (const auto &i : streams_) {
+        if (filter(i.first)) {
+          result += i.second.size();
         }
-      };
-      enumerate(syncing_streams_);
-      enumerate(reserved_streams_);
-      return c;
+      }
+      return result;
     }
 
    private:
@@ -181,8 +220,7 @@ namespace kagome::network {
     common::Logger logger_;
 
     std::shared_mutex streams_cs_;
-    PeerMap reserved_streams_;
-    PeerMap syncing_streams_;
+    PeerMap streams_;
 
    public:
     template <typename TPeerId,
@@ -204,84 +242,79 @@ namespace kagome::network {
     void uploadStream(std::shared_ptr<Stream> &dst,
                       std::shared_ptr<Stream> src) {
       BOOST_ASSERT(src);
-      if (dst) dst->reset();
+      // Skip the same stream
+      if (dst.get() == src.get()) {
+        return;
+      }
+      // Reset previous stream
+      if (dst) {
+        dst->reset();
+      }
       dst = std::move(src);
-      if (dst->remotePeerId().has_value())
+      if (dst->remotePeerId().has_value()) {
         logger_->debug("Stream (peer_id={}) was stored",
                        dst->remotePeerId().value().toBase58());
+      }
     }
 
-    boost::optional<ProtocolDescriptor> findPeer(const PeerInfo &peer) {
+    boost::optional<ProtocolMap> findPeer(const PeerId &peer_id) {
       auto find_if_exists = [&](auto &peer_map)
           -> boost::optional<std::reference_wrapper<ProtocolMap>> {
-        if (auto it = peer_map.find(peer); it != peer_map.end())
-          return std::reference_wrapper<ProtocolMap>(it->second);
+        if (auto it = peer_map.find(peer_id); it != peer_map.end()) {
+          return std::ref(it->second);
+        }
         return boost::none;
       };
 
-      if (auto proto_map = find_if_exists(syncing_streams_))
-        return ProtocolDescriptor{.proto_map = std::move(*proto_map),
-                                  .type = PeerType::kSyncing};
-
-      if (auto proto_map = find_if_exists(reserved_streams_))
-        return ProtocolDescriptor{.proto_map = std::move(*proto_map),
-                                  .type = PeerType::kReserved};
-
+      if (auto proto_map = find_if_exists(streams_)) {
+        return proto_map.value().get();
+      }
       return boost::none;
     }
 
     template <typename F>
-    void forPeer(const PeerInfo &peer, F &&f) {
-      if (auto proto_descriptor = findPeer(peer))
+    void forPeer(const PeerId &peer_id, F &&f) {
+      if (auto proto_descriptor = findPeer(peer_id)) {
         std::forward<F>(f)(*proto_descriptor);
-    }
-
-    template <typename F>
-    void forEachPeer(F &&f) {
-      for (auto &peer_map : syncing_streams_)
-        std::forward<F>(f)(peer_map.first, PeerType::kSyncing, peer_map.second);
-
-      for (auto &peer_map : reserved_streams_)
-        std::forward<F>(f)(
-            peer_map.first, PeerType::kReserved, peer_map.second);
-    }
-
-    template <typename F>
-    void forProtocol(ProtocolDescriptor proto_descriptor,
-                     const Protocol &proto,
-                     F &&f) {
-      auto &proto_map = proto_descriptor.proto_map.get();
-      if (auto it = proto_map.find(proto); it != proto_map.end()) {
-        auto &sub = it->second;
-        if (proto_descriptor.type == PeerType::kSyncing
-            && (!sub || sub->isClosed()))
-          proto_map.erase(it);
-        else
-          std::forward<F>(f)(it->second);
       }
     }
 
     template <typename F>
-    void forSubscriber(const PeerInfo &peer, const Protocol &proto, F &&f) {
-      forPeer(peer, [&](auto &_) {
-        forProtocol(_, proto, [&](auto &subscriber) {
-          std::forward<F>(f)(_.type, subscriber);
+    void forEachPeer(F &&f) {
+      for (auto &peer_map : streams_) {
+        std::forward<F>(f)(peer_map.first, peer_map.second);
+      }
+    }
+
+    template <typename F>
+    void forProtocol(ProtocolMap &proto_map, const Protocol &proto, F &&f) {
+      if (auto it = proto_map.find(proto); it != proto_map.end()) {
+        auto &stream = it->second;
+        std::forward<F>(f)(stream);
+      }
+    }
+
+    template <typename F>
+    void forSubscriber(const PeerId &peer_id, const Protocol &proto, F &&f) {
+      forPeer(peer_id, [&](auto &proto_map) {
+        forProtocol(proto_map, proto, [&](auto &subscriber) {
+          std::forward<F>(f)(proto_map, subscriber);
         });
       });
     }
 
    private:
     template <typename F, typename H>
-    void forNewStream(const PeerInfo &peer,
+    void forNewStream(const PeerId &peer_id,
                       const Protocol &protocol,
                       boost::optional<std::shared_ptr<H>> handshake,
                       F &&f) {
       using CallbackResultType =
           outcome::result<std::shared_ptr<libp2p::connection::Stream>>;
       host_.newStream(
-          peer,
+          PeerInfo{.id = peer_id, .addresses = {}},
           protocol,
-          [peer, handshake{std::move(handshake)}, f{std::forward<F>(f)}](
+          [peer_id, handshake{std::move(handshake)}, f{std::forward<F>(f)}](
               auto &&stream_res) mutable {
             if (!stream_res || !handshake) {
               std::forward<F>(f)(std::move(stream_res));
@@ -316,20 +349,20 @@ namespace kagome::network {
     }
 
     template <typename T, typename H>
-    void updateStream(const PeerInfo &peer,
+    void updateStream(const PeerId &peer_id,
                       const Protocol &protocol,
                       std::shared_ptr<T> msg,
                       boost::optional<std::shared_ptr<H>> handshake) {
       forNewStream(
-          peer,
+          peer_id,
           protocol,
           std::move(handshake),
-          [wself{weak_from_this()}, protocol, peer, msg{std::move(msg)}](
+          [wp = weak_from_this(), protocol, peer_id, msg = std::move(msg)](
               auto &&stream_res) mutable {
-            if (auto self = wself.lock()) {
+            if (auto self = wp.lock()) {
               if (!stream_res) {
                 self->logger_->error("Could not send message to {} Error: {}",
-                                     peer.id.toBase58(),
+                                     peer_id.toBase58(),
                                      stream_res.error().message());
                 return;
               }
@@ -338,10 +371,11 @@ namespace kagome::network {
               auto stream = std::move(stream_res.value());
 
               bool existing = false;
-              self->forSubscriber(peer, protocol, [&](auto, auto &subscriber) {
-                existing = true;
-                self->uploadStream(subscriber, stream);
-              });
+              self->forSubscriber(
+                  peer_id, protocol, [&](auto, auto &subscriber) {
+                    existing = true;
+                    self->uploadStream(subscriber, stream);
+                  });
               BOOST_ASSERT(existing);
               self->send(stream, *msg);
             }

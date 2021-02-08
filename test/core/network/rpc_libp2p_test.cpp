@@ -51,8 +51,8 @@ class RpcLibp2pTest : public testing::Test {
  * @then operation completes successfully
  */
 TEST_F(RpcLibp2pTest, ReadWithResponse) {
-  setReadExpectations(read_writer_, encoded_request_.toVector());
-  setWriteExpectations(read_writer_, encoded_response_.toVector());
+  setReadExpectations(read_writer_, encoded_request_.asVector());
+  setWriteExpectations(read_writer_, encoded_response_.asVector());
 
   auto finished = false;
   ScaleRPC::read<BlocksResponse, BlocksResponse>(
@@ -73,7 +73,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponse) {
  * @then that error is properly handled
  */
 TEST_F(RpcLibp2pTest, ReadWithResponseErroredResponse) {
-  setReadExpectations(read_writer_, encoded_request_.toVector());
+  setReadExpectations(read_writer_, encoded_request_.asVector());
 
   auto finished = false;
   ScaleRPC::read<BlocksResponse, BlocksResponse>(
@@ -93,7 +93,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponseErroredResponse) {
  * @then operation completes successfully
  */
 TEST_F(RpcLibp2pTest, ReadWithoutResponse) {
-  setReadExpectations(read_writer_, encoded_request_.toVector());
+  setReadExpectations(read_writer_, encoded_request_.asVector());
 
   auto finished = false;
   ScaleRPC::read<BlocksResponse>(
@@ -117,8 +117,8 @@ TEST_F(RpcLibp2pTest, WriteWithResponse) {
       newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
-  setWriteExpectations(stream_, encoded_request_.toVector());
-  setReadExpectations(stream_, encoded_response_.toVector());
+  setWriteExpectations(stream_, encoded_request_.asVector());
+  setReadExpectations(stream_, encoded_response_.asVector());
 
   auto finished = false;
   ScaleRPC::write<BlocksResponse, BlocksResponse>(
@@ -146,7 +146,7 @@ TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
       newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
-  setWriteExpectations(stream_, encoded_request_.toVector());
+  setWriteExpectations(stream_, encoded_request_.asVector());
   EXPECT_CALL(*stream_, read(_, _, _))
       .WillOnce(testing::InvokeArgument<2>(
           ::outcome::failure(boost::system::error_code{})));
@@ -176,7 +176,7 @@ TEST_F(RpcLibp2pTest, WriteWithoutResponse) {
       newStream(peer_info_, protocol_, _, std::chrono::milliseconds::zero()))
       .WillOnce(testing::InvokeArgument<2>(stream_));
 
-  setWriteExpectations(stream_, encoded_request_.toVector());
+  setWriteExpectations(stream_, encoded_request_.asVector());
 
   auto finished = false;
   ScaleRPC::write<BlocksResponse>(host_,

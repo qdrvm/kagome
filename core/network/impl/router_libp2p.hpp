@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#include "application/app_state_manager.hpp"
+#include "application/app_configuration.hpp"
 #include "common/logger.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
@@ -22,6 +24,8 @@
 #include "network/gossiper.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/loopback_stream.hpp"
+#include "network/impl/stream_engine.hpp"
+#include "network/peer_manager.hpp"
 #include "network/router.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -41,22 +45,31 @@ namespace kagome::network {
                        public std::enable_shared_from_this<RouterLibp2p> {
    public:
     RouterLibp2p(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
+        const application::AppConfiguration& app_config,
+        std::shared_ptr<application::ChainSpec> chain_spec,
+        const OwnPeerInfo &own_info,
+        std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<Gossiper> gossiper,
         const BootstrapNodes &bootstrap_nodes,
-        const OwnPeerInfo &own_info,
-        std::shared_ptr<kagome::application::ChainSpec> config,
         std::shared_ptr<blockchain::BlockStorage> storage,
-        std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto);
 
     ~RouterLibp2p() override = default;
 
-    void init() override;
+    /** @see AppStateManager::takeControl */
+    bool prepare();
+
+    /** @see AppStateManager::takeControl */
+    bool start();
+
+    /** @see AppStateManager::takeControl */
+    void stop();
 
     void handleSyncProtocol(
         const std::shared_ptr<Stream> &stream) const override;
@@ -142,22 +155,24 @@ namespace kagome::network {
     bool processGossipMessage(const libp2p::peer::PeerId &peer_id,
                               const GossipMessage &msg) const;
 
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
+    const application::AppConfiguration& app_config_;
+    std::shared_ptr<application::ChainSpec> chain_spec_;
+    const OwnPeerInfo &own_info_;
+    std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<Gossiper> gossiper_;
-    std::weak_ptr<network::LoopbackStream> loopback_stream_;
+    std::weak_ptr<LoopbackStream> loopback_stream_;
     common::Logger log_;
-    std::shared_ptr<kagome::application::ChainSpec> config_;
-    libp2p::peer::Protocol transactions_protocol_;
-    libp2p::peer::Protocol block_announces_protocol_;
+
     std::shared_ptr<blockchain::BlockStorage> storage_;
-    std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::Ping> ping_proto_;
-    libp2p::event::Handle new_connection_handler_;
   };
+
 }  // namespace kagome::network
 
 #endif  // KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP

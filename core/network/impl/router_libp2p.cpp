@@ -25,33 +25,37 @@
 
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       libp2p::Host &host,
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<application::ChainSpec> chain_spec,
+      const OwnPeerInfo &own_info,
+      std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<Gossiper> gossiper,
       const BootstrapNodes &bootstrap_nodes,
-      const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<kagome::application::ChainSpec> config,
       std::shared_ptr<blockchain::BlockStorage> storage,
-      std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto)
-      : host_{host},
+      : app_state_manager_{app_state_manager},
+        host_{host},
+        app_config_(app_config),
+        chain_spec_(std::move(chain_spec)),
+        own_info_{own_info},
+        stream_engine_{std::move(stream_engine)},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
         extrinsic_observer_{std::move(extrinsic_observer)},
         gossiper_{std::move(gossiper)},
         log_{common::createLogger("RouterLibp2p")},
-        config_(std::move(config)),
-        transactions_protocol_{fmt::format(
-            kPropagateTransactionsProtocol.data(), config_->protocolId())},
-        block_announces_protocol_{
-            fmt::format(kBlockAnnouncesProtocol.data(), config_->protocolId())},
         storage_{std::move(storage)},
-        identify_{std::move(identify)},
         ping_proto_{std::move(ping_proto)} {
+    BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
+                     "app state manager is nullptr");
+    BOOST_ASSERT_MSG(stream_engine_ != nullptr, "stream engine is nullptr");
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
@@ -61,79 +65,80 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(!bootstrap_nodes.empty(), "bootstrap node list is empty");
     BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
 
-    gossiper_->storeSelfPeerInfo(own_peer_info);
+    log_->debug("Own peer id: {}", own_info.id.toBase58());
     for (const auto &peer_info : bootstrap_nodes) {
-      if (peer_info.id != own_peer_info.id) {
-        gossiper_->reserveStream(peer_info, transactions_protocol_, {});
-        gossiper_->reserveStream(peer_info, block_announces_protocol_, {});
-        gossiper_->reserveStream(peer_info, kGossipProtocol, {});
-      } else {
-        auto stream = std::make_shared<LoopbackStream>(own_peer_info);
-        loopback_stream_ = stream;
-        gossiper_->reserveStream(
-            own_peer_info, kGossipProtocol, std::move(stream));
+      for (auto &addr : peer_info.addresses) {
+        log_->debug("Bootstrap node: {}", addr.getStringAddress());
       }
     }
+
+    gossiper_->storeSelfPeerInfo(own_info_);
+
+    auto stream = std::make_shared<LoopbackStream>(own_info_);
+    loopback_stream_ = stream;
+    [[maybe_unused]] auto res =
+        stream_engine_->add(std::move(stream), kGossipProtocol);
+    BOOST_ASSERT(res.has_value());
+
+    app_state_manager_->takeControl(*this);
   }
 
-  void RouterLibp2p::init() {
+  bool RouterLibp2p::prepare() {
     host_.setProtocolHandler(
-        fmt::format(kSyncProtocol.data(), config_->protocolId()),
-        [self{shared_from_this()}](auto &&stream) {
-          self->handleSyncProtocol(std::forward<decltype(stream)>(stream));
+        fmt::format(kSyncProtocol.data(), chain_spec_->protocolId()),
+        [wp = weak_from_this()](auto &&stream) {
+          if (auto self = wp.lock()) {
+            self->handleSyncProtocol(std::forward<decltype(stream)>(stream));
+          }
         });
-    host_.setProtocolHandler(transactions_protocol_,
-                             [self{shared_from_this()}](auto &&stream) {
-                               self->handleTransactionsProtocol(
-                                   std::forward<decltype(stream)>(stream));
+    host_.setProtocolHandler(fmt::format(kPropagateTransactionsProtocol.data(),
+                                         chain_spec_->protocolId()),
+                             [wp = weak_from_this()](auto &&stream) {
+                               if (auto self = wp.lock()) {
+                                 self->handleTransactionsProtocol(
+                                     std::forward<decltype(stream)>(stream));
+                               }
                              });
-    host_.setProtocolHandler(block_announces_protocol_,
-                             [self{shared_from_this()}](auto &&stream) {
-                               self->handleBlockAnnouncesProtocol(
-                                   std::forward<decltype(stream)>(stream));
-                             });
-    host_.setProtocolHandler(identify_->getProtocolId(),
-                             [wself{weak_from_this()}](auto &&stream) {
-                               if (auto self = wself.lock())
-                                 self->identify_->handle(stream);
-                             });
+    host_.setProtocolHandler(
+        fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_->protocolId()),
+        [wp = weak_from_this()](auto &&stream) {
+          if (auto self = wp.lock()) {
+            self->handleBlockAnnouncesProtocol(
+                std::forward<decltype(stream)>(stream));
+          }
+        });
     host_.setProtocolHandler(ping_proto_->getProtocolId(),
-                             [wself{weak_from_this()}](auto &&stream) {
-                               if (auto self = wself.lock())
+                             [wp = weak_from_this()](auto &&stream) {
+                               if (auto self = wp.lock()) {
                                  self->ping_proto_->handle(stream);
+                               }
                              });
     host_.setProtocolHandler(
-        network::kSupProtocol, [wself{weak_from_this()}](auto &&stream) {
-          if (auto self = wself.lock(); self && stream)
-            if (auto peer_id = stream->remotePeerId())
-              self->log_->info("Handled {} protocol stream from: {}",
-                               network::kSupProtocol,
-                               peer_id.value().toHex());
-        });
-    new_connection_handler_ = host_.setOnNewConnectionHandler(
-        [wself{weak_from_this()}](auto &&peer_info) {
-          if (auto self = wself.lock()) {
-            self->host_.newStream(
-                peer_info,
-                self->block_announces_protocol_,
-                [self, peer_info](auto &&stream_res) {
-                  if (!stream_res) {
-                    self->log_->warn("Unable to create stream with {}",
-                                     peer_info.id.toHex());
-                    return;
-                  }
-                  (void)self->gossiper_->addStream(
-                      self->block_announces_protocol_, stream_res.value());
-                });
+        kSupProtocol, [wp = weak_from_this()](auto &&stream) {
+          if (auto self = wp.lock()) {
+            if (stream) {
+              if (auto peer_id = stream->remotePeerId()) {
+                self->log_->info("Handled {} protocol stream from: {}",
+                                 network::kSupProtocol,
+                                 peer_id.value().toHex());
+              }
+            }
+
           }
         });
     host_.setProtocolHandler(
-        kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
-          self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
+        kGossipProtocol, [wp = weak_from_this()](auto &&stream) {
+          if (auto self = wp.lock()) {
+            self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
+          }
         });
+
+    return true;
+  }
+
+  bool RouterLibp2p::start() {
     if (auto stream = loopback_stream_.lock()) {
       readAsyncMsg<GossipMessage>(
           std::move(stream),
@@ -141,12 +146,65 @@ namespace kagome::network {
             return self->processGossipMessage(peer_id, msg);
           });
     }
+
+    // IPv6
+    {
+      auto ma_res = libp2p::multi::Multiaddress::create(
+          "/ip6/::/tcp/" + std::to_string(app_config_.p2pPort()) + "/p2p/"
+          + own_info_.id.toBase58());
+      BOOST_ASSERT(ma_res.has_value());
+      auto &ma = ma_res.value();
+      auto res = host_.listen(ma);
+      if (not res) {
+        log_->error("Cannot listen address {}. Error: {}",
+                    ma.getStringAddress(),
+                    res.error().message());
+      }
+    }
+
+    // IPv4
+    {
+      auto ma_res = libp2p::multi::Multiaddress::create(
+          "/ip4/0.0.0.0/tcp/" + std::to_string(app_config_.p2pPort()) + "/p2p/"
+          + own_info_.id.toBase58());
+      BOOST_ASSERT(ma_res.has_value());
+      auto &ma = ma_res.value();
+      auto res = host_.listen(ma);
+      if (not res) {
+        log_->error("Cannot listen address {}. Error: {}",
+                    ma.getStringAddress(),
+                    res.error().message());
+      }
+    }
+
+    auto &addr_repo = host_.getPeerRepository().getAddressRepository();
+    auto upsert_res = addr_repo.upsertAddresses(
+        own_info_.id, own_info_.addresses, libp2p::peer::ttl::kPermanent);
+    if (!upsert_res) {
+      log_->error("Cannot add own addresses to repo: {}",
+                  upsert_res.error().message());
+    }
+
     host_.start();
+
     const auto &host_addresses = host_.getAddresses();
-    BOOST_ASSERT_MSG(not host_addresses.empty(), "Host addresses empty");
-    log_->info("Started listening with peer id: {} on address: {}",
-               host_.getId().toBase58(),
-               host_addresses.front().getStringAddress());
+    if (host_addresses.empty()) {
+      log_->critical("Host addresses is empty");
+      return false;
+    }
+
+    log_->info("Started with peer id: {}", host_.getId().toBase58());
+    for (auto &addr : host_addresses) {
+      log_->info("Started listening on address: {}", addr.getStringAddress());
+    }
+
+    return true;
+  }
+
+  void RouterLibp2p::stop() {
+    if (host_.getNetwork().getListener().isStarted()) {
+      host_.stop();
+    }
   }
 
   void RouterLibp2p::handleSyncProtocol(
@@ -245,7 +303,7 @@ namespace kagome::network {
 
   void RouterLibp2p::handleGossipProtocol(
       std::shared_ptr<Stream> stream) const {
-    if (gossiper_->addStream(kGossipProtocol, stream))
+    if (stream_engine_->add(stream, kGossipProtocol))
       readAsyncMsg<GossipMessage>(
           std::move(stream),
           [](auto self, const auto &peer_id, const auto &msg) {
@@ -294,7 +352,7 @@ namespace kagome::network {
       case MsgType::BLOCK_ANNOUNCE: {
         BOOST_ASSERT(!"Legacy protocol unsupported!");
         log_->warn("Legacy protocol message BLOCK_ANNOUNCE from: {}",
-                   peer_id.toHex());
+                   peer_id.toBase58());
         return false;
       }
       case GossipMessage::Type::CONSENSUS: {
@@ -342,7 +400,7 @@ namespace kagome::network {
       case MsgType::TRANSACTIONS: {
         BOOST_ASSERT(!"Legacy protocol unsupported!");
         log_->warn("Legacy protocol message TRANSACTIONS from: {}",
-                   peer_id.toHex());
+                   peer_id.toBase58());
         return false;
       }
       case GossipMessage::Type::STATUS: {

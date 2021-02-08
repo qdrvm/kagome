@@ -40,7 +40,8 @@ namespace kagome::common {
   }
 
   const std::string_view Buffer::toString() const {
-    return std::string_view(reinterpret_cast<const char*>(data_.data()), data_.size()); // NOLINT
+    return std::string_view(reinterpret_cast<const char *>(data_.data()),
+                            data_.size());  // NOLINT
   }
 
   bool Buffer::empty() const {
@@ -78,7 +79,11 @@ namespace kagome::common {
   Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}
   Buffer::Buffer(gsl::span<const uint8_t> s) : data_(s.begin(), s.end()) {}
 
-  const std::vector<uint8_t> &Buffer::toVector() const {
+  const std::vector<uint8_t> &Buffer::asVector() const {
+    return data_;
+  }
+
+  std::vector<uint8_t> &Buffer::asVector() {
     return data_;
   }
 
@@ -140,7 +145,7 @@ namespace kagome::common {
   }
 
   Buffer &Buffer::putBuffer(const Buffer &buf) {
-    return put(buf.toVector());
+    return put(buf.asVector());
   }
 
   void Buffer::clear() {
@@ -149,10 +154,6 @@ namespace kagome::common {
 
   Buffer::Buffer(const uint8_t *begin, const uint8_t *end)
       : data_{begin, end} {}
-
-  std::vector<uint8_t> &Buffer::toVector() {
-    return data_;
-  }
 
   Buffer &Buffer::reserve(size_t size) {
     data_.reserve(size);

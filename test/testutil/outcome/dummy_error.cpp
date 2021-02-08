@@ -20,4 +20,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(testutil, DummyError, e) {
     case DummyError::ERROR_5:
       return "dummy error #5";
   }
+  return "unknown (DummyError) error";
 }

@@ -14,6 +14,14 @@ namespace kagome::clock {
     timer_.expires_at(at);
   }
 
+  void BasicWaitableTimer::expiresAfter(clock::SystemClock::Duration duration) {
+    timer_.expires_after(duration);
+  }
+
+  void BasicWaitableTimer::cancel() {
+    timer_.cancel();
+  }
+
   void BasicWaitableTimer::asyncWait(
       const std::function<void(const std::error_code &)> &h) {
     timer_.async_wait(h);

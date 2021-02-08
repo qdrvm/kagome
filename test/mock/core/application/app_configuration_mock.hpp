@@ -28,6 +28,9 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(nodeKey,
                        const boost::optional<crypto::Ed25519PrivateKey> &());
 
+    MOCK_CONST_METHOD0(listenAddresses,
+                       const std::vector<libp2p::multi::Multiaddress> &());
+
     MOCK_CONST_METHOD0(bootNodes,
                        const std::vector<libp2p::multi::Multiaddress> &());
 
@@ -47,6 +50,8 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(maxBlocksInResponse, uint32_t());
 
     MOCK_CONST_METHOD0(isUnixSlotsStrategy, bool());
+
+    MOCK_CONST_METHOD0(peeringConfig, const network::PeeringConfig &());
   };
 
 }  // namespace kagome::application

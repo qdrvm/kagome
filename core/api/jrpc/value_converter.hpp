@@ -125,7 +125,7 @@ namespace kagome::api {
     data.emplace_back(makeValue(val.first));
     data.emplace_back(makeValue(val.second));
 
-    return std::move(data);
+    return data;
   }
 
   inline jsonrpc::Value makeValue(const primitives::Version &val) {
@@ -155,7 +155,7 @@ namespace kagome::api {
                    });
 
     data["apis"] = std::move(apis);
-    return std::move(data);
+    return data;
   }
 
   inline jsonrpc::Value makeValue(const primitives::BlockHeader &val) {
@@ -182,7 +182,7 @@ namespace kagome::api {
     digest["logs"] = std::move(logs);
 
     data["digest"] = std::move(digest);
-    return std::move(data);
+    return data;
   }
 
   inline jsonrpc::Value makeValue(const primitives::Justification &val) {
@@ -199,7 +199,7 @@ namespace kagome::api {
     jStruct data;
     data["block"] = std::move(block);
     data["justification"] = makeValue(val.justification);
-    return std::move(data);
+    return data;
   }
 
   template <typename... Ts>

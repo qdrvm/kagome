@@ -50,7 +50,7 @@ namespace kagome::runtime::binaryen {
     const auto new_offset = roundUpAlign(ptr + size);  // align
 
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
-    if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
+    if (new_offset < static_cast<uint32_t>(ptr)) {  // overflow
       logger_->error(
           "overflow occured while trying to allocate {} bytes at offset 0x{:x}",
           size,

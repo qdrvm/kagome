@@ -5,7 +5,7 @@
 
 #include "application/impl/validating_node_application.hpp"
 
-#include <boost/filesystem.hpp>
+#include "application/impl/util.hpp"
 
 namespace kagome::application {
 
@@ -23,42 +23,34 @@ namespace kagome::application {
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
+    chain_spec_ = injector_.create<sptr<ChainSpec>>();
+    BOOST_ASSERT(chain_spec_ != nullptr);
+
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
+    chain_path_ = app_config.chainPath(chain_spec_->id());
+
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
-    genesis_config_ = injector_.create<sptr<ChainSpec>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_ = injector_.create<sptr<Grandpa>>();
     router_ = injector_.create<sptr<network::Router>>();
-
+    peer_manager_ = injector_.create<sptr<network::PeerManager>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void ValidatingNodeApplication::run() {
-    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+    logger_->info("Start as ValidatingNode with PID {}", getpid());
+
+    auto res = util::init_directory(chain_path_);
+    if (not res) {
+      logger_->critical("Error initalizing chain directory {}: {}",
+                        chain_path_.native(),
+                        res.error().message());
+      exit(EXIT_FAILURE);
+    }
 
     babe_->setExecutionStrategy(babe_execution_strategy_);
-
-    app_state_manager_->atLaunch([this] {
-      // execute listeners
-      io_context_->post([this] {
-        const auto &current_peer_info =
-            injector_.template create<network::OwnPeerInfo>();
-        auto &host = injector_.template create<libp2p::Host &>();
-        for (const auto &ma : current_peer_info.addresses) {
-          auto listen = host.listen(ma);
-          if (not listen) {
-            logger_->error("Cannot listen address {}. Error: {}",
-                           ma.getStringAddress(),
-                           listen.error().message());
-            std::exit(1);
-          }
-        }
-        this->router_->init();
-      });
-      return true;
-    });
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });

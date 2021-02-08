@@ -35,28 +35,15 @@ namespace kagome::network {
     BOOST_ASSERT(ext_event_key_repo_);
   }
 
-  void GossiperBroadcast::reserveStream(
-      const libp2p::peer::PeerInfo &peer_info,
-      const libp2p::peer::Protocol &protocol,
-      std::shared_ptr<libp2p::connection::Stream> stream) {
-    stream_engine_->addReserved(peer_info, protocol, std::move(stream));
-  }
-
   void GossiperBroadcast::storeSelfPeerInfo(
       const libp2p::peer::PeerInfo &self_info) {
     self_info_ = self_info;
   }
 
-  outcome::result<void> GossiperBroadcast::addStream(
-      const libp2p::peer::Protocol &protocol,
-      std::shared_ptr<libp2p::connection::Stream> stream) {
-    return stream_engine_->add(protocol, std::move(stream));
-  }
-
   uint32_t GossiperBroadcast::getActiveStreamNumber() {
     BOOST_ASSERT(self_info_);
-    return stream_engine_->count([&](const StreamEngine::PeerInfo &peer) {
-      return *self_info_ != peer;
+    return stream_engine_->count([&](const StreamEngine::PeerId &peer) {
+      return self_info_->id != peer;
     });
   }
 
@@ -66,10 +53,8 @@ namespace kagome::network {
 
     std::vector<libp2p::peer::PeerId> peers;
     stream_engine_->forEachPeer(
-        [&peers](const libp2p::peer::PeerInfo &peer_info,
-                 const auto &peer_type,
-                 const auto &peer_map) {
-          peers.push_back(peer_info.id);
+        [&peers](const libp2p::peer::PeerId &peer_id, const auto &peer_map) {
+          peers.push_back(peer_id);
         });
     if (peers.size() > 1) {
       for (const auto &tx : txs) {

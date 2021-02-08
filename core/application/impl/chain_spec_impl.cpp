@@ -29,7 +29,8 @@ namespace kagome::application {
 
   namespace pt = boost::property_tree;
 
-  outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::loadFrom(const std::string &path) {
+  outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::loadFrom(
+      const std::string &path) {
     // done so because of private constructor
     auto config_storage = std::make_shared<ChainSpecImpl>(ChainSpecImpl());
     OUTCOME_TRY(config_storage->loadFromJson(path));
@@ -63,7 +64,8 @@ namespace kagome::application {
     OUTCOME_TRY(id, ensure("id", tree.get_child_optional("id")));
     id_ = id.get<std::string>("");
 
-    OUTCOME_TRY(chain_type, ensure("chainType", tree.get_child_optional("chainType")));
+    OUTCOME_TRY(chain_type,
+                ensure("chainType", tree.get_child_optional("chainType")));
     chain_type_ = chain_type.get<std::string>("");
 
     auto telemetry_endpoints_opt =
@@ -137,7 +139,8 @@ namespace kagome::application {
 
   outcome::result<void> ChainSpecImpl::loadGenesis(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(genesis_tree, ensure("genesis", tree.get_child_optional("genesis")));
+    OUTCOME_TRY(genesis_tree,
+                ensure("genesis", tree.get_child_optional("genesis")));
     OUTCOME_TRY(genesis_raw_tree,
                 ensure("genesis/raw", genesis_tree.get_child_optional("raw")));
     boost::property_tree::ptree top_tree;
@@ -163,11 +166,14 @@ namespace kagome::application {
 
   outcome::result<void> ChainSpecImpl::loadBootNodes(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(boot_nodes, ensure("bootNodes", tree.get_child_optional("bootNodes")));
+    OUTCOME_TRY(boot_nodes,
+                ensure("bootNodes", tree.get_child_optional("bootNodes")));
     for (auto &v : boot_nodes) {
       OUTCOME_TRY(multiaddr,
                   libp2p::multi::Multiaddress::create(v.second.data()));
-      if(auto peer_id_base58 = multiaddr.getPeerId(); peer_id_base58.has_value()) {
+
+      if (auto peer_id_base58 = multiaddr.getPeerId();
+          peer_id_base58.has_value()) {
         OUTCOME_TRY(libp2p::peer::PeerId::fromBase58(peer_id_base58.value()));
         boot_nodes_.emplace_back(std::move(multiaddr));
       } else {

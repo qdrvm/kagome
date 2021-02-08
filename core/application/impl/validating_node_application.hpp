@@ -53,16 +53,18 @@ namespace kagome::application {
 
     std::shared_ptr<boost::asio::io_context> io_context_;
 
-    sptr<ChainSpec> genesis_config_;
+    sptr<ChainSpec> chain_spec_;
     sptr<clock::SystemClock> clock_;
     sptr<Babe> babe_;
     sptr<Grandpa> grandpa_;
     sptr<network::Router> router_;
+    std::shared_ptr<network::PeerManager> peer_manager_;
 
     sptr<api::ApiService> jrpc_api_service_;
 
     Babe::ExecutionStrategy babe_execution_strategy_;
 
+    boost::filesystem::path chain_path_;
     common::Logger logger_;
   };
 

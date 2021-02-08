@@ -21,11 +21,6 @@ namespace kagome::network {
     virtual ~Router() = default;
 
     /**
-     * Start accepting new connections and messages on this router
-     */
-    virtual void init() = 0;
-
-    /**
      * Handle stream, which is opened over a Sync protocol
      * @param stream to be handled
      */

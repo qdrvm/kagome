@@ -35,14 +35,13 @@ namespace kagome::application {
     InjectorType injector_;
     common::Logger logger_;
 
-    const AppConfiguration& app_config_;
     sptr<ChainSpec> chain_spec_;
     boost::filesystem::path chain_path_;
-    const network::BootstrapNodes& boot_nodes_;
 
     sptr<AppStateManager> app_state_manager_;
     sptr<boost::asio::io_context> io_context_;
     sptr<network::Router> router_;
+    std::shared_ptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;
 
   };

@@ -60,11 +60,6 @@ namespace kagome::network {
 
     ~GossiperBroadcast() override = default;
 
-    void reserveStream(
-        const libp2p::peer::PeerInfo &peer_info,
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) override;
-
     void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
 
     void propagateTransactions(
@@ -82,10 +77,6 @@ namespace kagome::network {
     void catchUpResponse(const libp2p::peer::PeerId &peer_id,
                          const CatchUpResponse &catch_up_response) override;
 
-    outcome::result<void> addStream(
-        const libp2p::peer::Protocol &protocol,
-        std::shared_ptr<libp2p::connection::Stream> stream) override;
-
     uint32_t getActiveStreamNumber() override;
 
    private:
@@ -97,10 +88,7 @@ namespace kagome::network {
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);
       stream_engine_->send<typename std::decay<decltype(msg)>::type, NoData>(
-          StreamEngine::PeerInfo{.id = peer_id, .addresses = {}},
-          protocol,
-          std::move(shared_msg),
-          boost::none);
+          peer_id, protocol, std::move(shared_msg), boost::none);
     }
 
     template <typename T>

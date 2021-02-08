@@ -89,7 +89,7 @@ namespace kagome::blockchain {
 
     on_finalized_block_found(finalized_block);
 
-    return std::move(block_storage);
+    return block_storage;
   }
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
@@ -106,12 +106,12 @@ namespace kagome::blockchain {
     // state root type is Hash256, however for consistency with spec root hash
     // returns buffer. So we need this conversion
     OUTCOME_TRY(state_root_blob,
-                common::Hash256::fromSpan(state_root.toVector()));
+                common::Hash256::fromSpan(state_root.asVector()));
 
     auto extrinsics_root_buf = trieRoot({});
     // same reason for conversion as few lines above
     OUTCOME_TRY(extrinsics_root,
-                common::Hash256::fromSpan(extrinsics_root_buf.toVector()));
+                common::Hash256::fromSpan(extrinsics_root_buf.asVector()));
 
     // genesis block initialization
     primitives::Block genesis_block;
@@ -126,7 +126,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
 
     on_genesis_created(genesis_block);
-    return std::move(block_storage);
+    return block_storage;
   }
 
   outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(

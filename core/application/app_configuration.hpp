@@ -16,6 +16,7 @@
 #include <libp2p/multi/multiaddress.hpp>
 
 #include "crypto/ed25519_types.hpp"
+#include "network/peering_config.hpp"
 
 namespace kagome::application {
 
@@ -79,6 +80,12 @@ namespace kagome::application {
         const = 0;
 
     /**
+     * @return multiaddresses the node listens for open connections on
+     */
+    virtual const std::vector<libp2p::multi::Multiaddress> &listenAddresses()
+        const = 0;
+
+    /**
      * @return endpoint for RPC over HTTP.
      */
     virtual const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const = 0;
@@ -116,6 +123,11 @@ namespace kagome::application {
      * slot_duration`. Otherwise slots are counting from 0 and false is returned
      */
     virtual bool isUnixSlotsStrategy() const = 0;
+
+    /**
+     * Config for PeerManager
+     */
+    virtual const network::PeeringConfig &peeringConfig() const = 0;
   };
 
 }  // namespace kagome::application
