@@ -28,7 +28,7 @@ namespace kagome::clock {
      * Set an expire time for this timer
      * @param duration before timer will be expired
      */
-    virtual void expiresFor(clock::SystemClock::Duration duration) = 0;
+    virtual void expiresAfter(clock::SystemClock::Duration duration) = 0;
 
     /**
      * Cancel timer

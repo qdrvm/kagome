@@ -105,7 +105,7 @@ namespace kagome::consensus {
       const BlocksHandler &requested_blocks_handler) const {
     auto next_client = sync_clients_->get(peer_id);
     if (!next_client) {
-      logger_->error("Could not make client for syncronization. Skip.");
+      logger_->error("Could not obtain client for synchronization. Skip.");
       return;
     }
 

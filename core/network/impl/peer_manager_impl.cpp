@@ -58,7 +58,6 @@ namespace kagome::network {
       return false;
     }
 
-
     return true;
   }
 
@@ -212,7 +211,7 @@ namespace kagome::network {
         host_.getNetwork().getConnectionManager().connectedness(peer_info);
     if (connectedness
         == libp2p::network::ConnectionManager::Connectedness::CAN_NOT_CONNECT) {
-      log_->debug("Can not commect to peer_id={}", peer_id.toBase58());
+      log_->debug("Can not connect to peer_id={}", peer_id.toBase58());
       return;
     }
 

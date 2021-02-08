@@ -22,7 +22,7 @@ namespace kagome::clock {
 
     void expiresAt(clock::SystemClock::TimePoint at) override;
 
-    void expiresFor(clock::SystemClock::Duration duration) override;
+    void expiresAfter(clock::SystemClock::Duration duration) override;
 
     void cancel() override;
 

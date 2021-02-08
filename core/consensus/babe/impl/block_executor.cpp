@@ -95,7 +95,7 @@ namespace kagome::consensus {
           // block
 
           // TODO(xDimon): Move timeout for request into config
-          sync_timer_->expiresFor(std::chrono::seconds(30));
+          sync_timer_->expiresAfter(std::chrono::seconds(30));
           sync_timer_->asyncWait([wp = weak_from_this()](auto e) {
             if (auto self = wp.lock()) {
               if (not e) {

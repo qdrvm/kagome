@@ -14,7 +14,7 @@ namespace kagome::clock {
     timer_.expires_at(at);
   }
 
-  void BasicWaitableTimer::expiresFor(clock::SystemClock::Duration duration) {
+  void BasicWaitableTimer::expiresAfter(clock::SystemClock::Duration duration) {
     timer_.expires_after(duration);
   }
 

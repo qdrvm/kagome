@@ -9,7 +9,8 @@
 #include <memory>
 #include <unordered_set>
 
-#include "libp2p/peer/peer_id.hpp"
+#include <libp2p/peer/peer_id.hpp>
+
 #include "network/impl/remote_sync_protocol_client.hpp"
 #include "network/sync_protocol_client.hpp"
 
@@ -39,7 +40,7 @@ namespace kagome::network {
     void remove(libp2p::peer::PeerId peer_id) {
       clients_.erase(peer_id);
     }
-    const auto& clients() const {
+    const auto &clients() const {
       return clients_;
     }
 

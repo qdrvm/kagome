@@ -13,7 +13,7 @@ namespace testutil {
   struct TimerMock : public kagome::clock::Timer {
     MOCK_METHOD1(expiresAt, void(kagome::clock::SystemClock::TimePoint));
 
-    MOCK_METHOD1(expiresFor, void(kagome::clock::SystemClock::Duration));
+    MOCK_METHOD1(expiresAfter, void(kagome::clock::SystemClock::Duration));
 
     MOCK_METHOD0(cancel, void());
 
