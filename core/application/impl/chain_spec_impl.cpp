@@ -8,20 +8,34 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
-#include "application/impl/config_reader/error.hpp"
-#include "application/impl/config_reader/pt_util.hpp"
 #include "common/hexutil.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::application, ChainSpecImpl::Error, e) {
+  using E = kagome::application::ChainSpecImpl::Error;
+  switch (e) {
+    case E::MISSING_ENTRY:
+      return "A required entry is missing in the config file";
+    case E::MISSING_PEER_ID:
+      return "Peer id is missing in a multiaddress provided in the config file";
+    case E::PARSER_ERROR:
+      return "Internal parser error";
+    case E::NOT_IMPLEMENTED:
+      return "Known entry name, but parsing not implemented";
+  }
+  return "Unknown error in ChainSpecImpl";
+}
 
 namespace kagome::application {
 
-  outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::create(const std::string &path) {
+  namespace pt = boost::property_tree;
+
+  outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::loadFrom(const std::string &path) {
+    // done so because of private constructor
     auto config_storage = std::make_shared<ChainSpecImpl>(ChainSpecImpl());
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
     return config_storage;
   }
-
-  namespace pt = boost::property_tree;
 
   outcome::result<void> ChainSpecImpl::loadFromJson(
       const std::string &file_path) {
@@ -31,7 +45,7 @@ namespace kagome::application {
     } catch (pt::json_parser_error &e) {
       spdlog::error(
           "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
-      return ConfigReaderError::PARSER_ERROR;
+      return Error::PARSER_ERROR;
     }
 
     OUTCOME_TRY(loadFields(tree));
@@ -43,13 +57,13 @@ namespace kagome::application {
 
   outcome::result<void> ChainSpecImpl::loadFields(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(name, ensure(tree.get_child_optional("name")));
+    OUTCOME_TRY(name, ensure("name", tree.get_child_optional("name")));
     name_ = name.get<std::string>("");
 
-    OUTCOME_TRY(id, ensure(tree.get_child_optional("id")));
+    OUTCOME_TRY(id, ensure("id", tree.get_child_optional("id")));
     id_ = id.get<std::string>("");
 
-    OUTCOME_TRY(chain_type, ensure(tree.get_child_optional("chainType")));
+    OUTCOME_TRY(chain_type, ensure("chainType", tree.get_child_optional("chainType")));
     chain_type_ = chain_type.get<std::string>("");
 
     auto telemetry_endpoints_opt =
@@ -87,7 +101,7 @@ namespace kagome::application {
         && fork_blocks_opt.value().get<std::string>("") != "null") {
       for (auto &[_, fork_block] : fork_blocks_opt.value()) {
         // TODO(xDimon): Ensure if implementation is correct, and remove return
-        return ConfigReaderError::NOT_YET_IMPLEMENTED;  // NOLINT
+        return Error::NOT_IMPLEMENTED;  // NOLINT
 
         OUTCOME_TRY(hash,
                     primitives::BlockHash::fromHexWithPrefix(
@@ -101,7 +115,7 @@ namespace kagome::application {
         && bad_blocks_opt.value().get<std::string>("") != "null") {
       for (auto &[_, bad_block] : bad_blocks_opt.value()) {
         // TODO(xDimon): Ensure if implementation is correct, and remove return
-        return ConfigReaderError::NOT_YET_IMPLEMENTED;  // NOLINT
+        return Error::NOT_IMPLEMENTED;  // NOLINT
 
         OUTCOME_TRY(hash,
                     primitives::BlockHash::fromHexWithPrefix(
@@ -123,9 +137,9 @@ namespace kagome::application {
 
   outcome::result<void> ChainSpecImpl::loadGenesis(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(genesis_tree, ensure(tree.get_child_optional("genesis")));
+    OUTCOME_TRY(genesis_tree, ensure("genesis", tree.get_child_optional("genesis")));
     OUTCOME_TRY(genesis_raw_tree,
-                ensure(genesis_tree.get_child_optional("raw")));
+                ensure("genesis/raw", genesis_tree.get_child_optional("raw")));
     boost::property_tree::ptree top_tree;
     // v0.7+ format
     if (auto top_tree_opt = genesis_raw_tree.get_child_optional("top");
@@ -149,13 +163,16 @@ namespace kagome::application {
 
   outcome::result<void> ChainSpecImpl::loadBootNodes(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(boot_nodes, ensure(tree.get_child_optional("bootNodes")));
+    OUTCOME_TRY(boot_nodes, ensure("bootNodes", tree.get_child_optional("bootNodes")));
     for (auto &v : boot_nodes) {
       OUTCOME_TRY(multiaddr,
                   libp2p::multi::Multiaddress::create(v.second.data()));
-      OUTCOME_TRY(peer_id_base58, ensure(multiaddr.getPeerId()));
-      OUTCOME_TRY(libp2p::peer::PeerId::fromBase58(peer_id_base58));
-      boot_nodes_.emplace_back(std::move(multiaddr));
+      if(auto peer_id_base58 = multiaddr.getPeerId(); peer_id_base58.has_value()) {
+        OUTCOME_TRY(libp2p::peer::PeerId::fromBase58(peer_id_base58.value()));
+        boot_nodes_.emplace_back(std::move(multiaddr));
+      } else {
+        return Error::MISSING_PEER_ID;
+      }
     }
     return outcome::success();
   }

@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(requests)
-
 add_library(author_api_service
     author_api.hpp
     author_jrpc_processor.hpp

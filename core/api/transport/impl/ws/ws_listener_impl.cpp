@@ -16,7 +16,8 @@ namespace kagome::api {
       : context_{std::move(context)},
         config_{std::move(listener_config)},
         session_config_{session_config},
-        next_session_id_(1ull) {
+        next_session_id_{1ull},
+        logger_{common::createLogger("RPC Websocket Listener")} {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
@@ -25,11 +26,11 @@ namespace kagome::api {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
-      logger_->critical("Failed to prepare of listener: can't {}",
+      logger_->critical("Failed to prepare a listener: {}",
                         exception.what());
       return false;
     } catch (const std::exception &exception) {
-      logger_->critical("Exception at preparing of listener: {}",
+      logger_->critical("Exception when preparing a listener: {}",
                         exception.what());
       return false;
     }
@@ -44,7 +45,7 @@ namespace kagome::api {
   }
 
   bool WsListenerImpl::start() {
-    assert(acceptor_);
+    BOOST_ASSERT(acceptor_);
 
     if (!acceptor_->is_open()) {
       logger_->error("error: trying to start on non opened acceptor");
@@ -56,7 +57,7 @@ namespace kagome::api {
   }
 
   void WsListenerImpl::stop() {
-    assert(acceptor_);
+    BOOST_ASSERT(acceptor_);
 
     acceptor_->cancel();
   }
