@@ -472,7 +472,13 @@ namespace kagome::consensus {
       const Randomness &randomness) const {
     auto authority_index_res =
         getAuthorityIndex(authorities, keypair_.public_key);
-    BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
+    if (not authority_index_res) {
+      log_->critical(
+          "Block production failed: This node is not in the list of "
+          "authorities. (public key: {})",
+          keypair_.public_key.toHex());
+      throw boost::bad_optional_access();
+    }
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         authorities,
                                         authority_index_res.value());

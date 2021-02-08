@@ -16,6 +16,8 @@
 #include "api/service/chain/chain_jrpc_processor.hpp"
 #include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/impl/api_service_impl.hpp"
+#include "api/service/payment/impl/payment_api_impl.hpp"
+#include "api/service/payment/payment_jrpc_processor.hpp"
 #include "api/service/rpc/impl/rpc_api_impl.hpp"
 #include "api/service/rpc/rpc_jrpc_processor.hpp"
 #include "api/service/state/impl/state_api_impl.hpp"
@@ -94,6 +96,7 @@
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
+#include "runtime/binaryen/runtime_api/transaction_payment_api_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
@@ -164,7 +167,9 @@ namespace kagome::injector {
         injector.template create<
             std::shared_ptr<api::system::SystemJrpcProcessor>>(),
         injector
-            .template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>()};
+            .template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
+        injector
+            .template create<std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     const auto &trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
@@ -537,7 +542,7 @@ namespace kagome::injector {
     auto const &genesis_path = config.genesisPath();
 
     auto genesis_config_res =
-        application::ChainSpecImpl::create(genesis_path.native());
+        application::ChainSpecImpl::loadFrom(genesis_path.native());
     if (genesis_config_res.has_error()) {
       common::raise(genesis_config_res.error());
     }
@@ -838,6 +843,7 @@ namespace kagome::injector {
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
         di::bind<api::RpcApi>.template to<api::RpcApiImpl>(),
+        di::bind<api::PaymentApi>.template to<api::PaymentApiImpl>(),
         di::bind<api::ApiService>.to([](const auto &injector) {
           return get_jrpc_api_service(injector);
         }),
@@ -894,6 +900,7 @@ namespace kagome::injector {
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
+        di::bind<runtime::TransactionPaymentApi>.template to<runtime::binaryen::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::binaryen::AccountNonceApiImpl>(),
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),

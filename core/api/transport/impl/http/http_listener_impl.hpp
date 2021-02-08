@@ -54,7 +54,7 @@ namespace kagome::api {
 
     std::shared_ptr<SessionImpl> new_session_;
 
-    common::Logger logger_ = common::createLogger("RPC_HTTP_Listener");
+    common::Logger logger_;
   };
 }  // namespace kagome::api
 

@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 #include <gsl/span>
+
 #include "scale/detail/fixed_witdh_integer.hpp"
 
 namespace kagome::scale {

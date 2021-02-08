@@ -274,7 +274,7 @@ namespace kagome::blockchain {
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
     boost::optional<primitives::Version> actual_runtime_version_;
-    common::Logger log_ = common::createLogger("BlockTreeImpl");
+    common::Logger log_ = common::createLogger("Block Tree");
   };
 }  // namespace kagome::blockchain
 

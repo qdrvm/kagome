@@ -1,11 +1,3 @@
-add_library(config_reader_error
-    impl/config_reader/error.cpp
-    impl/config_reader/error.hpp
-    )
-target_link_libraries(config_reader_error
-    outcome
-    )
-
 add_library(application_util
     impl/util.cpp
     )
@@ -49,7 +41,6 @@ target_link_libraries(configuration_storage
     p2p::p2p_peer_id
     buffer
     sr25519_types
-    config_reader_error
     )
 
 add_library(app_state_manager
