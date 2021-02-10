@@ -50,6 +50,9 @@ namespace kagome::runtime::binaryen {
     const auto ptr = offset_;
     const auto new_offset = roundUpAlign(ptr + size);  // align
 
+    // Round up allocating chunk of memory
+    size = new_offset - ptr;
+
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (kMaxMemorySize - offset_ < size) {  // overflow
       logger_->error(
@@ -64,7 +67,6 @@ namespace kagome::runtime::binaryen {
       return ptr;
     }
 
-    size = new_offset - offset_;
     return freealloc(size);
   }
 
@@ -74,21 +76,45 @@ namespace kagome::runtime::binaryen {
       return boost::none;
     }
     const auto size = it->second;
-
-    allocated_.erase(ptr);
-    deallocated_[ptr] = size;
+    deallocated_.insert(allocated_.extract(ptr));
     return size;
   }
 
   WasmPointer WasmMemoryImpl::freealloc(WasmSize size) {
-    auto ptr = findContaining(size);
-    if (ptr == 0) {
+    if (size == 0) {
+      return 0;
+    }
+
+    // Round up size of allocating memory chunk
+    size = roundUpAlign(size);
+
+    auto it = std::min_element(deallocated_.begin(),
+                               deallocated_.end(),
+                               [](const auto &item1, const auto &item2) {
+                                 return item1.second < item2.second;
+                               });
+
+    if (it == deallocated_.end()) {
       // if did not find available space among deallocated memory chunks, then
       // grow memory and allocate in new space
       return growAlloc(size);
     }
-    allocated_.insert(deallocated_.extract(ptr));
-    return ptr;
+
+    const auto node = deallocated_.extract(it);
+    auto old_deallocated_chunk_ptr = node.key();
+    auto old_deallocated_chunk_size = node.mapped();
+
+    if (old_deallocated_chunk_size > size) {
+      auto new_deallocated_chunk_ptr = old_deallocated_chunk_ptr + size;
+      auto new_deallocated_chunk_size = old_deallocated_chunk_size - size;
+
+      BOOST_ASSERT(new_deallocated_chunk_size > 0);
+      deallocated_[new_deallocated_chunk_ptr] = new_deallocated_chunk_size;
+    }
+
+    allocated_[old_deallocated_chunk_ptr] = size;
+
+    return old_deallocated_chunk_ptr;
   }
 
   WasmPointer WasmMemoryImpl::findContaining(WasmSize size) {

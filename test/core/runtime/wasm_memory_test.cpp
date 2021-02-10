@@ -7,6 +7,7 @@
 
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 
+using kagome::runtime::binaryen::roundUpAlign;
 using kagome::runtime::binaryen::WasmMemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test {
@@ -67,8 +68,8 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
 
   // allocate memory of size 1
   auto ptr1 = memory_.allocate(size1);
-  // first memory chunk is always allocated at 1
-  ASSERT_EQ(ptr1, 1);
+  // first memory chunk is always allocated at min non-zero aligned address
+  ASSERT_EQ(ptr1, roundUpAlign(1));
 
   // allocated second memory chunk
   auto ptr2 = memory_.allocate(size2);
@@ -88,7 +89,7 @@ TEST_F(MemoryHeapTest, DeallocateExisingMemoryChunk) {
 
   auto opt_deallocated_size = memory_.deallocate(ptr1);
   ASSERT_TRUE(opt_deallocated_size.has_value());
-  ASSERT_EQ(*opt_deallocated_size, size1);
+  ASSERT_EQ(*opt_deallocated_size, roundUpAlign(size1));
 }
 
 /**
@@ -115,21 +116,21 @@ TEST_F(MemoryHeapTest, DeallocateNonexistingMemoryChunk) {
  */
 TEST_F(MemoryHeapTest, AllocateAfterDeallocate) {
   // two memory sizes totalling to the total memory size
-  const size_t size1 = 2045;
-  const size_t size2 = 2047;
+  const size_t size1 = 2035;
+  const size_t size2 = 2037;
 
   // allocate two memory chunks with total size equal to the memory size
-  auto ptr1 = memory_.allocate(size1);
+  auto pointer_of_first_allocation = memory_.allocate(size1);
   memory_.allocate(size2);
 
   // deallocate first memory chunk
-  memory_.deallocate(ptr1);
+  memory_.deallocate(pointer_of_first_allocation);
 
   // allocate new memory chunk
-  auto ptr1_1 = memory_.allocate(size1);
+  auto pointer_of_repeated_allocation = memory_.allocate(size1);
   // expected that it will be allocated on the same place as the first memory
   // chunk that was deallocated
-  ASSERT_EQ(ptr1, ptr1_1);
+  ASSERT_EQ(pointer_of_first_allocation, pointer_of_repeated_allocation);
 }
 
 /**
@@ -181,11 +182,11 @@ TEST_F(MemoryHeapTest, LoadNTest) {
 /**
  * @given Some memory is allocated
  * @when Memory is reset
- * @then Allocated memory's offset is 1
+ * @then Allocated memory's offset is min non-zero aligned address
  */
 TEST_F(MemoryHeapTest, ResetTest) {
   const size_t N = 42;
-  ASSERT_EQ(memory_.allocate(N), 1);
+  ASSERT_EQ(memory_.allocate(N), roundUpAlign(1));
   memory_.reset();
-  ASSERT_EQ(memory_.allocate(N), 1);
+  ASSERT_EQ(memory_.allocate(N), roundUpAlign(1));
 }
