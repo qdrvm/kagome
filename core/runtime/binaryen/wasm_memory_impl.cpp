@@ -71,12 +71,35 @@ namespace kagome::runtime::binaryen {
   }
 
   boost::optional<WasmSize> WasmMemoryImpl::deallocate(WasmPointer ptr) {
-    const auto it = allocated_.find(ptr);
-    if (it == allocated_.end()) {
+    auto a_it = allocated_.find(ptr);
+    if (a_it == allocated_.end()) {
       return boost::none;
     }
-    const auto size = it->second;
-    deallocated_.insert(allocated_.extract(ptr));
+
+    auto a_node = allocated_.extract(a_it);
+    auto size = a_node.mapped();
+    auto [d_it, is_emplaced] = deallocated_.emplace(ptr, size);
+    BOOST_ASSERT(is_emplaced);
+
+    // Combine with next chunk if it adjacent
+    while (true) {
+      auto node = deallocated_.extract(ptr + size);
+      if (not node) break;
+      d_it->second += node.mapped();
+    }
+
+    // Combine with previous chunk if it adjacent
+    while (deallocated_.begin() != d_it) {
+      auto d_it_prev = d_it;
+      d_it_prev--;
+      if (d_it_prev->first + d_it_prev->second != d_it->first) {
+        break;
+      }
+      d_it_prev->second += d_it->second;
+      deallocated_.erase(d_it);
+      d_it = d_it_prev;
+    }
+
     return size;
   }
 
@@ -115,21 +138,6 @@ namespace kagome::runtime::binaryen {
     allocated_[old_deallocated_chunk_ptr] = size;
 
     return old_deallocated_chunk_ptr;
-  }
-
-  WasmPointer WasmMemoryImpl::findContaining(WasmSize size) {
-    auto min_value = kMaxMemorySize;
-    WasmPointer min_key = 0;
-    for (const auto &[key, value] : deallocated_) {
-      if (min_value <= 0) {
-        return 0;
-      }
-      if (value < static_cast<uint32_t>(min_value) and value >= size) {
-        min_value = value;
-        min_key = key;
-      }
-    }
-    return min_key;
   }
 
   WasmPointer WasmMemoryImpl::growAlloc(WasmSize size) {
