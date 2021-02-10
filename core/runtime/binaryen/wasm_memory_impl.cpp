@@ -13,15 +13,16 @@ namespace kagome::runtime::binaryen {
       : memory_(memory),
         size_(size),
         logger_{common::createLogger("WASM Memory")},
-        offset_{1}  // We should allocate very first byte to prohibit allocating
-                    // memory at 0 in future, as returning 0 from allocate
-                    // method means that wasm memory was exhausted
+        offset_{roundUpAlign(1u)}
+  // We should allocate very first byte to prohibit allocating memory at 0 in
+  // future, as returning 0 from allocate method means that wasm memory was
+  // exhausted
   {
     WasmMemoryImpl::resize(size_);
   }
 
   void WasmMemoryImpl::reset() {
-    offset_ = 1;
+    offset_ = roundUpAlign(1);
     allocated_.clear();
     deallocated_.clear();
     logger_->trace("Memory reset");
@@ -50,7 +51,7 @@ namespace kagome::runtime::binaryen {
     const auto new_offset = roundUpAlign(ptr + size);  // align
 
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
-    if (new_offset < static_cast<uint32_t>(ptr)) {  // overflow
+    if (kMaxMemorySize - offset_ < size) {  // overflow
       logger_->error(
           "overflow occured while trying to allocate {} bytes at offset 0x{:x}",
           size,
@@ -63,6 +64,7 @@ namespace kagome::runtime::binaryen {
       return ptr;
     }
 
+    size = new_offset - offset_;
     return freealloc(size);
   }
 
@@ -85,13 +87,12 @@ namespace kagome::runtime::binaryen {
       // grow memory and allocate in new space
       return growAlloc(size);
     }
-    allocated_[ptr] = deallocated_[ptr];
-    deallocated_.erase(ptr);
+    allocated_.insert(deallocated_.extract(ptr));
     return ptr;
   }
 
   WasmPointer WasmMemoryImpl::findContaining(WasmSize size) {
-    auto min_value = std::numeric_limits<WasmPointer>::max();
+    auto min_value = kMaxMemorySize;
     WasmPointer min_key = 0;
     for (const auto &[key, value] : deallocated_) {
       if (min_value <= 0) {
@@ -107,7 +108,7 @@ namespace kagome::runtime::binaryen {
 
   WasmPointer WasmMemoryImpl::growAlloc(WasmSize size) {
     // check that we do not exceed max memory size
-    if (static_cast<uint32_t>(offset_) > kMaxMemorySize - size) {
+    if (kMaxMemorySize - offset_ < size) {
       logger_->error(
           "Memory size exceeded when growing it on {} bytes, offset was 0x{:x}",
           size,
@@ -117,7 +118,7 @@ namespace kagome::runtime::binaryen {
     // try to increase memory size up to offset + size * 4 (we multiply by 4
     // to have more memory than currently needed to avoid resizing every time
     // when we exceed current memory)
-    if (static_cast<uint32_t>(offset_) < kMaxMemorySize - size * 4) {
+    if ((kMaxMemorySize - offset_) / 4 > size) {
       resize(offset_ + size * 4);
     } else {
       // if we can't increase by size * 4 then increase memory size by

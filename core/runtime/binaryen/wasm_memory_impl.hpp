@@ -23,7 +23,7 @@ namespace kagome::runtime::binaryen {
 
   // Alignment for pointers, same with substrate:
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
-  inline const uint8_t kAlignment = 8;
+  inline const uint8_t kAlignment = sizeof(size_t);
 
   /**
    * Memory implementation for wasm environment
