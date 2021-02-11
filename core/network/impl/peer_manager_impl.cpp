@@ -54,7 +54,9 @@ namespace kagome::network {
 
   bool PeerManagerImpl::prepare() {
     if (bootstrap_nodes_.empty()) {
-      log_->critical("Does not have any bootstrap nodes");
+      log_->critical(
+          "Does not have any bootstrap nodes. "
+          "Provide them by chain spec or CLI argument `--bootnodes'");
       return false;
     }
 
@@ -176,15 +178,18 @@ namespace kagome::network {
         auto &peer_id = node.value();
 
         queue_to_connect_.pop_front();
+        BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
 
         connecting_peers_.emplace(peer_id);
         connectToPeer(peer_id);
 
-        log_->debug("Remained peers in queue for connect: {}/{}",
-                    queue_to_connect_.size(),
+        log_->debug("Remained peers in queue for connect: {}",
                     peers_in_queue_.size());
       } else {
-        log_->debug("Queue for connect is empty");
+        log_->debug("Queue for connect is empty. Refill with bootstrap nodes");
+        for (const auto &bootstrap_node : bootstrap_nodes_) {
+          processDiscoveredPeer(bootstrap_node.id);
+        }
       }
     }
 
@@ -260,6 +265,8 @@ namespace kagome::network {
     }
 
     queue_to_connect_.emplace_back(*it);
+    BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
+
     log_->debug("New peer_id={} enqueued. In queue: {}",
                 (*it).toBase58(),
                 queue_to_connect_.size());
@@ -333,8 +340,10 @@ namespace kagome::network {
                                  });
                 self->queue_to_connect_.erase(qtc_it);
                 self->peers_in_queue_.erase(piq_it);
-                self->log_->debug("Remained peers in queue for connect: {}/{}",
-                                  self->queue_to_connect_.size(),
+                BOOST_ASSERT(self->queue_to_connect_.size()
+                             == self->peers_in_queue_.size());
+
+                self->log_->debug("Remained peers in queue for connect: {}",
                                   self->peers_in_queue_.size());
               }
             }
