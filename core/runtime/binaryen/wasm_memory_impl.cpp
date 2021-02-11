@@ -14,6 +14,8 @@ namespace kagome::runtime::binaryen {
         size_(size),
         logger_{common::createLogger("WASM Memory")},
         offset_{1250272}
+  // TODO(kamilsa) 11.02.21 replace initial offset with value from __heap_base
+  // https://github.com/soramitsu/kagome/issues/671
   // We should allocate very first byte to prohibit allocating
   // memory at 0 in future, as returning 0 from allocate
   // method means that wasm memory was exhausted
@@ -22,7 +24,9 @@ namespace kagome::runtime::binaryen {
   }
 
   void WasmMemoryImpl::reset() {
-    offset_ = 1250272;
+    offset_ = 1250272;  // TODO(kamilsa) 11.02.21 replace this offset with value
+                        // from __heap_base
+    // https://github.com/soramitsu/kagome/issues/671
     allocated_.clear();
     deallocated_.clear();
     logger_->trace("Memory reset");
