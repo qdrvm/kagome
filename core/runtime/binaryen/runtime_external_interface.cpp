@@ -60,6 +60,7 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_misc_print_hex_version_1 = "ext_misc_print_hex_version_1";
   const static wasm::Name ext_misc_print_num_version_1 = "ext_misc_print_num_version_1";
   const static wasm::Name ext_misc_print_utf8_version_1 = "ext_misc_print_utf8_version_1";
+  const static wasm::Name ext_misc_runtime_version_version_1 = "ext_misc_runtime_version_version_1";
 
   // version 1
   const static wasm::Name ext_hashing_keccak_256_version_1 =
@@ -159,7 +160,11 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
-    logger_->trace("Call import {}", import->base);
+    std::string args_str{};
+    for (const auto& arg: arguments) {
+      args_str += std::to_string(arg.getInteger()) + ", ";
+    }
+    logger_->trace("Call import {}({})", import->base, args_str);
     // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
       /// memory externals
@@ -691,6 +696,13 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_misc_print_utf8_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         extension_->ext_misc_print_utf8_version_1(arguments.at(0).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_misc_print_utf8_version_1
+      if (import->base == ext_misc_runtime_version_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        extension_->ext_misc_runtime_version_version_1(arguments.at(0).geti64());
         return wasm::Literal();
       }
 

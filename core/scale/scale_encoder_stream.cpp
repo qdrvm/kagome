@@ -15,6 +15,8 @@ namespace kagome::scale {
     // must not use these functions outside encodeInteger
     inline void encodeFirstCategory(uint8_t value, ScaleEncoderStream &out) {
       // only values from [0, kMinUint16) can be put here
+      BOOST_ASSERT(value < compact::EncodingCategoryLimits::kMinUint16);
+
       out << static_cast<uint8_t>(value << 2u);
     }
 

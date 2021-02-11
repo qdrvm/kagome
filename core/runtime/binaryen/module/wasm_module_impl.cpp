@@ -60,6 +60,7 @@ namespace kagome::runtime::binaryen {
         return Error::INVALID_STATE_CODE;
       }
     }
+    module->memory.initial = module->memory.initial * 32;
     std::unique_ptr<WasmModuleImpl> wasm_module_impl(
         new WasmModuleImpl(std::move(module)));
     return wasm_module_impl;

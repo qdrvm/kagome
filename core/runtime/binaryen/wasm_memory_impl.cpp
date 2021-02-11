@@ -13,7 +13,7 @@ namespace kagome::runtime::binaryen {
       : memory_(memory),
         size_(size),
         logger_{common::createLogger("WASM Memory")},
-        offset_{1}  // We should allocate very first byte to prohibit allocating
+        offset_{1250272}  // We should allocate very first byte to prohibit allocating
                     // memory at 0 in future, as returning 0 from allocate
                     // method means that wasm memory was exhausted
   {
@@ -21,7 +21,7 @@ namespace kagome::runtime::binaryen {
   }
 
   void WasmMemoryImpl::reset() {
-    offset_ = 1;
+    offset_ = 1250272;
     allocated_.clear();
     deallocated_.clear();
     logger_->trace("Memory reset");
@@ -117,7 +117,7 @@ namespace kagome::runtime::binaryen {
     // try to increase memory size up to offset + size * 4 (we multiply by 4
     // to have more memory than currently needed to avoid resizing every time
     // when we exceed current memory)
-    if (static_cast<uint32_t>(offset_) < kMaxMemorySize - size * 4) {
+    if ((kMaxMemorySize - offset_) / 4 > size) {
       resize(offset_ + size * 4);
     } else {
       // if we can't increase by size * 4 then increase memory size by
