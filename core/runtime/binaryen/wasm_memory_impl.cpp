@@ -90,14 +90,21 @@ namespace kagome::runtime::binaryen {
 
     // Combine with previous chunk if it adjacent
     while (deallocated_.begin() != d_it) {
-      auto d_it_prev = d_it;
-      d_it_prev--;
+      auto d_it_prev = d_it; --d_it_prev;
       if (d_it_prev->first + d_it_prev->second != d_it->first) {
         break;
       }
       d_it_prev->second += d_it->second;
       deallocated_.erase(d_it);
       d_it = d_it_prev;
+    }
+
+    auto d_it_next = d_it; ++d_it_next;
+    if (d_it_next == deallocated_.end()) {
+      if (d_it->first + d_it->second == offset_) {
+        offset_ = d_it->first;
+        deallocated_.erase(d_it);
+      }
     }
 
     return size;
