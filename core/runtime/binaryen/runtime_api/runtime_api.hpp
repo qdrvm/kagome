@@ -152,6 +152,8 @@ namespace kagome::runtime::binaryen {
         memory->storeBuffer(ptr, common::Buffer(std::move(buffer)));
       }
 
+      gsl::final_action memory_cleaner([memory = memory]{memory->reset();});
+
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
 
       wasm::Name wasm_name = std::string(name);

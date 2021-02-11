@@ -13,15 +13,16 @@ namespace kagome::runtime::binaryen {
       : memory_(memory),
         size_(size),
         logger_{common::createLogger("WASM Memory")},
-        offset_{1}  // We should allocate very first byte to prohibit allocating
-                    // memory at 0 in future, as returning 0 from allocate
-                    // method means that wasm memory was exhausted
+        offset_{roundUpAlign(1u)}
+  // We should allocate very first byte to prohibit allocating memory at 0 in
+  // future, as returning 0 from allocate method means that wasm memory was
+  // exhausted
   {
     WasmMemoryImpl::resize(size_);
   }
 
   void WasmMemoryImpl::reset() {
-    offset_ = 1;
+    offset_ = roundUpAlign(1);
     allocated_.clear();
     deallocated_.clear();
     logger_->trace("Memory reset");
@@ -49,8 +50,11 @@ namespace kagome::runtime::binaryen {
     const auto ptr = offset_;
     const auto new_offset = roundUpAlign(ptr + size);  // align
 
+    // Round up allocating chunk of memory
+    size = new_offset - ptr;
+
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
-    if (new_offset < static_cast<uint32_t>(ptr)) {  // overflow
+    if (kMaxMemorySize - offset_ < size) {  // overflow
       logger_->error(
           "overflow occured while trying to allocate {} bytes at offset 0x{:x}",
           size,
@@ -67,47 +71,85 @@ namespace kagome::runtime::binaryen {
   }
 
   boost::optional<WasmSize> WasmMemoryImpl::deallocate(WasmPointer ptr) {
-    const auto it = allocated_.find(ptr);
-    if (it == allocated_.end()) {
+    auto a_it = allocated_.find(ptr);
+    if (a_it == allocated_.end()) {
       return boost::none;
     }
-    const auto size = it->second;
 
-    allocated_.erase(ptr);
-    deallocated_[ptr] = size;
+    auto a_node = allocated_.extract(a_it);
+    auto size = a_node.mapped();
+    auto [d_it, is_emplaced] = deallocated_.emplace(ptr, size);
+    BOOST_ASSERT(is_emplaced);
+
+    // Combine with next chunk if it adjacent
+    while (true) {
+      auto node = deallocated_.extract(ptr + size);
+      if (not node) break;
+      d_it->second += node.mapped();
+    }
+
+    // Combine with previous chunk if it adjacent
+    while (deallocated_.begin() != d_it) {
+      auto d_it_prev = d_it; --d_it_prev;
+      if (d_it_prev->first + d_it_prev->second != d_it->first) {
+        break;
+      }
+      d_it_prev->second += d_it->second;
+      deallocated_.erase(d_it);
+      d_it = d_it_prev;
+    }
+
+    auto d_it_next = d_it; ++d_it_next;
+    if (d_it_next == deallocated_.end()) {
+      if (d_it->first + d_it->second == offset_) {
+        offset_ = d_it->first;
+        deallocated_.erase(d_it);
+      }
+    }
+
     return size;
   }
 
   WasmPointer WasmMemoryImpl::freealloc(WasmSize size) {
-    auto ptr = findContaining(size);
-    if (ptr == 0) {
+    if (size == 0) {
+      return 0;
+    }
+
+    // Round up size of allocating memory chunk
+    size = roundUpAlign(size);
+
+    auto it = std::min_element(deallocated_.begin(),
+                               deallocated_.end(),
+                               [](const auto &item1, const auto &item2) {
+                                 return item1.second < item2.second;
+                               });
+
+    if (it == deallocated_.end()) {
       // if did not find available space among deallocated memory chunks, then
       // grow memory and allocate in new space
       return growAlloc(size);
     }
-    allocated_[ptr] = deallocated_[ptr];
-    deallocated_.erase(ptr);
-    return ptr;
-  }
 
-  WasmPointer WasmMemoryImpl::findContaining(WasmSize size) {
-    auto min_value = std::numeric_limits<WasmPointer>::max();
-    WasmPointer min_key = 0;
-    for (const auto &[key, value] : deallocated_) {
-      if (min_value <= 0) {
-        return 0;
-      }
-      if (value < static_cast<uint32_t>(min_value) and value >= size) {
-        min_value = value;
-        min_key = key;
-      }
+    const auto node = deallocated_.extract(it);
+    auto old_deallocated_chunk_ptr = node.key();
+    auto old_deallocated_chunk_size = node.mapped();
+
+    if (old_deallocated_chunk_size > size) {
+      auto new_deallocated_chunk_ptr = old_deallocated_chunk_ptr + size;
+      auto new_deallocated_chunk_size = old_deallocated_chunk_size - size;
+
+      BOOST_ASSERT(new_deallocated_chunk_size > 0);
+      deallocated_[new_deallocated_chunk_ptr] = new_deallocated_chunk_size;
     }
-    return min_key;
+
+    allocated_[old_deallocated_chunk_ptr] = size;
+
+    return old_deallocated_chunk_ptr;
   }
 
   WasmPointer WasmMemoryImpl::growAlloc(WasmSize size) {
     // check that we do not exceed max memory size
-    if (static_cast<uint32_t>(offset_) > kMaxMemorySize - size) {
+    if (kMaxMemorySize - offset_ < size) {
       logger_->error(
           "Memory size exceeded when growing it on {} bytes, offset was 0x{:x}",
           size,
@@ -117,7 +159,7 @@ namespace kagome::runtime::binaryen {
     // try to increase memory size up to offset + size * 4 (we multiply by 4
     // to have more memory than currently needed to avoid resizing every time
     // when we exceed current memory)
-    if (static_cast<uint32_t>(offset_) < kMaxMemorySize - size * 4) {
+    if ((kMaxMemorySize - offset_) / 4 > size) {
       resize(offset_ + size * 4);
     } else {
       // if we can't increase by size * 4 then increase memory size by

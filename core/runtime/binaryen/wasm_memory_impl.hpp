@@ -23,7 +23,7 @@ namespace kagome::runtime::binaryen {
 
   // Alignment for pointers, same with substrate:
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
-  inline const uint8_t kAlignment = 8;
+  inline const uint8_t kAlignment = sizeof(size_t);
 
   /**
    * Memory implementation for wasm environment
@@ -77,7 +77,7 @@ namespace kagome::runtime::binaryen {
 
     WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
 
-   private:
+   protected:
     wasm::ShellExternalInterface::Memory *memory_;
     WasmSize size_;
     common::Logger logger_;
@@ -89,7 +89,7 @@ namespace kagome::runtime::binaryen {
     std::unordered_map<WasmPointer, WasmSize> allocated_;
 
     // map containing addresses to the deallocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, WasmSize> deallocated_;
+    std::map<WasmPointer, WasmSize> deallocated_;
 
     template <typename T>
     static bool aligned(const char *address) {
@@ -108,22 +108,12 @@ namespace kagome::runtime::binaryen {
     WasmPointer freealloc(WasmSize size);
 
     /**
-     * Finds memory segment of given size among deallocated pieces of memory
-     * @param size of target memory
-     * @return address of memory of given size, or 0 if it is impossible to
-     * allocate this amount of memory
-     */
-    WasmPointer findContaining(WasmSize size);
-
-    /**
      * Resize memory and allocate memory segment of given size
      * @param size memory size to be allocated
      * @return pointer to the allocated memory @or 0 if it is impossible to
      * allocate this amount of memory
      */
     WasmPointer growAlloc(WasmSize size);
-
-    void resizeInternal(WasmSize newSize);
   };
 
   /**
@@ -134,7 +124,7 @@ namespace kagome::runtime::binaryen {
    * @return closest multiple
    */
   template <typename T>
-  inline T roundUpAlign(T t) {
+  inline constexpr T roundUpAlign(T t) {
     return math::roundUp<kAlignment>(t);
   }
 
