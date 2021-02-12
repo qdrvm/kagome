@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 #include <gsl/span>
-#include "core/runtime/mock_memory.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
@@ -19,6 +18,7 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
+#include "mock/core/runtime/wasm_memory_mock.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
@@ -53,7 +53,7 @@ using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
 using kagome::crypto::Sr25519Signature;
 using kagome::crypto::secp256k1::EcdsaVerifyError;
-using kagome::runtime::MockMemory;
+using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
@@ -86,7 +86,7 @@ class CryptoExtensionTest : public ::testing::Test {
       boost::variant<ecdsa::CompressedPublicKey, EcdsaVerifyError>;
 
   void SetUp() override {
-    memory_ = std::make_shared<MockMemory>();
+    memory_ = std::make_shared<WasmMemoryMock>();
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
     sr25519_provider_ =
@@ -183,7 +183,7 @@ class CryptoExtensionTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<MockMemory> memory_;
+  std::shared_ptr<WasmMemoryMock> memory_;
   std::shared_ptr<CSPRNG> random_generator_;
   std::shared_ptr<Sr25519Provider> sr25519_provider_;
   std::shared_ptr<Ed25519Provider> ed25519_provider_;
@@ -465,7 +465,7 @@ TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndSuccess) {
 
   WasmPointer input_data = 0;
   WasmSize input_size = input.size();
-  WasmResult input_span {input_data, input_size};
+  WasmResult input_span{input_data, input_size};
   WasmPointer sig_data_ptr = 42;
   WasmPointer pub_key_data_ptr = 123;
 
@@ -478,7 +478,7 @@ TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndSuccess) {
   ASSERT_NO_THROW(crypto_ext_->ext_start_batch_verify());
 
   WasmSize result_in_place = crypto_ext_->ext_sr25519_verify_v1(
-     sig_data_ptr, input_span.combine(), pub_key_data_ptr);
+      sig_data_ptr, input_span.combine(), pub_key_data_ptr);
   ASSERT_EQ(result_in_place, CryptoExtension::kVerifySuccess);
 
   WasmSize final_result;
@@ -497,7 +497,7 @@ TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndInvalid) {
 
   WasmPointer input_data = 0;
   WasmSize input_size = input.size();
-  WasmResult input_span {input_data, input_size};
+  WasmResult input_span{input_data, input_size};
   WasmPointer sig_data_ptr = 42;
   WasmPointer pub_key_data_ptr = 123;
 
@@ -684,8 +684,7 @@ TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
   EXPECT_CALL(*crypto_store_, getEd25519PublicKeys(key_type))
       .WillOnce(Return(ed_public_keys));
 
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(ed_public_keys_result)))
       .WillOnce(Return(res));
@@ -707,8 +706,7 @@ TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
   EXPECT_CALL(*crypto_store_, getSr25519PublicKeys(key_type))
       .WillOnce(Return(sr_public_keys));
 
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(sr_public_keys_result)))
       .WillOnce(Return(res));
@@ -738,8 +736,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
               findEd25519Keypair(key_type, ed25519_keypair.public_key))
       .WillOnce(Return(ed25519_keypair));
 
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(ed25519_signature_result)))
       .WillOnce(Return(res));
@@ -764,8 +761,7 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
       .WillOnce(Return(ed_public_key_buffer));
   // load message
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
 
   EXPECT_CALL(*crypto_store_,
               findEd25519Keypair(key_type, ed25519_keypair.public_key))
@@ -796,8 +792,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
       .WillOnce(Return(sr_public_key_buffer));
   // load message
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
 
   EXPECT_CALL(*crypto_store_,
               findSr25519Keypair(key_type, sr25519_keypair.public_key))
@@ -831,8 +826,7 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
       .WillOnce(Return(sr_public_key_buffer));
   // load message
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
 
   EXPECT_CALL(*crypto_store_,
               findSr25519Keypair(key_type, sr25519_keypair.public_key))
@@ -864,8 +858,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(ed_public_key_buffer)))
       .WillOnce(Return(res));
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   ASSERT_EQ(res, crypto_ext_->ext_ed25519_generate_v1(key_type_ptr, seed_ptr));
 }
 
@@ -884,8 +877,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(ed_public_key_buffer)))
       .WillOnce(Return(res));
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*crypto_store_,
               generateEd25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(ed25519_keypair));
@@ -907,10 +899,10 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
       .WillOnce(Return(res));
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
 
-  EXPECT_CALL(*crypto_store_, generateSr25519Keypair(key_type, std::string_view(mnemonic)))
+  EXPECT_CALL(*crypto_store_,
+              generateSr25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(sr25519_keypair));
   ASSERT_EQ(res, crypto_ext_->ext_sr25519_generate_v1(key_type_ptr, seed_ptr));
 }
@@ -930,8 +922,7 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
   EXPECT_CALL(*memory_,
               storeBuffer(gsl::span<const uint8_t>(sr_public_key_buffer)))
       .WillOnce(Return(res));
-  EXPECT_CALL(*memory_,
-              load32u(key_type_ptr)).WillOnce(Return(key_type));
+  EXPECT_CALL(*memory_, load32u(key_type_ptr)).WillOnce(Return(key_type));
   EXPECT_CALL(*crypto_store_,
               generateSr25519Keypair(key_type, std::string_view(mnemonic)))
       .WillOnce(Return(sr25519_keypair));

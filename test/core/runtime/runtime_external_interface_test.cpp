@@ -9,12 +9,11 @@
 #include <boost/format.hpp>
 #include <crypto/crypto_store/key_type.hpp>
 #include <runtime/wasm_result.hpp>
-#include "core/runtime/mock_memory.hpp"
 #include "mock/core/extensions/extension_factory_mock.hpp"
 #include "mock/core/extensions/extension_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/storage/trie/trie_batches_mock.hpp"
-#include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "mock/core/runtime/wasm_memory_mock.hpp"
+#include "test/mock/core/storage/trie/trie_batches_mock.hpp"
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -24,10 +23,10 @@ using kagome::crypto::KEY_TYPE_BABE;
 using kagome::extensions::Extension;
 using kagome::extensions::ExtensionFactoryMock;
 using kagome::extensions::ExtensionMock;
-using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmLogLevel;
+using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
@@ -67,22 +66,23 @@ class TestableExternalInterface : public RuntimeExternalInterface {
 class REITest : public ::testing::Test {
  public:
   void SetUp() override {
-    memory_ = std::make_shared<MockMemory>();
+    memory_ = std::make_shared<WasmMemoryMock>();
     extension_ = std::make_unique<ExtensionMock>();
     extension_factory_ = std::make_shared<ExtensionFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*extension_factory_, createExtension(_, _))
-        .WillRepeatedly(Invoke([this](auto&, auto&) -> std::unique_ptr<Extension> {
-          if (extension_) {
-            auto ext = std::move(extension_);
-            extension_ = std::make_unique<ExtensionMock>();
-            return std::unique_ptr<Extension>(std::move(ext));
-          } else {
-            extension_ = std::make_unique<ExtensionMock>();
-            return std::unique_ptr<Extension>(
-                std::make_unique<ExtensionMock>());
-          }
-        }));
+        .WillRepeatedly(
+            Invoke([this](auto &, auto &) -> std::unique_ptr<Extension> {
+              if (extension_) {
+                auto ext = std::move(extension_);
+                extension_ = std::make_unique<ExtensionMock>();
+                return std::unique_ptr<Extension>(std::move(ext));
+              } else {
+                extension_ = std::make_unique<ExtensionMock>();
+                return std::unique_ptr<Extension>(
+                    std::make_unique<ExtensionMock>());
+              }
+            }));
   }
 
   void executeWasm(std::string call_code) {
@@ -108,7 +108,7 @@ class REITest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<MockMemory> memory_;
+  std::shared_ptr<WasmMemoryMock> memory_;
   std::unique_ptr<ExtensionMock> extension_;
   std::shared_ptr<ExtensionFactoryMock> extension_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;

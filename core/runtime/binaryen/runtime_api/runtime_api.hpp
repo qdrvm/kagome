@@ -142,6 +142,10 @@ namespace kagome::runtime::binaryen {
       auto &&[module, memory, opt_batch] =
           createRuntimeEnvironment(persistency, state_root);
 
+      memory->setInitialOffset(1250272);
+      // TODO(kamilsa) 11.02.21 replace this offset with value from __heap_base
+      // https://github.com/soramitsu/kagome/issues/671
+
       runtime::WasmPointer ptr = 0u;
       runtime::WasmSize len = 0u;
 
@@ -152,7 +156,7 @@ namespace kagome::runtime::binaryen {
         memory->storeBuffer(ptr, common::Buffer(std::move(buffer)));
       }
 
-      gsl::final_action memory_cleaner([memory = memory]{memory->reset();});
+      gsl::final_action memory_cleaner([memory = memory] { memory->reset(); });
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
 
