@@ -7,13 +7,14 @@
 
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
-#include <crypto/crypto_store/key_type.hpp>
-#include <runtime/wasm_result.hpp>
+
+#include "crypto/crypto_store/key_type.hpp"
+#include "runtime/wasm_result.hpp"
 #include "mock/core/extensions/extension_factory_mock.hpp"
 #include "mock/core/extensions/extension_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/runtime/wasm_memory_mock.hpp"
-#include "test/mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/trie_batches_mock.hpp"
 
 using ::testing::_;
 using ::testing::Invoke;
