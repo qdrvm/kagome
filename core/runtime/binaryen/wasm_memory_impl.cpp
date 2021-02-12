@@ -13,21 +13,29 @@ namespace kagome::runtime::binaryen {
       : memory_(memory),
         size_(size),
         logger_{common::createLogger("WASM Memory")},
-        offset_{roundUpAlign(1u)}
+        initial_offset_{roundUpAlign(1u)},
+        offset_{initial_offset_}
   // We should allocate very first byte to prohibit allocating memory at 0 in
   // future, as returning 0 from allocate method means that wasm memory was
   // exhausted
   {
-    BOOST_ASSERT(offset_ == roundUpAlign(offset_));
     size_ = std::max(size_, offset_);
 
     WasmMemoryImpl::resize(size_);
   }
 
+  void WasmMemoryImpl::setInitialOffset(WasmSize initial_offset) {
+    BOOST_ASSERT(initial_offset_ == roundUpAlign(initial_offset_));
+    initial_offset_ = initial_offset;
+  }
+
   void WasmMemoryImpl::reset() {
-    offset_ = roundUpAlign(1);
+    offset_ = initial_offset_;
     allocated_.clear();
     deallocated_.clear();
+    if (size_ < offset_) {
+      resize(size_);
+    }
     logger_->trace("Memory reset");
   }
 
@@ -93,7 +101,8 @@ namespace kagome::runtime::binaryen {
 
     // Combine with previous chunk if it adjacent
     while (deallocated_.begin() != d_it) {
-      auto d_it_prev = d_it; --d_it_prev;
+      auto d_it_prev = d_it;
+      --d_it_prev;
       if (d_it_prev->first + d_it_prev->second != d_it->first) {
         break;
       }
@@ -102,7 +111,8 @@ namespace kagome::runtime::binaryen {
       d_it = d_it_prev;
     }
 
-    auto d_it_next = d_it; ++d_it_next;
+    auto d_it_next = d_it;
+    ++d_it_next;
     if (d_it_next == deallocated_.end()) {
       if (d_it->first + d_it->second == offset_) {
         offset_ = d_it->first;

@@ -30,6 +30,11 @@ namespace kagome::runtime {
         std::numeric_limits<uint32_t>::max();
 
     /**
+     * Set offset into {@param offset} as value using at start using memory
+     */
+    virtual void setInitialOffset(WasmSize offset) = 0;
+
+    /**
      * Resets allocated and deallocated memory information
      */
     virtual void reset() = 0;
@@ -41,9 +46,9 @@ namespace kagome::runtime {
 
     /**
      * Resizes memory to the given size
-     * @param newSize
+     * @param new_size
      */
-    virtual void resize(WasmSize newSize) = 0;
+    virtual void resize(WasmSize new_size) = 0;
 
     /**
      * Allocates memory of given size and returns address in the memory

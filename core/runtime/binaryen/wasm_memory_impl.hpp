@@ -44,6 +44,8 @@ namespace kagome::runtime::binaryen {
     WasmMemoryImpl &operator=(WasmMemoryImpl &&move) = delete;
     ~WasmMemoryImpl() override = default;
 
+    void setInitialOffset(WasmSize initial_offset) override;
+
     void reset() override;
 
     WasmSize size() const override;
@@ -81,6 +83,9 @@ namespace kagome::runtime::binaryen {
     wasm::ShellExternalInterface::Memory *memory_;
     WasmSize size_;
     common::Logger logger_;
+
+    // Offset for clean/reset memory
+    WasmPointer initial_offset_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     WasmPointer offset_;
