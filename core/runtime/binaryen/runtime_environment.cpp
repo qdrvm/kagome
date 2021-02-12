@@ -7,17 +7,22 @@
 
 #include "crypto/hasher.hpp"
 #include "runtime/binaryen/module/wasm_module.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
 
 namespace kagome::runtime::binaryen {
 
   outcome::result<RuntimeEnvironment> RuntimeEnvironment::create(
       const std::shared_ptr<RuntimeExternalInterface> &rei,
-      const std::shared_ptr<WasmModule> &module,
+      const std::shared_ptr<WasmModule> &module) {
+    auto module_instance = module->instantiate(rei);
 
-      const common::Buffer &state_code) {
+    WasmExecutor executor;
+    OUTCOME_TRY(heap_base, executor.get(*module_instance, "__heap_base"));
 
-    return RuntimeEnvironment{
-        module->instantiate(rei), rei->memory(), boost::none};
+    auto memory = rei->memory();
+    memory->setHeapBase(heap_base.geti32());
+
+    return RuntimeEnvironment{std::move(module_instance), std::move(memory)};
   }
 
 }  // namespace kagome::runtime::binaryen

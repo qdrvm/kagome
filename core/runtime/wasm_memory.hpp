@@ -30,9 +30,9 @@ namespace kagome::runtime {
         std::numeric_limits<uint32_t>::max();
 
     /**
-     * Set offset into {@param offset} as value using at start using memory
+     * Set heap base to {@param heap_base}
      */
-    virtual void setInitialOffset(WasmSize offset) = 0;
+    virtual void setHeapBase(WasmSize heap_base) = 0;
 
     /**
      * Resets allocated and deallocated memory information
