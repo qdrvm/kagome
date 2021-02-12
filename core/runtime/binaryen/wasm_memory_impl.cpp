@@ -18,6 +18,9 @@ namespace kagome::runtime::binaryen {
   // future, as returning 0 from allocate method means that wasm memory was
   // exhausted
   {
+    BOOST_ASSERT(offset_ == roundUpAlign(offset_));
+    size_ = std::max(size_, offset_);
+
     WasmMemoryImpl::resize(size_);
   }
 
