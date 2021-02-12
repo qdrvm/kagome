@@ -38,8 +38,7 @@ namespace kagome::runtime::binaryen {
    public:
     static outcome::result<RuntimeEnvironment> create(
         const std::shared_ptr<RuntimeExternalInterface> &rei,
-        const std::shared_ptr<WasmModule> &module,
-        const common::Buffer &state_code);
+        const std::shared_ptr<WasmModule> &module);
 
     RuntimeEnvironment(RuntimeEnvironment &&) = default;
     RuntimeEnvironment &operator=(RuntimeEnvironment &&) = default;
@@ -52,8 +51,8 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<WasmModuleInstance> module_instance;
     std::shared_ptr<WasmMemory> memory;
     boost::optional<std::shared_ptr<storage::trie::TopperTrieBatch>>
-        batch;  // in persistent environments all changes of a call must be
-                // either applied together or discarded in case of failure
+        batch{};  // in persistent environments all changes of a call must be
+                  // either applied together or discarded in case of failure
   };
 
 }  // namespace kagome::runtime::binaryen

@@ -25,6 +25,12 @@ namespace kagome::runtime::binaryen {
      */
     virtual wasm::Literal callExport(
         wasm::Name name, const std::vector<wasm::Literal> &arguments) = 0;
+
+    /**
+     * @param name the name of a wasm global
+     * @return whatever the export global returns
+     */
+    virtual wasm::Literal getExport(wasm::Name name) = 0;
   };
 }  // namespace kagome::runtime::binaryen
 

@@ -52,7 +52,9 @@ namespace kagome::runtime::binaryen {
     if (!persistent_batch) return Error::NO_PERSISTENT_BATCH;
 
     auto env = createRuntimeEnvironment(state_code);
-    if (env.has_value()) env.value().batch = (*persistent_batch)->batchOnTop();
+    if (env.has_value()) {
+      env.value().batch = (*persistent_batch)->batchOnTop();
+    }
 
     return env;
   }
@@ -73,7 +75,9 @@ namespace kagome::runtime::binaryen {
     if (!persistent_batch) return Error::NO_PERSISTENT_BATCH;
 
     auto env = createRuntimeEnvironment(state_code);
-    if (env.has_value()) env.value().batch = (*persistent_batch)->batchOnTop();
+    if (env.has_value()) {
+      env.value().batch = (*persistent_batch)->batchOnTop();
+    }
 
     return env;
   }
@@ -121,7 +125,7 @@ namespace kagome::runtime::binaryen {
       module = modules_.emplace(hash, std::move(new_module)).first->second;
     }
 
-    return RuntimeEnvironment::create(external_interface_, module, state_code);
+    return RuntimeEnvironment::create(external_interface_, module);
   }
   void RuntimeManager::reset() {
     external_interface_->reset();

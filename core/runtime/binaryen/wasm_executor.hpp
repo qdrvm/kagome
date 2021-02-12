@@ -20,11 +20,18 @@ namespace kagome::runtime::binaryen {
    */
   class WasmExecutor {
    public:
-    enum class Error { EXECUTION_ERROR = 1 };
+    enum class Error {
+      UNEXPECTED_EXIT = 1,
+      EXECUTION_ERROR,
+      CAN_NOT_OBTAIN_GLOBAL
+    };
 
     outcome::result<wasm::Literal> call(WasmModuleInstance &module_instance,
                                         wasm::Name method_name,
                                         const std::vector<wasm::Literal> &args);
+
+    outcome::result<wasm::Literal> get(WasmModuleInstance &module_instance,
+                                       wasm::Name global_name);
   };
 
 }  // namespace kagome::runtime::binaryen
