@@ -87,53 +87,32 @@ namespace kagome::network {
 
   bool RouterLibp2p::prepare() {
     host_.setProtocolHandler(
-        fmt::format(kSyncProtocol.data(), chain_spec_->protocolId()),
-        [wp = weak_from_this()](auto &&stream) {
+        ping_proto_->getProtocolId(), [wp = weak_from_this()](auto &&stream) {
           if (auto self = wp.lock()) {
-            self->handleSyncProtocol(std::forward<decltype(stream)>(stream));
-          }
-        });
-    host_.setProtocolHandler(fmt::format(kPropagateTransactionsProtocol.data(),
-                                         chain_spec_->protocolId()),
-                             [wp = weak_from_this()](auto &&stream) {
-                               if (auto self = wp.lock()) {
-                                 self->handleTransactionsProtocol(
-                                     std::forward<decltype(stream)>(stream));
-                               }
-                             });
-    host_.setProtocolHandler(
-        fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_->protocolId()),
-        [wp = weak_from_this()](auto &&stream) {
-          if (auto self = wp.lock()) {
-            self->handleBlockAnnouncesProtocol(
-                std::forward<decltype(stream)>(stream));
-          }
-        });
-    host_.setProtocolHandler(ping_proto_->getProtocolId(),
-                             [wp = weak_from_this()](auto &&stream) {
-                               if (auto self = wp.lock()) {
-                                 self->ping_proto_->handle(stream);
-                               }
-                             });
-    host_.setProtocolHandler(
-        kSupProtocol, [wp = weak_from_this()](auto &&stream) {
-          if (auto self = wp.lock()) {
-            if (stream) {
-              if (auto peer_id = stream->remotePeerId()) {
-                self->log_->info("Handled {} protocol stream from: {}",
-                                 network::kSupProtocol,
-                                 peer_id.value().toHex());
-              }
+            if (auto peer_id = stream->remotePeerId()) {
+              self->log_->info("Handled {} protocol stream from: {}",
+                               self->ping_proto_->getProtocolId(),
+                               peer_id.value().toHex());
+              self->ping_proto_->handle(std::forward<decltype(stream)>(stream));
             }
+          }
+        });
 
-          }
-        });
-    host_.setProtocolHandler(
-        kGossipProtocol, [wp = weak_from_this()](auto &&stream) {
-          if (auto self = wp.lock()) {
-            self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
-          }
-        });
+    setProtocolHandler(fmt::format(kPropagateTransactionsProtocol.data(),
+                                   chain_spec_->protocolId()),
+                       &RouterLibp2p::handleTransactionsProtocol);
+
+    setProtocolHandler(
+        fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_->protocolId()),
+        &RouterLibp2p::handleBlockAnnouncesProtocol);
+
+    setProtocolHandler(
+        fmt::format(kSyncProtocol.data(), chain_spec_->protocolId()),
+        &RouterLibp2p::handleSyncProtocol);
+
+    setProtocolHandler(kSupProtocol, &RouterLibp2p::handleSupProtocol);
+
+    setProtocolHandler(kGossipProtocol, &RouterLibp2p::handleGossipProtocol);
 
     return true;
   }
@@ -207,8 +186,26 @@ namespace kagome::network {
     }
   }
 
-  void RouterLibp2p::handleSyncProtocol(
-      const std::shared_ptr<Stream> &stream) const {
+  void RouterLibp2p::setProtocolHandler(
+      const libp2p::peer::Protocol &protocol,
+      void (RouterLibp2p::*method)(std::shared_ptr<Stream>) const) {
+    host_.setProtocolHandler(
+        protocol, [wp = weak_from_this(), protocol, method](auto &&stream) {
+          if (auto self = wp.lock()) {
+            if (auto peer_id = stream->remotePeerId()) {
+              self->log_->trace("Handled {} protocol stream from: {}",
+                                protocol,
+                                peer_id.value().toHex());
+              (self.get()->*method)(std::forward<decltype(stream)>(stream));
+            } else {
+              self->log_->warn("Handled {} protocol stream from unknown peer",
+                               protocol);
+            }
+          }
+        });
+  }
+
+  void RouterLibp2p::handleSyncProtocol(std::shared_ptr<Stream> stream) const {
     RPC<ProtobufMessageReadWriter>::read<BlocksRequest, BlocksResponse>(
         stream,
         [self{shared_from_this()}, stream](auto &&request) {
@@ -220,8 +217,7 @@ namespace kagome::network {
               },
               [](const primitives::BlockHash &hash) { return hash.toHex(); });
           self->log_->debug(
-              "Received request from peer {} requesting blocks from {}"
-              " to {}",
+              "Received request from peer {} requesting blocks from {} to {}",
               stream->remotePeerId().value().toBase58(),
               from,
               request.to->toHex());
@@ -230,8 +226,7 @@ namespace kagome::network {
         },
         [self{shared_from_this()}, stream](auto &&err) {
           self->log_->error(
-              "error happened while processing request/response over Sync "
-              "protocol: {}",
+              "error happened while processing message over Sync protocol: {}",
               err.error().message());
           stream->reset();
         });
