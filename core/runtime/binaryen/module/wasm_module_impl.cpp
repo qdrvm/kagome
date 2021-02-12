@@ -60,10 +60,12 @@ namespace kagome::runtime::binaryen {
         return Error::INVALID_STATE_CODE;
       }
     }
+
+    // TODO(kamilsa) 11.02.21 Set to proper number of heap pages here
+    // https://github.com/soramitsu/kagome/issues/674
     module->memory.initial =
-        module->memory.initial
-        * 32;  // TODO(kamilsa) 11.02.21 Set to proper number of heap pages here
-               // https://github.com/soramitsu/kagome/issues/674
+        10 * (1u << 20u) / (1u << 16u);  // 64kB pages for 10Mb
+
     std::unique_ptr<WasmModuleImpl> wasm_module_impl(
         new WasmModuleImpl(std::move(module)));
     return wasm_module_impl;

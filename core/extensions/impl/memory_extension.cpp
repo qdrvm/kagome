@@ -29,10 +29,11 @@ namespace kagome::extensions {
   void MemoryExtension::ext_free(runtime::WasmPointer ptr) {
     auto opt_size = memory_->deallocate(ptr);
     if (not opt_size) {
-      logger_->info(
+      logger_->warn(
           "Ptr {} does not point to any memory chunk in wasm memory. Nothing "
           "deallocated",
           ptr);
+      return;
     }
   }
 
