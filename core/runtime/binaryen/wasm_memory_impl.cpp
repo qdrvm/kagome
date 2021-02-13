@@ -133,39 +133,39 @@ namespace kagome::runtime::binaryen {
     // Round up size of allocating memory chunk
     size = roundUpAlign(size);
 
-    auto min_value = std::numeric_limits<WasmPointer>::max();
+    auto min_chunk_size = std::numeric_limits<WasmPointer>::max();
     WasmPointer ptr = 0;
-    for (const auto &[key, value] : deallocated_) {
-      if (value < min_value and value >= size) {
-        min_value = value;
-        ptr = key;
-      }
-      BOOST_ASSERT(min_value > 0);
-      if (min_value == value) {
-        break;
+    for (const auto &[chunk_ptr, chunk_size] : deallocated_) {
+      BOOST_ASSERT(chunk_size > 0);
+      if (chunk_size >= size and chunk_size < min_chunk_size) {
+        min_chunk_size = chunk_size;
+        ptr = chunk_ptr;
+        if (min_chunk_size == size) {
+          break;
+        }
       }
     }
     if (ptr == 0) {
-      // if did not find available space among deallocated memory chunks, then
-      // grow memory and allocate in new space
+      // if did not find available space among deallocated memory chunks,
+      // then grow memory and allocate in new space
       return growAlloc(size);
     }
 
     const auto node = deallocated_.extract(ptr);
-    auto old_deallocated_chunk_ptr = node.key();
-    auto old_deallocated_chunk_size = node.mapped();
+    BOOST_ASSERT(node);
 
-    if (old_deallocated_chunk_size > size) {
-      auto new_deallocated_chunk_ptr = old_deallocated_chunk_ptr + size;
-      auto new_deallocated_chunk_size = old_deallocated_chunk_size - size;
+    auto old_size = node.mapped();
+    if (old_size > size) {
+      auto new_ptr = ptr + size;
+      auto new_size = old_size - size;
+      BOOST_ASSERT(new_size > 0);
 
-      BOOST_ASSERT(new_deallocated_chunk_size > 0);
-      deallocated_[new_deallocated_chunk_ptr] = new_deallocated_chunk_size;
+      deallocated_[new_ptr] = new_size;
     }
 
-    allocated_[old_deallocated_chunk_ptr] = size;
+    allocated_[ptr] = size;
 
-    return old_deallocated_chunk_ptr;
+    return ptr;
   }
 
   WasmPointer WasmMemoryImpl::growAlloc(WasmSize size) {
