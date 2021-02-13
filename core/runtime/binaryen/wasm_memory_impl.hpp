@@ -24,6 +24,25 @@ namespace kagome::runtime::binaryen {
   // Alignment for pointers, same with substrate:
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
   inline const uint8_t kAlignment = sizeof(size_t);
+  inline const size_t kInitialMemorySize = 2 * 1u << 20;  // 2Mb
+  inline const size_t kDefaultHeapBase = 1 * 1u << 20;    // 1Mb
+
+  /**
+   * Obtain closest multiple of kAllignment that is greater or equal to given
+   * number
+   * @tparam T T type of number
+   * @param t given number
+   * @return closest multiple
+   */
+  template <typename T>
+  inline constexpr T roundUpAlign(T t) {
+    return math::roundUp<kAlignment>(t);
+  }
+
+  static_assert(roundUpAlign(kDefaultHeapBase) == kDefaultHeapBase,
+                "Heap base must be aligned");
+  static_assert(kDefaultHeapBase < kInitialMemorySize,
+                "Heap base must be in border of memory");
 
   /**
    * Memory implementation for wasm environment
@@ -34,10 +53,7 @@ namespace kagome::runtime::binaryen {
    */
   class WasmMemoryImpl : public WasmMemory {
    public:
-    explicit WasmMemoryImpl(
-        wasm::ShellExternalInterface::Memory *memory,
-        WasmSize size =
-            1114112);  // default value for binaryen's shell interface
+    explicit WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory);
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl &operator=(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl(WasmMemoryImpl &&move) = delete;
@@ -82,13 +98,14 @@ namespace kagome::runtime::binaryen {
    protected:
     wasm::ShellExternalInterface::Memory *memory_;
     WasmSize size_;
-    common::Logger logger_;
 
     // Heap base. Offset is resetting to it at reset
     WasmPointer heap_base_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     WasmPointer offset_;
+
+    common::Logger logger_;
 
     // map containing addresses of allocated MemoryImpl chunks
     std::unordered_map<WasmPointer, WasmSize> allocated_;
@@ -120,19 +137,6 @@ namespace kagome::runtime::binaryen {
      */
     WasmPointer growAlloc(WasmSize size);
   };
-
-  /**
-   * Obtain closest multiple of kAllignment that is greater or equal to given
-   * number
-   * @tparam T T type of number
-   * @param t given number
-   * @return closest multiple
-   */
-  template <typename T>
-  inline constexpr T roundUpAlign(T t) {
-    return math::roundUp<kAlignment>(t);
-  }
-
 }  // namespace kagome::runtime::binaryen
 
 #endif  // KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP

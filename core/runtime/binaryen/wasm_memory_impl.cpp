@@ -8,13 +8,12 @@
 #include "runtime/wasm_result.hpp"
 
 namespace kagome::runtime::binaryen {
-  WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory,
-                                 WasmSize size)
+  WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory)
       : memory_(memory),
-        size_(size),
-        logger_{common::createLogger("WASM Memory")},
-        heap_base_{roundUpAlign(1024u)},
-        offset_{heap_base_}
+        size_(kInitialMemorySize),
+        heap_base_{kDefaultHeapBase},
+        offset_{heap_base_},
+        logger_{common::createLogger("WASM Memory")}
   {
     // Heap base (and offset in according) must be non zero to prohibit allocating
     // memory at 0 in future, as returning 0 from allocate method means that wasm

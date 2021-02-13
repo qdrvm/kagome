@@ -7,16 +7,17 @@
 
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 
+using kagome::runtime::binaryen::kDefaultHeapBase;
+using kagome::runtime::binaryen::kInitialMemorySize;
 using kagome::runtime::binaryen::roundUpAlign;
 using kagome::runtime::binaryen::WasmMemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test, public WasmMemoryImpl {
  public:
-  MemoryHeapTest()
-      : WasmMemoryImpl(getNewShellExternalInterface(), memory_size_) {}
+  MemoryHeapTest() : WasmMemoryImpl(getNewShellExternalInterface()) {}
 
  protected:
-  const static uint32_t memory_size_ = 4096;  // one page size
+  const static uint32_t memory_size_ = kInitialMemorySize;
 
   static wasm::ShellExternalInterface::Memory *getNewShellExternalInterface() {
     static std::unique_ptr<wasm::ShellExternalInterface::Memory> interface_;
@@ -77,12 +78,12 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
   // allocate memory of size 1
   auto ptr1 = allocate(size1);
   // first memory chunk is always allocated at min non-zero aligned address
-  ASSERT_EQ(ptr1, roundUpAlign(1));
+  ASSERT_EQ(ptr1, kDefaultHeapBase);
 
   // allocated second memory chunk
   auto ptr2 = allocate(size2);
   // second memory chunk is placed right after the first one (alligned by 4)
-  ASSERT_EQ(ptr2, kagome::runtime::binaryen::roundUpAlign(size1 + ptr1));
+  ASSERT_EQ(ptr2, roundUpAlign(size1 + ptr1));
 }
 
 /**
@@ -123,9 +124,11 @@ TEST_F(MemoryHeapTest, DeallocateNonexistingMemoryChunk) {
  * @then it is allocated on the place of the first memory chunk
  */
 TEST_F(MemoryHeapTest, AllocateAfterDeallocate) {
+  auto available_memory_size = kInitialMemorySize - kDefaultHeapBase;
+
   // two memory sizes totalling to the total memory size
-  const size_t size1 = 2035;
-  const size_t size2 = 2037;
+  const size_t size1 = available_memory_size / 3 + 1;
+  const size_t size2 = available_memory_size / 3 + 1;
 
   // allocate two memory chunks with total size equal to the memory size
   auto pointer_of_first_allocation = allocate(size1);
@@ -257,7 +260,14 @@ TEST_F(MemoryHeapTest, LoadNTest) {
  */
 TEST_F(MemoryHeapTest, ResetTest) {
   const size_t N = 42;
-  ASSERT_EQ(allocate(N), roundUpAlign(1));
+
+  ASSERT_EQ(allocate(N), kDefaultHeapBase);
+
   reset();
-  ASSERT_EQ(allocate(N), roundUpAlign(1));
+  ASSERT_EQ(allocate(N), kDefaultHeapBase);
+
+  auto newHeapBase = roundUpAlign(kDefaultHeapBase + 12345);
+  setHeapBase(newHeapBase);
+  reset();
+  ASSERT_EQ(allocate(N), newHeapBase);
 }
