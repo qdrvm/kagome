@@ -66,7 +66,7 @@ namespace kagome::runtime::binaryen {
     common::Buffer loadN(kagome::runtime::WasmPointer addr,
                          kagome::runtime::WasmSize n) const override;
     std::string loadStr(kagome::runtime::WasmPointer addr,
-                        kagome::runtime::WasmSize n) const override;
+                        kagome::runtime::WasmSize length) const override;
 
     void store8(WasmPointer addr, int8_t value) override;
     void store16(WasmPointer addr, int16_t value) override;
