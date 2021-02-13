@@ -133,19 +133,25 @@ namespace kagome::runtime::binaryen {
     // Round up size of allocating memory chunk
     size = roundUpAlign(size);
 
-    auto it = std::min_element(deallocated_.begin(),
-                               deallocated_.end(),
-                               [](const auto &item1, const auto &item2) {
-                                 return item1.second < item2.second;
-                               });
-
-    if (it == deallocated_.end()) {
+    auto min_value = std::numeric_limits<WasmPointer>::max();
+    WasmPointer ptr = 0;
+    for (const auto &[key, value] : deallocated_) {
+      if (value < min_value and value >= size) {
+        min_value = value;
+        ptr = key;
+      }
+      BOOST_ASSERT(min_value > 0);
+      if (min_value == value) {
+        break;
+      }
+    }
+    if (ptr == 0) {
       // if did not find available space among deallocated memory chunks, then
       // grow memory and allocate in new space
       return growAlloc(size);
     }
 
-    const auto node = deallocated_.extract(it);
+    const auto node = deallocated_.extract(ptr);
     auto old_deallocated_chunk_ptr = node.key();
     auto old_deallocated_chunk_size = node.mapped();
 
