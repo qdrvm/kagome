@@ -28,6 +28,7 @@ namespace kagome::runtime::binaryen {
 
     auto memory = rei->memory();
     memory->setHeapBase(heap_base);
+    memory->reset();
 
     return RuntimeEnvironment{std::move(module_instance), std::move(memory)};
   }
