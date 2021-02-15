@@ -15,17 +15,20 @@
 
 #include <boost/optional.hpp>
 
+#include "common/literals.hpp"
 #include "common/logger.hpp"
 #include "primitives/math.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime::binaryen {
 
+  using namespace kagome::common::literals;
+
   // Alignment for pointers, same with substrate:
   // https://github.com/paritytech/substrate/blob/743981a083f244a090b40ccfb5ce902199b55334/primitives/allocator/src/freeing_bump.rs#L56
   inline const uint8_t kAlignment = sizeof(size_t);
-  inline const size_t kInitialMemorySize = 2 * 1u << 20;  // 2Mb
-  inline const size_t kDefaultHeapBase = 1 * 1u << 20;    // 1Mb
+  inline const size_t kInitialMemorySize = 2_MB;  // 2Mb
+  inline const size_t kDefaultHeapBase = 1_MB;    // 1Mb
 
   /**
    * Obtain closest multiple of kAllignment that is greater or equal to given
