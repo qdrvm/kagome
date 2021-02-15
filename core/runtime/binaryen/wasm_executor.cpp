@@ -18,7 +18,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
     case WasmExecutor::Error::EXECUTION_ERROR:
       return "An error occurred during an export call execution";
     case WasmExecutor::Error::CAN_NOT_OBTAIN_GLOBAL:
-      return "An error occurred during an obtaining global value";
+      return "Failed to obtain a global value";
   }
   return "Unknown WasmExecutor::Error";
 }
