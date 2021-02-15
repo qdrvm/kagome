@@ -305,9 +305,6 @@ namespace kagome::network {
     log_->debug("New peer_id={} enqueued. In queue: {}",
                 (*it).toBase58(),
                 queue_to_connect_.size());
-    //
-    //    // Force aligning
-    //    align();
   }
 
   void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
