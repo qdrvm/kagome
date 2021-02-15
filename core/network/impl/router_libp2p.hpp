@@ -8,8 +8,8 @@
 
 #include <memory>
 
-#include "application/app_state_manager.hpp"
 #include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
@@ -47,7 +47,7 @@ namespace kagome::network {
     RouterLibp2p(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
-        const application::AppConfiguration& app_config,
+        const application::AppConfiguration &app_config,
         std::shared_ptr<application::ChainSpec> chain_spec,
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine,
@@ -71,8 +71,7 @@ namespace kagome::network {
     /** @see AppStateManager::takeControl */
     void stop();
 
-    void handleSyncProtocol(
-        const std::shared_ptr<Stream> &stream) const override;
+    void handleSyncProtocol(std::shared_ptr<Stream> stream) const override;
 
     void handleGossipProtocol(std::shared_ptr<Stream> stream) const override;
 
@@ -149,6 +148,10 @@ namespace kagome::network {
       });
     }
 
+    void setProtocolHandler(
+        const libp2p::peer::Protocol& protocol,
+        void (RouterLibp2p::*method)(std::shared_ptr<Stream>) const);
+
     /**
      * Process a received gossip message
      */
@@ -157,7 +160,7 @@ namespace kagome::network {
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
-    const application::AppConfiguration& app_config_;
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<application::ChainSpec> chain_spec_;
     const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;
