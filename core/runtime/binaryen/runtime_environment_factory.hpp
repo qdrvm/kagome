@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_RUNTIME_MANAGER
-#define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_RUNTIME_MANAGER
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_RUNTIME_ENVIRONMENT_FACTORY
+#define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_RUNTIME_ENVIRONMENT_FACTORY
 
 #include "common/blob.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
-#include "extensions/extension_factory.hpp"
+#include "host_api/host_api_factory.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/module/wasm_module_factory.hpp"
 #include "runtime/binaryen/runtime_environment.hpp"
@@ -26,45 +26,53 @@ namespace kagome::runtime::binaryen {
    * execute() function of runtime APIs. It supports in-memory cache to reuse
    * existing environments, avoid hi-load operations.
    */
-  class RuntimeManager {
+  class RuntimeEnvironmentFactory {
    public:
     enum class Error { EMPTY_STATE_CODE = 1, NO_PERSISTENT_BATCH = 2 };
 
-    RuntimeManager(
-        std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+    RuntimeEnvironmentFactory(
+        std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<WasmModuleFactory> module_factory,
+        std::shared_ptr<WasmProvider> wasm_provider,
         std::shared_ptr<TrieStorageProvider> storage_provider,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironment(
-        const common::Buffer &state_code);
+    enum class CallPersistency {
+      PERSISTENT,  // the changes made by this call will be applied to the state
+                   // trie storage
+      EPHEMERAL  // the changes made by this call will vanish once it's
+                 // completed
+    };
 
-    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironment(
-        const common::Buffer &state_code);
+    outcome::result<RuntimeEnvironment> makeIsolated();
+
+    outcome::result<RuntimeEnvironment> makePersistent();
+
+    outcome::result<RuntimeEnvironment> makeEphemeral();
 
     /**
      * @warning calling this with an \arg state_root older than the current root
      * will reset the storage to an older state once changes are committed
      */
-    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironmentAt(
-        const common::Buffer &state_code, const common::Hash256 &state_root);
+    outcome::result<RuntimeEnvironment> makePersistentAt(
+        const common::Hash256 &state_root);
 
-    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironmentAt(
-        const common::Buffer &state_code, const common::Hash256 &state_root);
-
-    /**
-     * Resets state of extensions
-     */
-    void reset();
+    outcome::result<RuntimeEnvironment> makeEphemeralAt(
+        const common::Hash256 &state_root);
 
    private:
     outcome::result<RuntimeEnvironment> createRuntimeEnvironment(
         const common::Buffer &state_code);
 
-    common::Logger logger_ = common::createLogger("Runtime manager");
+    outcome::result<RuntimeEnvironment> createIsolatedRuntimeEnvironment(
+        const common::Buffer &state_code);
+
+    common::Logger logger_ =
+        common::createLogger("Runtime environment factory");
 
     std::shared_ptr<TrieStorageProvider> storage_provider_;
-    std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
+    std::shared_ptr<WasmProvider> wasm_provider_;
+    std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<WasmModuleFactory> module_factory_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
@@ -77,6 +85,7 @@ namespace kagome::runtime::binaryen {
 
 }  // namespace kagome::runtime::binaryen
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::binaryen, RuntimeManager::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::binaryen,
+                          RuntimeEnvironmentFactory::Error);
 
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_RUNTIME_MANAGER
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_RUNTIME_ENVIRONMENT_FACTORY

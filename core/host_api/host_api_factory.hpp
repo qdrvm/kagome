@@ -3,34 +3,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_EXTENSIONS_EXTENSION_FACTORY_HPP
-#define KAGOME_CORE_EXTENSIONS_EXTENSION_FACTORY_HPP
+#ifndef KAGOME_CORE_EXTENSIONS_HOST_API_FACTORY_HPP
+#define KAGOME_CORE_EXTENSIONS_HOST_API_FACTORY_HPP
 
-#include "extensions/extension.hpp"
+#include "host_api/host_api.hpp"
 
 #include "runtime/trie_storage_provider.hpp"
 
-namespace kagome::runtime {
-  class CoreFactory;
-}
-
-namespace kagome::extensions {
+namespace kagome::host_api {
 
   /**
    * Creates extension containing provided wasm memory
    */
-  class ExtensionFactory {
+  class HostApiFactory {
    public:
-    virtual ~ExtensionFactory() = default;
+    virtual ~HostApiFactory() = default;
 
     /**
      * Takes \param memory and creates \return extension using this memory
      */
-    virtual std::unique_ptr<Extension> createExtension(
+    virtual std::unique_ptr<HostApi> make(
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const = 0;
   };
 
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
-#endif  // KAGOME_CORE_EXTENSIONS_EXTENSION_FACTORY_HPP
+#endif  // KAGOME_CORE_EXTENSIONS_HOST_API_FACTORY_HPP

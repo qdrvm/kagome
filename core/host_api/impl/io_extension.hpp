@@ -11,7 +11,7 @@
 #include "common/logger.hpp"
 #include "runtime/wasm_memory.hpp"
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   /**
    * Implements extension functions related to IO
    */
@@ -48,6 +48,6 @@ namespace kagome::extensions {
     std::shared_ptr<runtime::WasmMemory> memory_;
     common::Logger logger_;
   };
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
 #endif  // KAGOME_IO_EXTENSION_HPP

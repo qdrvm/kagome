@@ -45,7 +45,6 @@ namespace kagome::runtime::binaryen {
     auto module = std::make_unique<wasm::Module>();
     {
       wasm::WasmBinaryBuilder parser(
-
           *module,
           reinterpret_cast<std::vector<char> const &>(  // NOLINT
               code.asVector()),

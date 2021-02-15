@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/runtime_manager.hpp"
+#include "runtime/binaryen/runtime_environment_factory.hpp"
 
 #include <gsl/gsl>
 
@@ -11,81 +11,92 @@
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
-                            RuntimeManager::Error,
+                            RuntimeEnvironmentFactory::Error,
                             e) {
-  using Error = kagome::runtime::binaryen::RuntimeManager::Error;
+  using Error = kagome::runtime::binaryen::RuntimeEnvironmentFactory::Error;
   switch (e) {
     case Error::EMPTY_STATE_CODE:
       return "Provided state code is empty, calling a function is impossible";
     case Error::NO_PERSISTENT_BATCH:
       return "No persistent batch in storage provider";
   }
-  return "Unknown RuntimeManager error";
+  return "Unknown RuntimeEnvironmentFactory error";
 }
 
 namespace kagome::runtime::binaryen {
 
   thread_local std::shared_ptr<RuntimeExternalInterface>
-      RuntimeManager::external_interface_{};
+      RuntimeEnvironmentFactory::external_interface_{};
 
-  RuntimeManager::RuntimeManager(
-      std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+  RuntimeEnvironmentFactory::RuntimeEnvironmentFactory(
+      std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<WasmModuleFactory> module_factory,
+      std::shared_ptr<WasmProvider> wasm_provider,
       std::shared_ptr<TrieStorageProvider> storage_provider,
       std::shared_ptr<crypto::Hasher> hasher)
       : storage_provider_{std::move(storage_provider)},
-        extension_factory_{std::move(extension_factory)},
+        wasm_provider_{std::move(wasm_provider)},
+        host_api_factory_{std::move(host_api_factory)},
         module_factory_{std::move(module_factory)},
         hasher_{std::move(hasher)} {
+    BOOST_ASSERT(wasm_provider_);
     BOOST_ASSERT(storage_provider_);
-    BOOST_ASSERT(extension_factory_);
+    BOOST_ASSERT(host_api_factory_);
     BOOST_ASSERT(module_factory_);
     BOOST_ASSERT(hasher_);
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeManager::createPersistentRuntimeEnvironmentAt(
-      const common::Buffer &state_code, const common::Hash256 &state_root) {
+  RuntimeEnvironmentFactory::makeIsolated() {
+    // doubt, maybe need a separate provider
+    OUTCOME_TRY(storage_provider_->setToEphemeral());
+    //    return createRuntimeEnvironment();
+  }
+
+  outcome::result<RuntimeEnvironment>
+  RuntimeEnvironmentFactory::makePersistentAt(
+      const common::Hash256 &state_root) {
     OUTCOME_TRY(storage_provider_->setToPersistentAt(state_root));
 
     auto persistent_batch = storage_provider_->tryGetPersistentBatch();
     if (!persistent_batch) return Error::NO_PERSISTENT_BATCH;
 
-    auto env = createRuntimeEnvironment(state_code);
+    /*auto env = createRuntimeEnvironment(state_code);
     if (env.has_value()) env.value().batch = (*persistent_batch)->batchOnTop();
 
-    return env;
+    return env;*/
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeManager::createEphemeralRuntimeEnvironmentAt(
-      const common::Buffer &state_code, const common::Hash256 &state_root) {
+  RuntimeEnvironmentFactory::makeEphemeralAt(
+      const common::Hash256 &state_root) {
     OUTCOME_TRY(storage_provider_->setToEphemeralAt(state_root));
-    return createRuntimeEnvironment(state_code);
+    // return createRuntimeEnvironment(state_code);
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeManager::createPersistentRuntimeEnvironment(
-      const common::Buffer &state_code) {
+  RuntimeEnvironmentFactory::makePersistent() {
     OUTCOME_TRY(storage_provider_->setToPersistent());
 
     auto persistent_batch = storage_provider_->tryGetPersistentBatch();
     if (!persistent_batch) return Error::NO_PERSISTENT_BATCH;
 
-    auto env = createRuntimeEnvironment(state_code);
+    auto env = createRuntimeEnvironment(
+        wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
     if (env.has_value()) env.value().batch = (*persistent_batch)->batchOnTop();
 
     return env;
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeManager::createEphemeralRuntimeEnvironment(
-      const common::Buffer &state_code) {
+  RuntimeEnvironmentFactory::makeEphemeral() {
     OUTCOME_TRY(storage_provider_->setToEphemeral());
-    return createRuntimeEnvironment(state_code);
+    return createRuntimeEnvironment(
+        wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
   }
 
-  outcome::result<RuntimeEnvironment> RuntimeManager::createRuntimeEnvironment(
+  outcome::result<RuntimeEnvironment>
+  RuntimeEnvironmentFactory::createRuntimeEnvironment(
       const common::Buffer &state_code) {
     if (state_code.empty()) {
       return Error::EMPTY_STATE_CODE;
@@ -106,7 +117,7 @@ namespace kagome::runtime::binaryen {
 
     if (external_interface_ == nullptr) {
       external_interface_ = std::make_shared<RuntimeExternalInterface>(
-          extension_factory_, storage_provider_);
+          washost_api_factory_, storage_provider_);
     }
 
     if (!module) {
@@ -123,8 +134,18 @@ namespace kagome::runtime::binaryen {
 
     return RuntimeEnvironment::create(external_interface_, module, state_code);
   }
-  void RuntimeManager::reset() {
-    external_interface_->reset();
+
+  outcome::result<RuntimeEnvironment>
+  RuntimeEnvironmentFactory::createIsolatedRuntimeEnvironment(
+      const common::Buffer &state_code) {
+    auto external_interface = std::make_shared<RuntimeExternalInterface>(
+        host_api_factory_, storage_provider_);
+
+    OUTCOME_TRY(module,
+                module_factory_->createModule(state_code, external_interface));
+
+    return RuntimeEnvironment::create(
+        external_interface, std::move(module), state_code);
   }
 
 }  // namespace kagome::runtime::binaryen

@@ -13,7 +13,7 @@
 #include "runtime/wasm_memory.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   /**
    * Implements extension functions related to storage
    */
@@ -223,6 +223,6 @@ namespace kagome::extensions {
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };
 
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
 #endif  // KAGOME_STORAGE_EXTENSIONS_EXTENSION_HPP

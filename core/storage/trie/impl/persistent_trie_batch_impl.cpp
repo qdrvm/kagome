@@ -83,7 +83,7 @@ namespace kagome::storage::trie {
     }
   }
 
-  outcome::result<Buffer> PersistentTrieBatchImpl::commit() {
+  outcome::result<RootHash> PersistentTrieBatchImpl::commit() {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
     root_changed_handler_(root);
     if (changes_.has_value()) {

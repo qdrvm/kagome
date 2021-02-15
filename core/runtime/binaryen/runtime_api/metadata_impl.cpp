@@ -9,10 +9,9 @@ namespace kagome::runtime::binaryen {
   using primitives::OpaqueMetadata;
 
   MetadataImpl::MetadataImpl(
-      const std::shared_ptr<WasmProvider> &wasm_provider,
-      const std::shared_ptr<RuntimeManager> &runtime_manager,
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
-      : RuntimeApi(wasm_provider, runtime_manager),
+      : RuntimeApi(runtime_manager),
         header_repo_(std::move(header_repo)) {
     BOOST_ASSERT(header_repo_ != nullptr);
   }

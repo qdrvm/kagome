@@ -22,8 +22,8 @@ namespace kagome::runtime::binaryen {
    public:
     TransactionPaymentApiImpl(
         const std::shared_ptr<WasmProvider> &wasm_provider,
-        const std::shared_ptr<RuntimeManager> &runtime_manager)
-        : RuntimeApi(wasm_provider, runtime_manager) {}
+        const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager)
+        : RuntimeApi(runtime_manager) {}
 
     ~TransactionPaymentApiImpl() override = default;
 

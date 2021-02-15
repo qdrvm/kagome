@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/memory_extension.hpp"
+#include "host_api/impl/memory_extension.hpp"
 
 #include <gtest/gtest.h>
 
-#include "core/runtime/mock_memory.hpp"
+#include "mock/core/runtime/mock_memory.hpp"
 
-using namespace kagome::extensions;
+using namespace kagome::host_api;
 
 using kagome::common::Buffer;
 using kagome::runtime::MockMemory;

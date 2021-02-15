@@ -15,11 +15,10 @@ namespace kagome::runtime::binaryen {
   using primitives::Version;
 
   CoreImpl::CoreImpl(
-      const std::shared_ptr<WasmProvider> &wasm_provider,
-      const std::shared_ptr<RuntimeManager> &runtime_manager,
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
-      : RuntimeApi(wasm_provider, runtime_manager),
+      : RuntimeApi(runtime_env_factory),
         changes_tracker_{std::move(changes_tracker)},
         header_repo_{std::move(header_repo)} {
     BOOST_ASSERT(changes_tracker_ != nullptr);

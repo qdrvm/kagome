@@ -8,16 +8,23 @@
 #include "runtime/wasm_result.hpp"
 
 namespace kagome::runtime::binaryen {
-  WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory,
-                                 WasmSize size)
-      : memory_(memory),
-        size_(size),
+  WasmMemoryImpl::WasmMemoryImpl(WasmSize size)
+      : memory_{nullptr},
+        size_{size},
         logger_{common::createLogger("WASM Memory")},
         offset_{1}  // We should allocate very first byte to prohibit allocating
                     // memory at 0 in future, as returning 0 from allocate
                     // method means that wasm memory was exhausted
   {
     WasmMemoryImpl::resize(size_);
+  }
+
+  bool WasmMemoryImpl::initInternalMemory(wasm::ShellExternalInterface::Memory *memory) {
+    if (memory_ == nullptr) {
+      memory_ = memory;
+      return true;
+    }
+    return false;
   }
 
   void WasmMemoryImpl::reset() {

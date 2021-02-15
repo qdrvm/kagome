@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/io_extension.hpp"
+#include "host_api/impl/io_extension.hpp"
 #include <runtime/wasm_result.hpp>
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
       : memory_(std::move(memory)),
         logger_{common::createLogger(kDefaultLoggerTag)} {
@@ -71,4 +71,4 @@ namespace kagome::extensions {
     const auto data = memory_->loadStr(utf8_data, utf8_length);
     logger_->info("string value: {}", data);
   }
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api

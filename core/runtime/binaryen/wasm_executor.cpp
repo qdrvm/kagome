@@ -5,10 +5,7 @@
 
 #include "runtime/binaryen/wasm_executor.hpp"
 
-#include <utility>
-
 #include <binaryen/shell-interface.h>
-#include <binaryen/wasm-binary.h>
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
   using kagome::runtime::binaryen::WasmExecutor;
@@ -16,7 +13,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
     case WasmExecutor::Error::EXECUTION_ERROR:
       return "An error occurred during an export call execution";
   }
-  return "Unknown WasmExecutor::Error";
+  return "Unknown WasmExecutor error";
 }
 
 namespace kagome::runtime::binaryen {

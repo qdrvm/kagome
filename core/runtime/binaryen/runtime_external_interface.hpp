@@ -9,27 +9,33 @@
 #include <binaryen/shell-interface.h>
 
 #include "common/logger.hpp"
-#include "extensions/extension_factory.hpp"
+#include "host_api/host_api_factory.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime::binaryen {
 
+  class WasmMemoryImpl;  // not fancy to refer to impl, but have to do it  for
+                         // now because it depends on shell interface memory
+                         // belonging to RuntimeExternalInterface (see
+                         // constructor)
+
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
     explicit RuntimeExternalInterface(
-        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory,
+        std::shared_ptr<WasmMemoryImpl> wasm_memory,
+        const std::shared_ptr<host_api::HostApiFactory> &host_api_factory,
         std::shared_ptr<TrieStorageProvider> storage_provider);
 
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
     inline std::shared_ptr<WasmMemory> memory() const {
-      return extension_->memory();
+      return host_api_->memory();
     }
 
     inline void reset() const {
-      return extension_->reset();
+      return host_api_->reset();
     }
 
    private:
@@ -41,7 +47,7 @@ namespace kagome::runtime::binaryen {
                         size_t expected,
                         size_t actual);
 
-    std::unique_ptr<extensions::Extension> extension_;
+    std::unique_ptr<host_api::HostApi> host_api_;
     common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
 
     constexpr static auto kDefaultLoggerTag = "Runtime external interface";

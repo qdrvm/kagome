@@ -10,7 +10,6 @@
 #include "outcome/outcome.hpp"
 #include "storage/trie/impl/ephemeral_trie_batch_impl.hpp"
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
-#include "subscription/subscriber.hpp"
 
 namespace kagome::storage::trie {
 
@@ -34,7 +33,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::unique_ptr<TrieStorageImpl>>
   TrieStorageImpl::createFromStorage(
-      const common::Buffer &root_hash,
+      const RootHash &root_hash,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
@@ -46,7 +45,7 @@ namespace kagome::storage::trie {
   }
 
   TrieStorageImpl::TrieStorageImpl(
-      common::Buffer root_hash,
+      RootHash root_hash,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes)
@@ -92,7 +91,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
-  TrieStorageImpl::getPersistentBatchAt(const common::Hash256 &root) {
+  TrieStorageImpl::getPersistentBatchAt(const RootHash &root) {
     logger_->debug("Initialize persistent trie batch with root: {}",
                    root.toHex());
     auto trie_res = serializer_->retrieveTrie(Buffer{root});
@@ -113,14 +112,14 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
-  TrieStorageImpl::getEphemeralBatchAt(const common::Hash256 &root) const {
+  TrieStorageImpl::getEphemeralBatchAt(const RootHash &root) const {
     logger_->debug("Initialize ephemeral trie batch with root: {}",
                    root_hash_.toHex());
     OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
     return std::make_unique<EphemeralTrieBatchImpl>(codec_, std::move(trie));
   }
 
-  common::Buffer TrieStorageImpl::getRootHash() const {
+  RootHash TrieStorageImpl::getRootHash() const noexcept {
     return root_hash_;
   }
 }  // namespace kagome::storage::trie

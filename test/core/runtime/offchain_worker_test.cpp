@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/impl/extension_impl.hpp"
+#include "host_api/impl/host_api_impl.hpp"
 #include "primitives/common.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"

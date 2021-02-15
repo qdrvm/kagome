@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_EXTENSION_HPP
-#define KAGOME_EXTENSION_HPP
+#ifndef KAGOME_HOST_API_HPP
+#define KAGOME_HOST_API_HPP
 
 #include <cstdint>
 #include <functional>
@@ -13,17 +13,21 @@
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_result.hpp"
 
-namespace kagome::extensions {
+namespace kagome::runtime {
+  class CoreFactory;
+}
+
+namespace kagome::host_api {
   /**
    * Extensions for WASM; API, which is called by the runtime to control RE
    */
-  class Extension {
+  class HostApi {
    public:
-    virtual ~Extension() = default;
+    virtual ~HostApi() = default;
 
     virtual std::shared_ptr<runtime::WasmMemory> memory() const = 0;
     virtual void reset() = 0;
-    
+
     // -------------------------Storage extensions--------------------------
 
     /**
@@ -536,21 +540,20 @@ namespace kagome::extensions {
     virtual uint64_t ext_chain_id() const = 0;
 
     virtual runtime::WasmResult ext_misc_runtime_version_version_1(
-        runtime::WasmSpan data) const = 0;
+        runtime::WasmSpan data,
+        runtime::CoreFactory& core_factory) const = 0;
 
     /**
      * Print a hex value
      * @param data pointer-size to an array of bytes with hex
      */
-    virtual void ext_misc_print_hex_version_1(
-        runtime::WasmSpan data) const = 0;
+    virtual void ext_misc_print_hex_version_1(runtime::WasmSpan data) const = 0;
 
     /**
      * Print a number
      * @param value - number to be printed
      */
-    virtual void ext_misc_print_num_version_1(
-        uint64_t value) const = 0;
+    virtual void ext_misc_print_num_version_1(uint64_t value) const = 0;
 
     /**
      * Print a UTF-8-encoded string
@@ -558,8 +561,7 @@ namespace kagome::extensions {
      */
     virtual void ext_misc_print_utf8_version_1(
         runtime::WasmSpan data) const = 0;
-
   };
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
-#endif  // KAGOME_EXTENSION_HPP
+#endif  // KAGOME_HOST_API_HPP

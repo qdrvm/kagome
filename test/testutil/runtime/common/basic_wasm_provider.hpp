@@ -16,7 +16,8 @@ namespace kagome::runtime {
 
     ~BasicWasmProvider() override = default;
 
-    const kagome::common::Buffer &getStateCode() const override;
+    const common::Buffer &getStateCodeAt(
+        const primitives::BlockHash &at) const override;
 
    private:
     void initialize(std::string_view path);

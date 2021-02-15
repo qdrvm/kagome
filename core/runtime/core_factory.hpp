@@ -11,7 +11,7 @@
 namespace kagome::runtime {
 
   namespace binaryen {
-    class RuntimeManager;
+    class RuntimeEnvironmentFactory;
   }
 
   /**

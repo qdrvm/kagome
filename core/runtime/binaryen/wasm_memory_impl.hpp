@@ -32,10 +32,9 @@ namespace kagome::runtime::binaryen {
    * @note Memory size of this implementation is at least of the size of one
    * wasm page (4096 bytes)
    */
-  class WasmMemoryImpl : public WasmMemory {
+  class WasmMemoryImpl final : public WasmMemory {
    public:
     explicit WasmMemoryImpl(
-        wasm::ShellExternalInterface::Memory *memory,
         WasmSize size =
             1114112);  // default value for binaryen's shell interface
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
@@ -43,6 +42,8 @@ namespace kagome::runtime::binaryen {
     WasmMemoryImpl(WasmMemoryImpl &&move) = delete;
     WasmMemoryImpl &operator=(WasmMemoryImpl &&move) = delete;
     ~WasmMemoryImpl() override = default;
+
+    bool initInternalMemory(wasm::ShellExternalInterface::Memory *memory);
 
     void reset() override;
 

@@ -14,10 +14,10 @@
 
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "extensions/extension_factory.hpp"
+#include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/runtime_environment.hpp"
+#include "runtime/binaryen/runtime_environment_factory.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
-#include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
@@ -38,12 +38,9 @@ namespace kagome::runtime::binaryen {
                    // completed
     };
 
-    RuntimeApi(std::shared_ptr<WasmProvider> wasm_provider,
-               std::shared_ptr<RuntimeManager> runtime_manager)
-        : runtime_manager_(std::move(runtime_manager)),
-          wasm_provider_(std::move(wasm_provider)) {
-      BOOST_ASSERT(runtime_manager_);
-      BOOST_ASSERT(wasm_provider_);
+    RuntimeApi(std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory)
+        : runtime_env_factory_(std::move(runtime_env_factory)) {
+      BOOST_ASSERT(runtime_env_factory_);
     }
 
    private:
@@ -54,27 +51,22 @@ namespace kagome::runtime::binaryen {
       if (state_root_opt.has_value()) {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_manager_
-                ->createPersistentRuntimeEnvironmentAt(
-                    wasm_provider_->getStateCode(), state_root_opt.value())
+            return runtime_env_factory_
+                ->makePersistentAt(state_root_opt.value())
                 .value();
           case CallPersistency::EPHEMERAL:
-            return runtime_manager_
-                ->createEphemeralRuntimeEnvironmentAt(
-                    wasm_provider_->getStateCode(), state_root_opt.value())
+            return runtime_env_factory_->makeEphemeralAt(state_root_opt.value())
                 .value();
         }
       } else {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_manager_
-                ->createPersistentRuntimeEnvironment(
-                    wasm_provider_->getStateCode())
+            return runtime_env_factory_
+                ->makePersistent()
                 .value();
           case CallPersistency::EPHEMERAL:
-            return runtime_manager_
-                ->createEphemeralRuntimeEnvironment(
-                    wasm_provider_->getStateCode())
+            return runtime_env_factory_
+                ->makeEphemeral()
                 .value();
         }
       }
@@ -99,7 +91,7 @@ namespace kagome::runtime::binaryen {
                                  const common::Hash256 &state_root,
                                  CallPersistency persistency,
                                  Args &&... args) {
-      return executeMaybeAt<R>(
+      return executeAt<R>(
           name, state_root, persistency, std::forward<Args>(args)...);
     }
 
@@ -117,7 +109,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<R> execute(std::string_view name,
                                CallPersistency persistency,
                                Args &&... args) {
-      return executeMaybeAt<R>(
+      return executeAt<R>(
           name, boost::none, persistency, std::forward<Args>(args)...);
     }
 
@@ -129,9 +121,9 @@ namespace kagome::runtime::binaryen {
      * @note for explanation of arguments \see execute or \see executeAt
      */
     template <typename R, typename... Args>
-    outcome::result<R> executeMaybeAt(
+    outcome::result<R> executeAt(
         std::string_view name,
-        const boost::optional<common::Hash256> &state_root,
+        boost::optional<common::Hash256> state_root,
         CallPersistency persistency,
         Args &&... args) {
       logger_->debug("Executing export function: {}", name);
@@ -157,7 +149,7 @@ namespace kagome::runtime::binaryen {
       wasm::Name wasm_name = std::string(name);
 
       OUTCOME_TRY(res, executor_.call(*module, wasm_name, ll));
-      runtime_manager_->reset();
+//      runtime_env_factory_->reset();
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r(res.geti64());
         auto buffer = memory->loadN(r.address, r.length);
@@ -173,8 +165,8 @@ namespace kagome::runtime::binaryen {
       memory->reset();
       return outcome::success();
     }
-    std::shared_ptr<RuntimeManager> runtime_manager_;
-    std::shared_ptr<WasmProvider> wasm_provider_;
+
+    std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory_;
     WasmExecutor executor_;
     common::Logger logger_ = common::createLogger("Runtime API");
   };

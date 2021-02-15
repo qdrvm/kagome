@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/crypto_extension.hpp"
+#include "host_api/impl/crypto_extension.hpp"
 
 #include <algorithm>
 #include <exception>
-#include <gsl/span>
 
 #include <boost/assert.hpp>
+#include <gsl/span>
+
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/crypto_store.hpp"
@@ -21,7 +22,7 @@
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
   namespace ecdsa = crypto::secp256k1;
@@ -326,8 +327,9 @@ namespace kagome::extensions {
     }
 
     auto public_keys = crypto_store_->getEd25519PublicKeys(key_type_id);
-    if(not public_keys) {
-      auto msg = "error loading public keys: {}" + public_keys.error().message();
+    if (not public_keys) {
+      auto msg =
+          "error loading public keys: {}" + public_keys.error().message();
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
@@ -484,8 +486,9 @@ namespace kagome::extensions {
                     common::int_to_hex(key_type_id, 8));
     }
     auto public_keys = crypto_store_->getSr25519PublicKeys(key_type_id);
-    if(not public_keys) {
-      auto msg = "error loading public keys: {}" + public_keys.error().message();
+    if (not public_keys) {
+      auto msg =
+          "error loading public keys: {}" + public_keys.error().message();
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
@@ -686,4 +689,4 @@ namespace kagome::extensions {
     auto buffer = scale::encode(ResultType(public_key.value())).value();
     return memory_->storeBuffer(buffer);
   }
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api

@@ -19,11 +19,11 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(backend_ != nullptr);
   }
 
-  Buffer TrieSerializerImpl::getEmptyRootHash() const {
-    return Buffer(codec_->hash256({0}));
+  RootHash TrieSerializerImpl::getEmptyRootHash() const {
+    return codec_->hash256({0});
   }
 
-  outcome::result<Buffer> TrieSerializerImpl::storeTrie(PolkadotTrie &trie) {
+  outcome::result<RootHash> TrieSerializerImpl::storeTrie(PolkadotTrie &trie) {
     if (trie.getRoot() == nullptr) {
       return getEmptyRootHash();
     }
@@ -43,7 +43,7 @@ namespace kagome::storage::trie {
     return trie_factory_->createFromRoot(std::move(root), std::move(f));
   }
 
-  outcome::result<Buffer> TrieSerializerImpl::storeRootNode(
+  outcome::result<RootHash> TrieSerializerImpl::storeRootNode(
       PolkadotNode &node) {
     auto batch = backend_->batch();
     using T = PolkadotNode::Type;
@@ -58,8 +58,8 @@ namespace kagome::storage::trie {
     }
 
     OUTCOME_TRY(enc, codec_->encodeNode(node));
-    auto key = Buffer{codec_->hash256(enc)};
-    OUTCOME_TRY(batch->put(key, enc));
+    auto key = codec_->hash256(enc);
+    OUTCOME_TRY(batch->put(Buffer{key}, enc));
     OUTCOME_TRY(batch->commit());
 
     return key;

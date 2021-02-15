@@ -3,36 +3,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_EXTENSION_IMPL_HPP
-#define KAGOME_EXTENSION_IMPL_HPP
+#ifndef KAGOME_HOST_API_IMPL_HPP
+#define KAGOME_HOST_API_IMPL_HPP
 
-#include "extensions/extension.hpp"
-#include "extensions/impl/crypto_extension.hpp"
-#include "extensions/impl/io_extension.hpp"
-#include "extensions/impl/memory_extension.hpp"
-#include "extensions/impl/misc_extension.hpp"
-#include "extensions/impl/storage_extension.hpp"
+#include "host_api/host_api.hpp"
+#include "host_api/impl/crypto_extension.hpp"
+#include "host_api/impl/io_extension.hpp"
+#include "host_api/impl/memory_extension.hpp"
+#include "host_api/impl/misc_extension.hpp"
+#include "host_api/impl/storage_extension.hpp"
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   /**
    * Fair implementation of the extensions interface
    */
-  class ExtensionImpl : public Extension {
+  class HostApiImpl : public HostApi {
    public:
-    ExtensionImpl() = delete;
-    ExtensionImpl(
-        const std::shared_ptr<runtime::WasmMemory> &memory,
-        std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
-        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
-        std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
-        std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<crypto::Bip39Provider> bip39_provider,
-        MiscExtension::CoreFactoryMethod core_factory_method);
+    HostApiImpl() = delete;
+    HostApiImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
+                std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
+                std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
+                std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+                std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
+                std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
+                std::shared_ptr<crypto::Hasher> hasher,
+                std::shared_ptr<crypto::CryptoStore> crypto_store,
+                std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
-    ~ExtensionImpl() override = default;
+    ~HostApiImpl() override = default;
 
     std::shared_ptr<runtime::WasmMemory> memory() const override;
     void reset() override;
@@ -245,7 +243,8 @@ namespace kagome::extensions {
     uint64_t ext_chain_id() const override;
 
     runtime::WasmResult ext_misc_runtime_version_version_1(
-        runtime::WasmSpan data) const override;
+        runtime::WasmSpan data,
+        runtime::CoreFactory& core_factory) const override;
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const override;
 
@@ -271,6 +270,6 @@ namespace kagome::extensions {
     MiscExtension misc_ext_;
     StorageExtension storage_ext_;
   };
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
-#endif  // KAGOME_EXTENSION_IMPL_HPP
+#endif  // KAGOME_HOST_API_IMPL_HPP

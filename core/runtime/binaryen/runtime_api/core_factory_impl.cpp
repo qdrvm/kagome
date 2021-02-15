@@ -11,21 +11,20 @@
 namespace kagome::runtime::binaryen {
 
   CoreFactoryImpl::CoreFactoryImpl(
-      std::shared_ptr<RuntimeManager> runtime_manager,
+      std::shared_ptr<RuntimeEnvironmentFactory> runtime_environment_factory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
-      : runtime_manager_{std::move(runtime_manager)},
+      : runtime_environment_factory_{std::move(runtime_environment_factory)},
         changes_tracker_{std::move(changes_tracker)},
         header_repo_{std::move(header_repo)} {
-    BOOST_ASSERT(runtime_manager_);
+    BOOST_ASSERT(runtime_environment_factory_);
     BOOST_ASSERT(changes_tracker_);
     BOOST_ASSERT(header_repo_);
   }
 
   std::unique_ptr<Core> CoreFactoryImpl::createWithCode(
       std::shared_ptr<WasmProvider> wasm_provider) {
-    return std::make_unique<CoreImpl>(std::move(wasm_provider),
-                                      runtime_manager_,
+    return std::make_unique<CoreImpl>(runtime_environment_factory_,
                                       changes_tracker_,
                                       header_repo_);
   }

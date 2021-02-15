@@ -22,19 +22,14 @@ namespace kagome::runtime {
   class WasmProvider;
 }  // namespace kagome::runtime
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   /**
    * Implements miscellaneous extension functions
    */
   class MiscExtension final {
    public:
-    using CoreFactoryMethod =
-        std::function<std::unique_ptr<runtime::Core>(
-            std::shared_ptr<runtime::WasmProvider>)>;
-
     MiscExtension(uint64_t chain_id,
-                  std::shared_ptr<runtime::WasmMemory> memory,
-                  CoreFactoryMethod core_factory_method);
+                  std::shared_ptr<runtime::WasmMemory> memory);
 
     ~MiscExtension() = default;
 
@@ -44,7 +39,7 @@ namespace kagome::extensions {
     uint64_t ext_chain_id() const;
 
     runtime::WasmResult ext_misc_runtime_version_version_1(
-        runtime::WasmSpan data) const;
+        runtime::WasmSpan data, runtime::CoreFactory& core_factory) const;
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const;
 
@@ -53,11 +48,10 @@ namespace kagome::extensions {
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const;
 
    private:
-    CoreFactoryMethod core_factory_method_;
     std::shared_ptr<runtime::WasmMemory> memory_;
     common::Logger logger_;
     const uint64_t chain_id_ = 42;
   };
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
 #endif  // KAGOME_MISC_EXTENSION_HPP

@@ -9,6 +9,7 @@ add_library(storage_wasm_provider
     )
 target_link_libraries(storage_wasm_provider
     buffer
+    blob
     )
 
 add_library(const_wasm_provider
@@ -34,5 +35,6 @@ add_library(trie_storage_provider
 target_link_libraries(trie_storage_provider
     runtime_transaction_error
     trie_storage
+    blob
     )
 kagome_install(trie_storage_provider)

@@ -14,7 +14,7 @@
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
-using kagome::extensions::ExtensionFactoryImpl;
+using kagome::host_api::HostApiFactoryImpl;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
@@ -35,7 +35,6 @@ class CoreTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     core_ = std::make_shared<CoreImpl>(
-        wasm_provider_,
         runtime_manager_,
         changes_tracker_,
         std::make_shared<BlockHeaderRepositoryMock>());

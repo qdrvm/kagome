@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/storage_extension.hpp"
+#include "host_api/impl/storage_extension.hpp"
 
 #include <gtest/gtest.h>
 
-#include "core/runtime/mock_memory.hpp"
+#include "mock/core/runtime/mock_memory.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
@@ -22,7 +22,7 @@
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
-using kagome::extensions::StorageExtension;
+using kagome::host_api::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmOffset;

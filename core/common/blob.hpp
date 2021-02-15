@@ -10,6 +10,7 @@
 
 #include <boost/functional/hash.hpp>
 
+#include "common/buffer.hpp"
 #include "common/hexutil.hpp"
 
 #define KAGOME_BLOB_STRICT_TYPEDEF(class_name, blob_size)                  \

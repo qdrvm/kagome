@@ -241,8 +241,8 @@ TEST_F(BabeTest, Success) {
   next_epoch.epoch_number++;
   next_epoch.start_slot += babe_config_->epoch_length;
 
-  EXPECT_CALL(*trie_db_, getRootHash())
-      .WillRepeatedly(Return(common::Buffer{}));
+  EXPECT_CALL(*trie_db_, getRootHashMock())
+      .WillRepeatedly(Return(storage::trie::RootHash{}));
 
   // runSlot (3 times)
   EXPECT_CALL(*clock_, now())

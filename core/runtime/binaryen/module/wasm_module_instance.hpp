@@ -8,6 +8,7 @@
 
 #include <binaryen/literal.h>
 #include <binaryen/support/name.h>
+#include <boost/optional.hpp>
 
 namespace kagome::runtime::binaryen {
 
@@ -25,6 +26,9 @@ namespace kagome::runtime::binaryen {
      */
     virtual wasm::Literal callExport(
         wasm::Name name, const std::vector<wasm::Literal> &arguments) = 0;
+
+    virtual boost::optional<wasm::Literal> getGlobal(
+        wasm::Name name) const noexcept = 0;
   };
 }  // namespace kagome::runtime::binaryen
 

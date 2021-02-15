@@ -24,7 +24,7 @@ namespace kagome::crypto {
   class CryptoStore;
 }  // namespace kagome::crypto
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   /**
    * Implements extension functions related to cryptography
    */
@@ -237,6 +237,6 @@ namespace kagome::extensions {
     boost::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
     common::Logger logger_;
   };
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
 #endif  // KAGOME_CRYPTO_EXTENSION_HPP

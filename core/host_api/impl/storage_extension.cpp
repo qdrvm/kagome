@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/storage_extension.hpp"
+#include "host_api/impl/storage_extension.hpp"
 
 #include <forward_list>
 
@@ -19,7 +19,7 @@ namespace {
   const auto CHANGES_CONFIG_KEY = kagome::common::Buffer{}.put(":changes_trie");
 }
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   StorageExtension::StorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<runtime::WasmMemory> memory,
@@ -238,7 +238,7 @@ namespace kagome::extensions {
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
-    outcome::result<Buffer> res{{}};
+    outcome::result<storage::trie::RootHash> res{{}};
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
       res = opt_batch.value()->commit();
@@ -359,7 +359,7 @@ namespace kagome::extensions {
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_root_version_1() const {
-    outcome::result<Buffer> res{{}};
+    outcome::result<storage::trie::RootHash> res{{}};
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
       res = opt_batch.value()->commit();
@@ -558,4 +558,4 @@ namespace kagome::extensions {
     return result_buf;
   }
 
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api

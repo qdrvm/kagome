@@ -3,16 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extensions/impl/io_extension.hpp"
+#include "host_api/impl/io_extension.hpp"
 
 #include <optional>
 
 #include <gtest/gtest.h>
-#include "core/runtime/mock_memory.hpp"
-#include "testutil/literals.hpp"
-#include "runtime/wasm_result.hpp"
 
-using namespace kagome::extensions;
+#include "mock/core/runtime/mock_memory.hpp"
+#include "runtime/wasm_result.hpp"
+#include "testutil/literals.hpp"
+
+using namespace kagome::host_api;
 using ::testing::Return;
 
 using kagome::common::Buffer;
@@ -38,10 +39,8 @@ class IOExtensionTest : public ::testing::Test {
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<IOExtension> io_extension_;
 
-  // 0123456789abcdef
   std::vector<uint8_t> hex_bytes_{"0123456789ABCDEF"_unhex};
 
-  // 2^64 - 1
   static constexpr uint64_t number_ = std::numeric_limits<uint64_t>::max();
 
   // 1 @m $t|>i|\Ng

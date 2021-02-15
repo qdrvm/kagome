@@ -21,12 +21,15 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD1(getPersistentBatchAt,
                  outcome::result<std::unique_ptr<PersistentTrieBatch>>(
-                     const common::Hash256 &root));
+                     const storage::trie::RootHash &root));
     MOCK_CONST_METHOD1(getEphemeralBatchAt,
                        outcome::result<std::unique_ptr<EphemeralTrieBatch>>(
-                           const common::Hash256 &root));
+                           const storage::trie::RootHash &root));
 
-    MOCK_CONST_METHOD0(getRootHash, common::Buffer());
+    MOCK_CONST_METHOD0(getRootHashMock, storage::trie::RootHash());
+    storage::trie::RootHash getRootHash() const noexcept override {
+      return getRootHashMock();
+    }
   };
 
 }  // namespace kagome::storage::trie

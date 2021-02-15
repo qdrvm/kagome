@@ -71,7 +71,7 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
-#include "extensions/impl/extension_factory_impl.hpp"
+#include "host_api/impl/host_api_factory_impl.hpp"
 #include "network/impl/dummy_sync_protocol_client.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
@@ -383,10 +383,10 @@ namespace kagome::injector {
   }
 
   template <typename Injector>
-  sptr<extensions::ExtensionFactoryImpl> get_extension_factory(
+  sptr<host_api::HostApiFactoryImpl> get_host_api_factory(
       const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<extensions::ExtensionFactoryImpl>>(boost::none);
+        boost::optional<sptr<host_api::HostApiFactoryImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -402,22 +402,15 @@ namespace kagome::injector {
     auto crypto_store = injector.template create<sptr<crypto::CryptoStore>>();
     auto bip39_provider =
         injector.template create<sptr<crypto::Bip39Provider>>();
-    auto core_factory_method =
-        [&injector](sptr<runtime::WasmProvider> wasm_provider) {
-          auto core_factory =
-              injector.template create<sptr<runtime::CoreFactory>>();
-          return core_factory->createWithCode(wasm_provider);
-        };
 
     initialized =
-        std::make_shared<extensions::ExtensionFactoryImpl>(tracker,
+        std::make_shared<host_api::HostApiFactoryImpl>(tracker,
                                                            sr25519_provider,
                                                            ed25519_provider,
                                                            secp256k1_provider,
                                                            hasher,
                                                            crypto_store,
-                                                           bip39_provider,
-                                                           core_factory_method);
+                                                           bip39_provider);
     return initialized.value();
   }
 
@@ -881,9 +874,9 @@ namespace kagome::injector {
           return get_key_file_storage(injector);
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<extensions::ExtensionFactory>.template to(
+        di::bind<host_api::HostApiFactory>.template to(
             [](auto const &injector) {
-              return get_extension_factory(injector);
+              return get_host_api_factory(injector);
             }),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),

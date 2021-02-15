@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_EXTENSIONS_IMPL_EXTENSION_FACTORY_IMPL_HPP
-#define KAGOME_CORE_EXTENSIONS_IMPL_EXTENSION_FACTORY_IMPL_HPP
+#ifndef KAGOME_CORE_EXTENSIONS_IMPL_HOST_API_FACTORY_IMPL_HPP
+#define KAGOME_CORE_EXTENSIONS_IMPL_HOST_API_FACTORY_IMPL_HPP
 
-#include "extensions/extension_factory.hpp"
+#include "host_api/host_api_factory.hpp"
 
-#include "extensions/impl/misc_extension.hpp"
+#include "host_api/impl/misc_extension.hpp"
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -17,23 +17,22 @@
 #include "crypto/sr25519_provider.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
-namespace kagome::extensions {
+namespace kagome::host_api {
 
-  class ExtensionFactoryImpl : public ExtensionFactory {
+  class HostApiFactoryImpl : public HostApiFactory {
    public:
-    ~ExtensionFactoryImpl() override = default;
+    ~HostApiFactoryImpl() override = default;
 
-    ExtensionFactoryImpl(
+    HostApiFactoryImpl(
         std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<crypto::Bip39Provider> bip39_provider,
-        MiscExtension::CoreFactoryMethod core_factory_method);
+        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
-    std::unique_ptr<Extension> createExtension(
+    std::unique_ptr<HostApi> make(
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider)
         const override;
@@ -46,9 +45,8 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
-    MiscExtension::CoreFactoryMethod core_factory_method_;
   };
 
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
-#endif  // KAGOME_CORE_EXTENSIONS_IMPL_EXTENSION_FACTORY_IMPL_HPP
+#endif  // KAGOME_CORE_EXTENSIONS_IMPL_HOST_API_FACTORY_IMPL_HPP

@@ -8,12 +8,12 @@
 #include <gtest/gtest.h>
 
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/impl/extension_impl.hpp"
+#include "host_api/impl/host_api_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
-using kagome::extensions::ExtensionImpl;
+using kagome::host_api::HostApiImpl;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
@@ -32,7 +32,6 @@ class GrandpaTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     api_ = std::make_shared<GrandpaApiImpl>(
-        wasm_provider_,
         runtime_manager_,
         std::make_shared<BlockHeaderRepositoryMock>());
   }

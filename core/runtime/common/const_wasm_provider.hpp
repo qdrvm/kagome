@@ -14,7 +14,8 @@ namespace kagome::runtime {
    public:
     explicit ConstWasmProvider(common::Buffer code);
 
-    const common::Buffer &getStateCode() const override;
+    const common::Buffer &getStateCodeAt(
+        const primitives::BlockHash &at) const override;
 
    private:
     common::Buffer code_;

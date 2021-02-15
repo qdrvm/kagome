@@ -7,6 +7,8 @@
 #define KAGOME_CORE_RUNTIME_WASM_PROVIDER_HPP
 
 #include "common/buffer.hpp"
+#include "primitives/block_id.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
   /**
@@ -16,11 +18,10 @@ namespace kagome::runtime {
    public:
     virtual ~WasmProvider() = default;
 
-    /**
-     * @return wasm runtime code
-     */
-    virtual const common::Buffer &getStateCode() const = 0;
+    virtual const common::Buffer &getStateCodeAt(
+        const storage::trie::RootHash &at) const = 0;
   };
+
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_WASM_PROVIDER_HPP

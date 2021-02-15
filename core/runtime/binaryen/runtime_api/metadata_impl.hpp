@@ -16,8 +16,7 @@ namespace kagome::runtime::binaryen {
   class MetadataImpl : public RuntimeApi, public Metadata {
    public:
     explicit MetadataImpl(
-        const std::shared_ptr<WasmProvider> &wasm_provider,
-        const std::shared_ptr<RuntimeManager> &runtime_manager,
+        const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
 
     ~MetadataImpl() override = default;

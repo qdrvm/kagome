@@ -21,7 +21,7 @@ namespace kagome::runtime::binaryen {
      */
     ParachainHostImpl(
         const std::shared_ptr<WasmProvider> &wasm_provider,
-        const std::shared_ptr<RuntimeManager> &runtime_manager);
+        const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager);
 
     ~ParachainHostImpl() override = default;
 

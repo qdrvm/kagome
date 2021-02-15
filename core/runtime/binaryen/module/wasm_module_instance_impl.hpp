@@ -26,6 +26,8 @@ namespace kagome::runtime::binaryen {
     wasm::Literal callExport(
         wasm::Name name, const std::vector<wasm::Literal> &arguments) override;
 
+    boost::optional<wasm::Literal> getGlobal(wasm::Name name) const noexcept override;
+
    private:
     std::unique_ptr<wasm::ModuleInstance> module_instance_;
   };

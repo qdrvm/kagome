@@ -45,8 +45,8 @@ target_link_libraries(binaryen_runtime_environment
 kagome_install(binaryen_runtime_environment)
 
 add_library(binaryen_runtime_manager
-    runtime_manager.hpp
-    runtime_manager.cpp
+    runtime_environment_factory.hpp
+    runtime_environment_factory.cpp
     )
 target_link_libraries(binaryen_runtime_manager
     binaryen_runtime_environment

@@ -6,7 +6,7 @@
 #ifndef KAGOME_TRIE_CODEC_HPP
 #define KAGOME_TRIE_CODEC_HPP
 
-#include "common/blob.hpp"  // for Hash256
+#include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "storage/trie/node.hpp"
 

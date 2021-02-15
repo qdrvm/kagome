@@ -9,9 +9,9 @@
 
 #include <exception>
 
-#include "extensions/impl/memory_extension.hpp"
+#include "host_api/impl/memory_extension.hpp"
 
-namespace kagome::extensions {
+namespace kagome::host_api {
   MemoryExtension::MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory)
       : memory_(std::move(memory)),
         logger_{common::createLogger(kDefaultLoggerTag)} {
@@ -44,4 +44,4 @@ namespace kagome::extensions {
   void MemoryExtension::ext_allocator_free_version_1(runtime::WasmPointer ptr) {
     return ext_free(ptr);
   }
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api

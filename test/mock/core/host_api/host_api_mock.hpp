@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_
-#define KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_
+#ifndef KAGOME_TEST_CORE_RUNTIME_MOCK_HOST_API_HPP_
+#define KAGOME_TEST_CORE_RUNTIME_MOCK_HOST_API_HPP_
 
-#include "extensions/extension.hpp"
+#include "host_api/host_api.hpp"
 
 #include <gmock/gmock.h>
 
-namespace kagome::extensions {
+namespace kagome::host_api {
 
-  class ExtensionMock : public Extension {
+  class HostApiMock : public HostApi {
    public:
     MOCK_CONST_METHOD0(memory, std::shared_ptr<runtime::WasmMemory>());
     MOCK_METHOD0(reset, void());
@@ -139,8 +139,9 @@ namespace kagome::extensions {
                       runtime::WasmSize len,
                       runtime::WasmPointer out));
     MOCK_CONST_METHOD0(ext_chain_id, uint64_t());
-    MOCK_CONST_METHOD1(ext_misc_runtime_version_version_1,
-                       runtime::WasmResult(runtime::WasmSpan));
+    MOCK_CONST_METHOD2(ext_misc_runtime_version_version_1,
+                       runtime::WasmResult(runtime::WasmSpan,
+                                           runtime::CoreFactory &));
 
     MOCK_CONST_METHOD1(ext_misc_print_hex_version_1, void(runtime::WasmSpan));
     MOCK_CONST_METHOD1(ext_misc_print_num_version_1, void(uint64_t));
@@ -257,6 +258,6 @@ namespace kagome::extensions {
     MOCK_METHOD1(ext_allocator_free_version_1, void(runtime::WasmPointer));
   };
 
-}  // namespace kagome::extensions
+}  // namespace kagome::host_api
 
 #endif  // KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_

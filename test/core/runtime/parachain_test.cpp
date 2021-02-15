@@ -8,12 +8,12 @@
 #include <gtest/gtest.h>
 
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/impl/extension_impl.hpp"
+#include "host_api/impl/host_api_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
-using kagome::extensions::ExtensionImpl;
+using kagome::host_api::HostApiImpl;
 using kagome::primitives::parachain::Chain;
 using kagome::primitives::parachain::DutyRoster;
 using kagome::primitives::parachain::Parachain;
