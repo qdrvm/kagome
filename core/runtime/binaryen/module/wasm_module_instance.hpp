@@ -23,14 +23,14 @@ namespace kagome::runtime::binaryen {
      * @param arguments the list of arguments to pass to the function
      * @return whatever the export function returns
      */
-    virtual wasm::Literal callExport(
+    virtual wasm::Literal callExportFunction(
         wasm::Name name, const std::vector<wasm::Literal> &arguments) = 0;
 
     /**
      * @param name the name of a wasm global
      * @return whatever the export global returns
      */
-    virtual wasm::Literal getExport(wasm::Name name) = 0;
+    virtual wasm::Literal getExportGlobal(wasm::Name name) = 0;
   };
 }  // namespace kagome::runtime::binaryen
 

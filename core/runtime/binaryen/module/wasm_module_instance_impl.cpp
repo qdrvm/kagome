@@ -17,12 +17,12 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(module_instance_);
   }
 
-  wasm::Literal WasmModuleInstanceImpl::callExport(
+  wasm::Literal WasmModuleInstanceImpl::callExportFunction(
       wasm::Name name, const wasm::LiteralList &arguments) {
       return module_instance_->callExport(name, arguments);
   }
 
-  wasm::Literal WasmModuleInstanceImpl::getExport(wasm::Name name) {
+  wasm::Literal WasmModuleInstanceImpl::getExportGlobal(wasm::Name name) {
     return module_instance_->getExport(name);
   }
 }  // namespace kagome::runtime::binaryen

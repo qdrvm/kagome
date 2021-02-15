@@ -23,10 +23,10 @@ namespace kagome::runtime::binaryen {
         wasm::Module &module,
         const std::shared_ptr<RuntimeExternalInterface> &rei);
 
-    wasm::Literal callExport(
+    wasm::Literal callExportFunction(
         wasm::Name name, const std::vector<wasm::Literal> &arguments) override;
 
-    wasm::Literal getExport(wasm::Name name) override;
+    wasm::Literal getExportGlobal(wasm::Name name) override;
 
    private:
     std::unique_ptr<wasm::ModuleInstance> module_instance_;

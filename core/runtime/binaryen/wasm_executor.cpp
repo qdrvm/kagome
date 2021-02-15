@@ -30,7 +30,7 @@ namespace kagome::runtime::binaryen {
       wasm::Name method_name,
       const std::vector<wasm::Literal> &args) {
     try {
-      return module_instance.callExport(wasm::Name(method_name), args);
+      return module_instance.callExportFunction(wasm::Name(method_name), args);
     } catch (wasm::ExitException &e) {
       return Error::UNEXPECTED_EXIT;
     } catch (wasm::TrapException &e) {
@@ -39,10 +39,9 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<wasm::Literal> WasmExecutor::get(
-      WasmModuleInstance &module_instance,
-      wasm::Name global_name) {
+      WasmModuleInstance &module_instance, wasm::Name global_name) {
     try {
-      return module_instance.getExport(wasm::Name(global_name));
+      return module_instance.getExportGlobal(wasm::Name(global_name));
     } catch (wasm::TrapException &e) {
       return Error::CAN_NOT_OBTAIN_GLOBAL;
     }
