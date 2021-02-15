@@ -11,6 +11,7 @@
 #include "crypto/crypto_store/key_type.hpp"
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
+#include "mock/core/runtime/binaryen_wasm_memory_factory_mock.hpp"
 #include "mock/core/runtime/mock_memory.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "runtime/wasm_result.hpp"
@@ -32,6 +33,7 @@ using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
+using kagome::runtime::binaryen::BinaryenWasmMemoryFactoryMock;
 using wasm::Element;
 using wasm::Module;
 using wasm::ModuleInstance;
@@ -98,7 +100,7 @@ class REITest : public ::testing::Test {
     SExpressionWasmBuilder builder(wasm, *root[0]);
     EXPECT_CALL(*host_api_, memory()).WillRepeatedly(Return(memory_));
 
-    TestableExternalInterface rei(host_api_factory_, storage_provider_);
+    TestableExternalInterface rei(memory_factory_, host_api_factory_, storage_provider_);
 
     // interpret module
     ModuleInstance instance(wasm, &rei);
@@ -109,6 +111,7 @@ class REITest : public ::testing::Test {
   std::unique_ptr<HostApiMock> host_api_;
   std::shared_ptr<HostApiFactoryMock> host_api_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
+  std::shared_ptr<BinaryenWasmMemoryFactoryMock> memory_factory_;
 
   // clang-format off
   const std::string wasm_template_ =

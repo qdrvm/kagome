@@ -34,8 +34,10 @@ namespace kagome::runtime::binaryen {
     enum class CallPersistency {
       PERSISTENT,  // the changes made by this call will be applied to the state
                    // trie storage
-      EPHEMERAL    // the changes made by this call will vanish once it's
+      EPHEMERAL,   // the changes made by this call will vanish once it's
                    // completed
+      ISOLATED  // this call is executed in an isolated envrinment and must not
+                // affect neither host storage nor runtime memory
     };
 
     RuntimeApi(std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory)
@@ -57,17 +59,18 @@ namespace kagome::runtime::binaryen {
           case CallPersistency::EPHEMERAL:
             return runtime_env_factory_->makeEphemeralAt(state_root_opt.value())
                 .value();
+          case CallPersistency::ISOLATED:
+            return runtime_env_factory_->makeIsolatedAt(state_root_opt.value())
+                .value();
         }
       } else {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_env_factory_
-                ->makePersistent()
-                .value();
+            return runtime_env_factory_->makePersistent().value();
           case CallPersistency::EPHEMERAL:
-            return runtime_env_factory_
-                ->makeEphemeral()
-                .value();
+            return runtime_env_factory_->makeEphemeral().value();
+          case CallPersistency::ISOLATED:
+            return runtime_env_factory_->makeIsolated().value();
         }
       }
       BOOST_UNREACHABLE_RETURN({});
@@ -88,10 +91,10 @@ namespace kagome::runtime::binaryen {
      */
     template <typename R, typename... Args>
     outcome::result<R> executeAt(std::string_view name,
-                                 const common::Hash256 &state_root,
+                                 const storage::trie::RootHash &state_root,
                                  CallPersistency persistency,
-                                 Args &&... args) {
-      return executeAt<R>(
+                                 Args &&...args) {
+      return executeInternal<R>(
           name, state_root, persistency, std::forward<Args>(args)...);
     }
 
@@ -108,8 +111,8 @@ namespace kagome::runtime::binaryen {
     template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name,
                                CallPersistency persistency,
-                               Args &&... args) {
-      return executeAt<R>(
+                               Args &&...args) {
+      return executeInternal<R>(
           name, boost::none, persistency, std::forward<Args>(args)...);
     }
 
@@ -121,11 +124,11 @@ namespace kagome::runtime::binaryen {
      * @note for explanation of arguments \see execute or \see executeAt
      */
     template <typename R, typename... Args>
-    outcome::result<R> executeAt(
+    outcome::result<R> executeInternal(
         std::string_view name,
-        boost::optional<common::Hash256> state_root,
+        boost::optional<storage::trie::RootHash> state_root,
         CallPersistency persistency,
-        Args &&... args) {
+        Args &&...args) {
       logger_->debug("Executing export function: {}", name);
       if (state_root.has_value()) {
         logger_->debug("Resetting state to: {}", state_root.value().toHex());
@@ -149,7 +152,7 @@ namespace kagome::runtime::binaryen {
       wasm::Name wasm_name = std::string(name);
 
       OUTCOME_TRY(res, executor_.call(*module, wasm_name, ll));
-//      runtime_env_factory_->reset();
+      runtime_env_factory_->reset();
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r(res.geti64());
         auto buffer = memory->loadN(r.address, r.length);

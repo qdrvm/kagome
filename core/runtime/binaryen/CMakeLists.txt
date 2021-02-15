@@ -14,6 +14,12 @@ target_link_libraries(binaryen_wasm_memory
     )
 kagome_install(binaryen_wasm_memory)
 
+add_library(binaryen_wasm_memory_factory binaryen_wasm_memory_factory.cpp)
+target_link_libraries(binaryen_wasm_memory_factory
+    binaryen_wasm_memory
+    )
+kagome_install(binaryen_wasm_memory_factory)
+
 add_library(binaryen_runtime_external_interface
     runtime_external_interface.hpp
     runtime_external_interface.cpp

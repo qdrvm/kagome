@@ -30,9 +30,9 @@ namespace kagome::runtime::binaryen {
     if (block_hash) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash.value()));
       return executeAt<Version>(
-          "Core_version", header.state_root, CallPersistency::EPHEMERAL);
+          "Core_version", header.state_root, CallPersistency::ISOLATED);
     }
-    return execute<Version>("Core_version", CallPersistency::EPHEMERAL);
+    return execute<Version>("Core_version", CallPersistency::ISOLATED);
   }
 
   outcome::result<void> CoreImpl::execute_block(

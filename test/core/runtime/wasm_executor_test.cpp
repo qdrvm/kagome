@@ -123,7 +123,11 @@ class WasmExecutorTest : public ::testing::Test {
     auto module_factory =
         std::make_shared<kagome::runtime::binaryen::WasmModuleFactoryImpl>();
 
+    auto memory_factory =
+        std::make_shared<kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
+
     runtime_manager_ = std::make_shared<RuntimeEnvironmentFactory>(
+        std::move(memory_factory),
         std::move(extension_factory),
         std::move(module_factory),
         wasm_provider_,

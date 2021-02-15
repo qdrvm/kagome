@@ -31,18 +31,12 @@ namespace kagome::runtime::binaryen {
     enum class Error { EMPTY_STATE_CODE = 1, NO_PERSISTENT_BATCH = 2 };
 
     RuntimeEnvironmentFactory(
+        std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<WasmModuleFactory> module_factory,
         std::shared_ptr<WasmProvider> wasm_provider,
         std::shared_ptr<TrieStorageProvider> storage_provider,
         std::shared_ptr<crypto::Hasher> hasher);
-
-    enum class CallPersistency {
-      PERSISTENT,  // the changes made by this call will be applied to the state
-                   // trie storage
-      EPHEMERAL  // the changes made by this call will vanish once it's
-                 // completed
-    };
 
     outcome::result<RuntimeEnvironment> makeIsolated();
 
@@ -50,15 +44,22 @@ namespace kagome::runtime::binaryen {
 
     outcome::result<RuntimeEnvironment> makeEphemeral();
 
+    outcome::result<RuntimeEnvironment> makeIsolatedAt(
+        const storage::trie::RootHash &state_root);
+
     /**
      * @warning calling this with an \arg state_root older than the current root
      * will reset the storage to an older state once changes are committed
      */
     outcome::result<RuntimeEnvironment> makePersistentAt(
-        const common::Hash256 &state_root);
+        const storage::trie::RootHash &state_root);
 
     outcome::result<RuntimeEnvironment> makeEphemeralAt(
-        const common::Hash256 &state_root);
+        const storage::trie::RootHash &state_root);
+
+    void reset() {
+      external_interface_->reset();
+    }
 
    private:
     outcome::result<RuntimeEnvironment> createRuntimeEnvironment(
@@ -70,6 +71,7 @@ namespace kagome::runtime::binaryen {
     common::Logger logger_ =
         common::createLogger("Runtime environment factory");
 
+    std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory_;
     std::shared_ptr<TrieStorageProvider> storage_provider_;
     std::shared_ptr<WasmProvider> wasm_provider_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;

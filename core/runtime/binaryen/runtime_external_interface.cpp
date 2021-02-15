@@ -148,20 +148,18 @@ namespace kagome::runtime::binaryen {
    */
 
   RuntimeExternalInterface::RuntimeExternalInterface(
-      std::shared_ptr<WasmMemoryImpl> wasm_memory,
+      std::shared_ptr<BinaryenWasmMemoryFactory> wasm_memory_factory,
       const std::shared_ptr<host_api::HostApiFactory> &host_api_factory,
       std::shared_ptr<TrieStorageProvider> storage_provider) {
-    BOOST_ASSERT_MSG(wasm_memory != nullptr, "wasm memory is nullptr");
+    BOOST_ASSERT_MSG(wasm_memory_factory != nullptr,
+                     "wasm memory factory is nullptr");
     BOOST_ASSERT_MSG(host_api_factory != nullptr,
                      "host api factory is nullptr");
     BOOST_ASSERT_MSG(storage_provider != nullptr,
                      "storage provider is nullptr");
-    BOOST_ASSERT_MSG(
-        wasm_memory->initInternalMemory(&(ShellExternalInterface::memory)),
-        "wasm memory already initialized from another runtime external "
-        "interface");
-    host_api_ = host_api_factory->make(std::move(wasm_memory),
-                                       std::move(storage_provider));
+    host_api_ = host_api_factory->make(
+        wasm_memory_factory->make(&(ShellExternalInterface::memory)),
+        std::move(storage_provider));
   }
 
   wasm::Literal RuntimeExternalInterface::callImport(

@@ -33,6 +33,7 @@
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_environment_factory.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
@@ -111,8 +112,11 @@ class RuntimeTest : public ::testing::Test {
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
 
+    auto memory_factory = std::make_shared<kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
+
     runtime_manager_ =
         std::make_shared<kagome::runtime::binaryen::RuntimeEnvironmentFactory>(
+            std::move(memory_factory),
             std::move(extension_factory),
             std::move(module_factory),
             wasm_provider_,
