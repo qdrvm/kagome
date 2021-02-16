@@ -112,6 +112,10 @@ namespace kagome::network {
     }
   }
 
+  size_t PeerManagerImpl::activePeersNumber() const {
+    return active_peers_.size();
+  }
+
   void PeerManagerImpl::forEachPeer(
       std::function<void(const PeerId &)> func) const {
     for (auto &it : active_peers_) {

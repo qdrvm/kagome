@@ -57,6 +57,9 @@ namespace kagome::network {
     /** @see PeerManager::connectToPeer */
     void connectToPeer(const PeerInfo &peer_info) override;
 
+    /** @see PeerManager::activePeersNumber */
+    size_t activePeersNumber() const override;
+
     /** @see PeerManager::forEachPeer */
     void forEachPeer(std::function<void(const PeerId &)> func) const override;
 

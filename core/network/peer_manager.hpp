@@ -30,9 +30,14 @@ namespace kagome::network {
     virtual void connectToPeer(const PeerInfo &peer_info) = 0;
 
     /**
-     * Keep peer with {@param peer_id} alive
+     * Keeps peer with {@param peer_id} alive
      */
     virtual void keepAlive(const PeerId &peer_id) = 0;
+
+    /**
+     * @returns number of active peers
+     */
+    virtual size_t activePeersNumber() const = 0;
 
     /**
      * Apply {@param func} to each active peer
