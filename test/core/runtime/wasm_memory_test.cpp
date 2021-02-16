@@ -11,10 +11,6 @@ using kagome::runtime::binaryen::WasmMemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test {
  protected:
-
-  void SetUp() override {
-  }
-
   wasm::ShellExternalInterface interface_;
   const static uint32_t memory_size_ = 4096;  // one page size
   WasmMemoryImpl memory_{&interface_.memory, memory_size_};
