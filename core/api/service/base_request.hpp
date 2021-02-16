@@ -11,8 +11,7 @@
 #include <functional>
 #include <tuple>
 
-#include "api/service/chain/chain_api.hpp"
-#include "primitives/extrinsic.hpp"
+#include "outcome/outcome.hpp"
 
 namespace kagome::api::details {
 
