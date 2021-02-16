@@ -156,9 +156,10 @@ namespace kagome::network {
       auto it = std::min_element(active_peers_.begin(),
                                  active_peers_.end(),
                                  [](const auto &item1, const auto &item2) {
-                                   return item1.second < item2.second;
+                                   return item1.second.time < item2.second.time;
                                  });
-      auto &[oldest_peer_id, oldest_timepoint] = *it;
+      auto &[oldest_peer_id, data] = *it;
+      auto &oldest_timepoint = data.time;
 
       if (active_peers_.size() > hard_limit) {
         // Hard limit is exceeded
@@ -281,8 +282,61 @@ namespace kagome::network {
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
-      it->second = clock_->now();
+      it->second.time = clock_->now();
     }
+  }
+
+  void PeerManagerImpl::updatePeerStatus(const PeerManager::PeerId &peer_id,
+                                         const Status &status) {
+    auto it = active_peers_.find(peer_id);
+    if (it != active_peers_.end()) {
+      it->second.time = clock_->now();
+      it->second.status = status;
+    } else {
+      // Remove from connecting peer list
+      connecting_peers_.erase(peer_id);
+
+      // Remove from queue for connection
+      if (auto piq_it = peers_in_queue_.find(peer_id);
+          piq_it != peers_in_queue_.end()) {
+        auto qtc_it =
+            std::find_if(queue_to_connect_.cbegin(),
+                         queue_to_connect_.cend(),
+                         [&peer_id = peer_id](const auto &item) {
+                           return peer_id == item.get();
+                         });
+        queue_to_connect_.erase(qtc_it);
+        peers_in_queue_.erase(piq_it);
+        BOOST_ASSERT(queue_to_connect_.size()
+                         == peers_in_queue_.size());
+
+        log_->debug("Remained peers in queue for connect: {}",
+                    peers_in_queue_.size());
+      }
+
+      // Add as active peer
+      active_peers_.emplace(
+          peer_id, ActivePeerData{.time = clock_->now(), .status = status});
+    }
+  }
+
+  void PeerManagerImpl::updatePeerStatus(const PeerId &peer_id,
+                                         const BlockInfo &best_block) {
+    auto it = active_peers_.find(peer_id);
+    if (it != active_peers_.end()) {
+      it->second.time = clock_->now();
+      it->second.status.best_number = best_block.block_number;
+      it->second.status.best_hash = best_block.block_hash;
+    }
+  }
+
+  boost::optional<Status> PeerManagerImpl::getPeerStatus(
+      const PeerId &peer_id) {
+    auto it = active_peers_.find(peer_id);
+    if (it == active_peers_.end()) {
+      return boost::none;
+    }
+    return it->second.status;
   }
 
   void PeerManagerImpl::processDiscoveredPeer(const PeerId &peer_id) {
@@ -368,8 +422,8 @@ namespace kagome::network {
               }
 
               // Add to active peer list
-              if (auto [ap_it, ok] =
-                      self->active_peers_.emplace(peer_id, self->clock_->now());
+              if (auto [ap_it, ok] = self->active_peers_.emplace(
+                      peer_id, ActivePeerData{.time = self->clock_->now()});
                   ok) {
                 // And remove from queue
                 if (auto piq_it = self->peers_in_queue_.find(peer_id);

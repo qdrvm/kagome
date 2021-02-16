@@ -70,6 +70,16 @@ namespace kagome::network {
     /** @see PeerManager::forOnePeer */
     void keepAlive(const PeerId &peer_id) override;
 
+    /** @see PeerManager::updatePeerStatus */
+    void updatePeerStatus(const PeerId &peer_id, const Status &status) override;
+
+    /** @see PeerManager::updatePeerStatus */
+    void updatePeerStatus(const PeerId &peer_id,
+                          const BlockInfo &best_block) override;
+
+    /** @see PeerManager::getStatus */
+    boost::optional<Status> getPeerStatus(const PeerId &peer_id) override;
+
    private:
     /// Aligns amount of connected streams
     void align();
@@ -101,7 +111,13 @@ namespace kagome::network {
     std::unordered_set<PeerId> peers_in_queue_;
     std::deque<std::reference_wrapper<const PeerId>> queue_to_connect_;
     std::unordered_set<PeerId> connecting_peers_;
-    std::unordered_map<PeerId, clock::SteadyClock::TimePoint> active_peers_;
+
+    struct ActivePeerData {
+      clock::SteadyClock::TimePoint time;
+      Status status;
+    };
+
+    std::map<PeerId, ActivePeerData> active_peers_;
     libp2p::protocol::scheduler::Handle align_timer_;
 
     common::Logger log_;
