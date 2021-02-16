@@ -166,10 +166,9 @@ namespace kagome::injector {
             .template create<std::shared_ptr<api::chain::ChainJrpcProcessor>>(),
         injector.template create<
             std::shared_ptr<api::system::SystemJrpcProcessor>>(),
-        injector
-            .template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
-        injector
-            .template create<std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
+        injector.template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
+        injector.template create<
+            std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     const auto &trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
@@ -550,7 +549,6 @@ namespace kagome::injector {
     return genesis_config_res.value();
   }
 
-
   template <typename Injector>
   sptr<primitives::BabeConfiguration> get_babe_configuration(
       const Injector &injector) {
@@ -648,7 +646,10 @@ namespace kagome::injector {
         injector.template create<sptr<network::Gossiper>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<libp2p::protocol::Ping>>());
+        injector.template create<sptr<libp2p::protocol::Ping>>(),
+        injector.template create<sptr<network::PeerManager>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<crypto::Hasher>>());
     return initialized.value();
   }
 
