@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 
-#include "mock/core/runtime/mock_memory.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
+#include "mock/core/runtime/wasm_memory_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
@@ -23,8 +23,8 @@
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::host_api::StorageExtension;
-using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
+using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
@@ -52,7 +52,7 @@ class StorageExtensionTest : public ::testing::Test {
         .WillRepeatedly(Return(boost::make_optional(
             std::static_pointer_cast<
                 kagome::storage::trie::PersistentTrieBatch>(trie_batch_))));
-    memory_ = std::make_shared<MockMemory>();
+    memory_ = std::make_shared<WasmMemoryMock>();
     changes_tracker_ = std::make_shared<ChangesTrackerMock>();
     storage_extension_ = std::make_shared<StorageExtension>(
         storage_provider_, memory_, changes_tracker_);
@@ -61,7 +61,7 @@ class StorageExtensionTest : public ::testing::Test {
  protected:
   std::shared_ptr<PersistentTrieBatchMock> trie_batch_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
-  std::shared_ptr<MockMemory> memory_;
+  std::shared_ptr<WasmMemoryMock> memory_;
   std::shared_ptr<StorageExtension> storage_extension_;
   std::shared_ptr<ChangesTrackerMock> changes_tracker_;
 

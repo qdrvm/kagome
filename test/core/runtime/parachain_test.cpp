@@ -34,7 +34,7 @@ class ParachainHostTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     api_ = std::make_shared<ParachainHostImpl>(wasm_provider_,
-                                               runtime_manager_);
+                                               runtime_env_factory_);
   }
 
   ParaId createParachainId() const {

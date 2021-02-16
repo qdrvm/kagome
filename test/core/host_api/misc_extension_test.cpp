@@ -57,8 +57,10 @@ TEST(MiscExt, CoreVersion) {
   Buffer v2_enc{encode(boost::make_optional(v2)).value()};
 
   auto core_factory_mock = std::make_shared<CoreFactoryMock>();
-  EXPECT_CALL(*core_factory_mock, createWithCode(_)).Times(2).WillRepeatedly(Invoke([](auto& c){
+  EXPECT_CALL(*core_factory_mock, createWithCode(_)).WillOnce(Invoke([&v1](auto& c){
     auto core = std::make_unique<kagome::runtime::CoreMock>();
+    EXPECT_CALL(*core, version(_))
+        .WillOnce(Return(v1));
     return core;
   }));
 
@@ -70,6 +72,12 @@ TEST(MiscExt, CoreVersion) {
       42, memory};
   ASSERT_EQ(m.ext_misc_runtime_version_version_1(state_code1.combine(), *core_factory_mock), res1);
 
+  EXPECT_CALL(*core_factory_mock, createWithCode(_)).WillOnce(Invoke([&v2](auto& c){
+    auto core = std::make_unique<kagome::runtime::CoreMock>();
+    EXPECT_CALL(*core, version(_))
+        .WillOnce(Return(v2));
+    return core;
+  }));
   EXPECT_CALL(*memory, storeBuffer(gsl::span<const uint8_t>(v2_enc)))
       .WillOnce(Return(res2.combine()));
   kagome::host_api::MiscExtension m2(

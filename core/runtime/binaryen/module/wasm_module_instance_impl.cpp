@@ -17,17 +17,12 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(module_instance_);
   }
 
-  wasm::Literal WasmModuleInstanceImpl::callExport(
+  wasm::Literal WasmModuleInstanceImpl::callExportFunction(
       wasm::Name name, const wasm::LiteralList &arguments) {
-    return module_instance_->callExport(name, arguments);
+      return module_instance_->callExport(name, arguments);
   }
 
-  boost::optional<wasm::Literal> WasmModuleInstanceImpl::getGlobal(
-      wasm::Name name) const noexcept {
-    auto it = module_instance_->globals.find(name);
-    return (it == module_instance_->globals.cend()
-                ? boost::none
-                : boost::make_optional(it->second));
+  wasm::Literal WasmModuleInstanceImpl::getExportGlobal(wasm::Name name) {
+    return module_instance_->getExport(name);
   }
-
 }  // namespace kagome::runtime::binaryen

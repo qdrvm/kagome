@@ -35,7 +35,7 @@ class CoreTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     core_ = std::make_shared<CoreImpl>(
-        runtime_manager_,
+        runtime_env_factory_,
         changes_tracker_,
         std::make_shared<BlockHeaderRepositoryMock>());
   }

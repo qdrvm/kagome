@@ -7,13 +7,22 @@
 
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 
+using kagome::runtime::binaryen::kDefaultHeapBase;
+using kagome::runtime::binaryen::kInitialMemorySize;
+using kagome::runtime::binaryen::roundUpAlign;
 using kagome::runtime::binaryen::WasmMemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test {
  protected:
-  wasm::ShellExternalInterface interface_;
-  const static uint32_t memory_size_ = 4096;  // one page size
-  WasmMemoryImpl memory_{&interface_.memory, memory_size_};
+  const static uint32_t memory_size_ = kInitialMemorySize;
+
+  static wasm::ShellExternalInterface::Memory *getNewShellExternalInterface() {
+    static std::unique_ptr<wasm::ShellExternalInterface::Memory> interface_;
+    interface_ = std::make_unique<wasm::ShellExternalInterface::Memory>();
+    return interface_.get();
+  }
+  WasmMemoryImpl memory_{getNewShellExternalInterface()};
+
 };
 
 /**
@@ -67,13 +76,13 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
 
   // allocate memory of size 1
   auto ptr1 = memory_.allocate(size1);
-  // first memory chunk is always allocated at 1
-  ASSERT_EQ(ptr1, 1);
+  // first memory chunk is always allocated at min non-zero aligned address
+  ASSERT_EQ(ptr1, kDefaultHeapBase);
 
   // allocated second memory chunk
   auto ptr2 = memory_.allocate(size2);
   // second memory chunk is placed right after the first one (alligned by 4)
-  ASSERT_EQ(ptr2, kagome::runtime::binaryen::roundUpAlign(size1 + ptr1));
+  ASSERT_EQ(ptr2, roundUpAlign(size1 + ptr1));
 }
 
 /**
@@ -114,9 +123,11 @@ TEST_F(MemoryHeapTest, DeallocateNonexistingMemoryChunk) {
  * @then it is allocated on the place of the first memory chunk
  */
 TEST_F(MemoryHeapTest, AllocateAfterDeallocate) {
+  auto available_memory_size = kInitialMemorySize - kDefaultHeapBase;
+
   // two memory sizes totalling to the total memory size
-  const size_t size1 = 2045;
-  const size_t size2 = 2047;
+  const size_t size1 = available_memory_size / 3 + 1;
+  const size_t size2 = available_memory_size / 3 + 1;
 
   // allocate two memory chunks with total size equal to the memory size
   auto ptr1 = memory_.allocate(size1);
@@ -185,7 +196,14 @@ TEST_F(MemoryHeapTest, LoadNTest) {
  */
 TEST_F(MemoryHeapTest, ResetTest) {
   const size_t N = 42;
-  ASSERT_EQ(memory_.allocate(N), 1);
+
+  ASSERT_EQ(memory_.allocate(N), kDefaultHeapBase);
+
   memory_.reset();
-  ASSERT_EQ(memory_.allocate(N), 1);
+  ASSERT_EQ(memory_.allocate(N), kDefaultHeapBase);
+
+  auto newHeapBase = roundUpAlign(kDefaultHeapBase + 12345);
+  memory_.setHeapBase(newHeapBase);
+  memory_.reset();
+  ASSERT_EQ(memory_.allocate(N), newHeapBase);
 }

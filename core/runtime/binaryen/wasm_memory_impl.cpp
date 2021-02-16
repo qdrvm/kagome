@@ -8,23 +8,37 @@
 #include "runtime/wasm_result.hpp"
 
 namespace kagome::runtime::binaryen {
-  WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory,
-                                 WasmSize size)
-      : memory_{memory},
-        size_{size},
-        logger_{common::createLogger("WASM Memory")},
-        offset_{roundUpAlign(1u)}
-  // We should allocate very first byte to prohibit allocating memory at 0 in
-  // future, as returning 0 from allocate method means that wasm memory was
-  // exhausted
-  {
+  WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory)
+      : memory_(memory),
+        size_(kInitialMemorySize),
+        heap_base_{kDefaultHeapBase},
+        offset_{heap_base_},
+        logger_{common::createLogger("WASM Memory")} {
+    // Heap base (and offset in according) must be non zero to prohibit
+    // allocating memory at 0 in future, as returning 0 from allocate method
+    // means that wasm memory was exhausted
+    BOOST_ASSERT(heap_base_ > 0);
+    BOOST_ASSERT(heap_base_ == roundUpAlign(heap_base_));
+
+    size_ = std::max(size_, offset_);
+
     WasmMemoryImpl::resize(size_);
   }
 
+  void WasmMemoryImpl::setHeapBase(WasmSize heap_base) {
+    BOOST_ASSERT(heap_base_ > 0);
+    BOOST_ASSERT(heap_base_ == roundUpAlign(heap_base_));
+    heap_base_ = heap_base;
+  }
+
   void WasmMemoryImpl::reset() {
-    offset_ = roundUpAlign(1);
+    offset_ = heap_base_;
     allocated_.clear();
     deallocated_.clear();
+    if (size_ < offset_) {
+      size_ = offset_;
+      resize(size_);
+    }
     logger_->trace("Memory reset");
   }
 
@@ -90,7 +104,7 @@ namespace kagome::runtime::binaryen {
 
     // Combine with previous chunk if it adjacent
     while (deallocated_.begin() != d_it) {
-      auto d_it_prev = d_it; --d_it_prev;
+      auto d_it_prev = std::prev(d_it);
       if (d_it_prev->first + d_it_prev->second != d_it->first) {
         break;
       }
@@ -99,7 +113,7 @@ namespace kagome::runtime::binaryen {
       d_it = d_it_prev;
     }
 
-    auto d_it_next = d_it; ++d_it_next;
+    auto d_it_next = std::next(d_it);
     if (d_it_next == deallocated_.end()) {
       if (d_it->first + d_it->second == offset_) {
         offset_ = d_it->first;
@@ -118,33 +132,39 @@ namespace kagome::runtime::binaryen {
     // Round up size of allocating memory chunk
     size = roundUpAlign(size);
 
-    auto it = std::min_element(deallocated_.begin(),
-                               deallocated_.end(),
-                               [](const auto &item1, const auto &item2) {
-                                 return item1.second < item2.second;
-                               });
-
-    if (it == deallocated_.end()) {
-      // if did not find available space among deallocated memory chunks, then
-      // grow memory and allocate in new space
+    auto min_chunk_size = std::numeric_limits<WasmPointer>::max();
+    WasmPointer ptr = 0;
+    for (const auto &[chunk_ptr, chunk_size] : deallocated_) {
+      BOOST_ASSERT(chunk_size > 0);
+      if (chunk_size >= size and chunk_size < min_chunk_size) {
+        min_chunk_size = chunk_size;
+        ptr = chunk_ptr;
+        if (min_chunk_size == size) {
+          break;
+        }
+      }
+    }
+    if (ptr == 0) {
+      // if did not find available space among deallocated memory chunks,
+      // then grow memory and allocate in new space
       return growAlloc(size);
     }
 
-    const auto node = deallocated_.extract(it);
-    auto old_deallocated_chunk_ptr = node.key();
-    auto old_deallocated_chunk_size = node.mapped();
+    const auto node = deallocated_.extract(ptr);
+    BOOST_ASSERT(node);
 
-    if (old_deallocated_chunk_size > size) {
-      auto new_deallocated_chunk_ptr = old_deallocated_chunk_ptr + size;
-      auto new_deallocated_chunk_size = old_deallocated_chunk_size - size;
+    auto old_size = node.mapped();
+    if (old_size > size) {
+      auto new_ptr = ptr + size;
+      auto new_size = old_size - size;
+      BOOST_ASSERT(new_size > 0);
 
-      BOOST_ASSERT(new_deallocated_chunk_size > 0);
-      deallocated_[new_deallocated_chunk_ptr] = new_deallocated_chunk_size;
+      deallocated_[new_ptr] = new_size;
     }
 
-    allocated_[old_deallocated_chunk_ptr] = size;
+    allocated_[ptr] = size;
 
-    return old_deallocated_chunk_ptr;
+    return ptr;
   }
 
   WasmPointer WasmMemoryImpl::growAlloc(WasmSize size) {
@@ -170,36 +190,46 @@ namespace kagome::runtime::binaryen {
   }
 
   int8_t WasmMemoryImpl::load8s(WasmPointer addr) const {
+    BOOST_ASSERT(offset_ > addr and offset_ - addr >= sizeof(int8_t));
     return memory_->get<int8_t>(addr);
   }
   uint8_t WasmMemoryImpl::load8u(WasmPointer addr) const {
+    BOOST_ASSERT(size_ > addr and size_ - addr >= sizeof(uint8_t));
     return memory_->get<uint8_t>(addr);
   }
   int16_t WasmMemoryImpl::load16s(WasmPointer addr) const {
+    BOOST_ASSERT(size_ > addr and size_ - addr >= sizeof(int16_t));
     return memory_->get<int16_t>(addr);
   }
   uint16_t WasmMemoryImpl::load16u(WasmPointer addr) const {
+    BOOST_ASSERT(size_ > addr and size_ - addr >= sizeof(uint16_t));
     return memory_->get<uint16_t>(addr);
   }
   int32_t WasmMemoryImpl::load32s(WasmPointer addr) const {
+    BOOST_ASSERT(size_ > addr and size_ - addr >= sizeof(int32_t));
     return memory_->get<int32_t>(addr);
   }
   uint32_t WasmMemoryImpl::load32u(WasmPointer addr) const {
+    BOOST_ASSERT(size_ > addr and size_ - addr >= sizeof(uint32_t));
     return memory_->get<uint32_t>(addr);
   }
   int64_t WasmMemoryImpl::load64s(WasmPointer addr) const {
+    BOOST_ASSERT(size_ > addr and size_ - addr >= sizeof(int64_t));
     return memory_->get<int64_t>(addr);
   }
   uint64_t WasmMemoryImpl::load64u(WasmPointer addr) const {
+    BOOST_ASSERT(size_ > addr and size_ - addr >= sizeof(uint64_t));
     return memory_->get<uint64_t>(addr);
   }
   std::array<uint8_t, 16> WasmMemoryImpl::load128(WasmPointer addr) const {
+    BOOST_ASSERT(offset_ > addr
+                 and offset_ - addr >= sizeof(std::array<uint8_t, 16>));
     return memory_->get<std::array<uint8_t, 16>>(addr);
   }
 
   common::Buffer WasmMemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                        kagome::runtime::WasmSize n) const {
-    // TODO (kamilsa) PRE-98: check if we do not go outside of memory
+    BOOST_ASSERT(size_ > addr and size_ - addr >= n);
     common::Buffer res;
     res.reserve(n);
     for (auto i = addr; i < addr + n; i++) {
@@ -209,42 +239,49 @@ namespace kagome::runtime::binaryen {
   }
 
   std::string WasmMemoryImpl::loadStr(kagome::runtime::WasmPointer addr,
-                                      kagome::runtime::WasmSize n) const {
+                                      kagome::runtime::WasmSize length) const {
+    BOOST_ASSERT(size_ > addr and size_ - addr >= length);
     std::string res;
-    res.reserve(n);
-    for (auto i = addr; i < addr + n; i++) {
-      res.push_back(memory_->get<uint8_t>(i));
+    res.reserve(length);
+    for (auto i = addr; i < addr + length; i++) {
+      res.push_back(static_cast<char>(memory_->get<uint8_t>(i)));
     }
     return res;
   }
 
   void WasmMemoryImpl::store8(WasmPointer addr, int8_t value) {
+    BOOST_ASSERT(offset_ > addr and offset_ - addr >= sizeof(int8_t));
     memory_->set<int8_t>(addr, value);
   }
   void WasmMemoryImpl::store16(WasmPointer addr, int16_t value) {
+    BOOST_ASSERT(offset_ > addr and offset_ - addr >= sizeof(int16_t));
     memory_->set<int16_t>(addr, value);
   }
   void WasmMemoryImpl::store32(WasmPointer addr, int32_t value) {
+    BOOST_ASSERT(offset_ > addr and offset_ - addr >= sizeof(int32_t));
     memory_->set<int32_t>(addr, value);
   }
   void WasmMemoryImpl::store64(WasmPointer addr, int64_t value) {
+    BOOST_ASSERT(offset_ > addr and offset_ - addr >= sizeof(int64_t));
     memory_->set<int64_t>(addr, value);
   }
   void WasmMemoryImpl::store128(WasmPointer addr,
                                 const std::array<uint8_t, 16> &value) {
+    BOOST_ASSERT(offset_ > addr and offset_ - addr >= sizeof(value));
     memory_->set<std::array<uint8_t, 16>>(addr, value);
   }
   void WasmMemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
                                    gsl::span<const uint8_t> value) {
-    // TODO (kamilsa) PRE-98: check if we do not go outside of memory
-    // boundaries, 04.04.2019
-    for (size_t i = addr, j = 0; i < addr + static_cast<size_t>(value.size());
-         i++, j++) {
+    const auto size = static_cast<size_t>(value.size());
+    BOOST_ASSERT(offset_ > addr and offset_ - addr >= size);
+    for (size_t i = addr, j = 0; i < addr + size; i++, j++) {
       memory_->set(i, value[j]);
     }
   }
 
   WasmSpan WasmMemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
+    const auto size = static_cast<size_t>(value.size());
+    BOOST_ASSERT(std::numeric_limits<WasmSize>::max() > size);
     auto wasm_pointer = allocate(value.size());
     if (wasm_pointer == 0) {
       return 0;

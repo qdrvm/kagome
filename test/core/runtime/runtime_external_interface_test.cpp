@@ -9,12 +9,12 @@
 #include <boost/format.hpp>
 
 #include "crypto/crypto_store/key_type.hpp"
+#include "runtime/wasm_result.hpp"
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
-#include "mock/core/runtime/binaryen_wasm_memory_factory_mock.hpp"
-#include "mock/core/runtime/mock_memory.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "runtime/wasm_result.hpp"
+#include "mock/core/runtime/wasm_memory_mock.hpp"
+#include "mock/core/runtime/binaryen_wasm_memory_factory_mock.hpp"
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -23,10 +23,10 @@ using ::testing::Return;
 using kagome::crypto::KEY_TYPE_BABE;
 using kagome::host_api::HostApiFactoryMock;
 using kagome::host_api::HostApiMock;
-using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmLogLevel;
+using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
@@ -66,7 +66,7 @@ class TestableExternalInterface : public RuntimeExternalInterface {
 class REITest : public ::testing::Test {
  public:
   void SetUp() override {
-    memory_ = std::make_shared<MockMemory>();
+    memory_ = std::make_shared<WasmMemoryMock>();
     host_api_ = std::make_unique<HostApiMock>();
     host_api_factory_ = std::make_shared<HostApiFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
@@ -107,7 +107,7 @@ class REITest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<MockMemory> memory_;
+  std::shared_ptr<WasmMemoryMock> memory_;
   std::unique_ptr<HostApiMock> host_api_;
   std::shared_ptr<HostApiFactoryMock> host_api_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;

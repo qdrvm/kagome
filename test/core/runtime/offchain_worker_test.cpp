@@ -29,7 +29,7 @@ class OffchainWorkerTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     api_ = std::make_shared<OffchainWorkerImpl>(wasm_provider_,
-                                                runtime_manager_);
+                                                runtime_env_factory_);
   }
 
   BlockNumber createBlockNumber() const {

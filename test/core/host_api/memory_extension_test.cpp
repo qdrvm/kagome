@@ -7,13 +7,13 @@
 
 #include <gtest/gtest.h>
 
-#include "mock/core/runtime/mock_memory.hpp"
+#include "mock/core/runtime/wasm_memory_mock.hpp"
 
 using namespace kagome::host_api;
 
 using kagome::common::Buffer;
-using kagome::runtime::MockMemory;
 using kagome::runtime::WasmMemory;
+using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmPointer;
 
 using ::testing::Return;
@@ -21,12 +21,12 @@ using ::testing::Return;
 class MemoryExtensionsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    memory_ = std::make_shared<MockMemory>();
+    memory_ = std::make_shared<WasmMemoryMock>();
     memory_extension_ = std::make_shared<MemoryExtension>(memory_);
   }
 
  protected:
-  std::shared_ptr<MockMemory> memory_;
+  std::shared_ptr<WasmMemoryMock> memory_;
   std::shared_ptr<MemoryExtension> memory_extension_;
 };
 

@@ -32,7 +32,7 @@ class GrandpaTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     api_ = std::make_shared<GrandpaApiImpl>(
-        runtime_manager_,
+        runtime_env_factory_,
         std::make_shared<BlockHeaderRepositoryMock>());
   }
 

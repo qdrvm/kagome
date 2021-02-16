@@ -19,7 +19,7 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
-#include "mock/core/runtime/mock_memory.hpp"
+#include "mock/core/runtime/wasm_memory_mock.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
@@ -54,7 +54,7 @@ using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
 using kagome::crypto::Sr25519Signature;
 using kagome::crypto::secp256k1::EcdsaVerifyError;
-using kagome::runtime::MockMemory;
+using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
@@ -87,7 +87,7 @@ class CryptoExtensionTest : public ::testing::Test {
       boost::variant<ecdsa::CompressedPublicKey, EcdsaVerifyError>;
 
   void SetUp() override {
-    memory_ = std::make_shared<MockMemory>();
+    memory_ = std::make_shared<WasmMemoryMock>();
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
     sr25519_provider_ =
@@ -184,7 +184,7 @@ class CryptoExtensionTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<MockMemory> memory_;
+  std::shared_ptr<WasmMemoryMock> memory_;
   std::shared_ptr<CSPRNG> random_generator_;
   std::shared_ptr<Sr25519Provider> sr25519_provider_;
   std::shared_ptr<Ed25519Provider> ed25519_provider_;

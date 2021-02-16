@@ -37,6 +37,7 @@
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
+#include "testutil/literals.hpp"
 
 class RuntimeTest : public ::testing::Test {
  public:
@@ -71,6 +72,8 @@ class RuntimeTest : public ::testing::Test {
         .WillByDefault(testing::Return(
             outcome::failure(kagome::runtime::RuntimeTransactionError::
                                  NO_TRANSACTIONS_WERE_STARTED)));
+    ON_CALL(*storage_provider, getLatestRootMock())
+        .WillByDefault(testing::Return("42"_hash256));
 
     auto random_generator =
         std::make_shared<kagome::crypto::BoostRandomGenerator>();
@@ -114,7 +117,7 @@ class RuntimeTest : public ::testing::Test {
 
     auto memory_factory = std::make_shared<kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
 
-    runtime_manager_ =
+    runtime_env_factory_ =
         std::make_shared<kagome::runtime::binaryen::RuntimeEnvironmentFactory>(
             std::move(memory_factory),
             std::move(extension_factory),
@@ -160,7 +163,8 @@ class RuntimeTest : public ::testing::Test {
 
  protected:
   std::shared_ptr<kagome::runtime::WasmProvider> wasm_provider_;
-  std::shared_ptr<kagome::runtime::binaryen::RuntimeEnvironmentFactory> runtime_manager_;
+  std::shared_ptr<kagome::runtime::binaryen::RuntimeEnvironmentFactory>
+      runtime_env_factory_;
   std::shared_ptr<kagome::storage::changes_trie::ChangesTracker>
       changes_tracker_;
 };

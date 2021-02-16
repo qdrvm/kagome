@@ -51,14 +51,12 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<RuntimeEnvironment>
   RuntimeEnvironmentFactory::makeIsolated() {
-    // doubt, maybe need a separate provider
     return createIsolatedRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
   }
 
   outcome::result<RuntimeEnvironment> RuntimeEnvironmentFactory::makeIsolatedAt(
       const storage::trie::RootHash &state_root) {
-    // doubt, maybe need a separate provider
     return createIsolatedRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(state_root));
   }
@@ -73,7 +71,9 @@ namespace kagome::runtime::binaryen {
 
     auto env = createRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
-    if (env.has_value()) env.value().batch = (*persistent_batch)->batchOnTop();
+    if (env.has_value()) {
+      env.value().batch = (*persistent_batch)->batchOnTop();
+    }
 
     return env;
   }
@@ -94,7 +94,9 @@ namespace kagome::runtime::binaryen {
 
     auto env = createRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
-    if (env.has_value()) env.value().batch = (*persistent_batch)->batchOnTop();
+    if (env.has_value()) {
+      env.value().batch = (*persistent_batch)->batchOnTop();
+    }
 
     return env;
   }
@@ -143,12 +145,13 @@ namespace kagome::runtime::binaryen {
       module = modules_.emplace(hash, std::move(new_module)).first->second;
     }
 
-    return RuntimeEnvironment::create(external_interface_, module, state_code);
+    return RuntimeEnvironment::create(external_interface_, module);
   }
 
   outcome::result<RuntimeEnvironment>
   RuntimeEnvironmentFactory::createIsolatedRuntimeEnvironment(
       const common::Buffer &state_code) {
+    // TODO(Harrm): for review; doubt, maybe need a separate storage provider
     auto external_interface = std::make_shared<RuntimeExternalInterface>(
         memory_factory_, host_api_factory_, storage_provider_);
 
@@ -156,7 +159,7 @@ namespace kagome::runtime::binaryen {
                 module_factory_->createModule(state_code, external_interface));
 
     return RuntimeEnvironment::create(
-        external_interface, std::move(module), state_code);
+        external_interface, std::move(module));
   }
 
 }  // namespace kagome::runtime::binaryen

@@ -10,7 +10,10 @@
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
 
+#include "common/literals.hpp"
 #include "runtime/binaryen/module/wasm_module_instance_impl.hpp"
+
+using namespace kagome::common::literals;
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
                             WasmModuleImpl::Error,
@@ -59,8 +62,9 @@ namespace kagome::runtime::binaryen {
         return Error::INVALID_STATE_CODE;
       }
     }
-    module->memory.initial =
-        10 * (1u << 20u) / (1u << 16u);  // 64kB pages for 10Mb
+
+    module->memory.initial = 16_MB / 64_kB;  // 64kB pages for 16Mb
+
     std::unique_ptr<WasmModuleImpl> wasm_module_impl(
         new WasmModuleImpl(std::move(module)));
     return wasm_module_impl;
