@@ -29,7 +29,13 @@ namespace kagome::api {
     using jString = jsonrpc::Value::String;
     using jArray = jsonrpc::Value::Array;
     using jStruct = jsonrpc::Value::Struct;
-  }
+  }  // namespace
+
+  inline jsonrpc::Value makeValue(const uint32_t &);
+  inline jsonrpc::Value makeValue(const uint64_t &);
+  inline jsonrpc::Value makeValue(const std::nullptr_t &);
+  inline jsonrpc::Value makeValue(const std::nullopt_t &);
+  inline jsonrpc::Value makeValue(const boost::none_t &);
 
   template <typename T>
   inline jsonrpc::Value makeValue(const std::reference_wrapper<T> &v);
@@ -58,6 +64,14 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const primitives::Version &);
   inline jsonrpc::Value makeValue(const primitives::Justification &);
 
+  inline jsonrpc::Value makeValue(const uint32_t &val) {
+    return static_cast<int64_t>(val);
+  }
+
+  inline jsonrpc::Value makeValue(const uint64_t &val) {
+    return static_cast<int64_t>(val);
+  }
+
   inline jsonrpc::Value makeValue(const std::nullptr_t &) {
     return {};
   }
@@ -68,14 +82,6 @@ namespace kagome::api {
 
   inline jsonrpc::Value makeValue(const boost::none_t &) {
     return {};
-  }
-
-  inline jsonrpc::Value makeValue(uint32_t val) {
-    return static_cast<int64_t>(val);
-  }
-
-  inline jsonrpc::Value makeValue(uint64_t val) {
-    return static_cast<int64_t>(val);
   }
 
   template <typename T>
