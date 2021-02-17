@@ -80,7 +80,8 @@ namespace kagome::api {
 
   template <typename T>
   inline jsonrpc::Value makeValue(const T &val) {
-    return jsonrpc::Value(val);
+    jsonrpc::Value ret(val);
+    return ret;
   }
 
   template <typename T>
