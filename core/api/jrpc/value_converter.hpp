@@ -28,8 +28,8 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const common::Buffer &);
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &);
   inline jsonrpc::Value makeValue(const primitives::Version &);
-  inline jsonrpc::Value makeValue(uint32_t);
-  inline jsonrpc::Value makeValue(uint64_t);
+  inline jsonrpc::Value makeValue(const uint32_t &);
+  inline jsonrpc::Value makeValue(const uint64_t &);
   inline jsonrpc::Value makeValue(const primitives::Api &);
   inline jsonrpc::Value makeValue(const primitives::DigestItem &);
   inline jsonrpc::Value makeValue(const primitives::BlockData &);
@@ -63,7 +63,7 @@ namespace kagome::api {
 
   template <typename T>
   inline jsonrpc::Value makeValue(const T &val) {
-    return jsonrpc::Value(val);
+    return jsonrpc::Value{val};
   }
 
   template <size_t S>
@@ -79,11 +79,11 @@ namespace kagome::api {
     return jsonrpc::Value(common::hex_lower_0x(result.value()));
   }
 
-  inline jsonrpc::Value makeValue(uint32_t val) {
+  inline jsonrpc::Value makeValue(const uint32_t &val) {
     return makeValue(static_cast<int64_t>(val));
   }
 
-  inline jsonrpc::Value makeValue(uint64_t val) {
+  inline jsonrpc::Value makeValue(const uint64_t &val) {
     return makeValue(static_cast<int64_t>(val));
   }
 
