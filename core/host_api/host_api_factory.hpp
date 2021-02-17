@@ -10,6 +10,12 @@
 
 #include "runtime/trie_storage_provider.hpp"
 
+
+namespace kagome::runtime::binaryen {
+  class CoreFactory;
+  class RuntimeEnvironmentFactory;
+}
+
 namespace kagome::host_api {
 
   /**
@@ -23,6 +29,9 @@ namespace kagome::host_api {
      * Takes \param memory and creates \return extension using this memory
      */
     virtual std::unique_ptr<HostApi> make(
+        std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
+        std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
+        runtime_env_factory,
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const = 0;
   };

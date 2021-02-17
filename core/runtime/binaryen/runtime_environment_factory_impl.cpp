@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/runtime_environment_factory.hpp"
+#include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 
 #include <gsl/gsl>
 
@@ -11,9 +11,9 @@
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
-                            RuntimeEnvironmentFactory::Error,
+                            RuntimeEnvironmentFactoryImpl::Error,
                             e) {
-  using Error = kagome::runtime::binaryen::RuntimeEnvironmentFactory::Error;
+  using Error = kagome::runtime::binaryen::RuntimeEnvironmentFactoryImpl::Error;
   switch (e) {
     case Error::EMPTY_STATE_CODE:
       return "Provided state code is empty, calling a function is impossible";
@@ -26,21 +26,24 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 namespace kagome::runtime::binaryen {
 
   thread_local std::shared_ptr<RuntimeExternalInterface>
-      RuntimeEnvironmentFactory::external_interface_{};
+      RuntimeEnvironmentFactoryImpl::external_interface_{};
 
-  RuntimeEnvironmentFactory::RuntimeEnvironmentFactory(
+  RuntimeEnvironmentFactoryImpl::RuntimeEnvironmentFactoryImpl(
+      std::shared_ptr<CoreFactory> core_factory,
       std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<WasmModuleFactory> module_factory,
       std::shared_ptr<WasmProvider> wasm_provider,
       std::shared_ptr<TrieStorageProvider> storage_provider,
       std::shared_ptr<crypto::Hasher> hasher)
-      : memory_factory_{std::move(memory_factory)},
+      : core_factory_{std::move(core_factory)},
+        memory_factory_{std::move(memory_factory)},
         storage_provider_{std::move(storage_provider)},
         wasm_provider_{std::move(wasm_provider)},
         host_api_factory_{std::move(host_api_factory)},
         module_factory_{std::move(module_factory)},
         hasher_{std::move(hasher)} {
+    BOOST_ASSERT(core_factory_);
     BOOST_ASSERT(memory_factory_);
     BOOST_ASSERT(wasm_provider_);
     BOOST_ASSERT(storage_provider_);
@@ -50,19 +53,19 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeEnvironmentFactory::makeIsolated() {
+  RuntimeEnvironmentFactoryImpl::makeIsolated() {
     return createIsolatedRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
   }
 
-  outcome::result<RuntimeEnvironment> RuntimeEnvironmentFactory::makeIsolatedAt(
+  outcome::result<RuntimeEnvironment> RuntimeEnvironmentFactoryImpl::makeIsolatedAt(
       const storage::trie::RootHash &state_root) {
     return createIsolatedRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(state_root));
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeEnvironmentFactory::makePersistentAt(
+  RuntimeEnvironmentFactoryImpl::makePersistentAt(
       const storage::trie::RootHash &state_root) {
     OUTCOME_TRY(storage_provider_->setToPersistentAt(state_root));
 
@@ -79,14 +82,14 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeEnvironmentFactory::makeEphemeralAt(
+  RuntimeEnvironmentFactoryImpl::makeEphemeralAt(
       const storage::trie::RootHash &state_root) {
     OUTCOME_TRY(storage_provider_->setToEphemeralAt(state_root));
     return createRuntimeEnvironment(wasm_provider_->getStateCodeAt(state_root));
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeEnvironmentFactory::makePersistent() {
+  RuntimeEnvironmentFactoryImpl::makePersistent() {
     OUTCOME_TRY(storage_provider_->setToPersistent());
 
     auto persistent_batch = storage_provider_->tryGetPersistentBatch();
@@ -102,14 +105,14 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeEnvironmentFactory::makeEphemeral() {
+  RuntimeEnvironmentFactoryImpl::makeEphemeral() {
     OUTCOME_TRY(storage_provider_->setToEphemeral());
     return createRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeEnvironmentFactory::createRuntimeEnvironment(
+  RuntimeEnvironmentFactoryImpl::createRuntimeEnvironment(
       const common::Buffer &state_code) {
     if (state_code.empty()) {
       return Error::EMPTY_STATE_CODE;
@@ -129,8 +132,12 @@ namespace kagome::runtime::binaryen {
     }
 
     if (external_interface_ == nullptr) {
-      external_interface_ = std::make_shared<RuntimeExternalInterface>(
-          memory_factory_, host_api_factory_, storage_provider_);
+      external_interface_ =
+          std::make_shared<RuntimeExternalInterface>(core_factory_,
+                                                     shared_from_this(),
+                                                     memory_factory_,
+                                                     host_api_factory_,
+                                                     storage_provider_);
     }
 
     if (!module) {
@@ -149,17 +156,20 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeEnvironmentFactory::createIsolatedRuntimeEnvironment(
+  RuntimeEnvironmentFactoryImpl::createIsolatedRuntimeEnvironment(
       const common::Buffer &state_code) {
     // TODO(Harrm): for review; doubt, maybe need a separate storage provider
-    auto external_interface = std::make_shared<RuntimeExternalInterface>(
-        memory_factory_, host_api_factory_, storage_provider_);
+    auto external_interface =
+        std::make_shared<RuntimeExternalInterface>(core_factory_,
+                                                   shared_from_this(),
+                                                   memory_factory_,
+                                                   host_api_factory_,
+                                                   storage_provider_);
 
     OUTCOME_TRY(module,
                 module_factory_->createModule(state_code, external_interface));
 
-    return RuntimeEnvironment::create(
-        external_interface, std::move(module));
+    return RuntimeEnvironment::create(external_interface, std::move(module));
   }
 
 }  // namespace kagome::runtime::binaryen

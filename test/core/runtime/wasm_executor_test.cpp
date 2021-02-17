@@ -24,7 +24,7 @@
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
-#include "runtime/binaryen/runtime_environment_factory.hpp"
+#include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -123,10 +123,19 @@ class WasmExecutorTest : public ::testing::Test {
     auto module_factory =
         std::make_shared<kagome::runtime::binaryen::WasmModuleFactoryImpl>();
 
-    auto memory_factory =
-        std::make_shared<kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
+    auto memory_factory = std::make_shared<
+        kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
 
-    runtime_manager_ = std::make_shared<RuntimeEnvironmentFactory>(
+    auto header_repo_mock =
+        std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
+
+    auto core_factory =
+        std::make_shared<kagome::runtime::binaryen::CoreFactoryImpl>(
+            changes_tracker, header_repo_mock);
+
+    runtime_manager_ = std::make_shared<
+        kagome::runtime::binaryen::RuntimeEnvironmentFactoryImpl>(
+        std::move(core_factory),
         std::move(memory_factory),
         std::move(extension_factory),
         std::move(module_factory),

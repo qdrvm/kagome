@@ -18,6 +18,9 @@ namespace kagome::host_api {
 
   HostApiImpl::HostApiImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
+      std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
+      std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
+          runtime_env_factory,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
@@ -38,7 +41,10 @@ namespace kagome::host_api {
                                               std::move(bip39_provider))},
         io_ext_(memory),
         memory_ext_(memory),
-        misc_ext_(DEFAULT_CHAIN_ID, memory),
+        misc_ext_{DEFAULT_CHAIN_ID,
+                  std::move(core_factory),
+                  std::move(runtime_env_factory),
+                  memory},
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
@@ -57,12 +63,12 @@ namespace kagome::host_api {
   // -------------------------Storage extensions--------------------------
 
   void HostApiImpl::ext_clear_prefix(runtime::WasmPointer prefix_data,
-                                       runtime::WasmSize prefix_length) {
+                                     runtime::WasmSize prefix_length) {
     return storage_ext_.ext_clear_prefix(prefix_data, prefix_length);
   }
 
   void HostApiImpl::ext_clear_storage(runtime::WasmPointer key_data,
-                                        runtime::WasmSize key_length) {
+                                      runtime::WasmSize key_length) {
     return storage_ext_.ext_clear_storage(key_data, key_length);
   }
 
@@ -97,9 +103,9 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::ext_set_storage(runtime::WasmPointer key_data,
-                                      runtime::WasmSize key_length,
-                                      runtime::WasmPointer value_data,
-                                      runtime::WasmSize value_length) {
+                                    runtime::WasmSize key_length,
+                                    runtime::WasmPointer value_data,
+                                    runtime::WasmSize value_length) {
     return storage_ext_.ext_set_storage(
         key_data, key_length, value_data, value_length);
   }
@@ -145,7 +151,7 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::ext_storage_set_version_1(runtime::WasmSpan key,
-                                                runtime::WasmSpan value) {
+                                              runtime::WasmSpan value) {
     return storage_ext_.ext_storage_set_version_1(key, value);
   }
 
@@ -209,13 +215,13 @@ namespace kagome::host_api {
 
   /// I/O extensions
   void HostApiImpl::ext_print_hex(runtime::WasmPointer data,
-                                    runtime::WasmSize length) {
+                                  runtime::WasmSize length) {
     io_ext_.ext_print_hex(data, length);
   }
 
   void HostApiImpl::ext_logging_log_version_1(runtime::WasmEnum level,
-                                                runtime::WasmSpan target,
-                                                runtime::WasmSpan message) {
+                                              runtime::WasmSpan target,
+                                              runtime::WasmSpan message) {
     io_ext_.ext_logging_log_version_1(level, target, message);
   }
 
@@ -224,26 +230,26 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::ext_print_utf8(runtime::WasmPointer utf8_data,
-                                     runtime::WasmSize utf8_length) {
+                                   runtime::WasmSize utf8_length) {
     io_ext_.ext_print_utf8(utf8_data, utf8_length);
   }
 
   /// cryptographic extensions
   void HostApiImpl::ext_blake2_128(runtime::WasmPointer data,
-                                     runtime::WasmSize len,
-                                     runtime::WasmPointer out) {
+                                   runtime::WasmSize len,
+                                   runtime::WasmPointer out) {
     crypto_ext_->ext_blake2_128(data, len, out);
   }
 
   void HostApiImpl::ext_blake2_256(runtime::WasmPointer data,
-                                     runtime::WasmSize len,
-                                     runtime::WasmPointer out) {
+                                   runtime::WasmSize len,
+                                   runtime::WasmPointer out) {
     crypto_ext_->ext_blake2_256(data, len, out);
   }
 
   void HostApiImpl::ext_keccak_256(runtime::WasmPointer data,
-                                     runtime::WasmSize len,
-                                     runtime::WasmPointer out) {
+                                   runtime::WasmSize len,
+                                   runtime::WasmPointer out) {
     crypto_ext_->ext_keccak_256(data, len, out);
   }
 
@@ -274,20 +280,20 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::ext_twox_64(runtime::WasmPointer data,
-                                  runtime::WasmSize len,
-                                  runtime::WasmPointer out) {
+                                runtime::WasmSize len,
+                                runtime::WasmPointer out) {
     crypto_ext_->ext_twox_64(data, len, out);
   }
 
   void HostApiImpl::ext_twox_128(runtime::WasmPointer data,
-                                   runtime::WasmSize len,
-                                   runtime::WasmPointer out) {
+                                 runtime::WasmSize len,
+                                 runtime::WasmPointer out) {
     crypto_ext_->ext_twox_128(data, len, out);
   }
 
   void HostApiImpl::ext_twox_256(runtime::WasmPointer data,
-                                   runtime::WasmSize len,
-                                   runtime::WasmPointer out) {
+                                 runtime::WasmSize len,
+                                 runtime::WasmPointer out) {
     crypto_ext_->ext_twox_256(data, len, out);
   }
 
@@ -384,17 +390,15 @@ namespace kagome::host_api {
   }
 
   runtime::WasmResult HostApiImpl::ext_misc_runtime_version_version_1(
-      runtime::WasmSpan data, runtime::CoreFactory& core_factory) const {
-    return misc_ext_.ext_misc_runtime_version_version_1(data, core_factory);
+      runtime::WasmSpan data) const {
+    return misc_ext_.ext_misc_runtime_version_version_1(data);
   }
 
-  void HostApiImpl::ext_misc_print_hex_version_1(
-      runtime::WasmSpan data) const {
+  void HostApiImpl::ext_misc_print_hex_version_1(runtime::WasmSpan data) const {
     return misc_ext_.ext_misc_print_hex_version_1(data);
   }
 
-  void HostApiImpl::ext_misc_print_num_version_1(
-      uint64_t value) const {
+  void HostApiImpl::ext_misc_print_num_version_1(uint64_t value) const {
     return misc_ext_.ext_misc_print_num_version_1(value);
   }
 

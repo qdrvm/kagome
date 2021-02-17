@@ -29,15 +29,15 @@
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
+#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
-#include "runtime/binaryen/runtime_environment_factory.hpp"
+#include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
-#include "testutil/literals.hpp"
 
 class RuntimeTest : public ::testing::Test {
  public:
@@ -88,7 +88,9 @@ class RuntimeTest : public ::testing::Test {
         std::make_shared<kagome::crypto::Pbkdf2ProviderImpl>();
     auto bip39_provider =
         std::make_shared<kagome::crypto::Bip39ProviderImpl>(pbkdf2_provider);
-    auto keystore_path = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("kagome_keystore_test_dir");
+    auto keystore_path =
+        boost::filesystem::temp_directory_path()
+        / boost::filesystem::unique_path("kagome_keystore_test_dir");
     auto crypto_store = std::make_shared<kagome::crypto::CryptoStoreImpl>(
         std::make_shared<kagome::crypto::Ed25519Suite>(ed25519_provider),
         std::make_shared<kagome::crypto::Sr25519Suite>(sr25519_provider),
@@ -115,16 +117,24 @@ class RuntimeTest : public ::testing::Test {
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
 
-    auto memory_factory = std::make_shared<kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
+    auto memory_factory = std::make_shared<
+        kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
 
-    runtime_env_factory_ =
-        std::make_shared<kagome::runtime::binaryen::RuntimeEnvironmentFactory>(
-            std::move(memory_factory),
-            std::move(extension_factory),
-            std::move(module_factory),
-            wasm_provider_,
-            std::move(storage_provider),
-            std::move(hasher));
+    auto header_repo_mock = std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
+
+    auto core_factory =
+        std::make_shared<kagome::runtime::binaryen::CoreFactoryImpl>(
+            changes_tracker_, header_repo_mock);
+
+    runtime_env_factory_ = std::make_shared<
+        kagome::runtime::binaryen::RuntimeEnvironmentFactoryImpl>(
+        std::move(core_factory),
+        std::move(memory_factory),
+        std::move(extension_factory),
+        std::move(module_factory),
+        wasm_provider_,
+        std::move(storage_provider),
+        std::move(hasher));
   }
 
   kagome::primitives::BlockHeader createBlockHeader() {

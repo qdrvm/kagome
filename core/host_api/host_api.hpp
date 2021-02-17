@@ -13,10 +13,6 @@
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_result.hpp"
 
-namespace kagome::runtime {
-  class CoreFactory;
-}
-
 namespace kagome::host_api {
   /**
    * Extensions for WASM; API, which is called by the runtime to control RE
@@ -540,8 +536,7 @@ namespace kagome::host_api {
     virtual uint64_t ext_chain_id() const = 0;
 
     virtual runtime::WasmResult ext_misc_runtime_version_version_1(
-        runtime::WasmSpan data,
-        runtime::CoreFactory& core_factory) const = 0;
+        runtime::WasmSpan data) const = 0;
 
     /**
      * Print a hex value

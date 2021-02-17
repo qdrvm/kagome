@@ -166,10 +166,9 @@ namespace kagome::injector {
             .template create<std::shared_ptr<api::chain::ChainJrpcProcessor>>(),
         injector.template create<
             std::shared_ptr<api::system::SystemJrpcProcessor>>(),
-        injector
-            .template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
-        injector
-            .template create<std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
+        injector.template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
+        injector.template create<
+            std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     const auto &trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
@@ -405,12 +404,12 @@ namespace kagome::injector {
 
     initialized =
         std::make_shared<host_api::HostApiFactoryImpl>(tracker,
-                                                           sr25519_provider,
-                                                           ed25519_provider,
-                                                           secp256k1_provider,
-                                                           hasher,
-                                                           crypto_store,
-                                                           bip39_provider);
+                                                       sr25519_provider,
+                                                       ed25519_provider,
+                                                       secp256k1_provider,
+                                                       hasher,
+                                                       crypto_store,
+                                                       bip39_provider);
     return initialized.value();
   }
 
@@ -542,7 +541,6 @@ namespace kagome::injector {
     initialized = genesis_config_res.value();
     return genesis_config_res.value();
   }
-
 
   template <typename Injector>
   sptr<primitives::BabeConfiguration> get_babe_configuration(
@@ -779,7 +777,7 @@ namespace kagome::injector {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     // default values for configurations
@@ -884,7 +882,8 @@ namespace kagome::injector {
         di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
         di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
         di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
-        di::bind<runtime::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
+        di::bind<runtime::binaryen::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
+        di::bind<runtime::binaryen::RuntimeEnvironmentFactory>.template to<runtime::binaryen::RuntimeEnvironmentFactoryImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),

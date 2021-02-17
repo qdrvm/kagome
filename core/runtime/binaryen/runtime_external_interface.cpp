@@ -63,6 +63,8 @@ namespace kagome::runtime::binaryen {
       "ext_misc_print_num_version_1";
   const static wasm::Name ext_misc_print_utf8_version_1 =
       "ext_misc_print_utf8_version_1";
+  const static wasm::Name ext_misc_runtime_version_version_1 =
+      "ext_misc_runtime_version_version_1";
 
   // version 1
   const static wasm::Name ext_hashing_keccak_256_version_1 =
@@ -148,6 +150,8 @@ namespace kagome::runtime::binaryen {
    */
 
   RuntimeExternalInterface::RuntimeExternalInterface(
+      std::shared_ptr<CoreFactory> core_factory,
+      std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
       std::shared_ptr<BinaryenWasmMemoryFactory> wasm_memory_factory,
       const std::shared_ptr<host_api::HostApiFactory> &host_api_factory,
       std::shared_ptr<TrieStorageProvider> storage_provider) {
@@ -158,6 +162,8 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT_MSG(storage_provider != nullptr,
                      "storage provider is nullptr");
     host_api_ = host_api_factory->make(
+        core_factory,
+        runtime_env_factory,
         wasm_memory_factory->make(&(ShellExternalInterface::memory)),
         std::move(storage_provider));
   }
@@ -695,6 +701,14 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_misc_print_utf8_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_misc_print_utf8_version_1(arguments.at(0).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_misc_runtime_version_version_1
+      if (import->base == ext_misc_runtime_version_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        host_api_->ext_misc_runtime_version_version_1(
+            arguments.at(0).geti64());
         return wasm::Literal();
       }
 

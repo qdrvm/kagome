@@ -17,9 +17,13 @@
 
 namespace kagome::runtime {
   class WasmMemory;
-  class CoreFactory;
   class Core;
   class WasmProvider;
+
+  namespace binaryen {
+    class RuntimeEnvironmentFactory;
+    class CoreFactory;
+  }  // namespace binaryen
 }  // namespace kagome::runtime
 
 namespace kagome::host_api {
@@ -28,8 +32,12 @@ namespace kagome::host_api {
    */
   class MiscExtension final {
    public:
-    MiscExtension(uint64_t chain_id,
-                  std::shared_ptr<runtime::WasmMemory> memory);
+    MiscExtension(
+        uint64_t chain_id,
+        std::shared_ptr<runtime::binaryen::CoreFactory> core_api_factory,
+        std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
+            runtime_env_factory,
+        std::shared_ptr<runtime::WasmMemory> memory);
 
     ~MiscExtension() = default;
 
@@ -39,7 +47,7 @@ namespace kagome::host_api {
     uint64_t ext_chain_id() const;
 
     runtime::WasmResult ext_misc_runtime_version_version_1(
-        runtime::WasmSpan data, runtime::CoreFactory& core_factory) const;
+        runtime::WasmSpan data) const;
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const;
 
@@ -48,6 +56,9 @@ namespace kagome::host_api {
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const;
 
    private:
+    std::shared_ptr<runtime::binaryen::CoreFactory> core_api_factory_;
+    std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
+        runtime_env_factory_;
     std::shared_ptr<runtime::WasmMemory> memory_;
     common::Logger logger_;
     const uint64_t chain_id_ = 42;

@@ -13,6 +13,11 @@
 #include "host_api/impl/misc_extension.hpp"
 #include "host_api/impl/storage_extension.hpp"
 
+namespace kagome::runtime::binaryen {
+  class CoreFactory;
+  class RuntimeEnvironmentFactory;
+}
+
 namespace kagome::host_api {
   /**
    * Fair implementation of the extensions interface
@@ -21,6 +26,9 @@ namespace kagome::host_api {
    public:
     HostApiImpl() = delete;
     HostApiImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
+                std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
+                std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
+                    runtime_env_factory,
                 std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
                 std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
                 std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
@@ -243,8 +251,7 @@ namespace kagome::host_api {
     uint64_t ext_chain_id() const override;
 
     runtime::WasmResult ext_misc_runtime_version_version_1(
-        runtime::WasmSpan data,
-        runtime::CoreFactory& core_factory) const override;
+        runtime::WasmSpan data) const override;
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const override;
 

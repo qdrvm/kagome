@@ -34,16 +34,21 @@ namespace kagome::host_api {
   }
 
   std::unique_ptr<HostApi> HostApiFactoryImpl::make(
+      std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
+      std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
+          runtime_env_factory,
       std::shared_ptr<runtime::WasmMemory> memory,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const {
     return std::make_unique<HostApiImpl>(memory,
-                                           storage_provider,
-                                           changes_tracker_,
-                                           sr25519_provider_,
-                                           ed25519_provider_,
-                                           secp256k1_provider_,
-                                           hasher_,
-                                           crypto_store_,
-                                           bip39_provider_);
+                                         core_factory,
+                                         runtime_env_factory,
+                                         storage_provider,
+                                         changes_tracker_,
+                                         sr25519_provider_,
+                                         ed25519_provider_,
+                                         secp256k1_provider_,
+                                         hasher_,
+                                         crypto_store_,
+                                         bip39_provider_);
   }
 }  // namespace kagome::host_api

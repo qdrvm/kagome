@@ -6,20 +6,23 @@
 #ifndef KAGOME_CORE_FACTORY_MOCK_HPP
 #define KAGOME_CORE_FACTORY_MOCK_HPP
 
-#include "runtime/core_factory.hpp"
+#include "runtime/binaryen/core_factory.hpp"
 
 #include <gmock/gmock.h>
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
   class CoreFactoryMock : public CoreFactory {
    public:
     ~CoreFactoryMock() override = default;
 
-    MOCK_METHOD1(createWithCode,
-                 std::unique_ptr<Core>(std::shared_ptr<WasmProvider> wasm_provider));
+    MOCK_METHOD2(
+        createWithCode,
+        std::unique_ptr<Core>(
+            std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
+            std::shared_ptr<WasmProvider> wasm_provider));
   };
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
 #endif  // KAGOME_CORE_FACTORY_MOCK_HPP

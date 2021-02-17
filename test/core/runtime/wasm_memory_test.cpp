@@ -97,7 +97,7 @@ TEST_F(MemoryHeapTest, DeallocateExisingMemoryChunk) {
 
   auto opt_deallocated_size = memory_.deallocate(ptr1);
   ASSERT_TRUE(opt_deallocated_size.has_value());
-  ASSERT_EQ(*opt_deallocated_size, size1);
+  ASSERT_EQ(*opt_deallocated_size, roundUpAlign(size1));
 }
 
 /**

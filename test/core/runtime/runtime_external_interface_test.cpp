@@ -9,18 +9,21 @@
 #include <boost/format.hpp>
 
 #include "crypto/crypto_store/key_type.hpp"
-#include "runtime/wasm_result.hpp"
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
+#include "mock/core/runtime/binaryen_wasm_memory_factory_mock.hpp"
+#include "mock/core/runtime/core_factory_mock.hpp"
+#include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/runtime/wasm_memory_mock.hpp"
-#include "mock/core/runtime/binaryen_wasm_memory_factory_mock.hpp"
+#include "runtime/wasm_result.hpp"
 
 using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Return;
 
 using kagome::crypto::KEY_TYPE_BABE;
+using kagome::host_api::HostApi;
 using kagome::host_api::HostApiFactoryMock;
 using kagome::host_api::HostApiMock;
 using kagome::runtime::TrieStorageProviderMock;
@@ -32,8 +35,10 @@ using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::runtime::binaryen::BinaryenWasmMemoryFactoryMock;
+using kagome::runtime::binaryen::CoreFactoryMock;
+using kagome::runtime::binaryen::RuntimeEnvironmentFactoryMock;
+using kagome::runtime::binaryen::RuntimeExternalInterface;
 using wasm::Element;
 using wasm::Module;
 using wasm::ModuleInstance;
@@ -70,18 +75,21 @@ class REITest : public ::testing::Test {
     host_api_ = std::make_unique<HostApiMock>();
     host_api_factory_ = std::make_shared<HostApiFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
-    EXPECT_CALL(*host_api_factory_, make(_, _))
-        .WillRepeatedly(Invoke([this](auto &,
-                                      auto &) -> std::unique_ptr<HostApiMock> {
-          if (host_api_) {
-            auto ext = std::move(host_api_);
-            host_api_ = std::make_unique<HostApiMock>();
-            return std::unique_ptr<HostApiMock>(std::move(ext));
-          } else {
-            host_api_ = std::make_unique<HostApiMock>();
-            return std::unique_ptr<HostApiMock>(std::make_unique<HostApiMock>());
-          }
-        }));
+    core_api_factory_ = std::make_shared<CoreFactoryMock>();
+    runtime_env_factory_ = std::make_shared<RuntimeEnvironmentFactoryMock>();
+    EXPECT_CALL(*host_api_factory_, make(_, _, _, _))
+        .WillRepeatedly(Invoke(
+            [this](auto &, auto &, auto &, auto &) -> std::unique_ptr<HostApi> {
+              if (host_api_) {
+                auto ext = std::move(host_api_);
+                host_api_ = std::make_unique<HostApiMock>();
+                return std::unique_ptr<HostApiMock>(std::move(ext));
+              } else {
+                host_api_ = std::make_unique<HostApiMock>();
+                return std::unique_ptr<HostApi>(
+                    std::make_unique<HostApiMock>());
+              }
+            }));
   }
 
   void executeWasm(std::string call_code) {
@@ -100,7 +108,11 @@ class REITest : public ::testing::Test {
     SExpressionWasmBuilder builder(wasm, *root[0]);
     EXPECT_CALL(*host_api_, memory()).WillRepeatedly(Return(memory_));
 
-    TestableExternalInterface rei(memory_factory_, host_api_factory_, storage_provider_);
+    TestableExternalInterface rei(core_api_factory_,
+                                  runtime_env_factory_,
+                                  memory_factory_,
+                                  host_api_factory_,
+                                  storage_provider_);
 
     // interpret module
     ModuleInstance instance(wasm, &rei);
@@ -108,6 +120,8 @@ class REITest : public ::testing::Test {
 
  protected:
   std::shared_ptr<WasmMemoryMock> memory_;
+  std::shared_ptr<CoreFactoryMock> core_api_factory_;
+  std::shared_ptr<RuntimeEnvironmentFactoryMock> runtime_env_factory_;
   std::unique_ptr<HostApiMock> host_api_;
   std::shared_ptr<HostApiFactoryMock> host_api_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
@@ -325,8 +339,7 @@ TEST_F(REITest, ext_get_allocated_storage_Test) {
 
   WasmPointer res_ptr = 1;
 
-  EXPECT_CALL(*host_api_,
-              ext_get_allocated_storage(key_ptr, key_size, len_ptr))
+  EXPECT_CALL(*host_api_, ext_get_allocated_storage(key_ptr, key_size, len_ptr))
       .WillOnce(Return(res_ptr));
 
   auto execute_code = (boost::format("    (call $assert_eq_i32\n"
@@ -472,8 +485,7 @@ TEST_F(REITest, ext_logging_log_version_1_Test) {
   const auto pos_packed = position.combine();
   WasmEnum ll = static_cast<WasmEnum>(WasmLogLevel::WasmLL_Error);
 
-  EXPECT_CALL(*host_api_,
-              ext_logging_log_version_1(ll, pos_packed, pos_packed))
+  EXPECT_CALL(*host_api_, ext_logging_log_version_1(ll, pos_packed, pos_packed))
       .Times(1);
   auto execute_code = (boost::format("    (call $ext_logging_log_version_1\n"
                                      "      (i32.const %d)\n"

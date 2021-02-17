@@ -22,7 +22,9 @@ namespace kagome::runtime::binaryen {
 
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
-    explicit RuntimeExternalInterface(
+    RuntimeExternalInterface(
+        std::shared_ptr<CoreFactory> core_factory,
+        std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
         std::shared_ptr<BinaryenWasmMemoryFactory> wasm_memory_factory,
         const std::shared_ptr<host_api::HostApiFactory> &host_api_factory,
         std::shared_ptr<TrieStorageProvider> storage_provider);

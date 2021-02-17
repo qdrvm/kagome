@@ -3,16 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_CORE_FACTORY
-#define KAGOME_CORE_RUNTIME_CORE_FACTORY
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_CORE_FACTORY
+#define KAGOME_CORE_RUNTIME_BINARYEN_CORE_FACTORY
 
 #include "runtime/core.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
-  namespace binaryen {
-    class RuntimeEnvironmentFactory;
-  }
+  class RuntimeEnvironmentFactory;
 
   /**
    * An abstract factory that enables construction of Core objects over specific
@@ -27,9 +25,10 @@ namespace kagome::runtime {
      * serves
      */
     virtual std::unique_ptr<Core> createWithCode(
+        std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
         std::shared_ptr<WasmProvider> wasm_provider) = 0;
   };
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_CORE_RUNTIME_CORE_FACTORY
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_CORE_FACTORY

@@ -8,18 +8,18 @@
 
 #include "host_api/host_api_factory.hpp"
 
-#include "host_api/impl/misc_extension.hpp"
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/secp256k1_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "host_api/impl/misc_extension.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::host_api {
 
-  class HostApiFactoryImpl : public HostApiFactory {
+  class HostApiFactoryImpl final: public HostApiFactory {
    public:
     ~HostApiFactoryImpl() override = default;
 
@@ -33,6 +33,9 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     std::unique_ptr<HostApi> make(
+        std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
+        std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
+            runtime_env_factory,
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider)
         const override;

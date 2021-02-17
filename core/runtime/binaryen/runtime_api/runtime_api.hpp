@@ -16,7 +16,7 @@
 #include "common/logger.hpp"
 #include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/runtime_environment.hpp"
-#include "runtime/binaryen/runtime_environment_factory.hpp"
+#include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
