@@ -80,7 +80,13 @@ namespace kagome::api {
 
   template <typename T>
   inline jsonrpc::Value makeValue(const T &val) {
-    return jsonrpc::Value{val};
+    return val;
+  }
+
+  template <typename T>
+  inline jsonrpc::Value makeValue(T &&val) {
+    T&& v = std::forward<T>(val);
+    return makeValue(v);
   }
 
   template <typename T>
