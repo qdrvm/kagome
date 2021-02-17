@@ -10,11 +10,12 @@
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/consensus/babe/babe_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
-#include "mock/core/network/gossiper_mock.hpp"
+#include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/runtime/account_nonce_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "scale/scale.hpp"
 
 using kagome::api::SystemApi;
 using kagome::api::SystemApiImpl;
@@ -23,7 +24,7 @@ using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::consensus::babe::BabeMock;
 using kagome::crypto::HasherMock;
-using kagome::network::GossiperMock;
+using kagome::network::PeerManagerMock;
 using kagome::primitives::Transaction;
 using kagome::runtime::AccountNonceApiMock;
 using kagome::transaction_pool::TransactionPoolMock;
@@ -36,14 +37,14 @@ class SystemApiTest : public ::testing::Test {
   void SetUp() {
     chain_spec_mock_ = std::make_shared<ChainSpecMock>();
     babe_mock_ = std::make_shared<BabeMock>();
-    gossiper_mock_ = std::make_shared<GossiperMock>();
+    peer_manager_mock_ = std::make_shared<PeerManagerMock>();
     transaction_pool_mock_ = std::make_shared<TransactionPoolMock>();
     account_nonce_api_mock_ = std::make_shared<AccountNonceApiMock>();
     hasher_mock_ = std::make_shared<HasherMock>();
 
     system_api_ = std::make_unique<SystemApiImpl>(chain_spec_mock_,
                                                   babe_mock_,
-                                                  gossiper_mock_,
+                                                  peer_manager_mock_,
                                                   account_nonce_api_mock_,
                                                   transaction_pool_mock_,
                                                   hasher_mock_);
@@ -54,7 +55,7 @@ class SystemApiTest : public ::testing::Test {
 
   std::shared_ptr<ChainSpecMock> chain_spec_mock_;
   std::shared_ptr<BabeMock> babe_mock_;
-  std::shared_ptr<GossiperMock> gossiper_mock_;
+  std::shared_ptr<PeerManagerMock> peer_manager_mock_;
   std::shared_ptr<TransactionPoolMock> transaction_pool_mock_;
   std::shared_ptr<AccountNonceApiMock> account_nonce_api_mock_;
   std::shared_ptr<HasherMock> hasher_mock_;

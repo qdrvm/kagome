@@ -46,8 +46,9 @@ namespace kagome::api::system::request {
                                  ? "FULL"
                                  : status.roles.flags.light ? "LIGHT" : "NONE");
           peer.emplace("bestHash", jsonrpc::Value(status.best_hash.toHex()));
-          peer.emplace("bestNumber",
-                       jsonrpc::Value((int64_t)status.best_number));
+          peer.emplace(
+              "bestNumber",
+              jsonrpc::Value(static_cast<int64_t>(status.best_number)));
 
           result.emplace_back(std::move(peer));
         }
