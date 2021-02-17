@@ -32,7 +32,7 @@ namespace kagome::runtime::binaryen {
    */
   class RuntimeEnvironmentFactoryImpl final
       : public RuntimeEnvironmentFactory,
-        std::enable_shared_from_this<RuntimeEnvironmentFactoryImpl> {
+        public std::enable_shared_from_this<RuntimeEnvironmentFactoryImpl> {
    public:
     enum class Error { EMPTY_STATE_CODE = 1, NO_PERSISTENT_BATCH = 2 };
 

@@ -10,7 +10,7 @@
 
 namespace kagome::runtime {
 
-  class BasicWasmProvider : public kagome::runtime::WasmProvider {
+  class BasicWasmProvider final : public kagome::runtime::WasmProvider {
    public:
     explicit BasicWasmProvider(std::string_view path);
 

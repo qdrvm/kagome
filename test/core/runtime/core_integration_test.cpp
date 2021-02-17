@@ -58,7 +58,7 @@ TEST_F(CoreTest, VersionTest) {
  * @when execute_block is invoked
  * @then successful result is returned
  */
-TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
+TEST_F(CoreTest, ExecuteBlockTest) {
   auto block = createBlock();
 
   ASSERT_TRUE(core_->execute_block(block));
