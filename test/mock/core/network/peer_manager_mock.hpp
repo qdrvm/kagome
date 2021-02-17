@@ -21,7 +21,7 @@ namespace kagome::network {
     MOCK_METHOD2(updatePeerStatus,
                  void(const PeerId &peer_id, const BlockInfo &best_block));
     MOCK_METHOD1(getPeerStatus, boost::optional<Status>(const PeerId &peer_id));
-    MOCK_CONST_METHOD0(activePeersNumber, size_t());
+    MOCK_CONST_METHOD0(activePeersNumber, uint32_t());
     MOCK_CONST_METHOD1(forEachPeer,
                        void(std::function<void(const PeerId &)> func));
     MOCK_CONST_METHOD2(forOnePeer,
