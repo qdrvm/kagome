@@ -19,6 +19,9 @@ namespace kagome::runtime::binaryen {
    */
   class RuntimeEnvironmentFactory {
    public:
+
+    virtual ~RuntimeEnvironmentFactory() = default;
+
     virtual outcome::result<RuntimeEnvironment> makeIsolated() = 0;
 
     virtual outcome::result<RuntimeEnvironment> makePersistent() = 0;
