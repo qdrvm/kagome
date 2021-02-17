@@ -59,7 +59,7 @@ namespace kagome::network {
     /**
      * @returns number of active peers
      */
-    virtual uint32_t activePeersNumber() const = 0;
+    virtual size_t activePeersNumber() const = 0;
 
     /**
      * Apply {@param func} to each active peer

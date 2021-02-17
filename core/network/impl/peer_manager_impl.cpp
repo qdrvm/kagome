@@ -112,7 +112,7 @@ namespace kagome::network {
     }
   }
 
-  uint32_t PeerManagerImpl::activePeersNumber() const {
+  size_t PeerManagerImpl::activePeersNumber() const {
     return active_peers_.size();
   }
 
