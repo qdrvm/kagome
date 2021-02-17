@@ -28,7 +28,11 @@ namespace kagome::network {
       std::shared_ptr<clock::SteadyClock> clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<network::SyncClientsSet> sync_clients)
+      std::shared_ptr<network::SyncClientsSet> sync_clients,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<blockchain::BlockStorage> storage,
+      std::shared_ptr<BabeObserver> babe_observer)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -41,6 +45,10 @@ namespace kagome::network {
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
         sync_clients_(std::move(sync_clients)),
+        block_tree_{std::move(block_tree)},
+        hasher_{std::move(hasher)},
+        storage_{std::move(storage)},
+        babe_observer_{std::move(babe_observer)},
         log_(common::createLogger("PeerManager")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -48,6 +56,10 @@ namespace kagome::network {
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(sync_clients_ != nullptr);
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(babe_observer_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
@@ -286,7 +298,7 @@ namespace kagome::network {
     }
   }
 
-  void PeerManagerImpl::updatePeerStatus(const PeerManager::PeerId &peer_id,
+  void PeerManagerImpl::updatePeerStatus(const PeerId &peer_id,
                                          const Status &status) {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
@@ -299,16 +311,14 @@ namespace kagome::network {
       // Remove from queue for connection
       if (auto piq_it = peers_in_queue_.find(peer_id);
           piq_it != peers_in_queue_.end()) {
-        auto qtc_it =
-            std::find_if(queue_to_connect_.cbegin(),
-                         queue_to_connect_.cend(),
-                         [&peer_id = peer_id](const auto &item) {
-                           return peer_id == item.get();
-                         });
+        auto qtc_it = std::find_if(queue_to_connect_.cbegin(),
+                                   queue_to_connect_.cend(),
+                                   [&peer_id = peer_id](const auto &item) {
+                                     return peer_id == item.get();
+                                   });
         queue_to_connect_.erase(qtc_it);
         peers_in_queue_.erase(piq_it);
-        BOOST_ASSERT(queue_to_connect_.size()
-                         == peers_in_queue_.size());
+        BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
 
         log_->debug("Remained peers in queue for connect: {}",
                     peers_in_queue_.size());
@@ -407,12 +417,14 @@ namespace kagome::network {
             [wp = weak_from_this(), peer_id = peer_info.id, announce_protocol](
                 auto &&stream_res) {
               auto self = wp.lock();
-              if (not self) return;
+              if (not self) {
+                return;
+              }
 
               // Remove from list of connecting peers
               self->connecting_peers_.erase(peer_id);
 
-              if (!stream_res) {
+              if (not stream_res.has_value()) {
                 self->log_->warn("Unable to create '{}' stream with {}: {}",
                                  announce_protocol,
                                  peer_id.toBase58(),
@@ -420,6 +432,7 @@ namespace kagome::network {
                 self->disconnectFromPeer(peer_id);
                 return;
               }
+              auto &stream = stream_res.value();
 
               // Add to active peer list
               if (auto [ap_it, ok] = self->active_peers_.emplace(
@@ -451,9 +464,72 @@ namespace kagome::network {
 
               // Save initial payload stream (block-announce)
               [[maybe_unused]] auto res = self->stream_engine_->add(
-                  stream_res.value(),
+                  stream,
                   fmt::format(kBlockAnnouncesProtocol.data(),
                               self->chain_spec_.protocolId()));
+
+              {
+                Status status_msg;
+
+                /// Roles
+                // TODO(xDimon): Need to set actual role of node
+                //  issue: https://github.com/soramitsu/kagome/issues/678
+                status_msg.roles.flags.full = 1;
+
+                /// Best block info
+                const auto &last_finalized =
+                    self->block_tree_->getLastFinalized().block_hash;
+                if (auto best_res = self->block_tree_->getBestContaining(
+                        last_finalized, boost::none);
+                    best_res.has_value()) {
+                  status_msg.best_number = best_res.value().block_number;
+                  status_msg.best_hash = best_res.value().block_hash;
+                } else {
+                  self->log_->error("Could not get best block info: {}",
+                                    best_res.error().message());
+                  return;
+                }
+
+                /// Genesis hash
+                if (auto genesis_res = self->storage_->getGenesisBlockHash();
+                    genesis_res.has_value()) {
+                  status_msg.genesis_hash = std::move(genesis_res.value());
+                } else {
+                  self->log_->error("Could not get genesis block hash: {}",
+                                    genesis_res.error().message());
+                  return;
+                }
+
+                self->writeAsyncMsgWithHandshake<BlockAnnounce>(
+                    stream,
+                    std::move(status_msg),
+                    [](auto self,
+                       const auto &peer_id,
+                       const auto &remote_status) mutable -> outcome::result<void> {
+                      BOOST_ASSERT(self);
+                      self->log_->info("Received status from peer_id={}",
+                                       peer_id.toBase58());
+                      self->updatePeerStatus(peer_id, remote_status);
+                      return outcome::success();
+                    },
+                    [](auto self,
+                       const auto &peer_id,
+                       const auto &block_announce) mutable {
+                      BOOST_ASSERT(self);
+                      self->log_->info(
+                          "Received block announce: block number {}",
+                          block_announce.header.number);
+                      self->babe_observer_->onBlockAnnounce(peer_id,
+                                                            block_announce);
+
+                      auto hash = self->hasher_->blake2b_256(
+                          scale::encode(block_announce.header).value());
+                      self->updatePeerStatus(
+                          peer_id,
+                          BlockInfo(block_announce.header.number, hash));
+                      return true;
+                    });
+              }
 
               // Reserve stream slots for needed protocols
 

@@ -672,7 +672,11 @@ namespace kagome::injector {
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
-        injector.template create<sptr<network::SyncClientsSet>>());
+        injector.template create<sptr<network::SyncClientsSet>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<blockchain::BlockStorage>>(),
+        injector.template create<sptr<network::BabeObserver>>());
     return initialized.value();
   }
 
