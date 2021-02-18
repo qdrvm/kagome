@@ -32,6 +32,11 @@ namespace kagome::runtime::binaryen {
      * @return whatever the export global returns
      */
     virtual wasm::Literal getExportGlobal(wasm::Name name) = 0;
+
+    /**
+     * Resets Host API state, preparing it for the next runtime call
+     */
+    virtual void reset() = 0;
   };
 }  // namespace kagome::runtime::binaryen
 

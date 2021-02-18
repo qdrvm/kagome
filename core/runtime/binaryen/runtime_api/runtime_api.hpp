@@ -134,7 +134,7 @@ namespace kagome::runtime::binaryen {
         logger_->debug("Resetting state to: {}", state_root.value().toHex());
       }
 
-      auto &&[module, memory, opt_batch] =
+      auto &&[module_instance, memory, opt_batch] =
           createRuntimeEnvironment(persistency, state_root);
 
       runtime::WasmPointer ptr = 0u;
@@ -153,8 +153,9 @@ namespace kagome::runtime::binaryen {
 
       wasm::Name wasm_name = std::string(name);
 
-      OUTCOME_TRY(res, executor_.call(*module, wasm_name, ll));
-      runtime_env_factory_->reset();
+      OUTCOME_TRY(res, executor_.call(*module_instance, wasm_name, ll));
+      module_instance->reset();
+
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r(res.geti64());
         auto buffer = memory->loadN(r.address, r.length);

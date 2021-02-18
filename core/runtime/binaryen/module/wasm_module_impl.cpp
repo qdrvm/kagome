@@ -73,7 +73,7 @@ namespace kagome::runtime::binaryen {
   std::unique_ptr<WasmModuleInstance> WasmModuleImpl::instantiate(
       const std::shared_ptr<RuntimeExternalInterface> &externalInterface)
       const {
-    return std::make_unique<WasmModuleInstanceImpl>(*module_,
+    return std::make_unique<WasmModuleInstanceImpl>(module_,
                                                     externalInterface);
   }
 

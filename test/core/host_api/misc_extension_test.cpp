@@ -38,7 +38,7 @@ TEST(MiscExt, Init) {
   MiscExtension m{42, core_factory_mock, runtime_env_factory_mock, memory};
   ASSERT_EQ(m.ext_chain_id(), 42);
 
-  MiscExtension m2{42, core_factory_mock, runtime_env_factory_mock, memory};
+  MiscExtension m2{34, core_factory_mock, runtime_env_factory_mock, memory};
   ASSERT_EQ(m2.ext_chain_id(), 34);
 }
 

@@ -64,10 +64,6 @@ namespace kagome::runtime::binaryen {
     outcome::result<RuntimeEnvironment> makeEphemeralAt(
         const storage::trie::RootHash &state_root) override;
 
-    void reset() override {
-      external_interface_->reset();
-    }
-
    private:
     outcome::result<RuntimeEnvironment> createRuntimeEnvironment(
         const common::Buffer &state_code);

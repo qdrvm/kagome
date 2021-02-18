@@ -15,6 +15,7 @@ addtest(runtime_external_interface_test
     )
 target_link_libraries(runtime_external_interface_test
     binaryen_runtime_external_interface
+    binaryen_wasm_memory_factory
     blob
     )
 

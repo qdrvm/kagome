@@ -77,6 +77,7 @@ class REITest : public ::testing::Test {
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     core_api_factory_ = std::make_shared<CoreFactoryMock>();
     runtime_env_factory_ = std::make_shared<RuntimeEnvironmentFactoryMock>();
+    memory_factory_ = std::make_shared<BinaryenWasmMemoryFactoryMock>();
     EXPECT_CALL(*host_api_factory_, make(_, _, _, _))
         .WillRepeatedly(Invoke(
             [this](auto &, auto &, auto &, auto &) -> std::unique_ptr<HostApi> {

@@ -40,8 +40,6 @@ namespace kagome::runtime::binaryen {
 
     virtual outcome::result<RuntimeEnvironment> makeEphemeralAt(
         const storage::trie::RootHash &state_root) = 0;
-
-    virtual void reset() = 0;
   };
 
 }  // namespace kagome::runtime::binaryen

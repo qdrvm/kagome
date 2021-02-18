@@ -10,10 +10,14 @@
 namespace kagome::runtime::binaryen {
 
   WasmModuleInstanceImpl::WasmModuleInstanceImpl(
-      wasm::Module &module,
+      std::shared_ptr<wasm::Module> parent,
       const std::shared_ptr<RuntimeExternalInterface> &rei)
-      : module_instance_{
-          std::make_unique<wasm::ModuleInstance>(module, rei.get())} {
+      : parent_{std::move(parent)},
+        rei_{rei},
+        module_instance_{
+          std::make_unique<wasm::ModuleInstance>(*parent_, rei.get())} {
+    BOOST_ASSERT(parent_);
+    BOOST_ASSERT(rei_);
     BOOST_ASSERT(module_instance_);
   }
 
