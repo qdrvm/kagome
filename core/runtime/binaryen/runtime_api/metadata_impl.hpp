@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_METADATA_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_METADATA_IMPL_HPP
 
-#include "runtime/metadata.hpp"
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
+#include "runtime/metadata.hpp"
 
 #include "blockchain/block_header_repository.hpp"
 

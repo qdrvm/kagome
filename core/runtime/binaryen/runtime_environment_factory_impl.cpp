@@ -58,7 +58,8 @@ namespace kagome::runtime::binaryen {
         wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
   }
 
-  outcome::result<RuntimeEnvironment> RuntimeEnvironmentFactoryImpl::makeIsolatedAt(
+  outcome::result<RuntimeEnvironment>
+  RuntimeEnvironmentFactoryImpl::makeIsolatedAt(
       const storage::trie::RootHash &state_root) {
     return createIsolatedRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(state_root));

@@ -7,14 +7,16 @@
 
 namespace kagome::runtime::binaryen {
 
-  AccountNonceApiImpl::AccountNonceApiImpl(const std::shared_ptr<WasmProvider> &wasm_provider,
-                         const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory)
+  AccountNonceApiImpl::AccountNonceApiImpl(
+      const std::shared_ptr<WasmProvider> &wasm_provider,
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory)
       : RuntimeApi(runtime_env_factory) {}
 
   outcome::result<primitives::AccountNonce> AccountNonceApiImpl::account_nonce(
       const primitives::AccountId &account_id) {
-    return execute<primitives::AccountNonce>(
-        "AccountNonceApi_account_nonce", CallPersistency::EPHEMERAL, account_id);
+    return execute<primitives::AccountNonce>("AccountNonceApi_account_nonce",
+                                             CallPersistency::EPHEMERAL,
+                                             account_id);
   }
 
 }  // namespace kagome::runtime::binaryen

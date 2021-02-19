@@ -12,7 +12,6 @@
 
 namespace kagome::runtime {
   class WasmProvider;
-  class RuntimeManager;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime::binaryen {
@@ -27,7 +26,6 @@ namespace kagome::runtime::binaryen {
 
     outcome::result<primitives::RuntimeDispatchInfo> query_info(
         const primitives::Extrinsic &ext, uint32_t len) override;
-        
   };
 
 }  // namespace kagome::runtime::binaryen

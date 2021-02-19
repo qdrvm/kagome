@@ -12,8 +12,8 @@ namespace kagome::runtime::binaryen {
   using primitives::Authority;
   using primitives::Digest;
   using primitives::ForcedChange;
-  using primitives::ScheduledChange;
   using primitives::GrandpaSessionKey;
+  using primitives::ScheduledChange;
 
   GrandpaApiImpl::GrandpaApiImpl(
       const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
