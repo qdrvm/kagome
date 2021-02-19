@@ -48,7 +48,7 @@ namespace kagome::host_api {
      * @param key_length length of the key
      * @return 1 if value exists, 0 otherwise
      */
-    virtual runtime::WasmSize ext_exists_storage(
+    [[nodiscard]] virtual runtime::WasmSize ext_exists_storage(
         runtime::WasmPointer key_data, runtime::WasmSize key_length) const = 0;
 
     /**
@@ -64,7 +64,7 @@ namespace kagome::host_api {
      * <li>no value for a given key => 0
      * <li>there is no enough memory to allocate a value => -1
      */
-    virtual runtime::WasmPointer ext_get_allocated_storage(
+    [[nodiscard]] virtual runtime::WasmPointer ext_get_allocated_storage(
         runtime::WasmPointer key_data,
         runtime::WasmSize key_length,
         runtime::WasmPointer len_ptr) = 0;
@@ -85,7 +85,7 @@ namespace kagome::host_api {
      * <li>value is found => the number of bytes written for value.
      * <li>value is not found => u32::max_value()
      */
-    virtual runtime::WasmSize ext_get_storage_into(
+    [[nodiscard]] virtual runtime::WasmSize ext_get_storage_into(
         runtime::WasmPointer key_data,
         runtime::WasmSize key_length,
         runtime::WasmPointer value_data,
@@ -110,7 +110,7 @@ namespace kagome::host_api {
      * @param value_out pointer-size to the read data
      * @param offset in bytes from the data block begin should be read
      */
-    virtual runtime::WasmSpan ext_storage_read_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan ext_storage_read_version_1(
         runtime::WasmSpan key,
         runtime::WasmSpan value_out,
         runtime::WasmOffset offset) = 0;
@@ -136,7 +136,7 @@ namespace kagome::host_api {
      * @param result pointer to place change trie root
      * @return 1 if change trie root was found, 0 otherwise
      */
-    virtual runtime::WasmSize ext_storage_changes_root(
+    [[nodiscard]] virtual runtime::WasmSize ext_storage_changes_root(
         runtime::WasmPointer parent_hash, runtime::WasmPointer result) = 0;
 
     /**
@@ -176,7 +176,7 @@ namespace kagome::host_api {
      * @param key key memory span containing key
      * @return value memory span containing scale-encoded optional value
      */
-    virtual runtime::WasmSpan ext_storage_get_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan ext_storage_get_version_1(
         runtime::WasmSpan key) = 0;
 
     /**
@@ -191,7 +191,7 @@ namespace kagome::host_api {
      * @return an i32 integer value equal to 1 if the key exists or a value
      * equal to 0 if otherwise.
      */
-    virtual runtime::WasmSize ext_storage_exists_version_1(
+    [[nodiscard]] virtual runtime::WasmSize ext_storage_exists_version_1(
         runtime::WasmSpan key_data) const = 0;
 
     /**
@@ -207,7 +207,7 @@ namespace kagome::host_api {
      * root.
      * @return memory span containing scale-encoded storage root
      */
-    virtual runtime::WasmSpan ext_storage_root_version_1() = 0;
+    [[nodiscard]] virtual runtime::WasmSpan ext_storage_root_version_1() = 0;
 
     /**
      * Commits all existing operations and gets the resulting change
@@ -215,7 +215,7 @@ namespace kagome::host_api {
      * @param parent_hash wasm span containing parent hash
      * @return wasm span containing scale-encoded optional change root
      */
-    virtual runtime::WasmSpan ext_storage_changes_root_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan ext_storage_changes_root_version_1(
         runtime::WasmSpan parent_hash) = 0;
 
     /**
@@ -223,7 +223,7 @@ namespace kagome::host_api {
      * @param key memory span containing key
      * @return wasm span containing scale-encoded optional next key
      */
-    virtual runtime::WasmSpan ext_storage_next_key_version_1(
+    [[nodiscard]] virtual runtime::WasmSpan ext_storage_next_key_version_1(
         runtime::WasmSpan key) const = 0;
 
     /**
@@ -246,8 +246,8 @@ namespace kagome::host_api {
      * containing arbitrary key/value pairs.
      * @return wasm span containing the 256-bit trie root result
      */
-    virtual runtime::WasmPointer ext_trie_blake2_256_root_version_1(
-        runtime::WasmSpan values_data) = 0;
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_trie_blake2_256_root_version_1(runtime::WasmSpan values_data) = 0;
 
     /**
      * Conducts a 256-bit Blake2 trie root formed from the enumerated items.
@@ -258,7 +258,8 @@ namespace kagome::host_api {
      * little-endian, fixed-size integers.
      * @return wasm span containing the 256-bit trie root result
      */
-    virtual runtime::WasmPointer ext_trie_blake2_256_ordered_root_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_trie_blake2_256_ordered_root_version_1(
         runtime::WasmSpan values_data) = 0;
 
     // -------------------------Memory extensions--------------------------
@@ -269,7 +270,8 @@ namespace kagome::host_api {
      * @return pointer to the beginning of allocated memory chunk. If memory
      * cannot be allocated then return -1
      */
-    virtual runtime::WasmPointer ext_malloc(runtime::WasmSize size) = 0;
+    [[nodiscard]] virtual runtime::WasmPointer ext_malloc(
+        runtime::WasmSize size) = 0;
 
     /**
      * Deallocate the space previously allocated by ext_malloc
@@ -281,7 +283,7 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_malloc
      */
-    virtual runtime::WasmPointer ext_allocator_malloc_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_allocator_malloc_version_1(
         runtime::WasmSize size) = 0;
 
     /**
@@ -370,7 +372,7 @@ namespace kagome::host_api {
      * @returns an i32 integer value equal to 1 if all the signatures are valid
      * or a value equal to 0 if one or more of the signatures are invalid.
      */
-    virtual runtime::WasmSize ext_finish_batch_verify() = 0;
+    [[nodiscard]] virtual runtime::WasmSize ext_finish_batch_verify() = 0;
 
     /**
      * Verify the signature over the ed25519 message
@@ -380,7 +382,7 @@ namespace kagome::host_api {
      * @param pubkey_data - key of possible message's author
      * @return 0, if key is successfully verified, 5 otherwise
      */
-    virtual runtime::WasmSize ext_ed25519_verify(
+    [[nodiscard]] virtual runtime::WasmSize ext_ed25519_verify(
         runtime::WasmPointer msg_data,
         runtime::WasmSize msg_len,
         runtime::WasmPointer sig_data,
@@ -394,7 +396,7 @@ namespace kagome::host_api {
      * @param pubkey_data - key of possible message's author
      * @return 0, if key is successfully verified, 5 otherwise
      */
-    virtual runtime::WasmSize ext_sr25519_verify(
+    [[nodiscard]] virtual runtime::WasmSize ext_sr25519_verify(
         runtime::WasmPointer msg_data,
         runtime::WasmSize msg_len,
         runtime::WasmPointer sig_data,
@@ -438,8 +440,9 @@ namespace kagome::host_api {
      * @return pointer-size value (pointer to buffer and its size) containing
      * scale-encoded variant of public key or error
      */
-    virtual runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
-        runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_secp256k1_ecdsa_recover_v1(runtime::WasmPointer sig,
+                                          runtime::WasmPointer msg) = 0;
 
     /**
      * Recover secp256k1 public key
@@ -448,30 +451,31 @@ namespace kagome::host_api {
      * @return pointer-size value (pointer to buffer and its size) containing
      * scale-encoded variant of compressed public key or error
      */
-    virtual runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
 
     // ------------------------- Hashing extension/crypto ---------------
 
-    virtual runtime::WasmPointer ext_hashing_keccak_256_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_hashing_keccak_256_version_1(
         runtime::WasmSpan data) = 0;
 
-    virtual runtime::WasmPointer ext_hashing_sha2_256_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_hashing_sha2_256_version_1(
         runtime::WasmSpan data) = 0;
 
-    virtual runtime::WasmPointer ext_hashing_blake2_128_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_hashing_blake2_128_version_1(
         runtime::WasmSpan data) = 0;
 
-    virtual runtime::WasmPointer ext_hashing_blake2_256_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_hashing_blake2_256_version_1(
         runtime::WasmSpan data) = 0;
 
-    virtual runtime::WasmPointer ext_hashing_twox_64_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_hashing_twox_64_version_1(
         runtime::WasmSpan data) = 0;
 
-    virtual runtime::WasmPointer ext_hashing_twox_128_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_hashing_twox_128_version_1(
         runtime::WasmSpan data) = 0;
 
-    virtual runtime::WasmPointer ext_hashing_twox_256_version_1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_hashing_twox_256_version_1(
         runtime::WasmSpan data) = 0;
 
     // -------------------------Crypto extensions v1---------------------
@@ -479,19 +483,19 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    virtual runtime::WasmSpan ext_ed25519_public_keys_v1(
+    [[nodiscard]] virtual runtime::WasmSpan ext_ed25519_public_keys_v1(
         runtime::WasmSize key_type) = 0;
 
     /**
      * @see Extension::ext_ed25519_generate
      */
-    virtual runtime::WasmPointer ext_ed25519_generate_v1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_ed25519_generate_v1(
         runtime::WasmSize key_type, runtime::WasmSpan seed) = 0;
 
     /**
      * @see Extension::ext_ed25519_sign
      */
-    virtual runtime::WasmSpan ext_ed25519_sign_v1(
+    [[nodiscard]] virtual runtime::WasmSpan ext_ed25519_sign_v1(
         runtime::WasmSize key_type,
         runtime::WasmPointer key,
         runtime::WasmSpan msg_data) = 0;
@@ -499,7 +503,7 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_ed25519_verify
      */
-    virtual runtime::WasmSize ext_ed25519_verify_v1(
+    [[nodiscard]] virtual runtime::WasmSize ext_ed25519_verify_v1(
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
@@ -507,19 +511,19 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_sr25519_public_keys
      */
-    virtual runtime::WasmSpan ext_sr25519_public_keys_v1(
+    [[nodiscard]] virtual runtime::WasmSpan ext_sr25519_public_keys_v1(
         runtime::WasmSize key_type) = 0;
 
     /**
      * @see Extension::ext_sr25519_generate
      */
-    virtual runtime::WasmPointer ext_sr25519_generate_v1(
+    [[nodiscard]] virtual runtime::WasmPointer ext_sr25519_generate_v1(
         runtime::WasmSize key_type, runtime::WasmSpan seed) = 0;
 
     /**
      * @see Extension::ext_sr25519_sign
      */
-    virtual runtime::WasmSpan ext_sr25519_sign_v1(
+    [[nodiscard]] virtual runtime::WasmSpan ext_sr25519_sign_v1(
         runtime::WasmSize key_type,
         runtime::WasmPointer key,
         runtime::WasmSpan msg_data) = 0;
@@ -527,16 +531,16 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_sr25519_verify
      */
-    virtual runtime::WasmSize ext_sr25519_verify_v1(
+    [[nodiscard]] virtual runtime::WasmSize ext_sr25519_verify_v1(
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
 
     // -------------------------Misc extensions--------------------------
-    virtual uint64_t ext_chain_id() const = 0;
+    [[nodiscard]] virtual uint64_t ext_chain_id() const = 0;
 
-    virtual runtime::WasmResult ext_misc_runtime_version_version_1(
-        runtime::WasmSpan data) const = 0;
+    [[nodiscard]] virtual runtime::WasmResult
+    ext_misc_runtime_version_version_1(runtime::WasmSpan data) const = 0;
 
     /**
      * Print a hex value

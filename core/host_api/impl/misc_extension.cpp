@@ -42,7 +42,7 @@ namespace kagome::host_api {
         core_api_factory_->createWithCode(runtime_env_factory_, wasm_provider);
     auto version_res = core->version(boost::none);
 
-    static const auto error_res =
+    static const auto kErrorRes =
         scale::encode<boost::optional<primitives::Version>>(boost::none)
             .value();
 
@@ -53,14 +53,14 @@ namespace kagome::host_api {
         logger_->error(
             "Error encoding ext_misc_runtime_version_version_1 result: {}",
             enc_version_res.error().message());
-        return runtime::WasmResult{memory_->storeBuffer(error_res)};
+        return runtime::WasmResult{memory_->storeBuffer(kErrorRes)};
       }
       auto res_span = memory_->storeBuffer(enc_version_res.value());
       return runtime::WasmResult{res_span};
     }
     logger_->error("Error inside Core_version: {}",
                    version_res.error().message());
-    return runtime::WasmResult{memory_->storeBuffer(error_res)};
+    return runtime::WasmResult{memory_->storeBuffer(kErrorRes)};
   }
 
   void MiscExtension::ext_misc_print_hex_version_1(

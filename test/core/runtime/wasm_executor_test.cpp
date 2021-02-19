@@ -133,7 +133,7 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<kagome::runtime::binaryen::CoreFactoryImpl>(
             changes_tracker, header_repo_mock);
 
-    runtime_manager_ = std::make_shared<
+    runtime_env_factory_ = std::make_shared<
         kagome::runtime::binaryen::RuntimeEnvironmentFactoryImpl>(
         std::move(core_factory),
         std::move(memory_factory),
@@ -148,7 +148,7 @@ class WasmExecutorTest : public ::testing::Test {
 
  protected:
   std::shared_ptr<WasmExecutor> executor_;
-  std::shared_ptr<RuntimeEnvironmentFactory> runtime_manager_;
+  std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory_;
   std::shared_ptr<TrieStorageProvider> storage_provider_;
   std::shared_ptr<WasmProvider> wasm_provider_;
 };
@@ -159,7 +159,7 @@ class WasmExecutorTest : public ::testing::Test {
  * @then proper result is returned
  */
 TEST_F(WasmExecutorTest, ExecuteCode) {
-  EXPECT_OUTCOME_TRUE(environment, runtime_manager_->makeEphemeral());
+  EXPECT_OUTCOME_TRUE(environment, runtime_env_factory_->makeEphemeral());
   auto &&[module, memory, opt_batch] = std::move(environment);
 
   auto res = executor_->call(

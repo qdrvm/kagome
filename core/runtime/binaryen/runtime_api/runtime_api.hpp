@@ -159,16 +159,12 @@ namespace kagome::runtime::binaryen {
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r(res.geti64());
         auto buffer = memory->loadN(r.address, r.length);
-        // TODO (yuraz) PRE-98: after check for memory overflow is done,
-        //  refactor it
-        memory->reset();
         return scale::decode<R>(std::move(buffer));
       }
 
       if (opt_batch) {
         OUTCOME_TRY(opt_batch.value()->writeBack());
       }
-      memory->reset();
       return outcome::success();
     }
 

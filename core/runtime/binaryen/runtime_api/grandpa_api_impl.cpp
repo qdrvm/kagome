@@ -16,9 +16,9 @@ namespace kagome::runtime::binaryen {
   using primitives::GrandpaSessionKey;
 
   GrandpaApiImpl::GrandpaApiImpl(
-      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager,
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
       const std::shared_ptr<blockchain::BlockHeaderRepository> &header_repo)
-      : RuntimeApi(runtime_manager), header_repo_{header_repo} {
+      : RuntimeApi(runtime_env_factory), header_repo_{header_repo} {
     BOOST_ASSERT(header_repo_ != nullptr);
   }
 

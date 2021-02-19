@@ -15,8 +15,8 @@ namespace kagome::runtime::binaryen {
   using primitives::InherentData;
 
   BlockBuilderImpl::BlockBuilderImpl(
-      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager)
-      : RuntimeApi(runtime_manager) {}
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory)
+      : RuntimeApi(runtime_env_factory) {}
 
   outcome::result<primitives::ApplyResult> BlockBuilderImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {

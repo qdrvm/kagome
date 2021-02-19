@@ -22,7 +22,6 @@ class MemoryHeapTest : public ::testing::Test {
     return interface_.get();
   }
   WasmMemoryImpl memory_{getNewShellExternalInterface()};
-
 };
 
 /**
@@ -130,17 +129,17 @@ TEST_F(MemoryHeapTest, AllocateAfterDeallocate) {
   const size_t size2 = available_memory_size / 3 + 1;
 
   // allocate two memory chunks with total size equal to the memory size
-  auto ptr1 = memory_.allocate(size1);
+  auto pointer_of_first_allocation = memory_.allocate(size1);
   memory_.allocate(size2);
 
   // deallocate first memory chunk
-  memory_.deallocate(ptr1);
+  memory_.deallocate(pointer_of_first_allocation);
 
   // allocate new memory chunk
-  auto ptr1_1 = memory_.allocate(size1);
+  auto pointer_of_repeated_allocation = memory_.allocate(size1);
   // expected that it will be allocated on the same place as the first memory
   // chunk that was deallocated
-  ASSERT_EQ(ptr1, ptr1_1);
+  ASSERT_EQ(pointer_of_first_allocation, pointer_of_repeated_allocation);
 }
 
 /**
@@ -172,6 +171,69 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
 }
 
 /**
+ * @given full memory with different sized memory chunks
+ * @when deallocate chunks in various ways: in order, reversed, single chunk
+ * @then neighbor chunks are combined
+ */
+TEST_F(MemoryHeapTest, CombineDeallocatedChunks) {
+  // Fill memory
+  constexpr size_t size1 = roundUpAlign(1) * 1;
+  auto ptr1 = memory_.allocate(size1);
+  constexpr size_t size2 = roundUpAlign(1) * 2;
+  auto ptr2 = memory_.allocate(size2);
+  constexpr size_t size3 = roundUpAlign(1) * 3;
+  auto ptr3 = memory_.allocate(size3);
+  constexpr size_t size4 = roundUpAlign(1) * 4;
+  auto ptr4 = memory_.allocate(size4);
+  constexpr size_t size5 = roundUpAlign(1) * 5;
+  auto ptr5 = memory_.allocate(size5);
+  constexpr size_t size6 = roundUpAlign(1) * 6;
+  auto ptr6 = memory_.allocate(size6);
+  constexpr size_t size7 = roundUpAlign(1) * 7;
+  auto ptr7 = memory_.allocate(size7);
+  // A: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]
+  // D:
+
+  memory_.deallocate(ptr2);
+  // A: [ 1 ]     [ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]
+  // D:      [ 2 ]
+  memory_.deallocate(ptr3);
+  // A: [ 1 ]          [ 4 ][ 5 ][ 6 ][ 7 ]
+  // D:      [ 2    3 ]
+  {
+    auto opt_size = memory_.getDeallocatedChunkSize(ptr2);
+    ASSERT_TRUE(opt_size);
+    EXPECT_EQ(opt_size.value(), size2 + size3);
+  }
+
+  memory_.deallocate(ptr5);
+  // A: [ 1 ]          [ 4 ]     [ 6 ][ 7 ]
+  // D:      [ 2    3 ]     [ 5 ]
+  memory_.deallocate(ptr6);
+  // A: [ 1 ]          [ 4 ]          [ 7 ]
+  // D:      [ 2    3 ]     [ 5    6 ]
+  {
+    auto opt_size = memory_.getDeallocatedChunkSize(ptr5);
+    ASSERT_TRUE(opt_size.has_value());
+    EXPECT_EQ(opt_size.value(), size5 + size6);
+  }
+
+  memory_.deallocate(ptr4);
+  // A: [ 1 ]                         [ 7 ]
+  // D:      [ 2    3    4    5    6 ]
+  {
+    auto opt_size = memory_.getDeallocatedChunkSize(ptr2);
+    ASSERT_TRUE(opt_size.has_value());
+    EXPECT_EQ(opt_size.value(), size2 + size3 + size4 + size5 + size6);
+  }
+
+  EXPECT_EQ(memory_.getDeallocatedChunksNum(), 1);
+  EXPECT_EQ(memory_.getAllocatedChunksNum(), 2);
+  EXPECT_TRUE(memory_.getAllocatedChunkSize(ptr1));
+  EXPECT_TRUE(memory_.getAllocatedChunkSize(ptr7));
+}
+
+/**
  * @given arbitrary buffer of size N
  * @when this buffer is stored in memory heap @and then load of N bytes is done
  * @then the same buffer is returned
@@ -192,7 +254,7 @@ TEST_F(MemoryHeapTest, LoadNTest) {
 /**
  * @given Some memory is allocated
  * @when Memory is reset
- * @then Allocated memory's offset is 1
+ * @then Allocated memory's offset is min non-zero aligned address
  */
 TEST_F(MemoryHeapTest, ResetTest) {
   const size_t N = 42;

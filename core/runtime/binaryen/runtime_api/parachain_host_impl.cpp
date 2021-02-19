@@ -12,9 +12,8 @@ namespace kagome::runtime::binaryen {
   using primitives::parachain::ValidatorId;
 
   ParachainHostImpl::ParachainHostImpl(
-      const std::shared_ptr<WasmProvider> &wasm_provider,
-      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager)
-      : RuntimeApi(runtime_manager) {}
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory)
+      : RuntimeApi(runtime_env_factory) {}
 
   outcome::result<DutyRoster> ParachainHostImpl::duty_roster() {
     return execute<DutyRoster>("ParachainHost_duty_roster",

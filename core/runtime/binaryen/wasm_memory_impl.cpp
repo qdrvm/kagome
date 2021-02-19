@@ -39,7 +39,7 @@ namespace kagome::runtime::binaryen {
       size_ = offset_;
       resize(size_);
     }
-    logger_->trace("Memory reset");
+    logger_->trace("Memory reset; memory ptr: {}", fmt::ptr(memory_));
   }
 
   WasmSize WasmMemoryImpl::size() const {
@@ -282,12 +282,32 @@ namespace kagome::runtime::binaryen {
   WasmSpan WasmMemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
     const auto size = static_cast<size_t>(value.size());
     BOOST_ASSERT(std::numeric_limits<WasmSize>::max() > size);
-    auto wasm_pointer = allocate(value.size());
+    auto wasm_pointer = allocate(size);
     if (wasm_pointer == 0) {
       return 0;
     }
     storeBuffer(wasm_pointer, value);
     return WasmResult(wasm_pointer, value.size()).combine();
+  }
+
+  boost::optional<WasmSize> WasmMemoryImpl::getDeallocatedChunkSize(
+      WasmPointer ptr) const {
+    auto it = deallocated_.find(ptr);
+    return it != deallocated_.cend() ? boost::make_optional(it->second) : boost::none;
+  }
+
+  boost::optional<WasmSize> WasmMemoryImpl::getAllocatedChunkSize(
+      WasmPointer ptr) const {
+    auto it = allocated_.find(ptr);
+    return it != allocated_.cend() ? boost::make_optional(it->second) : boost::none;
+  }
+
+  size_t WasmMemoryImpl::getAllocatedChunksNum() const {
+    return allocated_.size();
+  }
+
+  size_t WasmMemoryImpl::getDeallocatedChunksNum() const {
+    return deallocated_.size();
   }
 
 }  // namespace kagome::runtime::binaryen

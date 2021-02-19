@@ -16,7 +16,7 @@ namespace kagome::runtime::binaryen {
   class GrandpaApiImpl : public RuntimeApi, public GrandpaApi {
    public:
     explicit GrandpaApiImpl(
-        const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager,
+        const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
         const std::shared_ptr<blockchain::BlockHeaderRepository> &header_repo);
 
     ~GrandpaApiImpl() override = default;

@@ -707,9 +707,9 @@ namespace kagome::runtime::binaryen {
       /// ext_misc_runtime_version_version_1
       if (import->base == ext_misc_runtime_version_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
-        host_api_->ext_misc_runtime_version_version_1(
+        auto res = host_api_->ext_misc_runtime_version_version_1(
             arguments.at(0).geti64());
-        return wasm::Literal();
+        return wasm::Literal(res.combine());
       }
 
       // TODO(xDimon): It is temporary suppress fails at calling of

@@ -8,8 +8,8 @@
 namespace kagome::runtime::binaryen {
   OffchainWorkerImpl::OffchainWorkerImpl(
       const std::shared_ptr<WasmProvider> &wasm_provider,
-      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_manager)
-      : RuntimeApi(runtime_manager) {}
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory)
+      : RuntimeApi(runtime_env_factory) {}
 
   outcome::result<void> OffchainWorkerImpl::offchain_worker(BlockNumber bn) {
     return execute<void>(
