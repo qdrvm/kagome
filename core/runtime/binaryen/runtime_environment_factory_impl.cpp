@@ -53,16 +53,18 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<RuntimeEnvironment>
-  RuntimeEnvironmentFactoryImpl::makeIsolated() {
+  RuntimeEnvironmentFactoryImpl::makeIsolated(Config config) {
+    auto wasm_provider = config.wasm_provider.get_value_or(wasm_provider_);
     return createIsolatedRuntimeEnvironment(
-        wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
+        wasm_provider->getStateCodeAt(storage_provider_->getLatestRoot()));
   }
 
   outcome::result<RuntimeEnvironment>
   RuntimeEnvironmentFactoryImpl::makeIsolatedAt(
-      const storage::trie::RootHash &state_root) {
+      const storage::trie::RootHash &state_root, Config config) {
+    auto wasm_provider = config.wasm_provider.get_value_or(wasm_provider_);
     return createIsolatedRuntimeEnvironment(
-        wasm_provider_->getStateCodeAt(state_root));
+        wasm_provider->getStateCodeAt(state_root));
   }
 
   outcome::result<RuntimeEnvironment>

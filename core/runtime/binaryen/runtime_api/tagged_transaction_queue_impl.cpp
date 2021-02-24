@@ -17,7 +17,7 @@ namespace kagome::runtime::binaryen {
       primitives::TransactionSource source, const primitives::Extrinsic &ext) {
     return execute<TransactionValidity>(
         "TaggedTransactionQueue_validate_transaction",
-        CallPersistency::EPHEMERAL,
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
         source,
         ext);
   }

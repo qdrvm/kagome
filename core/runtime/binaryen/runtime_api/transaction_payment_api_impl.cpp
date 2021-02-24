@@ -16,7 +16,7 @@ namespace kagome::runtime::binaryen {
                                         uint32_t len) {
     return execute<primitives::RuntimeDispatchInfo>(
         "TransactionPaymentApi_query_info",
-        CallPersistency::EPHEMERAL,
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
         gsl::span<const uint8_t>(ext.data.data(), ext.data.size()),
         len);
   }

@@ -16,11 +16,14 @@ namespace kagome::runtime::binaryen {
 
   CoreImpl::CoreImpl(
       const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
+      std::shared_ptr<WasmProvider> wasm_provider,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
       : RuntimeApi(runtime_env_factory),
+        wasm_provider_{std::move(wasm_provider)},
         changes_tracker_{std::move(changes_tracker)},
         header_repo_{std::move(header_repo)} {
+    BOOST_ASSERT(wasm_provider_ != nullptr);
     BOOST_ASSERT(changes_tracker_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);
   }
@@ -30,9 +33,15 @@ namespace kagome::runtime::binaryen {
     if (block_hash) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash.value()));
       return executeAt<Version>(
-          "Core_version", header.state_root, CallPersistency::ISOLATED);
+          "Core_version",
+          header.state_root,
+          CallConfig{.persistency = CallPersistency::ISOLATED,
+                     .runtime_env_config{.wasm_provider = wasm_provider_}});
     }
-    return execute<Version>("Core_version", CallPersistency::ISOLATED);
+    return execute<Version>(
+        "Core_version",
+        CallConfig{.persistency = CallPersistency::ISOLATED,
+                   .runtime_env_config{.wasm_provider = wasm_provider_}});
   }
 
   outcome::result<void> CoreImpl::execute_block(
@@ -41,10 +50,11 @@ namespace kagome::runtime::binaryen {
     OUTCOME_TRY(changes_tracker_->onBlockChange(
         block.header.parent_hash,
         block.header.number - 1));  // parent's number
-    return executeAt<void>("Core_execute_block",
-                           parent.state_root,
-                           CallPersistency::PERSISTENT,
-                           block);
+    return executeAt<void>(
+        "Core_execute_block",
+        parent.state_root,
+        CallConfig{.persistency = CallPersistency::PERSISTENT},
+        block);
   }
 
   outcome::result<void> CoreImpl::initialise_block(const BlockHeader &header) {
@@ -52,15 +62,18 @@ namespace kagome::runtime::binaryen {
     OUTCOME_TRY(
         changes_tracker_->onBlockChange(header.parent_hash,
                                         header.number - 1));  // parent's number
-    return executeAt<void>("Core_initialize_block",
-                           parent.state_root,
-                           CallPersistency::PERSISTENT,
-                           header);
+    return executeAt<void>(
+        "Core_initialize_block",
+        parent.state_root,
+        CallConfig{.persistency = CallPersistency::PERSISTENT},
+        header);
   }
 
   outcome::result<std::vector<AuthorityId>> CoreImpl::authorities(
       const primitives::BlockId &block_id) {
     return execute<std::vector<AuthorityId>>(
-        "Core_authorities", CallPersistency::EPHEMERAL, block_id);
+        "Core_authorities",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
+        block_id);
   }
 }  // namespace kagome::runtime::binaryen

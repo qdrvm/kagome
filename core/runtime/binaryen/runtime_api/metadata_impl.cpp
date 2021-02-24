@@ -20,9 +20,12 @@ namespace kagome::runtime::binaryen {
     if (block_hash) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash.value()));
       return executeAt<OpaqueMetadata>(
-          "Metadata_metadata", header.state_root, CallPersistency::EPHEMERAL);
+          "Metadata_metadata",
+          header.state_root,
+          CallConfig{.persistency = CallPersistency::EPHEMERAL});
     }
-    return execute<OpaqueMetadata>("Metadata_metadata",
-                                   CallPersistency::EPHEMERAL);
+    return execute<OpaqueMetadata>(
+        "Metadata_metadata",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL});
   }
 }  // namespace kagome::runtime::binaryen

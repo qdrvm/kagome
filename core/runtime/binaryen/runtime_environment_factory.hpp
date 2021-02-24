@@ -6,7 +6,13 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_ENVIRONMENT_FACTORY_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_ENVIRONMENT_FACTORY_HPP
 
+#include <boost/optional.hpp>
+
 #include "storage/trie/types.hpp"
+
+namespace kagome::runtime {
+  class WasmProvider;
+}
 
 namespace kagome::runtime::binaryen {
 
@@ -22,14 +28,21 @@ namespace kagome::runtime::binaryen {
 
     virtual ~RuntimeEnvironmentFactory() = default;
 
-    virtual outcome::result<RuntimeEnvironment> makeIsolated() = 0;
+    /**
+     * Config to override default factory parameters
+     */
+    struct Config {
+      boost::optional<std::shared_ptr<WasmProvider>> wasm_provider;
+    };
+
+    virtual outcome::result<RuntimeEnvironment> makeIsolated(Config config) = 0;
 
     virtual outcome::result<RuntimeEnvironment> makePersistent() = 0;
 
     virtual outcome::result<RuntimeEnvironment> makeEphemeral() = 0;
 
     virtual outcome::result<RuntimeEnvironment> makeIsolatedAt(
-        const storage::trie::RootHash &state_root) = 0;
+        const storage::trie::RootHash &state_root, Config config) = 0;
 
     /**
      * @warning calling this with an \arg state_root older than the current root

@@ -14,9 +14,10 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<primitives::AccountNonce> AccountNonceApiImpl::account_nonce(
       const primitives::AccountId &account_id) {
-    return execute<primitives::AccountNonce>("AccountNonceApi_account_nonce",
-                                             CallPersistency::EPHEMERAL,
-                                             account_id);
+    return execute<primitives::AccountNonce>(
+        "AccountNonceApi_account_nonce",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
+        account_id);
   }
 
 }  // namespace kagome::runtime::binaryen

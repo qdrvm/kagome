@@ -21,31 +21,38 @@ namespace kagome::runtime::binaryen {
   outcome::result<primitives::ApplyResult> BlockBuilderImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {
     return execute<primitives::ApplyResult>(
-        "BlockBuilder_apply_extrinsic", CallPersistency::PERSISTENT, extrinsic);
+        "BlockBuilder_apply_extrinsic",
+        CallConfig{.persistency = CallPersistency::PERSISTENT},
+        extrinsic);
   }
 
   outcome::result<BlockHeader> BlockBuilderImpl::finalise_block() {
-    return execute<BlockHeader>("BlockBuilder_finalize_block",
-                                CallPersistency::PERSISTENT);
+    return execute<BlockHeader>(
+        "BlockBuilder_finalize_block",
+        CallConfig{.persistency = CallPersistency::PERSISTENT});
   }
 
   outcome::result<std::vector<Extrinsic>> BlockBuilderImpl::inherent_extrinsics(
       const InherentData &data) {
     return execute<std::vector<Extrinsic>>(
-        "BlockBuilder_inherent_extrinsics", CallPersistency::EPHEMERAL, data);
+        "BlockBuilder_inherent_extrinsics",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
+        data);
   }
 
   outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
       const Block &block, const InherentData &data) {
-    return execute<CheckInherentsResult>("BlockBuilder_check_inherents",
-                                         CallPersistency::EPHEMERAL,
-                                         block,
-                                         data);
+    return execute<CheckInherentsResult>(
+        "BlockBuilder_check_inherents",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
+        block,
+        data);
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
     // TODO(Harrm) PRE-154 Figure out what it requires
-    return execute<common::Hash256>("BlockBuilder_random_seed",
-                                    CallPersistency::EPHEMERAL);
+    return execute<common::Hash256>(
+        "BlockBuilder_random_seed",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL});
   }
 }  // namespace kagome::runtime::binaryen

@@ -29,6 +29,6 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<WasmProvider> wasm_provider) = 0;
   };
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
 #endif  // KAGOME_CORE_RUNTIME_BINARYEN_CORE_FACTORY

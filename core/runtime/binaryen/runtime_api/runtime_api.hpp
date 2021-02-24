@@ -36,7 +36,7 @@ namespace kagome::runtime::binaryen {
                    // trie storage
       EPHEMERAL,   // the changes made by this call will vanish once it's
                    // completed
-      ISOLATED  // this call is executed in an isolated envrinment and must not
+      ISOLATED  // this call is executed in an isolated environment and must not
                 // affect neither host storage nor runtime memory
     };
 
@@ -45,13 +45,19 @@ namespace kagome::runtime::binaryen {
       BOOST_ASSERT(runtime_env_factory_);
     }
 
+   protected:
+    struct CallConfig {
+      CallPersistency persistency;
+      RuntimeEnvironmentFactory::Config runtime_env_config{};
+    };
+
    private:
     // as it has a deduced return type, must be defined before execute()
     auto createRuntimeEnvironment(
-        CallPersistency persistency,
+        const CallConfig &config,
         const boost::optional<common::Hash256> &state_root_opt) {
       if (state_root_opt.has_value()) {
-        switch (persistency) {
+        switch (config.persistency) {
           case CallPersistency::PERSISTENT:
             return runtime_env_factory_
                 ->makePersistentAt(state_root_opt.value())
@@ -60,17 +66,20 @@ namespace kagome::runtime::binaryen {
             return runtime_env_factory_->makeEphemeralAt(state_root_opt.value())
                 .value();
           case CallPersistency::ISOLATED:
-            return runtime_env_factory_->makeIsolatedAt(state_root_opt.value())
+            return runtime_env_factory_
+                ->makeIsolatedAt(state_root_opt.value(),
+                                 config.runtime_env_config)
                 .value();
         }
       } else {
-        switch (persistency) {
+        switch (config.persistency) {
           case CallPersistency::PERSISTENT:
             return runtime_env_factory_->makePersistent().value();
           case CallPersistency::EPHEMERAL:
             return runtime_env_factory_->makeEphemeral().value();
           case CallPersistency::ISOLATED:
-            return runtime_env_factory_->makeIsolated().value();
+            return runtime_env_factory_->makeIsolated(config.runtime_env_config)
+                .value();
         }
       }
       BOOST_UNREACHABLE_RETURN({});
@@ -92,10 +101,10 @@ namespace kagome::runtime::binaryen {
     template <typename R, typename... Args>
     outcome::result<R> executeAt(std::string_view name,
                                  const storage::trie::RootHash &state_root,
-                                 CallPersistency persistency,
+                                 CallConfig config,
                                  Args &&...args) {
       return executeInternal<R>(
-          name, state_root, persistency, std::forward<Args>(args)...);
+          name, state_root, config, std::forward<Args>(args)...);
     }
 
     /**
@@ -110,10 +119,10 @@ namespace kagome::runtime::binaryen {
      */
     template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name,
-                               CallPersistency persistency,
+                               CallConfig config,
                                Args &&...args) {
       return executeInternal<R>(
-          name, boost::none, persistency, std::forward<Args>(args)...);
+          name, boost::none, config, std::forward<Args>(args)...);
     }
 
    private:
@@ -127,7 +136,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<R> executeInternal(
         std::string_view name,
         boost::optional<storage::trie::RootHash> state_root,
-        CallPersistency persistency,
+        CallConfig config,
         Args &&...args) {
       logger_->debug("Executing export function: {}", name);
       if (state_root.has_value()) {
@@ -135,7 +144,7 @@ namespace kagome::runtime::binaryen {
       }
 
       auto &&[module_instance, memory, opt_batch] =
-          createRuntimeEnvironment(persistency, state_root);
+          createRuntimeEnvironment(config, state_root);
 
       runtime::WasmPointer ptr = 0u;
       runtime::WasmSize len = 0u;

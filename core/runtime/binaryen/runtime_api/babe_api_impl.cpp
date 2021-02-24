@@ -12,8 +12,9 @@ namespace kagome::runtime::binaryen {
       : RuntimeApi(runtime_env_factory) {}
 
   outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration() {
-    return execute<primitives::BabeConfiguration>("BabeApi_configuration",
-                                                  CallPersistency::EPHEMERAL);
+    return execute<primitives::BabeConfiguration>(
+        "BabeApi_configuration",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL});
   }
 
 }  // namespace kagome::runtime::binaryen

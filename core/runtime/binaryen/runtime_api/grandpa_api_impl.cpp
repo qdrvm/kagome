@@ -26,14 +26,16 @@ namespace kagome::runtime::binaryen {
   GrandpaApiImpl::pending_change(const Digest &digest) {
     return execute<boost::optional<ScheduledChange>>(
         "GrandpaApi_grandpa_pending_change",
-        CallPersistency::EPHEMERAL,
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
         digest);
   }
 
   outcome::result<boost::optional<ForcedChange>> GrandpaApiImpl::forced_change(
       const Digest &digest) {
     return execute<boost::optional<ForcedChange>>(
-        "GrandpaApi_grandpa_forced_change", CallPersistency::EPHEMERAL, digest);
+        "GrandpaApi_grandpa_forced_change",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
+        digest);
   }
 
   outcome::result<primitives::AuthorityList> GrandpaApiImpl::authorities(
@@ -42,6 +44,6 @@ namespace kagome::runtime::binaryen {
     return executeAt<primitives::AuthorityList>(
         "GrandpaApi_grandpa_authorities",
         header.state_root,
-        CallPersistency::EPHEMERAL);
+        CallConfig{.persistency = CallPersistency::EPHEMERAL});
   }
 }  // namespace kagome::runtime::binaryen

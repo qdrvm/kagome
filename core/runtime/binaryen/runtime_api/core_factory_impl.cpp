@@ -23,7 +23,7 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
       std::shared_ptr<WasmProvider> wasm_provider) {
     return std::make_unique<CoreImpl>(
-        runtime_env_factory, changes_tracker_, header_repo_);
+        runtime_env_factory, wasm_provider, changes_tracker_, header_repo_);
   }
 
 }  // namespace kagome::runtime::binaryen
