@@ -35,14 +35,14 @@ namespace kagome::runtime::binaryen {
       boost::optional<std::shared_ptr<WasmProvider>> wasm_provider;
     };
 
-    virtual outcome::result<RuntimeEnvironment> makeIsolated(Config config) = 0;
+    virtual outcome::result<RuntimeEnvironment> makeIsolated(const Config &config) = 0;
 
     virtual outcome::result<RuntimeEnvironment> makePersistent() = 0;
 
     virtual outcome::result<RuntimeEnvironment> makeEphemeral() = 0;
 
     virtual outcome::result<RuntimeEnvironment> makeIsolatedAt(
-        const storage::trie::RootHash &state_root, Config config) = 0;
+        const storage::trie::RootHash &state_root,const Config &config) = 0;
 
     /**
      * @warning calling this with an \arg state_root older than the current root

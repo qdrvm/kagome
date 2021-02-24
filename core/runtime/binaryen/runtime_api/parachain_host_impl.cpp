@@ -17,7 +17,7 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<DutyRoster> ParachainHostImpl::duty_roster() {
     return execute<DutyRoster>("ParachainHost_duty_roster",
-                               CallPersistency::EPHEMERAL);
+        CallConfig{.persistency = CallPersistency::EPHEMERAL});
   }
 
   outcome::result<std::vector<ParaId>> ParachainHostImpl::active_parachains() {

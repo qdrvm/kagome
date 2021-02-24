@@ -39,7 +39,7 @@ class CoreTest : public RuntimeTest {
         .WillRepeatedly(Return(kagome::primitives::BlockHeader{}));
 
     core_ = std::make_shared<CoreImpl>(
-        runtime_env_factory_, changes_tracker_, header_repo);
+        runtime_env_factory_, wasm_provider_, changes_tracker_, header_repo);
   }
 
  protected:
