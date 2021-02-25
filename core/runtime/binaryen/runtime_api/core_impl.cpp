@@ -36,12 +36,14 @@ namespace kagome::runtime::binaryen {
           "Core_version",
           header.state_root,
           CallConfig{.persistency = CallPersistency::ISOLATED,
-                     .runtime_env_config{.wasm_provider = wasm_provider_}});
+                     .runtime_env_config = RuntimeEnvironmentFactory::Config{
+                         .wasm_provider = wasm_provider_}});
     }
     return execute<Version>(
         "Core_version",
         CallConfig{.persistency = CallPersistency::ISOLATED,
-                   .runtime_env_config{.wasm_provider = wasm_provider_}});
+                   .runtime_env_config = RuntimeEnvironmentFactory::Config{
+                       .wasm_provider = wasm_provider_}});
   }
 
   outcome::result<void> CoreImpl::execute_block(
