@@ -48,7 +48,7 @@ namespace kagome::host_api {
 
     if (version_res.has_value()) {
       auto enc_version_res =
-          scale::encode(boost::make_optional(version_res.value()));
+          scale::encode(boost::make_optional(scale::encode(version_res.value()).value()));
       if (enc_version_res.has_error()) {
         logger_->error(
             "Error encoding ext_misc_runtime_version_version_1 result: {}",
