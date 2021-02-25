@@ -104,7 +104,7 @@ namespace kagome::runtime::binaryen {
                                  CallConfig config,
                                  Args &&...args) {
       return executeInternal<R>(
-          name, state_root, config, std::forward<Args>(args)...);
+          name, state_root, std::move(config), std::forward<Args>(args)...);
     }
 
     /**
@@ -122,7 +122,7 @@ namespace kagome::runtime::binaryen {
                                CallConfig config,
                                Args &&...args) {
       return executeInternal<R>(
-          name, boost::none, config, std::forward<Args>(args)...);
+          name, boost::none, std::move(config), std::forward<Args>(args)...);
     }
 
    private:
