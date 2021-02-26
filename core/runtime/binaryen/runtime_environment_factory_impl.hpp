@@ -45,14 +45,16 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<TrieStorageProvider> storage_provider,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<RuntimeEnvironment> makeIsolated(const Config &config) override;
+    outcome::result<RuntimeEnvironment> makeIsolated(
+        const Config &config) override;
 
     outcome::result<RuntimeEnvironment> makePersistent() override;
 
     outcome::result<RuntimeEnvironment> makeEphemeral() override;
 
     outcome::result<RuntimeEnvironment> makeIsolatedAt(
-        const storage::trie::RootHash &state_root, const Config &config) override;
+        const storage::trie::RootHash &state_root,
+        const Config &config) override;
 
     /**
      * @warning calling this with an \arg state_root older than the current root

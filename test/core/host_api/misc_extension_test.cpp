@@ -56,11 +56,11 @@ TEST(MiscExt, CoreVersion) {
 
   kagome::primitives::Version v1{};
   v1.authoring_version = 42;
-  Buffer v1_enc{encode(boost::make_optional(v1)).value()};
+  Buffer v1_enc{encode(boost::make_optional(encode(v1).value())).value()};
 
   kagome::primitives::Version v2{};
   v2.authoring_version = 24;
-  Buffer v2_enc{encode(boost::make_optional(v2)).value()};
+  Buffer v2_enc{encode(boost::make_optional(encode(v2).value())).value()};
 
   auto core_factory_mock = std::make_shared<CoreFactoryMock>();
   EXPECT_CALL(*core_factory_mock, createWithCode(_, _))
