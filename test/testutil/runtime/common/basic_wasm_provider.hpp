@@ -10,13 +10,14 @@
 
 namespace kagome::runtime {
 
-  class BasicWasmProvider : public kagome::runtime::WasmProvider {
+  class BasicWasmProvider final : public kagome::runtime::WasmProvider {
    public:
     explicit BasicWasmProvider(std::string_view path);
 
     ~BasicWasmProvider() override = default;
 
-    const kagome::common::Buffer &getStateCode() const override;
+    const common::Buffer &getStateCodeAt(
+        const primitives::BlockHash &at) const override;
 
    private:
     void initialize(std::string_view path);

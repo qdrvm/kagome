@@ -18,7 +18,7 @@ namespace kagome::storage::trie {
 
   class PolkadotCodec : public Codec {
    public:
-    using Buffer = kagome::common::Buffer;
+    using Buffer = common::Buffer;
 
     enum class Error {
       SUCCESS = 0,

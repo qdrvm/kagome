@@ -47,7 +47,7 @@ namespace kagome::blockchain {
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
   KeyValueBlockStorage::create(
-      common::Buffer state_root,
+      storage::trie::RootHash state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
       const std::shared_ptr<crypto::Hasher> &hasher,
       const BlockHandler &on_finalized_block_found) {
@@ -94,7 +94,7 @@ namespace kagome::blockchain {
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
   KeyValueBlockStorage::createWithGenesis(
-      common::Buffer state_root,
+      storage::trie::RootHash state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
       std::shared_ptr<crypto::Hasher> hasher,
       const BlockHandler &on_genesis_created) {
@@ -103,21 +103,13 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(block_storage->ensureGenesisNotExists());
 
-    // state root type is Hash256, however for consistency with spec root hash
-    // returns buffer. So we need this conversion
-    OUTCOME_TRY(state_root_blob,
-                common::Hash256::fromSpan(state_root.asVector()));
-
-    auto extrinsics_root_buf = trieRoot({});
-    // same reason for conversion as few lines above
-    OUTCOME_TRY(extrinsics_root,
-                common::Hash256::fromSpan(extrinsics_root_buf.asVector()));
+    auto extrinsics_root = trieRoot({});
 
     // genesis block initialization
     primitives::Block genesis_block;
     genesis_block.header.number = 0;
     genesis_block.header.extrinsics_root = extrinsics_root;
-    genesis_block.header.state_root = state_root_blob;
+    genesis_block.header.state_root = state_root;
     // the rest of the fields have default value
 
     OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));

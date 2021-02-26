@@ -19,7 +19,7 @@ namespace kagome::storage::trie {
 
   class PersistentTrieBatchImpl : public PersistentTrieBatch {
    public:
-    using RootChangedEventHandler = std::function<void(const common::Buffer &)>;
+    using RootChangedEventHandler = std::function<void(const RootHash &)>;
     enum class Error {
       NO_TRIE = 1,
     };
@@ -32,7 +32,7 @@ namespace kagome::storage::trie {
         RootChangedEventHandler &&handler);
     ~PersistentTrieBatchImpl() override = default;
 
-    outcome::result<Buffer> commit() override;
+    outcome::result<RootHash> commit() override;
     std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
     outcome::result<Buffer> get(const Buffer &key) const override;

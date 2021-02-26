@@ -26,6 +26,7 @@ using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::storage::trie::TrieStorageImpl;
+using kagome::storage::trie::RootHash;
 using kagome::subscription::SubscriptionEngine;
 
 static Buffer kNodePrefix = "\1"_buf;
@@ -37,7 +38,7 @@ static Buffer kNodePrefix = "\1"_buf;
  * @then the new instance contains the same data
  */
 TEST(TriePersistencyTest, CreateDestroyCreate) {
-  Buffer root;
+  RootHash root;
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   {

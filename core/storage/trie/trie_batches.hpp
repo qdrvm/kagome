@@ -8,6 +8,7 @@
 
 #include "storage/buffer_map_types.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
 
@@ -43,7 +44,7 @@ namespace kagome::storage::trie {
      * Commits changes to a persistent storage
      * @returns the root of the committed trie
      */
-    virtual outcome::result<Buffer> commit() = 0;
+    virtual outcome::result<RootHash> commit() = 0;
 
     /**
      * Creates a batch on top of this batch

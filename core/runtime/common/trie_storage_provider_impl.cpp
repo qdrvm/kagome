@@ -65,7 +65,7 @@ namespace kagome::runtime {
            != nullptr;
   }
 
-  outcome::result<common::Buffer> TrieStorageProviderImpl::forceCommit() {
+  outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::forceCommit() {
     if (persistent_batch_ != nullptr) {
       return persistent_batch_->commit();
     }
@@ -102,6 +102,10 @@ namespace kagome::runtime {
     current_batch_ = std::move(stack_of_batches_.top());
     stack_of_batches_.pop();
     return outcome::success();
+  }
+
+  storage::trie::RootHash TrieStorageProviderImpl::getLatestRoot() const noexcept {
+    return trie_storage_->getRootHash();
   }
 
 }  // namespace kagome::runtime

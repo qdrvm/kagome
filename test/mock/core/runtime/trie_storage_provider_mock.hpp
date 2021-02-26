@@ -16,18 +16,22 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD0(setToEphemeral, outcome::result<void>());
     MOCK_METHOD1(setToEphemeralAt,
-                 outcome::result<void>(const common::Hash256 &));
+                 outcome::result<void>(const storage::trie::RootHash &));
     MOCK_METHOD0(setToPersistent, outcome::result<void>());
     MOCK_METHOD1(setToPersistentAt,
-                 outcome::result<void>(const common::Hash256 &));
+                 outcome::result<void>(const storage::trie::RootHash &));
     MOCK_CONST_METHOD0(getCurrentBatch, std::shared_ptr<Batch>());
     MOCK_CONST_METHOD0(tryGetPersistentBatch,
                        boost::optional<std::shared_ptr<PersistentBatch>>());
     MOCK_CONST_METHOD0(isCurrentlyPersistent, bool());
-    MOCK_METHOD0(forceCommit, outcome::result<common::Buffer>());
+    MOCK_METHOD0(forceCommit, outcome::result<storage::trie::RootHash>());
     MOCK_METHOD0(startTransaction, outcome::result<void>());
     MOCK_METHOD0(rollbackTransaction, outcome::result<void>());
     MOCK_METHOD0(commitTransaction, outcome::result<void>());
+    MOCK_CONST_METHOD0(getLatestRootMock, storage::trie::RootHash());
+    storage::trie::RootHash getLatestRoot() const noexcept override {
+      return getLatestRootMock();
+    }
   };
 
 }  // namespace kagome::runtime

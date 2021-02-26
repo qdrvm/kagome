@@ -9,11 +9,9 @@ namespace kagome::runtime::binaryen {
   using primitives::OpaqueMetadata;
 
   MetadataImpl::MetadataImpl(
-      const std::shared_ptr<WasmProvider> &wasm_provider,
-      const std::shared_ptr<RuntimeManager> &runtime_manager,
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
-      : RuntimeApi(wasm_provider, runtime_manager),
-        header_repo_(std::move(header_repo)) {
+      : RuntimeApi(runtime_env_factory), header_repo_(std::move(header_repo)) {
     BOOST_ASSERT(header_repo_ != nullptr);
   }
 
@@ -22,9 +20,12 @@ namespace kagome::runtime::binaryen {
     if (block_hash) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash.value()));
       return executeAt<OpaqueMetadata>(
-          "Metadata_metadata", header.state_root, CallPersistency::EPHEMERAL);
+          "Metadata_metadata",
+          header.state_root,
+          CallConfig{.persistency = CallPersistency::EPHEMERAL});
     }
-    return execute<OpaqueMetadata>("Metadata_metadata",
-                                   CallPersistency::EPHEMERAL);
+    return execute<OpaqueMetadata>(
+        "Metadata_metadata",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL});
   }
 }  // namespace kagome::runtime::binaryen

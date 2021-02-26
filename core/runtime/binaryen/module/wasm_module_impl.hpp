@@ -20,7 +20,7 @@ namespace kagome::runtime::binaryen {
    * Stores a wasm::Module and a wasm::Module instance which contains the module
    * and the provided runtime external interface
    */
-  class WasmModuleImpl final : public WasmModule {
+  class WasmModuleImpl final : public WasmModule, public std::enable_shared_from_this<WasmModuleImpl> {
    public:
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
 
@@ -43,7 +43,7 @@ namespace kagome::runtime::binaryen {
    private:
     explicit WasmModuleImpl(std::unique_ptr<wasm::Module> &&module);
 
-    std::unique_ptr<wasm::Module> module_;
+    std::shared_ptr<wasm::Module> module_; // shared to module instances
   };
 
 }  // namespace kagome::runtime::binaryen

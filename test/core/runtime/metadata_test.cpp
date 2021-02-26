@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/impl/extension_impl.hpp"
+#include "host_api/impl/host_api_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
@@ -29,8 +29,7 @@ class MetadataTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     api_ = std::make_shared<MetadataImpl>(
-        wasm_provider_,
-        runtime_manager_,
+        runtime_env_factory_,
         std::make_shared<BlockHeaderRepositoryMock>());
   }
 

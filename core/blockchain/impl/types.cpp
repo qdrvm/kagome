@@ -39,7 +39,7 @@ namespace kagome::blockchain {
     return key;
   }
 
-  common::Buffer trieRoot(
+  storage::trie::RootHash trieRoot(
       const std::vector<std::pair<common::Buffer, common::Buffer>> &key_vals) {
     auto trie = storage::trie::PolkadotTrieImpl();
     auto codec = storage::trie::PolkadotCodec();
@@ -50,10 +50,10 @@ namespace kagome::blockchain {
     }
     auto root = trie.getRoot();
     if (root == nullptr) {
-      return common::Buffer{codec.hash256({0})};
+      return codec.hash256({0});
     }
     auto encode_res = codec.encodeNode(*root);
     BOOST_ASSERT_MSG(encode_res.has_value(), "Trie encoding failed");
-    return common::Buffer{codec.hash256(encode_res.value())};
+    return codec.hash256(encode_res.value());
   }
 }  // namespace kagome::blockchain
