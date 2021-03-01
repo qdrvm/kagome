@@ -9,9 +9,19 @@
 #include <binaryen/shell-interface.h>
 
 #include "common/logger.hpp"
-#include "extensions/extension_factory.hpp"
-#include "runtime/trie_storage_provider.hpp"
-#include "runtime/wasm_memory.hpp"
+
+namespace kagome::extensions {
+  class ExtensionFactory;
+}
+
+namespace kagome::runtime {
+  class TrieStorageProvider;
+  class WasmMemory;
+}  // namespace kagome::runtime
+
+namespace wasm {
+  class Function;
+}
 
 namespace kagome::runtime::binaryen {
 

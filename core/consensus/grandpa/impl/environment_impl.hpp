@@ -10,12 +10,9 @@
 
 #include <boost/signals2/signal.hpp>
 
-#include "blockchain/block_header_repository.hpp"
-#include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
-#include "consensus/grandpa/chain.hpp"
-#include "consensus/grandpa/gossiper.hpp"
-#include "consensus/grandpa/justification_observer.hpp"
+
+namespace kagome::consensus::grandpa { struct Gossiper; }
 
 namespace kagome::consensus::grandpa {
 

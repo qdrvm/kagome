@@ -6,14 +6,14 @@
 #ifndef KAGOME_CORE_STORAGE_TRIE_IMPL_TOPPER_TRIE_BATCH_IMPL
 #define KAGOME_CORE_STORAGE_TRIE_IMPL_TOPPER_TRIE_BATCH_IMPL
 
+
 #include "storage/trie/trie_batches.hpp"
 
 #include <deque>
 
-#include "primitives/block_id.hpp"
-#include "primitives/event_types.hpp"
-#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
-#include "subscription/subscriber.hpp"
+#include "outcome/outcome.hpp"
+
+namespace kagome::storage::trie { class PolkadotTrieCursor; }
 
 namespace kagome::storage::trie {
 

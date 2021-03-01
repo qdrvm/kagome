@@ -7,7 +7,8 @@
 #define KAGOME_MEMORY_EXTENSIONS_HPP
 
 #include "common/logger.hpp"
-#include "runtime/wasm_memory.hpp"
+
+namespace kagome::runtime { class WasmMemory; }
 
 namespace kagome::extensions {
   /**

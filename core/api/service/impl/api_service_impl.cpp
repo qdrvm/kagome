@@ -8,7 +8,18 @@
 #include <boost/algorithm/string/replace.hpp>
 
 #include "api/jrpc/jrpc_processor.hpp"
+#include "api/jrpc/jrpc_server.hpp"
 #include "api/jrpc/value_converter.hpp"
+#include "api/transport/listener.hpp"
+#include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
+#include "common/hexutil.hpp"
+#include "primitives/common.hpp"
+#include "primitives/transaction.hpp"
+#include "storage/trie/trie_batches.hpp"
+#include "storage/trie/trie_storage.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
+#include "subscription/subscriber.hpp"
 
 
 #define UNWRAP_WEAK_PTR(callback)  \

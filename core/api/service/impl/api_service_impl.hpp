@@ -13,22 +13,25 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "api/jrpc/jrpc_server_impl.hpp"
-#include "api/transport/listener.hpp"
 #include "api/transport/rpc_thread_pool.hpp"
-#include "application/app_state_manager.hpp"
-#include "blockchain/block_tree.hpp"
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "containers/objects_cache.hpp"
-#include "primitives/common.hpp"
 #include "primitives/event_types.hpp"
-#include "primitives/transaction.hpp"
-#include "storage/trie/trie_storage.hpp"
-#include "subscription/extrinsic_event_key_repository.hpp"
-#include "subscription/subscriber.hpp"
+#include "subscription/subscription_engine.hpp"
+#include "primitives/block_id.hpp"
+
+namespace kagome::api { class JRpcProcessor; }
+namespace kagome::api { class JRpcServer; }
+namespace kagome::api { class Listener; }
+namespace kagome::application { class AppStateManager; }
+namespace kagome::blockchain { struct BlockTree; }
+namespace kagome::primitives { struct Transaction; }
+namespace kagome::storage { namespace trie { class TrieStorage; }
+namespace kagome::subscription { class ExtrinsicEventKeyRepository; }
 
 namespace kagome::api {
+
   template <typename T>
   using UCachedType = std::unique_ptr<T, void (*)(T *const)>;
 

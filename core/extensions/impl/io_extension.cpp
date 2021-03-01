@@ -4,6 +4,7 @@
  */
 
 #include "extensions/impl/io_extension.hpp"
+
 #include <runtime/wasm_result.hpp>
 
 namespace kagome::extensions {

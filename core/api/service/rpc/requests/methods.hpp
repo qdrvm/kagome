@@ -8,8 +8,11 @@
 
 #include <jsonrpc-lean/request.h>
 
-#include "api/service/rpc/rpc_api.hpp"
 #include "outcome/outcome.hpp"
+
+namespace kagome::api {
+  class RpcApi;
+}
 
 namespace kagome::api::rpc::request {
 

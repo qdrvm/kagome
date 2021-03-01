@@ -11,27 +11,38 @@
  * https://github.com/paritytech/substrate/blob/e8739300ae3f7f2e7b72f64668573275f2806ea5/core/rpc/src/author/mod.rs#L50-L49
  */
 
+#include "api/service/author/author_api.hpp"
+
 #include <unordered_set>
 
 #include <libp2p/peer/peer_id.hpp>
 
-#include "api/service/api_service.hpp"
-#include "api/service/author/author_api.hpp"
-#include "blockchain/block_tree.hpp"
+#include "common/blob.hpp"
 #include "common/logger.hpp"
-#include "crypto/hasher.hpp"
-#include "network/extrinsic_gossiper.hpp"
-#include "outcome/outcome.hpp"
-#include "storage/trie/trie_storage.hpp"
+#include "primitives/author_api_primitives.hpp"
+#include "primitives/transaction.hpp"
 
-namespace kagome::transaction_pool {
-  class TransactionPool;
+namespace kagome::api {
+  class ApiService;
 }
-
+namespace kagome::blockchain {
+  struct BlockTree;
+}
+namespace kagome::crypto {
+  class Hasher;
+}
+namespace kagome::network {
+  struct ExtrinsicGossiper;
+}
+namespace kagome::primitives {
+  struct Extrinsic;
+}
 namespace kagome::runtime {
   class TaggedTransactionQueue;
 }
-
+namespace kagome::transaction_pool {
+  class TransactionPool;
+}
 namespace kagome::subscription {
   template <typename Event, typename Receiver, typename... Arguments>
   class Subscriber;

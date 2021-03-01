@@ -6,10 +6,19 @@
 #ifndef KAGOME_CORE_API_EXTRINSIC_EXTRINSIC_API_HPP
 #define KAGOME_CORE_API_EXTRINSIC_EXTRINSIC_API_HPP
 
-#include "api/service/api_service.hpp"
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
+
 #include "primitives/author_api_primitives.hpp"
-#include "primitives/extrinsic.hpp"
+
+namespace kagome::api {
+  class ApiService;
+}
+
+namespace kagome::primitives {
+  struct Extrinsic;
+  struct Metadata;
+}
 
 namespace kagome::api {
   class AuthorApi {
@@ -33,8 +42,7 @@ namespace kagome::api {
      * @return hash of successfully validated extrinsic
      * or error if state is invalid or unknown
      */
-    virtual outcome::result<common::Hash256>
-    submitExtrinsic(
+    virtual outcome::result<common::Hash256> submitExtrinsic(
         const Extrinsic &extrinsic) = 0;
 
     /**

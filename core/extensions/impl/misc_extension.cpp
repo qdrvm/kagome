@@ -5,17 +5,17 @@
 
 #include "extensions/impl/misc_extension.hpp"
 
+#include "primitives/version.hpp"
 #include "runtime/common/const_wasm_provider.hpp"
-#include "runtime/core_factory.hpp"
+#include "runtime/core.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::extensions {
 
-  MiscExtension::MiscExtension(
-      uint64_t chain_id,
-      std::shared_ptr<runtime::WasmMemory> memory,
-      CoreFactoryMethod core_factory_method)
+  MiscExtension::MiscExtension(uint64_t chain_id,
+                               std::shared_ptr<runtime::WasmMemory> memory,
+                               CoreFactoryMethod core_factory_method)
       : core_factory_method_{std::move(core_factory_method)},
         memory_{std::move(memory)},
         logger_{common::createLogger("MiscExtension")},
@@ -64,8 +64,7 @@ namespace kagome::extensions {
     logger_->info("hex: {}", buf.toHex());
   }
 
-  void MiscExtension::ext_misc_print_num_version_1(
-      uint64_t value) const {
+  void MiscExtension::ext_misc_print_num_version_1(uint64_t value) const {
     logger_->info("num: {}", value);
   }
 

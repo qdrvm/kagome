@@ -8,8 +8,9 @@
 
 #include <jsonrpc-lean/request.h>
 
-#include "api/service/system/system_api.hpp"
 #include "outcome/outcome.hpp"
+
+namespace kagome::api { class SystemApi; }
 
 namespace kagome::api::system::request {
 

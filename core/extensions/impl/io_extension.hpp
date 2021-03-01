@@ -9,7 +9,8 @@
 #include <cstdint>
 
 #include "common/logger.hpp"
-#include "runtime/wasm_memory.hpp"
+
+namespace kagome::runtime { class WasmMemory; }
 
 namespace kagome::extensions {
   /**

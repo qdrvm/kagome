@@ -8,14 +8,14 @@
 
 #include "runtime/binaryen/module/wasm_module_instance.hpp"
 
-#include "runtime/binaryen/runtime_external_interface.hpp"
-
 namespace wasm {
   using namespace ::wasm;  // NOLINT(google-build-using-namespace)
   class ModuleInstance;
 }  // namespace wasm
 
 namespace kagome::runtime::binaryen {
+
+  class RuntimeExternalInterface;
 
   class WasmModuleInstanceImpl final : public WasmModuleInstance {
    public:

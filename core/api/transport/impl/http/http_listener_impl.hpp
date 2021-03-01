@@ -9,7 +9,6 @@
 #include "api/transport/listener.hpp"
 
 #include "api/transport/impl/http/http_session.hpp"
-#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {

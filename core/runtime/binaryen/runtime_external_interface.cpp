@@ -5,7 +5,12 @@
 
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
+#include "extensions/extension_factory.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+
+namespace kagome::runtime {
+  class TrieStorageProvider;
+}
 
 namespace kagome::runtime::binaryen {
 
@@ -57,9 +62,12 @@ namespace kagome::runtime::binaryen {
 
   const static wasm::Name ext_chain_id = "ext_chain_id";
 
-  const static wasm::Name ext_misc_print_hex_version_1 = "ext_misc_print_hex_version_1";
-  const static wasm::Name ext_misc_print_num_version_1 = "ext_misc_print_num_version_1";
-  const static wasm::Name ext_misc_print_utf8_version_1 = "ext_misc_print_utf8_version_1";
+  const static wasm::Name ext_misc_print_hex_version_1 =
+      "ext_misc_print_hex_version_1";
+  const static wasm::Name ext_misc_print_num_version_1 =
+      "ext_misc_print_num_version_1";
+  const static wasm::Name ext_misc_print_utf8_version_1 =
+      "ext_misc_print_utf8_version_1";
 
   // version 1
   const static wasm::Name ext_hashing_keccak_256_version_1 =

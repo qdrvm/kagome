@@ -11,7 +11,6 @@
 #include <atomic>
 
 #include "api/transport/impl/ws/ws_session.hpp"
-#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {
