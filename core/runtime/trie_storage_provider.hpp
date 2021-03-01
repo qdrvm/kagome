@@ -11,6 +11,7 @@
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/trie/trie_batches.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
 
@@ -72,7 +73,12 @@ namespace kagome::runtime {
     /**
      * Commits persistent changes even if the current batch is not persistent
      */
-    virtual outcome::result<common::Buffer> forceCommit() = 0;
+    virtual outcome::result<storage::trie::RootHash> forceCommit() = 0;
+
+    /**
+     * Root hash of the latest committed trie
+     */
+    virtual storage::trie::RootHash getLatestRoot() const noexcept = 0;
 
     // ------ Transaction methods ------
 

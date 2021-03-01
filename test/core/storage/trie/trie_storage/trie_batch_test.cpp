@@ -77,7 +77,10 @@ class MockTrieStorageImpl : public TrieStorageImpl {
  public:
   MockTrieStorageImpl() : TrieStorageImpl({}, nullptr, nullptr, boost::none) {}
 
-  MOCK_CONST_METHOD0(getRootHash, Buffer());
+  MOCK_CONST_METHOD0(getRootHashMock, RootHash ());
+  RootHash getRootHash() const noexcept override {
+    return getRootHashMock();
+  }
 };
 
 class MockDb : public kagome::storage::InMemoryStorage {

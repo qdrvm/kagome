@@ -22,9 +22,9 @@ namespace kagome::storage::trie {
                        std::shared_ptr<TrieStorageBackend> backend);
     ~TrieSerializerImpl() override = default;
 
-    common::Buffer getEmptyRootHash() const override;
+    RootHash getEmptyRootHash() const override;
 
-    outcome::result<common::Buffer> storeTrie(PolkadotTrie &trie) override;
+    outcome::result<RootHash> storeTrie(PolkadotTrie &trie) override;
 
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
         const common::Buffer &db_key) const override;
@@ -35,7 +35,7 @@ namespace kagome::storage::trie {
      * descendants as well. Then replaces the node children to dummy nodes to
      * avoid memory waste
      */
-    outcome::result<common::Buffer> storeRootNode(PolkadotNode &node);
+    outcome::result<RootHash> storeRootNode(PolkadotNode &node);
     outcome::result<common::Buffer> storeNode(PolkadotNode &node,
                                               BufferBatch &batch);
     outcome::result<void> storeChildren(BranchNode &branch, BufferBatch &batch);

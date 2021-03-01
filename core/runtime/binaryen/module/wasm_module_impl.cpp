@@ -48,7 +48,6 @@ namespace kagome::runtime::binaryen {
     auto module = std::make_unique<wasm::Module>();
     {
       wasm::WasmBinaryBuilder parser(
-
           *module,
           reinterpret_cast<std::vector<char> const &>(  // NOLINT
               code.asVector()),
@@ -74,7 +73,7 @@ namespace kagome::runtime::binaryen {
   std::unique_ptr<WasmModuleInstance> WasmModuleImpl::instantiate(
       const std::shared_ptr<RuntimeExternalInterface> &externalInterface)
       const {
-    return std::make_unique<WasmModuleInstanceImpl>(*module_,
+    return std::make_unique<WasmModuleInstanceImpl>(module_,
                                                     externalInterface);
   }
 

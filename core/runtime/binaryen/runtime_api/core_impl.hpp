@@ -17,8 +17,8 @@ namespace kagome::runtime::binaryen {
   class CoreImpl : public RuntimeApi, public Core {
    public:
     CoreImpl(
-        const std::shared_ptr<WasmProvider> &wasm_provider,
-        const std::shared_ptr<RuntimeManager> &runtime_manager,
+        const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
+        std::shared_ptr<WasmProvider> wasm_provider,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
 
@@ -37,6 +37,7 @@ namespace kagome::runtime::binaryen {
         const primitives::BlockId &block_id) override;
 
    private:
+    std::shared_ptr<WasmProvider> wasm_provider_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
   };

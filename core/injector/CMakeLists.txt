@@ -46,7 +46,7 @@ target_link_libraries(application_injector
     author_api_service
     extrinsic_observer
     transaction_pool
-    extension_factory
+    host_api_factory
     gossiper_broadcast
     kagome_router
     leveldb
@@ -55,6 +55,7 @@ target_link_libraries(application_injector
     environment
     proposer
     storage_wasm_provider
+    binaryen_wasm_memory_factory
     remote_sync_protocol_client
     dummy_sync_protocol_client
     sync_protocol_observer

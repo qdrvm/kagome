@@ -36,11 +36,13 @@ namespace kagome::runtime {
         const override;
     bool isCurrentlyPersistent() const override;
 
-    outcome::result<common::Buffer> forceCommit() override;
+    outcome::result<storage::trie::RootHash> forceCommit() override;
 
     outcome::result<void> startTransaction() override;
     outcome::result<void> rollbackTransaction() override;
     outcome::result<void> commitTransaction() override;
+
+    storage::trie::RootHash getLatestRoot() const noexcept override;
 
    private:
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;

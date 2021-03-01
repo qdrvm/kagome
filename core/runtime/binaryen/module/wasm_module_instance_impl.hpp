@@ -12,6 +12,7 @@
 
 namespace wasm {
   using namespace ::wasm;  // NOLINT(google-build-using-namespace)
+  class Module;
   class ModuleInstance;
 }  // namespace wasm
 
@@ -20,7 +21,7 @@ namespace kagome::runtime::binaryen {
   class WasmModuleInstanceImpl final : public WasmModuleInstance {
    public:
     WasmModuleInstanceImpl(
-        wasm::Module &module,
+        std::shared_ptr<wasm::Module> parent,
         const std::shared_ptr<RuntimeExternalInterface> &rei);
 
     wasm::Literal callExportFunction(
@@ -28,7 +29,15 @@ namespace kagome::runtime::binaryen {
 
     wasm::Literal getExportGlobal(wasm::Name name) override;
 
+    void reset() override {
+      rei_->reset();
+    }
+
    private:
+    std::shared_ptr<wasm::Module>
+        parent_;  // must be kept alive because binaryen's module instance keeps
+                  // a reference to it
+    std::shared_ptr<RuntimeExternalInterface> rei_;
     std::unique_ptr<wasm::ModuleInstance> module_instance_;
   };
 

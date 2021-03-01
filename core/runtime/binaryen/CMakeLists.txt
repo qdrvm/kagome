@@ -14,6 +14,12 @@ target_link_libraries(binaryen_wasm_memory
     )
 kagome_install(binaryen_wasm_memory)
 
+add_library(binaryen_wasm_memory_factory binaryen_wasm_memory_factory.cpp)
+target_link_libraries(binaryen_wasm_memory_factory
+    binaryen_wasm_memory
+    )
+kagome_install(binaryen_wasm_memory_factory)
+
 add_library(binaryen_runtime_external_interface
     runtime_external_interface.hpp
     runtime_external_interface.cpp
@@ -44,16 +50,15 @@ target_link_libraries(binaryen_runtime_environment
     )
 kagome_install(binaryen_runtime_environment)
 
-add_library(binaryen_runtime_manager
-    runtime_manager.hpp
-    runtime_manager.cpp
+add_library(binaryen_runtime_environment_factory
+    runtime_environment_factory_impl.cpp
     )
-target_link_libraries(binaryen_runtime_manager
+target_link_libraries(binaryen_runtime_environment_factory
     binaryen_runtime_environment
     binaryen_wasm_module
     binaryen_runtime_external_interface
     )
-kagome_install(binaryen_runtime_manager)
+kagome_install(binaryen_runtime_environment_factory)
 
 add_library(binaryen_wasm_executor
     wasm_executor.hpp
@@ -61,7 +66,7 @@ add_library(binaryen_wasm_executor
     )
 target_link_libraries(binaryen_wasm_executor
     binaryen::binaryen
-    binaryen_runtime_manager
+    binaryen_runtime_environment_factory
     logger
     )
 kagome_install(binaryen_wasm_executor)
