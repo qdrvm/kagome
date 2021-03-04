@@ -54,7 +54,7 @@ namespace kagome::runtime::binaryen {
    * @note Memory size of this implementation is at least of the size of one
    * wasm page (4096 bytes)
    */
-  class WasmMemoryImpl : public WasmMemory {
+  class WasmMemoryImpl final : public WasmMemory {
    public:
     explicit WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory);
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
@@ -98,11 +98,17 @@ namespace kagome::runtime::binaryen {
 
     WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
 
-   protected:
+    /// following methods are needed mostly for testing purposes
+    boost::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
+    boost::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
+    size_t getAllocatedChunksNum() const;
+    size_t getDeallocatedChunksNum() const;
+
+   private:
     wasm::ShellExternalInterface::Memory *memory_;
     WasmSize size_;
 
-    // Heap base. Offset is resetting to it at reset
+    // Heap base. Offset is reset to it on reset()
     WasmPointer heap_base_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk

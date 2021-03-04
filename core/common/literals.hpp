@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifndef KAGOME_COMMON_LITERALS
+#define KAGOME_COMMON_LITERALS
+
 namespace kagome::common::literals {
 
   constexpr size_t operator""_kB(long long unsigned int kilobytes) {
@@ -30,3 +33,5 @@ namespace kagome::common::literals {
   }
 
 }  // namespace kagome::common::literals
+
+#endif // KAGOME_COMMON_LITERALS

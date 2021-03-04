@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 
+#include <memory>
+
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
@@ -71,7 +73,7 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
-#include "extensions/impl/extension_factory_impl.hpp"
+#include "host_api/impl/host_api_factory_impl.hpp"
 #include "network/impl/dummy_sync_protocol_client.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
@@ -166,10 +168,9 @@ namespace kagome::injector {
             .template create<std::shared_ptr<api::chain::ChainJrpcProcessor>>(),
         injector.template create<
             std::shared_ptr<api::system::SystemJrpcProcessor>>(),
-        injector
-            .template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
-        injector
-            .template create<std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
+        injector.template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
+        injector.template create<
+            std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     const auto &trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
@@ -232,29 +233,25 @@ namespace kagome::injector {
 
   // jrpc api listener (over Websockets) getter
   template <typename Injector>
-  sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(const Injector &injector) {
+  sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
+      api::WsSession::Configuration ws_session_config,
+      sptr<api::RpcContext> context,
+      sptr<application::AppStateManager> app_state_manager,
+      const boost::asio::ip::tcp::endpoint &endpoint) {
     static auto initialized =
         boost::optional<sptr<api::WsListenerImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    const application::AppConfiguration &config =
-        injector.template create<application::AppConfiguration const &>();
-    auto &endpoint = config.rpcWsEndpoint();
-
-    auto app_state_manager =
-        injector.template create<sptr<application::AppStateManager>>();
-
-    auto context = injector.template create<sptr<api::RpcContext>>();
 
     api::WsListenerImpl::Configuration listener_config;
     listener_config.endpoint = endpoint;
 
-    auto &&ws_session_config =
-        injector.template create<api::WsSession::Configuration>();
-
-    initialized = std::make_shared<api::WsListenerImpl>(
-        app_state_manager, context, listener_config, ws_session_config);
+    initialized =
+        std::make_shared<api::WsListenerImpl>(app_state_manager,
+                                              context,
+                                              listener_config,
+                                              std::move(ws_session_config));
     return initialized.value();
   }
 
@@ -383,10 +380,10 @@ namespace kagome::injector {
   }
 
   template <typename Injector>
-  sptr<extensions::ExtensionFactoryImpl> get_extension_factory(
+  sptr<host_api::HostApiFactoryImpl> get_host_api_factory(
       const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<extensions::ExtensionFactoryImpl>>(boost::none);
+        boost::optional<sptr<host_api::HostApiFactoryImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -402,22 +399,15 @@ namespace kagome::injector {
     auto crypto_store = injector.template create<sptr<crypto::CryptoStore>>();
     auto bip39_provider =
         injector.template create<sptr<crypto::Bip39Provider>>();
-    auto core_factory_method =
-        [&injector](sptr<runtime::WasmProvider> wasm_provider) {
-          auto core_factory =
-              injector.template create<sptr<runtime::CoreFactory>>();
-          return core_factory->createWithCode(wasm_provider);
-        };
 
     initialized =
-        std::make_shared<extensions::ExtensionFactoryImpl>(tracker,
-                                                           sr25519_provider,
-                                                           ed25519_provider,
-                                                           secp256k1_provider,
-                                                           hasher,
-                                                           crypto_store,
-                                                           bip39_provider,
-                                                           core_factory_method);
+        std::make_shared<host_api::HostApiFactoryImpl>(tracker,
+                                                       sr25519_provider,
+                                                       ed25519_provider,
+                                                       secp256k1_provider,
+                                                       hasher,
+                                                       crypto_store,
+                                                       bip39_provider);
     return initialized.value();
   }
 
@@ -549,7 +539,6 @@ namespace kagome::injector {
     initialized = genesis_config_res.value();
     return genesis_config_res.value();
   }
-
 
   template <typename Injector>
   sptr<primitives::BabeConfiguration> get_babe_configuration(
@@ -786,7 +775,7 @@ namespace kagome::injector {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     // default values for configurations
@@ -881,9 +870,9 @@ namespace kagome::injector {
           return get_key_file_storage(injector);
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<extensions::ExtensionFactory>.template to(
+        di::bind<host_api::HostApiFactory>.template to(
             [](auto const &injector) {
-              return get_extension_factory(injector);
+              return get_host_api_factory(injector);
             }),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
@@ -891,7 +880,8 @@ namespace kagome::injector {
         di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
         di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
         di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
-        di::bind<runtime::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
+        di::bind<runtime::binaryen::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
+        di::bind<runtime::binaryen::RuntimeEnvironmentFactory>.template to<runtime::binaryen::RuntimeEnvironmentFactoryImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),

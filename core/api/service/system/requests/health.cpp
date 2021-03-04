@@ -4,7 +4,9 @@
  */
 
 #include "api/service/system/requests/health.hpp"
+
 #include "api/jrpc/value_converter.hpp"
+#include "api/service/system/system_api.hpp"
 
 namespace kagome::api::system::request {
 

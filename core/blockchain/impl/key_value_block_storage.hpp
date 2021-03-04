@@ -31,7 +31,7 @@ namespace kagome::blockchain {
     ~KeyValueBlockStorage() override = default;
 
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>> create(
-        common::Buffer state_root,
+        storage::trie::RootHash state_root,
         const std::shared_ptr<storage::BufferStorage> &storage,
         const std::shared_ptr<crypto::Hasher> &hasher,
         const BlockHandler &on_finalized_block_found);
@@ -53,7 +53,7 @@ namespace kagome::blockchain {
      * @param hasher a hasher instance
      */
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-    createWithGenesis(common::Buffer state_root,
+    createWithGenesis(storage::trie::RootHash state_root,
                       const std::shared_ptr<storage::BufferStorage> &storage,
                       std::shared_ptr<crypto::Hasher> hasher,
                       const BlockHandler &on_genesis_created);

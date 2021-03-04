@@ -5,6 +5,8 @@
 
 #include "crypto/crypto_store/key_file_storage.hpp"
 
+#include "common/hexutil.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
   using E = kagome::crypto::KeyFileStorage::Error;
   switch (e) {

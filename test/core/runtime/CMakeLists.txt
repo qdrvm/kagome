@@ -15,6 +15,8 @@ addtest(runtime_external_interface_test
     )
 target_link_libraries(runtime_external_interface_test
     binaryen_runtime_external_interface
+    binaryen_wasm_memory_factory
+    blob
     )
 
 addtest(core_integration_test
@@ -23,7 +25,8 @@ addtest(core_integration_test
 target_link_libraries(core_integration_test
     binaryen_core_api
     basic_wasm_provider
-    extension_factory
+    host_api_factory
+    binaryen_wasm_memory_factory
     )
 
 addtest(tagged_transaction_queue_test
@@ -33,9 +36,9 @@ target_link_libraries(tagged_transaction_queue_test
     binaryen_tagged_transaction_queue_api
     testutil_primitives_generator
     basic_wasm_provider
-    extension_factory
+    host_api_factory
     binaryen_core_api
-    binaryen_core_api
+    binaryen_wasm_memory_factory
     )
 
 addtest(block_builder_api_test
@@ -44,8 +47,9 @@ addtest(block_builder_api_test
 target_link_libraries(block_builder_api_test
     binaryen_block_builder_api
     basic_wasm_provider
-    extension_factory
+    host_api_factory
     binaryen_core_api
+    binaryen_wasm_memory_factory
     )
 
 addtest(wasm_executor_test
@@ -59,7 +63,8 @@ target_link_libraries(wasm_executor_test
     trie_storage_backend
     trie_storage_provider
     in_memory_storage
-    extension_factory
+    binaryen_wasm_memory_factory
+    host_api_factory
     polkadot_trie_factory
     trie_serializer
     )
@@ -70,8 +75,9 @@ addtest(parachain_test
 target_link_libraries(parachain_test
     binaryen_parachain_host_api
     basic_wasm_provider
-    extension_factory
+    host_api_factory
     binaryen_core_api
+    binaryen_wasm_memory_factory
     )
 
 addtest(grandpa_api_test
@@ -81,7 +87,8 @@ target_link_libraries(grandpa_api_test
     binaryen_grandpa_api
     trie_storage_backend
     basic_wasm_provider
-    extension_factory
+    host_api_factory
+    binaryen_wasm_memory_factory
     binaryen_core_api
     )
 
@@ -91,8 +98,9 @@ addtest(metadata_test
 target_link_libraries(metadata_test
     binaryen_metadata_api
     basic_wasm_provider
-    extension_factory
+    host_api_factory
     trie_storage
+    binaryen_wasm_memory_factory
     binaryen_core_api
     )
 
@@ -103,7 +111,8 @@ target_link_libraries(offchain_worker_test
     binaryen_offchain_worker_api
     basic_wasm_provider
     trie_storage_backend
-    extension_factory
+    host_api_factory
+    binaryen_wasm_memory_factory
     binaryen_core_api
     )
 

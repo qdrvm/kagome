@@ -12,14 +12,13 @@ namespace kagome::runtime::binaryen {
   using primitives::Authority;
   using primitives::Digest;
   using primitives::ForcedChange;
-  using primitives::ScheduledChange;
   using primitives::GrandpaSessionKey;
+  using primitives::ScheduledChange;
 
   GrandpaApiImpl::GrandpaApiImpl(
-      const std::shared_ptr<WasmProvider> &wasm_provider,
-      const std::shared_ptr<RuntimeManager> &runtime_manager,
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
       const std::shared_ptr<blockchain::BlockHeaderRepository> &header_repo)
-      : RuntimeApi(wasm_provider, runtime_manager), header_repo_{header_repo} {
+      : RuntimeApi(runtime_env_factory), header_repo_{header_repo} {
     BOOST_ASSERT(header_repo_ != nullptr);
   }
 
@@ -27,14 +26,16 @@ namespace kagome::runtime::binaryen {
   GrandpaApiImpl::pending_change(const Digest &digest) {
     return execute<boost::optional<ScheduledChange>>(
         "GrandpaApi_grandpa_pending_change",
-        CallPersistency::EPHEMERAL,
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
         digest);
   }
 
   outcome::result<boost::optional<ForcedChange>> GrandpaApiImpl::forced_change(
       const Digest &digest) {
     return execute<boost::optional<ForcedChange>>(
-        "GrandpaApi_grandpa_forced_change", CallPersistency::EPHEMERAL, digest);
+        "GrandpaApi_grandpa_forced_change",
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
+        digest);
   }
 
   outcome::result<primitives::AuthorityList> GrandpaApiImpl::authorities(
@@ -43,6 +44,6 @@ namespace kagome::runtime::binaryen {
     return executeAt<primitives::AuthorityList>(
         "GrandpaApi_grandpa_authorities",
         header.state_root,
-        CallPersistency::EPHEMERAL);
+        CallConfig{.persistency = CallPersistency::EPHEMERAL});
   }
 }  // namespace kagome::runtime::binaryen

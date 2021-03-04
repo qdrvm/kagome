@@ -12,7 +12,7 @@ namespace kagome::storage::trie { class TrieStorage; }
 
 namespace kagome::runtime {
 
-  inline const common::Buffer kRuntimeKey = common::Buffer().put(":code");
+  inline const common::Buffer kRuntimeCodeKey = common::Buffer().put(":code");
 
   class StorageWasmProvider : public WasmProvider {
    public:
@@ -21,12 +21,13 @@ namespace kagome::runtime {
     explicit StorageWasmProvider(
         std::shared_ptr<const storage::trie::TrieStorage> storage);
 
-    const common::Buffer &getStateCode() const override;
+    const common::Buffer &getStateCodeAt(
+        const storage::trie::RootHash &at) const override;
 
    private:
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     mutable common::Buffer state_code_;
-    mutable common::Buffer last_state_root_;
+    mutable storage::trie::RootHash last_state_root_;
   };
 
 }  // namespace kagome::runtime

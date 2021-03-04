@@ -5,6 +5,8 @@
 
 #include "api/service/rpc/requests/methods.hpp"
 
+#include "api/service/rpc/rpc_api.hpp"
+
 namespace kagome::api::rpc::request {
 
   outcome::result<void> Methods::init(

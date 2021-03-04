@@ -24,13 +24,14 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
 using kagome::scale::encode;
 using kagome::storage::face::GenericStorageMock;
+using kagome::storage::trie::RootHash;
 using testing::_;
 using testing::Return;
 
 class BlockStorageTest : public testing::Test {
  public:
   void SetUp() override {
-    root_hash.put(std::vector<uint8_t>(32ul, 1));
+    root_hash.fill(1);
   }
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
   std::shared_ptr<GenericStorageMock<Buffer, Buffer>> storage =
@@ -38,7 +39,7 @@ class BlockStorageTest : public testing::Test {
 
   BlockHash genesis_block_hash{{'g', 'e', 'n', 'e', 's', 'i', 's'}};
   BlockHash regular_block_hash{{'r', 'e', 'g', 'u', 'l', 'a', 'r'}};
-  Buffer root_hash;
+  RootHash root_hash;
 
   KeyValueBlockStorage::BlockHandler block_handler = [](auto &) {};
 

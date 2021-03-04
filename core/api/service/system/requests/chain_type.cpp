@@ -5,6 +5,10 @@
 
 #include "api/service/system/requests/chain_type.hpp"
 
+#include <boost/assert.hpp>
+
+#include "api/service/system/system_api.hpp"
+
 namespace kagome::api::system::request {
 
   ChainType::ChainType(std::shared_ptr<SystemApi> api) : api_(std::move(api)) {

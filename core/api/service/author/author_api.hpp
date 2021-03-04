@@ -17,7 +17,6 @@ namespace kagome::api {
 
 namespace kagome::primitives {
   struct Extrinsic;
-  struct Metadata;
 }
 
 namespace kagome::api {
@@ -50,8 +49,10 @@ namespace kagome::api {
      */
     virtual outcome::result<std::vector<Extrinsic>> pendingExtrinsics() = 0;
 
-    // TODO(yuraz): will be documented later (no task yet)
-    virtual outcome::result<std::vector<Hash256>> removeExtrinsic(
+    /**
+     * Remove given extrinsic from the pool and temporarily ban it to prevent reimporting.
+     */
+    virtual outcome::result<std::vector<Extrinsic>> removeExtrinsic(
         const std::vector<ExtrinsicKey> &keys) = 0;
 
     /**

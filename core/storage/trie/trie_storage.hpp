@@ -8,6 +8,7 @@
 
 #include "common/blob.hpp"
 #include "storage/trie/trie_batches.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
 
@@ -33,14 +34,14 @@ namespace kagome::storage::trie {
      * state, creating a 'fork'
      */
     virtual outcome::result<std::unique_ptr<PersistentTrieBatch>>
-    getPersistentBatchAt(const common::Hash256 &root) = 0;
+    getPersistentBatchAt(const RootHash &root) = 0;
     virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
-    getEphemeralBatchAt(const common::Hash256 &root) const = 0;
+    getEphemeralBatchAt(const RootHash &root) const = 0;
 
     /**
      * Root hash of the latest committed trie
      */
-    virtual common::Buffer getRootHash() const = 0;
+    virtual RootHash getRootHash() const noexcept = 0;
   };
 
 }  // namespace kagome::storage::trie

@@ -13,6 +13,10 @@
 #include "api/transport/impl/ws/ws_session.hpp"
 #include "common/logger.hpp"
 
+namespace kagome::application {
+  class AppStateManager;
+}
+
 namespace kagome::api {
   /**
    * @brief server which listens for incoming connection,

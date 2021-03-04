@@ -3,13 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "consensus/authority/impl/authority_manager_impl.hpp"
+
 #include <gtest/gtest.h>
 
-#include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/authority/impl/schedule_node.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/digest.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

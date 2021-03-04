@@ -12,7 +12,6 @@
 
 namespace kagome::runtime {
   class WasmProvider;
-  class RuntimeManager;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime::binaryen {
@@ -21,15 +20,12 @@ namespace kagome::runtime::binaryen {
                                     public TransactionPaymentApi {
    public:
     TransactionPaymentApiImpl(
-        const std::shared_ptr<WasmProvider> &wasm_provider,
-        const std::shared_ptr<RuntimeManager> &runtime_manager)
-        : RuntimeApi(wasm_provider, runtime_manager) {}
+        const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory);
 
     ~TransactionPaymentApiImpl() override = default;
 
     outcome::result<primitives::RuntimeDispatchInfo> query_info(
         const primitives::Extrinsic &ext, uint32_t len) override;
-        
   };
 
 }  // namespace kagome::runtime::binaryen

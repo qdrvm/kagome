@@ -14,7 +14,8 @@ namespace kagome::runtime {
     initialize(path);
   }
 
-  const Buffer &BasicWasmProvider::getStateCode() const {
+  const common::Buffer &BasicWasmProvider::getStateCodeAt(
+      const primitives::BlockHash &) const {
     return buffer_;
   }
 

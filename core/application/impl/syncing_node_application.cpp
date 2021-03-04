@@ -4,8 +4,10 @@
  */
 
 #include "application/impl/syncing_node_application.hpp"
+
 #include "application/impl/util.hpp"
 #include "network/common.hpp"
+#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 
 namespace kagome::application {
 

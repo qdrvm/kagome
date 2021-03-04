@@ -12,10 +12,7 @@ using kagome::runtime::binaryen::kInitialMemorySize;
 using kagome::runtime::binaryen::roundUpAlign;
 using kagome::runtime::binaryen::WasmMemoryImpl;
 
-class MemoryHeapTest : public ::testing::Test, public WasmMemoryImpl {
- public:
-  MemoryHeapTest() : WasmMemoryImpl(getNewShellExternalInterface()) {}
-
+class MemoryHeapTest : public ::testing::Test {
  protected:
   const static uint32_t memory_size_ = kInitialMemorySize;
 
@@ -24,6 +21,7 @@ class MemoryHeapTest : public ::testing::Test, public WasmMemoryImpl {
     interface_ = std::make_unique<wasm::ShellExternalInterface::Memory>();
     return interface_.get();
   }
+  WasmMemoryImpl memory_{getNewShellExternalInterface()};
 };
 
 /**
@@ -32,7 +30,7 @@ class MemoryHeapTest : public ::testing::Test, public WasmMemoryImpl {
  * @then zero pointer is returned
  */
 TEST_F(MemoryHeapTest, Return0WhenSize0) {
-  ASSERT_EQ(allocate(0), 0);
+  ASSERT_EQ(memory_.allocate(0), 0);
 }
 
 /**
@@ -44,7 +42,7 @@ TEST_F(MemoryHeapTest, Return0WhenSize0) {
  */
 TEST_F(MemoryHeapTest, AllocatedMoreThanMemorySize) {
   const auto allocated_memory = memory_size_ + 1;
-  ASSERT_NE(allocate(allocated_memory), -1);
+  ASSERT_NE(memory_.allocate(allocated_memory), -1);
 }
 
 /**
@@ -56,14 +54,14 @@ TEST_F(MemoryHeapTest, AllocatedMoreThanMemorySize) {
  */
 TEST_F(MemoryHeapTest, AllocatedTooBigMemoryFailed) {
   // fully allocate memory
-  auto ptr1 = allocate(memory_size_);
+  auto ptr1 = memory_.allocate(memory_size_);
   // check that ptr1 is not -1, thus memory was allocated
   ASSERT_NE(ptr1, -1);
 
   // The memory size that can be allocated is within interval (0, kMaxMemorySize
   // - memory_size_]. Trying to allocate more
   auto big_memory_size = WasmMemoryImpl::kMaxMemorySize - memory_size_ + 1;
-  ASSERT_EQ(allocate(big_memory_size), 0);
+  ASSERT_EQ(memory_.allocate(big_memory_size), 0);
 }
 
 /**
@@ -76,12 +74,12 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
   const size_t size2 = 2045;
 
   // allocate memory of size 1
-  auto ptr1 = allocate(size1);
+  auto ptr1 = memory_.allocate(size1);
   // first memory chunk is always allocated at min non-zero aligned address
   ASSERT_EQ(ptr1, kDefaultHeapBase);
 
   // allocated second memory chunk
-  auto ptr2 = allocate(size2);
+  auto ptr2 = memory_.allocate(size2);
   // second memory chunk is placed right after the first one (alligned by 4)
   ASSERT_EQ(ptr2, roundUpAlign(size1 + ptr1));
 }
@@ -94,9 +92,9 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
 TEST_F(MemoryHeapTest, DeallocateExisingMemoryChunk) {
   const size_t size1 = 3;
 
-  auto ptr1 = allocate(size1);
+  auto ptr1 = memory_.allocate(size1);
 
-  auto opt_deallocated_size = deallocate(ptr1);
+  auto opt_deallocated_size = memory_.deallocate(ptr1);
   ASSERT_TRUE(opt_deallocated_size.has_value());
   ASSERT_EQ(*opt_deallocated_size, roundUpAlign(size1));
 }
@@ -110,10 +108,10 @@ TEST_F(MemoryHeapTest, DeallocateExisingMemoryChunk) {
 TEST_F(MemoryHeapTest, DeallocateNonexistingMemoryChunk) {
   const size_t size1 = 2047;
 
-  allocate(size1);
+  memory_.allocate(size1);
 
   auto ptr_to_nonexisting_chunk = 2;
-  auto opt_deallocated_size = deallocate(ptr_to_nonexisting_chunk);
+  auto opt_deallocated_size = memory_.deallocate(ptr_to_nonexisting_chunk);
   ASSERT_FALSE(opt_deallocated_size.has_value());
 }
 
@@ -131,14 +129,14 @@ TEST_F(MemoryHeapTest, AllocateAfterDeallocate) {
   const size_t size2 = available_memory_size / 3 + 1;
 
   // allocate two memory chunks with total size equal to the memory size
-  auto pointer_of_first_allocation = allocate(size1);
-  allocate(size2);
+  auto pointer_of_first_allocation = memory_.allocate(size1);
+  memory_.allocate(size2);
 
   // deallocate first memory chunk
-  deallocate(pointer_of_first_allocation);
+  memory_.deallocate(pointer_of_first_allocation);
 
   // allocate new memory chunk
-  auto pointer_of_repeated_allocation = allocate(size1);
+  auto pointer_of_repeated_allocation = memory_.allocate(size1);
   // expected that it will be allocated on the same place as the first memory
   // chunk that was deallocated
   ASSERT_EQ(pointer_of_first_allocation, pointer_of_repeated_allocation);
@@ -155,18 +153,18 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
   const size_t size2 = 2049;
 
   // allocate two memory chunks with total size equal to the memory size
-  auto ptr1 = allocate(size1);
-  auto ptr2 = allocate(size2);
+  auto ptr1 = memory_.allocate(size1);
+  auto ptr2 = memory_.allocate(size2);
 
   // calculate memory offset after two allocations
   auto mem_offset = ptr2 + size2;
 
   // deallocate first memory chunk
-  deallocate(ptr1);
+  memory_.deallocate(ptr1);
 
   // allocate new memory chunk with bigger size than the space left in the
   // memory
-  auto ptr3 = allocate(size1 + 1);
+  auto ptr3 = memory_.allocate(size1 + 1);
 
   // memory is allocated on mem offset (aligned by 4)
   ASSERT_EQ(ptr3, kagome::runtime::binaryen::roundUpAlign(mem_offset));
@@ -174,65 +172,65 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
 
 /**
  * @given full memory with different sized memory chunks
- * @when deallocate chunks with various way: in order, reversively, alone chunk
- * @then neighbor chunks is combined
+ * @when deallocate chunks in various ways: in order, reversed, single chunk
+ * @then neighbor chunks are combined
  */
 TEST_F(MemoryHeapTest, CombineDeallocatedChunks) {
   // Fill memory
   constexpr size_t size1 = roundUpAlign(1) * 1;
-  auto ptr1 = allocate(size1);
+  auto ptr1 = memory_.allocate(size1);
   constexpr size_t size2 = roundUpAlign(1) * 2;
-  auto ptr2 = allocate(size2);
+  auto ptr2 = memory_.allocate(size2);
   constexpr size_t size3 = roundUpAlign(1) * 3;
-  auto ptr3 = allocate(size3);
+  auto ptr3 = memory_.allocate(size3);
   constexpr size_t size4 = roundUpAlign(1) * 4;
-  auto ptr4 = allocate(size4);
+  auto ptr4 = memory_.allocate(size4);
   constexpr size_t size5 = roundUpAlign(1) * 5;
-  auto ptr5 = allocate(size5);
+  auto ptr5 = memory_.allocate(size5);
   constexpr size_t size6 = roundUpAlign(1) * 6;
-  auto ptr6 = allocate(size6);
+  auto ptr6 = memory_.allocate(size6);
   constexpr size_t size7 = roundUpAlign(1) * 7;
-  auto ptr7 = allocate(size7);
+  auto ptr7 = memory_.allocate(size7);
   // A: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]
   // D:
 
-  deallocate(ptr2);
+  memory_.deallocate(ptr2);
   // A: [ 1 ]     [ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]
   // D:      [ 2 ]
-  deallocate(ptr3);
+  memory_.deallocate(ptr3);
   // A: [ 1 ]          [ 4 ][ 5 ][ 6 ][ 7 ]
   // D:      [ 2    3 ]
   {
-    auto it = deallocated_.find(ptr2);
-    ASSERT_TRUE(it != deallocated_.end());
-    EXPECT_EQ(it->second, size2 + size3);
+    auto opt_size = memory_.getDeallocatedChunkSize(ptr2);
+    ASSERT_TRUE(opt_size);
+    EXPECT_EQ(opt_size.value(), size2 + size3);
   }
 
-  deallocate(ptr5);
+  memory_.deallocate(ptr5);
   // A: [ 1 ]          [ 4 ]     [ 6 ][ 7 ]
   // D:      [ 2    3 ]     [ 5 ]
-  deallocate(ptr6);
+  memory_.deallocate(ptr6);
   // A: [ 1 ]          [ 4 ]          [ 7 ]
   // D:      [ 2    3 ]     [ 5    6 ]
   {
-    auto it = deallocated_.find(ptr5);
-    ASSERT_TRUE(it != deallocated_.end());
-    EXPECT_EQ(it->second, size5 + size6);
+    auto opt_size = memory_.getDeallocatedChunkSize(ptr5);
+    ASSERT_TRUE(opt_size.has_value());
+    EXPECT_EQ(opt_size.value(), size5 + size6);
   }
 
-  deallocate(ptr4);
+  memory_.deallocate(ptr4);
   // A: [ 1 ]                         [ 7 ]
   // D:      [ 2    3    4    5    6 ]
   {
-    auto it = deallocated_.find(ptr2);
-    ASSERT_TRUE(it != deallocated_.end());
-    EXPECT_EQ(it->second, size2 + size3 + size4 + size5 + size6);
+    auto opt_size = memory_.getDeallocatedChunkSize(ptr2);
+    ASSERT_TRUE(opt_size.has_value());
+    EXPECT_EQ(opt_size.value(), size2 + size3 + size4 + size5 + size6);
   }
 
-  EXPECT_EQ(deallocated_.size(), 1);
-  EXPECT_EQ(allocated_.size(), 2);
-  EXPECT_NE(allocated_.find(ptr1), allocated_.end());
-  EXPECT_NE(allocated_.find(ptr7), allocated_.end());
+  EXPECT_EQ(memory_.getDeallocatedChunksNum(), 1);
+  EXPECT_EQ(memory_.getAllocatedChunksNum(), 2);
+  EXPECT_TRUE(memory_.getAllocatedChunkSize(ptr1));
+  EXPECT_TRUE(memory_.getAllocatedChunkSize(ptr7));
 }
 
 /**
@@ -245,11 +243,11 @@ TEST_F(MemoryHeapTest, LoadNTest) {
 
   kagome::common::Buffer b(N, 'c');
 
-  auto ptr = allocate(N);
+  auto ptr = memory_.allocate(N);
 
-  storeBuffer(ptr, b);
+  memory_.storeBuffer(ptr, b);
 
-  auto res_b = loadN(ptr, N);
+  auto res_b = memory_.loadN(ptr, N);
   ASSERT_EQ(b, res_b);
 }
 
@@ -261,13 +259,13 @@ TEST_F(MemoryHeapTest, LoadNTest) {
 TEST_F(MemoryHeapTest, ResetTest) {
   const size_t N = 42;
 
-  ASSERT_EQ(allocate(N), kDefaultHeapBase);
+  ASSERT_EQ(memory_.allocate(N), kDefaultHeapBase);
 
-  reset();
-  ASSERT_EQ(allocate(N), kDefaultHeapBase);
+  memory_.reset();
+  ASSERT_EQ(memory_.allocate(N), kDefaultHeapBase);
 
   auto newHeapBase = roundUpAlign(kDefaultHeapBase + 12345);
-  setHeapBase(newHeapBase);
-  reset();
-  ASSERT_EQ(allocate(N), newHeapBase);
+  memory_.setHeapBase(newHeapBase);
+  memory_.reset();
+  ASSERT_EQ(memory_.allocate(N), newHeapBase);
 }

@@ -7,6 +7,7 @@
 #define KAGOME_API_RPC_REQUEST_METHODS
 
 #include <jsonrpc-lean/request.h>
+#include <boost/assert.hpp>
 
 #include "outcome/outcome.hpp"
 

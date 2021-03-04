@@ -9,16 +9,15 @@ namespace kagome::runtime::binaryen {
   using primitives::TransactionValidity;
 
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
-      const std::shared_ptr<WasmProvider> &wasm_provider,
-      const std::shared_ptr<RuntimeManager> &runtime_manager)
-      : RuntimeApi(wasm_provider, runtime_manager) {}
+      const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory)
+      : RuntimeApi(runtime_env_factory) {}
 
   outcome::result<primitives::TransactionValidity>
   TaggedTransactionQueueImpl::validate_transaction(
       primitives::TransactionSource source, const primitives::Extrinsic &ext) {
     return execute<TransactionValidity>(
         "TaggedTransactionQueue_validate_transaction",
-        CallPersistency::EPHEMERAL,
+        CallConfig{.persistency = CallPersistency::EPHEMERAL},
         source,
         ext);
   }

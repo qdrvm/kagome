@@ -15,7 +15,7 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<RuntimeExternalInterface> rei) const {
     auto res = WasmModuleImpl::createFromCode(code, rei);
     if (res.has_value()) {
-      return std::unique_ptr<WasmModule>(res.value().release());
+      return std::unique_ptr<WasmModule>(std::move(res.value()));
     }
     return res.error();
   }

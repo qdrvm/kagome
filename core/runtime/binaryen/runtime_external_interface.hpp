@@ -10,13 +10,21 @@
 
 #include "common/logger.hpp"
 
-namespace kagome::extensions {
-  class ExtensionFactory;
+namespace kagome::host_api {
+  class HostApiFactory;
+  class HostApi;
 }
 
 namespace kagome::runtime {
   class TrieStorageProvider;
   class WasmMemory;
+
+  namespace binaryen {
+    class CoreFactory;
+    class RuntimeEnvironmentFactory;
+    class BinaryenWasmMemoryFactory;
+  }
+
 }  // namespace kagome::runtime
 
 namespace wasm {
@@ -25,22 +33,26 @@ namespace wasm {
 
 namespace kagome::runtime::binaryen {
 
+  class WasmMemoryImpl;  // not fancy to refer to impl, but have to do it  for
+                         // now because it depends on shell interface memory
+                         // belonging to RuntimeExternalInterface (see
+                         // constructor)
+
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
-    explicit RuntimeExternalInterface(
-        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory,
+    RuntimeExternalInterface(
+        std::shared_ptr<CoreFactory> core_factory,
+        std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
+        std::shared_ptr<BinaryenWasmMemoryFactory> wasm_memory_factory,
+        const std::shared_ptr<host_api::HostApiFactory> &host_api_factory,
         std::shared_ptr<TrieStorageProvider> storage_provider);
 
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
-    inline std::shared_ptr<WasmMemory> memory() const {
-      return extension_->memory();
-    }
+    std::shared_ptr<WasmMemory> memory() const;
 
-    inline void reset() const {
-      return extension_->reset();
-    }
+    void reset() const;
 
    private:
     /**
@@ -51,7 +63,7 @@ namespace kagome::runtime::binaryen {
                         size_t expected,
                         size_t actual);
 
-    std::unique_ptr<extensions::Extension> extension_;
+    std::unique_ptr<host_api::HostApi> host_api_;
     common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
 
     constexpr static auto kDefaultLoggerTag = "Runtime external interface";

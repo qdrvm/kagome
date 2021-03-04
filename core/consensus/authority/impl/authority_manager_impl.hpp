@@ -11,6 +11,7 @@
 #include "consensus/grandpa/finalization_observer.hpp"
 
 #include "storage/buffer_map_types.hpp"
+#include "common/logger.hpp"
 
 namespace kagome::application { class AppStateManager; }
 namespace kagome::authority { class ScheduleNode; }

@@ -8,6 +8,7 @@
 
 #include "outcome/outcome.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
+#include "storage/trie/types.hpp"
 
 namespace kagome::storage::trie {
 
@@ -21,13 +22,13 @@ namespace kagome::storage::trie {
     /**
      * @return root hash of an empty trie
      */
-    virtual common::Buffer getEmptyRootHash() const = 0;
+    virtual RootHash getEmptyRootHash() const = 0;
 
     /**
      * Writes a trie to a storage, recursively storing its
      * nodes.
      */
-    virtual outcome::result<common::Buffer> storeTrie(PolkadotTrie &trie) = 0;
+    virtual outcome::result<RootHash> storeTrie(PolkadotTrie &trie) = 0;
 
     /**
      * Fetches a trie from the storage. A nullptr is returned in case that there

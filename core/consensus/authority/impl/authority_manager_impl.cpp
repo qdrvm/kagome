@@ -5,9 +5,13 @@
 
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 
+#include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
+#include "consensus/authority/impl/schedule_node.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::authority {
@@ -288,7 +292,7 @@ namespace kagome::authority {
         [this, &block](const primitives::Resume &msg) {
           return applyResume(block, block.block_number + msg.subchain_lenght);
         },
-        [](const Unused<0>&) {
+        [](const Unused<0> &) {
           // NOTE(xDimon): Does it nothing? Is it valid?
           // Sometimes runtime makes consensus digest with unused variant.
           return outcome::success();

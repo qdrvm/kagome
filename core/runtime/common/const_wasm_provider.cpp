@@ -10,7 +10,8 @@ namespace kagome::runtime {
   ConstWasmProvider::ConstWasmProvider(common::Buffer code)
       : code_{std::move(code)} {}
 
-  const common::Buffer &ConstWasmProvider::getStateCode() const {
+  const common::Buffer &ConstWasmProvider::getStateCodeAt(
+      const primitives::BlockHash &at) const {
     return code_;
   }
 

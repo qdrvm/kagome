@@ -6,8 +6,8 @@
 #include <gtest/gtest.h>
 
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/impl/extension_impl.hpp"
-#include "mock/core/extensions/extension_factory_mock.hpp"
+#include "host_api/impl/host_api_impl.hpp"
+#include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/runtime/wasm_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
@@ -17,7 +17,7 @@
 
 using namespace testing;
 using kagome::common::Buffer;
-using kagome::extensions::ExtensionImpl;
+using kagome::host_api::HostApiImpl;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilder;
@@ -31,7 +31,7 @@ class BlockBuilderApiTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     builder_ =
-        std::make_unique<BlockBuilderImpl>(wasm_provider_, runtime_manager_);
+        std::make_unique<BlockBuilderImpl>(runtime_env_factory_);
   }
 
  protected:

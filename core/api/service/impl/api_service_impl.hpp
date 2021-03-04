@@ -13,56 +13,76 @@
 #include <type_traits>
 #include <unordered_map>
 
+#include <jsonrpc-lean/fault.h>
+
 #include "api/transport/rpc_thread_pool.hpp"
+#include "api/transport/session.hpp"
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "containers/objects_cache.hpp"
+#include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/subscription_engine.hpp"
-#include "primitives/block_id.hpp"
 
-namespace kagome::api { class JRpcProcessor; }
-namespace kagome::api { class JRpcServer; }
-namespace kagome::api { class Listener; }
-namespace kagome::application { class AppStateManager; }
-namespace kagome::blockchain { struct BlockTree; }
-namespace kagome::primitives { struct Transaction; }
-namespace kagome::storage { namespace trie { class TrieStorage; }
-namespace kagome::subscription { class ExtrinsicEventKeyRepository; }
+namespace kagome::api {
+  class JRpcProcessor;
+  class JRpcServer;
+  class Listener;
+}  // namespace kagome::api
+namespace kagome::application {
+  class AppStateManager;
+}
+namespace kagome::blockchain {
+  struct BlockTree;
+}
+namespace kagome::primitives {
+  struct Transaction;
+}
+namespace kagome::storage::trie {
+  class TrieStorage;
+}
+namespace kagome::subscription {
+  class ExtrinsicEventKeyRepository;
+}
+
+namespace jsonrpc {
+  class Value;
+}
 
 namespace kagome::api {
 
   template <typename T>
   using UCachedType = std::unique_ptr<T, void (*)(T *const)>;
 
-  KAGOME_DECLARE_CACHE(
-      api_service,
-      KAGOME_CACHE_UNIT(std::string),
-      KAGOME_CACHE_UNIT(std::vector<UCachedType<std::string>>));
+  KAGOME_DECLARE_CACHE(api_service,
+                       KAGOME_CACHE_UNIT(std::string),
+                       KAGOME_CACHE_UNIT(std::vector<UCachedType<std::string>>))
 
   class JRpcProcessor;
 
   /**
    * Service listening for incoming JSON RPC request
    */
-  class ApiServiceImpl final : public ApiService, public std::enable_shared_from_this<ApiServiceImpl> {
+  class ApiServiceImpl final
+      : public ApiService,
+        public std::enable_shared_from_this<ApiServiceImpl> {
     using ChainEventSubscriberPtr = primitives::events::ChainEventSubscriberPtr;
     using StorageEventSubscriberPtr =
-    primitives::events::StorageEventSubscriberPtr;
+        primitives::events::StorageEventSubscriberPtr;
     using ExtrinsicEventSubscriberPtr =
-    primitives::events::ExtrinsicEventSubscriberPtr;
+        primitives::events::ExtrinsicEventSubscriberPtr;
     using ChainSubscriptionEnginePtr =
-    primitives::events::ChainSubscriptionEnginePtr;
+        primitives::events::ChainSubscriptionEnginePtr;
     using StorageSubscriptionEnginePtr =
-    primitives::events::StorageSubscriptionEnginePtr;
+        primitives::events::StorageSubscriptionEnginePtr;
     using ExtrinsicSubscriptionEnginePtr =
-    primitives::events::ExtrinsicSubscriptionEnginePtr;
+        primitives::events::ExtrinsicSubscriptionEnginePtr;
     using ChainEventSubscriber = primitives::events::ChainEventSubscriber;
-    using StorageEventSubscriber = primitives::events::StorageEventSubscriber;
     using ExtrinsicEventSubscriber =
-    primitives::events::ExtrinsicEventSubscriber;
+        primitives::events::ExtrinsicEventSubscriber;
+    using StorageEventSubscriber = primitives::events::StorageEventSubscriber;
     using ExtrinsicSubscriptionEngine =
-    primitives::events::ExtrinsicSubscriptionEngine;
+        primitives::events::ExtrinsicSubscriptionEngine;
 
     using SessionPtr = std::shared_ptr<Session>;
 
@@ -76,7 +96,7 @@ namespace kagome::api {
 
     struct SessionSubscriptions {
       using AdditionMessageType =
-      decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
+          decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
       using AdditionMessagesList = std::vector<AdditionMessageType>;
       using CachedAdditionMessagesList = decltype(KAGOME_EXTRACT_SHARED_CACHE(
           api_service, AdditionMessagesList));
@@ -107,7 +127,7 @@ namespace kagome::api {
         ChainSubscriptionEnginePtr chain_sub_engine,
         ExtrinsicSubscriptionEnginePtr ext_sub_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-        extrinsic_event_key_repo,
+            extrinsic_event_key_repo,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
@@ -217,7 +237,7 @@ namespace kagome::api {
 
     std::mutex subscribed_sessions_cs_;
     std::unordered_map<Session::SessionId,
-        std::shared_ptr<SessionSubscriptions>>
+                       std::shared_ptr<SessionSubscriptions>>
         subscribed_sessions_;
 
     struct {

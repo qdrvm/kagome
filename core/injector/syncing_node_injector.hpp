@@ -49,7 +49,7 @@ namespace kagome::injector {
 
   template <typename... Ts>
   auto makeSyncingNodeInjector(const application::AppConfiguration &app_config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -61,8 +61,10 @@ namespace kagome::injector {
         di::bind<network::OwnPeerInfo>.to(
             [](const auto &injector) { return get_peer_info(injector); }),
 
-        di::bind<consensus::Babe>.template to<consensus::SyncingBabe>()[di::override],
-        di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>()[di::override],
+        di::bind<consensus::Babe>.template to<consensus::SyncingBabe>()
+            [di::override],
+        di::bind<network::BabeObserver>.template to<consensus::SyncingBabe>()
+            [di::override],
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

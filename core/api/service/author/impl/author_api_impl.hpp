@@ -80,7 +80,7 @@ namespace kagome::api {
     outcome::result<std::vector<primitives::Extrinsic>> pendingExtrinsics()
         override;
 
-    outcome::result<std::vector<common::Hash256>> removeExtrinsic(
+    outcome::result<std::vector<primitives::Extrinsic>> removeExtrinsic(
         const std::vector<primitives::ExtrinsicKey> &keys) override;
 
     outcome::result<SubscriptionId> submitAndWatchExtrinsic(
