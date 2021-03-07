@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
+
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
@@ -136,57 +138,8 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto storage_sub_engine = injector.template create<
-        primitives::events::StorageSubscriptionEnginePtr>();
 
-    auto chain_sub_engine =
-        injector
-            .template create<primitives::events::ChainSubscriptionEnginePtr>();
-
-    auto ext_sub_engine = injector.template create<
-        primitives::events::ExtrinsicSubscriptionEnginePtr>();
-
-    auto ext_event_key_repo = injector.template create<
-        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>();
-
-    auto app_state_manager =
-        injector
-            .template create<std::shared_ptr<application::AppStateManager>>();
-    auto rpc_thread_pool =
-        injector.template create<std::shared_ptr<api::RpcThreadPool>>();
-    std::vector<std::shared_ptr<api::Listener>> listeners{
-        injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
-        injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
-    };
-    auto server = injector.template create<std::shared_ptr<api::JRpcServer>>();
-    std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
-        injector
-            .template create<std::shared_ptr<api::state::StateJrpcProcessor>>(),
-        injector.template create<
-            std::shared_ptr<api::author::AuthorJRpcProcessor>>(),
-        injector
-            .template create<std::shared_ptr<api::chain::ChainJrpcProcessor>>(),
-        injector.template create<
-            std::shared_ptr<api::system::SystemJrpcProcessor>>(),
-        injector.template create<std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
-        injector.template create<
-            std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
-    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
-    const auto &trie_storage =
-        injector.template create<sptr<storage::trie::TrieStorage>>();
-
-    initialized =
-        std::make_shared<api::ApiServiceImpl>(std::move(app_state_manager),
-                                              std::move(rpc_thread_pool),
-                                              std::move(listeners),
-                                              std::move(server),
-                                              processors,
-                                              std::move(storage_sub_engine),
-                                              std::move(chain_sub_engine),
-                                              std::move(ext_sub_engine),
-                                              std::move(ext_event_key_repo),
-                                              std::move(block_tree),
-                                              std::move(trie_storage));
+    initialized = injector.template create<sptr<api::ApiServiceImpl>>();
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());
@@ -232,7 +185,6 @@ namespace kagome::injector {
   }
 
   // jrpc api listener (over Websockets) getter
-  template <typename Injector>
   sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
       api::WsSession::Configuration ws_session_config,
       sptr<api::RpcContext> context,
@@ -818,12 +770,46 @@ namespace kagome::injector {
         di::bind<::boost::asio::io_context>.in(
             di::extension::shared)[boost::di::override],
 
+        di::bind<api::ApiServiceImpl::Listeners>.to([](auto const &injector) {
+          std::vector<std::shared_ptr<api::Listener>> listeners{
+              injector
+                  .template create<std::shared_ptr<api::HttpListenerImpl>>(),
+              injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
+          };
+          return api::ApiServiceImpl::Listeners{std::move(listeners)};
+        }),
+        di::bind<api::ApiServiceImpl::Processors>.to([](auto const &injector) {
+          std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
+              injector.template create<
+                  std::shared_ptr<api::state::StateJrpcProcessor>>(),
+              injector.template create<
+                  std::shared_ptr<api::author::AuthorJRpcProcessor>>(),
+              injector.template create<
+                  std::shared_ptr<api::chain::ChainJrpcProcessor>>(),
+              injector.template create<
+                  std::shared_ptr<api::system::SystemJrpcProcessor>>(),
+              injector.template create<
+                  std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
+              injector.template create<
+                  std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
+          return api::ApiServiceImpl::Processors{std::move(processors)};
+        }),
         // bind interfaces
         di::bind<api::HttpListenerImpl>.to([](const auto &injector) {
           return get_jrpc_api_http_listener(injector);
         }),
         di::bind<api::WsListenerImpl>.to([](const auto &injector) {
-          return get_jrpc_api_ws_listener(injector);
+          auto config =
+              injector.template create<api::WsSession::Configuration>();
+          auto context = injector.template create<sptr<api::RpcContext>>();
+          auto app_state_manager =
+              injector.template create<sptr<application::AppStateManager>>();
+          const application::AppConfiguration &app_config =
+              injector.template create<application::AppConfiguration const &>();
+          auto &endpoint = app_config.rpcWsEndpoint();
+
+          return get_jrpc_api_ws_listener(
+              config, context, app_state_manager, endpoint);
         }),
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],

@@ -2,10 +2,10 @@
 
 cd "$(dirname $0)/../../.."
 
-BUILD_DIR=${BUILD_DIR:-`pwd`/build}
+BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
 
 VERSION="${VERSION:?VERSION variable is not defined}"
-# For github action we need remove ref prefix
+# For github action we need to remove ref prefix
 if [ "$VERSION" = "refs/heads/master" ]; then
   VERSION=latest
 elif [[ "$VERSION"  == refs/tags/* ]]; then

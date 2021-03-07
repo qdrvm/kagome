@@ -111,6 +111,13 @@ namespace kagome::api {
     template <class T>
     using sptr = std::shared_ptr<T>;
 
+    struct Listeners {
+      std::vector<std::shared_ptr<Listener>> listeners;
+    };
+    struct Processors {
+      const std::vector<std::shared_ptr<JRpcProcessor>> &processors;
+    };
+
     /**
      * @brief constructor
      * @param context - reference to the io context
@@ -120,9 +127,9 @@ namespace kagome::api {
     ApiServiceImpl(
         const std::shared_ptr<application::AppStateManager> &app_state_manager,
         std::shared_ptr<api::RpcThreadPool> thread_pool,
-        std::vector<std::shared_ptr<Listener>> listeners,
+        Listeners listeners,
         std::shared_ptr<JRpcServer> server,
-        const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
+        Processors processors,
         StorageSubscriptionEnginePtr storage_sub_engine,
         ChainSubscriptionEnginePtr chain_sub_engine,
         ExtrinsicSubscriptionEnginePtr ext_sub_engine,

@@ -1,6 +1,6 @@
 FROM alpine:3
 
-# Install dependesciee
+# Install dependencies
 RUN apk add --no-cache \
         bash \
         openssh-client \

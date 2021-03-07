@@ -128,9 +128,9 @@ namespace kagome::api {
   ApiServiceImpl::ApiServiceImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
-      std::vector<std::shared_ptr<Listener>> listeners,
+      Listeners listeners,
       std::shared_ptr<JRpcServer> server,
-      const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
+      Processors processors,
       StorageSubscriptionEnginePtr storage_sub_engine,
       ChainSubscriptionEnginePtr chain_sub_engine,
       ExtrinsicSubscriptionEnginePtr ext_sub_engine,
@@ -139,7 +139,7 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage)
       : thread_pool_(std::move(thread_pool)),
-        listeners_(std::move(listeners)),
+        listeners_(std::move(listeners.listeners)),
         server_(std::move(server)),
         logger_{common::createLogger("Api service")},
         block_tree_{std::move(block_tree)},
@@ -154,7 +154,7 @@ namespace kagome::api {
     for ([[maybe_unused]] const auto &listener : listeners_) {
       BOOST_ASSERT(listener != nullptr);
     }
-    for (auto &processor : processors) {
+    for (auto &processor : processors.processors) {
       BOOST_ASSERT(processor != nullptr);
       processor->registerHandlers();
     }
