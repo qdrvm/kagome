@@ -12,8 +12,22 @@ namespace kagome::application {
   ValidatingNodeApplication::ValidatingNodeApplication(
       const AppConfiguration &app_config)
       : injector_{injector::makeValidatingNodeInjector(app_config)},
-        logger_(common::createLogger("Application")) {
-    spdlog::set_level(app_config.verbosity());
+        logger_system_(
+            injector_.create<std::shared_ptr<soralog::LoggerSystem>>()) {
+    auto r = logger_system_->configure();
+    if (not r.message.empty()) {
+      std::cerr << r.message << std::endl;
+    }
+    if (r.has_error) {
+      exit(EXIT_FAILURE);
+    }
+
+    libp2p::log::setLoggerSystem(logger_system_);
+    common::setLoggerSystem(logger_system_);
+
+    common::setLevelOfGroup("*", app_config.verbosity());
+
+    logger_ = common::createLogger("ValidatingNodeApplication");
 
     if (app_config.isAlreadySynchronized()) {
       babe_execution_strategy_ = Babe::ExecutionStrategy::START;

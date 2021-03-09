@@ -6,29 +6,32 @@
 #ifndef KAGOME_LOGGER_HPP
 #define KAGOME_LOGGER_HPP
 
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
+#include <soralog/level.hpp>
+#include <soralog/logger.hpp>
+#include <soralog/logger_system.hpp>
 
 namespace kagome::common {
 
-  using LogLevel = spdlog::level::level_enum;
+  using Level = soralog::Level;
+  using Logger = std::shared_ptr<soralog::Logger>;
 
-  /**
-   * Set global logging level
-   * @param lvl - new global logging level
-   */
-  void setLogLevel(LogLevel lvl);
+  void setLoggerSystem(std::shared_ptr<soralog::LoggerSystem> logger_system);
 
+  [[nodiscard]] Logger createLogger(const std::string &tag);
 
-  using Logger = std::shared_ptr<spdlog::logger>;
+  [[nodiscard]] Logger createLogger(const std::string &tag,
+                                    const std::string &group);
 
-  /**
-   * Provide logger object
-   * @param tag - tagging name for identifying logger
-   * @return logger object
-   */
-  Logger createLogger(const std::string &tag);
+  [[nodiscard]] Logger createLogger(const std::string &tag,
+                                    const std::string &group,
+                                    Level level);
 
-} // namespace kagome::common
+  void setLevelOfGroup(const std::string &group_name, Level level);
+  void resetLevelOfGroup(const std::string &group_name);
+
+  void setLevelOfLogger(const std::string &logger_name, Level level);
+  void resetLevelOfLogger(const std::string &logger_name);
+
+}  // namespace kagome::common
 
 #endif  // KAGOME_LOGGER_HPP

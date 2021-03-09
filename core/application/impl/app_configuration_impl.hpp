@@ -94,7 +94,7 @@ namespace kagome::application {
     const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const override {
       return rpc_ws_endpoint_;
     }
-    spdlog::level::level_enum verbosity() const override {
+    common::Level verbosity() const override {
       return verbosity_;
     }
     bool isAlreadySynchronized() const override {
@@ -170,7 +170,7 @@ namespace kagome::application {
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
-    spdlog::level::level_enum verbosity_;
+    common::Level verbosity_;
     bool is_already_synchronized_;
     bool is_only_finalizing_;
     uint32_t max_blocks_in_response_;

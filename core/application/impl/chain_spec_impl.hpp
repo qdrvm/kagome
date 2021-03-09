@@ -10,6 +10,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include "common/logger.hpp"
+
 namespace kagome::application {
 
   class ChainSpecImpl : public ChainSpec {
@@ -91,8 +93,8 @@ namespace kagome::application {
     outcome::result<std::decay_t<T>> ensure(std::string_view entry_name,
                                             boost::optional<T> opt_entry) {
       if (not opt_entry) {
-        spdlog::error("Required '{}' entry not found in the chain spec",
-                      entry_name);
+        log_->error("Required '{}' entry not found in the chain spec",
+                    entry_name);
         return Error::MISSING_ENTRY;
       }
       return opt_entry.value();
@@ -111,6 +113,7 @@ namespace kagome::application {
     std::set<primitives::BlockHash> bad_blocks_;
     boost::optional<std::string> consensus_engine_;
     GenesisRawData genesis_;
+    common::Logger log_ = common::createLogger("chain_spec", "kagome");
   };
 
 }  // namespace kagome::application

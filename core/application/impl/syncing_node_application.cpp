@@ -12,8 +12,22 @@ namespace kagome::application {
   SyncingNodeApplication::SyncingNodeApplication(
       const AppConfiguration &app_config)
       : injector_{injector::makeSyncingNodeInjector(app_config)},
-        logger_{common::createLogger("SyncingNodeApplication")} {
-    spdlog::set_level(app_config.verbosity());
+        logger_system_(
+            injector_.create<std::shared_ptr<soralog::LoggerSystem>>()) {
+    auto r = logger_system_->configure();
+    if (not r.message.empty()) {
+      std::cerr << r.message << std::endl;
+    }
+    if (r.has_error) {
+      exit(EXIT_FAILURE);
+    }
+
+    libp2p::log::setLoggerSystem(logger_system_);
+    common::setLoggerSystem(logger_system_);
+
+    common::setLevelOfGroup("*", app_config.verbosity());
+
+    logger_ = common::createLogger("SyncingNodeApplication");
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied

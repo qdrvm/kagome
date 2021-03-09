@@ -4,7 +4,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <spdlog/spdlog.h>
 
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"

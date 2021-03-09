@@ -37,9 +37,11 @@ namespace kagome::injector {
     std::vector<libp2p::multi::Multiaddress> addresses =
         config.listenAddresses();
 
-    spdlog::debug("Received peer id: {}", peer_id.toBase58());
+    auto log = common::createLogger("syncing_injector", "kagome");
+
+    log->debug("Received peer id: {}", peer_id.toBase58());
     for (auto &addr : addresses) {
-      spdlog::debug("Received multiaddr: {}", addr.getStringAddress());
+      log->debug("Received multiaddr: {}", addr.getStringAddress());
     }
 
     initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),

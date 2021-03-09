@@ -47,9 +47,8 @@ find_package(schnorrkel_crust CONFIG REQUIRED)
 hunter_add_package(jsonrpc-lean)
 find_package(jsonrpc-lean REQUIRED)
 
-# https://docs.hunter.sh/en/latest/packages/pkg/spdlog.html
-hunter_add_package(spdlog)
-find_package(spdlog CONFIG REQUIRED)
+hunter_add_package(soralog)
+find_package(soralog CONFIG REQUIRED)
 
 # https://github.com/masterjedy/hat-trie
 hunter_add_package(tsl_hat_trie)
@@ -59,6 +58,9 @@ find_package(tsl_hat_trie CONFIG REQUIRED)
 hunter_add_package(Boost.DI)
 find_package(Boost.DI CONFIG REQUIRED)
 
+hunter_add_package(c-ares)
+find_package(c-ares CONFIG REQUIRED)
+
 # https://github.com/soramitsu/libp2p
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
@@ -66,3 +68,9 @@ find_package(libp2p CONFIG REQUIRED)
 # https://github.com/soramitsu/soramitsu-libsecp256k1
 hunter_add_package(libsecp256k1)
 find_package(libsecp256k1 CONFIG REQUIRED)
+
+hunter_add_package(fmt)
+find_package(fmt CONFIG REQUIRED)
+
+hunter_add_package(yaml-cpp)
+find_package(yaml-cpp CONFIG REQUIRED)

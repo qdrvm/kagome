@@ -31,7 +31,9 @@ add_library(logger
     logger.cpp
     )
 target_link_libraries(logger
-    spdlog::spdlog
+    fmt::fmt
+    soralog::soralog
+    soralog::fallback_configurator
     )
 kagome_install(logger)
 

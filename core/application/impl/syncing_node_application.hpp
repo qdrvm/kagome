@@ -32,7 +32,11 @@ namespace kagome::application {
 
    private:
     // need to keep all of these instances, since injector itself is destroyed
+
     InjectorType injector_;
+
+    std::shared_ptr<soralog::LoggerSystem> logger_system_;
+
     common::Logger logger_;
 
     sptr<ChainSpec> chain_spec_;
@@ -43,7 +47,6 @@ namespace kagome::application {
     sptr<network::Router> router_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;
-
   };
 
 }  // namespace kagome::application
