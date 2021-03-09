@@ -165,7 +165,7 @@ namespace kagome::network {
                   }
 
                   if (not write_res.has_value()) {
-                    self->log_->error("Error while writting handshake: {}",
+                    self->log_->error("Error while writing handshake: {}",
                                       write_res.error().message());
                     return stream->reset();
                   }

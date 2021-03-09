@@ -95,9 +95,9 @@ namespace kagome::network {
                       MessageHandler &&mh) {
       auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
       read_writer->read<Message>([wp = weak_from_this(),
-                            stream = std::move(stream),
-                            mh = std::forward<MessageHandler>(mh)](
-                               auto &&msg_res) mutable {
+                                  stream = std::move(stream),
+                                  mh = std::forward<MessageHandler>(mh)](
+                                     auto &&msg_res) mutable {
         auto self = wp.lock();
         if (not self) {
           return;
@@ -185,6 +185,9 @@ namespace kagome::network {
                 });
           });
     }
+
+    bool writeHandshakeToOutgoingBlockAnnounceStream(
+        std::shared_ptr<libp2p::connection::Stream> stream);
 
     /// Aligns amount of connected streams
     void align();

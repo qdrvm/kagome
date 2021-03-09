@@ -468,67 +468,9 @@ namespace kagome::network {
                   fmt::format(kBlockAnnouncesProtocol.data(),
                               self->chain_spec_.protocolId()));
 
-              {
-                Status status_msg;
-
-                /// Roles
-                // TODO(xDimon): Need to set actual role of node
-                //  issue: https://github.com/soramitsu/kagome/issues/678
-                status_msg.roles.flags.full = 1;
-
-                /// Best block info
-                const auto &last_finalized =
-                    self->block_tree_->getLastFinalized().block_hash;
-                if (auto best_res = self->block_tree_->getBestContaining(
-                        last_finalized, boost::none);
-                    best_res.has_value()) {
-                  status_msg.best_number = best_res.value().block_number;
-                  status_msg.best_hash = best_res.value().block_hash;
-                } else {
-                  self->log_->error("Could not get best block info: {}",
-                                    best_res.error().message());
-                  return;
-                }
-
-                /// Genesis hash
-                if (auto genesis_res = self->storage_->getGenesisBlockHash();
-                    genesis_res.has_value()) {
-                  status_msg.genesis_hash = std::move(genesis_res.value());
-                } else {
-                  self->log_->error("Could not get genesis block hash: {}",
-                                    genesis_res.error().message());
-                  return;
-                }
-
-                self->writeAsyncMsgWithHandshake<BlockAnnounce>(
-                    stream,
-                    std::move(status_msg),
-                    [](auto self,
-                       const auto &peer_id,
-                       const auto &remote_status) mutable -> outcome::result<void> {
-                      BOOST_ASSERT(self);
-                      self->log_->info("Received status from peer_id={}",
-                                       peer_id.toBase58());
-                      self->updatePeerStatus(peer_id, remote_status);
-                      return outcome::success();
-                    },
-                    [](auto self,
-                       const auto &peer_id,
-                       const auto &block_announce) mutable {
-                      BOOST_ASSERT(self);
-                      self->log_->info(
-                          "Received block announce: block number {}",
-                          block_announce.header.number);
-                      self->babe_observer_->onBlockAnnounce(peer_id,
-                                                            block_announce);
-
-                      auto hash = self->hasher_->blake2b_256(
-                          scale::encode(block_announce.header).value());
-                      self->updatePeerStatus(
-                          peer_id,
-                          BlockInfo(block_announce.header.number, hash));
-                      return true;
-                    });
+              if (not self->writeHandshakeToOutgoingBlockAnnounceStream(
+                      stream)) {
+                return;
               }
 
               // Reserve stream slots for needed protocols
@@ -549,5 +491,65 @@ namespace kagome::network {
     }
 
     kademlia_->addPeer(peer_info, false);
+  }
+
+  bool PeerManagerImpl::writeHandshakeToOutgoingBlockAnnounceStream(
+      std::shared_ptr<libp2p::connection::Stream> stream) {
+    Status status_msg;
+
+    /// Roles
+    // TODO(xDimon): Need to set actual role of node
+    //  issue: https://github.com/soramitsu/kagome/issues/678
+    status_msg.roles.flags.full = 1;
+
+    /// Best block info
+    const auto &last_finalized = block_tree_->getLastFinalized().block_hash;
+    if (auto best_res =
+            block_tree_->getBestContaining(last_finalized, boost::none);
+        best_res.has_value()) {
+      status_msg.best_number = best_res.value().block_number;
+      status_msg.best_hash = best_res.value().block_hash;
+    } else {
+      log_->error("Could not get best block info: {}",
+                  best_res.error().message());
+      return false;
+    }
+
+    /// Genesis hash
+    if (auto genesis_res = storage_->getGenesisBlockHash();
+        genesis_res.has_value()) {
+      status_msg.genesis_hash = std::move(genesis_res.value());
+    } else {
+      log_->error("Could not get genesis block hash: {}",
+                  genesis_res.error().message());
+      return false;
+    }
+
+    writeAsyncMsgWithHandshake<BlockAnnounce>(
+        stream,
+        std::move(status_msg),
+        [](auto self,
+           const auto &peer_id,
+           const auto &remote_status) mutable -> outcome::result<void> {
+          BOOST_ASSERT(self);
+          self->log_->info("Received status from peer_id={}",
+                           peer_id.toBase58());
+          self->updatePeerStatus(peer_id, remote_status);
+          return outcome::success();
+        },
+        [](auto self, const auto &peer_id, const auto &block_announce) mutable {
+          BOOST_ASSERT(self);
+          self->log_->info("Received block announce: block number {}",
+                           block_announce.header.number);
+          self->babe_observer_->onBlockAnnounce(peer_id, block_announce);
+
+          auto hash = self->hasher_->blake2b_256(
+              scale::encode(block_announce.header).value());
+          self->updatePeerStatus(peer_id,
+                                 BlockInfo(block_announce.header.number, hash));
+          return true;
+        });
+
+    return true;
   }
 }  // namespace kagome::network
