@@ -77,8 +77,6 @@ namespace kagome::network {
     void catchUpResponse(const libp2p::peer::PeerId &peer_id,
                          const CatchUpResponse &catch_up_response) override;
 
-    uint32_t getActiveStreamNumber() override;
-
    private:
     template <typename T>
     void send(const libp2p::peer::PeerId &peer_id,

@@ -28,7 +28,8 @@ namespace kagome::api::system::request {
                                   == consensus::Babe::State::SYNCHRONIZED);
 
     // peers - Number of connected peers
-    data["peers"] = makeValue(api_->getGossiper()->getActiveStreamNumber());
+    data["peers"] = makeValue(
+        static_cast<uint64_t>(api_->getPeerManager()->activePeersNumber()));
 
     // shouldHavePeers - Should this node have any peers.
     // Might be false for local chains or when running without discovery.

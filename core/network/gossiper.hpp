@@ -24,11 +24,6 @@ namespace kagome::network {
      * @param peer_info is the peer info of the peer
      */
     virtual void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) = 0;
-
-    /**
-     * @returns number of active (opened) streams
-     */
-    virtual uint32_t getActiveStreamNumber() = 0;
   };
 }  // namespace kagome::network
 
