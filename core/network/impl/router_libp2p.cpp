@@ -280,8 +280,8 @@ namespace kagome::network {
            const auto &peer_id,
            const auto &remote_status) -> outcome::result<void> {
           BOOST_ASSERT(self);
-          self->log_->info("Received status from peer_id={}",
-                           peer_id.toBase58());
+          self->log_->debug("Received status from peer_id={}",
+                            peer_id.toBase58());
           self->peer_manager_->updatePeerStatus(peer_id, remote_status);
           return outcome::success();
         },

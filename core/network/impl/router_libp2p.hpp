@@ -156,7 +156,7 @@ namespace kagome::network {
             }
 
             read_writer->write(
-                handshake,
+                std::move(handshake),
                 [stream, wself, mh{std::forward<MessageHandler>(mh)}](
                     auto &&write_res) mutable {
                   auto self = wself.lock();
