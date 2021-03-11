@@ -4,10 +4,11 @@
  */
 
 #include <boost/assert.hpp>
+#include <libp2p/log/logger.hpp>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
-namespace kagome::common {
+namespace kagome::log {
 
   namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -21,25 +22,29 @@ namespace kagome::common {
   }  // namespace
 
   void setLoggerSystem(std::shared_ptr<soralog::LoggerSystem> logger_system) {
+    BOOST_ASSERT(logger_system != nullptr);
+    libp2p::log::setLoggerSystem(logger_system);
     logger_system_ = std::move(logger_system);
   }
 
-  [[nodiscard]] Logger createLogger(const std::string &tag) {
+  Logger createLogger(const std::string &tag) {
     ensure_loger_system_is_initialized();
-    return logger_system_->getLogger(tag, "*", {}, {});
+    return std::dynamic_pointer_cast<soralog::LoggerFactory>(logger_system_)
+        ->getLogger(tag, "*");
   }
 
-  [[nodiscard]] Logger createLogger(const std::string &tag,
-                                    const std::string &group) {
+  Logger createLogger(const std::string &tag, const std::string &group) {
     ensure_loger_system_is_initialized();
-    return logger_system_->getLogger(tag, group, {}, {});
+    return std::dynamic_pointer_cast<soralog::LoggerFactory>(logger_system_)
+        ->getLogger(tag, group);
   }
 
-  [[nodiscard]] Logger createLogger(const std::string &tag,
-                                    const std::string &group,
-                                    Level level) {
+  Logger createLogger(const std::string &tag,
+                      const std::string &group,
+                      Level level) {
     ensure_loger_system_is_initialized();
-    return logger_system_->getLogger(tag, group, {}, level);
+    return std::dynamic_pointer_cast<soralog::LoggerFactory>(logger_system_)
+        ->getLogger(tag, group, level);
   }
 
   void setLevelOfGroup(const std::string &group_name, Level level) {
@@ -60,4 +65,4 @@ namespace kagome::common {
     logger_system_->resetLevelOfLogger(logger_name);
   }
 
-}  // namespace kagome::common
+}  // namespace kagome::log

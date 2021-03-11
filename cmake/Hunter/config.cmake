@@ -16,12 +16,12 @@
 # )
 
 hunter_config(libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/eee88b8ba23daebe337a42e668e5f9af34f48267.tar.gz
-    SHA1 a9386e0c0bd1f87428a58d8979cef5a1b3e904b5
-    CMAKE_ARGS TESTING=OFF
+    URL https://github.com/libp2p/cpp-libp2p/archive/462cd4a576c1889d302ee847e74a4431d49a14d3.tar.gz
+    SHA1 6a5f63aba027f5053a0ce9c492a4c492540f7e7d
+    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF
     )
 
 hunter_config(soralog
-    URL  https://github.com/xDimon/soralog/archive/8dee4bba45d3822bf15c7b66031f9c0806c3722f.tar.gz
-    SHA1 29bf2edeab4620f1794d3b174accb7bb4a9c4dbe
+    URL  https://github.com/xDimon/soralog/archive/4a0b1255f86bb641121670abbf2d67268165ee93.tar.gz
+    SHA1 827d0ca73ebbe295b14f0906f59ba9d169fc83eb
     )

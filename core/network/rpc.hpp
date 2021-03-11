@@ -10,11 +10,11 @@
 #include <memory>
 
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
 #include "libp2p/basic/readwriter.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
+#include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {
@@ -112,7 +112,7 @@ namespace kagome::network {
 
             auto stream = std::move(stream_res.value());
 
-            auto log = common::createLogger("rpc_writter", "network");
+            auto log = log::createLogger("rpc_writter", "network");
             log->debug("Sending blocks request to {}",
                        stream->remotePeerId().value().toBase58());
 
@@ -126,7 +126,7 @@ namespace kagome::network {
                     return cb(write_res.error());
                   }
 
-                  auto log = common::createLogger("rpc_writter", "network");
+                  auto log = log::createLogger("rpc_writter", "network");
                   log->debug("Request to {} sent successfully",
                              stream->remotePeerId().value().toBase58());
 

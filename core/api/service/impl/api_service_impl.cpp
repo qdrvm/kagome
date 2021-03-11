@@ -10,12 +10,11 @@
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/value_converter.hpp"
 
-
-#define UNWRAP_WEAK_PTR(callback)  \
-  [wp](auto &&...params) mutable { \
-    if (auto self = wp.lock()) {   \
-      self->callback(params...);   \
-    }                              \
+#define UNWRAP_WEAK_PTR(callback)   \
+  [wp](auto &&... params) mutable { \
+    if (auto self = wp.lock()) {    \
+      self->callback(params...);    \
+    }                               \
   }
 
 namespace {
@@ -61,7 +60,7 @@ namespace {
    */
   template <typename F>
   inline void forJsonData(std::shared_ptr<JRpcServer> server,
-                          kagome::common::Logger logger,
+                          kagome::log::Logger logger,
                           uint32_t set_id,
                           std::string_view name,
                           jsonrpc::Value &&value,
@@ -87,7 +86,7 @@ namespace {
   }
   inline void sendEvent(std::shared_ptr<JRpcServer> server,
                         std::shared_ptr<Session> session,
-                        kagome::common::Logger logger,
+                        kagome::log::Logger logger,
                         uint32_t set_id,
                         std::string_view name,
                         jsonrpc::Value &&value) {
@@ -111,8 +110,7 @@ namespace kagome::api {
   const std::string kRpcEventFinalizedHeads = "chain_finalizedHead";
   const std::string kRpcEventSubscribeStorage = "state_storage";
 
-  const std::string kRpcEventUpdateExtrinsic =
-      "author_extrinsicUpdate";
+  const std::string kRpcEventUpdateExtrinsic = "author_extrinsicUpdate";
 
   ApiServiceImpl::ApiServiceImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
@@ -130,7 +128,7 @@ namespace kagome::api {
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners)),
         server_(std::move(server)),
-        logger_{common::createLogger("Api service")},
+        logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},
         trie_storage_{std::move(trie_storage)},
         subscription_engines_{.storage = std::move(storage_sub_engine),
@@ -219,7 +217,7 @@ namespace kagome::api {
 
   std::shared_ptr<ApiServiceImpl::SessionSubscriptions>
   ApiServiceImpl::storeSessionWithId(Session::SessionId id,
-                                 const std::shared_ptr<Session> &session) {
+                                     const std::shared_ptr<Session> &session) {
     std::lock_guard guard(subscribed_sessions_cs_);
     auto &&[it, inserted] = subscribed_sessions_.emplace(
         id,
@@ -231,7 +229,7 @@ namespace kagome::api {
                     subscription_engines_.chain, session),
                 .ext_sub = std::make_shared<ExtrinsicEventSubscriber>(
                     subscription_engines_.ext, session),
-                .messages={}}));
+                .messages = {}}));
 
     BOOST_ASSERT(inserted);
     return it->second;
@@ -243,7 +241,8 @@ namespace kagome::api {
   }
 
   outcome::result<ApiServiceImpl::PubsubSubscriptionId>
-  ApiServiceImpl::subscribeSessionToKeys(const std::vector<common::Buffer> &keys) {
+  ApiServiceImpl::subscribeSessionToKeys(
+      const std::vector<common::Buffer> &keys) {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
@@ -441,7 +440,7 @@ namespace kagome::api {
   }
 
   void ApiServiceImpl::onSessionRequest(std::string_view request,
-                                    std::shared_ptr<Session> session) {
+                                        std::shared_ptr<Session> session) {
     auto thread_session_auto_release = [](void *) {
       threaded_info.releaseSessionId();
     };
@@ -488,10 +487,10 @@ namespace kagome::api {
   }
 
   void ApiServiceImpl::onStorageEvent(SubscriptionSetId set_id,
-                                  SessionPtr &session,
-                                  const Buffer &key,
-                                  const Buffer &data,
-                                  const common::Hash256 &block) {
+                                      SessionPtr &session,
+                                      const Buffer &key,
+                                      const Buffer &data,
+                                      const common::Hash256 &block) {
     sendEvent(server_,
               session,
               logger_,

@@ -17,7 +17,7 @@ namespace kagome::authority {
       std::shared_ptr<primitives::BabeConfiguration> genesis_configuration,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::BufferStorage> storage)
-      : log_{common::createLogger("AuthMngr")},
+      : log_{log::createLogger("AuthorityManager", "authority")},
         app_state_manager_(std::move(app_state_manager)),
         genesis_configuration_(std::move(genesis_configuration)),
         block_tree_(std::move(block_tree)),
@@ -288,7 +288,7 @@ namespace kagome::authority {
         [this, &block](const primitives::Resume &msg) {
           return applyResume(block, block.block_number + msg.subchain_lenght);
         },
-        [](const Unused<0>&) {
+        [](const Unused<0> &) {
           // NOTE(xDimon): Does it nothing? Is it valid?
           // Sometimes runtime makes consensus digest with unused variant.
           return outcome::success();

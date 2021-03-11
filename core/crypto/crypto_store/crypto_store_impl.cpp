@@ -37,7 +37,7 @@ namespace kagome::crypto {
         ed_suite_{std::move(ed_suite)},
         sr_suite_{std::move(sr_suite)},
         bip39_provider_{std::move(bip39_provider)},
-        logger_{common::createLogger("CryptoStore")} {
+        logger_{log::createLogger("CryptoStore", "crypto_store")} {
     BOOST_ASSERT(ed_suite_ != nullptr);
     BOOST_ASSERT(sr_suite_ != nullptr);
     BOOST_ASSERT(bip39_provider_ != nullptr);

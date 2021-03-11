@@ -291,7 +291,7 @@ namespace kagome::injector {
                              "grandpa_api_->authorities failed");
             const auto &weighted_authorities = weighted_authorities_res.value();
 
-            auto log = common::createLogger("injector", "kagome");
+            auto log = log::createLogger("injector", "kagome");
 
             for (const auto authority : weighted_authorities) {
               log->info("Grandpa authority: {}", authority.id.id.toHex());
@@ -480,7 +480,7 @@ namespace kagome::injector {
       common::raise(batch.error());
     }
 
-    auto log = common::createLogger("injector", "kagome");
+    auto log = log::createLogger("injector", "kagome");
 
     for (const auto &[key, val] : genesis_raw_configs) {
       log->debug("Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
@@ -514,7 +514,7 @@ namespace kagome::injector {
     auto db = storage::LevelDB::create(
         config.databasePath(genesis_config->id()), options);
     if (!db) {
-      auto log = common::createLogger("injector", "kagome");
+      auto log = log::createLogger("injector", "kagome");
       log->critical("Can't create LevelDB in {}: {}",
                     fs::absolute(config.databasePath(genesis_config->id()),
                                  fs::current_path())
@@ -563,7 +563,7 @@ namespace kagome::injector {
       common::raise(configuration_res.error());
     }
     auto config = configuration_res.value();
-    auto log = common::createLogger("injector", "kagome");
+    auto log = log::createLogger("injector", "kagome");
     for (const auto &authority : config.genesis_authorities) {
       log->debug("Babe authority: {}", authority.id.id.toHex());
     }
@@ -689,7 +689,7 @@ namespace kagome::injector {
     auto &crypto_store =
         injector.template create<const crypto::CryptoStore &>();
 
-    auto log = common::createLogger("injector", "kagome");
+    auto log = log::createLogger("injector", "kagome");
 
     if (app_config.nodeKey()) {
       log->info("Will use LibP2P keypair from config or args");
@@ -722,7 +722,7 @@ namespace kagome::injector {
 
     log->warn(
         "Can not get LibP2P keypair from crypto storage. "
-        "Will be temporary generated unique one");
+        "Unique one will be generated for current running");
 
     auto generated_keypair = crypto_provider.generateKeypair();
 
@@ -805,16 +805,6 @@ namespace kagome::injector {
         injector::useConfig(pool_moderator_config),
         injector::useConfig(tp_pool_limits),
         injector::useConfig(ping_config),
-
-        soralog::injector::makeInjector(
-            // Replace default fallback configurator by customized one
-            boost::di::bind<soralog::Configurator>.to([](const auto &i) {
-              static auto cfg =
-                  std::make_shared<soralog::FallbackConfigurator>();
-              cfg->setLevel(soralog::Level::TRACE);
-              cfg->withColor(true);
-              return cfg;
-            })[boost::di::override]),
 
         // inherit host injector
         libp2p::injector::makeHostInjector(

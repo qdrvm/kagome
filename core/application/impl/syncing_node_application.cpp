@@ -4,30 +4,34 @@
  */
 
 #include "application/impl/syncing_node_application.hpp"
+
 #include "application/impl/util.hpp"
+#include "log/configurator.hpp"
 #include "network/common.hpp"
 
 namespace kagome::application {
 
   SyncingNodeApplication::SyncingNodeApplication(
       const AppConfiguration &app_config)
-      : injector_{injector::makeSyncingNodeInjector(app_config)},
-        logger_system_(
-            injector_.create<std::shared_ptr<soralog::LoggerSystem>>()) {
-    auto r = logger_system_->configure();
-    if (not r.message.empty()) {
-      std::cerr << r.message << std::endl;
+      : injector_{injector::makeSyncingNodeInjector(app_config)} {
+    {
+      auto logger_system = std::make_shared<soralog::LoggerSystem>(
+          std::make_shared<kagome::log::Configurator>(
+              injector_.create<sptr<libp2p::log::Configurator>>()));
+
+      auto r = logger_system->configure();
+      if (not r.message.empty()) {
+        std::cerr << r.message << std::endl;
+      }
+      if (r.has_error) {
+        exit(EXIT_FAILURE);
+      }
+
+      log::setLoggerSystem(logger_system);
+      log::setLevelOfGroup("main", app_config.verbosity());
     }
-    if (r.has_error) {
-      exit(EXIT_FAILURE);
-    }
 
-    libp2p::log::setLoggerSystem(logger_system_);
-    common::setLoggerSystem(logger_system_);
-
-    common::setLevelOfGroup("*", app_config.verbosity());
-
-    logger_ = common::createLogger("SyncingNodeApplication");
+    logger_ = log::createLogger("SyncingNodeApplication", "application");
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied

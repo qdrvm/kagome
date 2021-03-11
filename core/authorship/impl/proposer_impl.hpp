@@ -9,7 +9,7 @@
 #include "authorship/proposer.hpp"
 
 #include "authorship/block_builder_factory.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "runtime/block_builder.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/transaction_pool.hpp"
@@ -42,7 +42,7 @@ namespace kagome::authorship {
         ext_sub_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
-    common::Logger logger_ = common::createLogger("Proposer");
+    log::Logger logger_ = log::createLogger("Proposer", "authorship");
   };
 
 }  // namespace kagome::authorship

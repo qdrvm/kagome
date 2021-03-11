@@ -19,7 +19,7 @@ namespace rapidjson {
 #include <cstdio>
 #include <memory>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 #ifdef DECLARE_PROPERTY
 #error DECLARE_PROPERTY already defined!
@@ -54,7 +54,7 @@ namespace kagome::application {
     using FilePtr = std::unique_ptr<std::FILE, decltype(&std::fclose)>;
 
    public:
-    explicit AppConfigurationImpl(common::Logger logger);
+    explicit AppConfigurationImpl(log::Logger logger);
     ~AppConfigurationImpl() override = default;
 
     AppConfigurationImpl(const AppConfigurationImpl &) = delete;
@@ -94,7 +94,7 @@ namespace kagome::application {
     const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const override {
       return rpc_ws_endpoint_;
     }
-    common::Level verbosity() const override {
+    log::Level verbosity() const override {
       return verbosity_;
     }
     bool isAlreadySynchronized() const override {
@@ -162,7 +162,7 @@ namespace kagome::application {
                                                      uint16_t port);
     FilePtr open_file(const std::string &filepath);
 
-    common::Logger logger_;
+    log::Logger logger_;
 
     boost::optional<crypto::Ed25519PrivateKey> node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
@@ -170,7 +170,7 @@ namespace kagome::application {
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
-    common::Level verbosity_;
+    log::Level verbosity_;
     bool is_already_synchronized_;
     bool is_only_finalizing_;
     uint32_t max_blocks_in_response_;

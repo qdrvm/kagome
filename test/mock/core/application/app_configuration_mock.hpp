@@ -41,7 +41,7 @@ namespace kagome::application {
 
     MOCK_CONST_METHOD0(rpcWsEndpoint, const boost::asio::ip::tcp::endpoint &());
 
-    MOCK_CONST_METHOD0(verbosity, common::Level());
+    MOCK_CONST_METHOD0(verbosity, log::Level());
 
     MOCK_CONST_METHOD0(isOnlyFinalizing, bool());
 

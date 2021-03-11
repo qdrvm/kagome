@@ -41,7 +41,7 @@ namespace kagome::network {
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
         sync_clients_(std::move(sync_clients)),
-        log_(common::createLogger("PeerManager")) {
+        log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);

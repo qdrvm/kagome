@@ -58,7 +58,7 @@ namespace kagome::runtime::binaryen {
       } catch (wasm::ParseException &e) {
         std::ostringstream msg;
         e.dump(msg);
-        auto log = common::createLogger("wasm_module", "wasm");
+        auto log = log::createLogger("wasm_module", "wasm");
         log->error(msg.str());
         return Error::INVALID_STATE_CODE;
       }

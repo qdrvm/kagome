@@ -37,7 +37,7 @@ namespace kagome::injector {
     std::vector<libp2p::multi::Multiaddress> addresses =
         config.listenAddresses();
 
-    auto log = common::createLogger("syncing_injector", "kagome");
+    auto log = log::createLogger("syncing_injector", "kagome");
 
     log->debug("Received peer id: {}", peer_id.toBase58());
     for (auto &addr : addresses) {
@@ -51,7 +51,7 @@ namespace kagome::injector {
 
   template <typename... Ts>
   auto makeSyncingNodeInjector(const application::AppConfiguration &app_config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(

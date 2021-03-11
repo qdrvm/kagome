@@ -19,8 +19,8 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
 #include "containers/objects_cache.hpp"
+#include "log/logger.hpp"
 #include "primitives/common.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/transaction.hpp"
@@ -42,24 +42,26 @@ namespace kagome::api {
   /**
    * Service listening for incoming JSON RPC request
    */
-  class ApiServiceImpl final : public ApiService, public std::enable_shared_from_this<ApiServiceImpl> {
+  class ApiServiceImpl final
+      : public ApiService,
+        public std::enable_shared_from_this<ApiServiceImpl> {
     using ChainEventSubscriberPtr = primitives::events::ChainEventSubscriberPtr;
     using StorageEventSubscriberPtr =
-    primitives::events::StorageEventSubscriberPtr;
+        primitives::events::StorageEventSubscriberPtr;
     using ExtrinsicEventSubscriberPtr =
-    primitives::events::ExtrinsicEventSubscriberPtr;
+        primitives::events::ExtrinsicEventSubscriberPtr;
     using ChainSubscriptionEnginePtr =
-    primitives::events::ChainSubscriptionEnginePtr;
+        primitives::events::ChainSubscriptionEnginePtr;
     using StorageSubscriptionEnginePtr =
-    primitives::events::StorageSubscriptionEnginePtr;
+        primitives::events::StorageSubscriptionEnginePtr;
     using ExtrinsicSubscriptionEnginePtr =
-    primitives::events::ExtrinsicSubscriptionEnginePtr;
+        primitives::events::ExtrinsicSubscriptionEnginePtr;
     using ChainEventSubscriber = primitives::events::ChainEventSubscriber;
     using StorageEventSubscriber = primitives::events::StorageEventSubscriber;
     using ExtrinsicEventSubscriber =
-    primitives::events::ExtrinsicEventSubscriber;
+        primitives::events::ExtrinsicEventSubscriber;
     using ExtrinsicSubscriptionEngine =
-    primitives::events::ExtrinsicSubscriptionEngine;
+        primitives::events::ExtrinsicSubscriptionEngine;
 
     using SessionPtr = std::shared_ptr<Session>;
 
@@ -73,10 +75,10 @@ namespace kagome::api {
 
     struct SessionSubscriptions {
       using AdditionMessageType =
-      decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
+          decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
       using AdditionMessagesList = std::vector<AdditionMessageType>;
-      using CachedAdditionMessagesList = decltype(KAGOME_EXTRACT_SHARED_CACHE(
-          api_service, AdditionMessagesList));
+      using CachedAdditionMessagesList = decltype(
+          KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
 
       StorageEventSubscriberPtr storage_sub;
       ChainEventSubscriberPtr chain_sub;
@@ -104,7 +106,7 @@ namespace kagome::api {
         ChainSubscriptionEnginePtr chain_sub_engine,
         ExtrinsicSubscriptionEnginePtr ext_sub_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-        extrinsic_event_key_repo,
+            extrinsic_event_key_repo,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage);
 
@@ -208,13 +210,13 @@ namespace kagome::api {
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<sptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
-    common::Logger logger_;
+    log::Logger logger_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
 
     std::mutex subscribed_sessions_cs_;
     std::unordered_map<Session::SessionId,
-        std::shared_ptr<SessionSubscriptions>>
+                       std::shared_ptr<SessionSubscriptions>>
         subscribed_sessions_;
 
     struct {

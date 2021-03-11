@@ -20,7 +20,7 @@
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
 #include "clock/clock.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
@@ -101,7 +101,7 @@ namespace kagome::network {
     std::unordered_map<PeerId, clock::SteadyClock::TimePoint> active_peers_;
     libp2p::protocol::scheduler::Handle align_timer_;
 
-    common::Logger log_;
+    log::Logger log_;
   };
 
 }  // namespace kagome::network

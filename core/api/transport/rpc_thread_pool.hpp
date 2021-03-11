@@ -13,7 +13,7 @@
 
 #include "api/transport/rpc_io_context.hpp"
 #include "application/app_state_manager.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 using kagome::application::AppStateManager;
 
@@ -52,7 +52,7 @@ namespace kagome::api {
 
     std::vector<std::shared_ptr<std::thread>> threads_;
 
-    common::Logger logger_ = common::createLogger("RPC thread pool");
+    log::Logger logger_ = log::createLogger("RpcThreadPool", "rpc_transport");
   };
 
 }  // namespace kagome::api

@@ -6,28 +6,31 @@
 #include "application/impl/validating_node_application.hpp"
 
 #include "application/impl/util.hpp"
+#include "log/configurator.hpp"
 
 namespace kagome::application {
 
   ValidatingNodeApplication::ValidatingNodeApplication(
       const AppConfiguration &app_config)
-      : injector_{injector::makeValidatingNodeInjector(app_config)},
-        logger_system_(
-            injector_.create<std::shared_ptr<soralog::LoggerSystem>>()) {
-    auto r = logger_system_->configure();
-    if (not r.message.empty()) {
-      std::cerr << r.message << std::endl;
+      : injector_{injector::makeValidatingNodeInjector(app_config)} {
+    {
+      auto logger_system = std::make_shared<soralog::LoggerSystem>(
+          std::make_shared<kagome::log::Configurator>(
+              injector_.create<sptr<libp2p::log::Configurator>>()));
+
+      auto r = logger_system->configure();
+      if (not r.message.empty()) {
+        std::cerr << r.message << std::endl;
+      }
+      if (r.has_error) {
+        exit(EXIT_FAILURE);
+      }
+
+      log::setLoggerSystem(logger_system);
+      log::setLevelOfGroup("main", app_config.verbosity());
     }
-    if (r.has_error) {
-      exit(EXIT_FAILURE);
-    }
 
-    libp2p::log::setLoggerSystem(logger_system_);
-    common::setLoggerSystem(logger_system_);
-
-    common::setLevelOfGroup("*", app_config.verbosity());
-
-    logger_ = common::createLogger("ValidatingNodeApplication");
+    logger_ = log::createLogger("ValidatingNodeApplication", "application");
 
     if (app_config.isAlreadySynchronized()) {
       babe_execution_strategy_ = Babe::ExecutionStrategy::START;
@@ -51,7 +54,7 @@ namespace kagome::application {
     router_ = injector_.create<sptr<network::Router>>();
     peer_manager_ = injector_.create<sptr<network::PeerManager>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
-  }
+  }  // namespace kagome::application
 
   void ValidatingNodeApplication::run() {
     logger_->info("Start as ValidatingNode with PID {}", getpid());

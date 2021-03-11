@@ -10,7 +10,7 @@
 #include <fstream>
 
 #include "application/impl/app_configuration_impl.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
@@ -108,7 +108,7 @@ class AppConfigurationTest : public testing::Test {
     spawn_file(genesis_path.native(), "");
     ASSERT_TRUE(boost::filesystem::create_directory(base_path));
 
-    auto logger = kagome::common::createLogger("App config test");
+    auto logger = kagome::log::createLogger("AppConfigTest", "testing");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);
   }
 
@@ -143,7 +143,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::INFO);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
@@ -259,7 +259,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 456);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::INFO);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }
 
@@ -295,7 +295,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::INFO);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
@@ -330,7 +330,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::INFO);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
@@ -365,7 +365,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::INFO);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
@@ -440,7 +440,7 @@ TEST_F(AppConfigurationTest, base_pathPathTest) {
  * @given new created AppConfigurationImpl
  * @when verbosity provided with value 1
  * @then we expect verbosity in config equal 'debug' and so on equal
- * common::Level
+ * log::Level
  */
 TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
   {
@@ -457,7 +457,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::TRACE);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::TRACE);
   }
   {
     char const *args[] = {
@@ -473,7 +473,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::DEBUG);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
   }
   {
     char const *args[] = {
@@ -489,7 +489,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::INFO);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   }
   {
     char const *args[] = {
@@ -505,7 +505,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::WARN);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::WARN);
   }
   {
     char const *args[] = {"/path/",
@@ -519,7 +519,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::ERROR);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::ERROR);
   }
   {
     char const *args[] = {"/path/",
@@ -533,7 +533,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::CRITICAL);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::CRITICAL);
   }
   {
     char const *args[] = {"/path/",
@@ -547,14 +547,14 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::OFF);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::OFF);
   }
 }
 
 /**
  * @given new created AppConfigurationImpl
  * @when verbosity provided with unexpected value
- * @then we expect last saved value(def. kagome::common::Level::INFO)
+ * @then we expect last saved value(def. kagome::log::Level::INFO)
  */
 TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
   char const *args[] = {"/path/",
@@ -568,7 +568,7 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
-  ASSERT_EQ(app_config_->verbosity(), kagome::common::Level::INFO);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
 }
 
 /**

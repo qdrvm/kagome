@@ -13,7 +13,7 @@ namespace kagome::runtime::binaryen {
         size_(kInitialMemorySize),
         heap_base_{kDefaultHeapBase},
         offset_{heap_base_},
-        logger_{common::createLogger("WASM Memory")} {
+        logger_{log::createLogger("WasmMemory", "wasm")} {
     // Heap base (and offset in according) must be non zero to prohibit
     // allocating memory at 0 in future, as returning 0 from allocate method
     // means that wasm memory was exhausted
@@ -293,13 +293,15 @@ namespace kagome::runtime::binaryen {
   boost::optional<WasmSize> WasmMemoryImpl::getDeallocatedChunkSize(
       WasmPointer ptr) const {
     auto it = deallocated_.find(ptr);
-    return it != deallocated_.cend() ? boost::make_optional(it->second) : boost::none;
+    return it != deallocated_.cend() ? boost::make_optional(it->second)
+                                     : boost::none;
   }
 
   boost::optional<WasmSize> WasmMemoryImpl::getAllocatedChunkSize(
       WasmPointer ptr) const {
     auto it = allocated_.find(ptr);
-    return it != allocated_.cend() ? boost::make_optional(it->second) : boost::none;
+    return it != allocated_.cend() ? boost::make_optional(it->second)
+                                   : boost::none;
   }
 
   size_t WasmMemoryImpl::getAllocatedChunksNum() const {

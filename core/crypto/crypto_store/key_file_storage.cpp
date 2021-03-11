@@ -57,7 +57,7 @@ namespace kagome::crypto {
 
   KeyFileStorage::KeyFileStorage(Path keystore_path)
       : keystore_path_{std::move(keystore_path)},
-        logger_{common::createLogger("Key File Storage")} {}
+        logger_{log::createLogger("KeyFileStorage", "crypto_store")} {}
 
   outcome::result<std::pair<KeyTypeId, Buffer>>
   KeyFileStorage::parseKeyFileName(std::string_view file_name) const {

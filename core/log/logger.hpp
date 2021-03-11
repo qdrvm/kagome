@@ -10,7 +10,7 @@
 #include <soralog/logger.hpp>
 #include <soralog/logger_system.hpp>
 
-namespace kagome::common {
+namespace kagome::log {
 
   using Level = soralog::Level;
   using Logger = std::shared_ptr<soralog::Logger>;
@@ -32,6 +32,6 @@ namespace kagome::common {
   void setLevelOfLogger(const std::string &logger_name, Level level);
   void resetLevelOfLogger(const std::string &logger_name);
 
-}  // namespace kagome::common
+}  // namespace kagome::log
 
 #endif  // KAGOME_LOGGER_HPP

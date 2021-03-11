@@ -9,11 +9,11 @@
 #include <numeric>
 #include <unordered_map>
 
-#include "common/logger.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
+#include "log/logger.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
@@ -48,7 +48,7 @@ namespace kagome::network {
 
     ~StreamEngine() = default;
     explicit StreamEngine(Host &host)
-        : host_{host}, logger_{common::createLogger("StreamEngine")} {}
+        : host_{host}, logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&... args) {
@@ -217,7 +217,7 @@ namespace kagome::network {
 
    private:
     Host &host_;
-    common::Logger logger_;
+    log::Logger logger_;
 
     std::shared_mutex streams_cs_;
     PeerMap streams_;

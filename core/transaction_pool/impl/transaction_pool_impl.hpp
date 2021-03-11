@@ -7,7 +7,7 @@
 #define KAGOME_TRANSACTION_POOL_IMPL_HPP
 
 #include "blockchain/block_header_repository.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
@@ -17,8 +17,6 @@
 namespace kagome::transaction_pool {
 
   class TransactionPoolImpl : public TransactionPool {
-    static constexpr auto kDefaultLoggerTag = "Transaction Pool";
-
    public:
     TransactionPoolImpl(
         std::unique_ptr<PoolModerator> moderator,
@@ -102,7 +100,7 @@ namespace kagome::transaction_pool {
 
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
-    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
+    log::Logger logger_ = log::createLogger("TransactionPool", "transactions");
 
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
         sub_engine_;

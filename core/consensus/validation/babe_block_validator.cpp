@@ -47,7 +47,7 @@ namespace kagome::consensus {
         vrf_provider_{std::move(vrf_provider)},
         sr25519_provider_{std::move(sr25519_provider)},
         configuration_{std::move(configuration)},
-        log_{common::createLogger("BabeBlockValidator")} {
+        log_{log::createLogger("BlockValidator", "block_validator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
     BOOST_ASSERT(vrf_provider_);

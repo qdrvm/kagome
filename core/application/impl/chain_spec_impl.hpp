@@ -10,7 +10,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application {
 
@@ -113,7 +113,7 @@ namespace kagome::application {
     std::set<primitives::BlockHash> bad_blocks_;
     boost::optional<std::string> consensus_engine_;
     GenesisRawData genesis_;
-    common::Logger log_ = common::createLogger("chain_spec", "kagome");
+    log::Logger log_ = log::createLogger("chain_spec", "kagome");
   };
 
 }  // namespace kagome::application

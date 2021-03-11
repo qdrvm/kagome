@@ -27,7 +27,7 @@ namespace kagome::injector {
         injector.template create<const crypto::CryptoStore &>();
     auto &&sr25519_kp = crypto_store.getBabeKeypair();
     if (not sr25519_kp) {
-      auto log = common::createLogger("validating_injector", "kagome");
+      auto log = log::createLogger("validating_injector", "kagome");
       log->error("Failed to get BABE keypair");
       return nullptr;
     }
@@ -48,7 +48,7 @@ namespace kagome::injector {
         injector.template create<const crypto::CryptoStore &>();
     auto &&ed25519_kp = crypto_store.getGrandpaKeypair();
     if (not ed25519_kp) {
-      auto log = common::createLogger("validating_injector", "kagome");
+      auto log = log::createLogger("validating_injector", "kagome");
       log->error("Failed to get GRANDPA keypair");
       return nullptr;
     }
@@ -81,7 +81,7 @@ namespace kagome::injector {
     std::vector<libp2p::multi::Multiaddress> addresses =
         config.listenAddresses();
 
-    auto log = common::createLogger("validating_injector", "kagome");
+    auto log = log::createLogger("validating_injector", "kagome");
     log->debug("Received peer id: {}", peer_id.toBase58());
     for (auto &addr : addresses) {
       log->debug("Received multiaddr: {}", addr.getStringAddress());

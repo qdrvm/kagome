@@ -8,8 +8,8 @@
 
 #include "application/kagome_application.hpp"
 
-#include "common/logger.hpp"
 #include "injector/syncing_node_injector.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application {
 
@@ -37,7 +37,7 @@ namespace kagome::application {
 
     std::shared_ptr<soralog::LoggerSystem> logger_system_;
 
-    common::Logger logger_;
+    log::Logger logger_;
 
     sptr<ChainSpec> chain_spec_;
     boost::filesystem::path chain_path_;

@@ -6,11 +6,11 @@
 #ifndef KAGOME_LEVELDB_HPP
 #define KAGOME_LEVELDB_HPP
 
-#include <boost/filesystem/path.hpp>
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
+#include <boost/filesystem/path.hpp>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::storage {
@@ -33,7 +33,8 @@ namespace kagome::storage {
      * @return instance of LevelDB
      */
     static outcome::result<std::shared_ptr<LevelDB>> create(
-        const boost::filesystem::path &path, leveldb::Options options = leveldb::Options());
+        const boost::filesystem::path &path,
+        leveldb::Options options = leveldb::Options());
 
     /**
      * @brief Set read options, which are used in @see LevelDB#get
@@ -68,7 +69,7 @@ namespace kagome::storage {
     std::unique_ptr<leveldb::DB> db_;
     leveldb::ReadOptions ro_;
     leveldb::WriteOptions wo_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::storage
