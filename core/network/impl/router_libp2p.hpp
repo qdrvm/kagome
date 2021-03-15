@@ -10,8 +10,10 @@
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
+#include "crypto/hasher.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -58,7 +60,10 @@ namespace kagome::network {
         std::shared_ptr<Gossiper> gossiper,
         const BootstrapNodes &bootstrap_nodes,
         std::shared_ptr<blockchain::BlockStorage> storage,
-        std::shared_ptr<libp2p::protocol::Ping> ping_proto);
+        std::shared_ptr<libp2p::protocol::Ping> ping_proto,
+        std::shared_ptr<PeerManager> peer_manager,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     ~RouterLibp2p() override = default;
 
@@ -114,38 +119,61 @@ namespace kagome::network {
       });
     }
 
-    template <typename T, typename H, typename F>
+    template <typename T,
+              typename Handshake,
+              typename HandshakeHandler,
+              typename MessageHandler>
     void readAsyncMsgWithHandshake(std::shared_ptr<Stream> stream,
-                                   H &&handshake,
-                                   F &&f) const {
+                                   Handshake &&handshake,
+                                   HandshakeHandler &&hh,
+                                   MessageHandler &&mh) const {
       auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-      read_writer->read<std::decay_t<H>>([stream,
-                                          handshake{std::move(handshake)},
-                                          read_writer,
-                                          wself{weak_from_this()},
-                                          f{std::forward<F>(f)}](
-                                             auto &&read_res) mutable {
-        if (!read_res) {
-          if (auto self = wself.lock())
-            self->log_->error("Error while reading handshake: {}",
-                              read_res.error().message());
-          return stream->reset();
-        }
-        read_writer->write(
-            handshake,
-            [stream, wself, f{std::forward<F>(f)}](auto &&write_res) mutable {
-              auto self = wself.lock();
-              if (!self) return;
+      read_writer->read<std::decay_t<Handshake>>(
+          [stream,
+           handshake{std::move(handshake)},
+           read_writer,
+           wself{weak_from_this()},
+           hh{std::forward<HandshakeHandler>(hh)},
+           mh{std::forward<MessageHandler>(mh)}](auto &&read_res) mutable {
+            auto self = wself.lock();
+            if (not self) {
+              return stream->reset();
+            }
 
-              if (!write_res) {
-                self->log_->error("Error while reading handshake: {}",
-                                  write_res.error().message());
-                return stream->reset();
-              }
-              self->readAsyncMsg<std::decay_t<T>>(std::move(stream),
-                                                  std::forward<F>(f));
-            });
-      });
+            if (not read_res.has_value()) {
+              self->log_->error("Error while reading handshake: {}",
+                                read_res.error().message());
+              return stream->reset();
+            }
+
+            auto res = hh(self,
+                          stream->remotePeerId().value(),
+                          std::move(read_res.value()));
+            if (not res.has_value()) {
+              self->log_->error("Error while processing handshake: {}",
+                                read_res.error().message());
+              return stream->reset();
+            }
+
+            read_writer->write(
+                std::move(handshake),
+                [stream, wself, mh{std::forward<MessageHandler>(mh)}](
+                    auto &&write_res) mutable {
+                  auto self = wself.lock();
+                  if (not self) {
+                    return;
+                  }
+
+                  if (not write_res.has_value()) {
+                    self->log_->error("Error while writing handshake: {}",
+                                      write_res.error().message());
+                    return stream->reset();
+                  }
+
+                  self->readAsyncMsg<std::decay_t<T>>(
+                      std::move(stream), std::forward<MessageHandler>(mh));
+                });
+          });
     }
 
     void setProtocolHandler(
@@ -157,6 +185,9 @@ namespace kagome::network {
      */
     bool processGossipMessage(const libp2p::peer::PeerId &peer_id,
                               const GossipMessage &msg) const;
+
+    bool processSupMessage(const libp2p::peer::PeerId &peer_id,
+                           const Status &msg) const;
 
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
@@ -174,6 +205,9 @@ namespace kagome::network {
 
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<libp2p::protocol::Ping> ping_proto_;
+    std::shared_ptr<PeerManager> peer_manager_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<crypto::Hasher> hasher_;
   };
 
 }  // namespace kagome::network

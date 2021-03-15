@@ -43,7 +43,7 @@ namespace kagome::consensus {
          ++i) {
       primitives::Transcript transcript;
       prepareTranscript(transcript, randomness, i, epoch.epoch_number);
-      logger_->debug(
+      logger_->trace(
           "prepareTranscript (leadership): randomness {}, slot {}, epoch {}",
           randomness,
           i,
