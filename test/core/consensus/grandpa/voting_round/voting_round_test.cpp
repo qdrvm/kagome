@@ -19,6 +19,7 @@
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
 using namespace std::chrono_literals;
@@ -65,6 +66,10 @@ ACTION_P(onSignPrecommit, fixture) {
 
 class VotingRoundTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     voters_->insert(kAlice, kAliceWeight);
     voters_->insert(kBob, kBobWeight);

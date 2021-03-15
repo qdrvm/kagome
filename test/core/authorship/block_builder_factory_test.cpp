@@ -10,6 +10,7 @@
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using ::testing::Return;
 
@@ -25,6 +26,10 @@ using kagome::runtime::CoreMock;
 
 class BlockBuilderFactoryTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     parent_hash_.fill(0);
     parent_id_ = parent_hash_;

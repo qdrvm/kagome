@@ -170,7 +170,7 @@ namespace kagome::application {
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
-    log::Level verbosity_;
+    log::Level verbosity_ = log::Level::INFO;
     bool is_already_synchronized_;
     bool is_only_finalizing_;
     uint32_t max_blocks_in_response_;

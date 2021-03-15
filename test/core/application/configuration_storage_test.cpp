@@ -9,6 +9,7 @@
 
 #include "application/impl/chain_spec_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::application::ChainSpecImpl;
 using kagome::application::GenesisRawData;
@@ -20,6 +21,10 @@ using libp2p::peer::PeerInfo;
 
 class ConfigurationStorageTest : public ::testing::Test {
  protected:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     // Fill configs with the same values as in the genesis config from file
     // under the `path_`

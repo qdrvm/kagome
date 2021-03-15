@@ -24,6 +24,7 @@
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::host_api;
 using kagome::common::Blob;
@@ -81,6 +82,10 @@ MATCHER_P3(VerifySr25519Signature,
 
 class CryptoExtensionTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   using RecoverUncompressedPublicKeyReturnValue =
       boost::variant<ecdsa::PublicKey, EcdsaVerifyError>;
   using RecoverCompressedPublicKeyReturnValue =

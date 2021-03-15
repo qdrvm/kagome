@@ -15,11 +15,11 @@ namespace kagome::application {
       const AppConfiguration &app_config)
       : injector_{injector::makeSyncingNodeInjector(app_config)} {
     {
-      auto logger_system = std::make_shared<soralog::LoggerSystem>(
+      auto logging_system = std::make_shared<soralog::LoggingSystem>(
           std::make_shared<kagome::log::Configurator>(
               injector_.create<sptr<libp2p::log::Configurator>>()));
 
-      auto r = logger_system->configure();
+      auto r = logging_system->configure();
       if (not r.message.empty()) {
         std::cerr << r.message << std::endl;
       }
@@ -27,7 +27,7 @@ namespace kagome::application {
         exit(EXIT_FAILURE);
       }
 
-      log::setLoggerSystem(logger_system);
+      log::setLoggingSystem(logging_system);
       log::setLevelOfGroup("main", app_config.verbosity());
     }
 

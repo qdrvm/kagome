@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::runtime::binaryen::kDefaultHeapBase;
 using kagome::runtime::binaryen::kInitialMemorySize;
@@ -14,6 +15,10 @@ using kagome::runtime::binaryen::WasmMemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test {
  protected:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   const static uint32_t memory_size_ = kInitialMemorySize;
 
   static wasm::ShellExternalInterface::Memory *getNewShellExternalInterface() {

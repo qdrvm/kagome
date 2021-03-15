@@ -35,7 +35,7 @@ namespace kagome::application {
 
     InjectorType injector_;
 
-    std::shared_ptr<soralog::LoggerSystem> logger_system_;
+    std::shared_ptr<soralog::LoggingSystem> logging_system_;
 
     log::Logger logger_;
 

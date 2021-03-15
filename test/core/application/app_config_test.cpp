@@ -11,12 +11,17 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "log/logger.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
 class AppConfigurationTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   boost::filesystem::path tmp_dir = boost::filesystem::temp_directory_path()
                                     / boost::filesystem::unique_path();
   std::string config_path = (tmp_dir / "config.json").native();
@@ -259,7 +264,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 456);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }
 
@@ -457,7 +462,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::TRACE);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   }
   {
     char const *args[] = {
@@ -473,7 +478,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::VERBOSE);
   }
   {
     char const *args[] = {
@@ -489,7 +494,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
   }
   {
     char const *args[] = {
@@ -505,49 +510,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::WARN);
-  }
-  {
-    char const *args[] = {"/path/",
-                          "--verbosity",
-                          "4",
-                          "--genesis",
-                          genesis_path.native().c_str(),
-                          "--base_path",
-                          base_path.native().c_str()};
-    ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::ERROR);
-  }
-  {
-    char const *args[] = {"/path/",
-                          "--verbosity",
-                          "5",
-                          "--genesis",
-                          genesis_path.native().c_str(),
-                          "--base_path",
-                          base_path.native().c_str()};
-    ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::CRITICAL);
-  }
-  {
-    char const *args[] = {"/path/",
-                          "--verbosity",
-                          "6",
-                          "--genesis",
-                          genesis_path.native().c_str(),
-                          "--base_path",
-                          base_path.native().c_str()};
-    ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::OFF);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::TRACE);
   }
 }
 

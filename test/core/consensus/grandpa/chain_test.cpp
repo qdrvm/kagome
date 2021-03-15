@@ -11,6 +11,7 @@
 #include "mock/core/consensus/grandpa/gossiper_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -29,8 +30,10 @@ using testing::_;
 using testing::Return;
 
 class ChainTest : public testing::Test {
- public:
-  void SetUp() override {}
+ protected:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
 
   /**
    * block tree with 6 blocks, contained
