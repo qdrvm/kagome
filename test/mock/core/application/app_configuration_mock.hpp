@@ -52,6 +52,8 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(isUnixSlotsStrategy, bool());
 
     MOCK_CONST_METHOD0(peeringConfig, const network::PeeringConfig &());
+
+    MOCK_CONST_METHOD0(isRunInDevMode, bool());
   };
 
 }  // namespace kagome::application

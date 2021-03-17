@@ -112,6 +112,9 @@ namespace kagome::application {
     const network::PeeringConfig &peeringConfig() const override {
       return peering_config_;
     }
+    bool isRunInDevMode() const override {
+      return dev_mode_;
+    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -182,6 +185,7 @@ namespace kagome::application {
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     network::PeeringConfig peering_config_;
+    bool dev_mode_;
   };
 
 }  // namespace kagome::application

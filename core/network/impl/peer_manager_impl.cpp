@@ -65,7 +65,7 @@ namespace kagome::network {
   }
 
   bool PeerManagerImpl::prepare() {
-    if (bootstrap_nodes_.empty()) {
+    if (not app_config_.isRunInDevMode() && bootstrap_nodes_.empty()) {
       log_->critical(
           "Does not have any bootstrap nodes. "
           "Provide them by chain spec or CLI argument `--bootnodes'");
@@ -76,6 +76,13 @@ namespace kagome::network {
   }
 
   bool PeerManagerImpl::start() {
+    if (app_config_.isRunInDevMode() && bootstrap_nodes_.empty()) {
+      log_->warn(
+          "Peer manager is started in passive mode, "
+          "because have not any bootstrap nodes.");
+      return true;
+    }
+
     // Add themselves into peer routing
     kademlia_->addPeer(host_.getPeerInfo(), true);
 

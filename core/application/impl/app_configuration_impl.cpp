@@ -35,6 +35,7 @@ namespace {
   const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
+  const bool def_dev_mode = false;
 }  // namespace
 
 namespace kagome::application {
@@ -50,7 +51,8 @@ namespace kagome::application {
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
-        rpc_ws_port_(def_rpc_ws_port) {}
+        rpc_ws_port_(def_rpc_ws_port),
+        dev_mode_(def_dev_mode) {}
 
   fs::path AppConfigurationImpl::genesisPath() const {
     return genesis_path_.native();
@@ -174,6 +176,7 @@ namespace kagome::application {
     load_bool(val, "already_synchronized", is_already_synchronized_);
     load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
     load_bool(val, "is_unix_slots_strategy", is_unix_slots_strategy_);
+    load_bool(val, "dev", dev_mode_);
   }
 
   bool AppConfigurationImpl::validate_config(
@@ -315,6 +318,7 @@ namespace kagome::application {
         ("single_finalizing_node,f", "if this is the only finalizing node")
         ("already_synchronized,s", "if need to consider synchronized")
         ("unix_slots,u", "if slots are calculated from unix epoch")
+        ("dev", "if node run in development mode")
         ;
     // clang-format on
 
@@ -449,6 +453,8 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
+
+    if (vm.end() != vm.find("dev")) dev_mode_ = true;
 
     // if something wrong with config print help message
     if (not validate_config(scheme)) {

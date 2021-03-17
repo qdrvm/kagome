@@ -128,6 +128,11 @@ namespace kagome::application {
      * Config for PeerManager
      */
     virtual const network::PeeringConfig &peeringConfig() const = 0;
+
+    /**
+     * @return true if node allowed to run in development mode
+     */
+    virtual bool isRunInDevMode() const = 0;
   };
 
 }  // namespace kagome::application
