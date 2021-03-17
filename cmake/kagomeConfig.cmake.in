@@ -46,7 +46,7 @@ set(kagome_LIBRARIES
         kagome::leveldb
         kagome::logger
         kagome::in_memory_storage
-        kagome::extensions
+        kagome::host_api
         kagome::ordered_trie_hash
         kagome::crypto_store
         kagome::crypto_store_key_type
@@ -63,7 +63,7 @@ set(kagome_LIBRARIES
         kagome::pbkdf2_provider
         kagome::secp256k1_provider
         kagome::bip39_provider
-        kagome::extension_factory
+        kagome::host_api_factory
         kagome::binaryen_core_api
         kagome::binaryen_runtime_api
         kagome::binaryen_runtime_external_interface
