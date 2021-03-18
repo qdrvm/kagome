@@ -118,7 +118,7 @@ jobs:
               run: ./housekeeping/docker/release/makeRelease.sh
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: harrm/kagome:test # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: harrm/kagome-minideb:latest # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -133,7 +133,7 @@ jobs:
       needs: [clang-tidy, Linux, MacOS, Minideb]
       name: "Push"
       runs-on: ubuntu-latest
-      container: harrm/kagome:test # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: harrm/kagome-minideb:latest # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
