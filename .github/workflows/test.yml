@@ -107,18 +107,18 @@ jobs:
             BRANCH_NAME: ${{ github.ref }}
           run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
 
-  Alpine:
+  Minideb:
       strategy:
         fail-fast: false
         matrix:
           options:
-            - name: "Alpine: Build Test"
+            - name: "Minideb: Build Test"
               run: ./housekeeping/makeBuild.sh
-            - name: "Alpine: Build Release"
+            - name: "Minideb: Build Release"
               run: ./housekeeping/docker/release/makeRelease.sh
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:11-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: harrm/kagome:test # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -133,7 +133,7 @@ jobs:
       needs: [clang-tidy, Linux, MacOS, Alpine]
       name: "Push"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:11-alpine # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: harrm/kagome:test # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
