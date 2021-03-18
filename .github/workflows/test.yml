@@ -130,7 +130,7 @@ jobs:
 
   push:
       if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
-      needs: [clang-tidy, Linux, MacOS, Alpine]
+      needs: [clang-tidy, Linux, MacOS, Minideb]
       name: "Push"
       runs-on: ubuntu-latest
       container: harrm/kagome:test # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
