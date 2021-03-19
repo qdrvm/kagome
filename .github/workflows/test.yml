@@ -133,7 +133,7 @@ jobs:
       # needs: [clang-tidy, Linux, MacOS, Minideb]
       name: "Push Kagome Docker Image"
       runs-on: ubuntu-latest
-      container: harrm/kagome-minideb:latest # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: harrm/kagome-minideb:latest # Change to '${{ env.INDOCKER_IMAGE }}-minideb' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -145,7 +145,7 @@ jobs:
         - uses: azure/docker-login@v1
           with:
             login-server: https://index.docker.io/v1/
-            username: ${{ secrets.DOCKER_USERNAME }}
+            username: harrm
             password: ${{ secrets.DOCKER_TOKEN }}
         - name: docker pack and push
           env:

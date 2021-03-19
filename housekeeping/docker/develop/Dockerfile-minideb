@@ -23,7 +23,6 @@ RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
       "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
       buster stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     add-apt-repository -y "deb http://apt.llvm.org/buster/ llvm-toolchain-buster main" && \
-    add-apt-repository -y "deb http://apt.llvm.org/buster/ llvm-toolchain-buster-8 main" && \
     add-apt-repository -y "deb http://deb.debian.org/debian testing main" && \
     apt-get update && apt-get install --no-install-recommends -y docker-ce docker-ce-cli containerd.io && \
     rm -rf /var/lib/apt/lists/*
