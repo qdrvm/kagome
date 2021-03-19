@@ -155,5 +155,5 @@ jobs:
             password: ${{ secrets.DOCKER_TOKEN }}
         - name: docker pack and push
           env:
-            VERSION: ${{ github.ref }}
+            VERSION: "test"
           run: ./housekeeping/docker/release/build_and_push.sh
