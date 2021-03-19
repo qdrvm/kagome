@@ -129,9 +129,9 @@ jobs:
           run: "${{ matrix.options.run }}"
 
   push:
-      if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
+      #if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
       needs: [clang-tidy, Linux, MacOS, Minideb]
-      name: "Push"
+      name: "Push Kagome Docker Image"
       runs-on: ubuntu-latest
       container: harrm/kagome-minideb:latest # Change to '${{ env.INDOCKER_IMAGE }}-alpine' https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
