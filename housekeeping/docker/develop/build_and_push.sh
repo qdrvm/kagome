@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-cd $(dirname $0)
+cd "$(dirname "$0")"
 
 VERSION=1
 TAG=soramitsu/kagome-dev:$VERSION
