@@ -140,12 +140,6 @@ jobs:
           with:
             path: ${{ env.CACHE_PATHS }}
             key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-
-        - name: test-credentials
-          env:
-            DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          run: echo $DOCKER_USERNAME
-
         - name: build
           run: ./housekeeping/docker/release/makeRelease.sh
         - uses: azure/docker-login@v1
