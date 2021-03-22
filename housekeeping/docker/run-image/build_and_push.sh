@@ -6,7 +6,7 @@ BUILD_DIR=${BUILD_DIR:-`pwd`/build}
 
 BUILD_TYPE="${BUILD_TYPE:?BUILD_TYPE variable is not defined}"
 
-if ["$BUILD_TYPE" != "Debug" -a "$BUILD_TYPE" != "Release"]; then
+if [ "$BUILD_TYPE" != "Debug"] && ["$BUILD_TYPE" != "Release" ]; then
   echo "Invalid build type $BUILD_TYPE, should be either Debug or Release"
   exit 1
 fi
@@ -21,7 +21,7 @@ else
   VERSION=$VERSION
 fi
 
-if ["$BUILD_TYPE" = "Debug"]; then
+if [ "$BUILD_TYPE" = "Debug" ]; then
   VERSION="${VERSION}-debug"
 fi
 
@@ -38,13 +38,13 @@ cp -a ${BUILD_DIR}/node/kagome_full_syncing/kagome_full_syncing ${CTX_DIR}/
 cp -a ${BUILD_DIR}/node/kagome_validating/kagome_validating  ${CTX_DIR}/
 
 
-if ["$BUILD_TYPE" = "Release"]; then
+if [ "$BUILD_TYPE" = "Release" ]; then
   strip ${CTX_DIR}/kagome_full_syncing
   strip ${CTX_DIR}/kagome_validating
 
   docker build -t $TAG -f housekeeping/docker/run-image/minideb-release.Dockerfile ${CTX_DIR}
 
-elif ["$BUILD_TYPE" = "Debug"]; then
+elif [ "$BUILD_TYPE" = "Debug" ]; then
   docker build -t $TAG -f housekeeping/docker/run-image/minideb-debug.Dockerfile ${CTX_DIR}
 
 else
