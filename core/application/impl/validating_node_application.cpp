@@ -5,6 +5,8 @@
 
 #include "application/impl/validating_node_application.hpp"
 
+#include <libp2p/log/configurator.hpp>
+
 #include "application/impl/util.hpp"
 #include "log/configurator.hpp"
 
@@ -20,7 +22,7 @@ namespace kagome::application {
 
       auto r = logging_system->configure();
       if (not r.message.empty()) {
-        std::cerr << r.message << std::endl;
+        (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
       }
       if (r.has_error) {
         exit(EXIT_FAILURE);
