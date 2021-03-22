@@ -13,7 +13,8 @@ namespace kagome::log {
 sinks:
   - name: console
     type: console
-    color: false
+    thread: id
+    color: true
 groups:
   - name: main
     sink: console
