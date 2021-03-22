@@ -41,6 +41,7 @@ namespace kagome::crypto {
     BOOST_ASSERT(ed_suite_ != nullptr);
     BOOST_ASSERT(sr_suite_ != nullptr);
     BOOST_ASSERT(bip39_provider_ != nullptr);
+    BOOST_ASSERT(file_storage_ != nullptr);
   }
 
   outcome::result<Ed25519Keypair> CryptoStoreImpl::generateEd25519Keypair(

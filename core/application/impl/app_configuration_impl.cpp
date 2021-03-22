@@ -318,7 +318,12 @@ namespace kagome::application {
         ("single_finalizing_node,f", "if this is the only finalizing node")
         ("already_synchronized,s", "if need to consider synchronized")
         ("unix_slots,u", "if slots are calculated from unix epoch")
+        ;
+
+    po::options_description development_desc("Development options");
+    additional_desc.add_options()
         ("dev", "if node run in development mode")
+        ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
         ;
     // clang-format on
 
@@ -340,6 +345,8 @@ namespace kagome::application {
       return false;
     }
 
+    desc.add(development_desc);
+
     try {
       po::store(po::parse_command_line(argc, argv, desc), vm);
       po::store(parsed, vm);
@@ -351,8 +358,38 @@ namespace kagome::application {
       return false;
     }
 
+    // Setup default development settings (and wipe if needed)
+    if (vm.count("dev") > 0 or vm.count("dev-with-wipe") > 0) {
+      dev_mode_ = true;
+
+      genesis_path_ = "localchain.json";
+      base_path_ = "/tmp/kagome_dev_base_path";
+
+      // Wipe base directory on demand
+      if (vm.count("dev-with-wipe") > 0) {
+        boost::filesystem::remove_all(base_path_);
+      }
+
+      p2p_port_ = def_p2p_port;
+      is_already_synchronized_ = true;
+      rpc_http_host_ = def_rpc_http_host;
+      rpc_ws_host_ = def_rpc_ws_host;
+      rpc_http_port_ = def_rpc_http_port;
+      rpc_ws_port_ = def_rpc_ws_port;
+
+      auto ma_res =
+          libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
+      assert(ma_res.has_value());
+      listen_addresses_.emplace_back(std::move(ma_res.value()));
+    }
+
     find_argument<std::string>(vm, "config_file", [&](std::string const &path) {
-      read_config_from_file(path);
+      if (dev_mode_) {
+        std::cerr << "Warning: config file has ignored because dev mode"
+                  << std::endl;
+      } else {
+        read_config_from_file(path);
+      }
     });
 
     /// aggregate data from command line args
@@ -375,24 +412,27 @@ namespace kagome::application {
         vm, "bootnodes", [&](const std::vector<std::string> &val) {
           boot_nodes = val;
         });
-    boot_nodes_.reserve(boot_nodes.size());
-    for (auto &addr_str : boot_nodes) {
-      auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
-      if (not ma_res.has_value()) {
-        auto err_msg = "Bootnode '" + addr_str
-                       + "' is invalid: " + ma_res.error().message();
-        logger_->error(err_msg);
-        std::cout << err_msg << std::endl;
-        return false;
+    if (not boot_nodes.empty()) {
+      boot_nodes_.clear();
+      boot_nodes_.reserve(boot_nodes.size());
+      for (auto &addr_str : boot_nodes) {
+        auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
+        if (not ma_res.has_value()) {
+          auto err_msg = "Bootnode '" + addr_str
+                         + "' is invalid: " + ma_res.error().message();
+          logger_->error(err_msg);
+          std::cout << err_msg << std::endl;
+          return false;
+        }
+        auto peer_id_base58_opt = ma_res.value().getPeerId();
+        if (not peer_id_base58_opt) {
+          auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
+          logger_->error(err_msg);
+          std::cout << err_msg << std::endl;
+          return false;
+        }
+        boot_nodes_.emplace_back(std::move(ma_res.value()));
       }
-      auto peer_id_base58_opt = ma_res.value().getPeerId();
-      if (not peer_id_base58_opt) {
-        auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
-        logger_->error(err_msg);
-        std::cout << err_msg << std::endl;
-        return false;
-      }
-      boot_nodes_.emplace_back(std::move(ma_res.value()));
     }
 
     boost::optional<std::string> node_key;
@@ -416,6 +456,10 @@ namespace kagome::application {
     std::vector<std::string> listen_addr;
     find_argument<std::vector<std::string>>(
         vm, "listen-addr", [&](const auto &val) { listen_addr = val; });
+
+    if (not listen_addr.empty()) {
+      listen_addresses_.clear();
+    }
     for (auto &s : listen_addr) {
       auto ma_res = libp2p::multi::Multiaddress::create(s);
       if (not ma_res) {
@@ -453,8 +497,6 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
-
-    if (vm.end() != vm.find("dev")) dev_mode_ = true;
 
     // if something wrong with config print help message
     if (not validate_config(scheme)) {
