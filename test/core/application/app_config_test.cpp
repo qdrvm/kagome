@@ -22,7 +22,7 @@ class AppConfigurationTest : public testing::Test {
   std::string invalid_config_path = (tmp_dir / "invalid_config.json").native();
   std::string damaged_config_path = (tmp_dir / "damaged_config.json").native();
   boost::filesystem::path genesis_path = tmp_dir / "genesis.json";
-  boost::filesystem::path base_path = tmp_dir / "base_path";
+  boost::filesystem::path base_path = tmp_dir / "base-path";
 
   static constexpr char const *file_content =
       R"({
@@ -33,14 +33,14 @@ class AppConfigurationTest : public testing::Test {
           "genesis" : "%1%"
         },
         "storage" : {
-          "base_path" : "%2%"
+          "base-path" : "%2%"
         },
         "network" : {
-              "p2p_port" : 456,
-              "rpc_http_host" : "1.1.1.1",
-              "rpc_http_port" : 123,
-              "rpc_ws_host" : "2.2.2.2",
-              "rpc_ws_port" : 678
+              "port" : 456,
+              "rpc-host" : "1.1.1.1",
+              "rpc-port" : 123,
+              "ws-host" : "2.2.2.2",
+              "ws-port" : 678
         },
         "additional" : {
           "single_finalizing_node" : true
@@ -58,11 +58,11 @@ class AppConfigurationTest : public testing::Test {
           base_path.native().c_str() : 2
         },
         "network" : {
-              "p2p_port" : "13",
-              "rpc_http_host" : 7,
-              "rpc_http_port" : "1312",
-              "rpc_ws_host" : 5,
-              "rpc_ws_port" : "AWESOME_PORT"
+              "port" : "13",
+              "rpc-host" : 7,
+              "rpc-port" : "1312",
+              "ws-host" : 5,
+              "ws-port" : "AWESOME_PORT"
         },
         "additional" : {
           "single_finalizing_node" : "order1800"
