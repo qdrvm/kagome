@@ -114,7 +114,7 @@ jobs:
         matrix:
           options:
             - name: "Minideb: Build Debug"
-              bharrm/kagome-dev:11uild-type: "Debug"
+              build-type: "Debug"
             - name: "Minideb: Build Release"
               build-type: "Release"
       name: "${{ matrix.options.name }}"
