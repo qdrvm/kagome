@@ -1,12 +1,13 @@
 #!/bin/bash -ex
 
-cd "$(dirname $0)/../../.."
+# cd to kagome source root
+cd "$(dirname "$0")/../../.."
 
-BUILD_DIR=${BUILD_DIR:-`pwd`/build}
+BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
 
 BUILD_TYPE="${BUILD_TYPE:?BUILD_TYPE variable is not defined}"
 
-if [ "$BUILD_TYPE" != "Debug"] && ["$BUILD_TYPE" != "Release" ]; then
+if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ]; then
   echo "Invalid build type $BUILD_TYPE, should be either Debug or Release"
   exit 1
 fi
@@ -25,7 +26,7 @@ if [ "$BUILD_TYPE" = "Debug" ]; then
   VERSION="${VERSION}-debug"
 fi
 
-TAG=harrm/kagome:$VERSION
+TAG="harrm/kagome:$VERSION"
 
 CTX_DIR=${BUILD_DIR}/docker_context
 
