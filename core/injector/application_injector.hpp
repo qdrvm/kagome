@@ -155,29 +155,21 @@ namespace kagome::injector {
   }
 
   // jrpc api listener (over HTTP) getter
-  template <typename Injector>
   sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
-      const Injector &injector) {
+      application::AppConfiguration const &config,
+      sptr<application::AppStateManager> app_state_manager,
+      sptr<api::RpcContext> context,
+      api::HttpSession::Configuration http_session_config) {
     static auto initialized =
         boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
 
-    const application::AppConfiguration &config =
-        injector.template create<application::AppConfiguration const &>();
     auto &endpoint = config.rpcHttpEndpoint();
-
-    auto app_state_manager =
-        injector.template create<sptr<application::AppStateManager>>();
-
-    auto context = injector.template create<sptr<api::RpcContext>>();
 
     api::HttpListenerImpl::Configuration listener_config;
     listener_config.endpoint = endpoint;
-
-    auto &&http_session_config =
-        injector.template create<api::HttpSession::Configuration>();
 
     initialized = std::make_shared<api::HttpListenerImpl>(
         app_state_manager, context, listener_config, http_session_config);
@@ -208,32 +200,27 @@ namespace kagome::injector {
   }
 
   // block storage getter
-  template <typename Injector>
-  sptr<blockchain::BlockStorage> get_block_storage(const Injector &injector) {
+  sptr<blockchain::BlockStorage> get_block_storage(
+      sptr<crypto::Hasher> hasher,
+      sptr<storage::BufferStorage> db,
+      sptr<storage::trie::TrieStorage> trie_storage,
+      sptr<runtime::GrandpaApi> grandpa_api) {
     static auto initialized =
         boost::optional<sptr<blockchain::BlockStorage>>(boost::none);
 
     if (initialized) {
       return initialized.value();
     }
-    auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
-
-    const auto &db = injector.template create<sptr<storage::BufferStorage>>();
-
-    const auto &trie_storage =
-        injector.template create<sptr<storage::trie::TrieStorage>>();
 
     auto storage = blockchain::KeyValueBlockStorage::create(
         trie_storage->getRootHash(),
         db,
         hasher,
-        [&db, &injector](const primitives::Block &genesis_block) {
+        [&db, &grandpa_api](const primitives::Block &genesis_block) {
           // handle genesis initialization, which happens when there is not
           // authorities and last completed round in the storage
           if (not db->get(storage::kAuthoritySetKey)) {
             // insert authorities
-            auto grandpa_api =
-                injector.template create<sptr<runtime::GrandpaApi>>();
             const auto &weighted_authorities_res = grandpa_api->authorities(
                 primitives::BlockId(primitives::BlockNumber{0}));
             BOOST_ASSERT_MSG(weighted_authorities_res,
@@ -331,26 +318,19 @@ namespace kagome::injector {
     return initialized.value();
   }
 
-  template <typename Injector>
   sptr<host_api::HostApiFactoryImpl> get_host_api_factory(
-      const Injector &injector) {
+      sptr<storage::changes_trie::ChangesTracker> tracker,
+      sptr<crypto::Sr25519Provider> sr25519_provider,
+      sptr<crypto::Ed25519Provider> ed25519_provider,
+      sptr<crypto::Secp256k1Provider> secp256k1_provider,
+      sptr<crypto::Hasher> hasher,
+      sptr<crypto::CryptoStore> crypto_store,
+      sptr<crypto::Bip39Provider> bip39_provider) {
     static auto initialized =
         boost::optional<sptr<host_api::HostApiFactoryImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    auto tracker =
-        injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
-    auto sr25519_provider =
-        injector.template create<sptr<crypto::Sr25519Provider>>();
-    auto ed25519_provider =
-        injector.template create<sptr<crypto::Ed25519Provider>>();
-    auto secp256k1_provider =
-        injector.template create<sptr<crypto::Secp256k1Provider>>();
-    auto hasher = injector.template create<sptr<crypto::Hasher>>();
-    auto crypto_store = injector.template create<sptr<crypto::CryptoStore>>();
-    auto bip39_provider =
-        injector.template create<sptr<crypto::Bip39Provider>>();
 
     initialized =
         std::make_shared<host_api::HostApiFactoryImpl>(tracker,
@@ -363,9 +343,8 @@ namespace kagome::injector {
     return initialized.value();
   }
 
-  template <typename Injector>
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
-      const Injector &injector) {
+      sptr<storage::BufferStorage> storage) {
     static auto initialized =
         boost::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
             boost::none);
@@ -373,7 +352,6 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    auto storage = injector.template create<sptr<storage::BufferStorage>>();
     using blockchain::prefix::TRIE_NODE;
     auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
         storage, common::Buffer{TRIE_NODE});
@@ -381,22 +359,17 @@ namespace kagome::injector {
     return backend;
   }
 
-  template <typename Injector>
   sptr<storage::trie::TrieStorageImpl> get_trie_storage_impl(
-      const Injector &injector) {
+      sptr<storage::trie::PolkadotTrieFactory> factory,
+      sptr<storage::trie::Codec> codec,
+      sptr<storage::trie::TrieSerializer> serializer,
+      sptr<storage::changes_trie::ChangesTracker> tracker) {
     static auto initialized =
         boost::optional<sptr<storage::trie::TrieStorageImpl>>(boost::none);
 
     if (initialized) {
       return initialized.value();
     }
-    auto factory =
-        injector.template create<sptr<storage::trie::PolkadotTrieFactory>>();
-    auto codec = injector.template create<sptr<storage::trie::Codec>>();
-    auto serializer =
-        injector.template create<sptr<storage::trie::TrieSerializer>>();
-    auto tracker =
-        injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
     auto trie_storage_res = storage::trie::TrieStorageImpl::createEmpty(
         factory, codec, serializer, tracker);
     if (!trie_storage_res) {
@@ -409,19 +382,16 @@ namespace kagome::injector {
     return trie_storage;
   }
 
-  template <typename Injector>
-  sptr<storage::trie::TrieStorage> get_trie_storage(const Injector &injector) {
+  sptr<storage::trie::TrieStorage> get_trie_storage(
+      sptr<application::ChainSpec> configuration_storage,
+      sptr<storage::trie::TrieStorageImpl> trie_storage) {
     static auto initialized =
         boost::optional<sptr<storage::trie::TrieStorage>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    auto configuration_storage =
-        injector.template create<sptr<application::ChainSpec>>();
     const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
-    auto trie_storage =
-        injector.template create<sptr<storage::trie::TrieStorageImpl>>();
     auto batch = trie_storage->getPersistentBatch();
     if (not batch) {
       common::raise(batch.error());
@@ -441,26 +411,21 @@ namespace kagome::injector {
     return trie_storage;
   }
 
-  // level db getter
-  template <typename Injector>
-  sptr<storage::BufferStorage> get_level_db(const Injector &injector) {
+  sptr<storage::BufferStorage> get_level_db(
+      application::AppConfiguration const &app_config,
+      sptr<application::ChainSpec> chain_spec) {
     static auto initialized =
         boost::optional<sptr<storage::BufferStorage>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    const application::AppConfiguration &config =
-        injector.template create<application::AppConfiguration const &>();
-
-    auto genesis_config =
-        injector.template create<sptr<application::ChainSpec>>();
     auto options = leveldb::Options{};
     options.create_if_missing = true;
     auto db = storage::LevelDB::create(
-        config.databasePath(genesis_config->id()), options);
+        app_config.databasePath(chain_spec->id()), options);
     if (!db) {
       spdlog::critical("Can't create LevelDB in {}: {}",
-                       fs::absolute(config.databasePath(genesis_config->id()),
+                       fs::absolute(app_config.databasePath(chain_spec->id()),
                                     fs::current_path())
                            .native(),
                        db.error().message());
@@ -470,17 +435,13 @@ namespace kagome::injector {
     return initialized.value();
   }
 
-  // configuration storage getter
-  template <typename Injector>
   std::shared_ptr<application::ChainSpec> get_genesis_config(
-      const Injector &injector) {
+      application::AppConfiguration const &config) {
     static auto initialized =
         boost::optional<sptr<application::ChainSpec>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    const application::AppConfiguration &config =
-        injector.template create<application::AppConfiguration const &>();
     auto const &genesis_path = config.genesisPath();
 
     auto genesis_config_res =
@@ -492,16 +453,14 @@ namespace kagome::injector {
     return genesis_config_res.value();
   }
 
-  template <typename Injector>
   sptr<primitives::BabeConfiguration> get_babe_configuration(
-      const Injector &injector) {
+      sptr<runtime::BabeApi> babe_api) {
     static auto initialized =
         boost::optional<sptr<primitives::BabeConfiguration>>(boost::none);
     if (initialized) {
       return *initialized;
     }
 
-    auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
     auto configuration_res = babe_api->configuration();
     if (not configuration_res) {
       common::raise(configuration_res.error());
@@ -515,32 +474,26 @@ namespace kagome::injector {
     return *initialized;
   }
 
-  template <typename Injector>
-  consensus::SlotsStrategy get_slots_strategy(const Injector &injector) {
+  consensus::SlotsStrategy get_slots_strategy(
+      const application::AppConfiguration &app_config) {
     static auto initialized =
         boost::optional<consensus::SlotsStrategy>(boost::none);
     if (not initialized) {
-      const application::AppConfiguration &config =
-          injector.template create<const application::AppConfiguration &>();
-      initialized = config.isUnixSlotsStrategy()
+      initialized = app_config.isUnixSlotsStrategy()
                         ? consensus::SlotsStrategy::FromUnixEpoch
                         : consensus::SlotsStrategy::FromZero;
     }
     return *initialized;
   }
 
-  template <class Injector>
-  sptr<crypto::KeyFileStorage> get_key_file_storage(const Injector &injector) {
+  sptr<crypto::KeyFileStorage> get_key_file_storage(
+      application::AppConfiguration const &config,
+      sptr<application::ChainSpec> genesis_config) {
     static auto initialized =
         boost::optional<sptr<crypto::KeyFileStorage>>(boost::none);
     if (initialized) {
       return *initialized;
     }
-
-    const application::AppConfiguration &config =
-        injector.template create<application::AppConfiguration const &>();
-    auto genesis_config =
-        injector.template create<sptr<application::ChainSpec>>();
 
     auto path = config.keystorePath(genesis_config->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
@@ -554,7 +507,7 @@ namespace kagome::injector {
 
   template <class Injector>
   sptr<consensus::grandpa::FinalizationObserver> get_finalization_observer(
-      const Injector &injector) {
+      sptr<authority::AuthorityManagerImpl> authority_manager) {
     static auto instance = boost::optional<
         std::shared_ptr<consensus::grandpa::FinalizationObserver>>(boost::none);
     if (instance) {
@@ -562,8 +515,7 @@ namespace kagome::injector {
     }
 
     instance = std::make_shared<consensus::grandpa::FinalizationComposite>(
-        injector.template create<
-            std::shared_ptr<authority::AuthorityManagerImpl>>());
+        authority_manager);
 
     return *instance;
   }
