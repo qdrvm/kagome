@@ -151,7 +151,7 @@ jobs:
         - name: build
           env:
             BUILD_TYPE: "${{ matrix.build-type }}"
-          run: ./housekeeping/docker/build-image/make.sh
+          run: ./housekeeping/docker/kagome-dev/make.sh
         - uses: azure/docker-login@v1
           with:
             login-server: https://index.docker.io/v1/
