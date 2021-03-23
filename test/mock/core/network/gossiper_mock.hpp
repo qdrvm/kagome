@@ -35,8 +35,6 @@ namespace kagome::network {
 
     MOCK_METHOD1(storeSelfPeerInfo,
                  void(const libp2p::peer::PeerInfo &self_info));
-
-    MOCK_METHOD0(getActiveStreamNumber, uint32_t());
   };
 
 }  // namespace kagome::network

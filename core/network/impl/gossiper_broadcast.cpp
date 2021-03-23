@@ -40,13 +40,6 @@ namespace kagome::network {
     self_info_ = self_info;
   }
 
-  uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    BOOST_ASSERT(self_info_);
-    return stream_engine_->count([&](const StreamEngine::PeerId &peer) {
-      return self_info_->id != peer;
-    });
-  }
-
   void GossiperBroadcast::propagateTransactions(
       gsl::span<const primitives::Transaction> txs) {
     logger_->debug("Propagate transactions : {} extrinsics", txs.size());

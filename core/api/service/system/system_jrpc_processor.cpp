@@ -11,6 +11,7 @@
 #include "api/service/system/requests/chain_type.hpp"
 #include "api/service/system/requests/health.hpp"
 #include "api/service/system/requests/name.hpp"
+#include "api/service/system/requests/peers.hpp"
 #include "api/service/system/requests/properties.hpp"
 #include "api/service/system/requests/version.hpp"
 
@@ -43,8 +44,11 @@ namespace kagome::api::system {
 
     server_->registerHandler("system_accountNextIndex",
                              Handler<request::AccountNextIndex>(api_));
-    server_->registerHandler("account_nextIndex",
-                             Handler<request::AccountNextIndex>(api_)); // an alias
+    server_->registerHandler(
+        "account_nextIndex",
+        Handler<request::AccountNextIndex>(api_));  // an alias
+
+    server_->registerHandler("system_peers", Handler<request::Peers>(api_));
   }
 
 }  // namespace kagome::api::system

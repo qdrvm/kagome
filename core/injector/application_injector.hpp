@@ -639,7 +639,10 @@ namespace kagome::injector {
         injector.template create<sptr<network::Gossiper>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<libp2p::protocol::Ping>>());
+        injector.template create<sptr<libp2p::protocol::Ping>>(),
+        injector.template create<sptr<network::PeerManager>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<crypto::Hasher>>());
     return initialized.value();
   }
 
@@ -662,7 +665,11 @@ namespace kagome::injector {
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
-        injector.template create<sptr<network::SyncClientsSet>>());
+        injector.template create<sptr<network::SyncClientsSet>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<blockchain::BlockStorage>>(),
+        injector.template create<sptr<network::BabeObserver>>());
     return initialized.value();
   }
 
