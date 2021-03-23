@@ -16,6 +16,7 @@
 namespace kagome::network {
 
   using kagome::primitives::BlockHash;
+  using kagome::primitives::BlockNumber;
 
   /**
    * Is the structure to send to a new connected peer. It contains common
@@ -31,7 +32,7 @@ namespace kagome::network {
     /**
      * Best block number.
      */
-    uint32_t best_number;
+    BlockNumber best_number;
 
     /**
      * Best block hash.
@@ -43,18 +44,6 @@ namespace kagome::network {
      */
     BlockHash genesis_hash;
   };
-
-  /**
-   * @brief compares two Status instances
-   * @param lhs first instance
-   * @param rhs second instance
-   * @return true if equal false otherwise
-   */
-  inline bool operator==(const Status &lhs, const Status &rhs) {
-    return lhs.roles == rhs.roles && lhs.best_number == rhs.best_number
-           && lhs.best_hash == rhs.best_hash
-           && lhs.genesis_hash == rhs.genesis_hash;
-  }
 
   /**
    * @brief outputs object of type Status to stream

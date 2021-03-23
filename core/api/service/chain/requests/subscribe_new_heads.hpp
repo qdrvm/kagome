@@ -8,6 +8,9 @@
 
 #include "api/service/base_request.hpp"
 
+#include "api/service/chain/chain_api.hpp"
+#include "primitives/extrinsic.hpp"
+
 namespace kagome::api::chain::request {
 
   struct SubscribeNewHeads final : details::RequestType<uint32_t> {

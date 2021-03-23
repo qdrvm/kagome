@@ -154,7 +154,7 @@ ctest
 
 ## Contributing Guides
 
-Please refer to the [Contributor Documentation](./docs/source/development/README.md).
+Please refer to the [Contributor Documentation](./docs/source/development/dev-guide.md).
 
 
 ## Kagome in media

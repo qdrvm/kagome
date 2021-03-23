@@ -38,7 +38,10 @@ namespace kagome::network {
       std::shared_ptr<Gossiper> gossiper,
       const BootstrapNodes &bootstrap_nodes,
       std::shared_ptr<blockchain::BlockStorage> storage,
-      std::shared_ptr<libp2p::protocol::Ping> ping_proto)
+      std::shared_ptr<libp2p::protocol::Ping> ping_proto,
+      std::shared_ptr<PeerManager> peer_manager,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<crypto::Hasher> hasher)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
@@ -52,7 +55,10 @@ namespace kagome::network {
         gossiper_{std::move(gossiper)},
         log_{common::createLogger("RouterLibp2p")},
         storage_{std::move(storage)},
-        ping_proto_{std::move(ping_proto)} {
+        ping_proto_{std::move(ping_proto)},
+        peer_manager_{std::move(peer_manager)},
+        block_tree_{std::move(block_tree)},
+        hasher_{std::move(hasher)} {
     BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
                      "app state manager is nullptr");
     BOOST_ASSERT_MSG(stream_engine_ != nullptr, "stream engine is nullptr");
@@ -66,6 +72,9 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(!bootstrap_nodes.empty(), "bootstrap node list is empty");
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
+    BOOST_ASSERT(peer_manager_ != nullptr);
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
 
     log_->debug("Own peer id: {}", own_info.id.toBase58());
     for (const auto &peer_info : bootstrap_nodes) {
@@ -236,50 +245,67 @@ namespace kagome::network {
       std::shared_ptr<Stream> stream) const {
     Status status_msg;
 
-    /// TODO(iceseer): #589 use last finalized and best number
-    status_msg.best_number = 0;
+    /// Roles
+    // TODO(xDimon): Need to set actual role of node
+    //  issue: https://github.com/soramitsu/kagome/issues/678
     status_msg.roles.flags.full = 1;
 
-    {  /// Genesis hash
-      auto genesis_res = storage_->getGenesisBlockHash();
-      if (genesis_res) {
-        status_msg.genesis_hash = std::move(genesis_res.value());
-      } else {
-        log_->error("Could not get genesis hash: {}",
-                    genesis_res.error().message());
-        return;
-      }
+    /// Best block info
+    const auto &last_finalized = block_tree_->getLastFinalized().block_hash;
+    if (auto best_res =
+            block_tree_->getBestContaining(last_finalized, boost::none);
+        best_res.has_value()) {
+      status_msg.best_number = best_res.value().block_number;
+      status_msg.best_hash = best_res.value().block_hash;
+    } else {
+      log_->error("Could not get best block info: {}",
+                  best_res.error().message());
+      return;
     }
-    {  /// Best hash
-      /// TODO(iceseer): #589 use last finalized and best number
-      auto best_res =
-          storage_
-              ->getGenesisBlockHash();  // storage_->getLastFinalizedBlockHash();
-      if (best_res) {
-        status_msg.best_hash = std::move(best_res.value());
-      } else {
-        log_->error("Could not get best hash: {}", best_res.error().message());
-        return;
-      }
+
+    /// Genesis hash
+    if (auto genesis_res = storage_->getGenesisBlockHash();
+        genesis_res.has_value()) {
+      status_msg.genesis_hash = std::move(genesis_res.value());
+    } else {
+      log_->error("Could not get genesis block hash: {}",
+                  genesis_res.error().message());
+      return;
     }
 
     readAsyncMsgWithHandshake<BlockAnnounce>(
         std::move(stream),
         std::move(status_msg),
-        [](auto self, const auto &peer_id, const auto &msg) {
+        [](auto self,
+           const auto &peer_id,
+           const auto &remote_status) -> outcome::result<void> {
+          BOOST_ASSERT(self);
+          self->log_->debug("Received status from peer_id={}",
+                            peer_id.toBase58());
+          self->peer_manager_->updatePeerStatus(peer_id, remote_status);
+          return outcome::success();
+        },
+        [](auto self, const auto &peer_id, const auto &block_announce) {
           BOOST_ASSERT(self);
           self->log_->info("Received block announce: block number {}",
-                           msg.header.number);
-          self->babe_observer_->onBlockAnnounce(peer_id, msg);
+                           block_announce.header.number);
+          self->babe_observer_->onBlockAnnounce(peer_id, block_announce);
+
+          auto hash = self->hasher_->blake2b_256(
+              scale::encode(block_announce.header).value());
+          self->peer_manager_->updatePeerStatus(
+              peer_id, BlockInfo(block_announce.header.number, hash));
           return true;
         });
-  }
+  }  // namespace kagome::network
 
   void RouterLibp2p::handleTransactionsProtocol(
       std::shared_ptr<Stream> stream) const {
     readAsyncMsgWithHandshake<PropagatedExtrinsics>(
         std::move(stream),
         NoData{},
+        [](auto self, const auto &peer_id, const auto &msg)
+            -> outcome::result<void> { return outcome::success(); },
         [](auto self, const auto &peer_id, const auto &msg) {
           BOOST_ASSERT(self);
           self->log_->info("Received {} propagated transactions",
@@ -337,6 +363,13 @@ namespace kagome::network {
         self->log_->error("Could not broadcast, reason: {}",
                           res.error().message());
     });
+
+    if (stream_engine_->add(stream, kSupProtocol)) {
+      readAsyncMsg<Status>(std::move(stream),
+                           [](auto self, const auto &peer_id, const auto &msg) {
+                             return self->processSupMessage(peer_id, msg);
+                           });
+    }
   }
 
   bool RouterLibp2p::processGossipMessage(const libp2p::peer::PeerId &peer_id,
@@ -412,5 +445,11 @@ namespace kagome::network {
         return false;
       }
     }
+  }
+
+  bool RouterLibp2p::processSupMessage(const libp2p::peer::PeerId &peer_id,
+                                       const Status &status) const {
+    peer_manager_->updatePeerStatus(peer_id, status);
+    return true;
   }
 }  // namespace kagome::network

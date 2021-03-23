@@ -56,12 +56,14 @@ namespace kagome::common {
   }
 
   std::string hex_lower_0x(gsl::span<const uint8_t> bytes) noexcept {
-    constexpr size_t prefix_len = sizeof("0x") - 1;
+    constexpr char prefix[] = {'0', 'x'};
+    constexpr size_t prefix_len = sizeof(prefix);
 
     std::string res(bytes.size() * 2 + prefix_len, '\x00');
-    res.replace(0, prefix_len, "0x", prefix_len);
+    res.replace(0, prefix_len, prefix, prefix_len);
 
-    boost::algorithm::hex_lower(bytes.begin(), bytes.end(), res.begin() + prefix_len);
+    boost::algorithm::hex_lower(
+        bytes.begin(), bytes.end(), res.begin() + prefix_len);
     return res;
   }
 
