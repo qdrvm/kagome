@@ -161,4 +161,4 @@ jobs:
           env:
             VERSION: "test"
             BUILD_TYPE: "${{ matrix.build-type }}"
-          run: ./housekeeping/docker/run-image/build_and_push.sh
+          run: ./housekeeping/docker/kagome/build_and_push.sh
