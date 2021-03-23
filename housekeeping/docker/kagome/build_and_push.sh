@@ -43,10 +43,10 @@ if [ "$BUILD_TYPE" = "Release" ]; then
   strip ${CTX_DIR}/kagome_full_syncing
   strip ${CTX_DIR}/kagome_validating
 
-  docker build -t $TAG -f housekeeping/docker/run-image/minideb-release.Dockerfile ${CTX_DIR}
+  docker build -t $TAG -f housekeeping/docker/kagome/minideb-release.Dockerfile ${CTX_DIR}
 
 elif [ "$BUILD_TYPE" = "Debug" ]; then
-  docker build -t $TAG -f housekeeping/docker/run-image/minideb-debug.Dockerfile ${CTX_DIR}
+  docker build -t $TAG -f housekeeping/docker/kagome/minideb-debug.Dockerfile ${CTX_DIR}
 
 else
   echo "Unknown build type: $BUILD_TYPE"
