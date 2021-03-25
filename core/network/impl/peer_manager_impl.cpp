@@ -32,7 +32,8 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockStorage> storage,
-      std::shared_ptr<BabeObserver> babe_observer)
+      std::shared_ptr<BabeObserver> babe_observer,
+      std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -49,6 +50,7 @@ namespace kagome::network {
         hasher_{std::move(hasher)},
         storage_{std::move(storage)},
         babe_observer_{std::move(babe_observer)},
+      block_announce_protocol_{std::move(block_announce_protocol)},
         log_(common::createLogger("PeerManager")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -60,6 +62,7 @@ namespace kagome::network {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(babe_observer_ != nullptr);
+    BOOST_ASSERT(block_announce_protocol_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
@@ -335,8 +338,7 @@ namespace kagome::network {
     auto it = active_peers_.find(peer_id);
     if (it != active_peers_.end()) {
       it->second.time = clock_->now();
-      it->second.status.best_number = best_block.block_number;
-      it->second.status.best_hash = best_block.block_hash;
+      it->second.status.best_block = best_block;
     }
   }
 
@@ -411,9 +413,9 @@ namespace kagome::network {
           fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_.protocolId());
 
       if (not stream_engine_->isAlive(peer_info.id, announce_protocol)) {
-        host_.newStream(
+        block_announce_protocol_->newOutgoingStream(
             peer_info,
-            announce_protocol,
+
             [wp = weak_from_this(), peer_id = peer_info.id, announce_protocol](
                 auto &&stream_res) {
               auto self = wp.lock();
@@ -468,10 +470,11 @@ namespace kagome::network {
                   fmt::format(kBlockAnnouncesProtocol.data(),
                               self->chain_spec_.protocolId()));
 
-              if (not self->writeHandshakeToOutgoingBlockAnnounceStream(
-                      stream)) {
-                return;
-              }
+              //              if (not
+              //              self->writeHandshakeToOutgoingBlockAnnounceStream(
+              //                      stream)) {
+              //                return;
+              //              }
 
               // Reserve stream slots for needed protocols
 
@@ -507,8 +510,7 @@ namespace kagome::network {
     if (auto best_res =
             block_tree_->getBestContaining(last_finalized, boost::none);
         best_res.has_value()) {
-      status_msg.best_number = best_res.value().block_number;
-      status_msg.best_hash = best_res.value().block_hash;
+      status_msg.best_block = best_res.value();
     } else {
       log_->error("Could not get best block info: {}",
                   best_res.error().message());

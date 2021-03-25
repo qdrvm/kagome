@@ -642,7 +642,8 @@ namespace kagome::injector {
         injector.template create<sptr<libp2p::protocol::Ping>>(),
         injector.template create<sptr<network::PeerManager>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<crypto::Hasher>>());
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<network::BlockAnnounceProtocol>>());
     return initialized.value();
   }
 
@@ -669,7 +670,8 @@ namespace kagome::injector {
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<network::BabeObserver>>());
+        injector.template create<sptr<network::BabeObserver>>(),
+        injector.template create<sptr<network::BlockAnnounceProtocol>>());
     return initialized.value();
   }
 

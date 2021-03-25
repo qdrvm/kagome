@@ -41,7 +41,8 @@ namespace kagome::network {
       std::shared_ptr<libp2p::protocol::Ping> ping_proto,
       std::shared_ptr<PeerManager> peer_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
@@ -58,7 +59,8 @@ namespace kagome::network {
         ping_proto_{std::move(ping_proto)},
         peer_manager_{std::move(peer_manager)},
         block_tree_{std::move(block_tree)},
-        hasher_{std::move(hasher)} {
+        hasher_{std::move(hasher)},
+        block_announce_protocol_{std::move(block_announce_protocol)} {
     BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
                      "app state manager is nullptr");
     BOOST_ASSERT_MSG(stream_engine_ != nullptr, "stream engine is nullptr");
@@ -75,6 +77,7 @@ namespace kagome::network {
     BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(block_announce_protocol_ != nullptr);
 
     log_->debug("Own peer id: {}", own_info.id.toBase58());
     for (const auto &peer_info : bootstrap_nodes) {
@@ -111,9 +114,10 @@ namespace kagome::network {
                                    chain_spec_->protocolId()),
                        &RouterLibp2p::handleTransactionsProtocol);
 
-    setProtocolHandler(
-        fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_->protocolId()),
-        &RouterLibp2p::handleBlockAnnouncesProtocol);
+    block_announce_protocol_->start();
+//    setProtocolHandler(
+//        fmt::format(kBlockAnnouncesProtocol.data(), chain_spec_->protocolId()),
+//        &RouterLibp2p::handleBlockAnnouncesProtocol);
 
     setProtocolHandler(
         fmt::format(kSyncProtocol.data(), chain_spec_->protocolId()),
@@ -255,8 +259,7 @@ namespace kagome::network {
     if (auto best_res =
             block_tree_->getBestContaining(last_finalized, boost::none);
         best_res.has_value()) {
-      status_msg.best_number = best_res.value().block_number;
-      status_msg.best_hash = best_res.value().block_hash;
+      status_msg.best_block = best_res.value();
     } else {
       log_->error("Could not get best block info: {}",
                   best_res.error().message());
@@ -334,7 +337,7 @@ namespace kagome::network {
 
   void RouterLibp2p::handleSupProtocol(std::shared_ptr<Stream> stream) const {
     Status status_msg;
-    status_msg.best_number = 0;
+    status_msg.best_block = {};
     status_msg.roles.flags.full = 1;
 
     {  /// Genesis hash
@@ -350,7 +353,7 @@ namespace kagome::network {
     {  /// Best hash
       auto best_res = storage_->getLastFinalizedBlockHash();
       if (best_res) {
-        status_msg.best_hash = std::move(best_res.value());
+        status_msg.best_block.block_hash = std::move(best_res.value());
       } else {
         log_->error("Could not get best hash: {}", best_res.error().message());
         return;

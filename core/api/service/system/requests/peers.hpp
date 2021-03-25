@@ -45,8 +45,8 @@ namespace kagome::api::system::request {
                            : status.roles.flags.full
                                  ? "FULL"
                                  : status.roles.flags.light ? "LIGHT" : "NONE");
-          peer.emplace("bestHash", makeValue(status.best_hash));
-          peer.emplace("bestNumber", makeValue(status.best_number));
+          peer.emplace("bestHash", makeValue(status.best_block.block_hash));
+          peer.emplace("bestNumber", makeValue(status.best_block.block_number));
 
           result.emplace_back(std::move(peer));
         }

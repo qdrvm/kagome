@@ -16,6 +16,7 @@
 namespace kagome::network {
 
   using kagome::primitives::BlockHash;
+  using kagome::primitives::BlockInfo;
   using kagome::primitives::BlockNumber;
 
   /**
@@ -30,14 +31,9 @@ namespace kagome::network {
     Roles roles;
 
     /**
-     * Best block number.
+     * Best block
      */
-    BlockNumber best_number;
-
-    /**
-     * Best block hash.
-     */
-    BlockHash best_hash;
+    primitives::BlockInfo best_block;
 
     /**
      * Genesis block hash.
@@ -55,7 +51,8 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Status &v) {
-    return s << v.roles << v.best_number << v.best_hash << v.genesis_hash;
+    return s << v.roles << v.best_block.block_number << v.best_block.block_hash
+             << v.genesis_hash;
   }
 
   /**
@@ -68,7 +65,8 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Status &v) {
-    return s >> v.roles >> v.best_number >> v.best_hash >> v.genesis_hash;
+    return s >> v.roles >> v.best_block.block_number >> v.best_block.block_hash
+           >> v.genesis_hash;
   }
 
 }  // namespace kagome::network

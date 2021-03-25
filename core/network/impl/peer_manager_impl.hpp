@@ -30,6 +30,7 @@
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "network/types/sync_clients_set.hpp"
+#include "network/protocols/block_announce_protocol.hpp"
 
 namespace kagome::network {
 
@@ -52,7 +53,8 @@ namespace kagome::network {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<blockchain::BlockStorage> storage,
-        std::shared_ptr<BabeObserver> babe_observer);
+        std::shared_ptr<BabeObserver> babe_observer,
+        std::shared_ptr<BlockAnnounceProtocol>  block_announce_protocol);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -218,6 +220,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<BabeObserver> babe_observer_;
+    std::shared_ptr<BlockAnnounceProtocol>  block_announce_protocol_;
 
     libp2p::event::Handle add_peer_handle_;
     std::unordered_set<PeerId> peers_in_queue_;

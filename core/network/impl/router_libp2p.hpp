@@ -7,6 +7,7 @@
 #define KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP
 
 #include <memory>
+#include <network/protocols/block_announce_protocol.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
@@ -63,7 +64,8 @@ namespace kagome::network {
         std::shared_ptr<libp2p::protocol::Ping> ping_proto,
         std::shared_ptr<PeerManager> peer_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<BlockAnnounceProtocol>  block_announce_protocol);
 
     ~RouterLibp2p() override = default;
 
@@ -208,6 +210,8 @@ namespace kagome::network {
     std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::Hasher> hasher_;
+
+    std::shared_ptr<BlockAnnounceProtocol>  block_announce_protocol_;
   };
 
 }  // namespace kagome::network
