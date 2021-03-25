@@ -163,6 +163,6 @@ jobs:
             password: ${{ secrets.DOCKER_TOKEN }}
         - name: docker pack and push
           env:
-            VERSION: "test"
+            VERSION: ${{ github.ref }}
             BUILD_TYPE: "${{ matrix.options.build-type }}"
           run: ./housekeeping/docker/kagome/build_and_push.sh
