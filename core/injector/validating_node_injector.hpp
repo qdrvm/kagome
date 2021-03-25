@@ -64,12 +64,17 @@ namespace kagome::injector {
     }
 
     // get key storage
-    auto &&local_pair = get_peer_keypair(injector);
-    libp2p::crypto::PublicKey &public_key = local_pair->publicKey;
     auto &key_marshaller =
         injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
     application::AppConfiguration const &config =
         injector.template create<application::AppConfiguration const &>();
+    auto &crypto_provider =
+        injector.template create<const crypto::Ed25519Provider &>();
+    auto &crypto_store =
+        injector.template create<const crypto::CryptoStore &>();
+
+    auto& local_pair = get_peer_keypair(config, crypto_provider, crypto_store);
+    libp2p::crypto::PublicKey &public_key = local_pair->publicKey;
 
     libp2p::peer::PeerId peer_id =
         libp2p::peer::PeerId::fromPublicKey(
