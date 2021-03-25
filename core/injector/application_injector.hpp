@@ -551,11 +551,25 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
+    /*
+    const Config &config,
+    std::shared_ptr<Host> host,
+    std::shared_ptr<Storage> storage,
+    std::shared_ptr<ContentRoutingTable> content_routing_table,
+    std::shared_ptr<PeerRoutingTable> peer_routing_table,
+    std::shared_ptr<Validator> validator,
+    std::shared_ptr<Scheduler> scheduler, std::shared_ptr<event::Bus> bus,
+    std::shared_ptr<crypto::random::RandomGenerator> random_generator
+    */
+    const auto& config =
+        injector.template create<const libp2p::protocol::kademlia::Config &>();
+    auto kademlia =
+        injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>();
     initialized = std::make_shared<network::PeerManagerImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<libp2p::Host &>(),
         injector.template create<sptr<libp2p::protocol::Identify>>(),
-        injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>(),
+        kademlia,
         injector.template create<sptr<libp2p::protocol::Scheduler>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<const application::AppConfiguration &>(),
@@ -567,7 +581,7 @@ namespace kagome::injector {
     return initialized.value();
   }
 
-  const sptr<libp2p::crypto::KeyPair>& get_peer_keypair(
+  const sptr<libp2p::crypto::KeyPair> &get_peer_keypair(
       const application::AppConfiguration &app_config,
       const crypto::Ed25519Provider &crypto_provider,
       const crypto::CryptoStore &crypto_store) {
