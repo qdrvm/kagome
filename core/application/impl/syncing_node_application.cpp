@@ -19,7 +19,7 @@ namespace kagome::application {
     {
       auto logging_system = std::make_shared<soralog::LoggingSystem>(
           std::make_shared<kagome::log::Configurator>(
-              injector_.create<sptr<libp2p::log::Configurator>>()));
+              std::make_shared<libp2p::log::Configurator>()));
 
       auto r = logging_system->configure();
       if (not r.message.empty()) {
