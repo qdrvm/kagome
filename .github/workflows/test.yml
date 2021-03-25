@@ -13,8 +13,8 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-  INDOCKER_IMAGE: harrm/kagome-dev:1-minideb
-  CACHE_VERSION: v04
+  INDOCKER_IMAGE: soramitsu/kagome-dev:1-minideb
+  CACHE_VERSION: v05
   CACHE_PATHS: |
     ~/Library/Caches/pip
     ~/.cargo
@@ -51,7 +51,7 @@ jobs:
              run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-9_cxx17_ubsan.cmake
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: harrm/kagome-dev:1-minideb
+      container: soramitsu/kagome-dev:1-minideb
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -64,7 +64,7 @@ jobs:
   clang-tidy:
       name: "Linux: clang-tidy"
       runs-on: ubuntu-latest
-      container: harrm/kagome-dev:1-minideb
+      container: soramitsu/kagome-dev:1-minideb
       steps:
         - uses: actions/checkout@v2
           with:
@@ -84,7 +84,7 @@ jobs:
   coverage:
       name: "Linux: gcc-9 coverage/sonar"
       runs-on: ubuntu-latest
-      container: harrm/kagome-dev:1-minideb
+      container: soramitsu/kagome-dev:1-minideb
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -120,7 +120,7 @@ jobs:
               build-type: "Release"
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: harrm/kagome-dev:1-minideb
+      container: soramitsu/kagome-dev:1-minideb
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -136,12 +136,16 @@ jobs:
       if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
       needs: [clang-tidy, Linux, MacOS, Minideb]
       runs-on: ubuntu-latest
-      container: harrm/kagome-dev:1-minideb
+      container: soramitsu/kagome-dev:1-minideb
       strategy:
         fail-fast: false
         matrix:
-          build-type: ["Debug", "Release"]
-      name: "Push ${{ matrix.build-type }} Docker image"
+          options:
+            - name: "Push Debug Docker image"
+              build-type: "Debug"
+            - name: "Push Release Docker image"
+              build-type: "Release"
+      name: "${{ matrix.options.name }}"
       steps:
         - uses: actions/checkout@v2
         - uses: actions/cache@v2
@@ -150,7 +154,7 @@ jobs:
             key: ${{ github.job }}-${{ env.CACHE_VERSION }}
         - name: build
           env:
-            BUILD_TYPE: "${{ matrix.build-type }}"
+            BUILD_TYPE: "${{ matrix.options.build-type }}"
           run: ./housekeeping/docker/kagome-dev/make.sh
         - uses: azure/docker-login@v1
           with:
@@ -160,5 +164,5 @@ jobs:
         - name: docker pack and push
           env:
             VERSION: "test"
-            BUILD_TYPE: "${{ matrix.build-type }}"
+            BUILD_TYPE: "${{ matrix.options.build-type }}"
           run: ./housekeeping/docker/kagome/build_and_push.sh

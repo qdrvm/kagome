@@ -26,7 +26,7 @@ if [ "$BUILD_TYPE" = "Debug" ]; then
   VERSION="${VERSION}-debug"
 fi
 
-TAG="harrm/kagome:$VERSION"
+TAG="soramitsu/kagome:$VERSION"
 
 CTX_DIR=${BUILD_DIR}/docker_context
 
