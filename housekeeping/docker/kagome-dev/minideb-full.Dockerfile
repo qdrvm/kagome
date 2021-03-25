@@ -28,6 +28,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         docker-ce \
         docker-ce-cli \
         containerd.io \
+        make \
         gcc-9 \
         g++-9 \
         gcc-10 \
