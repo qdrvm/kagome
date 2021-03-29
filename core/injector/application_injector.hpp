@@ -131,6 +131,74 @@ namespace kagome::injector {
   template <class T>
   using uptr = std::unique_ptr<T>;
 
+  sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
+      application::AppConfiguration const &config,
+      sptr<application::AppStateManager> app_state_manager,
+      sptr<api::RpcContext> context,
+      api::HttpSession::Configuration http_session_config);
+
+  sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
+      api::WsSession::Configuration ws_session_config,
+      sptr<api::RpcContext> context,
+      sptr<application::AppStateManager> app_state_manager,
+      const boost::asio::ip::tcp::endpoint &endpoint);
+
+  sptr<blockchain::BlockStorage> get_block_storage(
+      sptr<crypto::Hasher> hasher,
+      sptr<storage::BufferStorage> db,
+      sptr<storage::trie::TrieStorage> trie_storage,
+      sptr<runtime::GrandpaApi> grandpa_api);
+
+  sptr<host_api::HostApiFactoryImpl> get_host_api_factory(
+      sptr<storage::changes_trie::ChangesTracker> tracker,
+      sptr<crypto::Sr25519Provider> sr25519_provider,
+      sptr<crypto::Ed25519Provider> ed25519_provider,
+      sptr<crypto::Secp256k1Provider> secp256k1_provider,
+      sptr<crypto::Hasher> hasher,
+      sptr<crypto::CryptoStore> crypto_store,
+      sptr<crypto::Bip39Provider> bip39_provider);
+
+  sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
+      sptr<storage::BufferStorage> storage);
+
+  sptr<storage::trie::TrieStorageImpl> get_trie_storage_impl(
+      sptr<storage::trie::PolkadotTrieFactory> factory,
+      sptr<storage::trie::Codec> codec,
+      sptr<storage::trie::TrieSerializer> serializer,
+      sptr<storage::changes_trie::ChangesTracker> tracker);
+
+  sptr<storage::trie::TrieStorage> get_trie_storage(
+      sptr<application::ChainSpec> configuration_storage,
+      sptr<storage::trie::TrieStorageImpl> trie_storage);
+
+  sptr<storage::BufferStorage> get_level_db(
+      application::AppConfiguration const &app_config,
+      sptr<application::ChainSpec> chain_spec);
+
+  std::shared_ptr<application::ChainSpec> get_genesis_config(
+      application::AppConfiguration const &config);
+
+  sptr<primitives::BabeConfiguration> get_babe_configuration(
+      sptr<runtime::BabeApi> babe_api);
+
+  consensus::SlotsStrategy get_slots_strategy(
+      const application::AppConfiguration &app_config);
+
+  sptr<crypto::KeyFileStorage> get_key_file_storage(
+      application::AppConfiguration const &config,
+      sptr<application::ChainSpec> genesis_config);
+
+  sptr<consensus::grandpa::FinalizationObserver> get_finalization_observer(
+      sptr<authority::AuthorityManagerImpl> authority_manager);
+
+  const sptr<libp2p::crypto::KeyPair> &get_peer_keypair(
+      const application::AppConfiguration &app_config,
+      const crypto::Ed25519Provider &crypto_provider,
+      const crypto::CryptoStore &crypto_store);
+
+  sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
+      const application::ChainSpec &chain_spec);
+
   template <typename Injector>
   sptr<api::ApiServiceImpl> get_jrpc_api_service(const Injector &injector) {
     static auto initialized =
@@ -139,7 +207,42 @@ namespace kagome::injector {
       return initialized.value();
     }
 
-    initialized = injector.template create<sptr<api::ApiServiceImpl>>();
+    const std::shared_ptr<application::AppStateManager> &asmgr =
+        injector.template create<
+            const std::shared_ptr<application::AppStateManager> &>();
+    auto thread_pool = injector.template create<sptr<api::RpcThreadPool>>();
+    auto server = injector.template create<sptr<api::JRpcServer>>();
+    auto listeners =
+        injector.template create<api::ApiServiceImpl::ListenerList>();
+    const auto &processors =
+        injector.template create<const api::ApiServiceImpl::ProcessorSpan &>();
+    auto storage_sub_engine = injector.template create<
+        primitives::events::StorageSubscriptionEnginePtr>();
+    auto chain_sub_engine =
+        injector
+            .template create<primitives::events::ChainSubscriptionEnginePtr>();
+    auto ext_sub_engine = injector.template create<
+        primitives::events::ExtrinsicSubscriptionEnginePtr>();
+    auto extrinsic_event_key_repo =
+        injector
+            .template create<sptr<subscription::ExtrinsicEventKeyRepository>>();
+    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
+    auto trie_storage =
+        injector.template create<sptr<storage::trie::TrieStorage>>();
+    auto service =
+        std::make_shared<api::ApiServiceImpl>(asmgr,
+                                              thread_pool,
+                                              listeners,
+                                              server,
+                                              processors,
+                                              storage_sub_engine,
+                                              chain_sub_engine,
+                                              ext_sub_engine,
+                                              extrinsic_event_key_repo,
+                                              block_tree,
+                                              trie_storage);
+    initialized =
+        service;  // injector.template create<sptr<api::ApiServiceImpl>>();
 
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());
@@ -151,109 +254,6 @@ namespace kagome::injector {
         injector.template create<std::shared_ptr<api::AuthorApi>>();
     author_api->setApiService(initialized.value());
 
-    return initialized.value();
-  }
-
-  // jrpc api listener (over HTTP) getter
-  sptr<api::HttpListenerImpl> get_jrpc_api_http_listener(
-      application::AppConfiguration const &config,
-      sptr<application::AppStateManager> app_state_manager,
-      sptr<api::RpcContext> context,
-      api::HttpSession::Configuration http_session_config) {
-    static auto initialized =
-        boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto &endpoint = config.rpcHttpEndpoint();
-
-    api::HttpListenerImpl::Configuration listener_config;
-    listener_config.endpoint = endpoint;
-
-    initialized = std::make_shared<api::HttpListenerImpl>(
-        app_state_manager, context, listener_config, http_session_config);
-    return initialized.value();
-  }
-
-  // jrpc api listener (over Websockets) getter
-  sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
-      api::WsSession::Configuration ws_session_config,
-      sptr<api::RpcContext> context,
-      sptr<application::AppStateManager> app_state_manager,
-      const boost::asio::ip::tcp::endpoint &endpoint) {
-    static auto initialized =
-        boost::optional<sptr<api::WsListenerImpl>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    api::WsListenerImpl::Configuration listener_config;
-    listener_config.endpoint = endpoint;
-
-    initialized =
-        std::make_shared<api::WsListenerImpl>(app_state_manager,
-                                              context,
-                                              listener_config,
-                                              std::move(ws_session_config));
-    return initialized.value();
-  }
-
-  // block storage getter
-  sptr<blockchain::BlockStorage> get_block_storage(
-      sptr<crypto::Hasher> hasher,
-      sptr<storage::BufferStorage> db,
-      sptr<storage::trie::TrieStorage> trie_storage,
-      sptr<runtime::GrandpaApi> grandpa_api) {
-    static auto initialized =
-        boost::optional<sptr<blockchain::BlockStorage>>(boost::none);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto storage = blockchain::KeyValueBlockStorage::create(
-        trie_storage->getRootHash(),
-        db,
-        hasher,
-        [&db, &grandpa_api](const primitives::Block &genesis_block) {
-          // handle genesis initialization, which happens when there is not
-          // authorities and last completed round in the storage
-          if (not db->get(storage::kAuthoritySetKey)) {
-            // insert authorities
-            const auto &weighted_authorities_res = grandpa_api->authorities(
-                primitives::BlockId(primitives::BlockNumber{0}));
-            BOOST_ASSERT_MSG(weighted_authorities_res,
-                             "grandpa_api_->authorities failed");
-            const auto &weighted_authorities = weighted_authorities_res.value();
-
-            for (const auto &authority : weighted_authorities) {
-              spdlog::info("Grandpa authority: {}", authority.id.id.toHex());
-            }
-
-            consensus::grandpa::VoterSet voters{0};
-            for (const auto &weighted_authority : weighted_authorities) {
-              voters.insert(
-                  primitives::GrandpaSessionKey{weighted_authority.id.id},
-                  weighted_authority.weight);
-              spdlog::debug("Added to grandpa authorities: {}, weight: {}",
-                            weighted_authority.id.id.toHex(),
-                            weighted_authority.weight);
-            }
-            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
-            auto authorities_put_res =
-                db->put(storage::kAuthoritySetKey,
-                        common::Buffer(scale::encode(voters).value()));
-            if (not authorities_put_res) {
-              BOOST_ASSERT_MSG(false, "Could not insert authorities");
-              std::exit(1);
-            }
-          }
-        });
-    if (storage.has_error()) {
-      common::raise(storage.error());
-    }
-    initialized = storage.value();
     return initialized.value();
   }
 
@@ -318,207 +318,6 @@ namespace kagome::injector {
     return initialized.value();
   }
 
-  sptr<host_api::HostApiFactoryImpl> get_host_api_factory(
-      sptr<storage::changes_trie::ChangesTracker> tracker,
-      sptr<crypto::Sr25519Provider> sr25519_provider,
-      sptr<crypto::Ed25519Provider> ed25519_provider,
-      sptr<crypto::Secp256k1Provider> secp256k1_provider,
-      sptr<crypto::Hasher> hasher,
-      sptr<crypto::CryptoStore> crypto_store,
-      sptr<crypto::Bip39Provider> bip39_provider) {
-    static auto initialized =
-        boost::optional<sptr<host_api::HostApiFactoryImpl>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    initialized =
-        std::make_shared<host_api::HostApiFactoryImpl>(tracker,
-                                                       sr25519_provider,
-                                                       ed25519_provider,
-                                                       secp256k1_provider,
-                                                       hasher,
-                                                       crypto_store,
-                                                       bip39_provider);
-    return initialized.value();
-  }
-
-  sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
-      sptr<storage::BufferStorage> storage) {
-    static auto initialized =
-        boost::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
-            boost::none);
-
-    if (initialized) {
-      return initialized.value();
-    }
-    using blockchain::prefix::TRIE_NODE;
-    auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
-        storage, common::Buffer{TRIE_NODE});
-    initialized = backend;
-    return backend;
-  }
-
-  sptr<storage::trie::TrieStorageImpl> get_trie_storage_impl(
-      sptr<storage::trie::PolkadotTrieFactory> factory,
-      sptr<storage::trie::Codec> codec,
-      sptr<storage::trie::TrieSerializer> serializer,
-      sptr<storage::changes_trie::ChangesTracker> tracker) {
-    static auto initialized =
-        boost::optional<sptr<storage::trie::TrieStorageImpl>>(boost::none);
-
-    if (initialized) {
-      return initialized.value();
-    }
-    auto trie_storage_res = storage::trie::TrieStorageImpl::createEmpty(
-        factory, codec, serializer, tracker);
-    if (!trie_storage_res) {
-      common::raise(trie_storage_res.error());
-    }
-
-    sptr<storage::trie::TrieStorageImpl> trie_storage =
-        std::move(trie_storage_res.value());
-    initialized = trie_storage;
-    return trie_storage;
-  }
-
-  sptr<storage::trie::TrieStorage> get_trie_storage(
-      sptr<application::ChainSpec> configuration_storage,
-      sptr<storage::trie::TrieStorageImpl> trie_storage) {
-    static auto initialized =
-        boost::optional<sptr<storage::trie::TrieStorage>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    const auto &genesis_raw_configs = configuration_storage->getGenesis();
-
-    auto batch = trie_storage->getPersistentBatch();
-    if (not batch) {
-      common::raise(batch.error());
-    }
-    for (const auto &[key, val] : genesis_raw_configs) {
-      spdlog::debug(
-          "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
-      if (auto res = batch.value()->put(key, val); not res) {
-        common::raise(res.error());
-      }
-    }
-    if (auto res = batch.value()->commit(); not res) {
-      common::raise(res.error());
-    }
-
-    initialized = trie_storage;
-    return trie_storage;
-  }
-
-  sptr<storage::BufferStorage> get_level_db(
-      application::AppConfiguration const &app_config,
-      sptr<application::ChainSpec> chain_spec) {
-    static auto initialized =
-        boost::optional<sptr<storage::BufferStorage>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto options = leveldb::Options{};
-    options.create_if_missing = true;
-    auto db = storage::LevelDB::create(
-        app_config.databasePath(chain_spec->id()), options);
-    if (!db) {
-      spdlog::critical("Can't create LevelDB in {}: {}",
-                       fs::absolute(app_config.databasePath(chain_spec->id()),
-                                    fs::current_path())
-                           .native(),
-                       db.error().message());
-      exit(EXIT_FAILURE);
-    }
-    initialized = db.value();
-    return initialized.value();
-  }
-
-  std::shared_ptr<application::ChainSpec> get_genesis_config(
-      application::AppConfiguration const &config) {
-    static auto initialized =
-        boost::optional<sptr<application::ChainSpec>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto const &genesis_path = config.genesisPath();
-
-    auto genesis_config_res =
-        application::ChainSpecImpl::loadFrom(genesis_path.native());
-    if (genesis_config_res.has_error()) {
-      common::raise(genesis_config_res.error());
-    }
-    initialized = genesis_config_res.value();
-    return genesis_config_res.value();
-  }
-
-  sptr<primitives::BabeConfiguration> get_babe_configuration(
-      sptr<runtime::BabeApi> babe_api) {
-    static auto initialized =
-        boost::optional<sptr<primitives::BabeConfiguration>>(boost::none);
-    if (initialized) {
-      return *initialized;
-    }
-
-    auto configuration_res = babe_api->configuration();
-    if (not configuration_res) {
-      common::raise(configuration_res.error());
-    }
-    auto config = configuration_res.value();
-    for (const auto &authority : config.genesis_authorities) {
-      spdlog::debug("Babe authority: {}", authority.id.id.toHex());
-    }
-    config.leadership_rate.first *= 3;
-    initialized = std::make_shared<primitives::BabeConfiguration>(config);
-    return *initialized;
-  }
-
-  consensus::SlotsStrategy get_slots_strategy(
-      const application::AppConfiguration &app_config) {
-    static auto initialized =
-        boost::optional<consensus::SlotsStrategy>(boost::none);
-    if (not initialized) {
-      initialized = app_config.isUnixSlotsStrategy()
-                        ? consensus::SlotsStrategy::FromUnixEpoch
-                        : consensus::SlotsStrategy::FromZero;
-    }
-    return *initialized;
-  }
-
-  sptr<crypto::KeyFileStorage> get_key_file_storage(
-      application::AppConfiguration const &config,
-      sptr<application::ChainSpec> genesis_config) {
-    static auto initialized =
-        boost::optional<sptr<crypto::KeyFileStorage>>(boost::none);
-    if (initialized) {
-      return *initialized;
-    }
-
-    auto path = config.keystorePath(genesis_config->id());
-    auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
-    if (not key_file_storage_res) {
-      common::raise(key_file_storage_res.error());
-    }
-    initialized = std::move(key_file_storage_res.value());
-
-    return *initialized;
-  }
-
-  sptr<consensus::grandpa::FinalizationObserver> get_finalization_observer(
-      sptr<authority::AuthorityManagerImpl> authority_manager) {
-    static auto instance = boost::optional<
-        std::shared_ptr<consensus::grandpa::FinalizationObserver>>(boost::none);
-    if (instance) {
-      return *instance;
-    }
-
-    instance = std::make_shared<consensus::grandpa::FinalizationComposite>(
-        std::move(authority_manager));
-
-    return *instance;
-  }
-
   template <class Injector>
   sptr<network::Router> get_router(const Injector &injector) {
     static auto initialized =
@@ -541,6 +340,7 @@ namespace kagome::injector {
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
         injector.template create<sptr<libp2p::protocol::Ping>>());
+    //initialized = injector.template create<sptr<network::RouterLibp2p>>();
     return initialized.value();
   }
 
@@ -558,18 +358,21 @@ namespace kagome::injector {
     std::shared_ptr<ContentRoutingTable> content_routing_table,
     std::shared_ptr<PeerRoutingTable> peer_routing_table,
     std::shared_ptr<Validator> validator,
-    std::shared_ptr<Scheduler> scheduler, std::shared_ptr<event::Bus> bus,
+    std::shared_ptr<Scheduler> scheduler,
+    std::shared_ptr<event::Bus> bus,
     std::shared_ptr<crypto::random::RandomGenerator> random_generator
     */
-    const auto& config =
+    auto config =
         injector.template create<const libp2p::protocol::kademlia::Config &>();
+    /*
     auto kademlia =
         injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>();
+    */
     initialized = std::make_shared<network::PeerManagerImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<libp2p::Host &>(),
         injector.template create<sptr<libp2p::protocol::Identify>>(),
-        kademlia,
+        injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>(),
         injector.template create<sptr<libp2p::protocol::Scheduler>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<const application::AppConfiguration &>(),
@@ -578,65 +381,6 @@ namespace kagome::injector {
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::SyncClientsSet>>());
-    return initialized.value();
-  }
-
-  const sptr<libp2p::crypto::KeyPair> &get_peer_keypair(
-      const application::AppConfiguration &app_config,
-      const crypto::Ed25519Provider &crypto_provider,
-      const crypto::CryptoStore &crypto_store) {
-    static auto initialized =
-        boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    if (app_config.nodeKey()) {
-      spdlog::info("Will use LibP2P keypair from config or args");
-
-      auto provided_keypair =
-          crypto_provider.generateKeypair(app_config.nodeKey().value());
-      BOOST_ASSERT(provided_keypair.secret_key == app_config.nodeKey().value());
-
-      auto &&pub = provided_keypair.public_key;
-      auto &&priv = provided_keypair.secret_key;
-
-      initialized =
-          std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
-              .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                             .data = {pub.begin(), pub.end()}}},
-              .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                              .data = {priv.begin(), priv.end()}}}});
-      return initialized.value();
-    }
-
-    if (crypto_store.getLibp2pKeypair()) {
-      spdlog::info("Will use LibP2P keypair from key storage");
-
-      auto stored_keypair = crypto_store.getLibp2pKeypair().value();
-
-      initialized =
-          std::make_shared<libp2p::crypto::KeyPair>(std::move(stored_keypair));
-      return initialized.value();
-    }
-
-    spdlog::warn(
-        "Can not get LibP2P keypair from crypto storage. "
-        "Will be temporary generated unique one");
-
-    auto generated_keypair = crypto_provider.generateKeypair();
-
-    auto &&pub = generated_keypair.public_key;
-    auto &&priv = generated_keypair.secret_key;
-
-    initialized =
-        std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
-            .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                           .data = {pub.begin(), pub.end()}}},
-            .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
-                            .data = {priv.begin(), priv.end()}}}});
-
     return initialized.value();
   }
 
@@ -661,25 +405,6 @@ namespace kagome::injector {
         injector.template create<sptr<consensus::BabeUtil>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<uptr<clock::Timer>>());
-    return *initialized;
-  }
-
-  template <typename Injector>
-  sptr<libp2p::protocol::kademlia::Config> get_kademlia_config(
-      const application::ChainSpec &chain_spec) {
-    static auto initialized =
-        boost::optional<sptr<libp2p::protocol::kademlia::Config>>(boost::none);
-    if (initialized) {
-      return *initialized;
-    }
-
-    auto kagome_config = std::make_shared<libp2p::protocol::kademlia::Config>(
-        libp2p::protocol::kademlia::Config{
-            .protocolId = "/" + chain_spec.protocolId() + "/kad",
-            .maxBucketSize = 1000,
-            .randomWalk = {.interval = std::chrono::minutes(1)}});
-
-    initialized = std::move(kagome_config);
     return *initialized;
   }
 
@@ -735,16 +460,18 @@ namespace kagome::injector {
         di::bind<::boost::asio::io_context>.in(
             di::extension::shared)[boost::di::override],
 
-        di::bind<api::ApiServiceImpl::Listeners>.to([](auto const &injector) {
+        di::bind<api::ApiServiceImpl::ListenerList>.to([](auto const
+                                                              &injector) {
           std::vector<std::shared_ptr<api::Listener>> listeners{
               injector
                   .template create<std::shared_ptr<api::HttpListenerImpl>>(),
               injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
           };
-          return api::ApiServiceImpl::Listeners{std::move(listeners)};
+          return api::ApiServiceImpl::ListenerList{std::move(listeners)};
         }),
-        di::bind<api::ApiServiceImpl::Processors>.to([](auto const &injector) {
-          std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
+        di::bind<api::ApiServiceImpl::ProcessorSpan>.to([](auto const
+                                                               &injector) {
+          static std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
               injector.template create<
                   std::shared_ptr<api::state::StateJrpcProcessor>>(),
               injector.template create<
@@ -757,7 +484,7 @@ namespace kagome::injector {
                   std::shared_ptr<api::rpc::RpcJRpcProcessor>>(),
               injector.template create<
                   std::shared_ptr<api::payment::PaymentJRpcProcessor>>()};
-          return api::ApiServiceImpl::Processors{std::move(processors)};
+          return api::ApiServiceImpl::ProcessorSpan{processors};
         }),
         // bind interfaces
         di::bind<api::HttpListenerImpl>.to([](const auto &injector) {

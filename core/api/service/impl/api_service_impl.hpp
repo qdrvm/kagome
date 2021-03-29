@@ -111,11 +111,11 @@ namespace kagome::api {
     template <class T>
     using sptr = std::shared_ptr<T>;
 
-    struct Listeners {
-      std::vector<std::shared_ptr<Listener>> listeners;
+    struct ListenerList {
+      std::vector<sptr<Listener>> listeners;
     };
-    struct Processors {
-      const std::vector<std::shared_ptr<JRpcProcessor>> &processors;
+    struct ProcessorSpan {
+      gsl::span<sptr<JRpcProcessor>> processors;
     };
 
     /**
@@ -127,9 +127,9 @@ namespace kagome::api {
     ApiServiceImpl(
         const std::shared_ptr<application::AppStateManager> &app_state_manager,
         std::shared_ptr<api::RpcThreadPool> thread_pool,
-        Listeners listeners,
+        ListenerList listeners,
         std::shared_ptr<JRpcServer> server,
-        Processors processors,
+        const ProcessorSpan &processors,
         StorageSubscriptionEnginePtr storage_sub_engine,
         ChainSubscriptionEnginePtr chain_sub_engine,
         ExtrinsicSubscriptionEnginePtr ext_sub_engine,

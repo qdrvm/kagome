@@ -21,7 +21,6 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 
-
 #define UNWRAP_WEAK_PTR(callback)  \
   [wp](auto &&...params) mutable { \
     if (auto self = wp.lock()) {   \
@@ -122,15 +121,14 @@ namespace kagome::api {
   const std::string kRpcEventFinalizedHeads = "chain_finalizedHead";
   const std::string kRpcEventSubscribeStorage = "state_storage";
 
-  const std::string kRpcEventUpdateExtrinsic =
-      "author_extrinsicUpdate";
+  const std::string kRpcEventUpdateExtrinsic = "author_extrinsicUpdate";
 
   ApiServiceImpl::ApiServiceImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
-      Listeners listeners,
+      ListenerList listeners,
       std::shared_ptr<JRpcServer> server,
-      Processors processors,
+      const ProcessorSpan &processors,
       StorageSubscriptionEnginePtr storage_sub_engine,
       ChainSubscriptionEnginePtr chain_sub_engine,
       ExtrinsicSubscriptionEnginePtr ext_sub_engine,
@@ -230,7 +228,7 @@ namespace kagome::api {
 
   std::shared_ptr<ApiServiceImpl::SessionSubscriptions>
   ApiServiceImpl::storeSessionWithId(Session::SessionId id,
-                                 const std::shared_ptr<Session> &session) {
+                                     const std::shared_ptr<Session> &session) {
     std::lock_guard guard(subscribed_sessions_cs_);
     auto &&[it, inserted] = subscribed_sessions_.emplace(
         id,
@@ -242,7 +240,7 @@ namespace kagome::api {
                     subscription_engines_.chain, session),
                 .ext_sub = std::make_shared<ExtrinsicEventSubscriber>(
                     subscription_engines_.ext, session),
-                .messages={}}));
+                .messages = {}}));
 
     BOOST_ASSERT(inserted);
     return it->second;
@@ -254,7 +252,8 @@ namespace kagome::api {
   }
 
   outcome::result<ApiServiceImpl::PubsubSubscriptionId>
-  ApiServiceImpl::subscribeSessionToKeys(const std::vector<common::Buffer> &keys) {
+  ApiServiceImpl::subscribeSessionToKeys(
+      const std::vector<common::Buffer> &keys) {
     return withThisSession([&](kagome::api::Session::SessionId tid) {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.storage_sub;
@@ -452,7 +451,7 @@ namespace kagome::api {
   }
 
   void ApiServiceImpl::onSessionRequest(std::string_view request,
-                                    std::shared_ptr<Session> session) {
+                                        std::shared_ptr<Session> session) {
     auto thread_session_auto_release = [](void *) {
       threaded_info.releaseSessionId();
     };
@@ -499,10 +498,10 @@ namespace kagome::api {
   }
 
   void ApiServiceImpl::onStorageEvent(SubscriptionSetId set_id,
-                                  SessionPtr &session,
-                                  const Buffer &key,
-                                  const Buffer &data,
-                                  const common::Hash256 &block) {
+                                      SessionPtr &session,
+                                      const Buffer &key,
+                                      const Buffer &data,
+                                      const common::Hash256 &block) {
     sendEvent(server_,
               session,
               logger_,

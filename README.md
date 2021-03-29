@@ -210,4 +210,3 @@ Please refer to the [Contributor Documentation](./docs/source/development/README
     * SyncClient and SyncServer 
     
 You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). 
-
