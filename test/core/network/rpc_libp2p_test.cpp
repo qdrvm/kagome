@@ -15,6 +15,7 @@
 #include "scale/scale.hpp"
 #include "testutil/libp2p/message_read_writer_helper.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using namespace network;
@@ -30,6 +31,10 @@ using ScaleRPC = RPC<ScaleMessageReadWriter>;
 
 class RpcLibp2pTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   std::shared_ptr<ReadWriterMock> read_writer_ =
       std::make_shared<ReadWriterMock>();
   std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();

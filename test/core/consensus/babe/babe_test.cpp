@@ -9,8 +9,8 @@
 #include <chrono>
 #include <memory>
 
-#include "clock/impl/clock_impl.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
+#include "clock/impl/clock_impl.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -33,6 +33,7 @@
 #include "primitives/block.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
 
 using namespace kagome;
@@ -70,6 +71,10 @@ namespace kagome::primitives {
 
 class BabeTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     app_state_manager_ = std::make_shared<AppStateManagerMock>();
     lottery_ = std::make_shared<BabeLotteryMock>();

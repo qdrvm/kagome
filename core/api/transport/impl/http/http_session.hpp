@@ -13,7 +13,7 @@
 #include <memory>
 
 #include "api/transport/session.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::api {
   /**
@@ -156,7 +156,7 @@ namespace kagome::api {
     using Parser = RequestParser<StringBody>;
 
     std::unique_ptr<Parser> parser_;  ///< http parser
-    common::Logger logger_ = common::createLogger("http session");
+    log::Logger logger_ = log::createLogger("HttpSession", "rpc_transport");
   };
 
 }  // namespace kagome::api

@@ -12,6 +12,7 @@
 #include "mock/core/runtime/wasm_memory_mock.hpp"
 #include "runtime/wasm_result.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::host_api;
 using ::testing::Return;
@@ -30,6 +31,10 @@ using kagome::runtime::WasmSize;
  */
 class IOExtensionTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     memory_ = std::make_shared<WasmMemoryMock>();
     io_extension_ = std::make_shared<IOExtension>(memory_);

@@ -10,7 +10,7 @@
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "storage/database_error.hpp"
 
 namespace kagome::storage {
@@ -42,7 +42,7 @@ namespace kagome::storage {
 
   template <typename T>
   inline outcome::result<T> error_as_result(const leveldb::Status &s,
-                                            const common::Logger &logger) {
+                                            const log::Logger &logger) {
     logger->error(s.ToString());
     return error_as_result<T>(s);
   }

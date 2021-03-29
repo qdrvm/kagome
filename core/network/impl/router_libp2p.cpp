@@ -53,7 +53,7 @@ namespace kagome::network {
         sync_observer_{std::move(sync_observer)},
         extrinsic_observer_{std::move(extrinsic_observer)},
         gossiper_{std::move(gossiper)},
-        log_{common::createLogger("RouterLibp2p")},
+        log_{log::createLogger("RouterLibp2p", "network")},
         storage_{std::move(storage)},
         ping_proto_{std::move(ping_proto)},
         peer_manager_{std::move(peer_manager)},

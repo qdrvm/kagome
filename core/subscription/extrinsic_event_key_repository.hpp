@@ -19,8 +19,7 @@ namespace kagome::subscription {
                                      + sizeof(primitives::ExtrinsicIndex)>;
 
     ExtrinsicEventKeyRepository()
-        : logger_{common::createLogger("Extrinsic Event Key Repository")} {
-    }
+        : logger_{log::createLogger("ExtrinsicEventKeyRepo", "pubsub")} {}
 
     ExtrinsicKey subscribeTransaction(const TransactionId &tx_id) noexcept {
       tx_to_key_[tx_id] = ++last_key_;
@@ -76,10 +75,10 @@ namespace kagome::subscription {
       return id;
     }
 
-    std::atomic<ExtrinsicKey> last_key_ {};
+    std::atomic<ExtrinsicKey> last_key_{};
     std::unordered_map<TransactionId, ExtrinsicKey> tx_to_key_;
     std::unordered_map<ExtrinsicId, ExtrinsicKey> id_to_key_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::subscription

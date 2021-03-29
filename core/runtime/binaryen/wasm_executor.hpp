@@ -7,7 +7,7 @@
 #define KAGOME_CORE_RUNTIME_WASM_EXECUTOR_IMPL_HPP
 
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "runtime/binaryen/module/wasm_module_instance.hpp"
 
 namespace kagome::runtime::binaryen {

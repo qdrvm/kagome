@@ -8,14 +8,17 @@
 #include <boost/program_options.hpp>
 #include "application/impl/app_configuration_impl.hpp"
 #include "application/impl/syncing_node_application.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
 int main(int argc, char **argv) {
-  auto logger = kagome::common::createLogger("Kagome full syncing node: ");
+  // TODO(xDimon): Use real logger. It's changed for probe
+  //  auto logger = kagome::log::createLogger("Kagome full syncing node: ");
+  auto logger = kagome::log::Logger();
   AppConfigurationImpl configuration{logger};
+
   if (configuration.initialize_from_args(
           AppConfiguration::LoadScheme::kFullSyncing, argc, argv)) {
     auto &&app = std::make_shared<kagome::application::SyncingNodeApplication>(

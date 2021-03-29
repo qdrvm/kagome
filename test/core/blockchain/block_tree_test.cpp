@@ -10,8 +10,8 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
-#include "crypto/hasher/hasher_impl.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
@@ -24,6 +24,7 @@
 #include "primitives/justification.hpp"
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using namespace storage;
@@ -40,6 +41,10 @@ using testing::_;
 using testing::Return;
 
 struct BlockTreeTest : public testing::Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     // for LevelDbBlockTree::create(..)
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))

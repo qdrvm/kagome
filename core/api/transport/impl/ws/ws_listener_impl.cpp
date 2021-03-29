@@ -17,7 +17,7 @@ namespace kagome::api {
         config_{std::move(listener_config)},
         session_config_{session_config},
         next_session_id_{1ull},
-        logger_{common::createLogger("RPC Websocket Listener")} {
+        logger_{log::createLogger("RpcWsListener", "rpc_transport")} {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
@@ -26,8 +26,7 @@ namespace kagome::api {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
-      logger_->critical("Failed to prepare a listener: {}",
-                        exception.what());
+      logger_->critical("Failed to prepare a listener: {}", exception.what());
       return false;
     } catch (const std::exception &exception) {
       logger_->critical("Exception when preparing a listener: {}",

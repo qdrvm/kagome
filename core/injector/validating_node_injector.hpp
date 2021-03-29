@@ -27,7 +27,8 @@ namespace kagome::injector {
         injector.template create<const crypto::CryptoStore &>();
     auto &&sr25519_kp = crypto_store.getBabeKeypair();
     if (not sr25519_kp) {
-      spdlog::error("Failed to get BABE keypair");
+      auto log = log::createLogger("validating_injector", "kagome");
+      log->error("Failed to get BABE keypair");
       return nullptr;
     }
 
@@ -47,7 +48,8 @@ namespace kagome::injector {
         injector.template create<const crypto::CryptoStore &>();
     auto &&ed25519_kp = crypto_store.getGrandpaKeypair();
     if (not ed25519_kp) {
-      spdlog::error("Failed to get GRANDPA keypair");
+      auto log = log::createLogger("validating_injector", "kagome");
+      log->error("Failed to get GRANDPA keypair");
       return nullptr;
     }
 
@@ -79,9 +81,10 @@ namespace kagome::injector {
     std::vector<libp2p::multi::Multiaddress> addresses =
         config.listenAddresses();
 
-    spdlog::debug("Received peer id: {}", peer_id.toBase58());
+    auto log = log::createLogger("validating_injector", "kagome");
+    log->debug("Received peer id: {}", peer_id.toBase58());
     for (auto &addr : addresses) {
-      spdlog::debug("Received multiaddr: {}", addr.getStringAddress());
+      log->debug("Received multiaddr: {}", addr.getStringAddress());
     }
 
     initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),

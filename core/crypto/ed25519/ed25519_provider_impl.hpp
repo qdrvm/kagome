@@ -8,17 +8,14 @@
 
 #include "crypto/ed25519_provider.hpp"
 
-#include "common/logger.hpp"
 #include "crypto/random_generator.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::crypto {
 
-  class Ed25519ProviderImpl: public Ed25519Provider {
+  class Ed25519ProviderImpl : public Ed25519Provider {
    public:
-    enum class Error {
-      VERIFICATION_FAILED = 1,
-      SIGN_FAILED
-    };
+    enum class Error { VERIFICATION_FAILED = 1, SIGN_FAILED };
 
     explicit Ed25519ProviderImpl(std::shared_ptr<CSPRNG> generator);
 
@@ -37,7 +34,7 @@ namespace kagome::crypto {
 
    private:
     std::shared_ptr<CSPRNG> generator_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::crypto

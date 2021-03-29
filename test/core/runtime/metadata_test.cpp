@@ -13,6 +13,7 @@
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using ::testing::_;
 using ::testing::Return;
@@ -25,12 +26,15 @@ namespace fs = boost::filesystem;
 
 class MetadataTest : public RuntimeTest {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     RuntimeTest::SetUp();
 
     api_ = std::make_shared<MetadataImpl>(
-        runtime_env_factory_,
-        std::make_shared<BlockHeaderRepositoryMock>());
+        runtime_env_factory_, std::make_shared<BlockHeaderRepositoryMock>());
   }
 
  protected:

@@ -17,7 +17,7 @@ namespace kagome::consensus {
       std::shared_ptr<network::SyncClientsSet> sync_clients,
       const application::AppConfiguration &app_configuration)
       : sync_clients_{std::move(sync_clients)},
-        logger_{common::createLogger("BabeSynchronizer")},
+        logger_{log::createLogger("BabeSynchronizer", "babe_synchronizer")},
         app_configuration_(app_configuration) {
     BOOST_ASSERT(sync_clients_);
   }

@@ -8,7 +8,7 @@
 
 #include "network/sync_protocol_client.hpp"
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::network {
 
@@ -31,7 +31,7 @@ namespace kagome::network {
     }
 
    private:
-    common::Logger log_;
+    log::Logger log_;
   };
 }  // namespace kagome::network
 

@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "application/impl/app_state_manager_impl.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::application::AppStateException;
 using kagome::application::AppStateManager;
@@ -43,6 +44,10 @@ class OnShutdownMock {
 
 class AppStateManagerTest : public AppStateManagerImpl, public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     reset();
     prepare_cb = std::make_shared<OnPrepareMock>();

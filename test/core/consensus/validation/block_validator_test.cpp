@@ -16,6 +16,7 @@
 #include "mock/libp2p/crypto/random_generator_mock.hpp"
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
 using namespace kagome;
@@ -50,6 +51,10 @@ namespace sr25519_constants = kagome::crypto::constants::sr25519;
 
 class BlockValidatorTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   const ConsensusEngineId kEngineId =
       primitives::ConsensusEngineId::fromString("BABE").value();
   /**

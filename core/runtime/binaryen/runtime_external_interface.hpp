@@ -8,10 +8,10 @@
 
 #include <binaryen/shell-interface.h>
 
-#include "common/logger.hpp"
 #include "host_api/host_api_factory.hpp"
-#include "runtime/trie_storage_provider.hpp"
+#include "log/logger.hpp"
 #include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -50,9 +50,7 @@ namespace kagome::runtime::binaryen {
                         size_t actual);
 
     std::unique_ptr<host_api::HostApi> host_api_;
-    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
-
-    constexpr static auto kDefaultLoggerTag = "Runtime external interface";
+    log::Logger logger_ = log::createLogger("RuntimeExternalInterface", "wasm");
   };
 
 }  // namespace kagome::runtime::binaryen

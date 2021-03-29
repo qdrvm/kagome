@@ -25,6 +25,7 @@
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using namespace kagome::api;
@@ -47,6 +48,10 @@ template <typename ListenerImpl,
           typename =
               std::enable_if_t<std::is_base_of_v<Listener, ListenerImpl>, void>>
 struct ListenerTest : public ::testing::Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   template <class T>
   using sptr = std::shared_ptr<T>;
 

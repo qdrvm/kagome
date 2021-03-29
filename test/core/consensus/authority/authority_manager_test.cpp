@@ -14,6 +14,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using AuthorityManager = authority::AuthorityManagerImpl;
@@ -22,6 +23,10 @@ using testing::Return;
 
 class AuthorityManagerTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     app_state_manager = std::make_shared<application::AppStateManagerMock>();
 

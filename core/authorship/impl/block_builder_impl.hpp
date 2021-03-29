@@ -8,7 +8,7 @@
 
 #include "authorship/block_builder.hpp"
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
 #include "runtime/block_builder.hpp"
@@ -20,9 +20,8 @@ namespace kagome::authorship {
    public:
     ~BlockBuilderImpl() override = default;
 
-    BlockBuilderImpl(
-        primitives::BlockHeader block_header,
-        std::shared_ptr<runtime::BlockBuilder> block_builder_api);
+    BlockBuilderImpl(primitives::BlockHeader block_header,
+                     std::shared_ptr<runtime::BlockBuilder> block_builder_api);
 
     outcome::result<primitives::ExtrinsicIndex> pushExtrinsic(
         const primitives::Extrinsic &extrinsic) override;
@@ -32,7 +31,7 @@ namespace kagome::authorship {
    private:
     primitives::BlockHeader block_header_;
     std::shared_ptr<runtime::BlockBuilder> block_builder_api_;
-    common::Logger logger_;
+    log::Logger logger_;
 
     std::vector<primitives::Extrinsic> extrinsics_{};
   };

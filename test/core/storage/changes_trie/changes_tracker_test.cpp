@@ -17,6 +17,7 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::api::Session;
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -44,6 +45,8 @@ using testing::Return;
  * @then changes are passed to the trie successfully
  */
 TEST(ChangesTrieTest, IntegrationWithOverlay) {
+  testutil::prepareLoggers();
+
   using SessionPtr = std::shared_ptr<Session>;
   using SubscriptionEngineType =
       SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;

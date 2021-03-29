@@ -12,11 +12,11 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
 #include "common/visitor.hpp"
 #include "common/wrapper.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/ed25519_types.hpp"
+#include "log/logger.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"

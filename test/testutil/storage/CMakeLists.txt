@@ -9,6 +9,7 @@ target_link_libraries(base_fs_test
     Boost::filesystem
     Boost::boost
     logger
+    soralog::soralog
     )
 
 add_library(base_leveldb_test
@@ -21,6 +22,7 @@ target_link_libraries(base_leveldb_test
     Boost::boost
     logger
     leveldb
+    soralog::soralog
     )
 
 add_library(std_list_adapter INTERFACE)
