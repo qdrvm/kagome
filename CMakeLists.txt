@@ -115,7 +115,7 @@ kagome_install_setup(
     core/crypto
     core/outcome
     core/runtime
-    core/extensions
+    core/host_api
     core/subscription
 )
 

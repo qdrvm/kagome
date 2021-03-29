@@ -23,7 +23,7 @@ A simple status-report can be found within section [supported features](./README
 
 ### Prerequisites
 
-For now, please refer to the [Dockerfile](housekeeping/docker/develop/Dockerfile) to get a picture of what you need for a local build-environment.
+For now, please refer to the [Dockerfile](housekeeping/docker/kagome-dev/minideb.Dockerfile) to get a picture of what you need for a local build-environment.
 
 ### Build
 
@@ -210,4 +210,3 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
     * SyncClient and SyncServer 
     
 You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). 
-
