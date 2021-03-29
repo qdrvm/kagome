@@ -50,7 +50,7 @@ namespace kagome::host_api {
         hasher_(std::move(hasher)),
         crypto_store_(std::move(crypto_store)),
         bip39_provider_(std::move(bip39_provider)),
-        logger_{common::createLogger("CryptoExtension")} {
+        logger_{log::createLogger("CryptoExtension", "extentions")} {
     BOOST_ASSERT(memory_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);

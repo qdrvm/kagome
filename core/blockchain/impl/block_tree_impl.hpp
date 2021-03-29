@@ -19,11 +19,11 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
-#include "common/logger.hpp"
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_digest.hpp"
 #include "crypto/hasher.hpp"
+#include "log/logger.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
@@ -274,7 +274,7 @@ namespace kagome::blockchain {
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
     boost::optional<primitives::Version> actual_runtime_version_;
-    common::Logger log_ = common::createLogger("Block Tree");
+    log::Logger log_ = log::createLogger("BlockTree", "blockchain");
   };
 }  // namespace kagome::blockchain
 

@@ -22,7 +22,7 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher)
       : vrf_provider_{std::move(vrf_provider)},
         hasher_{std::move(hasher)},
-        logger_{common::createLogger("BabeLottery")} {
+        logger_{log::createLogger("BabeLottery", "babe_lottery")} {
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(logger_);

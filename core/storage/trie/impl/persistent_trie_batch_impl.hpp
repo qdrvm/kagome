@@ -8,12 +8,12 @@
 
 #include <memory>
 
+#include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
-#include "common/logger.hpp"
 
 namespace kagome::storage::trie {
 
@@ -60,7 +60,8 @@ namespace kagome::storage::trie {
     std::shared_ptr<PolkadotTrie> trie_;
     RootChangedEventHandler root_changed_handler_;
 
-    common::Logger logger_ = common::createLogger("PersistentTrieBatch");
+    log::Logger logger_ =
+        log::createLogger("PersistentTrieBatch", "changes_trie");
   };
 
 }  // namespace kagome::storage::trie

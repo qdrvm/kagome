@@ -10,7 +10,6 @@
 
 #include "blockchain/block_tree.hpp"
 #include "clock/timer.hpp"
-#include "common/logger.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/babe_util.hpp"
@@ -18,6 +17,7 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "crypto/hasher.hpp"
+#include "log/logger.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/core.hpp"
@@ -106,7 +106,7 @@ namespace kagome::consensus {
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
     std::shared_ptr<boost::asio::io_context> io_context_;
-    common::Logger logger_;
+    log::Logger logger_;
 
     /**
      * Aux class for doing iterable action aynchronously (not all iteration as

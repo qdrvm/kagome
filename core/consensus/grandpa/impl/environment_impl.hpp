@@ -12,10 +12,10 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/logger.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -109,7 +109,7 @@ namespace kagome::consensus::grandpa {
     std::weak_ptr<JustificationObserver> justification_observer_;
 
     OnCompleted on_completed_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::consensus::grandpa

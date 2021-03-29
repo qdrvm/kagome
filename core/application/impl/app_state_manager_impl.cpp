@@ -19,7 +19,7 @@ namespace kagome::application {
   }
 
   AppStateManagerImpl::AppStateManagerImpl()
-      : logger_(common::createLogger("Application")) {
+      : logger_(log::createLogger("AppStateManager", "application")) {
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
     act.sa_handler = shuttingDownSignalsHandler;  // NOLINT

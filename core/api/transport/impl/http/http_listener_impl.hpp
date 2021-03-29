@@ -10,7 +10,7 @@
 
 #include "api/transport/impl/http/http_session.hpp"
 #include "application/app_state_manager.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::api {
   /**
@@ -54,7 +54,7 @@ namespace kagome::api {
 
     std::shared_ptr<SessionImpl> new_session_;
 
-    common::Logger logger_;
+    log::Logger logger_;
   };
 }  // namespace kagome::api
 

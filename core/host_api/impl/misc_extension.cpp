@@ -21,7 +21,7 @@ namespace kagome::host_api {
       : core_api_factory_{std::move(core_factory)},
         runtime_env_factory_{std::move(runtime_env_factory)},
         memory_{std::move(memory)},
-        logger_{common::createLogger("MiscExtension")},
+        logger_{log::createLogger("MiscExtension", "extentions")},
         chain_id_{chain_id} {
     BOOST_ASSERT(core_api_factory_);
     BOOST_ASSERT(runtime_env_factory_);
@@ -47,8 +47,8 @@ namespace kagome::host_api {
             .value();
 
     if (version_res.has_value()) {
-      auto enc_version_res =
-          scale::encode(boost::make_optional(scale::encode(version_res.value()).value()));
+      auto enc_version_res = scale::encode(
+          boost::make_optional(scale::encode(version_res.value()).value()));
       if (enc_version_res.has_error()) {
         logger_->error(
             "Error encoding ext_misc_runtime_version_version_1 result: {}",

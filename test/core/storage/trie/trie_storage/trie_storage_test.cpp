@@ -17,6 +17,7 @@
 #include "subscription/subscriber.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
@@ -38,6 +39,8 @@ static Buffer kNodePrefix = "\1"_buf;
  * @then the new instance contains the same data
  */
 TEST(TriePersistencyTest, CreateDestroyCreate) {
+  testutil::prepareLoggers();
+
   RootHash root;
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();

@@ -3,20 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <gtest/gtest.h>
+
+#include <gsl/span>
+
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
-#include <gtest/gtest.h>
-#include <gsl/span>
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
+using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::Ed25519PrivateKey;
 using kagome::crypto::Ed25519Provider;
 using kagome::crypto::Ed25519ProviderImpl;
 using kagome::crypto::Ed25519PublicKey;
 using kagome::crypto::Ed25519Seed;
-using kagome::crypto::BoostRandomGenerator;
 
 struct Ed25519ProviderTest : public ::testing::Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     auto random_generator = std::make_shared<BoostRandomGenerator>();
     ed25519_provider = std::make_shared<Ed25519ProviderImpl>(random_generator);

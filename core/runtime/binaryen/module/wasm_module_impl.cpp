@@ -58,7 +58,8 @@ namespace kagome::runtime::binaryen {
       } catch (wasm::ParseException &e) {
         std::ostringstream msg;
         e.dump(msg);
-        spdlog::error(msg.str());
+        auto log = log::createLogger("wasm_module", "wasm");
+        log->error(msg.str());
         return Error::INVALID_STATE_CODE;
       }
     }
@@ -73,8 +74,7 @@ namespace kagome::runtime::binaryen {
   std::unique_ptr<WasmModuleInstance> WasmModuleImpl::instantiate(
       const std::shared_ptr<RuntimeExternalInterface> &externalInterface)
       const {
-    return std::make_unique<WasmModuleInstanceImpl>(module_,
-                                                    externalInterface);
+    return std::make_unique<WasmModuleInstanceImpl>(module_, externalInterface);
   }
 
 }  // namespace kagome::runtime::binaryen

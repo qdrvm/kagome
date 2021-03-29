@@ -19,7 +19,7 @@ namespace kagome::authorship {
       std::shared_ptr<runtime::BlockBuilder> block_builder_api)
       : block_header_(std::move(block_header)),
         block_builder_api_(std::move(block_builder_api)),
-        logger_{common::createLogger("BlockBuilder")} {
+        logger_{log::createLogger("BlockBuilder", "authorship")} {
     BOOST_ASSERT(block_builder_api_ != nullptr);
   }
 

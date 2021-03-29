@@ -14,8 +14,8 @@
 #include "application/chain_spec.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "log/logger.hpp"
 #include "network/babe_observer.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/block_announce.hpp"
@@ -83,7 +83,7 @@ namespace kagome::network {
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<crypto::Hasher> hasher_;
     const libp2p::peer::Protocol protocol_;
-    common::Logger log_ = common::createLogger("BlockAnnounceProtocol");
+    log::Logger log_ = log::createLogger("BlockAnnounceProtocol");
   };
 
 }  // namespace kagome::network

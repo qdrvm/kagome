@@ -290,8 +290,10 @@ namespace kagome::injector {
                              "grandpa_api_->authorities failed");
             const auto &weighted_authorities = weighted_authorities_res.value();
 
+            auto log = log::createLogger("injector", "kagome");
+
             for (const auto authority : weighted_authorities) {
-              spdlog::info("Grandpa authority: {}", authority.id.id.toHex());
+              log->info("Grandpa authority: {}", authority.id.id.toHex());
             }
 
             consensus::grandpa::VoterSet voters{0};
@@ -299,9 +301,9 @@ namespace kagome::injector {
               voters.insert(
                   primitives::GrandpaSessionKey{weighted_authority.id.id},
                   weighted_authority.weight);
-              spdlog::debug("Added to grandpa authorities: {}, weight: {}",
-                            weighted_authority.id.id.toHex(),
-                            weighted_authority.weight);
+              log->debug("Added to grandpa authorities: {}, weight: {}",
+                         weighted_authority.id.id.toHex(),
+                         weighted_authority.weight);
             }
             BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
             auto authorities_put_res =
@@ -476,9 +478,11 @@ namespace kagome::injector {
     if (not batch) {
       common::raise(batch.error());
     }
+
+    auto log = log::createLogger("injector", "kagome");
+
     for (const auto &[key, val] : genesis_raw_configs) {
-      spdlog::debug(
-          "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
+      log->debug("Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
       if (auto res = batch.value()->put(key, val); not res) {
         common::raise(res.error());
       }
@@ -509,11 +513,12 @@ namespace kagome::injector {
     auto db = storage::LevelDB::create(
         config.databasePath(genesis_config->id()), options);
     if (!db) {
-      spdlog::critical("Can't create LevelDB in {}: {}",
-                       fs::absolute(config.databasePath(genesis_config->id()),
-                                    fs::current_path())
-                           .native(),
-                       db.error().message());
+      auto log = log::createLogger("injector", "kagome");
+      log->critical("Can't create LevelDB in {}: {}",
+                    fs::absolute(config.databasePath(genesis_config->id()),
+                                 fs::current_path())
+                        .native(),
+                    db.error().message());
       exit(EXIT_FAILURE);
     }
     initialized = db.value();
@@ -557,8 +562,9 @@ namespace kagome::injector {
       common::raise(configuration_res.error());
     }
     auto config = configuration_res.value();
+    auto log = log::createLogger("injector", "kagome");
     for (const auto &authority : config.genesis_authorities) {
-      spdlog::debug("Babe authority: {}", authority.id.id.toHex());
+      log->debug("Babe authority: {}", authority.id.id.toHex());
     }
     config.leadership_rate.first *= 3;
     initialized = std::make_shared<primitives::BabeConfiguration>(config);
@@ -691,8 +697,10 @@ namespace kagome::injector {
     auto &crypto_store =
         injector.template create<const crypto::CryptoStore &>();
 
+    auto log = log::createLogger("injector", "kagome");
+
     if (app_config.nodeKey()) {
-      spdlog::info("Will use LibP2P keypair from config or args");
+      log->info("Will use LibP2P keypair from config or args");
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
@@ -711,7 +719,7 @@ namespace kagome::injector {
     }
 
     if (crypto_store.getLibp2pKeypair()) {
-      spdlog::info("Will use LibP2P keypair from key storage");
+      log->info("Will use LibP2P keypair from key storage");
 
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 
@@ -720,9 +728,9 @@ namespace kagome::injector {
       return initialized.value();
     }
 
-    spdlog::warn(
+    log->warn(
         "Can not get LibP2P keypair from crypto storage. "
-        "Will be temporary generated unique one");
+        "Unique one will be generated for current running");
 
     auto generated_keypair = crypto_provider.generateKeypair();
 
@@ -786,7 +794,7 @@ namespace kagome::injector {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     // default values for configurations

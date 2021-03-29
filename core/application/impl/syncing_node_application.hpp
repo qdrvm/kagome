@@ -8,8 +8,8 @@
 
 #include "application/kagome_application.hpp"
 
-#include "common/logger.hpp"
 #include "injector/syncing_node_injector.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application {
 
@@ -32,8 +32,12 @@ namespace kagome::application {
 
    private:
     // need to keep all of these instances, since injector itself is destroyed
+
     InjectorType injector_;
-    common::Logger logger_;
+
+    std::shared_ptr<soralog::LoggingSystem> logging_system_;
+
+    log::Logger logger_;
 
     sptr<ChainSpec> chain_spec_;
     boost::filesystem::path chain_path_;
@@ -43,7 +47,6 @@ namespace kagome::application {
     sptr<network::Router> router_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;
-
   };
 
 }  // namespace kagome::application

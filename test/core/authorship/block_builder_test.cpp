@@ -6,6 +6,7 @@
 #include "authorship/impl/block_builder_impl.hpp"
 
 #include <gtest/gtest.h>
+#include "testutil/prepare_loggers.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "testutil/outcome.hpp"
 
@@ -24,6 +25,10 @@ using kagome::runtime::BlockBuilderApiMock;
 
 class BlockBuilderTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     // add some number to the header to make it possible to differentiate it
     expected_header_.number = number_;

@@ -43,7 +43,7 @@ namespace kagome::blockchain {
       std::shared_ptr<crypto::Hasher> hasher)
       : storage_{std::move(storage)},
         hasher_{std::move(hasher)},
-        logger_{common::createLogger("Block Storage")} {}
+        logger_{log::createLogger("BlockStorage", "blockchain")} {}
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
   KeyValueBlockStorage::create(

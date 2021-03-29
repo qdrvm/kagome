@@ -11,7 +11,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "primitives/common.hpp"
 #include "primitives/extrinsic.hpp"
 #include "storage/changes_trie/changes_trie_config.hpp"
@@ -27,7 +27,7 @@ namespace kagome::storage::changes_trie {
 
     static outcome::result<std::unique_ptr<ChangesTrie>> buildFromChanges(
         const primitives::BlockNumber &parent_block,
-        const std::shared_ptr<storage::trie::PolkadotTrieFactory>& trie_factory,
+        const std::shared_ptr<storage::trie::PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<trie::Codec> codec,
         const ExtrinsicsChanges &extinsics_changes,
         const ChangesTrieConfig &config);
@@ -74,7 +74,7 @@ namespace kagome::storage::changes_trie {
 
     std::unique_ptr<trie::PolkadotTrie> changes_trie_;
     std::shared_ptr<trie::Codec> codec_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::storage::changes_trie

@@ -9,18 +9,19 @@
 #include <memory>
 #include <vector>
 
-#include "common/logger.hpp"
 #include "consensus/babe/babe_lottery.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
+#include "log/logger.hpp"
+#include "primitives/babe_configuration.hpp"
 
 namespace kagome::consensus {
   class BabeLotteryImpl : public BabeLottery {
    public:
-    BabeLotteryImpl(std::shared_ptr<crypto::VRFProvider> vrf_provider,
-                    std::shared_ptr<primitives::BabeConfiguration> configuration,
-                    std::shared_ptr<crypto::Hasher> hasher);
+    BabeLotteryImpl(
+        std::shared_ptr<crypto::VRFProvider> vrf_provider,
+        std::shared_ptr<primitives::BabeConfiguration> configuration,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     SlotsLeadership slotsLeadership(
         const EpochDescriptor &epoch,
@@ -40,7 +41,7 @@ namespace kagome::consensus {
 
     /// also known as "rho" (greek letter) in the spec
     std::vector<crypto::VRFPreOutput> last_epoch_vrf_values_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 }  // namespace kagome::consensus
 

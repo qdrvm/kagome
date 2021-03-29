@@ -28,7 +28,7 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers)
       : block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
-        log_(common::createLogger("SyncProtocolObserver")) {
+        log_(log::createLogger("SyncProtocolObserver", "network")) {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(blocks_headers_);
   }
