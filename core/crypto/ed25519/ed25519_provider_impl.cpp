@@ -26,7 +26,7 @@ namespace kagome::crypto {
 
   Ed25519ProviderImpl::Ed25519ProviderImpl(std::shared_ptr<CSPRNG> generator)
       : generator_{std::move(generator)},
-        logger_{common::createLogger("Ed25519 Provider")} {
+        logger_{log::createLogger("Ed25519Provider", "ed25519")} {
     BOOST_ASSERT(generator_ != nullptr);
   }
 

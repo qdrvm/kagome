@@ -11,7 +11,6 @@
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/logger.hpp"
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 #include "crypto/hasher.hpp"
@@ -21,6 +20,7 @@
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/protocol/identify.hpp"
 #include "libp2p/protocol/ping.hpp"
+#include "log/logger.hpp"
 #include "network/babe_observer.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "network/gossiper.hpp"
@@ -201,7 +201,7 @@ namespace kagome::network {
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<Gossiper> gossiper_;
     std::weak_ptr<LoopbackStream> loopback_stream_;
-    common::Logger log_;
+    log::Logger log_;
 
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<libp2p::protocol::Ping> ping_proto_;

@@ -14,6 +14,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 using kagome::common::Blob;
@@ -45,6 +46,10 @@ static CryptoStoreImpl::Path crypto_store_test_directory =
     boost::filesystem::temp_directory_path() / "crypto_store_test";
 
 struct CryptoStoreTest : public test::BaseFS_Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   CryptoStoreTest() : BaseFS_Test(crypto_store_test_directory) {}
 
   void SetUp() override {

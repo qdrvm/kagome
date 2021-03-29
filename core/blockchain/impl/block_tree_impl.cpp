@@ -217,7 +217,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(hash, header_repo->getHashById(last_finalized_block));
     OUTCOME_TRY(number, header_repo->getNumberById(last_finalized_block));
 
-    common::Logger log = common::createLogger("BlockTree::create");
+    log::Logger log = log::createLogger("BlockTree", "blockchain");
 
     boost::optional<consensus::EpochNumber> curr_epoch_number;
     boost::optional<consensus::EpochDigest> curr_epoch;

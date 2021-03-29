@@ -11,6 +11,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
@@ -31,6 +32,10 @@ namespace fs = boost::filesystem;
 
 class CoreTest : public RuntimeTest {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     RuntimeTest::SetUp();
 

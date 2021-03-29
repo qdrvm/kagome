@@ -11,6 +11,7 @@
 #include "consensus/validation/prepare_transcript.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using namespace crypto;
@@ -23,6 +24,10 @@ using testing::Return;
 namespace vrf_constants = kagome::crypto::constants::sr25519::vrf;
 
 struct BabeLotteryTest : public testing::Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     keypair_.public_key.fill(2);
     keypair_.secret_key.fill(3);

@@ -25,17 +25,20 @@ namespace kagome::storage {
 
     leveldb::DB *db = nullptr;
 
-    auto log = common::createLogger("leveldb");
+    auto log = log::createLogger("LevelDb", "storage");
 
     auto absolute_path = fs::absolute(path, fs::current_path());
 
     boost::system::error_code ec;
     if (not fs::create_directory(absolute_path.native(), ec) and ec.value()) {
-      log->error("Can't create directory {} for database: {}", absolute_path.native(), ec.message());
+      log->error("Can't create directory {} for database: {}",
+                 absolute_path.native(),
+                 ec.message());
       return DatabaseError::IO_ERROR;
     }
     if (not fs::is_directory(absolute_path.native())) {
-      log->error("Can't open {} for database: is not a directory", absolute_path.native());
+      log->error("Can't open {} for database: is not a directory",
+                 absolute_path.native());
       return DatabaseError::IO_ERROR;
     }
 
@@ -47,7 +50,9 @@ namespace kagome::storage {
       return l;
     }
 
-    log->error("Can't open database in {}: {}", absolute_path.native(), status.ToString());
+    log->error("Can't open database in {}: {}",
+               absolute_path.native(),
+               status.ToString());
     return error_as_result<std::shared_ptr<LevelDB>>(status);
   }
 

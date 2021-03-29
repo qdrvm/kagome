@@ -6,7 +6,7 @@
 #ifndef KAGOME_APPLICATION_DISPATCHER
 #define KAGOME_APPLICATION_DISPATCHER
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application {
 

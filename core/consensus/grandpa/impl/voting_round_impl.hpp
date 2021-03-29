@@ -11,7 +11,6 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/signals2.hpp>
 
-#include "common/logger.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
@@ -19,6 +18,7 @@
 #include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -282,7 +282,7 @@ namespace kagome::consensus::grandpa {
     Timer timer_;
     Timer pending_timer_;
 
-    common::Logger logger_ = common::createLogger("VotingRound");
+    log::Logger logger_ = log::createLogger("VotingRound", "voting_round");
 
     bool completable_ = false;
 

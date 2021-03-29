@@ -17,6 +17,7 @@
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using namespace blockchain;
@@ -34,6 +35,10 @@ using testing::ReturnRef;
 
 class SynchronizerTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     block1_.header.parent_hash.fill(2);
     block1_hash_.fill(3);

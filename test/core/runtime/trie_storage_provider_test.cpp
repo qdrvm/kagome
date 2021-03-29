@@ -17,12 +17,17 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
 using kagome::runtime::RuntimeTransactionError;
 
 class TrieStorageProviderTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     auto trie_factory =
         std::make_shared<kagome::storage::trie::PolkadotTrieFactoryImpl>();

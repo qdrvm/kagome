@@ -6,6 +6,7 @@
 #include "authorship/impl/proposer_impl.hpp"
 
 #include <gtest/gtest.h>
+
 #include "mock/core/authorship/block_builder_factory_mock.hpp"
 #include "mock/core/authorship/block_builder_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
@@ -14,6 +15,7 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using ::testing::_;
 using ::testing::Return;
@@ -48,6 +50,10 @@ namespace kagome::primitives {
 
 class ProposerTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   /**
    * Sets default behavior for BlockBuilderFactory and BlockBuilderApi:
    * BlockBuilderFactory creates BlockBuilderMock

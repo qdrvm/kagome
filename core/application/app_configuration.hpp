@@ -9,13 +9,13 @@
 #include <memory>
 #include <string>
 
-#include <spdlog/common.h>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
 #include "crypto/ed25519_types.hpp"
+#include "log/logger.hpp"
 #include "network/peering_config.hpp"
 
 namespace kagome::application {
@@ -98,7 +98,7 @@ namespace kagome::application {
     /**
      * @return log level (0-trace, 5-only critical, 6-no logs).
      */
-    virtual spdlog::level::level_enum verbosity() const = 0;
+    virtual log::Level verbosity() const = 0;
 
     /**
      * @return true if node in only finalizing mode, otherwise false.

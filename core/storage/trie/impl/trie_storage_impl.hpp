@@ -8,7 +8,7 @@
 
 #include "storage/trie/trie_storage.hpp"
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
@@ -62,7 +62,7 @@ namespace kagome::storage::trie {
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::storage::trie

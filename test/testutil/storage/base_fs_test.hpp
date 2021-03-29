@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 // intentionally here, so users can use fs shortcut
 namespace fs = boost::filesystem;
@@ -38,7 +38,7 @@ namespace test {
 
    protected:
     fs::path base_path;
-    kagome::common::Logger logger;
+    kagome::log::Logger logger;
   };
 
 }  // namespace test

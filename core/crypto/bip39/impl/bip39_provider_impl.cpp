@@ -13,7 +13,7 @@ namespace kagome::crypto {
   Bip39ProviderImpl::Bip39ProviderImpl(
       std::shared_ptr<Pbkdf2Provider> pbkdf2_provider)
       : pbkdf2_provider_(std::move(pbkdf2_provider)),
-        logger_{common::createLogger("Bip39Provider")} {
+        logger_{log::createLogger("Bip39Provider", "bip39")} {
     dictionary_.initialize();
   }
 

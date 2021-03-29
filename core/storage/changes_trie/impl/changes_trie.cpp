@@ -25,7 +25,7 @@ namespace kagome::storage::changes_trie {
       KeyIndexVariant keyIndex{ExtrinsicsChangesKey{{current_number, key}}};
       OUTCOME_TRY(key_enc, scale::encode(keyIndex));
       OUTCOME_TRY(value, scale::encode(changers));
-      common::Buffer value_buf {std::move(value)};
+      common::Buffer value_buf{std::move(value)};
       OUTCOME_TRY(changes_storage->put(common::Buffer{std::move(key_enc)},
                                        std::move(value_buf)));
     }
@@ -38,7 +38,7 @@ namespace kagome::storage::changes_trie {
                            std::shared_ptr<storage::trie::Codec> codec)
       : changes_trie_{std::move(trie)},
         codec_{std::move(codec)},
-        logger_(common::createLogger("ChangesTrie")) {
+        logger_(log::createLogger("ChangesTrie", "changes_trie")) {
     BOOST_ASSERT(changes_trie_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
   }

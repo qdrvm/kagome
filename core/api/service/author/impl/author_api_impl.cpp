@@ -26,7 +26,7 @@ namespace kagome::api {
         hasher_{std::move(hasher)},
         gossiper_{std::move(gossiper)},
         last_id_{0},
-        logger_{common::createLogger("AuthorApi")} {
+        logger_{log::createLogger("AuthorApi", "author_api")} {
     BOOST_ASSERT_MSG(api_ != nullptr, "author api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
     BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");

@@ -12,12 +12,17 @@
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using namespace crypto;
 using namespace bip39;
 
 struct Bip39EntropyTest : public ::testing::Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     bip39_provider = std::make_shared<Bip39ProviderImpl>(pbkdf2_provider);

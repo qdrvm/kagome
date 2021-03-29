@@ -9,7 +9,7 @@
 
 namespace kagome::network {
   DummySyncProtocolClient::DummySyncProtocolClient()
-      : log_(common::createLogger("DummySyncProtocolClient")) {}
+      : log_(log::createLogger("DummySyncProtocolClient", "network")) {}
 
   void DummySyncProtocolClient::requestBlocks(
       const BlocksRequest &request,

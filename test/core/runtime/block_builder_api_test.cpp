@@ -14,6 +14,7 @@
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace testing;
 using kagome::common::Buffer;
@@ -27,11 +28,14 @@ using kagome::storage::trie::TrieStorageMock;
 
 class BlockBuilderApiTest : public RuntimeTest {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    builder_ =
-        std::make_unique<BlockBuilderImpl>(runtime_env_factory_);
+    builder_ = std::make_unique<BlockBuilderImpl>(runtime_env_factory_);
   }
 
  protected:

@@ -11,6 +11,7 @@
 #include "mock/core/transaction_pool/pool_moderator_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/std_list_adapter.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
@@ -37,11 +38,16 @@ using namespace std::chrono_literals;
 
 class TransactionPoolTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
     auto header_repo = std::make_unique<BlockHeaderRepositoryMock>();
     auto engine = std::make_unique<ExtrinsicSubscriptionEngine>();
-    auto extrinsic_event_key_repo = std::make_unique<ExtrinsicEventKeyRepository>();
+    auto extrinsic_event_key_repo =
+        std::make_unique<ExtrinsicEventKeyRepository>();
 
     pool_ = std::make_shared<TransactionPoolImpl>(
         std::move(moderator),
