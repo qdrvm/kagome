@@ -6,13 +6,13 @@
 #ifndef KAGOME_ASSETS
 #define KAGOME_ASSETS
 
-#include <map>
+#include <vector>
 
 namespace kagome::assets {
 
 #ifdef USE_KAGOME_EMBEDDINGS
   extern const char *const embedded_chainspec;
-  extern const std::map<char const *const, char const *const> embedded_keys;
+  extern const std::vector<std::pair<const char *, const char *>> embedded_keys;
 #endif  // USE_KAGOME_EMBEDDINGS
 
 }  // namespace kagome::assets
