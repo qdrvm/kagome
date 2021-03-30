@@ -14,6 +14,8 @@ namespace kagome::application {
 
   class AppConfigurationMock : public AppConfiguration {
    public:
+    MOCK_CONST_METHOD0(roles, network::Roles());
+
     MOCK_CONST_METHOD0(genesisPath, boost::filesystem::path());
 
     MOCK_CONST_METHOD1(chainPath,

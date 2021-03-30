@@ -140,16 +140,13 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
                         "--base_path",
                         base_path.native().c_str()};
 
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
 
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
-  ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
 /**
@@ -178,10 +175,8 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
       "2222",
   };
 
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
 
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
@@ -199,9 +194,8 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
                         "--base_path",
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+
+      sizeof(args) / sizeof(args[0]), (char **)args));
 
   ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
 }
@@ -230,10 +224,8 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
       "2222",
   };
 
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
 
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
@@ -251,10 +243,8 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
       get_endpoint("2.2.2.2", 678);
 
   char const *args[] = {"/path/", "--config_file", config_path.c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
 
   ASSERT_EQ(app_config_->genesisPath(), genesis_path);
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -265,7 +255,6 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
-  ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }
 
 /**
@@ -287,10 +276,8 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
                         genesis_path.native().c_str(),
                         "--config_file",
                         invalid_config_path.c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
 
   ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -301,7 +288,6 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
-  ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
 /**
@@ -322,10 +308,8 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
                         genesis_path.native().c_str(),
                         "--config_file",
                         damaged_config_path.c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
 
   ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -336,7 +320,6 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
-  ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
 /**
@@ -357,10 +340,8 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
                         genesis_path.native().c_str(),
                         "--config_file",
                         "<some_file>"};
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
 
   ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
@@ -371,30 +352,6 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
   ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
-  ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
-}
-
-/**
- * @given new created AppConfigurationImpl
- * @when --single_finalizing_node cmd line arg is provided
- * @then we must receive this value from is_single_finalizing_node() call
- */
-TEST_F(AppConfigurationTest, OnlyFinalizeTest) {
-  char const *args[] = {
-      "/path/",
-      "--single_finalizing_node",
-      "true",
-      "--genesis",
-      genesis_path.native().c_str(),
-      "--base_path",
-      base_path.native().c_str(),
-  };
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
-
-  ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }
 
 /**
@@ -409,9 +366,8 @@ TEST_F(AppConfigurationTest, KeystorePathTest) {
                         "--base_path",
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+
+      sizeof(args) / sizeof(args[0]), (char **)args));
 
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
@@ -430,10 +386,8 @@ TEST_F(AppConfigurationTest, base_pathPathTest) {
                         genesis_path.native().c_str(),
                         "--base_path",
                         base_path.native().c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
 
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
@@ -459,9 +413,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
+        sizeof(args) / sizeof(args[0]), (char **)args));
     ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   }
   {
@@ -475,9 +427,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
+        sizeof(args) / sizeof(args[0]), (char **)args));
     ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::VERBOSE);
   }
   {
@@ -491,9 +441,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
+        sizeof(args) / sizeof(args[0]), (char **)args));
     ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
   }
   {
@@ -507,9 +455,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         base_path.native().c_str(),
     };
     ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
+        sizeof(args) / sizeof(args[0]), (char **)args));
     ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::TRACE);
   }
 }
@@ -527,47 +473,7 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
                         genesis_path.native().c_str(),
                         "--base_path",
                         base_path.native().c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
+  ASSERT_TRUE(app_config_->initialize_from_args(sizeof(args) / sizeof(args[0]),
+                                                (char **)args));
   ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
-}
-
-/**
- * @given new created AppConfigurationImpl
- * @when is_only_finalize present
- * @then we should receve true from the call
- */
-TEST_F(AppConfigurationTest, OnlyFinalizeTestTest) {
-  char const *args[] = {"/path/",
-                        "-f",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
-                        base_path.native().c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
-  ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
-}
-
-/**
- * @given new created AppConfigurationImpl
- * @when is_only_finalize present
- * @then we should receve true from the call
- */
-TEST_F(AppConfigurationTest, OnlyFinalizeTestTest_2) {
-  char const *args[] = {"/path/",
-                        "--single_finalizing_node",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
-                        base_path.native().c_str()};
-  ASSERT_TRUE(app_config_->initialize_from_args(
-      AppConfiguration::LoadScheme::kValidating,
-      sizeof(args) / sizeof(args[0]),
-      (char **)args));
-  ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }

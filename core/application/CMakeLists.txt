@@ -51,3 +51,14 @@ add_library(app_state_manager
 target_link_libraries(app_state_manager
     logger
     )
+
+add_library(kagome_application
+    impl/all_in_one_application.cpp
+    )
+target_link_libraries(kagome_application
+    validating_node_injector
+    blob
+    application_util
+    log_configurator
+   )
+

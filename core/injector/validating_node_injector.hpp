@@ -141,27 +141,7 @@ namespace kagome::injector {
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(
             [](auto const &inj) { return get_babe(inj); }),
-        di::bind<runtime::GrandpaApi>.template to(
-            [](const auto &injector) -> sptr<runtime::GrandpaApi> {
-              static boost::optional<sptr<runtime::GrandpaApi>> initialized =
-                  boost::none;
-              if (initialized) {
-                return *initialized;
-              }
-              application::AppConfiguration const &config =
-                  injector
-                      .template create<application::AppConfiguration const &>();
-              if (config.isOnlyFinalizing()) {
-                auto grandpa_api = injector.template create<
-                    sptr<runtime::binaryen::GrandpaApiImpl>>();
-                initialized = grandpa_api;
-              } else {
-                auto grandpa_api = injector.template create<
-                    sptr<runtime::binaryen::GrandpaApiImpl>>();
-                initialized = grandpa_api;
-              }
-              return *initialized;
-            })[di::override],
+        di::bind<runtime::GrandpaApi>.template to<runtime::binaryen::GrandpaApiImpl>()[di::override],
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

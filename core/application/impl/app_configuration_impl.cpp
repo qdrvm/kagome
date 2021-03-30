@@ -41,10 +41,10 @@ namespace kagome::application {
 
   AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
       : logger_(std::move(logger)),
+        roles_(0),
         p2p_port_(def_p2p_port),
         verbosity_(static_cast<log::Level>(def_verbosity)),
         is_already_synchronized_(def_is_already_synchronized),
-        is_only_finalizing_(def_is_only_finalizing),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         is_unix_slots_strategy_(def_is_unix_slots_strategy),
         rpc_http_host_(def_rpc_http_host),
@@ -142,6 +142,15 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
+    std::string roles_str;
+    load_str(val, "role", roles_str);
+    if (roles_str == "full") {
+      roles_.flags.full = 1;
+    } else if (roles_str == "light") {
+      roles_.flags.light = 1;
+    } else if (roles_str == "authority") {
+      roles_.flags.authority = 1;
+    }
     uint16_t v{};
     if (not load_u16(val, "verbosity", v)) {
       return;
@@ -175,26 +184,24 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
-    load_bool(val, "single_finalizing_node", is_only_finalizing_);
     load_bool(val, "already_synchronized", is_already_synchronized_);
     load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
     load_bool(val, "is_unix_slots_strategy", is_unix_slots_strategy_);
   }
 
-  bool AppConfigurationImpl::validate_config(
-      AppConfiguration::LoadScheme scheme) {
+  bool AppConfigurationImpl::validate_config() {
     if (not fs::exists(genesis_path_)) {
       logger_->error(
-          "Path to genesis {} does not exist, please specify a valid path with "
-          "-g option",
+          "Path to genesis {} does not exist, "
+          "please specify a valid path with -g option",
           genesis_path_);
       return false;
     }
 
     if (base_path_.empty() or !fs::createDirectoryRecursive(base_path_)) {
       logger_->error(
-          "Base path {} does not exist, please specify a valid path with \"\n"
-          "          \"-d option",
+          "Base path {} does not exist, "
+          "please specify a valid path with -d option",
           base_path_);
       return false;
     }
@@ -280,8 +287,7 @@ namespace kagome::application {
     return endpoint;
   }
 
-  bool AppConfigurationImpl::initialize_from_args(
-      AppConfiguration::LoadScheme scheme, int argc, char **argv) {
+  bool AppConfigurationImpl::initialize_from_args(int argc, char **argv) {
     namespace po = boost::program_options;
 
     // clang-format off
@@ -289,6 +295,7 @@ namespace kagome::application {
     desc.add_options()
         ("help,h", "show this help message")
         ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no log")
+        ("role", po::value<std::string>(), "Role of node: light, full, authority")
         ("config_file,c", po::value<std::string>(), "Filepath to load configuration from.")
         ;
 
@@ -317,7 +324,6 @@ namespace kagome::application {
 
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
-        ("single_finalizing_node,f", "if this is the only finalizing node")
         ("already_synchronized,s", "if need to consider synchronized")
         ("unix_slots,u", "if slots are calculated from unix epoch")
         ;
@@ -356,9 +362,25 @@ namespace kagome::application {
       read_config_from_file(path);
     });
 
-    /// aggregate data from command line args
-    if (vm.end() != vm.find("single_finalizing_node"))
-      is_only_finalizing_ = true;
+    std::string role;
+    find_argument<std::string>(
+        vm, "role", [&](std::string const &val) { role = val; });
+    if (role == "full") {
+      roles_.flags.full = 1;
+    } else if (role == "light") {
+      roles_.flags.light = 1;
+    } else if (role == "authority") {
+      roles_.flags.authority = 1;
+    } else if (not role.empty()) {
+      auto err_msg = "Provided role is invalid: " + role;
+      logger_->error(err_msg);
+      std::cout << err_msg << std::endl;
+      return false;
+    } else {
+      roles_.flags.full = 1;
+    }
+
+    // aggregate data from command line args
 
     if (vm.end() != vm.find("already_synchronized"))
       is_already_synchronized_ = true;
@@ -457,7 +479,7 @@ namespace kagome::application {
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
 
     // if something wrong with config print help message
-    if (not validate_config(scheme)) {
+    if (not validate_config()) {
       std::cout << desc << std::endl;
       return false;
     }

@@ -3,18 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "application/impl/syncing_node_application.hpp"
+#include "application/impl/all_in_one_application.hpp"
 
 #include "application/impl/util.hpp"
-#include "network/common.hpp"
 
 namespace kagome::application {
 
-  SyncingNodeApplication::SyncingNodeApplication(
-      const AppConfiguration &app_config)
-      : injector_{injector::makeSyncingNodeInjector(app_config)},
-        logger_(log::createLogger("SyncingNodeApplication", "application")) {
+  AllInOneApplication::AllInOneApplication(const AppConfiguration &app_config)
+      : injector_{injector::makeValidatingNodeInjector(app_config)},
+        logger_(log::createLogger("AllInOneApplication", "application")) {
     log::setLevelOfGroup("main", app_config.verbosity());
+
+    if (app_config.isAlreadySynchronized()) {
+      babe_execution_strategy_ = Babe::ExecutionStrategy::START;
+    } else {
+      babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;
+    }
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
@@ -24,14 +28,18 @@ namespace kagome::application {
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
     chain_path_ = app_config.chainPath(chain_spec_->id());
+
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
+    clock_ = injector_.create<sptr<clock::SystemClock>>();
+    babe_ = injector_.create<sptr<Babe>>();
+    grandpa_ = injector_.create<sptr<Grandpa>>();
     router_ = injector_.create<sptr<network::Router>>();
     peer_manager_ = injector_.create<sptr<network::PeerManager>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
-  void SyncingNodeApplication::run() {
-    logger_->info("Start as SyncingNode with PID {}", getpid());
+  void AllInOneApplication::run() {
+    logger_->info("Start as ValidatingNode with PID {}", getpid());
 
     auto res = util::init_directory(chain_path_);
     if (not res) {
@@ -40,6 +48,8 @@ namespace kagome::application {
                         res.error().message());
       exit(EXIT_FAILURE);
     }
+
+    babe_->setExecutionStrategy(babe_execution_strategy_);
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });

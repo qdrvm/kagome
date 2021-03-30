@@ -6,25 +6,41 @@
 #include <iostream>
 
 #include <boost/program_options.hpp>
+#include <libp2p/log/configurator.hpp>
+
 #include "application/impl/app_configuration_impl.hpp"
 #include "application/impl/validating_node_application.hpp"
+#include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 
-using kagome::application::AppConfiguration;
-using kagome::application::AppConfigurationImpl;
+using namespace kagome;
+using application::AppConfiguration;
+using application::AppConfigurationImpl;
 
 int main(int argc, char **argv) {
-  // TODO(xDimon): Use real logger. It's changed for probe
-  //  auto logger = kagome::log::createLogger("Kagome block producing and validating node: ");
-  auto logger = kagome::log::Logger();
+  {
+    auto logging_system = std::make_shared<soralog::LoggingSystem>(
+        std::make_shared<kagome::log::Configurator>(
+            std::make_shared<libp2p::log::Configurator>()));
+
+    auto r = logging_system->configure();
+    if (not r.message.empty()) {
+      (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
+    }
+    if (r.has_error) {
+      exit(EXIT_FAILURE);
+    }
+
+    kagome::log::setLoggingSystem(logging_system);
+  }
+
+  auto logger = kagome::log::createLogger("AppConfiguration", "main");
   AppConfigurationImpl configuration{logger};
 
-  if (configuration.initialize_from_args(
-          AppConfiguration::LoadScheme::kValidating, argc, argv)) {
-    auto &&app =
-        std::make_shared<kagome::application::ValidatingNodeApplication>(
-            configuration);
+  if (configuration.initialize_from_args(argc, argv)) {
+    auto app =
+        std::make_shared<application::ValidatingNodeApplication>(configuration);
     app->run();
   }
 

@@ -17,6 +17,7 @@
 #include "crypto/ed25519_types.hpp"
 #include "log/logger.hpp"
 #include "network/peering_config.hpp"
+#include "network/types/roles.hpp"
 
 namespace kagome::application {
 
@@ -31,13 +32,13 @@ namespace kagome::application {
     static_assert(kAbsolutMinBlocksInResponse <= kAbsolutMaxBlocksInResponse,
                   "Check max and min page bounding values!");
 
-    enum struct LoadScheme {
-      kValidating,
-      kFullSyncing,
-    };
-
    public:
     virtual ~AppConfiguration() = default;
+
+    /**
+     * @return roles of current run
+     */
+    virtual network::Roles roles() const = 0;
 
     /**
      * @return file path with genesis configuration.
@@ -99,11 +100,6 @@ namespace kagome::application {
      * @return log level (0-trace, 5-only critical, 6-no logs).
      */
     virtual log::Level verbosity() const = 0;
-
-    /**
-     * @return true if node in only finalizing mode, otherwise false.
-     */
-    virtual bool isOnlyFinalizing() const = 0;
 
     /**
      * If whole nodes was stopped, would not any active node to synchronize.
