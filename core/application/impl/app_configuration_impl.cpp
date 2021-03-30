@@ -11,6 +11,8 @@
 #include <rapidjson/filereadstream.h>
 #include <boost/program_options.hpp>
 
+#include "assets/assets.hpp"
+#include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "filesystem/directories.hpp"
 
@@ -365,27 +367,62 @@ namespace kagome::application {
 
     // Setup default development settings (and wipe if needed)
     if (vm.count("dev") > 0 or vm.count("dev-with-wipe") > 0) {
-      dev_mode_ = true;
+      constexpr auto with_kagome_embeddings =
+#ifdef USE_KAGOME_EMBEDDINGS
+          true;
+#else
+          false;
+#endif  // USE_KAGOME_EMBEDDINGS
 
-      genesis_path_ = "localchain.json";
-      base_path_ = "/tmp/kagome_dev_base_path";
+      if constexpr (not with_kagome_embeddings) {
+        std::cerr << "Warning: developers mode is not available. "
+                     "Application was build without developers embeddings "
+                     "(EMBEDDINGS option is OFF)."
+                  << std::endl;
+        return false;
+      } else {
+        dev_mode_ = true;
 
-      // Wipe base directory on demand
-      if (vm.count("dev-with-wipe") > 0) {
-        boost::filesystem::remove_all(base_path_);
+        genesis_path_ = "/tmp/kagome_dev/chainspec.json";
+        base_path_ = "/tmp/kagome_dev/base_path";
+
+        // Wipe base directory on demand
+        if (vm.count("dev-with-wipe") > 0) {
+          boost::filesystem::remove_all("/tmp/kagome_dev");
+        }
+
+        if (not boost::filesystem::exists(genesis_path_)) {
+          boost::filesystem::create_directories(genesis_path_.parent_path());
+
+          std::ofstream ofs;
+          ofs.open(genesis_path_.native(), std::ios::ate);
+          ofs << kagome::assets::embedded_chainspec;
+          ofs.close();
+
+          auto chain_spec = ChainSpecImpl::loadFrom(genesis_path_.native());
+          auto path = keystorePath(chain_spec.value()->id());
+
+          boost::filesystem::create_directories(path);
+
+          for (auto key_descr : kagome::assets::embedded_keys) {
+            ofs.open((path / key_descr.first).native(), std::ios::ate);
+            ofs << key_descr.second;
+            ofs.close();
+          }
+        }
+
+        p2p_port_ = def_p2p_port;
+        is_already_synchronized_ = true;
+        rpc_http_host_ = def_rpc_http_host;
+        rpc_ws_host_ = def_rpc_ws_host;
+        rpc_http_port_ = def_rpc_http_port;
+        rpc_ws_port_ = def_rpc_ws_port;
+
+        auto ma_res =
+            libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
+        assert(ma_res.has_value());
+        listen_addresses_.emplace_back(std::move(ma_res.value()));
       }
-
-      p2p_port_ = def_p2p_port;
-      is_already_synchronized_ = true;
-      rpc_http_host_ = def_rpc_http_host;
-      rpc_ws_host_ = def_rpc_ws_host;
-      rpc_http_port_ = def_rpc_http_port;
-      rpc_ws_port_ = def_rpc_ws_port;
-
-      auto ma_res =
-          libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
-      assert(ma_res.has_value());
-      listen_addresses_.emplace_back(std::move(ma_res.value()));
     }
 
     find_argument<std::string>(vm, "config_file", [&](std::string const &path) {

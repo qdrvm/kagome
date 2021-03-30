@@ -72,6 +72,7 @@ target_link_libraries(application_injector
     kademlia_storage_backend
     peer_manager
     babe_util
+    assets
     )
 
 add_library(syncing_node_injector

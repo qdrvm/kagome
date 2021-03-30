@@ -595,29 +595,10 @@ namespace kagome::injector {
 
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto genesis_config =
+    auto chainspec =
         injector.template create<sptr<application::ChainSpec>>();
 
-    auto path = config.keystorePath(genesis_config->id());
-
-    if (config.isRunInDevMode()) {
-      boost::filesystem::create_directories(path);
-      std::ofstream ofs;
-
-      // Create predefined keys for 'Alice' user
-      // clang-format off
-      ofs.open((path / "babed43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").native(), std::ios::ate);
-      ofs << "e5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a";
-      ofs.close();
-      ofs.open((path / "gran88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee").native(), std::ios::ate);
-      ofs << "abf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115";
-      ofs.close();
-      ofs.open((path / "lp2p48453469c62f4885373099421a7365520b5ffb0d93726c124166be4b81d852e6").native(), std::ios::ate);
-      ofs << "4a9361c525840f7086b893d584ebbe475b4ec7069951d2e897e8bceb0a3f35ce";
-      ofs.close();
-      // clang-format on
-    }
-
+    auto path = config.keystorePath(chainspec->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
     if (not key_file_storage_res) {
       common::raise(key_file_storage_res.error());
