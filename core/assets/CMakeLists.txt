@@ -77,7 +77,16 @@ else()
         OUTPUT ${OUTPUT}
         PRE_BUILD
         COMMAND echo ARGS "// Chain-spec was not embed. EMBEDDINGS option is OFF" > ${OUTPUT}
+        && echo >> ${OUTPUT}
+        && echo "#include <assets/assets.hpp>" >> ${OUTPUT}
+        && echo >> ${OUTPUT}
+        && echo "namespace kagome::assets {" >> "${OUTPUT}"
+        && echo >> ${OUTPUT}
+        && echo "  const char *const embedded_chainspec = nullptr;" >> ${OUTPUT}
+        && echo >> ${OUTPUT}
+        && echo "}  // namespace kagome::assets" >> ${OUTPUT}
         COMMENT "Generating empty ${OUTPUT}"
+        VERBATIM
     )
     target_sources(assets PRIVATE ${OUTPUT})
 
@@ -86,7 +95,18 @@ else()
         OUTPUT ${OUTPUT}
         PRE_BUILD
         COMMAND echo ARGS "// Keys was not embed. EMBEDDINGS option is OFF" > ${OUTPUT}
+        && echo >> ${OUTPUT}
+        && echo "#include <assets/assets.hpp>" >> ${OUTPUT}
+        && echo >> ${OUTPUT}
+        && echo "#include <vector>" >> ${OUTPUT}
+        && echo >> ${OUTPUT}
+        && echo "namespace kagome::assets {" >> "${OUTPUT}"
+        && echo >> ${OUTPUT}
+        && echo "  const std::vector<std::pair<const char *, const char *>> embedded_keys;" >> ${OUTPUT}
+        && echo >> ${OUTPUT}
+        && echo "}  // namespace kagome::assets" >> ${OUTPUT}
         COMMENT "Generating empty ${OUTPUT}"
+        VERBATIM
     )
     target_sources(assets PRIVATE ${OUTPUT})
 endif()
