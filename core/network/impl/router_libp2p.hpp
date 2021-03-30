@@ -14,6 +14,7 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 #include "crypto/hasher.hpp"
+#include "libp2p/connection/loopback_stream.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -25,7 +26,6 @@
 #include "network/extrinsic_observer.hpp"
 #include "network/gossiper.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
-#include "network/impl/loopback_stream.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/router.hpp"
@@ -200,7 +200,7 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<Gossiper> gossiper_;
-    std::weak_ptr<LoopbackStream> loopback_stream_;
+    std::weak_ptr<libp2p::connection::LoopbackStream> loopback_stream_;
     log::Logger log_;
 
     std::shared_ptr<blockchain::BlockStorage> storage_;

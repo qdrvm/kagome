@@ -85,7 +85,8 @@ namespace kagome::network {
 
     gossiper_->storeSelfPeerInfo(own_info_);
 
-    auto stream = std::make_shared<LoopbackStream>(own_info_);
+    auto stream =
+        std::make_shared<libp2p::connection::LoopbackStream>(own_info_);
     loopback_stream_ = stream;
     [[maybe_unused]] auto res =
         stream_engine_->add(std::move(stream), kGossipProtocol);

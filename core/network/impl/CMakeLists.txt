@@ -3,14 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(loopback_stream
-    loopback_stream.cpp
-    loopback_stream.hpp
-    )
-target_link_libraries(loopback_stream
-    logger
-    )
-
 add_library(gossiper_broadcast
     gossiper_broadcast.cpp
     gossiper_broadcast.hpp
@@ -28,7 +20,7 @@ target_link_libraries(kagome_router
     logger
     outcome
     scale
-    loopback_stream
+    p2p::p2p_loopback_stream
     node_api_proto
     adapter_errors
     )

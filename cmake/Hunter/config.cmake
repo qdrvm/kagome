@@ -16,7 +16,7 @@
 # )
 
 hunter_config(libp2p
-    URL  "https://github.com/libp2p/cpp-libp2p/archive/45c1f5babc8319715503207d391aee4105b7ddec.tar.gz"
-    SHA1 "1e00525ece5e30a4992db4f8487c2b28677507ff"
-    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF
+    URL  "https://github.com/igor-egorov/cpp-libp2p/archive/feature/loopbackstream.tar.gz"
+    SHA1 "5c2acd794473cd35664ef5ab007423083efe28d7"
+    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF DUMMY=1
     )
