@@ -22,6 +22,8 @@ target_link_libraries(app_config_impl
     Boost::program_options
     p2p::p2p_multiaddress
     blob
+    assets
+    configuration_storage
     )
 
 add_library(syncing_node_application
