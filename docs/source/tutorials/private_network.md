@@ -16,11 +16,11 @@ To start with let's navigate into the node's folder:
 
 ```shell script
 kagome_validating \
-    --genesis testchain.json \
-    --base_path validating1 \
-    --p2p_port 11122 \
-    --rpc_http_port 11133 \
-    --rpc_ws_port 11144 \
+    --chain testchain.json \
+    --base-path validating1 \
+    --port 11122 \
+    --rpc-port 11133 \
+    --ws-port 11144 \
     --single_finalizing_node \
     --already_synchronized
 ```
@@ -31,11 +31,11 @@ Now that validating node is up and running, second node can join the network by 
 
 ```shell script
 kagome_validating \
-    --genesis testchain.json \
-    --base_path validating2 \
-    --p2p_port 11222 \
-    --rpc_http_port 11233 \
-    --rpc_ws_port 11244
+    --chain testchain.json \
+    --base-path validating2 \
+    --port 11222 \
+    --rpc-port 11233 \
+    --ws-port 11244
 ```
 
 Second node passes several steps before actual block production begins:
@@ -56,7 +56,7 @@ Syncing node cannot participate in either block production or block finalization
 To start syncing node `kagome_full_syncing` binary is used as follows:
 
 ```shell script
-kagome_full_syncing --genesis testchain.json --base_path syncing1 --p2p_port 21122 --rpc_http_port 21133 --rpc_ws_port 21144
+kagome_full_syncing --chain testchain.json --base-path syncing1 --port 21122 --rpc-port 21133 --ws-port 21144
 ```
 
 Note that trie root is the same with validating nodes. When syncing node receives block announcement it first synchronizes missing blocks and then listens to the new blocks and finalization. 
