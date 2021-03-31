@@ -53,7 +53,7 @@ namespace kagome::application {
         rpc_ws_port_(def_rpc_ws_port) {}
 
   fs::path AppConfigurationImpl::genesisPath() const {
-    return genesis_path_.native();
+    return chain_spec_path_.native();
   }
 
   boost::filesystem::path AppConfigurationImpl::chainPath(
@@ -150,7 +150,7 @@ namespace kagome::application {
   void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
     std::string genesis_path_str;
     load_str(val, "chain", genesis_path_str);
-    genesis_path_ = fs::path(genesis_path_str);
+    chain_spec_path_ = fs::path(genesis_path_str);
   }
 
   void AppConfigurationImpl::parse_storage_segment(rapidjson::Value &val) {
@@ -178,11 +178,11 @@ namespace kagome::application {
 
   bool AppConfigurationImpl::validate_config(
       AppConfiguration::LoadScheme scheme) {
-    if (not fs::exists(genesis_path_)) {
+    if (not fs::exists(chain_spec_path_)) {
       logger_->error(
           "Path to genesis {} does not exist, please specify a valid path with "
-          "-g option",
-          genesis_path_);
+          "--chain option",
+          chain_spec_path_);
       return false;
     }
 
@@ -204,14 +204,14 @@ namespace kagome::application {
     if (rpc_ws_port_ == 0) {
       logger_->error(
           "RPC ws port is 0, please specify a valid path with \"\n"
-          "          --rpc_ws_port\" option");
+          "          --ws-port\" option");
       return false;
     }
 
     if (rpc_http_port_ == 0) {
       logger_->error(
           "RPC http port is 0, please specify a valid path with \"\n"
-          "          --rpc_http_port\" option");
+          "          --rpc-port\" option");
       return false;
     }
 
@@ -284,12 +284,12 @@ namespace kagome::application {
     desc.add_options()
         ("help,h", "show this help message")
         ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no log")
-        ("config_file,c", po::value<std::string>(), "Filepath to load configuration from.")
+        ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
         ;
 
     po::options_description blockhain_desc("Blockchain options");
     blockhain_desc.add_options()
-        ("chain,g", po::value<std::string>(), "required, configuration file path")
+        ("chain", po::value<std::string>(), "required, chainspec file path")
         ;
 
     po::options_description storage_desc("Storage options");
@@ -347,7 +347,7 @@ namespace kagome::application {
       return false;
     }
 
-    find_argument<std::string>(vm, "config_file", [&](std::string const &path) {
+    find_argument<std::string>(vm, "config-file", [&](std::string const &path) {
       read_config_from_file(path);
     });
 
@@ -361,7 +361,7 @@ namespace kagome::application {
     if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
-        vm, "chain", [&](const std::string &val) { genesis_path_ = val; });
+        vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
 
     find_argument<std::string>(
         vm, "base-path", [&](const std::string &val) { base_path_ = val; });
