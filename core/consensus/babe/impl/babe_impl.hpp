@@ -30,7 +30,7 @@
 #include "primitives/common.hpp"
 #include "storage/trie/trie_storage.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   inline const auto kTimestampId =
       primitives::InherentIdentifier::fromString("timstap0").value();
@@ -158,8 +158,9 @@ namespace kagome::consensus {
      * @param first_production_slot slot number where block production starts
      * @return first production epoch structure
      */
-    EpochDescriptor prepareFirstEpochUnixTime(EpochDescriptor last_known_epoch,
-                                    BabeSlotNumber first_production_slot) const;
+    EpochDescriptor prepareFirstEpochUnixTime(
+        EpochDescriptor last_known_epoch,
+        BabeSlotNumber first_production_slot) const;
 
     /**
      * To be called if we are far behind other nodes to skip some slots and
@@ -207,6 +208,6 @@ namespace kagome::consensus {
 
     common::Logger log_;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BABE_IMPL_HPP

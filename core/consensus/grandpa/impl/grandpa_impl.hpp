@@ -41,7 +41,7 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
-                std::shared_ptr<consensus::Babe> babe);
+                std::shared_ptr<consensus::babe::Babe> babe);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -108,7 +108,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
 
     bool is_ready_ = false;
-    std::shared_ptr<consensus::Babe> babe_;
+    std::shared_ptr<consensus::babe::Babe> babe_;
 
     const Clock::Duration catch_up_request_suppression_duration_ =
         std::chrono::seconds(15);

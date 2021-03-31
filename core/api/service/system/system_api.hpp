@@ -22,7 +22,7 @@ namespace kagome::api {
 
     virtual std::shared_ptr<application::ChainSpec> getConfig() const = 0;
 
-    virtual std::shared_ptr<consensus::Babe> getBabe() const = 0;
+    virtual std::shared_ptr<consensus::babe::Babe> getBabe() const = 0;
 
     virtual std::shared_ptr<network::Gossiper> getGossiper() const = 0;
 

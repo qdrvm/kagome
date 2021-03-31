@@ -8,8 +8,16 @@
 
 #include "application/kagome_application.hpp"
 
+#include <boost/filesystem/path.hpp>
+
+#include "injector/application_injector.hpp"
+#include "application/app_configuration.hpp"
+#include "application/chain_spec.hpp"
+#include "application/app_state_manager.hpp"
+#include "network/router.hpp"
+#include "network/peer_manager.hpp"
+#include "api/service/api_service.hpp"
 #include "common/logger.hpp"
-#include "injector/syncing_node_injector.hpp"
 
 namespace kagome::application {
 
@@ -21,9 +29,6 @@ namespace kagome::application {
     using uptr = std::unique_ptr<T>;
 
    public:
-    using InjectorType = decltype(injector::makeSyncingNodeInjector(
-        std::declval<AppConfiguration const &>()));
-
     ~SyncingNodeApplication() override = default;
 
     explicit SyncingNodeApplication(const AppConfiguration &app_config);
@@ -31,19 +36,16 @@ namespace kagome::application {
     void run() override;
 
    private:
-    // need to keep all of these instances, since injector itself is destroyed
-    InjectorType injector_;
     common::Logger logger_;
 
-    sptr<ChainSpec> chain_spec_;
-    boost::filesystem::path chain_path_;
-
+    uptr<injector::SyncingNodeInjector> injector_;
     sptr<AppStateManager> app_state_manager_;
     sptr<boost::asio::io_context> io_context_;
     sptr<network::Router> router_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;
-
+    sptr<ChainSpec> chain_spec_;
+    boost::filesystem::path chain_path_;
   };
 
 }  // namespace kagome::application

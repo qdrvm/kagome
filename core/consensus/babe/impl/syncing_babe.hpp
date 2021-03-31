@@ -9,7 +9,7 @@
 #include "consensus/babe/babe.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   class SyncingBabe : public Babe {
    public:
@@ -37,6 +37,6 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_CONSENSUS_BABESYNCING

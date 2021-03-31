@@ -6,38 +6,42 @@
 #include "application/impl/validating_node_application.hpp"
 
 #include "application/impl/util.hpp"
+#include "injector/application_injector.hpp"
 #include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 
 namespace kagome::application {
 
   ValidatingNodeApplication::ValidatingNodeApplication(
       const AppConfiguration &app_config)
-      : injector_{injector::makeValidatingNodeInjector(app_config)},
-        logger_(common::createLogger("Application")) {
+      : logger_{common::createLogger("Application")},
+        injector_{
+            std::make_unique<injector::ValidatingNodeInjector>(app_config)} {
     spdlog::set_level(app_config.verbosity());
 
     if (app_config.isAlreadySynchronized()) {
-      babe_execution_strategy_ = Babe::ExecutionStrategy::START;
+      babe_execution_strategy_ =
+          consensus::babe::Babe::ExecutionStrategy::START;
     } else {
-      babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;
+      babe_execution_strategy_ =
+          consensus::babe::Babe::ExecutionStrategy::SYNC_FIRST;
     }
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
-    chain_spec_ = injector_.create<sptr<ChainSpec>>();
+    chain_spec_ = injector_->injectChainSpec();
     BOOST_ASSERT(chain_spec_ != nullptr);
 
-    app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
+    app_state_manager_ = injector_->injectAppStateManager();
 
     chain_path_ = app_config.chainPath(chain_spec_->id());
 
-    io_context_ = injector_.create<sptr<boost::asio::io_context>>();
-    clock_ = injector_.create<sptr<clock::SystemClock>>();
-    babe_ = injector_.create<sptr<Babe>>();
-    grandpa_ = injector_.create<sptr<Grandpa>>();
-    router_ = injector_.create<sptr<network::Router>>();
-    peer_manager_ = injector_.create<sptr<network::PeerManager>>();
-    jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
+    io_context_ = injector_->injectIoContext();
+    clock_ = injector_->injectSystemClock();
+    babe_ = injector_->injectBabe();
+    grandpa_ = injector_->injectGrandpa();
+    router_ = injector_->injectRouter();
+    peer_manager_ = injector_->injectPeerManager();
+    jrpc_api_service_ = injector_->injectRpcApiService();
   }
 
   void ValidatingNodeApplication::run() {

@@ -23,7 +23,7 @@ namespace kagome::api {
    public:
     SystemApiImpl(
         std::shared_ptr<application::ChainSpec> config,
-        std::shared_ptr<consensus::Babe> babe,
+        std::shared_ptr<consensus::babe::Babe> babe,
         std::shared_ptr<network::Gossiper> gossiper,
         std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
         std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
@@ -31,7 +31,7 @@ namespace kagome::api {
 
     std::shared_ptr<application::ChainSpec> getConfig() const override;
 
-    std::shared_ptr<consensus::Babe> getBabe() const override;
+    std::shared_ptr<consensus::babe::Babe> getBabe() const override;
 
     std::shared_ptr<network::Gossiper> getGossiper() const override;
 
@@ -49,7 +49,7 @@ namespace kagome::api {
         primitives::AccountNonce current_nonce) const;
 
     std::shared_ptr<application::ChainSpec> config_;
-    std::shared_ptr<consensus::Babe> babe_;
+    std::shared_ptr<consensus::babe::Babe> babe_;
     std::shared_ptr<network::Gossiper> gossiper_;
     std::shared_ptr<runtime::AccountNonceApi> account_nonce_api_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;

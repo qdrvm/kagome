@@ -16,7 +16,7 @@ namespace kagome::api {
 
   SystemApiImpl::SystemApiImpl(
       std::shared_ptr<application::ChainSpec> config,
-      std::shared_ptr<consensus::Babe> babe,
+      std::shared_ptr<consensus::babe::Babe> babe,
       std::shared_ptr<network::Gossiper> gossiper,
       std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
@@ -39,7 +39,7 @@ namespace kagome::api {
     return config_;
   }
 
-  std::shared_ptr<consensus::Babe> SystemApiImpl::getBabe() const {
+  std::shared_ptr<consensus::babe::Babe> SystemApiImpl::getBabe() const {
     return babe_;
   }
 
