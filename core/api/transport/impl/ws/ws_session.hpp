@@ -12,12 +12,12 @@
 #include <queue>
 
 #include <boost/asio/strand.hpp>
+#include <boost/beast/core/multi_buffer.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/websocket.hpp>
-#include <boost/beast/core/multi_buffer.hpp>
 
 #include "api/transport/session.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::api {
 
@@ -130,8 +130,7 @@ namespace kagome::api {
     boost::asio::ip::tcp::socket socket_;
 
     Configuration config_;  ///< session configuration
-    boost::beast::websocket::stream<boost::asio::ip::tcp::socket &>
-        stream_;
+    boost::beast::websocket::stream<boost::asio::ip::tcp::socket &> stream_;
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
     boost::beast::flat_buffer wbuffer_;  ///< write buffer
 
@@ -140,8 +139,7 @@ namespace kagome::api {
     std::atomic_bool writing_in_progress_ = false;
 
     SessionId const id_;
-    common::Logger logger_ =
-        common::createLogger("websocket session");
+    log::Logger logger_ = log::createLogger("WsSession", "rpc_transport");
   };
 
 }  // namespace kagome::api

@@ -10,12 +10,18 @@
 #include <fstream>
 
 #include "application/impl/app_configuration_impl.hpp"
+#include "log/logger.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
 class AppConfigurationTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   boost::filesystem::path tmp_dir = boost::filesystem::temp_directory_path()
                                     / boost::filesystem::unique_path();
   std::string config_path = (tmp_dir / "config.json").native();
@@ -100,13 +106,14 @@ class AppConfigurationTest : public testing::Test {
 
     spawn_file(config_path,
                (boost::format(file_content) % chain_path.native()
-                   % base_path.native()).str());
+                % base_path.native())
+                   .str());
     spawn_file(invalid_config_path, invalid_file_content);
     spawn_file(damaged_config_path, damaged_file_content);
     spawn_file(chain_path.native(), "");
     ASSERT_TRUE(boost::filesystem::create_directory(base_path));
 
-    auto logger = kagome::common::createLogger("App config test");
+    auto logger = kagome::log::createLogger("AppConfigTest", "testing");
     app_config_ = std::make_shared<AppConfigurationImpl>(logger);
   }
 
@@ -141,7 +148,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
@@ -257,7 +264,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 456);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), true);
 }
 
@@ -293,7 +300,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
@@ -328,7 +335,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
@@ -363,7 +370,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   ASSERT_EQ(app_config_->isOnlyFinalizing(), false);
 }
 
@@ -438,7 +445,7 @@ TEST_F(AppConfigurationTest, base_pathPathTest) {
  * @given new created AppConfigurationImpl
  * @when verbosity provided with value 1
  * @then we expect verbosity in config equal 'debug' and so on equal
- * spdlog::level::level_enum
+ * log::Level
  */
 TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
   {
@@ -455,7 +462,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::trace);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
   }
   {
     char const *args[] = {
@@ -471,7 +478,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::debug);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::VERBOSE);
   }
   {
     char const *args[] = {
@@ -487,7 +494,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
   }
   {
     char const *args[] = {
@@ -503,56 +510,14 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         AppConfiguration::LoadScheme::kValidating,
         sizeof(args) / sizeof(args[0]),
         (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::warn);
-  }
-  {
-    char const *args[] = {"/path/",
-                          "--verbosity",
-                          "4",
-                          "--chain",
-                          chain_path.native().c_str(),
-                          "--base-path",
-                          base_path.native().c_str()};
-    ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::err);
-  }
-  {
-    char const *args[] = {"/path/",
-                          "--verbosity",
-                          "5",
-                          "--chain",
-                          chain_path.native().c_str(),
-                          "--base-path",
-                          base_path.native().c_str()};
-    ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::critical);
-  }
-  {
-    char const *args[] = {"/path/",
-                          "--verbosity",
-                          "6",
-                          "--chain",
-                          chain_path.native().c_str(),
-                          "--base-path",
-                          base_path.native().c_str()};
-    ASSERT_TRUE(app_config_->initialize_from_args(
-        AppConfiguration::LoadScheme::kValidating,
-        sizeof(args) / sizeof(args[0]),
-        (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::off);
+    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::TRACE);
   }
 }
 
 /**
  * @given new created AppConfigurationImpl
  * @when verbosity provided with unexpected value
- * @then we expect last saved value(def. spdlog::level::level_enum::info)
+ * @then we expect last saved value(def. kagome::log::Level::INFO)
  */
 TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
   char const *args[] = {"/path/",
@@ -566,7 +531,7 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
-  ASSERT_EQ(app_config_->verbosity(), spdlog::level::level_enum::info);
+  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
 }
 
 /**

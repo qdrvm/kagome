@@ -16,6 +16,7 @@
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
@@ -33,6 +34,10 @@ using kagome::primitives::BlockNumber;
 
 class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   BlockHeaderRepository_Test()
       : BaseLevelDB_Test(fs::path("/tmp/blockheaderrepotest.lvldb")) {}
 
@@ -49,8 +54,8 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
     header.number = num;
     OUTCOME_TRY(enc_header, kagome::scale::encode(header));
     auto hash = hasher_->blake2b_256(enc_header);
-    OUTCOME_TRY(putWithPrefix(*db_, Prefix::HEADER, header.number, hash,
-                              Buffer{enc_header}));
+    OUTCOME_TRY(putWithPrefix(
+        *db_, Prefix::HEADER, header.number, hash, Buffer{enc_header}));
     return hash;
   }
 
@@ -71,9 +76,7 @@ class BlockHeaderRepository_NumberParametrized_Test
     : public BlockHeaderRepository_Test,
       public testing::WithParamInterface<BlockNumber> {};
 
-const std::vector<BlockNumber> ParamValues = {
-    1, 42, 12345, 0, 0xFFFFFFFF
-};
+const std::vector<BlockNumber> ParamValues = {1, 42, 12345, 0, 0xFFFFFFFF};
 
 /**
  * @given HeaderBackend instance with several headers in the storage
@@ -82,8 +85,8 @@ const std::vector<BlockNumber> ParamValues = {
  */
 TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   auto chosen_number = ParamValues[0];
-  for(auto& c: ParamValues) {
-    if(c != chosen_number) {
+  for (auto &c : ParamValues) {
+    if (c != chosen_number) {
       EXPECT_OUTCOME_TRUE_1(storeHeader(c, getDefaultHeader()));
     }
   }
@@ -147,5 +150,6 @@ TEST_P(BlockHeaderRepository_NumberParametrized_Test, GetHeader) {
   ASSERT_EQ(header_by_num, header_should_be);
 }
 
-INSTANTIATE_TEST_CASE_P(Numbers, BlockHeaderRepository_NumberParametrized_Test,
+INSTANTIATE_TEST_CASE_P(Numbers,
+                        BlockHeaderRepository_NumberParametrized_Test,
                         testing::ValuesIn(ParamValues));

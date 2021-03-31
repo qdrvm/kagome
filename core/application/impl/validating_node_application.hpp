@@ -49,6 +49,8 @@ namespace kagome::application {
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
 
+    std::shared_ptr<soralog::LoggingSystem> logging_system_;
+
     std::shared_ptr<AppStateManager> app_state_manager_;
 
     std::shared_ptr<boost::asio::io_context> io_context_;
@@ -65,7 +67,7 @@ namespace kagome::application {
     Babe::ExecutionStrategy babe_execution_strategy_;
 
     boost::filesystem::path chain_path_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::application

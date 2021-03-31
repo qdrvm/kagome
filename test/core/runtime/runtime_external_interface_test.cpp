@@ -17,6 +17,7 @@
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/runtime/wasm_memory_mock.hpp"
 #include "runtime/wasm_result.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -70,6 +71,10 @@ class TestableExternalInterface : public RuntimeExternalInterface {
 
 class REITest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     memory_ = std::make_shared<WasmMemoryMock>();
     host_api_ = std::make_unique<HostApiMock>();

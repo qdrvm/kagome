@@ -53,7 +53,7 @@ namespace kagome::consensus {
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
         io_context_(std::move(io_context)),
-        logger_{common::createLogger("BlockExecutor")} {
+        logger_{log::createLogger("BlockExecutor", "block_executor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(genesis_configuration_ != nullptr);

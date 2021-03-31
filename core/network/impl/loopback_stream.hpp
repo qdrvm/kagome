@@ -11,7 +11,7 @@
 #include <libp2p/connection/stream.hpp>
 
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {
@@ -73,7 +73,7 @@ namespace kagome::network {
 
     libp2p::peer::PeerInfo own_peer_info_;
 
-    common::Logger log_ = common::createLogger("LoopbackStream");
+    log::Logger log_ = log::createLogger("LoopbackStream", "network");
 
     /// data, received for this stream, comes here
     boost::asio::streambuf buffer_;

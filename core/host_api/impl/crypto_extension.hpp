@@ -10,9 +10,9 @@
 #include <optional>
 #include <queue>
 
-#include "common/logger.hpp"
 #include "crypto/bip39/bip39_types.hpp"
 #include "crypto/crypto_store.hpp"
+#include "log/logger.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::crypto {
@@ -235,7 +235,7 @@ namespace kagome::host_api {
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
     boost::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 }  // namespace kagome::host_api
 

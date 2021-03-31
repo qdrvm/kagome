@@ -22,8 +22,8 @@
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "clock/clock.hpp"
-#include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "log/logger.hpp"
 #include "network/babe_observer.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/block_announce.hpp"
@@ -232,7 +232,7 @@ namespace kagome::network {
     std::map<PeerId, ActivePeerData> active_peers_;
     libp2p::protocol::scheduler::Handle align_timer_;
 
-    common::Logger log_;
+    log::Logger log_;
   };
 
 }  // namespace kagome::network

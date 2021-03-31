@@ -19,6 +19,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
@@ -41,6 +42,10 @@ using ::testing::Return;
 
 class StorageExtensionTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     trie_batch_ = std::make_shared<PersistentTrieBatchMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();

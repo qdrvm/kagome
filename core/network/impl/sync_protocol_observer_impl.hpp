@@ -13,7 +13,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "primitives/common.hpp"
 
@@ -47,7 +47,7 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
     mutable std::unordered_set<primitives::BlocksRequestId> requested_ids_;
-    common::Logger log_;
+    log::Logger log_;
   };
 
 }  // namespace kagome::network

@@ -11,7 +11,6 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/logger.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/babe/babe.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -20,6 +19,7 @@
 #include "consensus/grandpa/voter_set.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
+#include "log/logger.hpp"
 #include "network/gossiper.hpp"
 #include "runtime/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
@@ -114,7 +114,7 @@ namespace kagome::consensus::grandpa {
         std::chrono::seconds(15);
     Clock::TimePoint catch_up_request_suppressed_until_;
 
-    common::Logger logger_ = common::createLogger("Grandpa");
+    log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };
 
 }  // namespace kagome::consensus::grandpa

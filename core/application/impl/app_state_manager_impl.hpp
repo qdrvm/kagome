@@ -13,7 +13,7 @@
 #include <mutex>
 #include <queue>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application {
 
@@ -50,7 +50,7 @@ namespace kagome::application {
     static std::weak_ptr<AppStateManager> wp_to_myself;
     static void shuttingDownSignalsHandler(int);
 
-    common::Logger logger_;
+    log::Logger logger_;
 
     State state_ = State::Init;
 

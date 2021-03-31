@@ -18,8 +18,8 @@
 #include "api/service/api_service.hpp"
 #include "api/service/author/author_api.hpp"
 #include "blockchain/block_tree.hpp"
-#include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "log/logger.hpp"
 #include "network/extrinsic_gossiper.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -91,7 +91,7 @@ namespace kagome::api {
     std::weak_ptr<api::ApiService> api_service_;
     std::atomic<primitives::Transaction::ObservedId> last_id_;
 
-    common::Logger logger_;
+    log::Logger logger_;
   };
 }  // namespace kagome::api
 

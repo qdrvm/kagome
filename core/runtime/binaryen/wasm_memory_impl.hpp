@@ -16,7 +16,7 @@
 #include <boost/optional.hpp>
 
 #include "common/literals.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "primitives/math.hpp"
 #include "runtime/wasm_memory.hpp"
 
@@ -114,7 +114,7 @@ namespace kagome::runtime::binaryen {
     // Offset on the tail of the last allocated MemoryImpl chunk
     WasmPointer offset_;
 
-    common::Logger logger_;
+    log::Logger logger_;
 
     // map containing addresses of allocated MemoryImpl chunks
     std::unordered_map<WasmPointer, WasmSize> allocated_;

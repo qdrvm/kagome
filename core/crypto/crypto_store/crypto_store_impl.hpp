@@ -12,13 +12,13 @@
 #include <boost/variant.hpp>
 
 #include "common/blob.hpp"
-#include "common/logger.hpp"
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/crypto_store.hpp"
 #include "crypto/crypto_store/crypto_suites.hpp"
 #include "crypto/crypto_store/key_cache.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::crypto {
 
@@ -91,12 +91,13 @@ namespace kagome::crypto {
       for (auto &key : keys) {
         OUTCOME_TRY(pk, suite.toPublicKey(key));
         auto erased = cached_keys.erase(pk);
-        // if we erased pk from cache, it means it was there and thus was a valid
-        // cached key, which we can collect to our result
+        // if we erased pk from cache, it means it was there and thus was a
+        // valid cached key, which we can collect to our result
         if (erased == 1) {
           res.emplace_back(std::move(pk));
 
-        // otherwise, pk was not found in cache and has to be loaded and checked
+          // otherwise, pk was not found in cache and has to be loaded and
+          // checked
         } else {
           // need to check if the read key's algorithm belongs to the given
           // CryptoSuite
@@ -161,7 +162,7 @@ namespace kagome::crypto {
     std::shared_ptr<Ed25519Suite> ed_suite_;
     std::shared_ptr<Sr25519Suite> sr_suite_;
     std::shared_ptr<Bip39Provider> bip39_provider_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::crypto

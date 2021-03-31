@@ -49,7 +49,7 @@ namespace kagome::network {
         hasher_{std::move(hasher)},
         storage_{std::move(storage)},
         babe_observer_{std::move(babe_observer)},
-        log_(common::createLogger("PeerManager")) {
+        log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);

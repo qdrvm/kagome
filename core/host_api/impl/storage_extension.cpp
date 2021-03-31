@@ -27,7 +27,7 @@ namespace kagome::host_api {
       : storage_provider_(std::move(storage_provider)),
         memory_(std::move(memory)),
         changes_tracker_{std::move(changes_tracker)},
-        logger_{common::createLogger(kDefaultLoggerTag)} {
+        logger_{log::createLogger("StorageExtension", "extentions")} {
     BOOST_ASSERT_MSG(storage_provider_ != nullptr, "storage batch is nullptr");
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
     BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");

@@ -12,6 +12,7 @@
 #include "scale/scale.hpp"
 #include "storage/database_error.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::KeyValueBlockStorage;
 using kagome::common::Buffer;
@@ -30,6 +31,10 @@ using testing::Return;
 
 class BlockStorageTest : public testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     root_hash.fill(1);
   }
@@ -94,10 +99,11 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       // trying to get last finalized block hash to ensure he not exists yet
       .WillOnce(Return(Buffer{genesis_block_hash}));
 
-  EXPECT_OUTCOME_ERROR(res,
-                       KeyValueBlockStorage::createWithGenesis(
-                           root_hash, storage, hasher, block_handler),
-                       KeyValueBlockStorage::Error::GENESIS_BLOCK_ALREADY_EXISTS);
+  EXPECT_OUTCOME_ERROR(
+      res,
+      KeyValueBlockStorage::createWithGenesis(
+          root_hash, storage, hasher, block_handler),
+      KeyValueBlockStorage::Error::GENESIS_BLOCK_ALREADY_EXISTS);
 }
 
 /**

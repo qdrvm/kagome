@@ -15,7 +15,6 @@
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "clock/timer.hpp"
-#include "common/logger.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_gossiper.hpp"
 #include "consensus/babe/babe_lottery.hpp"
@@ -25,6 +24,7 @@
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
@@ -158,8 +158,9 @@ namespace kagome::consensus {
      * @param first_production_slot slot number where block production starts
      * @return first production epoch structure
      */
-    EpochDescriptor prepareFirstEpochUnixTime(EpochDescriptor last_known_epoch,
-                                    BabeSlotNumber first_production_slot) const;
+    EpochDescriptor prepareFirstEpochUnixTime(
+        EpochDescriptor last_known_epoch,
+        BabeSlotNumber first_production_slot) const;
 
     /**
      * To be called if we are far behind other nodes to skip some slots and
@@ -205,7 +206,7 @@ namespace kagome::consensus {
 
     std::function<void()> on_synchronized_;
 
-    common::Logger log_;
+    log::Logger log_;
   };
 }  // namespace kagome::consensus
 

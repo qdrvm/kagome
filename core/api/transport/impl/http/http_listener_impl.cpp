@@ -17,7 +17,7 @@ namespace kagome::api {
       : context_{std::move(context)},
         config_{std::move(listener_config)},
         session_config_{session_config},
-        logger_{common::createLogger("RPC HTTP Listener")} {
+        logger_{log::createLogger("RpcHttpListener", "rpc_transport")} {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
@@ -26,8 +26,7 @@ namespace kagome::api {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
-      logger_->critical("Failed to prepare a listener: {}",
-                        exception.what());
+      logger_->critical("Failed to prepare a listener: {}", exception.what());
       return false;
     } catch (const std::exception &exception) {
       logger_->critical("Exception when preparing a listener: {}",

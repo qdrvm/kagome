@@ -12,6 +12,7 @@
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/wasm_memory_mock.hpp"
 #include "scale/scale.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
 using kagome::host_api::MiscExtension;
@@ -24,12 +25,19 @@ using testing::_;
 using testing::Invoke;
 using testing::Return;
 
+class MiscExtensionTest : public ::testing::Test {
+ public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+};
+
 /**
  * @given a chain id
  * @when initializing misc extention
  * @then ext_chain_id return the chain id
  */
-TEST(MiscExt, Init) {
+TEST_F(MiscExtensionTest, Init) {
   auto core_factory_mock =
       std::make_shared<testing::NiceMock<CoreFactoryMock>>();
   auto runtime_env_factory_mock =
@@ -47,7 +55,7 @@ TEST(MiscExt, Init) {
  * @when initializing misc extention
  * @then ext_chain_id return the chain id
  */
-TEST(MiscExt, CoreVersion) {
+TEST_F(MiscExtensionTest, CoreVersion) {
   auto memory = std::make_shared<testing::NiceMock<WasmMemoryMock>>();
   WasmResult state_code1{42, 4};
   WasmResult state_code2{46, 5};

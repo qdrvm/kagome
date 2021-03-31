@@ -5,15 +5,34 @@
 
 #include "application/impl/validating_node_application.hpp"
 
+#include <libp2p/log/configurator.hpp>
+
 #include "application/impl/util.hpp"
+#include "log/configurator.hpp"
 
 namespace kagome::application {
 
   ValidatingNodeApplication::ValidatingNodeApplication(
       const AppConfiguration &app_config)
-      : injector_{injector::makeValidatingNodeInjector(app_config)},
-        logger_(common::createLogger("Application")) {
-    spdlog::set_level(app_config.verbosity());
+      : injector_{injector::makeValidatingNodeInjector(app_config)} {
+    {
+      auto logging_system = std::make_shared<soralog::LoggingSystem>(
+          std::make_shared<kagome::log::Configurator>(
+              injector_.create<sptr<libp2p::log::Configurator>>()));
+
+      auto r = logging_system->configure();
+      if (not r.message.empty()) {
+        (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
+      }
+      if (r.has_error) {
+        exit(EXIT_FAILURE);
+      }
+
+      log::setLoggingSystem(logging_system);
+      log::setLevelOfGroup("main", app_config.verbosity());
+    }
+
+    logger_ = log::createLogger("ValidatingNodeApplication", "application");
 
     if (app_config.isAlreadySynchronized()) {
       babe_execution_strategy_ = Babe::ExecutionStrategy::START;
@@ -37,7 +56,7 @@ namespace kagome::application {
     router_ = injector_.create<sptr<network::Router>>();
     peer_manager_ = injector_.create<sptr<network::PeerManager>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
-  }
+  }  // namespace kagome::application
 
   void ValidatingNodeApplication::run() {
     logger_->info("Start as ValidatingNode with PID {}", getpid());
