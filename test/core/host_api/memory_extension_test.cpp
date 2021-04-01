@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "mock/core/runtime/wasm_memory_mock.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::host_api;
 
@@ -20,6 +21,10 @@ using ::testing::Return;
 
 class MemoryExtensionsTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     memory_ = std::make_shared<WasmMemoryMock>();
     memory_extension_ = std::make_shared<MemoryExtension>(memory_);

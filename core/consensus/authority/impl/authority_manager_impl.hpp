@@ -11,7 +11,7 @@
 #include "consensus/grandpa/finalization_observer.hpp"
 
 #include "storage/buffer_map_types.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application { class AppStateManager; }
 namespace kagome::authority { class ScheduleNode; }
@@ -81,7 +81,7 @@ namespace kagome::authority {
         const primitives::BlockInfo &block) override;
 
    private:
-    common::Logger log_;
+    log::Logger log_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

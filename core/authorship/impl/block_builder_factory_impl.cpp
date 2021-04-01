@@ -16,7 +16,7 @@ namespace kagome::authorship {
       : r_core_(std::move(r_core)),
         r_block_builder_(std::move(r_block_builder)),
         header_backend_(std::move(header_backend)),
-        logger_{common::createLogger("BlockBuilderFactory")} {
+        logger_{log::createLogger("BlockBuilderFactory", "authorship")} {
     BOOST_ASSERT(r_core_ != nullptr);
     BOOST_ASSERT(r_block_builder_ != nullptr);
     BOOST_ASSERT(header_backend_ != nullptr);

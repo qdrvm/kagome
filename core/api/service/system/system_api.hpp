@@ -8,7 +8,7 @@
 
 #include "application/chain_spec.hpp"
 #include "consensus/babe/babe.hpp"
-#include "network/gossiper.hpp"
+#include "network/peer_manager.hpp"
 #include "primitives/account.hpp"
 
 namespace kagome::api {
@@ -24,7 +24,7 @@ namespace kagome::api {
 
     virtual std::shared_ptr<consensus::babe::Babe> getBabe() const = 0;
 
-    virtual std::shared_ptr<network::Gossiper> getGossiper() const = 0;
+    virtual std::shared_ptr<network::PeerManager> getPeerManager() const = 0;
 
     virtual outcome::result<primitives::AccountNonce> getNonceFor(
         std::string_view account_address) const = 0;

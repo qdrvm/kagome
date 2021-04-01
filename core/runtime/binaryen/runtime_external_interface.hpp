@@ -8,7 +8,7 @@
 
 #include <binaryen/shell-interface.h>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::host_api {
   class HostApiFactory;
@@ -64,9 +64,7 @@ namespace kagome::runtime::binaryen {
                         size_t actual);
 
     std::unique_ptr<host_api::HostApi> host_api_;
-    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
-
-    constexpr static auto kDefaultLoggerTag = "Runtime external interface";
+    log::Logger logger_ = log::createLogger("RuntimeExternalInterface", "wasm");
   };
 
 }  // namespace kagome::runtime::binaryen

@@ -12,6 +12,7 @@ target_link_libraries(validating_node_application
     application_injector
     blob
     application_util
+    log_configurator
     )
 
 add_library(app_config_impl
@@ -30,6 +31,7 @@ target_link_libraries(syncing_node_application
     application_injector
     blob
     application_util
+    log_configurator
     )
 
 add_library(configuration_storage

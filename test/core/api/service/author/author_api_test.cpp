@@ -22,6 +22,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -79,6 +80,10 @@ class ExtrinsicEventReceiverMock : public ExtrinsicEventReceiver {
 };
 
 struct AuthorApiTest : public ::testing::Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   template <class T>
   using sptr = std::shared_ptr<T>;
 
@@ -218,12 +223,12 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
 
   {
     testing::InSequence s;
-    EXPECT_CALL(
-        *event_receiver,
-        receive(sub_id,
-                _,
-                ext_id,
-                eventsAreEqual(ExtrinsicLifecycleEvent::Broadcast(ext_id, {}))));
+    EXPECT_CALL(*event_receiver,
+                receive(sub_id,
+                        _,
+                        ext_id,
+                        eventsAreEqual(
+                            ExtrinsicLifecycleEvent::Broadcast(ext_id, {}))));
     EXPECT_CALL(
         *event_receiver,
         receive(sub_id,
@@ -242,6 +247,7 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
       .WillOnce(Return(sub_id));
 
   // throws because api service is uninitialized
-  ASSERT_OUTCOME_SUCCESS(ret_sub_id, author_api->submitAndWatchExtrinsic(*extrinsic));
+  ASSERT_OUTCOME_SUCCESS(ret_sub_id,
+                         author_api->submitAndWatchExtrinsic(*extrinsic));
   ASSERT_EQ(sub_id, ret_sub_id);
 }

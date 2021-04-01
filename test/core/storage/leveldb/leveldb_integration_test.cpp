@@ -10,14 +10,19 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
-#include "storage/leveldb/leveldb.hpp"
 #include "storage/database_error.hpp"
+#include "storage/leveldb/leveldb.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
 namespace fs = boost::filesystem;
 
 struct LevelDB_Integration_Test : public test::BaseLevelDB_Test {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   LevelDB_Integration_Test()
       : test::BaseLevelDB_Test("/tmp/kagome_leveldb_integration_test") {}
 

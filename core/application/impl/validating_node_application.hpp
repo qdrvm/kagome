@@ -49,7 +49,7 @@ namespace kagome::application {
     void run() override;
 
    private:
-    common::Logger logger_;
+    log::Logger logger_;
 
     uptr<injector::ValidatingNodeInjector> injector_;
     sptr<boost::asio::io_context> io_context_;

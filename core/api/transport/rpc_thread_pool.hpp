@@ -12,7 +12,7 @@
 #include <thread>
 
 #include "api/transport/rpc_io_context.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::api {
 
@@ -49,7 +49,7 @@ namespace kagome::api {
 
     std::vector<std::shared_ptr<std::thread>> threads_;
 
-    common::Logger logger_ = common::createLogger("RPC thread pool");
+    log::Logger logger_ = log::createLogger("RpcThreadPool", "rpc_transport");
   };
 
 }  // namespace kagome::api

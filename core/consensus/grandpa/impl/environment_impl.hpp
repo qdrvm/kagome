@@ -10,7 +10,7 @@
 
 #include <boost/signals2/signal.hpp>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::consensus::grandpa { struct Gossiper; }
 
@@ -106,7 +106,7 @@ namespace kagome::consensus::grandpa {
     std::weak_ptr<JustificationObserver> justification_observer_;
 
     OnCompleted on_completed_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::consensus::grandpa

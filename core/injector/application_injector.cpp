@@ -11,6 +11,7 @@
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/injector/kademlia_injector.hpp>
+#include <libp2p/log/configurator.hpp>
 
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
@@ -69,6 +70,8 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
+#include "log/logger.hpp"
+#include "log/configurator.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
@@ -193,8 +196,10 @@ namespace kagome::injector {
                              "grandpa_api_->authorities failed");
             const auto &weighted_authorities = weighted_authorities_res.value();
 
+            auto log = log::createLogger("injector", "kagome");
+
             for (const auto &authority : weighted_authorities) {
-              spdlog::info("Grandpa authority: {}", authority.id.id.toHex());
+              log->info("Grandpa authority: {}", authority.id.id.toHex());
             }
 
             consensus::grandpa::VoterSet voters{0};
@@ -202,9 +207,9 @@ namespace kagome::injector {
               voters.insert(
                   primitives::GrandpaSessionKey{weighted_authority.id.id},
                   weighted_authority.weight);
-              spdlog::debug("Added to grandpa authorities: {}, weight: {}",
-                            weighted_authority.id.id.toHex(),
-                            weighted_authority.weight);
+              log->debug("Added to grandpa authorities: {}, weight: {}",
+                         weighted_authority.id.id.toHex(),
+                         weighted_authority.weight);
             }
             BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
             auto authorities_put_res =
@@ -301,9 +306,11 @@ namespace kagome::injector {
     if (not batch) {
       common::raise(batch.error());
     }
+
+    auto log = log::createLogger("injector", "kagome");
+
     for (const auto &[key, val] : genesis_raw_configs) {
-      spdlog::debug(
-          "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
+      log->debug("Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
       if (auto res = batch.value()->put(key, val); not res) {
         common::raise(res.error());
       }
@@ -329,11 +336,12 @@ namespace kagome::injector {
     auto db = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
     if (!db) {
-      spdlog::critical("Can't create LevelDB in {}: {}",
-                       fs::absolute(app_config.databasePath(chain_spec->id()),
-                                    fs::current_path())
-                           .native(),
-                       db.error().message());
+      auto log = log::createLogger("injector", "kagome");
+      log->critical("Can't create LevelDB in {}: {}",
+                    fs::absolute(app_config.databasePath(chain_spec->id()),
+                                 fs::current_path())
+                        .native(),
+                    db.error().message());
       exit(EXIT_FAILURE);
     }
     initialized = db.value();
@@ -370,12 +378,14 @@ namespace kagome::injector {
     if (not configuration_res) {
       common::raise(configuration_res.error());
     }
-    auto config = configuration_res.value();
-    for (const auto &authority : config.genesis_authorities) {
-      spdlog::debug("Babe authority: {}", authority.id.id.toHex());
+    auto log = log::createLogger("injector", "kagome");
+    for (const auto &authority :
+         configuration_res.value().genesis_authorities) {
+      log->debug("Babe authority: {}", authority.id.id.toHex());
     }
-    config.leadership_rate.first *= 3;
-    initialized = std::make_shared<primitives::BabeConfiguration>(config);
+    configuration_res.value().leadership_rate.first *= 3;
+    initialized = std::make_shared<primitives::BabeConfiguration>(
+        configuration_res.value());
     return *initialized;
   }
 
@@ -435,8 +445,10 @@ namespace kagome::injector {
       return initialized.value();
     }
 
+    auto log = log::createLogger("injector", "kagome");
+
     if (app_config.nodeKey()) {
-      spdlog::info("Will use LibP2P keypair from config or args");
+      log->info("Will use LibP2P keypair from config or args");
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
@@ -454,9 +466,8 @@ namespace kagome::injector {
       return initialized.value();
     }
 
-    if (crypto_store.getLibp2pKeypair()) {
-      spdlog::info("Will use LibP2P keypair from key storage");
-
+    if (app_config.nodeKey()) {
+      log->info("Will use LibP2P keypair from config or args");
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 
       initialized =
@@ -464,9 +475,9 @@ namespace kagome::injector {
       return initialized.value();
     }
 
-    spdlog::warn(
-        "Can not get LibP2P keypair from crypto storage. "
-        "Will be temporary generated unique one");
+    log->warn(
+        "Can not obtain a libp2p keypair from crypto storage. "
+        "A unique one will be generated for the current session");
 
     auto generated_keypair = crypto_provider.generateKeypair();
 
@@ -510,8 +521,8 @@ namespace kagome::injector {
     }
 
     auto asmgr =
-        injector.template create<
-            std::shared_ptr<application::AppStateManager>>();
+        injector
+            .template create<std::shared_ptr<application::AppStateManager>>();
     auto thread_pool = injector.template create<sptr<api::RpcThreadPool>>();
     auto server = injector.template create<sptr<api::JRpcServer>>();
     auto listeners =
@@ -641,8 +652,11 @@ namespace kagome::injector {
         injector.template create<sptr<network::Gossiper>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<libp2p::protocol::Ping>>());
-    // initialized = injector.template create<sptr<network::RouterLibp2p>>();
+        injector.template create<sptr<libp2p::protocol::Ping>>(),
+        injector.template create<sptr<network::PeerManager>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<crypto::Hasher>>());
+
     return initialized.value();
   }
 
@@ -653,23 +667,7 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
-    /*
-    const Config &config,
-    std::shared_ptr<Host> host,
-    std::shared_ptr<Storage> storage,
-    std::shared_ptr<ContentRoutingTable> content_routing_table,
-    std::shared_ptr<PeerRoutingTable> peer_routing_table,
-    std::shared_ptr<Validator> validator,
-    std::shared_ptr<Scheduler> scheduler,
-    std::shared_ptr<event::Bus> bus,
-    std::shared_ptr<crypto::random::RandomGenerator> random_generator
-    */
-    auto config =
-        injector.template create<const libp2p::protocol::kademlia::Config &>();
-    /*
-    auto kademlia =
-        injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>();
-    */
+
     initialized = std::make_shared<network::PeerManagerImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<libp2p::Host &>(),
@@ -682,7 +680,11 @@ namespace kagome::injector {
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
-        injector.template create<sptr<network::SyncClientsSet>>());
+        injector.template create<sptr<network::SyncClientsSet>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<blockchain::BlockStorage>>(),
+        injector.template create<sptr<network::BabeObserver>>());
     return initialized.value();
   }
 
@@ -1007,9 +1009,11 @@ namespace kagome::injector {
     std::vector<libp2p::multi::Multiaddress> addresses =
         config.listenAddresses();
 
-    spdlog::debug("Received peer id: {}", peer_id.toBase58());
+    auto log = log::createLogger("syncing_injector", "kagome");
+
+    log->debug("Received peer id: {}", peer_id.toBase58());
     for (auto &addr : addresses) {
-      spdlog::debug("Received multiaddr: {}", addr.getStringAddress());
+      log->debug("Received multiaddr: {}", addr.getStringAddress());
     }
 
     initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
@@ -1052,7 +1056,8 @@ namespace kagome::injector {
         injector.template create<const crypto::CryptoStore &>();
     auto &&sr25519_kp = crypto_store.getBabeKeypair();
     if (not sr25519_kp) {
-      spdlog::error("Failed to get BABE keypair");
+      auto log = log::createLogger("validating_injector", "kagome");
+      log->error("Failed to get BABE keypair");
       return nullptr;
     }
 
@@ -1072,7 +1077,8 @@ namespace kagome::injector {
         injector.template create<const crypto::CryptoStore &>();
     auto &&ed25519_kp = crypto_store.getGrandpaKeypair();
     if (not ed25519_kp) {
-      spdlog::error("Failed to get GRANDPA keypair");
+      auto log = log::createLogger("validating_injector", "kagome");
+      log->error("Failed to get GRANDPA keypair");
       return nullptr;
     }
 
@@ -1110,11 +1116,11 @@ namespace kagome::injector {
     std::vector<libp2p::multi::Multiaddress> addresses =
         config.listenAddresses();
 
-    spdlog::debug("Received peer id: {}", peer_id.toBase58());
+    auto log = log::createLogger("validating_injector", "kagome");
+    log->debug("Received peer id: {}", peer_id.toBase58());
     for (auto &addr : addresses) {
-      spdlog::debug("Received multiaddr: {}", addr.getStringAddress());
+      log->debug("Received multiaddr: {}", addr.getStringAddress());
     }
-
     initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
                                                          std::move(addresses));
     return initialized.value();
@@ -1201,8 +1207,8 @@ namespace kagome::injector {
     using Injector = decltype(makeValidatingNodeInjector(
         std::declval<application::AppConfiguration const &>()));
 
-    ValidatingNodeInjectorImpl(Injector injector):
-      injector_{std::move(injector)} {}
+    ValidatingNodeInjectorImpl(Injector injector)
+        : injector_{std::move(injector)} {}
     Injector injector_;
   };
 
@@ -1210,8 +1216,8 @@ namespace kagome::injector {
    public:
     using Injector = decltype(makeSyncingNodeInjector(
         std::declval<application::AppConfiguration const &>()));
-    SyncingNodeInjectorImpl(Injector injector):
-      injector_{std::move(injector)} {}
+    SyncingNodeInjectorImpl(Injector injector)
+        : injector_{std::move(injector)} {}
     Injector injector_;
   };
 
@@ -1249,7 +1255,7 @@ namespace kagome::injector {
   ValidatingNodeInjector::ValidatingNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<ValidatingNodeInjectorImpl>(
-      makeValidatingNodeInjector(app_config))} {}
+          makeValidatingNodeInjector(app_config))} {}
 
   sptr<application::ChainSpec>
   ValidatingNodeInjector::injectChainSpec() noexcept {
@@ -1291,6 +1297,13 @@ namespace kagome::injector {
   std::shared_ptr<consensus::grandpa::Grandpa>
   ValidatingNodeInjector::injectGrandpa() noexcept {
     return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
+  }
+
+  std::shared_ptr<soralog::LoggingSystem>
+  ValidatingNodeInjector::injectLoggingSystem() noexcept {
+    return std::make_shared<soralog::LoggingSystem>(
+        std::make_shared<kagome::log::Configurator>(
+            pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));
   }
 
 }  // namespace kagome::injector

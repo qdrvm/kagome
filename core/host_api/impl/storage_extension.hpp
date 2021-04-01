@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
@@ -218,7 +218,7 @@ namespace kagome::host_api {
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
-    common::Logger logger_;
+    log::Logger logger_;
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };

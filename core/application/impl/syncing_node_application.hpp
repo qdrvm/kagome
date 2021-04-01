@@ -17,7 +17,7 @@
 #include "network/router.hpp"
 #include "network/peer_manager.hpp"
 #include "api/service/api_service.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application {
 
@@ -36,7 +36,9 @@ namespace kagome::application {
     void run() override;
 
    private:
-    common::Logger logger_;
+    std::shared_ptr<soralog::LoggingSystem> logging_system_;
+
+    log::Logger logger_;
 
     uptr<injector::SyncingNodeInjector> injector_;
     sptr<AppStateManager> app_state_manager_;

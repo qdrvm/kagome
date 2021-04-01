@@ -21,7 +21,7 @@ namespace kagome::network {
       std::shared_ptr<kagome::application::ChainSpec> config)
       : host_{host},
         peer_id_{std::move(peer_id)},
-        log_(common::createLogger("RemoteSyncProtocolClient")),
+        log_(log::createLogger("RemoteSyncProtocolClient", "network")),
         config_(std::move(config)) {}
 
   void RemoteSyncProtocolClient::requestBlocks(

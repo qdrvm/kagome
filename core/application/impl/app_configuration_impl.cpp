@@ -31,7 +31,7 @@ namespace {
   const uint16_t def_rpc_http_port = 40363;
   const uint16_t def_rpc_ws_port = 40364;
   const uint16_t def_p2p_port = 30363;
-  const int def_verbosity = 2;
+  const int def_verbosity = (int)(kagome::log::Level::INFO);
   const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
@@ -39,10 +39,10 @@ namespace {
 
 namespace kagome::application {
 
-  AppConfigurationImpl::AppConfigurationImpl(common::Logger logger)
+  AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
       : logger_(std::move(logger)),
         p2p_port_(def_p2p_port),
-        verbosity_(static_cast<spdlog::level::level_enum>(def_verbosity)),
+        verbosity_(static_cast<log::Level>(def_verbosity)),
         is_already_synchronized_(def_is_already_synchronized),
         is_only_finalizing_(def_is_only_finalizing),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
@@ -143,8 +143,13 @@ namespace kagome::application {
 
   void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
     uint16_t v{};
-    if (load_u16(val, "verbosity", v) && v <= SPDLOG_LEVEL_OFF)
-      verbosity_ = static_cast<spdlog::level::level_enum>(v);
+    if (not load_u16(val, "verbosity", v)) {
+      return;
+    }
+    auto level = static_cast<log::Level>(v + def_verbosity);
+    if (level >= log::Level::OFF && level <= log::Level::TRACE) {
+      verbosity_ = level;
+    }
   }
 
   void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
@@ -429,8 +434,9 @@ namespace kagome::application {
     });
 
     find_argument<int32_t>(vm, "verbosity", [&](int32_t val) {
-      if (val >= SPDLOG_LEVEL_TRACE && val <= SPDLOG_LEVEL_OFF)
-        verbosity_ = static_cast<spdlog::level::level_enum>(val);
+      auto level = static_cast<log::Level>(val + def_verbosity);
+      if (level >= log::Level::OFF && level <= log::Level::TRACE)
+        verbosity_ = level;
     });
 
     find_argument<std::string>(

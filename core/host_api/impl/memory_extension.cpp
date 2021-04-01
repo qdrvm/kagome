@@ -13,7 +13,7 @@
 namespace kagome::host_api {
   MemoryExtension::MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory)
       : memory_(std::move(memory)),
-        logger_{common::createLogger(kDefaultLoggerTag)} {
+        logger_{log::createLogger("MemoryExtention", "extentions")} {
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
   }
 

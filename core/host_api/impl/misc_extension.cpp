@@ -23,7 +23,7 @@ namespace kagome::host_api {
       : core_api_factory_{std::move(core_factory)},
         runtime_env_factory_{std::move(runtime_env_factory)},
         memory_{std::move(memory)},
-        logger_{common::createLogger("MiscExtension")},
+        logger_{log::createLogger("MiscExtension", "extentions")},
         chain_id_{chain_id} {
     BOOST_ASSERT(core_api_factory_);
     BOOST_ASSERT(runtime_env_factory_);

@@ -9,7 +9,7 @@
 #include "authorship/block_builder_factory.hpp"
 
 #include "blockchain/block_header_repository.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::authorship {
 
@@ -30,7 +30,7 @@ namespace kagome::authorship {
     std::shared_ptr<runtime::Core> r_core_;
     std::shared_ptr<runtime::BlockBuilder> r_block_builder_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_backend_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::authorship

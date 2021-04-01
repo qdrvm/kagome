@@ -9,7 +9,7 @@
 #include "consensus/babe/babe_synchronizer.hpp"
 
 #include "application/app_configuration.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "network/types/sync_clients_set.hpp"
 
 namespace kagome::consensus {
@@ -53,7 +53,7 @@ namespace kagome::consensus {
                      const BlocksHandler &requested_blocks_handler) const;
 
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
-    common::Logger logger_;
+    log::Logger logger_;
     const application::AppConfiguration &app_configuration_;
   };
 }  // namespace kagome::consensus

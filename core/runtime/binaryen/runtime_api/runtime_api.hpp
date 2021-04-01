@@ -13,8 +13,8 @@
 #include <boost/optional.hpp>
 
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
 #include "host_api/host_api_factory.hpp"
+#include "log/logger.hpp"
 #include "runtime/binaryen/runtime_environment.hpp"
 #include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
@@ -102,7 +102,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<R> executeAt(std::string_view name,
                                  const storage::trie::RootHash &state_root,
                                  CallConfig config,
-                                 Args &&...args) {
+                                 Args &&... args) {
       return executeInternal<R>(
           name, state_root, std::move(config), std::forward<Args>(args)...);
     }
@@ -120,7 +120,7 @@ namespace kagome::runtime::binaryen {
     template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name,
                                CallConfig config,
-                               Args &&...args) {
+                               Args &&... args) {
       return executeInternal<R>(
           name, boost::none, std::move(config), std::forward<Args>(args)...);
     }
@@ -137,7 +137,7 @@ namespace kagome::runtime::binaryen {
         std::string_view name,
         boost::optional<storage::trie::RootHash> state_root,
         CallConfig config,
-        Args &&...args) {
+        Args &&... args) {
       logger_->debug("Executing export function: {}", name);
       if (state_root.has_value()) {
         logger_->debug("Resetting state to: {}", state_root.value().toHex());
@@ -179,7 +179,7 @@ namespace kagome::runtime::binaryen {
 
     std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory_;
     WasmExecutor executor_;
-    common::Logger logger_ = common::createLogger("Runtime API");
+    log::Logger logger_ = log::createLogger("RuntimeApi", "runtime");
   };
 }  // namespace kagome::runtime::binaryen
 

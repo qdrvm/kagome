@@ -44,7 +44,7 @@ namespace kagome::application {
     try {
       pt::read_json(file_path, tree);
     } catch (pt::json_parser_error &e) {
-      spdlog::error(
+      log_->error(
           "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
       return Error::PARSER_ERROR;
     }

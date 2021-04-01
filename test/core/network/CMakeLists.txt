@@ -16,6 +16,7 @@ target_link_libraries(rpc_libp2p_test
     testutil_read_writer_helper
     p2p::p2p_peer_id
     p2p::p2p_multiaddress
+    logger
     )
 
 addtest(sync_protocol_observer_test

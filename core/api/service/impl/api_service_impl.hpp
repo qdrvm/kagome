@@ -18,8 +18,8 @@
 #include "api/transport/rpc_thread_pool.hpp"
 #include "api/transport/session.hpp"
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
 #include "containers/objects_cache.hpp"
+#include "log/logger.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
 #include "subscription/subscription_engine.hpp"
@@ -98,8 +98,8 @@ namespace kagome::api {
       using AdditionMessageType =
           decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
       using AdditionMessagesList = std::vector<AdditionMessageType>;
-      using CachedAdditionMessagesList = decltype(KAGOME_EXTRACT_SHARED_CACHE(
-          api_service, AdditionMessagesList));
+      using CachedAdditionMessagesList = decltype(
+          KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
 
       StorageEventSubscriberPtr storage_sub;
       ChainEventSubscriberPtr chain_sub;
@@ -238,7 +238,7 @@ namespace kagome::api {
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<sptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
-    common::Logger logger_;
+    log::Logger logger_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
 

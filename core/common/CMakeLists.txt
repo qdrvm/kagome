@@ -26,15 +26,6 @@ target_link_libraries(blob
     )
 kagome_install(blob)
 
-
-add_library(logger
-    logger.cpp
-    )
-target_link_libraries(logger
-    spdlog::spdlog
-    )
-kagome_install(logger)
-
 add_library(mp_utils
     mp_utils.cpp
     mp_utils.hpp

@@ -6,7 +6,7 @@
 #ifndef KAGOME_MEMORY_EXTENSIONS_HPP
 #define KAGOME_MEMORY_EXTENSIONS_HPP
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
@@ -20,7 +20,6 @@ namespace kagome::host_api {
    */
   class MemoryExtension {
    public:
-
     explicit MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory);
 
     void reset();
@@ -48,9 +47,8 @@ namespace kagome::host_api {
     void ext_allocator_free_version_1(runtime::WasmPointer ptr);
 
    private:
-    constexpr static auto kDefaultLoggerTag = "WASM Runtime [MemoryExtension]";
     std::shared_ptr<runtime::WasmMemory> memory_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 }  // namespace kagome::host_api
 

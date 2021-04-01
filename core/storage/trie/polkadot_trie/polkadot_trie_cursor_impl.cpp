@@ -5,13 +5,10 @@
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
-#include <spdlog/spdlog.h>
-
-#include "macro/unreachable.hpp"
 #include "common/buffer_back_insert_iterator.hpp"
+#include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
-
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             PolkadotTrieCursorImpl::Error,

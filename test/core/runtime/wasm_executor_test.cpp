@@ -35,6 +35,7 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
 
 using kagome::common::Buffer;
@@ -68,6 +69,10 @@ namespace fs = boost::filesystem;
 
 class WasmExecutorTest : public ::testing::Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     // path to a file with wasm code in wasm/ subfolder
     auto wasm_path =

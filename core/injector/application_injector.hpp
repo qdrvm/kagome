@@ -12,6 +12,10 @@
 
 #include "clock/clock.hpp"
 
+namespace soralog {
+  class LoggingSystem;
+}
+
 namespace kagome {
   namespace application {
     class AppConfiguration;
@@ -69,6 +73,7 @@ namespace kagome::injector {
     std::shared_ptr<clock::SystemClock> injectSystemClock() noexcept;
     std::shared_ptr<consensus::babe::Babe> injectBabe() noexcept;
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa() noexcept;
+    std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem() noexcept;
 
    protected:
     std::shared_ptr<class ValidatingNodeInjectorImpl> pimpl_;

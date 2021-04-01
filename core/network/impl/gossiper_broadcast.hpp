@@ -16,8 +16,8 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/peer/protocol.hpp>
 
-#include "common/logger.hpp"
 #include "containers/objects_cache.hpp"
+#include "log/logger.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -77,8 +77,6 @@ namespace kagome::network {
     void catchUpResponse(const libp2p::peer::PeerId &peer_id,
                          const CatchUpResponse &catch_up_response) override;
 
-    uint32_t getActiveStreamNumber() override;
-
    private:
     template <typename T>
     void send(const libp2p::peer::PeerId &peer_id,
@@ -117,7 +115,7 @@ namespace kagome::network {
           protocol, std::move(shared_msg), std::move(shared_handshake));
     }
 
-    common::Logger logger_;
+    log::Logger logger_;
     StreamEngine::StreamEnginePtr stream_engine_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
         extrinsic_events_engine_;

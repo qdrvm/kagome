@@ -11,7 +11,7 @@
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application {
   class ChainSpec;
@@ -41,7 +41,7 @@ namespace kagome::network {
    private:
     libp2p::Host &host_;
     const libp2p::peer::PeerId peer_id_;
-    common::Logger log_;
+    log::Logger log_;
     std::shared_ptr<kagome::application::ChainSpec> config_;
   };
 }  // namespace kagome::network

@@ -22,7 +22,7 @@ namespace kagome::network {
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo,
       std::shared_ptr<kagome::application::ChainSpec> config)
-      : logger_{common::createLogger("GossiperBroadcast")},
+      : logger_{log::createLogger("GossiperBroadcast", "network")},
         stream_engine_{std::move(stream_engine)},
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)},
@@ -38,13 +38,6 @@ namespace kagome::network {
   void GossiperBroadcast::storeSelfPeerInfo(
       const libp2p::peer::PeerInfo &self_info) {
     self_info_ = self_info;
-  }
-
-  uint32_t GossiperBroadcast::getActiveStreamNumber() {
-    BOOST_ASSERT(self_info_);
-    return stream_engine_->count([&](const StreamEngine::PeerId &peer) {
-      return self_info_->id != peer;
-    });
   }
 
   void GossiperBroadcast::propagateTransactions(

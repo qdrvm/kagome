@@ -8,7 +8,7 @@
 
 #include <libp2p/protocol/kademlia/storage_backend.hpp>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::network {
@@ -32,7 +32,7 @@ namespace kagome::network {
 
    private:
     std::shared_ptr<storage::BufferStorage> storage_;
-    common::Logger log_ = common::createLogger("KademliaStorage");
+    log::Logger log_ = log::createLogger("KademliaStorage", "kademlia");
   };
 
 }  // namespace kagome::network

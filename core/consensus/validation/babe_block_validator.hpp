@@ -12,12 +12,12 @@
 #include <utility>
 
 #include "blockchain/block_tree.hpp"
-#include "common/logger.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
+#include "log/logger.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/transcript.hpp"
@@ -110,7 +110,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
 
     std::shared_ptr<primitives::BabeConfiguration> configuration_;
-    common::Logger log_;
+    log::Logger log_;
   };
 }  // namespace kagome::consensus
 

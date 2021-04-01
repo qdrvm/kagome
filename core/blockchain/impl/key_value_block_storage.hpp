@@ -9,8 +9,8 @@
 #include "blockchain/block_storage.hpp"
 
 #include "blockchain/impl/common.hpp"
-#include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "log/logger.hpp"
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::blockchain {
@@ -99,7 +99,7 @@ namespace kagome::blockchain {
 
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 }  // namespace kagome::blockchain
 

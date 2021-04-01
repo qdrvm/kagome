@@ -54,7 +54,7 @@ namespace kagome::consensus::babe {
         authority_update_observer_(std::move(authority_update_observer)),
         slots_calculation_strategy_{slots_calculation_strategy},
         babe_util_(std::move(babe_util)),
-        log_{common::createLogger("BABE")} {
+        log_{log::createLogger("Babe", "babe")} {
     BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(trie_storage_);

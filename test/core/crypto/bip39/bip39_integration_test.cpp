@@ -10,6 +10,7 @@
 #include "testutil/outcome.hpp"
 
 #include <gtest/gtest.h>
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::crypto;
 using namespace bip39;
@@ -21,6 +22,10 @@ struct TestItem {
 };
 
 struct Bip39IntegrationTest : public ::testing::TestWithParam<TestItem> {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
     bip39_provider = std::make_shared<Bip39ProviderImpl>(pbkdf2_provider);

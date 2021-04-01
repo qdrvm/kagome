@@ -10,7 +10,7 @@
 #include <functional>
 #include <memory>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/types.hpp"
 #include "runtime/wasm_result.hpp"
@@ -60,7 +60,7 @@ namespace kagome::host_api {
     std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
         runtime_env_factory_;
     std::shared_ptr<runtime::WasmMemory> memory_;
-    common::Logger logger_;
+    log::Logger logger_;
     const uint64_t chain_id_ = 42;
   };
 }  // namespace kagome::host_api

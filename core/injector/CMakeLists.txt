@@ -7,6 +7,9 @@ add_library(application_injector
     application_injector.cpp
     )
 target_link_libraries(application_injector
+    soralog::soralog
+    soralog::fallback_configurator
+    fmt::fmt
     app_state_manager
     p2p::p2p
     p2p::p2p_identify

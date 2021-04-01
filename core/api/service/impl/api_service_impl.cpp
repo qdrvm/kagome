@@ -21,11 +21,11 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 
-#define UNWRAP_WEAK_PTR(callback)  \
-  [wp](auto &&...params) mutable { \
-    if (auto self = wp.lock()) {   \
-      self->callback(params...);   \
-    }                              \
+#define UNWRAP_WEAK_PTR(callback)   \
+  [wp](auto &&... params) mutable { \
+    if (auto self = wp.lock()) {    \
+      self->callback(params...);    \
+    }                               \
   }
 
 namespace {
@@ -71,7 +71,7 @@ namespace {
    */
   template <typename F>
   inline void forJsonData(std::shared_ptr<JRpcServer> server,
-                          kagome::common::Logger logger,
+                          kagome::log::Logger logger,
                           uint32_t set_id,
                           std::string_view name,
                           jsonrpc::Value &&value,
@@ -97,7 +97,7 @@ namespace {
   }
   inline void sendEvent(std::shared_ptr<JRpcServer> server,
                         std::shared_ptr<Session> session,
-                        kagome::common::Logger logger,
+                        kagome::log::Logger logger,
                         uint32_t set_id,
                         std::string_view name,
                         jsonrpc::Value &&value) {
@@ -139,7 +139,7 @@ namespace kagome::api {
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners.listeners)),
         server_(std::move(server)),
-        logger_{common::createLogger("Api service")},
+        logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},
         trie_storage_{std::move(trie_storage)},
         subscription_engines_{.storage = std::move(storage_sub_engine),

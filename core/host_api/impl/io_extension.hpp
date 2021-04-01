@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
@@ -48,9 +48,8 @@ namespace kagome::host_api {
                         runtime::WasmSize utf8_length);
 
    private:
-    constexpr static auto kDefaultLoggerTag = "WASM Runtime [IOExtension]";
     std::shared_ptr<runtime::WasmMemory> memory_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 }  // namespace kagome::host_api
 

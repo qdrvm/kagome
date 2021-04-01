@@ -9,9 +9,9 @@
 #include "runtime/binaryen/runtime_environment_factory.hpp"
 
 #include "common/blob.hpp"
-#include "common/logger.hpp"
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
+#include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/module/wasm_module_factory.hpp"
 #include "runtime/binaryen/runtime_environment.hpp"
@@ -73,8 +73,8 @@ namespace kagome::runtime::binaryen {
     outcome::result<RuntimeEnvironment> createIsolatedRuntimeEnvironment(
         const common::Buffer &state_code);
 
-    common::Logger logger_ =
-        common::createLogger("Runtime environment factory");
+    log::Logger logger_ =
+        log::createLogger("RuntimeEnvironmentFactory", "wasm");
 
     std::shared_ptr<CoreFactory> core_factory_;
     std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory_;

@@ -8,7 +8,7 @@
 
 #include "network/extrinsic_observer.hpp"
 
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::network {
 
@@ -22,7 +22,7 @@ namespace kagome::network {
 
    private:
     std::shared_ptr<api::AuthorApi> api_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::network

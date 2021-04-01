@@ -27,7 +27,7 @@ namespace kagome::consensus::grandpa {
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         gossiper_{std::move(gossiper)},
-        logger_{common::createLogger("Grandpa environment:")} {
+        logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);

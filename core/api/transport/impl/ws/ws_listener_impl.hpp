@@ -11,7 +11,7 @@
 #include <atomic>
 
 #include "api/transport/impl/ws/ws_session.hpp"
-#include "common/logger.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::application {
   class AppStateManager;
@@ -59,7 +59,7 @@ namespace kagome::api {
     std::atomic<Session::SessionId> next_session_id_;
     std::shared_ptr<SessionImpl> new_session_;
 
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::api

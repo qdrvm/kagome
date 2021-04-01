@@ -8,6 +8,7 @@ addtest(configuration_storage_test
     )
 target_link_libraries(configuration_storage_test
     configuration_storage
+    logger
     )
 
 addtest(app_state_manager_test

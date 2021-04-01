@@ -12,8 +12,8 @@
 #include <boost/optional.hpp>
 
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
 #include "crypto/crypto_store/key_type.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::crypto {
 
@@ -80,7 +80,7 @@ namespace kagome::crypto {
     outcome::result<std::string> loadFileContent(const Path &file_path) const;
 
     Path keystore_path_;
-    common::Logger logger_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::crypto
