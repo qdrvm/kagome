@@ -12,7 +12,8 @@ namespace kagome::application {
 
   SyncingNodeApplication::SyncingNodeApplication(
       const AppConfiguration &app_config)
-      : injector_{injector::makeSyncingNodeInjector(app_config)},
+      : app_config_(app_config),
+        injector_{injector::makeSyncingNodeInjector(app_config_)},
         logger_(log::createLogger("SyncingNodeApplication", "application")) {
     log::setLevelOfGroup("main", app_config.verbosity());
 
@@ -23,7 +24,6 @@ namespace kagome::application {
 
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
 
-    chain_path_ = app_config.chainPath(chain_spec_->id());
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     router_ = injector_.create<sptr<network::Router>>();
     peer_manager_ = injector_.create<sptr<network::PeerManager>>();
@@ -33,10 +33,11 @@ namespace kagome::application {
   void SyncingNodeApplication::run() {
     logger_->info("Start as SyncingNode with PID {}", getpid());
 
-    auto res = util::init_directory(chain_path_);
+    auto chain_path = app_config_.chainPath(chain_spec_->id());
+    auto res = util::init_directory(chain_path);
     if (not res) {
       logger_->critical("Error initalizing chain directory {}: {}",
-                        chain_path_.native(),
+                        chain_path.native(),
                         res.error().message());
       exit(EXIT_FAILURE);
     }

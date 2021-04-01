@@ -10,15 +10,10 @@
 namespace kagome::application {
 
   AllInOneApplication::AllInOneApplication(const AppConfiguration &app_config)
-      : injector_{injector::makeValidatingNodeInjector(app_config)},
+      : app_config_(app_config),
+        injector_{injector::makeValidatingNodeInjector(app_config_)},
         logger_(log::createLogger("AllInOneApplication", "application")) {
     log::setLevelOfGroup("main", app_config.verbosity());
-
-    if (app_config.isAlreadySynchronized()) {
-      babe_execution_strategy_ = Babe::ExecutionStrategy::START;
-    } else {
-      babe_execution_strategy_ = Babe::ExecutionStrategy::SYNC_FIRST;
-    }
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
@@ -26,30 +21,33 @@ namespace kagome::application {
     BOOST_ASSERT(chain_spec_ != nullptr);
 
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
-
-    chain_path_ = app_config.chainPath(chain_spec_->id());
-
-    io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
-    babe_ = injector_.create<sptr<Babe>>();
-    grandpa_ = injector_.create<sptr<Grandpa>>();
+    babe_ = injector_.create<sptr<consensus::Babe>>();
+    grandpa_ = injector_.create<sptr<consensus::grandpa::Grandpa>>();
     router_ = injector_.create<sptr<network::Router>>();
     peer_manager_ = injector_.create<sptr<network::PeerManager>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
+
+    io_context_ = injector_.create<sptr<boost::asio::io_context>>();
   }
 
   void AllInOneApplication::run() {
-    logger_->info("Start as ValidatingNode with PID {}", getpid());
+    logger_->info("Start as AllInOneApplication with PID {}", getpid());
 
-    auto res = util::init_directory(chain_path_);
+    auto chain_path = app_config_.chainPath(chain_spec_->id());
+    auto res = util::init_directory(chain_path);
     if (not res) {
       logger_->critical("Error initalizing chain directory {}: {}",
-                        chain_path_.native(),
+                        chain_path.native(),
                         res.error().message());
       exit(EXIT_FAILURE);
     }
 
-    babe_->setExecutionStrategy(babe_execution_strategy_);
+    auto babe_execution_strategy =
+        app_config_.isAlreadySynchronized()
+            ? consensus::Babe::ExecutionStrategy::START
+            : consensus::Babe::ExecutionStrategy::SYNC_FIRST;
+    babe_->setExecutionStrategy(babe_execution_strategy);
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });

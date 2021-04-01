@@ -14,6 +14,9 @@
 namespace kagome::application {
 
   class SyncingNodeApplication : public KagomeApplication {
+    using InjectorType = decltype(injector::makeSyncingNodeInjector(
+        std::declval<const AppConfiguration &>()));
+
     template <class T>
     using sptr = std::shared_ptr<T>;
 
@@ -21,9 +24,6 @@ namespace kagome::application {
     using uptr = std::unique_ptr<T>;
 
    public:
-    using InjectorType = decltype(injector::makeSyncingNodeInjector(
-        std::declval<AppConfiguration const &>()));
-
     ~SyncingNodeApplication() override = default;
 
     explicit SyncingNodeApplication(const AppConfiguration &app_config);
@@ -31,22 +31,18 @@ namespace kagome::application {
     void run() override;
 
    private:
-    // need to keep all of these instances, since injector itself is destroyed
-
+    const AppConfiguration &app_config_;
     InjectorType injector_;
 
     std::shared_ptr<soralog::LoggingSystem> logging_system_;
+    std::shared_ptr<AppStateManager> app_state_manager_;
+    std::shared_ptr<ChainSpec> chain_spec_;
+    std::shared_ptr<network::Router> router_;
+    std::shared_ptr<network::PeerManager> peer_manager_;
+    std::shared_ptr<api::ApiService> jrpc_api_service_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
 
     log::Logger logger_;
-
-    sptr<ChainSpec> chain_spec_;
-    boost::filesystem::path chain_path_;
-
-    sptr<AppStateManager> app_state_manager_;
-    sptr<boost::asio::io_context> io_context_;
-    sptr<network::Router> router_;
-    std::shared_ptr<network::PeerManager> peer_manager_;
-    sptr<api::ApiService> jrpc_api_service_;
   };
 
 }  // namespace kagome::application
