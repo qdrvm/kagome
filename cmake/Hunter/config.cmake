@@ -20,3 +20,10 @@ hunter_config(libp2p
     SHA1 "1e00525ece5e30a4992db4f8487c2b28677507ff"
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF
     )
+
+hunter_config(soralog
+    URL  "https://github.com/xDimon/soralog/archive/4ec007a2ee0b0eb8c506a7a8c127d215ab6e1273.tar.gz"
+    SHA1 "468d446beb7d67c7ac32331c89da4b9479511d1c"
+    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF
+    KEEP_PACKAGE_SOURCES
+    )
