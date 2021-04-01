@@ -30,8 +30,8 @@ namespace {
 
   const std::string def_rpc_http_host = "0.0.0.0";
   const std::string def_rpc_ws_host = "0.0.0.0";
-  const uint16_t def_rpc_http_port = 40363;
-  const uint16_t def_rpc_ws_port = 40364;
+  const uint16_t def_rpc_http_port = 9933;
+  const uint16_t def_rpc_ws_port = 9944;
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = (int)(kagome::log::Level::INFO);
   const bool def_is_only_finalizing = false;
@@ -376,7 +376,7 @@ namespace kagome::application {
 
       if constexpr (not with_kagome_embeddings) {
         std::cerr << "Warning: developers mode is not available. "
-                     "Application was build without developers embeddings "
+                     "Application was built without developers embeddings "
                      "(EMBEDDINGS option is OFF)."
                   << std::endl;
         return false;
