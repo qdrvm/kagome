@@ -110,7 +110,7 @@
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
-namespace kagome::injector {
+namespace {
   template <class T>
   using sptr = std::shared_ptr<T>;
 
@@ -119,6 +119,7 @@ namespace kagome::injector {
 
   namespace di = boost::di;
   namespace fs = boost::filesystem;
+  using namespace kagome;
 
   template <typename C>
   auto useConfig(C c) {
@@ -1201,7 +1202,9 @@ namespace kagome::injector {
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }
+}
 
+namespace kagome::injector {
   class ValidatingNodeInjectorImpl {
    public:
     using Injector = decltype(makeValidatingNodeInjector(

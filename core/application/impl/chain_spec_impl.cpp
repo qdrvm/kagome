@@ -32,7 +32,7 @@ namespace kagome::application {
   outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::loadFrom(
       const std::string &path) {
     // done so because of private constructor
-    auto config_storage = std::make_shared<ChainSpecImpl>(ChainSpecImpl());
+    auto config_storage = std::shared_ptr<ChainSpecImpl>(new ChainSpecImpl);
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
     return config_storage;
@@ -46,6 +46,7 @@ namespace kagome::application {
     } catch (pt::json_parser_error &e) {
       log_->error(
           "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
+      std::rethrow_exception(std::current_exception());
       return Error::PARSER_ERROR;
     }
 

@@ -18,6 +18,7 @@ target_link_libraries(application_injector
     tsl::tsl_hat_trie
     Boost::Boost.DI
     rpc_thread_pool
+    log_configurator
     api_transport
     api_jrpc_server
     state_api_service
@@ -32,6 +33,7 @@ target_link_libraries(application_injector
     babe_lottery
     block_header_repository
     block_executor
+    app_config_impl
     block_storage
     babe_synchronizer
     block_tree

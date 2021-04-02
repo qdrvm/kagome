@@ -43,7 +43,7 @@ namespace kagome {
 
 namespace kagome::injector {
 
-  class SyncingNodeInjector {
+  class SyncingNodeInjector final {
    public:
     explicit SyncingNodeInjector(const application::AppConfiguration&);
 
@@ -59,7 +59,7 @@ namespace kagome::injector {
     std::shared_ptr<class SyncingNodeInjectorImpl> pimpl_;
   };
 
-  class ValidatingNodeInjector {
+  class ValidatingNodeInjector final {
    public:
     explicit ValidatingNodeInjector(const application::AppConfiguration&);
 
