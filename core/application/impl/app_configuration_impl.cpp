@@ -53,7 +53,7 @@ namespace kagome::application {
         rpc_ws_port_(def_rpc_ws_port) {}
 
   fs::path AppConfigurationImpl::genesisPath() const {
-    return genesis_path_.native();
+    return chain_spec_path_.native();
   }
 
   boost::filesystem::path AppConfigurationImpl::chainPath(
@@ -154,24 +154,24 @@ namespace kagome::application {
 
   void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
     std::string genesis_path_str;
-    load_str(val, "genesis", genesis_path_str);
-    genesis_path_ = fs::path(genesis_path_str);
+    load_str(val, "chain", genesis_path_str);
+    chain_spec_path_ = fs::path(genesis_path_str);
   }
 
   void AppConfigurationImpl::parse_storage_segment(rapidjson::Value &val) {
     std::string base_path_str;
-    load_str(val, "base_path", base_path_str);
+    load_str(val, "base-path", base_path_str);
     base_path_ = fs::path(base_path_str);
   }
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
     load_ma(val, "listen-addr", listen_addresses_);
     load_ma(val, "bootnodes", boot_nodes_);
-    load_u16(val, "p2p_port", p2p_port_);
-    load_str(val, "rpc_http_host", rpc_http_host_);
-    load_u16(val, "rpc_http_port", rpc_http_port_);
-    load_str(val, "rpc_ws_host", rpc_ws_host_);
-    load_u16(val, "rpc_ws_port", rpc_ws_port_);
+    load_u16(val, "port", p2p_port_);
+    load_str(val, "rpc-host", rpc_http_host_);
+    load_u16(val, "rpc-port", rpc_http_port_);
+    load_str(val, "ws-host", rpc_ws_host_);
+    load_u16(val, "ws-port", rpc_ws_port_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
@@ -183,11 +183,11 @@ namespace kagome::application {
 
   bool AppConfigurationImpl::validate_config(
       AppConfiguration::LoadScheme scheme) {
-    if (not fs::exists(genesis_path_)) {
+    if (not fs::exists(chain_spec_path_)) {
       logger_->error(
           "Path to genesis {} does not exist, please specify a valid path with "
-          "-g option",
-          genesis_path_);
+          "--chain option",
+          chain_spec_path_);
       return false;
     }
 
@@ -209,14 +209,14 @@ namespace kagome::application {
     if (rpc_ws_port_ == 0) {
       logger_->error(
           "RPC ws port is 0, please specify a valid path with \"\n"
-          "          --rpc_ws_port\" option");
+          "          --ws-port\" option");
       return false;
     }
 
     if (rpc_http_port_ == 0) {
       logger_->error(
           "RPC http port is 0, please specify a valid path with \"\n"
-          "          --rpc_http_port\" option");
+          "          --rpc-port\" option");
       return false;
     }
 
@@ -289,17 +289,17 @@ namespace kagome::application {
     desc.add_options()
         ("help,h", "show this help message")
         ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no log")
-        ("config_file,c", po::value<std::string>(), "Filepath to load configuration from.")
+        ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
         ;
 
     po::options_description blockhain_desc("Blockchain options");
     blockhain_desc.add_options()
-        ("genesis,g", po::value<std::string>(), "required, configuration file path")
+        ("chain", po::value<std::string>(), "required, chainspec file path")
         ;
 
     po::options_description storage_desc("Storage options");
     storage_desc.add_options()
-        ("base_path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
+        ("base-path,d", po::value<std::string>(), "required, node base path (keeps storage and keys for known chains)")
         ;
 
     po::options_description network_desc("Network options");
@@ -307,11 +307,11 @@ namespace kagome::application {
         ("listen-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses the node listens for open connections on")
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
-        ("p2p_port,p", po::value<uint16_t>(), "port for peer to peer interactions")
-        ("rpc_http_host", po::value<std::string>(), "address for RPC over HTTP")
-        ("rpc_http_port", po::value<uint16_t>(), "port for RPC over HTTP")
-        ("rpc_ws_host", po::value<std::string>(), "address for RPC over Websocket protocol")
-        ("rpc_ws_port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
+        ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
+        ("rpc-host", po::value<std::string>(), "address for RPC over HTTP")
+        ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP")
+        ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
+        ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
         ("max_blocks_in_response", po::value<int>(), "max block per response while syncing")
         ;
 
@@ -352,7 +352,7 @@ namespace kagome::application {
       return false;
     }
 
-    find_argument<std::string>(vm, "config_file", [&](std::string const &path) {
+    find_argument<std::string>(vm, "config-file", [&](std::string const &path) {
       read_config_from_file(path);
     });
 
@@ -366,10 +366,10 @@ namespace kagome::application {
     if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
-        vm, "genesis", [&](const std::string &val) { genesis_path_ = val; });
+        vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
 
     find_argument<std::string>(
-        vm, "base_path", [&](const std::string &val) { base_path_ = val; });
+        vm, "base-path", [&](const std::string &val) { base_path_ = val; });
 
     std::vector<std::string> boot_nodes;
     find_argument<std::vector<std::string>>(
@@ -412,7 +412,7 @@ namespace kagome::application {
     }
 
     find_argument<uint16_t>(
-        vm, "p2p_port", [&](uint16_t val) { p2p_port_ = val; });
+        vm, "port", [&](uint16_t val) { p2p_port_ = val; });
 
     std::vector<std::string> listen_addr;
     find_argument<std::vector<std::string>>(
@@ -440,18 +440,18 @@ namespace kagome::application {
     });
 
     find_argument<std::string>(
-        vm, "rpc_http_host", [&](std::string const &val) {
+        vm, "rpc-host", [&](std::string const &val) {
           rpc_http_host_ = val;
         });
 
     find_argument<std::string>(
-        vm, "rpc_ws_host", [&](std::string const &val) { rpc_ws_host_ = val; });
+        vm, "ws-host", [&](std::string const &val) { rpc_ws_host_ = val; });
 
     find_argument<uint16_t>(
-        vm, "rpc_http_port", [&](uint16_t val) { rpc_http_port_ = val; });
+        vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
 
     find_argument<uint16_t>(
-        vm, "rpc_ws_port", [&](uint16_t val) { rpc_ws_port_ = val; });
+        vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);

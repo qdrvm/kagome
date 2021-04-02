@@ -83,7 +83,7 @@ To launch kagome validating node execute:
 ```
 cd examples/first_kagome_chain
 PATH=$PATH:../../build/node/kagome_validating/
-kagome_validating --genesis localchain.json --base_path base_path
+kagome_validating --chain localchain.json --base-path base_path
 ```
 
 This command executes kagome validating node which can receive extrinsics locally on port using http: `40363`. Simple transfer transaction can be sent as follows:
@@ -103,15 +103,15 @@ If transaction was successfully applied we should see the following output:
 
 Same note as for full syncing node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
 ```
-rm -rf db
+rm -rf syncing_chain
 ```
 ---
 
 To launch kagome syncing node execute:
 ```
-cd examples/network
+cd examples/polkadot/
 PATH=$PATH:../../build/node/kagome_full_syncing/
-kagome_full_syncing --genesis testchain.json -d syncing1 -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
+kagome_full_syncing --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix_slots
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.
