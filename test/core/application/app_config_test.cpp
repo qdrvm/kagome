@@ -27,8 +27,8 @@ class AppConfigurationTest : public testing::Test {
   std::string config_path = (tmp_dir / "config.json").native();
   std::string invalid_config_path = (tmp_dir / "invalid_config.json").native();
   std::string damaged_config_path = (tmp_dir / "damaged_config.json").native();
-  boost::filesystem::path genesis_path = tmp_dir / "genesis.json";
-  boost::filesystem::path base_path = tmp_dir / "base_path";
+  boost::filesystem::path chain_path = tmp_dir / "genesis.json";
+  boost::filesystem::path base_path = tmp_dir / "base-path";
 
   static constexpr char const *file_content =
       R"({
@@ -36,17 +36,17 @@ class AppConfigurationTest : public testing::Test {
           "verbosity" : 2
         },
         "blockchain" : {
-          "genesis" : "%1%"
+          "chain" : "%1%"
         },
         "storage" : {
-          "base_path" : "%2%"
+          "base-path" : "%2%"
         },
         "network" : {
-              "p2p_port" : 456,
-              "rpc_http_host" : "1.1.1.1",
-              "rpc_http_port" : 123,
-              "rpc_ws_host" : "2.2.2.2",
-              "rpc_ws_port" : 678
+              "port" : 456,
+              "rpc-host" : "1.1.1.1",
+              "rpc-port" : 123,
+              "ws-host" : "2.2.2.2",
+              "ws-port" : 678
         },
         "additional" : {
           "single_finalizing_node" : true
@@ -58,17 +58,17 @@ class AppConfigurationTest : public testing::Test {
           "verbosity" : 4444
         },
         "blockchain" : {
-          "genesis" : 1
+          "chain" : 1
         },
         "storage" : {
           base_path.native().c_str() : 2
         },
         "network" : {
-              "p2p_port" : "13",
-              "rpc_http_host" : 7,
-              "rpc_http_port" : "1312",
-              "rpc_ws_host" : 5,
-              "rpc_ws_port" : "AWESOME_PORT"
+              "port" : "13",
+              "rpc-host" : 7,
+              "rpc-port" : "1312",
+              "ws-host" : 5,
+              "ws-port" : "AWESOME_PORT"
         },
         "additional" : {
           "single_finalizing_node" : "order1800"
@@ -80,7 +80,7 @@ class AppConfigurationTest : public testing::Test {
           "verbosity" : 4444
         },
         "blockchain" : {
-          "genesis" : 1
+          "chain" : 1
         },
         "storage" : nalizing_node" : "order1800"
         }
@@ -105,12 +105,12 @@ class AppConfigurationTest : public testing::Test {
     };
 
     spawn_file(config_path,
-               (boost::format(file_content) % genesis_path.native()
+               (boost::format(file_content) % chain_path.native()
                 % base_path.native())
                    .str());
     spawn_file(invalid_config_path, invalid_file_content);
     spawn_file(damaged_config_path, damaged_file_content);
-    spawn_file(genesis_path.native(), "");
+    spawn_file(chain_path.native(), "");
     ASSERT_TRUE(boost::filesystem::create_directory(base_path));
 
     auto logger = kagome::log::createLogger("AppConfigTest", "testing");
@@ -135,9 +135,9 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 40364);
   char const *args[] = {"/path/",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
                         base_path.native().c_str()};
 
   ASSERT_TRUE(app_config_->initialize_from_args(
@@ -164,17 +164,17 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
       get_endpoint("5.6.7.8", 2222);
   char const *args[] = {
       "/path/",
-      "--genesis",
-      genesis_path.native().c_str(),
-      "--base_path",
+      "--chain",
+      chain_path.native().c_str(),
+      "--base-path",
       base_path.native().c_str(),
-      "--rpc_http_host",
+      "--rpc-host",
       "1.2.3.4",
-      "--rpc_ws_host",
+      "--ws-host",
       "5.6.7.8",
-      "--rpc_http_port",
+      "--rpc-port",
       "1111",
-      "--rpc_ws_port",
+      "--ws-port",
       "2222",
   };
 
@@ -189,21 +189,21 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
 
 /**
  * @given new created AppConfigurationImpl
- * @when --genesis cmd line arg is provided
+ * @when --chain cmd line arg is provided
  * @then we must receive this value from genesisPath() call
  */
 TEST_F(AppConfigurationTest, GenesisPathTest) {
   char const *args[] = {"/path/",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
+  ASSERT_EQ(app_config_->genesisPath(), chain_path.native().c_str());
 }
 
 /**
@@ -218,15 +218,15 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
       get_endpoint("5.6.7.8", 2222);
   char const *args[] = {
       "/path/",
-      "--config_file",
+      "--config-file",
       config_path.c_str(),
-      "--rpc_http_host",
+      "--rpc-host",
       "1.2.3.4",
-      "--rpc_ws_host",
+      "--ws-host",
       "5.6.7.8",
-      "--rpc_http_port",
+      "--rpc-port",
       "1111",
-      "--rpc_ws_port",
+      "--ws-port",
       "2222",
   };
 
@@ -250,13 +250,13 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("2.2.2.2", 678);
 
-  char const *args[] = {"/path/", "--config_file", config_path.c_str()};
+  char const *args[] = {"/path/", "--config-file", config_path.c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), genesis_path);
+  ASSERT_EQ(app_config_->genesisPath(), chain_path);
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
@@ -281,18 +281,18 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
       get_endpoint("0.0.0.0", 40364);
 
   char const *args[] = {"/path/",
-                        "--base_path",
+                        "--base-path",
                         base_path.native().c_str(),
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--config_file",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--config-file",
                         invalid_config_path.c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
+  ASSERT_EQ(app_config_->genesisPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
@@ -316,18 +316,18 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
       get_endpoint("0.0.0.0", 40364);
 
   char const *args[] = {"/path/",
-                        "--base_path",
+                        "--base-path",
                         base_path.native().c_str(),
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--config_file",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--config-file",
                         damaged_config_path.c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
+  ASSERT_EQ(app_config_->genesisPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
@@ -351,18 +351,18 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
       get_endpoint("0.0.0.0", 40364);
 
   char const *args[] = {"/path/",
-                        "--base_path",
+                        "--base-path",
                         base_path.native().c_str(),
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--config_file",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--config-file",
                         "<some_file>"};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), genesis_path.native().c_str());
+  ASSERT_EQ(app_config_->genesisPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
@@ -384,9 +384,9 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTest) {
       "/path/",
       "--single_finalizing_node",
       "true",
-      "--genesis",
-      genesis_path.native().c_str(),
-      "--base_path",
+      "--chain",
+      chain_path.native().c_str(),
+      "--base-path",
       base_path.native().c_str(),
   };
   ASSERT_TRUE(app_config_->initialize_from_args(
@@ -399,14 +399,14 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTest) {
 
 /**
  * @given new created AppConfigurationImpl
- * @when --base_path cmd line arg is provided
+ * @when --base-path cmd line arg is provided
  * @then we must receive this value from base_path() call
  */
 TEST_F(AppConfigurationTest, KeystorePathTest) {
   char const *args[] = {"/path/",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
@@ -421,14 +421,14 @@ TEST_F(AppConfigurationTest, KeystorePathTest) {
 
 /**
  * @given new created AppConfigurationImpl
- * @when --base_path cmd line arg is provided
+ * @when --base-path cmd line arg is provided
  * @then we must receive this value from base_path() call
  */
 TEST_F(AppConfigurationTest, base_pathPathTest) {
   char const *args[] = {"/path/",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
@@ -453,9 +453,9 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "/path/",
         "--verbosity",
         "0",
-        "--genesis",
-        genesis_path.native().c_str(),
-        "--base_path",
+        "--chain",
+        chain_path.native().c_str(),
+        "--base-path",
         base_path.native().c_str(),
     };
     ASSERT_TRUE(app_config_->initialize_from_args(
@@ -469,9 +469,9 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "/path/",
         "--verbosity",
         "1",
-        "--genesis",
-        genesis_path.native().c_str(),
-        "--base_path",
+        "--chain",
+        chain_path.native().c_str(),
+        "--base-path",
         base_path.native().c_str(),
     };
     ASSERT_TRUE(app_config_->initialize_from_args(
@@ -485,9 +485,9 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "/path/",
         "--verbosity",
         "2",
-        "--genesis",
-        genesis_path.native().c_str(),
-        "--base_path",
+        "--chain",
+        chain_path.native().c_str(),
+        "--base-path",
         base_path.native().c_str(),
     };
     ASSERT_TRUE(app_config_->initialize_from_args(
@@ -501,9 +501,9 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
         "/path/",
         "--verbosity",
         "3",
-        "--genesis",
-        genesis_path.native().c_str(),
-        "--base_path",
+        "--chain",
+        chain_path.native().c_str(),
+        "--base-path",
         base_path.native().c_str(),
     };
     ASSERT_TRUE(app_config_->initialize_from_args(
@@ -523,9 +523,9 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
   char const *args[] = {"/path/",
                         "--verbosity",
                         "555",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
@@ -542,9 +542,9 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
 TEST_F(AppConfigurationTest, OnlyFinalizeTestTest) {
   char const *args[] = {"/path/",
                         "-f",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
@@ -561,9 +561,9 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTestTest) {
 TEST_F(AppConfigurationTest, OnlyFinalizeTestTest_2) {
   char const *args[] = {"/path/",
                         "--single_finalizing_node",
-                        "--genesis",
-                        genesis_path.native().c_str(),
-                        "--base_path",
+                        "--chain",
+                        chain_path.native().c_str(),
+                        "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(app_config_->initialize_from_args(
       AppConfiguration::LoadScheme::kValidating,
