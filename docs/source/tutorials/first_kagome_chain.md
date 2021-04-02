@@ -68,11 +68,11 @@ For this tutorial you can start a single node network as follows:
 
 ```shell script
 kagome_validating \
-    --genesis localchain.json \
-    --base_path base_path \
-    --p2p_port 30363 \
-    --rpc_http_port 9933 \
-    --rpc_ws_port 9944 \
+    --chain localchain.json \
+    --base-path base_path \
+    --port 30363 \
+    --rpc-port 9933 \
+    --ws-port 9944 \
     --single_finalizing_node \
     --already_synchronized
 ```
@@ -81,11 +81,11 @@ Let's look at this flags in detail:
 
 | Flag              | Description                                       |
 |-------------------|---------------------------------------------------|
-| `--genesis`       | mandatory, genesis configuration file path        |
-| `--base_path`       | mandatory, base kagome directory path                 |
-| `--p2p_port`      | port for p2p interactions                         |
-| `--rpc_http_port` | port for RPC over HTTP                            |
-| `--rpc_ws_port`   | port for RPC over Websocket protocol              |
+| `--chain`       | mandatory, chainspec file path        |
+| `--base-path`       | mandatory, base kagome directory path                 |
+| `--port`      | port for p2p interactions                         |
+| `--rpc-port` | port for RPC over HTTP                            |
+| `--ws-port`   | port for RPC over Websocket protocol              |
 | `--single_finalizing_node`   | need to be set if this is the only finalizing node              |
 | `--already_synchronized`   | need to be set if need to be considered synchronized              |
 
