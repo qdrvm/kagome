@@ -119,7 +119,7 @@ namespace {
 
   namespace di = boost::di;
   namespace fs = boost::filesystem;
-  using namespace kagome;
+  using namespace kagome; // NOLINT
 
   template <typename C>
   auto useConfig(C c) {
@@ -1231,29 +1231,29 @@ namespace kagome::injector {
       : pimpl_{std::make_unique<SyncingNodeInjectorImpl>(
           makeSyncingNodeInjector(app_config))} {}
 
-  sptr<application::ChainSpec> SyncingNodeInjector::injectChainSpec() noexcept {
+  sptr<application::ChainSpec> SyncingNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
   }
 
   sptr<application::AppStateManager>
-  SyncingNodeInjector::injectAppStateManager() noexcept {
+  SyncingNodeInjector::injectAppStateManager() {
     return pimpl_->injector_.create<sptr<application::AppStateManager>>();
   }
 
   sptr<boost::asio::io_context>
-  SyncingNodeInjector::injectIoContext() noexcept {
+  SyncingNodeInjector::injectIoContext() {
     return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
   }
 
-  sptr<network::Router> SyncingNodeInjector::injectRouter() noexcept {
+  sptr<network::Router> SyncingNodeInjector::injectRouter() {
     return pimpl_->injector_.create<sptr<network::Router>>();
   }
 
-  sptr<network::PeerManager> SyncingNodeInjector::injectPeerManager() noexcept {
+  sptr<network::PeerManager> SyncingNodeInjector::injectPeerManager() {
     return pimpl_->injector_.create<sptr<network::PeerManager>>();
   }
 
-  sptr<api::ApiService> SyncingNodeInjector::injectRpcApiService() noexcept {
+  sptr<api::ApiService> SyncingNodeInjector::injectRpcApiService() {
     return pimpl_->injector_.create<sptr<api::ApiService>>();
   }
 
@@ -1263,49 +1263,49 @@ namespace kagome::injector {
           makeValidatingNodeInjector(app_config))} {}
 
   sptr<application::ChainSpec>
-  ValidatingNodeInjector::injectChainSpec() noexcept {
+  ValidatingNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
   }
 
   sptr<application::AppStateManager>
-  ValidatingNodeInjector::injectAppStateManager() noexcept {
+  ValidatingNodeInjector::injectAppStateManager() {
     return pimpl_->injector_.create<sptr<application::AppStateManager>>();
   }
 
   sptr<boost::asio::io_context>
-  ValidatingNodeInjector::injectIoContext() noexcept {
+  ValidatingNodeInjector::injectIoContext() {
     return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
   }
 
-  sptr<network::Router> ValidatingNodeInjector::injectRouter() noexcept {
+  sptr<network::Router> ValidatingNodeInjector::injectRouter() {
     return pimpl_->injector_.create<sptr<network::Router>>();
   }
 
   sptr<network::PeerManager>
-  ValidatingNodeInjector::injectPeerManager() noexcept {
+  ValidatingNodeInjector::injectPeerManager() {
     return pimpl_->injector_.create<sptr<network::PeerManager>>();
   }
 
-  sptr<api::ApiService> ValidatingNodeInjector::injectRpcApiService() noexcept {
+  sptr<api::ApiService> ValidatingNodeInjector::injectRpcApiService() {
     return pimpl_->injector_.create<sptr<api::ApiService>>();
   }
   std::shared_ptr<clock::SystemClock>
-  ValidatingNodeInjector::injectSystemClock() noexcept {
+  ValidatingNodeInjector::injectSystemClock() {
     return pimpl_->injector_.create<sptr<clock::SystemClock>>();
   }
 
   std::shared_ptr<consensus::babe::Babe>
-  ValidatingNodeInjector::injectBabe() noexcept {
+  ValidatingNodeInjector::injectBabe() {
     return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
   }
 
   std::shared_ptr<consensus::grandpa::Grandpa>
-  ValidatingNodeInjector::injectGrandpa() noexcept {
+  ValidatingNodeInjector::injectGrandpa() {
     return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
   }
 
   std::shared_ptr<soralog::LoggingSystem>
-  ValidatingNodeInjector::injectLoggingSystem() noexcept {
+  ValidatingNodeInjector::injectLoggingSystem() {
     return std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));

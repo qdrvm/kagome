@@ -93,8 +93,6 @@ class SyncingInjectorTest : public testing::Test {
   static void SetUpTestCase() {
     testutil::prepareLoggers();
     fs::create_directories(db_path_);
-    fs::create_directories(db_path_ / "keys");
-    writeKeys(db_path_ / "keys");
   }
 
   void SetUp() override {
