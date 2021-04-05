@@ -17,6 +17,9 @@ namespace fs = boost::filesystem;
 using testing::_;
 
 namespace {
+  /**
+   * Write keys required by a validating node to \param keystore_dir .
+   */
   void writeKeys(const fs::path &keystore_dir) {
     auto random_generator =
         std::make_shared<kagome::crypto::BoostRandomGenerator>();
@@ -54,6 +57,9 @@ namespace {
     }
   }
 
+  /**
+   * Initialize expectations on the \param config_mock
+   */
   void initConfig(const fs::path &db_path,
                   kagome::application::AppConfigurationMock &config_mock) {
     static const auto genesis_path = fs::path(__FILE__)
