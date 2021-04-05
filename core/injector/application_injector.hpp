@@ -536,7 +536,7 @@ namespace kagome::injector {
     }
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto const &genesis_path = config.genesisPath();
+    auto const &genesis_path = config.chainSpecPath();
 
     auto genesis_config_res =
         application::ChainSpecImpl::loadFrom(genesis_path.native());
@@ -595,10 +595,10 @@ namespace kagome::injector {
 
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto genesis_config =
+    auto chainspec =
         injector.template create<sptr<application::ChainSpec>>();
 
-    auto path = config.keystorePath(genesis_config->id());
+    auto path = config.keystorePath(chainspec->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
     if (not key_file_storage_res) {
       common::raise(key_file_storage_res.error());

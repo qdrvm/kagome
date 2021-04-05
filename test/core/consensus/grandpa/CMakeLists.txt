@@ -10,6 +10,7 @@ addtest(chain_test
     )
 target_link_libraries(chain_test
     environment
+    logger_for_tests
     )
 
 addtest(vote_tracker_test

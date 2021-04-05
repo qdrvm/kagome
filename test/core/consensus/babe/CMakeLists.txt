@@ -12,6 +12,7 @@ target_link_libraries(babe_test
     waitable_timer
     sr25519_types
     sr25519_provider
+    logger_for_tests
     )
 
 addtest(threshold_util_test

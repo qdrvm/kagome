@@ -60,7 +60,7 @@ groups:
           - name: pubsub
           - name: transactions
           - name: testing
-            level: debug
+            level: trace
 # ----------------
   )");
   }

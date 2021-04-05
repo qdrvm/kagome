@@ -67,7 +67,7 @@ namespace kagome::application {
                                             int argc,
                                             char **argv);
 
-    boost::filesystem::path genesisPath() const override;
+    boost::filesystem::path chainSpecPath() const override;
     boost::filesystem::path chainPath(std::string chain_id) const override;
     boost::filesystem::path databasePath(std::string chain_id) const override;
     boost::filesystem::path keystorePath(std::string chain_id) const override;
@@ -112,6 +112,9 @@ namespace kagome::application {
     const network::PeeringConfig &peeringConfig() const override {
       return peering_config_;
     }
+    bool isRunInDevMode() const override {
+      return dev_mode_;
+    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -139,8 +142,6 @@ namespace kagome::application {
     // clang-format on
 
     bool validate_config(AppConfiguration::LoadScheme scheme);
-    bool validate_base_path(AppConfiguration::LoadScheme scheme);
-    bool validate_genesis_path(AppConfiguration::LoadScheme scheme);
 
     void read_config_from_file(const std::string &filepath);
 
@@ -182,6 +183,7 @@ namespace kagome::application {
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     network::PeeringConfig peering_config_;
+    bool dev_mode_;
   };
 
 }  // namespace kagome::application

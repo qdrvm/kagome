@@ -27,8 +27,8 @@ class AppConfigurationTest : public testing::Test {
   std::string config_path = (tmp_dir / "config.json").native();
   std::string invalid_config_path = (tmp_dir / "invalid_config.json").native();
   std::string damaged_config_path = (tmp_dir / "damaged_config.json").native();
+  boost::filesystem::path base_path = tmp_dir / "base_path";
   boost::filesystem::path chain_path = tmp_dir / "genesis.json";
-  boost::filesystem::path base_path = tmp_dir / "base-path";
 
   static constexpr char const *file_content =
       R"({
@@ -131,9 +131,9 @@ class AppConfigurationTest : public testing::Test {
  */
 TEST_F(AppConfigurationTest, DefaultValuesTest) {
   boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 40363);
+      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
-      get_endpoint("0.0.0.0", 40364);
+      get_endpoint("0.0.0.0", 9944);
   char const *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
@@ -190,7 +190,7 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
 /**
  * @given new created AppConfigurationImpl
  * @when --chain cmd line arg is provided
- * @then we must receive this value from genesisPath() call
+ * @then we must receive this value from chainSpecPath() call
  */
 TEST_F(AppConfigurationTest, GenesisPathTest) {
   char const *args[] = {"/path/",
@@ -203,7 +203,7 @@ TEST_F(AppConfigurationTest, GenesisPathTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), chain_path.native().c_str());
+  ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
 }
 
 /**
@@ -256,7 +256,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), chain_path);
+  ASSERT_EQ(app_config_->chainSpecPath(), chain_path);
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
@@ -276,9 +276,9 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
  */
 TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
   boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 40363);
+      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
-      get_endpoint("0.0.0.0", 40364);
+      get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
                         "--base-path",
@@ -292,7 +292,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), chain_path.native().c_str());
+  ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
@@ -311,9 +311,9 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
  */
 TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
   boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 40363);
+      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
-      get_endpoint("0.0.0.0", 40364);
+      get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
                         "--base-path",
@@ -327,7 +327,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), chain_path.native().c_str());
+  ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
@@ -346,9 +346,9 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
  */
 TEST_F(AppConfigurationTest, NoConfigFileTest) {
   boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 40363);
+      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
-      get_endpoint("0.0.0.0", 40364);
+      get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
                         "--base-path",
@@ -362,7 +362,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
       sizeof(args) / sizeof(args[0]),
       (char **)args));
 
-  ASSERT_EQ(app_config_->genesisPath(), chain_path.native().c_str());
+  ASSERT_EQ(app_config_->chainSpecPath(), chain_path.native().c_str());
   ASSERT_EQ(app_config_->keystorePath("test_chain42"),
             base_path / "test_chain42/keystore");
   ASSERT_EQ(app_config_->databasePath("test_chain42"),
