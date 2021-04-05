@@ -42,7 +42,7 @@ namespace kagome::application {
     /**
      * @return file path with genesis configuration.
      */
-    virtual boost::filesystem::path genesisPath() const = 0;
+    virtual boost::filesystem::path chainSpecPath() const = 0;
 
     /**
      * @return path to the node's directory for the chain \arg chain_id

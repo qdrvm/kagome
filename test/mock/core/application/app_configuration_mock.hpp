@@ -14,7 +14,7 @@ namespace kagome::application {
 
   class AppConfigurationMock : public AppConfiguration {
    public:
-    MOCK_CONST_METHOD0(genesisPath, boost::filesystem::path());
+    MOCK_CONST_METHOD0(chainSpecPath, boost::filesystem::path());
 
     MOCK_CONST_METHOD1(chainPath,
                        boost::filesystem::path(std::string chain_id));

@@ -67,7 +67,7 @@ namespace kagome::application {
                                             int argc,
                                             char **argv);
 
-    boost::filesystem::path genesisPath() const override;
+    boost::filesystem::path chainSpecPath() const override;
     boost::filesystem::path chainPath(std::string chain_id) const override;
     boost::filesystem::path databasePath(std::string chain_id) const override;
     boost::filesystem::path keystorePath(std::string chain_id) const override;
@@ -180,7 +180,7 @@ namespace kagome::application {
     bool is_unix_slots_strategy_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
-    boost::filesystem::path genesis_path_;
+    boost::filesystem::path chain_spec_path_;
     boost::filesystem::path base_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;

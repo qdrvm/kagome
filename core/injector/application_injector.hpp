@@ -536,7 +536,7 @@ namespace kagome::injector {
     }
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto const &genesis_path = config.genesisPath();
+    auto const &genesis_path = config.chainSpecPath();
 
     auto genesis_config_res =
         application::ChainSpecImpl::loadFrom(genesis_path.native());
