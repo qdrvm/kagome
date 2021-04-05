@@ -7,58 +7,140 @@
 
 #include <gtest/gtest.h>
 
-#include "application/impl/app_configuration_impl.hpp"
+#include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "mock/core/application/app_configuration_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-static auto initConfig(kagome::application::AppConfigurationImpl &config) {
-  static boost::filesystem::path tmp_dir =
-      boost::filesystem::temp_directory_path()
-      / boost::filesystem::unique_path();
-  static auto genesis_path = boost::filesystem::path(__FILE__).parent_path().parent_path()
-                             / "application" / "genesis.json";
-  static auto base_path = tmp_dir / "base_path";
+namespace fs = boost::filesystem;
+using testing::_;
 
-  boost::filesystem::create_directories(base_path);
+namespace {
+  void writeKeys(const fs::path &keystore_dir) {
+    auto random_generator =
+        std::make_shared<kagome::crypto::BoostRandomGenerator>();
+    auto sr25519_provider =
+        std::make_shared<kagome::crypto::Sr25519ProviderImpl>(random_generator);
 
-  const char *argv[5]{
-      "", "-g", genesis_path.native().data(), "-d", base_path.native().data()};
-  ASSERT_TRUE(config.initialize_from_args(
-      kagome::application::AppConfiguration::LoadScheme::kValidating,
-      5,
-      const_cast<char **>(argv)));
-}
+    auto ed25519_provider =
+        std::make_shared<kagome::crypto::Ed25519ProviderImpl>(random_generator);
+
+    {
+      auto seed = kagome::crypto::Sr25519Seed::fromSpan(
+                      random_generator->randomBytes(
+                          kagome::crypto::constants::sr25519::SEED_SIZE))
+                      .value();
+      auto babe = sr25519_provider->generateKeypair(seed);
+      std::ofstream babe_file(keystore_dir
+                              / fmt::format("babe{}", babe.public_key.toHex()));
+      babe_file << seed.toHex();
+    }
+    {
+      auto grandpa = ed25519_provider->generateKeypair();
+      std::ofstream grandpa_file(
+          keystore_dir / fmt::format("gran{}", grandpa.public_key.toHex()));
+      grandpa_file << grandpa.secret_key.toHex();
+    }
+    {
+      auto seed = kagome::crypto::Sr25519Seed::fromSpan(
+                      random_generator->randomBytes(
+                          kagome::crypto::constants::sr25519::SEED_SIZE))
+                      .value();
+      auto libp2p = sr25519_provider->generateKeypair(seed);
+      std::ofstream libp2p_file(
+          keystore_dir / fmt::format("lp2p{}", libp2p.public_key.toHex()));
+      libp2p_file << seed.toHex();
+    }
+  }
+
+  void initConfig(const fs::path &db_path,
+                  kagome::application::AppConfigurationMock &config_mock) {
+    static const auto genesis_path = fs::path(__FILE__)
+                                         .parent_path()
+                                         .parent_path()
+                                         .parent_path()
+                                         .parent_path()
+                                     / "examples" / "polkadot"
+                                     / "polkadot.json";
+    EXPECT_CALL(config_mock, genesisPath())
+        .WillRepeatedly(testing::Return(genesis_path));
+    EXPECT_CALL(config_mock, databasePath(_))
+        .WillRepeatedly(testing::Return(db_path));
+    EXPECT_CALL(config_mock, keystorePath(_))
+        .WillRepeatedly(testing::Return(db_path / "keys"));
+    static auto key = boost::make_optional(kagome::crypto::Ed25519PrivateKey{});
+    EXPECT_CALL(config_mock, nodeKey()).WillRepeatedly(testing::ReturnRef(key));
+    EXPECT_CALL(config_mock, listenAddresses())
+        .WillRepeatedly(
+            testing::ReturnRefOfCopy<std::vector<libp2p::multi::Multiaddress>>(
+                {}));
+    EXPECT_CALL(config_mock, bootNodes())
+        .WillRepeatedly(
+            testing::ReturnRefOfCopy<std::vector<libp2p::multi::Multiaddress>>(
+                {}));
+    EXPECT_CALL(config_mock, rpcHttpEndpoint())
+        .WillRepeatedly(
+            testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
+    EXPECT_CALL(config_mock, rpcWsEndpoint())
+        .WillRepeatedly(
+            testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
+  }
+}  // namespace
 
 class SyncingInjectorTest : public testing::Test {
  public:
-  void SetUp() override {
+  static void SetUpTestCase() {
     testutil::prepareLoggers();
-    config_ = std::make_shared<kagome::application::AppConfigurationImpl>(
-        kagome::log::createLogger("SyncingInjectorTest"));
-    initConfig(*config_);
+    fs::create_directories(db_path_);
+    fs::create_directories(db_path_ / "keys");
+    writeKeys(db_path_ / "keys");
+  }
+
+  void SetUp() override {
+    config_ = std::make_shared<kagome::application::AppConfigurationMock>();
+    initConfig(db_path_, *config_);
     injector_ =
         std::make_unique<kagome::injector::SyncingNodeInjector>(*config_);
   }
 
- protected:
-  std::shared_ptr<kagome::application::AppConfigurationImpl> config_;
+  static void TearDownTestCase() {
+    fs::remove_all(db_path_);
+  }
 
+ protected:
+  static inline const auto db_path_ =
+      fs::temp_directory_path() / fs::unique_path();
+
+  std::shared_ptr<kagome::application::AppConfigurationMock> config_;
   std::unique_ptr<kagome::injector::SyncingNodeInjector> injector_;
 };
 
 class ValidatingInjectorTest : public testing::Test {
  public:
-  void SetUp() override {
+  static void SetUpTestCase() {
     testutil::prepareLoggers();
-    config_ = std::make_shared<kagome::application::AppConfigurationImpl>(
-        kagome::log::createLogger("ValidatingInjectorTest"));
+    fs::create_directories(db_path_);
+    fs::create_directories(db_path_ / "keys");
+    writeKeys(db_path_ / "keys");
+  }
 
-    initConfig(*config_);
+  void SetUp() override {
+    config_ = std::make_shared<kagome::application::AppConfigurationMock>();
+    initConfig(db_path_, *config_);
     injector_ =
         std::make_unique<kagome::injector::ValidatingNodeInjector>(*config_);
   }
 
+  static void TearDownTestCase() {
+    fs::remove_all(db_path_);
+  }
+
  protected:
-  std::shared_ptr<kagome::application::AppConfigurationImpl> config_;
+  static inline const auto db_path_ =
+      fs::temp_directory_path() / fs::unique_path();
+
+  std::shared_ptr<kagome::application::AppConfigurationMock> config_;
   std::unique_ptr<kagome::injector::ValidatingNodeInjector> injector_;
 };
 

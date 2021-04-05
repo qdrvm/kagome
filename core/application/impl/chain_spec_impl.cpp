@@ -46,7 +46,6 @@ namespace kagome::application {
     } catch (pt::json_parser_error &e) {
       log_->error(
           "Parser error: {}, line {}: {}", e.filename(), e.line(), e.message());
-      std::rethrow_exception(std::current_exception());
       return Error::PARSER_ERROR;
     }
 

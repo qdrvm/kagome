@@ -70,8 +70,8 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
-#include "log/logger.hpp"
 #include "log/configurator.hpp"
+#include "log/logger.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
@@ -405,18 +405,20 @@ namespace {
   sptr<crypto::KeyFileStorage> get_key_file_storage(
       application::AppConfiguration const &config,
       sptr<application::ChainSpec> genesis_config) {
-    static auto initialized =
-        boost::optional<sptr<crypto::KeyFileStorage>>(boost::none);
-    if (initialized) {
+    static boost::optional<sptr<crypto::KeyFileStorage>> initialized =
+        boost::none;
+    static boost::optional<fs::path> initialized_path =
+        boost::none;
+    auto path = config.keystorePath(genesis_config->id());
+    if (initialized and initialized_path and initialized_path.value() == path) {
       return *initialized;
     }
-
-    auto path = config.keystorePath(genesis_config->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
     if (not key_file_storage_res) {
       common::raise(key_file_storage_res.error());
     }
     initialized = std::move(key_file_storage_res.value());
+    initialized_path = std::move(path);
 
     return *initialized;
   }
@@ -1202,7 +1204,7 @@ namespace {
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }
-}
+}  // namespace
 
 namespace kagome::injector {
   class ValidatingNodeInjectorImpl {
