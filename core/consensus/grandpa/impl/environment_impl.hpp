@@ -12,7 +12,9 @@
 
 #include "log/logger.hpp"
 
-namespace kagome::consensus::grandpa { struct Gossiper; }
+namespace kagome::consensus::grandpa {
+  struct Gossiper;
+}
 
 namespace kagome::consensus::grandpa {
 

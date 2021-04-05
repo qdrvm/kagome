@@ -10,7 +10,9 @@
 
 #include "outcome/outcome.hpp"
 
-namespace kagome::api { class SystemApi; }
+namespace kagome::api {
+  class SystemApi;
+}
 
 namespace kagome::api::system::request {
 

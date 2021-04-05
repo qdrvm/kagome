@@ -119,7 +119,7 @@ namespace {
 
   namespace di = boost::di;
   namespace fs = boost::filesystem;
-  using namespace kagome; // NOLINT
+  using namespace kagome;  // NOLINT
 
   template <typename C>
   auto useConfig(C c) {
@@ -407,8 +407,7 @@ namespace {
       sptr<application::ChainSpec> genesis_config) {
     static boost::optional<sptr<crypto::KeyFileStorage>> initialized =
         boost::none;
-    static boost::optional<fs::path> initialized_path =
-        boost::none;
+    static boost::optional<fs::path> initialized_path = boost::none;
     auto path = config.keystorePath(genesis_config->id());
     if (initialized and initialized_path and initialized_path.value() == path) {
       return *initialized;
@@ -1240,8 +1239,7 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<application::AppStateManager>>();
   }
 
-  sptr<boost::asio::io_context>
-  SyncingNodeInjector::injectIoContext() {
+  sptr<boost::asio::io_context> SyncingNodeInjector::injectIoContext() {
     return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
   }
 
@@ -1262,8 +1260,7 @@ namespace kagome::injector {
       : pimpl_{std::make_unique<ValidatingNodeInjectorImpl>(
           makeValidatingNodeInjector(app_config))} {}
 
-  sptr<application::ChainSpec>
-  ValidatingNodeInjector::injectChainSpec() {
+  sptr<application::ChainSpec> ValidatingNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
   }
 
@@ -1272,8 +1269,7 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<application::AppStateManager>>();
   }
 
-  sptr<boost::asio::io_context>
-  ValidatingNodeInjector::injectIoContext() {
+  sptr<boost::asio::io_context> ValidatingNodeInjector::injectIoContext() {
     return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
   }
 
@@ -1281,8 +1277,7 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<network::Router>>();
   }
 
-  sptr<network::PeerManager>
-  ValidatingNodeInjector::injectPeerManager() {
+  sptr<network::PeerManager> ValidatingNodeInjector::injectPeerManager() {
     return pimpl_->injector_.create<sptr<network::PeerManager>>();
   }
 
@@ -1294,8 +1289,7 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<clock::SystemClock>>();
   }
 
-  std::shared_ptr<consensus::babe::Babe>
-  ValidatingNodeInjector::injectBabe() {
+  std::shared_ptr<consensus::babe::Babe> ValidatingNodeInjector::injectBabe() {
     return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
   }
 
