@@ -9,3 +9,10 @@ add_library(block_announce_protocol
 target_link_libraries(block_announce_protocol
     logger
     )
+
+add_library(sync_protocol
+    sync_protocol.cpp
+    )
+target_link_libraries(sync_protocol
+    logger
+    )
