@@ -73,6 +73,7 @@ target_link_libraries(application_injector
     peer_manager
     babe_util
     block_announce_protocol
+    assets
     )
 
 add_library(syncing_node_injector
