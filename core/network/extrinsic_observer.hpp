@@ -9,8 +9,12 @@
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
 
-namespace kagome::api { class AuthorApi; }
-namespace kagome::primitives { struct Extrinsic; }
+namespace kagome::api {
+  class AuthorApi;
+}
+namespace kagome::primitives {
+  struct Extrinsic;
+}
 
 namespace kagome::network {
 
