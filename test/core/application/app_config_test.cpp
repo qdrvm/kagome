@@ -131,9 +131,9 @@ class AppConfigurationTest : public testing::Test {
  */
 TEST_F(AppConfigurationTest, DefaultValuesTest) {
   boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 40363);
+      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
-      get_endpoint("0.0.0.0", 40364);
+      get_endpoint("0.0.0.0", 9944);
   char const *args[] = {"/path/",
                         "--chain",
                         chain_path.native().c_str(),
@@ -276,9 +276,9 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
  */
 TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
   boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 40363);
+      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
-      get_endpoint("0.0.0.0", 40364);
+      get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
                         "--base-path",
@@ -311,9 +311,9 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
  */
 TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
   boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 40363);
+      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
-      get_endpoint("0.0.0.0", 40364);
+      get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
                         "--base-path",
@@ -346,9 +346,9 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
  */
 TEST_F(AppConfigurationTest, NoConfigFileTest) {
   boost::asio::ip::tcp::endpoint const http_endpoint =
-      get_endpoint("0.0.0.0", 40363);
+      get_endpoint("0.0.0.0", 9933);
   boost::asio::ip::tcp::endpoint const ws_endpoint =
-      get_endpoint("0.0.0.0", 40364);
+      get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
                         "--base-path",

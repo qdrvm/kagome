@@ -10,7 +10,10 @@
 
 #include <mutex>
 
-#include <soralog/impl/fallback_configurator.hpp>
+#include <libp2p/log/configurator.hpp>
+
+#include <log/configurator.hpp>
+#include <soralog/impl/configurator_from_yaml.hpp>
 
 namespace testutil {
 
@@ -18,10 +21,26 @@ namespace testutil {
 
   void prepareLoggers(soralog::Level level = soralog::Level::INFO) {
     std::call_once(initialized, [] {
-      auto configurator = std::make_shared<soralog::FallbackConfigurator>();
+      auto testing_log_config = std::string(R"(
+sinks:
+  - name: console
+    type: console
+    capacity: 4
+    buffer: 16384
+    latency: 0
+groups:
+  - name: main
+    sink: console
+    level: info
+    children:
+      - name: testing
+        level: trace
+)");
 
-      auto logging_system =
-          std::make_shared<soralog::LoggingSystem>(configurator);
+      auto logging_system = std::make_shared<soralog::LoggingSystem>(
+          std::make_shared<kagome::log::Configurator>(
+              std::make_shared<libp2p::log::Configurator>(),
+              testing_log_config));
 
       auto r = logging_system->configure();
       if (r.has_error) {
@@ -33,7 +52,6 @@ namespace testutil {
 
     kagome::log::setLevelOfGroup("*", level);
   }
-
 }  // namespace testutil
 
 #endif  // TESTUTIL_PREPARELOGGERS

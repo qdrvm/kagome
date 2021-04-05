@@ -142,8 +142,6 @@ namespace kagome::application {
     // clang-format on
 
     bool validate_config(AppConfiguration::LoadScheme scheme);
-    bool validate_base_path(AppConfiguration::LoadScheme scheme);
-    bool validate_genesis_path(AppConfiguration::LoadScheme scheme);
 
     void read_config_from_file(const std::string &filepath);
 

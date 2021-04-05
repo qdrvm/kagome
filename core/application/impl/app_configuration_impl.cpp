@@ -426,7 +426,7 @@ namespace kagome::application {
       }
     }
 
-    find_argument<std::string>(vm, "config_file", [&](std::string const &path) {
+    find_argument<std::string>(vm, "config-file", [&](std::string const &path) {
       if (dev_mode_) {
         std::cerr << "Warning: config file has ignored because dev mode"
                   << std::endl;

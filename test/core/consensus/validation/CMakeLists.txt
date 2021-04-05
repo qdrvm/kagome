@@ -13,4 +13,5 @@ target_link_libraries(block_validator_test
     sr25519_provider
     mp_utils
     keccak
+    logger_for_tests
     )
