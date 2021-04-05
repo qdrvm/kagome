@@ -6,6 +6,7 @@
 #include "crypto/crypto_store/key_type.hpp"
 
 #include <unordered_set>
+#include <array>
 
 #include <boost/endian/arithmetic.hpp>
 
