@@ -5,7 +5,13 @@
 
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
+#include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+
+namespace kagome::runtime {
+  class TrieStorageProvider;
+}
 
 namespace kagome::runtime::binaryen {
 
@@ -732,8 +738,17 @@ namespace kagome::runtime::binaryen {
           extern_name,
           expected,
           actual);
-      std::terminate();
+      throw std::runtime_error(
+          "Invocation of a Host API method with wrong number of arguments");
     }
+  }
+
+  std::shared_ptr<WasmMemory> RuntimeExternalInterface::memory() const {
+    return host_api_->memory();
+  }
+
+  void RuntimeExternalInterface::reset() const {
+    return host_api_->reset();
   }
 
 }  // namespace kagome::runtime::binaryen

@@ -8,10 +8,28 @@
 
 #include <binaryen/shell-interface.h>
 
-#include "host_api/host_api_factory.hpp"
 #include "log/logger.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
-#include "runtime/trie_storage_provider.hpp"
+
+namespace kagome::host_api {
+  class HostApiFactory;
+  class HostApi;
+}
+
+namespace kagome::runtime {
+  class TrieStorageProvider;
+  class WasmMemory;
+
+  namespace binaryen {
+    class CoreFactory;
+    class RuntimeEnvironmentFactory;
+    class BinaryenWasmMemoryFactory;
+  }
+
+}  // namespace kagome::runtime
+
+namespace wasm {
+  class Function;
+}
 
 namespace kagome::runtime::binaryen {
 
@@ -32,13 +50,9 @@ namespace kagome::runtime::binaryen {
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
-    inline std::shared_ptr<WasmMemory> memory() const {
-      return host_api_->memory();
-    }
+    std::shared_ptr<WasmMemory> memory() const;
 
-    inline void reset() const {
-      return host_api_->reset();
-    }
+    void reset() const;
 
    private:
     /**

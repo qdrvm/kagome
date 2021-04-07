@@ -8,7 +8,9 @@
 
 #include "runtime/wasm_provider.hpp"
 
-#include "storage/trie/trie_storage.hpp"
+namespace kagome::storage::trie {
+  class TrieStorage;
+}
 
 namespace kagome::runtime {
 

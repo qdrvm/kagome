@@ -10,14 +10,14 @@
 #include <jsonrpc-lean/request.h>
 
 #include "primitives/ss58_codec.hpp"
-#include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::api {
 
   SystemApiImpl::SystemApiImpl(
       std::shared_ptr<application::ChainSpec> config,
-      std::shared_ptr<consensus::Babe> babe,
+      std::shared_ptr<consensus::babe::Babe> babe,
       std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
@@ -40,7 +40,7 @@ namespace kagome::api {
     return config_;
   }
 
-  std::shared_ptr<consensus::Babe> SystemApiImpl::getBabe() const {
+  std::shared_ptr<consensus::babe::Babe> SystemApiImpl::getBabe() const {
     return babe_;
   }
 

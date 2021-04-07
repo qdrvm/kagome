@@ -127,9 +127,9 @@ struct ListenerTest : public ::testing::Test {
   sptr<ApiService> service = std::make_shared<ApiServiceImpl>(
       app_state_manager,
       thread_pool,
-      std::vector<std::shared_ptr<Listener>>{listener},
+      ApiServiceImpl::ListenerList{{listener}},
       server,
-      processors,
+      ApiServiceImpl::ProcessorSpan{processors},
       storage_events_engine,
       chain_events_engine,
       ext_events_engine,

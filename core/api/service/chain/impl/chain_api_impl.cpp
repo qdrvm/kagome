@@ -7,6 +7,7 @@
 
 #include <jsonrpc-lean/fault.h>
 
+#include "api/service/api_service.hpp"
 #include "common/hexutil.hpp"
 #include "common/visitor.hpp"
 

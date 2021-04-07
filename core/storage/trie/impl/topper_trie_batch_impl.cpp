@@ -5,6 +5,8 @@
 
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
+#include "common/buffer.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,

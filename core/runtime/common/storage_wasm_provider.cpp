@@ -5,6 +5,8 @@
 
 #include "runtime/common/storage_wasm_provider.hpp"
 
+#include "storage/trie/trie_storage.hpp"
+
 namespace kagome::runtime {
 
   StorageWasmProvider::StorageWasmProvider(

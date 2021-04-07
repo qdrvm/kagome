@@ -27,7 +27,7 @@ namespace kagome::api {
     MOCK_METHOD0(pendingExtrinsics, outcome::result<std::vector<Extrinsic>>());
 
     MOCK_METHOD1(removeExtrinsic,
-                 outcome::result<std::vector<Hash256>>(
+                 outcome::result<std::vector<Extrinsic>>(
                      const std::vector<ExtrinsicKey> &));
   };
 

@@ -10,11 +10,22 @@
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/grandpa/finalization_observer.hpp"
 
-#include "application/app_state_manager.hpp"
-#include "blockchain/block_tree.hpp"
-#include "consensus/authority/impl/schedule_node.hpp"
-#include "primitives/babe_configuration.hpp"
+#include "log/logger.hpp"
 #include "storage/buffer_map_types.hpp"
+
+namespace kagome::application {
+  class AppStateManager;
+}
+namespace kagome::authority {
+  class ScheduleNode;
+}
+namespace kagome::blockchain {
+  struct BlockTree;
+}
+namespace kagome::primitives {
+  struct AuthorityList;
+  struct BabeConfiguration;
+}  // namespace kagome::primitives
 
 namespace kagome::authority {
   class AuthorityManagerImpl : public AuthorityManager,

@@ -9,7 +9,6 @@
 #include <type_traits>
 #include <vector>
 
-#include <boost/multiprecision/cpp_int.hpp>
 #include "common/blob.hpp"
 #include "primitives/common.hpp"
 #include "primitives/compact_integer.hpp"

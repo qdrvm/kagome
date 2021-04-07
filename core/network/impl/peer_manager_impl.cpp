@@ -29,10 +29,10 @@ namespace kagome::network {
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<network::SyncClientsSet> sync_clients,
-      std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<blockchain::BlockStorage> storage,
-      std::shared_ptr<BabeObserver> babe_observer,
+//      std::shared_ptr<blockchain::BlockTree> block_tree,
+//      std::shared_ptr<crypto::Hasher> hasher,
+//      std::shared_ptr<blockchain::BlockStorage> storage,
+//      std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol
 //      ,
 //      std::shared_ptr<GossipProtocol> gossip_protocol,
@@ -53,10 +53,10 @@ namespace kagome::network {
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
         sync_clients_(std::move(sync_clients)),
-        block_tree_{std::move(block_tree)},
-        hasher_{std::move(hasher)},
-        storage_{std::move(storage)},
-        babe_observer_{std::move(babe_observer)},
+//        block_tree_{std::move(block_tree)},
+//        hasher_{std::move(hasher)},
+//        storage_{std::move(storage)},
+//        babe_observer_{std::move(babe_observer)},
         block_announce_protocol_{std::move(block_announce_protocol)},
 //        gossip_protocol_{std::move(gossip_protocol)},
 //        propagate_transaction_protocol_{
@@ -70,10 +70,10 @@ namespace kagome::network {
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(sync_clients_ != nullptr);
-    BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(hasher_ != nullptr);
-    BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(babe_observer_ != nullptr);
+//    BOOST_ASSERT(block_tree_ != nullptr);
+//    BOOST_ASSERT(hasher_ != nullptr);
+//    BOOST_ASSERT(storage_ != nullptr);
+//    BOOST_ASSERT(babe_observer_ != nullptr);
     BOOST_ASSERT(block_announce_protocol_ != nullptr);
 //    BOOST_ASSERT(gossip_protocol_ != nullptr);
 //    BOOST_ASSERT(propagate_transaction_protocol_ != nullptr);

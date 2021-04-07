@@ -4,7 +4,11 @@
  */
 
 #include "host_api/impl/io_extension.hpp"
-#include <runtime/wasm_result.hpp>
+
+#include <boost/assert.hpp>
+
+#include "runtime/wasm_result.hpp"
+#include "runtime/wasm_memory.hpp"
 
 namespace kagome::host_api {
   IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
