@@ -6,10 +6,18 @@
 #ifndef KAGOME_CORE_API_EXTRINSIC_EXTRINSIC_API_HPP
 #define KAGOME_CORE_API_EXTRINSIC_EXTRINSIC_API_HPP
 
-#include "api/service/api_service.hpp"
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
+
 #include "primitives/author_api_primitives.hpp"
-#include "primitives/extrinsic.hpp"
+
+namespace kagome::api {
+  class ApiService;
+}
+
+namespace kagome::primitives {
+  struct Extrinsic;
+}
 
 namespace kagome::api {
   class AuthorApi {
@@ -33,8 +41,7 @@ namespace kagome::api {
      * @return hash of successfully validated extrinsic
      * or error if state is invalid or unknown
      */
-    virtual outcome::result<common::Hash256>
-    submitExtrinsic(
+    virtual outcome::result<common::Hash256> submitExtrinsic(
         const Extrinsic &extrinsic) = 0;
 
     /**
@@ -42,8 +49,10 @@ namespace kagome::api {
      */
     virtual outcome::result<std::vector<Extrinsic>> pendingExtrinsics() = 0;
 
-    // TODO(yuraz): will be documented later (no task yet)
-    virtual outcome::result<std::vector<Hash256>> removeExtrinsic(
+    /**
+     * Remove given extrinsic from the pool and temporarily ban it to prevent reimporting.
+     */
+    virtual outcome::result<std::vector<Extrinsic>> removeExtrinsic(
         const std::vector<ExtrinsicKey> &keys) = 0;
 
     /**

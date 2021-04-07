@@ -5,8 +5,10 @@
 
 #include "host_api/impl/misc_extension.hpp"
 
+#include "primitives/version.hpp"
 #include "runtime/binaryen/core_factory.hpp"
 #include "runtime/common/const_wasm_provider.hpp"
+#include "runtime/core.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "scale/scale.hpp"
 

@@ -5,9 +5,13 @@
 
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 
+#include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
+#include "consensus/authority/impl/schedule_node.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::authority {

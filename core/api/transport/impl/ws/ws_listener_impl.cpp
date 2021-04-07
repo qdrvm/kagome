@@ -7,6 +7,8 @@
 
 #include <boost/asio.hpp>
 
+#include "application/app_state_manager.hpp"
+
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,

@@ -12,9 +12,13 @@ target_link_libraries(application_injector
     fmt::fmt
     app_state_manager
     p2p::p2p
+    p2p::p2p_identify
+    p2p::p2p_ping
+    binaryen::binaryen
     tsl::tsl_hat_trie
     Boost::Boost.DI
     rpc_thread_pool
+    log_configurator
     api_transport
     api_jrpc_server
     state_api_service
@@ -29,6 +33,7 @@ target_link_libraries(application_injector
     babe_lottery
     block_header_repository
     block_executor
+    app_config_impl
     block_storage
     babe_synchronizer
     block_tree
@@ -55,6 +60,8 @@ target_link_libraries(application_injector
     leveldb
     outcome
     grandpa
+    syncing_babe
+    kagome_router
     environment
     proposer
     storage_wasm_provider
@@ -73,19 +80,4 @@ target_link_libraries(application_injector
     peer_manager
     babe_util
     assets
-    )
-
-add_library(syncing_node_injector
-    syncing_node_injector.cpp
-    )
-target_link_libraries(syncing_node_injector
-    application_injector
-    syncing_babe
-    )
-
-add_library(validating_node_injector
-    validating_node_injector.cpp
-    )
-target_link_libraries(validating_node_injector
-    application_injector
     )

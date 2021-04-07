@@ -6,10 +6,15 @@
 #ifndef KAGOME_CORE_NETWORK_EXTRINSIC_OBSERVER_HPP
 #define KAGOME_CORE_NETWORK_EXTRINSIC_OBSERVER_HPP
 
-#include "api/service/author/author_api.hpp"
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
-#include "primitives/extrinsic.hpp"
+
+namespace kagome::api {
+  class AuthorApi;
+}
+namespace kagome::primitives {
+  struct Extrinsic;
+}
 
 namespace kagome::network {
 

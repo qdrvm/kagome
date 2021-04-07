@@ -8,6 +8,9 @@
 #include <boost/optional/optional_io.hpp>
 #include <utility>
 
+#include "blockchain/block_header_repository.hpp"
+#include "blockchain/block_tree.hpp"
+#include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "scale/scale.hpp"
 

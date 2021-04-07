@@ -5,8 +5,11 @@
 
 #include "api/transport/impl/http/http_listener_impl.hpp"
 
-#include <boost/asio.hpp>
 #include <utility>
+
+#include <boost/asio.hpp>
+
+#include "application/app_state_manager.hpp"
 
 namespace kagome::api {
   HttpListenerImpl::HttpListenerImpl(

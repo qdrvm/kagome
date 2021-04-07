@@ -8,7 +8,6 @@
 
 #include "network/extrinsic_observer.hpp"
 
-#include "api/service/author/author_api.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::network {

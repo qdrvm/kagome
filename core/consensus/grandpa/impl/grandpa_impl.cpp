@@ -28,7 +28,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
-      std::shared_ptr<consensus::Babe> babe)
+      std::shared_ptr<consensus::babe::Babe> babe)
       : app_state_manager_(std::move(app_state_manager)),
         environment_{std::move(environment)},
         storage_{std::move(storage)},

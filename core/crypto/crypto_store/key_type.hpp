@@ -6,7 +6,6 @@
 #ifndef KAGOME_CRYPTO_KEY_TYPE_HPP
 #define KAGOME_CRYPTO_KEY_TYPE_HPP
 
-#include "common/blob.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::crypto {
