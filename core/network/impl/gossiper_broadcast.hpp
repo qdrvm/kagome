@@ -20,6 +20,11 @@
 #include "log/logger.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/protocols/block_announce_protocol.hpp"
+#include "network/protocols/gossip_protocol.hpp"
+#include "network/protocols/propagate_transactions_protocol.hpp"
+#include "network/protocols/sup_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/no_data_message.hpp"
@@ -56,7 +61,15 @@ namespace kagome::network {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo_,
-        std::shared_ptr<kagome::application::ChainSpec> config);
+        std::shared_ptr<kagome::application::ChainSpec> config,
+        std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol,
+        std::shared_ptr<GossipProtocol> gossip_protocol,
+        std::shared_ptr<PropagateTransactionsProtocol>
+            propagate_transaction_protocol
+//        ,
+//        std::shared_ptr<SupProtocol> sup_protocol,
+//        std::shared_ptr<SyncProtocol> sync_protocol
+        );
 
     ~GossiperBroadcast() override = default;
 
@@ -80,7 +93,7 @@ namespace kagome::network {
    private:
     template <typename T>
     void send(const libp2p::peer::PeerId &peer_id,
-              const libp2p::peer::Protocol &protocol,
+              const std::shared_ptr<ProtocolBase> &protocol,
               T &&msg) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
           stream_engine, typename std::decay<decltype(msg)>::type);
@@ -90,7 +103,7 @@ namespace kagome::network {
     }
 
     template <typename T>
-    void broadcast(const libp2p::peer::Protocol &protocol, T &&msg) {
+    void broadcast(const std::shared_ptr<ProtocolBase> &protocol, T &&msg) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);
@@ -100,7 +113,7 @@ namespace kagome::network {
     }
 
     template <typename T, typename H>
-    void broadcast(const libp2p::peer::Protocol &protocol,
+    void broadcast(const std::shared_ptr<ProtocolBase> &protocol,
                    T &&msg,
                    H &&handshake) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
@@ -122,8 +135,14 @@ namespace kagome::network {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
     std::shared_ptr<application::ChainSpec> config_;
-    libp2p::peer::Protocol transactions_protocol_;
-    libp2p::peer::Protocol block_announces_protocol_;
+
+    std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
+    std::shared_ptr<GossipProtocol> gossip_protocol_;
+    std::shared_ptr<PropagateTransactionsProtocol>
+        propagate_transaction_protocol_;
+//    std::shared_ptr<SupProtocol> sup_protocol_;
+//    std::shared_ptr<SyncProtocol> sync_protocol_;
+
     boost::optional<libp2p::peer::PeerInfo> self_info_;
   };
 }  // namespace kagome::network

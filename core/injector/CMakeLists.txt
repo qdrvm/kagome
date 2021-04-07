@@ -72,8 +72,12 @@ target_link_libraries(application_injector
     kademlia_storage_backend
     peer_manager
     babe_util
-    block_announce_protocol
     assets
+    block_announce_protocol
+    sync_protocol
+    sup_protocol
+    gossip_protocol
+    propagate_transactions_protocol
     )
 
 add_library(syncing_node_injector

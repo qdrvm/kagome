@@ -7,8 +7,14 @@
 
 #include <boost/assert.hpp>
 
+#include "common/visitor.hpp"
+#include "network/adapters/protobuf_block_request.hpp"
+#include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
+#include "network/helpers/protobuf_message_read_writer.hpp"
+#include "network/rpc.hpp"
+#include "network/types/blocks_request.hpp"
+#include "network/types/blocks_response.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SyncProtocol::Error, e) {
   using E = kagome::network::SyncProtocol::Error;
@@ -23,26 +29,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SyncProtocol::Error, e) {
 
 namespace kagome::network {
 
-  SyncProtocol::SyncProtocol(libp2p::Host &host,
-                             const application::ChainSpec &chain_spec,
-                             std::shared_ptr<blockchain::BlockTree> block_tree,
-                             std::shared_ptr<blockchain::BlockStorage> storage,
-                             //      std::shared_ptr<PeerManager> peer_manager,
-                             std::shared_ptr<BabeObserver> babe_observer,
-                             std::shared_ptr<crypto::Hasher> hasher)
-      : host_(host),
-        block_tree_(std::move(block_tree)),
-        storage_(std::move(storage)),
-        //        peer_manager_(std::move(peer_manager)),
-        babe_observer_(std::move(babe_observer)),
-        hasher_(std::move(hasher)) {
-    BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(storage_ != nullptr);
-    //    BOOST_ASSERT(peer_manager_ != nullptr);
-    BOOST_ASSERT(babe_observer_ != nullptr);
-    BOOST_ASSERT(hasher_ != nullptr);
+  SyncProtocol::SyncProtocol(
+      libp2p::Host &host,
+      const application::ChainSpec &chain_spec,
+      std::shared_ptr<SyncProtocolObserver> sync_observer)
+      : host_(host), sync_observer_(std::move(sync_observer)) {
+    BOOST_ASSERT(sync_observer_ != nullptr);
     const_cast<Protocol &>(protocol_) =
-        fmt::format(kBlockAnnouncesProtocol.data(), chain_spec.protocolId());
+        fmt::format(kSyncProtocol.data(), chain_spec.protocolId());
   }
 
   bool SyncProtocol::start() {
@@ -58,96 +52,89 @@ namespace kagome::network {
         self->log_->warn("Handled {} protocol stream from unknown peer",
                          self->protocol_);
       }
+
+      RPC<ProtobufMessageReadWriter>::read<BlocksRequest, BlocksResponse>(
+          stream,
+          [wp = std::move(wp),
+           stream](auto &&request) -> outcome::result<BlocksResponse> {
+            auto self = wp.lock();
+            if (not self) {
+              return Error::GONE;
+            }
+
+            // std::bind didn't work :(
+            std::string from = visit_in_place(
+                request.from,
+                [](primitives::BlockNumber number) {
+                  return std::to_string(number);
+                },
+                [](const primitives::BlockHash &hash) { return hash.toHex(); });
+            self->log_->debug(
+                "Received request from peer {} requesting blocks from {} to "
+                "{}",
+                stream->remotePeerId().value().toBase58(),
+                from,
+                request.to->toHex());
+            return self->sync_observer_->onBlocksRequest(
+                std::forward<decltype(request)>(request));
+          },
+          [wp = std::move(wp), stream](auto &&err) -> outcome::result<void> {
+            auto self = wp.lock();
+            if (not self) {
+              return Error::GONE;
+            }
+            self->log_->error(
+                "error happened while processing message over Sync protocol: "
+                "{}",
+                err.error().message());
+            stream->reset();
+            return err.as_failure();
+          });
     });
     return true;
-  }
+  }  // namespace kagome::network
 
   bool SyncProtocol::stop() {
     return true;
   }
 
-  outcome::result<Status> SyncProtocol::createStatus() const {
-    /// Roles
-    Roles roles;
-    // TODO(xDimon): Need to set actual role of node
-    //  issue: https://github.com/soramitsu/kagome/issues/678
-    roles.flags.full = 1;
-
-    /// Best block info
-    BlockInfo best_block;
-    const auto &last_finalized = block_tree_->getLastFinalized().block_hash;
-    if (auto best_res =
-            block_tree_->getBestContaining(last_finalized, boost::none);
-        best_res.has_value()) {
-      best_block = best_res.value();
-    } else {
-      log_->error("Could not get best block info: {}",
-                  best_res.error().message());
-      return Error::CAN_NOT_CREATE_STATUS;
-    }
-
-    /// Genesis hash
-    BlockHash genesis_hash;
-    if (auto genesis_res = storage_->getGenesisBlockHash();
-        genesis_res.has_value()) {
-      genesis_hash = std::move(genesis_res.value());
-    } else {
-      log_->error("Could not get genesis block hash: {}",
-                  genesis_res.error().message());
-      return Error::CAN_NOT_CREATE_STATUS;
-    }
-
-    return Status{
-        .roles = roles, .best_block = best_block, .genesis_hash = genesis_hash};
-  }
-
   void SyncProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
-    readStatus(stream,
-               Direction::INCOMING,
-               [](outcome::result<std::shared_ptr<Stream>> stream_res) {
-                 if (stream_res.has_value()) {
-                   [] {}();
-                 } else {
-                   [] {}();
-                 }
-               });
+    BOOST_ASSERT(false);
   }
 
   void SyncProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    host_.newStream(
-        peer_info,
-        protocol_,
-        [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
-            auto &&stream_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            cb(Error::GONE);
-            return;
-          }
+    host_.newStream(peer_info,
+                    protocol_,
+                    [wp = weak_from_this(),
+                     peer_id = peer_info.id,
+                     cb = std::move(cb)](auto &&stream_res) mutable {
+                      auto self = wp.lock();
+                      if (not self) {
+                        cb(Error::GONE);
+                        return;
+                      }
 
-          if (not stream_res.has_value()) {
-            cb(stream_res.as_failure());
-            return;
-          }
+                      if (not stream_res.has_value()) {
+                        cb(stream_res.as_failure());
+                        return;
+                      }
 
-          auto &stream = stream_res.value();
-
-          self->writeStatus(stream, Direction::OUTGOING, std::move(cb));
-        });
+                      auto &stream = stream_res.value();
+                      cb(std::move(stream));
+                    });
   }
 
-  void SyncProtocol::readStatus(
+  void SyncProtocol::readRequest(
       std::shared_ptr<Stream> stream,
-      Direction direction,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+    auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    read_writer->read<Status>(
-        [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
+    read_writer->read<BlocksRequest>(
+        [stream, wp = weak_from_this(), cb = std::move(cb)](
             auto &&remote_status_res) mutable {
           auto self = wp.lock();
           if (not self) {
@@ -157,111 +144,102 @@ namespace kagome::network {
           }
 
           if (not remote_status_res.has_value()) {
-            self->log_->error("Error while reading status: {}",
+            self->log_->error("Error while reading request: {}",
                               remote_status_res.error().message());
             stream->reset();
             cb(remote_status_res.as_failure());
             return;
           }
 
-          //      auto peer_id = stream->remotePeerId().value();
-          //      self->log_->debug("Received status from peer_id={}",
-          //      peer_id.toBase58());
-          //      self->peer_manager_->updatePeerStatus(peer_id,
-          //      remote_status_res.value());
+          BlocksResponse block_response;  // TODO make BlocksResponse
 
-          switch (direction) {
-            case Direction::OUTGOING:
-              self->readAnnounce(stream);
-              cb(stream);
-              break;
-            case Direction::INCOMING:
-              self->writeStatus(std::move(stream), direction, std::move(cb));
-              break;
-          }
+          self->writeResponse(std::move(stream), block_response, std::move(cb));
         });
   }
 
-  void SyncProtocol::writeStatus(
+  void SyncProtocol::writeRequest(
       std::shared_ptr<Stream> stream,
-      Direction direction,
+      BlocksRequest block_request,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+    auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    auto status_res = createStatus();
-    if (not status_res.has_value()) {
-      cb(Error::CAN_NOT_CREATE_STATUS);
-      return;
-    }
+    read_writer->write(block_request,
+                       [stream, wp = weak_from_this(), cb = std::move(cb)](
+                           auto &&write_res) mutable {
+                         auto self = wp.lock();
+                         if (not self) {
+                           stream->reset();
+                           cb(Error::GONE);
+                           return;
+                         }
 
-    read_writer->write(
-        status_res.value(),
-        [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-            auto &&write_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            cb(Error::GONE);
-            return;
-          }
+                         if (not write_res.has_value()) {
+                           self->log_->error(
+                               "Error while writing block request: {}",
+                               write_res.error().message());
+                           stream->reset();
+                           cb(write_res.as_failure());
+                           return;
+                         }
 
-          if (not write_res.has_value()) {
-            self->log_->error("Error while writing own status: {}",
-                              write_res.error().message());
-            stream->reset();
-            cb(write_res.as_failure());
-            return;
-          }
-
-          switch (direction) {
-            case Direction::OUTGOING:
-              self->readStatus(std::move(stream), direction, std::move(cb));
-              break;
-            case Direction::INCOMING:
-              self->readAnnounce(std::move(stream));
-              cb(stream);
-              break;
-          }
-        });
+                         self->readResponse(std::move(stream));
+                       });
   }
 
-  void SyncProtocol::readAnnounce(std::shared_ptr<Stream> stream) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+  void SyncProtocol::readResponse(std::shared_ptr<Stream> stream) {
+    auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    read_writer->read<BlockAnnounce>(
-        [stream, wp = weak_from_this()](auto &&block_announce_res) mutable {
+    read_writer->read<BlocksResponse>(
+        [stream, wp = weak_from_this()](auto &&block_response_res) mutable {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
             return;
           }
 
-          if (not block_announce_res) {
-            self->log_->error("Error while reading block announce: {}",
-                              block_announce_res.error().message());
+          if (not block_response_res) {
+            self->log_->error("Error while reading block response: {}",
+                              block_response_res.error().message());
             stream->reset();
             return;
           }
 
           auto peer_id = stream->remotePeerId().value();
-          auto &block_announce = block_announce_res.value();
+          auto &blocks_response = block_response_res.value();
 
-          self->log_->info("Received block announce: block number {}",
-                           block_announce.header.number);
-          self->babe_observer_->onBlockAnnounce(peer_id, block_announce);
+          // TODO consume BlocksResponse
+          std::ignore = blocks_response;
 
-          auto hash = self->hasher_->blake2b_256(
-              scale::encode(block_announce.header).value());
-
-          //          self->peer_manager_->updatePeerStatus(
-          //              stream->remotePeerId().value(),
-          //              BlockInfo(block_announce.header.number, hash));
-
-          self->readAnnounce(std::move(stream));
+          stream->close([](auto &&...) {});
         });
   }
 
-  void SyncProtocol::writeAnnounce(std::shared_ptr<Stream> stream,
-                                   const BlockAnnounce &block_announce) {}
+  void SyncProtocol::writeResponse(
+      std::shared_ptr<Stream> stream,
+      const BlocksResponse &block_response,
+      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+    auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
+    read_writer->write(
+        block_response,
+        [stream = std::move(stream), wp = weak_from_this(), cb = std::move(cb)](
+            auto &&write_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            if (cb) cb(Error::GONE);
+            return;
+          }
+
+          if (not write_res.has_value()) {
+            self->log_->error("Error while writing block response: {}",
+                              write_res.error().message());
+            stream->reset();
+            if (cb) cb(write_res.as_failure());
+            return;
+          }
+
+          if (cb) cb(std::move(stream));
+        });
+  }
 }  // namespace kagome::network

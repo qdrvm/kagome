@@ -18,7 +18,7 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: info
+    level: trace
     children:
       - name: libp2p
       - name: kagome

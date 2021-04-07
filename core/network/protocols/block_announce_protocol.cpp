@@ -263,6 +263,33 @@ namespace kagome::network {
   }
 
   void BlockAnnounceProtocol::writeAnnounce(
-      std::shared_ptr<Stream> stream, const BlockAnnounce &block_announce) {}
+      std::shared_ptr<Stream> stream, const BlockAnnounce &block_announce) {
+    std::function<void(outcome::result<std::shared_ptr<Stream>>)> cb =
+        [](outcome::result<std::shared_ptr<Stream>>) {};
+
+    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+
+    read_writer->write(block_announce,
+                       [stream, wp = weak_from_this(), cb = std::move(cb)](
+                           auto &&write_res) mutable {
+                         auto self = wp.lock();
+                         if (not self) {
+                           stream->reset();
+                           cb(Error::GONE);
+                           return;
+                         }
+
+                         if (not write_res.has_value()) {
+                           self->log_->error(
+                               "Error while writing block announce: {}",
+                               write_res.error().message());
+                           stream->reset();
+                           cb(write_res.as_failure());
+                           return;
+                         }
+
+                         cb(stream);
+                       });
+  }
 
 }  // namespace kagome::network

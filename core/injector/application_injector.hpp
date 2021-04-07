@@ -80,6 +80,11 @@
 #include "network/impl/remote_sync_protocol_client.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
+#include "network/protocols/block_announce_protocol.hpp"
+#include "network/protocols/gossip_protocol.hpp"
+#include "network/protocols/propagate_transactions_protocol.hpp"
+#include "network/protocols/sup_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
@@ -595,8 +600,7 @@ namespace kagome::injector {
 
     const application::AppConfiguration &config =
         injector.template create<application::AppConfiguration const &>();
-    auto chainspec =
-        injector.template create<sptr<application::ChainSpec>>();
+    auto chainspec = injector.template create<sptr<application::ChainSpec>>();
 
     auto path = config.keystorePath(chainspec->id());
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
@@ -635,21 +639,30 @@ namespace kagome::injector {
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<libp2p::Host &>(),
         injector.template create<const application::AppConfiguration &>(),
-        injector.template create<sptr<application::ChainSpec>>(),
+        //        injector.template create<sptr<application::ChainSpec>>(),
         injector.template create<network::OwnPeerInfo &>(),
-        injector.template create<sptr<network::StreamEngine>>(),
-        injector.template create<sptr<network::BabeObserver>>(),
-        injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),
-        injector.template create<sptr<network::SyncProtocolObserver>>(),
-        injector.template create<sptr<network::ExtrinsicObserver>>(),
-        injector.template create<sptr<network::Gossiper>>(),
+        //        injector.template create<sptr<network::StreamEngine>>(),
+        //        injector.template create<sptr<network::BabeObserver>>(),
+        //        injector.template
+        //        create<sptr<consensus::grandpa::GrandpaObserver>>(),
+        //        injector.template
+        //        create<sptr<network::SyncProtocolObserver>>(),
+        //        injector.template create<sptr<network::ExtrinsicObserver>>(),
+        //        injector.template create<sptr<network::Gossiper>>(),
         injector.template create<const network::BootstrapNodes &>(),
-        injector.template create<sptr<blockchain::BlockStorage>>(),
+        //        injector.template create<sptr<blockchain::BlockStorage>>(),
         injector.template create<sptr<libp2p::protocol::Ping>>(),
-        injector.template create<sptr<network::PeerManager>>(),
-        injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<network::BlockAnnounceProtocol>>());
+        //        injector.template create<sptr<network::PeerManager>>(),
+        //        injector.template create<sptr<blockchain::BlockTree>>(),
+        //        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<sptr<network::BlockAnnounceProtocol>>()
+
+        //        ,injector.template create<sptr<network::GossipProtocol>>(),
+        //        injector.template
+        //            create<sptr<network::PropagateTransactionsProtocol>>(),
+        //        injector.template create<sptr<network::SupProtocol>>(),
+        //        injector.template create<sptr<network::SyncProtocol>>()
+    );
     return initialized.value();
   }
 
@@ -677,7 +690,12 @@ namespace kagome::injector {
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<blockchain::BlockStorage>>(),
         injector.template create<sptr<network::BabeObserver>>(),
-        injector.template create<sptr<network::BlockAnnounceProtocol>>());
+        injector.template create<sptr<network::BlockAnnounceProtocol>>()
+//        ,injector.template create<sptr<network::GossipProtocol>>(),
+//        injector.template create<sptr<network::PropagateTransactionsProtocol>>(),
+//        injector.template create<sptr<network::SupProtocol>>(),
+//        injector.template create<sptr<network::SyncProtocol>>()
+        );
     return initialized.value();
   }
 

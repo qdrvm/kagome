@@ -21,18 +21,37 @@ namespace kagome::network {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo,
-      std::shared_ptr<kagome::application::ChainSpec> config)
+      std::shared_ptr<kagome::application::ChainSpec> config,
+      std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol,
+      std::shared_ptr<GossipProtocol> gossip_protocol,
+      std::shared_ptr<PropagateTransactionsProtocol>
+          propagate_transaction_protocol
+//      ,
+//      std::shared_ptr<SupProtocol> sup_protocol,
+//      std::shared_ptr<SyncProtocol> sync_protocol
+      )
       : logger_{log::createLogger("GossiperBroadcast", "network")},
         stream_engine_{std::move(stream_engine)},
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)},
         config_{std::move(config)},
-        transactions_protocol_{fmt::format(
-            kPropagateTransactionsProtocol.data(), config_->protocolId())},
-        block_announces_protocol_{fmt::format(kBlockAnnouncesProtocol.data(),
-                                              config_->protocolId())} {
-    BOOST_ASSERT(extrinsic_events_engine_);
-    BOOST_ASSERT(ext_event_key_repo_);
+        block_announce_protocol_{std::move(block_announce_protocol)},
+        gossip_protocol_{std::move(gossip_protocol)},
+        propagate_transaction_protocol_{
+            std::move(propagate_transaction_protocol)}
+//        ,
+//        sup_protocol_{std::move(sup_protocol)},
+//        sync_protocol_{std::move(sync_protocol)}
+  {
+    BOOST_ASSERT(stream_engine_ != nullptr);
+    BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
+    BOOST_ASSERT(ext_event_key_repo_ != nullptr);
+    BOOST_ASSERT(config_ != nullptr);
+    BOOST_ASSERT(block_announce_protocol_ != nullptr);
+    BOOST_ASSERT(gossip_protocol_ != nullptr);
+    BOOST_ASSERT(propagate_transaction_protocol_ != nullptr);
+//    BOOST_ASSERT(sup_protocol_ != nullptr);
+//    BOOST_ASSERT(sync_protocol_ != nullptr);
   }
 
   void GossiperBroadcast::storeSelfPeerInfo(
@@ -66,12 +85,12 @@ namespace kagome::network {
         txs.begin(), txs.end(), exts.extrinsics.begin(), [](auto &tx) {
           return tx.ext;
         });
-    broadcast(transactions_protocol_, exts, NoData{});
+    broadcast(propagate_transaction_protocol_, exts, NoData{});
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
     logger_->debug("Block announce: block number {}", announce.header.number);
-    broadcast(block_announces_protocol_, announce, NoData{});
+    broadcast(block_announce_protocol_, announce, NoData{});
   }
 
   void GossiperBroadcast::vote(
@@ -82,7 +101,7 @@ namespace kagome::network {
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(vote_message)).value());
 
-    broadcast(kGossipProtocol, std::move(message));
+    broadcast(gossip_protocol_, std::move(message));
   }
 
   void GossiperBroadcast::finalize(const network::GrandpaPreCommit &fin) {
@@ -92,7 +111,7 @@ namespace kagome::network {
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(fin)).value());
 
-    broadcast(kGossipProtocol, std::move(message));
+    broadcast(gossip_protocol_, std::move(message));
   }
 
   void GossiperBroadcast::catchUpRequest(
@@ -104,7 +123,7 @@ namespace kagome::network {
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(catch_up_request)).value());
 
-    send(peer_id, kGossipProtocol, std::move(message));
+    send(peer_id, gossip_protocol_, std::move(message));
   }
 
   void GossiperBroadcast::catchUpResponse(
@@ -116,6 +135,6 @@ namespace kagome::network {
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(catch_up_response)).value());
 
-    send(peer_id, kGossipProtocol, std::move(message));
+    send(peer_id, gossip_protocol_, std::move(message));
   }
 }  // namespace kagome::network

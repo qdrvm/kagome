@@ -18,6 +18,7 @@
 #include "log/logger.hpp"
 #include "network/babe_observer.hpp"
 #include "network/peer_manager.hpp"
+#include "network/protocol_base.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/status.hpp"
 #include "outcome/outcome.hpp"
@@ -30,7 +31,8 @@ namespace kagome::network {
   using PeerInfo = libp2p::peer::PeerInfo;
 
   class BlockAnnounceProtocol final
-      : public std::enable_shared_from_this<BlockAnnounceProtocol> {
+      : public ProtocolBase,
+        public std::enable_shared_from_this<BlockAnnounceProtocol> {
    public:
     enum class Error { CAN_NOT_CREATE_STATUS = 1, GONE };
 
@@ -50,13 +52,19 @@ namespace kagome::network {
         //                          std::shared_ptr<PeerManager> peer_manager,
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<crypto::Hasher> hasher);
-    bool start();
-    bool stop();
 
-    void onIncomingStream(std::shared_ptr<Stream> stream);
+    const Protocol &protocol() const override {
+      return protocol_;
+    }
+
+    bool start() override;
+    bool stop() override;
+
+    void onIncomingStream(std::shared_ptr<Stream> stream) override;
     void newOutgoingStream(
         const PeerInfo &peer_info,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
+        override;
 
    private:
     outcome::result<Status> createStatus() const;
@@ -79,7 +87,6 @@ namespace kagome::network {
     libp2p::Host &host_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
-    //    std::shared_ptr<PeerManager> peer_manager_;
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<crypto::Hasher> hasher_;
     const libp2p::peer::Protocol protocol_;

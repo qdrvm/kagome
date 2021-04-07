@@ -7,7 +7,6 @@
 #define KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP
 
 #include <memory>
-#include <network/protocols/block_announce_protocol.hpp>
 
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
@@ -29,6 +28,11 @@
 #include "network/impl/loopback_stream.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
+#include "network/protocols/block_announce_protocol.hpp"
+#include "network/protocols/gossip_protocol.hpp"
+#include "network/protocols/propagate_transactions_protocol.hpp"
+#include "network/protocols/sup_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
 #include "network/router.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -51,21 +55,28 @@ namespace kagome::network {
         std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
         const application::AppConfiguration &app_config,
-        std::shared_ptr<application::ChainSpec> chain_spec,
+        //        std::shared_ptr<application::ChainSpec> chain_spec,
         const OwnPeerInfo &own_info,
-        std::shared_ptr<StreamEngine> stream_engine,
-        std::shared_ptr<BabeObserver> babe_observer,
-        std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
-        std::shared_ptr<SyncProtocolObserver> sync_observer,
-        std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
-        std::shared_ptr<Gossiper> gossiper,
+        //        std::shared_ptr<StreamEngine> stream_engine,
+        //        std::shared_ptr<BabeObserver> babe_observer,
+        //        std::shared_ptr<consensus::grandpa::GrandpaObserver>
+        //        grandpa_observer, std::shared_ptr<SyncProtocolObserver>
+        //        sync_observer, std::shared_ptr<ExtrinsicObserver>
+        //        extrinsic_observer, std::shared_ptr<Gossiper> gossiper,
         const BootstrapNodes &bootstrap_nodes,
-        std::shared_ptr<blockchain::BlockStorage> storage,
+        //        std::shared_ptr<blockchain::BlockStorage> storage,
         std::shared_ptr<libp2p::protocol::Ping> ping_proto,
-        std::shared_ptr<PeerManager> peer_manager,
-        std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<BlockAnnounceProtocol>  block_announce_protocol);
+        //        std::shared_ptr<PeerManager> peer_manager,
+        //        std::shared_ptr<blockchain::BlockTree> block_tree,
+        //        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol
+//        ,
+//        std::shared_ptr<GossipProtocol> gossip_protocol,
+//        std::shared_ptr<PropagateTransactionsProtocol>
+//            propagate_transaction_protocol,
+//        std::shared_ptr<SupProtocol> sup_protocol,
+//        std::shared_ptr<SyncProtocol> sync_protocol
+        );
 
     ~RouterLibp2p() override = default;
 
@@ -80,15 +91,15 @@ namespace kagome::network {
 
     void handleSyncProtocol(std::shared_ptr<Stream> stream) const override;
 
-    void handleGossipProtocol(std::shared_ptr<Stream> stream) const override;
+    // void handleGossipProtocol(std::shared_ptr<Stream> stream) const override;
 
-    void handleTransactionsProtocol(
-        std::shared_ptr<Stream> stream) const override;
+    //    void handleTransactionsProtocol(
+    //        std::shared_ptr<Stream> stream) const override;
 
-    void handleBlockAnnouncesProtocol(
-        std::shared_ptr<Stream> stream) const override;
+    // void handleBlockAnnouncesProtocol(std::shared_ptr<Stream> stream) const
+    // override;
 
-    void handleSupProtocol(std::shared_ptr<Stream> stream) const override;
+    // void handleSupProtocol(std::shared_ptr<Stream> stream) const override;
 
    private:
     template <typename T, typename F>
@@ -182,11 +193,11 @@ namespace kagome::network {
         const libp2p::peer::Protocol &protocol,
         void (RouterLibp2p::*method)(std::shared_ptr<Stream>) const);
 
-    /**
-     * Process a received gossip message
-     */
-    bool processGossipMessage(const libp2p::peer::PeerId &peer_id,
-                              const GossipMessage &msg) const;
+    //    /**
+    //     * Process a received gossip message
+    //     */
+    //    bool processGossipMessage(const libp2p::peer::PeerId &peer_id,
+    //                              const GossipMessage &msg) const;
 
     bool processSupMessage(const libp2p::peer::PeerId &peer_id,
                            const Status &msg) const;
@@ -194,24 +205,29 @@ namespace kagome::network {
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
     const application::AppConfiguration &app_config_;
-    std::shared_ptr<application::ChainSpec> chain_spec_;
+    //    std::shared_ptr<application::ChainSpec> chain_spec_;
     const OwnPeerInfo &own_info_;
-    std::shared_ptr<StreamEngine> stream_engine_;
-    std::shared_ptr<BabeObserver> babe_observer_;
-    std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
-    std::shared_ptr<SyncProtocolObserver> sync_observer_;
-    std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
-    std::shared_ptr<Gossiper> gossiper_;
-    std::weak_ptr<LoopbackStream> loopback_stream_;
+    //    std::shared_ptr<StreamEngine> stream_engine_;
+    //    std::shared_ptr<BabeObserver> babe_observer_;
+    //    std::shared_ptr<consensus::grandpa::GrandpaObserver>
+    //    grandpa_observer_; std::shared_ptr<SyncProtocolObserver>
+    //    sync_observer_; std::shared_ptr<ExtrinsicObserver>
+    //    extrinsic_observer_; std::shared_ptr<Gossiper> gossiper_;
+    //    std::weak_ptr<LoopbackStream> loopback_stream_;
     log::Logger log_;
 
-    std::shared_ptr<blockchain::BlockStorage> storage_;
+    //    std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<libp2p::protocol::Ping> ping_proto_;
-    std::shared_ptr<PeerManager> peer_manager_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<crypto::Hasher> hasher_;
+    //    std::shared_ptr<PeerManager> peer_manager_;
+    //    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    //    std::shared_ptr<crypto::Hasher> hasher_;
 
-    std::shared_ptr<BlockAnnounceProtocol>  block_announce_protocol_;
+    std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
+    std::shared_ptr<GossipProtocol> gossip_protocol_;
+    std::shared_ptr<PropagateTransactionsProtocol>
+        propagate_transaction_protocol_;
+    std::shared_ptr<SupProtocol> sup_protocol_;
+    std::shared_ptr<SyncProtocol> sync_protocol_;
   };
 
 }  // namespace kagome::network
