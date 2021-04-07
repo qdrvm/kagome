@@ -372,7 +372,7 @@ namespace {
     static auto initialized =
         boost::optional<sptr<primitives::BabeConfiguration>>(boost::none);
     if (initialized) {
-      return *initialized;
+      return initialized.value();
     }
 
     auto configuration_res = babe_api->configuration();
@@ -387,7 +387,7 @@ namespace {
     configuration_res.value().leadership_rate.first *= 3;
     initialized = std::make_shared<primitives::BabeConfiguration>(
         configuration_res.value());
-    return *initialized;
+    return initialized.value();
   }
 
   consensus::SlotsStrategy get_slots_strategy(
@@ -399,7 +399,7 @@ namespace {
                         ? consensus::SlotsStrategy::FromUnixEpoch
                         : consensus::SlotsStrategy::FromZero;
     }
-    return *initialized;
+    return initialized.value();
   }
 
   sptr<crypto::KeyFileStorage> get_key_file_storage(
@@ -410,7 +410,7 @@ namespace {
     static boost::optional<fs::path> initialized_path = boost::none;
     auto path = config.keystorePath(genesis_config->id());
     if (initialized and initialized_path and initialized_path.value() == path) {
-      return *initialized;
+      return initialized.value();
     }
     auto key_file_storage_res = crypto::KeyFileStorage::createAt(path);
     if (not key_file_storage_res) {
@@ -419,21 +419,7 @@ namespace {
     initialized = std::move(key_file_storage_res.value());
     initialized_path = std::move(path);
 
-    return *initialized;
-  }
-
-  sptr<consensus::grandpa::FinalizationObserver> get_finalization_observer(
-      sptr<authority::AuthorityManagerImpl> authority_manager) {
-    static auto instance = boost::optional<
-        std::shared_ptr<consensus::grandpa::FinalizationObserver>>(boost::none);
-    if (instance) {
-      return *instance;
-    }
-
-    instance = std::make_shared<consensus::grandpa::FinalizationComposite>(
-        std::move(authority_manager));
-
-    return *instance;
+    return initialized.value();
   }
 
   const sptr<libp2p::crypto::KeyPair> &get_peer_keypair(
@@ -501,7 +487,7 @@ namespace {
     static auto initialized =
         boost::optional<sptr<libp2p::protocol::kademlia::Config>>(boost::none);
     if (initialized) {
-      return *initialized;
+      return initialized.value();
     }
 
     auto kagome_config = std::make_shared<libp2p::protocol::kademlia::Config>(
@@ -511,7 +497,7 @@ namespace {
             .randomWalk = {.interval = std::chrono::minutes(1)}});
 
     initialized = std::move(kagome_config);
-    return *initialized;
+    return initialized.value();
   }
 
   template <typename Injector>
@@ -544,7 +530,7 @@ namespace {
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     auto trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
-    auto service =
+    initialized =
         std::make_shared<api::ApiServiceImpl>(asmgr,
                                               thread_pool,
                                               listeners,
@@ -556,9 +542,6 @@ namespace {
                                               extrinsic_event_key_repo,
                                               block_tree,
                                               trie_storage);
-    initialized =
-        service;  // injector.template create<sptr<api::ApiServiceImpl>>();
-
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
     state_api->setApiService(initialized.value());
 
@@ -572,7 +555,6 @@ namespace {
     return initialized.value();
   }
 
-  // block tree getter
   template <typename Injector>
   sptr<blockchain::BlockTree> get_block_tree(const Injector &injector) {
     static auto initialized =
@@ -616,8 +598,8 @@ namespace {
 
     auto tree =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
-                                          storage,
-                                          block_id,
+                                          std::move(storage),
+                                          std::move(block_id),
                                           std::move(extrinsic_observer),
                                           std::move(hasher),
                                           std::move(chain_events_engine),
@@ -695,7 +677,7 @@ namespace {
     static auto initialized =
         boost::optional<sptr<consensus::BlockExecutor>>(boost::none);
     if (initialized) {
-      return *initialized;
+      return initialized.value();
     }
 
     initialized = std::make_shared<consensus::BlockExecutor>(
@@ -711,7 +693,7 @@ namespace {
         injector.template create<sptr<consensus::BabeUtil>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<uptr<clock::Timer>>());
-    return *initialized;
+    return initialized.value();
   }
 
   template <typename... Ts>
@@ -741,8 +723,8 @@ namespace {
 
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
-        di::bind<libp2p::protocol::kademlia::Config>.to([](auto const &inj) {
-          auto &chain_spec = inj.template create<application::ChainSpec &>();
+        di::bind<libp2p::protocol::kademlia::Config>.to([](auto const &injector) {
+          auto &chain_spec = injector.template create<application::ChainSpec &>();
           return get_kademlia_config(chain_spec);
         })[boost::di::override],
 
@@ -750,13 +732,13 @@ namespace {
         di::bind<application::AppConfiguration>.to(config),
 
         // compose peer keypair
-        di::bind<libp2p::crypto::KeyPair>.to([](auto const &inj) {
+        di::bind<libp2p::crypto::KeyPair>.to([](auto const &injector) {
           auto &app_config =
-              inj.template create<const application::AppConfiguration &>();
+              injector.template create<const application::AppConfiguration &>();
           auto &crypto_provider =
-              inj.template create<const crypto::Ed25519Provider &>();
+              injector.template create<const crypto::Ed25519Provider &>();
           auto &crypto_store =
-              inj.template create<const crypto::CryptoStore &>();
+              injector.template create<const crypto::CryptoStore &>();
           return get_peer_keypair(app_config, crypto_provider, crypto_store);
         })[boost::di::override],
 
@@ -849,7 +831,7 @@ namespace {
           return get_block_storage(hasher, db, trie_storage, grandpa_api);
         }),
         di::bind<blockchain::BlockTree>.to(
-            [](auto const &inj) { return get_block_tree(inj); }),
+            [](auto const &injector) { return get_block_tree(injector); }),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
@@ -931,8 +913,8 @@ namespace {
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
-        di::bind<storage::trie::TrieStorageBackend>.to([](auto const &inj) {
-          auto storage = inj.template create<sptr<storage::BufferStorage>>();
+        di::bind<storage::trie::TrieStorageBackend>.to([](auto const &injector) {
+          auto storage = injector.template create<sptr<storage::BufferStorage>>();
           return get_trie_storage_backend(storage);
         }),
         di::bind<storage::trie::TrieStorageImpl>.to([](auto const &injector) {
@@ -966,18 +948,12 @@ namespace {
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
-        di::bind<consensus::grandpa::FinalizationObserver>.to(
-            [](auto const &injector) {
-              auto authority_manager = injector.template create<
-                  std::shared_ptr<authority::AuthorityManagerImpl>>();
-              return get_finalization_observer(authority_manager);
-            }),
         di::bind<network::PeerManager>.to(
-            [](auto const &inj) { return get_peer_manager(inj); }),
+            [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.to(
             [](const auto &injector) { return get_router(injector); }),
         di::bind<consensus::BlockExecutor>.to(
-            [](auto const &inj) { return get_block_executor(inj); }),
+            [](auto const &injector) { return get_block_executor(injector); }),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
         di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
@@ -1046,7 +1022,6 @@ namespace {
         std::forward<decltype(args)>(args)...);
   }
 
-  // sr25519 kp getter
   template <typename Injector>
   sptr<crypto::Sr25519Keypair> get_sr25519_keypair(const Injector &injector) {
     static auto initialized =
@@ -1067,7 +1042,6 @@ namespace {
     return initialized.value();
   }
 
-  // ed25519 kp getter
   template <typename Injector>
   sptr<crypto::Ed25519Keypair> get_ed25519_keypair(const Injector &injector) {
     static auto initialized =
@@ -1088,7 +1062,6 @@ namespace {
     return initialized.value();
   }
 
-  // peer info getter
   template <typename Injector>
   sptr<network::OwnPeerInfo> get_validating_peer_info(
       const Injector &injector) {
@@ -1133,7 +1106,7 @@ namespace {
     static auto initialized =
         boost::optional<sptr<consensus::babe::Babe>>(boost::none);
     if (initialized) {
-      return *initialized;
+      return initialized.value();
     }
 
     initialized = std::make_shared<consensus::babe::BabeImpl>(
@@ -1153,7 +1126,7 @@ namespace {
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<consensus::SlotsStrategy>(),
         injector.template create<sptr<consensus::BabeUtil>>());
-    return *initialized;
+    return initialized.value();
   }
 
   template <typename... Ts>
@@ -1165,25 +1138,25 @@ namespace {
         makeApplicationInjector(app_config),
         // bind sr25519 keypair
         di::bind<crypto::Sr25519Keypair>.to(
-            [](auto const &inj) { return get_sr25519_keypair(inj); }),
+            [](auto const &injector) { return get_sr25519_keypair(injector); }),
         // bind ed25519 keypair
         di::bind<crypto::Ed25519Keypair>.to(
-            [](auto const &inj) { return get_ed25519_keypair(inj); }),
+            [](auto const &injector) { return get_ed25519_keypair(injector); }),
         // compose peer info
         di::bind<network::OwnPeerInfo>.to([](const auto &injector) {
           return get_validating_peer_info(injector);
         }),
         di::bind<consensus::babe::Babe>.to(
-            [](auto const &inj) { return get_babe(inj); }),
+            [](auto const &injector) { return get_babe(injector); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(
-            [](auto const &inj) { return get_babe(inj); }),
+            [](auto const &injector) { return get_babe(injector); }),
         di::bind<runtime::GrandpaApi>.template to(
             [](const auto &injector) -> sptr<runtime::GrandpaApi> {
               static boost::optional<sptr<runtime::GrandpaApi>> initialized =
                   boost::none;
               if (initialized) {
-                return *initialized;
+                return initialized.value();
               }
               application::AppConfiguration const &config =
                   injector
@@ -1197,7 +1170,7 @@ namespace {
                     sptr<runtime::binaryen::GrandpaApiImpl>>();
                 initialized = grandpa_api;
               }
-              return *initialized;
+              return initialized.value();
             })[di::override],
 
         // user-defined overrides...
