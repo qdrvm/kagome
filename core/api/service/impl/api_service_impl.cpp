@@ -16,7 +16,6 @@
 #include "common/hexutil.hpp"
 #include "primitives/common.hpp"
 #include "primitives/transaction.hpp"
-#include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"

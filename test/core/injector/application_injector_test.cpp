@@ -35,14 +35,18 @@ namespace {
                           kagome::crypto::constants::sr25519::SEED_SIZE))
                       .value();
       auto babe = sr25519_provider->generateKeypair(seed);
-      std::ofstream babe_file(keystore_dir
-                              / fmt::format("babe{}", babe.public_key.toHex()));
+      auto babe_path =
+          (keystore_dir / fmt::format("babe{}", babe.public_key.toHex()))
+              .native();
+      std::ofstream babe_file{babe_path};
       babe_file << seed.toHex();
     }
     {
       auto grandpa = ed25519_provider->generateKeypair();
-      std::ofstream grandpa_file(
-          keystore_dir / fmt::format("gran{}", grandpa.public_key.toHex()));
+      auto grandpa_path =
+          (keystore_dir / fmt::format("gran{}", grandpa.public_key.toHex()))
+              .native();
+      std::ofstream grandpa_file{grandpa_path};
       grandpa_file << grandpa.secret_key.toHex();
     }
     {
@@ -51,8 +55,10 @@ namespace {
                           kagome::crypto::constants::sr25519::SEED_SIZE))
                       .value();
       auto libp2p = sr25519_provider->generateKeypair(seed);
-      std::ofstream libp2p_file(
-          keystore_dir / fmt::format("lp2p{}", libp2p.public_key.toHex()));
+      auto libp2p_path =
+          (keystore_dir / fmt::format("lp2p{}", libp2p.public_key.toHex()))
+              .native();
+      std::ofstream libp2p_file{libp2p_path};
       libp2p_file << seed.toHex();
     }
   }
@@ -63,12 +69,12 @@ namespace {
   void initConfig(const fs::path &db_path,
                   kagome::application::AppConfigurationMock &config_mock) {
     static const auto chain_spec_path = fs::path(__FILE__)
-                                         .parent_path()
-                                         .parent_path()
-                                         .parent_path()
-                                         .parent_path()
-                                     / "examples" / "polkadot"
-                                     / "polkadot.json";
+                                            .parent_path()
+                                            .parent_path()
+                                            .parent_path()
+                                            .parent_path()
+                                        / "examples" / "polkadot"
+                                        / "polkadot.json";
     EXPECT_CALL(config_mock, chainSpecPath())
         .WillRepeatedly(testing::Return(chain_spec_path));
     EXPECT_CALL(config_mock, databasePath(_))
