@@ -38,6 +38,7 @@ option(TESTING      "Build and run test suite"                    ON )
 option(CLANG_FORMAT "Enable clang-format target"                  ON )
 option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE     "Enable generation of coverage info"          OFF)
+option(EMBEDDINGS   "Embed developers assets"                     ON)
 
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
 option(ASAN         "Enable address sanitizer"                    OFF)
@@ -92,6 +93,9 @@ if(CLANG_TIDY)
 endif()
 if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
+endif()
+if(EMBEDDINGS)
+  add_compile_definitions(PRIVATE USE_KAGOME_EMBEDDINGS)
 endif()
 
 include(GNUInstallDirs)

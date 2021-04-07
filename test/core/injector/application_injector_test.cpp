@@ -62,15 +62,15 @@ namespace {
    */
   void initConfig(const fs::path &db_path,
                   kagome::application::AppConfigurationMock &config_mock) {
-    static const auto genesis_path = fs::path(__FILE__)
+    static const auto chain_spec_path = fs::path(__FILE__)
                                          .parent_path()
                                          .parent_path()
                                          .parent_path()
                                          .parent_path()
                                      / "examples" / "polkadot"
                                      / "polkadot.json";
-    EXPECT_CALL(config_mock, genesisPath())
-        .WillRepeatedly(testing::Return(genesis_path));
+    EXPECT_CALL(config_mock, chainSpecPath())
+        .WillRepeatedly(testing::Return(chain_spec_path));
     EXPECT_CALL(config_mock, databasePath(_))
         .WillRepeatedly(testing::Return(db_path));
     EXPECT_CALL(config_mock, keystorePath(_))

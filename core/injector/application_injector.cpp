@@ -349,22 +349,22 @@ namespace {
     return initialized.value();
   }
 
-  std::shared_ptr<application::ChainSpec> get_genesis_config(
+  std::shared_ptr<application::ChainSpec> get_chain_spec(
       application::AppConfiguration const &config) {
     static auto initialized =
         boost::optional<sptr<application::ChainSpec>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    auto const &genesis_path = config.genesisPath();
+    auto const &chainspec_path = config.chainSpecPath();
 
-    auto genesis_config_res =
-        application::ChainSpecImpl::loadFrom(genesis_path.native());
-    if (genesis_config_res.has_error()) {
-      common::raise(genesis_config_res.error());
+    auto chain_spec_res =
+        application::ChainSpecImpl::loadFrom(chainspec_path.native());
+    if (chain_spec_res.has_error()) {
+      common::raise(chain_spec_res.error());
     }
-    initialized = genesis_config_res.value();
-    return genesis_config_res.value();
+    initialized = chain_spec_res.value();
+    return chain_spec_res.value();
   }
 
   sptr<primitives::BabeConfiguration> get_babe_configuration(
@@ -404,11 +404,11 @@ namespace {
 
   sptr<crypto::KeyFileStorage> get_key_file_storage(
       application::AppConfiguration const &config,
-      sptr<application::ChainSpec> genesis_config) {
+      sptr<application::ChainSpec> chain_spec) {
     static boost::optional<sptr<crypto::KeyFileStorage>> initialized =
         boost::none;
     static boost::optional<fs::path> initialized_path = boost::none;
-    auto path = config.keystorePath(genesis_config->id());
+    auto path = config.keystorePath(chain_spec->id());
     if (initialized and initialized_path and initialized_path.value() == path) {
       return initialized.value();
     }
@@ -816,9 +816,9 @@ namespace {
         di::bind<storage::BufferStorage>.to([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
-          auto genesis_config =
+          auto chain_spec =
               injector.template create<sptr<application::ChainSpec>>();
-          return get_level_db(config, genesis_config);
+          return get_level_db(config, chain_spec);
         }),
         di::bind<blockchain::BlockStorage>.to([](const auto &injector) {
           const auto &hasher = injector.template create<sptr<crypto::Hasher>>();
@@ -861,10 +861,10 @@ namespace {
         di::bind<crypto::KeyFileStorage>.template to([](auto const &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
-          auto genesis_config =
+          auto chain_spec =
               injector.template create<sptr<application::ChainSpec>>();
 
-          return get_key_file_storage(config, genesis_config);
+          return get_key_file_storage(config, chain_spec);
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
         di::bind<host_api::HostApiFactory>.template to(
@@ -942,7 +942,7 @@ namespace {
         di::bind<application::ChainSpec>.to([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
-          return get_genesis_config(config);
+          return get_chain_spec(config);
         }),
         di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),

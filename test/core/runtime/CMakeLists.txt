@@ -8,6 +8,7 @@ addtest(wasm_memory_test
     )
 target_link_libraries(wasm_memory_test
     binaryen_wasm_memory
+    logger_for_tests
     )
 
 addtest(runtime_external_interface_test
@@ -17,6 +18,7 @@ target_link_libraries(runtime_external_interface_test
     binaryen_runtime_external_interface
     binaryen_wasm_memory_factory
     blob
+    logger_for_tests
     )
 
 addtest(core_integration_test
@@ -27,6 +29,7 @@ target_link_libraries(core_integration_test
     basic_wasm_provider
     host_api_factory
     binaryen_wasm_memory_factory
+    logger_for_tests
     )
 
 addtest(tagged_transaction_queue_test
@@ -39,6 +42,7 @@ target_link_libraries(tagged_transaction_queue_test
     host_api_factory
     binaryen_core_api
     binaryen_wasm_memory_factory
+    logger_for_tests
     )
 
 addtest(block_builder_api_test
@@ -50,6 +54,7 @@ target_link_libraries(block_builder_api_test
     host_api_factory
     binaryen_core_api
     binaryen_wasm_memory_factory
+    logger_for_tests
     )
 
 addtest(wasm_executor_test
@@ -67,6 +72,7 @@ target_link_libraries(wasm_executor_test
     host_api_factory
     polkadot_trie_factory
     trie_serializer
+    logger_for_tests
     )
 
 addtest(parachain_test
@@ -90,6 +96,7 @@ target_link_libraries(grandpa_api_test
     host_api_factory
     binaryen_wasm_memory_factory
     binaryen_core_api
+    logger_for_tests
     )
 
 addtest(metadata_test
@@ -102,6 +109,7 @@ target_link_libraries(metadata_test
     trie_storage
     binaryen_wasm_memory_factory
     binaryen_core_api
+    logger_for_tests
     )
 
 addtest(offchain_worker_test
@@ -114,6 +122,7 @@ target_link_libraries(offchain_worker_test
     host_api_factory
     binaryen_wasm_memory_factory
     binaryen_core_api
+    logger_for_tests
     )
 
 addtest(wasm_result_test
@@ -125,6 +134,7 @@ addtest(storage_wasm_provider_test
     )
 target_link_libraries(storage_wasm_provider_test
     storage_wasm_provider
+    logger_for_tests
     )
 
 addtest(trie_storage_provider_test
@@ -136,4 +146,5 @@ target_link_libraries(trie_storage_provider_test
     trie_storage_backend
     polkadot_trie_factory
     trie_serializer
+    logger_for_tests
     )

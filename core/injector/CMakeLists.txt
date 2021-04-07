@@ -79,5 +79,5 @@ target_link_libraries(application_injector
     kademlia_storage_backend
     peer_manager
     babe_util
-    finalization_composite
+    assets
     )

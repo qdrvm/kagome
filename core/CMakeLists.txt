@@ -6,6 +6,7 @@
 add_subdirectory(api)
 add_subdirectory(application)
 add_subdirectory(authorship)
+add_subdirectory(assets)
 add_subdirectory(blockchain)
 add_subdirectory(clock)
 add_subdirectory(common)
