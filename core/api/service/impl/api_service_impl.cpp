@@ -21,11 +21,11 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 
-#define UNWRAP_WEAK_PTR(callback)   \
-  [wp](auto &&... params) mutable { \
-    if (auto self = wp.lock()) {    \
-      self->callback(params...);    \
-    }                               \
+#define UNWRAP_WEAK_PTR(callback)  \
+  [wp](auto &&...params) mutable { \
+    if (auto self = wp.lock()) {   \
+      self->callback(params...);   \
+    }                              \
   }
 
 namespace {
@@ -149,9 +149,10 @@ namespace kagome::api {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
-    for ([[maybe_unused]] const auto &listener : listeners_) {
-      BOOST_ASSERT(listener != nullptr);
-    }
+    BOOST_ASSERT(
+        std::all_of(listeners_.cbegin(), listeners_.cend(), [](auto &listener) {
+          return listener != nullptr;
+        }));
     for (auto &processor : processors.processors) {
       BOOST_ASSERT(processor != nullptr);
       processor->registerHandlers();
