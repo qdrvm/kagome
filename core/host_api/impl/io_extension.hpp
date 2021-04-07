@@ -9,9 +9,14 @@
 #include <cstdint>
 
 #include "log/logger.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/types.hpp"
+
+namespace kagome::runtime {
+  class WasmMemory;
+}
 
 namespace kagome::host_api {
+
   /**
    * Implements extension functions related to IO
    */

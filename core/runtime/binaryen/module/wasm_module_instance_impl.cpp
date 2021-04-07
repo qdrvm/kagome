@@ -6,6 +6,9 @@
 #include "runtime/binaryen/module/wasm_module_instance_impl.hpp"
 
 #include <binaryen/wasm.h>
+#include <binaryen/wasm-interpreter.h>
+
+#include "runtime/binaryen/runtime_external_interface.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -15,7 +18,7 @@ namespace kagome::runtime::binaryen {
       : parent_{std::move(parent)},
         rei_{rei},
         module_instance_{
-          std::make_unique<wasm::ModuleInstance>(*parent_, rei.get())} {
+            std::make_unique<wasm::ModuleInstance>(*parent_, rei.get())} {
     BOOST_ASSERT(parent_);
     BOOST_ASSERT(rei_);
     BOOST_ASSERT(module_instance_);
@@ -23,10 +26,15 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal WasmModuleInstanceImpl::callExportFunction(
       wasm::Name name, const wasm::LiteralList &arguments) {
-      return module_instance_->callExport(name, arguments);
+    return module_instance_->callExport(name, arguments);
   }
 
   wasm::Literal WasmModuleInstanceImpl::getExportGlobal(wasm::Name name) {
     return module_instance_->getExport(name);
   }
+
+  void WasmModuleInstanceImpl::reset() {
+    rei_->reset();
+  }
+
 }  // namespace kagome::runtime::binaryen

@@ -3,13 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "consensus/authority/impl/authority_manager_impl.hpp"
+
 #include <gtest/gtest.h>
 
-#include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/authority/impl/schedule_node.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/digest.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -67,16 +70,14 @@ class AuthorityManagerTest : public testing::Test {
           };
           static bool ancestry[][14] = {
               // clang-format off
-
-						//
-						//                                 - FA - FB - FC
-						//                               /   35   40   45
-						// GEN - A - B - C - D - E +--- F
-						//   1   5   10  15  20  25 \   30
-						//                           \
-						//                            - EA - EB - EC - ED
-						//                              30   35   40   45
-
+	      //
+	      //                                 - FA - FB - FC
+	      //                               /   35   40   45
+	      // GEN - A - B - C - D - E +--- F
+	      //   1   5   10  15  20  25 \   30
+	      //                           \
+	      //                            - EA - EB - EC - ED
+	      //                              30   35   40   45
             /* A\\D  GEN A  B  C  D  E EA EB EC ED  F FA FB FC */
             /* GEN*/ {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
             /* A	*/ {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},

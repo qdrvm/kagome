@@ -8,8 +8,6 @@
 
 #include "runtime/binaryen/module/wasm_module_instance.hpp"
 
-#include "runtime/binaryen/runtime_external_interface.hpp"
-
 namespace wasm {
   using namespace ::wasm;  // NOLINT(google-build-using-namespace)
   class Module;
@@ -17,6 +15,8 @@ namespace wasm {
 }  // namespace wasm
 
 namespace kagome::runtime::binaryen {
+
+  class RuntimeExternalInterface;
 
   class WasmModuleInstanceImpl final : public WasmModuleInstance {
    public:
@@ -29,9 +29,7 @@ namespace kagome::runtime::binaryen {
 
     wasm::Literal getExportGlobal(wasm::Name name) override;
 
-    void reset() override {
-      rei_->reset();
-    }
+    void reset() override;
 
    private:
     std::shared_ptr<wasm::Module>

@@ -5,6 +5,12 @@
 
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 
+#include "outcome/outcome.hpp"
+#include "storage/trie/codec.hpp"
+#include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
+
 namespace kagome::storage::trie {
 
   TrieSerializerImpl::TrieSerializerImpl(

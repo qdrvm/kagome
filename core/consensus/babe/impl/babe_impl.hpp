@@ -30,7 +30,7 @@
 #include "primitives/common.hpp"
 #include "storage/trie/trie_storage.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   inline const auto kTimestampId =
       primitives::InherentIdentifier::fromString("timstap0").value();
@@ -208,6 +208,6 @@ namespace kagome::consensus {
 
     log::Logger log_;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BABE_IMPL_HPP

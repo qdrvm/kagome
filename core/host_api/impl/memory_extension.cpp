@@ -1,7 +1,3 @@
-#include <utility>
-
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -9,7 +5,10 @@
 
 #include <exception>
 
+#include <boost/assert.hpp>
+
 #include "host_api/impl/memory_extension.hpp"
+#include "runtime/wasm_memory.hpp"
 
 namespace kagome::host_api {
   MemoryExtension::MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory)

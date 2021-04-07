@@ -21,6 +21,7 @@ target_link_libraries(block_tree_test
     block_header_repository
     extrinsic_observer
     babe_digests_util
+    logger_for_tests
     )
 
 addtest(block_storage_test
@@ -28,4 +29,5 @@ addtest(block_storage_test
     )
 target_link_libraries(block_storage_test
     block_storage
+    logger_for_tests
     )

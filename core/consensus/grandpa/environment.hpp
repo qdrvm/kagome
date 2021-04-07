@@ -6,14 +6,30 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
 
-#include <libp2p/peer/peer_id.hpp>
-
 #include "consensus/grandpa/chain.hpp"
+
+#include <functional>
+#include <memory>
+
 #include "consensus/grandpa/common.hpp"
-#include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/structs.hpp"
-#include "primitives/justification.hpp"
+#include "primitives/block_id.hpp"
+
+namespace kagome::blockchain {
+  class BlockHeaderRepository;
+  struct BlockTree;
+}  // namespace kagome::blockchain
+
+namespace kagome::primitives {
+  struct Justification;
+}
+namespace libp2p::peer {
+  class PeerId;
+}
+namespace kagome::consensus::grandpa {
+  struct JustificationObserver;
+}
 
 namespace kagome::consensus::grandpa {
 

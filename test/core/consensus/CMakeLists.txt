@@ -13,4 +13,5 @@ addtest(babe_lottery_test
     )
 target_link_libraries(babe_lottery_test
     babe_lottery
+    logger_for_tests
     )
