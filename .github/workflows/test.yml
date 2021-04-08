@@ -165,3 +165,11 @@ jobs:
           VERSION: ${{ github.ref }}
           BUILD_TYPE: "${{ matrix.options.build-type }}"
         run: ./housekeeping/docker/kagome/build_and_push.sh
+
+  Trigger_CD:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    needs: [Push]
+    runs-on: ubuntu-latest
+    steps:
+      - name: trigger cd job
+        run: curl -fI "https://jenkins.soramitsu.co.jp/buildByToken/buildWithParameters?job=kagome/deploy/test&token=${{ secrets.JENKINS_TOKEN }}"
