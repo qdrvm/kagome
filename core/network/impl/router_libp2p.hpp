@@ -52,6 +52,7 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         std::shared_ptr<application::ChainSpec> chain_spec,
         const OwnPeerInfo &own_info,
+        std::shared_ptr<boost::asio::io_context> io_context,
         std::shared_ptr<StreamEngine> stream_engine,
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
@@ -194,6 +195,7 @@ namespace kagome::network {
     const application::AppConfiguration &app_config_;
     std::shared_ptr<application::ChainSpec> chain_spec_;
     const OwnPeerInfo &own_info_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;

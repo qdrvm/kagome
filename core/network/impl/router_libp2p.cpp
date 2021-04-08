@@ -30,6 +30,7 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       std::shared_ptr<application::ChainSpec> chain_spec,
       const OwnPeerInfo &own_info,
+      std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
@@ -47,6 +48,7 @@ namespace kagome::network {
         app_config_(app_config),
         chain_spec_(std::move(chain_spec)),
         own_info_{own_info},
+        io_context_{std::move(io_context)},
         stream_engine_{std::move(stream_engine)},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
@@ -61,6 +63,7 @@ namespace kagome::network {
         hasher_{std::move(hasher)} {
     BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
                      "app state manager is nullptr");
+    BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT_MSG(stream_engine_ != nullptr, "stream engine is nullptr");
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
@@ -90,8 +93,8 @@ namespace kagome::network {
 
     gossiper_->storeSelfPeerInfo(own_info_);
 
-    auto stream =
-        std::make_shared<libp2p::connection::LoopbackStream>(own_info_);
+    auto stream = std::make_shared<libp2p::connection::LoopbackStream>(
+        own_info_, io_context_);
     loopback_stream_ = stream;
     [[maybe_unused]] auto res =
         stream_engine_->add(std::move(stream), kGossipProtocol);
