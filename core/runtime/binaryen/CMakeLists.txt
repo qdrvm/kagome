@@ -39,6 +39,7 @@ add_library(binaryen_wasm_module
 target_link_libraries(binaryen_wasm_module
     binaryen::binaryen
     logger
+    binaryen_runtime_external_interface
     )
 kagome_install(binaryen_wasm_module)
 
@@ -47,6 +48,7 @@ add_library(binaryen_runtime_environment
     )
 target_link_libraries(binaryen_runtime_environment
     binaryen_wasm_module
+    binaryen_runtime_external_interface
     )
 kagome_install(binaryen_runtime_environment)
 

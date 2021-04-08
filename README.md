@@ -83,12 +83,12 @@ To launch kagome validating node execute:
 ```
 cd examples/first_kagome_chain
 PATH=$PATH:../../build/node/kagome_validating/
-kagome_validating --genesis localchain.json --base_path base_path
+kagome_validating --chain localchain.json --base-path base_path
 ```
 
-This command executes kagome validating node which can receive extrinsics locally on port using http: `40363`. Simple transfer transaction can be sent as follows:
+This command executes kagome validating node which can receive extrinsics locally on port using http: `9933`. Simple transfer transaction can be sent as follows:
 ```
-curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_submitExtrinsic", "params": ["0x290284ffdc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a01e2f2be0a634faeb8401ed2392731df803877dcb2422bb396d48ca24f18661059e3dde41d14b87eb929ec41ab36e6d63be5a1f5c3c5c092c79646a453f4b392890000000600ff488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a972404"]}' http://localhost:40363/
+curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_submitExtrinsic", "params": ["0x290284ffdc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a01e2f2be0a634faeb8401ed2392731df803877dcb2422bb396d48ca24f18661059e3dde41d14b87eb929ec41ab36e6d63be5a1f5c3c5c092c79646a453f4b392890000000600ff488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a972404"]}' http://localhost:9933/
 ```
 If transaction was successfully applied we should see the following output:
 ```
@@ -103,15 +103,15 @@ If transaction was successfully applied we should see the following output:
 
 Same note as for full syncing node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
 ```
-rm -rf db
+rm -rf syncing_chain
 ```
 ---
 
 To launch kagome syncing node execute:
 ```
-cd examples/network
+cd examples/polkadot/
 PATH=$PATH:../../build/node/kagome_full_syncing/
-kagome_full_syncing --genesis testchain.json -d syncing1 -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
+kagome_full_syncing --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix_slots
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.

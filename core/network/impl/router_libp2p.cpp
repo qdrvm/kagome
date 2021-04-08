@@ -69,7 +69,6 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
-    BOOST_ASSERT_MSG(!bootstrap_nodes.empty(), "bootstrap node list is empty");
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
@@ -77,10 +76,16 @@ namespace kagome::network {
     BOOST_ASSERT(hasher_ != nullptr);
 
     log_->debug("Own peer id: {}", own_info.id.toBase58());
-    for (const auto &peer_info : bootstrap_nodes) {
-      for (auto &addr : peer_info.addresses) {
-        log_->debug("Bootstrap node: {}", addr.getStringAddress());
+    if (!bootstrap_nodes.empty()) {
+      for (const auto &peer_info : bootstrap_nodes) {
+        for (auto &addr : peer_info.addresses) {
+          log_->debug("Bootstrap node: {}", addr.getStringAddress());
+        }
       }
+    } else if (app_config_.isRunInDevMode()) {
+      log_->debug("No bootstrap node. Dev mode.");
+    } else {
+      log_->error("No bootstrap node");
     }
 
     gossiper_->storeSelfPeerInfo(own_info_);

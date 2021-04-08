@@ -9,7 +9,10 @@
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
 
+#include "api/service/api_service.hpp"
 #include "common/visitor.hpp"
+#include "crypto/hasher.hpp"
+#include "network/extrinsic_gossiper.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "subscription/subscriber.hpp"
@@ -68,7 +71,8 @@ namespace kagome::api {
     return result;
   }
 
-  outcome::result<std::vector<common::Hash256>> AuthorApiImpl::removeExtrinsic(
+  outcome::result<std::vector<primitives::Extrinsic>>
+  AuthorApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
     return outcome::failure(boost::system::error_code{});

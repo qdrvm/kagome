@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "common/blob.hpp"
+
 namespace kagome::primitives {
   /**
    * This is the same structure as RuntimeVersion from substrate

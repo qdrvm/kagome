@@ -8,6 +8,7 @@ addtest(crypto_extension_test
     )
 target_link_libraries(crypto_extension_test
     crypto_extension
+    logger_for_tests
     )
 
 addtest(io_extension_test
@@ -15,11 +16,14 @@ addtest(io_extension_test
     )
 target_link_libraries(io_extension_test
     io_extension
+    logger_for_tests
     )
 
-addtest(memory_extension_test memory_extension_test)
+addtest(memory_extension_test
+    memory_extension_test.cpp)
 target_link_libraries(memory_extension_test
     memory_extension
+    logger_for_tests
     )
 
 addtest(misc_extension_test
@@ -27,6 +31,7 @@ addtest(misc_extension_test
     )
 target_link_libraries(misc_extension_test
     misc_extension
+    logger_for_tests
     )
 
 addtest(storage_extension_test
@@ -35,4 +40,5 @@ addtest(storage_extension_test
 target_link_libraries(storage_extension_test
     storage_extension
     dummy_error
+    logger_for_tests
     )

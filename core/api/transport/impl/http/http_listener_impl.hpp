@@ -9,8 +9,11 @@
 #include "api/transport/listener.hpp"
 
 #include "api/transport/impl/http/http_session.hpp"
-#include "application/app_state_manager.hpp"
 #include "log/logger.hpp"
+
+namespace kagome::application {
+  class AppStateManager;
+}
 
 namespace kagome::api {
   /**

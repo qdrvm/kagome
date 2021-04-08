@@ -17,6 +17,13 @@
 
 hunter_config(libp2p
     URL  "https://github.com/igor-egorov/cpp-libp2p/archive/feature/loopbackstream.tar.gz"
-    SHA1 "5c2acd794473cd35664ef5ab007423083efe28d7"
-    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF DUMMY=1
+    SHA1 "a1773faafdc7f4f957c2eea01a3162a019684b0a"
+    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF DUMMY=2
+    )
+
+hunter_config(soralog
+    URL  "https://github.com/xDimon/soralog/archive/4ec007a2ee0b0eb8c506a7a8c127d215ab6e1273.tar.gz"
+    SHA1 "468d446beb7d67c7ac32331c89da4b9479511d1c"
+    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF
+    KEEP_PACKAGE_SOURCES
     )

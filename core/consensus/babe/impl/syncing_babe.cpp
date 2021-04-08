@@ -5,7 +5,7 @@
 
 #include "consensus/babe/impl/syncing_babe.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
 
   SyncingBabe::SyncingBabe(
       std::shared_ptr<consensus::BlockExecutor> block_executor)
@@ -16,4 +16,4 @@ namespace kagome::consensus {
     block_executor_->processNextBlock(peer_id, announce.header, [](auto &) {});
   }
 
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

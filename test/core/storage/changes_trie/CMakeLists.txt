@@ -12,5 +12,6 @@ target_link_libraries(changes_tracker_test
     trie_storage_backend
     in_memory_storage
     polkadot_codec
+    logger_for_tests
     )
 

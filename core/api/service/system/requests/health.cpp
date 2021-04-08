@@ -4,7 +4,9 @@
  */
 
 #include "api/service/system/requests/health.hpp"
+
 #include "api/jrpc/value_converter.hpp"
+#include "api/service/system/system_api.hpp"
 
 namespace kagome::api::system::request {
 
@@ -25,7 +27,7 @@ namespace kagome::api::system::request {
 
     // isSyncing - Whether the node is syncing.
     data["isSyncing"] = makeValue(api_->getBabe()->getCurrentState()
-                                  == consensus::Babe::State::SYNCHRONIZED);
+                                  == consensus::babe::Babe::State::SYNCHRONIZED);
 
     // peers - Number of connected peers
     data["peers"] = makeValue(
