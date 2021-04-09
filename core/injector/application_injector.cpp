@@ -628,6 +628,7 @@ namespace {
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<application::ChainSpec>>(),
         injector.template create<network::OwnPeerInfo &>(),
+        injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<sptr<network::BabeObserver>>(),
         injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),
@@ -723,10 +724,12 @@ namespace {
 
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
-        di::bind<libp2p::protocol::kademlia::Config>.to([](auto const &injector) {
-          auto &chain_spec = injector.template create<application::ChainSpec &>();
-          return get_kademlia_config(chain_spec);
-        })[boost::di::override],
+        di::bind<libp2p::protocol::kademlia::Config>.to(
+            [](auto const &injector) {
+              auto &chain_spec =
+                  injector.template create<application::ChainSpec &>();
+              return get_kademlia_config(chain_spec);
+            })[boost::di::override],
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
@@ -913,10 +916,12 @@ namespace {
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
-        di::bind<storage::trie::TrieStorageBackend>.to([](auto const &injector) {
-          auto storage = injector.template create<sptr<storage::BufferStorage>>();
-          return get_trie_storage_backend(storage);
-        }),
+        di::bind<storage::trie::TrieStorageBackend>.to(
+            [](auto const &injector) {
+              auto storage =
+                  injector.template create<sptr<storage::BufferStorage>>();
+              return get_trie_storage_backend(storage);
+            }),
         di::bind<storage::trie::TrieStorageImpl>.to([](auto const &injector) {
           auto factory =
               injector
