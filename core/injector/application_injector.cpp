@@ -575,8 +575,23 @@ namespace {
             ? primitives::BlockId{last_finalized_block_res.value()}
             : primitives::BlockId{0};
 
+    // clang-format off
     auto extrinsic_observer =
         injector.template create<sptr<network::ExtrinsicObserver>>();
+
+//    std::make_shared<network::ExtrinsicObserverImpl>(
+//      std::make_shared<api::AuthorApiImpl>(
+//        injector.template create<sptr<runtime::TaggedTransactionQueue>>(),
+//        injector.template create<sptr<transaction_pool::TransactionPool>>(),
+//        injector.template create<sptr<crypto::Hasher>>(),
+////        std::make_shared<network::ExtrinsicGossiper>(
+//
+////        injector.template create<sptr<network::ExtrinsicGossiper>>()
+//        injector.template create<sptr<network::GossiperBroadcast>>()
+////        )
+//      )
+//    );
+    // clang-format on
 
     auto hasher = injector.template create<sptr<crypto::Hasher>>();
 
@@ -596,7 +611,7 @@ namespace {
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
 
-    auto tree =
+    auto block_tree_res =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
                                           std::move(storage),
                                           std::move(block_id),
@@ -608,10 +623,76 @@ namespace {
                                           std::move(runtime_core),
                                           std::move(babe_configuration),
                                           std::move(babe_util));
-    if (!tree) {
-      common::raise(tree.error());
+    if (not block_tree_res.has_value()) {
+      common::raise(block_tree_res.error());
     }
-    initialized = tree.value();
+    auto &block_tree = block_tree_res.value();
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setBlockTree(block_tree);
+
+    initialized.emplace(std::move(block_tree));
+    return initialized.value();
+  }
+
+  template <class Injector>
+  sptr<network::GossiperBroadcast> get_gossiper_broadcast(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<network::GossiperBroadcast>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    initialized = std::make_shared<network::GossiperBroadcast>(
+        injector.template create<sptr<network::StreamEngine>>(),
+        injector.template create<
+            sptr<primitives::events::ExtrinsicSubscriptionEngine>>(),
+        injector
+            .template create<sptr<subscription::ExtrinsicEventKeyRepository>>(),
+        injector.template create<sptr<kagome::application::ChainSpec>>(),
+        injector.template create<sptr<network::BlockAnnounceProtocol>>(),
+
+        //        injector.template create<sptr<network::GossipProtocol>>(),
+        std::make_shared<network::GossipProtocol>(
+            injector.template create<libp2p::Host &>(),
+            // injector.template
+            // create<sptr<consensus::grandpa::GrandpaObserver>>(),
+            std::make_shared<consensus::grandpa::GrandpaImpl>(
+                injector.template create<sptr<application::AppStateManager>>(),
+                //                injector.template
+                //                create<sptr<consensus::grandpa::Environment>>(),
+                std::make_shared<consensus::grandpa::EnvironmentImpl>(
+                    injector.template create<sptr<blockchain::BlockTree>>(),
+                    injector.template create<
+                        sptr<blockchain::BlockHeaderRepository>>(),
+                    injector.template create<sptr<network::Gossiper>>()),
+                injector.template create<sptr<storage::BufferStorage>>(),
+                injector.template create<sptr<crypto::Ed25519Provider>>(),
+                injector.template create<sptr<runtime::GrandpaApi>>(),
+                injector.template create<const crypto::Ed25519Keypair &>(),
+                injector.template create<sptr<clock::SteadyClock>>(),
+                injector.template create<sptr<boost::asio::io_context>>(),
+                injector.template create<sptr<authority::AuthorityManager>>(),
+                injector.template create<sptr<consensus::babe::Babe>>()),
+
+            injector.template create<const network::OwnPeerInfo &>(),
+            injector.template create<sptr<network::Gossiper>>(),
+            injector.template create<sptr<network::StreamEngine>>()),
+
+        //        injector.template
+        //        create<sptr<network::PropagateTransactionsProtocol>>()
+        std::make_shared<network::PropagateTransactionsProtocol>(
+            injector.template create<libp2p::Host &>(),
+            injector.template create<const application::ChainSpec &>(),
+            injector.template create<sptr<network::ExtrinsicObserver>>(),
+            injector.template create<sptr<network::StreamEngine>>())
+
+        //        ,injector.template create<sptr<network::SupProtocol>>(),
+        //        injector.template create<sptr<network::SyncProtocol>>()
+    );
+
     return initialized.value();
   }
 
@@ -626,26 +707,32 @@ namespace {
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<libp2p::Host &>(),
         injector.template create<const application::AppConfiguration &>(),
-//        injector.template create<sptr<application::ChainSpec>>(),
+        //        injector.template create<sptr<application::ChainSpec>>(),`
         injector.template create<network::OwnPeerInfo &>(),
-//        injector.template create<sptr<network::StreamEngine>>(),
-//        injector.template create<sptr<network::BabeObserver>>(),
-//        injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),
-//        injector.template create<sptr<network::SyncProtocolObserver>>(),
-//        injector.template create<sptr<network::ExtrinsicObserver>>(),
-//        injector.template create<sptr<network::Gossiper>>(),
+        //        injector.template create<sptr<network::StreamEngine>>(),
+        //        injector.template create<sptr<network::BabeObserver>>(),
+        //        injector.template
+        //        create<sptr<consensus::grandpa::GrandpaObserver>>(),
+        //        injector.template
+        //        create<sptr<network::SyncProtocolObserver>>(),
+        //        injector.template create<sptr<network::ExtrinsicObserver>>(),
+        //        injector.template create<sptr<network::Gossiper>>(),
         injector.template create<const network::BootstrapNodes &>(),
-//        injector.template create<sptr<blockchain::BlockStorage>>(),
+        //        injector.template create<sptr<blockchain::BlockStorage>>(),
         injector.template create<sptr<libp2p::protocol::Ping>>(),
-//        injector.template create<sptr<network::PeerManager>>(),
-//        injector.template create<sptr<blockchain::BlockTree>>(),
-//        injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<network::BlockAnnounceProtocol>>()
-//        ,injector.template create<sptr<network::GossipProtocol>>(),
-//        injector.template create<sptr<network::PropagateTransactionsProtocol>>(),
-//        injector.template create<sptr<network::SupProtocol>>(),
-//        injector.template create<sptr<network::SyncProtocol>>()
-      );
+        //        injector.template create<sptr<network::PeerManager>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        //        injector.template create<sptr<crypto::Hasher>>(),
+
+        injector.template create<sptr<network::ProtocolFactory>>()
+        //        injector.template
+        //        create<sptr<network::BlockAnnounceProtocol>>()
+        //        ,injector.template create<sptr<network::GossipProtocol>>(),
+        //        injector.template
+        //        create<sptr<network::PropagateTransactionsProtocol>>(),
+        //        injector.template create<sptr<network::SupProtocol>>(),
+        //        injector.template create<sptr<network::SyncProtocol>>()
+    );
 
     return initialized.value();
   }
@@ -666,21 +753,31 @@ namespace {
         injector.template create<sptr<libp2p::protocol::Scheduler>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<const application::AppConfiguration &>(),
-//        injector.template create<const application::ChainSpec &>(),
+        //        injector.template create<const application::ChainSpec &>(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::SyncClientsSet>>(),
-//        injector.template create<sptr<blockchain::BlockTree>>(),
-//        injector.template create<sptr<crypto::Hasher>>(),
-//        injector.template create<sptr<blockchain::BlockStorage>>(),
-//        injector.template create<sptr<network::BabeObserver>>(),
-        injector.template create<sptr<network::BlockAnnounceProtocol>>()
-//        ,injector.template create<sptr<network::GossipProtocol>>(),
-//        injector.template create<sptr<network::PropagateTransactionsProtocol>>(),
-//        injector.template create<sptr<network::SupProtocol>>(),
-//        injector.template create<sptr<network::SyncProtocol>>()
-      );
+        //        injector.template create<sptr<blockchain::BlockTree>>(),
+        //        injector.template create<sptr<crypto::Hasher>>(),
+        //        injector.template create<sptr<blockchain::BlockStorage>>(),
+        //        injector.template create<sptr<network::BabeObserver>>(),
+        injector.template create<sptr<network::Router>>()
+
+        //        injector.template
+        //        create<sptr<network::BlockAnnounceProtocol>>()
+        //        ,injector.template create<sptr<network::GossipProtocol>>(),
+        //        injector.template
+        //        create<sptr<network::PropagateTransactionsProtocol>>(),
+        //        injector.template create<sptr<network::SupProtocol>>(),
+        //        injector.template create<sptr<network::SyncProtocol>>()
+    );
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setPeerManager(initialized.value());
+
     return initialized.value();
   }
 
@@ -699,6 +796,7 @@ namespace {
         injector.template create<sptr<consensus::BabeSynchronizer>>(),
         injector.template create<sptr<consensus::BlockValidator>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
+        //        sptr<consensus::grandpa::Environment>{},
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
@@ -708,9 +806,30 @@ namespace {
     return initialized.value();
   }
 
+  template <typename Injector>
+  sptr<network::SyncProtocolObserverImpl> get_sync_observer_impl(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<network::SyncProtocolObserverImpl>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    initialized = std::make_shared<network::SyncProtocolObserverImpl>(
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setSyncObserver(initialized.value());
+
+    return initialized.value();
+  }
+
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -735,10 +854,12 @@ namespace {
 
         // inherit kademlia injector
         libp2p::injector::makeKademliaInjector(),
-        di::bind<libp2p::protocol::kademlia::Config>.to([](auto const &injector) {
-          auto &chain_spec = injector.template create<application::ChainSpec &>();
-          return get_kademlia_config(chain_spec);
-        })[boost::di::override],
+        di::bind<libp2p::protocol::kademlia::Config>.to(
+            [](auto const &injector) {
+              auto &chain_spec =
+                  injector.template create<application::ChainSpec &>();
+              return get_kademlia_config(chain_spec);
+            })[boost::di::override],
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
@@ -906,7 +1027,9 @@ namespace {
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
-        di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
+        di::bind<network::SyncProtocolObserver>.to([](auto const &injector) {
+          return get_sync_observer_impl(injector);
+        }),
         di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
         di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
         di::bind<runtime::binaryen::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
@@ -925,10 +1048,12 @@ namespace {
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
-        di::bind<storage::trie::TrieStorageBackend>.to([](auto const &injector) {
-          auto storage = injector.template create<sptr<storage::BufferStorage>>();
-          return get_trie_storage_backend(storage);
-        }),
+        di::bind<storage::trie::TrieStorageBackend>.to(
+            [](auto const &injector) {
+              auto storage =
+                  injector.template create<sptr<storage::BufferStorage>>();
+              return get_trie_storage_backend(storage);
+            }),
         di::bind<storage::trie::TrieStorageImpl>.to([](auto const &injector) {
           auto factory =
               injector
@@ -956,20 +1081,28 @@ namespace {
               injector.template create<application::AppConfiguration const &>();
           return get_chain_spec(config);
         }),
-        di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
+        di::bind<network::ExtrinsicObserver>.to([](const auto &injector) {
+          return get_extrinsic_observer_impl(injector);
+        }),
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
-        di::bind<network::Router>.to(
-            [](const auto &injector) { return get_router(injector); }),
+        //        di::bind<network::Router>.to(
+        //            [](const auto &injector) { return get_router(injector);
+        //            }),
+        di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::BlockExecutor>.to(
             [](auto const &injector) { return get_block_executor(injector); }),
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::Grandpa>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
+        di::bind<consensus::grandpa::RoundObserver>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
+        di::bind<consensus::grandpa::CatchUpObserver>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
+        di::bind<consensus::grandpa::GrandpaObserver>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
         di::bind<consensus::BabeUtil>.template to<consensus::BabeUtilImpl>(),
 
         // user-defined overrides...
@@ -1011,9 +1144,28 @@ namespace {
     return initialized.value();
   }
 
+  template <typename Injector>
+  sptr<consensus::babe::Babe> get_syncing_babe(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<consensus::babe::Babe>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    initialized = std::make_shared<consensus::babe::SyncingBabe>(
+        injector.template create<sptr<consensus::BlockExecutor>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setBabeObserver(initialized.value());
+
+    return initialized.value();
+  }
+
   template <typename... Ts>
   auto makeSyncingNodeInjector(const application::AppConfiguration &app_config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -1025,10 +1177,12 @@ namespace {
           return get_syncing_peer_info(injector);
         }),
 
-        di::bind<consensus::babe::Babe>.template to<consensus::babe::SyncingBabe>()
-            [di::override],
-        di::bind<network::BabeObserver>.template to<consensus::babe::SyncingBabe>()
-            [di::override],
+        di::bind<consensus::babe::Babe>.to([](auto const &injector) {
+          return get_syncing_babe(injector);
+        })[di::override],
+        di::bind<network::BabeObserver>.to([](auto const &injector) {
+          return get_syncing_babe(injector);
+        })[di::override],
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1138,12 +1292,67 @@ namespace {
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<consensus::SlotsStrategy>(),
         injector.template create<sptr<consensus::BabeUtil>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setBabeObserver(initialized.value());
+
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<network::ExtrinsicObserverImpl> get_extrinsic_observer_impl(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<network::ExtrinsicObserverImpl>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    initialized = std::make_shared<network::ExtrinsicObserverImpl>(
+        injector.template create<sptr<api::AuthorApi>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setExtrinsicObserver(initialized.value());
+
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<consensus::grandpa::GrandpaImpl> get_grandpa_impl(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<consensus::grandpa::GrandpaImpl>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    initialized = std::make_shared<consensus::grandpa::GrandpaImpl>(
+        injector.template create<sptr<application::AppStateManager>>(),
+        injector.template create<sptr<consensus::grandpa::Environment>>(),
+        injector.template create<sptr<storage::BufferStorage>>(),
+        injector.template create<sptr<crypto::Ed25519Provider>>(),
+        injector.template create<sptr<runtime::GrandpaApi>>(),
+        injector.template create<const crypto::Ed25519Keypair &>(),
+        injector.template create<sptr<clock::SteadyClock>>(),
+        injector.template create<sptr<boost::asio::io_context>>(),
+        injector.template create<sptr<authority::AuthorityManager>>(),
+        injector.template create<sptr<consensus::babe::Babe>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setGrandpaObserver(initialized.value());
+
     return initialized.value();
   }
 
   template <typename... Ts>
   auto makeValidatingNodeInjector(
-      const application::AppConfiguration &app_config, Ts &&...args) {
+      const application::AppConfiguration &app_config, Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -1240,6 +1449,20 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<api::ApiService>>();
   }
 
+  std::shared_ptr<network::SyncProtocolObserver>
+  SyncingNodeInjector::injectSyncObserver() {
+    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+  }
+
+  std::shared_ptr<consensus::babe::Babe> SyncingNodeInjector::injectBabe() {
+    return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
+  }
+
+  std::shared_ptr<consensus::grandpa::Grandpa>
+  SyncingNodeInjector::injectGrandpa() {
+    return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
+  }
+
   ValidatingNodeInjector::ValidatingNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<ValidatingNodeInjectorImpl>(
@@ -1274,6 +1497,11 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<clock::SystemClock>>();
   }
 
+  std::shared_ptr<network::SyncProtocolObserver>
+  ValidatingNodeInjector::injectSyncObserver() {
+    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+  }
+
   std::shared_ptr<consensus::babe::Babe> ValidatingNodeInjector::injectBabe() {
     return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
   }
@@ -1281,13 +1509,6 @@ namespace kagome::injector {
   std::shared_ptr<consensus::grandpa::Grandpa>
   ValidatingNodeInjector::injectGrandpa() {
     return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
-  }
-
-  std::shared_ptr<soralog::LoggingSystem>
-  ValidatingNodeInjector::injectLoggingSystem() {
-    return std::make_shared<soralog::LoggingSystem>(
-        std::make_shared<kagome::log::Configurator>(
-            pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));
   }
 
 }  // namespace kagome::injector

@@ -65,11 +65,11 @@ namespace kagome::network {
                    size_t bytes,
                    WriteCallbackFunc cb) override;
 
-//    void deferReadCallback(outcome::result<size_t> res,
-//                           ReadCallbackFunc cb) override {}
-//
-//    void deferWriteCallback(std::error_code ec,
-//                            WriteCallbackFunc cb) override{};
+    virtual void deferReadCallback(outcome::result<size_t> res,
+                           ReadCallbackFunc cb)  {}
+
+    virtual void deferWriteCallback(std::error_code ec,
+                            WriteCallbackFunc cb) {};
 
    private:
     void read(gsl::span<uint8_t> out,

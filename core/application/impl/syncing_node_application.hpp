@@ -22,6 +22,9 @@
 namespace kagome::application {
 
   class SyncingNodeApplication : public KagomeApplication {
+    using Babe = consensus::babe::Babe;
+    using Grandpa = consensus::grandpa::Grandpa;
+
     template <class T>
     using sptr = std::shared_ptr<T>;
 
@@ -43,9 +46,12 @@ namespace kagome::application {
     uptr<injector::SyncingNodeInjector> injector_;
     sptr<AppStateManager> app_state_manager_;
     sptr<boost::asio::io_context> io_context_;
+    sptr<Babe> babe_;
+    sptr<Grandpa> grandpa_;
     sptr<network::Router> router_;
     std::shared_ptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;
+    std::shared_ptr<network::SyncProtocolObserver> sync_observer_;
     sptr<ChainSpec> chain_spec_;
     boost::filesystem::path chain_path_;
   };

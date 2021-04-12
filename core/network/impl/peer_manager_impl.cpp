@@ -24,23 +24,16 @@ namespace kagome::network {
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
       const application::AppConfiguration &app_config,
-//      const application::ChainSpec &chain_spec,
+      //      const application::ChainSpec &chain_spec,
       std::shared_ptr<clock::SteadyClock> clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<network::SyncClientsSet> sync_clients,
-//      std::shared_ptr<blockchain::BlockTree> block_tree,
-//      std::shared_ptr<crypto::Hasher> hasher,
-//      std::shared_ptr<blockchain::BlockStorage> storage,
-//      std::shared_ptr<BabeObserver> babe_observer,
-      std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol
-//      ,
-//      std::shared_ptr<GossipProtocol> gossip_protocol,
-//      std::shared_ptr<PropagateTransactionsProtocol>
-//          propagate_transaction_protocol,
-//      std::shared_ptr<SupProtocol> sup_protocol,
-//      std::shared_ptr<SyncProtocol> sync_protocol
-      )
+      //      std::shared_ptr<blockchain::BlockTree> block_tree,
+      //      std::shared_ptr<crypto::Hasher> hasher,
+      //      std::shared_ptr<blockchain::BlockStorage> storage,
+      //      std::shared_ptr<BabeObserver> babe_observer,
+      std::shared_ptr<network::Router> router)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -48,21 +41,17 @@ namespace kagome::network {
         scheduler_(std::move(scheduler)),
         stream_engine_(std::move(stream_engine)),
         app_config_(app_config),
-//        chain_spec_(chain_spec),
+        //        chain_spec_(chain_spec),
         clock_(std::move(clock)),
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
         sync_clients_(std::move(sync_clients)),
-//        block_tree_{std::move(block_tree)},
-//        hasher_{std::move(hasher)},
-//        storage_{std::move(storage)},
-//        babe_observer_{std::move(babe_observer)},
-        block_announce_protocol_{std::move(block_announce_protocol)},
-//        gossip_protocol_{std::move(gossip_protocol)},
-//        propagate_transaction_protocol_{
-//            std::move(propagate_transaction_protocol)},
-//        sup_protocol_{std::move(sup_protocol)},
-//        sync_protocol_{std::move(sync_protocol)},
+        //        block_tree_{std::move(block_tree)},
+        //        hasher_{std::move(hasher)},
+        //        storage_{std::move(storage)},
+        //        babe_observer_{std::move(babe_observer)},
+
+        router_{std::move(router)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -70,15 +59,11 @@ namespace kagome::network {
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(sync_clients_ != nullptr);
-//    BOOST_ASSERT(block_tree_ != nullptr);
-//    BOOST_ASSERT(hasher_ != nullptr);
-//    BOOST_ASSERT(storage_ != nullptr);
-//    BOOST_ASSERT(babe_observer_ != nullptr);
-    BOOST_ASSERT(block_announce_protocol_ != nullptr);
-//    BOOST_ASSERT(gossip_protocol_ != nullptr);
-//    BOOST_ASSERT(propagate_transaction_protocol_ != nullptr);
-//    BOOST_ASSERT(sup_protocol_ != nullptr);
-//    BOOST_ASSERT(sync_protocol_ != nullptr);
+    //    BOOST_ASSERT(block_tree_ != nullptr);
+    //    BOOST_ASSERT(hasher_ != nullptr);
+    //    BOOST_ASSERT(storage_ != nullptr);
+    //    BOOST_ASSERT(babe_observer_ != nullptr);
+    BOOST_ASSERT(router_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
@@ -177,9 +162,10 @@ namespace kagome::network {
     align_timer_.cancel();
 
     // Check disconnected
+    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, timepoint] = *it++;
-      if (not stream_engine_->isAlive(peer_id, block_announce_protocol_)) {
+      if (not stream_engine_->isAlive(peer_id, block_announce_protocol)) {
         // Found disconnected
         log_->debug("Found dead peer_id={}", peer_id.toBase58());
         disconnectFromPeer(peer_id);
@@ -430,11 +416,14 @@ namespace kagome::network {
       connecting_peers_.erase(peer_id);
 
     } else {
-      if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol_)) {
-        block_announce_protocol_->newOutgoingStream(
+      auto block_announce_protocol = router_->getBlockAnnounceProtocol();
+      if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol)) {
+        block_announce_protocol->newOutgoingStream(
             peer_info,
 
-            [wp = weak_from_this(), peer_id = peer_info.id](auto &&stream_res) {
+            [wp = weak_from_this(),
+             peer_id = peer_info.id,
+             protocol = block_announce_protocol](auto &&stream_res) {
               auto self = wp.lock();
               if (not self) {
                 return;
@@ -445,13 +434,13 @@ namespace kagome::network {
 
               if (not stream_res.has_value()) {
                 self->log_->warn("Unable to create '{}' stream with {}: {}",
-                                 self->block_announce_protocol_,
+                                 protocol,
                                  peer_id.toBase58(),
                                  stream_res.error().message());
                 self->disconnectFromPeer(peer_id);
                 return;
               }
-              auto &stream = stream_res.value();
+              // auto &stream = stream_res.value();
 
               // Add to active peer list
               if (auto [ap_it, ok] = self->active_peers_.emplace(
@@ -475,25 +464,6 @@ namespace kagome::network {
                                     self->peers_in_queue_.size());
                 }
               }
-
-              self->log_->debug("Established {} stream with {}",
-                                self->block_announce_protocol_->protocol(),
-                                peer_id.toBase58());
-
-              // Save initial payload stream (block-announce)
-              [[maybe_unused]] auto res = self->stream_engine_->add(
-                  stream, self->block_announce_protocol_);
-
-              // Reserve stream slots for needed protocols
-
-//              self->stream_engine_->add(peer_id, self->gossip_protocol_);
-//
-//              self->stream_engine_->add(peer_id,
-//                                        self->propagate_transaction_protocol_);
-//
-//              self->stream_engine_->add(peer_id, self->sup_protocol_);
-//
-//              self->stream_engine_->add(peer_id, self->sync_protocol_);
             });
       }
     }
@@ -501,62 +471,72 @@ namespace kagome::network {
     kademlia_->addPeer(peer_info, false);
   }
 
-//  bool PeerManagerImpl::writeHandshakeToOutgoingBlockAnnounceStream(
-//      std::shared_ptr<libp2p::connection::Stream> stream) {
-//    Status status_msg;
-//
-//    /// Roles
-//    // TODO(xDimon): Need to set actual role of node
-//    //  issue: https://github.com/soramitsu/kagome/issues/678
-//    status_msg.roles.flags.full = 1;
-//
-//    /// Best block info
-//    const auto &last_finalized = block_tree_->getLastFinalized().block_hash;
-//    if (auto best_res =
-//            block_tree_->getBestContaining(last_finalized, boost::none);
-//        best_res.has_value()) {
-//      status_msg.best_block = best_res.value();
-//    } else {
-//      log_->error("Could not get best block info: {}",
-//                  best_res.error().message());
-//      return false;
-//    }
-//
-//    /// Genesis hash
-//    if (auto genesis_res = storage_->getGenesisBlockHash();
-//        genesis_res.has_value()) {
-//      status_msg.genesis_hash = std::move(genesis_res.value());
-//    } else {
-//      log_->error("Could not get genesis block hash: {}",
-//                  genesis_res.error().message());
-//      return false;
-//    }
-//
-//    writeAsyncMsgWithHandshake<BlockAnnounce>(
-//        stream,
-//        std::move(status_msg),
-//        [](auto self,
-//           const auto &peer_id,
-//           const auto &remote_status) mutable -> outcome::result<void> {
-//          BOOST_ASSERT(self);
-//          self->log_->info("Received status from peer_id={}",
-//                           peer_id.toBase58());
-//          self->updatePeerStatus(peer_id, remote_status);
-//          return outcome::success();
-//        },
-//        [](auto self, const auto &peer_id, const auto &block_announce) mutable {
-//          BOOST_ASSERT(self);
-//          self->log_->info("Received block announce: block number {}",
-//                           block_announce.header.number);
-//          self->babe_observer_->onBlockAnnounce(peer_id, block_announce);
-//
-//          auto hash = self->hasher_->blake2b_256(
-//              scale::encode(block_announce.header).value());
-//          self->updatePeerStatus(peer_id,
-//                                 BlockInfo(block_announce.header.number, hash));
-//          return true;
-//        });
-//
-//    return true;
-//  }
+  void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {
+    // Reserve stream slots for needed protocols
+
+    stream_engine_->add(peer_id, router_->getGossipProtocol());
+    stream_engine_->add(peer_id, router_->getPropagateTransactionsProtocol());
+    stream_engine_->add(peer_id, router_->getSupProtocol());
+  }
+
+  //  bool PeerManagerImpl::writeHandshakeToOutgoingBlockAnnounceStream(
+  //      std::shared_ptr<libp2p::connection::Stream> stream) {
+  //    Status status_msg;
+  //
+  //    /// Roles
+  //    // TODO(xDimon): Need to set actual role of node
+  //    //  issue: https://github.com/soramitsu/kagome/issues/678
+  //    status_msg.roles.flags.full = 1;
+  //
+  //    /// Best block info
+  //    const auto &last_finalized = block_tree_->getLastFinalized().block_hash;
+  //    if (auto best_res =
+  //            block_tree_->getBestContaining(last_finalized, boost::none);
+  //        best_res.has_value()) {
+  //      status_msg.best_block = best_res.value();
+  //    } else {
+  //      log_->error("Could not get best block info: {}",
+  //                  best_res.error().message());
+  //      return false;
+  //    }
+  //
+  //    /// Genesis hash
+  //    if (auto genesis_res = storage_->getGenesisBlockHash();
+  //        genesis_res.has_value()) {
+  //      status_msg.genesis_hash = std::move(genesis_res.value());
+  //    } else {
+  //      log_->error("Could not get genesis block hash: {}",
+  //                  genesis_res.error().message());
+  //      return false;
+  //    }
+  //
+  //    writeAsyncMsgWithHandshake<BlockAnnounce>(
+  //        stream,
+  //        std::move(status_msg),
+  //        [](auto self,
+  //           const auto &peer_id,
+  //           const auto &remote_status) mutable -> outcome::result<void> {
+  //          BOOST_ASSERT(self);
+  //          self->log_->info("Received status from peer_id={}",
+  //                           peer_id.toBase58());
+  //          self->updatePeerStatus(peer_id, remote_status);
+  //          return outcome::success();
+  //        },
+  //        [](auto self, const auto &peer_id, const auto &block_announce)
+  //        mutable {
+  //          BOOST_ASSERT(self);
+  //          self->log_->info("Received block announce: block number {}",
+  //                           block_announce.header.number);
+  //          self->babe_observer_->onBlockAnnounce(peer_id, block_announce);
+  //
+  //          auto hash = self->hasher_->blake2b_256(
+  //              scale::encode(block_announce.header).value());
+  //          self->updatePeerStatus(peer_id,
+  //                                 BlockInfo(block_announce.header.number,
+  //                                 hash));
+  //          return true;
+  //        });
+  //
+  //    return true;
+  //  }
 }  // namespace kagome::network

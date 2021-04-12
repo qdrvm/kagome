@@ -365,12 +365,18 @@ namespace kagome::blockchain {
         runtime_core_(std::move(runtime_core)),
         babe_configuration_(std::move(babe_configuration)),
         babe_util_(std::move(babe_util)) {
-    BOOST_ASSERT(chain_events_engine_);
-    BOOST_ASSERT(extrinsic_events_engine_);
-    BOOST_ASSERT(extrinsic_event_key_repo_);
-    BOOST_ASSERT(runtime_core_);
-    BOOST_ASSERT(babe_configuration_);
-    BOOST_ASSERT(babe_util_);
+    BOOST_ASSERT(header_repo_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(tree_ != nullptr);
+    BOOST_ASSERT(tree_meta_ != nullptr);
+    BOOST_ASSERT(extrinsic_observer_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(chain_events_engine_ != nullptr);
+    BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
+    BOOST_ASSERT(extrinsic_event_key_repo_ != nullptr);
+    BOOST_ASSERT(runtime_core_ != nullptr);
+    BOOST_ASSERT(babe_configuration_ != nullptr);
+    BOOST_ASSERT(babe_util_ != nullptr);
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(

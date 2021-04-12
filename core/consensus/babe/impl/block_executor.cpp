@@ -95,7 +95,7 @@ namespace kagome::consensus {
           // block
 
           // TODO(xDimon): Move timeout for request into config
-          sync_timer_->expiresAfter(std::chrono::seconds(30));
+          sync_timer_->expiresAfter(std::chrono::seconds(3600));
           sync_timer_->asyncWait([wp = weak_from_this()](auto e) {
             if (auto self = wp.lock()) {
               if (not e) {
@@ -110,7 +110,7 @@ namespace kagome::consensus {
                   ExecutorState state = kSyncState;
                   if (self->sync_state_.compare_exchange_strong(state,
                                                                 kReadyState)) {
-                    self->sync_timer_->cancel();
+                    self->sync_timer_.get()->cancel();
                   }
                 }
               });
@@ -135,32 +135,42 @@ namespace kagome::consensus {
   void BlockExecutor::requestBlocks(const primitives::BlockHash &from,
                                     const primitives::BlockHash &to,
                                     const libp2p::peer::PeerId &peer_id,
-                                    std::function<void()> &&next) {
+                                    std::function<void()> &&on_retrieved) {
     babe_synchronizer_->request(
         from,
         to,
         peer_id,
-        [wp = weak_from_this(), next(std::move(next)), to, from, peer_id](
-            auto blocks_res) mutable {
+        [wp = weak_from_this(),
+         on_retrieved = std::move(on_retrieved),
+         to,
+         from,
+         peer_id](auto blocks_res) mutable {
           auto self = wp.lock();
-          if (!self || !blocks_res) {
-            next();
+          if (not self) {
+            on_retrieved();
             return;
           }
 
+          if (not blocks_res.has_value()) {
+            on_retrieved();
+            return;
+          }
           auto &blocks = blocks_res->get();
 
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
-            next();
+            on_retrieved();
             return;
           }
 
           if (blocks.front().header && blocks.back().header) {
-            self->logger_->info("Received portion of blocks: {}..{}, count {}",
-                                blocks.front().hash.toHex(),
-                                blocks.back().hash.toHex(),
-                                blocks.size());
+            self->logger_->info(
+                "Received portion of blocks: {}..{}, {}..{}, count {}",
+                blocks.front().hash.toHex(),
+                blocks.back().hash.toHex(),
+                blocks.front().header->number,
+                blocks.back().header->number,
+                blocks.size());
           }
 
           auto async_helper = std::make_shared<AsyncHelper>(self->io_context_);
@@ -168,7 +178,7 @@ namespace kagome::consensus {
           async_helper->setFunction([wp,
                                      to,
                                      peer_id,
-                                     on_retrieved = std::move(next),
+                                     on_retrieved = std::move(on_retrieved),
                                      next_iteration = async_helper->next(),
                                      blocks = std::move(blocks),
                                      i = static_cast<size_t>(0)]() mutable {
@@ -176,6 +186,20 @@ namespace kagome::consensus {
             if (not self) {
               return;
             }
+
+            //  ExecutorState state = kSyncState;
+            //  if (self->sync_state_.compare_exchange_strong(state,
+            //                                                kSyncState)) {
+            //    self->sync_timer_->cancel();
+            //    self->sync_timer_->expiresAfter(std::chrono::seconds(30));
+            //    self->sync_timer_->asyncWait([wp](auto e) {
+            //      if (auto self = wp.lock()) {
+            //        if (not e) {
+            //          self->sync_state_ = kReadyState;
+            //        }
+            //      }
+            //    });
+            //  }
 
             auto block = std::move(blocks[i++]);  // For free memory asap
 
@@ -187,7 +211,8 @@ namespace kagome::consensus {
                        != outcome::failure(
                            blockchain::BlockTreeError::BLOCK_EXISTS)) {
               self->logger_->warn(
-                  "Could not apply block during synchronizing. Error: {}",
+                  "Could not apply block #{} during synchronizing. Error: {}",
+                  block.header->number,
                   apply_res.error().message());
               on_retrieved();
               return;

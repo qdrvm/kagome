@@ -7,6 +7,7 @@
 #define KAGOME_NETWORK_SUPPROTOCOL
 
 #include <memory>
+#include "network/protocol_base.hpp"
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
@@ -15,7 +16,6 @@
 #include "blockchain/block_tree.hpp"
 #include "log/logger.hpp"
 #include "network/impl/stream_engine.hpp"
-#include "network/protocol_base.hpp"
 #include "network/types/status.hpp"
 #include "outcome/outcome.hpp"
 
@@ -29,12 +29,12 @@ namespace kagome::network {
   class SupProtocol final : public ProtocolBase,
                             public std::enable_shared_from_this<SupProtocol> {
    public:
-    enum class Error { CAN_NOT_CREATE_STATUS = 1, GONE };
+    enum class Error { GONE = 1, CAN_NOT_CREATE_STATUS };
 
     SupProtocol() = delete;
     SupProtocol(SupProtocol &&) noexcept = delete;
     SupProtocol(const SupProtocol &) = delete;
-    virtual ~SupProtocol() = default;
+    ~SupProtocol() override = default;
     SupProtocol &operator=(SupProtocol &&) noexcept = delete;
     SupProtocol &operator=(SupProtocol const &) = delete;
 

@@ -6,28 +6,17 @@
 #ifndef KAGOME_NETWORK_GOSSIPPROTOCOL
 #define KAGOME_NETWORK_GOSSIPPROTOCOL
 
+#include "network/protocol_base.hpp"
 #include <memory>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/chain_spec.hpp"
-#include "blockchain/block_storage.hpp"
-#include "blockchain/block_tree.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
-#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
-#include "network/babe_observer.hpp"
-#include "network/gossiper.hpp"
-#include "network/impl/loopback_stream.hpp"
 #include "network/impl/stream_engine.hpp"
-#include "network/peer_manager.hpp"
-#include "network/protocol_base.hpp"
-#include "network/types/block_announce.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/own_peer_info.hpp"
-#include "network/types/status.hpp"
-#include "outcome/outcome.hpp"
 
 namespace kagome::network {
 
@@ -40,12 +29,12 @@ namespace kagome::network {
       : public ProtocolBase,
         public std::enable_shared_from_this<GossipProtocol> {
    public:
-    enum class Error { CAN_NOT_CREATE_STATUS = 1, GONE };
+    enum class Error { GONE = 1 };
 
     GossipProtocol() = delete;
     GossipProtocol(GossipProtocol &&) noexcept = delete;
     GossipProtocol(const GossipProtocol &) = delete;
-    virtual ~GossipProtocol() = default;
+    ~GossipProtocol() override = default;
     GossipProtocol &operator=(GossipProtocol &&) noexcept = delete;
     GossipProtocol &operator=(GossipProtocol const &) = delete;
 
@@ -53,7 +42,6 @@ namespace kagome::network {
         libp2p::Host &host,
         std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         const OwnPeerInfo &own_info,
-        std::shared_ptr<Gossiper> gossiper,
         std::shared_ptr<StreamEngine> stream_engine);
 
     const Protocol &protocol() const override {

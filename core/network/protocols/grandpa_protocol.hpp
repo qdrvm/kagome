@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
-#define KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
+#ifndef KAGOME_NETWORK_GRANDPAROTOCOL
+#define KAGOME_NETWORK_GRANDPAROTOCOL
 
 #include <memory>
 #include "network/protocol_base.hpp"
@@ -12,11 +12,8 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/chain_spec.hpp"
 #include "log/logger.hpp"
-#include "network/extrinsic_observer.hpp"
 #include "network/impl/stream_engine.hpp"
-#include "network/types/propagate_transactions.hpp"
 
 namespace kagome::network {
 
@@ -25,28 +22,21 @@ namespace kagome::network {
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
 
-  class PropagateTransactionsProtocol final
+  class GrandpaProtocol final
       : public ProtocolBase,
-        public std::enable_shared_from_this<PropagateTransactionsProtocol> {
+        public std::enable_shared_from_this<GrandpaProtocol> {
    public:
     enum class Error { GONE = 1 };
 
-    PropagateTransactionsProtocol() = delete;
-    PropagateTransactionsProtocol(PropagateTransactionsProtocol &&) noexcept =
-        delete;
-    PropagateTransactionsProtocol(const PropagateTransactionsProtocol &) =
-        delete;
-    ~PropagateTransactionsProtocol() override = default;
-    PropagateTransactionsProtocol &operator=(
-        PropagateTransactionsProtocol &&) noexcept = delete;
-    PropagateTransactionsProtocol &operator=(
-        PropagateTransactionsProtocol const &) = delete;
+    GrandpaProtocol() = delete;
+    GrandpaProtocol(GrandpaProtocol &&) noexcept = delete;
+    GrandpaProtocol(const GrandpaProtocol &) = delete;
+    ~GrandpaProtocol() override = default;
+    GrandpaProtocol &operator=(GrandpaProtocol &&) noexcept = delete;
+    GrandpaProtocol &operator=(GrandpaProtocol const &) = delete;
 
-    PropagateTransactionsProtocol(
-        libp2p::Host &host,
-        const application::ChainSpec &chain_spec,
-        std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
-        std::shared_ptr<StreamEngine> stream_engine);
+    GrandpaProtocol(libp2p::Host &host,
+                    std::shared_ptr<StreamEngine> stream_engine);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -73,24 +63,21 @@ namespace kagome::network {
         Direction direction,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
-    void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
+    void read(std::shared_ptr<Stream> stream);
 
-    void writePropagatedExtrinsics(
+    void write(
         std::shared_ptr<Stream> stream,
-        const PropagatedExtrinsics &msg,
+        const int &msg,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
-
     libp2p::Host &host_;
-    std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("PropagateTransactionsProtocol");
+    log::Logger log_ = log::createLogger("GrandpaProtocol");
   };
 
 }  // namespace kagome::network
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::network,
-                          PropagateTransactionsProtocol::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::network, GrandpaProtocol::Error);
 
-#endif  // KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
+#endif  // KAGOME_NETWORK_GRANDPAROTOCOL

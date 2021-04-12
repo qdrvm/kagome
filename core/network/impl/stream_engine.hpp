@@ -36,6 +36,8 @@ namespace kagome::network {
     using Host = libp2p::Host;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
+    enum class Direction { INCOMING = 1, OUTGOING = 2, BIDIRECTIONAL = 3 };
+
    private:
     struct ProtocolDescr {
       std::shared_ptr<ProtocolBase> protocol;
@@ -70,25 +72,36 @@ namespace kagome::network {
       if (protocols
               .emplace(protocol->protocol(), ProtocolDescr{protocol, {}, {}})
               .second) {
-        logger_->debug("Reserved stream (peer_id={}, protocol={})",
-                       peer_id.toBase58(),
-                       protocol->protocol());
+        logger_->debug("Reserved {} stream with {}",
+                       protocol->protocol(),
+                       peer_id.toBase58());
       }
     }
 
+   private:
     outcome::result<void> add(std::shared_ptr<Stream> stream,
-                              const std::shared_ptr<ProtocolBase> &protocol) {
+                              const std::shared_ptr<ProtocolBase> &protocol,
+                              Direction direction) {
       BOOST_ASSERT(protocol != nullptr);
       BOOST_ASSERT(stream != nullptr);
 
       OUTCOME_TRY(peer_id, stream->remotePeerId());
       bool existing = false;
+      auto dir = static_cast<uint8_t>(direction);
+      const bool is_incoming = dir & static_cast<uint8_t>(Direction::INCOMING);
+      const bool is_outgoing = dir & static_cast<uint8_t>(Direction::OUTGOING);
 
       std::unique_lock cs(streams_cs_);
       forSubscriber(peer_id, protocol, [&](auto type, auto &subscriber) {
         existing = true;
-        uploadStream(subscriber.incoming, stream);
-        uploadStream(subscriber.outgoing, stream);
+        if (is_incoming) {
+          uploadStream(
+              subscriber.incoming, stream, protocol, Direction::INCOMING);
+        }
+        if (is_outgoing) {
+          uploadStream(
+              subscriber.outgoing, stream, protocol, Direction::OUTGOING);
+        }
       });
       if (existing) {
         return outcome::success();
@@ -96,11 +109,35 @@ namespace kagome::network {
 
       auto &proto_map = streams_[peer_id];
       proto_map.emplace(protocol->protocol(),
-                        ProtocolDescr{protocol, stream, std::move(stream)});
-      logger_->debug("Syncing stream (peer_id={}, protocol={})",
-                     peer_id.toBase58(),
-                     protocol->protocol());
+                        ProtocolDescr{protocol,
+                                      is_incoming ? stream : nullptr,
+                                      is_outgoing ? stream : nullptr});
+      logger_->debug(
+          "Added {} {} stream with peer_id={}",
+          direction == Direction::INCOMING
+              ? "incoming"
+              : direction == Direction::OUTGOING ? "outgoing" : "bidirectional",
+          protocol->protocol(),
+          peer_id.toBase58());
       return outcome::success();
+    }
+
+   public:
+    outcome::result<void> addIncoming(
+        std::shared_ptr<Stream> stream,
+        const std::shared_ptr<ProtocolBase> &protocol) {
+      return add(std::move(stream), protocol, Direction::INCOMING);
+    }
+
+    outcome::result<void> addOutgoing(
+        std::shared_ptr<Stream> stream,
+        const std::shared_ptr<ProtocolBase> &protocol) {
+      return add(std::move(stream), protocol, Direction::OUTGOING);
+    }
+
+    outcome::result<void> add(std::shared_ptr<Stream> stream,
+                              const std::shared_ptr<ProtocolBase> &protocol) {
+      return add(std::move(stream), protocol, Direction::BIDIRECTIONAL);
     }
 
     void del(const PeerId &peer_id,
@@ -146,9 +183,9 @@ namespace kagome::network {
         auto protocol_it = protocols.find(protocol->protocol());
         if (protocol_it != protocols.end()) {
           auto &descr = protocol_it->second;
-          if (descr.incoming and not descr.incoming->isClosed()) {
-            return true;
-          }
+          // if (descr.incoming and not descr.incoming->isClosed()) {
+          //  return true;
+          //}
           if (descr.outgoing and not descr.outgoing->isClosed()) {
             return true;
           }
@@ -257,20 +294,28 @@ namespace kagome::network {
     }
 
     void uploadStream(std::shared_ptr<Stream> &dst,
-                      const std::shared_ptr<Stream> &src) {
+                      const std::shared_ptr<Stream> &src,
+                      const std::shared_ptr<ProtocolBase> &protocol,
+                      Direction direction) {
       BOOST_ASSERT(src);
       // Skip the same stream
       if (dst.get() == src.get()) {
         return;
       }
+      bool repdaced = false;
       // Reset previous stream
       if (dst) {
         dst->reset();
+        repdaced = true;
       }
       dst = src;
       if (dst->remotePeerId().has_value()) {
-        logger_->debug("Stream (peer_id={}) was stored",
-                       dst->remotePeerId().value().toBase58());
+        SL_DEBUG(logger_,
+                 "{} {} stream with peer_id={} was {}",
+                 direction == Direction::INCOMING ? "Incoming" : "Outgoing",
+                 protocol->protocol(),
+                 dst->remotePeerId().value().toBase58(),
+                 repdaced ? "replaced" : "stored");
       }
     }
 
@@ -396,7 +441,10 @@ namespace kagome::network {
               self->forSubscriber(
                   peer_id, protocol, [&](auto, auto &subscriber) {
                     existing = true;
-                    self->uploadStream(subscriber.outgoing, stream);
+                    self->uploadStream(subscriber.outgoing,
+                                       stream,
+                                       protocol,
+                                       Direction::OUTGOING);
                   });
               BOOST_ASSERT(existing);
               self->send(stream, *msg);

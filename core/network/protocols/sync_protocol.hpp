@@ -7,21 +7,14 @@
 #define KAGOME_NETWORK_SYNCPROTOCOL
 
 #include <memory>
+#include "network/protocol_base.hpp"
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
 #include "application/chain_spec.hpp"
-#include "blockchain/block_storage.hpp"
-#include "blockchain/block_tree.hpp"
-#include "crypto/hasher.hpp"
 #include "log/logger.hpp"
-#include "network/peer_manager.hpp"
-#include "network/protocol_base.hpp"
 #include "network/sync_protocol_observer.hpp"
-#include "network/types/block_announce.hpp"
-#include "network/types/status.hpp"
-#include "outcome/outcome.hpp"
 
 namespace kagome::network {
 
@@ -33,12 +26,12 @@ namespace kagome::network {
   class SyncProtocol final : public ProtocolBase,
                              public std::enable_shared_from_this<SyncProtocol> {
    public:
-    enum class Error { CAN_NOT_CREATE_STATUS = 1, GONE };
+    enum class Error { GONE = 1 };
 
     SyncProtocol() = delete;
     SyncProtocol(SyncProtocol &&) noexcept = delete;
     SyncProtocol(const SyncProtocol &) = delete;
-    virtual ~SyncProtocol() = default;
+    ~SyncProtocol() override = default;
     SyncProtocol &operator=(SyncProtocol &&) noexcept = delete;
     SyncProtocol &operator=(SyncProtocol const &) = delete;
 
@@ -59,22 +52,29 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
-   private:
+    void request(const PeerId &peer_id,
+                 BlocksRequest block_request,
+                 std::function<void(outcome::result<BlocksResponse>)>
+                     &&response_handler);
+
     void readRequest(
         std::shared_ptr<Stream> stream,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
     void writeRequest(
         std::shared_ptr<Stream> stream,
         BlocksRequest block_request,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+        std::function<void(outcome::result<void>)> &&cb);
 
-    void readResponse(std::shared_ptr<Stream> stream);
+    void readResponse(
+        std::shared_ptr<Stream> stream,
+        std::function<void(outcome::result<BlocksResponse>)> &&response_handler);
 
     void writeResponse(
         std::shared_ptr<Stream> stream,
         const BlocksResponse &block_response,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
+  private:
     libp2p::Host &host_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     const libp2p::peer::Protocol protocol_;

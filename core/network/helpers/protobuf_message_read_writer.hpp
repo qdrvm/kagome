@@ -33,8 +33,8 @@ namespace kagome::network {
     explicit ProtobufMessageReadWriter(
         const std::shared_ptr<libp2p::basic::ReadWriter> &read_writer)
         : read_writer_(
-              std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
-                  read_writer)) {}
+            std::make_shared<libp2p::basic::MessageReadWriterUvarint>(
+                read_writer)) {}
 
     /**
      * Read a Protobuf message from the channel
@@ -43,8 +43,14 @@ namespace kagome::network {
      */
     template <typename MsgType>
     void read(ReadCallback<MsgType> &&cb) const {
+      if constexpr (std::is_same_v<MsgType, network::BlocksResponse>) {
+        std::ignore = [] { return 1; }();
+      }
       read_writer_->read(
           [self{shared_from_this()}, cb = std::move(cb)](auto &&read_res) {
+            if constexpr (std::is_same_v<MsgType, network::BlocksResponse>) {
+              std::ignore = [] { return 1; }();
+            }
             if (!read_res) {
               return cb(read_res.error());
             }

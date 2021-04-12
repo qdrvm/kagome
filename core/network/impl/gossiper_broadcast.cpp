@@ -16,48 +16,60 @@ namespace kagome::network {
   KAGOME_DEFINE_CACHE(stream_engine);
 
   GossiperBroadcast::GossiperBroadcast(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
       StreamEngine::StreamEnginePtr stream_engine,
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo,
       std::shared_ptr<kagome::application::ChainSpec> config,
-      std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol,
-      std::shared_ptr<GossipProtocol> gossip_protocol,
-      std::shared_ptr<PropagateTransactionsProtocol>
-          propagate_transaction_protocol
-//      ,
-//      std::shared_ptr<SupProtocol> sup_protocol,
-//      std::shared_ptr<SyncProtocol> sync_protocol
+      std::shared_ptr<network::Router> router
       )
       : logger_{log::createLogger("GossiperBroadcast", "network")},
         stream_engine_{std::move(stream_engine)},
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)},
         config_{std::move(config)},
-        block_announce_protocol_{std::move(block_announce_protocol)},
-        gossip_protocol_{std::move(gossip_protocol)},
-        propagate_transaction_protocol_{
-            std::move(propagate_transaction_protocol)}
-//        ,
-//        sup_protocol_{std::move(sup_protocol)},
-//        sync_protocol_{std::move(sync_protocol)}
+        router_{std::move(router)}
   {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
     BOOST_ASSERT(config_ != nullptr);
-    BOOST_ASSERT(block_announce_protocol_ != nullptr);
-    BOOST_ASSERT(gossip_protocol_ != nullptr);
-    BOOST_ASSERT(propagate_transaction_protocol_ != nullptr);
-//    BOOST_ASSERT(sup_protocol_ != nullptr);
-//    BOOST_ASSERT(sync_protocol_ != nullptr);
+    BOOST_ASSERT(router_ != nullptr);
+    //    BOOST_ASSERT(protocol_factory_ != nullptr);
+    //    BOOST_ASSERT(block_announce_protocol_ != nullptr);
+    //    BOOST_ASSERT(gossip_protocol_ != nullptr);
+    //    BOOST_ASSERT(propagate_transaction_protocol_ != nullptr);
+    //    BOOST_ASSERT(sup_protocol_ != nullptr);
+    //    BOOST_ASSERT(sync_protocol_ != nullptr);
+
+    BOOST_ASSERT(app_state_manager);
+    app_state_manager->takeControl(*this);
   }
 
-  void GossiperBroadcast::storeSelfPeerInfo(
-      const libp2p::peer::PeerInfo &self_info) {
-    self_info_ = self_info;
+  bool GossiperBroadcast::prepare() {
+    block_announce_protocol_ = router_->getBlockAnnounceProtocol();
+    gossip_protocol_ = router_->getGossipProtocol();
+    propagate_transaction_protocol_ =
+        router_->getPropagateTransactionsProtocol();
+    return true;
   }
+
+  bool GossiperBroadcast::start() {
+    return true;
+  }
+
+  void GossiperBroadcast::stop() {
+    block_announce_protocol_.reset();
+    gossip_protocol_.reset();
+    propagate_transaction_protocol_.reset();
+  }
+
+  //  void GossiperBroadcast::storeSelfPeerInfo(
+  //      const libp2p::peer::PeerInfo &self_info) {
+  //    self_info_ = self_info;
+  //  }
 
   void GossiperBroadcast::propagateTransactions(
       gsl::span<const primitives::Transaction> txs) {

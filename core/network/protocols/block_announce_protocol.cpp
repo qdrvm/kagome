@@ -5,18 +5,16 @@
 
 #include "network/protocols/block_announce_protocol.hpp"
 
-#include <boost/assert.hpp>
-
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, BlockAnnounceProtocol::Error, e) {
   using E = kagome::network::BlockAnnounceProtocol::Error;
   switch (e) {
-    case E::CAN_NOT_CREATE_STATUS:
-      return "Can not create status";
     case E::GONE:
       return "Protocol was switched off";
+    case E::CAN_NOT_CREATE_STATUS:
+      return "Can not create status";
   }
   return "Unknown error";
 }
@@ -26,22 +24,25 @@ namespace kagome::network {
   BlockAnnounceProtocol::BlockAnnounceProtocol(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
+      std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockStorage> storage,
-      //      std::shared_ptr<PeerManager> peer_manager,
       std::shared_ptr<BabeObserver> babe_observer,
-      std::shared_ptr<crypto::Hasher> hasher)
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<PeerManager> peer_manager)
       : host_(host),
+        stream_engine_(std::move(stream_engine)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)),
-        //        peer_manager_(std::move(peer_manager)),
         babe_observer_(std::move(babe_observer)),
-        hasher_(std::move(hasher)) {
+        hasher_(std::move(hasher)),
+        peer_manager_(std::move(peer_manager)) {
+    BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
-    //    BOOST_ASSERT(peer_manager_ != nullptr);
     BOOST_ASSERT(babe_observer_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(peer_manager_ != nullptr);
     const_cast<Protocol &>(protocol_) =
         fmt::format(kBlockAnnouncesProtocol.data(), chain_spec.protocolId());
   }
@@ -50,14 +51,16 @@ namespace kagome::network {
     host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
-          self->log_->trace("Handled {} protocol stream from: {}",
-                            self->protocol_,
-                            peer_id.value().toHex());
+          SL_TRACE(self->log_,
+                   "Handled {} protocol stream from: {}",
+                   self->protocol_,
+                   peer_id.value().toBase58());
           self->onIncomingStream(std::forward<decltype(stream)>(stream));
           return;
         }
         self->log_->warn("Handled {} protocol stream from unknown peer",
                          self->protocol_);
+        stream->reset();
       }
     });
     return true;
@@ -105,20 +108,37 @@ namespace kagome::network {
   void BlockAnnounceProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
-    readStatus(stream,
-               Direction::INCOMING,
-               [](outcome::result<std::shared_ptr<Stream>> stream_res) {
-                 if (stream_res.has_value()) {
-                   [] {}();
-                 } else {
-                   [] {}();
-                 }
-               });
+    readStatus(
+        stream,
+        Direction::INCOMING,
+        [wp = weak_from_this(),
+         stream](outcome::result<std::shared_ptr<Stream>> stream_res) {
+          auto self = wp.lock();
+          if (not self) {
+            return;
+          }
+          if (stream_res.has_value()) {
+            std::ignore = self->stream_engine_->addIncoming(stream, self);
+            self->peer_manager_->reserveStreams(stream->remotePeerId().value());
+            self->log_->info("Fully established incoming {} stream with {}",
+                             self->protocol_,
+                             stream->remotePeerId().value().toBase58());
+
+          } else {
+            self->log_->info("Fail establishing incoming {} stream with {}: {}",
+                             self->protocol_,
+                             stream->remotePeerId().value().toBase58(),
+                             stream_res.error().message());
+          }
+        });
   }
 
   void BlockAnnounceProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+    log_->info(
+        "Connect for {} stream with {}", protocol_, peer_info.id.toBase58());
+
     host_.newStream(
         peer_info,
         protocol_,
@@ -126,18 +146,36 @@ namespace kagome::network {
             auto &&stream_res) mutable {
           auto self = wp.lock();
           if (not self) {
+            SL_VERBOSE(
+                self->log_,
+                "Error happened while connection over {} stream with {}: {}",
+                self->protocol_,
+                peer_id.toBase58(),
+                outcome::result<void>(Error::GONE).error().message());
             cb(Error::GONE);
             return;
           }
 
           if (not stream_res.has_value()) {
+            SL_VERBOSE(
+                self->log_,
+                "Error happened while connection over {} stream with {}: {}",
+                self->protocol_,
+                peer_id.toBase58(),
+                stream_res.error().message());
             cb(stream_res.as_failure());
             return;
           }
 
           auto &stream = stream_res.value();
 
-          self->writeStatus(stream, Direction::OUTGOING, std::move(cb));
+          SL_VERBOSE(self->log_,
+                     "Established connection over {} stream with {}",
+                     self->protocol_,
+                     peer_id.toBase58());
+
+          self->writeStatus(
+              std::move(stream), Direction::OUTGOING, std::move(cb));
         });
   }
 
@@ -164,16 +202,20 @@ namespace kagome::network {
             cb(remote_status_res.as_failure());
             return;
           }
+          // auto &remote_status = remote_status_res.value();
 
-          //      auto peer_id = stream->remotePeerId().value();
-          //      self->log_->debug("Received status from peer_id={}",
-          //      peer_id.toBase58());
-          //      self->peer_manager_->updatePeerStatus(peer_id,
-          //      remote_status_res.value());
+          //  auto peer_id = stream->remotePeerId().value();
+          //  self->log_->debug("Received status from peer_id={}",
+          //  peer_id.toBase58());
+          //  self->peer_manager_->updatePeerStatus(peer_id,
+          //  remote_status_res.value());
 
           switch (direction) {
             case Direction::OUTGOING:
-              self->readAnnounce(stream);
+              std::ignore = self->stream_engine_->addOutgoing(stream, self);
+              self->log_->info("Fully established outgoing {} stream with {}",
+                               self->protocol_,
+                               stream->remotePeerId().value().toBase58());
               cb(stream);
               break;
             case Direction::INCOMING:
@@ -254,9 +296,9 @@ namespace kagome::network {
           auto hash = self->hasher_->blake2b_256(
               scale::encode(block_announce.header).value());
 
-          //          self->peer_manager_->updatePeerStatus(
-          //              stream->remotePeerId().value(),
-          //              BlockInfo(block_announce.header.number, hash));
+          //  self->peer_manager_->updatePeerStatus(
+          //      stream->remotePeerId().value(),
+          //      BlockInfo(block_announce.header.number, hash));
 
           self->readAnnounce(std::move(stream));
         });

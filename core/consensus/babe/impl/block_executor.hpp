@@ -72,12 +72,12 @@ namespace kagome::consensus {
      * Synchronize all missing blocks between provided blocks (from and to)
      * @param from starting block of syncing blocks
      * @param to last block of syncing block
-     * @param next action after the sync is done
+     * @param on_retrieved action after the sync is done
      */
     void requestBlocks(const primitives::BlockHash &from,
                        const primitives::BlockHash &to,
                        const libp2p::peer::PeerId &peer_id,
-                       std::function<void()> &&next);
+                       std::function<void()> &&on_retrieved);
 
    private:
     /// Possible states of the block executor

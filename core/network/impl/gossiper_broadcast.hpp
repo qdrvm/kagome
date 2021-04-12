@@ -16,13 +16,16 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/peer/protocol.hpp>
 
+#include "application/app_state_manager.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/router.hpp"
 #include "network/protocols/block_announce_protocol.hpp"
 #include "network/protocols/gossip_protocol.hpp"
 #include "network/protocols/propagate_transactions_protocol.hpp"
+#include "network/protocols/protocol_factory.hpp"
 #include "network/protocols/sup_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
 #include "network/types/bootstrap_nodes.hpp"
@@ -56,24 +59,26 @@ namespace kagome::network {
 
    public:
     GossiperBroadcast(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         StreamEngine::StreamEnginePtr stream_engine,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo_,
         std::shared_ptr<kagome::application::ChainSpec> config,
-        std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol,
-        std::shared_ptr<GossipProtocol> gossip_protocol,
-        std::shared_ptr<PropagateTransactionsProtocol>
-            propagate_transaction_protocol
-//        ,
-//        std::shared_ptr<SupProtocol> sup_protocol,
-//        std::shared_ptr<SyncProtocol> sync_protocol
-        );
+        std::shared_ptr<network::Router> router
+    );
 
     ~GossiperBroadcast() override = default;
 
-    void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
+    /** @see AppStateManager::takeControl */
+    bool prepare();
+
+    /** @see AppStateManager::takeControl */
+    bool start();
+
+    /** @see AppStateManager::takeControl */
+    void stop();
 
     void propagateTransactions(
         gsl::span<const primitives::Transaction> txs) override;
@@ -136,14 +141,16 @@ namespace kagome::network {
         ext_event_key_repo_;
     std::shared_ptr<application::ChainSpec> config_;
 
+    std::shared_ptr<network::Router> router_;
+
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
     std::shared_ptr<GossipProtocol> gossip_protocol_;
     std::shared_ptr<PropagateTransactionsProtocol>
         propagate_transaction_protocol_;
-//    std::shared_ptr<SupProtocol> sup_protocol_;
-//    std::shared_ptr<SyncProtocol> sync_protocol_;
+    //    std::shared_ptr<SupProtocol> sup_protocol_;
+    //    std::shared_ptr<SyncProtocol> sync_protocol_;
 
-    boost::optional<libp2p::peer::PeerInfo> self_info_;
+    //    boost::optional<libp2p::peer::PeerInfo> self_info_;
   };
 }  // namespace kagome::network
 

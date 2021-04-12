@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <boost/asio/io_context.hpp>
+#include <network/sync_protocol_observer.hpp>
 
 #include "clock/clock.hpp"
 
@@ -57,6 +58,9 @@ namespace kagome::injector {
     std::shared_ptr<network::Router> injectRouter();
     std::shared_ptr<network::PeerManager> injectPeerManager();
     std::shared_ptr<api::ApiService> injectRpcApiService();
+    std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
+    std::shared_ptr<consensus::babe::Babe> injectBabe();
+    std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
 
    protected:
     std::shared_ptr<class SyncingNodeInjectorImpl> pimpl_;
@@ -77,9 +81,9 @@ namespace kagome::injector {
     std::shared_ptr<network::PeerManager> injectPeerManager();
     std::shared_ptr<api::ApiService> injectRpcApiService();
     std::shared_ptr<clock::SystemClock> injectSystemClock();
+    std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<consensus::babe::Babe> injectBabe();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
-    std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
 
    protected:
     std::shared_ptr<class ValidatingNodeInjectorImpl> pimpl_;

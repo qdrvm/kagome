@@ -4,18 +4,17 @@
  */
 
 #include "network/protocols/gossip_protocol.hpp"
-
-#include <boost/assert.hpp>
-
+//
+//#include <boost/assert.hpp>
+//
 #include "network/common.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
-#include "network/types/grandpa_message.hpp"
+//#include "network/helpers/scale_message_read_writer.hpp"
+//#include "network/types/grandpa_message.hpp"
+#include "network/impl/loopback_stream.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, GossipProtocol::Error, e) {
   using E = kagome::network::GossipProtocol::Error;
   switch (e) {
-    case E::CAN_NOT_CREATE_STATUS:
-      return "Can not create status";
     case E::GONE:
       return "Protocol was switched off";
   }
@@ -28,7 +27,6 @@ namespace kagome::network {
       libp2p::Host &host,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       const OwnPeerInfo &own_info,
-      std::shared_ptr<Gossiper> gossiper,
       std::shared_ptr<StreamEngine> stream_engine)
       : host_(host),
         grandpa_observer_(std::move(grandpa_observer)),
@@ -37,9 +35,6 @@ namespace kagome::network {
     BOOST_ASSERT(grandpa_observer_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     const_cast<Protocol &>(protocol_) = kGossipProtocol;
-
-    BOOST_ASSERT(gossiper != nullptr);
-    gossiper->storeSelfPeerInfo(own_info_);
   }
 
   bool GossipProtocol::start() {
@@ -55,7 +50,7 @@ namespace kagome::network {
         if (auto peer_id = stream->remotePeerId()) {
           self->log_->trace("Handled {} protocol stream from: {}",
                             self->protocol_,
-                            peer_id.value().toHex());
+                            peer_id.value().toBase58());
           self->onIncomingStream(std::forward<decltype(stream)>(stream));
           return;
         }

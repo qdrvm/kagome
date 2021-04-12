@@ -67,7 +67,6 @@ target_link_libraries(application_injector
     storage_wasm_provider
     binaryen_wasm_memory_factory
     remote_sync_protocol_client
-    dummy_sync_protocol_client
     sync_protocol_observer
     vrf_provider
     waitable_timer
@@ -81,8 +80,9 @@ target_link_libraries(application_injector
     babe_util
     assets
     block_announce_protocol
-    sync_protocol
-    sup_protocol
     gossip_protocol
     propagate_transactions_protocol
+    sup_protocol
+    sync_protocol
+    protocol_factory
     )

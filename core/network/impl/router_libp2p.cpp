@@ -5,23 +5,23 @@
 
 #include "network/impl/router_libp2p.hpp"
 
-#include <libp2p/basic/message_read_writer_uvarint.hpp>
-
-#include "application/chain_spec.hpp"
-#include "blockchain/block_storage.hpp"
-#include "consensus/grandpa/structs.hpp"
-#include "network/adapters/protobuf_block_request.hpp"
-#include "network/adapters/protobuf_block_response.hpp"
-#include "network/common.hpp"
-#include "network/helpers/protobuf_message_read_writer.hpp"
-#include "network/rpc.hpp"
-#include "network/types/block_announce.hpp"
-#include "network/types/blocks_request.hpp"
-#include "network/types/blocks_response.hpp"
-#include "network/types/bootstrap_nodes.hpp"
-#include "network/types/no_data_message.hpp"
-#include "network/types/status.hpp"
-#include "scale/scale.hpp"
+//#include <libp2p/basic/message_read_writer_uvarint.hpp>
+//
+//#include "application/chain_spec.hpp"
+//#include "blockchain/block_storage.hpp"
+//#include "consensus/grandpa/structs.hpp"
+//#include "network/adapters/protobuf_block_request.hpp"
+//#include "network/adapters/protobuf_block_response.hpp"
+//#include "network/common.hpp"
+//#include "network/helpers/protobuf_message_read_writer.hpp"
+//#include "network/rpc.hpp"
+//#include "network/types/block_announce.hpp"
+//#include "network/types/blocks_request.hpp"
+//#include "network/types/blocks_response.hpp"
+//#include "network/types/bootstrap_nodes.hpp"
+//#include "network/types/no_data_message.hpp"
+//#include "network/types/status.hpp"
+//#include "scale/scale.hpp"
 
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
@@ -40,16 +40,10 @@ namespace kagome::network {
       //      std::shared_ptr<blockchain::BlockStorage> storage,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto,
       //      std::shared_ptr<PeerManager> peer_manager,
-      //      std::shared_ptr<blockchain::BlockTree> block_tree,
+      //            std::shared_ptr<blockchain::BlockTree> block_tree,
       //      std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol
-
-      //      ,std::shared_ptr<GossipProtocol> gossip_protocol,
-      //      std::shared_ptr<PropagateTransactionsProtocol>
-      //          propagate_transaction_protocol,
-      //      std::shared_ptr<SupProtocol> sup_protocol,
-      //      std::shared_ptr<SyncProtocol> sync_protocol
-      )
+//      std::shared_ptr<SyncProtocolObserver> sync_observer,
+      std::shared_ptr<network::ProtocolFactory> protocol_factory)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
@@ -65,21 +59,16 @@ namespace kagome::network {
         //        storage_{std::move(storage)},
         ping_proto_{std::move(ping_proto)},
         //        peer_manager_{std::move(peer_manager)},
-        //        block_tree_{std::move(block_tree)},
+        //                block_tree_{std::move(block_tree)},
         //        hasher_{std::move(hasher)},
-        block_announce_protocol_{std::move(block_announce_protocol)}
 
-  //        ,gossip_protocol_{std::move(gossip_protocol)},
-  //        propagate_transaction_protocol_{
-  //            std::move(propagate_transaction_protocol)},
-  //        sup_protocol_{std::move(sup_protocol)},
-  //        sync_protocol_{std::move(sync_protocol)}
-  {
+        protocol_factory_{std::move(protocol_factory)} {
     BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
                      "app state manager is nullptr");
     //    BOOST_ASSERT_MSG(stream_engine_ != nullptr, "stream engine is
-    //    nullptr"); BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer
-    //    is nullptr"); BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
+    //    nullptr");
+    //    BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is
+    //    nullptr"); BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
     //                     "grandpa observer is nullptr");
     //    BOOST_ASSERT_MSG(sync_observer_ != nullptr, "sync observer is
     //    nullptr"); BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
@@ -91,11 +80,7 @@ namespace kagome::network {
     //    BOOST_ASSERT(block_tree_ != nullptr);
     //    BOOST_ASSERT(hasher_ != nullptr);
 
-    BOOST_ASSERT(block_announce_protocol_ != nullptr);
-    //    BOOST_ASSERT(gossip_protocol_ != nullptr);
-    //    BOOST_ASSERT(propagate_transaction_protocol_ != nullptr);
-    //    BOOST_ASSERT(sup_protocol_ != nullptr);
-    //    BOOST_ASSERT(sync_protocol_ != nullptr);
+    BOOST_ASSERT(protocol_factory_ != nullptr);
 
     log_->debug("Own peer id: {}", own_info.id.toBase58());
     if (!bootstrap_nodes.empty()) {
@@ -128,21 +113,49 @@ namespace kagome::network {
             if (auto peer_id = stream->remotePeerId()) {
               self->log_->info("Handled {} protocol stream from: {}",
                                self->ping_proto_->getProtocolId(),
-                               peer_id.value().toHex());
+                               peer_id.value().toBase58());
               self->ping_proto_->handle(std::forward<decltype(stream)>(stream));
             }
           }
         });
 
-    block_announce_protocol_->start();
+    block_announce_protocol_ = protocol_factory_->makeBlockAnnounceProtocol();
+    if (not block_announce_protocol_) {
+      return false;
+    }
 
-    //    gossip_protocol_->start();
-    //
-    //    propagate_transaction_protocol_->start();
-    //
-    //    sup_protocol_->start();
-    //
-    //    sync_protocol_->start();
+    gossip_protocol_ = protocol_factory_->makeGossipProtocol();
+    if (not gossip_protocol_) {
+      return false;
+    }
+
+    grandpa_protocol_ = protocol_factory_->makeGrandpaProtocol();
+    if (not grandpa_protocol_) {
+      return false;
+    }
+
+    propagate_transaction_protocol_ =
+        protocol_factory_->makePropagateTransactionsProtocol();
+    if (not propagate_transaction_protocol_) {
+      return false;
+    }
+
+    sup_protocol_ = protocol_factory_->makeSupProtocol();
+    if (not sup_protocol_) {
+      return false;
+    }
+
+    sync_protocol_ = protocol_factory_->makeSyncProtocol();
+    if (not sync_protocol_) {
+      return false;
+    }
+
+    block_announce_protocol_->start();
+    gossip_protocol_->start();
+    grandpa_protocol_->start();
+    propagate_transaction_protocol_->start();
+    sup_protocol_->start();
+    sync_protocol_->start();
 
     return true;
   }
@@ -216,24 +229,43 @@ namespace kagome::network {
     }
   }
 
-  void RouterLibp2p::setProtocolHandler(
-      const libp2p::peer::Protocol &protocol,
-      void (RouterLibp2p::*method)(std::shared_ptr<Stream>) const) {
-    host_.setProtocolHandler(
-        protocol, [wp = weak_from_this(), protocol, method](auto &&stream) {
-          if (auto self = wp.lock()) {
-            if (auto peer_id = stream->remotePeerId()) {
-              self->log_->trace("Handled {} protocol stream from: {}",
-                                protocol,
-                                peer_id.value().toHex());
-              (self.get()->*method)(std::forward<decltype(stream)>(stream));
-            } else {
-              self->log_->warn("Handled {} protocol stream from unknown peer",
-                               protocol);
-            }
-          }
-        });
+  std::shared_ptr<BlockAnnounceProtocol>
+  RouterLibp2p::getBlockAnnounceProtocol() const {
+    return block_announce_protocol_;
   }
+  std::shared_ptr<GossipProtocol> RouterLibp2p::getGossipProtocol() const {
+    return gossip_protocol_;
+  }
+  std::shared_ptr<PropagateTransactionsProtocol>
+  RouterLibp2p::getPropagateTransactionsProtocol() const {
+    return propagate_transaction_protocol_;
+  }
+  std::shared_ptr<SupProtocol> RouterLibp2p::getSupProtocol() const {
+    return sup_protocol_;
+  }
+  std::shared_ptr<SyncProtocol> RouterLibp2p::getSyncProtocol() const {
+    return sync_protocol_;
+  }
+
+  //  void RouterLibp2p::setProtocolHandler(
+  //      const libp2p::peer::Protocol &protocol,
+  //      void (RouterLibp2p::*method)(std::shared_ptr<Stream>) const) {
+  //    host_.setProtocolHandler(
+  //        protocol, [wp = weak_from_this(), protocol, method](auto &&stream) {
+  //          if (auto self = wp.lock()) {
+  //            if (auto peer_id = stream->remotePeerId()) {
+  //              self->log_->trace("Handled {} protocol stream from: {}",
+  //                                protocol,
+  //                                peer_id.value().toBase58());
+  //              (self.get()->*method)(std::forward<decltype(stream)>(stream));
+  //            } else {
+  //              self->log_->warn("Handled {} protocol stream from unknown
+  //              peer",
+  //                               protocol);
+  //            }
+  //          }
+  //        });
+  //  }
 
   //  void RouterLibp2p::handleSyncProtocol(std::shared_ptr<Stream> stream)
   //  const {

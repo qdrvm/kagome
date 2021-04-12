@@ -7,6 +7,7 @@
 #define KAGOME_NETWORK_BLOCKANNOUNCEPROTOCOL
 
 #include <memory>
+#include "network/protocol_base.hpp"
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
@@ -17,11 +18,10 @@
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "network/babe_observer.hpp"
-#include "network/peer_manager.hpp"
-#include "network/protocol_base.hpp"
+#include "network/impl/stream_engine.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/status.hpp"
-#include "outcome/outcome.hpp"
+#include "network/peer_manager.hpp"
 
 namespace kagome::network {
 
@@ -34,24 +34,24 @@ namespace kagome::network {
       : public ProtocolBase,
         public std::enable_shared_from_this<BlockAnnounceProtocol> {
    public:
-    enum class Error { CAN_NOT_CREATE_STATUS = 1, GONE };
+    enum class Error { GONE = 1, CAN_NOT_CREATE_STATUS };
 
     BlockAnnounceProtocol() = delete;
     BlockAnnounceProtocol(BlockAnnounceProtocol &&) noexcept = delete;
     BlockAnnounceProtocol(const BlockAnnounceProtocol &) = delete;
-    virtual ~BlockAnnounceProtocol() = default;
+    ~BlockAnnounceProtocol() override = default;
     BlockAnnounceProtocol &operator=(BlockAnnounceProtocol &&) noexcept =
         delete;
     BlockAnnounceProtocol &operator=(BlockAnnounceProtocol const &) = delete;
 
-    BlockAnnounceProtocol(
-        libp2p::Host &host,
-        const application::ChainSpec &chain_spec,
-        std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<blockchain::BlockStorage> storage,
-        //                          std::shared_ptr<PeerManager> peer_manager,
-        std::shared_ptr<BabeObserver> babe_observer,
-        std::shared_ptr<crypto::Hasher> hasher);
+    BlockAnnounceProtocol(libp2p::Host &host,
+                          const application::ChainSpec &chain_spec,
+                          std::shared_ptr<StreamEngine> stream_engine,
+                          std::shared_ptr<blockchain::BlockTree> block_tree,
+                          std::shared_ptr<blockchain::BlockStorage> storage,
+                          std::shared_ptr<BabeObserver> babe_observer,
+                          std::shared_ptr<crypto::Hasher> hasher,
+                          std::shared_ptr<PeerManager> peer_manager);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -85,10 +85,12 @@ namespace kagome::network {
                        const BlockAnnounce &block_announce);
 
     libp2p::Host &host_;
+    std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
     log::Logger log_ = log::createLogger("BlockAnnounceProtocol");
   };
