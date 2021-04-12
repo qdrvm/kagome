@@ -5,11 +5,13 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
-#include <iostream>
+#include <string>
 
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/program_options.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include "assets/assets.hpp"
 #include "chain_spec_impl.hpp"
@@ -33,11 +35,28 @@ namespace {
   const uint16_t def_rpc_http_port = 9933;
   const uint16_t def_rpc_ws_port = 9944;
   const uint16_t def_p2p_port = 30363;
-  const int def_verbosity = (int)(kagome::log::Level::INFO);
+  const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
   const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
   const bool def_dev_mode = false;
+
+  /**
+   * Generate once at run random node name if form of UUID
+   * @return UUID as string value
+   */
+  const std::string &randomNodeName() {
+    static std::string name;
+    if (name.empty()) {
+      auto uuid = boost::uuids::random_generator()();
+      name = boost::uuids::to_string(uuid);
+    }
+    auto max_len = kagome::application::AppConfiguration::kNodeNameMaxLength;
+    if (name.length() > max_len) {
+      name = name.substr(0, max_len);
+    }
+    return name;
+  }
 }  // namespace
 
 namespace kagome::application {
@@ -54,7 +73,8 @@ namespace kagome::application {
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
-        dev_mode_(def_dev_mode) {}
+        dev_mode_(def_dev_mode),
+        node_name_(randomNodeName()) {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -176,6 +196,7 @@ namespace kagome::application {
     load_u16(val, "rpc-port", rpc_http_port_);
     load_str(val, "ws-host", rpc_ws_host_);
     load_u16(val, "ws-port", rpc_ws_port_);
+    load_str(val, "name", node_name_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
@@ -222,6 +243,12 @@ namespace kagome::application {
       logger_->error(
           "RPC http port is 0, "
           "please specify a valid path with --rpc-port option");
+      return false;
+    }
+
+    if (node_name_.length() > kNodeNameMaxLength) {
+      logger_->error("Node name exceeds the maximum length of {} characters",
+                     kNodeNameMaxLength);
       return false;
     }
 
@@ -318,6 +345,7 @@ namespace kagome::application {
         ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
         ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
         ("max_blocks_in_response", po::value<int>(), "max block per response while syncing")
+        ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
 
     po::options_description additional_desc("Additional options");
@@ -538,6 +566,9 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
+
+    find_argument<std::string>(
+        vm, "name", [&](std::string const &val) { node_name_ = val; });
 
     // if something wrong with config print help message
     if (not validate_config(scheme)) {
