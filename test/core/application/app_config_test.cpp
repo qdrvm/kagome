@@ -50,7 +50,7 @@ class AppConfigurationTest : public testing::Test {
               "name" : "Bob's node"
         },
         "additional" : {
-          "single_finalizing_node" : true
+          "single-finalizing-node" : true
         }
       })";
   static constexpr char const *invalid_file_content =
@@ -72,7 +72,7 @@ class AppConfigurationTest : public testing::Test {
               "ws-port" : "AWESOME_PORT"
         },
         "additional" : {
-          "single_finalizing_node" : "order1800"
+          "single-finalizing-node" : "order1800"
         }
       })";
   static constexpr char const *damaged_file_content =
@@ -83,7 +83,7 @@ class AppConfigurationTest : public testing::Test {
         "blockchain" : {
           "chain" : 1
         },
-        "storage" : nalizing_node" : "order1800"
+        "storage" : nalizing-node" : "order1800"
         }
       })";
 
@@ -378,13 +378,13 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
 
 /**
  * @given new created AppConfigurationImpl
- * @when --single_finalizing_node cmd line arg is provided
- * @then we must receive this value from is_single_finalizing_node() call
+ * @when --single-finalizing-node cmd line arg is provided
+ * @then we must receive this value from isOnlyFinalizing() call
  */
 TEST_F(AppConfigurationTest, OnlyFinalizeTest) {
   char const *args[] = {
       "/path/",
-      "--single_finalizing_node",
+      "--single-finalizing-node",
       "true",
       "--chain",
       chain_path.native().c_str(),
@@ -557,12 +557,12 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTestTest) {
 
 /**
  * @given new created AppConfigurationImpl
- * @when is_only_finalize present
- * @then we should receve true from the call
+ * @when single-finalizing-node present
+ * @then we should receive true from the isOnlyFinalizing() call
  */
 TEST_F(AppConfigurationTest, OnlyFinalizeTestTest_2) {
   char const *args[] = {"/path/",
-                        "--single_finalizing_node",
+                        "--single-finalizing-node",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -581,7 +581,7 @@ TEST_F(AppConfigurationTest, OnlyFinalizeTestTest_2) {
  */
 TEST_F(AppConfigurationTest, NodeNameAsCommandLineOption) {
   char const *args[] = {"/path/",
-                        "--single_finalizing_node",
+                        "--single-finalizing-node",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",

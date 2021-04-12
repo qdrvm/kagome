@@ -200,10 +200,10 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
-    load_bool(val, "single_finalizing_node", is_only_finalizing_);
-    load_bool(val, "already_synchronized", is_already_synchronized_);
-    load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
-    load_bool(val, "is_unix_slots_strategy", is_unix_slots_strategy_);
+    load_bool(val, "single-finalizing-node", is_only_finalizing_);
+    load_bool(val, "already-synchronized", is_already_synchronized_);
+    load_u32(val, "max-blocks-in-response", max_blocks_in_response_);
+    load_bool(val, "is-unix-slots-strategy", is_unix_slots_strategy_);
     load_bool(val, "dev", dev_mode_);
   }
 
@@ -344,15 +344,15 @@ namespace kagome::application {
         ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP")
         ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
         ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
-        ("max_blocks_in_response", po::value<int>(), "max block per response while syncing")
+        ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
 
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
-        ("single_finalizing_node,f", "if this is the only finalizing node")
-        ("already_synchronized,s", "if need to consider synchronized")
-        ("unix_slots,u", "if slots are calculated from unix epoch")
+        ("single-finalizing-node,f", "if this is the only finalizing node")
+        ("already-synchronized,s", "if need to consider synchronized")
+        ("unix-slots,u", "if slots are calculated from unix epoch")
         ;
 
     po::options_description development_desc("Development options");
@@ -464,13 +464,13 @@ namespace kagome::application {
     });
 
     /// aggregate data from command line args
-    if (vm.end() != vm.find("single_finalizing_node"))
+    if (vm.end() != vm.find("single-finalizing-node"))
       is_only_finalizing_ = true;
 
-    if (vm.end() != vm.find("already_synchronized"))
+    if (vm.end() != vm.find("already-synchronized"))
       is_already_synchronized_ = true;
 
-    if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
+    if (vm.end() != vm.find("unix-slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
@@ -542,7 +542,7 @@ namespace kagome::application {
       listen_addresses_.emplace_back(std::move(ma_res.value()));
     }
 
-    find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
+    find_argument<uint32_t>(vm, "max-blocks-in-response", [&](uint32_t val) {
       max_blocks_in_response_ = val;
     });
 
