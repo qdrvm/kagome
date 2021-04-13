@@ -15,7 +15,8 @@ namespace kagome::application {
       const AppConfiguration &app_config)
       : logger_(log::createLogger("ValidatingNodeApplication", "application")),
         injector_{
-            std::make_unique<injector::ValidatingNodeInjector>(app_config)} {
+            std::make_unique<injector::ValidatingNodeInjector>(app_config)},
+        node_name_{app_config.nodeName()} {
     if (app_config.isAlreadySynchronized()) {
       babe_execution_strategy_ =
           consensus::babe::Babe::ExecutionStrategy::START;
@@ -43,7 +44,9 @@ namespace kagome::application {
   }
 
   void ValidatingNodeApplication::run() {
-    logger_->info("Start as ValidatingNode with PID {}", getpid());
+    logger_->info("Start as ValidatingNode with PID {} named as {}",
+                  getpid(),
+                  node_name_);
 
     auto res = util::init_directory(chain_path_);
     if (not res) {

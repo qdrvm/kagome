@@ -17,7 +17,8 @@ namespace kagome::application {
   SyncingNodeApplication::SyncingNodeApplication(
       const AppConfiguration &app_config)
       : logger_(log::createLogger("SyncingNodeApplication", "application")),
-        injector_{std::make_unique<injector::SyncingNodeInjector>(app_config)} {
+        injector_{std::make_unique<injector::SyncingNodeInjector>(app_config)},
+        node_name_{app_config.nodeName()} {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
@@ -33,7 +34,8 @@ namespace kagome::application {
   }
 
   void SyncingNodeApplication::run() {
-    logger_->info("Start as SyncingNode with PID {}", getpid());
+    logger_->info(
+        "Start as SyncingNode with PID {} named as {}", getpid(), node_name_);
 
     auto res = util::init_directory(chain_path_);
     if (not res) {

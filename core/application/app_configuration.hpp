@@ -27,6 +27,7 @@ namespace kagome::application {
    public:
     static constexpr uint32_t kAbsolutMinBlocksInResponse = 10;
     static constexpr uint32_t kAbsolutMaxBlocksInResponse = 128;
+    static constexpr uint32_t kNodeNameMaxLength = 64;
 
     static_assert(kAbsolutMinBlocksInResponse <= kAbsolutMaxBlocksInResponse,
                   "Check max and min page bounding values!");
@@ -36,7 +37,6 @@ namespace kagome::application {
       kFullSyncing,
     };
 
-   public:
     virtual ~AppConfiguration() = default;
 
     /**
@@ -133,6 +133,12 @@ namespace kagome::application {
      * @return true if node allowed to run in development mode
      */
     virtual bool isRunInDevMode() const = 0;
+
+    /**
+     * @return string representation of human-readable node name.
+     * The name of node is going to be used in telemetry, etc.
+     */
+    virtual const std::string &nodeName() const = 0;
   };
 
 }  // namespace kagome::application
