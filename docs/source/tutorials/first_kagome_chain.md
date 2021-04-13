@@ -87,7 +87,7 @@ Let's look at this flags in detail:
 | `--rpc-port` | port for RPC over HTTP                            |
 | `--ws-port`   | port for RPC over Websocket protocol              |
 | `--single-finalizing-node`   | need to be set if this is the only finalizing node              |
-| `--already_synchronized`   | need to be set if need to be considered synchronized              |
+| `--already-synchronized`   | need to be set if need to be considered synchronized              |
 
 More flags info available by running `kagome_validating --help`.
 
