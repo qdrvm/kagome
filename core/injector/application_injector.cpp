@@ -454,8 +454,9 @@ namespace {
       return initialized.value();
     }
 
-    if (app_config.nodeKey()) {
-      log->info("Will use LibP2P keypair from config or args");
+    if (crypto_store.getLibp2pKeypair()) {
+      log->info("Will use LibP2P keypair from key storage");
+
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 
       initialized =
