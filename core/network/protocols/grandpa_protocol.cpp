@@ -4,11 +4,8 @@
  */
 
 #include "network/protocols/grandpa_protocol.hpp"
-//
-//#include <boost/assert.hpp>
-//
+
 #include "network/common.hpp"
-//#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/types/roles.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, GrandpaProtocol::Error, e) {

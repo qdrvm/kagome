@@ -5,10 +5,7 @@
 
 #include "network/protocols/sup_protocol.hpp"
 
-//#include <boost/assert.hpp>
-//
 #include "network/common.hpp"
-//#include "network/helpers/scale_message_read_writer.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SupProtocol::Error, e) {
   using E = kagome::network::SupProtocol::Error;

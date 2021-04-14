@@ -42,7 +42,7 @@ namespace kagome::network {
       //      std::shared_ptr<PeerManager> peer_manager,
       //            std::shared_ptr<blockchain::BlockTree> block_tree,
       //      std::shared_ptr<crypto::Hasher> hasher,
-//      std::shared_ptr<SyncProtocolObserver> sync_observer,
+      //      std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<network::ProtocolFactory> protocol_factory)
       : app_state_manager_{app_state_manager},
         host_{host},

@@ -4,9 +4,7 @@
  */
 
 #include "network/protocols/sync_protocol.hpp"
-//
-//#include <boost/assert.hpp>
-//
+
 #include "common/visitor.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
@@ -50,49 +48,6 @@ namespace kagome::network {
         self->log_->warn("Handled {} protocol stream from unknown peer",
                          self->protocol_);
       }
-
-      //      RPC<ProtobufMessageReadWriter>::read<BlocksRequest,
-      //      BlocksResponse>(
-      //          stream,
-      //          [wp = std::move(wp),
-      //           stream](auto &&request) -> outcome::result<BlocksResponse> {
-      //            auto self = wp.lock();
-      //            if (not self) {
-      //              return Error::GONE;
-      //            }
-      //
-      //            // std::bind didn't work :(
-      //            std::string from = visit_in_place(
-      //                request.from,
-      //                [](primitives::BlockNumber number) {
-      //                  return std::to_string(number);
-      //                },
-      //                [](const primitives::BlockHash &hash) { return
-      //                hash.toHex(); });
-      //            self->log_->debug(
-      //                "Received request from peer {} requesting blocks from {}
-      //                to "
-      //                "{}",
-      //                stream->remotePeerId().value().toBase58(),
-      //                from,
-      //                request.to->toHex());
-      //            return self->sync_observer_->onBlocksRequest(
-      //                std::forward<decltype(request)>(request));
-      //          },
-      //          [wp = std::move(wp), stream](auto &&err) ->
-      //          outcome::result<void> {
-      //            auto self = wp.lock();
-      //            if (not self) {
-      //              return Error::GONE;
-      //            }
-      //            self->log_->error(
-      //                "error happened while processing message over Sync
-      //                protocol: "
-      //                "{}",
-      //                err.error().message());
-      //            stream->reset();
-      //            return err.as_failure();
-      //          });
     });
     return true;
   }
@@ -104,7 +59,7 @@ namespace kagome::network {
   void SyncProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
-    BOOST_ASSERT(false);
+    readRequest(stream);
   }
 
   void SyncProtocol::newOutgoingStream(
@@ -151,64 +106,78 @@ namespace kagome::network {
         });
   }
 
-  void SyncProtocol::readRequest(
-      std::shared_ptr<Stream> stream,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+  void SyncProtocol::readRequest(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    // read_writer->read<BlocksRequest>(
-    //    [stream, wp = weak_from_this(), cb = std::move(cb)](
-    //        auto &&remote_status_res) mutable {
-    //      auto self = wp.lock();
-    //      if (not self) {
-    //        stream->reset();
-    //        cb(Error::GONE);
-    //        return;
-    //      }
-    //
-    //      if (not remote_status_res.has_value()) {
-    //        self->log_->error("Error while reading request: {}",
-    //                          remote_status_res.error().message());
-    //        stream->reset();
-    //        cb(remote_status_res.as_failure());
-    //        return;
-    //      }
-    //
-    //      BlocksResponse block_response;  // TODO make BlocksResponse
-    //
-    //      self->writeResponse(std::move(stream), block_response,
-    //      std::move(cb));
-    //    });
+    log_->info("Read request from incoming {} stream with {}",
+               protocol_,
+               stream->remotePeerId().value().toBase58());
+
+    read_writer->read<BlocksRequest>(
+        [stream, wp = weak_from_this()](auto &&block_request_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            return;
+          }
+
+          if (not block_request_res.has_value()) {
+            self->log_->info(
+                "Error at read request from incoming {} stream with {}: {}",
+                self->protocol_,
+                stream->remotePeerId().value().toBase58(),
+                block_request_res.error().message());
+
+            stream->reset();
+            return;
+          }
+          auto &block_request = block_request_res.value();
+
+          auto block_response_res =
+              self->sync_observer_->onBlocksRequest(block_request);
+
+          if (not block_response_res) {
+            self->log_->info(
+                "Error at execute request from incoming {} stream with {}: {}",
+                self->protocol_,
+                stream->remotePeerId().value().toBase58(),
+                block_response_res.error().message());
+
+            stream->reset();
+            return;
+          }
+          auto &block_response = block_response_res.value();
+
+          self->writeResponse(std::move(stream), block_response);
+        });
   }
 
-  void SyncProtocol::writeResponse(
-      std::shared_ptr<Stream> stream,
-      const BlocksResponse &block_response,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+  void SyncProtocol::writeResponse(std::shared_ptr<Stream> stream,
+                                   const BlocksResponse &block_response) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    // read_writer->write(
-    //    block_response,
-    //    [stream = std::move(stream), wp = weak_from_this(), cb =
-    //    std::move(cb)](
-    //        auto &&write_res) mutable {
-    //      auto self = wp.lock();
-    //      if (not self) {
-    //        stream->reset();
-    //        if (cb) cb(Error::GONE);
-    //        return;
-    //      }
-    //
-    //      if (not write_res.has_value()) {
-    //        self->log_->error("Error while writing block response: {}",
-    //                          write_res.error().message());
-    //        stream->reset();
-    //        if (cb) cb(write_res.as_failure());
-    //        return;
-    //      }
-    //
-    //      if (cb) cb(std::move(stream));
-    //    });
+    read_writer->write(
+        block_response,
+        [stream = std::move(stream),
+         wp = weak_from_this()](auto &&write_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            return;
+          }
+
+          if (not write_res.has_value()) {
+            self->log_->info(
+                "Error at writting response to incoming {} stream with {}: {}",
+                self->protocol_,
+                stream->remotePeerId().value().toBase58(),
+                write_res.error().message());
+            stream->reset();
+            return;
+          }
+
+          stream->close([](auto &&...) {});
+        });
   }
 
   void SyncProtocol::writeRequest(

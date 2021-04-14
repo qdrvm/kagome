@@ -4,12 +4,9 @@
  */
 
 #include "network/protocols/propagate_transactions_protocol.hpp"
-//
-//#include <boost/assert.hpp>
-//
+
 #include "network/common.hpp"
 #include "network/types/no_data_message.hpp"
-//#include "network/helpers/scale_message_read_writer.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,
                             PropagateTransactionsProtocol::Error,

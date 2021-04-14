@@ -15,10 +15,9 @@
 #     CMAKE_ARGS "CMAKE_VARIABLE=value"
 # )
 
-
 hunter_config(libp2p # New LibP2P
-    URL  "https://github.com/libp2p/cpp-libp2p/archive/5ddc91034e3d5a2a493bd883972501f5716c4fab.tar.gz"
-    SHA1 "00c9c531d006f582a4678c450f17a16196cc34a4"
+    URL  "https://github.com/libp2p/cpp-libp2p/archive/c76b5f091ef6f3da946509a4b1508f48ca2be2cb.tar.gz"
+    SHA1 "e823fae731950333891c65096331b35e799e5ba0"
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF
     KEEP_PACKAGE_SOURCES
     )

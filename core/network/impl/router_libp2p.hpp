@@ -30,7 +30,7 @@
 //#include "network/impl/loopback_stream.hpp"
 //#include "network/impl/stream_engine.hpp"
 //#include "network/peer_manager.hpp"
-//#include "network/sync_protocol_observer.hpp"
+#include "network/sync_protocol_observer.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 //#include "network/types/gossip_message.hpp"
 #include "network/protocols/protocol_factory.hpp"

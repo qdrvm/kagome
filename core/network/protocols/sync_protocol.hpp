@@ -57,24 +57,20 @@ namespace kagome::network {
                  std::function<void(outcome::result<BlocksResponse>)>
                      &&response_handler);
 
-    void readRequest(
-        std::shared_ptr<Stream> stream,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
-    void writeRequest(
-        std::shared_ptr<Stream> stream,
-        BlocksRequest block_request,
-        std::function<void(outcome::result<void>)> &&cb);
+    void readRequest(std::shared_ptr<Stream> stream);
 
-    void readResponse(
-        std::shared_ptr<Stream> stream,
-        std::function<void(outcome::result<BlocksResponse>)> &&response_handler);
+    void writeResponse(std::shared_ptr<Stream> stream,
+                       const BlocksResponse &block_response);
 
-    void writeResponse(
-        std::shared_ptr<Stream> stream,
-        const BlocksResponse &block_response,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+    void writeRequest(std::shared_ptr<Stream> stream,
+                      BlocksRequest block_request,
+                      std::function<void(outcome::result<void>)> &&cb);
 
-  private:
+    void readResponse(std::shared_ptr<Stream> stream,
+                      std::function<void(outcome::result<BlocksResponse>)>
+                          &&response_handler);
+
+   private:
     libp2p::Host &host_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     const libp2p::peer::Protocol protocol_;
