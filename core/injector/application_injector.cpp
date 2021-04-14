@@ -708,31 +708,12 @@ namespace {
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<libp2p::Host &>(),
         injector.template create<const application::AppConfiguration &>(),
-        //        injector.template create<sptr<application::ChainSpec>>(),`
         injector.template create<network::OwnPeerInfo &>(),
-        //        injector.template create<sptr<network::StreamEngine>>(),
-        //        injector.template create<sptr<network::BabeObserver>>(),
-        //        injector.template
-        //        create<sptr<consensus::grandpa::GrandpaObserver>>(),
-        //        injector.template
-        //        create<sptr<network::SyncProtocolObserver>>(),
-        //        injector.template create<sptr<network::ExtrinsicObserver>>(),
-        //        injector.template create<sptr<network::Gossiper>>(),
+        injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<const network::BootstrapNodes &>(),
-        //        injector.template create<sptr<blockchain::BlockStorage>>(),
         injector.template create<sptr<libp2p::protocol::Ping>>(),
-        //        injector.template create<sptr<network::PeerManager>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
-        //        injector.template create<sptr<crypto::Hasher>>(),
-
         injector.template create<sptr<network::ProtocolFactory>>()
-        //        injector.template
-        //        create<sptr<network::BlockAnnounceProtocol>>()
-        //        ,injector.template create<sptr<network::GossipProtocol>>(),
-        //        injector.template
-        //        create<sptr<network::PropagateTransactionsProtocol>>(),
-        //        injector.template create<sptr<network::SupProtocol>>(),
-        //        injector.template create<sptr<network::SyncProtocol>>()
     );
 
     return initialized.value();

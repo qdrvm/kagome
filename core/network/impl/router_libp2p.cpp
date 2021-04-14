@@ -28,58 +28,19 @@ namespace kagome::network {
       std::shared_ptr<application::AppStateManager> app_state_manager,
       libp2p::Host &host,
       const application::AppConfiguration &app_config,
-      //      std::shared_ptr<application::ChainSpec> chain_spec,
       const OwnPeerInfo &own_info,
-      //      std::shared_ptr<StreamEngine> stream_engine,
-      //      std::shared_ptr<BabeObserver> babe_observer,
-      //      std::shared_ptr<consensus::grandpa::GrandpaObserver>
-      //      grandpa_observer, std::shared_ptr<SyncProtocolObserver>
-      //      sync_observer, std::shared_ptr<ExtrinsicObserver>
-      //      extrinsic_observer, std::shared_ptr<Gossiper> gossiper,
       const BootstrapNodes &bootstrap_nodes,
-      //      std::shared_ptr<blockchain::BlockStorage> storage,
       std::shared_ptr<libp2p::protocol::Ping> ping_proto,
-      //      std::shared_ptr<PeerManager> peer_manager,
-      //            std::shared_ptr<blockchain::BlockTree> block_tree,
-      //      std::shared_ptr<crypto::Hasher> hasher,
-      //      std::shared_ptr<SyncProtocolObserver> sync_observer,
       std::shared_ptr<network::ProtocolFactory> protocol_factory)
       : app_state_manager_{app_state_manager},
         host_{host},
         app_config_(app_config),
-        //        chain_spec_(std::move(chain_spec)),
         own_info_{own_info},
-        //        stream_engine_{std::move(stream_engine)},
-        //        babe_observer_{std::move(babe_observer)},
-        //        grandpa_observer_{std::move(grandpa_observer)},
-        //        sync_observer_{std::move(sync_observer)},
-        //        extrinsic_observer_{std::move(extrinsic_observer)},
-        //        gossiper_{std::move(gossiper)},
         log_{log::createLogger("RouterLibp2p", "network")},
-        //        storage_{std::move(storage)},
         ping_proto_{std::move(ping_proto)},
-        //        peer_manager_{std::move(peer_manager)},
-        //                block_tree_{std::move(block_tree)},
-        //        hasher_{std::move(hasher)},
-
         protocol_factory_{std::move(protocol_factory)} {
-    BOOST_ASSERT_MSG(app_state_manager_ != nullptr,
-                     "app state manager is nullptr");
-    //    BOOST_ASSERT_MSG(stream_engine_ != nullptr, "stream engine is
-    //    nullptr");
-    //    BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is
-    //    nullptr"); BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
-    //                     "grandpa observer is nullptr");
-    //    BOOST_ASSERT_MSG(sync_observer_ != nullptr, "sync observer is
-    //    nullptr"); BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
-    //                     "author api observer is nullptr");
-    //    BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
-    //    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(ping_proto_ != nullptr);
-    //    BOOST_ASSERT(peer_manager_ != nullptr);
-    //    BOOST_ASSERT(block_tree_ != nullptr);
-    //    BOOST_ASSERT(hasher_ != nullptr);
-
     BOOST_ASSERT(protocol_factory_ != nullptr);
 
     log_->debug("Own peer id: {}", own_info.id.toBase58());
@@ -94,14 +55,6 @@ namespace kagome::network {
     } else {
       log_->error("No bootstrap node");
     }
-
-    //    gossiper_->storeSelfPeerInfo(own_info_);
-    //
-    //    auto stream = std::make_shared<LoopbackStream>(own_info_);
-    //    loopback_stream_ = stream;
-    //    [[maybe_unused]] auto res =
-    //        stream_engine_->add(std::move(stream), kGossipProtocol);
-    //    BOOST_ASSERT(res.has_value());
 
     app_state_manager_->takeControl(*this);
   }

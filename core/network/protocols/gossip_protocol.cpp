@@ -5,9 +5,9 @@
 
 #include "network/protocols/gossip_protocol.hpp"
 
-#include "network/common.hpp"
+#include <libp2p/connection/loopback_stream.hpp>
 
-#include "network/impl/loopback_stream.hpp"
+#include "network/common.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, GossipProtocol::Error, e) {
   using E = kagome::network::GossipProtocol::Error;
@@ -18,24 +18,31 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, GossipProtocol::Error, e) {
   return "Unknown error";
 }
 
+namespace {
+  using libp2p::connection::LoopbackStream;
+}
+
 namespace kagome::network {
 
   GossipProtocol::GossipProtocol(
       libp2p::Host &host,
+      std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
       const OwnPeerInfo &own_info,
       std::shared_ptr<StreamEngine> stream_engine)
       : host_(host),
+        io_context_(std::move(io_context)),
         grandpa_observer_(std::move(grandpa_observer)),
         own_info_(own_info),
         stream_engine_(std::move(stream_engine)) {
+    BOOST_ASSERT(io_context != nullptr);
     BOOST_ASSERT(grandpa_observer_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     const_cast<Protocol &>(protocol_) = kGossipProtocol;
   }
 
   bool GossipProtocol::start() {
-    auto stream = std::make_shared<LoopbackStream>(own_info_);
+    auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);
     auto res = stream_engine_->add(stream, shared_from_this());
     if (not res.has_value()) {
       return false;

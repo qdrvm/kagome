@@ -21,8 +21,8 @@ kagome_validating \
     --port 11122 \
     --rpc-port 11133 \
     --ws-port 11144 \
-    --single_finalizing_node \
-    --already_synchronized
+    --single-finalizing-node \
+    --already-synchronized
 ```
 
 ### Execute second validating node  

@@ -16,11 +16,11 @@ add_library(gossip_protocol
     )
 target_link_libraries(gossip_protocol
     logger
-    loopback_stream
+    p2p::p2p_loopback_stream
     )
 
 add_library(grandpa_protocol
-        grandpa_protocol.cpp
+    grandpa_protocol.cpp
     )
 target_link_libraries(grandpa_protocol
     logger

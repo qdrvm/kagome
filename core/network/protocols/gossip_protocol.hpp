@@ -7,6 +7,7 @@
 #define KAGOME_NETWORK_GOSSIPPROTOCOL
 
 #include "network/protocol_base.hpp"
+
 #include <memory>
 
 #include <libp2p/connection/stream.hpp>
@@ -40,7 +41,8 @@ namespace kagome::network {
 
     GossipProtocol(
         libp2p::Host &host,
-        std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
+        std::shared_ptr<boost::asio::io_context> io_context,
+    std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine);
 
@@ -65,6 +67,7 @@ namespace kagome::network {
                             const GossipMessage &gossip_message);
 
     libp2p::Host &host_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;

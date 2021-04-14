@@ -11,12 +11,14 @@ namespace kagome::network {
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
       const OwnPeerInfo &own_info,
+      std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<blockchain::BlockStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<StreamEngine> stream_engine)
       : host_(host),
         chain_spec_(chain_spec),
         own_info_(own_info),
+        io_context_(std::move(io_context)),
         storage_(std::move(storage)),
         hasher_(std::move(hasher)),
         stream_engine_(std::move(stream_engine)) {
@@ -38,8 +40,11 @@ namespace kagome::network {
   }
 
   std::shared_ptr<GossipProtocol> ProtocolFactory::makeGossipProtocol() const {
-    return std::make_shared<GossipProtocol>(
-        host_, grandpa_observer_.lock(), own_info_, stream_engine_);
+    return std::make_shared<GossipProtocol>(host_,
+                                            io_context_,
+                                            grandpa_observer_.lock(),
+                                            own_info_,
+                                            stream_engine_);
   }
 
   std::shared_ptr<GrandpaProtocol> ProtocolFactory::makeGrandpaProtocol()

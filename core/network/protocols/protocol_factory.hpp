@@ -21,6 +21,7 @@ namespace kagome::network {
     ProtocolFactory(libp2p::Host &host,
                     const application::ChainSpec &chain_spec,
                     const OwnPeerInfo &own_info,
+                    std::shared_ptr<boost::asio::io_context> io_context,
                     std::shared_ptr<blockchain::BlockStorage> storage,
                     std::shared_ptr<crypto::Hasher> hasher,
                     std::shared_ptr<StreamEngine> stream_engine);
@@ -72,6 +73,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     const application::ChainSpec &chain_spec_;
     const OwnPeerInfo &own_info_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<StreamEngine> stream_engine_;

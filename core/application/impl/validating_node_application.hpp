@@ -66,6 +66,7 @@ namespace kagome::application {
     Babe::ExecutionStrategy babe_execution_strategy_;
 
     boost::filesystem::path chain_path_;
+    const std::string node_name_;
   };
 
 }  // namespace kagome::application

@@ -73,8 +73,8 @@ kagome_validating \
     --port 30363 \
     --rpc-port 9933 \
     --ws-port 9944 \
-    --single_finalizing_node \
-    --already_synchronized
+    --single-finalizing-node \
+    --already-synchronized
 ```
 
 Let's look at this flags in detail:
@@ -86,8 +86,8 @@ Let's look at this flags in detail:
 | `--port`      | port for p2p interactions                         |
 | `--rpc-port` | port for RPC over HTTP                            |
 | `--ws-port`   | port for RPC over Websocket protocol              |
-| `--single_finalizing_node`   | need to be set if this is the only finalizing node              |
-| `--already_synchronized`   | need to be set if need to be considered synchronized              |
+| `--single-finalizing-node`   | need to be set if this is the only finalizing node              |
+| `--already-synchronized`   | need to be set if need to be considered synchronized              |
 
 More flags info available by running `kagome_validating --help`.
 

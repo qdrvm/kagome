@@ -37,6 +37,12 @@ namespace libp2p::connection {
                       size_t,
                       Writer::WriteCallbackFunc));
 
+    MOCK_METHOD2(deferReadCallback,
+                 void(outcome::result<size_t>, Reader::ReadCallbackFunc));
+
+    MOCK_METHOD2(deferWriteCallback,
+                 void(std::error_code, Writer::WriteCallbackFunc));
+
     MOCK_METHOD0(reset, void());
 
     MOCK_CONST_METHOD0(isClosedForRead, bool(void));

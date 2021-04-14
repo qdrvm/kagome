@@ -9,8 +9,8 @@
 #include <memory>
 
 #include "application/chain_spec.hpp"
+#include "libp2p/connection/loopback_stream.hpp"
 #include "network/common.hpp"
-#include "network/impl/loopback_stream.hpp"
 
 namespace kagome::network {
   KAGOME_DEFINE_CACHE(stream_engine);
@@ -37,12 +37,6 @@ namespace kagome::network {
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
     BOOST_ASSERT(config_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
-    //    BOOST_ASSERT(protocol_factory_ != nullptr);
-    //    BOOST_ASSERT(block_announce_protocol_ != nullptr);
-    //    BOOST_ASSERT(gossip_protocol_ != nullptr);
-    //    BOOST_ASSERT(propagate_transaction_protocol_ != nullptr);
-    //    BOOST_ASSERT(sup_protocol_ != nullptr);
-    //    BOOST_ASSERT(sync_protocol_ != nullptr);
 
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
@@ -65,11 +59,6 @@ namespace kagome::network {
     gossip_protocol_.reset();
     propagate_transaction_protocol_.reset();
   }
-
-  //  void GossiperBroadcast::storeSelfPeerInfo(
-  //      const libp2p::peer::PeerInfo &self_info) {
-  //    self_info_ = self_info;
-  //  }
 
   void GossiperBroadcast::propagateTransactions(
       gsl::span<const primitives::Transaction> txs) {

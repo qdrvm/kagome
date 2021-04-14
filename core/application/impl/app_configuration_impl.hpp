@@ -115,6 +115,9 @@ namespace kagome::application {
     bool isRunInDevMode() const override {
       return dev_mode_;
     }
+    const std::string& nodeName() const override {
+      return node_name_;
+    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -184,6 +187,7 @@ namespace kagome::application {
     uint16_t rpc_ws_port_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
+    std::string node_name_;
   };
 
 }  // namespace kagome::application
