@@ -103,8 +103,8 @@ namespace kagome::network {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);
-      stream_engine_->send<typename std::decay<decltype(msg)>::type, NoData>(
-          peer_id, protocol, std::move(shared_msg), boost::none);
+      stream_engine_->send<typename std::decay<decltype(msg)>::type>(
+          peer_id, protocol, std::move(shared_msg));
     }
 
     template <typename T>
@@ -113,8 +113,8 @@ namespace kagome::network {
           stream_engine, typename std::decay<decltype(msg)>::type);
       (*shared_msg) = std::forward<T>(msg);
       stream_engine_
-          ->broadcast<typename std::decay<decltype(msg)>::type, NoData>(
-              protocol, std::move(shared_msg), boost::none);
+          ->broadcast<typename std::decay<decltype(msg)>::type>(
+              protocol, std::move(shared_msg));
     }
 
     template <typename T, typename H>

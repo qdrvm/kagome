@@ -86,12 +86,12 @@ namespace kagome::network {
         txs.begin(), txs.end(), exts.extrinsics.begin(), [](auto &tx) {
           return tx.ext;
         });
-    broadcast(propagate_transaction_protocol_, exts, NoData{});
+    broadcast(propagate_transaction_protocol_, exts);
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
     logger_->debug("Block announce: block number {}", announce.header.number);
-    broadcast(block_announce_protocol_, announce, NoData{});
+    broadcast(block_announce_protocol_, announce);
   }
 
   void GossiperBroadcast::vote(

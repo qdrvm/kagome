@@ -114,14 +114,6 @@ namespace kagome::network {
   }
 
   bool RouterLibp2p::start() {
-    //    if (auto stream = loopback_stream_.lock()) {
-    //      readAsyncMsg<GossipMessage>(
-    //          std::move(stream),
-    //          [](auto self, const auto &peer_id, const auto &msg) {
-    //            return self->processGossipMessage(peer_id, msg);
-    //          });
-    //    }
-
     // IPv6
     {
       auto ma_res = libp2p::multi::Multiaddress::create(

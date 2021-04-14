@@ -13,6 +13,7 @@
 #include "network/protocols/propagate_transactions_protocol.hpp"
 #include "network/protocols/sup_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
+#include "consensus/babe/babe.hpp"
 
 namespace kagome::network {
 
@@ -31,8 +32,8 @@ namespace kagome::network {
       block_tree_ = block_tree;
     }
 
-    void setBabeObserver(const std::shared_ptr<BabeObserver> &babe_observer) {
-      babe_observer_ = babe_observer;
+    void setBabe(const std::shared_ptr<consensus::babe::Babe> &babe) {
+      babe_ = babe;
     }
 
     void setGrandpaObserver(
@@ -79,7 +80,7 @@ namespace kagome::network {
     std::shared_ptr<StreamEngine> stream_engine_;
 
     std::weak_ptr<blockchain::BlockTree> block_tree_;
-    std::weak_ptr<BabeObserver> babe_observer_;
+    std::weak_ptr<consensus::babe::Babe> babe_;
     std::weak_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
     std::weak_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::weak_ptr<SyncProtocolObserver> sync_observer_;

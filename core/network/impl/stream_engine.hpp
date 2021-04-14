@@ -33,7 +33,6 @@ namespace kagome::network {
     using PeerId = libp2p::peer::PeerId;
     using Protocol = libp2p::peer::Protocol;
     using Stream = libp2p::connection::Stream;
-    using Host = libp2p::Host;
     using StreamEnginePtr = std::shared_ptr<StreamEngine>;
 
     enum class Direction { INCOMING = 1, OUTGOING = 2, BIDIRECTIONAL = 3 };
@@ -55,8 +54,8 @@ namespace kagome::network {
     StreamEngine &operator=(StreamEngine &&) = delete;
 
     ~StreamEngine() = default;
-    explicit StreamEngine(Host &host)
-        : host_{host}, logger_{log::createLogger("StreamEngine", "network")} {}
+    explicit StreamEngine()
+        : logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
     static StreamEnginePtr create(Args &&... args) {
@@ -228,11 +227,10 @@ namespace kagome::network {
       });
     }
 
-    template <typename T, typename H>
+    template <typename T>
     void send(const PeerId &peer_id,
               const std::shared_ptr<ProtocolBase> &protocol,
-              std::shared_ptr<T> msg,
-              boost::optional<std::shared_ptr<H>> handshake) {
+              std::shared_ptr<T> msg) {
       BOOST_ASSERT(msg != nullptr);
       BOOST_ASSERT(protocol != nullptr);
 
@@ -243,14 +241,13 @@ namespace kagome::network {
           return;
         }
 
-        updateStream(peer_id, protocol, std::move(msg), handshake);
+        updateStream(peer_id, protocol, std::move(msg));
       });
     }
 
-    template <typename T, typename H>
+    template <typename T>
     void broadcast(const std::shared_ptr<ProtocolBase> &protocol,
-                   std::shared_ptr<T> msg,
-                   boost::optional<std::shared_ptr<H>> handshake) {
+                   std::shared_ptr<T> msg) {
       BOOST_ASSERT(msg != nullptr);
       BOOST_ASSERT(protocol != nullptr);
 
@@ -261,7 +258,7 @@ namespace kagome::network {
             send(descr.outgoing, *msg);
             return;
           }
-          updateStream(peer_id, protocol, msg, handshake);
+          updateStream(peer_id, protocol, msg);
         });
       });
     }
@@ -343,8 +340,8 @@ namespace kagome::network {
 
     template <typename F>
     void forEachPeer(F &&f) {
-      for (auto &peer_map : streams_) {
-        std::forward<F>(f)(peer_map.first, peer_map.second);
+      for (auto &[peer_id, protocol_map] : streams_) {
+        std::forward<F>(f)(peer_id, protocol_map);
       }
     }
 
@@ -371,91 +368,41 @@ namespace kagome::network {
     }
 
    private:
-    template <typename F, typename H>
-    void forNewStream(const PeerId &peer_id,
+    template <typename T>
+    void updateStream(const PeerId &peer_id,
                       const std::shared_ptr<ProtocolBase> &protocol,
-                      boost::optional<std::shared_ptr<H>> handshake,
-                      F &&f) {
-      using CallbackResultType =
-          outcome::result<std::shared_ptr<libp2p::connection::Stream>>;
-      host_.newStream(
-          PeerInfo{.id = peer_id, .addresses = {}},
-          protocol->protocol(),
-          [peer_id, handshake{std::move(handshake)}, f{std::forward<F>(f)}](
+                      std::shared_ptr<T> msg) {
+      protocol->newOutgoingStream(
+          PeerInfo{.id = peer_id},
+          [wp = weak_from_this(), protocol, peer_id, msg = std::move(msg)](
               auto &&stream_res) mutable {
-            if (!stream_res || !handshake) {
-              std::forward<F>(f)(std::move(stream_res));
+            auto self = wp.lock();
+            if (not self) {
               return;
             }
 
-            auto stream = std::move(stream_res.value());
-            auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-            BOOST_ASSERT(*handshake);
-            read_writer->write(
-                **handshake,
-                [read_writer, stream, f{std::forward<F>(f)}](
-                    auto &&write_res) mutable {
-                  if (!write_res) {
-                    std::forward<F>(f)(CallbackResultType{write_res.error()});
-                    return;
-                  }
-
-                  read_writer->template read<H>(
-                      [stream, f{std::forward<F>(f)}](
-                          /*outcome::result<H>*/ auto &&read_res) mutable {
-                        if (!read_res) {
-                          std::forward<F>(f)(
-                              CallbackResultType{read_res.error()});
-                          return;
-                        }
-                        std::forward<F>(f)(
-                            CallbackResultType{std::move(stream)});
-                      });
-                });
-          });
-    }
-
-    template <typename T, typename H>
-    void updateStream(const PeerId &peer_id,
-                      const std::shared_ptr<ProtocolBase> &protocol,
-                      std::shared_ptr<T> msg,
-                      boost::optional<std::shared_ptr<H>> handshake) {
-      forNewStream(
-          peer_id,
-          protocol,
-          std::move(handshake),
-          [wp = weak_from_this(), protocol, peer_id, msg = std::move(msg)](
-              auto &&stream_res) mutable {
-            if (auto self = wp.lock()) {
-              if (!stream_res) {
-                self->logger_->error("Could not send message to {} Error: {}",
-                                     peer_id.toBase58(),
-                                     stream_res.error().message());
-                return;
-              }
-
-              std::unique_lock cs(self->streams_cs_);
-              auto stream = std::move(stream_res.value());
-
-              bool existing = false;
-              self->forSubscriber(
-                  peer_id, protocol, [&](auto, auto &subscriber) {
-                    existing = true;
-                    self->uploadStream(subscriber.outgoing,
-                                       stream,
-                                       protocol,
-                                       Direction::OUTGOING);
-                  });
-              BOOST_ASSERT(existing);
-              self->send(stream, *msg);
+            if (!stream_res) {
+              self->logger_->error("Could not send message to {}: Error: {}",
+                                   peer_id.toBase58(),
+                                   stream_res.error().message());
+              return;
             }
+            auto &stream = stream_res.value();
+
+            std::unique_lock cs(self->streams_cs_);
+
+            bool existing = false;
+            self->forSubscriber(peer_id, protocol, [&](auto, auto &subscriber) {
+              existing = true;
+              self->uploadStream(
+                  subscriber.outgoing, stream, protocol, Direction::OUTGOING);
+            });
+            BOOST_ASSERT(existing);
+            self->send(stream, *msg);
           });
     }
 
-   private:
-    Host &host_;
     log::Logger logger_;
-
     std::shared_mutex streams_cs_;
     PeerMap streams_;
   };

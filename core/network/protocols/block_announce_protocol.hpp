@@ -19,9 +19,9 @@
 #include "log/logger.hpp"
 #include "network/babe_observer.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/peer_manager.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/status.hpp"
-#include "network/peer_manager.hpp"
 
 namespace kagome::network {
 

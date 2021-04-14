@@ -15,6 +15,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,
   switch (e) {
     case E::GONE:
       return "Protocol was switched off";
+    case E::NODE_NOT_SYNCHRONIZED_YET:
+      return "Node not synchrinized yet";
   }
   return "Unknown error";
 }
@@ -24,9 +26,11 @@ namespace kagome::network {
   PropagateTransactionsProtocol::PropagateTransactionsProtocol(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
+      std::shared_ptr<consensus::babe::Babe> babe,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<StreamEngine> stream_engine)
       : host_(host),
+        babe_(std::move(babe)),
         extrinsic_observer_(std::move(extrinsic_observer)),
         stream_engine_(std::move(stream_engine)) {
     BOOST_ASSERT(extrinsic_observer_ != nullptr);
@@ -135,11 +139,18 @@ namespace kagome::network {
           switch (direction) {
             case Direction::OUTGOING:
               std::ignore = self->stream_engine_->addOutgoing(stream, self);
-              self->readPropagatedExtrinsics(stream);
               cb(stream);
               break;
             case Direction::INCOMING:
-              self->writeHandshake(std::move(stream), direction, std::move(cb));
+              if (self->babe_->getCurrentState()
+                  == consensus::babe::Babe::State::SYNCHRONIZED) {
+                self->writeHandshake(
+                    std::move(stream), direction, std::move(cb));
+                return;
+              }
+
+              stream->close([](auto &&...) {});
+              cb(Error::NODE_NOT_SYNCHRONIZED_YET);
               break;
           }
         });

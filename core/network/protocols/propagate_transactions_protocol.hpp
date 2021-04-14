@@ -6,13 +6,15 @@
 #ifndef KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
 #define KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL
 
-#include <memory>
 #include "network/protocol_base.hpp"
+
+#include <memory>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
 #include "application/chain_spec.hpp"
+#include "consensus/babe/babe.hpp"
 #include "log/logger.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "network/impl/stream_engine.hpp"
@@ -29,7 +31,7 @@ namespace kagome::network {
       : public ProtocolBase,
         public std::enable_shared_from_this<PropagateTransactionsProtocol> {
    public:
-    enum class Error { GONE = 1 };
+    enum class Error { GONE = 1, NODE_NOT_SYNCHRONIZED_YET };
 
     PropagateTransactionsProtocol() = delete;
     PropagateTransactionsProtocol(PropagateTransactionsProtocol &&) noexcept =
@@ -45,6 +47,7 @@ namespace kagome::network {
     PropagateTransactionsProtocol(
         libp2p::Host &host,
         const application::ChainSpec &chain_spec,
+        std::shared_ptr<consensus::babe::Babe> babe,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<StreamEngine> stream_engine);
 
@@ -80,8 +83,8 @@ namespace kagome::network {
         const PropagatedExtrinsics &msg,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
-
     libp2p::Host &host_;
+    std::shared_ptr<consensus::babe::Babe> babe_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const libp2p::peer::Protocol protocol_;

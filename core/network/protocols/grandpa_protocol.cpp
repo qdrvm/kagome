@@ -13,6 +13,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, GrandpaProtocol::Error, e) {
   switch (e) {
     case E::GONE:
       return "Protocol was switched off";
+    case E::PROTOCOL_NOT_IMPLEMENTED:
+      return "Protocol is not implemented";
   }
   return "Unknown error";
 }
@@ -128,8 +130,14 @@ namespace kagome::network {
               cb(stream);
               break;
             case Direction::INCOMING:
-//              stream->close([](auto &&...) {});
-               self->writeHandshake(std::move(stream),direction,std::move(cb));
+              if (false) { // NOLINT
+                self->writeHandshake(
+                    std::move(stream), direction, std::move(cb));
+                return;
+              }
+
+              stream->close([](auto &&...) {});
+              cb(Error::PROTOCOL_NOT_IMPLEMENTED);
               break;
           }
         });

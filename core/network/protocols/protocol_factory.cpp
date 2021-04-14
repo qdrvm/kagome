@@ -22,6 +22,7 @@ namespace kagome::network {
         storage_(std::move(storage)),
         hasher_(std::move(hasher)),
         stream_engine_(std::move(stream_engine)) {
+    BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
@@ -34,7 +35,7 @@ namespace kagome::network {
                                                    stream_engine_,
                                                    block_tree_.lock(),
                                                    storage_,
-                                                   babe_observer_.lock(),
+                                                   babe_.lock(),
                                                    hasher_,
                                                    peer_manager_.lock());
   }
@@ -55,7 +56,11 @@ namespace kagome::network {
   std::shared_ptr<PropagateTransactionsProtocol>
   ProtocolFactory::makePropagateTransactionsProtocol() const {
     return std::make_shared<PropagateTransactionsProtocol>(
-        host_, chain_spec_, extrinsic_observer_.lock(), stream_engine_);
+        host_,
+        chain_spec_,
+        babe_.lock(),
+        extrinsic_observer_.lock(),
+        stream_engine_);
   }
 
   std::shared_ptr<SupProtocol> ProtocolFactory::makeSupProtocol() const {

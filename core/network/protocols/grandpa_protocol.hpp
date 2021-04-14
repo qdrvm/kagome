@@ -26,7 +26,7 @@ namespace kagome::network {
       : public ProtocolBase,
         public std::enable_shared_from_this<GrandpaProtocol> {
    public:
-    enum class Error { GONE = 1 };
+    enum class Error { GONE = 1, PROTOCOL_NOT_IMPLEMENTED };
 
     GrandpaProtocol() = delete;
     GrandpaProtocol(GrandpaProtocol &&) noexcept = delete;

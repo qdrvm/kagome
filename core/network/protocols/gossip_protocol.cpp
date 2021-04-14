@@ -35,7 +35,7 @@ namespace kagome::network {
         grandpa_observer_(std::move(grandpa_observer)),
         own_info_(own_info),
         stream_engine_(std::move(stream_engine)) {
-    BOOST_ASSERT(io_context != nullptr);
+    BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(grandpa_observer_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
     const_cast<Protocol &>(protocol_) = kGossipProtocol;

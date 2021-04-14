@@ -1140,7 +1140,7 @@ namespace {
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
-    protocol_factory->setBabeObserver(initialized.value());
+    protocol_factory->setBabe(initialized.value());
 
     return initialized.value();
   }
@@ -1278,7 +1278,7 @@ namespace {
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
-    protocol_factory->setBabeObserver(initialized.value());
+    protocol_factory->setBabe(initialized.value());
 
     return initialized.value();
   }
