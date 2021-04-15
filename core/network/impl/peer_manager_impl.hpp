@@ -51,24 +51,11 @@ namespace kagome::network {
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<StreamEngine> stream_engine,
         const application::AppConfiguration &app_config,
-        //        const application::ChainSpec &chain_spec,
         std::shared_ptr<clock::SteadyClock> clock,
         const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_peer_info,
         std::shared_ptr<network::SyncClientsSet> sync_clients,
-        //        std::shared_ptr<blockchain::BlockTree> block_tree,
-        //        std::shared_ptr<crypto::Hasher> hasher,
-        //        std::shared_ptr<blockchain::BlockStorage> storage,
-        //        std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<network::Router> router
-        //            std::shared_ptr<BlockAnnounceProtocol>
-        //            block_announce_protocol
-        //        ,
-        //        std::shared_ptr<GossipProtocol> gossip_protocol,
-        //        std::shared_ptr<PropagateTransactionsProtocol>
-        //            propagate_transaction_protocol,
-        //        std::shared_ptr<SupProtocol> sup_protocol,
-        //        std::shared_ptr<SyncProtocol> sync_protocol
     );
 
     /** @see AppStateManager::takeControl */
@@ -206,9 +193,6 @@ namespace kagome::network {
           });
     }
 
-    //    bool writeHandshakeToOutgoingBlockAnnounceStream(
-    //        std::shared_ptr<libp2p::connection::Stream> stream);
-
     /// Aligns amount of connected streams
     void align();
 
@@ -229,17 +213,10 @@ namespace kagome::network {
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const application::AppConfiguration &app_config_;
-    //    const application::ChainSpec &chain_spec_;
     std::shared_ptr<clock::SteadyClock> clock_;
     const BootstrapNodes &bootstrap_nodes_;
     const OwnPeerInfo &own_peer_info_;
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
-    //    std::shared_ptr<blockchain::BlockTree> block_tree_;
-    //    std::shared_ptr<crypto::Hasher> hasher_;
-    //    std::shared_ptr<blockchain::BlockStorage> storage_;
-    //    std::shared_ptr<BabeObserver> babe_observer_;
-
-//    std::shared_ptr<network::ProtocolFactory> protocol_factory_;
     std::shared_ptr<network::Router> router_;
 
     libp2p::event::Handle add_peer_handle_;
