@@ -1,9 +1,11 @@
 #!/bin/bash -ex
 
-# cd to kagome source root
-cd "$(dirname "$0")/../../.."
+KAGOME_ROOT="$(dirname "$0")/../../.."
 
-BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
+# cd to kagome source root
+cd "$KAGOME_ROOT"
+
+BUILD_DIR="${BUILD_DIR:-$(pwd)/build}"
 
 BUILD_TYPE="${BUILD_TYPE:?BUILD_TYPE variable is not defined}"
 
@@ -28,7 +30,7 @@ fi
 
 TAG="soramitsu/kagome:$VERSION"
 
-CTX_DIR=${BUILD_DIR}/docker_context
+CTX_DIR="${BUILD_DIR}/docker_context"
 
 # Cleanup docker context
 rm -Rf ${CTX_DIR}
@@ -37,7 +39,6 @@ mkdir -p ${CTX_DIR}
 # Copy binaries
 cp -a ${BUILD_DIR}/node/kagome_full_syncing/kagome_full_syncing ${CTX_DIR}/
 cp -a ${BUILD_DIR}/node/kagome_validating/kagome_validating  ${CTX_DIR}/
-
 
 if [ "$BUILD_TYPE" = "Release" ]; then
   strip ${CTX_DIR}/kagome_full_syncing

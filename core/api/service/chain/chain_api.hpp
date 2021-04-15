@@ -8,7 +8,6 @@
 
 #include <boost/variant.hpp>
 
-#include "api/service/api_service.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/block_data.hpp"
@@ -16,6 +15,8 @@
 #include "primitives/common.hpp"
 
 namespace kagome::api {
+  class ApiService;
+
   /**
    * @class ChainApi privides interface for blockchain api
    */

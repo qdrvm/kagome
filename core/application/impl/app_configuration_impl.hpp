@@ -68,7 +68,7 @@ namespace kagome::application {
     network::Roles roles() const override {
       return roles_;
     }
-    boost::filesystem::path genesisPath() const override;
+    boost::filesystem::path chainSpecPath() const override;
     boost::filesystem::path chainPath(std::string chain_id) const override;
     boost::filesystem::path databasePath(std::string chain_id) const override;
     boost::filesystem::path keystorePath(std::string chain_id) const override;
@@ -109,6 +109,12 @@ namespace kagome::application {
     }
     const network::PeeringConfig &peeringConfig() const override {
       return peering_config_;
+    }
+    bool isRunInDevMode() const override {
+      return dev_mode_;
+    }
+    const std::string& nodeName() const override {
+      return node_name_;
     }
 
    private:
@@ -173,11 +179,13 @@ namespace kagome::application {
     bool is_unix_slots_strategy_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
-    boost::filesystem::path genesis_path_;
+    boost::filesystem::path chain_spec_path_;
     boost::filesystem::path base_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
     network::PeeringConfig peering_config_;
+    bool dev_mode_;
+    std::string node_name_;
   };
 
 }  // namespace kagome::application

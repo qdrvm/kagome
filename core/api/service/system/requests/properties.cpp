@@ -5,6 +5,8 @@
 
 #include "api/service/system/requests/properties.hpp"
 
+#include "api/service/system/system_api.hpp"
+
 namespace kagome::api::system::request {
 
   outcome::result<void> Properties::init(

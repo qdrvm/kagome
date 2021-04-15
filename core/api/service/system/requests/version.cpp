@@ -5,6 +5,8 @@
 
 #include "api/service/system/requests/version.hpp"
 
+#include <boost/assert.hpp>
+
 namespace kagome::api::system::request {
 
   Version::Version(std::shared_ptr<SystemApi> api) : api_(std::move(api)) {

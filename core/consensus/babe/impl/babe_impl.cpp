@@ -19,7 +19,7 @@
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
@@ -623,4 +623,4 @@ namespace kagome::consensus {
       on_synchronized();
     }
   }
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

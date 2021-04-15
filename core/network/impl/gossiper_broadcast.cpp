@@ -9,8 +9,8 @@
 #include <memory>
 
 #include "application/chain_spec.hpp"
+#include "libp2p/connection/loopback_stream.hpp"
 #include "network/common.hpp"
-#include "network/impl/loopback_stream.hpp"
 
 namespace kagome::network {
   KAGOME_DEFINE_CACHE(stream_engine);

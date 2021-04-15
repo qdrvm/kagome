@@ -8,15 +8,20 @@
 
 #include "application/kagome_application.hpp"
 
-#include "injector/syncing_node_injector.hpp"
-#include "log/logger.hpp"
+//#include <boost/filesystem/path.hpp>
+//
+//#include "api/service/api_service.hpp"
+#include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
+#include "application/chain_spec.hpp"
+#include "injector/application_injector.hpp"
+//#include "log/logger.hpp"
+//#include "network/peer_manager.hpp"
+//#include "network/router.hpp"
 
 namespace kagome::application {
 
   class SyncingNodeApplication : public KagomeApplication {
-    using InjectorType = decltype(injector::makeSyncingNodeInjector(
-        std::declval<const AppConfiguration &>()));
-
     template <class T>
     using sptr = std::shared_ptr<T>;
 
@@ -32,7 +37,8 @@ namespace kagome::application {
 
    private:
     const AppConfiguration &app_config_;
-    InjectorType injector_;
+    uptr<injector::SyncingNodeInjector> injector_;
+    log::Logger logger_;
 
     std::shared_ptr<soralog::LoggingSystem> logging_system_;
     std::shared_ptr<AppStateManager> app_state_manager_;
@@ -42,7 +48,8 @@ namespace kagome::application {
     std::shared_ptr<api::ApiService> jrpc_api_service_;
     std::shared_ptr<boost::asio::io_context> io_context_;
 
-    log::Logger logger_;
+    boost::filesystem::path chain_path_;
+    const std::string node_name_;
   };
 
 }  // namespace kagome::application

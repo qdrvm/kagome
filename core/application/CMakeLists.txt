@@ -9,7 +9,7 @@ add_library(validating_node_application
     impl/validating_node_application.cpp
     )
 target_link_libraries(validating_node_application
-    validating_node_injector
+    application_injector
     blob
     application_util
     log_configurator
@@ -22,13 +22,15 @@ target_link_libraries(app_config_impl
     Boost::program_options
     p2p::p2p_multiaddress
     blob
+    assets
+    configuration_storage
     )
 
 add_library(syncing_node_application
     impl/syncing_node_application.cpp
     )
 target_link_libraries(syncing_node_application
-    syncing_node_injector
+    application_injector
     blob
     application_util
     log_configurator
@@ -56,7 +58,7 @@ add_library(kagome_application
     impl/all_in_one_application.cpp
     )
 target_link_libraries(kagome_application
-    validating_node_injector
+    application_injector
     blob
     application_util
     log_configurator

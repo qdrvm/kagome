@@ -20,7 +20,7 @@ namespace kagome::consensus::grandpa {
    public:
     template <class... Args,
               typename =
-                  std::enable_if_t<(is_shared_ptr<Args>::value() && ...), void>>
+                  std::enable_if_t<(is_shared_ptr<Args>::value && ...), void>>
     explicit FinalizationComposite(Args &&... args)
         : observers_{std::forward<Args>(args)...} {};
 

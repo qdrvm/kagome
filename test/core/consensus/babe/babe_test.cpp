@@ -138,22 +138,22 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*sr25519_provider, sign(_, _))
         .WillRepeatedly(Return(Sr25519Signature{}));
 
-    babe_ = std::make_shared<BabeImpl>(app_state_manager_,
-                                       lottery_,
-                                       block_executor,
-                                       trie_db_,
-                                       babe_config_,
-                                       proposer_,
-                                       block_tree_,
-                                       gossiper_,
-                                       sr25519_provider,
-                                       keypair_,
-                                       clock_,
-                                       hasher_,
-                                       std::move(timer_mock_),
-                                       grandpa_authority_update_observer_,
-                                       slots_strategy_,
-                                       babe_util_);
+    babe_ = std::make_shared<babe::BabeImpl>(app_state_manager_,
+                                             lottery_,
+                                             block_executor,
+                                             trie_db_,
+                                             babe_config_,
+                                             proposer_,
+                                             block_tree_,
+                                             gossiper_,
+                                             sr25519_provider,
+                                             keypair_,
+                                             clock_,
+                                             hasher_,
+                                             std::move(timer_mock_),
+                                             grandpa_authority_update_observer_,
+                                             slots_strategy_,
+                                             babe_util_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -192,7 +192,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<boost::asio::io_context> io_context_;
 
-  std::shared_ptr<BabeImpl> babe_;
+  std::shared_ptr<babe::BabeImpl> babe_;
 
   EpochDescriptor epoch_;
 

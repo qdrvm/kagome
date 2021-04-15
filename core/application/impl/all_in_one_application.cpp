@@ -5,30 +5,32 @@
 
 #include "application/impl/all_in_one_application.hpp"
 
+#include <thread>
+
 #include "application/impl/util.hpp"
+#include "consensus/babe/babe.hpp"
 
 namespace kagome::application {
 
   AllInOneApplication::AllInOneApplication(const AppConfiguration &app_config)
       : app_config_(app_config),
-        injector_{injector::makeValidatingNodeInjector(app_config_)},
+        injector_{
+            std::make_unique<injector::ValidatingNodeInjector>(app_config)},
         logger_(log::createLogger("AllInOneApplication", "application")) {
-    log::setLevelOfGroup("main", app_config.verbosity());
-
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
-    chain_spec_ = injector_.create<sptr<ChainSpec>>();
+    chain_spec_ = injector_->injectChainSpec();
     BOOST_ASSERT(chain_spec_ != nullptr);
 
-    app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
-    clock_ = injector_.create<sptr<clock::SystemClock>>();
-    babe_ = injector_.create<sptr<consensus::Babe>>();
-    grandpa_ = injector_.create<sptr<consensus::grandpa::Grandpa>>();
-    router_ = injector_.create<sptr<network::Router>>();
-    peer_manager_ = injector_.create<sptr<network::PeerManager>>();
-    jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
+    app_state_manager_ = injector_->injectAppStateManager();
 
-    io_context_ = injector_.create<sptr<boost::asio::io_context>>();
+    io_context_ = injector_->injectIoContext();
+    clock_ = injector_->injectSystemClock();
+    babe_ = injector_->injectBabe();
+    grandpa_ = injector_->injectGrandpa();
+    router_ = injector_->injectRouter();
+    peer_manager_ = injector_->injectPeerManager();
+    jrpc_api_service_ = injector_->injectRpcApiService();
   }
 
   void AllInOneApplication::run() {
@@ -45,8 +47,8 @@ namespace kagome::application {
 
     auto babe_execution_strategy =
         app_config_.isAlreadySynchronized()
-            ? consensus::Babe::ExecutionStrategy::START
-            : consensus::Babe::ExecutionStrategy::SYNC_FIRST;
+            ? consensus::babe::Babe::ExecutionStrategy::START
+            : consensus::babe::Babe::ExecutionStrategy::SYNC_FIRST;
     babe_->setExecutionStrategy(babe_execution_strategy);
 
     app_state_manager_->atLaunch([ctx{io_context_}] {

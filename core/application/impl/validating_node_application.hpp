@@ -8,15 +8,14 @@
 
 #include "application/kagome_application.hpp"
 
-#include "injector/validating_node_injector.hpp"
-#include "log/logger.hpp"
+#include "application/app_configuration.hpp"
+#include "application/app_state_manager.hpp"
+#include "application/chain_spec.hpp"
+#include "injector/application_injector.hpp"
 
 namespace kagome::application {
 
   class ValidatingNodeApplication : public KagomeApplication {
-    using InjectorType = decltype(injector::makeValidatingNodeInjector(
-        std::declval<const AppConfiguration &>()));
-
     template <class T>
     using sptr = std::shared_ptr<T>;
 
@@ -32,20 +31,21 @@ namespace kagome::application {
 
    private:
     const AppConfiguration &app_config_;
-    InjectorType injector_;
-
-    std::shared_ptr<soralog::LoggingSystem> logging_system_;
-    std::shared_ptr<AppStateManager> app_state_manager_;
-    std::shared_ptr<ChainSpec> chain_spec_;
-    std::shared_ptr<clock::SystemClock> clock_;
-    std::shared_ptr<consensus::Babe> babe_;
-    std::shared_ptr<consensus::grandpa::Grandpa> grandpa_;
-    std::shared_ptr<network::Router> router_;
-    std::shared_ptr<network::PeerManager> peer_manager_;
-    std::shared_ptr<api::ApiService> jrpc_api_service_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
-
+    uptr<injector::ValidatingNodeInjector> injector_;
     log::Logger logger_;
+
+    sptr<boost::asio::io_context> io_context_;
+    sptr<AppStateManager> app_state_manager_;
+    sptr<ChainSpec> chain_spec_;
+    sptr<clock::SystemClock> clock_;
+    sptr<consensus::babe::Babe> babe_;
+    sptr<consensus::grandpa::Grandpa> grandpa_;
+    sptr<network::Router> router_;
+    sptr<network::PeerManager> peer_manager_;
+    sptr<api::ApiService> jrpc_api_service_;
+
+    boost::filesystem::path chain_path_;
+    const std::string node_name_;
   };
 
 }  // namespace kagome::application

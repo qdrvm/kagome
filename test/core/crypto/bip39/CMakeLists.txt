@@ -8,6 +8,7 @@ addtest(bip39_integration_test
     )
 target_link_libraries(bip39_integration_test
     bip39_provider
+    logger_for_tests
     )
 
 addtest(entropy_calculation_test
@@ -15,4 +16,5 @@ addtest(entropy_calculation_test
     )
 target_link_libraries(entropy_calculation_test
     bip39_provider
+    logger_for_tests
     )

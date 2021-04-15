@@ -9,9 +9,14 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 
 #include "storage/buffer_map_types.hpp"
-#include "storage/trie/codec.hpp"
-#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
-#include "storage/trie/trie_storage_backend.hpp"
+
+namespace kagome::storage::trie {
+  class Codec;
+  class PolkadotTrieFactory;
+  class TrieStorageBackend;
+  struct BranchNode;
+  struct PolkadotNode;
+}  // namespace kagome::storage::trie
 
 namespace kagome::storage::trie {
 

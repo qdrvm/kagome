@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
   if (configuration.initialize_from_args(argc, argv)) {
     auto app =
         std::make_shared<application::SyncingNodeApplication>(configuration);
+    log::setLevelOfGroup("main", configuration.verbosity());
     app->run();
   }
 
