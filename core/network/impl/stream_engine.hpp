@@ -299,11 +299,11 @@ namespace kagome::network {
       if (dst.get() == src.get()) {
         return;
       }
-      bool repdaced = false;
-      // Reset previous stream
+      bool replaced = false;
+      // Reset previous stream if any
       if (dst) {
         dst->reset();
-        repdaced = true;
+        replaced = true;
       }
       dst = src;
       if (dst->remotePeerId().has_value()) {
@@ -312,7 +312,7 @@ namespace kagome::network {
                  direction == Direction::INCOMING ? "Incoming" : "Outgoing",
                  protocol->protocol(),
                  dst->remotePeerId().value().toBase58(),
-                 repdaced ? "replaced" : "stored");
+                 replaced ? "replaced" : "stored");
       }
     }
 

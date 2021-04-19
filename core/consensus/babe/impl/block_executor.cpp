@@ -95,7 +95,7 @@ namespace kagome::consensus {
           // block
 
           // TODO(xDimon): Move timeout for request into config
-          sync_timer_->expiresAfter(std::chrono::seconds(3600));
+          sync_timer_->expiresAfter(std::chrono::seconds(30));
           sync_timer_->asyncWait([wp = weak_from_this()](auto e) {
             if (auto self = wp.lock()) {
               if (not e) {
@@ -187,19 +187,18 @@ namespace kagome::consensus {
               return;
             }
 
-            //  ExecutorState state = kSyncState;
-            //  if (self->sync_state_.compare_exchange_strong(state,
-            //                                                kSyncState)) {
-            //    self->sync_timer_->cancel();
-            //    self->sync_timer_->expiresAfter(std::chrono::seconds(30));
-            //    self->sync_timer_->asyncWait([wp](auto e) {
-            //      if (auto self = wp.lock()) {
-            //        if (not e) {
-            //          self->sync_state_ = kReadyState;
-            //        }
-            //      }
-            //    });
-            //  }
+            ExecutorState state = kSyncState;
+            if (self->sync_state_.compare_exchange_strong(state, kSyncState)) {
+              self->sync_timer_->cancel();
+              self->sync_timer_->expiresAfter(std::chrono::seconds(30));
+              self->sync_timer_->asyncWait([wp](auto e) {
+                if (auto self = wp.lock()) {
+                  if (not e) {
+                    self->sync_state_ = kReadyState;
+                  }
+                }
+              });
+            }
 
             auto block = std::move(blocks[i++]);  // For free memory asap
 

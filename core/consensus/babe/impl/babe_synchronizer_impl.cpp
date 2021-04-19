@@ -116,7 +116,8 @@ namespace kagome::consensus {
          h = requested_blocks_handler](auto &&response_res) mutable {
           if (auto self = wp.lock()) {
             if (not response_res.has_value()) {
-              self->logger_->error("Could not sync. Error: {}", response_res.error().message());
+              self->logger_->error("Could not sync. Error: {}",
+                                   response_res.error().message());
               h(boost::none);
               return;
             }
@@ -133,32 +134,6 @@ namespace kagome::consensus {
         });
 
     return;
-
-    // auto next_client = sync_clients_->get(peer_id);
-    // if (not next_client) {
-    //  logger_->error("Could not obtain client for synchronization. Skip.");
-    //  return;
-    //}
-    //
-    // next_client->requestBlocks(
-    //    request,
-    //    [self_wp{weak_from_this()},
-    //     request{std::move(request)},
-    //     requested_blocks_handler{requested_blocks_handler}](
-    //        auto &&response_res) mutable {
-    //      if (auto self = self_wp.lock()) {
-    //        // if response exists then get blocks and send them to handle
-    //        if (response_res and not response_res.value().blocks.empty()) {
-    //          return requested_blocks_handler(
-    //              std::cref(response_res.value().blocks));
-    //        } else if (not response_res) {
-    //          self->logger_->error("Could not sync. Error: {}",
-    //                               response_res.error().message());
-    //        } else {
-    //          self->logger_->error("Could not sync. Empty response");
-    //        }
-    //        return requested_blocks_handler(boost::none);
-    //      }
-    //    });
   }
+
 }  // namespace kagome::consensus

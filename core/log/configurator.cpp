@@ -14,15 +14,14 @@ sinks:
   - name: console
     type: console
     thread: none
-    color: true
+    color: false
     latency: 0
 groups:
   - name: main
     sink: console
-    level: debug
+    level: info
     children:
       - name: libp2p
-#        level: info
       - name: kagome
         children:
           - name: application
@@ -63,9 +62,7 @@ groups:
           - name: pubsub
           - name: transactions
           - name: testing
-#            level: info
           - name: debug
-#            level: info
 # ----------------
   )");
   }

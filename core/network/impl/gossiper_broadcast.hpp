@@ -21,13 +21,13 @@
 #include "log/logger.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/stream_engine.hpp"
-#include "network/router.hpp"
 #include "network/protocols/block_announce_protocol.hpp"
 #include "network/protocols/gossip_protocol.hpp"
 #include "network/protocols/propagate_transactions_protocol.hpp"
 #include "network/protocols/protocol_factory.hpp"
 #include "network/protocols/sup_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
+#include "network/router.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/no_data_message.hpp"
@@ -66,8 +66,7 @@ namespace kagome::network {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo_,
         std::shared_ptr<kagome::application::ChainSpec> config,
-        std::shared_ptr<network::Router> router
-    );
+        std::shared_ptr<network::Router> router);
 
     ~GossiperBroadcast() override = default;
 
@@ -101,20 +100,19 @@ namespace kagome::network {
               const std::shared_ptr<ProtocolBase> &protocol,
               T &&msg) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
-          stream_engine, typename std::decay<decltype(msg)>::type);
+          stream_engine, typename std::decay_t<decltype(msg)>);
       (*shared_msg) = std::forward<T>(msg);
-      stream_engine_->send<typename std::decay<decltype(msg)>::type>(
+      stream_engine_->send<typename std::decay_t<decltype(msg)>>(
           peer_id, protocol, std::move(shared_msg));
     }
 
     template <typename T>
     void broadcast(const std::shared_ptr<ProtocolBase> &protocol, T &&msg) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
-          stream_engine, typename std::decay<decltype(msg)>::type);
+          stream_engine, typename std::decay_t<decltype(msg)>);
       (*shared_msg) = std::forward<T>(msg);
-      stream_engine_
-          ->broadcast<typename std::decay<decltype(msg)>::type>(
-              protocol, std::move(shared_msg));
+      stream_engine_->broadcast<typename std::decay_t<decltype(msg)>>(
+          protocol, std::move(shared_msg));
     }
 
     template <typename T, typename H>
@@ -122,11 +120,11 @@ namespace kagome::network {
                    T &&msg,
                    H &&handshake) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
-          stream_engine, typename std::decay<decltype(msg)>::type);
+          stream_engine, typename std::decay_t<decltype(msg)>);
       (*shared_msg) = std::forward<T>(msg);
 
       auto shared_handshake = KAGOME_EXTRACT_SHARED_CACHE(
-          stream_engine, typename std::decay<decltype(handshake)>::type);
+          stream_engine, typename std::decay_t<decltype(handshake)>);
       (*shared_handshake) = std::forward<H>(handshake);
 
       stream_engine_->broadcast<typename std::decay_t<decltype(msg)>, NoData>(
@@ -147,10 +145,6 @@ namespace kagome::network {
     std::shared_ptr<GossipProtocol> gossip_protocol_;
     std::shared_ptr<PropagateTransactionsProtocol>
         propagate_transaction_protocol_;
-    //    std::shared_ptr<SupProtocol> sup_protocol_;
-    //    std::shared_ptr<SyncProtocol> sync_protocol_;
-
-    //    boost::optional<libp2p::peer::PeerInfo> self_info_;
   };
 }  // namespace kagome::network
 
