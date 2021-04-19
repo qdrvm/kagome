@@ -6,8 +6,9 @@
 #ifndef KAGOME_NETWORK_GRANDPAROTOCOL
 #define KAGOME_NETWORK_GRANDPAROTOCOL
 
-#include <memory>
 #include "network/protocol_base.hpp"
+
+#include <memory>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
@@ -26,8 +27,6 @@ namespace kagome::network {
       : public ProtocolBase,
         public std::enable_shared_from_this<GrandpaProtocol> {
    public:
-    enum class Error { GONE = 1, PROTOCOL_NOT_IMPLEMENTED };
-
     GrandpaProtocol() = delete;
     GrandpaProtocol(GrandpaProtocol &&) noexcept = delete;
     GrandpaProtocol(const GrandpaProtocol &) = delete;
@@ -77,7 +76,5 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::network, GrandpaProtocol::Error);
 
 #endif  // KAGOME_NETWORK_GRANDPAROTOCOL

@@ -9,7 +9,6 @@
 #include <memory>
 
 #include <boost/asio/io_context.hpp>
-#include <network/sync_protocol_observer.hpp>
 
 #include "clock/clock.hpp"
 
@@ -27,6 +26,7 @@ namespace kagome {
   namespace network {
     class Router;
     class PeerManager;
+    class SyncProtocolObserver;
   }  // namespace network
 
   namespace api {

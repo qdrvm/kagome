@@ -31,8 +31,6 @@ namespace kagome::network {
       : public ProtocolBase,
         public std::enable_shared_from_this<PropagateTransactionsProtocol> {
    public:
-    enum class Error { GONE = 1, NODE_NOT_SYNCHRONIZED_YET };
-
     PropagateTransactionsProtocol() = delete;
     PropagateTransactionsProtocol(PropagateTransactionsProtocol &&) noexcept =
         delete;
@@ -92,8 +90,5 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::network,
-                          PropagateTransactionsProtocol::Error);
 
 #endif  // KAGOME_NETWORK_PROPAGATETRANSACTIONSPROTOCOL

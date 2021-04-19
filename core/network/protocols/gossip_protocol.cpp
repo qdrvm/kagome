@@ -8,21 +8,10 @@
 #include <libp2p/connection/loopback_stream.hpp>
 
 #include "network/common.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, GossipProtocol::Error, e) {
-  using E = kagome::network::GossipProtocol::Error;
-  switch (e) {
-    case E::GONE:
-      return "Protocol was switched off";
-  }
-  return "Unknown error";
-}
-
-namespace {
-  using libp2p::connection::LoopbackStream;
-}
+#include "network/protocols/protocol_error.hpp"
 
 namespace kagome::network {
+  using libp2p::connection::LoopbackStream;
 
   GossipProtocol::GossipProtocol(
       libp2p::Host &host,
@@ -52,9 +41,10 @@ namespace kagome::network {
     host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
-          self->log_->trace("Handled {} protocol stream from: {}",
-                            self->protocol_,
-                            peer_id.value().toBase58());
+          SL_TRACE(self->log_,
+                   "Handled {} protocol stream from: {}",
+                   self->protocol_,
+                   peer_id.value().toBase58());
           self->onIncomingStream(std::forward<decltype(stream)>(stream));
           return;
         }
@@ -87,7 +77,7 @@ namespace kagome::network {
                      cb = std::move(cb)](auto &&stream_res) mutable {
                       auto self = wp.lock();
                       if (not self) {
-                        cb(Error::GONE);
+                        cb(ProtocolError::GONE);
                         return;
                       }
 
@@ -140,7 +130,7 @@ namespace kagome::network {
 
           if (not grandpa_msg_res) {
             self->log_->error(
-                "error while decoding a consensus (grandpa) message: {}",
+                "Error while decoding a consensus (grandpa) message: {}",
                 grandpa_msg_res.error().message());
             stream->reset();
             return;
@@ -223,7 +213,7 @@ namespace kagome::network {
                          auto self = wp.lock();
                          if (not self) {
                            stream->reset();
-                           cb(Error::GONE);
+                           cb(ProtocolError::GONE);
                            return;
                          }
 

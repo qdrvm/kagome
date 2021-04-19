@@ -26,8 +26,6 @@ namespace kagome::network {
   class SyncProtocol final : public ProtocolBase,
                              public std::enable_shared_from_this<SyncProtocol> {
    public:
-    enum class Error { GONE = 1 };
-
     SyncProtocol() = delete;
     SyncProtocol(SyncProtocol &&) noexcept = delete;
     SyncProtocol(const SyncProtocol &) = delete;
@@ -78,7 +76,5 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::network, SyncProtocol::Error);
 
 #endif  // KAGOME_NETWORK_SYNCPROTOCOL

@@ -6,18 +6,8 @@
 #include "network/protocols/grandpa_protocol.hpp"
 
 #include "network/common.hpp"
+#include "network/protocols/protocol_error.hpp"
 #include "network/types/roles.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, GrandpaProtocol::Error, e) {
-  using E = kagome::network::GrandpaProtocol::Error;
-  switch (e) {
-    case E::GONE:
-      return "Protocol was switched off";
-    case E::PROTOCOL_NOT_IMPLEMENTED:
-      return "Protocol is not implemented";
-  }
-  return "Unknown error";
-}
 
 namespace kagome::network {
 
@@ -31,9 +21,10 @@ namespace kagome::network {
     host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
-          self->log_->trace("Handled {} protocol stream from: {}",
-                            self->protocol_,
-                            peer_id.value().toBase58());
+          SL_TRACE(self->log_,
+                   "Handled {} protocol stream from: {}",
+                   self->protocol_,
+                   peer_id.value().toBase58());
           self->onIncomingStream(std::forward<decltype(stream)>(stream));
           return;
         }
@@ -58,18 +49,21 @@ namespace kagome::network {
          stream](outcome::result<std::shared_ptr<Stream>> stream_res) {
           auto self = wp.lock();
           if (not self) {
+            stream->reset();
             return;
           }
           if (stream_res.has_value()) {
             std::ignore = self->stream_engine_->addIncoming(stream, self);
-            self->log_->info("Fully established incoming {} stream with {}",
-                             self->protocol_,
-                             stream->remotePeerId().value().toBase58());
+            SL_VERBOSE(self->log_,
+                       "Fully established incoming {} stream with {}",
+                       self->protocol_,
+                       stream->remotePeerId().value().toBase58());
           } else {
-            self->log_->info("Fail establishing incoming {} stream with {}: {}",
-                             self->protocol_,
-                             stream->remotePeerId().value().toBase58(),
-                             stream_res.error().message());
+            SL_VERBOSE(self->log_,
+                       "Fail establishing incoming {} stream with {}: {}",
+                       self->protocol_,
+                       stream->remotePeerId().value().toBase58(),
+                       stream_res.error().message());
           }
         });
   }
@@ -84,7 +78,7 @@ namespace kagome::network {
             auto &&stream_res) mutable {
           auto self = wp.lock();
           if (not self) {
-            cb(Error::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
@@ -111,7 +105,7 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            cb(Error::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
@@ -130,14 +124,15 @@ namespace kagome::network {
               cb(stream);
               break;
             case Direction::INCOMING:
-              if (false) { // NOLINT
-                self->writeHandshake(
-                    std::move(stream), direction, std::move(cb));
+              // NOTE: It will removed when protocol will be implemented in
+              // according with spec if any
+              if (true) {  // NOLINT
+                stream->close([](auto &&...) {});
+                cb(ProtocolError::PROTOCOL_NOT_IMPLEMENTED);
                 return;
               }
 
-              stream->close([](auto &&...) {});
-              cb(Error::PROTOCOL_NOT_IMPLEMENTED);
+              self->writeHandshake(std::move(stream), direction, std::move(cb));
               break;
           }
         });
@@ -158,7 +153,7 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            cb(Error::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
@@ -185,37 +180,9 @@ namespace kagome::network {
   void GrandpaProtocol::read(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    //    read_writer->read<PropagatedExtrinsics>(
-    //        [stream, wp = weak_from_this()](auto &&message_res) mutable {
-    //          auto self = wp.lock();
-    //          if (not self) {
-    //            stream->reset();
-    //            return;
-    //          }
-    //
-    //          if (not message_res.has_value()) {
-    //            self->log_->error("Error while reading propagated
-    //            transactions: {}",
-    //                              message_res.error().message());
-    //            stream->reset();
-    //            return;
-    //          }
-    //          auto &message = message_res.value();
-    //
-    //          self->log_->info("Received {} propagated transactions",
-    //                           message.extrinsics.size());
-    //          for (auto &ext : message.extrinsics) {
-    //            auto result = self->extrinsic_observer_->onTxMessage(ext);
-    //            if (result) {
-    //              self->log_->debug("  Received tx {}", result.value());
-    //            } else {
-    //              self->log_->debug("  Rejected tx: {}",
-    //              result.error().message());
-    //            }
-    //          }
-    //
-    //          self->readPropagatedExtrinsics(std::move(stream));
-    //        });
+    // NOTE: It will changed as soon as this protocol will be implemented in
+    // according with spec if any
+    throw "It is not implemented yet";
   }
 
   void GrandpaProtocol::write(
@@ -224,28 +191,9 @@ namespace kagome::network {
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    //    read_writer->write(
-    //        message,
-    //        [stream, wp = weak_from_this(), cb = std::move(cb)](
-    //            auto &&write_res) mutable {
-    //          auto self = wp.lock();
-    //          if (not self) {
-    //            stream->reset();
-    //            if (cb) cb(Error::GONE);
-    //            return;
-    //          }
-    //
-    //          if (not write_res.has_value()) {
-    //            self->log_->error("Error while writing propagated extrinsics:
-    //            {}",
-    //                              write_res.error().message());
-    //            stream->reset();
-    //            if (cb) cb(write_res.as_failure());
-    //            return;
-    //          }
-    //
-    //          if (cb) cb(stream);
-    //        });
+    // NOTE: It will changed as soon as this protocol will be implemented in
+    // according with spec if any
+    throw "It is not implemented yet";
   }
 
 }  // namespace kagome::network

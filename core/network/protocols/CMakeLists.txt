@@ -3,12 +3,20 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(protocol_error
+    protocol_error.cpp
+    )
+target_link_libraries(protocol_error
+    outcome
+    )
+
 add_library(block_announce_protocol
     block_announce_protocol.cpp
     )
 target_link_libraries(block_announce_protocol
     logger
     scale_message_read_writer
+    protocol_error
     )
 
 add_library(gossip_protocol
@@ -17,6 +25,7 @@ add_library(gossip_protocol
 target_link_libraries(gossip_protocol
     logger
     p2p::p2p_loopback_stream
+    protocol_error
     )
 
 add_library(grandpa_protocol
@@ -24,6 +33,7 @@ add_library(grandpa_protocol
     )
 target_link_libraries(grandpa_protocol
     logger
+    protocol_error
     )
 
 add_library(propagate_transactions_protocol
@@ -31,6 +41,7 @@ add_library(propagate_transactions_protocol
     )
 target_link_libraries(propagate_transactions_protocol
     logger
+    protocol_error
     )
 
 add_library(sup_protocol
@@ -38,6 +49,7 @@ add_library(sup_protocol
     )
 target_link_libraries(sup_protocol
     logger
+    protocol_error
     )
 
 add_library(sync_protocol
@@ -47,6 +59,7 @@ target_link_libraries(sync_protocol
     logger
     node_api_proto
     adapter_errors
+    protocol_error
     )
 
 add_library(protocol_factory
@@ -58,4 +71,3 @@ target_link_libraries(protocol_factory
     sup_protocol
     sync_protocol
     )
-

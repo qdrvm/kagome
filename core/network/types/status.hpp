@@ -17,7 +17,6 @@ namespace kagome::network {
 
   using kagome::primitives::BlockHash;
   using kagome::primitives::BlockInfo;
-  using kagome::primitives::BlockNumber;
 
   /**
    * Is the structure to send to a new connected peer. It contains common

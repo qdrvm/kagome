@@ -7,17 +7,7 @@
 
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, BlockAnnounceProtocol::Error, e) {
-  using E = kagome::network::BlockAnnounceProtocol::Error;
-  switch (e) {
-    case E::GONE:
-      return "Protocol was switched off";
-    case E::CAN_NOT_CREATE_STATUS:
-      return "Can not create status";
-  }
-  return "Unknown error";
-}
+#include "network/protocols/protocol_error.hpp"
 
 namespace kagome::network {
 
@@ -87,7 +77,7 @@ namespace kagome::network {
     } else {
       log_->error("Could not get best block info: {}",
                   best_res.error().message());
-      return Error::CAN_NOT_CREATE_STATUS;
+      return ProtocolError::CAN_NOT_CREATE_STATUS;
     }
 
     /// Genesis hash
@@ -98,7 +88,7 @@ namespace kagome::network {
     } else {
       log_->error("Could not get genesis block hash: {}",
                   genesis_res.error().message());
-      return Error::CAN_NOT_CREATE_STATUS;
+      return ProtocolError::CAN_NOT_CREATE_STATUS;
     }
 
     return Status{
@@ -115,20 +105,23 @@ namespace kagome::network {
          stream](outcome::result<std::shared_ptr<Stream>> stream_res) {
           auto self = wp.lock();
           if (not self) {
+            stream->reset();
             return;
           }
           if (stream_res.has_value()) {
             std::ignore = self->stream_engine_->addIncoming(stream, self);
             self->peer_manager_->reserveStreams(stream->remotePeerId().value());
-            self->log_->info("Fully established incoming {} stream with {}",
-                             self->protocol_,
-                             stream->remotePeerId().value().toBase58());
+            SL_VERBOSE(self->log_,
+                       "Fully established incoming {} stream with {}",
+                       self->protocol_,
+                       stream->remotePeerId().value().toBase58());
 
           } else {
-            self->log_->info("Fail establishing incoming {} stream with {}: {}",
-                             self->protocol_,
-                             stream->remotePeerId().value().toBase58(),
-                             stream_res.error().message());
+            SL_VERBOSE(self->log_,
+                       "Fail establishing incoming {} stream with {}: {}",
+                       self->protocol_,
+                       stream->remotePeerId().value().toBase58(),
+                       stream_res.error().message());
           }
         });
   }
@@ -136,8 +129,10 @@ namespace kagome::network {
   void BlockAnnounceProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    log_->info(
-        "Connect for {} stream with {}", protocol_, peer_info.id.toBase58());
+    SL_DEBUG(log_,
+             "Connect for {} stream with {}",
+             protocol_,
+             peer_info.id.toBase58());
 
     host_.newStream(
         peer_info,
@@ -146,13 +141,7 @@ namespace kagome::network {
             auto &&stream_res) mutable {
           auto self = wp.lock();
           if (not self) {
-            SL_VERBOSE(
-                self->log_,
-                "Error happened while connection over {} stream with {}: {}",
-                self->protocol_,
-                peer_id.toBase58(),
-                outcome::result<void>(Error::GONE).error().message());
-            cb(Error::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
@@ -169,10 +158,10 @@ namespace kagome::network {
 
           auto &stream = stream_res.value();
 
-          SL_VERBOSE(self->log_,
-                     "Established connection over {} stream with {}",
-                     self->protocol_,
-                     peer_id.toBase58());
+          SL_DEBUG(self->log_,
+                   "Established connection over {} stream with {}",
+                   self->protocol_,
+                   peer_id.toBase58());
 
           self->writeStatus(
               std::move(stream), Direction::OUTGOING, std::move(cb));
@@ -191,7 +180,7 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            cb(Error::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
@@ -202,20 +191,21 @@ namespace kagome::network {
             cb(remote_status_res.as_failure());
             return;
           }
-          // auto &remote_status = remote_status_res.value();
+          auto &remote_status = remote_status_res.value();
 
-          //  auto peer_id = stream->remotePeerId().value();
-          //  self->log_->debug("Received status from peer_id={}",
-          //  peer_id.toBase58());
-          //  self->peer_manager_->updatePeerStatus(peer_id,
-          //  remote_status_res.value());
+          auto peer_id = stream->remotePeerId().value();
+          SL_DEBUG(self->log_,
+                   "Received status from peer_id={}",
+                   peer_id.toBase58());
+          self->peer_manager_->updatePeerStatus(peer_id, remote_status);
 
           switch (direction) {
             case Direction::OUTGOING:
               std::ignore = self->stream_engine_->addOutgoing(stream, self);
-              self->log_->info("Fully established outgoing {} stream with {}",
-                               self->protocol_,
-                               stream->remotePeerId().value().toBase58());
+              SL_VERBOSE(self->log_,
+                         "Fully established outgoing {} stream with {}",
+                         self->protocol_,
+                         stream->remotePeerId().value().toBase58());
               cb(stream);
               break;
             case Direction::INCOMING:
@@ -233,7 +223,7 @@ namespace kagome::network {
 
     auto status_res = createStatus();
     if (not status_res.has_value()) {
-      cb(Error::CAN_NOT_CREATE_STATUS);
+      cb(ProtocolError::CAN_NOT_CREATE_STATUS);
       return;
     }
 
@@ -244,13 +234,14 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            cb(Error::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
           if (not write_res.has_value()) {
-            self->log_->error("Error while writing own status: {}",
-                              write_res.error().message());
+            SL_VERBOSE(self->log_,
+                       "Error while writing own status: {}",
+                       write_res.error().message());
             stream->reset();
             cb(write_res.as_failure());
             return;
@@ -280,8 +271,9 @@ namespace kagome::network {
           }
 
           if (not block_announce_res) {
-            self->log_->error("Error while reading block announce: {}",
-                              block_announce_res.error().message());
+            SL_VERBOSE(self->log_,
+                       "Error while reading block announce: {}",
+                       block_announce_res.error().message());
             stream->reset();
             return;
           }
@@ -289,16 +281,17 @@ namespace kagome::network {
           auto peer_id = stream->remotePeerId().value();
           auto &block_announce = block_announce_res.value();
 
-          self->log_->info("Received block announce: block number {}",
-                           block_announce.header.number);
+          SL_VERBOSE(self->log_,
+                     "Received block announce: block number {}",
+                     block_announce.header.number);
           self->babe_observer_->onBlockAnnounce(peer_id, block_announce);
 
           auto hash = self->hasher_->blake2b_256(
               scale::encode(block_announce.header).value());
 
-          //  self->peer_manager_->updatePeerStatus(
-          //      stream->remotePeerId().value(),
-          //      BlockInfo(block_announce.header.number, hash));
+          self->peer_manager_->updatePeerStatus(
+              stream->remotePeerId().value(),
+              BlockInfo(block_announce.header.number, hash));
 
           self->readAnnounce(std::move(stream));
         });
@@ -317,14 +310,14 @@ namespace kagome::network {
                          auto self = wp.lock();
                          if (not self) {
                            stream->reset();
-                           cb(Error::GONE);
+                           cb(ProtocolError::GONE);
                            return;
                          }
 
                          if (not write_res.has_value()) {
-                           self->log_->error(
-                               "Error while writing block announce: {}",
-                               write_res.error().message());
+                           SL_VERBOSE(self->log_,
+                                      "Error while writing block announce: {}",
+                                      write_res.error().message());
                            stream->reset();
                            cb(write_res.as_failure());
                            return;

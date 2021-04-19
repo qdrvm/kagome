@@ -10,18 +10,10 @@
 #include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
+#include "network/protocols/protocol_error.hpp"
 #include "network/rpc.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SyncProtocol::Error, e) {
-  using E = kagome::network::SyncProtocol::Error;
-  switch (e) {
-    case E::GONE:
-      return "Protocol was switched off";
-  }
-  return "Unknown error";
-}
 
 namespace kagome::network {
 
@@ -39,9 +31,10 @@ namespace kagome::network {
     host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
-          self->log_->trace("Handled {} protocol stream from: {}",
-                            self->protocol_,
-                            peer_id.value().toBase58());
+          SL_TRACE(self->log_,
+                   "Handled {} protocol stream from: {}",
+                   self->protocol_,
+                   peer_id.value().toBase58());
           self->onIncomingStream(std::forward<decltype(stream)>(stream));
           return;
         }
@@ -65,8 +58,10 @@ namespace kagome::network {
   void SyncProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    log_->info(
-        "Connect for {} stream with {}", protocol_, peer_info.id.toBase58());
+    SL_DEBUG(log_,
+             "Connect for {} stream with {}",
+             protocol_,
+             peer_info.id.toBase58());
 
     host_.newStream(
         peer_info.id,
@@ -75,13 +70,7 @@ namespace kagome::network {
             auto &&stream_res) mutable {
           auto self = wp.lock();
           if (not self) {
-            SL_VERBOSE(
-                self->log_,
-                "Error happened while connection over {} stream with {}: {}",
-                self->protocol_,
-                peer_id.toBase58(),
-                outcome::result<void>(Error::GONE).error().message());
-            cb(Error::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
@@ -95,13 +84,13 @@ namespace kagome::network {
             cb(stream_res.as_failure());
             return;
           }
-
-          SL_VERBOSE(self->log_,
-                     "Established connection over {} stream with {}",
-                     self->protocol_,
-                     peer_id.toBase58());
-
           auto &stream = stream_res.value();
+
+          SL_DEBUG(self->log_,
+                   "Established connection over {} stream with {}",
+                   self->protocol_,
+                   peer_id.toBase58());
+
           cb(std::move(stream));
         });
   }
@@ -109,47 +98,49 @@ namespace kagome::network {
   void SyncProtocol::readRequest(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    log_->info("Read request from incoming {} stream with {}",
-               protocol_,
-               stream->remotePeerId().value().toBase58());
+    SL_DEBUG(log_,
+             "Read request from incoming {} stream with {}",
+             protocol_,
+             stream->remotePeerId().value().toBase58());
 
-    read_writer->read<BlocksRequest>(
-        [stream, wp = weak_from_this()](auto &&block_request_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            return;
-          }
+    read_writer->read<BlocksRequest>([stream, wp = weak_from_this()](
+                                         auto &&block_request_res) mutable {
+      auto self = wp.lock();
+      if (not self) {
+        stream->reset();
+        return;
+      }
 
-          if (not block_request_res.has_value()) {
-            self->log_->info(
-                "Error at read request from incoming {} stream with {}: {}",
-                self->protocol_,
-                stream->remotePeerId().value().toBase58(),
-                block_request_res.error().message());
+      if (not block_request_res.has_value()) {
+        SL_VERBOSE(self->log_,
+                   "Error at read request from incoming {} stream with {}: {}",
+                   self->protocol_,
+                   stream->remotePeerId().value().toBase58(),
+                   block_request_res.error().message());
 
-            stream->reset();
-            return;
-          }
-          auto &block_request = block_request_res.value();
+        stream->reset();
+        return;
+      }
+      auto &block_request = block_request_res.value();
 
-          auto block_response_res =
-              self->sync_observer_->onBlocksRequest(block_request);
+      auto block_response_res =
+          self->sync_observer_->onBlocksRequest(block_request);
 
-          if (not block_response_res) {
-            self->log_->info(
-                "Error at execute request from incoming {} stream with {}: {}",
-                self->protocol_,
-                stream->remotePeerId().value().toBase58(),
-                block_response_res.error().message());
+      if (not block_response_res) {
+        SL_VERBOSE(
+            self->log_,
+            "Error at execute request from incoming {} stream with {}: {}",
+            self->protocol_,
+            stream->remotePeerId().value().toBase58(),
+            block_response_res.error().message());
 
-            stream->reset();
-            return;
-          }
-          auto &block_response = block_response_res.value();
+        stream->reset();
+        return;
+      }
+      auto &block_response = block_response_res.value();
 
-          self->writeResponse(std::move(stream), block_response);
-        });
+      self->writeResponse(std::move(stream), block_response);
+    });
   }
 
   void SyncProtocol::writeResponse(std::shared_ptr<Stream> stream,
@@ -167,7 +158,8 @@ namespace kagome::network {
           }
 
           if (not write_res.has_value()) {
-            self->log_->info(
+            SL_VERBOSE(
+                self->log_,
                 "Error at writting response to incoming {} stream with {}: {}",
                 self->protocol_,
                 stream->remotePeerId().value().toBase58(),
@@ -186,9 +178,10 @@ namespace kagome::network {
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    log_->info("Write request info outgoing {} stream with {}",
-               protocol_,
-               stream->remotePeerId().value().toBase58());
+    SL_DEBUG(log_,
+             "Write request info outgoing {} stream with {}",
+             protocol_,
+             stream->remotePeerId().value().toBase58());
 
     read_writer->write(
         block_request,
@@ -197,12 +190,13 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            cb(Error::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
           if (not write_res.has_value()) {
-            self->log_->info(
+            SL_VERBOSE(
+                self->log_,
                 "Error at write request into outgoing {} stream with {}: {}",
                 self->protocol_,
                 stream->remotePeerId().value().toBase58(),
@@ -213,7 +207,8 @@ namespace kagome::network {
             return;
           }
 
-          self->log_->info(
+          SL_DEBUG(
+              self->log_,
               "Request written successfuly into outgoing {} stream with {}",
               self->protocol_,
               stream->remotePeerId().value().toBase58());
@@ -228,43 +223,44 @@ namespace kagome::network {
       std::function<void(outcome::result<BlocksResponse>)> &&response_handler) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
-    log_->info("Read response from outgoing {} stream with {}",
-               protocol_,
+    SL_DEBUG(log_,
+             "Read response from outgoing {} stream with {}",
+             protocol_,
+             stream->remotePeerId().value().toBase58());
+
+    read_writer->read<BlocksResponse>([stream,
+                                       wp = weak_from_this(),
+                                       response_handler =
+                                           std::move(response_handler)](
+                                          auto &&block_response_res) mutable {
+      auto self = wp.lock();
+      if (not self) {
+        stream->reset();
+        response_handler(ProtocolError::GONE);
+        return;
+      }
+
+      if (not block_response_res.has_value()) {
+        SL_VERBOSE(self->log_,
+                   "Error at read response from outgoing {} stream with {}: {}",
+                   self->protocol_,
+                   stream->remotePeerId().value().toBase58(),
+                   block_response_res.error().message());
+
+        stream->reset();
+        response_handler(block_response_res.as_failure());
+        return;
+      }
+      auto &blocks_response = block_response_res.value();
+
+      SL_DEBUG(self->log_,
+               "Response read successfuly from outgoing {} stream with {}",
+               self->protocol_,
                stream->remotePeerId().value().toBase58());
 
-    read_writer->read<BlocksResponse>(
-        [stream,
-         wp = weak_from_this(),
-         response_handler =
-             std::move(response_handler)](auto &&block_response_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            response_handler(Error::GONE);
-            return;
-          }
-
-          if (not block_response_res.has_value()) {
-            self->log_->info(
-                "Error at read response from outgoing {} stream with {}: {}",
-                self->protocol_,
-                stream->remotePeerId().value().toBase58(),
-                block_response_res.error().message());
-
-            stream->reset();
-            response_handler(block_response_res.as_failure());
-            return;
-          }
-          auto &blocks_response = block_response_res.value();
-
-          self->log_->info(
-              "Response read successfuly from outgoing {} stream with {}",
-              self->protocol_,
-              stream->remotePeerId().value().toBase58());
-
-          stream->reset();
-          response_handler(std::move(blocks_response));
-        });
+      stream->reset();
+      response_handler(std::move(blocks_response));
+    });
   }
 
   void SyncProtocol::request(
@@ -281,15 +277,16 @@ namespace kagome::network {
     visit_in_place(
         block_request.from,
         [this](primitives::BlockNumber from) {
-          log_->debug("Requesting blocks: from {}", from);
+          SL_DEBUG(log_, "Requesting blocks: from {}", from);
         },
         [this, &block_request](const primitives::BlockHash &from) {
           if (not block_request.to) {
-            log_->debug("Requesting blocks: from {}", from.toHex());
+            SL_DEBUG(log_, "Requesting blocks: from {}", from.toHex());
           } else {
-            log_->debug("Requesting blocks: from {}, to {}",
-                        from.toHex(),
-                        block_request.to->toHex());
+            SL_DEBUG(log_,
+                     "Requesting blocks: from {}, to {}",
+                     from.toHex(),
+                     block_request.to->toHex());
           }
         });
 
@@ -307,13 +304,14 @@ namespace kagome::network {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
-            response_handler(Error::GONE);
+            response_handler(ProtocolError::GONE);
             return;
           }
 
-          self->log_->info("Established outgoing {} stream with {}",
-                           self->protocol_,
-                           stream->remotePeerId().value().toBase58());
+          SL_DEBUG(self->log_,
+                   "Established outgoing {} stream with {}",
+                   self->protocol_,
+                   stream->remotePeerId().value().toBase58());
 
           self->writeRequest(stream,
                              std::move(block_request),
@@ -324,7 +322,7 @@ namespace kagome::network {
                                auto self = wp.lock();
                                if (not self) {
                                  stream->reset();
-                                 response_handler(Error::GONE);
+                                 response_handler(ProtocolError::GONE);
                                  return;
                                }
 

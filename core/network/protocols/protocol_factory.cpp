@@ -64,7 +64,11 @@ namespace kagome::network {
   }
 
   std::shared_ptr<SupProtocol> ProtocolFactory::makeSupProtocol() const {
-    return std::make_shared<SupProtocol>(host_, block_tree_.lock(), storage_);
+    return std::make_shared<SupProtocol>(host_,
+                                         stream_engine_,
+                                         block_tree_.lock(),
+                                         storage_,
+                                         peer_manager_.lock());
   }
 
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {

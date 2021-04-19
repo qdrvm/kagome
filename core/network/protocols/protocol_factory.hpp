@@ -6,6 +6,7 @@
 #ifndef KAGOME_NETWORK_PROTOCOLFACTORY
 #define KAGOME_NETWORK_PROTOCOLFACTORY
 
+#include "consensus/babe/babe.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/protocols/block_announce_protocol.hpp"
 #include "network/protocols/gossip_protocol.hpp"
@@ -13,7 +14,6 @@
 #include "network/protocols/propagate_transactions_protocol.hpp"
 #include "network/protocols/sup_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
-#include "consensus/babe/babe.hpp"
 
 namespace kagome::network {
 
@@ -52,8 +52,7 @@ namespace kagome::network {
       sync_observer_ = sync_observer;
     }
 
-    void setPeerManager(
-        const std::shared_ptr<PeerManager> &peer_manager) {
+    void setPeerManager(const std::shared_ptr<PeerManager> &peer_manager) {
       peer_manager_ = peer_manager;
     }
 

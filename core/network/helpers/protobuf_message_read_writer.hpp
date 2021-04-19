@@ -43,9 +43,6 @@ namespace kagome::network {
      */
     template <typename MsgType>
     void read(ReadCallback<MsgType> &&cb) const {
-      if constexpr (std::is_same_v<MsgType, network::BlocksResponse>) {
-        std::ignore = [] { return 1; }();
-      }
       read_writer_->read(
           [self{shared_from_this()}, cb = std::move(cb)](auto &&read_res) {
             if constexpr (std::is_same_v<MsgType, network::BlocksResponse>) {

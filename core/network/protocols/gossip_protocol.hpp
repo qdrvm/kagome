@@ -30,8 +30,6 @@ namespace kagome::network {
       : public ProtocolBase,
         public std::enable_shared_from_this<GossipProtocol> {
    public:
-    enum class Error { GONE = 1 };
-
     GossipProtocol() = delete;
     GossipProtocol(GossipProtocol &&) noexcept = delete;
     GossipProtocol(const GossipProtocol &) = delete;
@@ -42,7 +40,7 @@ namespace kagome::network {
     GossipProtocol(
         libp2p::Host &host,
         std::shared_ptr<boost::asio::io_context> io_context,
-    std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
+        std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
         const OwnPeerInfo &own_info,
         std::shared_ptr<StreamEngine> stream_engine);
 
@@ -76,7 +74,5 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::network, GossipProtocol::Error);
 
 #endif  // KAGOME_NETWORK_GOSSIPPROTOCOL

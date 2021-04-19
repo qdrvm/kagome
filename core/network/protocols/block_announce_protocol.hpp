@@ -6,8 +6,9 @@
 #ifndef KAGOME_NETWORK_BLOCKANNOUNCEPROTOCOL
 #define KAGOME_NETWORK_BLOCKANNOUNCEPROTOCOL
 
-#include <memory>
 #include "network/protocol_base.hpp"
+
+#include <memory>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
@@ -34,8 +35,6 @@ namespace kagome::network {
       : public ProtocolBase,
         public std::enable_shared_from_this<BlockAnnounceProtocol> {
    public:
-    enum class Error { GONE = 1, CAN_NOT_CREATE_STATUS };
-
     BlockAnnounceProtocol() = delete;
     BlockAnnounceProtocol(BlockAnnounceProtocol &&) noexcept = delete;
     BlockAnnounceProtocol(const BlockAnnounceProtocol &) = delete;
@@ -96,7 +95,5 @@ namespace kagome::network {
   };
 
 }  // namespace kagome::network
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::network, BlockAnnounceProtocol::Error);
 
 #endif  // KAGOME_NETWORK_BLOCKANNOUNCEPROTOCOL

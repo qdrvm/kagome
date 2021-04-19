@@ -39,7 +39,7 @@ namespace kagome::application {
     void run() override;
 
    private:
-    std::shared_ptr<soralog::LoggingSystem> logging_system_;
+    sptr<soralog::LoggingSystem> logging_system_;
 
     log::Logger logger_;
 
@@ -49,9 +49,9 @@ namespace kagome::application {
     sptr<Babe> babe_;
     sptr<Grandpa> grandpa_;
     sptr<network::Router> router_;
-    std::shared_ptr<network::PeerManager> peer_manager_;
+    sptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;
-    std::shared_ptr<network::SyncProtocolObserver> sync_observer_;
+    sptr<network::SyncProtocolObserver> sync_observer_;
     sptr<ChainSpec> chain_spec_;
     boost::filesystem::path chain_path_;
     const std::string node_name_;
