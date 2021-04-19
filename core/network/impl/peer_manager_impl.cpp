@@ -419,7 +419,7 @@ namespace kagome::network {
 
               if (not stream_res.has_value()) {
                 self->log_->warn("Unable to create '{}' stream with {}: {}",
-                                 protocol,
+                                 protocol->protocol(),
                                  peer_id.toBase58(),
                                  stream_res.error().message());
                 self->disconnectFromPeer(peer_id);

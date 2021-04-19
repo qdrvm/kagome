@@ -277,7 +277,7 @@ namespace {
         storage, common::Buffer{blockchain::prefix::TRIE_NODE});
 
     initialized.emplace(std::move(backend));
-    return backend;
+    return initialized.value();
   }
 
   sptr<storage::trie::TrieStorageImpl> get_trie_storage_impl(
