@@ -217,13 +217,13 @@ namespace kagome::api {
 
   bool ApiServiceImpl::start() {
     thread_pool_->start();
-    logger_->debug("API Service started");
+    SL_DEBUG(logger_, "API Service started");
     return true;
   }
 
   void ApiServiceImpl::stop() {
     thread_pool_->stop();
-    logger_->debug("API Service stopped");
+    SL_DEBUG(logger_, "API Service stopped");
   }
 
   std::shared_ptr<ApiServiceImpl::SessionSubscriptions>

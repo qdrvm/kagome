@@ -23,15 +23,13 @@ namespace kagome::network {
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo,
       std::shared_ptr<kagome::application::ChainSpec> config,
-      std::shared_ptr<network::Router> router
-      )
+      std::shared_ptr<network::Router> router)
       : logger_{log::createLogger("GossiperBroadcast", "network")},
         stream_engine_{std::move(stream_engine)},
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)},
         config_{std::move(config)},
-        router_{std::move(router)}
-  {
+        router_{std::move(router)} {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
@@ -62,7 +60,7 @@ namespace kagome::network {
 
   void GossiperBroadcast::propagateTransactions(
       gsl::span<const primitives::Transaction> txs) {
-    logger_->debug("Propagate transactions : {} extrinsics", txs.size());
+    SL_DEBUG(logger_, "Propagate transactions : {} extrinsics", txs.size());
 
     std::vector<libp2p::peer::PeerId> peers;
     stream_engine_->forEachPeer(
@@ -90,14 +88,16 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
-    logger_->debug("Block announce: block number {}", announce.header.number);
+    SL_DEBUG(
+        logger_, "Block announce: block number {}", announce.header.number);
     broadcast(block_announce_protocol_, announce);
   }
 
   void GossiperBroadcast::vote(
       const network::GrandpaVoteMessage &vote_message) {
-    logger_->debug("Gossip vote message: grandpa round number {}",
-                   vote_message.round_number);
+    SL_DEBUG(logger_,
+             "Gossip vote message: grandpa round number {}",
+             vote_message.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(vote_message)).value());
@@ -106,8 +106,9 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::finalize(const network::GrandpaPreCommit &fin) {
-    logger_->debug("Gossip fin message: grandpa round number {}",
-                   fin.round_number);
+    SL_DEBUG(logger_,
+             "Gossip fin message: grandpa round number {}",
+             fin.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(fin)).value());
@@ -118,8 +119,9 @@ namespace kagome::network {
   void GossiperBroadcast::catchUpRequest(
       const libp2p::peer::PeerId &peer_id,
       const CatchUpRequest &catch_up_request) {
-    logger_->debug("Gossip catch-up request: grandpa round number {}",
-                   catch_up_request.round_number);
+    SL_DEBUG(logger_,
+             "Gossip catch-up request: grandpa round number {}",
+             catch_up_request.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(catch_up_request)).value());
@@ -130,8 +132,9 @@ namespace kagome::network {
   void GossiperBroadcast::catchUpResponse(
       const libp2p::peer::PeerId &peer_id,
       const CatchUpResponse &catch_up_response) {
-    logger_->debug("Gossip catch-up response: grandpa round number {}",
-                   catch_up_response.round_number);
+    SL_DEBUG(logger_,
+             "Gossip catch-up response: grandpa round number {}",
+             catch_up_response.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(GrandpaMessage(catch_up_response)).value());

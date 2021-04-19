@@ -71,9 +71,10 @@ namespace kagome::network {
       if (protocols
               .emplace(protocol->protocol(), ProtocolDescr{protocol, {}, {}})
               .second) {
-        logger_->debug("Reserved {} stream with {}",
-                       protocol->protocol(),
-                       peer_id.toBase58());
+        SL_DEBUG(logger_,
+                 "Reserved {} stream with {}",
+                 protocol->protocol(),
+                 peer_id.toBase58());
       }
     }
 
@@ -111,7 +112,8 @@ namespace kagome::network {
                         ProtocolDescr{protocol,
                                       is_incoming ? stream : nullptr,
                                       is_outgoing ? stream : nullptr});
-      logger_->debug(
+      SL_DEBUG(
+          logger_,
           "Added {} {} stream with peer_id={}",
           direction == Direction::INCOMING
               ? "incoming"

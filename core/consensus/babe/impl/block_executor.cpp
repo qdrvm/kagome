@@ -259,9 +259,10 @@ namespace kagome::consensus {
 
     // check if block body already exists. If so, do not apply
     if (block_tree_->getBlockBody(block_hash)) {
-      logger_->debug("Skipping existed block number: {}, hash: {}",
-                     block.header.number,
-                     block_hash.toHex());
+      SL_DEBUG(logger_,
+               "Skipping existed block number: {}, hash: {}",
+               block.header.number,
+               block_hash.toHex());
 
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, block.header));
 
@@ -292,11 +293,14 @@ namespace kagome::consensus {
     OUTCOME_TRY(this_block_epoch_descriptor,
                 block_tree_->getEpochDescriptor(epoch_number,
                                                 block.header.parent_hash));
-    logger_->trace(
+
+    auto& slot_number = babe_header.slot_number;
+    SL_TRACE(
+        logger_,
         "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
         "block #{}). Randomness: {}",
         epoch_number,
-        babe_header.slot_number,
+        slot_number,
         block.header.number,
         this_block_epoch_descriptor.randomness.toHex());
 

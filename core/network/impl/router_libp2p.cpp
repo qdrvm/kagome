@@ -25,15 +25,15 @@ namespace kagome::network {
     BOOST_ASSERT(ping_proto_ != nullptr);
     BOOST_ASSERT(protocol_factory_ != nullptr);
 
-    log_->debug("Own peer id: {}", own_info.id.toBase58());
+    SL_DEBUG(log_, "Own peer id: {}", own_info.id.toBase58());
     if (!bootstrap_nodes.empty()) {
       for (const auto &peer_info : bootstrap_nodes) {
         for (auto &addr : peer_info.addresses) {
-          log_->debug("Bootstrap node: {}", addr.getStringAddress());
+          SL_DEBUG(log_, "Bootstrap node: {}", addr.getStringAddress());
         }
       }
     } else if (app_config_.isRunInDevMode()) {
-      log_->debug("No bootstrap node. Dev mode.");
+      SL_DEBUG(log_, "No bootstrap node. Dev mode.");
     } else {
       log_->error("No bootstrap node");
     }
