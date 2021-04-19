@@ -809,7 +809,7 @@ namespace kagome::blockchain {
       }
     } else {
       OUTCOME_TRY(last_finalized,
-                  header_repo_->getNumberByHash(getLastFinalized().block_hash));
+                  header_repo_->getNumberByHash(getLastFinalized().hash));
       if (last_finalized >= target_header.number) {
         return Error::BLOCK_ON_DEAD_END;
       }
@@ -896,17 +896,16 @@ namespace kagome::blockchain {
       leaf_depths.emplace_back(
           primitives::BlockInfo{leaf_node->depth, leaf_node->block_hash});
     }
-    std::sort(leaf_depths.begin(),
-              leaf_depths.end(),
-              [](auto const &p1, auto const &p2) {
-                return p1.block_number > p2.block_number;
-              });
+    std::sort(
+        leaf_depths.begin(),
+        leaf_depths.end(),
+        [](auto const &p1, auto const &p2) { return p1.number > p2.number; });
     std::vector<primitives::BlockHash> leaf_hashes;
     leaf_hashes.reserve(leaf_depths.size());
     std::transform(leaf_depths.begin(),
                    leaf_depths.end(),
                    std::back_inserter(leaf_hashes),
-                   [](auto &p) { return p.block_hash; });
+                   [](auto &p) { return p.hash; });
     return leaf_hashes;
   }
 

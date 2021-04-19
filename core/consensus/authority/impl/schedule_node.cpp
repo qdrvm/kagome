@@ -41,7 +41,7 @@ namespace kagome::authority {
     auto node = std::make_shared<ScheduleNode>(shared_from_this(), block);
     // Has ScheduledChange
     if (scheduled_after != INACTIVE) {
-      if (finalized && scheduled_after <= block.block_number) {
+      if (finalized && scheduled_after <= block.number) {
         node->actual_authorities = scheduled_authorities;
       } else {
         node->actual_authorities = actual_authorities;
@@ -52,7 +52,7 @@ namespace kagome::authority {
     }
     // Has ForcedChange
     else if (forced_for != INACTIVE) {
-      if (forced_for <= block.block_number) {
+      if (forced_for <= block.number) {
         node->actual_authorities = forced_authorities;
       } else {
         node->actual_authorities = actual_authorities;
@@ -64,7 +64,7 @@ namespace kagome::authority {
     // Has planned pause
     else if (pause_after != INACTIVE) {
       node->actual_authorities = actual_authorities;
-      if (finalized && pause_after <= block.block_number) {
+      if (finalized && pause_after <= block.number) {
         node->enabled = false;
       } else {
         node->enabled = enabled;
@@ -74,7 +74,7 @@ namespace kagome::authority {
     // Has planned resume
     else if (resume_for != INACTIVE) {
       node->actual_authorities = actual_authorities;
-      if (resume_for <= block.block_number) {
+      if (resume_for <= block.number) {
         node->enabled = true;
       } else {
         node->enabled = enabled;

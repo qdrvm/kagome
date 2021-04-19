@@ -26,13 +26,13 @@ namespace kagome::primitives {
       BlockInfoT() = default;
 
       BlockInfoT(const BlockNumber &n, const BlockHash &h)
-          : block_number(n), block_hash(h) {}
+          : number(n), hash(h) {}
 
-      BlockNumber block_number{};
-      BlockHash block_hash{};
+      BlockNumber number{};
+      BlockHash hash{};
 
       bool operator==(const BlockInfoT<Tag> &o) const {
-        return block_number == o.block_number && block_hash == o.block_hash;
+        return number == o.number && hash == o.hash;
       }
     };
 
@@ -40,14 +40,14 @@ namespace kagome::primitives {
               typename Tag,
               typename = std::enable_if_t<Stream::is_encoder_stream>>
     Stream &operator<<(Stream &s, const BlockInfoT<Tag> &msg) {
-      return s << msg.block_hash << msg.block_number;
+      return s << msg.hash << msg.number;
     }
 
     template <class Stream,
               typename Tag,
               typename = std::enable_if_t<Stream::is_decoder_stream>>
     Stream &operator>>(Stream &s, BlockInfoT<Tag> &msg) {
-      return s >> msg.block_hash >> msg.block_number;
+      return s >> msg.hash >> msg.number;
     }
   }  // namespace detail
 

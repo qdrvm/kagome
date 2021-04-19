@@ -175,11 +175,10 @@ namespace kagome::consensus::grandpa {
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(best_block, environment_);
 
-    GrandpaConfig config{
-        .voters = voters,
-        .round_number = new_round_number,
-        .duration = round_time_factor_,
-        .peer_id = keypair_.public_key};
+    GrandpaConfig config{.voters = voters,
+                         .round_number = new_round_number,
+                         .duration = round_time_factor_,
+                         .peer_id = keypair_.public_key};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, new_round_number, voters);
@@ -378,8 +377,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (current_round_->bestPrevoteCandidate().block_number
-        > round->bestFinalCandidate().block_number) {
+    if (current_round_->bestPrevoteCandidate().number
+        > round->bestFinalCandidate().number) {
       // GHOST-less Catch-up
       return;
     }
@@ -418,12 +417,12 @@ namespace kagome::consensus::grandpa {
 
     // get block info
     auto blockInfo = visit_in_place(msg.vote.message, [](const auto &vote) {
-      return BlockInfo(vote.block_number, vote.block_hash);
+      return BlockInfo(vote.number, vote.hash);
     });
 
     // get authorities
     const auto &weighted_authorities_res =
-        grandpa_api_->authorities(primitives::BlockId(blockInfo.block_number));
+        grandpa_api_->authorities(primitives::BlockId(blockInfo.number));
     if (!weighted_authorities_res.has_value()) {
       logger_->error("Can't get authorities");
       return;
@@ -491,8 +490,7 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
     }
 
-    if (current_round_->bestPrevoteCandidate().block_number
-        > block_info.block_number) {
+    if (current_round_->bestPrevoteCandidate().number > block_info.number) {
       return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
     }
 

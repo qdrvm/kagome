@@ -18,19 +18,19 @@
 
 namespace kagome::consensus::grandpa {
   static auto convertToPrimaryPropose = [](const auto &vote) {
-    return PrimaryPropose(vote.block_number, vote.block_hash);
+    return PrimaryPropose(vote.number, vote.hash);
   };
 
   static auto convertToPrevote = [](const auto &vote) {
-    return Prevote(vote.block_number, vote.block_hash);
+    return Prevote(vote.number, vote.hash);
   };
 
   static auto convertToPrecommit = [](const auto &vote) {
-    return Precommit(vote.block_number, vote.block_hash);
+    return Precommit(vote.number, vote.hash);
   };
 
   static auto convertToBlockInfo = [](const auto &vote) {
-    return BlockInfo(vote.block_number, vote.block_hash);
+    return BlockInfo(vote.number, vote.hash);
   };
 
   VotingRoundImpl::VotingRoundImpl(
@@ -190,8 +190,8 @@ namespace kagome::consensus::grandpa {
 
       // if Best-Final-Candidate greater than Last-Finalized-Block
       // spec: if Best-Final-Candidate(r ¡ 1) > Last-Finalized-Block
-      if (previous_round->bestFinalCandidate().block_number
-          >= last_finalized_block_.block_number) {
+      if (previous_round->bestFinalCandidate().number
+          >= last_finalized_block_.number) {
         doProposal();
       }
     }
@@ -350,8 +350,8 @@ namespace kagome::consensus::grandpa {
 
     const bool is_ready_to_end =
         finalizable()
-        && finalizedBlock()->block_number
-               >= previous_round->bestFinalCandidate().block_number;
+        && finalizedBlock()->number
+               >= previous_round->bestFinalCandidate().number;
 
     if (is_ready_to_end) {
       logger_->debug("Round #{}: Conditions for final stage are met already",
@@ -367,8 +367,8 @@ namespace kagome::consensus::grandpa {
 
       const bool is_ready_to_end =
           finalizable()
-          && finalizedBlock()->block_number
-                 >= previous_round->bestFinalCandidate().block_number;
+          && finalizedBlock()->number
+                 >= previous_round->bestFinalCandidate().number;
 
       if (is_ready_to_end) {
         logger_->debug("Round #{}: Conditions for final stage are met",
@@ -439,8 +439,8 @@ namespace kagome::consensus::grandpa {
 
     logger_->debug("Round #{}: Sending primary proposal of block #{} hash={}",
                    round_number_,
-                   signed_primary_proposal.block_number(),
-                   signed_primary_proposal.block_hash());
+                   signed_primary_proposal.getBlockNumber(),
+                   signed_primary_proposal.getBlockHash());
 
     auto proposed = env_->onProposed(
         round_number_, voter_set_->id(), signed_primary_proposal);
@@ -465,8 +465,7 @@ namespace kagome::consensus::grandpa {
     // spec: N <- Best-PreVote-Candidate(r)
     const auto best_prevote_candidate = bestPrevoteCandidate();
 
-    prevote_ = {{best_prevote_candidate.block_number,
-                 best_prevote_candidate.block_hash}};
+    prevote_ = {{best_prevote_candidate.number, best_prevote_candidate.hash}};
 
     // Broadcast vote for prevote stage
     // spec: Broadcast(Bpv)
@@ -476,8 +475,8 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::sendPrevote(const Prevote &prevote) {
     logger_->debug("Round #{}: Sending prevote for block #{} hash={}",
                    round_number_,
-                   prevote.block_number,
-                   prevote.block_hash);
+                   prevote.number,
+                   prevote.hash);
 
     auto signed_prevote = vote_crypto_provider_->signPrevote(prevote);
     auto prevoted =
@@ -508,12 +507,12 @@ namespace kagome::consensus::grandpa {
     // either equal to the last round estimate or is descendant of it
     const bool should_precommit =
         best_prevote_candidate == last_round_estimate
-        or env_->isEqualOrDescendOf(last_round_estimate.block_hash,
-                                    best_prevote_candidate.block_hash);
+        or env_->isEqualOrDescendOf(last_round_estimate.hash,
+                                    best_prevote_candidate.hash);
 
     if (should_precommit) {
-      precommit_ = {{best_prevote_candidate.block_number,
-                     best_prevote_candidate.block_hash}};
+      precommit_ = {
+          {best_prevote_candidate.number, best_prevote_candidate.hash}};
 
       sendPrecommit(convertToPrecommit(precommit_.value()));
       return;
@@ -527,8 +526,8 @@ namespace kagome::consensus::grandpa {
 
     logger_->debug("Round #{}: Sending precommit for block #{} hash={}",
                    round_number_,
-                   precommit.block_number,
-                   precommit.block_hash);
+                   precommit.number,
+                   precommit.hash);
 
     auto precommited =
         env_->onPrecommitted(round_number_, voter_set_->id(), signed_precommit);
@@ -548,15 +547,15 @@ namespace kagome::consensus::grandpa {
         getJustification(block, precommits_->getMessages());
     if (not justification_opt) {
       logger_->warn("No justification for block  <{}, {}>",
-                    block.block_number,
-                    block.block_hash.toHex());
+                    block.number,
+                    block.hash.toHex());
     }
     auto &justification = justification_opt.value();
 
     logger_->debug("Round #{}: Finalizing on block #{} hash={}",
                    round_number_,
-                   block.block_number,
-                   block.block_hash.toHex());
+                   block.number,
+                   block.hash.toHex());
 
     if (need_to_notice_at_finalizing_) {
       sendFinalize(block, justification);
@@ -569,8 +568,8 @@ namespace kagome::consensus::grandpa {
       const BlockInfo &block, const GrandpaJustification &justification) {
     logger_->debug("Round #{}: Sending finalize block #{} hash={}",
                    round_number_,
-                   block.block_number,
-                   block.block_hash.toHex());
+                   block.number,
+                   block.hash.toHex());
 
     auto finalized = env_->onCommitted(round_number_, block, justification);
     if (not finalized) {
@@ -601,7 +600,7 @@ namespace kagome::consensus::grandpa {
       return result.as_failure();
     }
 
-    auto finalized = env_->finalize(block_info.block_hash, justification);
+    auto finalized = env_->finalize(block_info.hash, justification);
     if (not finalized) {
       return finalized.as_failure();
     }
@@ -609,8 +608,8 @@ namespace kagome::consensus::grandpa {
     logger_->debug(
         "Round #{}: Finalisation of round is received for block #{} hash={}",
         round_number_,
-        block_info.block_number,
-        block_info.block_hash.toHex());
+        block_info.number,
+        block_info.hash.toHex());
 
     for (auto &item : justification.items) {
       visit_in_place(
@@ -621,8 +620,8 @@ namespace kagome::consensus::grandpa {
 
     // NOTE: Perhaps it's needless or needs to replace by condition
     BOOST_ASSERT(finalizable());
-    BOOST_ASSERT(env_->isEqualOrDescendOf(block_info.block_hash,
-                                          finalized_.value().block_hash));
+    BOOST_ASSERT(
+        env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
 
     need_to_notice_at_finalizing_ = false;
     env_->onCompleted(state());
@@ -639,21 +638,20 @@ namespace kagome::consensus::grandpa {
           "Round #{}: Finalisation is received for block #{} hash={} was "
           "rejected: validation failed",
           round_number_,
-          finalize.vote.block_number,
-          finalize.vote.block_hash.toHex());
+          finalize.vote.number,
+          finalize.vote.hash.toHex());
       env_->onCompleted(result.as_failure());
       return;
     }
 
-    auto finalized =
-        env_->finalize(finalize.vote.block_hash, finalize.justification);
+    auto finalized = env_->finalize(finalize.vote.hash, finalize.justification);
     if (not finalized) {
       logger_->debug(
           "Round #{}: Finalisation is received for block #{} hash={} was "
           "failed with error: {}",
           round_number_,
-          finalize.vote.block_number,
-          finalize.vote.block_hash.toHex(),
+          finalize.vote.number,
+          finalize.vote.hash.toHex(),
           finalized.error().message());
       return;
     }
@@ -661,8 +659,8 @@ namespace kagome::consensus::grandpa {
     logger_->debug(
         "Round #{}: Finalisation of round is received for block #{} hash={}",
         round_number_,
-        finalize.vote.block_number,
-        finalize.vote.block_hash.toHex());
+        finalize.vote.number,
+        finalize.vote.hash.toHex());
 
     for (auto &item : finalize.justification.items) {
       visit_in_place(
@@ -673,8 +671,8 @@ namespace kagome::consensus::grandpa {
 
     // NOTE: Perhaps it's needless or needs to replace by condition
     BOOST_ASSERT(finalizable());
-    BOOST_ASSERT(env_->isEqualOrDescendOf(finalize.vote.block_hash,
-                                          finalized_.value().block_hash));
+    BOOST_ASSERT(
+        env_->isEqualOrDescendOf(finalize.vote.hash, finalized_.value().hash));
 
     need_to_notice_at_finalizing_ = false;
     env_->onCompleted(state());
@@ -709,16 +707,16 @@ namespace kagome::consensus::grandpa {
       // that voter to the total weight
 
       if (auto [it, success] = validators.emplace(
-              signed_precommit.id, signed_precommit.block_hash());
+              signed_precommit.id, signed_precommit.getBlockHash());
           success) {
         // New vote
-        if (env_->hasAncestry(vote.block_hash, signed_precommit.block_hash())) {
+        if (env_->hasAncestry(vote.hash, signed_precommit.getBlockHash())) {
           total_weight += voter_set_->voterWeight(signed_precommit.id).value();
         }
 
       } else if (equivocators.emplace(signed_precommit.id).second) {
         // Detected equivocation
-        if (env_->hasAncestry(vote.block_hash, it->second)) {
+        if (env_->hasAncestry(vote.hash, it->second)) {
           total_weight -= voter_set_->voterWeight(signed_precommit.id).value();
         }
 
@@ -794,11 +792,11 @@ namespace kagome::consensus::grandpa {
 
     logger_->debug("Round #{}: Proposal received for block #{} hash={} from {}",
                    round_number_,
-                   proposal.block_number(),
-                   proposal.block_hash(),
+                   proposal.getBlockNumber(),
+                   proposal.getBlockHash(),
                    proposal.id.toHex());
 
-    primary_vote_ = {{proposal.block_number(), proposal.block_hash()}};
+    primary_vote_ = {{proposal.getBlockNumber(), proposal.getBlockHash()}};
   }
 
   void VotingRoundImpl::onPrevote(const SignedMessage &prevote) {
@@ -826,12 +824,12 @@ namespace kagome::consensus::grandpa {
 
     logger_->debug("Round #{}: Prevote received for block #{} hash={} from {} ",
                    round_number_,
-                   prevote.block_number(),
-                   prevote.block_hash(),
+                   prevote.getBlockNumber(),
+                   prevote.getBlockHash(),
                    prevote.id.toHex());
 
     if (not prevote_.has_value() && id_ == prevote.id) {
-      prevote_ = {{prevote.block_number(), prevote.block_hash()}};
+      prevote_ = {{prevote.getBlockNumber(), prevote.getBlockHash()}};
       logger_->debug("Round #{}: Own prevote was restored", round_number_);
     }
 
@@ -871,12 +869,12 @@ namespace kagome::consensus::grandpa {
     logger_->debug(
         "Round #{}: Precommit received for block #{} hash={} from {} ",
         round_number_,
-        precommit.block_number(),
-        precommit.block_hash(),
+        precommit.getBlockNumber(),
+        precommit.getBlockHash(),
         precommit.id.toHex());
 
     if (not precommit_.has_value() && id_ == precommit.id) {
-      precommit_ = {{precommit.block_number(), precommit.block_hash()}};
+      precommit_ = {{precommit.getBlockNumber(), precommit.getBlockHash()}};
       logger_->debug("Round #{}: Own precommit was restored", round_number_);
     }
 
@@ -918,8 +916,8 @@ namespace kagome::consensus::grandpa {
           prevotes_->unpush(vote, weight.value());
           logger_->warn(
               "Prevote for block #{} hash={} was not inserted with error: {}",
-              vote.block_number(),
-              vote.block_hash().toHex(),
+              vote.getBlockNumber(),
+              vote.getBlockHash().toHex(),
               result.error().message());
           return result.as_failure();
         }
@@ -966,8 +964,8 @@ namespace kagome::consensus::grandpa {
           precommits_->unpush(vote, weight.value());
           logger_->warn(
               "Precommit for block #{} hash={} was not inserted with error: {}",
-              vote.block_number(),
-              vote.block_hash().toHex(),
+              vote.getBlockNumber(),
+              vote.getBlockHash().toHex(),
               result.error().message());
           return result.as_failure();
         }
@@ -1019,8 +1017,8 @@ namespace kagome::consensus::grandpa {
             "Round #{}: updatePrevoteGhost->true (prevote ghost was changed to "
             "block #{} hash={})",
             round_number_,
-            prevote_ghost_->block_number,
-            prevote_ghost_->block_hash.toHex());
+            prevote_ghost_->number,
+            prevote_ghost_->hash.toHex());
       } else {
         logger_->trace(
             "Round #{}: updatePrevoteGhost->false (prevote ghost was not "
@@ -1079,8 +1077,8 @@ namespace kagome::consensus::grandpa {
           "Round #{}: updatePrecommitGhost->true (precommit ghost was changed "
           "to block #{} hash={})",
           round_number_,
-          precommit_ghost_->block_number,
-          precommit_ghost_->block_hash.toHex());
+          precommit_ghost_->number,
+          precommit_ghost_->hash.toHex());
       return true;
     }
 
@@ -1170,8 +1168,8 @@ namespace kagome::consensus::grandpa {
             "updated by precommit_ghost with given equvocations (block #{} "
             "hash={})",
             round_number_,
-            best_final_candidate_->block_number,
-            best_final_candidate_->block_hash);
+            best_final_candidate_->number,
+            best_final_candidate_->hash);
       } else {
         logger_->trace(
             "Round #{}: updateCompletability <- best_final_candidate is not "
@@ -1184,8 +1182,8 @@ namespace kagome::consensus::grandpa {
           "Round #{}: updateCompletability <- update best_final_candidate by "
           "prevote_ghost_ (block #{} hash={})",
           round_number_,
-          best_final_candidate_->block_number,
-          best_final_candidate_->block_hash);
+          best_final_candidate_->number,
+          best_final_candidate_->hash);
       return false;
     }
 
@@ -1207,10 +1205,10 @@ namespace kagome::consensus::grandpa {
               "hash={}) based on best prevote is different from "
               "best_final_candidate (block #{} hash={})",
               round_number_,
-              ghost->block_number,
-              ghost->block_hash,
-              best_final_candidate_->block_number,
-              best_final_candidate_->block_hash);
+              ghost->number,
+              ghost->hash,
+              best_final_candidate_->number,
+              best_final_candidate_->hash);
         }
       }
     } else {
@@ -1255,8 +1253,7 @@ namespace kagome::consensus::grandpa {
                                     : last_finalized_block_;
 
     // spec: Bpv <- GRANDPA-GHOST(r)
-    auto rbest_chain =
-        env_->bestChainContaining(best_final_candicate.block_hash);
+    auto rbest_chain = env_->bestChainContaining(best_final_candicate.hash);
     auto best_prevote_candidate = rbest_chain.has_value()
                                       ? convertToBlockInfo(rbest_chain.value())
                                       : last_finalized_block_;
@@ -1268,8 +1265,8 @@ namespace kagome::consensus::grandpa {
     if (primary_vote_.has_value()) {
       auto &primary = primary_vote_.value();
 
-      if (best_prevote_candidate.block_number >= primary.block_number
-          and primary.block_number > best_final_candicate.block_number) {
+      if (best_prevote_candidate.number >= primary.number
+          and primary.number > best_final_candicate.number) {
         // spec: N <- Bprim
         prevote_ = primary;
       }
@@ -1309,8 +1306,7 @@ namespace kagome::consensus::grandpa {
                                             VoteWeight::precommitComparator);
       if (finalized.has_value()) {
         if (not finalized_.has_value()
-            or env_->isEqualOrDescendOf(finalized_->block_hash,
-                                        finalized->block_hash)) {
+            or env_->isEqualOrDescendOf(finalized_->hash, finalized->hash)) {
           finalized_ = finalized;
         }
       }
@@ -1387,8 +1383,8 @@ namespace kagome::consensus::grandpa {
             "Round #{}: bestFinalCandidate <- best_final_candidate is updated "
             "by precommit_ghost with given equvocations (block #{} hash={})",
             round_number_,
-            best_final_candidate_->block_number,
-            best_final_candidate_->block_hash);
+            best_final_candidate_->number,
+            best_final_candidate_->hash);
       } else {
         logger_->trace(
             "Round #{}: bestFinalCandidate <- best_final_candidate is not "
@@ -1403,8 +1399,8 @@ namespace kagome::consensus::grandpa {
           "Round #{}: bestFinalCandidate <- update best_final_candidate by "
           "prevote_ghost_ (block #{} hash={})",
           round_number_,
-          best_final_candidate_->block_number,
-          best_final_candidate_->block_hash);
+          best_final_candidate_->number,
+          best_final_candidate_->hash);
       return best_final_candidate_.value();
     }
 
@@ -1426,10 +1422,10 @@ namespace kagome::consensus::grandpa {
               "hash={}) based on best prevote is different from "
               "best_final_candidate (block #{} hash={})",
               round_number_,
-              ghost->block_number,
-              ghost->block_hash,
-              best_final_candidate_->block_number,
-              best_final_candidate_->block_hash);
+              ghost->number,
+              ghost->hash,
+              best_final_candidate_->number,
+              best_final_candidate_->hash);
         }
       }
     } else {
@@ -1474,8 +1470,8 @@ namespace kagome::consensus::grandpa {
               voting_variant,
               [this, &justification, &estimate](
                   const SignedMessage &voting_message) {
-                if (env_->isEqualOrDescendOf(estimate.block_hash,
-                                             voting_message.block_hash())) {
+                if (env_->isEqualOrDescendOf(estimate.hash,
+                                             voting_message.getBlockHash())) {
                   justification.items.push_back(
                       static_cast<const SignedPrecommit &>(voting_message));
                 }

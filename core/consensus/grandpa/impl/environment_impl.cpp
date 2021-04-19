@@ -54,9 +54,9 @@ namespace kagome::consensus::grandpa {
       const BlockHash &base) const {
     logger_->debug("Finding best chain containing block {}", base.toHex());
     OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, boost::none));
-    auto best_hash = best_info.block_hash;
+    auto best_hash = best_info.hash;
 
-    auto target = best_info.block_number;
+    auto target = best_info.number;
 
     OUTCOME_TRY(best_header, header_repository_->getBlockHeader(best_hash));
 
@@ -115,8 +115,8 @@ namespace kagome::consensus::grandpa {
     gossiper_->vote(message);
     logger_->debug("Round #{}: Proposed block #{} with hash {}",
                    round,
-                   propose.block_number(),
-                   propose.block_hash().toHex());
+                   propose.getBlockNumber(),
+                   propose.getBlockHash().toHex());
     return outcome::success();
   }
 
@@ -130,8 +130,8 @@ namespace kagome::consensus::grandpa {
     gossiper_->vote(message);
     logger_->debug("Round #{}: Prevoted block #{} with hash {}",
                    round,
-                   prevote.block_number(),
-                   prevote.block_hash().toHex());
+                   prevote.getBlockNumber(),
+                   prevote.getBlockHash().toHex());
     return outcome::success();
   }
 
@@ -145,8 +145,8 @@ namespace kagome::consensus::grandpa {
     gossiper_->vote(message);
     logger_->debug("Round #{}: Precommitted block #{} with hash {}",
                    round,
-                   precommit.block_number(),
-                   precommit.block_hash().toHex());
+                   precommit.getBlockNumber(),
+                   precommit.getBlockHash().toHex());
     return outcome::success();
   }
 
@@ -156,8 +156,8 @@ namespace kagome::consensus::grandpa {
       const GrandpaJustification &justification) {
     logger_->debug("Round #{}: Committed block #{} with hash {}",
                    round,
-                   vote.block_number,
-                   vote.block_hash.toHex());
+                   vote.number,
+                   vote.hash.toHex());
     network::GrandpaPreCommit message{
         {.round_number = round, .vote = vote, .justification = justification}};
     gossiper_->finalize(message);

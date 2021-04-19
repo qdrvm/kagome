@@ -50,7 +50,7 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Status &v) {
-    return s << v.roles << v.best_block.block_number << v.best_block.block_hash
+    return s << v.roles << v.best_block.number << v.best_block.hash
              << v.genesis_hash;
   }
 
@@ -64,7 +64,7 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Status &v) {
-    return s >> v.roles >> v.best_block.block_number >> v.best_block.block_hash
+    return s >> v.roles >> v.best_block.number >> v.best_block.hash
            >> v.genesis_hash;
   }
 
