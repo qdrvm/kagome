@@ -39,6 +39,7 @@ int main(int argc, char **argv) {
   AppConfigurationImpl configuration{logger};
 
   if (configuration.initialize_from_args(argc, argv)) {
+    kagome::log::setLevelOfGroup("*", configuration.verbosity());
     auto app =
         std::make_shared<application::AllInOneApplication>(configuration);
     app->run();

@@ -36,7 +36,6 @@ namespace {
   const uint16_t def_rpc_ws_port = 9944;
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
-  const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
   const bool def_dev_mode = false;
@@ -487,8 +486,15 @@ namespace kagome::application {
       roles_.flags.full = 1;
     }
 
-    if (vm.end() != vm.find("already-synchronized"))
+    if (vm.end() != vm.find("already-synchronized")) {
+      if (roles_.flags.authority == 0) {
+        logger_->error("Non authority node is run as already synced");
+        std::cerr << "Non authority node can't be presented as already synced;\n"
+                     "Change --role or remove --already-synchronized option" << std::endl;
+        return false;
+      }
       is_already_synchronized_ = true;
+    }
 
     if (vm.end() != vm.find("unix-slots")) is_unix_slots_strategy_ = true;
 

@@ -27,14 +27,15 @@ namespace kagome::application {
     io_context_ = injector_->injectIoContext();
     clock_ = injector_->injectSystemClock();
     babe_ = injector_->injectBabe();
-    grandpa_ = injector_->injectGrandpa();
     router_ = injector_->injectRouter();
     peer_manager_ = injector_->injectPeerManager();
     jrpc_api_service_ = injector_->injectRpcApiService();
   }
 
   void AllInOneApplication::run() {
-    logger_->info("Start as AllInOneApplication with PID {}", getpid());
+    logger_->info("Start as AllInOneApplication with PID {} named as {}",
+                  getpid(),
+                  node_name_);
 
     auto chain_path = app_config_.chainPath(chain_spec_->id());
     auto res = util::init_directory(chain_path);

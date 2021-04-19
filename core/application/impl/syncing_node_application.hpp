@@ -8,16 +8,10 @@
 
 #include "application/kagome_application.hpp"
 
-//#include <boost/filesystem/path.hpp>
-//
-//#include "api/service/api_service.hpp"
 #include "application/app_configuration.hpp"
 #include "application/app_state_manager.hpp"
 #include "application/chain_spec.hpp"
 #include "injector/application_injector.hpp"
-//#include "log/logger.hpp"
-//#include "network/peer_manager.hpp"
-//#include "network/router.hpp"
 
 namespace kagome::application {
 
@@ -40,15 +34,12 @@ namespace kagome::application {
     uptr<injector::SyncingNodeInjector> injector_;
     log::Logger logger_;
 
-    std::shared_ptr<soralog::LoggingSystem> logging_system_;
-    std::shared_ptr<AppStateManager> app_state_manager_;
-    std::shared_ptr<ChainSpec> chain_spec_;
-    std::shared_ptr<network::Router> router_;
-    std::shared_ptr<network::PeerManager> peer_manager_;
-    std::shared_ptr<api::ApiService> jrpc_api_service_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
-
-    boost::filesystem::path chain_path_;
+    sptr<boost::asio::io_context> io_context_;
+    sptr<AppStateManager> app_state_manager_;
+    sptr<ChainSpec> chain_spec_;
+    sptr<network::Router> router_;
+    sptr<network::PeerManager> peer_manager_;
+    sptr<api::ApiService> jrpc_api_service_;
     const std::string node_name_;
   };
 

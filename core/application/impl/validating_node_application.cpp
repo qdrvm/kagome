@@ -26,9 +26,6 @@ namespace kagome::application {
     BOOST_ASSERT(chain_spec_ != nullptr);
 
     app_state_manager_ = injector_->injectAppStateManager();
-
-    chain_path_ = app_config.chainPath(chain_spec_->id());
-
     io_context_ = injector_->injectIoContext();
     clock_ = injector_->injectSystemClock();
     babe_ = injector_->injectBabe();
@@ -47,7 +44,7 @@ namespace kagome::application {
     auto res = util::init_directory(chain_path);
     if (not res) {
       logger_->critical("Error initializing chain directory {}: {}",
-                        chain_path_.native(),
+                        chain_path.native(),
                         res.error().message());
       exit(EXIT_FAILURE);
     }
