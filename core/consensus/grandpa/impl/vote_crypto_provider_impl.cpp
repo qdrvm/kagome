@@ -11,7 +11,7 @@
 namespace kagome::consensus::grandpa {
 
   VoteCryptoProviderImpl::VoteCryptoProviderImpl(
-      kagome::crypto::Ed25519Keypair keypair,
+      boost::optional<crypto::Ed25519Keypair> keypair,
       std::shared_ptr<kagome::crypto::Ed25519Provider> ed_provider,
       RoundNumber round_number,
       std::shared_ptr<VoterSet> voter_set)
@@ -20,12 +20,16 @@ namespace kagome::consensus::grandpa {
         round_number_{round_number},
         voter_set_{std::move(voter_set)} {}
 
-  SignedMessage VoteCryptoProviderImpl::sign(Vote vote) const {
+  boost::optional<SignedMessage> VoteCryptoProviderImpl::sign(Vote vote) const {
+    if (not keypair_.has_value()) {
+      return boost::none;
+    }
+    auto& keypair = keypair_.value();
     auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
-    auto signature = ed_provider_->sign(keypair_, payload).value();
-    return {.message = std::move(vote),
+    auto signature = ed_provider_->sign(keypair, payload).value();
+    return {{.message = std::move(vote),
             .signature = signature,
-            .id = keypair_.public_key};
+            .id = keypair.public_key}};
   }
 
   bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,
@@ -51,23 +55,17 @@ namespace kagome::consensus::grandpa {
     return vote.is<Precommit>() and verify(vote, round_number_);
   }
 
-  crypto::Ed25519Signature VoteCryptoProviderImpl::voteSignature(
-      const Vote &vote) const {
-    auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
-    return ed_provider_->sign(keypair_, payload).value();
-  }
-
-  SignedMessage VoteCryptoProviderImpl::signPrimaryPropose(
+  boost::optional<SignedMessage> VoteCryptoProviderImpl::signPrimaryPropose(
       const PrimaryPropose &primary_propose) const {
     return sign(primary_propose);
   }
 
-  SignedMessage VoteCryptoProviderImpl::signPrevote(
+  boost::optional<SignedMessage> VoteCryptoProviderImpl::signPrevote(
       const Prevote &prevote) const {
     return sign(prevote);
   }
 
-  SignedMessage VoteCryptoProviderImpl::signPrecommit(
+  boost::optional<SignedMessage> VoteCryptoProviderImpl::signPrecommit(
       const Precommit &precommit) const {
     return sign(precommit);
   }

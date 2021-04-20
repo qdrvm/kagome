@@ -46,7 +46,7 @@ namespace kagome::consensus::grandpa {
       : voter_set_{config.voters},
         round_number_{config.round_number},
         duration_{config.duration},
-        id_{config.peer_id},
+        id_{config.id},
         grandpa_(grandpa),
         env_{std::move(env)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
@@ -434,13 +434,20 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::sendProposal(const PrimaryPropose &primary_proposal) {
-    auto signed_primary_proposal =
-        vote_crypto_provider_->signPrimaryPropose(primary_proposal);
-
     logger_->debug("Round #{}: Sending primary proposal of block #{} hash={}",
                    round_number_,
-                   signed_primary_proposal.block_number(),
-                   signed_primary_proposal.block_hash());
+                   primary_proposal.block_number,
+                   primary_proposal.block_hash);
+
+    auto signed_primary_proposal_opt =
+        vote_crypto_provider_->signPrimaryPropose(primary_proposal);
+
+    if (not signed_primary_proposal_opt.has_value()) {
+      logger_->error(
+          "Round #{}: Primary proposal was not sent: Can't sign message",
+          round_number_);
+    }
+    auto &signed_primary_proposal = signed_primary_proposal_opt.value();
 
     auto proposed = env_->onProposed(
         round_number_, voter_set_->id(), signed_primary_proposal);
@@ -479,7 +486,14 @@ namespace kagome::consensus::grandpa {
                    prevote.block_number,
                    prevote.block_hash);
 
-    auto signed_prevote = vote_crypto_provider_->signPrevote(prevote);
+    auto signed_prevote_opt = vote_crypto_provider_->signPrevote(prevote);
+    if (not signed_prevote_opt.has_value()) {
+      logger_->error(
+          "Round #{}: Prevote was not sent: Can't sign message",
+          round_number_);
+    }
+    auto &signed_prevote = signed_prevote_opt.value();
+
     auto prevoted =
         env_->onPrevoted(round_number_, voter_set_->id(), signed_prevote);
 
@@ -523,12 +537,18 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::sendPrecommit(const Precommit &precommit) {
-    auto signed_precommit = vote_crypto_provider_->signPrecommit(precommit);
-
     logger_->debug("Round #{}: Sending precommit for block #{} hash={}",
                    round_number_,
                    precommit.block_number,
                    precommit.block_hash);
+
+    auto signed_precommit_opt = vote_crypto_provider_->signPrecommit(precommit);
+    if (not signed_precommit_opt.has_value()) {
+      logger_->error(
+          "Round #{}: Precommit was not sent: Can't sign message",
+          round_number_);
+    }
+    auto &signed_precommit = signed_precommit_opt.value();
 
     auto precommited =
         env_->onPrecommitted(round_number_, voter_set_->id(), signed_precommit);
@@ -589,7 +609,7 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VotingRoundImpl::isPrimary() const {
-    return isPrimary(id_);
+    return id_.has_value() && isPrimary(id_.value());
   }
 
   outcome::result<void> VotingRoundImpl::applyJustification(

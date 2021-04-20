@@ -227,9 +227,9 @@ namespace kagome::consensus::grandpa {
 
     const Duration duration_;  // length of round
     bool isPrimary_ = false;
-    size_t threshold_;      // supermajority threshold
-    const Id id_;           // id of current peer
-    TimePoint start_time_;  // time when round was started to play
+    size_t threshold_;              // supermajority threshold
+    const boost::optional<Id> id_;  // id of current peer
+    TimePoint start_time_;          // time when round was started to play
 
     std::weak_ptr<Grandpa> grandpa_;
     std::shared_ptr<Environment> env_;

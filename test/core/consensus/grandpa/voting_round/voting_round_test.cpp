@@ -112,7 +112,7 @@ class VotingRoundTest : public testing::Test {
     GrandpaConfig config{.voters = voters_,
                          .round_number = round_number_,
                          .duration = duration_,
-                         .peer_id = kAlice};
+                         .id = kAlice};
 
     previous_round_ = std::make_shared<VotingRoundMock>();
     ON_CALL(*previous_round_, lastFinalizedBlock())
