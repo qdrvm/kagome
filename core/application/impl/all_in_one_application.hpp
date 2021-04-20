@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
-#define KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
+#ifndef KAGOME_APPLICATION_ALLINONEAPPLICATION
+#define KAGOME_APPLICATION_ALLINONEAPPLICATION
 
 #include "application/kagome_application.hpp"
 
@@ -31,7 +31,7 @@ namespace kagome::application {
 
    private:
     const AppConfiguration &app_config_;
-    uptr<injector::ValidatingNodeInjector> injector_;
+    uptr<injector::KagomeNodeInjector> injector_;
     log::Logger logger_;
 
     sptr<boost::asio::io_context> io_context_;
@@ -48,4 +48,4 @@ namespace kagome::application {
 
 }  // namespace kagome::application
 
-#endif  // KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
+#endif  // KAGOME_APPLICATION_ALLINONEAPPLICATION

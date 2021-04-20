@@ -15,7 +15,7 @@ namespace kagome::application {
   AllInOneApplication::AllInOneApplication(const AppConfiguration &app_config)
       : app_config_(app_config),
         injector_{
-            std::make_unique<injector::ValidatingNodeInjector>(app_config)},
+            std::make_unique<injector::KagomeNodeInjector>(app_config)},
         logger_(log::createLogger("AllInOneApplication", "application")) {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
