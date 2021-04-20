@@ -148,7 +148,7 @@ namespace std {
   }
 
   inline void PrintTo(const BlockInfo &e, ostream *os) {
-    *os << "BlockInfo{n=" << e.block_number << ", h=" << e.block_hash << "}";
+    *os << "BlockInfo{n=" << e.number << ", h=" << e.hash << "}";
   }
 
   inline void PrintTo(const VoteGraph::Entry &e, ostream *os) {

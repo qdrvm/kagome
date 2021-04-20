@@ -14,7 +14,8 @@ namespace kagome::network {
   /**
    * Reactive part of Sync protocol
    */
-  struct SyncProtocolObserver {
+  class SyncProtocolObserver {
+   public:
     virtual ~SyncProtocolObserver() = default;
 
     /**

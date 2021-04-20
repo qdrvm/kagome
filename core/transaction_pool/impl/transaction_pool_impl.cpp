@@ -66,7 +66,7 @@ namespace kagome::transaction_pool {
       }
       imported_txs_.erase(tx->hash);
     } else {
-      logger_->debug("Extrinsic {} with hash {} was added to the pool",
+      SL_DEBUG(logger_, "Extrinsic {} with hash {} was added to the pool",
                      tx->ext.data.toHex(),
                      tx->hash.toHex());
     }
@@ -141,7 +141,7 @@ namespace kagome::transaction_pool {
       const Transaction::Hash &tx_hash) {
     auto tx_node = imported_txs_.extract(tx_hash);
     if (tx_node.empty()) {
-      logger_->trace(
+      SL_TRACE(logger_,
           "Extrinsic with hash {} was not found in the pool during remove",
           tx_hash);
       return TransactionPoolError::TX_NOT_FOUND;
@@ -153,7 +153,7 @@ namespace kagome::transaction_pool {
 
     processPostponedTransactions();
 
-    logger_->debug("Extrinsic {} with hash {} was removed from the pool",
+    SL_DEBUG(logger_, "Extrinsic {} with hash {} was removed from the pool",
                    tx->ext.data.toHex(),
                    tx->hash.toHex());
     return std::move(*tx);

@@ -96,9 +96,10 @@ namespace kagome::host_api {
       return 0;
     }
     if (not data.value().empty())
-      logger_->trace("ext_get_allocated_storage. Key hex: {} Value hex {}",
-                     key.toHex(),
-                     data.value().toHex());
+      SL_TRACE(logger_,
+               "ext_get_allocated_storage. Key hex: {} Value hex {}",
+               key.toHex(),
+               data.value().toHex());
 
     auto data_ptr = memory_->allocate(length);
 
@@ -121,17 +122,20 @@ namespace kagome::host_api {
     auto key = memory_->loadN(key_data, key_length);
     auto data = get(key, value_offset, value_length);
     if (not data) {
-      logger_->trace("ext_get_storage_into. Val by key {} not found",
-                     key.toHex());
+      SL_TRACE(logger_,
+               "ext_get_storage_into. Val by key {} not found",
+               key.toHex());
       return runtime::WasmMemory::kMaxMemorySize;
     }
     if (not data.value().empty()) {
-      logger_->trace("ext_get_storage_into. Key hex: {} , Value hex {}",
-                     key.toHex(),
-                     data.value().toHex());
+      SL_TRACE(logger_,
+               "ext_get_storage_into. Key hex: {} , Value hex {}",
+               key.toHex(),
+               data.value().toHex());
     } else {
-      logger_->trace("ext_get_storage_into. Key hex: {} Value: empty",
-                     key.toHex());
+      SL_TRACE(logger_,
+               "ext_get_storage_into. Key hex: {} Value: empty",
+               key.toHex());
     }
     memory_->storeBuffer(value_data, data.value());
     return data.value().size();
@@ -164,17 +168,17 @@ namespace kagome::host_api {
     auto value = memory_->loadN(value_data, value_length);
 
     if (value.toHex().size() < 500) {
-      logger_->trace(
-          "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
-          key.toString(),
-          key.toHex(),
-          value.toString(),
-          value.toHex());
+      SL_TRACE(logger_,
+               "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
+               key.toString(),
+               key.toHex(),
+               value.toString(),
+               value.toHex());
     } else {
-      logger_->trace(
-          "Set storage. Key: {}, Key hex: {} Value is too big to display",
-          key.toString(),
-          key.toHex());
+      SL_TRACE(logger_,
+               "Set storage. Key: {}, Key hex: {} Value is too big to display",
+               key.toString(),
+               key.toHex());
     }
 
     auto batch = storage_provider_->getCurrentBatch();
@@ -325,12 +329,14 @@ namespace kagome::host_api {
     auto option = result ? boost::make_optional(result.value()) : boost::none;
 
     if (option) {
-      logger_->trace("ext_storage_get_version_1( {} ) => {}",
-                     key_buffer.toHex(),
-                     option.value().empty() ? "empty" : option.value().toHex());
+      SL_TRACE(logger_,
+               "ext_storage_get_version_1( {} ) => {}",
+               key_buffer.toHex(),
+               option.value().empty() ? "empty" : option.value().toHex());
 
     } else {
-      logger_->trace(
+      SL_TRACE(
+          logger_,
           "ext_storage_get_version_1( {} ) => value was not obtained. Reason: "
           "{}",
           key_buffer.toHex(),
@@ -540,7 +546,8 @@ namespace kagome::host_api {
     }
     storage::changes_trie::ChangesTrieConfig trie_config = config_res.value();
 
-    logger_->debug(
+    SL_DEBUG(
+        logger_,
         "ext_storage_changes_root constructing changes trie with parent_hash: "
         "{}",
         parent_hash.toHex());
@@ -552,9 +559,10 @@ namespace kagome::host_api {
       throw std::runtime_error(trie_hash_res.error().message());
     }
     common::Buffer result_buf(trie_hash_res.value());
-    logger_->debug("ext_storage_changes_root with parent_hash {} result is: {}",
-                   parent_hash.toHex(),
-                   result_buf.toHex());
+    SL_DEBUG(logger_,
+             "ext_storage_changes_root with parent_hash {} result is: {}",
+             parent_hash.toHex(),
+             result_buf.toHex());
     return result_buf;
   }
 

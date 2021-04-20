@@ -451,7 +451,7 @@ ACTION_P(onFinalize, test_fixture) {
  * and `finalized` equal to the best block that Alice voted for
  */
 TEST_F(VotingRoundTest, SunnyDayScenario) {
-  auto base_block_hash = previous_round_->bestFinalCandidate().block_hash;
+  auto base_block_hash = previous_round_->bestFinalCandidate().hash;
   auto finalized_block = *previous_round_->finalizedBlock();
 
   BlockHash best_block_hash = "FC"_H;
@@ -472,8 +472,8 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   {
     auto matcher = [&](const SignedMessage &primary_propose) {
       if (primary_propose.id == kAlice
-          and primary_propose.block_hash() == base_block_hash) {
-        std::cout << "Proposed: " << primary_propose.block_hash().data()
+          and primary_propose.getBlockHash() == base_block_hash) {
+        std::cout << "Proposed: " << primary_propose.getBlockHash().data()
                   << std::endl;
         return true;
       }
@@ -486,8 +486,8 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   // After prevote stage timer is out, Alice is doing prevote
   {
     auto matcher = [&](const SignedMessage &prevote) {
-      if (prevote.id == kAlice and prevote.block_hash() == best_block_hash) {
-        std::cout << "Prevoted: " << prevote.block_hash().data() << std::endl;
+      if (prevote.id == kAlice and prevote.getBlockHash() == best_block_hash) {
+        std::cout << "Prevoted: " << prevote.getBlockHash().data() << std::endl;
         return true;
       }
       return false;
@@ -501,8 +501,8 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   {
     auto matcher = [&](const SignedMessage &precommit) {
       if (precommit.id == kAlice
-          and precommit.block_hash() == best_block_hash) {
-        std::cout << "Precommited: " << precommit.block_hash().data()
+          and precommit.getBlockHash() == best_block_hash) {
+        std::cout << "Precommited: " << precommit.getBlockHash().data()
                   << std::endl;
         return true;
       }
@@ -516,7 +516,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   {
     // check that expected fin message was sent
     auto matcher1 = [&](const BlockInfo &compared) {
-      std::cout << "Finalized: " << compared.block_hash.data() << std::endl;
+      std::cout << "Finalized: " << compared.hash.data() << std::endl;
       return compared == BlockInfo{best_block_number, best_block_hash};
     };
     auto matcher2 = [&](GrandpaJustification just) {
@@ -554,8 +554,8 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       return state.round_number == round_number_
              and state.last_finalized_block == finalized_block
              and state.finalized.has_value()
-             and state.finalized->block_number == best_block_number
-             and state.finalized->block_hash == best_block_hash;
+             and state.finalized->number == best_block_number
+             and state.finalized->hash == best_block_hash;
     };
 
     EXPECT_CALL(*env_, onCompleted(Truly(matcher))).WillRepeatedly(Return());

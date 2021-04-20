@@ -110,7 +110,7 @@ namespace kagome::consensus {
                   ExecutorState state = kSyncState;
                   if (self->sync_state_.compare_exchange_strong(state,
                                                                 kReadyState)) {
-                    self->sync_timer_->cancel();
+                    self->sync_timer_.get()->cancel();
                   }
                 }
               });
@@ -135,32 +135,42 @@ namespace kagome::consensus {
   void BlockExecutor::requestBlocks(const primitives::BlockHash &from,
                                     const primitives::BlockHash &to,
                                     const libp2p::peer::PeerId &peer_id,
-                                    std::function<void()> &&next) {
+                                    std::function<void()> &&on_retrieved) {
     babe_synchronizer_->request(
         from,
         to,
         peer_id,
-        [wp = weak_from_this(), next(std::move(next)), to, from, peer_id](
-            auto blocks_res) mutable {
+        [wp = weak_from_this(),
+         on_retrieved = std::move(on_retrieved),
+         to,
+         from,
+         peer_id](auto blocks_res) mutable {
           auto self = wp.lock();
-          if (!self || !blocks_res) {
-            next();
+          if (not self) {
+            on_retrieved();
             return;
           }
 
+          if (not blocks_res.has_value()) {
+            on_retrieved();
+            return;
+          }
           auto &blocks = blocks_res->get();
 
           if (blocks.empty()) {
             self->logger_->warn("Received empty list of blocks");
-            next();
+            on_retrieved();
             return;
           }
 
           if (blocks.front().header && blocks.back().header) {
-            self->logger_->info("Received portion of blocks: {}..{}, count {}",
-                                blocks.front().hash.toHex(),
-                                blocks.back().hash.toHex(),
-                                blocks.size());
+            self->logger_->info(
+                "Received portion of blocks: {}..{}, {}..{}, count {}",
+                blocks.front().hash.toHex(),
+                blocks.back().hash.toHex(),
+                blocks.front().header->number,
+                blocks.back().header->number,
+                blocks.size());
           }
 
           auto async_helper = std::make_shared<AsyncHelper>(self->io_context_);
@@ -168,13 +178,26 @@ namespace kagome::consensus {
           async_helper->setFunction([wp,
                                      to,
                                      peer_id,
-                                     on_retrieved = std::move(next),
+                                     on_retrieved = std::move(on_retrieved),
                                      next_iteration = async_helper->next(),
                                      blocks = std::move(blocks),
                                      i = static_cast<size_t>(0)]() mutable {
             auto self = wp.lock();
             if (not self) {
               return;
+            }
+
+            ExecutorState state = kSyncState;
+            if (self->sync_state_.compare_exchange_strong(state, kSyncState)) {
+              self->sync_timer_->cancel();
+              self->sync_timer_->expiresAfter(std::chrono::seconds(30));
+              self->sync_timer_->asyncWait([wp](auto e) {
+                if (auto self = wp.lock()) {
+                  if (not e) {
+                    self->sync_state_ = kReadyState;
+                  }
+                }
+              });
             }
 
             auto block = std::move(blocks[i++]);  // For free memory asap
@@ -187,7 +210,8 @@ namespace kagome::consensus {
                        != outcome::failure(
                            blockchain::BlockTreeError::BLOCK_EXISTS)) {
               self->logger_->warn(
-                  "Could not apply block during synchronizing. Error: {}",
+                  "Could not apply block #{} during synchronizing. Error: {}",
+                  block.header->number,
                   apply_res.error().message());
               on_retrieved();
               return;
@@ -235,9 +259,10 @@ namespace kagome::consensus {
 
     // check if block body already exists. If so, do not apply
     if (block_tree_->getBlockBody(block_hash)) {
-      logger_->debug("Skipping existed block number: {}, hash: {}",
-                     block.header.number,
-                     block_hash.toHex());
+      SL_DEBUG(logger_,
+               "Skipping existed block number: {}, hash: {}",
+               block.header.number,
+               block_hash.toHex());
 
       OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, block.header));
 
@@ -268,11 +293,14 @@ namespace kagome::consensus {
     OUTCOME_TRY(this_block_epoch_descriptor,
                 block_tree_->getEpochDescriptor(epoch_number,
                                                 block.header.parent_hash));
-    logger_->trace(
+
+    auto& slot_number = babe_header.slot_number;
+    SL_TRACE(
+        logger_,
         "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
         "block #{}). Randomness: {}",
         epoch_number,
-        babe_header.slot_number,
+        slot_number,
         block.header.number,
         this_block_epoch_descriptor.randomness.toHex());
 

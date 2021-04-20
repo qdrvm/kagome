@@ -34,7 +34,7 @@ class VoteTrackerTest : public testing::Test {
     SignedMessage m;
     m.id = id;
     Prevote msg;
-    msg.block_hash = hash;
+    msg.hash = hash;
     m.message = std::move(msg);
     return m;
   }
@@ -102,23 +102,23 @@ TEST_F(VoteTrackerTest, GetMessages) {
                   v,
                   [&](const VotingMessage &voting_message) {
                     return m.id == voting_message.id
-                           && m.block_hash() == voting_message.block_hash();
+                           && m.getBlockHash() == voting_message.getBlockHash();
                   },
                   [&](const EquivocatoryVotingMessage
                           &equivocatory_voting_message) {
                     const auto &first_id = equivocatory_voting_message.first.id;
                     const auto &first_block_hash =
-                        equivocatory_voting_message.first.block_hash();
+                        equivocatory_voting_message.first.getBlockHash();
 
                     const auto &second_id =
                         equivocatory_voting_message.second.id;
                     const auto &second_block_hash =
-                        equivocatory_voting_message.second.block_hash();
+                        equivocatory_voting_message.second.getBlockHash();
 
                     return (m.id == first_id
-                            && m.block_hash() == first_block_hash)
+                            && m.getBlockHash() == first_block_hash)
                            || (m.id == second_id
-                               && m.block_hash() == second_block_hash);
+                               && m.getBlockHash() == second_block_hash);
                   });
             })
         != messages.end());

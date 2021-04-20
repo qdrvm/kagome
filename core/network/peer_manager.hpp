@@ -35,6 +35,11 @@ namespace kagome::network {
     virtual void connectToPeer(const PeerInfo &peer_info) = 0;
 
     /**
+     * Reserves stream slots of needed protocols for peer by {@param peer_id}
+     */
+    virtual void reserveStreams(const PeerId &peer_id) const = 0;
+
+    /**
      * Keeps peer with {@param peer_id} alive
      */
     virtual void keepAlive(const PeerId &peer_id) = 0;

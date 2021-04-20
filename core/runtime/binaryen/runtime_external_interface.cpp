@@ -6,8 +6,8 @@
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
 #include "host_api/host_api_factory.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 
 namespace kagome::runtime {
   class TrieStorageProvider;
@@ -176,7 +176,7 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
-    logger_->trace("Call import {}", import->base);
+    SL_TRACE(logger_, "Call import {}", import->base);
     // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
       /// memory externals

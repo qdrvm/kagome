@@ -24,9 +24,12 @@ namespace kagome::application {
 
     app_state_manager_ = injector_->injectAppStateManager();
     io_context_ = injector_->injectIoContext();
+    babe_ = injector_->injectBabe();
+    grandpa_ = injector_->injectGrandpa();
     router_ = injector_->injectRouter();
     peer_manager_ = injector_->injectPeerManager();
     jrpc_api_service_ = injector_->injectRpcApiService();
+    sync_observer_ = injector_->injectSyncObserver();
   }
 
   void SyncingNodeApplication::run() {

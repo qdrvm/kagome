@@ -20,11 +20,11 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 
-#define UNWRAP_WEAK_PTR(callback)  \
-  [wp](auto &&...params) mutable { \
-    if (auto self = wp.lock()) {   \
-      self->callback(params...);   \
-    }                              \
+#define UNWRAP_WEAK_PTR(callback)   \
+  [wp](auto &&... params) mutable { \
+    if (auto self = wp.lock()) {    \
+      self->callback(params...);    \
+    }                               \
   }
 
 namespace {
@@ -217,13 +217,13 @@ namespace kagome::api {
 
   bool ApiServiceImpl::start() {
     thread_pool_->start();
-    logger_->debug("API Service started");
+    SL_DEBUG(logger_, "API Service started");
     return true;
   }
 
   void ApiServiceImpl::stop() {
     thread_pool_->stop();
-    logger_->debug("API Service stopped");
+    SL_DEBUG(logger_, "API Service stopped");
   }
 
   std::shared_ptr<ApiServiceImpl::SessionSubscriptions>
@@ -270,16 +270,16 @@ namespace kagome::api {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);
           if (auto res = pb->get(key); res.has_value()) {
-            forJsonData(server_,
-                        logger_,
-                        id,
-                        kRpcEventSubscribeStorage,
-                        createStateStorageEvent(
-                            key, res.value(), last_finalized.block_hash),
-                        [&](const auto &result) {
-                          session_context.messages->emplace_back(
-                              uploadFromCache(result.data()));
-                        });
+            forJsonData(
+                server_,
+                logger_,
+                id,
+                kRpcEventSubscribeStorage,
+                createStateStorageEvent(key, res.value(), last_finalized.hash),
+                [&](const auto &result) {
+                  session_context.messages->emplace_back(
+                      uploadFromCache(result.data()));
+                });
           }
         }
         return static_cast<PubsubSubscriptionId>(id);
@@ -296,8 +296,8 @@ namespace kagome::api {
         session->subscribe(id,
                            primitives::events::ChainEventType::kFinalizedHeads);
 
-        auto header = block_tree_->getBlockHeader(
-            block_tree_->getLastFinalized().block_hash);
+        auto header =
+            block_tree_->getBlockHeader(block_tree_->getLastFinalized().hash);
         if (!header.has_error()) {
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
@@ -340,7 +340,7 @@ namespace kagome::api {
         session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
 
         auto header =
-            block_tree_->getBlockHeader(block_tree_->deepestLeaf().block_hash);
+            block_tree_->getBlockHeader(block_tree_->deepestLeaf().hash);
         if (!header.has_error()) {
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,

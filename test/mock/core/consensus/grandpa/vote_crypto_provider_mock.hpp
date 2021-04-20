@@ -19,11 +19,14 @@ namespace kagome::consensus::grandpa {
     MOCK_CONST_METHOD1(verifyPrevote, bool(const SignedMessage &prevote));
     MOCK_CONST_METHOD1(verifyPrecommit, bool(const SignedMessage &precommit));
 
-    MOCK_CONST_METHOD1(signPrimaryPropose,
-                       SignedMessage(const PrimaryPropose &primary_propose));
-    MOCK_CONST_METHOD1(signPrevote, SignedMessage(const Prevote &prevote));
-    MOCK_CONST_METHOD1(signPrecommit,
-                       SignedMessage(const Precommit &precommit));
+    MOCK_CONST_METHOD1(
+        signPrimaryPropose,
+        boost::optional<SignedMessage>(const PrimaryPropose &primary_propose));
+    MOCK_CONST_METHOD1(signPrevote,
+                       boost::optional<SignedMessage>(const Prevote &prevote));
+    MOCK_CONST_METHOD1(
+        signPrecommit,
+        boost::optional<SignedMessage>(const Precommit &precommit));
   };
 
 }  // namespace kagome::consensus::grandpa

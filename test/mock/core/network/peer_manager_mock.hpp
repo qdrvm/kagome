@@ -15,6 +15,7 @@ namespace kagome::network {
   class PeerManagerMock final : public PeerManager {
    public:
     MOCK_METHOD1(connectToPeer, void(const PeerInfo &peer_info));
+    MOCK_CONST_METHOD1(reserveStreams, void(const PeerId &peer_id));
     MOCK_METHOD1(keepAlive, void(const PeerId &peer_id));
     MOCK_METHOD2(updatePeerStatus,
                  void(const PeerId &peer_id, const Status &status));

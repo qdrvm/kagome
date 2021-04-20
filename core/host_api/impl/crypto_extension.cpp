@@ -217,10 +217,11 @@ namespace kagome::host_api {
     const auto &buf = memory_->loadN(data, len);
 
     auto hash = hasher_->twox_64(buf);
-    logger_->trace("twox64. Data: {}, Data hex: {}, hash: {}",
-                   buf.data(),
-                   buf.toHex(),
-                   hash.toHex());
+    SL_TRACE(logger_,
+             "twox64. Data: {}, Data hex: {}, hash: {}",
+             buf.data(),
+             buf.toHex(),
+             hash.toHex());
 
     memory_->storeBuffer(out_ptr, hash);
   }
@@ -231,10 +232,11 @@ namespace kagome::host_api {
     const auto &buf = memory_->loadN(data, len);
 
     auto hash = hasher_->twox_128(buf);
-    logger_->trace("twox128. Data: {}, Data hex: {}, hash: {}",
-                   buf.data(),
-                   buf.toHex(),
-                   hash.toHex());
+    SL_TRACE(logger_,
+             "twox128. Data: {}, Data hex: {}, hash: {}",
+             buf.data(),
+             buf.toHex(),
+             hash.toHex());
 
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
@@ -344,7 +346,7 @@ namespace kagome::host_api {
       return res.value();
     }
 
-    logger_->debug("failed to unhex seed, try parse mnemonic");
+    SL_DEBUG(logger_, "failed to unhex seed, try parse mnemonic");
 
     // now check if it is a bip39 mnemonic phrase with optional password
     auto mnemonic = crypto::bip39::Mnemonic::parse(content);

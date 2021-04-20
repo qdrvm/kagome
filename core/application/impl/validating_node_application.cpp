@@ -33,6 +33,7 @@ namespace kagome::application {
     router_ = injector_->injectRouter();
     peer_manager_ = injector_->injectPeerManager();
     jrpc_api_service_ = injector_->injectRpcApiService();
+    sync_observer_ = injector_->injectSyncObserver();
   }
 
   void ValidatingNodeApplication::run() {
