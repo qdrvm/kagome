@@ -86,6 +86,12 @@ namespace kagome::application {
         const = 0;
 
     /**
+     * @return multiaddresses the node could be accessed from the network
+     */
+    virtual const std::vector<libp2p::multi::Multiaddress> &publicAddresses()
+        const = 0;
+
+    /**
      * @return endpoint for RPC over HTTP.
      */
     virtual const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const = 0;

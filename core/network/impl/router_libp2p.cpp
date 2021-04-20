@@ -144,37 +144,36 @@ namespace kagome::network {
           });
     }
 
-    // IPv6
-    {
-      auto ma_res = libp2p::multi::Multiaddress::create(
-          "/ip6/::/tcp/" + std::to_string(app_config_.p2pPort()) + "/p2p/"
-          + own_info_.id.toBase58());
-      BOOST_ASSERT(ma_res.has_value());
-      auto &ma = ma_res.value();
-      auto res = host_.listen(ma);
-      if (not res) {
-        log_->error("Cannot listen address {}. Error: {}",
-                    ma.getStringAddress(),
-                    res.error().message());
-      }
-    }
+    auto listen_addresses = app_config_.listenAddresses();
 
-    // IPv4
-    {
-      auto ma_res = libp2p::multi::Multiaddress::create(
-          "/ip4/0.0.0.0/tcp/" + std::to_string(app_config_.p2pPort()) + "/p2p/"
-          + own_info_.id.toBase58());
-      BOOST_ASSERT(ma_res.has_value());
-      auto &ma = ma_res.value();
-      auto res = host_.listen(ma);
+    using P = libp2p::multi::Protocol::Code;
+    for (auto &listen_address : listen_addresses) {
+      if (listen_address.getProtocols().size()
+              < 3  // does not have /p2p or alternative part
+          and (listen_address.hasProtocol(P::IP4)
+               or listen_address.hasProtocol(P::IP6))
+          and listen_address.hasProtocol(P::TCP)) {
+        auto ma_res = libp2p::multi::Multiaddress::create(
+            std::string(listen_address.getStringAddress()) + "/p2p/"
+            + own_info_.id.toBase58());
+        if (not ma_res) {
+          log_->error("Cannot append peer id info to listen addr {}. Error: {}",
+                      listen_address.getStringAddress(),
+                      ma_res.error().message());
+        } else {
+          listen_address = ma_res.value();
+        }
+      }
+      auto res = host_.listen(listen_address);
       if (not res) {
-        log_->error("Cannot listen address {}. Error: {}",
-                    ma.getStringAddress(),
+        log_->error("Cannot listen on address {}. Error: {}",
+                    listen_address.getStringAddress(),
                     res.error().message());
       }
     }
 
     auto &addr_repo = host_.getPeerRepository().getAddressRepository();
+    // here we put our known public addresses to the repository
     auto upsert_res = addr_repo.upsertAddresses(
         own_info_.id, own_info_.addresses, libp2p::peer::ttl::kPermanent);
     if (!upsert_res) {

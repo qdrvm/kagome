@@ -989,18 +989,22 @@ namespace {
             key_marshaller.marshal(public_key).value())
             .value();
 
-    std::vector<libp2p::multi::Multiaddress> addresses =
+    std::vector<libp2p::multi::Multiaddress> listen_addrs =
         config.listenAddresses();
+    std::vector<libp2p::multi::Multiaddress> public_addrs =
+        config.publicAddresses();
 
     auto log = log::createLogger("syncing_injector", "kagome");
-
     log->debug("Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      log->debug("Received multiaddr: {}", addr.getStringAddress());
+    for (auto &addr : listen_addrs) {
+      log->debug("Peer listening on multiaddr: {}", addr.getStringAddress());
+    }
+    for (auto &addr : public_addrs) {
+      log->debug("Peer public multiaddr: {}", addr.getStringAddress());
     }
 
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
+    initialized = std::make_shared<network::OwnPeerInfo>(
+        std::move(peer_id), std::move(public_addrs), std::move(listen_addrs));
     return initialized.value();
   }
 
@@ -1093,16 +1097,22 @@ namespace {
             key_marshaller.marshal(public_key).value())
             .value();
 
-    std::vector<libp2p::multi::Multiaddress> addresses =
+    std::vector<libp2p::multi::Multiaddress> listen_addrs =
         config.listenAddresses();
+    std::vector<libp2p::multi::Multiaddress> public_addrs =
+        config.publicAddresses();
 
     auto log = log::createLogger("validating_injector", "kagome");
     log->debug("Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      log->debug("Received multiaddr: {}", addr.getStringAddress());
+    for (auto &addr : listen_addrs) {
+      log->debug("Peer listening on multiaddr: {}", addr.getStringAddress());
     }
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
+    for (auto &addr : public_addrs) {
+      log->debug("Peer public multiaddr: {}", addr.getStringAddress());
+    }
+
+    initialized = std::make_shared<network::OwnPeerInfo>(
+        std::move(peer_id), std::move(public_addrs), std::move(listen_addrs));
     return initialized.value();
   }
 
