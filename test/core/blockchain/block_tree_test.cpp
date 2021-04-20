@@ -50,12 +50,11 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillOnce(Return(finalized_block_header_));
 
-    EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.block_hash))
-        .WillRepeatedly(Return(kFinalizedBlockInfo.block_number));
+    EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
+        .WillRepeatedly(Return(kFinalizedBlockInfo.number));
 
-    EXPECT_CALL(*header_repo_,
-                getHashByNumber(kFinalizedBlockInfo.block_number))
-        .WillRepeatedly(Return(kFinalizedBlockInfo.block_hash));
+    EXPECT_CALL(*header_repo_, getHashByNumber(kFinalizedBlockInfo.number))
+        .WillRepeatedly(Return(kFinalizedBlockInfo.hash));
 
     auto chain_events_engine =
         std::make_shared<primitives::events::ChainSubscriptionEngine>();
@@ -144,10 +143,10 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<BlockTreeImpl> block_tree_;
 
-  const BlockId kLastFinalizedBlockId = kFinalizedBlockInfo.block_hash;
+  const BlockId kLastFinalizedBlockId = kFinalizedBlockInfo.hash;
 
-  BlockHeader finalized_block_header_{
-      .number = kFinalizedBlockInfo.block_number, .digest = {{PreRuntime{}}}};
+  BlockHeader finalized_block_header_{.number = kFinalizedBlockInfo.number,
+                                      .digest = {{PreRuntime{}}}};
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
 };
@@ -176,19 +175,19 @@ TEST_F(BlockTreeTest, GetBody) {
 TEST_F(BlockTreeTest, AddBlock) {
   // GIVEN
   auto &&[_, deepest_block_hash] = block_tree_->deepestLeaf();
-  ASSERT_EQ(deepest_block_hash, kFinalizedBlockInfo.block_hash);
+  ASSERT_EQ(deepest_block_hash, kFinalizedBlockInfo.hash);
 
   auto leaves = block_tree_->getLeaves();
   ASSERT_EQ(leaves.size(), 1);
-  ASSERT_EQ(leaves[0], kFinalizedBlockInfo.block_hash);
+  ASSERT_EQ(leaves[0], kFinalizedBlockInfo.hash);
 
-  auto children_res = block_tree_->getChildren(kFinalizedBlockInfo.block_hash);
+  auto children_res = block_tree_->getChildren(kFinalizedBlockInfo.hash);
   ASSERT_TRUE(children_res);
   ASSERT_TRUE(children_res.value().empty());
 
   // WHEN
-  BlockHeader header{.parent_hash = kFinalizedBlockInfo.block_hash,
-                     .number = kFinalizedBlockInfo.block_number + 1,
+  BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
+                     .number = kFinalizedBlockInfo.number + 1,
                      .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
@@ -232,11 +231,11 @@ TEST_F(BlockTreeTest, AddBlockNoParent) {
  */
 TEST_F(BlockTreeTest, Finalize) {
   // GIVEN
-  auto &&last_finalized_hash = block_tree_->getLastFinalized().block_hash;
-  ASSERT_EQ(last_finalized_hash, kFinalizedBlockInfo.block_hash);
+  auto &&last_finalized_hash = block_tree_->getLastFinalized().hash;
+  ASSERT_EQ(last_finalized_hash, kFinalizedBlockInfo.hash);
 
-  BlockHeader header{.parent_hash = kFinalizedBlockInfo.block_hash,
-                     .number = kFinalizedBlockInfo.block_number + 1,
+  BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
+                     .number = kFinalizedBlockInfo.number + 1,
                      .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
@@ -263,7 +262,7 @@ TEST_F(BlockTreeTest, Finalize) {
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
 
   // THEN
-  ASSERT_EQ(block_tree_->getLastFinalized().block_hash, hash);
+  ASSERT_EQ(block_tree_->getLastFinalized().hash, hash);
 }
 
 /**
@@ -273,8 +272,8 @@ TEST_F(BlockTreeTest, Finalize) {
  */
 TEST_F(BlockTreeTest, GetChainByBlockOnly) {
   // GIVEN
-  BlockHeader header1{.parent_hash = kFinalizedBlockInfo.block_hash,
-                      .number = kFinalizedBlockInfo.block_number + 1,
+  BlockHeader header1{.parent_hash = kFinalizedBlockInfo.hash,
+                      .number = kFinalizedBlockInfo.number + 1,
                       .digest = {PreRuntime{}}};
   BlockBody body1{{Buffer{0x55, 0x55}}};
   Block block1{header1, body1};
@@ -287,8 +286,7 @@ TEST_F(BlockTreeTest, GetChainByBlockOnly) {
   Block block2{header2, body2};
   auto hash2 = addBlock(block2);
 
-  std::vector<BlockHash> expected_chain{
-      kFinalizedBlockInfo.block_hash, hash1, hash2};
+  std::vector<BlockHash> expected_chain{kFinalizedBlockInfo.hash, hash1, hash2};
 
   // WHEN
   EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2))
@@ -304,27 +302,25 @@ TEST_F(BlockTreeTest, GetChainByBlockOnly) {
  */
 TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   // GIVEN
-  BlockHeader header{.parent_hash = kFinalizedBlockInfo.block_hash,
-                     .number = kFinalizedBlockInfo.block_number + 1,
+  BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
+                     .number = kFinalizedBlockInfo.number + 1,
                      .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header = BlockHeader{.parent_hash = hash1,
-                       .number = kFinalizedBlockInfo.block_number + 2,
+                       .number = kFinalizedBlockInfo.number + 2,
                        .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
 
-  std::vector<BlockHash> expected_chain{
-      kFinalizedBlockInfo.block_hash, hash1, hash2};
+  std::vector<BlockHash> expected_chain{kFinalizedBlockInfo.hash, hash1, hash2};
 
   // WHEN
   EXPECT_OUTCOME_TRUE(
-      chain,
-      block_tree_->getChainByBlock(kFinalizedBlockInfo.block_hash, true, 5));
+      chain, block_tree_->getChainByBlock(kFinalizedBlockInfo.hash, true, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -337,28 +333,27 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
  */
 TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   // GIVEN
-  BlockHeader header{.parent_hash = kFinalizedBlockInfo.block_hash,
-                     .number = kFinalizedBlockInfo.block_number + 1,
+  BlockHeader header{.parent_hash = kFinalizedBlockInfo.hash,
+                     .number = kFinalizedBlockInfo.number + 1,
                      .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header = BlockHeader{.parent_hash = hash1,
-                       .number = kFinalizedBlockInfo.block_number + 2,
+                       .number = kFinalizedBlockInfo.number + 2,
                        .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
 
-  EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.block_hash))
+  EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockInfo.hash))
       .WillRepeatedly(Return(0));
   EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillRepeatedly(Return(2));
   EXPECT_CALL(*header_repo_, getHashByNumber(0))
-      .WillOnce(Return(kFinalizedBlockInfo.block_hash));
+      .WillOnce(Return(kFinalizedBlockInfo.hash));
 
-  std::vector<BlockHash> expected_chain{
-      hash2, hash1, kFinalizedBlockInfo.block_hash};
+  std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockInfo.hash};
 
   // WHEN
   EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2, false, 5));
@@ -403,7 +398,7 @@ TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
 
   EXPECT_OUTCOME_TRUE(best_info,
                       block_tree_->getBestContaining(target_hash, boost::none));
-  ASSERT_EQ(best_info.block_hash, target_hash);
+  ASSERT_EQ(best_info.hash, target_hash);
 }
 
 /**
@@ -426,7 +421,7 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
 
   EXPECT_OUTCOME_TRUE(best_info,
                       block_tree_->getBestContaining(target_hash, boost::none));
-  ASSERT_EQ(best_info.block_hash, header12_hash);
+  ASSERT_EQ(best_info.hash, header12_hash);
 }
 
 /**

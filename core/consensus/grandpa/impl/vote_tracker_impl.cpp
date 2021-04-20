@@ -22,11 +22,12 @@ namespace kagome::consensus::grandpa {
     bool isDuplicate = visit_in_place(
         equivotes,
         [&vote](const VotingMessage &voting_message) {
-          return voting_message.block_hash() == vote.block_hash();
+          return voting_message.getBlockHash() == vote.getBlockHash();
         },
         [&vote](const EquivocatoryVotingMessage &equivocatory_vote) {
-          return equivocatory_vote.first.block_hash() == vote.block_hash()
-                 or equivocatory_vote.second.block_hash() == vote.block_hash();
+          return equivocatory_vote.first.getBlockHash() == vote.getBlockHash()
+                 or equivocatory_vote.second.getBlockHash()
+                        == vote.getBlockHash();
         });
     if (not isDuplicate) {
       return visit_in_place(

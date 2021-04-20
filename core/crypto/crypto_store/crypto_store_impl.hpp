@@ -115,11 +115,11 @@ namespace kagome::crypto {
             // different algorithm
             continue;
           }
-          logger_->trace("Loaded key {}", pk.toHex());
+          SL_TRACE(logger_, "Loaded key {}", pk.toHex());
           auto kp = suite.generateKeypair(seed_res.value());
           auto &&[pub, priv] = suite.decomposeKeypair(kp);
           if (pub == pk) {
-            logger_->trace("Key is correct {}", pk.toHex());
+            SL_TRACE(logger_, "Key is correct {}", pk.toHex());
             res.emplace_back(std::move(pk));
           }
         }

@@ -23,7 +23,8 @@ namespace kagome::subscription {
 
     ExtrinsicKey subscribeTransaction(const TransactionId &tx_id) noexcept {
       tx_to_key_[tx_id] = ++last_key_;
-      logger_->debug("Subscribed tx {}, key is {}", tx_id, last_key_);
+      SL_DEBUG(
+          logger_, "Subscribed tx {}, key is {}", tx_id, tx_to_key_[tx_id]);
       return last_key_;
     }
 
@@ -36,8 +37,11 @@ namespace kagome::subscription {
       auto ext_key = it->second;
       id_to_key_[combineId(block_number, ext_idx)] = ext_key;
       tx_to_key_.erase(it);
-      logger_->debug(
-          "Upgraded tx {}, block# {} ext id {}", tx_id, block_number, ext_idx);
+      SL_DEBUG(logger_,
+               "Upgraded tx {}, block# {} ext id {}",
+               tx_id,
+               block_number,
+               ext_idx);
       return ext_key;
     }
 

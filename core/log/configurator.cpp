@@ -13,8 +13,9 @@ namespace kagome::log {
 sinks:
   - name: console
     type: console
-    thread: id
-    color: true
+    thread: none
+    color: false
+    latency: 0
 groups:
   - name: main
     sink: console
@@ -52,6 +53,7 @@ groups:
           - name: runtime
             children:
               - name: wasm
+                level: info
               - name: extentions
               - name: binatien
           - name: network
@@ -60,7 +62,7 @@ groups:
           - name: pubsub
           - name: transactions
           - name: testing
-            level: trace
+          - name: debug
 # ----------------
   )");
   }

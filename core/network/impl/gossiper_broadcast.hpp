@@ -16,10 +16,18 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/peer/protocol.hpp>
 
+#include "application/app_state_manager.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/protocols/block_announce_protocol.hpp"
+#include "network/protocols/gossip_protocol.hpp"
+#include "network/protocols/propagate_transactions_protocol.hpp"
+#include "network/protocols/protocol_factory.hpp"
+#include "network/protocols/sup_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
+#include "network/router.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/gossip_message.hpp"
 #include "network/types/no_data_message.hpp"
@@ -51,16 +59,25 @@ namespace kagome::network {
 
    public:
     GossiperBroadcast(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
         StreamEngine::StreamEnginePtr stream_engine,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo_,
-        std::shared_ptr<kagome::application::ChainSpec> config);
+        std::shared_ptr<kagome::application::ChainSpec> config,
+        std::shared_ptr<network::Router> router);
 
     ~GossiperBroadcast() override = default;
 
-    void storeSelfPeerInfo(const libp2p::peer::PeerInfo &self_info) override;
+    /** @see AppStateManager::takeControl */
+    bool prepare();
+
+    /** @see AppStateManager::takeControl */
+    bool start();
+
+    /** @see AppStateManager::takeControl */
+    void stop();
 
     void propagateTransactions(
         gsl::span<const primitives::Transaction> txs) override;
@@ -80,35 +97,34 @@ namespace kagome::network {
    private:
     template <typename T>
     void send(const libp2p::peer::PeerId &peer_id,
-              const libp2p::peer::Protocol &protocol,
+              const std::shared_ptr<ProtocolBase> &protocol,
               T &&msg) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
-          stream_engine, typename std::decay<decltype(msg)>::type);
+          stream_engine, typename std::decay_t<decltype(msg)>);
       (*shared_msg) = std::forward<T>(msg);
-      stream_engine_->send<typename std::decay<decltype(msg)>::type, NoData>(
-          peer_id, protocol, std::move(shared_msg), boost::none);
+      stream_engine_->send<typename std::decay_t<decltype(msg)>>(
+          peer_id, protocol, std::move(shared_msg));
     }
 
     template <typename T>
-    void broadcast(const libp2p::peer::Protocol &protocol, T &&msg) {
+    void broadcast(const std::shared_ptr<ProtocolBase> &protocol, T &&msg) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
-          stream_engine, typename std::decay<decltype(msg)>::type);
+          stream_engine, typename std::decay_t<decltype(msg)>);
       (*shared_msg) = std::forward<T>(msg);
-      stream_engine_
-          ->broadcast<typename std::decay<decltype(msg)>::type, NoData>(
-              protocol, std::move(shared_msg), boost::none);
+      stream_engine_->broadcast<typename std::decay_t<decltype(msg)>>(
+          protocol, std::move(shared_msg));
     }
 
     template <typename T, typename H>
-    void broadcast(const libp2p::peer::Protocol &protocol,
+    void broadcast(const std::shared_ptr<ProtocolBase> &protocol,
                    T &&msg,
                    H &&handshake) {
       auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(
-          stream_engine, typename std::decay<decltype(msg)>::type);
+          stream_engine, typename std::decay_t<decltype(msg)>);
       (*shared_msg) = std::forward<T>(msg);
 
       auto shared_handshake = KAGOME_EXTRACT_SHARED_CACHE(
-          stream_engine, typename std::decay<decltype(handshake)>::type);
+          stream_engine, typename std::decay_t<decltype(handshake)>);
       (*shared_handshake) = std::forward<H>(handshake);
 
       stream_engine_->broadcast<typename std::decay_t<decltype(msg)>, NoData>(
@@ -122,9 +138,13 @@ namespace kagome::network {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
     std::shared_ptr<application::ChainSpec> config_;
-    libp2p::peer::Protocol transactions_protocol_;
-    libp2p::peer::Protocol block_announces_protocol_;
-    boost::optional<libp2p::peer::PeerInfo> self_info_;
+
+    std::shared_ptr<network::Router> router_;
+
+    std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
+    std::shared_ptr<GossipProtocol> gossip_protocol_;
+    std::shared_ptr<PropagateTransactionsProtocol>
+        propagate_transaction_protocol_;
   };
 }  // namespace kagome::network
 

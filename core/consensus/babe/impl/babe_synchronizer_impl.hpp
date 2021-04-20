@@ -11,6 +11,7 @@
 #include "application/app_configuration.hpp"
 #include "log/logger.hpp"
 #include "network/types/sync_clients_set.hpp"
+#include "network/router.hpp"
 
 namespace kagome::consensus {
 
@@ -26,7 +27,8 @@ namespace kagome::consensus {
 
     BabeSynchronizerImpl(
         std::shared_ptr<network::SyncClientsSet> sync_clients,
-        const application::AppConfiguration &app_configuration);
+        const application::AppConfiguration &app_configuration,
+        std::shared_ptr<network::Router> router);
 
     void request(const primitives::BlockId &from,
                  const primitives::BlockHash &to,
@@ -44,17 +46,18 @@ namespace kagome::consensus {
             &polled_clients) const;
     /**
      * Request blocks from provided peers
-     * @param request block request message
+     * @param response_res block request message
      * @param polled_clients peers that were already requested
      * @param requested_blocks_handler handler of received blocks
      */
-    void pollClients(network::BlocksRequest request,
+    void pollClients(network::BlocksRequest response_res,
                      const libp2p::peer::PeerId &peer_id,
                      const BlocksHandler &requested_blocks_handler) const;
 
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
     log::Logger logger_;
     const application::AppConfiguration &app_configuration_;
+    std::shared_ptr<network::Router> router_;
   };
 }  // namespace kagome::consensus
 
