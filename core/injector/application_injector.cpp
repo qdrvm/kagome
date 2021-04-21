@@ -1534,8 +1534,14 @@ namespace kagome::injector {
   sptr<api::ApiService> KagomeNodeInjector::injectRpcApiService() {
     return pimpl_->injector_.create<sptr<api::ApiService>>();
   }
+
   std::shared_ptr<clock::SystemClock> KagomeNodeInjector::injectSystemClock() {
     return pimpl_->injector_.create<sptr<clock::SystemClock>>();
+  }
+
+  std::shared_ptr<network::SyncProtocolObserver>
+  KagomeNodeInjector::injectSyncObserver() {
+    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
   }
 
   std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {

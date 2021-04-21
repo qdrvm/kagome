@@ -16,7 +16,8 @@ namespace kagome::application {
       : app_config_(app_config),
         injector_{
             std::make_unique<injector::KagomeNodeInjector>(app_config)},
-        logger_(log::createLogger("AllInOneApplication", "application")) {
+        logger_(log::createLogger("AllInOneApplication", "application")),
+        node_name_(app_config.nodeName()) {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
@@ -27,9 +28,11 @@ namespace kagome::application {
     io_context_ = injector_->injectIoContext();
     clock_ = injector_->injectSystemClock();
     babe_ = injector_->injectBabe();
+    grandpa_ = injector_->injectGrandpa();
     router_ = injector_->injectRouter();
     peer_manager_ = injector_->injectPeerManager();
     jrpc_api_service_ = injector_->injectRpcApiService();
+    sync_observer_ = injector_->injectSyncObserver();
   }
 
   void AllInOneApplication::run() {
