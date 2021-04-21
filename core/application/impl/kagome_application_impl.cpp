@@ -12,11 +12,11 @@
 
 namespace kagome::application {
 
-  AllInOneApplication::AllInOneApplication(const AppConfiguration &app_config)
+  KagomeApplicationImpl::KagomeApplicationImpl(
+      const AppConfiguration &app_config)
       : app_config_(app_config),
-        injector_{
-            std::make_unique<injector::KagomeNodeInjector>(app_config)},
-        logger_(log::createLogger("AllInOneApplication", "application")),
+        injector_{std::make_unique<injector::KagomeNodeInjector>(app_config)},
+        logger_(log::createLogger("Application", "application")),
         node_name_(app_config.nodeName()) {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
@@ -35,8 +35,8 @@ namespace kagome::application {
     sync_observer_ = injector_->injectSyncObserver();
   }
 
-  void AllInOneApplication::run() {
-    logger_->info("Start as AllInOneApplication with PID {} named as {}",
+  void KagomeApplicationImpl::run() {
+    logger_->info("Start as KagomeApplicationImpl with PID {} named as {}",
                   getpid(),
                   node_name_);
 
