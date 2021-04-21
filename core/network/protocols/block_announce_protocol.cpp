@@ -4,6 +4,7 @@
  */
 
 #include "network/protocols/block_announce_protocol.hpp"
+#include <application/app_configuration.hpp>
 
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
@@ -13,6 +14,7 @@ namespace kagome::network {
 
   BlockAnnounceProtocol::BlockAnnounceProtocol(
       libp2p::Host &host,
+      const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -21,6 +23,7 @@ namespace kagome::network {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<PeerManager> peer_manager)
       : host_(host),
+        app_config_(app_config),
         stream_engine_(std::move(stream_engine)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)),
@@ -62,10 +65,7 @@ namespace kagome::network {
 
   outcome::result<Status> BlockAnnounceProtocol::createStatus() const {
     /// Roles
-    Roles roles;
-    // TODO(xDimon): Need to set actual role of node
-    //  issue: https://github.com/soramitsu/kagome/issues/678
-    roles.flags.full = 1;
+    Roles roles = app_config_.roles();
 
     /// Best block info
     BlockInfo best_block;

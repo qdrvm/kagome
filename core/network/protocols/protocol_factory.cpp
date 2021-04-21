@@ -9,6 +9,7 @@ namespace kagome::network {
 
   ProtocolFactory::ProtocolFactory(
       libp2p::Host &host,
+      const application::AppConfiguration &app_config,
       const application::ChainSpec &chain_spec,
       const OwnPeerInfo &own_info,
       std::shared_ptr<boost::asio::io_context> io_context,
@@ -16,6 +17,7 @@ namespace kagome::network {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<StreamEngine> stream_engine)
       : host_(host),
+        app_config_(app_config),
         chain_spec_(chain_spec),
         own_info_(own_info),
         io_context_(std::move(io_context)),
@@ -31,6 +33,7 @@ namespace kagome::network {
   std::shared_ptr<BlockAnnounceProtocol>
   ProtocolFactory::makeBlockAnnounceProtocol() const {
     return std::make_shared<BlockAnnounceProtocol>(host_,
+                                                   app_config_,
                                                    chain_spec_,
                                                    stream_engine_,
                                                    block_tree_.lock(),
@@ -50,7 +53,8 @@ namespace kagome::network {
 
   std::shared_ptr<GrandpaProtocol> ProtocolFactory::makeGrandpaProtocol()
       const {
-    return std::make_shared<GrandpaProtocol>(host_, stream_engine_);
+    return std::make_shared<GrandpaProtocol>(
+        host_, app_config_, stream_engine_);
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>
@@ -65,6 +69,7 @@ namespace kagome::network {
 
   std::shared_ptr<SupProtocol> ProtocolFactory::makeSupProtocol() const {
     return std::make_shared<SupProtocol>(host_,
+                                         app_config_,
                                          stream_engine_,
                                          block_tree_.lock(),
                                          storage_,
