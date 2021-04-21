@@ -13,29 +13,50 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "api/jrpc/jrpc_server_impl.hpp"
-#include "api/transport/listener.hpp"
+#include <jsonrpc-lean/fault.h>
+
 #include "api/transport/rpc_thread_pool.hpp"
-#include "application/app_state_manager.hpp"
-#include "blockchain/block_tree.hpp"
+#include "api/transport/session.hpp"
 #include "common/buffer.hpp"
 #include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
-#include "primitives/common.hpp"
+#include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
-#include "primitives/transaction.hpp"
-#include "storage/trie/trie_storage.hpp"
-#include "subscription/extrinsic_event_key_repository.hpp"
-#include "subscription/subscriber.hpp"
+#include "subscription/subscription_engine.hpp"
 
 namespace kagome::api {
+  class JRpcProcessor;
+  class JRpcServer;
+  class Listener;
+}  // namespace kagome::api
+namespace kagome::application {
+  class AppStateManager;
+}
+namespace kagome::blockchain {
+  struct BlockTree;
+}
+namespace kagome::primitives {
+  struct Transaction;
+}
+namespace kagome::storage::trie {
+  class TrieStorage;
+}
+namespace kagome::subscription {
+  class ExtrinsicEventKeyRepository;
+}
+
+namespace jsonrpc {
+  class Value;
+}
+
+namespace kagome::api {
+
   template <typename T>
   using UCachedType = std::unique_ptr<T, void (*)(T *const)>;
 
-  KAGOME_DECLARE_CACHE(
-      api_service,
-      KAGOME_CACHE_UNIT(std::string),
-      KAGOME_CACHE_UNIT(std::vector<UCachedType<std::string>>));
+  KAGOME_DECLARE_CACHE(api_service,
+                       KAGOME_CACHE_UNIT(std::string),
+                       KAGOME_CACHE_UNIT(std::vector<UCachedType<std::string>>))
 
   class JRpcProcessor;
 
@@ -57,9 +78,9 @@ namespace kagome::api {
     using ExtrinsicSubscriptionEnginePtr =
         primitives::events::ExtrinsicSubscriptionEnginePtr;
     using ChainEventSubscriber = primitives::events::ChainEventSubscriber;
-    using StorageEventSubscriber = primitives::events::StorageEventSubscriber;
     using ExtrinsicEventSubscriber =
         primitives::events::ExtrinsicEventSubscriber;
+    using StorageEventSubscriber = primitives::events::StorageEventSubscriber;
     using ExtrinsicSubscriptionEngine =
         primitives::events::ExtrinsicSubscriptionEngine;
 
@@ -90,6 +111,13 @@ namespace kagome::api {
     template <class T>
     using sptr = std::shared_ptr<T>;
 
+    struct ListenerList {
+      std::vector<sptr<Listener>> listeners;
+    };
+    struct ProcessorSpan {
+      gsl::span<sptr<JRpcProcessor>> processors;
+    };
+
     /**
      * @brief constructor
      * @param context - reference to the io context
@@ -99,9 +127,9 @@ namespace kagome::api {
     ApiServiceImpl(
         const std::shared_ptr<application::AppStateManager> &app_state_manager,
         std::shared_ptr<api::RpcThreadPool> thread_pool,
-        std::vector<std::shared_ptr<Listener>> listeners,
+        ListenerList listeners,
         std::shared_ptr<JRpcServer> server,
-        const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
+        const ProcessorSpan &processors,
         StorageSubscriptionEnginePtr storage_sub_engine,
         ChainSubscriptionEnginePtr chain_sub_engine,
         ExtrinsicSubscriptionEnginePtr ext_sub_engine,

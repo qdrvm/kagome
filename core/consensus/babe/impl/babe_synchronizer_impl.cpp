@@ -10,16 +10,20 @@
 #include <boost/assert.hpp>
 #include "blockchain/block_tree_error.hpp"
 #include "common/visitor.hpp"
+#include "network/protocols/sync_protocol.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::consensus {
   BabeSynchronizerImpl::BabeSynchronizerImpl(
       std::shared_ptr<network::SyncClientsSet> sync_clients,
-      const application::AppConfiguration &app_configuration)
+      const application::AppConfiguration &app_configuration,
+      std::shared_ptr<network::Router> router)
       : sync_clients_{std::move(sync_clients)},
         logger_{log::createLogger("BabeSynchronizer", "babe_synchronizer")},
-        app_configuration_(app_configuration) {
+        app_configuration_(app_configuration),
+        router_(std::move(router)) {
     BOOST_ASSERT(sync_clients_);
+    BOOST_ASSERT(router_);
   }
 
   void BabeSynchronizerImpl::request(const primitives::BlockId &from,
@@ -103,31 +107,33 @@ namespace kagome::consensus {
       network::BlocksRequest request,
       const libp2p::peer::PeerId &peer_id,
       const BlocksHandler &requested_blocks_handler) const {
-    auto next_client = sync_clients_->get(peer_id);
-    if (!next_client) {
-      logger_->error("Could not obtain client for synchronization. Skip.");
-      return;
-    }
+    auto sync_protocol = router_->getSyncProtocol();
 
-    next_client->requestBlocks(
-        request,
-        [self_wp{weak_from_this()},
-         request{std::move(request)},
-         requested_blocks_handler{requested_blocks_handler}](
-            auto &&response_res) mutable {
-          if (auto self = self_wp.lock()) {
-            // if response exists then get blocks and send them to handle
-            if (response_res and not response_res.value().blocks.empty()) {
-              return requested_blocks_handler(
-                  std::cref(response_res.value().blocks));
-            } else if (not response_res) {
+    sync_protocol->request(
+        peer_id,
+        std::move(request),
+        [wp = weak_from_this(),
+         h = requested_blocks_handler](auto &&response_res) mutable {
+          if (auto self = wp.lock()) {
+            if (not response_res.has_value()) {
               self->logger_->error("Could not sync. Error: {}",
                                    response_res.error().message());
-            } else {
-              self->logger_->error("Could not sync. Empty response");
+              h(boost::none);
+              return;
             }
-            return requested_blocks_handler(boost::none);
+            auto &response = response_res.value();
+
+            if (response.blocks.empty()) {
+              self->logger_->error("Could not sync. Empty response");
+              h(boost::none);
+              return;
+            }
+
+            h(std::cref(response.blocks));
           }
         });
+
+    return;
   }
+
 }  // namespace kagome::consensus

@@ -19,7 +19,7 @@
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
@@ -111,13 +111,16 @@ namespace kagome::consensus {
                                   genesis_configuration_->slot_duration);
     }
 
-    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+    auto [number, hash] = block_tree_->deepestLeaf();
+    auto &best_block_number = number;
+    auto &best_block_hash = hash;
 
     if (execution_strategy_.value() != ExecutionStrategy::SYNC_FIRST) {
-      log_->debug("Babe is starting in epoch #{} with block #{}, hash={}",
-                  last_epoch_descriptor.epoch_number,
-                  best_block_number,
-                  best_block_hash);
+      SL_DEBUG(log_,
+               "Babe is starting in epoch #{} with block #{}, hash={}",
+               last_epoch_descriptor.epoch_number,
+               best_block_number,
+               best_block_hash);
 
       current_state_ = State::SYNCHRONIZED;
       runEpoch(last_epoch_descriptor);
@@ -125,9 +128,10 @@ namespace kagome::consensus {
         on_synchronized();
       }
     } else {
-      log_->debug("Babe is starting with syncing from block #{}, hash={}",
-                  best_block_number,
-                  best_block_hash);
+      SL_DEBUG(log_,
+               "Babe is starting with syncing from block #{}, hash={}",
+               best_block_number,
+               best_block_hash);
 
       current_state_ = State::WAIT_BLOCK;
     }
@@ -155,7 +159,8 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
-    log_->debug(
+    SL_DEBUG(
+        log_,
         "Starting an epoch {}. Session key: {}. First slot ending time: {}",
         epoch.epoch_number,
         keypair_.public_key.toHex(),
@@ -283,17 +288,19 @@ namespace kagome::consensus {
         slots_leadership_.value()[current_slot_ - current_epoch_.start_slot];
 
     if (slot_leadership) {
-      log_->debug("Peer {} is leader (vrfOutput: {}, proof: {})",
-                  keypair_.public_key.toHex(),
-                  common::Buffer(slot_leadership->output).toHex(),
-                  common::Buffer(slot_leadership->proof).toHex());
+      SL_DEBUG(log_,
+               "Peer {} is leader (vrfOutput: {}, proof: {})",
+               keypair_.public_key.toHex(),
+               common::Buffer(slot_leadership->output).toHex(),
+               common::Buffer(slot_leadership->proof).toHex());
 
       processSlotLeadership(*slot_leadership);
     }
 
-    log_->debug("Slot {} in epoch {} has finished",
-                current_slot_,
-                current_epoch_.epoch_number);
+    SL_DEBUG(log_,
+             "Slot {} in epoch {} has finished",
+             current_slot_,
+             current_epoch_.epoch_number);
 
     ++current_slot_;
     next_slot_finish_time_ += genesis_configuration_->slot_duration;
@@ -458,7 +465,8 @@ namespace kagome::consensus {
 
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
-    log_->debug(
+    SL_DEBUG(
+        log_,
         "Announced block number {} in slot {} (epoch {}) with timestamp {}",
         block.header.number,
         current_slot_,
@@ -486,9 +494,10 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::startNextEpoch() {
-    log_->debug("Epoch {} has finished. Start epoch {}",
-                current_epoch_.epoch_number,
-                current_epoch_.epoch_number + 1);
+    SL_DEBUG(log_,
+             "Epoch {} has finished. Start epoch {}",
+             current_epoch_.epoch_number,
+             current_epoch_.epoch_number + 1);
 
     ++current_epoch_.epoch_number;
     current_epoch_.start_slot = current_slot_;
@@ -623,4 +632,4 @@ namespace kagome::consensus {
       on_synchronized();
     }
   }
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe

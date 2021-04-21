@@ -10,6 +10,7 @@ addtest(block_builder_test
 target_link_libraries(block_builder_test
     block_builder
     blob
+    logger_for_tests
     )
 
 addtest(block_builder_factory_test
@@ -18,6 +19,7 @@ addtest(block_builder_factory_test
 
 target_link_libraries(block_builder_factory_test
     block_builder_factory
+    logger_for_tests
     )
 
 addtest(proposer_test
@@ -26,4 +28,5 @@ addtest(proposer_test
 
 target_link_libraries(proposer_test
     proposer
+    logger_for_tests
     )

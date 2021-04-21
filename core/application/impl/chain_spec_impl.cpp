@@ -32,7 +32,7 @@ namespace kagome::application {
   outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::loadFrom(
       const std::string &path) {
     // done so because of private constructor
-    auto config_storage = std::make_shared<ChainSpecImpl>(ChainSpecImpl());
+    auto config_storage = std::shared_ptr<ChainSpecImpl>(new ChainSpecImpl);
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
     return config_storage;

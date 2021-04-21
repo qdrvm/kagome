@@ -7,6 +7,7 @@
 
 #include <jsonrpc-lean/fault.h>
 
+#include "api/service/api_service.hpp"
 #include "common/hexutil.hpp"
 #include "common/visitor.hpp"
 
@@ -28,7 +29,7 @@ namespace kagome::api {
 
   outcome::result<BlockHash> ChainApiImpl::getBlockHash() const {
     auto last_finalized = block_tree_->getLastFinalized();
-    return last_finalized.block_hash;
+    return last_finalized.hash;
   }
   outcome::result<common::Hash256> ChainApiImpl::getBlockHash(
       BlockNumber value) const {
@@ -70,8 +71,9 @@ namespace kagome::api {
     return results;
   }
 
-  outcome::result<primitives::BlockHash> ChainApiImpl::getFinalizedHead() const {
-    return block_tree_->getLastFinalized().block_hash;
+  outcome::result<primitives::BlockHash> ChainApiImpl::getFinalizedHead()
+      const {
+    return block_tree_->getLastFinalized().hash;
   }
 
   outcome::result<uint32_t> ChainApiImpl::subscribeFinalizedHeads() {
@@ -85,7 +87,8 @@ namespace kagome::api {
   outcome::result<void> ChainApiImpl::unsubscribeFinalizedHeads(
       uint32_t subscription_id) {
     if (auto api_service = api_service_.lock())
-      return api_service->unsubscribeFinalizedHeads(subscription_id).as_failure();
+      return api_service->unsubscribeFinalizedHeads(subscription_id)
+          .as_failure();
 
     throw jsonrpc::InternalErrorFault(
         "Internal error. Api service not initialized.");

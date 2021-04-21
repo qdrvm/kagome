@@ -5,6 +5,8 @@
 
 #include "crypto/crypto_store/key_file_storage.hpp"
 
+#include "common/hexutil.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, KeyFileStorage::Error, e) {
   using E = kagome::crypto::KeyFileStorage::Error;
   switch (e) {
@@ -102,10 +104,11 @@ namespace kagome::crypto {
       return Error::FAILED_OPEN_FILE;
     }
     auto hex = common::hex_lower(seed);
-    logger_->trace("Saving keypair (public: {}, secret: {}) to {}",
-                   common::hex_lower(public_key),
-                   hex,
-                   path.native());
+    SL_TRACE(logger_,
+             "Saving keypair (public: {}, secret: {}) to {}",
+             common::hex_lower(public_key),
+             hex,
+             path.native());
     file << hex;
 
     return outcome::success();
@@ -156,7 +159,7 @@ namespace kagome::crypto {
 
     std::string content;
     file >> content;
-    logger_->trace("Loaded seed {} from {}", content, file_path.native());
+    SL_TRACE(logger_, "Loaded seed {} from {}", content, file_path.native());
     return content;
   }
 

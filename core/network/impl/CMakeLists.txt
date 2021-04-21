@@ -3,14 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(loopback_stream
-    loopback_stream.cpp
-    loopback_stream.hpp
-    )
-target_link_libraries(loopback_stream
-    logger
-    )
-
 add_library(gossiper_broadcast
     gossiper_broadcast.cpp
     gossiper_broadcast.hpp
@@ -27,10 +19,6 @@ add_library(kagome_router
 target_link_libraries(kagome_router
     logger
     outcome
-    scale
-    loopback_stream
-    node_api_proto
-    adapter_errors
     )
 
 add_library(extrinsic_observer
@@ -49,14 +37,6 @@ target_link_libraries(remote_sync_protocol_client
     logger
     node_api_proto
     adapter_errors
-    )
-
-add_library(dummy_sync_protocol_client
-    dummy_sync_protocol_client.cpp
-    dummy_sync_protocol_client.hpp
-    )
-target_link_libraries(dummy_sync_protocol_client
-    logger
     )
 
 add_library(sync_protocol_observer

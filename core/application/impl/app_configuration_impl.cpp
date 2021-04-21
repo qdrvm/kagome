@@ -5,12 +5,16 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
-#include <iostream>
+#include <string>
 
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/program_options.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
+#include "assets/assets.hpp"
+#include "chain_spec_impl.hpp"
 #include "common/hexutil.hpp"
 #include "filesystem/directories.hpp"
 
@@ -28,13 +32,31 @@ namespace {
 
   const std::string def_rpc_http_host = "0.0.0.0";
   const std::string def_rpc_ws_host = "0.0.0.0";
-  const uint16_t def_rpc_http_port = 40363;
-  const uint16_t def_rpc_ws_port = 40364;
+  const uint16_t def_rpc_http_port = 9933;
+  const uint16_t def_rpc_ws_port = 9944;
   const uint16_t def_p2p_port = 30363;
-  const int def_verbosity = (int)(kagome::log::Level::INFO);
+  const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
   const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
+  const bool def_dev_mode = false;
+
+  /**
+   * Generate once at run random node name if form of UUID
+   * @return UUID as string value
+   */
+  const std::string &randomNodeName() {
+    static std::string name;
+    if (name.empty()) {
+      auto uuid = boost::uuids::random_generator()();
+      name = boost::uuids::to_string(uuid);
+    }
+    auto max_len = kagome::application::AppConfiguration::kNodeNameMaxLength;
+    if (name.length() > max_len) {
+      name = name.substr(0, max_len);
+    }
+    return name;
+  }
 }  // namespace
 
 namespace kagome::application {
@@ -50,9 +72,11 @@ namespace kagome::application {
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
-        rpc_ws_port_(def_rpc_ws_port) {}
+        rpc_ws_port_(def_rpc_ws_port),
+        dev_mode_(def_dev_mode),
+        node_name_(randomNodeName()) {}
 
-  fs::path AppConfigurationImpl::genesisPath() const {
+  fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
   }
 
@@ -153,9 +177,9 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
-    std::string genesis_path_str;
-    load_str(val, "chain", genesis_path_str);
-    chain_spec_path_ = fs::path(genesis_path_str);
+    std::string chain_spec_path_str;
+    load_str(val, "chain", chain_spec_path_str);
+    chain_spec_path_ = fs::path(chain_spec_path_str);
   }
 
   void AppConfigurationImpl::parse_storage_segment(rapidjson::Value &val) {
@@ -172,51 +196,59 @@ namespace kagome::application {
     load_u16(val, "rpc-port", rpc_http_port_);
     load_str(val, "ws-host", rpc_ws_host_);
     load_u16(val, "ws-port", rpc_ws_port_);
+    load_str(val, "name", node_name_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
-    load_bool(val, "single_finalizing_node", is_only_finalizing_);
-    load_bool(val, "already_synchronized", is_already_synchronized_);
-    load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
-    load_bool(val, "is_unix_slots_strategy", is_unix_slots_strategy_);
+    load_bool(val, "single-finalizing-node", is_only_finalizing_);
+    load_bool(val, "already-synchronized", is_already_synchronized_);
+    load_u32(val, "max-blocks-in-response", max_blocks_in_response_);
+    load_bool(val, "is-unix-slots-strategy", is_unix_slots_strategy_);
+    load_bool(val, "dev", dev_mode_);
   }
 
   bool AppConfigurationImpl::validate_config(
       AppConfiguration::LoadScheme scheme) {
     if (not fs::exists(chain_spec_path_)) {
       logger_->error(
-          "Path to genesis {} does not exist, please specify a valid path with "
-          "--chain option",
+          "Chain path {} does not exist, "
+          "please specify a valid path with --chain option",
           chain_spec_path_);
       return false;
     }
 
     if (base_path_.empty() or !fs::createDirectoryRecursive(base_path_)) {
       logger_->error(
-          "Base path {} does not exist, please specify a valid path with \"\n"
-          "          \"-d option",
+          "Base path {} does not exist, "
+          "please specify a valid path with -d option",
           base_path_);
       return false;
     }
 
     if (p2p_port_ == 0) {
       logger_->error(
-          "p2p port is 0, please specify a valid path with \"\n"
-          "          \"-p option");
+          "p2p port is 0, "
+          "please specify a valid path with -p option");
       return false;
     }
 
     if (rpc_ws_port_ == 0) {
       logger_->error(
-          "RPC ws port is 0, please specify a valid path with \"\n"
-          "          --ws-port\" option");
+          "RPC ws port is 0, "
+          "please specify a valid path with --ws-port option");
       return false;
     }
 
     if (rpc_http_port_ == 0) {
       logger_->error(
-          "RPC http port is 0, please specify a valid path with \"\n"
-          "          --rpc-port\" option");
+          "RPC http port is 0, "
+          "please specify a valid path with --rpc-port option");
+      return false;
+    }
+
+    if (node_name_.length() > kNodeNameMaxLength) {
+      logger_->error("Node name exceeds the maximum length of {} characters",
+                     kNodeNameMaxLength);
       return false;
     }
 
@@ -235,8 +267,8 @@ namespace kagome::application {
     auto file = open_file(filepath);
     if (!file) {
       logger_->error(
-          "Configuration file path is invalid: {}, please specify a valid path "
-          "with -c option",
+          "Configuration file path is invalid: {}, "
+          "please specify a valid path with -c option",
           filepath);
       return;
     }
@@ -251,7 +283,7 @@ namespace kagome::application {
     Document document;
     document.ParseStream(input_stream);
     if (document.HasParseError()) {
-      logger_->error("Configuration file {} parse failed, with error {}",
+      logger_->error("Configuration file {} parse failed with error {}",
                      filepath,
                      document.GetParseError());
       return;
@@ -312,14 +344,21 @@ namespace kagome::application {
         ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP")
         ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
         ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
-        ("max_blocks_in_response", po::value<int>(), "max block per response while syncing")
+        ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
+        ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
 
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
-        ("single_finalizing_node,f", "if this is the only finalizing node")
-        ("already_synchronized,s", "if need to consider synchronized")
-        ("unix_slots,u", "if slots are calculated from unix epoch")
+        ("single-finalizing-node,f", "if this is the only finalizing node")
+        ("already-synchronized,s", "if need to consider synchronized")
+        ("unix-slots,u", "if slots are calculated from unix epoch")
+        ;
+
+    po::options_description development_desc("Development options");
+    additional_desc.add_options()
+        ("dev", "if node run in development mode")
+        ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
         ;
     // clang-format on
 
@@ -341,6 +380,8 @@ namespace kagome::application {
       return false;
     }
 
+    desc.add(development_desc);
+
     try {
       po::store(po::parse_command_line(argc, argv, desc), vm);
       po::store(parsed, vm);
@@ -352,18 +393,84 @@ namespace kagome::application {
       return false;
     }
 
+    // Setup default development settings (and wipe if needed)
+    if (vm.count("dev") > 0 or vm.count("dev-with-wipe") > 0) {
+      constexpr auto with_kagome_embeddings =
+#ifdef USE_KAGOME_EMBEDDINGS
+          true;
+#else
+          false;
+#endif  // USE_KAGOME_EMBEDDINGS
+
+      if constexpr (not with_kagome_embeddings) {
+        std::cerr << "Warning: developers mode is not available. "
+                     "Application was built without developers embeddings "
+                     "(EMBEDDINGS option is OFF)."
+                  << std::endl;
+        return false;
+      } else {
+        dev_mode_ = true;
+
+        auto dev_env_path = fs::temp_directory_path() / "kagome_dev";
+        chain_spec_path_ = dev_env_path / "chainspec.json";
+        base_path_ = dev_env_path / "base_path";
+
+        // Wipe base directory on demand
+        if (vm.count("dev-with-wipe") > 0) {
+          boost::filesystem::remove_all(dev_env_path);
+        }
+
+        if (not boost::filesystem::exists(chain_spec_path_)) {
+          boost::filesystem::create_directories(chain_spec_path_.parent_path());
+
+          std::ofstream ofs;
+          ofs.open(chain_spec_path_.native(), std::ios::ate);
+          ofs << kagome::assets::embedded_chainspec;
+          ofs.close();
+
+          auto chain_spec = ChainSpecImpl::loadFrom(chain_spec_path_.native());
+          auto path = keystorePath(chain_spec.value()->id());
+
+          boost::filesystem::create_directories(path);
+
+          for (auto key_descr : kagome::assets::embedded_keys) {
+            ofs.open((path / key_descr.first).native(), std::ios::ate);
+            ofs << key_descr.second;
+            ofs.close();
+          }
+        }
+
+        p2p_port_ = def_p2p_port;
+        is_already_synchronized_ = true;
+        rpc_http_host_ = def_rpc_http_host;
+        rpc_ws_host_ = def_rpc_ws_host;
+        rpc_http_port_ = def_rpc_http_port;
+        rpc_ws_port_ = def_rpc_ws_port;
+
+        auto ma_res =
+            libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
+        assert(ma_res.has_value());
+        listen_addresses_.emplace_back(std::move(ma_res.value()));
+      }
+    }
+
     find_argument<std::string>(vm, "config-file", [&](std::string const &path) {
-      read_config_from_file(path);
+      if (dev_mode_) {
+        std::cerr << "Warning: config file has ignored because dev mode"
+                  << std::endl;
+      } else {
+        read_config_from_file(path);
+      }
     });
 
     /// aggregate data from command line args
-    if (vm.end() != vm.find("single_finalizing_node"))
+    if (vm.end() != vm.find("single-finalizing-node"))
       is_only_finalizing_ = true;
 
-    if (vm.end() != vm.find("already_synchronized"))
+    if (vm.end() != vm.find("already-synchronized"))
       is_already_synchronized_ = true;
 
-    if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
+    if (vm.end() != vm.find("unix-slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
@@ -376,24 +483,27 @@ namespace kagome::application {
         vm, "bootnodes", [&](const std::vector<std::string> &val) {
           boot_nodes = val;
         });
-    boot_nodes_.reserve(boot_nodes.size());
-    for (auto &addr_str : boot_nodes) {
-      auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
-      if (not ma_res.has_value()) {
-        auto err_msg = "Bootnode '" + addr_str
-                       + "' is invalid: " + ma_res.error().message();
-        logger_->error(err_msg);
-        std::cout << err_msg << std::endl;
-        return false;
+    if (not boot_nodes.empty()) {
+      boot_nodes_.clear();
+      boot_nodes_.reserve(boot_nodes.size());
+      for (auto &addr_str : boot_nodes) {
+        auto ma_res = libp2p::multi::Multiaddress::create(addr_str);
+        if (not ma_res.has_value()) {
+          auto err_msg = "Bootnode '" + addr_str
+                         + "' is invalid: " + ma_res.error().message();
+          logger_->error(err_msg);
+          std::cout << err_msg << std::endl;
+          return false;
+        }
+        auto peer_id_base58_opt = ma_res.value().getPeerId();
+        if (not peer_id_base58_opt) {
+          auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
+          logger_->error(err_msg);
+          std::cout << err_msg << std::endl;
+          return false;
+        }
+        boot_nodes_.emplace_back(std::move(ma_res.value()));
       }
-      auto peer_id_base58_opt = ma_res.value().getPeerId();
-      if (not peer_id_base58_opt) {
-        auto err_msg = "Bootnode '" + addr_str + "' has not peer_id";
-        logger_->error(err_msg);
-        std::cout << err_msg << std::endl;
-        return false;
-      }
-      boot_nodes_.emplace_back(std::move(ma_res.value()));
     }
 
     boost::optional<std::string> node_key;
@@ -411,12 +521,15 @@ namespace kagome::application {
       node_key_.emplace(std::move(key_res.value()));
     }
 
-    find_argument<uint16_t>(
-        vm, "port", [&](uint16_t val) { p2p_port_ = val; });
+    find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
 
     std::vector<std::string> listen_addr;
     find_argument<std::vector<std::string>>(
         vm, "listen-addr", [&](const auto &val) { listen_addr = val; });
+
+    if (not listen_addr.empty()) {
+      listen_addresses_.clear();
+    }
     for (auto &s : listen_addr) {
       auto ma_res = libp2p::multi::Multiaddress::create(s);
       if (not ma_res) {
@@ -429,7 +542,7 @@ namespace kagome::application {
       listen_addresses_.emplace_back(std::move(ma_res.value()));
     }
 
-    find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
+    find_argument<uint32_t>(vm, "max-blocks-in-response", [&](uint32_t val) {
       max_blocks_in_response_ = val;
     });
 
@@ -440,9 +553,7 @@ namespace kagome::application {
     });
 
     find_argument<std::string>(
-        vm, "rpc-host", [&](std::string const &val) {
-          rpc_http_host_ = val;
-        });
+        vm, "rpc-host", [&](std::string const &val) { rpc_http_host_ = val; });
 
     find_argument<std::string>(
         vm, "ws-host", [&](std::string const &val) { rpc_ws_host_ = val; });
@@ -455,6 +566,9 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
+
+    find_argument<std::string>(
+        vm, "name", [&](std::string const &val) { node_name_ = val; });
 
     // if something wrong with config print help message
     if (not validate_config(scheme)) {

@@ -32,9 +32,6 @@ namespace kagome::network {
     // From ExtrinsicGossiper
     MOCK_METHOD1(propagateTransactions,
                  void(gsl::span<const primitives::Transaction> txs));
-
-    MOCK_METHOD1(storeSelfPeerInfo,
-                 void(const libp2p::peer::PeerInfo &self_info));
   };
 
 }  // namespace kagome::network

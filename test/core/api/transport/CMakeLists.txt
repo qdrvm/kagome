@@ -14,6 +14,7 @@ target_link_libraries(http_listener_test
     buffer
     blob
     state_api_service
+    logger_for_tests
     )
 
 addtest(ws_listener_test
@@ -27,4 +28,5 @@ target_link_libraries(ws_listener_test
     buffer
     blob
     state_api_service
+    logger_for_tests
     )

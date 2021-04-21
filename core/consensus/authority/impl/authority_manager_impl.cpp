@@ -5,9 +5,13 @@
 
 #include "consensus/authority/impl/authority_manager_impl.hpp"
 
+#include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
+#include "consensus/authority/impl/schedule_node.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::authority {
@@ -115,7 +119,7 @@ namespace kagome::authority {
       auto &ancestor =
           directChainExists(block, descendant->block) ? new_node : node;
 
-      if (descendant->block.block_number >= ancestor->forced_for) {
+      if (descendant->block.number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
         descendant->forced_authorities.reset();
         descendant->forced_for = ScheduleNode::INACTIVE;
@@ -139,7 +143,7 @@ namespace kagome::authority {
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
 
     // Force changes
-    if (new_node->block.block_number >= activate_at) {
+    if (new_node->block.number >= activate_at) {
       new_node->actual_authorities =
           std::make_shared<primitives::AuthorityList>(authorities);
     } else {
@@ -154,12 +158,12 @@ namespace kagome::authority {
           directChainExists(block, descendant->block) ? new_node : node;
 
       // Apply forced changes if dalay will be passed for descendant
-      if (descendant->block.block_number >= ancestor->forced_for) {
+      if (descendant->block.number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
         descendant->forced_authorities.reset();
         descendant->forced_for = ScheduleNode::INACTIVE;
       }
-      if (descendant->block.block_number >= ancestor->resume_for) {
+      if (descendant->block.number >= ancestor->resume_for) {
         descendant->enabled = true;
         descendant->resume_for = ScheduleNode::INACTIVE;
       }
@@ -242,12 +246,12 @@ namespace kagome::authority {
           directChainExists(block, descendant->block) ? new_node : node;
 
       // Apply resume if delay will be passed for descendant
-      if (descendant->block.block_number >= ancestor->forced_for) {
+      if (descendant->block.number >= ancestor->forced_for) {
         descendant->actual_authorities = ancestor->forced_authorities;
         descendant->forced_authorities.reset();
         descendant->forced_for = ScheduleNode::INACTIVE;
       }
-      if (descendant->block.block_number >= ancestor->resume_for) {
+      if (descendant->block.number >= ancestor->resume_for) {
         descendant->enabled = true;
         descendant->resume_for = ScheduleNode::INACTIVE;
       }
@@ -273,20 +277,20 @@ namespace kagome::authority {
         [this, &block](
             const primitives::ScheduledChange &msg) -> outcome::result<void> {
           return applyScheduledChange(
-              block, msg.authorities, block.block_number + msg.subchain_lenght);
+              block, msg.authorities, block.number + msg.subchain_lenght);
         },
         [this, &block](const primitives::ForcedChange &msg) {
           return applyForcedChange(
-              block, msg.authorities, block.block_number + msg.subchain_lenght);
+              block, msg.authorities, block.number + msg.subchain_lenght);
         },
         [this, &block](const primitives::OnDisabled &msg) {
           return applyOnDisabled(block, msg.authority_index);
         },
         [this, &block](const primitives::Pause &msg) {
-          return applyPause(block, block.block_number + msg.subchain_lenght);
+          return applyPause(block, block.number + msg.subchain_lenght);
         },
         [this, &block](const primitives::Resume &msg) {
-          return applyResume(block, block.block_number + msg.subchain_lenght);
+          return applyResume(block, block.number + msg.subchain_lenght);
         },
         [](const Unused<0> &) {
           // NOTE(xDimon): Does it nothing? Is it valid?
@@ -304,7 +308,7 @@ namespace kagome::authority {
       return outcome::success();
     }
 
-    if (block.block_number < root_->block.block_number) {
+    if (block.number < root_->block.number) {
       return AuthorityManagerError::WRONG_FINALISATION_ORDER;
     }
 
@@ -334,7 +338,7 @@ namespace kagome::authority {
     BOOST_ASSERT(root_ != nullptr);
     std::shared_ptr<ScheduleNode> ancestor;
     // Target block is not descendant of the current root
-    if (root_->block.block_number > block.block_number
+    if (root_->block.number > block.number
         || (root_->block != block
             && not directChainExists(root_->block, block))) {
       return ancestor;
@@ -360,13 +364,12 @@ namespace kagome::authority {
       const primitives::BlockInfo &ancestor,
       const primitives::BlockInfo &descendant) {
     // Any block is descendant of genesis
-    if (ancestor.block_number <= 1
-        && ancestor.block_number < descendant.block_number) {
+    if (ancestor.number <= 1 && ancestor.number < descendant.number) {
       return true;
     }
-    auto result = ancestor.block_number < descendant.block_number
-                  && block_tree_->hasDirectChain(ancestor.block_hash,
-                                                 descendant.block_hash);
+    auto result =
+        ancestor.number < descendant.number
+        && block_tree_->hasDirectChain(ancestor.hash, descendant.hash);
     return result;
   }
 }  // namespace kagome::authority

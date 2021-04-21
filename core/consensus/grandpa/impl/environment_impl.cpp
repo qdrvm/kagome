@@ -8,6 +8,9 @@
 #include <boost/optional/optional_io.hpp>
 #include <utility>
 
+#include "blockchain/block_header_repository.hpp"
+#include "blockchain/block_tree.hpp"
+#include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "scale/scale.hpp"
 
@@ -49,20 +52,21 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
       const BlockHash &base) const {
-    logger_->debug("Finding best chain containing block {}", base.toHex());
+    SL_DEBUG(logger_, "Finding best chain containing block {}", base.toHex());
     OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, boost::none));
-    auto best_hash = best_info.block_hash;
+    auto best_hash = best_info.hash;
 
-    auto target = best_info.block_number;
+    auto target = best_info.number;
 
     OUTCOME_TRY(best_header, header_repository_->getBlockHeader(best_hash));
 
     // walk backwards until we find the target block
     while (true) {
       if (best_header.number == target) {
-        logger_->debug("found best chain: number {}, hash {}",
-                       best_header.number,
-                       best_hash.toHex());
+        SL_DEBUG(logger_,
+                 "found best chain: number {}, hash {}",
+                 best_header.number,
+                 best_hash.toHex());
         return BlockInfo{primitives::BlockNumber{best_header.number},
                          best_hash};
       }
@@ -80,7 +84,7 @@ namespace kagome::consensus::grandpa {
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
     gossiper_->catchUpRequest(peer_id, message);
-    logger_->debug("Catch-Up-Request sent from round #{}", round_number);
+    SL_DEBUG(logger_, "Catch-Up-Request sent from round #{}", round_number);
     return outcome::success();
   }
 
@@ -98,7 +102,7 @@ namespace kagome::consensus::grandpa {
         .precommit_justification = std::move(precommit_justification),
         .best_final_candidate = best_final_candidate};
     gossiper_->catchUpResponse(peer_id, message);
-    logger_->debug("Catch-Up-Response sent upto round {}", round_number);
+    SL_DEBUG(logger_, "Catch-Up-Response sent upto round {}", round_number);
     return outcome::success();
   }
 
@@ -110,10 +114,11 @@ namespace kagome::consensus::grandpa {
     network::GrandpaVoteMessage message{
         {.round_number = round, .counter = set_id, .vote = propose}};
     gossiper_->vote(message);
-    logger_->debug("Round #{}: Proposed block #{} with hash {}",
-                   round,
-                   propose.block_number(),
-                   propose.block_hash().toHex());
+    SL_DEBUG(logger_,
+             "Round #{}: Proposed block #{} with hash {}",
+             round,
+             propose.getBlockNumber(),
+             propose.getBlockHash().toHex());
     return outcome::success();
   }
 
@@ -125,10 +130,11 @@ namespace kagome::consensus::grandpa {
     network::GrandpaVoteMessage message{
         {.round_number = round, .counter = set_id, .vote = prevote}};
     gossiper_->vote(message);
-    logger_->debug("Round #{}: Prevoted block #{} with hash {}",
-                   round,
-                   prevote.block_number(),
-                   prevote.block_hash().toHex());
+    SL_DEBUG(logger_,
+             "Round #{}: Prevoted block #{} with hash {}",
+             round,
+             prevote.getBlockNumber(),
+             prevote.getBlockHash().toHex());
     return outcome::success();
   }
 
@@ -140,10 +146,11 @@ namespace kagome::consensus::grandpa {
     network::GrandpaVoteMessage message{
         {.round_number = round, .counter = set_id, .vote = precommit}};
     gossiper_->vote(message);
-    logger_->debug("Round #{}: Precommitted block #{} with hash {}",
-                   round,
-                   precommit.block_number(),
-                   precommit.block_hash().toHex());
+    SL_DEBUG(logger_,
+             "Round #{}: Precommitted block #{} with hash {}",
+             round,
+             precommit.getBlockNumber(),
+             precommit.getBlockHash().toHex());
     return outcome::success();
   }
 
@@ -151,10 +158,11 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
-    logger_->debug("Round #{}: Committed block #{} with hash {}",
-                   round,
-                   vote.block_number,
-                   vote.block_hash.toHex());
+    SL_DEBUG(logger_,
+             "Round #{}: Committed block #{} with hash {}",
+             round,
+             vote.number,
+             vote.hash.toHex());
     network::GrandpaPreCommit message{
         {.round_number = round, .vote = vote, .justification = justification}};
     gossiper_->finalize(message);

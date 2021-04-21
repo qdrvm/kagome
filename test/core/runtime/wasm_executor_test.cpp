@@ -25,6 +25,7 @@
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_environment_factory_impl.hpp"
+#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"

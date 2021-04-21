@@ -8,7 +8,17 @@
 #include <boost/algorithm/string/replace.hpp>
 
 #include "api/jrpc/jrpc_processor.hpp"
+#include "api/jrpc/jrpc_server.hpp"
 #include "api/jrpc/value_converter.hpp"
+#include "api/transport/listener.hpp"
+#include "application/app_state_manager.hpp"
+#include "blockchain/block_tree.hpp"
+#include "common/hexutil.hpp"
+#include "primitives/common.hpp"
+#include "primitives/transaction.hpp"
+#include "storage/trie/trie_storage.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
+#include "subscription/subscriber.hpp"
 
 #define UNWRAP_WEAK_PTR(callback)   \
   [wp](auto &&... params) mutable { \
@@ -115,9 +125,9 @@ namespace kagome::api {
   ApiServiceImpl::ApiServiceImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
-      std::vector<std::shared_ptr<Listener>> listeners,
+      ListenerList listeners,
       std::shared_ptr<JRpcServer> server,
-      const std::vector<std::shared_ptr<JRpcProcessor>> &processors,
+      const ProcessorSpan &processors,
       StorageSubscriptionEnginePtr storage_sub_engine,
       ChainSubscriptionEnginePtr chain_sub_engine,
       ExtrinsicSubscriptionEnginePtr ext_sub_engine,
@@ -126,7 +136,7 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage)
       : thread_pool_(std::move(thread_pool)),
-        listeners_(std::move(listeners)),
+        listeners_(std::move(listeners.listeners)),
         server_(std::move(server)),
         logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},
@@ -138,10 +148,11 @@ namespace kagome::api {
     BOOST_ASSERT(thread_pool_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(trie_storage_);
-    for ([[maybe_unused]] const auto &listener : listeners_) {
-      BOOST_ASSERT(listener != nullptr);
-    }
-    for (auto &processor : processors) {
+    BOOST_ASSERT(
+        std::all_of(listeners_.cbegin(), listeners_.cend(), [](auto &listener) {
+          return listener != nullptr;
+        }));
+    for (auto &processor : processors.processors) {
       BOOST_ASSERT(processor != nullptr);
       processor->registerHandlers();
     }
@@ -206,13 +217,13 @@ namespace kagome::api {
 
   bool ApiServiceImpl::start() {
     thread_pool_->start();
-    logger_->debug("API Service started");
+    SL_DEBUG(logger_, "API Service started");
     return true;
   }
 
   void ApiServiceImpl::stop() {
     thread_pool_->stop();
-    logger_->debug("API Service stopped");
+    SL_DEBUG(logger_, "API Service stopped");
   }
 
   std::shared_ptr<ApiServiceImpl::SessionSubscriptions>
@@ -259,16 +270,16 @@ namespace kagome::api {
           /// TODO(iceseer): PRE-476 make move data to subscription
           session->subscribe(id, key);
           if (auto res = pb->get(key); res.has_value()) {
-            forJsonData(server_,
-                        logger_,
-                        id,
-                        kRpcEventSubscribeStorage,
-                        createStateStorageEvent(
-                            key, res.value(), last_finalized.block_hash),
-                        [&](const auto &result) {
-                          session_context.messages->emplace_back(
-                              uploadFromCache(result.data()));
-                        });
+            forJsonData(
+                server_,
+                logger_,
+                id,
+                kRpcEventSubscribeStorage,
+                createStateStorageEvent(key, res.value(), last_finalized.hash),
+                [&](const auto &result) {
+                  session_context.messages->emplace_back(
+                      uploadFromCache(result.data()));
+                });
           }
         }
         return static_cast<PubsubSubscriptionId>(id);
@@ -285,8 +296,8 @@ namespace kagome::api {
         session->subscribe(id,
                            primitives::events::ChainEventType::kFinalizedHeads);
 
-        auto header = block_tree_->getBlockHeader(
-            block_tree_->getLastFinalized().block_hash);
+        auto header =
+            block_tree_->getBlockHeader(block_tree_->getLastFinalized().hash);
         if (!header.has_error()) {
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,
@@ -329,7 +340,7 @@ namespace kagome::api {
         session->subscribe(id, primitives::events::ChainEventType::kNewHeads);
 
         auto header =
-            block_tree_->getBlockHeader(block_tree_->deepestLeaf().block_hash);
+            block_tree_->getBlockHeader(block_tree_->deepestLeaf().hash);
         if (!header.has_error()) {
           session_context.messages = uploadMessagesListFromCache();
           forJsonData(server_,

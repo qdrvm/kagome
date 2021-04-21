@@ -5,6 +5,8 @@
 
 #include "api/service/system/requests/name.hpp"
 
+#include <boost/assert.hpp>
+
 namespace kagome::api::system::request {
 
   Name::Name(std::shared_ptr<SystemApi> api) : api_(std::move(api)) {

@@ -28,7 +28,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
-      std::shared_ptr<consensus::Babe> babe)
+      std::shared_ptr<consensus::babe::Babe> babe)
       : app_state_manager_(std::move(app_state_manager)),
         environment_{std::move(environment)},
         storage_{std::move(storage)},
@@ -79,8 +79,9 @@ namespace kagome::consensus::grandpa {
     }
     auto &round_state = round_state_res.value();
 
-    logger_->debug("Grandpa will be started with round #{}",
-                   round_state.round_number + 1);
+    SL_DEBUG(logger_,
+             "Grandpa will be started with round #{}",
+             round_state.round_number + 1);
 
     current_round_ = makeInitialRound(round_state);
     if (current_round_ == nullptr) {
@@ -152,7 +153,7 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
-    logger_->debug("Making next round");
+    SL_DEBUG(logger_, "Making next round");
 
     BOOST_ASSERT(round->finalizedBlock().has_value());
 
@@ -175,11 +176,10 @@ namespace kagome::consensus::grandpa {
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(best_block, environment_);
 
-    GrandpaConfig config{
-        .voters = voters,
-        .round_number = new_round_number,
-        .duration = round_time_factor_,
-        .peer_id = keypair_.public_key};
+    GrandpaConfig config{.voters = voters,
+                         .round_number = new_round_number,
+                         .duration = round_time_factor_,
+                         .peer_id = keypair_.public_key};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, new_round_number, voters);
@@ -273,7 +273,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
     if (previous_round_ == nullptr) {
-      logger_->debug(
+      SL_DEBUG(
+          logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
           "previous round is dummy yet",
           msg.round_number,
@@ -282,7 +283,8 @@ namespace kagome::consensus::grandpa {
     }
     if (previous_round_->voterSetId() != msg.voter_set_id) {
       // Catching up of different set
-      logger_->debug(
+      SL_DEBUG(
+          logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
           "voter set is different",
           msg.round_number,
@@ -291,7 +293,8 @@ namespace kagome::consensus::grandpa {
     }
     if (previous_round_->roundNumber() < msg.round_number) {
       // Catching up in to the past
-      logger_->debug(
+      SL_DEBUG(
+          logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
           "catching up in to the past",
           msg.round_number,
@@ -307,7 +310,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
     if (not previous_round_->completable()) {
-      logger_->debug(
+      SL_DEBUG(
+          logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
           "round is not completable",
           msg.round_number,
@@ -315,7 +319,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
     if (not previous_round_->finalizable()) {
-      logger_->debug(
+      SL_DEBUG(
+          logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
           "round is not finalizable",
           msg.round_number,
@@ -323,9 +328,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    logger_->debug("Catch-up request (since round #{}) received from {}",
-                   msg.round_number,
-                   peer_id.toHex());
+    SL_DEBUG(logger_,
+             "Catch-up request (since round #{}) received from {}",
+             msg.round_number,
+             peer_id.toHex());
     previous_round_->doCatchUpResponse(peer_id);
   }
 
@@ -337,7 +343,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(current_round_ != nullptr);
     if (current_round_->roundNumber() >= msg.round_number) {
       // Catching up in to the past
-      logger_->debug(
+      SL_DEBUG(
+          logger_,
           "Catch-up response (till round #{}) received from {} was rejected: "
           "catching up in to the past",
           msg.round_number,
@@ -346,7 +353,8 @@ namespace kagome::consensus::grandpa {
     }
     if (current_round_->voterSetId() != msg.voter_set_id) {
       // Catching up of different set
-      logger_->debug(
+      SL_DEBUG(
+          logger_,
           "Catch-up response (till round #{}) received from {} was rejected: "
           "voter set is different",
           msg.round_number,
@@ -354,9 +362,10 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    logger_->debug("Catch-up response (till round #{}) received from {}",
-                   msg.round_number,
-                   peer_id.toHex());
+    SL_DEBUG(logger_,
+             "Catch-up response (till round #{}) received from {}",
+             msg.round_number,
+             peer_id.toHex());
 
     MovableRoundState round_state{
         .round_number = msg.round_number,
@@ -378,8 +387,8 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (current_round_->bestPrevoteCandidate().block_number
-        > round->bestFinalCandidate().block_number) {
+    if (current_round_->bestPrevoteCandidate().number
+        > round->bestFinalCandidate().number) {
       // GHOST-less Catch-up
       return;
     }
@@ -418,12 +427,12 @@ namespace kagome::consensus::grandpa {
 
     // get block info
     auto blockInfo = visit_in_place(msg.vote.message, [](const auto &vote) {
-      return BlockInfo(vote.block_number, vote.block_hash);
+      return BlockInfo(vote.number, vote.hash);
     });
 
     // get authorities
     const auto &weighted_authorities_res =
-        grandpa_api_->authorities(primitives::BlockId(blockInfo.block_number));
+        grandpa_api_->authorities(primitives::BlockId(blockInfo.number));
     if (!weighted_authorities_res.has_value()) {
       logger_->error("Can't get authorities");
       return;
@@ -491,8 +500,7 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
     }
 
-    if (current_round_->bestPrevoteCandidate().block_number
-        > block_info.block_number) {
+    if (current_round_->bestPrevoteCandidate().number > block_info.number) {
       return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
     }
 
@@ -504,8 +512,9 @@ namespace kagome::consensus::grandpa {
     auto round = makeInitialRound(round_state);
     assert(round);
 
-    logger_->debug("Rewind grandpa till round #{} by received justification",
-                   justification.round_number);
+    SL_DEBUG(logger_,
+             "Rewind grandpa till round #{} by received justification",
+             justification.round_number);
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
 
@@ -521,14 +530,16 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCompletedRound(
       outcome::result<MovableRoundState> round_state_res) {
     if (not round_state_res) {
-      logger_->debug("Grandpa round was not finalized: {}",
-                     round_state_res.error().message());
+      SL_DEBUG(logger_,
+               "Grandpa round was not finalized: {}",
+               round_state_res.error().message());
       return;
     }
 
     const auto &round_state = round_state_res.value();
 
-    logger_->debug("Event OnCompleted for round #{}", round_state.round_number);
+    SL_DEBUG(
+        logger_, "Event OnCompleted for round #{}", round_state.round_number);
 
     if (auto put_res =
             storage_->put(storage::kSetStateKey,

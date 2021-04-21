@@ -13,7 +13,7 @@
 #include "consensus/babe/types/epoch_descriptor.hpp"
 #include "network/babe_observer.hpp"
 
-namespace kagome::consensus {
+namespace kagome::consensus::babe {
   /**
    * BABE protocol, used for block production in the Polkadot consensus. One of
    * the two parts in that consensus; the other is Grandpa finality
@@ -73,6 +73,6 @@ namespace kagome::consensus {
      */
     virtual void doOnSynchronized(std::function<void()> handler) = 0;
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::consensus::babe
 
 #endif  // KAGOME_BABE_HPP

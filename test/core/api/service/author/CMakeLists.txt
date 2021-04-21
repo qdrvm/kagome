@@ -13,4 +13,5 @@ target_link_libraries(author_api_test
     testutil_primitives_generator
     transaction_pool
     dummy_error
+    logger_for_tests
     )

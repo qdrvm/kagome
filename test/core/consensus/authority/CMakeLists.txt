@@ -11,4 +11,5 @@ target_link_libraries(authority_manager_test
     scale
     blob
     dummy_error
+    logger_for_tests
     )
