@@ -52,7 +52,6 @@
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
-#include "consensus/babe/impl/syncing_babe.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -1020,86 +1019,6 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<network::OwnPeerInfo> get_syncing_peer_info(const Injector &injector) {
-    static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
-    if (initialized) {
-      return initialized.value();
-    }
-
-    const auto &config =
-        injector.template create<const application::AppConfiguration &>();
-
-    auto &&local_pair = injector.template create<libp2p::crypto::KeyPair>();
-    libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
-
-    auto &key_marshaller =
-        injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
-
-    libp2p::peer::PeerId peer_id =
-        libp2p::peer::PeerId::fromPublicKey(
-            key_marshaller.marshal(public_key).value())
-            .value();
-
-    std::vector<libp2p::multi::Multiaddress> addresses =
-        config.listenAddresses();
-
-    auto log = log::createLogger("syncing_injector", "kagome");
-
-    SL_DEBUG(log, "Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      SL_DEBUG(log, "Received multiaddr: {}", addr.getStringAddress());
-    }
-
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
-    return initialized.value();
-  }
-
-  template <typename Injector>
-  sptr<consensus::babe::Babe> get_syncing_babe(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<consensus::babe::Babe>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    initialized = std::make_shared<consensus::babe::SyncingBabe>(
-        injector.template create<sptr<consensus::BlockExecutor>>());
-
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-    protocol_factory->setBabe(initialized.value());
-
-    return initialized.value();
-  }
-
-  template <typename... Ts>
-  auto makeSyncingNodeInjector(const application::AppConfiguration &app_config,
-                               Ts &&... args) {
-    using namespace boost;  // NOLINT;
-
-    return di::make_injector(
-        // inherit application injector
-        makeApplicationInjector(app_config),
-
-        // peer info
-        di::bind<network::OwnPeerInfo>.to([](const auto &injector) {
-          return get_syncing_peer_info(injector);
-        }),
-
-        di::bind<consensus::babe::Babe>.to([](auto const &injector) {
-          return get_syncing_babe(injector);
-        })[di::override],
-        di::bind<network::BabeObserver>.to([](auto const &injector) {
-          return get_syncing_babe(injector);
-        })[di::override],
-
-        // user-defined overrides...
-        std::forward<decltype(args)>(args)...);
-  }
-
-  template <typename Injector>
   sptr<crypto::Sr25519Keypair> get_sr25519_keypair(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<crypto::Sr25519Keypair>>(boost::none);
@@ -1117,7 +1036,7 @@ namespace {
         injector.template create<const crypto::CryptoStore &>();
     auto &&sr25519_kp = crypto_store.getBabeKeypair();
     if (not sr25519_kp) {
-      auto log = log::createLogger("validating_injector", "kagome");
+      auto log = log::createLogger("Injector", "kagome");
       log->error("Failed to get BABE keypair");
       return {};
     }
@@ -1144,51 +1063,12 @@ namespace {
         injector.template create<const crypto::CryptoStore &>();
     auto &&ed25519_kp = crypto_store.getGrandpaKeypair();
     if (not ed25519_kp) {
-      auto log = log::createLogger("validating_injector", "kagome");
+      auto log = log::createLogger("Injector", "kagome");
       log->error("Failed to get GRANDPA keypair");
       return {};
     }
 
     initialized = std::make_shared<crypto::Ed25519Keypair>(ed25519_kp.value());
-    return initialized.value();
-  }
-
-  template <typename Injector>
-  sptr<network::OwnPeerInfo> get_validating_peer_info(
-      const Injector &injector) {
-    static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
-    if (initialized) {
-      return initialized.value();
-    }
-
-    // get key storage
-    auto &key_marshaller =
-        injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
-    application::AppConfiguration const &config =
-        injector.template create<application::AppConfiguration const &>();
-    auto &crypto_provider =
-        injector.template create<const crypto::Ed25519Provider &>();
-    auto &crypto_store =
-        injector.template create<const crypto::CryptoStore &>();
-
-    auto &local_pair = get_peer_keypair(config, crypto_provider, crypto_store);
-    libp2p::crypto::PublicKey &public_key = local_pair->publicKey;
-
-    libp2p::peer::PeerId peer_id =
-        libp2p::peer::PeerId::fromPublicKey(
-            key_marshaller.marshal(public_key).value())
-            .value();
-
-    std::vector<libp2p::multi::Multiaddress> addresses =
-        config.listenAddresses();
-
-    auto log = log::createLogger("validating_injector", "kagome");
-    SL_DEBUG(log, "Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      SL_DEBUG(log, "Received multiaddr: {}", addr.getStringAddress());
-    }
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
     return initialized.value();
   }
 
@@ -1230,7 +1110,7 @@ namespace {
     std::vector<libp2p::multi::Multiaddress> addresses =
         config.listenAddresses();
 
-    auto log = log::createLogger("kagome_injector", "kagome");
+    auto log = log::createLogger("Injector", "kagome");
 
     SL_DEBUG(log, "Received peer id: {}", peer_id.toBase58());
     for (auto &addr : addresses) {
@@ -1353,37 +1233,10 @@ namespace {
         std::forward<decltype(args)>(args)...);
   }
 
-  template <typename... Ts>
-  auto makeValidatingNodeInjector(
-      const application::AppConfiguration &app_config, Ts &&... args) {
-    using namespace boost;  // NOLINT;
-
-    return di::make_injector(
-        makeApplicationInjector(app_config),
-        // bind sr25519 keypair
-        di::bind<crypto::Sr25519Keypair>.to(
-            [](auto const &injector) { return get_sr25519_keypair(injector); }),
-        // bind ed25519 keypair
-        di::bind<crypto::Ed25519Keypair>.to(
-            [](auto const &injector) { return get_ed25519_keypair(injector); }),
-        // compose peer info
-        di::bind<network::OwnPeerInfo>.to([](const auto &injector) {
-          return get_validating_peer_info(injector);
-        }),
-        di::bind<consensus::babe::Babe>.to(
-            [](auto const &injector) { return get_babe(injector); }),
-        di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-        di::bind<network::BabeObserver>.to(
-            [](auto const &injector) { return get_babe(injector); }),
-        di::bind<runtime::GrandpaApi>.template to<runtime::binaryen::GrandpaApiImpl>()
-            [di::override],
-
-        // user-defined overrides...
-        std::forward<decltype(args)>(args)...);
-  }
 }  // namespace
 
 namespace kagome::injector {
+
   class KagomeNodeInjectorImpl {
    public:
     using Injector = decltype(makeKagomeNodeInjector(
@@ -1393,117 +1246,6 @@ namespace kagome::injector {
         : injector_{std::move(injector)} {}
     Injector injector_;
   };
-
-  class ValidatingNodeInjectorImpl {
-   public:
-    using Injector = decltype(makeValidatingNodeInjector(
-        std::declval<application::AppConfiguration const &>()));
-
-    ValidatingNodeInjectorImpl(Injector injector)
-        : injector_{std::move(injector)} {}
-    Injector injector_;
-  };
-
-  class SyncingNodeInjectorImpl {
-   public:
-    using Injector = decltype(makeSyncingNodeInjector(
-        std::declval<application::AppConfiguration const &>()));
-    SyncingNodeInjectorImpl(Injector injector)
-        : injector_{std::move(injector)} {}
-    Injector injector_;
-  };
-
-  SyncingNodeInjector::SyncingNodeInjector(
-      const application::AppConfiguration &app_config)
-      : pimpl_{std::make_unique<SyncingNodeInjectorImpl>(
-          makeSyncingNodeInjector(app_config))} {}
-
-  sptr<application::ChainSpec> SyncingNodeInjector::injectChainSpec() {
-    return pimpl_->injector_.create<sptr<application::ChainSpec>>();
-  }
-
-  sptr<application::AppStateManager>
-  SyncingNodeInjector::injectAppStateManager() {
-    return pimpl_->injector_.create<sptr<application::AppStateManager>>();
-  }
-
-  sptr<boost::asio::io_context> SyncingNodeInjector::injectIoContext() {
-    return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
-  }
-
-  sptr<network::Router> SyncingNodeInjector::injectRouter() {
-    return pimpl_->injector_.create<sptr<network::Router>>();
-  }
-
-  sptr<network::PeerManager> SyncingNodeInjector::injectPeerManager() {
-    return pimpl_->injector_.create<sptr<network::PeerManager>>();
-  }
-
-  sptr<api::ApiService> SyncingNodeInjector::injectRpcApiService() {
-    return pimpl_->injector_.create<sptr<api::ApiService>>();
-  }
-
-  std::shared_ptr<network::SyncProtocolObserver>
-  SyncingNodeInjector::injectSyncObserver() {
-    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
-  }
-
-  std::shared_ptr<consensus::babe::Babe> SyncingNodeInjector::injectBabe() {
-    return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
-  }
-
-  std::shared_ptr<consensus::grandpa::Grandpa>
-  SyncingNodeInjector::injectGrandpa() {
-    return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
-  }
-
-  ValidatingNodeInjector::ValidatingNodeInjector(
-      const application::AppConfiguration &app_config)
-      : pimpl_{std::make_unique<ValidatingNodeInjectorImpl>(
-          makeValidatingNodeInjector(app_config))} {}
-
-  sptr<application::ChainSpec> ValidatingNodeInjector::injectChainSpec() {
-    return pimpl_->injector_.create<sptr<application::ChainSpec>>();
-  }
-
-  sptr<application::AppStateManager>
-  ValidatingNodeInjector::injectAppStateManager() {
-    return pimpl_->injector_.create<sptr<application::AppStateManager>>();
-  }
-
-  sptr<boost::asio::io_context> ValidatingNodeInjector::injectIoContext() {
-    return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
-  }
-
-  sptr<network::Router> ValidatingNodeInjector::injectRouter() {
-    return pimpl_->injector_.create<sptr<network::Router>>();
-  }
-
-  sptr<network::PeerManager> ValidatingNodeInjector::injectPeerManager() {
-    return pimpl_->injector_.create<sptr<network::PeerManager>>();
-  }
-
-  sptr<api::ApiService> ValidatingNodeInjector::injectRpcApiService() {
-    return pimpl_->injector_.create<sptr<api::ApiService>>();
-  }
-  std::shared_ptr<clock::SystemClock>
-  ValidatingNodeInjector::injectSystemClock() {
-    return pimpl_->injector_.create<sptr<clock::SystemClock>>();
-  }
-
-  std::shared_ptr<network::SyncProtocolObserver>
-  ValidatingNodeInjector::injectSyncObserver() {
-    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
-  }
-
-  std::shared_ptr<consensus::babe::Babe> ValidatingNodeInjector::injectBabe() {
-    return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
-  }
-
-  std::shared_ptr<consensus::grandpa::Grandpa>
-  ValidatingNodeInjector::injectGrandpa() {
-    return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
-  }
 
   KagomeNodeInjector::KagomeNodeInjector(
       const application::AppConfiguration &app_config)

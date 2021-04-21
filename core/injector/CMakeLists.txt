@@ -60,7 +60,6 @@ target_link_libraries(application_injector
     leveldb
     outcome
     grandpa
-    syncing_babe
     kagome_router
     environment
     proposer

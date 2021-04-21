@@ -9,9 +9,10 @@
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
-#include "application/impl/syncing_node_application.hpp"
+#include "application/impl/kagome_application_impl.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "outcome/outcome.hpp"
 
 using namespace kagome;
 using application::AppConfiguration;
@@ -38,9 +39,9 @@ int main(int argc, char **argv) {
   AppConfigurationImpl configuration{logger};
 
   if (configuration.initialize_from_args(argc, argv)) {
+    kagome::log::setLevelOfGroup("*", configuration.verbosity());
     auto app =
-        std::make_shared<application::SyncingNodeApplication>(configuration);
-    log::setLevelOfGroup("main", configuration.verbosity());
+        std::make_shared<application::KagomeApplicationImpl>(configuration);
     app->run();
   }
 

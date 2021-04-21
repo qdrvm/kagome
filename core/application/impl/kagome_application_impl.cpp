@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "application/impl/validating_node_application.hpp"
+#include "application/impl/kagome_application_impl.hpp"
 
 #include <thread>
 
@@ -12,20 +12,19 @@
 
 namespace kagome::application {
 
-  ValidatingNodeApplication::ValidatingNodeApplication(
-      const AppConfiguration &app_config)
-      :
-        app_config_(app_config),
+  AllInOneApplication::AllInOneApplication(const AppConfiguration &app_config)
+      : app_config_(app_config),
         injector_{
-            std::make_unique<injector::ValidatingNodeInjector>(app_config)},
-      logger_(log::createLogger("ValidatingNodeApplication", "application")),
-        node_name_{app_config.nodeName()} {
+            std::make_unique<injector::KagomeNodeInjector>(app_config)},
+        logger_(log::createLogger("AllInOneApplication", "application")),
+        node_name_(app_config.nodeName()) {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
     BOOST_ASSERT(chain_spec_ != nullptr);
 
     app_state_manager_ = injector_->injectAppStateManager();
+
     io_context_ = injector_->injectIoContext();
     clock_ = injector_->injectSystemClock();
     babe_ = injector_->injectBabe();
@@ -36,15 +35,15 @@ namespace kagome::application {
     sync_observer_ = injector_->injectSyncObserver();
   }
 
-  void ValidatingNodeApplication::run() {
-    logger_->info("Start as ValidatingNode with PID {} named as {}",
+  void AllInOneApplication::run() {
+    logger_->info("Start as AllInOneApplication with PID {} named as {}",
                   getpid(),
                   node_name_);
 
     auto chain_path = app_config_.chainPath(chain_spec_->id());
     auto res = util::init_directory(chain_path);
     if (not res) {
-      logger_->critical("Error initializing chain directory {}: {}",
+      logger_->critical("Error initalizing chain directory {}: {}",
                         chain_path.native(),
                         res.error().message());
       exit(EXIT_FAILURE);

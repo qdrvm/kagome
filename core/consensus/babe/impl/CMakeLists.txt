@@ -75,11 +75,3 @@ target_link_libraries(babe_synchronizer
     logger
     primitives
     )
-
-add_library(syncing_babe
-    syncing_babe.cpp
-    )
-target_link_libraries(syncing_babe
-    logger
-    primitives
-    )
