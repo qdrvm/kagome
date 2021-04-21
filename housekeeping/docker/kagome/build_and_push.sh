@@ -37,12 +37,10 @@ rm -Rf ${CTX_DIR}
 mkdir -p ${CTX_DIR}
 
 # Copy binaries
-cp -a ${BUILD_DIR}/node/kagome_full_syncing/kagome_full_syncing ${CTX_DIR}/
-cp -a ${BUILD_DIR}/node/kagome_validating/kagome_validating  ${CTX_DIR}/
+cp -a ${BUILD_DIR}/node/kagome ${CTX_DIR}/
 
 if [ "$BUILD_TYPE" = "Release" ]; then
-  strip ${CTX_DIR}/kagome_full_syncing
-  strip ${CTX_DIR}/kagome_validating
+  strip ${CTX_DIR}/kagome
 
   docker build -t $TAG -f housekeeping/docker/kagome/minideb-release.Dockerfile ${CTX_DIR}
 
