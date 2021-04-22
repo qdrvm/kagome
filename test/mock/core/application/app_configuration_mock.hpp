@@ -48,8 +48,6 @@ namespace kagome::application {
 
     MOCK_CONST_METHOD0(verbosity, log::Level());
 
-    MOCK_CONST_METHOD0(isOnlyFinalizing, bool());
-
     MOCK_CONST_METHOD0(isAlreadySynchronized, bool());
 
     MOCK_CONST_METHOD0(maxBlocksInResponse, uint32_t());
