@@ -1030,6 +1030,7 @@ namespace {
         injector.template create<application::AppConfiguration const &>();
     if (config.roles().flags.authority == 0) {
       return {};
+      injector.template create<const application::AppConfiguration &>();
     }
 
     const auto &crypto_store =
@@ -1107,18 +1108,21 @@ namespace {
             key_marshaller.marshal(public_key).value())
             .value();
 
-    std::vector<libp2p::multi::Multiaddress> addresses =
+    std::vector<libp2p::multi::Multiaddress> listen_addrs =
         config.listenAddresses();
+    std::vector<libp2p::multi::Multiaddress> public_addrs =
+        config.publicAddresses();
 
     auto log = log::createLogger("Injector", "kagome");
-
-    SL_DEBUG(log, "Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      SL_DEBUG(log, "Received multiaddr: {}", addr.getStringAddress());
+    for (auto &addr : listen_addrs) {
+      SL_DEBUG(log, "Peer listening on multiaddr: {}", addr.getStringAddress());
+    }
+    for (auto &addr : public_addrs) {
+      SL_DEBUG(log, "Peer public multiaddr: {}", addr.getStringAddress());
     }
 
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
+    initialized = std::make_shared<network::OwnPeerInfo>(
+        std::move(peer_id), std::move(public_addrs), std::move(listen_addrs));
     return initialized.value();
   }
 

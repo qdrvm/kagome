@@ -198,6 +198,7 @@ namespace kagome::application {
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
     load_ma(val, "listen-addr", listen_addresses_);
+    load_ma(val, "public-addr", public_addresses_);
     load_ma(val, "bootnodes", boot_nodes_);
     load_u16(val, "port", p2p_port_);
     load_str(val, "rpc-host", rpc_http_host_);
@@ -231,7 +232,11 @@ namespace kagome::application {
       return false;
     }
 
-    if (p2p_port_ == 0) {
+    if (not listen_addresses_.empty()) {
+      logger_->info(
+          "Listen addresses are set. The p2p port value would be ignored "
+          "then.");
+    } else if (p2p_port_ == 0) {
       logger_->error(
           "p2p port is 0, "
           "please specify a valid path with -p option");
@@ -343,6 +348,7 @@ namespace kagome::application {
     po::options_description network_desc("Network options");
     network_desc.add_options()
         ("listen-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses the node listens for open connections on")
+        ("public-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses that other nodes use to connect to it")
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
@@ -549,23 +555,82 @@ namespace kagome::application {
 
     find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
 
-    std::vector<std::string> listen_addr;
-    find_argument<std::vector<std::string>>(
-        vm, "listen-addr", [&](const auto &val) { listen_addr = val; });
+    auto parse_multiaddrs =
+        [&](const std::string &param_name,
+            std::vector<libp2p::multi::Multiaddress> &output_field) -> bool {
+      std::vector<std::string> addrs;
+      find_argument<std::vector<std::string>>(
+          vm, param_name.c_str(), [&](const auto &val) { addrs = val; });
 
-    if (not listen_addr.empty()) {
-      listen_addresses_.clear();
-    }
-    for (auto &s : listen_addr) {
-      auto ma_res = libp2p::multi::Multiaddress::create(s);
-      if (not ma_res) {
-        auto err_msg = "Listening address '" + s
-                       + "' is invalid: " + ma_res.error().message();
-        logger_->error(err_msg);
-        std::cout << err_msg << std::endl;
-        return false;
+      if (not addrs.empty()) {
+        output_field.clear();
       }
-      listen_addresses_.emplace_back(std::move(ma_res.value()));
+      for (auto &s : addrs) {
+        auto ma_res = libp2p::multi::Multiaddress::create(s);
+        if (not ma_res) {
+          logger_->error("Address {} passed as value to {} is invalid: {}",
+                         s,
+                         param_name,
+                         ma_res.error().message());
+          return false;
+        }
+        output_field.emplace_back(std::move(ma_res.value()));
+      }
+      return true;
+    };
+
+    if (not parse_multiaddrs("listen-addr", listen_addresses_)) {
+      return false;  // just proxy erroneous case to the top level
+    }
+    if (not parse_multiaddrs("public-addr", public_addresses_)) {
+      return false;  // just proxy erroneous case to the top level
+    }
+
+    // this goes before transforming p2p port option to listen addresses,
+    // because it does not make sense to announce 0.0.0.0 as a public address.
+    // Moreover, this is ok to have empty set of public addresses at this point
+    // of time
+    if (public_addresses_.empty() and not listen_addresses_.empty()) {
+      logger_->info(
+          "Public addresses are not specified. Using listen addresses as "
+          "node's public addresses");
+      public_addresses_ = listen_addresses_;
+    }
+
+    if (0 != p2p_port_ and listen_addresses_.empty()) {
+      // IPv6
+      {
+        auto ma_res = libp2p::multi::Multiaddress::create(
+            "/ip6/::/tcp/" + std::to_string(p2p_port_));
+        if (not ma_res) {
+          logger_->error(
+              "Cannot construct IPv6 listen multiaddress from port {}. Error: "
+              "{}",
+              p2p_port_,
+              ma_res.error().message());
+        } else {
+          logger_->info("Automatically added IPv6 listen address {}",
+                        ma_res.value().getStringAddress());
+          listen_addresses_.emplace_back(std::move(ma_res.value()));
+        }
+      }
+
+      // IPv4
+      {
+        auto ma_res = libp2p::multi::Multiaddress::create(
+            "/ip4/0.0.0.0/tcp/" + std::to_string(p2p_port_));
+        if (not ma_res) {
+          logger_->error(
+              "Cannot construct IPv4 listen multiaddress from port {}. Error: "
+              "{}",
+              p2p_port_,
+              ma_res.error().message());
+        } else {
+          logger_->info("Automatically added IPv4 listen address {}",
+                        ma_res.value().getStringAddress());
+          listen_addresses_.emplace_back(std::move(ma_res.value()));
+        }
+      }
     }
 
     find_argument<uint32_t>(vm, "max-blocks-in-response", [&](uint32_t val) {

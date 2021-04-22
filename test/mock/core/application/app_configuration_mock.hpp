@@ -33,6 +33,9 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(listenAddresses,
                        const std::vector<libp2p::multi::Multiaddress> &());
 
+    MOCK_CONST_METHOD0(publicAddresses,
+                       const std::vector<libp2p::multi::Multiaddress> &());
+
     MOCK_CONST_METHOD0(bootNodes,
                        const std::vector<libp2p::multi::Multiaddress> &());
 

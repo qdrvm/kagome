@@ -12,6 +12,7 @@
 #include "application/app_state_manager.hpp"
 #include "libp2p/connection/loopback_stream.hpp"
 #include "libp2p/host/host.hpp"
+#include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/protocol/ping.hpp"
 #include "network/protocols/protocol_factory.hpp"
 #include "network/sync_protocol_observer.hpp"
@@ -59,6 +60,16 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
 
    private:
+    /**
+     * Appends /p2p/<peerid> part to ip4 and ip6 addresses which then passed to
+     * host->listen method. Used further by Kademlia.
+     * Non ip4 and ip6 addresses are left untouched
+     * @param address multiaddress
+     * @return an error if any
+     */
+    outcome::result<void> appendPeerIdToAddress(
+        libp2p::multi::Multiaddress &address) const;
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
     const application::AppConfiguration &app_config_;
