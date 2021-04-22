@@ -68,7 +68,7 @@ For this tutorial you can start a single node network as follows:
 
 ```shell script
 kagome \
-    --role authority \
+    --roles full,authority \
     --chain localchain.json \
     --base-path base_path \
     --port 30363 \
@@ -82,7 +82,7 @@ Let's look at this flags in detail:
 
 | Flag              | Description                                       |
 |-------------------|---------------------------------------------------|
-| `--role` | mandatory, roles of youe node | 
+| `--roles` | mandatory, roles of your node | 
 | `--chain`       | mandatory, chainspec file path        |
 | `--base-path`       | mandatory, base kagome directory path                 |
 | `--port`      | port for p2p interactions                         |

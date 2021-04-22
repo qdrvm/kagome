@@ -16,7 +16,7 @@ To start with let's navigate into the node's folder:
 
 ```shell script
 kagome \
-    --role authority \
+    --roles full,authority \
     --chain testchain.json \
     --base-path validating1 \
     --port 11122 \
@@ -32,7 +32,7 @@ Now that validating node is up and running, second node can join the network by 
 
 ```shell script
 kagome \
-    --role authority \
+    --roles full,authority \
     --chain testchain.json \
     --base-path validating2 \
     --port 11222 \
@@ -59,7 +59,7 @@ To start syncing node `kagome` binary is used as follows:
 
 ```shell script
 kagome \
-    --role full \
+    --roles full \
     --chain testchain.json \
     --base-path syncing1 \
     --port 21122 \

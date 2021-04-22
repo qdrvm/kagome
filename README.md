@@ -79,7 +79,7 @@ To launch kagome node execute:
 ```
 cd examples/first_kagome_chain
 PATH=$PATH:../../build/node/
-kagome --role authority --chain localchain.json --base-path base_path
+kagome --roles full,authority --chain localchain.json --base-path base_path
 ```
 
 This command executes kagome full node with authority role which can receive extrinsics locally on port using http: `9933`. Simple transfer transaction can be sent as follows:
@@ -107,7 +107,7 @@ To launch kagome syncing node execute:
 ```
 cd examples/polkadot/
 PATH=$PATH:../../build/node/
-kagome --role full --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix-slots
+kagome --roles full --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix-slots
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.
