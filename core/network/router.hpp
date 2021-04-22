@@ -8,48 +8,28 @@
 
 #include <libp2p/connection/stream.hpp>
 
+#include "network/protocols/block_announce_protocol.hpp"
+#include "network/protocols/gossip_protocol.hpp"
+#include "network/protocols/propagate_transactions_protocol.hpp"
+#include "network/protocols/sup_protocol.hpp"
+#include "network/protocols/sync_protocol.hpp"
+
 namespace kagome::network {
   /**
    * Router, which reads and delivers different network messages to the
    * observers, responsible for their processing
    */
   class Router {
-   protected:
-    using Stream = libp2p::connection::Stream;
-
    public:
     virtual ~Router() = default;
 
-    /**
-     * Handle stream, which is opened over a Sync protocol
-     * @param stream to be handled
-     */
-    virtual void handleSyncProtocol(std::shared_ptr<Stream> stream) const = 0;
-
-    /**
-     * Handle stream, which is opened over a Gossip protocol
-     * @param stream to be handled
-     */
-    virtual void handleGossipProtocol(std::shared_ptr<Stream> stream) const = 0;
-
-    /**
-     * Handle stream, which is opened over a Transactions protocol
-     * @param stream to be handled
-     */
-    virtual void handleTransactionsProtocol(
-        std::shared_ptr<Stream> stream) const = 0;
-
-    /**
-     * Handle stream, which is opened over a Block-announces protocol
-     * @param stream to be handled
-     */
-    virtual void handleBlockAnnouncesProtocol(
-        std::shared_ptr<Stream> stream) const = 0;
-
-    /**
-     * Initiate sup update with remote peer.
-     */
-    virtual void handleSupProtocol(std::shared_ptr<Stream> stream) const = 0;
+    virtual std::shared_ptr<BlockAnnounceProtocol> getBlockAnnounceProtocol()
+        const = 0;
+    virtual std::shared_ptr<GossipProtocol> getGossipProtocol() const = 0;
+    virtual std::shared_ptr<PropagateTransactionsProtocol>
+    getPropagateTransactionsProtocol() const = 0;
+    virtual std::shared_ptr<SupProtocol> getSupProtocol() const = 0;
+    virtual std::shared_ptr<SyncProtocol> getSyncProtocol() const = 0;
   };
 }  // namespace kagome::network
 

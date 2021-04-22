@@ -173,7 +173,7 @@ TEST_F(ChainTest, BestChainContaining) {
       .WillOnce(Return(BlockInfo{42, h[3]}));
   ASSERT_OUTCOME_SUCCESS(r, chain->bestChainContaining(h[2]));
 
-  ASSERT_EQ(h[3], r.block_hash);
+  ASSERT_EQ(h[3], r.hash);
 }
 
 /**

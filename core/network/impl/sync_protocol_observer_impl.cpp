@@ -63,15 +63,17 @@ namespace kagome::network {
     // thirdly, fill the resulting response with data, which we were asked for
     fillBlocksResponse(request, response, chain_hash_res.value());
     if (response.blocks.empty()) {
-      log_->debug("Return response: empty");
+      SL_DEBUG(log_, "Return response: empty");
     } else if (response.blocks.size() == 1) {
-      log_->debug("Return response: {}, count 1",
-                  response.blocks.front().hash.toHex());
+      SL_DEBUG(log_,
+               "Return response: {}, count 1",
+               response.blocks.front().hash.toHex());
     } else {
-      log_->debug("Return response: {}..{}, count {}",
-                  response.blocks.front().hash.toHex(),
-                  response.blocks.back().hash.toHex(),
-                  response.blocks.size());
+      SL_DEBUG(log_,
+               "Return response: {}..{}, count {}",
+               response.blocks.front().hash.toHex(),
+               response.blocks.back().hash.toHex(),
+               response.blocks.size());
     }
 
     requested_ids_.erase(request.id);

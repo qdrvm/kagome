@@ -15,7 +15,6 @@
 namespace kagome::crypto::bip39 {
 
   namespace {
-    constexpr auto kMnemonicLoggerString = "Mnemonic";
     /**
      * @return true if string s is a valid utf-8, false otherwise
      */

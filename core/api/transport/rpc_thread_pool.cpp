@@ -22,12 +22,12 @@ namespace kagome::api {
       thread->detach();
       threads_.emplace_back(std::move(thread));
     }
-    logger_->debug("Thread pool started");
+    SL_DEBUG(logger_, "Thread pool started");
   }
 
   void RpcThreadPool::stop() {
     context_->stop();
-    logger_->debug("Thread pool stopped");
+    SL_DEBUG(logger_, "Thread pool stopped");
   }
 
 }  // namespace kagome::api

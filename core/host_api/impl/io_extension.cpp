@@ -7,8 +7,8 @@
 
 #include <boost/assert.hpp>
 
-#include "runtime/wasm_result.hpp"
 #include "runtime/wasm_memory.hpp"
+#include "runtime/wasm_result.hpp"
 
 namespace kagome::host_api {
   IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
@@ -47,10 +47,10 @@ namespace kagome::host_api {
         logger_->info("target: {}\n\tmessage: {}", target_str, message_str);
         break;
       case WasmLogLevel::WasmLL_Debug:
-        logger_->debug("target: {}\n\tmessage: {}", target_str, message_str);
+        SL_DEBUG(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       case WasmLogLevel::WasmLL_Trace:
-        logger_->trace("target: {}\n\tmessage: {}", target_str, message_str);
+        SL_TRACE(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       default: {
         assert(false);

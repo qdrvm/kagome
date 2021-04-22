@@ -72,20 +72,18 @@ namespace kagome::consensus::grandpa {
                                                 const VoteWeight &weigth) {
       return visit_in_place(
           vote, [this, &weigth](const auto &vote) -> outcome::result<void> {
-            return insert(BlockInfo{vote.block_number, vote.block_hash},
-                          weigth);
+            return insert(BlockInfo{vote.number, vote.hash}, weigth);
           });
     }
 
     inline virtual outcome::result<void> insert(const Prevote &prevote,
                                                 const VoteWeight &vote) {
-      return insert(BlockInfo{prevote.block_number, prevote.block_hash}, vote);
+      return insert(BlockInfo{prevote.number, prevote.hash}, vote);
     }
 
     inline virtual outcome::result<void> insert(const Precommit &precommit,
                                                 const VoteWeight &vote) {
-      return insert(BlockInfo{precommit.block_number, precommit.block_hash},
-                    vote);
+      return insert(BlockInfo{precommit.number, precommit.hash}, vote);
     }
 
     /// Insert a vote with given value into the graph at given hash and number.

@@ -256,8 +256,8 @@ TEST_P(WalkBackAtNode, FindAncestor) {
       [](auto x) { return x.prevotes_sum >= (20_W).prevotes_sum; },
       comparator);
 
-  ASSERT_TRUE(ancestorOpt) << "number: " << block.block_number << " "
-                           << "hash: " << block.block_hash.toHex();
+  ASSERT_TRUE(ancestorOpt) << "number: " << block.number << " "
+                           << "hash: " << block.hash.toHex();
   ASSERT_EQ(*ancestorOpt, EXPECTED);
 }
 

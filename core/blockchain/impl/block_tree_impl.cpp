@@ -240,19 +240,19 @@ namespace kagome::blockchain {
           curr_epoch.emplace(consensus::EpochDigest{
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
-          log->trace(
-              "EPOCH_DIGEST_IN_BLOCKTREE: CURR EPOCH #{}, Randomness: {}",
-              curr_epoch_number.value(),
-              curr_epoch.value().randomness.toHex());
+          SL_TRACE(log,
+                   "EPOCH_DIGEST_IN_BLOCKTREE: CURR EPOCH #{}, Randomness: {}",
+                   curr_epoch_number.value(),
+                   curr_epoch.value().randomness.toHex());
         }
         if (not next_epoch.has_value()) {
           next_epoch.emplace(consensus::EpochDigest{
               .authorities = babe_configuration->genesis_authorities,
               .randomness = babe_configuration->randomness});
-          log->trace(
-              "EPOCH_DIGEST_IN_BLOCKTREE: NEXT EPOCH #{}+, Randomness: {}",
-              1,
-              next_epoch.value().randomness.toHex());
+          SL_TRACE(log,
+                   "EPOCH_DIGEST_IN_BLOCKTREE: NEXT EPOCH #{}+, Randomness: {}",
+                   1,
+                   next_epoch.value().randomness.toHex());
         }
         break;
       }
@@ -268,38 +268,40 @@ namespace kagome::blockchain {
       auto slot_number = babe_digests_res.value().second.slot_number;
       auto epoch_number = babe_util->slotToEpoch(slot_number);
 
-      log->trace(
-          "EPOCH_DIGEST_IN_BLOCKTREE: BLOCK, slot {}, epoch {}, block #{}, "
-          "hash {}",
-          slot_number,
-          epoch_number,
-          header_tmp.number,
-          hash_tmp.toHex());
+      SL_TRACE(log,
+               "EPOCH_DIGEST_IN_BLOCKTREE: BLOCK, slot {}, epoch {}, block #{},"
+               " hash {}",
+               slot_number,
+               epoch_number,
+               header_tmp.number,
+               hash_tmp.toHex());
 
       if (not curr_epoch_number.has_value()) {
         curr_epoch_number = epoch_number;
-        log->trace("EPOCH_DIGEST_IN_BLOCKTREE: CURRENT EPOCH #{}",
-                   curr_epoch_number.value());
+        SL_TRACE(log,
+                 "EPOCH_DIGEST_IN_BLOCKTREE: CURRENT EPOCH #{}",
+                 curr_epoch_number.value());
       }
 
       if (auto digest = consensus::getNextEpochDigest(header_tmp);
           digest.has_value()) {
-        log->trace("EPOCH_DIGEST_IN_BLOCKTREE: DIGEST, Randomness: {}",
-                   digest.value().randomness.toHex());
+        SL_TRACE(log,
+                 "EPOCH_DIGEST_IN_BLOCKTREE: DIGEST, Randomness: {}",
+                 digest.value().randomness.toHex());
 
         if (not next_epoch.has_value()) {
           next_epoch.emplace(digest.value());
-          log->trace(
-              "EPOCH_DIGEST_IN_BLOCKTREE: NEXT EPOCH #{}+, Randomness: {}",
-              epoch_number + 1,
-              next_epoch.value().randomness.toHex());
+          SL_TRACE(log,
+                   "EPOCH_DIGEST_IN_BLOCKTREE: NEXT EPOCH #{}+, Randomness: {}",
+                   epoch_number + 1,
+                   next_epoch.value().randomness.toHex());
         }
         if (epoch_number != curr_epoch_number) {
           curr_epoch.emplace(digest.value());
-          log->trace(
-              "EPOCH_DIGEST_IN_BLOCKTREE: CURR EPOCH #{}, Randomness: {}",
-              curr_epoch_number.value(),
-              curr_epoch.value().randomness.toHex());
+          SL_TRACE(log,
+                   "EPOCH_DIGEST_IN_BLOCKTREE: CURR EPOCH #{}, Randomness: {}",
+                   curr_epoch_number.value(),
+                   curr_epoch.value().randomness.toHex());
           break;
         }
       }
@@ -307,14 +309,14 @@ namespace kagome::blockchain {
       hash_tmp = header_tmp.parent_hash;
     }
 
-    log->trace(
-        "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block #{}, hash {}\n"
-        "Epoch {}, Current randomness {}, Next randomness {}",
-        number,
-        hash.toHex(),
-        curr_epoch_number.value(),
-        curr_epoch.value().randomness,
-        next_epoch.value().randomness);
+    SL_TRACE(log,
+             "EPOCH_DIGEST_IN_BLOCKTREE: ROOT, block #{}, hash {}\n"
+             "Epoch {}, Current randomness {}, Next randomness {}",
+             number,
+             hash.toHex(),
+             curr_epoch_number.value(),
+             curr_epoch.value().randomness,
+             next_epoch.value().randomness);
 
     auto tree = std::make_shared<TreeNode>(hash,
                                            number,
@@ -365,12 +367,18 @@ namespace kagome::blockchain {
         runtime_core_(std::move(runtime_core)),
         babe_configuration_(std::move(babe_configuration)),
         babe_util_(std::move(babe_util)) {
-    BOOST_ASSERT(chain_events_engine_);
-    BOOST_ASSERT(extrinsic_events_engine_);
-    BOOST_ASSERT(extrinsic_event_key_repo_);
-    BOOST_ASSERT(runtime_core_);
-    BOOST_ASSERT(babe_configuration_);
-    BOOST_ASSERT(babe_util_);
+    BOOST_ASSERT(header_repo_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(tree_ != nullptr);
+    BOOST_ASSERT(tree_meta_ != nullptr);
+    BOOST_ASSERT(extrinsic_observer_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(chain_events_engine_ != nullptr);
+    BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
+    BOOST_ASSERT(extrinsic_event_key_repo_ != nullptr);
+    BOOST_ASSERT(runtime_core_ != nullptr);
+    BOOST_ASSERT(babe_configuration_ != nullptr);
+    BOOST_ASSERT(babe_util_ != nullptr);
   }
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -674,10 +682,11 @@ namespace kagome::blockchain {
                   : (to - from + 1);
     result.reserve(response_length);
 
-    log_->trace("Try to create {} length chain from number {} to {}.",
-                response_length,
-                from,
-                to);
+    SL_TRACE(log_,
+             "Try to create {} length chain from number {} to {}.",
+             response_length,
+             from,
+             to);
 
     auto current_hash = bottom_block;
 
@@ -715,10 +724,11 @@ namespace kagome::blockchain {
         const auto response_length =
             max_count ? std::min(in_tree_branch_len, max_count.value())
                       : in_tree_branch_len;
-        log_->trace("Create {} length chain from number {} to {} from cache.",
-                    response_length,
-                    from->depth,
-                    way.back()->depth);
+        SL_TRACE(log_,
+                 "Create {} length chain from number {} to {} from cache.",
+                 response_length,
+                 from->depth,
+                 way.back()->depth);
 
         way.resize(response_length);
 
@@ -803,7 +813,7 @@ namespace kagome::blockchain {
       }
     } else {
       OUTCOME_TRY(last_finalized,
-                  header_repo_->getNumberByHash(getLastFinalized().block_hash));
+                  header_repo_->getNumberByHash(getLastFinalized().hash));
       if (last_finalized >= target_header.number) {
         return Error::BLOCK_ON_DEAD_END;
       }
@@ -890,17 +900,16 @@ namespace kagome::blockchain {
       leaf_depths.emplace_back(
           primitives::BlockInfo{leaf_node->depth, leaf_node->block_hash});
     }
-    std::sort(leaf_depths.begin(),
-              leaf_depths.end(),
-              [](auto const &p1, auto const &p2) {
-                return p1.block_number > p2.block_number;
-              });
+    std::sort(
+        leaf_depths.begin(),
+        leaf_depths.end(),
+        [](auto const &p1, auto const &p2) { return p1.number > p2.number; });
     std::vector<primitives::BlockHash> leaf_hashes;
     leaf_hashes.reserve(leaf_depths.size());
     std::transform(leaf_depths.begin(),
                    leaf_depths.end(),
                    std::back_inserter(leaf_hashes),
-                   [](auto &p) { return p.block_hash; });
+                   [](auto &p) { return p.hash; });
     return leaf_hashes;
   }
 
@@ -970,9 +979,9 @@ namespace kagome::blockchain {
     for (auto &&extrinsic : extrinsics) {
       auto result = extrinsic_observer_->onTxMessage(extrinsic);
       if (result) {
-        log_->debug("Tx {} was reapplied", result.value().toHex());
+        SL_DEBUG(log_, "Tx {} was reapplied", result.value().toHex());
       } else {
-        log_->debug("Tx was skipped: {}", result.error().message());
+        SL_DEBUG(log_, "Tx was skipped: {}", result.error().message());
       }
     }
 
