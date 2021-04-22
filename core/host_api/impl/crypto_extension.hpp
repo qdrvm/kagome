@@ -53,73 +53,6 @@ namespace kagome::host_api {
       batch_verify_ = boost::none;
     }
 
-    /**
-     * @see Extension::ext_blake2_128
-     */
-    void ext_blake2_128(runtime::WasmPointer data,
-                        runtime::WasmSize len,
-                        runtime::WasmPointer out_ptr);
-
-    /**
-     * @see Extension::ext_blake2_256
-     */
-    void ext_blake2_256(runtime::WasmPointer data,
-                        runtime::WasmSize len,
-                        runtime::WasmPointer out_ptr);
-
-    /**
-     * @see Extension::ext_keccak_256
-     */
-    void ext_keccak_256(runtime::WasmPointer data,
-                        runtime::WasmSize len,
-                        runtime::WasmPointer out_ptr);
-
-    /**
-     * @see Extension::ext_start_batch_verify
-     */
-    void ext_start_batch_verify();
-
-    /**
-     * @see Extension::ext_finish_batch_verify
-     */
-    runtime::WasmSize ext_finish_batch_verify();
-
-    /**
-     * @see Extension::ext_ed25519_verify
-     */
-    runtime::WasmSize ext_ed25519_verify(runtime::WasmPointer msg_data,
-                                         runtime::WasmSize msg_len,
-                                         runtime::WasmPointer sig_data,
-                                         runtime::WasmPointer pubkey_data);
-
-    /**
-     * @see Extension::ext_sr25519_verify
-     */
-    runtime::WasmSize ext_sr25519_verify(runtime::WasmPointer msg_data,
-                                         runtime::WasmSize msg_len,
-                                         runtime::WasmPointer sig_data,
-                                         runtime::WasmPointer pubkey_data);
-
-    /**
-     * @see Extension::ext_twox_64
-     */
-    void ext_twox_64(runtime::WasmPointer data,
-                     runtime::WasmSize len,
-                     runtime::WasmPointer out);
-    /**
-     * @see Extension::ext_twox_128
-     */
-    void ext_twox_128(runtime::WasmPointer data,
-                      runtime::WasmSize len,
-                      runtime::WasmPointer out);
-
-    /**
-     * @see Extension::ext_twox_256
-     */
-    void ext_twox_256(runtime::WasmPointer data,
-                      runtime::WasmSize len,
-                      runtime::WasmPointer out);
-
     // -------------------- hashing methods v1 --------------------
 
     /**
@@ -165,63 +98,63 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSize key_type);
+    runtime::WasmSpan ext_ed25519_public_keys_version_1(runtime::WasmSize key_type);
 
     /**
      *@see Extension::ext_ed25519_generate
      */
-    runtime::WasmPointer ext_ed25519_generate_v1(runtime::WasmSize key_type,
+    runtime::WasmPointer ext_ed25519_generate_version_1(runtime::WasmSize key_type,
                                                  runtime::WasmSpan seed);
 
     /**
      * @see Extension::ed25519_sign
      */
-    runtime::WasmSpan ext_ed25519_sign_v1(runtime::WasmSize key_type,
+    runtime::WasmSpan ext_ed25519_sign_version_1(runtime::WasmSize key_type,
                                           runtime::WasmPointer key,
                                           runtime::WasmSpan msg);
 
     /**
      * @see Extension::ext_ed25519_verify
      */
-    runtime::WasmSize ext_ed25519_verify_v1(runtime::WasmPointer sig,
+    runtime::WasmSize ext_ed25519_verify_version_1(runtime::WasmPointer sig,
                                             runtime::WasmSpan msg,
                                             runtime::WasmPointer pubkey_data);
 
     /**
      * @see Extension::ext_sr25519_public_keys
      */
-    runtime::WasmSpan ext_sr25519_public_keys_v1(runtime::WasmSize key_type);
+    runtime::WasmSpan ext_sr25519_public_keys_version_1(runtime::WasmSize key_type);
 
     /**
      *@see Extension::ext_sr25519_generate
      */
-    runtime::WasmPointer ext_sr25519_generate_v1(runtime::WasmSize key_type,
+    runtime::WasmPointer ext_sr25519_generate_version_1(runtime::WasmSize key_type,
                                                  runtime::WasmSpan seed);
 
     /**
      * @see Extension::sr25519_sign
      */
-    runtime::WasmSpan ext_sr25519_sign_v1(runtime::WasmSize key_type,
+    runtime::WasmSpan ext_sr25519_sign_version_1(runtime::WasmSize key_type,
                                           runtime::WasmPointer key,
                                           runtime::WasmSpan msg);
 
     /**
      * @see Extension::ext_sr25519_verify
      */
-    runtime::WasmSize ext_sr25519_verify_v1(runtime::WasmPointer sig,
+    runtime::WasmSize ext_sr25519_verify_version_1(runtime::WasmPointer sig,
                                             runtime::WasmSpan msg,
                                             runtime::WasmPointer pubkey_data);
 
     /**
-     * @see Extension::ext_crypto_secp256k1_ecdsa_recover_v1
+     * @see Extension::ext_crypto_secp256k1_ecdsa_recover_version_1
      */
-    runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
+    runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_version_1(
         runtime::WasmPointer sig, runtime::WasmPointer msg);
 
     /**
-     * @see Extension::ext_crypto_secp256k1_ecdsa_recover_compressed_v1
+     * @see Extension::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
      */
-    runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+    runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
         runtime::WasmPointer sig, runtime::WasmPointer msg);
 
    private:

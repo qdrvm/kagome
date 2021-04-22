@@ -26,42 +26,7 @@ namespace kagome::host_api {
 
     void reset();
 
-    // -------------------------Data storage--------------------------
-
-    /**
-     * @see Extension::ext_clear_prefix
-     */
-    void ext_clear_prefix(runtime::WasmPointer prefix_data,
-                          runtime::WasmSize prefix_length);
-
-    /**
-     * @see Extension::ext_clear_storage
-     */
-    void ext_clear_storage(runtime::WasmPointer key_data,
-                           runtime::WasmSize key_length);
-
-    /**
-     * @see Extension::ext_exists_storage
-     */
-    runtime::WasmSize ext_exists_storage(runtime::WasmPointer key_data,
-                                         runtime::WasmSize key_length) const;
-
-    /**
-     * @see Extension::ext_get_allocated_storage
-     */
-    runtime::WasmPointer ext_get_allocated_storage(
-        runtime::WasmPointer key_data,
-        runtime::WasmSize key_length,
-        runtime::WasmPointer len_ptr);
-
-    /**
-     * @see Extension::ext_get_storage_into
-     */
-    runtime::WasmSize ext_get_storage_into(runtime::WasmPointer key_data,
-                                           runtime::WasmSize key_length,
-                                           runtime::WasmPointer value_data,
-                                           runtime::WasmSize value_length,
-                                           runtime::WasmSize value_offset);
+    // -------------------------Trie operations--------------------------
 
     /**
      * @see Extension::ext_storage_read_version_1
@@ -69,52 +34,6 @@ namespace kagome::host_api {
     runtime::WasmSpan ext_storage_read_version_1(runtime::WasmSpan key,
                                                  runtime::WasmSpan value_out,
                                                  runtime::WasmOffset offset);
-
-    /**
-     * @see Extension::ext_set_storage
-     */
-    void ext_set_storage(runtime::WasmPointer key_data,
-                         runtime::WasmSize key_length,
-                         runtime::WasmPointer value_data,
-                         runtime::WasmSize value_length);
-
-    // -------------------------Trie operations--------------------------
-
-    /**
-     * @see Extension::ext_blake2_256_enumerated_trie_root
-     */
-    void ext_blake2_256_enumerated_trie_root(runtime::WasmPointer values_data,
-                                             runtime::WasmPointer lengths_data,
-                                             runtime::WasmSize values_num,
-                                             runtime::WasmPointer result);
-
-    /**
-     * @see Extension::ext_storage_changes_root
-     */
-    runtime::WasmPointer ext_storage_changes_root(
-        runtime::WasmPointer parent_hash, runtime::WasmPointer result);
-
-    /**
-     * @see Extension::ext_storage_root
-     */
-    void ext_storage_root(runtime::WasmPointer result) const;
-
-    // ------------------------Transaction operations--------------------------
-
-    /**
-     * @see Extension::ext_storage_start_transaction
-     */
-    void ext_storage_start_transaction();
-
-    /**
-     * @see Extension::ext_storage_rollback_transaction
-     */
-    void ext_storage_rollback_transaction();
-
-    /**
-     * @see Extension::ext_storage_commit_transaction
-     */
-    void ext_storage_commit_transaction();
 
     // ------------------------ VERSION 1 ------------------------
 

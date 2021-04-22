@@ -7,7 +7,7 @@
 
 #include "primitives/version.hpp"
 #include "runtime/binaryen/core_factory.hpp"
-#include "runtime/common/const_wasm_provider.hpp"
+#include "runtime/common/constant_code_provider.hpp"
 #include "runtime/core.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "scale/scale.hpp"
@@ -30,16 +30,12 @@ namespace kagome::host_api {
     BOOST_ASSERT(memory_);
   }
 
-  uint64_t MiscExtension::ext_chain_id() const {
-    return chain_id_;
-  }
-
   runtime::WasmResult MiscExtension::ext_misc_runtime_version_version_1(
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
     auto code = memory_->loadN(ptr, len);
     auto wasm_provider =
-        std::make_shared<runtime::ConstWasmProvider>(std::move(code));
+        std::make_shared<runtime::ConstantCodeProvider>(std::move(code));
     auto core =
         core_api_factory_->createWithCode(runtime_env_factory_, wasm_provider);
     auto version_res = core->version(boost::none);

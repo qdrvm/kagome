@@ -53,7 +53,7 @@ using kagome::crypto::Sr25519Suite;
 using kagome::primitives::BlockHash;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
-using kagome::runtime::WasmProvider;
+using kagome::runtime::TrieStorageProviderImpl;
 using kagome::runtime::binaryen::CoreFactoryImpl;
 using kagome::runtime::binaryen::RuntimeEnvironmentFactory;
 using kagome::runtime::binaryen::WasmExecutor;
@@ -156,7 +156,7 @@ class WasmExecutorTest : public ::testing::Test {
   std::shared_ptr<WasmExecutor> executor_;
   std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory_;
   std::shared_ptr<TrieStorageProvider> storage_provider_;
-  std::shared_ptr<WasmProvider> wasm_provider_;
+  std::shared_ptr<RuntimeCodeProvider> wasm_provider_;
 };
 
 /**

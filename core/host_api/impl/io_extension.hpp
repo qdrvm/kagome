@@ -25,27 +25,11 @@ namespace kagome::host_api {
     explicit IOExtension(std::shared_ptr<runtime::WasmMemory> memory);
 
     /**
-     * @see Extension::ext_print_hex
-     */
-    void ext_print_hex(runtime::WasmPointer data, runtime::WasmSize length);
-
-    /**
      * @see Extension::ext_logging_log_version_1
      */
     void ext_logging_log_version_1(runtime::WasmEnum level,
                                    runtime::WasmSpan target,
                                    runtime::WasmSpan message);
-
-    /**
-     * @see Extension::ext_print_num
-     */
-    void ext_print_num(uint64_t value);
-
-    /**
-     * @see Extension::ext_print_utf8
-     */
-    void ext_print_utf8(runtime::WasmPointer utf8_data,
-                        runtime::WasmSize utf8_length);
 
    private:
     std::shared_ptr<runtime::WasmMemory> memory_;

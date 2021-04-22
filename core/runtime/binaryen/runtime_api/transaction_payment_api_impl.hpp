@@ -11,7 +11,7 @@
 #include "scale/types.hpp"
 
 namespace kagome::runtime {
-  class WasmProvider;
+  class RuntimeCodeProvider;
 }  // namespace kagome::runtime
 
 namespace kagome::runtime::binaryen {

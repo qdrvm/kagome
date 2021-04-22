@@ -129,11 +129,11 @@ addtest(wasm_result_test
     wasm_result_test.cpp
     )
 
-addtest(storage_wasm_provider_test
-    storage_wasm_provider_test.cpp
+addtest(storage_code_provider_test
+    storage_code_provider_test.cpp
     )
-target_link_libraries(storage_wasm_provider_test
-    storage_wasm_provider
+target_link_libraries(storage_code_provider_test
+    storage_code_provider
     logger_for_tests
     )
 

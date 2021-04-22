@@ -18,7 +18,7 @@
 namespace kagome::runtime {
   class WasmMemory;
   class Core;
-  class WasmProvider;
+  class RuntimeCodeProvider;
 
   namespace binaryen {
     class RuntimeEnvironmentFactory;
@@ -40,11 +40,6 @@ namespace kagome::host_api {
         std::shared_ptr<runtime::WasmMemory> memory);
 
     ~MiscExtension() = default;
-
-    /**
-     * @return id (a 64-bit unsigned integer) of the current chain
-     */
-    uint64_t ext_chain_id() const;
 
     runtime::WasmResult ext_misc_runtime_version_version_1(
         runtime::WasmSpan data) const;

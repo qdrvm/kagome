@@ -11,7 +11,7 @@
 #include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
-  class WasmProvider;
+  class RuntimeCodeProvider;
 }
 
 namespace kagome::runtime::binaryen {
@@ -31,7 +31,7 @@ namespace kagome::runtime::binaryen {
      * Config to override default factory parameters
      */
     struct Config {
-      boost::optional<std::shared_ptr<WasmProvider>> wasm_provider;
+      boost::optional<std::shared_ptr<RuntimeCodeProvider>> wasm_provider;
     };
 
     virtual outcome::result<RuntimeEnvironment> makeIsolated(

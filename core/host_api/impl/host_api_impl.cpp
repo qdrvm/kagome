@@ -60,84 +60,11 @@ namespace kagome::host_api {
     storage_ext_.reset();
   }
 
-  // -------------------------Storage extensions--------------------------
-
-  void HostApiImpl::ext_clear_prefix(runtime::WasmPointer prefix_data,
-                                     runtime::WasmSize prefix_length) {
-    return storage_ext_.ext_clear_prefix(prefix_data, prefix_length);
-  }
-
-  void HostApiImpl::ext_clear_storage(runtime::WasmPointer key_data,
-                                      runtime::WasmSize key_length) {
-    return storage_ext_.ext_clear_storage(key_data, key_length);
-  }
-
-  runtime::WasmSize HostApiImpl::ext_exists_storage(
-      runtime::WasmPointer key_data, runtime::WasmSize key_length) const {
-    return storage_ext_.ext_exists_storage(key_data, key_length);
-  }
-
-  runtime::WasmPointer HostApiImpl::ext_get_allocated_storage(
-      runtime::WasmPointer key_data,
-      runtime::WasmSize key_length,
-      runtime::WasmPointer written) {
-    return storage_ext_.ext_get_allocated_storage(
-        key_data, key_length, written);
-  }
-
-  runtime::WasmSize HostApiImpl::ext_get_storage_into(
-      runtime::WasmPointer key_data,
-      runtime::WasmSize key_length,
-      runtime::WasmPointer value_data,
-      runtime::WasmSize value_length,
-      runtime::WasmSize value_offset) {
-    return storage_ext_.ext_get_storage_into(
-        key_data, key_length, value_data, value_length, value_offset);
-  }
-
   runtime::WasmSpan HostApiImpl::ext_storage_read_version_1(
       runtime::WasmSpan key,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
     return storage_ext_.ext_storage_read_version_1(key, value_out, offset);
-  }
-
-  void HostApiImpl::ext_set_storage(runtime::WasmPointer key_data,
-                                    runtime::WasmSize key_length,
-                                    runtime::WasmPointer value_data,
-                                    runtime::WasmSize value_length) {
-    return storage_ext_.ext_set_storage(
-        key_data, key_length, value_data, value_length);
-  }
-
-  void HostApiImpl::ext_blake2_256_enumerated_trie_root(
-      runtime::WasmPointer values_data,
-      runtime::WasmPointer lens_data,
-      runtime::WasmSize lens_length,
-      runtime::WasmPointer result) {
-    return storage_ext_.ext_blake2_256_enumerated_trie_root(
-        values_data, lens_data, lens_length, result);
-  }
-
-  runtime::WasmSize HostApiImpl::ext_storage_changes_root(
-      runtime::WasmPointer parent_hash_data, runtime::WasmPointer result) {
-    return storage_ext_.ext_storage_changes_root(parent_hash_data, result);
-  }
-
-  void HostApiImpl::ext_storage_root(runtime::WasmPointer result) const {
-    return storage_ext_.ext_storage_root(result);
-  }
-
-  void HostApiImpl::ext_storage_start_transaction() {
-    return storage_ext_.ext_storage_start_transaction();
-  }
-
-  void HostApiImpl::ext_storage_rollback_transaction() {
-    return storage_ext_.ext_storage_rollback_transaction();
-  }
-
-  void HostApiImpl::ext_storage_commit_transaction() {
-    return storage_ext_.ext_storage_commit_transaction();
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_next_key_version_1(
@@ -193,16 +120,6 @@ namespace kagome::host_api {
     return storage_ext_.ext_trie_blake2_256_ordered_root_version_1(values_data);
   }
 
-  // -------------------------Memory extensions--------------------------
-
-  runtime::WasmPointer HostApiImpl::ext_malloc(runtime::WasmSize size) {
-    return memory_ext_.ext_malloc(size);
-  }
-
-  void HostApiImpl::ext_free(runtime::WasmPointer ptr) {
-    memory_ext_.ext_free(ptr);
-  }
-
   // ------------------------Memory extensions v1-------------------------
   runtime::WasmPointer HostApiImpl::ext_allocator_malloc_version_1(
       runtime::WasmSize size) {
@@ -210,13 +127,7 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::ext_allocator_free_version_1(runtime::WasmPointer ptr) {
-    return memory_ext_.ext_free(ptr);
-  }
-
-  /// I/O extensions
-  void HostApiImpl::ext_print_hex(runtime::WasmPointer data,
-                                  runtime::WasmSize length) {
-    io_ext_.ext_print_hex(data, length);
+    return memory_ext_.ext_allocator_free_version_1(ptr);
   }
 
   void HostApiImpl::ext_logging_log_version_1(runtime::WasmEnum level,
@@ -225,126 +136,54 @@ namespace kagome::host_api {
     io_ext_.ext_logging_log_version_1(level, target, message);
   }
 
-  void HostApiImpl::ext_print_num(uint64_t value) {
-    io_ext_.ext_print_num(value);
-  }
-
-  void HostApiImpl::ext_print_utf8(runtime::WasmPointer utf8_data,
-                                   runtime::WasmSize utf8_length) {
-    io_ext_.ext_print_utf8(utf8_data, utf8_length);
-  }
-
-  /// cryptographic extensions
-  void HostApiImpl::ext_blake2_128(runtime::WasmPointer data,
-                                   runtime::WasmSize len,
-                                   runtime::WasmPointer out) {
-    crypto_ext_->ext_blake2_128(data, len, out);
-  }
-
-  void HostApiImpl::ext_blake2_256(runtime::WasmPointer data,
-                                   runtime::WasmSize len,
-                                   runtime::WasmPointer out) {
-    crypto_ext_->ext_blake2_256(data, len, out);
-  }
-
-  void HostApiImpl::ext_keccak_256(runtime::WasmPointer data,
-                                   runtime::WasmSize len,
-                                   runtime::WasmPointer out) {
-    crypto_ext_->ext_keccak_256(data, len, out);
-  }
-
-  void HostApiImpl::ext_start_batch_verify() {
-    crypto_ext_->ext_start_batch_verify();
-  }
-
-  runtime::WasmSize HostApiImpl::ext_finish_batch_verify() {
-    return crypto_ext_->ext_finish_batch_verify();
-  }
-
-  runtime::WasmSize HostApiImpl::ext_ed25519_verify(
-      runtime::WasmPointer msg_data,
-      runtime::WasmSize msg_len,
-      runtime::WasmPointer sig_data,
-      runtime::WasmPointer pubkey_data) {
-    return crypto_ext_->ext_ed25519_verify(
-        msg_data, msg_len, sig_data, pubkey_data);
-  }
-
-  runtime::WasmSize HostApiImpl::ext_sr25519_verify(
-      runtime::WasmPointer msg_data,
-      runtime::WasmSize msg_len,
-      runtime::WasmPointer sig_data,
-      runtime::WasmPointer pubkey_data) {
-    return crypto_ext_->ext_sr25519_verify(
-        msg_data, msg_len, sig_data, pubkey_data);
-  }
-
-  void HostApiImpl::ext_twox_64(runtime::WasmPointer data,
-                                runtime::WasmSize len,
-                                runtime::WasmPointer out) {
-    crypto_ext_->ext_twox_64(data, len, out);
-  }
-
-  void HostApiImpl::ext_twox_128(runtime::WasmPointer data,
-                                 runtime::WasmSize len,
-                                 runtime::WasmPointer out) {
-    crypto_ext_->ext_twox_128(data, len, out);
-  }
-
-  void HostApiImpl::ext_twox_256(runtime::WasmPointer data,
-                                 runtime::WasmSize len,
-                                 runtime::WasmPointer out) {
-    crypto_ext_->ext_twox_256(data, len, out);
-  }
-
   /// Crypto extensions v1
 
-  runtime::WasmSpan HostApiImpl::ext_ed25519_public_keys_v1(
+  runtime::WasmSpan HostApiImpl::ext_crypto_ed25519_public_keys_version_1(
       runtime::WasmSize key_type) {
-    return crypto_ext_->ext_ed25519_public_keys_v1(key_type);
+    return crypto_ext_->ext_ed25519_public_keys_version_1(key_type);
   }
 
-  runtime::WasmPointer HostApiImpl::ext_ed25519_generate_v1(
+  runtime::WasmPointer HostApiImpl::ext_crypto_ed25519_generate_version_1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
-    return crypto_ext_->ext_ed25519_generate_v1(key_type, seed);
+    return crypto_ext_->ext_ed25519_generate_version_1(key_type, seed);
   }
 
-  runtime::WasmSpan HostApiImpl::ext_ed25519_sign_v1(
+  runtime::WasmSpan HostApiImpl::ext_crypto_ed25519_sign_version_1(
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg_data) {
-    return crypto_ext_->ext_ed25519_sign_v1(key_type, key, msg_data);
+    return crypto_ext_->ext_ed25519_sign_version_1(key_type, key, msg_data);
   }
 
-  runtime::WasmSize HostApiImpl::ext_ed25519_verify_v1(
+  runtime::WasmSize HostApiImpl::ext_crypto_ed25519_verify_version_1(
       runtime::WasmPointer sig_data,
       runtime::WasmSpan msg,
       runtime::WasmPointer pubkey_data) {
-    return crypto_ext_->ext_ed25519_verify_v1(sig_data, msg, pubkey_data);
+    return crypto_ext_->ext_ed25519_verify_version_1(sig_data, msg, pubkey_data);
   }
 
-  runtime::WasmSpan HostApiImpl::ext_sr25519_public_keys_v1(
+  runtime::WasmSpan HostApiImpl::ext_crypto_sr25519_public_keys_version_1(
       runtime::WasmSize key_type) {
-    return crypto_ext_->ext_sr25519_public_keys_v1(key_type);
+    return crypto_ext_->ext_sr25519_public_keys_version_1(key_type);
   }
 
-  runtime::WasmPointer HostApiImpl::ext_sr25519_generate_v1(
+  runtime::WasmPointer HostApiImpl::ext_crypto_sr25519_generate_version_1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
-    return crypto_ext_->ext_sr25519_generate_v1(key_type, seed);
+    return crypto_ext_->ext_sr25519_generate_version_1(key_type, seed);
   }
 
-  runtime::WasmSpan HostApiImpl::ext_sr25519_sign_v1(
+  runtime::WasmSpan HostApiImpl::ext_crypto_sr25519_sign_version_1(
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg_data) {
-    return crypto_ext_->ext_sr25519_sign_v1(key_type, key, msg_data);
+    return crypto_ext_->ext_sr25519_sign_version_1(key_type, key, msg_data);
   }
 
-  runtime::WasmSize HostApiImpl::ext_sr25519_verify_v1(
+  runtime::WasmSize HostApiImpl::ext_crypto_sr25519_verify_version_1(
       runtime::WasmPointer sig_data,
       runtime::WasmSpan msg,
       runtime::WasmPointer pubkey_data) {
-    return crypto_ext_->ext_sr25519_verify_v1(sig_data, msg, pubkey_data);
+    return crypto_ext_->ext_sr25519_verify_version_1(sig_data, msg, pubkey_data);
   }
 
   // ------------------------- Hashing extension/crypto ---------------
@@ -384,11 +223,6 @@ namespace kagome::host_api {
     return crypto_ext_->ext_hashing_twox_256_version_1(data);
   }
 
-  /// misc extensions
-  uint64_t HostApiImpl::ext_chain_id() const {
-    return misc_ext_.ext_chain_id();
-  }
-
   runtime::WasmResult HostApiImpl::ext_misc_runtime_version_version_1(
       runtime::WasmSpan data) const {
     return misc_ext_.ext_misc_runtime_version_version_1(data);
@@ -407,15 +241,15 @@ namespace kagome::host_api {
     return misc_ext_.ext_misc_print_utf8_version_1(data);
   }
 
-  runtime::WasmSpan HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_v1(
+  runtime::WasmSpan HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
+    return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
   }
 
   runtime::WasmSpan
-  HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+  HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig,
+    return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(sig,
                                                                          msg);
   }
 }  // namespace kagome::host_api

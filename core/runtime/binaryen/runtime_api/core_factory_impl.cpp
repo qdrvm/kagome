@@ -6,7 +6,7 @@
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
-#include "runtime/common/const_wasm_provider.hpp"
+#include "runtime/common/constant_code_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -21,7 +21,7 @@ namespace kagome::runtime::binaryen {
 
   std::unique_ptr<Core> CoreFactoryImpl::createWithCode(
       std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
-      std::shared_ptr<WasmProvider> wasm_provider) {
+      std::shared_ptr<RuntimeCodeProvider> wasm_provider) {
     return std::make_unique<CoreImpl>(
         runtime_env_factory, wasm_provider, changes_tracker_, header_repo_);
   }

@@ -19,7 +19,7 @@
 #include "primitives/version.hpp"
 
 namespace kagome::runtime {
-  class WasmProvider;
+  class RuntimeCodeProvider;
 
   /**
    * Core represents mandatory part of runtime api

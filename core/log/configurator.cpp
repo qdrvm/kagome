@@ -53,7 +53,7 @@ groups:
             children:
               - name: wasm
               - name: extentions
-              - name: binatien
+              - name: binaryen
           - name: network
           - name: changes_trie
           - name: storage

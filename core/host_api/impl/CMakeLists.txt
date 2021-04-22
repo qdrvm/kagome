@@ -44,7 +44,7 @@ add_library(misc_extension
 target_link_libraries(misc_extension
     scale
     logger
-    const_wasm_provider
+    constant_code_provider
     outcome
     blob
     )

@@ -16,7 +16,7 @@ namespace kagome::runtime::binaryen {
 
   CoreImpl::CoreImpl(
       const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory,
-      std::shared_ptr<WasmProvider> wasm_provider,
+      std::shared_ptr<RuntimeCodeProvider> wasm_provider,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
       : RuntimeApi(runtime_env_factory),

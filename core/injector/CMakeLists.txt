@@ -14,7 +14,6 @@ target_link_libraries(application_injector
     p2p::p2p
     p2p::p2p_identify
     p2p::p2p_ping
-    binaryen::binaryen
     tsl::tsl_hat_trie
     Boost::Boost.DI
     rpc_thread_pool
@@ -42,14 +41,14 @@ target_link_libraries(application_injector
     clock
     sr25519_provider
     configuration_storage
-    binaryen_core_api
-    binaryen_babe_api
-    binaryen_grandpa_api
-    binaryen_block_builder_api
-    binaryen_tagged_transaction_queue_api
-    binaryen_transaction_payment_api
-    binaryen_wasm_executor
-    binaryen_system_api
+    wavm_core_api
+    wavm_babe_api
+    wavm_grandpa_api
+    wavm_block_builder_api
+    wavm_tagged_transaction_queue_api
+    wavm_transaction_payment_api
+    wavm_executor
+    system_api_service
     trie_storage_provider
     author_api_service
     extrinsic_observer
@@ -64,8 +63,7 @@ target_link_libraries(application_injector
     kagome_router
     environment
     proposer
-    storage_wasm_provider
-    binaryen_wasm_memory_factory
+    storage_code_provider
     remote_sync_protocol_client
     dummy_sync_protocol_client
     sync_protocol_observer

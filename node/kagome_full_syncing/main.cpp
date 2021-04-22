@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
 
   if (configuration.initialize_from_args(
           AppConfiguration::LoadScheme::kFullSyncing, argc, argv)) {
+    kagome::log::setLevelOfGroup("*", configuration.verbosity());
     auto &&app = std::make_shared<kagome::application::SyncingNodeApplication>(
         configuration);
     app->run();

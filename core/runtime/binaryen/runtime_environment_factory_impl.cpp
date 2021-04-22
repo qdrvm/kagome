@@ -33,7 +33,7 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<WasmModuleFactory> module_factory,
-      std::shared_ptr<WasmProvider> wasm_provider,
+      std::shared_ptr<RuntimeCodeProvider> wasm_provider,
       std::shared_ptr<TrieStorageProvider> storage_provider,
       std::shared_ptr<crypto::Hasher> hasher)
       : core_factory_{std::move(core_factory)},

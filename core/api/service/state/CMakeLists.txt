@@ -13,7 +13,7 @@ target_link_libraries(state_api_service
     api_service
     trie_storage
     blob
-    binaryen_metadata_api
+    wavm_metadata_api
     )
 
 add_subdirectory(requests)

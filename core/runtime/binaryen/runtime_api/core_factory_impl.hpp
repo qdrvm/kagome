@@ -27,7 +27,7 @@ namespace kagome::runtime::binaryen {
 
     std::unique_ptr<Core> createWithCode(
         std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
-        std::shared_ptr<WasmProvider> wasm_provider) override;
+        std::shared_ptr<RuntimeCodeProvider> wasm_provider) override;
 
    private:
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;

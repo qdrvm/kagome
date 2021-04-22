@@ -6,16 +6,16 @@
 #ifndef KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER
 #define KAGOME_CORE_RUNTIME_COMMON_CONST_WASM_PROVIDER
 
-#include "runtime/wasm_provider.hpp"
+#include "runtime/runtime_code_provider.hpp"
 
 namespace kagome::runtime {
 
-  class ConstWasmProvider : public WasmProvider {
+  class ConstantCodeProvider : public RuntimeCodeProvider {
    public:
-    explicit ConstWasmProvider(common::Buffer code);
+    explicit ConstantCodeProvider(common::Buffer code);
 
-    const common::Buffer &getStateCodeAt(
-        const primitives::BlockHash &at) const override;
+    outcome::result<gsl::span<const uint8_t>> getCodeAt(
+        const storage::trie::RootHash &at) const override;
 
    private:
     common::Buffer code_;

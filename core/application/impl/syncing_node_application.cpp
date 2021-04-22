@@ -5,12 +5,13 @@
 
 #include "application/impl/syncing_node_application.hpp"
 
+#include <thread>
+
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/util.hpp"
 #include "injector/application_injector.hpp"
 #include "network/common.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 
 namespace kagome::application {
 
@@ -37,7 +38,7 @@ namespace kagome::application {
 
     auto res = util::init_directory(chain_path_);
     if (not res) {
-      logger_->critical("Error initalizing chain directory {}: {}",
+      logger_->critical("Error initializing chain directory {}: {}",
                         chain_path_.native(),
                         res.error().message());
       exit(EXIT_FAILURE);

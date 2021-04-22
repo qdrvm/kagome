@@ -5,9 +5,11 @@
 
 #include "application/impl/validating_node_application.hpp"
 
+#include <thread>
+
 #include "application/impl/util.hpp"
 #include "injector/application_injector.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+//#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 
 namespace kagome::application {
 

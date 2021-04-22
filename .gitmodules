@@ -1,0 +1,3 @@
+[submodule "wavm"]
+	path = deps/wavm
+	url = git@github.com:WAVM/WAVM.git

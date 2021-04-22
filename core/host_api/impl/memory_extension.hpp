@@ -24,17 +24,6 @@ namespace kagome::host_api {
 
     void reset();
 
-    // ----------------- memory legacy api -----------------
-    /**
-     * @see Extension::ext_malloc
-     */
-    runtime::WasmPointer ext_malloc(runtime::WasmSize size);
-
-    /**
-     * @see Extension::ext_free
-     */
-    void ext_free(runtime::WasmPointer ptr);
-
     // ----------------- memory api v1 -----------------
     /**
      * @see Extension::ext_allocator_malloc_version_1

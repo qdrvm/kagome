@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_STORAGE_WASM_PROVIDER_HPP
 #define KAGOME_CORE_RUNTIME_STORAGE_WASM_PROVIDER_HPP
 
-#include "runtime/wasm_provider.hpp"
+#include "runtime/runtime_code_provider.hpp"
 
 namespace kagome::storage::trie {
   class TrieStorage;
@@ -16,14 +16,14 @@ namespace kagome::runtime {
 
   inline const common::Buffer kRuntimeCodeKey = common::Buffer().put(":code");
 
-  class StorageWasmProvider : public WasmProvider {
+  class StorageCodeProvider : public RuntimeCodeProvider {
    public:
-    ~StorageWasmProvider() override = default;
+    ~StorageCodeProvider() override = default;
 
-    explicit StorageWasmProvider(
+    explicit StorageCodeProvider(
         std::shared_ptr<const storage::trie::TrieStorage> storage);
 
-    const common::Buffer &getStateCodeAt(
+    outcome::result<gsl::span<const uint8_t>> getCodeAt(
         const storage::trie::RootHash &at) const override;
 
    private:

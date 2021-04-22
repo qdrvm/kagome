@@ -19,8 +19,8 @@
 #include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
+#include "runtime/runtime_code_provider.hpp"
 #include "runtime/wasm_memory.hpp"
-#include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 

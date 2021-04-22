@@ -61,194 +61,6 @@ namespace kagome::host_api {
     BOOST_ASSERT(logger_ != nullptr);
   }
 
-  void CryptoExtension::ext_blake2_128(runtime::WasmPointer data,
-                                       runtime::WasmSize len,
-                                       runtime::WasmPointer out_ptr) {
-    const auto &buf = memory_->loadN(data, len);
-
-    auto hash = hasher_->blake2b_128(buf);
-
-    memory_->storeBuffer(out_ptr, hash);
-  }
-
-  void CryptoExtension::ext_blake2_256(runtime::WasmPointer data,
-                                       runtime::WasmSize len,
-                                       runtime::WasmPointer out_ptr) {
-    const auto &buf = memory_->loadN(data, len);
-
-    auto hash = hasher_->blake2b_256(buf);
-
-    memory_->storeBuffer(out_ptr, hash);
-  }
-
-  void CryptoExtension::ext_keccak_256(runtime::WasmPointer data,
-                                       runtime::WasmSize len,
-                                       runtime::WasmPointer out_ptr) {
-    const auto &buf = memory_->loadN(data, len);
-
-    auto hash = hasher_->keccak_256(buf);
-
-    memory_->storeBuffer(out_ptr, hash);
-  }
-
-  void CryptoExtension::ext_start_batch_verify() {
-    if (batch_verify_.has_value()) {
-      throw std::runtime_error("Previous batch_verify is not finished");
-    }
-
-    batch_verify_.emplace();
-  }
-
-  runtime::WasmSize CryptoExtension::ext_finish_batch_verify() {
-    if (not batch_verify_.has_value()) {
-      throw std::runtime_error("No batch_verify is started");
-    }
-
-    auto &verification_queue = batch_verify_.value();
-    while (not verification_queue.empty()) {
-      auto single_verification_result = verification_queue.front().get();
-      if (single_verification_result == kLegacyVerifyFail) {
-        batch_verify_.reset();
-        return kVerifyBatchFail;
-      }
-      BOOST_ASSERT_MSG(single_verification_result == kLegacyVerifySuccess,
-                       "Successful verification result must be equal to 0");
-      verification_queue.pop();
-    }
-
-    return kVerifyBatchSuccess;
-  }
-
-  runtime::WasmSize CryptoExtension::ext_ed25519_verify(
-      runtime::WasmPointer msg_data,
-      runtime::WasmSize msg_len,
-      runtime::WasmPointer sig_data,
-      runtime::WasmPointer pubkey_data) {
-    auto msg = memory_->loadN(msg_data, msg_len);
-    auto sig_bytes =
-        memory_->loadN(sig_data, ed25519_constants::SIGNATURE_SIZE).toVector();
-
-    auto signature_res = crypto::Ed25519Signature::fromSpan(sig_bytes);
-    if (!signature_res) {
-      BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
-    }
-    auto &&signature = signature_res.value();
-
-    auto pubkey_bytes =
-        memory_->loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE).toVector();
-    auto pubkey_res = crypto::Ed25519PublicKey::fromSpan(pubkey_bytes);
-    if (!pubkey_res) {
-      BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
-    }
-    auto pubkey = pubkey_res.value();
-
-    auto verifier = [self_weak = weak_from_this(),
-                     signature = std::move(signature),
-                     msg = std::move(msg),
-                     pubkey = std::move(pubkey)]() mutable {
-      auto self = self_weak.lock();
-      if (not self) {
-        BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
-      }
-
-      auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
-      auto is_succeeded = result && result.value();
-
-      return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
-    };
-    if (batch_verify_.has_value()) {
-      auto &verification_queue = batch_verify_.value();
-      verification_queue.emplace(
-          std::async(std::launch::deferred, std::move(verifier)));
-      return kLegacyVerifySuccess;
-    }
-
-    return verifier();
-  }
-
-  runtime::WasmSize CryptoExtension::ext_sr25519_verify(
-      runtime::WasmPointer msg_data,
-      runtime::WasmSize msg_len,
-      runtime::WasmPointer sig_data,
-      runtime::WasmPointer pubkey_data) {
-    auto msg = memory_->loadN(msg_data, msg_len);
-    auto signature_buffer =
-        memory_->loadN(sig_data, sr25519_constants::SIGNATURE_SIZE);
-
-    auto pubkey_buffer =
-        memory_->loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE);
-    auto key_res = crypto::Sr25519PublicKey::fromSpan(pubkey_buffer);
-    if (!key_res) {
-      BOOST_UNREACHABLE_RETURN(kSr25519LegacyVerifyFail)
-    }
-    auto &&key = key_res.value();
-
-    crypto::Sr25519Signature signature{};
-    std::copy_n(signature_buffer.begin(),
-                sr25519_constants::SIGNATURE_SIZE,
-                signature.begin());
-
-    auto verifier = [self_weak = weak_from_this(),
-                     signature = std::move(signature),
-                     msg = std::move(msg),
-                     pubkey = std::move(key)]() mutable {
-      auto self = self_weak.lock();
-      if (not self) {
-        BOOST_ASSERT(!"This is unreachable");
-      }
-
-      auto res = self->sr25519_provider_->verify(signature, msg, pubkey);
-      bool is_succeeded = res && res.value();
-      return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
-    };
-    if (batch_verify_.has_value()) {
-      auto &verification_queue = batch_verify_.value();
-      verification_queue.emplace(
-          std::async(std::launch::deferred, std::move(verifier)));
-      return kLegacyVerifySuccess;
-    }
-
-    return verifier();
-  }
-
-  void CryptoExtension::ext_twox_64(runtime::WasmPointer data,
-                                    runtime::WasmSize len,
-                                    runtime::WasmPointer out_ptr) {
-    const auto &buf = memory_->loadN(data, len);
-
-    auto hash = hasher_->twox_64(buf);
-    logger_->trace("twox64. Data: {}, Data hex: {}, hash: {}",
-                   buf.data(),
-                   buf.toHex(),
-                   hash.toHex());
-
-    memory_->storeBuffer(out_ptr, hash);
-  }
-
-  void CryptoExtension::ext_twox_128(runtime::WasmPointer data,
-                                     runtime::WasmSize len,
-                                     runtime::WasmPointer out_ptr) {
-    const auto &buf = memory_->loadN(data, len);
-
-    auto hash = hasher_->twox_128(buf);
-    logger_->trace("twox128. Data: {}, Data hex: {}, hash: {}",
-                   buf.data(),
-                   buf.toHex(),
-                   hash.toHex());
-
-    memory_->storeBuffer(out_ptr, common::Buffer(hash));
-  }
-
-  void CryptoExtension::ext_twox_256(runtime::WasmPointer data,
-                                     runtime::WasmSize len,
-                                     runtime::WasmPointer out_ptr) {
-    const auto &buf = memory_->loadN(data, len);
-
-    auto hash = hasher_->twox_256(buf);
-
-    memory_->storeBuffer(out_ptr, hash);
-  }
-
   // ---------------------- runtime api version 1 methods ----------------------
 
   runtime::WasmPointer CryptoExtension::ext_hashing_keccak_256_version_1(
@@ -314,7 +126,7 @@ namespace kagome::host_api {
     return memory_->storeBuffer(hash);
   }
 
-  runtime::WasmSpan CryptoExtension::ext_ed25519_public_keys_v1(
+  runtime::WasmSpan CryptoExtension::ext_ed25519_public_keys_version_1(
       runtime::WasmSize key_type) {
     using ResultType = std::vector<crypto::Ed25519PublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
@@ -381,7 +193,7 @@ namespace kagome::host_api {
   /**
    *@see Extension::ext_ed25519_generate
    */
-  runtime::WasmPointer CryptoExtension::ext_ed25519_generate_v1(
+  runtime::WasmPointer CryptoExtension::ext_ed25519_generate_version_1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
@@ -419,7 +231,7 @@ namespace kagome::host_api {
   /**
    * @see Extension::ed25519_sign
    */
-  runtime::WasmSpan CryptoExtension::ext_ed25519_sign_v1(
+  runtime::WasmSpan CryptoExtension::ext_ed25519_sign_version_1(
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg) {
@@ -459,13 +271,51 @@ namespace kagome::host_api {
   /**
    * @see Extension::ext_ed25519_verify
    */
-  runtime::WasmSize CryptoExtension::ext_ed25519_verify_v1(
+  runtime::WasmSize CryptoExtension::ext_ed25519_verify_version_1(
       runtime::WasmPointer sig,
-      runtime::WasmSpan msg,
+      runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
-    auto [msg_data, msg_len] = runtime::WasmResult(msg);
-    auto res = ext_ed25519_verify(msg_data, msg_len, sig, pubkey_data);
-    if (res == kLegacyVerifySuccess) {
+    auto [msg_data, msg_len] = runtime::WasmResult(msg_span);
+    auto msg = memory_->loadN(msg_data, msg_len);
+    auto sig_bytes =
+        memory_->loadN(sig, ed25519_constants::SIGNATURE_SIZE).toVector();
+
+    auto signature_res = crypto::Ed25519Signature::fromSpan(sig_bytes);
+    if (!signature_res) {
+      BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+    }
+    auto &&signature = signature_res.value();
+
+    auto pubkey_bytes =
+        memory_->loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE).toVector();
+    auto pubkey_res = crypto::Ed25519PublicKey::fromSpan(pubkey_bytes);
+    if (!pubkey_res) {
+      BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+    }
+    auto pubkey = pubkey_res.value();
+
+    auto verifier = [self_weak = weak_from_this(),
+                     signature = std::move(signature),
+                     msg = std::move(msg),
+                     pubkey = std::move(pubkey)]() mutable {
+      auto self = self_weak.lock();
+      if (not self) {
+        BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+      }
+
+      auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
+      auto is_succeeded = result && result.value();
+
+      return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
+    };
+    if (batch_verify_.has_value()) {
+      auto &verification_queue = batch_verify_.value();
+      verification_queue.emplace(
+          std::async(std::launch::deferred, std::move(verifier)));
+      return kLegacyVerifySuccess;
+    }
+
+    if (verifier() == kLegacyVerifySuccess) {
       return kVerifySuccess;
     }
     return kVerifyFail;
@@ -474,7 +324,7 @@ namespace kagome::host_api {
   /**
    * @see Extension::ext_sr25519_public_keys
    */
-  runtime::WasmSpan CryptoExtension::ext_sr25519_public_keys_v1(
+  runtime::WasmSpan CryptoExtension::ext_sr25519_public_keys_version_1(
       runtime::WasmSize key_type) {
     using ResultType = std::vector<crypto::Sr25519PublicKey>;
     static const auto error_result(scale::encode(ResultType{}).value());
@@ -500,7 +350,7 @@ namespace kagome::host_api {
   /**
    *@see Extension::ext_sr25519_generate
    */
-  runtime::WasmPointer CryptoExtension::ext_sr25519_generate_v1(
+  runtime::WasmPointer CryptoExtension::ext_sr25519_generate_version_1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
@@ -541,7 +391,7 @@ namespace kagome::host_api {
   /**
    * @see Extension::sr25519_sign
    */
-  runtime::WasmSpan CryptoExtension::ext_sr25519_sign_v1(
+  runtime::WasmSpan CryptoExtension::ext_sr25519_sign_version_1(
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg) {
@@ -584,13 +434,49 @@ namespace kagome::host_api {
   /**
    * @see Extension::ext_sr25519_verify
    */
-  runtime::WasmSize CryptoExtension::ext_sr25519_verify_v1(
+  runtime::WasmSize CryptoExtension::ext_sr25519_verify_version_1(
       runtime::WasmPointer sig,
-      runtime::WasmSpan msg,
+      runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
-    auto [msg_data, msg_len] = runtime::WasmResult(msg);
-    auto res = ext_sr25519_verify(msg_data, msg_len, sig, pubkey_data);
-    if (res == kLegacyVerifySuccess) {
+    auto [msg_data, msg_len] = runtime::WasmResult(msg_span);
+    auto msg = memory_->loadN(msg_data, msg_len);
+    auto signature_buffer =
+        memory_->loadN(sig, sr25519_constants::SIGNATURE_SIZE);
+
+    auto pubkey_buffer =
+        memory_->loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE);
+    auto key_res = crypto::Sr25519PublicKey::fromSpan(pubkey_buffer);
+    if (!key_res) {
+      BOOST_UNREACHABLE_RETURN(kSr25519LegacyVerifyFail)
+    }
+    auto &&key = key_res.value();
+
+    crypto::Sr25519Signature signature{};
+    std::copy_n(signature_buffer.begin(),
+                sr25519_constants::SIGNATURE_SIZE,
+                signature.begin());
+
+    auto verifier = [self_weak = weak_from_this(),
+                     signature = std::move(signature),
+                     msg = std::move(msg),
+                     pubkey = std::move(key)]() mutable {
+      auto self = self_weak.lock();
+      if (not self) {
+        BOOST_ASSERT(!"This is unreachable");
+      }
+
+      auto res = self->sr25519_provider_->verify(signature, msg, pubkey);
+      bool is_succeeded = res && res.value();
+      return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
+    };
+    if (batch_verify_.has_value()) {
+      auto &verification_queue = batch_verify_.value();
+      verification_queue.emplace(
+          std::async(std::launch::deferred, std::move(verifier)));
+      return kLegacyVerifySuccess;
+    }
+
+    if (verifier() == kLegacyVerifySuccess) {
       return kVerifySuccess;
     }
     return kVerifyFail;
@@ -621,7 +507,8 @@ namespace kagome::host_api {
     }
   }  // namespace
 
-  runtime::WasmSpan CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_v1(
+  runtime::WasmSpan
+  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
     using ResultType = boost::variant<ecdsa::PublicKey, EcdsaVerifyError>;
 
@@ -660,7 +547,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan
-  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
     using ResultType = boost::variant<CompressedPublicKey, EcdsaVerifyError>;
 
