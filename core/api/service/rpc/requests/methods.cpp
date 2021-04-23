@@ -18,8 +18,11 @@ namespace kagome::api::rpc::request {
     return outcome::success();
   }
 
-  outcome::result<std::vector<std::string>> Methods::execute() {
-    return api_->methods();
+  outcome::result<primitives::RpcMethods> Methods::execute() {
+    OUTCOME_TRY(methods, api_->methods());
+    primitives::RpcMethods result;
+    result.methods = std::move(methods);
+    return result;
   }
 
 }  // namespace kagome::api::rpc::request
