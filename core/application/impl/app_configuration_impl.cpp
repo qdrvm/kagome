@@ -27,8 +27,9 @@ namespace {
                             char const *name,
                             Func &&f) {
     assert(nullptr != name);
-    auto it = vm.find(name);
-    if (it != vm.end()) std::forward<Func>(f)(it->second.as<T>());
+    if (auto it = vm.find(name); it != vm.end()) {
+      std::forward<Func>(f)(it->second.as<T>());
+    }
   }
 
   const std::string def_rpc_http_host = "0.0.0.0";
@@ -474,6 +475,8 @@ namespace kagome::application {
           }
         }
 
+        roles_.flags.full = 1;
+        roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
         is_already_synchronized_ = true;
         rpc_http_host_ = def_rpc_http_host;
