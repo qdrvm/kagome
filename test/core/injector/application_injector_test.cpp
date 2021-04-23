@@ -81,6 +81,12 @@ namespace {
         .WillRepeatedly(testing::Return(db_path));
     EXPECT_CALL(config_mock, keystorePath(_))
         .WillRepeatedly(testing::Return(db_path / "keys"));
+    kagome::network::Roles roles;
+    roles.flags.full = 1;
+    roles.flags.authority = 1;
+    EXPECT_CALL(config_mock, roles()).WillRepeatedly(testing::Return(roles));
+    EXPECT_CALL(config_mock, isUnixSlotsStrategy())
+        .WillRepeatedly(testing::Return(true));
     static auto key = boost::make_optional(kagome::crypto::Ed25519PrivateKey{});
     EXPECT_CALL(config_mock, nodeKey()).WillRepeatedly(testing::ReturnRef(key));
     EXPECT_CALL(config_mock, listenAddresses())
@@ -104,33 +110,7 @@ namespace {
   }
 }  // namespace
 
-class SyncingInjectorTest : public testing::Test {
- public:
-  static void SetUpTestCase() {
-    testutil::prepareLoggers();
-    fs::create_directories(db_path_);
-  }
-
-  void SetUp() override {
-    config_ = std::make_shared<kagome::application::AppConfigurationMock>();
-    initConfig(db_path_, *config_);
-    injector_ =
-        std::make_unique<kagome::injector::SyncingNodeInjector>(*config_);
-  }
-
-  static void TearDownTestCase() {
-    fs::remove_all(db_path_);
-  }
-
- protected:
-  static inline const auto db_path_ =
-      fs::temp_directory_path() / fs::unique_path();
-
-  std::shared_ptr<kagome::application::AppConfigurationMock> config_;
-  std::unique_ptr<kagome::injector::SyncingNodeInjector> injector_;
-};
-
-class ValidatingInjectorTest : public testing::Test {
+class KagomeInjectorTest : public testing::Test {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
@@ -143,7 +123,7 @@ class ValidatingInjectorTest : public testing::Test {
     config_ = std::make_shared<kagome::application::AppConfigurationMock>();
     initConfig(db_path_, *config_);
     injector_ =
-        std::make_unique<kagome::injector::ValidatingNodeInjector>(*config_);
+        std::make_unique<kagome::injector::KagomeNodeInjector>(*config_);
   }
 
   static void TearDownTestCase() {
@@ -155,31 +135,21 @@ class ValidatingInjectorTest : public testing::Test {
       fs::temp_directory_path() / fs::unique_path();
 
   std::shared_ptr<kagome::application::AppConfigurationMock> config_;
-  std::unique_ptr<kagome::injector::ValidatingNodeInjector> injector_;
+  std::unique_ptr<kagome::injector::KagomeNodeInjector> injector_;
 };
 
-#define TEST_SYNCING_INJECT(module)                  \
-  TEST_F(SyncingInjectorTest, Inject##module) {      \
+#define TEST_KAGOME_INJECT(module)                   \
+  TEST_F(KagomeInjectorTest, Inject##module) {       \
     ASSERT_NE(injector_->inject##module(), nullptr); \
   }
 
-#define TEST_VALIDATING_INJECT(module)               \
-  TEST_F(ValidatingInjectorTest, Inject##module) {   \
-    ASSERT_NE(injector_->inject##module(), nullptr); \
-  }
-
-TEST_SYNCING_INJECT(ChainSpec)
-TEST_SYNCING_INJECT(AppStateManager)
-TEST_SYNCING_INJECT(Router)
-TEST_SYNCING_INJECT(PeerManager)
-TEST_SYNCING_INJECT(RpcApiService)
-
-TEST_VALIDATING_INJECT(ChainSpec)
-TEST_VALIDATING_INJECT(AppStateManager)
-TEST_VALIDATING_INJECT(Router)
-TEST_VALIDATING_INJECT(PeerManager)
-TEST_VALIDATING_INJECT(RpcApiService)
-
-TEST_VALIDATING_INJECT(Grandpa)
-TEST_VALIDATING_INJECT(Babe)
-TEST_VALIDATING_INJECT(SystemClock)
+TEST_KAGOME_INJECT(ChainSpec)
+TEST_KAGOME_INJECT(AppStateManager)
+TEST_KAGOME_INJECT(IoContext)
+TEST_KAGOME_INJECT(Router)
+TEST_KAGOME_INJECT(PeerManager)
+TEST_KAGOME_INJECT(RpcApiService)
+TEST_KAGOME_INJECT(SystemClock)
+TEST_KAGOME_INJECT(SyncObserver)
+TEST_KAGOME_INJECT(Babe)
+TEST_KAGOME_INJECT(Grandpa)
