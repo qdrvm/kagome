@@ -176,10 +176,10 @@ namespace kagome::application {
     for (auto &role : roles) {
       if (role == "light") {
         roles_.flags.light = 1;
-        logger_->error("Role 'archive' is not supported yet");
+        logger_->error("Role 'light' is not supported yet");
         return;
       } else if (role == "full") {
-        roles_.flags.light = 1;
+        roles_.flags.full = 1;
       } else if (role == "archive") {
         logger_->error("Role 'archive' is not supported yet");
         return;
@@ -503,32 +503,34 @@ namespace kagome::application {
     std::string roles_str;
     find_argument<std::string>(
         vm, "roles", [&](std::string const &val) { roles_str = val; });
-    std::vector<std::string> roles;
-    boost::split(roles, roles_str, boost::algorithm::is_punct());
-    for (auto &role : roles) {
-      if (role == "light") {
-        roles_.flags.light = 1;
-        logger_->error("Role 'light' is not supported yet");
-        std::cerr << "Role 'light' is not supported yet;\n"
-                     "Use 'full' role (with 'authority' if it's needed)"
-                  << std::endl;
-        return false;
-      } else if (role == "full") {
-        roles_.flags.light = 1;
-      } else if (role == "archive") {
-        std::cerr << "Role 'archive' is not supported yet;\n"
-                     "Use 'full' role (with 'authority' if it's needed)"
-                  << std::endl;
-        return false;
-      } else if (role == "authority") {
-        roles_.flags.authority = 1;
-      } else {
-        logger_->error("Invalid role '{}'", role);
-        std::cerr << "Invalid role '" << role
-                  << "';\n"
-                     "Use 'full' role (with 'authority' if it's needed)"
-                  << std::endl;
-        return false;
+    if (not dev_mode_ or not roles_str.empty()) {
+      std::vector<std::string> roles;
+      boost::split(roles, roles_str, boost::algorithm::is_punct());
+      for (auto &role : roles) {
+        if (role == "light") {
+          roles_.flags.light = 1;
+          logger_->error("Role 'light' is not supported yet");
+          std::cerr << "Role 'light' is not supported yet;\n"
+                       "Use 'full' role (with 'authority' if it's needed)"
+                    << std::endl;
+          return false;
+        } else if (role == "full") {
+          roles_.flags.full = 1;
+        } else if (role == "archive") {
+          std::cerr << "Role 'archive' is not supported yet;\n"
+                       "Use 'full' role (with 'authority' if it's needed)"
+                    << std::endl;
+          return false;
+        } else if (role == "authority") {
+          roles_.flags.authority = 1;
+        } else {
+          logger_->error("Invalid role '{}'", role);
+          std::cerr << "Invalid role '" << role
+                    << "';\n"
+                       "Use 'full' role (with 'authority' if it's needed)"
+                    << std::endl;
+          return false;
+        }
       }
     }
     if (roles_.flags.light && roles_.flags.full) {
