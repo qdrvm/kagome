@@ -10,6 +10,7 @@
 #include <boost/assert.hpp>
 
 #include "outcome/outcome.hpp"
+#include "primitives/rpc_methods.hpp"
 
 namespace kagome::api {
   class RpcApi;
@@ -36,7 +37,7 @@ namespace kagome::api::rpc::request {
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
 
-    outcome::result<std::vector<std::string>> execute();
+    outcome::result<primitives::RpcMethods> execute();
 
    private:
     std::shared_ptr<RpcApi> api_;
