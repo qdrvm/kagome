@@ -13,6 +13,7 @@
 #include "consensus/authority/impl/schedule_node.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 
 namespace kagome::authority {
 
@@ -38,7 +39,15 @@ namespace kagome::authority {
     auto encoded_root_res = storage_->get(SCHEDULER_TREE);
     if (!encoded_root_res.has_value()) {
       // Get initial authorities from genesis
-      root_ = ScheduleNode::createAsRoot({});
+      auto hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
+      if (not hash_res.has_value()) {
+        log_->critical("Can't decode genesis block hash");
+        return false;
+      }
+      primitives::BlockHash hash;
+      std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
+
+      root_ = ScheduleNode::createAsRoot({0, hash});
       root_->actual_authorities = std::make_shared<primitives::AuthorityList>(
           genesis_configuration_->genesis_authorities);
       return true;

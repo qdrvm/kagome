@@ -22,6 +22,7 @@ groups:
     level: debug
     children:
       - name: libp2p
+        level: off
       - name: kagome
         children:
           - name: application
@@ -61,8 +62,6 @@ groups:
           - name: storage
           - name: pubsub
           - name: transactions
-          - name: testing
-          - name: debug
 # ----------------
   )");
   }

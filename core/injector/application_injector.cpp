@@ -189,42 +189,42 @@ namespace {
         trie_storage->getRootHash(),
         db,
         hasher,
-        [&db, &grandpa_api](const primitives::Block &genesis_block) {
+        [/*&db, &grandpa_api*/](const primitives::Block &genesis_block) {
           // handle genesis initialization, which happens when there is not
           // authorities and last completed round in the storage
-          if (not db->get(storage::kAuthoritySetKey)) {
-            // insert authorities
-            const auto &weighted_authorities_res = grandpa_api->authorities(
-                primitives::BlockId(primitives::BlockNumber{0}));
-            BOOST_ASSERT_MSG(weighted_authorities_res,
-                             "grandpa_api_->authorities failed");
-            const auto &weighted_authorities = weighted_authorities_res.value();
-
-            auto log = log::createLogger("injector", "kagome");
-
-            for (const auto &authority : weighted_authorities) {
-              log->info("Grandpa authority: {}", authority.id.id.toHex());
-            }
-
-            consensus::grandpa::VoterSet voters{0};
-            for (const auto &weighted_authority : weighted_authorities) {
-              voters.insert(
-                  primitives::GrandpaSessionKey{weighted_authority.id.id},
-                  weighted_authority.weight);
-              SL_DEBUG(log,
-                       "Added to grandpa authorities: {}, weight: {}",
-                       weighted_authority.id.id.toHex(),
-                       weighted_authority.weight);
-            }
-            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
-            auto authorities_put_res =
-                db->put(storage::kAuthoritySetKey,
-                        common::Buffer(scale::encode(voters).value()));
-            if (not authorities_put_res) {
-              BOOST_ASSERT_MSG(false, "Could not insert authorities");
-              BOOST_UNREACHABLE_RETURN(std::exit(EXIT_FAILURE));
-            }
-          }
+//          if (not db->get(storage::kAuthoritySetKey)) {
+//            // insert authorities
+//            const auto &weighted_authorities_res = grandpa_api->authorities(
+//                primitives::BlockId(primitives::BlockNumber{0}));
+//            BOOST_ASSERT_MSG(weighted_authorities_res,
+//                             "grandpa_api_->authorities failed");
+//            const auto &weighted_authorities = weighted_authorities_res.value();
+//
+//            auto log = log::createLogger("injector", "kagome");
+//
+//            for (const auto &authority : weighted_authorities) {
+//              log->info("Grandpa authority: {}", authority.id.id.toHex());
+//            }
+//
+//            consensus::grandpa::VoterSet voters{0};
+//            for (const auto &weighted_authority : weighted_authorities) {
+//              voters.insert(
+//                  primitives::GrandpaSessionKey{weighted_authority.id.id},
+//                  weighted_authority.weight);
+//              SL_DEBUG(log,
+//                       "Added to grandpa authorities: {}, weight: {}",
+//                       weighted_authority.id.id.toHex(),
+//                       weighted_authority.weight);
+//            }
+//            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
+//            auto authorities_put_res =
+//                db->put(storage::kAuthoritySetKey,
+//                        common::Buffer(scale::encode(voters).value()));
+//            if (not authorities_put_res) {
+//              BOOST_ASSERT_MSG(false, "Could not insert authorities");
+//              BOOST_UNREACHABLE_RETURN(std::exit(EXIT_FAILURE));
+//            }
+//          }
         });
     if (storage_res.has_error()) {
       common::raise(storage_res.error());
@@ -1297,13 +1297,6 @@ namespace kagome::injector {
   std::shared_ptr<consensus::grandpa::Grandpa>
   KagomeNodeInjector::injectGrandpa() {
     return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
-  }
-
-  std::shared_ptr<soralog::LoggingSystem>
-  KagomeNodeInjector::injectLoggingSystem() {
-    return std::make_shared<soralog::LoggingSystem>(
-        std::make_shared<kagome::log::Configurator>(
-            pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));
   }
 
 }  // namespace kagome::injector

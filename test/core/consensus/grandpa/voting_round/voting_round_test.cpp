@@ -14,16 +14,19 @@
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/consensus/authority/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "primitives/authority.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
 using namespace std::chrono_literals;
 
+using kagome::authority::AuthorityManagerMock;
 using kagome::clock::SteadyClockImpl;
 using kagome::consensus::grandpa::EnvironmentMock;
 using kagome::consensus::grandpa::GrandpaConfig;
@@ -31,6 +34,8 @@ using kagome::consensus::grandpa::VoteCryptoProviderMock;
 using kagome::crypto::Ed25519Keypair;
 using kagome::crypto::Ed25519Signature;
 using kagome::crypto::HasherMock;
+using kagome::primitives::Authority;
+using kagome::primitives::AuthorityList;
 
 using testing::_;
 using testing::AnyNumber;
@@ -71,10 +76,6 @@ class VotingRoundTest : public testing::Test {
   }
 
   void SetUp() override {
-    voters_->insert(kAlice, kAliceWeight);
-    voters_->insert(kBob, kBobWeight);
-    voters_->insert(kEve, kEveWeight);
-
     keypair_.public_key = kAlice;
 
     // lambda checking that id is matches to one of the known ones
@@ -106,10 +107,21 @@ class VotingRoundTest : public testing::Test {
     grandpa_ = std::make_shared<GrandpaMock>();
     EXPECT_CALL(*grandpa_, executeNextRound()).Times(AnyNumber());
 
+    auto authorities = std::make_shared<AuthorityList>();
+    authorities->id = 0;
+    authorities->emplace_back(Authority{{kAlice}, kAliceWeight});
+    authorities->emplace_back(Authority{{kBob}, kBobWeight});
+    authorities->emplace_back(Authority{{kEve}, kEveWeight});
+
+    authority_manager_ = std::make_shared<AuthorityManagerMock>();
+    EXPECT_CALL(*authority_manager_, authorities(_))
+        .Times(AnyNumber())
+        .WillRepeatedly(Return(authorities));
+
     env_ = std::make_shared<EnvironmentMock>();
     vote_graph_ = std::make_shared<VoteGraphImpl>(base, env_);
 
-    GrandpaConfig config{.voters = voters_,
+    GrandpaConfig config{//.voters = voters_,
                          .round_number = round_number_,
                          .duration = duration_,
                          .id = kAlice};
@@ -135,6 +147,7 @@ class VotingRoundTest : public testing::Test {
 
     round_ = std::make_shared<VotingRoundImpl>(grandpa_,
                                                config,
+                                               authority_manager_,
                                                env_,
                                                vote_crypto_provider_,
                                                prevotes_,
@@ -197,6 +210,7 @@ class VotingRoundTest : public testing::Test {
       std::make_shared<VoteTrackerImpl>();
 
   std::shared_ptr<GrandpaMock> grandpa_;
+  std::shared_ptr<AuthorityManagerMock> authority_manager_;
   std::shared_ptr<EnvironmentMock> env_;
   std::shared_ptr<VoteGraphImpl> vote_graph_;
   std::shared_ptr<Clock> clock_ = std::make_shared<SteadyClockImpl>();

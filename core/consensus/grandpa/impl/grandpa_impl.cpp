@@ -104,6 +104,10 @@ namespace kagome::consensus::grandpa {
 
     executeNextRound();
 
+    if (not current_round_) {
+      return false;
+    }
+
     return true;
   }
 
@@ -111,38 +115,50 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       const MovableRoundState &round_state) {
-    // Obtain grandpa voters
-    auto voters_res = getVoters();
-    if (not voters_res.has_value()) {
-      logger_->critical("Can't retrieve voters: {}. Stopping grandpa execution",
-                        voters_res.error().message());
-      return {};
-    }
-    const auto &voters = voters_res.value();
-    if (voters->empty()) {
-      logger_->critical("Voters are empty. Stopping grandpa execution");
-      return {};
-    }
+    //    auto authorities_res =
+    //        authority_manager_->authorities(round_state.last_finalized_block);
+    //    if (not authorities_res.has_value()) {
+    //      logger_->critical("Can't retrieve authorities: {}. Stopping grandpa
+    //      execution",
+    //                        authorities_res.error().message());
+    //      return {};
+    //    }
+    //    auto &authorities = authorities_res.value();
+    //
+    //    // Obtain grandpa voters
+    //    auto voters_res = getVoters();
+    //    if (not voters_res.has_value()) {
+    //      logger_->critical("Can't retrieve voters: {}. Stopping grandpa
+    //      execution",
+    //                        voters_res.error().message());
+    //      return {};
+    //    }
+    //    const auto &voters = voters_res.value();
+    //    if (voters->empty()) {
+    //      logger_->critical("Voters are empty. Stopping grandpa execution");
+    //      return {};
+    //    }
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.last_finalized_block, environment_);
 
-    GrandpaConfig config{.voters = voters,
-                         .round_number = round_state.round_number,
-                         .duration = round_time_factor_,
-                         .id = keypair_
-                                   ? boost::make_optional(keypair_->public_key)
-                                   : boost::none};
+    GrandpaConfig config{
+        //.voters = voters,
+        .round_number = round_state.round_number,
+        .duration = round_time_factor_,
+        .id = keypair_ ? boost::make_optional(keypair_->public_key)
+                       : boost::none};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_ ? boost::make_optional(*keypair_) : boost::none,
         crypto_provider_,
         round_state.round_number,
-        voters);
+        authority_manager_);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
+        authority_manager_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
@@ -162,18 +178,19 @@ namespace kagome::consensus::grandpa {
 
     BOOST_ASSERT(round->finalizedBlock().has_value());
 
-    // Obtain grandpa voters
-    auto voters_res = getVoters();
-    if (not voters_res.has_value()) {
-      logger_->critical("Can't retrieve voters: {}. Stopping grandpa execution",
-                        voters_res.error().message());
-      return {};
-    }
-    const auto &voters = voters_res.value();
-    if (voters->empty()) {
-      logger_->critical("Voters are empty. Stopping grandpa execution");
-      return {};
-    }
+    //    // Obtain grandpa voters
+    //    auto voters_res = getVoters();
+    //    if (not voters_res.has_value()) {
+    //      logger_->critical("Can't retrieve voters: {}. Stopping grandpa
+    //      execution",
+    //                        voters_res.error().message());
+    //      return {};
+    //    }
+    //    const auto &voters = voters_res.value();
+    //    if (voters->empty()) {
+    //      logger_->critical("Voters are empty. Stopping grandpa execution");
+    //      return {};
+    //    }
 
     const auto new_round_number = round->roundNumber() + 1;
 
@@ -181,22 +198,23 @@ namespace kagome::consensus::grandpa {
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(best_block, environment_);
 
-    GrandpaConfig config{.voters = voters,
-                         .round_number = new_round_number,
-                         .duration = round_time_factor_,
-                         .id = keypair_
-                                   ? boost::make_optional(keypair_->public_key)
-                                   : boost::none};
+    GrandpaConfig config{
+        //.voters = voters,
+        .round_number = new_round_number,
+        .duration = round_time_factor_,
+        .id = keypair_ ? boost::make_optional(keypair_->public_key)
+                       : boost::none};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_ ? boost::make_optional(*keypair_) : boost::none,
         crypto_provider_,
         new_round_number,
-        voters);
+        authority_manager_);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
+        authority_manager_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
@@ -231,7 +249,7 @@ namespace kagome::consensus::grandpa {
      */
     OUTCOME_TRY(voters_encoded, storage_->get(storage::kAuthoritySetKey));
     OUTCOME_TRY(voter_set, scale::decode<VoterSet>(voters_encoded));
-    return std::make_shared<VoterSet>(voter_set);
+    return std::make_shared<VoterSet>(std::move(voter_set));
   }
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
@@ -506,12 +524,13 @@ namespace kagome::consensus::grandpa {
       return target_round->applyJustification(block_info, justification);
     }
 
-    if (current_round_->roundNumber() > justification.round_number) {
-      return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
-    }
-
     if (current_round_->bestPrevoteCandidate().number > block_info.number) {
       return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
+    }
+
+    if (current_round_->roundNumber() > justification.round_number) {
+      // Possible voter set is changed
+      return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
     }
 
     MovableRoundState round_state{.round_number = justification.round_number,

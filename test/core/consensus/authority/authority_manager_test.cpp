@@ -11,9 +11,10 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
-#include "primitives/digest.hpp"
 #include "primitives/babe_configuration.hpp"
+#include "primitives/digest.hpp"
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -129,6 +130,9 @@ class AuthorityManagerTest : public testing::Test {
 
   /// Init by data from genesis config
   void prepareAuthorityManager() {
+    EXPECT_CALL(*storage, get(storage::kGenesisBlockHashLookupKey))
+        .WillOnce(Return(common::Buffer("GEN"_hash256)));
+
     EXPECT_CALL(*storage, get(authority::AuthorityManagerImpl::SCHEDULER_TREE))
         .WillOnce(Return(outcome::failure(testutil::DummyError::ERROR)));
 

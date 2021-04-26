@@ -14,28 +14,48 @@ namespace kagome::consensus::grandpa {
       boost::optional<crypto::Ed25519Keypair> keypair,
       std::shared_ptr<kagome::crypto::Ed25519Provider> ed_provider,
       RoundNumber round_number,
-      std::shared_ptr<VoterSet> voter_set)
+      std::shared_ptr<authority::AuthorityManager> authority_manager)
       : keypair_{keypair},
         ed_provider_{std::move(ed_provider)},
         round_number_{round_number},
-        voter_set_{std::move(voter_set)} {}
+        authority_manager_{authority_manager} {}
 
   boost::optional<SignedMessage> VoteCryptoProviderImpl::sign(Vote vote) const {
     if (not keypair_.has_value()) {
       return boost::none;
     }
-    auto& keypair = keypair_.value();
-    auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
+
+    auto block_info = visit_in_place(vote, [](const auto &v) {
+      return BlockInfo{v.number, v.hash};
+    });
+
+    auto authorities_res = authority_manager_->authorities(block_info);
+    if (not authorities_res.has_value()) {
+      return boost::none;
+    }
+    auto &authorities = authorities_res.value();
+
+    auto &keypair = keypair_.value();
+    auto payload = scale::encode(vote, round_number_, authorities->id).value();
     auto signature = ed_provider_->sign(keypair, payload).value();
     return {{.message = std::move(vote),
-            .signature = signature,
-            .id = keypair.public_key}};
+             .signature = signature,
+             .id = keypair.public_key}};
   }
 
   bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,
                                       RoundNumber number) const {
+    auto block_info = visit_in_place(vote.message, [](const auto &v) {
+      return BlockInfo{v.number, v.hash};
+    });
+    auto authorities_res = authority_manager_->authorities(block_info);
+    if (not authorities_res.has_value()) {
+      return false;
+    }
+    auto &authorities = authorities_res.value();
+
     auto payload =
-        scale::encode(vote.message, round_number_, voter_set_->id()).value();
+        scale::encode(vote.message, round_number_, authorities->id).value();
     auto verifying_result =
         ed_provider_->verify(vote.signature, payload, vote.id);
     return verifying_result.has_value() and verifying_result.value();
