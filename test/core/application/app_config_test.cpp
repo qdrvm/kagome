@@ -139,8 +139,6 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("0.0.0.0", 9944);
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -167,8 +165,6 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
       get_endpoint("5.6.7.8", 2222);
   char const *args[] = {
       "/path/",
-      "--roles",
-      "full",
       "--chain",
       chain_path.native().c_str(),
       "--base-path",
@@ -197,8 +193,6 @@ TEST_F(AppConfigurationTest, EndpointsTest) {
  */
 TEST_F(AppConfigurationTest, GenesisPathTest) {
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -222,8 +216,6 @@ TEST_F(AppConfigurationTest, CrossConfigTest) {
       get_endpoint("5.6.7.8", 2222);
   char const *args[] = {
       "/path/",
-      "--roles",
-      "full",
       "--config-file",
       config_path.c_str(),
       "--rpc-host",
@@ -255,7 +247,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
       get_endpoint("2.2.2.2", 678);
 
   char const *args[] = {
-      "/path/", "--roles", "full", "--config-file", config_path.c_str()};
+      "/path/", "--config-file", config_path.c_str()};
   ASSERT_TRUE(
       app_config_->initialize_from_args(std::size(args), (char **)args));
 
@@ -284,8 +276,6 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
       get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--base-path",
                         base_path.native().c_str(),
                         "--chain",
@@ -318,8 +308,6 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
       get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--base-path",
                         base_path.native().c_str(),
                         "--chain",
@@ -352,8 +340,6 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
       get_endpoint("0.0.0.0", 9944);
 
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--base-path",
                         base_path.native().c_str(),
                         "--chain",
@@ -381,8 +367,6 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
  */
 TEST_F(AppConfigurationTest, KeystorePathTest) {
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -404,8 +388,6 @@ TEST_F(AppConfigurationTest, KeystorePathTest) {
  */
 TEST_F(AppConfigurationTest, base_pathPathTest) {
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
@@ -429,8 +411,6 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
   {
     char const *args[] = {
         "/path/",
-        "--roles",
-        "full",
         "--verbosity",
         "0",
         "--chain",
@@ -445,8 +425,6 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
   {
     char const *args[] = {
         "/path/",
-        "--roles",
-        "full",
         "--verbosity",
         "1",
         "--chain",
@@ -461,8 +439,6 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
   {
     char const *args[] = {
         "/path/",
-        "--roles",
-        "full",
         "--verbosity",
         "2",
         "--chain",
@@ -477,8 +453,6 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
   {
     char const *args[] = {
         "/path/",
-        "--roles",
-        "full",
         "--verbosity",
         "3",
         "--chain",
@@ -499,8 +473,6 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
  */
 TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--verbosity",
                         "555",
                         "--chain",
@@ -519,8 +491,6 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
  */
 TEST_F(AppConfigurationTest, NodeNameAsCommandLineOption) {
   char const *args[] = {"/path/",
-                        "--roles",
-                        "full",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",

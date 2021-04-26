@@ -41,6 +41,11 @@ namespace {
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
   const bool def_dev_mode = false;
+  const kagome::network::Roles def_roles = []{
+    kagome::network::Roles roles;
+    roles.flags.full = 1;
+    return roles;
+  }();
 
   /**
    * Generate once at run random node name if form of UUID
@@ -64,7 +69,7 @@ namespace kagome::application {
 
   AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
       : logger_(std::move(logger)),
-        roles_(0),
+        roles_(def_roles),
         p2p_port_(def_p2p_port),
         verbosity_(static_cast<log::Level>(def_verbosity)),
         is_already_synchronized_(def_is_already_synchronized),
@@ -167,35 +172,10 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
-    std::string roles_str;
-    load_str(val, "roles", roles_str);
-
-    std::vector<std::string> roles;
-    boost::split(roles, roles_str, boost::algorithm::is_punct());
-    roles_ = 0;
-    for (auto &role : roles) {
-      if (role == "light") {
-        roles_.flags.light = 1;
-        logger_->error("Role 'light' is not supported yet");
-        return;
-      } else if (role == "full") {
-        roles_.flags.full = 1;
-      } else if (role == "archive") {
-        logger_->error("Role 'archive' is not supported yet");
-        return;
-      } else if (role == "authority") {
-        roles_.flags.authority = 1;
-      } else {
-        logger_->error("Invalid role '{}'", role);
-        return;
-      }
-    }
-    if (roles_.flags.light && roles_.flags.full) {
-      logger_->error("Wrong combination roles: 'light' and 'full'");
-      return;
-    } else if (not roles_.flags.light && not roles_.flags.full) {
-      logger_->error("Incomplete roles");
-      return;
+    bool validator_mode = false;
+    load_bool(val, "validator", validator_mode);
+    if (validator_mode){
+      roles_.flags.authority = 1;
     }
 
     uint16_t v{};
@@ -355,7 +335,7 @@ namespace kagome::application {
     desc.add_options()
         ("help,h", "show this help message")
         ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no log")
-        ("roles", po::value<std::string>(), "Role of node: light, full, archive (with authority if it's needed)")
+        ("validator", "Enable validator node")
         ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
         ;
 
@@ -500,51 +480,8 @@ namespace kagome::application {
       }
     });
 
-    std::string roles_str;
-    find_argument<std::string>(
-        vm, "roles", [&](std::string const &val) { roles_str = val; });
-    if (not dev_mode_ or not roles_str.empty()) {
-      std::vector<std::string> roles;
-      boost::split(roles, roles_str, boost::algorithm::is_punct());
-      for (auto &role : roles) {
-        if (role == "light") {
-          roles_.flags.light = 1;
-          logger_->error("Role 'light' is not supported yet");
-          std::cerr << "Role 'light' is not supported yet;\n"
-                       "Use 'full' role (with 'authority' if it's needed)"
-                    << std::endl;
-          return false;
-        } else if (role == "full") {
-          roles_.flags.full = 1;
-        } else if (role == "archive") {
-          std::cerr << "Role 'archive' is not supported yet;\n"
-                       "Use 'full' role (with 'authority' if it's needed)"
-                    << std::endl;
-          return false;
-        } else if (role == "authority") {
-          roles_.flags.authority = 1;
-        } else {
-          logger_->error("Invalid role '{}'", role);
-          std::cerr << "Invalid role '" << role
-                    << "';\n"
-                       "Use 'full' role (with 'authority' if it's needed)"
-                    << std::endl;
-          return false;
-        }
-      }
-    }
-    if (roles_.flags.light && roles_.flags.full) {
-      logger_->error("Wrong combination roles: 'light' and 'full'");
-      std::cerr << "Wrong combination roles: 'light' and 'full';\n"
-                   "Use 'full' role (with 'authority' if it's needed)"
-                << std::endl;
-      return false;
-    } else if (not roles_.flags.light && not roles_.flags.full) {
-      logger_->error("Incomplete roles");
-      std::cerr << "Incomplete roles;\n"
-                   "Use 'full' role (with 'authority' if it's needed)"
-                << std::endl;
-      return false;
+    if (vm.end() != vm.find("validator")) {
+      roles_.flags.authority = 1;
     }
 
     if (vm.end() != vm.find("already-synchronized")) {
@@ -552,7 +489,7 @@ namespace kagome::application {
         logger_->error("Non authority node is run as already synced");
         std::cerr
             << "Non authority node can't be presented as already synced;\n"
-               "Change --roles or remove --already-synchronized option"
+               "Provide --validator option or remove --already-synchronized"
             << std::endl;
         return false;
       }
