@@ -64,7 +64,7 @@ docker run -it --rm soramitsu/kagome:0.0.1 kagome
 ```
 
 
-### Execute kagome full authority node
+### Execute kagome node with validator mode
 
 ---
 **Note**
@@ -75,11 +75,11 @@ rm -rf db
 ```
 ---
 
-To launch kagome node execute:
+To launch kagome validator execute:
 ```
 cd examples/first_kagome_chain
 PATH=$PATH:../../build/node/
-kagome --roles full,authority --chain localchain.json --base-path base_path
+kagome --validator --chain localchain.json --base-path base_path
 ```
 
 This command executes kagome full node with authority role which can receive extrinsics locally on port using http: `9933`. Simple transfer transaction can be sent as follows:
@@ -92,7 +92,7 @@ If transaction was successfully applied we should see the following output:
 ```
 
 
-### Execute kagome full syncing (without authority) node
+### Execute kagome full node
 
 ---
 **Note**
@@ -103,11 +103,11 @@ rm -rf syncing_chain
 ```
 ---
 
-To launch kagome syncing node execute:
+To launch kagome full node execute:
 ```
 cd examples/polkadot/
 PATH=$PATH:../../build/node/
-kagome --roles full --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix-slots
+kagome --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix-slots
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.

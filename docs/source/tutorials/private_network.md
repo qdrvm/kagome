@@ -8,7 +8,7 @@ First go to tutorial's folder:
 cd examples/network
 ```
 
-### Execute first validating node (node with authority)
+### Execute first validating node
 
 First we execute validating node in the similar way we did it during previous tutorial. This node will produce and finalize blocks.
 
@@ -16,7 +16,7 @@ To start with let's navigate into the node's folder:
 
 ```shell script
 kagome \
-    --roles full,authority \
+    --validator \
     --chain testchain.json \
     --base-path validating1 \
     --port 11122 \
@@ -32,7 +32,7 @@ Now that validating node is up and running, second node can join the network by 
 
 ```shell script
 kagome \
-    --roles full,authority \
+    --validator \
     --chain testchain.json \
     --base-path validating2 \
     --port 11222 \
@@ -59,7 +59,6 @@ To start syncing node `kagome` binary is used as follows:
 
 ```shell script
 kagome \
-    --roles full \
     --chain testchain.json \
     --base-path syncing1 \
     --port 21122 \

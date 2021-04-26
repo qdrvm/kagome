@@ -53,7 +53,6 @@ docker run \
   --publish 9944:9944 \
   soramitsu/kagome \           
   kagome \   
-  --roles full \         
   --chain localchain.json \    
   --base-path base_path \ 
   --port 30363 \
