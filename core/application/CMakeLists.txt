@@ -5,16 +5,6 @@ target_link_libraries(application_util
     Boost::filesystem
     )
 
-add_library(validating_node_application
-    impl/validating_node_application.cpp
-    )
-target_link_libraries(validating_node_application
-    application_injector
-    blob
-    application_util
-    log_configurator
-    )
-
 add_library(app_config_impl
     impl/app_configuration_impl.cpp
     )
@@ -24,16 +14,6 @@ target_link_libraries(app_config_impl
     blob
     assets
     configuration_storage
-    )
-
-add_library(syncing_node_application
-    impl/syncing_node_application.cpp
-    )
-target_link_libraries(syncing_node_application
-    application_injector
-    blob
-    application_util
-    log_configurator
     )
 
 add_library(configuration_storage
@@ -53,3 +33,14 @@ add_library(app_state_manager
 target_link_libraries(app_state_manager
     logger
     )
+
+add_library(kagome_application
+    impl/kagome_application_impl.cpp
+    )
+target_link_libraries(kagome_application
+    application_injector
+    blob
+    application_util
+    log_configurator
+   )
+

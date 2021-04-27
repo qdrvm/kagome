@@ -11,9 +11,13 @@
 
 namespace kagome::network {
 
-  GrandpaProtocol::GrandpaProtocol(libp2p::Host &host,
-                                   std::shared_ptr<StreamEngine> stream_engine)
-      : host_(host), stream_engine_(std::move(stream_engine)) {
+  GrandpaProtocol::GrandpaProtocol(
+      libp2p::Host &host,
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<StreamEngine> stream_engine)
+      : host_(host),
+        app_config_(app_config),
+        stream_engine_(std::move(stream_engine)) {
     const_cast<Protocol &>(protocol_) = kGrandpaProtocol;
   }
 
@@ -101,7 +105,7 @@ namespace kagome::network {
 
     read_writer->read<Roles>(
         [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-            auto &&remote_status_res) mutable {
+            auto &&remote_roles_res) mutable {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
@@ -109,11 +113,11 @@ namespace kagome::network {
             return;
           }
 
-          if (not remote_status_res.has_value()) {
+          if (not remote_roles_res.has_value()) {
             self->log_->error("Error while reading roles: {}",
-                              remote_status_res.error().message());
+                              remote_roles_res.error().message());
             stream->reset();
-            cb(remote_status_res.as_failure());
+            cb(remote_roles_res.as_failure());
             return;
           }
 
@@ -144,37 +148,38 @@ namespace kagome::network {
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    Roles roles;
+    Roles roles = app_config_.roles();
 
-    read_writer->write(
-        roles,
-        [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-            auto &&write_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            cb(ProtocolError::GONE);
-            return;
-          }
+        read_writer->write(
+            roles,
+            [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
+                auto &&write_res) mutable {
+              auto self = wp.lock();
+              if (not self) {
+                stream->reset();
+                cb(ProtocolError::GONE);
+                return;
+              }
 
-          if (not write_res.has_value()) {
-            self->log_->error("Error while writing own roles: {}",
-                              write_res.error().message());
-            stream->reset();
-            cb(write_res.as_failure());
-            return;
-          }
+              if (not write_res.has_value()) {
+                self->log_->error("Error while writing own roles: {}",
+                                  write_res.error().message());
+                stream->reset();
+                cb(write_res.as_failure());
+                return;
+              }
 
-          switch (direction) {
-            case Direction::OUTGOING:
-              self->readHandshake(std::move(stream), direction, std::move(cb));
-              break;
-            case Direction::INCOMING:
-              self->read(std::move(stream));
-              cb(stream);
-              break;
-          }
-        });
+              switch (direction) {
+                case Direction::OUTGOING:
+                  self->readHandshake(
+                      std::move(stream), direction, std::move(cb));
+                  break;
+                case Direction::INCOMING:
+                  self->read(std::move(stream));
+                  cb(stream);
+                  break;
+              }
+            });
   }
 
   void GrandpaProtocol::read(std::shared_ptr<Stream> stream) {

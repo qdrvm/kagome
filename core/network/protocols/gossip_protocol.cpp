@@ -62,7 +62,7 @@ namespace kagome::network {
   void GossipProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
-    if (stream_engine_->add(stream, shared_from_this())) {
+    if (stream_engine_->addIncoming(stream, shared_from_this())) {
       readGossipMessage(std::move(stream));
     }
   }
@@ -70,27 +70,28 @@ namespace kagome::network {
   void GossipProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    host_.newStream(peer_info,
-                    protocol_,
-                    [wp = weak_from_this(),
-                     peer_id = peer_info.id,
-                     cb = std::move(cb)](auto &&stream_res) mutable {
-                      auto self = wp.lock();
-                      if (not self) {
-                        cb(ProtocolError::GONE);
-                        return;
-                      }
+    host_.newStream(
+        peer_info,
+        protocol_,
+        [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
+            auto &&stream_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            cb(ProtocolError::GONE);
+            return;
+          }
 
-                      if (not stream_res.has_value()) {
-                        cb(stream_res.as_failure());
-                        return;
-                      }
+          if (not stream_res.has_value()) {
+            cb(stream_res.as_failure());
+            return;
+          }
 
-                      auto &stream = stream_res.value();
+          auto &stream = stream_res.value();
 
-                      cb(stream);
-                      self->readGossipMessage(std::move(stream));
-                    });
+          std::ignore = self->stream_engine_->addOutgoing(stream, self);
+          cb(stream);
+          self->readGossipMessage(std::move(stream));
+        });
   }
 
   void GossipProtocol::readGossipMessage(std::shared_ptr<Stream> stream) {

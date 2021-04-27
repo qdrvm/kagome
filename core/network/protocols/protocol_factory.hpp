@@ -6,6 +6,7 @@
 #ifndef KAGOME_NETWORK_PROTOCOLFACTORY
 #define KAGOME_NETWORK_PROTOCOLFACTORY
 
+#include "application/app_configuration.hpp"
 #include "consensus/babe/babe.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/protocols/block_announce_protocol.hpp"
@@ -20,6 +21,7 @@ namespace kagome::network {
   class ProtocolFactory final {
    public:
     ProtocolFactory(libp2p::Host &host,
+                    const application::AppConfiguration &app_config,
                     const application::ChainSpec &chain_spec,
                     const OwnPeerInfo &own_info,
                     std::shared_ptr<boost::asio::io_context> io_context,
@@ -71,6 +73,7 @@ namespace kagome::network {
 
    private:
     libp2p::Host &host_;
+    const application::AppConfiguration &app_config_;
     const application::ChainSpec &chain_spec_;
     const OwnPeerInfo &own_info_;
     std::shared_ptr<boost::asio::io_context> io_context_;

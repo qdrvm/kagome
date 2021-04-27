@@ -13,6 +13,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
+#include "application/app_configuration.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "log/logger.hpp"
@@ -39,6 +40,7 @@ namespace kagome::network {
     SupProtocol &operator=(SupProtocol const &) = delete;
 
     SupProtocol(libp2p::Host &host,
+                const application::AppConfiguration &app_config,
                 std::shared_ptr<StreamEngine> stream_engine,
                 std::shared_ptr<blockchain::BlockTree> block_tree,
                 std::shared_ptr<blockchain::BlockStorage> storage,
@@ -68,6 +70,7 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
     libp2p::Host &host_;
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockStorage> storage_;

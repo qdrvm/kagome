@@ -24,7 +24,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
       std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-      const crypto::Ed25519Keypair &keypair,
+      std::shared_ptr<crypto::Ed25519Keypair> keypair,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
@@ -34,7 +34,7 @@ namespace kagome::consensus::grandpa {
         storage_{std::move(storage)},
         crypto_provider_{std::move(crypto_provider)},
         grandpa_api_{std::move(grandpa_api)},
-        keypair_{keypair},
+        keypair_{std::move(keypair)},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
         authority_manager_(std::move(authority_manager)),
@@ -130,10 +130,15 @@ namespace kagome::consensus::grandpa {
     GrandpaConfig config{.voters = voters,
                          .round_number = round_state.round_number,
                          .duration = round_time_factor_,
-                         .peer_id = keypair_.public_key};
+                         .id = keypair_
+                                   ? boost::make_optional(keypair_->public_key)
+                                   : boost::none};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_, crypto_provider_, round_state.round_number, voters);
+        keypair_ ? boost::make_optional(*keypair_) : boost::none,
+        crypto_provider_,
+        round_state.round_number,
+        voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
@@ -179,10 +184,15 @@ namespace kagome::consensus::grandpa {
     GrandpaConfig config{.voters = voters,
                          .round_number = new_round_number,
                          .duration = round_time_factor_,
-                         .peer_id = keypair_.public_key};
+                         .id = keypair_
+                                   ? boost::make_optional(keypair_->public_key)
+                                   : boost::none};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_, crypto_provider_, new_round_number, voters);
+        keypair_ ? boost::make_optional(*keypair_) : boost::none,
+        crypto_provider_,
+        new_round_number,
+        voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),

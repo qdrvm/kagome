@@ -4,12 +4,12 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 
 ### Prerequisites
 
-1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-full-validating-node).
+1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-application).
 2. For your convenience make sure you have this binary included into your path:
 
     ```bash
     # from Kagome's root repo:
-    PATH=$PATH:$(pwd)/build/node/kagome_validating/
+    PATH=$PATH:$(pwd)/build/node/
     ```
    
 3. Python 3 installed in the system with `substrate-interface` package installed
@@ -37,7 +37,7 @@ cd examples/first_kagome_chain
 `first_kagome_chain` folder contains necessary configuration files for our tutorial:
 
 * `localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block
-* `base_path` – Directory, containing kagome base path. It contains several dirs, each one named with the chain id, which data it stores (`dev` in this case). Data for each chain consists of `db/` (will be initialized on node startup) and `keystore/` (keys to sign the messages sent by our validating node). The latter has to exist prior to the node start. This behaviour will be improved in the future.
+* `base_path` – Directory, containing kagome base path. It contains several dirs, each one named with the chain id, which data it stores (`dev` in this case). Data for each chain consists of `db/` (will be initialized on node startup) and `keystore/` (keys to sign the messages sent by our authority). The latter has to exist prior to the node start. This behaviour will be improved in the future.
 
 `localchain.json` contains Alice and Bob accounts. Both have 999998900.0 amount of crypto.
 Their keys can be generated using [subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey) tool:
@@ -67,7 +67,8 @@ subkey inspect //Bob
 For this tutorial you can start a single node network as follows:
 
 ```shell script
-kagome_validating \
+kagome \
+    --validator \
     --chain localchain.json \
     --base-path base_path \
     --port 30363 \
@@ -81,6 +82,7 @@ Let's look at this flags in detail:
 
 | Flag              | Description                                       |
 |-------------------|---------------------------------------------------|
+| `--validator` | optional, enables validator mode | 
 | `--chain`       | mandatory, chainspec file path        |
 | `--base-path`       | mandatory, base kagome directory path                 |
 | `--port`      | port for p2p interactions                         |
@@ -89,7 +91,7 @@ Let's look at this flags in detail:
 | `--single-finalizing-node`   | need to be set if this is the only finalizing node              |
 | `--already-synchronized`   | need to be set if need to be considered synchronized              |
 
-More flags info available by running `kagome_validating --help`.
+More flags info available by running `kagome --help`.
 
 You should see the log messages notifying about produced and finalized the blocks. 
 

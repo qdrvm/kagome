@@ -235,10 +235,8 @@ namespace kagome::network {
       return;
     }
 
-    auto connectedness =
-        host_.getNetwork().getConnectionManager().connectedness(peer_info);
-    if (connectedness
-        == libp2p::network::ConnectionManager::Connectedness::CAN_NOT_CONNECT) {
+    auto connectedness = host_.connectedness(peer_info);
+    if (connectedness == libp2p::Host::Connectedness::CAN_NOT_CONNECT) {
       SL_DEBUG(log_, "Can not connect to peer_id={}", peer_id.toBase58());
       return;
     }

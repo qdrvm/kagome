@@ -63,10 +63,11 @@ namespace kagome::application {
     AppConfigurationImpl(AppConfigurationImpl &&) = default;
     AppConfigurationImpl &operator=(AppConfigurationImpl &&) = default;
 
-    [[nodiscard]] bool initialize_from_args(AppConfiguration::LoadScheme scheme,
-                                            int argc,
-                                            char **argv);
+    [[nodiscard]] bool initialize_from_args(int argc, char **argv);
 
+    network::Roles roles() const override {
+      return roles_;
+    }
     boost::filesystem::path chainSpecPath() const override;
     boost::filesystem::path chainPath(std::string chain_id) const override;
     boost::filesystem::path databasePath(std::string chain_id) const override;
@@ -104,9 +105,6 @@ namespace kagome::application {
     }
     bool isAlreadySynchronized() const override {
       return is_already_synchronized_;
-    }
-    bool isOnlyFinalizing() const override {
-      return is_only_finalizing_;
     }
     uint32_t maxBlocksInResponse() const override {
       return max_blocks_in_response_;
@@ -149,7 +147,7 @@ namespace kagome::application {
     };
     // clang-format on
 
-    bool validate_config(AppConfiguration::LoadScheme scheme);
+    bool validate_config();
 
     void read_config_from_file(const std::string &filepath);
 
@@ -173,6 +171,7 @@ namespace kagome::application {
 
     log::Logger logger_;
 
+    network::Roles roles_;
     boost::optional<crypto::Ed25519PrivateKey> node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
@@ -182,7 +181,6 @@ namespace kagome::application {
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
     log::Level verbosity_ = log::Level::INFO;
     bool is_already_synchronized_;
-    bool is_only_finalizing_;
     uint32_t max_blocks_in_response_;
     bool is_unix_slots_strategy_;
     std::string rpc_http_host_;

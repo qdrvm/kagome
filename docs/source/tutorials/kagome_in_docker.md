@@ -35,7 +35,7 @@ docker run \                        # Run docker container
 
 #### Example
 
-For example we want to run validating node in docker container with configs from [here](first_kagome_chain.md).
+For example we want to run syncing node in docker container with configs from [here](first_kagome_chain.md).
 
 Run the following commands: 
 
@@ -52,13 +52,12 @@ docker run \
   --publish 9933:9933 \
   --publish 9944:9944 \
   soramitsu/kagome \           
-  kagome_validating \            
-  --genesis localchain.json \    
-  --base_path base_path \ 
-  --p2p_port 30363 \
-  --rpc_http_port 9933 \ 
-  --rpc_ws_port 9944 \
-  -v 1 -s
+  kagome \   
+  --chain localchain.json \    
+  --base-path base_path \ 
+  --port 30363 \
+  --rpc-port 9933 \ 
+  --ws-port 9944
 ```
 
 The similar way to run other kagome applications.
