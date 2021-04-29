@@ -77,6 +77,10 @@ namespace kagome::application {
       return node_key_;
     }
 
+    const boost::optional<std::string> &nodeKeyFile() const override {
+      return node_key_file_;
+    };
+
     const std::vector<libp2p::multi::Multiaddress> &listenAddresses()
         const override {
       return listen_addresses_;
@@ -173,6 +177,7 @@ namespace kagome::application {
 
     network::Roles roles_;
     boost::optional<crypto::Ed25519PrivateKey> node_key_;
+    boost::optional<std::string> node_key_file_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;

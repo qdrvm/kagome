@@ -77,6 +77,9 @@ namespace kagome::crypto {
 
     boost::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const override;
 
+    outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(
+        const Path &key_path) const override;
+
    private:
     template <typename CryptoSuite>
     outcome::result<std::vector<typename CryptoSuite::PublicKey>> getPublicKeys(
@@ -155,6 +158,9 @@ namespace kagome::crypto {
       }
       return it->second;
     }
+
+    inline libp2p::crypto::KeyPair edKeyToLibp2pKeypair(
+        const Ed25519Keypair &kp) const;
 
     mutable std::unordered_map<KeyTypeId, KeyCache<Ed25519Suite>> ed_caches_;
     mutable std::unordered_map<KeyTypeId, KeyCache<Sr25519Suite>> sr_caches_;

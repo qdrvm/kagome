@@ -465,7 +465,9 @@ namespace {
     auto log = log::createLogger("injector", "kagome");
 
     if (app_config.nodeKey()) {
-      log->info("Will use LibP2P keypair from config or args");
+      log->info(
+          "Will use LibP2P keypair from config or args (loading from node-key "
+          "flag)");
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
@@ -485,8 +487,28 @@ namespace {
       return initialized.value();
     }
 
+    if (app_config.nodeKeyFile()) {
+      const auto &path = app_config.nodeKeyFile().value();
+      log->info(
+          "Will use LibP2P keypair from config or args (loading from "
+          "node-key-file flag)");
+      auto key = crypto_store.loadLibp2pKeypair(path);
+      if (key.has_error()) {
+        log->error("Unable to load user provided key from {}. Error: {}",
+                   path,
+                   key.error().message());
+      } else {
+        auto key_pair =
+            std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
+        initialized.emplace(std::move(key_pair));
+        return initialized.value();
+      }
+    }
+
     if (crypto_store.getLibp2pKeypair().has_value()) {
-      log->info("Will use LibP2P keypair from config or args");
+      log->info(
+          "Will use LibP2P keypair from config or args (loading from base "
+          "path)");
 
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 
@@ -741,7 +763,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1211,7 +1233,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
