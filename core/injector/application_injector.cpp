@@ -465,9 +465,7 @@ namespace {
     auto log = log::createLogger("injector", "kagome");
 
     if (app_config.nodeKey()) {
-      log->info(
-          "Will use LibP2P keypair from config or args (loading from node-key "
-          "flag)");
+      log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
@@ -490,8 +488,7 @@ namespace {
     if (app_config.nodeKeyFile()) {
       const auto &path = app_config.nodeKeyFile().value();
       log->info(
-          "Will use LibP2P keypair from config or args (loading from "
-          "node-key-file flag)");
+          "Will use LibP2P keypair from config or 'node-key-file' CLI arg");
       auto key = crypto_store.loadLibp2pKeypair(path);
       if (key.has_error()) {
         log->error("Unable to load user provided key from {}. Error: {}",

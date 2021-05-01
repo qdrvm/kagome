@@ -159,7 +159,7 @@ namespace kagome::crypto {
       return it->second;
     }
 
-    inline libp2p::crypto::KeyPair edKeyToLibp2pKeypair(
+    inline libp2p::crypto::KeyPair ed25519KeyToLibp2pKeypair(
         const Ed25519Keypair &kp) const;
 
     mutable std::unordered_map<KeyTypeId, KeyCache<Ed25519Suite>> ed_caches_;

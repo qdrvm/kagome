@@ -164,7 +164,7 @@ namespace kagome::crypto {
     }
     auto kp = findEd25519Keypair(KEY_TYPE_LP2P, keys.value().at(0));
     if (kp) {
-      return edKeyToLibp2pKeypair(kp.value());
+      return ed25519KeyToLibp2pKeypair(kp.value());
     }
     return boost::none;
   }
@@ -178,7 +178,7 @@ namespace kagome::crypto {
       getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)
           .insert(kp.public_key, kp.secret_key);
       OUTCOME_TRY(file_storage_->saveKeyHexAtPath(kp.secret_key, key_path));
-      return edKeyToLibp2pKeypair(kp);
+      return ed25519KeyToLibp2pKeypair(kp);
     }
     // propagate any other error
     if (lookup_res.has_error()) {
@@ -205,10 +205,10 @@ namespace kagome::crypto {
     }
     getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)
         .insert(kp.value().public_key, kp.value().secret_key);
-    return edKeyToLibp2pKeypair(kp.value());
+    return ed25519KeyToLibp2pKeypair(kp.value());
   }
 
-  inline libp2p::crypto::KeyPair CryptoStoreImpl::edKeyToLibp2pKeypair(
+  inline libp2p::crypto::KeyPair CryptoStoreImpl::ed25519KeyToLibp2pKeypair(
       const Ed25519Keypair &kp) const {
     const auto &secret_key = kp.secret_key;
     const auto &public_key = kp.public_key;

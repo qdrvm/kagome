@@ -99,9 +99,8 @@ namespace kagome::crypto {
     auto &&path = composeKeyPath(type, public_key);
     OUTCOME_TRY(saveKeyHexAtPath(seed, path));
     SL_TRACE(logger_,
-             "Saving keypair (public: {}, secret: {}) to {}",
+             "Saving keypair (public: {}) to {}",
              common::hex_lower(public_key),
-             common::hex_lower(seed),
              path.native());
     return outcome::success();
   }
@@ -165,7 +164,7 @@ namespace kagome::crypto {
     }
     auto hex = common::hex_lower(private_key);
     file << hex;
-    SL_TRACE(logger_, "Saving key (secret: {}) to {}", hex, path.native());
+    SL_TRACE(logger_, "Saving key to {}", path.native());
     return outcome::success();
   }
 
