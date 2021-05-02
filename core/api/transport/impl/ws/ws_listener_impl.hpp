@@ -58,6 +58,7 @@ namespace kagome::api {
 
     std::atomic<Session::SessionId> next_session_id_;
     std::shared_ptr<SessionImpl> new_session_;
+    std::atomic<uint32_t> active_connections_;
 
     log::Logger logger_;
   };

@@ -100,6 +100,9 @@ namespace kagome::application {
     const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const override {
       return rpc_ws_endpoint_;
     }
+    uint32_t maxWsConnections() const override {
+      return max_ws_connections_;
+    }
     log::Level verbosity() const override {
       return verbosity_;
     }
@@ -192,6 +195,7 @@ namespace kagome::application {
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;
+    uint32_t max_ws_connections_;
   };
 
 }  // namespace kagome::application

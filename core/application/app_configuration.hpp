@@ -103,6 +103,11 @@ namespace kagome::application {
     virtual const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const = 0;
 
     /**
+     * @return maximum number of WS RPC connections
+     */
+    virtual uint32_t maxWsConnections() const = 0;
+
+    /**
      * @return log level (0-trace, 5-only critical, 6-no logs).
      */
     virtual log::Level verbosity() const = 0;

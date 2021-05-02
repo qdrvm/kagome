@@ -150,10 +150,10 @@ namespace {
   }
 
   sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
+      application::AppConfiguration const &app_config,
       api::WsSession::Configuration ws_session_config,
       sptr<api::RpcContext> context,
-      sptr<application::AppStateManager> app_state_manager,
-      const boost::asio::ip::tcp::endpoint &endpoint) {
+      sptr<application::AppStateManager> app_state_manager) {
     static auto initialized =
         boost::optional<sptr<api::WsListenerImpl>>(boost::none);
     if (initialized) {
@@ -161,7 +161,8 @@ namespace {
     }
 
     api::WsListenerImpl::Configuration listener_config;
-    listener_config.endpoint = endpoint;
+    listener_config.endpoint = app_config.rpcWsEndpoint();
+    listener_config.ws_max_connections = app_config.maxWsConnections();
 
     auto listener =
         std::make_shared<api::WsListenerImpl>(app_state_manager,
@@ -741,7 +742,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -838,10 +839,8 @@ namespace {
               injector.template create<sptr<application::AppStateManager>>();
           const application::AppConfiguration &app_config =
               injector.template create<application::AppConfiguration const &>();
-          auto &endpoint = app_config.rpcWsEndpoint();
-
           return get_jrpc_api_ws_listener(
-              config, context, app_state_manager, endpoint);
+              app_config, config, context, app_state_manager);
         }),
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],
@@ -1211,7 +1210,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
