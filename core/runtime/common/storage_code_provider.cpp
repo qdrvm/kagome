@@ -18,16 +18,6 @@ namespace kagome::runtime {
     last_state_root_ = storage_->getRootHash();
     auto batch = storage_->getEphemeralBatch();
     BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
-    auto log = kagome::log::createLogger("Code Provider");
-    auto cursor = batch.value()->trieCursor();
-    cursor->next();
-    size_t elements_num {};
-    while (cursor->isValid()) {
-      log->info(cursor->key() ? cursor->key().value().toString() : "no key");
-      cursor->next();
-      elements_num++;
-    }
-    log->info("Trie size: {}", elements_num);
     auto state_code_res = batch.value()->get(kRuntimeCodeKey);
     state_code_ = state_code_res.value();
   }

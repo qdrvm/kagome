@@ -20,30 +20,30 @@ namespace kagome::runtime::wavm {
 
     outcome::result<primitives::ApplyResult> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) override {
-      return executor_->call<primitives::ApplyResult>(
+      return executor_->persistentCallAtLatest<primitives::ApplyResult>(
           "BlockBuilder_apply_extrinsic", extrinsic);
     }
 
     outcome::result<primitives::BlockHeader> finalise_block() override {
-      return executor_->call<primitives::BlockHeader>(
+      return executor_->persistentCallAtLatest<primitives::BlockHeader>(
           "BlockBuilder_finalise_block");
     }
 
     outcome::result<std::vector<primitives::Extrinsic>>
     inherent_extrinsics(const primitives::InherentData &data) override {
-      return executor_->call<std::vector<primitives::Extrinsic>>(
+      return executor_->callAtLatest<std::vector<primitives::Extrinsic>>(
           "BlockBuilder_inherent_extrinsics", data);
     }
 
     outcome::result<primitives::CheckInherentsResult> check_inherents(
         const primitives::Block &block,
         const primitives::InherentData &data) override {
-      return executor_->call<primitives::CheckInherentsResult>(
+      return executor_->callAtLatest<primitives::CheckInherentsResult>(
           "BlockBuilder_check_inherents", block, data);
     }
 
     outcome::result<common::Hash256> random_seed() override {
-      return executor_->call<common::Hash256>(
+      return executor_->callAtLatest<common::Hash256>(
           "BlockBuilder_random_seed");
     }
 

@@ -44,7 +44,7 @@ namespace kagome::api {
 
     outcome::result<primitives::BlockHeader> getHeader() override {
       auto last = block_tree_->getLastFinalized();
-      return block_repo_->getBlockHeader(last.block_hash);
+      return block_repo_->getBlockHeader(last.hash);
     }
 
     outcome::result<primitives::BlockData> getBlock(
@@ -55,7 +55,7 @@ namespace kagome::api {
 
     outcome::result<primitives::BlockData> getBlock() override {
       auto last = block_tree_->getLastFinalized();
-      return block_storage_->getBlockData(last.block_hash);
+      return block_storage_->getBlockData(last.hash);
     }
 
     outcome::result<primitives::BlockHash> getFinalizedHead() const override;

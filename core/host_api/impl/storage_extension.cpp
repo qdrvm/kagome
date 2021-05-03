@@ -7,7 +7,6 @@
 
 #include <forward_list>
 
-#include "log/logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/encode_append.hpp"
@@ -23,12 +22,12 @@ namespace {
 namespace kagome::host_api {
   StorageExtension::StorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-      std::shared_ptr<runtime::WasmMemory> memory,
+      std::shared_ptr<runtime::wavm::Memory> memory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : storage_provider_(std::move(storage_provider)),
         memory_(std::move(memory)),
         changes_tracker_{std::move(changes_tracker)},
-        logger_{log::createLogger("StorageExtension", "extentions")} {
+        logger_{log::createLogger("StorageExtension", "host_api")} {
     BOOST_ASSERT_MSG(storage_provider_ != nullptr, "storage batch is nullptr");
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
     BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");
@@ -65,6 +64,7 @@ namespace kagome::host_api {
       auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
       memory_->storeBuffer(value_ptr, offset_data.subspan(0, written));
+      SL_TRACE_FUNC_CALL(logger_, key, common::Buffer{offset_data.subspan(0, written)});
       res = offset_data.size();
     }
     return memory_->storeBuffer(scale::encode(res).value());
@@ -80,8 +80,10 @@ namespace kagome::host_api {
     const auto data_length =
         std::min<runtime::WasmSize>(max_length, data.size() - offset);
 
-    return common::Buffer(std::vector<uint8_t>(
+    auto res = common::Buffer(std::vector<uint8_t>(
         data.begin() + offset, data.begin() + offset + data_length));
+    SL_TRACE_FUNC_CALL(logger_, res, key, offset, max_length);
+    return res;
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
@@ -105,19 +107,7 @@ namespace kagome::host_api {
     auto key = memory_->loadN(key_ptr, key_size);
     auto value = memory_->loadN(value_ptr, value_size);
 
-    if (value.toHex().size() < 500) {
-      SL_TRACE(logger_,
-               "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
-               key.toString(),
-               key.toHex(),
-               value.toString(),
-               value.toHex());
-    } else {
-      SL_TRACE(logger_,
-               "Set storage. Key: {}, Key hex: {} Value is too big to display",
-               key.toString(),
-               key.toHex());
-    }
+    SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
 
     auto batch = storage_provider_->getCurrentBatch();
     auto put_result = batch->put(key, value);
@@ -137,12 +127,11 @@ namespace kagome::host_api {
     auto option = result ? boost::make_optional(result.value()) : boost::none;
 
     if (option) {
-      logger_->trace("ext_storage_get_version_1( {} ) => {}",
-                     key_buffer.toHex(),
-                     option.value().empty() ? "empty" : option.value().toHex());
+      SL_TRACE_VOID_FUNC_CALL(logger_, option.value(), key);
 
     } else {
-      logger_->trace(
+      SL_TRACE(
+          logger_,
           "ext_storage_get_version_1( {} ) => value was not obtained. Reason: "
           "{}",
           key_buffer.toHex(),
@@ -325,8 +314,8 @@ namespace kagome::host_api {
   runtime::WasmPointer
   StorageExtension::ext_trie_blake2_256_ordered_root_version_1(
       runtime::WasmSpan values_data) {
-    auto [ptr, size] = runtime::WasmResult(values_data);
-    const auto &buffer = memory_->loadN(ptr, size);
+    auto [address, length] = runtime::WasmResult(values_data);
+    const auto &buffer = memory_->loadN(address, length);
     const auto &values = scale::decode<ValuesCollection>(buffer);
     if (!values) {
       logger_->error("failed to decode values: {}", values.error().message());
@@ -342,7 +331,7 @@ namespace kagome::host_api {
           ordered_hash.error().message());
       throw std::runtime_error(ordered_hash.error().message());
     }
-
+    SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
     auto res = memory_->storeBuffer(ordered_hash.value());
     return runtime::WasmResult(res).address;
   }
@@ -368,7 +357,8 @@ namespace kagome::host_api {
     }
     storage::changes_trie::ChangesTrieConfig trie_config = config_res.value();
 
-    logger_->debug(
+    SL_DEBUG(
+        logger_,
         "ext_storage_changes_root constructing changes trie with parent_hash: "
         "{}",
         parent_hash.toHex());
@@ -380,9 +370,7 @@ namespace kagome::host_api {
       throw std::runtime_error(trie_hash_res.error().message());
     }
     common::Buffer result_buf(trie_hash_res.value());
-    logger_->debug("ext_storage_changes_root with parent_hash {} result is: {}",
-                   parent_hash.toHex(),
-                   result_buf.toHex());
+    SL_TRACE_FUNC_CALL(logger_, result_buf, parent_hash);
     return result_buf;
   }
 

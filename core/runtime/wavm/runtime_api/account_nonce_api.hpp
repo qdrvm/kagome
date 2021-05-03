@@ -20,7 +20,7 @@ namespace kagome::runtime::wavm {
 
     outcome::result<primitives::AccountNonce> account_nonce(
         const primitives::AccountId &account_id) override {
-      return executor_->call<primitives::AccountNonce>(
+      return executor_->callAtLatest<primitives::AccountNonce>(
           "AccountNonceApi_account_nonce", account_id);
     };
 

@@ -19,7 +19,7 @@ namespace kagome::runtime::wavm {
     }
 
     outcome::result<primitives::BabeConfiguration> configuration() {
-      return executor_->call<primitives::BabeConfiguration>(
+      return executor_->callAtLatest<primitives::BabeConfiguration>(
           "BabeApi_configuration");
     }
 

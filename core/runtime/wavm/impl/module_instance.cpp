@@ -41,7 +41,7 @@ namespace kagome::runtime::wavm {
       untaggedInvokeArgs.push_back(arg);
     }
     // Infer the expected type of the function from the number and type of the
-    // invoke's arguments and the function's actual result types.
+    // invoke arguments and the function's actual result types.
     const WAVM::IR::FunctionType invokeSig(
         WAVM::Runtime::getFunctionType(function).results(),
         WAVM::IR::TypeTuple(invokeArgTypes));
@@ -53,8 +53,8 @@ namespace kagome::runtime::wavm {
                                   invokeSig,
                                   untaggedInvokeArgs.data(),
                                   untaggedInvokeResults.data());
-    return WasmResult{untaggedInvokeResults[0].u32,
-                      untaggedInvokeResults[1].u32};
+
+    return WasmResult{untaggedInvokeResults[0].u64};
   }
 
 }  // namespace kagome::runtime::wavm

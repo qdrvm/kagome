@@ -41,20 +41,14 @@ namespace kagome::consensus::grandpa {
     Signature signature;
     Id id;
 
-    BlockNumber block_number() const {
+    BlockNumber getBlockNumber() const {
       return visit_in_place(message,
-                            [](const auto &vote) { return vote.block_number; });
+                            [](const auto &vote) { return vote.number; });
     }
 
-    BlockHash block_hash() const {
+    BlockHash getBlockHash() const {
       return visit_in_place(message,
-                            [](const auto &vote) { return vote.block_hash; });
-    }
-
-    BlockInfo block_info() const {
-      return visit_in_place(message, [](const auto &vote) {
-        return BlockInfo{vote.block_number, vote.block_hash};
-      });
+                            [](const auto &vote) { return vote.hash; });
     }
 
     template <typename T>

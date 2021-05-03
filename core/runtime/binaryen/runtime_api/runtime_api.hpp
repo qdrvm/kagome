@@ -138,9 +138,9 @@ namespace kagome::runtime::binaryen {
         boost::optional<storage::trie::RootHash> state_root,
         CallConfig config,
         Args &&... args) {
-      logger_->debug("Executing export function: {}", name);
+      SL_DEBUG(logger_, "Executing export function: {}", name);
       if (state_root.has_value()) {
-        logger_->debug("Resetting state to: {}", state_root.value().toHex());
+        SL_DEBUG(logger_, "Resetting state to: {}", state_root.value().toHex());
       }
 
       auto &&[module_instance, memory, opt_batch] =

@@ -11,8 +11,8 @@
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
 
-namespace kagome::runtime {
-  class WasmMemory;
+namespace kagome::runtime::wavm {
+  class Memory;
 }
 
 namespace kagome::host_api {
@@ -22,7 +22,7 @@ namespace kagome::host_api {
    */
   class IOExtension {
    public:
-    explicit IOExtension(std::shared_ptr<runtime::WasmMemory> memory);
+    explicit IOExtension(std::shared_ptr<runtime::wavm::Memory> memory);
 
     /**
      * @see Extension::ext_logging_log_version_1
@@ -32,7 +32,7 @@ namespace kagome::host_api {
                                    runtime::WasmSpan message);
 
    private:
-    std::shared_ptr<runtime::WasmMemory> memory_;
+    std::shared_ptr<runtime::wavm::Memory> memory_;
     log::Logger logger_;
   };
 }  // namespace kagome::host_api

@@ -63,7 +63,7 @@ docker build -t soramitsu/kagome:0.0.1 -f ./housekeeping/docker/release/Dockerfi
 
 # Check docker image 
 docker run -it --rm soramitsu/kagome:0.0.1 kagome_full_syncing
-[2020-06-03 16:26:14][error] the option '--genesis' is required but missing
+[2020-06-03 16:26:14][error] the option '--chain' is required but missing
 
 ```
 
@@ -111,7 +111,7 @@ To launch kagome syncing node execute:
 ```
 cd examples/polkadot/
 PATH=$PATH:../../build/node/kagome_full_syncing/
-kagome_full_syncing --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix_slots
+kagome_full_syncing --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix-slots
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.

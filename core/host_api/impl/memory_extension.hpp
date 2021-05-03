@@ -9,8 +9,8 @@
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
 
-namespace kagome::runtime {
-  class WasmMemory;
+namespace kagome::runtime::wavm {
+  class Memory;
 }
 
 namespace kagome::host_api {
@@ -20,7 +20,7 @@ namespace kagome::host_api {
    */
   class MemoryExtension {
    public:
-    explicit MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory);
+    explicit MemoryExtension(std::shared_ptr<runtime::wavm::Memory> memory);
 
     void reset();
 
@@ -36,7 +36,7 @@ namespace kagome::host_api {
     void ext_allocator_free_version_1(runtime::WasmPointer ptr);
 
    private:
-    std::shared_ptr<runtime::WasmMemory> memory_;
+    std::shared_ptr<runtime::wavm::Memory> memory_;
     log::Logger logger_;
   };
 }  // namespace kagome::host_api

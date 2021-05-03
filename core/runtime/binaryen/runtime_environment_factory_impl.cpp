@@ -100,6 +100,7 @@ namespace kagome::runtime::binaryen {
 
     auto env = createRuntimeEnvironment(
         wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
+
     if (env.has_value()) {
       env.value().batch = (*persistent_batch)->batchOnTop();
     }

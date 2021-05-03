@@ -9,100 +9,122 @@
 #include <boost/optional.hpp>
 #include <gsl/span>
 
+#include "runtime/wavm/impl/crutch.hpp"
+
 #include "common/buffer.hpp"
+#include "log/logger.hpp"
+#include "primitives/math.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime::wavm {
 
   class Memory {
    public:
-    
+    ~Memory() = default;
+
+    explicit Memory(WAVM::Runtime::Memory *memory);
+
     constexpr static uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
+    static inline const uint8_t kAlignment = 8;
+
+    void setHeapBase(WasmSize heap_base);
+
+    void setUnderlyingMemory(WAVM::Runtime::Memory *memory);
+
+    void reset();
+
+    WasmSize size() const {
+      return WAVM::Runtime::getMemoryNumPages(memory_) * kPageSize;
+    }
+
+    void resize(WasmSize newSize) {
+      auto new_page_number = (newSize / kPageSize) + 1;
+      WAVM::Runtime::growMemory(memory_, new_page_number);
+    }
+
+    WasmPointer allocate(WasmSize size);
+    boost::optional<WasmSize> deallocate(WasmPointer ptr);
+
+    template <typename T>
+    inline T load(WasmPointer addr) const {
+      return *WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, sizeof(T));
+    }
+
+    int8_t load8s(WasmPointer addr) const;
+    uint8_t load8u(WasmPointer addr) const;
+    int16_t load16s(WasmPointer addr) const;
+    uint16_t load16u(WasmPointer addr) const;
+    int32_t load32s(WasmPointer addr) const;
+    uint32_t load32u(WasmPointer addr) const;
+    int64_t load64s(WasmPointer addr) const;
+    uint64_t load64u(WasmPointer addr) const;
+    std::array<uint8_t, 16> load128(WasmPointer addr) const;
+
+    common::Buffer loadN(WasmPointer addr, WasmSize n) const;
+
+    std::string loadStr(WasmPointer addr, WasmSize n) const;
+
+    template <typename T>
+    void store(WasmPointer addr, T value) {
+      std::memcpy(
+          WAVM::Runtime::memoryArrayPtr<char>(memory_, addr, sizeof(value)),
+          &value,
+          sizeof(value));
+    }
+
+    void store8(WasmPointer addr, int8_t value);
+    void store16(WasmPointer addr, int16_t value);
+    void store32(WasmPointer addr, int32_t value);
+    void store64(WasmPointer addr, int64_t value);
+    void store128(WasmPointer addr, const std::array<uint8_t, 16> &value);
+    void storeBuffer(WasmPointer addr, gsl::span<const uint8_t> value);
+
+    WasmSpan storeBuffer(gsl::span<const uint8_t> value);
+
+   private:
+    constexpr static uint32_t kPageSize = 4096;
+    WAVM::Runtime::Memory *memory_;
+    WasmPointer offset_;
+    WasmPointer heap_base_;
+    log::Logger logger_;
+    WasmSize size_;
+
+    // map containing addresses of allocated MemoryImpl chunks
+    std::unordered_map<WasmPointer, WasmSize> allocated_{};
+
+    // map containing addresses to the deallocated MemoryImpl chunks
+    std::unordered_map<WasmPointer, WasmSize> deallocated_{};
 
     /**
-     * Set heap base to {@param heap_base}
+     * Finds memory segment of given size among deallocated pieces of memory
+     * and allocates a memory there
+     * @param size of target memory
+     * @return address of memory of given size, or -1 if it is impossible to
+     * allocate this amount of memory
      */
-    void setHeapBase(WasmSize heap_base) {}
+    WasmPointer freealloc(WasmSize size);
 
     /**
-     * Resets allocated and deallocated memory information
+     * Finds memory segment of given size among deallocated pieces of memory
+     * @param size of target memory
+     * @return address of memory of given size, or 0 if it is impossible to
+     * allocate this amount of memory
      */
-    void reset() {}
+    WasmPointer findContaining(WasmSize size);
 
     /**
-     * @brief Return the size of the memory
+     * Resize memory and allocate memory segment of given size
+     * @param size memory size to be allocated
+     * @return pointer to the allocated memory @or 0 if it is impossible to
+     * allocate this amount of memory
      */
-    virtual WasmSize size() const {}
+    WasmPointer growAlloc(WasmSize size);
 
-    /**
-     * Resizes memory to the given size
-     * @param new_size
-     */
-    virtual void resize(WasmSize new_size) {}
-
-    /**
-     * Allocates memory of given size and returns address in the memory
-     * @param size allocated memory size
-     * @return address to allocated memory. If there is no available slot for
-     * such allocation, then -1 is returned
-     */
-    virtual WasmPointer allocate(WasmSize size) {}
-
-    /**
-     * Deallocates memory in provided region
-     * @param ptr address of deallocated memory
-     * @return size of deallocated memory or none if given address does not
-     * point to any allocated pieces of memory
-     */
-    virtual boost::optional<WasmSize> deallocate(WasmPointer ptr) {}
-
-    /**
-     * Load integers from provided address
-     */
-    virtual int8_t load8s(WasmPointer addr) const {}
-    virtual uint8_t load8u(WasmPointer addr) const {}
-    virtual int16_t load16s(WasmPointer addr) const {}
-    virtual uint16_t load16u(WasmPointer addr) const {}
-    virtual int32_t load32s(WasmPointer addr) const {}
-    virtual uint32_t load32u(WasmPointer addr) const {}
-    virtual int64_t load64s(WasmPointer addr) const {}
-    virtual uint64_t load64u(WasmPointer addr) const {}
-    virtual std::array<uint8_t, 16> load128(WasmPointer addr) const {}
-
-    /**
-     * Load bytes from provided address into the buffer of size n
-     * @param addr address in memory to load bytes
-     * @param n number of bytes to be loaded
-     * @return Buffer of length N
-     */
-    virtual common::Buffer loadN(WasmPointer addr, WasmSize n) const {}
-    /**
-     * Load string from address into buffer of size n
-     * @param addr address in memory to load bytes
-     * @param n number of bytes
-     * @return string with data
-     */
-    virtual std::string loadStr(WasmPointer addr, WasmSize n) const {}
-
-    /**
-     * Store integers at given address of the wasm memory
-     */
-    virtual void store8(WasmPointer addr, int8_t value) {}
-    virtual void store16(WasmPointer addr, int16_t value) {}
-    virtual void store32(WasmPointer addr, int32_t value) {}
-    virtual void store64(WasmPointer addr, int64_t value) {}
-    virtual void store128(WasmPointer addr,
-                          const std::array<uint8_t, 16> &value) {}
-    virtual void storeBuffer(WasmPointer addr,
-                             gsl::span<const uint8_t> value) {}
-
-    /**
-     * @brief allocates buffer in memory and copies value into memory
-     * @param value buffer to store
-     * @return full wasm pointer to allocated buffer
-     */
-    virtual WasmSpan storeBuffer(gsl::span<const uint8_t> value) {}
+    template <typename T>
+    inline T roundUpAlign(T t) {
+      return math::roundUp<kAlignment>(t);
+    }
   };
 
 }  // namespace kagome::runtime::wavm

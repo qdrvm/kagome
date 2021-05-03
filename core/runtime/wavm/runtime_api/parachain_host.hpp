@@ -19,29 +19,29 @@ namespace kagome::runtime::wavm {
     }
 
     outcome::result<DutyRoster> duty_roster() override {
-      return executor_->call<DutyRoster>(
+      return executor_->callAtLatest<DutyRoster>(
           "ParachainHost_duty_roster");
     }
 
     outcome::result<std::vector<ParachainId>> active_parachains() override {
-      return executor_->call<std::vector<ParachainId>>(
+      return executor_->callAtLatest<std::vector<ParachainId>>(
           "ParachainHost_active_parachains");
     }
 
     outcome::result<boost::optional<Buffer>> parachain_head(
         ParachainId id) override {
-      return executor_->call<boost::optional<Buffer>>(
+      return executor_->callAtLatest<boost::optional<Buffer>>(
           "ParachainHost_parachain_head", id);
     }
 
     outcome::result<boost::optional<kagome::common::Buffer>>
     parachain_code(ParachainId id) override {
-      return executor_->call<boost::optional<kagome::common::Buffer>>(
+      return executor_->callAtLatest<boost::optional<kagome::common::Buffer>>(
           "ParachainHost_parachain_code", id);
     }
 
     outcome::result<std::vector<ValidatorId>> validators() override {
-      return executor_->call<std::vector<ValidatorId>>(
+      return executor_->callAtLatest<std::vector<ValidatorId>>(
           "ParachainHost_validators");
     }
 

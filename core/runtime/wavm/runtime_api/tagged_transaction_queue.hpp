@@ -21,7 +21,7 @@ namespace kagome::runtime::wavm {
     outcome::result<primitives::TransactionValidity>
     validate_transaction(primitives::TransactionSource source,
                         const primitives::Extrinsic &ext) override {
-      return executor_->call<primitives::TransactionValidity>(
+      return executor_->callAtLatest<primitives::TransactionValidity>(
           "TaggedTransactionQueue_validate_transaction", ext);
     }
 

@@ -9,10 +9,6 @@
 #include <memory>
 #include <unordered_map>
 
-#undef U64
-#include <WAVM/Runtime/Runtime.h>
-#undef U64
-
 #include <gsl/span>
 
 #include "log/logger.hpp"
@@ -37,15 +33,16 @@ namespace kagome::runtime::wavm {
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         const storage::trie::RootHash &state);
 
-   private:
     outcome::result<std::unique_ptr<Module>> loadFrom(
         gsl::span<const uint8_t> byte_code);
 
+   private:
     std::unordered_map<storage::trie::RootHash, std::shared_ptr<Module>>
         modules_;
     std::unordered_map<storage::trie::RootHash, std::shared_ptr<ModuleInstance>>
         instances_;
-    WAVM::Runtime::GCPointer<WAVM::Runtime::Compartment> compartment_;
+    // TODO(Harrm) as it's not a GCPointer, might want to cleanup it in destructor
+    WAVM::Runtime::Compartment* compartment_;
     std::shared_ptr<RuntimeCodeProvider> code_provider_;
     std::shared_ptr<IntrinsicResolver> resolver_;
     log::Logger logger_;

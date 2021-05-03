@@ -8,12 +8,12 @@
 #include <boost/assert.hpp>
 
 #include "host_api/impl/memory_extension.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/wavm/impl/memory.hpp"
 
 namespace kagome::host_api {
-  MemoryExtension::MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory)
+  MemoryExtension::MemoryExtension(std::shared_ptr<runtime::wavm::Memory> memory)
       : memory_(std::move(memory)),
-        logger_{log::createLogger("MemoryExtention", "extentions")} {
+        logger_{log::createLogger("MemoryExtension", "host_api")} {
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
   }
 

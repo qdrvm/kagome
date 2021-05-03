@@ -8,13 +8,14 @@
 
 #include <memory>
 
-#include <WAVM/Runtime/Runtime.h>
-
 #include "log/logger.hpp"
 
 namespace WAVM::Runtime {
   struct Compartment;
-}
+  class Module;
+  class Object;
+  using ImportBindings = std::vector<Object *>;
+}  // namespace WAVM::Runtime
 
 namespace kagome::runtime::wavm {
 
@@ -23,7 +24,7 @@ namespace kagome::runtime::wavm {
 
   class Module final {
    public:
-    Module(WAVM::Runtime::Compartment* compartment,
+    Module(WAVM::Runtime::Compartment *compartment,
            std::shared_ptr<WAVM::Runtime::Module> module);
 
     std::unique_ptr<ModuleInstance> instantiate(IntrinsicResolver &resolver);
@@ -31,7 +32,7 @@ namespace kagome::runtime::wavm {
    private:
     WAVM::Runtime::ImportBindings link(IntrinsicResolver &resolver);
 
-    WAVM::Runtime::Compartment* compartment_;
+    WAVM::Runtime::Compartment *compartment_;
     std::shared_ptr<WAVM::Runtime::Module> module_;
     log::Logger logger_;
   };

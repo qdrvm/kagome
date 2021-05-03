@@ -6,39 +6,35 @@
 #include "host_api/impl/misc_extension.hpp"
 
 #include "primitives/version.hpp"
-#include "runtime/binaryen/core_factory.hpp"
-#include "runtime/common/constant_code_provider.hpp"
 #include "runtime/core.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/wavm/impl/memory.hpp"
+#include "runtime/wavm/module_repository.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::host_api {
 
   MiscExtension::MiscExtension(
       uint64_t chain_id,
-      std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
-      std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
-          runtime_env_factory,
-      std::shared_ptr<runtime::WasmMemory> memory)
-      : core_api_factory_{std::move(core_factory)},
-        runtime_env_factory_{std::move(runtime_env_factory)},
+      std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
+      std::shared_ptr<runtime::wavm::Memory> memory)
+      : module_repo_{std::move(module_repo)},
         memory_{std::move(memory)},
-        logger_{log::createLogger("MiscExtension", "extentions")},
+        logger_{log::createLogger("MiscExtension", "host_api")},
         chain_id_{chain_id} {
-    BOOST_ASSERT(core_api_factory_);
-    BOOST_ASSERT(runtime_env_factory_);
+    BOOST_ASSERT(module_repo_);
     BOOST_ASSERT(memory_);
   }
 
-  runtime::WasmResult MiscExtension::ext_misc_runtime_version_version_1(
+  runtime::WasmSpan MiscExtension::ext_misc_runtime_version_version_1(
       runtime::WasmSpan data) const {
+    SL_TRACE(logger_, "call {}", __FUNCTION__);
     auto [ptr, len] = runtime::splitSpan(data);
     auto code = memory_->loadN(ptr, len);
-    auto wasm_provider =
-        std::make_shared<runtime::ConstantCodeProvider>(std::move(code));
-    auto core =
-        core_api_factory_->createWithCode(runtime_env_factory_, wasm_provider);
-    auto version_res = core->version(boost::none);
+    // TODO(Harrm) check if has value
+    auto module = module_repo_->loadFrom(code).value();
+    // module->instantiate();
+    std::shared_ptr<runtime::Core> core_api;
+    auto version_res = core_api->version(boost::none);
 
     static const auto kErrorRes =
         scale::encode<boost::optional<primitives::Version>>(boost::none)
@@ -51,14 +47,14 @@ namespace kagome::host_api {
         logger_->error(
             "Error encoding ext_misc_runtime_version_version_1 result: {}",
             enc_version_res.error().message());
-        return runtime::WasmResult{memory_->storeBuffer(kErrorRes)};
+        return memory_->storeBuffer(kErrorRes);
       }
       auto res_span = memory_->storeBuffer(enc_version_res.value());
-      return runtime::WasmResult{res_span};
+      return res_span;
     }
     logger_->error("Error inside Core_version: {}",
                    version_res.error().message());
-    return runtime::WasmResult{memory_->storeBuffer(kErrorRes)};
+    return memory_->storeBuffer(kErrorRes);
   }
 
   void MiscExtension::ext_misc_print_hex_version_1(

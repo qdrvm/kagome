@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# TODO(Harrm) Remove dependency on wavm_memory once it's separated in an interface
+
 add_library(crypto_extension
     crypto_extension.cpp
     )
@@ -16,6 +18,7 @@ target_link_libraries(crypto_extension
     ed25519_provider
     scale
     crypto_store
+    wavm_memory
     )
 kagome_install(crypto_extension)
 
@@ -26,6 +29,7 @@ target_link_libraries(io_extension
     hexutil
     logger
     buffer
+    wavm_memory
     )
 kagome_install(io_extension)
 
@@ -35,6 +39,7 @@ add_library(memory_extension
 target_link_libraries(memory_extension
     logger
     buffer
+    wavm_memory
 )
 kagome_install(memory_extension)
 
@@ -47,6 +52,7 @@ target_link_libraries(misc_extension
     constant_code_provider
     outcome
     blob
+    wavm_memory
     )
 kagome_install(misc_extension)
 
@@ -60,5 +66,6 @@ target_link_libraries(storage_extension
     ordered_trie_hash
     scale_encode_append
     runtime_transaction_error
+    wavm_memory
     )
 kagome_install(storage_extension)

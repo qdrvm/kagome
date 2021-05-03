@@ -10,13 +10,15 @@
 
 #include "intrinsic_resolver.hpp"
 #include "module_instance.hpp"
+#include "gc_compartment.hpp"
 
 namespace kagome::runtime::wavm {
 
-  Module::Module(
-      WAVM::Runtime::Compartment* compartment,
-      std::shared_ptr<WAVM::Runtime::Module> module)
-      : compartment_{std::move(compartment)}, module_{std::move(module)} {
+  Module::Module(WAVM::Runtime::Compartment *compartment,
+                 std::shared_ptr<WAVM::Runtime::Module> module)
+      : compartment_{std::move(compartment)},
+        module_{std::move(module)},
+        logger_{log::createLogger("WAVM Module", "RuntimeAPI")} {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(module_);
   }

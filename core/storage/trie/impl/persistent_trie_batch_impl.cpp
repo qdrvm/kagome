@@ -116,6 +116,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PersistentTrieBatchImpl::clearPrefix(
       const Buffer &prefix) {
     if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
+    SL_TRACE(logger_, "Clear prefix in persistent batch: {}", prefix.toHex());
     return trie_->clearPrefix(
         prefix, [&](const auto &key, auto &&) -> outcome::result<void> {
           if (changes_.has_value()) {
@@ -130,6 +131,11 @@ namespace kagome::storage::trie {
     bool is_new_entry = not trie_->contains(key);
     auto res = trie_->put(key, value);
     if (res and changes_.has_value()) {
+      if(value.size() < 16) {
+        SL_TRACE(logger_, "Put into persistent batch: {} => {}", key.toHex(), value.toHex());
+      } else {
+        SL_TRACE(logger_, "Put into persistent batch: {} => {}...", key.toHex(), value.toHex().substr(0, 32));
+      }
       OUTCOME_TRY(changes_.value()->onPut(key, value, is_new_entry));
     }
     return res;
@@ -144,6 +150,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PersistentTrieBatchImpl::remove(const Buffer &key) {
     auto res = trie_->remove(key);
     if (res and changes_.has_value()) {
+      SL_TRACE(logger_, "Remove from persistent batch: {}", key.toHex());
       OUTCOME_TRY(changes_.value()->onRemove(key));
     }
     return res;

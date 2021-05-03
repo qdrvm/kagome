@@ -26,6 +26,12 @@ target_link_libraries(application_injector
     polkadot_trie_factory
     trie_serializer
     polkadot_codec
+    pbkdf2_provider
+    bip39_provider
+    ed25519_provider
+    secp256k1_provider
+    crypto_store
+    host_api
     changes_tracker
     chain_api_service
     babe
@@ -53,7 +59,7 @@ target_link_libraries(application_injector
     author_api_service
     extrinsic_observer
     transaction_pool
-    host_api_factory
+    #host_api_factory
     gossiper_broadcast
     kagome_router
     leveldb
@@ -65,7 +71,6 @@ target_link_libraries(application_injector
     proposer
     storage_code_provider
     remote_sync_protocol_client
-    dummy_sync_protocol_client
     sync_protocol_observer
     vrf_provider
     waitable_timer
@@ -78,4 +83,10 @@ target_link_libraries(application_injector
     peer_manager
     babe_util
     assets
+    block_announce_protocol
+    gossip_protocol
+    propagate_transactions_protocol
+    sup_protocol
+    sync_protocol
+    protocol_factory
     )

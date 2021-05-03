@@ -10,10 +10,9 @@
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
-#undef U64
+#undef U64  // comes from OpenSSL and messes with WAVM
 #include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/log/configurator.hpp>
-
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
@@ -70,6 +69,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
+#include "host_api/impl/host_api_impl.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
@@ -84,6 +84,7 @@
 #include "outcome/outcome.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/wavm/impl/crutch.hpp"
 #include "runtime/wavm/impl/intrinsic_resolver.hpp"
 #include "runtime/wavm/module_repository.hpp"
 #include "runtime/wavm/runtime_api/account_nonce_api.hpp"
@@ -141,8 +142,10 @@ namespace {
     api::HttpListenerImpl::Configuration listener_config;
     listener_config.endpoint = endpoint;
 
-    initialized = std::make_shared<api::HttpListenerImpl>(
+    auto listener = std::make_shared<api::HttpListenerImpl>(
         app_state_manager, context, listener_config, http_session_config);
+
+    initialized.emplace(std::move(listener));
     return initialized.value();
   }
 
@@ -160,11 +163,13 @@ namespace {
     api::WsListenerImpl::Configuration listener_config;
     listener_config.endpoint = endpoint;
 
-    initialized =
+    auto listener =
         std::make_shared<api::WsListenerImpl>(app_state_manager,
                                               context,
                                               listener_config,
                                               std::move(ws_session_config));
+
+    initialized.emplace(std::move(listener));
     return initialized.value();
   }
 
@@ -180,7 +185,7 @@ namespace {
       return initialized.value();
     }
 
-    auto storage = blockchain::KeyValueBlockStorage::create(
+    auto storage_res = blockchain::KeyValueBlockStorage::create(
         trie_storage->getRootHash(),
         db,
         hasher,
@@ -206,9 +211,10 @@ namespace {
               voters.insert(
                   primitives::GrandpaSessionKey{weighted_authority.id.id},
                   weighted_authority.weight);
-              log->debug("Added to grandpa authorities: {}, weight: {}",
-                         weighted_authority.id.id.toHex(),
-                         weighted_authority.weight);
+              SL_DEBUG(log,
+                       "Added to grandpa authorities: {}, weight: {}",
+                       weighted_authority.id.id.toHex(),
+                       weighted_authority.weight);
             }
             BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
             auto authorities_put_res =
@@ -216,42 +222,46 @@ namespace {
                         common::Buffer(scale::encode(voters).value()));
             if (not authorities_put_res) {
               BOOST_ASSERT_MSG(false, "Could not insert authorities");
-              common::raise(authorities_put_res.error());
+              BOOST_UNREACHABLE_RETURN(std::exit(EXIT_FAILURE))
             }
           }
         });
-    if (storage.has_error()) {
-      common::raise(storage.error());
+    if (storage_res.has_error()) {
+      common::raise(storage_res.error());
     }
-    initialized = storage.value();
+    auto &storage = storage_res.value();
+
+    initialized.emplace(std::move(storage));
     return initialized.value();
   }
+  /*
+    sptr<host_api::HostApiFactoryImpl> get_host_api_factory(
+        sptr<storage::changes_trie::ChangesTracker> tracker,
+        sptr<crypto::Sr25519Provider> sr25519_provider,
+        sptr<crypto::Ed25519Provider> ed25519_provider,
+        sptr<crypto::Secp256k1Provider> secp256k1_provider,
+        sptr<crypto::Hasher> hasher,
+        sptr<crypto::CryptoStore> crypto_store,
+        sptr<crypto::Bip39Provider> bip39_provider) {
+      static auto initialized =
+          boost::optional<sptr<host_api::HostApiFactoryImpl>>(boost::none);
+      if (initialized) {
+        return initialized.value();
+      }
 
-  sptr<host_api::HostApiFactoryImpl> get_host_api_factory(
-      sptr<storage::changes_trie::ChangesTracker> tracker,
-      sptr<crypto::Sr25519Provider> sr25519_provider,
-      sptr<crypto::Ed25519Provider> ed25519_provider,
-      sptr<crypto::Secp256k1Provider> secp256k1_provider,
-      sptr<crypto::Hasher> hasher,
-      sptr<crypto::CryptoStore> crypto_store,
-      sptr<crypto::Bip39Provider> bip39_provider) {
-    static auto initialized =
-        boost::optional<sptr<host_api::HostApiFactoryImpl>>(boost::none);
-    if (initialized) {
+      auto factory =
+          std::make_shared<host_api::HostApiFactoryImpl>(tracker,
+                                                         sr25519_provider,
+                                                         ed25519_provider,
+                                                         secp256k1_provider,
+                                                         hasher,
+                                                         crypto_store,
+                                                         bip39_provider);
+
+      initialized.emplace(std::move(factory));
       return initialized.value();
     }
-
-    initialized =
-        std::make_shared<host_api::HostApiFactoryImpl>(tracker,
-                                                       sr25519_provider,
-                                                       ed25519_provider,
-                                                       secp256k1_provider,
-                                                       hasher,
-                                                       crypto_store,
-                                                       bip39_provider);
-    return initialized.value();
-  }
-
+  */
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
       sptr<storage::BufferStorage> storage) {
     static auto initialized =
@@ -261,11 +271,12 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
-    using blockchain::prefix::TRIE_NODE;
+
     auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
-        storage, common::Buffer{TRIE_NODE});
-    initialized = backend;
-    return backend;
+        storage, common::Buffer{blockchain::prefix::TRIE_NODE});
+
+    initialized.emplace(std::move(backend));
+    return initialized.value();
   }
 
   sptr<storage::trie::TrieStorageImpl> get_trie_storage_impl(
@@ -279,16 +290,17 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+
     auto trie_storage_res = storage::trie::TrieStorageImpl::createEmpty(
         factory, codec, serializer, tracker);
+
     if (!trie_storage_res) {
       common::raise(trie_storage_res.error());
     }
+    auto &trie_storage = trie_storage_res.value();
 
-    sptr<storage::trie::TrieStorageImpl> trie_storage =
-        std::move(trie_storage_res.value());
-    initialized = trie_storage;
-    return trie_storage;
+    initialized.emplace(std::move(trie_storage));
+    return initialized.value();
   }
 
   sptr<storage::trie::TrieStorage> get_trie_storage(
@@ -309,18 +321,9 @@ namespace {
 
     auto log = log::createLogger("injector", "kagome");
 
-    std::vector<common::Buffer> keys;
-    keys.resize(genesis_raw_configs.size());
-    std::transform(genesis_raw_configs.begin(),
-                   genesis_raw_configs.end(),
-                   keys.begin(),
-                   [](auto &p) { return p.first; });
-    std::sort(keys.begin(), keys.end());
-    for (int i = 0; i < 5; ++i) {
-      std::cout << keys[i].toHex() << "\n";
-    }
-
-    for (const auto &[key, val] : genesis_raw_configs) {
+    for (const auto &[key_, val_] : genesis_raw_configs) {
+      auto &key = key_;
+      auto &val = val_;
       SL_DEBUG(
           log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
       if (auto res = batch->put(key, val); not res) {
@@ -331,8 +334,8 @@ namespace {
       common::raise(res.error());
     }
 
-    initialized = trie_storage;
-    return trie_storage;
+    initialized.emplace(std::move(trie_storage));
+    return initialized.value();
   }
 
   sptr<storage::BufferStorage> get_level_db(
@@ -345,18 +348,20 @@ namespace {
     }
     auto options = leveldb::Options{};
     options.create_if_missing = true;
-    auto db = storage::LevelDB::create(
+    auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
-    if (!db) {
+    if (!db_res) {
       auto log = log::createLogger("injector", "kagome");
       log->critical("Can't create LevelDB in {}: {}",
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
                         .native(),
-                    db.error().message());
+                    db_res.error().message());
       exit(EXIT_FAILURE);
     }
-    initialized = db.value();
+    auto &db = db_res.value();
+
+    initialized.emplace(std::move(db));
     return initialized.value();
   }
 
@@ -371,11 +376,18 @@ namespace {
 
     auto chain_spec_res =
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
-    if (chain_spec_res.has_error()) {
-      common::raise(chain_spec_res.error());
+    if (not chain_spec_res.has_value()) {
+      auto log = log::createLogger("injector", "kagome");
+      log->critical(
+          "Can't load chain spec from {}: {}",
+          fs::absolute(chainspec_path.native(), fs::current_path()).native(),
+          chain_spec_res.error().message());
+      exit(EXIT_FAILURE);
     }
-    initialized = chain_spec_res.value();
-    return chain_spec_res.value();
+    auto &chain_spec = chain_spec_res.value();
+
+    initialized.emplace(std::move(chain_spec));
+    return initialized.value();
   }
 
   sptr<primitives::BabeConfiguration> get_babe_configuration(
@@ -390,14 +402,17 @@ namespace {
     if (not configuration_res) {
       common::raise(configuration_res.error());
     }
+
+    auto configuration = std::make_shared<primitives::BabeConfiguration>(
+        std::move(configuration_res.value()));
+
     auto log = log::createLogger("injector", "kagome");
-    for (const auto &authority :
-         configuration_res.value().genesis_authorities) {
-      log->debug("Babe authority: {}", authority.id.id.toHex());
+    for (const auto &authority : configuration->genesis_authorities) {
+      SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
     }
-    configuration_res.value().leadership_rate.first *= 3;
-    initialized = std::make_shared<primitives::BabeConfiguration>(
-        configuration_res.value());
+    configuration->leadership_rate.first *= 3;
+
+    initialized.emplace(std::move(configuration));
     return initialized.value();
   }
 
@@ -406,9 +421,10 @@ namespace {
     static auto initialized =
         boost::optional<consensus::SlotsStrategy>(boost::none);
     if (not initialized) {
-      initialized = app_config.isUnixSlotsStrategy()
-                        ? consensus::SlotsStrategy::FromUnixEpoch
-                        : consensus::SlotsStrategy::FromZero;
+      auto strategy = app_config.isUnixSlotsStrategy()
+                          ? consensus::SlotsStrategy::FromUnixEpoch
+                          : consensus::SlotsStrategy::FromZero;
+      initialized.emplace(strategy);
     }
     return initialized.value();
   }
@@ -419,6 +435,7 @@ namespace {
     static boost::optional<sptr<crypto::KeyFileStorage>> initialized =
         boost::none;
     static boost::optional<fs::path> initialized_path = boost::none;
+
     auto path = config.keystorePath(chain_spec->id());
     if (initialized and initialized_path and initialized_path.value() == path) {
       return initialized.value();
@@ -427,6 +444,7 @@ namespace {
     if (not key_file_storage_res) {
       common::raise(key_file_storage_res.error());
     }
+
     initialized = std::move(key_file_storage_res.value());
     initialized_path = std::move(path);
 
@@ -456,21 +474,26 @@ namespace {
       auto &&pub = provided_keypair.public_key;
       auto &&priv = provided_keypair.secret_key;
 
-      initialized =
+      auto key_pair =
           std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
               .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
                              .data = {pub.begin(), pub.end()}}},
               .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
                               .data = {priv.begin(), priv.end()}}}});
+
+      initialized.emplace(std::move(key_pair));
       return initialized.value();
     }
 
-    if (app_config.nodeKey()) {
-      log->info("Will use LibP2P keypair from config or args");
+    if (crypto_store.getLibp2pKeypair()) {
+      log->info("Will use LibP2P keypair from key storage");
+
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 
-      initialized =
+      auto key_pair =
           std::make_shared<libp2p::crypto::KeyPair>(std::move(stored_keypair));
+
+      initialized.emplace(std::move(key_pair));
       return initialized.value();
     }
 
@@ -483,13 +506,14 @@ namespace {
     auto &&pub = generated_keypair.public_key;
     auto &&priv = generated_keypair.secret_key;
 
-    initialized =
+    auto key_pair =
         std::make_shared<libp2p::crypto::KeyPair>(libp2p::crypto::KeyPair{
             .publicKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
                            .data = {pub.begin(), pub.end()}}},
             .privateKey = {{.type = libp2p::crypto::Key::Type::Ed25519,
                             .data = {priv.begin(), priv.end()}}}});
 
+    initialized.emplace(std::move(key_pair));
     return initialized.value();
   }
 
@@ -507,7 +531,7 @@ namespace {
             .maxBucketSize = 1000,
             .randomWalk = {.interval = std::chrono::minutes(1)}});
 
-    initialized = std::move(kagome_config);
+    initialized.emplace(std::move(kagome_config));
     return initialized.value();
   }
 
@@ -541,7 +565,8 @@ namespace {
     auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
     auto trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
-    initialized =
+
+    auto api_service =
         std::make_shared<api::ApiServiceImpl>(asmgr,
                                               thread_pool,
                                               listeners,
@@ -553,16 +578,18 @@ namespace {
                                               extrinsic_event_key_repo,
                                               block_tree,
                                               trie_storage);
+
     auto state_api = injector.template create<std::shared_ptr<api::StateApi>>();
-    state_api->setApiService(initialized.value());
+    state_api->setApiService(api_service);
 
     auto chain_api = injector.template create<std::shared_ptr<api::ChainApi>>();
-    chain_api->setApiService(initialized.value());
+    chain_api->setApiService(api_service);
 
     auto author_api =
         injector.template create<std::shared_ptr<api::AuthorApi>>();
-    author_api->setApiService(initialized.value());
+    author_api->setApiService(api_service);
 
+    initialized.emplace(std::move(api_service));
     return initialized.value();
   }
 
@@ -607,7 +634,7 @@ namespace {
     auto babe_util =
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
 
-    auto tree =
+    auto block_tree_res =
         blockchain::BlockTreeImpl::create(std::move(header_repo),
                                           std::move(storage),
                                           std::move(block_id),
@@ -619,39 +646,17 @@ namespace {
                                           std::move(runtime_core),
                                           std::move(babe_configuration),
                                           std::move(babe_util));
-    if (!tree) {
-      common::raise(tree.error());
+    if (not block_tree_res.has_value()) {
+      common::raise(block_tree_res.error());
     }
-    initialized = tree.value();
-    return initialized.value();
-  }
+    auto &block_tree = block_tree_res.value();
 
-  template <class Injector>
-  sptr<network::Router> get_router(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<network::Router>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    initialized = std::make_shared<network::RouterLibp2p>(
-        injector.template create<sptr<application::AppStateManager>>(),
-        injector.template create<libp2p::Host &>(),
-        injector.template create<const application::AppConfiguration &>(),
-        injector.template create<sptr<application::ChainSpec>>(),
-        injector.template create<network::OwnPeerInfo &>(),
-        injector.template create<sptr<network::StreamEngine>>(),
-        injector.template create<sptr<network::BabeObserver>>(),
-        injector.template create<sptr<consensus::grandpa::GrandpaObserver>>(),
-        injector.template create<sptr<network::SyncProtocolObserver>>(),
-        injector.template create<sptr<network::ExtrinsicObserver>>(),
-        injector.template create<sptr<network::Gossiper>>(),
-        injector.template create<const network::BootstrapNodes &>(),
-        injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<libp2p::protocol::Ping>>(),
-        injector.template create<sptr<network::PeerManager>>(),
-        injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<crypto::Hasher>>());
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
+    protocol_factory->setBlockTree(block_tree);
+
+    initialized.emplace(std::move(block_tree));
     return initialized.value();
   }
 
@@ -663,7 +668,7 @@ namespace {
       return initialized.value();
     }
 
-    initialized = std::make_shared<network::PeerManagerImpl>(
+    auto peer_manager = std::make_shared<network::PeerManagerImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<libp2p::Host &>(),
         injector.template create<sptr<libp2p::protocol::Identify>>(),
@@ -671,15 +676,18 @@ namespace {
         injector.template create<sptr<libp2p::protocol::Scheduler>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<const application::AppConfiguration &>(),
-        injector.template create<const application::ChainSpec &>(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::SyncClientsSet>>(),
-        injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<blockchain::BlockStorage>>(),
-        injector.template create<sptr<network::BabeObserver>>());
+        injector.template create<sptr<network::Router>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setPeerManager(peer_manager);
+
+    initialized.emplace(std::move(peer_manager));
     return initialized.value();
   }
 
@@ -691,7 +699,7 @@ namespace {
       return initialized.value();
     }
 
-    initialized = std::make_shared<consensus::BlockExecutor>(
+    auto block_executor = std::make_shared<consensus::BlockExecutor>(
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<runtime::Core>>(),
         injector.template create<sptr<primitives::BabeConfiguration>>(),
@@ -704,6 +712,30 @@ namespace {
         injector.template create<sptr<consensus::BabeUtil>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<uptr<clock::Timer>>());
+
+    initialized.emplace(std::move(block_executor));
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<network::SyncProtocolObserverImpl> get_sync_observer_impl(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<network::SyncProtocolObserverImpl>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    auto sync_observer = std::make_shared<network::SyncProtocolObserverImpl>(
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setSyncObserver(sync_observer);
+
+    initialized.emplace(std::move(sync_observer));
     return initialized.value();
   }
 
@@ -880,7 +912,91 @@ namespace {
           return get_key_file_storage(config, chain_spec);
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<host_api::HostApiFactory>.template to(
+        di::bind<host_api::HostApi>.template to([](auto const &injector)
+                                                    -> std::shared_ptr<
+                                                        host_api::HostApi> {
+          static std::shared_ptr<host_api::HostApi> host_api = [&injector]() {
+            runtime::wavm::logger = log::createLogger("HostAPI Crutch");
+
+            std::shared_ptr<host_api::HostApi> host_api =
+                injector
+                    .template create<std::shared_ptr<host_api::HostApiImpl>>();
+            auto resolver = injector.template create<
+                std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
+
+#define GENERATE_HOST_INTRINSIC(Ret, name, ...) \
+  resolver->addIntrinsic(#name, &kagome::runtime::wavm::name##Intrinsic);
+        /*static auto name = name \
+              std::function<Ret(WAVM::Runtime::ContextRuntimeData *,
+           ##__VA_ARGS__)>( \
+                  [&host_api](::WAVM::Runtime::ContextRuntimeData *, \
+                              auto &&...params) -> Ret { \
+                    if constexpr (std::is_void_v<Ret>) { \
+                      host_api->name(std::forward<decltype(params)>(params)...);
+           \
+                    } else { \
+                      return host_api->name( \
+                          std::forward<decltype(params)>(params)...); \
+                    } \
+                  }); \*/
+
+#define GENERATE_STUB_INTRINSIC(Ret, name, ...) \
+  resolver->addIntrinsic(#name, &kagome::runtime::wavm::name##Intrinsic);
+            //static auto name =                                                             \
+//      std::function<Ret(WAVM::Runtime::ContextRuntimeData *, ##__VA_ARGS__)>(  \
+//          [](::WAVM::Runtime::ContextRuntimeData *, auto &&...params) -> Ret { \
+//            BOOST_ASSERT_MSG(false, "Not implemented");                        \
+//            throw std::runtime_error("This Host call is not implemented!");    \
+//          });                                                                  \
+
+            // clang-format off
+            GENERATE_HOST_INTRINSIC(void, ext_logging_log_version_1, WAVM::I32, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_hashing_twox_128_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32,ext_hashing_twox_64_version_1,  WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_storage_set_version_1, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_storage_clear_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32,ext_hashing_blake2_128_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_storage_clear_prefix_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64,ext_storage_get_version_1,  WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_misc_print_utf8_version_1, WAVM::I64);
+            GENERATE_STUB_INTRINSIC(WAVM::I32, ext_offchain_random_seed_version_1);
+            GENERATE_HOST_INTRINSIC(void, ext_misc_print_hex_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_crypto_start_batch_verify_version_1);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_finish_batch_verify_version_1);
+            GENERATE_STUB_INTRINSIC(WAVM::I32, ext_offchain_is_validator_version_1);
+            GENERATE_STUB_INTRINSIC(WAVM::I64, ext_offchain_local_storage_get_version_1, WAVM::I32, WAVM::I64);
+            GENERATE_STUB_INTRINSIC(WAVM::I32, ext_offchain_local_storage_compare_and_set_version_1, WAVM::I32, WAVM::I64, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_hashing_blake2_256_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_hashing_keccak_256_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_ed25519_verify_version_1, WAVM::I32, WAVM::I64, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_misc_runtime_version_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_storage_append_version_1, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_next_key_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_misc_print_num_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_sr25519_verify_version_2, WAVM::I32, WAVM::I64, WAVM::I32);
+            GENERATE_STUB_INTRINSIC(void, ext_offchain_local_storage_set_version_1, WAVM::I32, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_root_version_1);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_changes_root_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_trie_blake2_256_ordered_root_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_ed25519_generate_version_1, WAVM::I32, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_crypto_secp256k1_ecdsa_recover_version_1, WAVM::I32, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, WAVM::I32, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_sr25519_generate_version_1, WAVM::I32, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_crypto_sr25519_public_keys_version_1, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_crypto_sr25519_sign_version_1, WAVM::I32, WAVM::I32, WAVM::I64);
+            GENERATE_STUB_INTRINSIC(WAVM::I64, ext_offchain_network_state_version_1);
+            GENERATE_STUB_INTRINSIC(WAVM::I64, ext_offchain_submit_transaction_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_read_version_1, WAVM::I64, WAVM::I64, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_allocator_malloc_version_1, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(void, ext_allocator_free_version_1, WAVM::I32);
+            // clang-format on
+
+            kagome::runtime::wavm::st.push(host_api);
+            return host_api;
+          }();
+          return host_api;
+        }),
+        /*di::bind<host_api::HostApiFactory>.template to(
             [](auto const &injector) {
               auto tracker = injector.template create<
                   sptr<storage::changes_trie::ChangesTracker>>();
@@ -903,11 +1019,21 @@ namespace {
                                           hasher,
                                           crypto_store,
                                           bip39_provider);
-            }),
+            }),*/
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
-        di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
+        di::bind<network::SyncProtocolObserver>.to([](auto const &injector) {
+          return get_sync_observer_impl(injector);
+        }),
+        di::bind<runtime::wavm::Memory>.template to([](auto const &injector) {
+          static auto memory =
+              injector
+                  .template create<
+                      std::shared_ptr<runtime::wavm::IntrinsicResolver>>()
+                  ->getMemory();
+          return memory;
+        }),
         di::bind<runtime::wavm::IntrinsicResolver>.template to(
             [](const auto &injector) {
               static boost::optional<
@@ -916,75 +1042,8 @@ namespace {
               if (initialized) {
                 return initialized.value();
               }
-              auto memory = injector.template create<
-                  std::shared_ptr<runtime::wavm::Memory>>();
               auto resolver =
-                  std::make_shared<runtime::wavm::IntrinsicResolver>(memory);
-
-              auto host_api =
-                  injector
-                      .template create<std::shared_ptr<host_api::HostApi>>();
-
-#define GENERATE_HOST_INTRINSIC(Ret, name, ...)                               \
-  static auto name =                                                          \
-      std::function<Ret(WAVM::Runtime::ContextRuntimeData *, ##__VA_ARGS__)>( \
-          [&host_api](::WAVM::Runtime::ContextRuntimeData *,                  \
-                      auto &&...params) -> Ret {                              \
-            if constexpr (std::is_void_v<Ret>) {                              \
-              host_api->name(std::forward<decltype(params)>(params)...);      \
-            } else {                                                          \
-              return host_api->name(                                          \
-                  std::forward<decltype(params)>(params)...);                 \
-            }                                                                 \
-          })
-#define GENERATE_STUB_INTRINSIC(Ret, name, ...)                                \
-  static auto name =                                                           \
-      std::function<Ret(WAVM::Runtime::ContextRuntimeData *, ##__VA_ARGS__)>(  \
-          [](::WAVM::Runtime::ContextRuntimeData *, auto &&...params) -> Ret { \
-            BOOST_ASSERT(false, "Not implemented");                            \
-            throw std::runtime_error("This Host call is not implemented!");    \
-          })
-              // clang-format off
-              GENERATE_HOST_INTRINSIC(void, ext_logging_log_version_1, WAVM::I32, WAVM::I64, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(WAVM::I32, ext_hashing_twox_128_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(WAVM::I32,ext_hashing_twox_64_version_1,  WAVM::I64);
-              GENERATE_HOST_INTRINSIC(void, ext_storage_set_version_1, WAVM::I64, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(void, ext_storage_clear_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I32,ext_hashing_blake2_128_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(void, ext_storage_clear_prefix_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(WAVM::I64,ext_storage_get_version_1,  WAVM::I64);
-              GENERATE_HOST_INTRINSIC(void, ext_misc_print_utf8_version_1, WAVM::I64);
-              GENERATE_STUB_INTRINSIC(WAVM::I32, ext_offchain_random_seed_version_1);
-              GENERATE_HOST_INTRINSIC(void, ext_misc_print_hex_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(void, ext_crypto_start_batch_verify_version_1);
-              GENERATE_HOST_INTRINSIC( WAVM::I32, ext_crypto_finish_batch_verify_version_1);
-              GENERATE_STUB_INTRINSIC( WAVM::I32, ext_offchain_is_validator_version_1);
-              GENERATE_STUB_INTRINSIC( WAVM::I64, ext_offchain_local_storage_get_version_1, WAVM::I32, WAVM::I64);
-              GENERATE_STUB_INTRINSIC( WAVM::I32, ext_offchain_local_storage_compare_and_set_version_1, WAVM::I32, WAVM::I64, WAVM::I64, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I32, ext_hashing_blake2_256_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I32, ext_hashing_keccak_256_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I32, ext_crypto_ed25519_verify_version_1, WAVM::I32, WAVM::I64, WAVM::I32);
-              GENERATE_HOST_INTRINSIC( WAVM::I64, ext_misc_runtime_version_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(void, ext_storage_append_version_1, WAVM::I64, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_next_key_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(void, ext_misc_print_num_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_sr25519_verify_version_2, WAVM::I32, WAVM::I64, WAVM::I32);
-              GENERATE_STUB_INTRINSIC(void, ext_offchain_local_storage_set_version_1, WAVM::I32, WAVM::I64, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I64, ext_storage_root_version_1);
-              GENERATE_HOST_INTRINSIC( WAVM::I64, ext_storage_changes_root_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I32, ext_trie_blake2_256_ordered_root_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I32, ext_crypto_ed25519_generate_version_1, WAVM::I32, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I64, ext_crypto_secp256k1_ecdsa_recover_version_1, WAVM::I32, WAVM::I32);
-              GENERATE_HOST_INTRINSIC(  WAVM::I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, WAVM::I32, WAVM::I32);
-              GENERATE_HOST_INTRINSIC( WAVM::I32, ext_crypto_sr25519_generate_version_1, WAVM::I32, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I64, ext_crypto_sr25519_public_keys_version_1, WAVM::I32);
-              GENERATE_HOST_INTRINSIC( WAVM::I64, ext_crypto_sr25519_sign_version_1, WAVM::I32, WAVM::I32, WAVM::I64);
-              GENERATE_STUB_INTRINSIC( WAVM::I64, ext_offchain_network_state_version_1);
-              GENERATE_STUB_INTRINSIC( WAVM::I64, ext_offchain_submit_transaction_version_1, WAVM::I64);
-              GENERATE_HOST_INTRINSIC( WAVM::I64, ext_storage_read_version_1, WAVM::I64, WAVM::I64, WAVM::I32);
-              GENERATE_HOST_INTRINSIC( WAVM::I32, ext_allocator_malloc_version_1, WAVM::I32);
-              GENERATE_HOST_INTRINSIC(void, ext_allocator_free_version_1, WAVM::I32);
-              // clang-format on
+                  std::make_shared<runtime::wavm::IntrinsicResolver>();
 
               initialized = std::move(resolver);
               return initialized.value();
@@ -999,12 +1058,19 @@ namespace {
                   resolver, code_provider);
             }),
         di::bind<runtime::wavm::Executor>.template to([](const auto &injector) {
+          auto host_api =
+              injector.template create<std::shared_ptr<host_api::HostApi>>();
+          auto storage_provider = injector.template create<
+              std::shared_ptr<runtime::TrieStorageProvider>>();
+          auto resolver = injector.template create<
+              std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
           auto module_repo = injector.template create<
               std::shared_ptr<runtime::wavm::ModuleRepository>>();
-          auto memory =
-              injector
-                  .template create<std::shared_ptr<runtime::wavm::Memory>>();
-          return std::make_shared<runtime::wavm::Executor>(memory, module_repo);
+          return std::make_shared<runtime::wavm::Executor>(
+              std::move(storage_provider),
+              resolver->getMemory(),
+              module_repo,
+              std::move(host_api));
         }),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::wavm::WavmTaggedTransactionQueue>(),
         di::bind<runtime::ParachainHost>.template to<runtime::wavm::WavmParachainHost>(),
@@ -1053,20 +1119,25 @@ namespace {
               injector.template create<application::AppConfiguration const &>();
           return get_chain_spec(config);
         }),
-        di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
+        di::bind<network::ExtrinsicObserver>.to([](const auto &injector) {
+          return get_extrinsic_observer_impl(injector);
+        }),
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
-        di::bind<network::Router>.to(
-            [](const auto &injector) { return get_router(injector); }),
+        di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::BlockExecutor>.to(
             [](auto const &injector) { return get_block_executor(injector); }),
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::CatchUpObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::GrandpaObserver>.template to<consensus::grandpa::GrandpaImpl>(),
-        di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
+        di::bind<consensus::grandpa::Grandpa>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
+        di::bind<consensus::grandpa::RoundObserver>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
+        di::bind<consensus::grandpa::CatchUpObserver>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
+        di::bind<consensus::grandpa::GrandpaObserver>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
         di::bind<consensus::BabeUtil>.template to<consensus::BabeUtilImpl>(),
 
         // user-defined overrides...
@@ -1093,18 +1164,41 @@ namespace {
             key_marshaller.marshal(public_key).value())
             .value();
 
-    std::vector<libp2p::multi::Multiaddress> addresses =
+    std::vector<libp2p::multi::Multiaddress> listen_addrs =
         config.listenAddresses();
+    std::vector<libp2p::multi::Multiaddress> public_addrs =
+        config.publicAddresses();
 
     auto log = log::createLogger("syncing_injector", "kagome");
-
-    log->debug("Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      log->debug("Received multiaddr: {}", addr.getStringAddress());
+    SL_DEBUG(log, "Received peer id: {}", peer_id.toBase58());
+    for (auto &addr : listen_addrs) {
+      SL_DEBUG(log, "Peer listening on multiaddr: {}", addr.getStringAddress());
+    }
+    for (auto &addr : public_addrs) {
+      SL_DEBUG(log, "Peer public multiaddr: {}", addr.getStringAddress());
     }
 
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
+    initialized = std::make_shared<network::OwnPeerInfo>(
+        std::move(peer_id), std::move(public_addrs), std::move(listen_addrs));
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<consensus::babe::Babe> get_syncing_babe(const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<consensus::babe::Babe>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    initialized = std::make_shared<consensus::babe::SyncingBabe>(
+        injector.template create<sptr<consensus::BlockExecutor>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setBabe(initialized.value());
+
     return initialized.value();
   }
 
@@ -1122,10 +1216,12 @@ namespace {
           return get_syncing_peer_info(injector);
         }),
 
-        di::bind<consensus::babe::Babe>.template to<consensus::babe::SyncingBabe>()
-            [di::override],
-        di::bind<network::BabeObserver>.template to<consensus::babe::SyncingBabe>()
-            [di::override],
+        di::bind<consensus::babe::Babe>.to([](auto const &injector) {
+          return get_syncing_babe(injector);
+        })[di::override],
+        di::bind<network::BabeObserver>.to([](auto const &injector) {
+          return get_syncing_babe(injector);
+        })[di::override],
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1197,16 +1293,21 @@ namespace {
             key_marshaller.marshal(public_key).value())
             .value();
 
-    std::vector<libp2p::multi::Multiaddress> addresses =
+    std::vector<libp2p::multi::Multiaddress> listen_addrs =
         config.listenAddresses();
+    std::vector<libp2p::multi::Multiaddress> public_addrs =
+        config.publicAddresses();
 
     auto log = log::createLogger("validating_injector", "kagome");
-    log->debug("Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      log->debug("Received multiaddr: {}", addr.getStringAddress());
+    for (auto &addr : listen_addrs) {
+      SL_DEBUG(log, "Peer listening on multiaddr: {}", addr.getStringAddress());
     }
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
+    for (auto &addr : public_addrs) {
+      SL_DEBUG(log, "Peer public multiaddr: {}", addr.getStringAddress());
+    }
+
+    initialized = std::make_shared<network::OwnPeerInfo>(
+        std::move(peer_id), std::move(public_addrs), std::move(listen_addrs));
     return initialized.value();
   }
 
@@ -1235,6 +1336,61 @@ namespace {
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<consensus::SlotsStrategy>(),
         injector.template create<sptr<consensus::BabeUtil>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setBabe(initialized.value());
+
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<network::ExtrinsicObserverImpl> get_extrinsic_observer_impl(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<network::ExtrinsicObserverImpl>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    initialized = std::make_shared<network::ExtrinsicObserverImpl>(
+        injector.template create<sptr<api::AuthorApi>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setExtrinsicObserver(initialized.value());
+
+    return initialized.value();
+  }
+
+  template <typename Injector>
+  sptr<consensus::grandpa::GrandpaImpl> get_grandpa_impl(
+      const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<consensus::grandpa::GrandpaImpl>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    initialized = std::make_shared<consensus::grandpa::GrandpaImpl>(
+        injector.template create<sptr<application::AppStateManager>>(),
+        injector.template create<sptr<consensus::grandpa::Environment>>(),
+        injector.template create<sptr<storage::BufferStorage>>(),
+        injector.template create<sptr<crypto::Ed25519Provider>>(),
+        injector.template create<sptr<runtime::GrandpaApi>>(),
+        injector.template create<const crypto::Ed25519Keypair &>(),
+        injector.template create<sptr<clock::SteadyClock>>(),
+        injector.template create<sptr<boost::asio::io_context>>(),
+        injector.template create<sptr<authority::AuthorityManager>>(),
+        injector.template create<sptr<consensus::babe::Babe>>());
+
+    auto protocol_factory =
+        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
+
+    protocol_factory->setGrandpaObserver(initialized.value());
+
     return initialized.value();
   }
 
@@ -1310,7 +1466,9 @@ namespace kagome::injector {
   SyncingNodeInjector::SyncingNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<SyncingNodeInjectorImpl>(
-          makeSyncingNodeInjector(app_config))} {}
+          makeSyncingNodeInjector(app_config))} {
+    pimpl_->injector_.create<sptr<host_api::HostApi>>();
+  }
 
   sptr<application::ChainSpec> SyncingNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
@@ -1337,10 +1495,26 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<api::ApiService>>();
   }
 
+  std::shared_ptr<network::SyncProtocolObserver>
+  SyncingNodeInjector::injectSyncObserver() {
+    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+  }
+
+  std::shared_ptr<consensus::babe::Babe> SyncingNodeInjector::injectBabe() {
+    return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
+  }
+
+  std::shared_ptr<consensus::grandpa::Grandpa>
+  SyncingNodeInjector::injectGrandpa() {
+    return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
+  }
+
   ValidatingNodeInjector::ValidatingNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<ValidatingNodeInjectorImpl>(
-          makeValidatingNodeInjector(app_config))} {}
+          makeValidatingNodeInjector(app_config))} {
+    pimpl_->injector_.create<sptr<host_api::HostApi>>();
+  }
 
   sptr<application::ChainSpec> ValidatingNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
@@ -1371,6 +1545,11 @@ namespace kagome::injector {
     return pimpl_->injector_.create<sptr<clock::SystemClock>>();
   }
 
+  std::shared_ptr<network::SyncProtocolObserver>
+  ValidatingNodeInjector::injectSyncObserver() {
+    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
+  }
+
   std::shared_ptr<consensus::babe::Babe> ValidatingNodeInjector::injectBabe() {
     return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
   }
@@ -1378,13 +1557,6 @@ namespace kagome::injector {
   std::shared_ptr<consensus::grandpa::Grandpa>
   ValidatingNodeInjector::injectGrandpa() {
     return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
-  }
-
-  std::shared_ptr<soralog::LoggingSystem>
-  ValidatingNodeInjector::injectLoggingSystem() {
-    return std::make_shared<soralog::LoggingSystem>(
-        std::make_shared<kagome::log::Configurator>(
-            pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));
   }
 
 }  // namespace kagome::injector

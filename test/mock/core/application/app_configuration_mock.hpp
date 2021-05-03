@@ -31,6 +31,9 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(listenAddresses,
                        const std::vector<libp2p::multi::Multiaddress> &());
 
+    MOCK_CONST_METHOD0(publicAddresses,
+                       const std::vector<libp2p::multi::Multiaddress> &());
+
     MOCK_CONST_METHOD0(bootNodes,
                        const std::vector<libp2p::multi::Multiaddress> &());
 
@@ -54,6 +57,8 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(peeringConfig, const network::PeeringConfig &());
 
     MOCK_CONST_METHOD0(isRunInDevMode, bool());
+
+    MOCK_CONST_METHOD0(nodeName, const std::string &());
   };
 
 }  // namespace kagome::application

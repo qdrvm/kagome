@@ -17,10 +17,10 @@ target_link_libraries(host_api
     )
 kagome_install(host_api)
 
-add_library(host_api_factory
-    impl/host_api_factory_impl.cpp
-    )
-target_link_libraries(host_api_factory
-    host_api
-    )
-kagome_install(host_api_factory)
+#add_library(host_api_factory
+#    impl/host_api_factory_impl.cpp
+#    )
+#target_link_libraries(host_api_factory
+#    host_api
+#   )
+#kagome_install(host_api_factory)

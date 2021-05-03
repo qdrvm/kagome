@@ -47,7 +47,7 @@ TEST_F(MemoryExtensionsTest, MallocIsCalled) {
   EXPECT_CALL(*memory_, allocate(allocated_size))
       .WillOnce(Return(expected_address));
 
-  auto ptr = memory_extension_->ext_malloc(allocated_size);
+  auto ptr = memory_extension_->ext_allocator_malloc_version_1(allocated_size);
   ASSERT_EQ(ptr, expected_address);
 }
 
@@ -62,7 +62,7 @@ TEST_F(MemoryExtensionsTest, FreeIsCalled) {
   boost::optional<uint32_t> deallocate_result{42};
   EXPECT_CALL(*memory_, deallocate(ptr)).WillOnce(Return(deallocate_result));
 
-  memory_extension_->ext_free(ptr);
+  memory_extension_->ext_allocator_free_version_1(ptr);
 }
 
 /**

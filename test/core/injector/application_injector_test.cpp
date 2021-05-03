@@ -87,6 +87,10 @@ namespace {
         .WillRepeatedly(
             testing::ReturnRefOfCopy<std::vector<libp2p::multi::Multiaddress>>(
                 {}));
+    EXPECT_CALL(config_mock, publicAddresses())
+        .WillRepeatedly(
+            testing::ReturnRefOfCopy<std::vector<libp2p::multi::Multiaddress>>(
+                {}));
     EXPECT_CALL(config_mock, bootNodes())
         .WillRepeatedly(
             testing::ReturnRefOfCopy<std::vector<libp2p::multi::Multiaddress>>(
@@ -179,4 +183,3 @@ TEST_VALIDATING_INJECT(RpcApiService)
 TEST_VALIDATING_INJECT(Grandpa)
 TEST_VALIDATING_INJECT(Babe)
 TEST_VALIDATING_INJECT(SystemClock)
-TEST_VALIDATING_INJECT(LoggingSystem)

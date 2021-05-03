@@ -7,13 +7,13 @@
 
 #include <boost/assert.hpp>
 
+#include "runtime/wavm/impl/memory.hpp"
 #include "runtime/wasm_result.hpp"
-#include "runtime/wasm_memory.hpp"
 
 namespace kagome::host_api {
-  IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
+  IOExtension::IOExtension(std::shared_ptr<runtime::wavm::Memory> memory)
       : memory_(std::move(memory)),
-        logger_{log::createLogger("IoExtention", "extentions")} {
+        logger_{log::createLogger("IoExtention", "host_api")} {
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
   }
 
@@ -41,10 +41,10 @@ namespace kagome::host_api {
         logger_->info("target: {}\n\tmessage: {}", target_str, message_str);
         break;
       case WasmLogLevel::WasmLL_Debug:
-        logger_->debug("target: {}\n\tmessage: {}", target_str, message_str);
+        SL_DEBUG(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       case WasmLogLevel::WasmLL_Trace:
-        logger_->trace("target: {}\n\tmessage: {}", target_str, message_str);
+        SL_TRACE(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       default: {
         BOOST_UNREACHABLE_RETURN();

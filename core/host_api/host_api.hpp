@@ -8,20 +8,25 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 
 #include "runtime/types.hpp"
-#include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_result.hpp"
+
+namespace kagome::runtime::wavm {
+  class Memory;
+}
 
 namespace kagome::host_api {
   /**
-   * Extensions for WASM; API, which is called by the runtime to control RE
+   * Extensions for the runtime wasm module, which are called by the runtime to
+   * access the host functionality
    */
   class HostApi {
    public:
     virtual ~HostApi() = default;
 
-    virtual std::shared_ptr<runtime::WasmMemory> memory() const = 0;
+    virtual std::shared_ptr<kagome::runtime::wavm::Memory> memory() const = 0;
     virtual void reset() = 0;
 
     // ------------------------ Storage extensions v1 ------------------------
@@ -36,7 +41,6 @@ namespace kagome::host_api {
         runtime::WasmSpan key,
         runtime::WasmSpan value_out,
         runtime::WasmOffset offset) = 0;
-
 
     /**
      * @brief Sets the value under a given key into storage.
@@ -178,7 +182,8 @@ namespace kagome::host_api {
      * @returns an i32 integer value equal to 1 if all the signatures are valid
      * or a value equal to 0 if one or more of the signatures are invalid.
      */
-    [[nodiscard]] virtual runtime::WasmSize ext_crypto_finish_batch_verify_version_1() = 0;
+    [[nodiscard]] virtual int32_t
+    ext_crypto_finish_batch_verify_version_1() = 0;
 
     /**
      * Recover secp256k1 public key
@@ -189,7 +194,7 @@ namespace kagome::host_api {
      */
     [[nodiscard]] virtual runtime::WasmSpan
     ext_crypto_secp256k1_ecdsa_recover_version_1(runtime::WasmPointer sig,
-                                          runtime::WasmPointer msg) = 0;
+                                                 runtime::WasmPointer msg) = 0;
 
     /**
      * Recover secp256k1 public key
@@ -230,14 +235,15 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    [[nodiscard]] virtual runtime::WasmSpan ext_crypto_ed25519_public_keys_version_1(
-        runtime::WasmSize key_type) = 0;
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_ed25519_public_keys_version_1(runtime::WasmSize key_type) = 0;
 
     /**
      * @see Extension::ext_ed25519_generate
      */
-    [[nodiscard]] virtual runtime::WasmPointer ext_crypto_ed25519_generate_version_1(
-        runtime::WasmSize key_type, runtime::WasmSpan seed) = 0;
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_crypto_ed25519_generate_version_1(runtime::WasmSize key_type,
+                                          runtime::WasmSpan seed) = 0;
 
     /**
      * @see Extension::ext_ed25519_sign
@@ -258,14 +264,15 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_sr25519_public_keys
      */
-    [[nodiscard]] virtual runtime::WasmSpan ext_crypto_sr25519_public_keys_version_1(
-        runtime::WasmSize key_type) = 0;
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_sr25519_public_keys_version_1(runtime::WasmSize key_type) = 0;
 
     /**
      * @see Extension::ext_sr25519_generate
      */
-    [[nodiscard]] virtual runtime::WasmPointer ext_crypto_sr25519_generate_version_1(
-        runtime::WasmSize key_type, runtime::WasmSpan seed) = 0;
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_crypto_sr25519_generate_version_1(runtime::WasmSize key_type,
+                                          runtime::WasmSpan seed) = 0;
 
     /**
      * @see Extension::ext_sr25519_sign
@@ -276,22 +283,32 @@ namespace kagome::host_api {
         runtime::WasmSpan msg_data) = 0;
 
     /**
-     * @see Extension::ext_sr25519_verify
+     * Verifies an sr25519 signature. Only version 1 of this function supports
+     * deprecated Schnorr signatures introduced by the schnorrkel Rust library
+     * version 0.1.1 and should only be used for backward compatibility.
+     * Returns true when the verification is either successful or batched.
+     * If no batching verification
+     * extension is registered, this function will fully verify the signature
+     * and return the result. If batching verification is registered, this
+     * function will push the data to the batch and return immediately. The
+     * caller can then get the result by calling ext_crypto_finish_batch_verify
+     * The verification extension is explained more in detail in
+     * ext_crypto_start_batch_verify
      */
-    [[nodiscard]] virtual runtime::WasmSize ext_crypto_sr25519_verify_version_1(
+    [[nodiscard]] virtual int32_t ext_crypto_sr25519_verify_version_1(
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
 
-    [[nodiscard]] virtual runtime::WasmSize ext_crypto_sr25519_verify_version_2(
+    [[nodiscard]] virtual int32_t ext_crypto_sr25519_verify_version_2(
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
 
     // -------------------------Misc extensions--------------------------
 
-    [[nodiscard]] virtual runtime::WasmResult
-    ext_misc_runtime_version_version_1(runtime::WasmSpan data) const = 0;
+    [[nodiscard]] virtual runtime::WasmSpan ext_misc_runtime_version_version_1(
+        runtime::WasmSpan data) const = 0;
 
     /**
      * Print a hex value

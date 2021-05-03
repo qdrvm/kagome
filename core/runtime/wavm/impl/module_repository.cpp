@@ -9,12 +9,16 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASM/WASM.h>
 
+#include "crutch.hpp"
+
+#include "gc_compartment.hpp"
+
 namespace kagome::runtime::wavm {
 
   ModuleRepository::ModuleRepository(
       std::shared_ptr<IntrinsicResolver> resolver,
       std::shared_ptr<RuntimeCodeProvider> code_provider)
-      : compartment_{WAVM::Runtime::createCompartment("Runtime State")},
+      : compartment_{getCompartment()},
         code_provider_{std::move(code_provider)},
         resolver_{std::move(resolver)} {
     BOOST_ASSERT(compartment_);
@@ -37,6 +41,8 @@ namespace kagome::runtime::wavm {
 
   outcome::result<std::unique_ptr<Module>> ModuleRepository::loadFrom(
       gsl::span<const uint8_t> byte_code) {
+    // TODO(Harrm): Might want to cache here as well, e.g. for MiscExtension
+    // calls
     std::shared_ptr<WAVM::Runtime::Module> module = nullptr;
     WAVM::WASM::LoadError loadError;
     WAVM::IR::FeatureSpec featureSpec;

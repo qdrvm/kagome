@@ -5,11 +5,13 @@
 
 #include "application/impl/app_configuration_impl.hpp"
 
-#include <iostream>
+#include <string>
 
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <boost/program_options.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include "assets/assets.hpp"
 #include "chain_spec_impl.hpp"
@@ -33,11 +35,28 @@ namespace {
   const uint16_t def_rpc_http_port = 9933;
   const uint16_t def_rpc_ws_port = 9944;
   const uint16_t def_p2p_port = 30363;
-  const int def_verbosity = (int)(kagome::log::Level::INFO);
+  const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
   const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
   const bool def_dev_mode = false;
+
+  /**
+   * Generate once at run random node name if form of UUID
+   * @return UUID as string value
+   */
+  const std::string &randomNodeName() {
+    static std::string name;
+    if (name.empty()) {
+      auto uuid = boost::uuids::random_generator()();
+      name = boost::uuids::to_string(uuid);
+    }
+    auto max_len = kagome::application::AppConfiguration::kNodeNameMaxLength;
+    if (name.length() > max_len) {
+      name = name.substr(0, max_len);
+    }
+    return name;
+  }
 }  // namespace
 
 namespace kagome::application {
@@ -54,7 +73,8 @@ namespace kagome::application {
         rpc_ws_host_(def_rpc_ws_host),
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
-        dev_mode_(def_dev_mode) {}
+        dev_mode_(def_dev_mode),
+        node_name_(randomNodeName()) {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -170,19 +190,21 @@ namespace kagome::application {
 
   void AppConfigurationImpl::parse_network_segment(rapidjson::Value &val) {
     load_ma(val, "listen-addr", listen_addresses_);
+    load_ma(val, "public-addr", public_addresses_);
     load_ma(val, "bootnodes", boot_nodes_);
     load_u16(val, "port", p2p_port_);
     load_str(val, "rpc-host", rpc_http_host_);
     load_u16(val, "rpc-port", rpc_http_port_);
     load_str(val, "ws-host", rpc_ws_host_);
     load_u16(val, "ws-port", rpc_ws_port_);
+    load_str(val, "name", node_name_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
-    load_bool(val, "single_finalizing_node", is_only_finalizing_);
-    load_bool(val, "already_synchronized", is_already_synchronized_);
-    load_u32(val, "max_blocks_in_response", max_blocks_in_response_);
-    load_bool(val, "is_unix_slots_strategy", is_unix_slots_strategy_);
+    load_bool(val, "single-finalizing-node", is_only_finalizing_);
+    load_bool(val, "already-synchronized", is_already_synchronized_);
+    load_u32(val, "max-blocks-in-response", max_blocks_in_response_);
+    load_bool(val, "is-unix-slots-strategy", is_unix_slots_strategy_);
     load_bool(val, "dev", dev_mode_);
   }
 
@@ -204,7 +226,11 @@ namespace kagome::application {
       return false;
     }
 
-    if (p2p_port_ == 0) {
+    if (not listen_addresses_.empty()) {
+      logger_->info(
+          "Listen addresses are set. The p2p port value would be ignored "
+          "then.");
+    } else if (p2p_port_ == 0) {
       logger_->error(
           "p2p port is 0, "
           "please specify a valid path with -p option");
@@ -222,6 +248,12 @@ namespace kagome::application {
       logger_->error(
           "RPC http port is 0, "
           "please specify a valid path with --rpc-port option");
+      return false;
+    }
+
+    if (node_name_.length() > kNodeNameMaxLength) {
+      logger_->error("Node name exceeds the maximum length of {} characters",
+                     kNodeNameMaxLength);
       return false;
     }
 
@@ -310,6 +342,7 @@ namespace kagome::application {
     po::options_description network_desc("Network options");
     network_desc.add_options()
         ("listen-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses the node listens for open connections on")
+        ("public-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses that other nodes use to connect to it")
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
@@ -317,14 +350,15 @@ namespace kagome::application {
         ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP")
         ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
         ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
-        ("max_blocks_in_response", po::value<int>(), "max block per response while syncing")
+        ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
+        ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
 
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
-        ("single_finalizing_node,f", "if this is the only finalizing node")
-        ("already_synchronized,s", "if need to consider synchronized")
-        ("unix_slots,u", "if slots are calculated from unix epoch")
+        ("single-finalizing-node,f", "if this is the only finalizing node")
+        ("already-synchronized,s", "if need to consider synchronized")
+        ("unix-slots,u", "if slots are calculated from unix epoch")
         ;
 
     po::options_description development_desc("Development options");
@@ -436,13 +470,13 @@ namespace kagome::application {
     });
 
     /// aggregate data from command line args
-    if (vm.end() != vm.find("single_finalizing_node"))
+    if (vm.end() != vm.find("single-finalizing-node"))
       is_only_finalizing_ = true;
 
-    if (vm.end() != vm.find("already_synchronized"))
+    if (vm.end() != vm.find("already-synchronized"))
       is_already_synchronized_ = true;
 
-    if (vm.end() != vm.find("unix_slots")) is_unix_slots_strategy_ = true;
+    if (vm.end() != vm.find("unix-slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
@@ -495,26 +529,85 @@ namespace kagome::application {
 
     find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
 
-    std::vector<std::string> listen_addr;
-    find_argument<std::vector<std::string>>(
-        vm, "listen-addr", [&](const auto &val) { listen_addr = val; });
+    auto parse_multiaddrs =
+        [&](const std::string &param_name,
+            std::vector<libp2p::multi::Multiaddress> &output_field) -> bool {
+      std::vector<std::string> addrs;
+      find_argument<std::vector<std::string>>(
+          vm, param_name.c_str(), [&](const auto &val) { addrs = val; });
 
-    if (not listen_addr.empty()) {
-      listen_addresses_.clear();
-    }
-    for (auto &s : listen_addr) {
-      auto ma_res = libp2p::multi::Multiaddress::create(s);
-      if (not ma_res) {
-        auto err_msg = "Listening address '" + s
-                       + "' is invalid: " + ma_res.error().message();
-        logger_->error(err_msg);
-        std::cout << err_msg << std::endl;
-        return false;
+      if (not addrs.empty()) {
+        output_field.clear();
       }
-      listen_addresses_.emplace_back(std::move(ma_res.value()));
+      for (auto &s : addrs) {
+        auto ma_res = libp2p::multi::Multiaddress::create(s);
+        if (not ma_res) {
+          logger_->error("Address {} passed as value to {} is invalid: {}",
+                         s,
+                         param_name,
+                         ma_res.error().message());
+          return false;
+        }
+        output_field.emplace_back(std::move(ma_res.value()));
+      }
+      return true;
+    };
+
+    if (not parse_multiaddrs("listen-addr", listen_addresses_)) {
+      return false;  // just proxy erroneous case to the top level
+    }
+    if (not parse_multiaddrs("public-addr", public_addresses_)) {
+      return false;  // just proxy erroneous case to the top level
     }
 
-    find_argument<uint32_t>(vm, "max_blocks_in_response", [&](uint32_t val) {
+    // this goes before transforming p2p port option to listen addresses,
+    // because it does not make sense to announce 0.0.0.0 as a public address.
+    // Moreover, this is ok to have empty set of public addresses at this point
+    // of time
+    if (public_addresses_.empty() and not listen_addresses_.empty()) {
+      logger_->info(
+          "Public addresses are not specified. Using listen addresses as "
+          "node's public addresses");
+      public_addresses_ = listen_addresses_;
+    }
+
+    if (0 != p2p_port_ and listen_addresses_.empty()) {
+      // IPv6
+      {
+        auto ma_res = libp2p::multi::Multiaddress::create(
+            "/ip6/::/tcp/" + std::to_string(p2p_port_));
+        if (not ma_res) {
+          logger_->error(
+              "Cannot construct IPv6 listen multiaddress from port {}. Error: "
+              "{}",
+              p2p_port_,
+              ma_res.error().message());
+        } else {
+          logger_->info("Automatically added IPv6 listen address {}",
+                        ma_res.value().getStringAddress());
+          listen_addresses_.emplace_back(std::move(ma_res.value()));
+        }
+      }
+
+      // IPv4
+      {
+        auto ma_res = libp2p::multi::Multiaddress::create(
+            "/ip4/0.0.0.0/tcp/" + std::to_string(p2p_port_));
+        if (not ma_res) {
+          logger_->error(
+              "Cannot construct IPv4 listen multiaddress from port {}. Error: "
+              "{}",
+              p2p_port_,
+              ma_res.error().message());
+        } else {
+          logger_->info("Automatically added IPv4 listen address {}",
+                        ma_res.value().getStringAddress());
+          listen_addresses_.emplace_back(std::move(ma_res.value()));
+        }
+      }
+    }
+
+    find_argument<uint32_t>(vm, "max-blocks-in-response", [&](uint32_t val) {
       max_blocks_in_response_ = val;
     });
 
@@ -538,6 +631,9 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
+
+    find_argument<std::string>(
+        vm, "name", [&](std::string const &val) { node_name_ = val; });
 
     // if something wrong with config print help message
     if (not validate_config(scheme)) {

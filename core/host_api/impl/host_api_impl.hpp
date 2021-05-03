@@ -13,9 +13,8 @@
 #include "host_api/impl/misc_extension.hpp"
 #include "host_api/impl/storage_extension.hpp"
 
-namespace kagome::runtime::binaryen {
-  class CoreFactory;
-  class RuntimeEnvironmentFactory;
+namespace kagome::runtime {
+  class Core;
 }  // namespace kagome::runtime::binaryen
 
 namespace kagome::host_api {
@@ -25,10 +24,8 @@ namespace kagome::host_api {
   class HostApiImpl : public HostApi {
    public:
     HostApiImpl() = delete;
-    HostApiImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
-                std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
-                std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
-                    runtime_env_factory,
+    HostApiImpl(std::shared_ptr<runtime::wavm::Memory> memory,
+                std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
                 std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
                 std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
                 std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
@@ -40,7 +37,7 @@ namespace kagome::host_api {
 
     ~HostApiImpl() override = default;
 
-    std::shared_ptr<runtime::WasmMemory> memory() const override;
+    std::shared_ptr<runtime::wavm::Memory> memory() const override;
     void reset() override;
 
     // ------------------------ Storage extensions v1 ------------------------
@@ -87,6 +84,11 @@ namespace kagome::host_api {
 
     // -------------------------Crypto extensions v1---------------------
 
+    void ext_crypto_start_batch_verify_version_1() override;
+
+    [[nodiscard]] int32_t ext_crypto_finish_batch_verify_version_1()
+        override;
+
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_version_1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
 
@@ -120,10 +122,14 @@ namespace kagome::host_api {
         runtime::WasmPointer key,
         runtime::WasmSpan msg_data) override;
 
-    runtime::WasmSize ext_crypto_sr25519_verify_version_1(
+    int32_t ext_crypto_sr25519_verify_version_1(
         runtime::WasmPointer sig_data,
         runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) override;
+
+    int32_t ext_crypto_sr25519_verify_version_2(runtime::WasmPointer,
+                                                 runtime::WasmSpan,
+                                                 runtime::WasmPointer) override;
 
     // ------------------------- Hashing extension/crypto ---------------
 
@@ -154,7 +160,7 @@ namespace kagome::host_api {
                                    runtime::WasmSpan target,
                                    runtime::WasmSpan message) override;
 
-    runtime::WasmResult ext_misc_runtime_version_version_1(
+    runtime::WasmSpan ext_misc_runtime_version_version_1(
         runtime::WasmSpan data) const override;
 
     void ext_misc_print_hex_version_1(runtime::WasmSpan data) const override;
@@ -166,7 +172,7 @@ namespace kagome::host_api {
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
 
-    std::shared_ptr<runtime::WasmMemory> memory_;
+    std::shared_ptr<runtime::wavm::Memory> memory_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 
     std::shared_ptr<CryptoExtension> crypto_ext_;

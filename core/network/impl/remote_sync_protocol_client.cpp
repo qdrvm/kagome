@@ -30,15 +30,16 @@ namespace kagome::network {
     visit_in_place(
         request.from,
         [this](primitives::BlockNumber from) {
-          log_->debug("Requesting blocks: from {}", from);
+          SL_DEBUG(log_, "Requesting blocks: from {}", from);
         },
         [this, &request](const primitives::BlockHash &from) {
           if (not request.to) {
-            log_->debug("Requesting blocks: from {}", from.toHex());
+            SL_DEBUG(log_, "Requesting blocks: from {}", from.toHex());
           } else {
-            log_->debug("Requesting blocks: from {}, to {}",
-                        from.toHex(),
-                        request.to->toHex());
+            SL_DEBUG(log_,
+                     "Requesting blocks: from {}, to {}",
+                     from.toHex(),
+                     request.to->toHex());
           }
         });
 

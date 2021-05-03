@@ -81,6 +81,11 @@ namespace kagome::application {
       return listen_addresses_;
     }
 
+    const std::vector<libp2p::multi::Multiaddress> &publicAddresses()
+        const override {
+      return public_addresses_;
+    }
+
     const std::vector<libp2p::multi::Multiaddress> &bootNodes() const override {
       return boot_nodes_;
     }
@@ -114,6 +119,9 @@ namespace kagome::application {
     }
     bool isRunInDevMode() const override {
       return dev_mode_;
+    }
+    const std::string &nodeName() const override {
+      return node_name_;
     }
 
    private:
@@ -167,6 +175,7 @@ namespace kagome::application {
 
     boost::optional<crypto::Ed25519PrivateKey> node_key_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
+    std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
@@ -184,6 +193,7 @@ namespace kagome::application {
     uint16_t rpc_ws_port_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
+    std::string node_name_;
   };
 
 }  // namespace kagome::application

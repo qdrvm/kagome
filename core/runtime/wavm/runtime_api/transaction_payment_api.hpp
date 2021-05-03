@@ -20,7 +20,7 @@ namespace kagome::runtime::wavm {
 
     outcome::result<primitives::RuntimeDispatchInfo> query_info(
         const primitives::Extrinsic &ext, uint32_t len) override {
-      return executor_->call<primitives::RuntimeDispatchInfo>(
+      return executor_->callAtLatest<primitives::RuntimeDispatchInfo>(
           "TransactionPaymentApi_query_info", ext, len);
     }
 

@@ -44,7 +44,7 @@ namespace kagome::api {
     const auto &prefix = prefix_opt.value_or(common::Buffer{});
     const auto &prev_key = prev_key_opt.value_or(prefix);
     const auto &block_hash =
-        block_hash_opt.value_or(block_tree_->getLastFinalized().block_hash);
+        block_hash_opt.value_or(block_tree_->getLastFinalized().hash);
 
     OUTCOME_TRY(header, block_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(initial_trie_reader,
@@ -83,7 +83,7 @@ namespace kagome::api {
   outcome::result<common::Buffer> StateApiImpl::getStorage(
       const common::Buffer &key) const {
     auto last_finalized = block_tree_->getLastFinalized();
-    return getStorage(key, last_finalized.block_hash);
+    return getStorage(key, last_finalized.hash);
   }
 
   outcome::result<common::Buffer> StateApiImpl::getStorage(
@@ -128,7 +128,8 @@ namespace kagome::api {
   outcome::result<void> StateApiImpl::unsubscribeRuntimeVersion(
       uint32_t subscription_id) {
     if (auto api_service = api_service_.lock()) {
-      return api_service->unsubscribeRuntimeVersion(subscription_id).as_failure();
+      return api_service->unsubscribeRuntimeVersion(subscription_id)
+          .as_failure();
     }
 
     throw jsonrpc::InternalErrorFault(
