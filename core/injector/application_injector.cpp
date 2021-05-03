@@ -466,7 +466,7 @@ namespace {
     auto log = log::createLogger("injector", "kagome");
 
     if (app_config.nodeKey()) {
-      log->info("Will use LibP2P keypair from config or args");
+      log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
@@ -486,8 +486,27 @@ namespace {
       return initialized.value();
     }
 
+    if (app_config.nodeKeyFile()) {
+      const auto &path = app_config.nodeKeyFile().value();
+      log->info(
+          "Will use LibP2P keypair from config or 'node-key-file' CLI arg");
+      auto key = crypto_store.loadLibp2pKeypair(path);
+      if (key.has_error()) {
+        log->error("Unable to load user provided key from {}. Error: {}",
+                   path,
+                   key.error().message());
+      } else {
+        auto key_pair =
+            std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
+        initialized.emplace(std::move(key_pair));
+        return initialized.value();
+      }
+    }
+
     if (crypto_store.getLibp2pKeypair().has_value()) {
-      log->info("Will use LibP2P keypair from config or args");
+      log->info(
+          "Will use LibP2P keypair from config or args (loading from base "
+          "path)");
 
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 

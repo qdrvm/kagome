@@ -96,21 +96,12 @@ namespace kagome::crypto {
       KeyTypeId type,
       gsl::span<const uint8_t> public_key,
       gsl::span<const uint8_t> seed) const {
-    std::ofstream file;
-
     auto &&path = composeKeyPath(type, public_key);
-    file.open(path.native(), std::ios::out | std::ios::trunc);
-    if (!file.is_open()) {
-      return Error::FAILED_OPEN_FILE;
-    }
-    auto hex = common::hex_lower(seed);
+    OUTCOME_TRY(saveKeyHexAtPath(seed, path));
     SL_TRACE(logger_,
-             "Saving keypair (public: {}, secret: {}) to {}",
+             "Saving keypair (public: {}) to {}",
              common::hex_lower(public_key),
-             hex,
              path.native());
-    file << hex;
-
     return outcome::success();
   }
 
@@ -152,7 +143,7 @@ namespace kagome::crypto {
 
     std::ifstream file;
 
-    file.open(file_path.string(), std::ios::in);
+    file.open(file_path.string(), std::ios::in | std::ios::binary);
     if (!file.is_open()) {
       return Error::FAILED_OPEN_FILE;
     }
@@ -161,6 +152,20 @@ namespace kagome::crypto {
     file >> content;
     SL_TRACE(logger_, "Loaded seed {} from {}", content, file_path.native());
     return content;
+  }
+
+  outcome::result<void> KeyFileStorage::saveKeyHexAtPath(
+      gsl::span<const uint8_t> private_key,
+      const KeyFileStorage::Path &path) const {
+    std::ofstream file;
+    file.open(path.native(), std::ios::out | std::ios::trunc);
+    if (!file.is_open()) {
+      return Error::FAILED_OPEN_FILE;
+    }
+    auto hex = common::hex_lower(private_key);
+    file << hex;
+    SL_TRACE(logger_, "Saving key to {}", path.native());
+    return outcome::success();
   }
 
   outcome::result<std::vector<Buffer>> KeyFileStorage::collectPublicKeys(

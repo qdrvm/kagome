@@ -357,6 +357,7 @@ namespace kagome::application {
         ("listen-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses the node listens for open connections on")
         ("public-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses that other nodes use to connect to it")
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
+        ("node-key-file", po::value<std::string>(), "path to the secret key used for libp2p networking (raw binary or hex-encoded")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc-host", po::value<std::string>(), "address for RPC over HTTP")
@@ -549,6 +550,13 @@ namespace kagome::application {
         return false;
       }
       node_key_.emplace(std::move(key_res.value()));
+    }
+
+    if (not node_key_.has_value()) {
+      find_argument<std::string>(
+          vm, "node-key-file", [&](const std::string &val) {
+            node_key_file_ = val;
+          });
     }
 
     find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });

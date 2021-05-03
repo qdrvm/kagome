@@ -70,6 +70,11 @@ namespace kagome::application {
         const = 0;
 
     /**
+     * @return the path to key used for libp2p networking
+     */
+    virtual const boost::optional<std::string> &nodeKeyFile() const = 0;
+
+    /**
      * @return port for peer to peer interactions.
      */
     virtual uint16_t p2pPort() const = 0;
