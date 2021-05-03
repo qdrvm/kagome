@@ -29,7 +29,12 @@ namespace kagome::api {
     using Context = RpcContext;
 
     struct Configuration {
-      Endpoint endpoint{};  ///< listning endpoint
+      /// listening endpoint
+      Endpoint endpoint{};
+
+      /// max allowed simultaneous connections through websocket
+      uint32_t ws_max_connections;
+
       Configuration() {
         endpoint.address(boost::asio::ip::address_v4::any());
         endpoint.port(0);
