@@ -107,14 +107,16 @@ namespace kagome::crypto {
      * @param key_type key type identifier to look for
      * @return vector of found public keys
      */
-    virtual outcome::result<Ed25519Keys> getEd25519PublicKeys(KeyTypeId key_type) const = 0;
+    virtual outcome::result<Ed25519Keys> getEd25519PublicKeys(
+        KeyTypeId key_type) const = 0;
 
     /**
      * @brief searches for SR25519 keys of specified type
      * @param key_type key type identifier to look for
      * @return vector of found public keys
      */
-    virtual outcome::result<Sr25519Keys> getSr25519PublicKeys(KeyTypeId key_type) const = 0;
+    virtual outcome::result<Sr25519Keys> getSr25519PublicKeys(
+        KeyTypeId key_type) const = 0;
 
     /**
      * @return current GRANDPA session key pair
@@ -129,7 +131,17 @@ namespace kagome::crypto {
     /**
      * @return current LibP2P keypair
      */
-    virtual boost::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const = 0;
+    virtual boost::optional<libp2p::crypto::KeyPair> getLibp2pKeypair()
+        const = 0;
+
+    /**
+     * Acquires the key from user-provided path or generates and saves the
+     * key under the path. Used when --node-key-file flag gets processed.
+     * @param path - path the key file (raw bytes or hex-encoded)
+     * @return LibP2P keypair
+     */
+    virtual outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(
+        const Path &key_path) const = 0;
   };
 }  // namespace kagome::crypto
 
