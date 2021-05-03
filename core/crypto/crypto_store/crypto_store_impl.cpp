@@ -208,7 +208,7 @@ namespace kagome::crypto {
     return ed25519KeyToLibp2pKeypair(kp.value());
   }
 
-  inline libp2p::crypto::KeyPair CryptoStoreImpl::ed25519KeyToLibp2pKeypair(
+  libp2p::crypto::KeyPair CryptoStoreImpl::ed25519KeyToLibp2pKeypair(
       const Ed25519Keypair &kp) const {
     const auto &secret_key = kp.secret_key;
     const auto &public_key = kp.public_key;
