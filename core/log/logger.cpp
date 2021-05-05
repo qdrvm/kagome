@@ -31,7 +31,7 @@ namespace kagome::log {
   Logger createLogger(const std::string &tag) {
     ensure_logger_system_is_initialized();
     return std::dynamic_pointer_cast<soralog::LoggerFactory>(logging_system_)
-        ->getLogger(tag, "*");
+        ->getLogger(tag, defaultGroupName);
   }
 
   Logger createLogger(const std::string &tag, const std::string &group) {

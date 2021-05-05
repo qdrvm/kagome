@@ -192,39 +192,44 @@ namespace {
         [/*&db, &grandpa_api*/](const primitives::Block &genesis_block) {
           // handle genesis initialization, which happens when there is not
           // authorities and last completed round in the storage
-//          if (not db->get(storage::kAuthoritySetKey)) {
-//            // insert authorities
-//            const auto &weighted_authorities_res = grandpa_api->authorities(
-//                primitives::BlockId(primitives::BlockNumber{0}));
-//            BOOST_ASSERT_MSG(weighted_authorities_res,
-//                             "grandpa_api_->authorities failed");
-//            const auto &weighted_authorities = weighted_authorities_res.value();
-//
-//            auto log = log::createLogger("injector", "kagome");
-//
-//            for (const auto &authority : weighted_authorities) {
-//              log->info("Grandpa authority: {}", authority.id.id.toHex());
-//            }
-//
-//            consensus::grandpa::VoterSet voters{0};
-//            for (const auto &weighted_authority : weighted_authorities) {
-//              voters.insert(
-//                  primitives::GrandpaSessionKey{weighted_authority.id.id},
-//                  weighted_authority.weight);
-//              SL_DEBUG(log,
-//                       "Added to grandpa authorities: {}, weight: {}",
-//                       weighted_authority.id.id.toHex(),
-//                       weighted_authority.weight);
-//            }
-//            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
-//            auto authorities_put_res =
-//                db->put(storage::kAuthoritySetKey,
-//                        common::Buffer(scale::encode(voters).value()));
-//            if (not authorities_put_res) {
-//              BOOST_ASSERT_MSG(false, "Could not insert authorities");
-//              BOOST_UNREACHABLE_RETURN(std::exit(EXIT_FAILURE));
-//            }
-//          }
+          //          if (not db->get(storage::kAuthoritySetKey)) {
+          //            // insert authorities
+          //            const auto &weighted_authorities_res =
+          //            grandpa_api->authorities(
+          //                primitives::BlockId(primitives::BlockNumber{0}));
+          //            BOOST_ASSERT_MSG(weighted_authorities_res,
+          //                             "grandpa_api_->authorities failed");
+          //            const auto &weighted_authorities =
+          //            weighted_authorities_res.value();
+          //
+          //            auto log = log::createLogger("Injector", "kagome");
+          //
+          //            for (const auto &authority : weighted_authorities) {
+          //              log->info("Grandpa authority: {}",
+          //              authority.id.id.toHex());
+          //            }
+          //
+          //            consensus::grandpa::VoterSet voters{0};
+          //            for (const auto &weighted_authority :
+          //            weighted_authorities) {
+          //              voters.insert(
+          //                  primitives::GrandpaSessionKey{weighted_authority.id.id},
+          //                  weighted_authority.weight);
+          //              SL_DEBUG(log,
+          //                       "Added to grandpa authorities: {}, weight:
+          //                       {}", weighted_authority.id.id.toHex(),
+          //                       weighted_authority.weight);
+          //            }
+          //            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are
+          //            empty"); auto authorities_put_res =
+          //                db->put(storage::kAuthoritySetKey,
+          //                        common::Buffer(scale::encode(voters).value()));
+          //            if (not authorities_put_res) {
+          //              BOOST_ASSERT_MSG(false, "Could not insert
+          //              authorities");
+          //              BOOST_UNREACHABLE_RETURN(std::exit(EXIT_FAILURE));
+          //            }
+          //          }
         });
     if (storage_res.has_error()) {
       common::raise(storage_res.error());
@@ -317,7 +322,7 @@ namespace {
       common::raise(batch.error());
     }
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "kagome");
 
     const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
@@ -351,7 +356,7 @@ namespace {
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
     if (!db_res) {
-      auto log = log::createLogger("injector", "kagome");
+      auto log = log::createLogger("Injector", "kagome");
       log->critical("Can't create LevelDB in {}: {}",
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
@@ -377,7 +382,7 @@ namespace {
     auto chain_spec_res =
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
     if (not chain_spec_res.has_value()) {
-      auto log = log::createLogger("injector", "kagome");
+      auto log = log::createLogger("Injector", "kagome");
       log->critical(
           "Can't load chain spec from {}: {}",
           fs::absolute(chainspec_path.native(), fs::current_path()).native(),
@@ -406,7 +411,7 @@ namespace {
     auto configuration = std::make_shared<primitives::BabeConfiguration>(
         std::move(configuration_res.value()));
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "kagome");
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
     }
@@ -462,7 +467,7 @@ namespace {
       return initialized.value();
     }
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "kagome");
 
     if (app_config.nodeKey()) {
       log->info("Will use LibP2P keypair from config or args");
@@ -999,6 +1004,8 @@ namespace {
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
+        di::bind<consensus::grandpa::FinalizationObserver>.to(
+            [](auto const &inj) { return get_finalization_observer(inj); }),
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
@@ -1199,6 +1206,8 @@ namespace {
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
+        injector
+            .template create<sptr<consensus::grandpa::FinalizationObserver>>(),
         injector.template create<sptr<consensus::babe::Babe>>());
 
     auto protocol_factory =
@@ -1207,6 +1216,22 @@ namespace {
     protocol_factory->setGrandpaObserver(initialized.value());
 
     return initialized.value();
+  }
+
+  template <class Injector>
+  sptr<consensus::grandpa::FinalizationObserver> get_finalization_observer(
+      const Injector &injector) {
+    static auto instance = boost::optional<
+        std::shared_ptr<consensus::grandpa::FinalizationObserver>>(boost::none);
+    if (instance) {
+      return *instance;
+    }
+
+    instance = std::make_shared<consensus::grandpa::FinalizationComposite>(
+        injector.template create<
+            std::shared_ptr<authority::AuthorityManagerImpl>>());
+
+    return instance.value();
   }
 
   template <typename... Ts>

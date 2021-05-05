@@ -13,6 +13,7 @@
 
 #include "common/visitor.hpp"
 #include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "primitives/justification.hpp"
 #include "primitives/session_key.hpp"
@@ -44,7 +45,8 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteTracker> precommits,
       std::shared_ptr<VoteGraph> graph,
       std::shared_ptr<Clock> clock,
-      std::shared_ptr<boost::asio::io_context> io_context)
+      std::shared_ptr<boost::asio::io_context> io_context,
+      std::shared_ptr<FinalizationObserver> finalization_observer)
       : round_number_{config.round_number},
         duration_{config.duration},
         id_{config.id},
@@ -55,6 +57,7 @@ namespace kagome::consensus::grandpa {
         graph_{std::move(graph)},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
+        finalization_observer_{std::move(finalization_observer)},
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)},
         timer_{*io_context_},
@@ -82,6 +85,7 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteGraph> &graph,
       const std::shared_ptr<Clock> &clock,
       const std::shared_ptr<boost::asio::io_context> &io_context,
+      const std::shared_ptr<FinalizationObserver> &finalization_observer,
       const std::shared_ptr<VotingRound> &previous_round)
       : VotingRoundImpl(grandpa,
                         config,
@@ -92,7 +96,8 @@ namespace kagome::consensus::grandpa {
                         precommits,
                         graph,
                         clock,
-                        io_context) {
+                        io_context,
+                        finalization_observer) {
     BOOST_ASSERT(previous_round != nullptr);
     BOOST_ASSERT(previous_round->finalizedBlock().has_value());
 
@@ -113,6 +118,7 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteGraph> &graph,
       const std::shared_ptr<Clock> &clock,
       const std::shared_ptr<boost::asio::io_context> &io_context,
+      const std::shared_ptr<FinalizationObserver> &finalization_observer,
       const MovableRoundState &round_state)
       : VotingRoundImpl(grandpa,
                         config,
@@ -123,9 +129,12 @@ namespace kagome::consensus::grandpa {
                         precommits,
                         graph,
                         clock,
-                        io_context) {
+                        io_context,
+                        finalization_observer) {
     need_to_notice_at_finalizing_ = false;
     last_finalized_block_ = round_state.last_finalized_block;
+
+    setup();
 
     if (round_number_ != 0) {
       // Apply stored votes
@@ -151,8 +160,6 @@ namespace kagome::consensus::grandpa {
       completable_ = true;
       finalized_ = round_state.finalized;
     };
-
-    setup();
   }
 
   void VotingRoundImpl::setup() {
@@ -674,6 +681,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(
         env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
 
+    std::ignore = finalization_observer_->onFinalize(block_info);
+
     need_to_notice_at_finalizing_ = false;
     env_->onCompleted(state());
 
@@ -996,7 +1005,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(vote.is<Precommit>());
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight.has_value()) {
-      logger_->warn("Voter {} is not known: {}", vote.id.toHex());
+      logger_->warn("Voter {} is not known", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
     auto index = voter_set_->voterIndex(vote.id);

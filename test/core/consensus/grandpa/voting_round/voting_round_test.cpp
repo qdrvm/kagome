@@ -16,6 +16,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/consensus/authority/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
+#include "mock/core/consensus/grandpa/finalization_observer_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
@@ -29,6 +30,7 @@ using namespace std::chrono_literals;
 using kagome::authority::AuthorityManagerMock;
 using kagome::clock::SteadyClockImpl;
 using kagome::consensus::grandpa::EnvironmentMock;
+using kagome::consensus::grandpa::FinalizationObserverMock;
 using kagome::consensus::grandpa::GrandpaConfig;
 using kagome::consensus::grandpa::VoteCryptoProviderMock;
 using kagome::crypto::Ed25519Keypair;
@@ -155,6 +157,7 @@ class VotingRoundTest : public testing::Test {
                                                vote_graph_,
                                                clock_,
                                                io_context_,
+                                               finalization_observer_,
                                                previous_round_);
   }
 
@@ -217,6 +220,7 @@ class VotingRoundTest : public testing::Test {
 
   std::shared_ptr<boost::asio::io_context> io_context_ =
       std::make_shared<boost::asio::io_context>();
+  std::shared_ptr<FinalizationObserverMock> finalization_observer_;
 
   std::shared_ptr<VotingRoundMock> previous_round_;
   std::shared_ptr<VotingRoundImpl> round_;

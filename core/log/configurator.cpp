@@ -20,6 +20,7 @@ groups:
   - name: main
     sink: console
     level: debug
+    is_fallback: true
     children:
       - name: libp2p
         level: off
@@ -61,7 +62,13 @@ groups:
           - name: changes_trie
           - name: storage
           - name: pubsub
-          - name: transactions
+      - name: others
+        level: info
+        children:
+          - name: testing
+            level: info
+          - name: debug
+            level: info
 # ----------------
   )");
   }

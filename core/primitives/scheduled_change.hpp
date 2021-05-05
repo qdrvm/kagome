@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE
 #define KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE
 
+#include "consensus/babe/types/epoch_digest.hpp"
 #include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 
@@ -28,6 +29,14 @@ namespace kagome::primitives {
     virtual ~AuthorityListChange() = default;
   };
 
+  struct NextEpochData final : public consensus::EpochDigest {
+    using EpochDigest::EpochDigest;
+  };
+  struct NextConfigData final {
+    std::tuple<uint64_t, uint64_t> ratio;
+    uint8_t second_slot;
+  };
+
   struct ScheduledChange final : public AuthorityListChange {
     using AuthorityListChange::AuthorityListChange;
   };
@@ -43,6 +52,16 @@ namespace kagome::primitives {
   struct Resume final : public DelayInChain {
     using DelayInChain::DelayInChain;
   };
+
+  template <class Stream>
+  Stream &operator<<(Stream &s, const NextConfigData &config) {
+    return s << config.ratio << config.second_slot;
+  }
+
+  template <class Stream>
+  Stream &operator>>(Stream &s, NextConfigData &config) {
+    return s >> config.ratio >> config.second_slot;
+  }
 
   template <class Stream>
   Stream &operator<<(Stream &s, const DelayInChain &delay) {

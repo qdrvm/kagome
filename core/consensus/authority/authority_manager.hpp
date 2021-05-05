@@ -19,7 +19,7 @@ namespace kagome::authority {
      * @return outcome authority set
      */
     virtual outcome::result<std::shared_ptr<const primitives::AuthorityList>>
-    authorities(const primitives::BlockInfo &block) = 0;
+    authorities(const primitives::BlockInfo &block, bool finalized) = 0;
 
     /**
      * @brief Schedule an authority set change after the given delay of N

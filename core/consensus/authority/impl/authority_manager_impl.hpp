@@ -11,6 +11,7 @@
 #include "consensus/grandpa/finalization_observer.hpp"
 
 #include "log/logger.hpp"
+#include "runtime/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
@@ -39,7 +40,7 @@ namespace kagome::authority {
 
     AuthorityManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<primitives::BabeConfiguration> genesis_configuration,
+        std::shared_ptr<runtime::GrandpaApi> grandpa_api_,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::BufferStorage> storage);
 
@@ -55,7 +56,7 @@ namespace kagome::authority {
     void stop();
 
     outcome::result<std::shared_ptr<const primitives::AuthorityList>>
-    authorities(const primitives::BlockInfo &block) override;
+    authorities(const primitives::BlockInfo &block, bool finalized) override;
 
     outcome::result<void> applyScheduledChange(
         const primitives::BlockInfo &block,
@@ -87,13 +88,6 @@ namespace kagome::authority {
         const primitives::BlockInfo &block) override;
 
    private:
-    log::Logger log_;
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
-    std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
-    std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<storage::BufferStorage> storage_;
-    std::shared_ptr<ScheduleNode> root_;
-
     /**
      * @brief Find schedule_node according to the block
      * @param block for whick find schedule node
@@ -110,6 +104,15 @@ namespace kagome::authority {
      */
     bool directChainExists(const primitives::BlockInfo &ancestor,
                            const primitives::BlockInfo &descendant);
+
+    outcome::result<void> save();
+
+    log::Logger log_;
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
+    std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
+    std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<storage::BufferStorage> storage_;
+    std::shared_ptr<ScheduleNode> root_;
   };
 }  // namespace kagome::authority
 

@@ -28,6 +28,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
+      std::shared_ptr<FinalizationObserver> finalization_observer,
       std::shared_ptr<consensus::babe::Babe> babe)
       : app_state_manager_(std::move(app_state_manager)),
         environment_{std::move(environment)},
@@ -38,6 +39,7 @@ namespace kagome::consensus::grandpa {
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
         authority_manager_(std::move(authority_manager)),
+        finalization_observer_(std::move(finalization_observer)),
         babe_(babe) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(environment_ != nullptr);
@@ -47,6 +49,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
+    BOOST_ASSERT(finalization_observer_ != nullptr);
     BOOST_ASSERT(babe_ != nullptr);
 
     app_state_manager_->takeControl(*this);
@@ -166,6 +169,7 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         clock_,
         io_context_,
+        finalization_observer_,
         round_state);
 
     new_round->end();
@@ -222,6 +226,7 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         clock_,
         io_context_,
+        finalization_observer_,
         round);
     return new_round;
   }
@@ -236,20 +241,6 @@ namespace kagome::consensus::grandpa {
       target_round = previous_round_;
     }
     return target_round;
-  }
-
-  outcome::result<std::shared_ptr<VoterSet>> GrandpaImpl::getVoters() const {
-    /*
-     * TODO(kamilsa): PRE-356 Check if voters were updated:
-     * We should check if voters received from runtime (through
-     * grandpa->grandpa_authorities() runtime entry call) differ from the ones
-     * that we obtained from the storage. If so, we should return voter set with
-     * incremented voter set and consisting of new voters. Also round number
-     * should be reset to 0
-     */
-    OUTCOME_TRY(voters_encoded, storage_->get(storage::kAuthoritySetKey));
-    OUTCOME_TRY(voter_set, scale::decode<VoterSet>(voters_encoded));
-    return std::make_shared<VoterSet>(std::move(voter_set));
   }
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
@@ -530,7 +521,7 @@ namespace kagome::consensus::grandpa {
 
     if (current_round_->roundNumber() > justification.round_number) {
       // Possible voter set is changed
-      return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
+      //      return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
     }
 
     MovableRoundState round_state{.round_number = justification.round_number,

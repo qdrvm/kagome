@@ -41,6 +41,7 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
+                std::shared_ptr<FinalizationObserver> finalization_observer,
                 std::shared_ptr<consensus::babe::Babe> babe);
 
     /** @see AppStateManager::takeControl */
@@ -78,7 +79,6 @@ namespace kagome::consensus::grandpa {
 
    private:
     std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);
-    outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(
@@ -106,6 +106,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
+    std::shared_ptr<FinalizationObserver> finalization_observer_;
 
     bool is_ready_ = false;
     std::shared_ptr<consensus::babe::Babe> babe_;

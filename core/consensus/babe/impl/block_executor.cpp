@@ -334,12 +334,6 @@ namespace kagome::consensus {
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
 
-    if (b.justification) {
-      OUTCOME_TRY(grandpa_environment_->applyJustification(
-          primitives::BlockInfo(block.header.number, block_hash),
-          b.justification.value()));
-    }
-
     // observe possible changes of authorities
     for (auto &digest_item : block_without_seal_digest.header.digest) {
       OUTCOME_TRY(visit_in_place(
@@ -352,6 +346,13 @@ namespace kagome::consensus {
                 consensus_message);
           },
           [](const auto &) { return outcome::success(); }));
+    }
+
+    // apply justification if any
+    if (b.justification.has_value()) {
+      OUTCOME_TRY(grandpa_environment_->applyJustification(
+          primitives::BlockInfo(block.header.number, block_hash),
+          b.justification.value()));
     }
 
     // remove block's extrinsics from tx pool
