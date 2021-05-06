@@ -6,12 +6,20 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_MODULE_INSTANCE_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_IMPL_MODULE_INSTANCE_HPP
 
-#include "runtime/wasm_result.hpp"
 #include <string_view>
 
-namespace WAVM::Runtime {
-  class Instance;
-  class Compartment;
+#include <boost/optional.hpp>
+
+#include "runtime/wasm_result.hpp"
+
+namespace WAVM{
+  namespace Runtime {
+    class Instance;
+    class Compartment;
+  }
+  namespace IR {
+    class Value;
+  }
 }
 
 namespace kagome::runtime::wavm {
@@ -23,9 +31,10 @@ namespace kagome::runtime::wavm {
 
     WasmResult callExportFunction(std::string_view name, WasmResult args);
 
+    boost::optional<WAVM::IR::Value> getGlobal(std::string_view name);
+
    private:
     WAVM::Runtime::Instance *instance_;
-
     WAVM::Runtime::Compartment *compartment_;
   };
 

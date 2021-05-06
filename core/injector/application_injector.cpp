@@ -1050,12 +1050,16 @@ namespace {
             }),
         di::bind<runtime::wavm::ModuleRepository>.template to(
             [](const auto &injector) {
+              auto hasher =
+                  injector.template create<std::shared_ptr<crypto::Hasher>>();
+              auto memory = injector.template create<
+                  std::shared_ptr<runtime::wavm::Memory>>();
               auto resolver = injector.template create<
                   std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
               auto code_provider = injector.template create<
                   std::shared_ptr<runtime::RuntimeCodeProvider>>();
               return std::make_shared<runtime::wavm::ModuleRepository>(
-                  resolver, code_provider);
+                  hasher, memory, resolver, code_provider);
             }),
         di::bind<runtime::wavm::Executor>.template to([](const auto &injector) {
           auto host_api =

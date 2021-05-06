@@ -8,10 +8,13 @@
 
 #include <sstream>
 
+#include <boost/assert.hpp>
 #include <soralog/level.hpp>
 #include <soralog/logger.hpp>
 #include <soralog/logging_system.hpp>
 #include <soralog/macro.hpp>
+
+#include "common/hexutil.hpp"
 
 namespace kagome::log {
 
@@ -37,7 +40,12 @@ namespace kagome::log {
 
   template <typename T, typename Ret>
   Ret format_arg(T const& t) {
+    BOOST_ASSERT_MSG(false, "Not implemented");
+    BOOST_UNREACHABLE_RETURN(Ret{});
+  }
 
+  inline std::string_view format_arg(std::string_view s) {
+    return s;
   }
 
   template <typename T,
@@ -53,10 +61,11 @@ namespace kagome::log {
   std::string format_arg(T const &buffer) {
     if (buffer.size() == 0) return "";
     std::string res;
-    if (isalnum(*buffer.begin()) && isalnum(*(buffer.end() - 1))) {
-      res = buffer.toString();
+    if (std::all_of(buffer.begin(), buffer.end(), isalnum)) {
+      res.resize(buffer.size());
+      std::copy_n(buffer.begin(), buffer.size(), res.begin());
     } else {
-      res = buffer.toHex();
+      res = ::kagome::common::hex_lower(buffer);
     }
     if (res.size() > 64) {
       return res.substr(0, 64);
@@ -75,12 +84,12 @@ namespace kagome::log {
                       "{}, ",
                       format_arg(std::forward<Args>(args))),
        ...);
-      logger->trace("call func {}, args: {}, ret: {}",
+      logger->trace("call '{}', args: {}-> ret: {}",
                     func_name,
                     ss,
                     format_arg(std::forward<Ret>(ret)));
     } else {
-      logger->trace("call func {}, ret: {}",
+      logger->trace("call '{}' -> ret: {}",
                     func_name,
                     format_arg(std::forward<Ret>(ret)));
     }
@@ -96,9 +105,9 @@ namespace kagome::log {
                       "{}, ",
                       format_arg(std::forward<Args>(args))),
        ...);
-      logger->trace("call func {}, args: {}", func_name, ss);
+      logger->trace("call '{}', args: {}", func_name, ss);
     } else {
-      logger->trace("call func {}", func_name);
+      logger->trace("call '{}'", func_name);
     }
   }
 

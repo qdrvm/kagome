@@ -26,7 +26,7 @@ namespace kagome::runtime::wavm {
 
     constexpr static uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
-    static inline const uint8_t kAlignment = 8;
+    constexpr static uint8_t kAlignment = 8;
 
     void setHeapBase(WasmSize heap_base);
 
@@ -46,9 +46,21 @@ namespace kagome::runtime::wavm {
     WasmPointer allocate(WasmSize size);
     boost::optional<WasmSize> deallocate(WasmPointer ptr);
 
-    template <typename T>
-    inline T load(WasmPointer addr) const {
-      return *WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, sizeof(T));
+    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    T load(WasmPointer addr) const {
+      auto res = WAVM::Runtime::memoryRef<T>(memory_, addr);
+      SL_TRACE_FUNC_CALL(logger_, res, addr);
+      return res;
+    }
+
+    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    T* loadArray(WasmPointer addr, size_t num) const {
+      if (addr == 1055850) {
+        [](){}();
+      }
+      auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
+      SL_TRACE_FUNC_CALL(logger_, gsl::span<T>(res, num), addr);
+      return res;
     }
 
     int8_t load8s(WasmPointer addr) const;
@@ -65,12 +77,22 @@ namespace kagome::runtime::wavm {
 
     std::string loadStr(WasmPointer addr, WasmSize n) const;
 
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void store(WasmPointer addr, T value) {
+      SL_TRACE_VOID_FUNC_CALL(logger_, addr, value);
       std::memcpy(
-          WAVM::Runtime::memoryArrayPtr<char>(memory_, addr, sizeof(value)),
+          WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, addr, sizeof(value)),
           &value,
           sizeof(value));
+    }
+
+    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    void storeArray(WasmPointer addr, gsl::span<T> array) {
+      SL_TRACE_VOID_FUNC_CALL(logger_, addr, array);
+      std::memcpy(
+          WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, addr, sizeof(array.size_bytes())),
+          array.data(),
+          array.size_bytes());
     }
 
     void store8(WasmPointer addr, int8_t value);

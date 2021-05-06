@@ -27,6 +27,7 @@ namespace kagome::runtime::wavm {
       IntrinsicResolver &resolver) {
     auto instance = WAVM::Runtime::instantiateModule(
         compartment_, module_, link(resolver), "test_module");
+
     return std::make_unique<ModuleInstance>(instance, compartment_);
   }
 

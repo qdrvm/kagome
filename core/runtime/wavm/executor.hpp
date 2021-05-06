@@ -45,6 +45,17 @@ namespace kagome::runtime::wavm {
     }
 
     template <typename Result, typename... Args>
+    outcome::result<Result> persistentCallAt(
+        storage::trie::RootHash const &state,
+        std::string_view name,
+        Args &&...args) {
+      return callInternal<Result>(state,
+                                  CallPersistency::PERSISTENT,
+                                  name,
+                                  std::forward<Args>(args)...);
+    }
+
+    template <typename Result, typename... Args>
     outcome::result<Result> callAtLatest(std::string_view name,
                                          Args &&...args) {
       return callInternal<Result>(storage_provider_->getLatestRoot(),

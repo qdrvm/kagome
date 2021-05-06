@@ -30,11 +30,6 @@ namespace kagome::host_api {
    */
   class CryptoExtension : public std::enable_shared_from_this<CryptoExtension> {
    public:
-    // for some reason, 0 and 5 are used in the reference implementation, so
-    // it's better to stick to them in ours, at least for now
-    static constexpr uint32_t kLegacyVerifySuccess = 0;
-    static constexpr uint32_t kLegacyVerifyFail = 5;
-
     static constexpr uint32_t kVerifyBatchSuccess = 1;
     static constexpr uint32_t kVerifyBatchFail = 0;
     static constexpr uint32_t kVerifySuccess = 1;

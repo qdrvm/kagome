@@ -16,10 +16,10 @@ namespace kagome::runtime::wavm {
 
   std::stack<std::shared_ptr<host_api::HostApi>> st;
 
-  WAVM::Intrinsics::Memory env_memory(
+  WAVM::Intrinsics::Memory env_memory{
       getIntrinsicModule_env(),
       "memory",
-      MemoryType{false, IndexType::i32, SizeConstraints{20, UINT64_MAX}});
+      MemoryType{false, IndexType::i32, SizeConstraints{20, UINT64_MAX}}};
 
 #undef WAVM_DEFINE_INTRINSIC_FUNCTION
 #define WAVM_DEFINE_INTRINSIC_FUNCTION(module, nameString, Result, cName, ...) \

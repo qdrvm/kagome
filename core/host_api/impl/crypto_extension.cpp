@@ -65,8 +65,8 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_keccak_256_version_1(
       runtime::WasmSpan data) {
-    auto [ptr, size] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(ptr, size);
+    auto [addr, len] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(addr, len);
     auto hash = hasher_->keccak_256(buf);
 
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
@@ -76,8 +76,8 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_sha2_256_version_1(
       runtime::WasmSpan data) {
-    auto [ptr, size] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(ptr, size);
+    auto [addr, len] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(addr, len);
     auto hash = hasher_->sha2_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
@@ -86,8 +86,8 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_blake2_128_version_1(
       runtime::WasmSpan data) {
-    auto [ptr, size] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(ptr, size);
+    auto [addr, len] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(addr, len);
     auto hash = hasher_->blake2b_128(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
@@ -96,8 +96,8 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_blake2_256_version_1(
       runtime::WasmSpan data) {
-    auto [ptr, size] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(ptr, size);
+    auto [addr, len] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(addr, len);
     auto hash = hasher_->blake2b_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
@@ -106,8 +106,8 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_64_version_1(
       runtime::WasmSpan data) {
-    auto [ptr, size] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(ptr, size);
+    auto [addr, len] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(addr, len);
     auto hash = hasher_->twox_64(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
@@ -116,8 +116,8 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_128_version_1(
       runtime::WasmSpan data) {
-    auto [ptr, size] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(ptr, size);
+    auto [addr, len] = runtime::WasmResult(data);
+    const auto &buf = memory_->loadN(addr, len);
     auto hash = hasher_->twox_128(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
@@ -153,11 +153,11 @@ namespace kagome::host_api {
     auto &verification_queue = batch_verify_.value();
     while (not verification_queue.empty()) {
       auto single_verification_result = verification_queue.front().get();
-      if (single_verification_result == kLegacyVerifyFail) {
+      if (single_verification_result == kVerifyFail) {
         batch_verify_.reset();
         return kVerifyBatchFail;
       }
-      BOOST_ASSERT_MSG(single_verification_result == kLegacyVerifySuccess,
+      BOOST_ASSERT_MSG(single_verification_result == kVerifySuccess,
                        "Successful verification result must be equal to 0");
       verification_queue.pop();
     }
@@ -299,6 +299,8 @@ namespace kagome::host_api {
                      sign.error().message());
       std::terminate();
     }
+    SL_TRACE_FUNC_CALL(
+        logger_, sign.value(), key_pair.value().public_key, msg_buffer);
     auto buffer = scale::encode(ResultType(sign.value())).value();
     return memory_->storeBuffer(buffer);
   }
@@ -338,19 +340,20 @@ namespace kagome::host_api {
       auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
       auto is_succeeded = result && result.value();
 
-      return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
+      return is_succeeded ? kVerifySuccess : kVerifyFail;
     };
+
     if (batch_verify_.has_value()) {
       auto &verification_queue = batch_verify_.value();
+      SL_TRACE_FUNC_CALL(logger_, "batched", signature, msg, pubkey);
       verification_queue.emplace(
           std::async(std::launch::deferred, std::move(verifier)));
-      return kLegacyVerifySuccess;
-    }
-
-    if (verifier() == kLegacyVerifySuccess) {
       return kVerifySuccess;
     }
-    return kVerifyFail;
+
+    auto res = verifier();
+    SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
+    return res;
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_sr25519_public_keys_version_1(
@@ -372,6 +375,7 @@ namespace kagome::host_api {
       throw std::runtime_error(msg);
     }
     auto buffer = scale::encode(public_keys.value()).value();
+    SL_TRACE_FUNC_CALL(logger_, public_keys.value().size(), key_type_id);
 
     return memory_->storeBuffer(buffer);
   }
@@ -408,12 +412,8 @@ namespace kagome::host_api {
     }
     auto &key_pair = kp_res.value();
 
-    SL_TRACE(logger_,
-             "call {}; type: {}, seed:{}; ret: {}",
-             "ext_crypto_sr25519_generate_version_1",
-             key_type_id,
-             seed_buffer.toHex(),
-             key_pair.public_key);
+    SL_TRACE_FUNC_CALL(logger_, key_pair.public_key, key_type_id, seed_buffer);
+
     common::Buffer buffer(key_pair.public_key);
     runtime::WasmSpan ps = memory_->storeBuffer(buffer);
 
@@ -454,8 +454,11 @@ namespace kagome::host_api {
     if (!sign) {
       logger_->error("failed to sign message, error = {}",
                      sign.error().message());
-      std::terminate();
+      throw std::runtime_error{fmt::format("failed to sign message, error = {}",
+                                           sign.error().message())};
     }
+    SL_TRACE_FUNC_CALL(
+        logger_, sign.value(), key_pair.value().public_key, msg_buffer);
     auto buffer = scale::encode(ResultType(sign.value())).value();
     return memory_->storeBuffer(buffer);
   }
@@ -464,7 +467,6 @@ namespace kagome::host_api {
       runtime::WasmPointer sig,
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
-    SL_TRACE(logger_, "call {}", __FUNCTION__);
     auto [msg_data, msg_len] = runtime::WasmResult(msg_span);
     auto msg = memory_->loadN(msg_data, msg_len);
     auto signature_buffer =
@@ -493,20 +495,21 @@ namespace kagome::host_api {
       }
 
       auto res = self->sr25519_provider_->verify(signature, msg, pubkey);
+
       bool is_succeeded = res && res.value();
-      return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
+      return is_succeeded ? kVerifySuccess : kVerifyFail;
     };
     if (batch_verify_.has_value()) {
       auto &verification_queue = batch_verify_.value();
+      SL_TRACE_FUNC_CALL(logger_, "batched", signature, msg, pubkey_buffer);
       verification_queue.emplace(
           std::async(std::launch::deferred, std::move(verifier)));
-      return kLegacyVerifySuccess;
-    }
-
-    if (verifier() == kLegacyVerifySuccess) {
       return kVerifySuccess;
     }
-    return kVerifyFail;
+
+    auto res = verifier();
+    SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey_buffer);
+    return res;
   }
 
   int32_t CryptoExtension::ext_crypto_sr25519_verify_version_2(
@@ -515,7 +518,8 @@ namespace kagome::host_api {
       runtime::WasmPointer pubkey_data) {
     // TODO(Harrm): this should not support deprecated Schnorr signa-
     // tures introduced by the schnorrkel Rust library version 0.1.1
-    SL_TRACE(logger_, "call {}", "ext_crypto_sr25519_verify_version_2");
+    SL_TRACE_FUNC_CALL(logger_,
+                       "delegate to ext_crypto_sr25519_verify_version_1");
     return ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data);
   }
 
@@ -579,6 +583,7 @@ namespace kagome::host_api {
     auto truncated_span = gsl::span<uint8_t>(public_key.value()).subspan(1, 64);
     auto truncated_public_key =
         ecdsa::PublicKey::fromSpan(truncated_span).value();
+    SL_TRACE_FUNC_CALL(logger_, truncated_public_key, sig_buffer, msg_buffer);
     auto buffer = scale::encode(ResultType(truncated_public_key)).value();
     return memory_->storeBuffer(buffer);
   }
@@ -609,7 +614,7 @@ namespace kagome::host_api {
           scale::encode(static_cast<ResultType>(error_code)).value();
       return memory_->storeBuffer(error_result);
     }
-
+    SL_TRACE_FUNC_CALL(logger_, public_key.value(), sig_buffer, msg_buffer);
     auto buffer = scale::encode(ResultType(public_key.value())).value();
     return memory_->storeBuffer(buffer);
   }

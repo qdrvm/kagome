@@ -90,7 +90,7 @@ namespace kagome::storage::trie {
   common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
     common::Hash256 out;
 
-    BOOST_ASSERT(crypto::blake2b(out.data(),
+    BOOST_VERIFY(crypto::blake2b(out.data(),
                          common::Hash256::size(),
                          nullptr,
                          0,

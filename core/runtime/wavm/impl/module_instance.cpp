@@ -57,4 +57,15 @@ namespace kagome::runtime::wavm {
     return WasmResult{untaggedInvokeResults[0].u64};
   }
 
+  boost::optional<WAVM::IR::Value> ModuleInstance::getGlobal(std::string_view name) {
+    auto global = WAVM::Runtime::asGlobalNullable(
+        WAVM::Runtime::getInstanceExport(instance_, name.data()));
+    if (global == nullptr) return boost::none;
+    // TODO(Harrm) Explore how expensive it is and maybe cache
+    WAVM::Runtime::Context *context =
+        WAVM::Runtime::createContext(compartment_);
+    auto value = WAVM::Runtime::getGlobalValue(context, global);
+    return value;
+  }
+
 }  // namespace kagome::runtime::wavm

@@ -18,7 +18,7 @@ namespace kagome::runtime::wavm {
       : memory_(memory),
         offset_{1},
         heap_base_{kDefaultHeapBase},
-        logger_{log::createLogger("WavmMemory")},
+        logger_{log::createLogger("WavmMemory", "runtime")},
         size_{kInitialMemorySize} {
     BOOST_ASSERT(memory_);
     BOOST_ASSERT(heap_base_ > 0);
@@ -61,7 +61,8 @@ namespace kagome::runtime::wavm {
     // BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (new_offset < static_cast<uint32_t>(ptr)) {  // overflow
       logger_->error(
-          "overflow occurred while trying to allocate {} bytes at offset 0x{:x}",
+          "overflow occurred while trying to allocate {} bytes at offset "
+          "0x{:x}",
           size,
           offset_);
       return 0;
@@ -69,10 +70,13 @@ namespace kagome::runtime::wavm {
     if (new_offset <= this->size()) {
       offset_ = new_offset;
       allocated_[ptr] = size;
+      SL_TRACE_FUNC_CALL(logger_, ptr, size);
       return ptr;
     }
 
-    return freealloc(size);
+    auto res = freealloc(size);
+    SL_TRACE_FUNC_CALL(logger_, res, size);
+    return res;
   }
 
   boost::optional<WasmSize> Memory::deallocate(WasmPointer ptr) {
@@ -84,6 +88,7 @@ namespace kagome::runtime::wavm {
 
     allocated_.erase(ptr);
     deallocated_[ptr] = size;
+    SL_TRACE_FUNC_CALL(logger_, size);
     return size;
   }
 
@@ -161,29 +166,27 @@ namespace kagome::runtime::wavm {
     return load<uint64_t>(addr);
   }
   std::array<uint8_t, 16> Memory::load128(WasmPointer addr) const {
-    return load<std::array<uint8_t, 16>>(addr);
+    auto byte_array = loadArray<uint8_t>(addr, 16);
+    std::array<uint8_t, 16> array;
+    std::copy_n(byte_array, 16, array.begin());
+    return array;
   }
 
   common::Buffer Memory::loadN(kagome::runtime::WasmPointer addr,
                                kagome::runtime::WasmSize n) const {
-    SL_TRACE(logger_, "loadN {} {}", addr, n);
-    // TODO (kamilsa) PRE-98: check if we do not go outside of memory
     common::Buffer res;
-    res.reserve(n);
-    for (auto i = addr; i < addr + n; i++) {
-      res.putUint8(load<uint8_t>(i));
-    }
-    return res;
+    auto byte_array = loadArray<uint8_t>(addr, n);
+    return common::Buffer{byte_array, byte_array + n};
   }
 
   std::string Memory::loadStr(kagome::runtime::WasmPointer addr,
                               kagome::runtime::WasmSize n) const {
-    SL_TRACE(logger_, "loadStr {} {}", addr, n);
     std::string res;
     res.reserve(n);
     for (auto i = addr; i < addr + n; i++) {
       res.push_back(load<uint8_t>(i));
     }
+    SL_TRACE_FUNC_CALL(logger_, res, addr, n);
     return res;
   }
 
@@ -201,26 +204,20 @@ namespace kagome::runtime::wavm {
   }
   void Memory::store128(WasmPointer addr,
                         const std::array<uint8_t, 16> &value) {
-    store<std::array<uint8_t, 16>>(addr, value);
+    storeBuffer(addr, value);
   }
   void Memory::storeBuffer(kagome::runtime::WasmPointer addr,
                            gsl::span<const uint8_t> value) {
-    // TODO (kamilsa) PRE-98: check if we do not go outside of memory
-    // boundaries, 04.04.2019
-    SL_TRACE(logger_, "storeBuffer {} {}", addr, value.size());
-    for (size_t i = addr, j = 0; i < addr + static_cast<size_t>(value.size());
-         i++, j++) {
-      store8(i, value[j]);
-    }
+    storeArray(addr, value);
   }
 
   WasmSpan Memory::storeBuffer(gsl::span<const uint8_t> value) {
     auto wasm_pointer = allocate(value.size());
-    SL_TRACE(logger_, "storeBuffer (alloc) {} {}", wasm_pointer, value.size());
     if (wasm_pointer == 0) {
       return 0;
     }
     storeBuffer(wasm_pointer, value);
-    return WasmResult(wasm_pointer, value.size()).combine();
+    auto res = WasmResult(wasm_pointer, value.size()).combine();
+    return res;
   }
 }  // namespace kagome::runtime::wavm

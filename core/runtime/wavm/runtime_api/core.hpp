@@ -13,9 +13,15 @@ namespace kagome::runtime::wavm {
 
   class WavmCore final: public Core {
    public:
-    WavmCore(std::shared_ptr<Executor> executor)
-        : executor_{std::move(executor)} {
-      BOOST_ASSERT(executor_);
+    WavmCore(std::shared_ptr<Executor> executor,
+             std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
+             std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
+        : executor_{std::move(executor)},
+          changes_tracker_{std::move(changes_tracker)},
+          header_repo_{std::move(header_repo)} {
+      BOOST_ASSERT(executor_ != nullptr);
+      BOOST_ASSERT(changes_tracker_ != nullptr);
+      BOOST_ASSERT(header_repo_ != nullptr);
     }
 
     outcome::result<primitives::Version> version(
@@ -26,14 +32,22 @@ namespace kagome::runtime::wavm {
 
     outcome::result<void> execute_block(
         const primitives::Block &block) override {
-      return executor_->persistentCallAtLatest<void>(
+      OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.header.parent_hash));
+      OUTCOME_TRY(changes_tracker_->onBlockChange(
+          block.header.parent_hash,
+          block.header.number - 1));  // parent's number
+      return executor_->persistentCallAt<void>(parent.state_root,
           "Core_execute_block", block);
     }
 
     outcome::result<void> initialise_block(
         const primitives::BlockHeader &header) override {
-      return executor_->persistentCallAtLatest<void>(
-          "Core_initialise_block", header);
+      auto parent = header_repo_->getBlockHeader(header.parent_hash).value();
+      OUTCOME_TRY(
+          changes_tracker_->onBlockChange(header.parent_hash,
+                                          header.number - 1));  // parent's number
+      return executor_->persistentCallAt<void>(
+          parent.state_root, "Core_initialise_block", header);
     }
 
     outcome::result<std::vector<primitives::AuthorityId>> authorities(
@@ -44,6 +58,8 @@ namespace kagome::runtime::wavm {
 
    private:
     std::shared_ptr<Executor> executor_;
+    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
   };
 

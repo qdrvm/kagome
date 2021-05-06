@@ -13,7 +13,7 @@
 namespace kagome::host_api {
   IOExtension::IOExtension(std::shared_ptr<runtime::wavm::Memory> memory)
       : memory_(std::move(memory)),
-        logger_{log::createLogger("IoExtention", "host_api")} {
+        logger_{log::createLogger("IoExtension", "host_api")} {
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
   }
 

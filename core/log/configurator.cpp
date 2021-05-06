@@ -19,7 +19,7 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: info
+    level: verbose
     children:
       - name: libp2p
       - name: kagome
@@ -52,15 +52,12 @@ groups:
                   - name: voting_round
           - name: runtime
             children:
-              - name: wasm
-                level: info
+              - name: runtime_api
               - name: host_api
-                level: trace
               - name: binaryen
           - name: network
           - name: changes_trie
           - name: storage
-            level: trace
           - name: pubsub
           - name: transactions
           - name: testing

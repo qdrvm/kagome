@@ -9,6 +9,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "blockchain/block_tree_error.hpp"
+#include "clock/impl/clock_impl.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "primitives/common.hpp"
@@ -53,7 +54,7 @@ namespace kagome::consensus {
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
         io_context_(std::move(io_context)),
-        logger_{log::createLogger("BlockExecutor", "block_executor")} {
+        logger_{log::createLogger("BlockExecutor", "block_executor", soralog::Level::DEBUG)} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(genesis_configuration_ != nullptr);
@@ -294,7 +295,7 @@ namespace kagome::consensus {
                 block_tree_->getEpochDescriptor(epoch_number,
                                                 block.header.parent_hash));
 
-    auto& slot_number = babe_header.slot_number;
+    auto &slot_number = babe_header.slot_number;
     SL_TRACE(
         logger_,
         "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "
@@ -328,8 +329,15 @@ namespace kagome::consensus {
 
     // block should be applied without last digest which contains the seal
     block_without_seal_digest.header.digest.pop_back();
+
+    auto exec_start = std::chrono::high_resolution_clock::now();
     // apply block
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
+    auto exec_end = std::chrono::high_resolution_clock::now();
+    logger_->debug("Core_execute_block: {} ms",
+                   std::chrono::duration_cast<std::chrono::milliseconds>(
+                       exec_end - exec_start)
+                       .count());
 
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));

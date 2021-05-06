@@ -127,7 +127,7 @@ namespace kagome::host_api {
     auto option = result ? boost::make_optional(result.value()) : boost::none;
 
     if (option) {
-      SL_TRACE_VOID_FUNC_CALL(logger_, option.value(), key);
+      SL_TRACE_FUNC_CALL(logger_, option.value(), key_buffer);
 
     } else {
       SL_TRACE(
