@@ -13,8 +13,8 @@ namespace kagome::consensus::grandpa {
   /// Structure containing necessary information for running grandpa voting
   /// round
   struct GrandpaConfig {
-//    /// Current round's authorities
-//    std::shared_ptr<VoterSet> voters;
+    /// Current round's authorities
+    std::shared_ptr<VoterSet> voters;
 
     /// Number of round
     RoundNumber round_number;

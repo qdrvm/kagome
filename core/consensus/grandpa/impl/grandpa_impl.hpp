@@ -82,7 +82,8 @@ namespace kagome::consensus::grandpa {
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(
-        const MovableRoundState &round_state);
+        const MovableRoundState &round_state,
+        std::shared_ptr<VoterSet> voters);
 
     std::shared_ptr<VotingRound> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);

@@ -47,7 +47,8 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<FinalizationObserver> finalization_observer)
-      : round_number_{config.round_number},
+      : voter_set_{std::move(config.voters)},
+          round_number_{config.round_number},
         duration_{config.duration},
         id_{config.id},
         grandpa_(grandpa),
@@ -132,7 +133,7 @@ namespace kagome::consensus::grandpa {
                         io_context,
                         finalization_observer) {
     need_to_notice_at_finalizing_ = false;
-    last_finalized_block_ = round_state.last_finalized_block;
+    last_finalized_block_ = round_state.finalized.value();
 
     setup();
 
@@ -163,20 +164,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::setup() {
-    auto authorities_res =
-        authority_manager_->authorities(last_finalized_block_);
-    if (not authorities_res.has_value()) {
-      BOOST_ASSERT(authorities_res.error().message().empty());
-    }
-    auto &authorities = authorities_res.value();
-    auto voters = std::make_shared<VoterSet>(authorities->id);
-    for (const auto &authority : *authorities) {
-      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                     authority.weight);
-    }
-
-    voter_set_ = voters;
-
     // calculate supermajority
     threshold_ = [this] {
       auto faulty = (voter_set_->totalWeight() - 1) / 3;

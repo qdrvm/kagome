@@ -50,6 +50,7 @@ namespace kagome::authority {
       auto authorities_res = grandpa_api_->authorities(
           primitives::BlockId(primitives::BlockNumber{0}));
       auto &authorities = authorities_res.value();
+      authorities.id = 0;
 
       root_ = ScheduleNode::createAsRoot({0, hash});
       root_->actual_authorities =
@@ -83,12 +84,14 @@ namespace kagome::authority {
       auto authorities_res = grandpa_api_->authorities(
           primitives::BlockId(primitives::BlockNumber{0}));
       auto &authorities = authorities_res.value();
+      authorities.id = 0;
 
       root_->actual_authorities =
           std::make_shared<primitives::AuthorityList>(std::move(authorities));
 
-      stop();
+      std::ignore = save();
     }
+     std::ignore = save();
 
     return true;
   }
@@ -122,15 +125,16 @@ namespace kagome::authority {
   }
 
   outcome::result<std::shared_ptr<const primitives::AuthorityList>>
-  AuthorityManagerImpl::authorities(const primitives::BlockInfo &block, bool finalized) {
+  AuthorityManagerImpl::authorities(const primitives::BlockInfo &block,
+                                    bool finalized) {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
     }
 
-//    auto adjusted_node =
-//        (node->block == block) ? node : node->makeDescendant(block);
+    //    auto adjusted_node =
+    //        (node->block == block) ? node : node->makeDescendant(block);
 
     auto adjusted_node = node->makeDescendant(block, finalized);
 
@@ -158,13 +162,16 @@ namespace kagome::authority {
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
 
-    // Schedule change
-    new_node->scheduled_authorities =
+    auto new_authorities =
         std::make_shared<primitives::AuthorityList>(authorities);
+    new_authorities->id = new_node->actual_authorities->id + 1;
+
+    // Schedule change
+    new_node->scheduled_authorities = std::move(new_authorities);
     new_node->scheduled_after = activate_at;
 
     SL_VERBOSE(
-        log_, "Change is scheduled after block #{}", new_node->scheduled_after);
+        log_, "Change is scheduled after block #{} (set id={})", new_node->scheduled_after, new_node->scheduled_authorities->id);
     for (auto &authority : *new_node->scheduled_authorities) {
       SL_VERBOSE(log_,
                  "New authority id={}, weight={}",
@@ -202,10 +209,13 @@ namespace kagome::authority {
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
 
+    auto new_authorities =
+        std::make_shared<primitives::AuthorityList>(authorities);
+    new_authorities->id = new_node->actual_authorities->id + 1;
+
     // Force changes
     if (new_node->block.number >= activate_at) {
-      new_node->actual_authorities =
-          std::make_shared<primitives::AuthorityList>(authorities);
+      new_node->actual_authorities = std::move(new_authorities);
     } else {
       new_node->forced_authorities =
           std::make_shared<primitives::AuthorityList>(authorities);
@@ -417,27 +427,22 @@ namespace kagome::authority {
 
     auto node = getAppropriateAncestor(block);
 
-    // Create new node
-    auto new_node = node->makeDescendant(block, true);
+    if (node->block == block) {
+      // Rebase
+      root_ = std::move(node);
 
-//    // Update actual authorities
-//    auto authorities_res = grandpa_api_->authorities(block.hash);
-//    if (authorities_res.has_value()) {
-//      auto authorities = std::make_shared<primitives::AuthorityList>(
-//          std::move(authorities_res.value()));
-//      new_node->forced_authorities = std::move(authorities);
-//      new_node->forced_for = block.number + 1;
-//    }
+    } else {
+      auto new_node = node->makeDescendant(block, true);
 
-    // Reorganize ancestry
-    for (auto &descendant : std::move(node->descendants)) {
-      if (directChainExists(block, descendant->block)) {
-//        descendant->actual_authorities = new_node->actual_authorities;
-        new_node->descendants.emplace_back(std::move(descendant));
+      // Reorganize ancestry
+      for (auto &descendant : std::move(node->descendants)) {
+        if (directChainExists(block, descendant->block)) {
+          new_node->descendants.emplace_back(std::move(descendant));
+        }
       }
-    }
 
-    root_ = std::move(new_node);
+      root_ = std::move(new_node);
+    }
 
     SL_VERBOSE(
         log_, "Reorganize authority at filalizaion of block #{}", block.number);
