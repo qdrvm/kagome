@@ -183,8 +183,6 @@ namespace kagome::consensus::grandpa {
     MovableRoundState state() const override;
 
    private:
-    void setup();
-
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
 

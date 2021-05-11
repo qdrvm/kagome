@@ -87,9 +87,12 @@ namespace kagome::consensus::grandpa {
              round_state.round_number + 1);
 
     auto authorities_res =
-        authority_manager_->authorities(round_state.finalized.value(), false);
+        authority_manager_->authorities(round_state.last_finalized_block, false);
     if (not authorities_res.has_value()) {
-      BOOST_ASSERT(authorities_res.error().message().empty());
+      logger_->critical(
+          "Can't get authorities: {}. Stopping grandpa execution",
+          authorities_res.error().message());
+      return false;
     }
     auto &authorities = authorities_res.value();
 
@@ -132,7 +135,7 @@ namespace kagome::consensus::grandpa {
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters) {
     auto vote_graph = std::make_shared<VoteGraphImpl>(
-        round_state.finalized.value(), environment_);
+        round_state.last_finalized_block, environment_);
 
     GrandpaConfig config{.voters = std::move(voters),
                          .round_number = round_state.round_number,
@@ -167,8 +170,6 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
-    SL_DEBUG(logger_, "Making next round");
-
     BOOST_ASSERT(round->finalizedBlock().has_value());
 
     BlockInfo best_block = round->finalizedBlock().value();
@@ -376,7 +377,7 @@ namespace kagome::consensus::grandpa {
 
     MovableRoundState round_state{
         .round_number = msg.round_number,
-        .last_finalized_block = msg.best_final_candidate,
+        .last_finalized_block = current_round_->lastFinalizedBlock(),
         .votes = {},
         .finalized = msg.best_final_candidate};
     std::transform(msg.prevote_justification.items.begin(),
@@ -526,10 +527,8 @@ namespace kagome::consensus::grandpa {
         .votes = {},
         .finalized = block_info};
 
-    auto authorities_res = authority_manager_->authorities(
-        round_state.finalized.value(),
-        round_state.finalized.value().number
-            > round_state.last_finalized_block.number);
+    auto authorities_res =
+        authority_manager_->authorities(round_state.last_finalized_block, true);
     if (not authorities_res.has_value()) {
       BOOST_ASSERT(authorities_res.error().message().empty());
     }
@@ -571,7 +570,7 @@ namespace kagome::consensus::grandpa {
     const auto &round_state = round_state_res.value();
 
     logger_->debug(
-        "Save state of finalized round #{}: finalized={}, finalized={}",
+        "Save state of finalized round #{}: finalized={}, finalizing={}",
         round_state.round_number,
         round_state.last_finalized_block.number,
         round_state.finalized.value().number);

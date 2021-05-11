@@ -72,7 +72,22 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(graph_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
 
-    SL_DEBUG(logger_, "Round #{}: is created", round_number_);
+    // calculate supermajority
+    threshold_ = [this] {
+      auto faulty = (voter_set_->totalWeight() - 1) / 3;
+      return voter_set_->totalWeight() - faulty;
+    }();
+
+    auto index = round_number_ % voter_set_->size();
+    isPrimary_ = voter_set_->voters().at(index) == id_;
+
+    prevote_equivocators_.resize(voter_set_->size(), false);
+    precommit_equivocators_.resize(voter_set_->size(), false);
+
+    SL_DEBUG(logger_,
+             "Round #{}: Created with voter set #{}",
+             round_number_,
+             voter_set_->id());
   }
 
   VotingRoundImpl::VotingRoundImpl(
@@ -104,8 +119,6 @@ namespace kagome::consensus::grandpa {
 
     previous_round_ = previous_round;
     last_finalized_block_ = previous_round->finalizedBlock().value();
-
-    setup();
   }
 
   VotingRoundImpl::VotingRoundImpl(
@@ -132,10 +145,9 @@ namespace kagome::consensus::grandpa {
                         clock,
                         io_context,
                         finalization_observer) {
-    need_to_notice_at_finalizing_ = false;
-    last_finalized_block_ = round_state.finalized.value();
+    last_finalized_block_ = round_state.last_finalized_block;
 
-    setup();
+    need_to_notice_at_finalizing_ = false;
 
     if (round_number_ != 0) {
       // Apply stored votes
@@ -160,21 +172,7 @@ namespace kagome::consensus::grandpa {
       // Zero-round is always self-finalized
       completable_ = true;
       finalized_ = round_state.finalized;
-    };
-  }
-
-  void VotingRoundImpl::setup() {
-    // calculate supermajority
-    threshold_ = [this] {
-      auto faulty = (voter_set_->totalWeight() - 1) / 3;
-      return voter_set_->totalWeight() - faulty;
-    }();
-
-    auto index = round_number_ % voter_set_->size();
-    isPrimary_ = voter_set_->voters().at(index) == id_;
-
-    prevote_equivocators_.resize(voter_set_->size(), false);
-    precommit_equivocators_.resize(voter_set_->size(), false);
+    }
   }
 
   void VotingRoundImpl::play() {
@@ -427,10 +425,12 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::end() {
-    SL_DEBUG(logger_, "Round #{}: End round", round_number_);
-    stage_ = Stage::COMPLETED;
-    on_complete_handler_ = nullptr;
-    timer_.cancel();
+    if (stage_ != Stage::COMPLETED) {
+      SL_DEBUG(logger_, "Round #{}: End round", round_number_);
+      stage_ = Stage::COMPLETED;
+      on_complete_handler_ = nullptr;
+      timer_.cancel();
+    }
   }
 
   void VotingRoundImpl::doProposal() {
@@ -644,11 +644,6 @@ namespace kagome::consensus::grandpa {
       return result.as_failure();
     }
 
-    auto finalized = env_->finalize(block_info.hash, justification);
-    if (not finalized) {
-      return finalized.as_failure();
-    }
-
     SL_DEBUG(
         logger_,
         "Round #{}: Finalisation of round is received for block #{} hash={}",
@@ -667,6 +662,11 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(finalizable());
     BOOST_ASSERT(
         env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
+
+    auto finalized = env_->finalize(block_info.hash, justification);
+    if (not finalized) {
+      return finalized.as_failure();
+    }
 
     std::ignore = finalization_observer_->onFinalize(block_info);
 
@@ -1119,8 +1119,10 @@ namespace kagome::consensus::grandpa {
                round_number_);
     } else {
       SL_TRACE(logger_,
-               "Round #{}: updatePrecommitGhost <- finalizable",
-               round_number_);
+               "Round #{}: updatePrecommitGhost <- finalizable (#{}, was #{})",
+               round_number_,
+               new_precommit_ghost.value().number,
+               currend_best.number);
 
       finalized_ = new_precommit_ghost.value();
     }
@@ -1129,13 +1131,12 @@ namespace kagome::consensus::grandpa {
     precommit_ghost_ = new_precommit_ghost.value();
 
     if (changed) {
-      SL_TRACE(
-          logger_,
-          "Round #{}: updatePrecommitGhost->true (precommit ghost was changed "
-          "to block #{} hash={})",
-          round_number_,
-          precommit_ghost_->number,
-          precommit_ghost_->hash.toHex());
+      SL_TRACE(logger_,
+               "Round #{}: updatePrecommitGhost->true "
+               "(precommit ghost was changed to block #{} hash={})",
+               round_number_,
+               precommit_ghost_->number,
+               precommit_ghost_->hash.toHex());
       return true;
     }
 
