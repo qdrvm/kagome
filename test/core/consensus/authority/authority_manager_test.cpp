@@ -36,12 +36,13 @@ class AuthorityManagerTest : public testing::Test {
   void SetUp() override {
     app_state_manager = std::make_shared<application::AppStateManagerMock>();
 
-    genesis_authorities.emplace_back(makeAuthority("GenesisAuthority1", 5));
-    genesis_authorities.emplace_back(makeAuthority("GenesisAuthority2", 10));
-    genesis_authorities.emplace_back(makeAuthority("GenesisAuthority3", 15));
+    configuration = std::make_shared<primitives::BabeConfiguration>();
+    configuration->genesis_authorities = {
+        makeAuthority("GenesisAuthority1", 5),
+        makeAuthority("GenesisAuthority2", 10),
+        makeAuthority("GenesisAuthority3", 15)};
 
     block_tree = std::make_shared<blockchain::BlockTreeMock>();
-    // grandpa_api = std::make_shared<runtime::GrandpaApiMock>();
 
     storage = std::make_shared<StorageMock>();
 
@@ -50,7 +51,7 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*app_state_manager, atShutdown(_));
 
     authority_manager = std::make_shared<AuthorityManager>(
-        app_state_manager, grandpa_api, block_tree, storage);
+        app_state_manager, configuration, block_tree, storage);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
@@ -113,13 +114,13 @@ class AuthorityManagerTest : public testing::Test {
   using StorageMock =
       storage::face::GenericStorageMock<common::Buffer, common::Buffer>;
 
+  static inline const auto schedulerLookupKey =
+      authority::AuthorityManagerImpl::SCHEDULER_TREE;
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
-  std::shared_ptr<runtime::GrandpaApi> grandpa_api;
+  std::shared_ptr<primitives::BabeConfiguration> configuration;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<StorageMock> storage;
   std::shared_ptr<AuthorityManager> authority_manager;
-
-  AuthorityList genesis_authorities;
 
   primitives::Authority makeAuthority(std::string_view id, uint32_t weight) {
     primitives::Authority authority;
@@ -132,11 +133,14 @@ class AuthorityManagerTest : public testing::Test {
 
   /// Init by data from genesis config
   void prepareAuthorityManager() {
-    EXPECT_CALL(*storage, get(storage::kGenesisBlockHashLookupKey))
-        .WillOnce(Return(common::Buffer("GEN"_hash256)));
+    auto node = authority::ScheduleNode::createAsRoot({0, "GEN"_hash256});
+    node->actual_authorities = std::make_shared<primitives::AuthorityList>(
+        configuration->genesis_authorities);
+    EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
+    common::Buffer encoded_data(encode_result.value());
 
-    EXPECT_CALL(*storage, get(authority::AuthorityManagerImpl::SCHEDULER_TREE))
-        .WillOnce(Return(outcome::failure(testutil::DummyError::ERROR)));
+    EXPECT_CALL(*storage, get(schedulerLookupKey))
+        .WillOnce(Return(encoded_data));
 
     authority_manager->prepare();
   }
@@ -149,8 +153,9 @@ class AuthorityManagerTest : public testing::Test {
    */
   void examine(const primitives::BlockInfo &examining_block,
                const primitives::AuthorityList &expected_authorities) {
-    ASSERT_OUTCOME_SUCCESS(actual_authorities_sptr,
-                           authority_manager->authorities(examining_block, true));
+    ASSERT_OUTCOME_SUCCESS(
+        actual_authorities_sptr,
+        authority_manager->authorities(examining_block, false));
     const auto &actual_authorities = *actual_authorities_sptr;
     EXPECT_EQ(actual_authorities, expected_authorities);
   }
@@ -164,7 +169,7 @@ class AuthorityManagerTest : public testing::Test {
 TEST_F(AuthorityManagerTest, InitFromGenesis) {
   prepareAuthorityManager();
 
-  examine({20, "D"_hash256}, genesis_authorities);
+  examine({20, "D"_hash256}, configuration->genesis_authorities);
 }
 
 /**
@@ -183,8 +188,7 @@ TEST_F(AuthorityManagerTest, InitFromStorage) {
   EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
   common::Buffer encoded_data(encode_result.value());
 
-  EXPECT_CALL(*storage, get(authority::AuthorityManagerImpl::SCHEDULER_TREE))
-      .WillOnce(Return(encoded_data));
+  EXPECT_CALL(*storage, get(schedulerLookupKey)).WillOnce(Return(encoded_data));
 
   authority_manager->prepare();
 
@@ -199,8 +203,9 @@ TEST_F(AuthorityManagerTest, InitFromStorage) {
 TEST_F(AuthorityManagerTest, OnFinalize) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(authorities_result,
-                         authority_manager->authorities({10, "B"_hash256}, true));
+  EXPECT_OUTCOME_SUCCESS(
+      authorities_result,
+      authority_manager->authorities({10, "B"_hash256}, true));
 
   auto &orig_authorities = *authorities_result.value();
 
@@ -212,14 +217,15 @@ TEST_F(AuthorityManagerTest, OnFinalize) {
   EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
   common::Buffer encoded_data(std::move(encode_result.value()));
 
-  ON_CALL(*storage, put_rv(_, _))
+  ON_CALL(*storage, put_rv(schedulerLookupKey, _))
       .WillByDefault(testing::Invoke([&encoded_data](auto &key, auto &val) {
         EXPECT_EQ(key, authority::AuthorityManagerImpl::SCHEDULER_TREE);
         EXPECT_EQ(val, encoded_data);
         return outcome::success();
       }));
 
-  EXPECT_CALL(*storage, put_rv(_, _)).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
                          authority_manager->onFinalize({20, "D"_hash256}));
@@ -237,15 +243,17 @@ TEST_F(AuthorityManagerTest, OnFinalize) {
 TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_auth_r,
-                         authority_manager->authorities({20, "D"_hash256}, true));
+  EXPECT_OUTCOME_SUCCESS(
+      old_auth_r, authority_manager->authorities({20, "D"_hash256}, true));
   auto &old_authorities = *old_auth_r.value();
 
-  auto engine_id = primitives::kBabeEngineId;
+  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{5, "A"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
   uint32_t subchain_lenght = 10;
 
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onConsensus(
@@ -259,7 +267,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   examine({20, "D"_hash256}, old_authorities);
   examine({25, "E"_hash256}, old_authorities);
 
-  EXPECT_CALL(*storage, put_rv(_, _)).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
                          authority_manager->onFinalize({20, "D"_hash256}));
 
@@ -276,14 +285,17 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
 TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_auth_r,
-                         authority_manager->authorities({35, "F"_hash256}, true));
+  EXPECT_OUTCOME_SUCCESS(
+      old_auth_r, authority_manager->authorities({35, "F"_hash256}, false));
   auto &old_authorities = *old_auth_r.value();
 
-  auto engine_id = primitives::kBabeEngineId;
+  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{10, "B"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
   uint32_t subchain_lenght = 10;
+
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
@@ -304,21 +316,27 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
  * @when apply Consensus message as DisableAuthority
  * @then actual state was change (disable one of authority) for target block and
  * any one after
+ * @note Disabled because this event type wount be used anymore and must be
+ * ignored
  */
-TEST_F(AuthorityManagerTest, OnConsensus_DisableAuthority) {
+TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         authority_manager->authorities({35, "F"_hash256}, true));
+  EXPECT_OUTCOME_SUCCESS(
+      old_authorities_result,
+      authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_authorities_result.value();
 
-  auto engine_id = primitives::kBabeEngineId;
+  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{10, "B"_hash256};
   size_t authority_index = 1;
 
   primitives::AuthorityList new_authorities = old_authorities;
   assert(new_authorities.size() == 3);
   new_authorities[authority_index].weight = 0;
+
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
@@ -340,14 +358,17 @@ TEST_F(AuthorityManagerTest, OnConsensus_DisableAuthority) {
 TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         authority_manager->authorities({35, "F"_hash256}, true));
+  EXPECT_OUTCOME_SUCCESS(
+      old_authorities_result,
+      authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_authorities_result.value();
 
-  auto engine_id = primitives::kBabeEngineId;
+  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{5, "A"_hash256};
   uint32_t delay = 10;
 
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(
       r1,
       authority_manager->onConsensus(
@@ -364,7 +385,8 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   examine({20, "D"_hash256}, old_authorities);
   examine({25, "E"_hash256}, old_authorities);
 
-  EXPECT_CALL(*storage, put_rv(_, _)).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
                          authority_manager->onFinalize({20, "D"_hash256}));
 
@@ -382,8 +404,9 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
 TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         authority_manager->authorities({35, "F"_hash256}, true));
+  EXPECT_OUTCOME_SUCCESS(
+      old_authorities_result,
+      authority_manager->authorities({35, "F"_hash256}, true));
   auto &enabled_authorities = *old_authorities_result.value();
 
   primitives::AuthorityList disabled_authorities = enabled_authorities;
@@ -394,16 +417,19 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   ASSERT_NE(enabled_authorities, disabled_authorities);
 
   {
-    auto engine_id = primitives::kBabeEngineId;
+    auto engine_id = primitives::kGrandpaEngineId;
     primitives::BlockInfo target_block{5, "A"_hash256};
     uint32_t delay = 5;
 
+    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+        .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(
         r1,
         authority_manager->onConsensus(
             engine_id, target_block, primitives::Pause(delay)));
 
-    EXPECT_CALL(*storage, put_rv(_, _)).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+        .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(finalisation_result,
                            authority_manager->onFinalize({10, "B"_hash256}));
   }
@@ -414,10 +440,12 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   examine({25, "E"_hash256}, disabled_authorities);
 
   {
-    auto engine_id = primitives::kBabeEngineId;
+    auto engine_id = primitives::kGrandpaEngineId;
     primitives::BlockInfo target_block{15, "C"_hash256};
     uint32_t delay = 10;
 
+    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+        .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(
         r1,
         authority_manager->onConsensus(

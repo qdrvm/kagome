@@ -113,14 +113,11 @@ namespace kagome::application {
     virtual uint32_t maxWsConnections() const = 0;
 
     /**
-<<<<<<< HEAD
-=======
      * @return log level (0-trace, 5-only critical, 6-no logs).
      */
     virtual log::Level verbosity() const = 0;
 
     /**
->>>>>>> master
      * If whole nodes was stopped, would not any active node to synchronize.
      * This option gives ability to continue block production at cold start.
      * @return true if need to force block production

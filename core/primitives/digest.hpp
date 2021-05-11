@@ -77,19 +77,34 @@ namespace kagome::primitives {
 
     Consensus() = default;
 
-    Consensus(const OnDisabled&) {}
-
-    template <
-        class A,
-        typename =
-        std::enable_if_t<!std::is_same_v<A, OnDisabled> and !std::is_same_v<A, Consensus>, void>>
-    Consensus(A &&a) : digest(std::forward<A>(a)){};
-
-    template <
-        class A,
-        typename =
-        std::enable_if_t<!std::is_same_v<A, OnDisabled> and !std::is_same_v<A, Consensus>, void>>
-    Consensus(const A &a) : digest(a){};
+    // Note: this ctor is needed only for tests
+    template <class A>
+    Consensus(const A &a) {
+      if constexpr (std::is_same_v<A, NextEpochData>) {
+        consensus_engine_id = primitives::kBabeEngineId;
+        data = common::Buffer(scale::encode(BabeDigest(a)).value());
+      } else if constexpr (std::is_same_v<A, NextConfigData>) {
+        consensus_engine_id = primitives::kBabeEngineId;
+        data = common::Buffer(scale::encode(BabeDigest(a)).value());
+      } else if constexpr (std::is_same_v<A, ScheduledChange>) {
+        consensus_engine_id = primitives::kGrandpaEngineId;
+        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
+      } else if constexpr (std::is_same_v<A, ForcedChange>) {
+        consensus_engine_id = primitives::kGrandpaEngineId;
+        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
+      } else if constexpr (std::is_same_v<A, OnDisabled>) {
+        consensus_engine_id = primitives::kGrandpaEngineId;
+        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
+      } else if constexpr (std::is_same_v<A, Pause>) {
+        consensus_engine_id = primitives::kGrandpaEngineId;
+        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
+      } else if constexpr (std::is_same_v<A, Resume>) {
+        consensus_engine_id = primitives::kGrandpaEngineId;
+        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
+      } else {
+        BOOST_UNREACHABLE_RETURN();
+      }
+    }
 
     outcome::result<void> decode() const {
       if (consensus_engine_id == primitives::kBabeEngineId) {
@@ -121,18 +136,6 @@ namespace kagome::primitives {
    private:
     mutable boost::variant<BabeDigest, GrandpaDigest> digest{};
     mutable bool decoded = false;
-
-    //    template <
-    //        class A,
-    //        typename =
-    //            std::enable_if_t<!std::is_same_v<A, Consensus>, void>>
-    //    Consensus(A &&a) : babe_payload(std::forward<A>(a)){};
-    //
-    //    template <
-    //        class A,
-    //        typename =
-    //            std::enable_if_t<!std::is_same_v<A, Consensus>, void>>
-    //    Consensus(const A &a) : grandpa_payload(a){};
   };
 
   /// Put a Seal on it.

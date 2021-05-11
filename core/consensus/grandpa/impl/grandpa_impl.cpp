@@ -86,7 +86,6 @@ namespace kagome::consensus::grandpa {
              "Grandpa will be started with round #{}",
              round_state.round_number + 1);
 
-    auto n = round_state.finalized.value().number;
     auto authorities_res =
         authority_manager_->authorities(round_state.finalized.value(), false);
     if (not authorities_res.has_value()) {
@@ -389,7 +388,6 @@ namespace kagome::consensus::grandpa {
                    std::back_inserter(round_state.votes),
                    [](auto &item) { return item; });
 
-    auto n = round_state.finalized.value().number;
     auto authorities_res =
         authority_manager_->authorities(round_state.finalized.value(), false);
     if (not authorities_res.has_value()) {
@@ -522,18 +520,12 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
     }
 
-    if (current_round_->roundNumber() > justification.round_number) {
-      // Possible voter set is changed
-      //      return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
-    }
-
     MovableRoundState round_state{
         .round_number = justification.round_number,
         .last_finalized_block = current_round_->lastFinalizedBlock(),
         .votes = {},
         .finalized = block_info};
 
-    auto n = round_state.finalized.value().number;
     auto authorities_res = authority_manager_->authorities(
         round_state.finalized.value(),
         round_state.finalized.value().number

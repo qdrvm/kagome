@@ -18,17 +18,17 @@ namespace kagome::authority {
 
   AuthorityManagerImpl::AuthorityManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<runtime::GrandpaApi> grandpa_api,
+      std::shared_ptr<primitives::BabeConfiguration> genesis_configuration,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::BufferStorage> storage)
       : log_{log::createLogger("AuthorityManager", "authority")},
         app_state_manager_(std::move(app_state_manager)),
-        grandpa_api_(std::move(grandpa_api)),
+        genesis_configuration_(std::move(genesis_configuration)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(grandpa_api_ != nullptr);
+    BOOST_ASSERT(genesis_configuration_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
 
     app_state_manager_->takeControl(*this);
@@ -46,14 +46,9 @@ namespace kagome::authority {
       primitives::BlockHash hash;
       std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
 
-      auto authorities_res = grandpa_api_->authorities(
-          primitives::BlockId(primitives::BlockNumber{0}));
-      auto &authorities = authorities_res.value();
-      authorities.id = 0;
-
       root_ = ScheduleNode::createAsRoot({0, hash});
-      root_->actual_authorities =
-          std::make_shared<primitives::AuthorityList>(std::move(authorities));
+      root_->actual_authorities = std::make_shared<primitives::AuthorityList>(
+          genesis_configuration_->genesis_authorities);
 
       std::ignore = save();
       return true;
@@ -68,29 +63,6 @@ namespace kagome::authority {
     auto &root = root_res.value();
 
     root_ = std::move(root);
-
-    if (root_->block.number == 0) {
-      auto hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
-      if (not hash_res.has_value()) {
-        log_->critical("Can't decode genesis block hash");
-        return false;
-      }
-
-      primitives::BlockHash &hash =
-          const_cast<primitives::BlockHash &>(root_->block.hash);
-      std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
-
-      auto authorities_res = grandpa_api_->authorities(
-          primitives::BlockId(primitives::BlockNumber{0}));
-      auto &authorities = authorities_res.value();
-      authorities.id = 0;
-
-      root_->actual_authorities =
-          std::make_shared<primitives::AuthorityList>(std::move(authorities));
-
-      std::ignore = save();
-    }
-    std::ignore = save();
 
     return true;
   }
@@ -131,9 +103,6 @@ namespace kagome::authority {
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
     }
-
-    //    auto adjusted_node =
-    //        (node->block == block) ? node : node->makeDescendant(block);
 
     auto adjusted_node = node->makeDescendant(block, finalized);
 
@@ -225,7 +194,7 @@ namespace kagome::authority {
 
     SL_VERBOSE(
         log_, "Change is forced on block #{}", new_node->scheduled_after);
-    for (auto &authority : *new_node->scheduled_authorities) {
+    for (auto &authority : *new_node->forced_authorities) {
       SL_VERBOSE(log_,
                  "New authority id={}, weight={}",
                  authority.id.id,
@@ -366,21 +335,18 @@ namespace kagome::authority {
       const primitives::Consensus &message) {
     OUTCOME_TRY(message.decode());
     if (engine_id == primitives::kBabeEngineId) {
+      // TODO(xDimon): Perhaps it needs to be refactored.
+      //  It is better handle babe digests here
       return visit_in_place(
           message.asBabeDigest(),
-          [this, &block](
-              const primitives::NextEpochData &msg) -> outcome::result<void> {
-            (void)this;
-            (void)block;
+          [](const primitives::NextEpochData &msg) -> outcome::result<void> {
             return outcome::success();
           },
           [](const primitives::OnDisabled &msg) {
             // Note: This event type wount be used anymore and must be ignored
             return outcome::success();
           },
-          [this, &block](const primitives::NextConfigData &msg) {
-            (void)this;
-            (void)block;
+          [](const primitives::NextConfigData &msg) {
             return outcome::success();
           },
           [](auto &) {

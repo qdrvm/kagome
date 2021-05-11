@@ -190,7 +190,7 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
     * Merkle-Patricia trie implementation, described in spec
 * Clock
     * Gets current time for the peer
-* GrandpaConsensusDigest
+* Consensus
     * Babe block production
     * Grandpa finalization
 * Crypto

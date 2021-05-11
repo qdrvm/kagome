@@ -11,7 +11,7 @@
 #include "consensus/grandpa/finalization_observer.hpp"
 
 #include "log/logger.hpp"
-#include "runtime/grandpa_api.hpp"
+#include "primitives/babe_configuration.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::application {
@@ -40,7 +40,7 @@ namespace kagome::authority {
 
     AuthorityManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
-        std::shared_ptr<runtime::GrandpaApi> grandpa_api_,
+        std::shared_ptr<primitives::BabeConfiguration> genesis_configuration,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<storage::BufferStorage> storage);
 
@@ -109,7 +109,7 @@ namespace kagome::authority {
 
     log::Logger log_;
     std::shared_ptr<application::AppStateManager> app_state_manager_;
-    std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
+    std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<ScheduleNode> root_;
