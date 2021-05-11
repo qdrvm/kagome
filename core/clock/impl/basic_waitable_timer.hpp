@@ -16,7 +16,8 @@ namespace kagome::clock {
    */
   class BasicWaitableTimer : public Timer {
    public:
-    explicit BasicWaitableTimer(boost::asio::io_context &io_context);
+    explicit BasicWaitableTimer(
+        std::shared_ptr<boost::asio::io_context> io_context);
 
     ~BasicWaitableTimer() override = default;
 
@@ -30,6 +31,7 @@ namespace kagome::clock {
         const std::function<void(const std::error_code &)> &h) override;
 
    private:
+    std::shared_ptr<boost::asio::io_context> io_context_;
     boost::asio::basic_waitable_timer<std::chrono::system_clock> timer_;
   };
 }  // namespace kagome::clock
