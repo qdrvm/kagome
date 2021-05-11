@@ -48,7 +48,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<FinalizationObserver> finalization_observer)
       : voter_set_{std::move(config.voters)},
-          round_number_{config.round_number},
+        round_number_{config.round_number},
         duration_{config.duration},
         id_{config.id},
         grandpa_(grandpa),

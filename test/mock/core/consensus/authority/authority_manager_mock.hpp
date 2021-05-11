@@ -13,10 +13,10 @@
 
 namespace kagome::authority {
   struct AuthorityManagerMock : public AuthorityManager {
-    MOCK_METHOD1(
+    MOCK_METHOD2(
         authorities,
         outcome::result<std::shared_ptr<const primitives::AuthorityList>>(
-            const primitives::BlockInfo &));
+            const primitives::BlockInfo &, bool));
 
     MOCK_METHOD3(applyScheduledChange,
                  outcome::result<void>(const primitives::BlockInfo &,

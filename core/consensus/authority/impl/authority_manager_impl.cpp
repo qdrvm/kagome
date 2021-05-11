@@ -11,7 +11,6 @@
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
 #include "consensus/authority/impl/schedule_node.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
 
@@ -91,7 +90,7 @@ namespace kagome::authority {
 
       std::ignore = save();
     }
-     std::ignore = save();
+    std::ignore = save();
 
     return true;
   }
@@ -170,8 +169,10 @@ namespace kagome::authority {
     new_node->scheduled_authorities = std::move(new_authorities);
     new_node->scheduled_after = activate_at;
 
-    SL_VERBOSE(
-        log_, "Change is scheduled after block #{} (set id={})", new_node->scheduled_after, new_node->scheduled_authorities->id);
+    SL_VERBOSE(log_,
+               "Change is scheduled after block #{} (set id={})",
+               new_node->scheduled_after,
+               new_node->scheduled_authorities->id);
     for (auto &authority : *new_node->scheduled_authorities) {
       SL_VERBOSE(log_,
                  "New authority id={}, weight={}",

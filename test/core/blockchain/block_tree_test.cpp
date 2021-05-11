@@ -281,7 +281,7 @@ TEST_F(BlockTreeTest, GetChainByBlockOnly) {
 
   BlockHeader header2{.parent_hash = hash1,
                       .number = header1.number + 1,
-                      .digest = {GrandpaConsensusDigest{}}};
+                      .digest = {Consensus{}}};
   BlockBody body2{{Buffer{0x55, 0x55}}};
   Block block2{header2, body2};
   auto hash2 = addBlock(block2);
@@ -311,7 +311,7 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
 
   header = BlockHeader{.parent_hash = hash1,
                        .number = kFinalizedBlockInfo.number + 2,
-                       .digest = {GrandpaConsensusDigest{}}};
+                       .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -342,7 +342,7 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
 
   header = BlockHeader{.parent_hash = hash1,
                        .number = kFinalizedBlockInfo.number + 2,
-                       .digest = {GrandpaConsensusDigest{}}};
+                       .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);

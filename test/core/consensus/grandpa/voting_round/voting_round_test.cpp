@@ -116,17 +116,23 @@ class VotingRoundTest : public testing::Test {
     authorities->emplace_back(Authority{{kEve}, kEveWeight});
 
     authority_manager_ = std::make_shared<AuthorityManagerMock>();
-    EXPECT_CALL(*authority_manager_, authorities(_))
+    EXPECT_CALL(*authority_manager_, authorities(_, _))
         .Times(AnyNumber())
         .WillRepeatedly(Return(authorities));
 
-    env_ = std::make_shared<EnvironmentMock>();
-    vote_graph_ = std::make_shared<VoteGraphImpl>(base, env_);
+    auto voters = std::make_shared<VoterSet>(authorities->id);
+    for (const auto &authority : *authorities) {
+      voters->insert(kagome::primitives::GrandpaSessionKey(authority.id.id),
+                     authority.weight);
+    }
 
-    GrandpaConfig config{//.voters = voters_,
+    GrandpaConfig config{.voters = std::move(voters),
                          .round_number = round_number_,
                          .duration = duration_,
                          .id = kAlice};
+
+    env_ = std::make_shared<EnvironmentMock>();
+    vote_graph_ = std::make_shared<VoteGraphImpl>(base, env_);
 
     previous_round_ = std::make_shared<VotingRoundMock>();
     ON_CALL(*previous_round_, lastFinalizedBlock())
@@ -135,8 +141,6 @@ class VotingRoundTest : public testing::Test {
         .WillByDefault(Return(BlockInfo{2, "B"_H}));
     ON_CALL(*previous_round_, bestPrecommitCandidate())
         .WillByDefault(Return(BlockInfo{3, "C"_H}));
-    //    ON_CALL(*previous_round_, bestFinalCandidate())
-    //        .WillByDefault(Return(BlockInfo{3, "C"_H}));
     EXPECT_CALL(*previous_round_, bestFinalCandidate())
         .Times(AnyNumber())
         .WillRepeatedly(Return(BlockInfo{3, "C"_H}));
@@ -198,8 +202,6 @@ class VotingRoundTest : public testing::Test {
   RoundNumber round_number_{0};
   Duration duration_{100ms};
   TimePoint start_time_{42h};
-  MembershipCounter counter_{0};
-  std::shared_ptr<VoterSet> voters_ = std::make_shared<VoterSet>(counter_);
 
   Ed25519Keypair keypair_;
   std::shared_ptr<VoteCryptoProviderMock> vote_crypto_provider_ =

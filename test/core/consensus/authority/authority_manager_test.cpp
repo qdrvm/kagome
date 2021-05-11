@@ -150,7 +150,7 @@ class AuthorityManagerTest : public testing::Test {
   void examine(const primitives::BlockInfo &examining_block,
                const primitives::AuthorityList &expected_authorities) {
     ASSERT_OUTCOME_SUCCESS(actual_authorities_sptr,
-                           authority_manager->authorities(examining_block));
+                           authority_manager->authorities(examining_block, true));
     const auto &actual_authorities = *actual_authorities_sptr;
     EXPECT_EQ(actual_authorities, expected_authorities);
   }
@@ -200,7 +200,7 @@ TEST_F(AuthorityManagerTest, OnFinalize) {
   prepareAuthorityManager();
 
   EXPECT_OUTCOME_SUCCESS(authorities_result,
-                         authority_manager->authorities({10, "B"_hash256}));
+                         authority_manager->authorities({10, "B"_hash256}, true));
 
   auto &orig_authorities = *authorities_result.value();
 
@@ -238,7 +238,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   prepareAuthorityManager();
 
   EXPECT_OUTCOME_SUCCESS(old_auth_r,
-                         authority_manager->authorities({20, "D"_hash256}));
+                         authority_manager->authorities({20, "D"_hash256}, true));
   auto &old_authorities = *old_auth_r.value();
 
   auto engine_id = primitives::kBabeEngineId;
@@ -277,7 +277,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   prepareAuthorityManager();
 
   EXPECT_OUTCOME_SUCCESS(old_auth_r,
-                         authority_manager->authorities({35, "F"_hash256}));
+                         authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_auth_r.value();
 
   auto engine_id = primitives::kBabeEngineId;
@@ -309,7 +309,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_DisableAuthority) {
   prepareAuthorityManager();
 
   EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         authority_manager->authorities({35, "F"_hash256}));
+                         authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_authorities_result.value();
 
   auto engine_id = primitives::kBabeEngineId;
@@ -341,7 +341,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   prepareAuthorityManager();
 
   EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         authority_manager->authorities({35, "F"_hash256}));
+                         authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_authorities_result.value();
 
   auto engine_id = primitives::kBabeEngineId;
@@ -383,7 +383,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   prepareAuthorityManager();
 
   EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         authority_manager->authorities({35, "F"_hash256}));
+                         authority_manager->authorities({35, "F"_hash256}, true));
   auto &enabled_authorities = *old_authorities_result.value();
 
   primitives::AuthorityList disabled_authorities = enabled_authorities;

@@ -77,6 +77,20 @@ namespace kagome::primitives {
 
     Consensus() = default;
 
+    Consensus(const OnDisabled&) {}
+
+    template <
+        class A,
+        typename =
+        std::enable_if_t<!std::is_same_v<A, OnDisabled> and !std::is_same_v<A, Consensus>, void>>
+    Consensus(A &&a) : digest(std::forward<A>(a)){};
+
+    template <
+        class A,
+        typename =
+        std::enable_if_t<!std::is_same_v<A, OnDisabled> and !std::is_same_v<A, Consensus>, void>>
+    Consensus(const A &a) : digest(a){};
+
     outcome::result<void> decode() const {
       if (consensus_engine_id == primitives::kBabeEngineId) {
         if (not decoded) {
@@ -105,7 +119,7 @@ namespace kagome::primitives {
     }
 
    private:
-    mutable boost::variant<BabeDigest, GrandpaDigest> digest;
+    mutable boost::variant<BabeDigest, GrandpaDigest> digest{};
     mutable bool decoded = false;
 
     //    template <
