@@ -16,20 +16,20 @@ namespace kagome::consensus::grandpa {
       RoundNumber round_number,
       std::shared_ptr<VoterSet> voter_set)
       : keypair_{keypair},
-      ed_provider_{std::move(ed_provider)},
-      round_number_{round_number},
-      voter_set_{std::move(voter_set)} {}
+        ed_provider_{std::move(ed_provider)},
+        round_number_{round_number},
+        voter_set_{std::move(voter_set)} {}
 
   boost::optional<SignedMessage> VoteCryptoProviderImpl::sign(Vote vote) const {
     if (not keypair_.has_value()) {
       return boost::none;
     }
-    auto& keypair = keypair_.value();
+    auto &keypair = keypair_.value();
     auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
     auto signature = ed_provider_->sign(keypair, payload).value();
     return {{.message = std::move(vote),
-                .signature = signature,
-                .id = keypair.public_key}};
+             .signature = signature,
+             .id = keypair.public_key}};
   }
 
   bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,

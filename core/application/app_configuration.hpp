@@ -70,6 +70,11 @@ namespace kagome::application {
         const = 0;
 
     /**
+     * @return the path to key used for libp2p networking
+     */
+    virtual const boost::optional<std::string> &nodeKeyFile() const = 0;
+
+    /**
      * @return port for peer to peer interactions.
      */
     virtual uint16_t p2pPort() const = 0;
@@ -103,11 +108,19 @@ namespace kagome::application {
     virtual const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const = 0;
 
     /**
+     * @return maximum number of WS RPC connections
+     */
+    virtual uint32_t maxWsConnections() const = 0;
+
+    /**
+<<<<<<< HEAD
+=======
      * @return log level (0-trace, 5-only critical, 6-no logs).
      */
     virtual log::Level verbosity() const = 0;
 
     /**
+>>>>>>> master
      * If whole nodes was stopped, would not any active node to synchronize.
      * This option gives ability to continue block production at cold start.
      * @return true if need to force block production

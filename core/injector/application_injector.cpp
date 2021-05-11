@@ -150,10 +150,10 @@ namespace {
   }
 
   sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
+      application::AppConfiguration const &app_config,
       api::WsSession::Configuration ws_session_config,
       sptr<api::RpcContext> context,
-      sptr<application::AppStateManager> app_state_manager,
-      const boost::asio::ip::tcp::endpoint &endpoint) {
+      sptr<application::AppStateManager> app_state_manager) {
     static auto initialized =
         boost::optional<sptr<api::WsListenerImpl>>(boost::none);
     if (initialized) {
@@ -161,7 +161,8 @@ namespace {
     }
 
     api::WsListenerImpl::Configuration listener_config;
-    listener_config.endpoint = endpoint;
+    listener_config.endpoint = app_config.rpcWsEndpoint();
+    listener_config.ws_max_connections = app_config.maxWsConnections();
 
     auto listener =
         std::make_shared<api::WsListenerImpl>(app_state_manager,
@@ -186,51 +187,7 @@ namespace {
     }
 
     auto storage_res = blockchain::KeyValueBlockStorage::create(
-        trie_storage->getRootHash(),
-        db,
-        hasher,
-        [/*&db, &grandpa_api*/](const primitives::Block &genesis_block) {
-          // handle genesis initialization, which happens when there is not
-          // authorities and last completed round in the storage
-          //          if (not db->get(storage::kAuthoritySetKey)) {
-          //            // insert authorities
-          //            const auto &weighted_authorities_res =
-          //            grandpa_api->authorities(
-          //                primitives::BlockId(primitives::BlockNumber{0}));
-          //            BOOST_ASSERT_MSG(weighted_authorities_res,
-          //                             "grandpa_api_->authorities failed");
-          //            const auto &weighted_authorities =
-          //            weighted_authorities_res.value();
-          //
-          //            auto log = log::createLogger("Injector", "kagome");
-          //
-          //            for (const auto &authority : weighted_authorities) {
-          //              log->info("Grandpa authority: {}",
-          //              authority.id.id.toHex());
-          //            }
-          //
-          //            consensus::grandpa::VoterSet voters{0};
-          //            for (const auto &weighted_authority :
-          //            weighted_authorities) {
-          //              voters.insert(
-          //                  primitives::GrandpaSessionKey{weighted_authority.id.id},
-          //                  weighted_authority.weight);
-          //              SL_DEBUG(log,
-          //                       "Added to grandpa authorities: {}, weight:
-          //                       {}", weighted_authority.id.id.toHex(),
-          //                       weighted_authority.weight);
-          //            }
-          //            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are
-          //            empty"); auto authorities_put_res =
-          //                db->put(storage::kAuthoritySetKey,
-          //                        common::Buffer(scale::encode(voters).value()));
-          //            if (not authorities_put_res) {
-          //              BOOST_ASSERT_MSG(false, "Could not insert
-          //              authorities");
-          //              BOOST_UNREACHABLE_RETURN(std::exit(EXIT_FAILURE));
-          //            }
-          //          }
-        });
+        trie_storage->getRootHash(), db, hasher, [](auto...) {});
     if (storage_res.has_error()) {
       common::raise(storage_res.error());
     }
@@ -470,7 +427,7 @@ namespace {
     auto log = log::createLogger("Injector", "kagome");
 
     if (app_config.nodeKey()) {
-      log->info("Will use LibP2P keypair from config or args");
+      log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
@@ -490,8 +447,27 @@ namespace {
       return initialized.value();
     }
 
+    if (app_config.nodeKeyFile()) {
+      const auto &path = app_config.nodeKeyFile().value();
+      log->info(
+          "Will use LibP2P keypair from config or 'node-key-file' CLI arg");
+      auto key = crypto_store.loadLibp2pKeypair(path);
+      if (key.has_error()) {
+        log->error("Unable to load user provided key from {}. Error: {}",
+                   path,
+                   key.error().message());
+      } else {
+        auto key_pair =
+            std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
+        initialized.emplace(std::move(key_pair));
+        return initialized.value();
+      }
+    }
+
     if (crypto_store.getLibp2pKeypair().has_value()) {
-      log->info("Will use LibP2P keypair from config or args");
+      log->info(
+          "Will use LibP2P keypair from config or args (loading from base "
+          "path)");
 
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 
@@ -843,10 +819,8 @@ namespace {
               injector.template create<sptr<application::AppStateManager>>();
           const application::AppConfiguration &app_config =
               injector.template create<application::AppConfiguration const &>();
-          auto &endpoint = app_config.rpcWsEndpoint();
-
           return get_jrpc_api_ws_listener(
-              config, context, app_state_manager, endpoint);
+              app_config, config, context, app_state_manager);
         }),
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],
@@ -1322,6 +1296,13 @@ namespace kagome::injector {
   std::shared_ptr<consensus::grandpa::Grandpa>
   KagomeNodeInjector::injectGrandpa() {
     return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
+  }
+
+  std::shared_ptr<soralog::LoggingSystem>
+  KagomeNodeInjector::injectLoggingSystem() {
+    return std::make_shared<soralog::LoggingSystem>(
+        std::make_shared<kagome::log::Configurator>(
+            pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));
   }
 
 }  // namespace kagome::injector

@@ -33,12 +33,17 @@ namespace kagome::crypto {
     MOCK_CONST_METHOD2(
         findSr25519Keypair,
         outcome::result<Sr25519Keypair>(KeyTypeId, const Sr25519PublicKey &));
-    MOCK_CONST_METHOD1(getEd25519PublicKeys, outcome::result<Ed25519Keys>(KeyTypeId));
-    MOCK_CONST_METHOD1(getSr25519PublicKeys, outcome::result<Sr25519Keys>(KeyTypeId));
+    MOCK_CONST_METHOD1(getEd25519PublicKeys,
+                       outcome::result<Ed25519Keys>(KeyTypeId));
+    MOCK_CONST_METHOD1(getSr25519PublicKeys,
+                       outcome::result<Sr25519Keys>(KeyTypeId));
 
     MOCK_CONST_METHOD0(getGrandpaKeypair, boost::optional<Ed25519Keypair>());
     MOCK_CONST_METHOD0(getBabeKeypair, boost::optional<Sr25519Keypair>());
-    MOCK_CONST_METHOD0(getLibp2pKeypair, boost::optional<libp2p::crypto::KeyPair>());
+    MOCK_CONST_METHOD0(getLibp2pKeypair,
+                       boost::optional<libp2p::crypto::KeyPair>());
+    MOCK_CONST_METHOD1(loadLibp2pKeypair,
+                 outcome::result<libp2p::crypto::KeyPair>(const Path &));
   };
 }  // namespace kagome::crypto
 

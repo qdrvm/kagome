@@ -86,6 +86,7 @@ struct ListenerTest : public ::testing::Test {
     typename ListenerImpl::Configuration config{};
     config.endpoint.address(boost::asio::ip::address::from_string("127.0.0.1"));
     config.endpoint.port(4321);
+    config.ws_max_connections = 100;
     return config;
   }();
 

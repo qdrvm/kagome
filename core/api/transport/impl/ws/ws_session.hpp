@@ -24,6 +24,7 @@ namespace kagome::api {
   class WsSession : public Session,
                     public std::enable_shared_from_this<WsSession> {
     using WsError = boost::beast::websocket::error;
+    using OnWsSessionCloseHandler = std::function<void()>;
 
    public:
     struct Configuration {
@@ -73,11 +74,29 @@ namespace kagome::api {
      */
     void respond(std::string_view response) override;
 
+    /**
+     * @brief Closes the incoming connection with "try again later" response
+     */
+    void reject();
+
+    /**
+     * @brief connects `on websocket close` callback.
+     * Used to maintain the maximum number of simultaneous sessions
+     * @param handler `on close` event handler
+     */
+    void connectOnWsSessionCloseHandler(OnWsSessionCloseHandler &&handler);
+
    private:
     /**
      * @brief stops session
      */
     void stop();
+
+    /**
+     * @brief stops session specifying the reason
+     * @param code for close reason
+     */
+    void stop(boost::beast::websocket::close_code code);
 
     /**
      * @brief process received websocket frame, compose and execute response
@@ -139,6 +158,7 @@ namespace kagome::api {
     std::atomic_bool writing_in_progress_ = false;
 
     SessionId const id_;
+    OnWsSessionCloseHandler on_ws_close_;
     log::Logger logger_ = log::createLogger("WsSession", "rpc_transport");
   };
 

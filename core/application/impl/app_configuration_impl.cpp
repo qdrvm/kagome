@@ -36,12 +36,13 @@ namespace {
   const std::string def_rpc_ws_host = "0.0.0.0";
   const uint16_t def_rpc_http_port = 9933;
   const uint16_t def_rpc_ws_port = 9944;
+  const uint32_t def_ws_max_connections = 100;
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
   const bool def_dev_mode = false;
-  const kagome::network::Roles def_roles = []{
+  const kagome::network::Roles def_roles = [] {
     kagome::network::Roles roles;
     roles.flags.full = 1;
     return roles;
@@ -80,7 +81,8 @@ namespace kagome::application {
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
         dev_mode_(def_dev_mode),
-        node_name_(randomNodeName()) {}
+        node_name_(randomNodeName()),
+        max_ws_connections_(def_ws_max_connections) {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -174,7 +176,7 @@ namespace kagome::application {
   void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
-    if (validator_mode){
+    if (validator_mode) {
       roles_.flags.authority = 1;
     }
 
@@ -209,6 +211,7 @@ namespace kagome::application {
     load_u16(val, "rpc-port", rpc_http_port_);
     load_str(val, "ws-host", rpc_ws_host_);
     load_u16(val, "ws-port", rpc_ws_port_);
+    load_u32(val, "ws-max-connections", max_ws_connections_);
     load_str(val, "name", node_name_);
   }
 
@@ -354,12 +357,14 @@ namespace kagome::application {
         ("listen-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses the node listens for open connections on")
         ("public-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses that other nodes use to connect to it")
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
+        ("node-key-file", po::value<std::string>(), "path to the secret key used for libp2p networking (raw binary or hex-encoded")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc-host", po::value<std::string>(), "address for RPC over HTTP")
         ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP")
         ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
         ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
+        ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
@@ -547,6 +552,13 @@ namespace kagome::application {
       node_key_.emplace(std::move(key_res.value()));
     }
 
+    if (not node_key_.has_value()) {
+      find_argument<std::string>(
+          vm, "node-key-file", [&](const std::string &val) {
+            node_key_file_ = val;
+          });
+    }
+
     find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
 
     auto parse_multiaddrs =
@@ -648,6 +660,10 @@ namespace kagome::application {
 
     find_argument<uint16_t>(
         vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
+
+    find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
+      max_ws_connections_ = val;
+    });
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);

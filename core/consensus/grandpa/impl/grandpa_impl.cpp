@@ -132,22 +132,6 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters) {
-    //    auto n = round_state.finalized.value().number;
-    //    auto authorities_res = authority_manager_->authorities(
-    //        round_state.finalized.value(),
-    //        round_state.last_finalized_block.number
-    //            < round_state.finalized.value().number);
-    //    if (not authorities_res.has_value()) {
-    //      BOOST_ASSERT(authorities_res.error().message().empty());
-    //    }
-    //    auto &authorities = authorities_res.value();
-    //
-    //    auto voters = std::make_shared<VoterSet>(authorities->id);
-    //    for (const auto &authority : *authorities) {
-    //      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-    //                     authority.weight);
-    //    }
-
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.finalized.value(), environment_);
 

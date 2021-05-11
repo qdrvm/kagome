@@ -19,7 +19,7 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: trace
+    level: debug
     is_fallback: true
     children:
       - name: libp2p
