@@ -8,7 +8,6 @@
 
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
-#include "consensus/grandpa/finalization_observer.hpp"
 
 #include "log/logger.hpp"
 #include "primitives/babe_configuration.hpp"
@@ -30,8 +29,7 @@ namespace kagome::primitives {
 
 namespace kagome::authority {
   class AuthorityManagerImpl : public AuthorityManager,
-                               public AuthorityUpdateObserver,
-                               public consensus::grandpa::FinalizationObserver {
+                               public AuthorityUpdateObserver {
    public:
     inline static const std::vector<primitives::ConsensusEngineId>
         known_engines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
@@ -84,8 +82,7 @@ namespace kagome::authority {
         const primitives::BlockInfo &block,
         const primitives::Consensus &message) override;
 
-    outcome::result<void> onFinalize(
-        const primitives::BlockInfo &block) override;
+    outcome::result<void> prune(const primitives::BlockInfo &block) override;
 
    private:
     /**

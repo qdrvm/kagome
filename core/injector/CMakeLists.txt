@@ -84,5 +84,4 @@ target_link_libraries(application_injector
     sup_protocol
     sync_protocol
     protocol_factory
-    finalization_composite
     )

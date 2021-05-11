@@ -13,7 +13,6 @@
 
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
 #include "consensus/grandpa/structs.hpp"
@@ -38,8 +37,7 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<VoteTracker> precommits,
         std::shared_ptr<VoteGraph> graph,
         std::shared_ptr<Clock> clock,
-        std::shared_ptr<boost::asio::io_context> io_context,
-        std::shared_ptr<FinalizationObserver> finalization_observer);
+        std::shared_ptr<boost::asio::io_context> io_context);
 
    public:
     VotingRoundImpl(
@@ -53,7 +51,6 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteGraph> &graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<boost::asio::io_context> &io_context,
-        const std::shared_ptr<FinalizationObserver> &finalization_observer,
         const MovableRoundState &round_state);
 
     VotingRoundImpl(
@@ -67,7 +64,6 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteGraph> &graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<boost::asio::io_context> &io_context,
-        const std::shared_ptr<FinalizationObserver> &finalization_observer,
         const std::shared_ptr<VotingRound> &previous_round);
 
     enum class Stage {
@@ -248,7 +244,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VoteGraph> graph_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
-    std::shared_ptr<FinalizationObserver> finalization_observer_;
 
     std::function<void()> on_complete_handler_;
 

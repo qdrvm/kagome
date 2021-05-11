@@ -382,14 +382,14 @@ namespace kagome::authority {
     }
   }
 
-  outcome::result<void> AuthorityManagerImpl::onFinalize(
+  outcome::result<void> AuthorityManagerImpl::prune(
       const primitives::BlockInfo &block) {
     if (block == root_->block) {
       return outcome::success();
     }
 
     if (block.number < root_->block.number) {
-      return AuthorityManagerError::WRONG_FINALISATION_ORDER;
+      return outcome::success();
     }
 
     auto node = getAppropriateAncestor(block);
@@ -399,9 +399,8 @@ namespace kagome::authority {
       root_ = std::move(node);
 
     } else {
-      auto new_node = node->makeDescendant(block, true);
-
       // Reorganize ancestry
+      auto new_node = node->makeDescendant(block, true);
       for (auto &descendant : std::move(node->descendants)) {
         if (directChainExists(block, descendant->block)) {
           new_node->descendants.emplace_back(std::move(descendant));
@@ -412,7 +411,7 @@ namespace kagome::authority {
     }
 
     SL_VERBOSE(
-        log_, "Reorganize authority at filalizaion of block #{}", block.number);
+        log_, "Prune authority manager upto block #{}", block.number);
 
     OUTCOME_TRY(save());
 

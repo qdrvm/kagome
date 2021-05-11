@@ -19,7 +19,6 @@ namespace kagome::primitives {
 
   struct AuthorityId {
     GenericSessionKey id;
-//    GrandpaSessionKey id;
 
     bool operator==(const AuthorityId &other) const {
       return id == other.id;

@@ -150,36 +150,35 @@ namespace kagome::network {
 
     Roles roles = app_config_.roles();
 
-        read_writer->write(
-            roles,
-            [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-                auto &&write_res) mutable {
-              auto self = wp.lock();
-              if (not self) {
-                stream->reset();
-                cb(ProtocolError::GONE);
-                return;
-              }
+    read_writer->write(
+        roles,
+        [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
+            auto &&write_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            cb(ProtocolError::GONE);
+            return;
+          }
 
-              if (not write_res.has_value()) {
-                self->log_->error("Error while writing own roles: {}",
-                                  write_res.error().message());
-                stream->reset();
-                cb(write_res.as_failure());
-                return;
-              }
+          if (not write_res.has_value()) {
+            self->log_->error("Error while writing own roles: {}",
+                              write_res.error().message());
+            stream->reset();
+            cb(write_res.as_failure());
+            return;
+          }
 
-              switch (direction) {
-                case Direction::OUTGOING:
-                  self->readHandshake(
-                      std::move(stream), direction, std::move(cb));
-                  break;
-                case Direction::INCOMING:
-                  self->read(std::move(stream));
-                  cb(stream);
-                  break;
-              }
-            });
+          switch (direction) {
+            case Direction::OUTGOING:
+              self->readHandshake(std::move(stream), direction, std::move(cb));
+              break;
+            case Direction::INCOMING:
+              self->read(std::move(stream));
+              cb(stream);
+              break;
+          }
+        });
   }
 
   void GrandpaProtocol::read(std::shared_ptr<Stream> stream) {

@@ -197,10 +197,10 @@ TEST_F(AuthorityManagerTest, InitFromStorage) {
 
 /**
  * @given initialized manager has some state
- * @when do finalize for some block
+ * @when do pruning upto block
  * @then aclual state will be saved to storage
  */
-TEST_F(AuthorityManagerTest, OnFinalize) {
+TEST_F(AuthorityManagerTest, Prune) {
   prepareAuthorityManager();
 
   EXPECT_OUTCOME_SUCCESS(
@@ -228,7 +228,7 @@ TEST_F(AuthorityManagerTest, OnFinalize) {
       .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         authority_manager->onFinalize({20, "D"_hash256}));
+                         authority_manager->prune({20, "D"_hash256}));
 
   examine({30, "F"_hash256}, orig_authorities);
 }
@@ -270,7 +270,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         authority_manager->onFinalize({20, "D"_hash256}));
+                         authority_manager->prune({20, "D"_hash256}));
 
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
@@ -388,7 +388,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         authority_manager->onFinalize({20, "D"_hash256}));
+                         authority_manager->prune({20, "D"_hash256}));
 
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
@@ -431,7 +431,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
     EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                           authority_manager->onFinalize({10, "B"_hash256}));
+                           authority_manager->prune({10, "B"_hash256}));
   }
 
   examine({10, "B"_hash256}, disabled_authorities);

@@ -45,8 +45,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteTracker> precommits,
       std::shared_ptr<VoteGraph> graph,
       std::shared_ptr<Clock> clock,
-      std::shared_ptr<boost::asio::io_context> io_context,
-      std::shared_ptr<FinalizationObserver> finalization_observer)
+      std::shared_ptr<boost::asio::io_context> io_context)
       : voter_set_{std::move(config.voters)},
         round_number_{config.round_number},
         duration_{config.duration},
@@ -58,7 +57,6 @@ namespace kagome::consensus::grandpa {
         graph_{std::move(graph)},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
-        finalization_observer_{std::move(finalization_observer)},
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)},
         timer_{*io_context_},
@@ -101,7 +99,6 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteGraph> &graph,
       const std::shared_ptr<Clock> &clock,
       const std::shared_ptr<boost::asio::io_context> &io_context,
-      const std::shared_ptr<FinalizationObserver> &finalization_observer,
       const std::shared_ptr<VotingRound> &previous_round)
       : VotingRoundImpl(grandpa,
                         config,
@@ -112,8 +109,7 @@ namespace kagome::consensus::grandpa {
                         precommits,
                         graph,
                         clock,
-                        io_context,
-                        finalization_observer) {
+                        io_context) {
     BOOST_ASSERT(previous_round != nullptr);
     BOOST_ASSERT(previous_round->finalizedBlock().has_value());
 
@@ -132,7 +128,6 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteGraph> &graph,
       const std::shared_ptr<Clock> &clock,
       const std::shared_ptr<boost::asio::io_context> &io_context,
-      const std::shared_ptr<FinalizationObserver> &finalization_observer,
       const MovableRoundState &round_state)
       : VotingRoundImpl(grandpa,
                         config,
@@ -143,8 +138,7 @@ namespace kagome::consensus::grandpa {
                         precommits,
                         graph,
                         clock,
-                        io_context,
-                        finalization_observer) {
+                        io_context) {
     last_finalized_block_ = round_state.last_finalized_block;
 
     need_to_notice_at_finalizing_ = false;
@@ -668,7 +662,7 @@ namespace kagome::consensus::grandpa {
       return finalized.as_failure();
     }
 
-    std::ignore = finalization_observer_->onFinalize(block_info);
+    std::ignore = authority_manager_->prune(last_finalized_block_);
 
     need_to_notice_at_finalizing_ = false;
     env_->onCompleted(state());

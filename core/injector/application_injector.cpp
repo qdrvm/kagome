@@ -53,9 +53,7 @@
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
-#include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
-#include "consensus/grandpa/impl/finalization_composite.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -978,8 +976,6 @@ namespace {
         di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
-        di::bind<consensus::grandpa::FinalizationObserver>.to(
-            [](auto const &inj) { return get_finalization_observer(inj); }),
         di::bind<network::PeerManager>.to(
             [](auto const &injector) { return get_peer_manager(injector); }),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
@@ -1180,8 +1176,6 @@ namespace {
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
-        injector
-            .template create<sptr<consensus::grandpa::FinalizationObserver>>(),
         injector.template create<sptr<consensus::babe::Babe>>());
 
     auto protocol_factory =
@@ -1190,22 +1184,6 @@ namespace {
     protocol_factory->setGrandpaObserver(initialized.value());
 
     return initialized.value();
-  }
-
-  template <class Injector>
-  sptr<consensus::grandpa::FinalizationObserver> get_finalization_observer(
-      const Injector &injector) {
-    static auto instance = boost::optional<
-        std::shared_ptr<consensus::grandpa::FinalizationObserver>>(boost::none);
-    if (instance) {
-      return *instance;
-    }
-
-    instance = std::make_shared<consensus::grandpa::FinalizationComposite>(
-        injector.template create<
-            std::shared_ptr<authority::AuthorityManagerImpl>>());
-
-    return instance.value();
   }
 
   template <typename... Ts>

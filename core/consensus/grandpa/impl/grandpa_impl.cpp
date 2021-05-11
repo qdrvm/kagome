@@ -28,7 +28,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityManager> authority_manager,
-      std::shared_ptr<FinalizationObserver> finalization_observer,
       std::shared_ptr<consensus::babe::Babe> babe)
       : app_state_manager_(std::move(app_state_manager)),
         environment_{std::move(environment)},
@@ -39,7 +38,6 @@ namespace kagome::consensus::grandpa {
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
         authority_manager_(std::move(authority_manager)),
-        finalization_observer_(std::move(finalization_observer)),
         babe_(babe) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(environment_ != nullptr);
@@ -49,7 +47,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
-    BOOST_ASSERT(finalization_observer_ != nullptr);
     BOOST_ASSERT(babe_ != nullptr);
 
     app_state_manager_->takeControl(*this);
@@ -86,12 +83,11 @@ namespace kagome::consensus::grandpa {
              "Grandpa will be started with round #{}",
              round_state.round_number + 1);
 
-    auto authorities_res =
-        authority_manager_->authorities(round_state.last_finalized_block, false);
+    auto authorities_res = authority_manager_->authorities(
+        round_state.last_finalized_block, true);
     if (not authorities_res.has_value()) {
-      logger_->critical(
-          "Can't get authorities: {}. Stopping grandpa execution",
-          authorities_res.error().message());
+      logger_->critical("Can't get authorities: {}. Stopping grandpa execution",
+                        authorities_res.error().message());
       return false;
     }
     auto &authorities = authorities_res.value();
@@ -161,7 +157,6 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         clock_,
         io_context_,
-        finalization_observer_,
         round_state);
 
     new_round->end();
@@ -215,7 +210,6 @@ namespace kagome::consensus::grandpa {
         std::move(vote_graph),
         clock_,
         io_context_,
-        finalization_observer_,
         round);
     return new_round;
   }
