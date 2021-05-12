@@ -44,7 +44,7 @@ namespace kagome::primitives {
     using AuthorityListChange::AuthorityListChange;
   };
   struct OnDisabled {
-    uint64_t authority_index = 0;
+    uint32_t authority_index = 0;
   };
   struct Pause final : public DelayInChain {
     using DelayInChain::DelayInChain;
