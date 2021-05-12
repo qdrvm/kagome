@@ -329,7 +329,7 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
 
   auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{10, "B"_hash256};
-  size_t authority_index = 1;
+  uint32_t authority_index = 1;
 
   primitives::AuthorityList new_authorities = old_authorities;
   assert(new_authorities.size() == 3);
