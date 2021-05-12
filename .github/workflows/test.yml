@@ -172,4 +172,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: trigger cd job
-        run: curl -fI "https://jenkins.soramitsu.co.jp/buildByToken/buildWithParameters?job=kagome/deploy/test&token=${{ secrets.JENKINS_TOKEN }}"
+        run: |
+          curl -fI "${{ secrets.JENKINS_URL }}kagome-test&token=${{ secrets.JENKINS_TOKEN }}"
+          curl -fI "${{ secrets.JENKINS_URL }}polkadot-test&token=${{ secrets.JENKINS_TOKEN }}"
