@@ -18,17 +18,14 @@ namespace kagome::authority {
 
   AuthorityManagerImpl::AuthorityManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<primitives::BabeConfiguration> genesis_configuration,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::BufferStorage> storage)
       : log_{log::createLogger("AuthorityManager", "authority")},
         app_state_manager_(std::move(app_state_manager)),
-        genesis_configuration_(std::move(genesis_configuration)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(genesis_configuration_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
 
     app_state_manager_->takeControl(*this);
@@ -36,22 +33,9 @@ namespace kagome::authority {
 
   bool AuthorityManagerImpl::prepare() {
     auto encoded_root_res = storage_->get(SCHEDULER_TREE);
-    if (!encoded_root_res.has_value()) {
-      // Get initial authorities from genesis
-      auto hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
-      if (not hash_res.has_value()) {
-        log_->critical("Can't decode genesis block hash");
-        return false;
-      }
-      primitives::BlockHash hash;
-      std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
-
-      root_ = ScheduleNode::createAsRoot({0, hash});
-      root_->actual_authorities = std::make_shared<primitives::AuthorityList>(
-          genesis_configuration_->genesis_authorities);
-
-      std::ignore = save();
-      return true;
+    if (not encoded_root_res.has_value()) {
+      log_->critical("Can't restore authority manager state");
+      return false;
     }
 
     auto root_res =
@@ -410,8 +394,7 @@ namespace kagome::authority {
       root_ = std::move(new_node);
     }
 
-    SL_VERBOSE(
-        log_, "Prune authority manager upto block #{}", block.number);
+    SL_VERBOSE(log_, "Prune authority manager upto block #{}", block.number);
 
     OUTCOME_TRY(save());
 

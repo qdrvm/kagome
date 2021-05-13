@@ -44,7 +44,7 @@ namespace kagome::consensus {
         sync_timer_(std::move(sync_timer)),
         block_tree_{std::move(block_tree)},
         core_{std::move(core)},
-        genesis_configuration_{std::move(configuration)},
+        babe_configuration_{std::move(configuration)},
         babe_synchronizer_{std::move(babe_synchronizer)},
         block_validator_{std::move(block_validator)},
         grandpa_environment_{std::move(grandpa_environment)},
@@ -56,7 +56,7 @@ namespace kagome::consensus {
         logger_{log::createLogger("BlockExecutor", "block_executor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
-    BOOST_ASSERT(genesis_configuration_ != nullptr);
+    BOOST_ASSERT(babe_configuration_ != nullptr);
     BOOST_ASSERT(babe_synchronizer_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
     BOOST_ASSERT(grandpa_environment_ != nullptr);
@@ -284,7 +284,7 @@ namespace kagome::consensus {
             .start_slot = babe_header.slot_number,
             .starting_slot_finish_time =
                 BabeTimePoint{(babe_header.slot_number + 1)
-                              * genesis_configuration_->slot_duration}}));
+                              * babe_configuration_->slot_duration}}));
       }
     }
 
@@ -304,7 +304,7 @@ namespace kagome::consensus {
         block.header.number,
         this_block_epoch_descriptor.randomness.toHex());
 
-    auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
+    auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
                                         this_block_epoch_descriptor.authorities,
                                         babe_header.authority_index);
 

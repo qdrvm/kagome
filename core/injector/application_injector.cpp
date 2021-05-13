@@ -47,6 +47,7 @@
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/authority/impl/schedule_node.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
@@ -96,6 +97,7 @@
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
+#include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -185,7 +187,58 @@ namespace {
     }
 
     auto storage_res = blockchain::KeyValueBlockStorage::create(
-        trie_storage->getRootHash(), db, hasher, [](auto...) {});
+        trie_storage->getRootHash(),
+        db,
+        hasher,
+        [&](const primitives::Block &genesis_block) {
+          auto log = log::createLogger("Injector", "kagome");
+
+          auto res = db->get(authority::AuthorityManagerImpl::SCHEDULER_TREE);
+          if (not res.has_value()
+              && res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
+            auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
+            if (not hash_res.has_value()) {
+              log->critical("Can't decode genesis block hash: {}",
+                            hash_res.error().message());
+              common::raise(hash_res.error());
+            }
+
+            primitives::BlockHash hash;
+            std::copy(
+                hash_res.value().begin(), hash_res.value().end(), hash.begin());
+
+            // Get initial authorities from genesis
+            auto authorities_res = grandpa_api->authorities(hash);
+            if (not authorities_res.has_value()) {
+              log->critical("Can't get genesis grandpa authorities: {}",
+                            authorities_res.error().message());
+              common::raise(authorities_res.error());
+            }
+            auto &authorities = authorities_res.value();
+            authorities.id = 0;
+
+            auto node = authority::ScheduleNode::createAsRoot({0, hash});
+            node->actual_authorities =
+                std::make_shared<primitives::AuthorityList>(
+                    std::move(authorities));
+
+            auto data_res = scale::encode(node);
+            if (!data_res.has_value()) {
+              log->critical("Can't encode authority manager state: {}",
+                            data_res.error().message());
+              common::raise(data_res.error());
+            }
+
+            auto save_res =
+                db->put(authority::AuthorityManagerImpl::SCHEDULER_TREE,
+                        common::Buffer(data_res.value()));
+            if (!save_res.has_value()) {
+              log->critical("Can't store current state: {}",
+                            save_res.error().message());
+              common::raise(save_res.error());
+            }
+          }
+        });
     if (storage_res.has_error()) {
       common::raise(storage_res.error());
     }
