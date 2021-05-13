@@ -12,7 +12,6 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "primitives/digest.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
@@ -36,11 +35,10 @@ class AuthorityManagerTest : public testing::Test {
   void SetUp() override {
     app_state_manager = std::make_shared<application::AppStateManagerMock>();
 
-    configuration = std::make_shared<primitives::BabeConfiguration>();
-    configuration->genesis_authorities = {
-        makeAuthority("GenesisAuthority1", 5),
-        makeAuthority("GenesisAuthority2", 10),
-        makeAuthority("GenesisAuthority3", 15)};
+    authorities = std::make_shared<AuthorityList>(0);
+    authorities->emplace_back(makeAuthority("GenesisAuthority1", 5));
+    authorities->emplace_back(makeAuthority("GenesisAuthority2", 10));
+    authorities->emplace_back(makeAuthority("GenesisAuthority3", 15));
 
     block_tree = std::make_shared<blockchain::BlockTreeMock>();
 
@@ -51,7 +49,7 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*app_state_manager, atShutdown(_));
 
     authority_manager = std::make_shared<AuthorityManager>(
-        app_state_manager, configuration, block_tree, storage);
+        app_state_manager, block_tree, storage);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
@@ -81,21 +79,22 @@ class AuthorityManagerTest : public testing::Test {
 	      //                           \
 	      //                            - EA - EB - EC - ED
 	      //                              30   35   40   45
+              //
             /* A\\D  GEN A  B  C  D  E EA EB EC ED  F FA FB FC */
             /* GEN*/ {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* A	*/ {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* B	*/ {0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* C	*/ {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* D	*/ {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* E	*/ {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* EA	*/ {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0},
-            /* EB	*/ {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0},
-            /* EC	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
-            /* ED	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-            /* F	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1},
-            /* FA	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
-            /* FB	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-            /* FC	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            /* A  */ {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* B  */ {0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* C  */ {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* D  */ {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* E  */ {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* EA */ {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0},
+            /* EB */ {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0},
+            /* EC */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+            /* ED */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            /* F  */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1},
+            /* FA */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+            /* FB */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+            /* FC */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 
               // clang-format on
           };
@@ -117,10 +116,10 @@ class AuthorityManagerTest : public testing::Test {
   static inline const auto schedulerLookupKey =
       authority::AuthorityManagerImpl::SCHEDULER_TREE;
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
-  std::shared_ptr<primitives::BabeConfiguration> configuration;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<StorageMock> storage;
   std::shared_ptr<AuthorityManager> authority_manager;
+  std::shared_ptr<AuthorityList> authorities;
 
   primitives::Authority makeAuthority(std::string_view id, uint32_t weight) {
     primitives::Authority authority;
@@ -134,8 +133,7 @@ class AuthorityManagerTest : public testing::Test {
   /// Init by data from genesis config
   void prepareAuthorityManager() {
     auto node = authority::ScheduleNode::createAsRoot({0, "GEN"_hash256});
-    node->actual_authorities = std::make_shared<primitives::AuthorityList>(
-        configuration->genesis_authorities);
+    node->actual_authorities = authorities;
     EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
     common::Buffer encoded_data(encode_result.value());
 
@@ -169,7 +167,7 @@ class AuthorityManagerTest : public testing::Test {
 TEST_F(AuthorityManagerTest, InitFromGenesis) {
   prepareAuthorityManager();
 
-  examine({20, "D"_hash256}, configuration->genesis_authorities);
+  examine({20, "D"_hash256}, *authorities);
 }
 
 /**
