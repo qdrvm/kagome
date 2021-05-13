@@ -16,6 +16,7 @@ namespace kagome::authority {
     /**
      * @brief Returns authorities according specified block
      * @param block for which authority set is requested
+     * @param finalized - frue if we consider that the provided block is finalized
      * @return outcome authority set
      */
     virtual outcome::result<std::shared_ptr<const primitives::AuthorityList>>

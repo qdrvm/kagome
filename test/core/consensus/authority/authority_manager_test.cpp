@@ -238,7 +238,7 @@ TEST_F(AuthorityManagerTest, Prune) {
  * @when apply Consensus message as ScheduledChange
  * @then actual state was not change before finalize and change after finalize
  * if delay passed (only for block with number of target block number +
- * subchain_lenght)
+ * subchain_length)
  */
 TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   prepareAuthorityManager();
@@ -250,7 +250,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{5, "A"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
-  uint32_t subchain_lenght = 10;
+  uint32_t subchain_length = 10;
 
   EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
@@ -259,7 +259,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
       authority_manager->onConsensus(
           engine_id,
           target_block,
-          primitives::ScheduledChange(new_authorities, subchain_lenght)));
+          primitives::ScheduledChange(new_authorities, subchain_length)));
 
   examine({5, "A"_hash256}, old_authorities);
   examine({10, "B"_hash256}, old_authorities);
@@ -280,7 +280,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
  * @given initialized manager has some state
  * @when apply Consensus message as ForcedChange
  * @then actual state was change after delay passed (only for block with number
- * of target block number + subchain_lenght)
+ * of target block number + subchain_length)
  */
 TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   prepareAuthorityManager();
@@ -292,7 +292,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{10, "B"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
-  uint32_t subchain_lenght = 10;
+  uint32_t subchain_length = 10;
 
   EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
       .WillOnce(Return(outcome::success()));
@@ -302,7 +302,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
       authority_manager->onConsensus(
           engine_id,
           target_block,
-          primitives::ForcedChange(new_authorities, subchain_lenght)));
+          primitives::ForcedChange(new_authorities, subchain_length)));
 
   examine({5, "A"_hash256}, old_authorities);
   examine({10, "B"_hash256}, old_authorities);
@@ -353,7 +353,7 @@ TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
  * @when apply Consensus message as ScheduledChange
  * @then actual state was not change before finalize and changed (disabled)
  * after finalize if delay passed (only for block with number of target block
- * number + subchain_lenght)
+ * number + subchain_length)
  */
 TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   prepareAuthorityManager();
@@ -398,7 +398,7 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
  * @given initialized manager has some state
  * @when apply Consensus message as ForcedChange
  * @then actual state was change (enabled again) after delay passed (only for
- * block with number of target block number + subchain_lenght)
+ * block with number of target block number + subchain_length)
  */
 
 TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {

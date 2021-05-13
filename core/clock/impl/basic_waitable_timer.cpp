@@ -8,7 +8,10 @@
 namespace kagome::clock {
   BasicWaitableTimer::BasicWaitableTimer(
       std::shared_ptr<boost::asio::io_context> io_context)
-      : io_context_(std::move(io_context)),
+      : io_context_([&] {
+          BOOST_ASSERT(io_context);
+          return std::move(io_context);
+        }()),
         timer_{boost::asio::basic_waitable_timer<std::chrono::system_clock>{
             *io_context_}} {}
 

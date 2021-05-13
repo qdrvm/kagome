@@ -321,6 +321,7 @@ namespace kagome::authority {
     if (engine_id == primitives::kBabeEngineId) {
       // TODO(xDimon): Perhaps it needs to be refactored.
       //  It is better handle babe digests here
+      //  Issue: https://github.com/soramitsu/kagome/issues/740
       return visit_in_place(
           message.asBabeDigest(),
           [](const primitives::NextEpochData &msg) -> outcome::result<void> {
@@ -342,21 +343,21 @@ namespace kagome::authority {
           [this, &block](
               const primitives::ScheduledChange &msg) -> outcome::result<void> {
             return applyScheduledChange(
-                block, msg.authorities, block.number + msg.subchain_lenght);
+                block, msg.authorities, block.number + msg.subchain_length);
           },
           [this, &block](const primitives::ForcedChange &msg) {
             return applyForcedChange(
-                block, msg.authorities, block.number + msg.subchain_lenght);
+                block, msg.authorities, block.number + msg.subchain_length);
           },
           [](const primitives::OnDisabled &msg) {
             // Note: This event type wount be used anymore and must be ignored
             return outcome::success();
           },
           [this, &block](const primitives::Pause &msg) {
-            return applyPause(block, block.number + msg.subchain_lenght);
+            return applyPause(block, block.number + msg.subchain_length);
           },
           [this, &block](const primitives::Resume &msg) {
-            return applyResume(block, block.number + msg.subchain_lenght);
+            return applyResume(block, block.number + msg.subchain_length);
           },
           [](auto &) {
             return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;

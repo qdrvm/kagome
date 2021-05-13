@@ -12,20 +12,20 @@
 
 namespace kagome::primitives {
   struct DelayInChain {
-    uint32_t subchain_lenght = 0;
+    uint32_t subchain_length = 0;
 
     DelayInChain() = default;
-    explicit DelayInChain(uint32_t delay) : subchain_lenght(delay) {}
+    explicit DelayInChain(uint32_t delay) : subchain_length(delay) {}
     virtual ~DelayInChain() = default;
   };
 
   struct AuthorityListChange {
     AuthorityList authorities{};
-    uint32_t subchain_lenght = 0;
+    uint32_t subchain_length = 0;
 
     AuthorityListChange() = default;
     AuthorityListChange(AuthorityList authorities, uint32_t delay)
-        : authorities(std::move(authorities)), subchain_lenght(delay) {}
+        : authorities(std::move(authorities)), subchain_length(delay) {}
     virtual ~AuthorityListChange() = default;
   };
 
@@ -65,12 +65,12 @@ namespace kagome::primitives {
 
   template <class Stream>
   Stream &operator<<(Stream &s, const DelayInChain &delay) {
-    return s << delay.subchain_lenght;
+    return s << delay.subchain_length;
   }
 
   template <class Stream>
   Stream &operator>>(Stream &s, DelayInChain &delay) {
-    return s >> delay.subchain_lenght;
+    return s >> delay.subchain_length;
   }
 
   template <class Stream>
@@ -85,12 +85,12 @@ namespace kagome::primitives {
 
   template <class Stream>
   Stream &operator<<(Stream &s, const AuthorityListChange &alc) {
-    return s << alc.authorities << alc.subchain_lenght;
+    return s << alc.authorities << alc.subchain_length;
   }
 
   template <class Stream>
   Stream &operator>>(Stream &s, AuthorityListChange &alc) {
-    return s >> alc.authorities >> alc.subchain_lenght;
+    return s >> alc.authorities >> alc.subchain_length;
   }
 }  // namespace kagome::primitives
 

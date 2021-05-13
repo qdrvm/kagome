@@ -80,30 +80,22 @@ namespace kagome::primitives {
     // Note: this ctor is needed only for tests
     template <class A>
     Consensus(const A &a) {
-      if constexpr (std::is_same_v<A, NextEpochData>) {
+      // clang-format off
+      if constexpr (std::is_same_v<A, NextEpochData>
+                 or std::is_same_v<A, NextConfigData>) {
         consensus_engine_id = primitives::kBabeEngineId;
         data = common::Buffer(scale::encode(BabeDigest(a)).value());
-      } else if constexpr (std::is_same_v<A, NextConfigData>) {
-        consensus_engine_id = primitives::kBabeEngineId;
-        data = common::Buffer(scale::encode(BabeDigest(a)).value());
-      } else if constexpr (std::is_same_v<A, ScheduledChange>) {
-        consensus_engine_id = primitives::kGrandpaEngineId;
-        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
-      } else if constexpr (std::is_same_v<A, ForcedChange>) {
-        consensus_engine_id = primitives::kGrandpaEngineId;
-        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
-      } else if constexpr (std::is_same_v<A, OnDisabled>) {
-        consensus_engine_id = primitives::kGrandpaEngineId;
-        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
-      } else if constexpr (std::is_same_v<A, Pause>) {
-        consensus_engine_id = primitives::kGrandpaEngineId;
-        data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
-      } else if constexpr (std::is_same_v<A, Resume>) {
+      } else if constexpr (std::is_same_v<A, ScheduledChange>
+                        or std::is_same_v<A, ForcedChange>
+                        or std::is_same_v<A, OnDisabled>
+                        or std::is_same_v<A, Pause>
+                        or std::is_same_v<A, Resume>) {
         consensus_engine_id = primitives::kGrandpaEngineId;
         data = common::Buffer(scale::encode(GrandpaDigest(a)).value());
       } else {
         BOOST_UNREACHABLE_RETURN();
       }
+      // clang-format on
     }
 
     outcome::result<void> decode() const {
