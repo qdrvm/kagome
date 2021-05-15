@@ -220,7 +220,7 @@ namespace kagome::consensus {
 
             // Portion of blocks is out
             if (i == blocks.size()) {
-              // Endian block reveived
+              // Endian block retrieved
               if (to == block.hash) {
                 on_retrieved();
                 return;

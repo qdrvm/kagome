@@ -11,11 +11,12 @@
 
 namespace kagome::runtime::wavm {
 
-  class WavmCore final: public Core {
+  class WavmCore final : public Core {
    public:
-    WavmCore(std::shared_ptr<Executor> executor,
-             std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-             std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
+    WavmCore(
+        std::shared_ptr<Executor> executor,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
         : executor_{std::move(executor)},
           changes_tracker_{std::move(changes_tracker)},
           header_repo_{std::move(header_repo)} {
@@ -26,28 +27,31 @@ namespace kagome::runtime::wavm {
 
     outcome::result<primitives::Version> version(
         const boost::optional<primitives::BlockHash> &block_hash) override {
-      return executor_->callAtLatest<primitives::Version>(
-          "Core_version", block_hash);
+      return executor_->callAtLatest<primitives::Version>("Core_version",
+                                                          block_hash);
     }
 
     outcome::result<void> execute_block(
         const primitives::Block &block) override {
-      OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.header.parent_hash));
       OUTCOME_TRY(changes_tracker_->onBlockChange(
           block.header.parent_hash,
           block.header.number - 1));  // parent's number
-      return executor_->persistentCallAt<void>(parent.state_root,
-          "Core_execute_block", block);
+      return executor_->persistentCallAt<void>(
+          {block.header.number - 1, block.header.parent_hash},
+          "Core_execute_block",
+          block);
     }
 
     outcome::result<void> initialise_block(
         const primitives::BlockHeader &header) override {
       auto parent = header_repo_->getBlockHeader(header.parent_hash).value();
-      OUTCOME_TRY(
-          changes_tracker_->onBlockChange(header.parent_hash,
-                                          header.number - 1));  // parent's number
+      OUTCOME_TRY(changes_tracker_->onBlockChange(
+          header.parent_hash,
+          header.number - 1));  // parent's number
       return executor_->persistentCallAt<void>(
-          parent.state_root, "Core_initialise_block", header);
+          {header.number - 1, header.parent_hash},
+          "Core_initialise_block",
+          header);
     }
 
     outcome::result<std::vector<primitives::AuthorityId>> authorities(
@@ -60,9 +64,8 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<Executor> executor_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
-
   };
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::wavm
 
 #endif  // KAGOME_RUNTIME_CORE_HPP

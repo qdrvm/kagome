@@ -10,9 +10,14 @@ namespace kagome::runtime {
   ConstantCodeProvider::ConstantCodeProvider(common::Buffer code)
       : code_{std::move(code)} {}
 
-  outcome::result<gsl::span<const uint8_t>> ConstantCodeProvider::getCodeAt(
-      const storage::trie::RootHash &at) const {
-    return code_;
+  outcome::result<RuntimeCodeProvider::CodeAndItsState>
+  ConstantCodeProvider::getCodeAt(const primitives::BlockInfo &at) const {
+    return CodeAndItsState{code_, {}};
+  }
+
+  outcome::result<RuntimeCodeProvider::CodeAndItsState>
+  ConstantCodeProvider::getLatestCode() const {
+    return CodeAndItsState{code_, {}};
   }
 
 }  // namespace kagome::runtime

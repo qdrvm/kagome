@@ -15,11 +15,17 @@
 #include "runtime/types.hpp"
 #include "runtime/wasm_result.hpp"
 
+namespace kagome::blockchain {
+  class BlockHeaderRepository;
+}
+
 namespace kagome::runtime {
+  class TrieStorageProvider;
 
   namespace wavm {
     class ModuleRepository;
     class Memory;
+    class IntrinsicResolver;
   }
 
 }  // namespace kagome::runtime
@@ -33,7 +39,10 @@ namespace kagome::host_api {
     MiscExtension(
         uint64_t chain_id,
         std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
-        std::shared_ptr<runtime::wavm::Memory> memory);
+        std::shared_ptr<runtime::wavm::Memory> memory,
+        std::shared_ptr<runtime::wavm::IntrinsicResolver> intrinsic_resolver,
+        std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
+        std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo);
 
     ~MiscExtension() = default;
 
@@ -49,6 +58,9 @@ namespace kagome::host_api {
    private:
     std::shared_ptr<runtime::wavm::ModuleRepository> module_repo_;
     std::shared_ptr<runtime::wavm::Memory> memory_;
+    std::shared_ptr<runtime::wavm::IntrinsicResolver> intrinsic_resolver_;
+    std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     log::Logger logger_;
     const uint64_t chain_id_ = 42;
   };

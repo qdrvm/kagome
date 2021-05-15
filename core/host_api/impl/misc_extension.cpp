@@ -7,6 +7,8 @@
 
 #include "primitives/version.hpp"
 #include "runtime/core.hpp"
+#include "runtime/wavm/executor.hpp"
+#include "runtime/wavm/impl/intrinsic_resolver.hpp"
 #include "runtime/wavm/impl/memory.hpp"
 #include "runtime/wavm/module_repository.hpp"
 #include "scale/scale.hpp"
@@ -16,13 +18,22 @@ namespace kagome::host_api {
   MiscExtension::MiscExtension(
       uint64_t chain_id,
       std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
-      std::shared_ptr<runtime::wavm::Memory> memory)
+      std::shared_ptr<runtime::wavm::Memory> memory,
+      std::shared_ptr<runtime::wavm::IntrinsicResolver> intrinsic_resolver,
+      std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
+      std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo)
       : module_repo_{std::move(module_repo)},
         memory_{std::move(memory)},
+        intrinsic_resolver_{std::move(intrinsic_resolver)},
+        storage_provider_{std::move(storage_provider)},
+        block_header_repo_{std::move(block_header_repo)},
         logger_{log::createLogger("MiscExtension", "host_api")},
         chain_id_{chain_id} {
     BOOST_ASSERT(module_repo_);
     BOOST_ASSERT(memory_);
+    BOOST_ASSERT(intrinsic_resolver_);
+    BOOST_ASSERT(storage_provider_);
+    BOOST_ASSERT(block_header_repo_);
   }
 
   runtime::WasmSpan MiscExtension::ext_misc_runtime_version_version_1(
@@ -30,11 +41,13 @@ namespace kagome::host_api {
     SL_TRACE(logger_, "call {}", __FUNCTION__);
     auto [ptr, len] = runtime::splitSpan(data);
     auto code = memory_->loadN(ptr, len);
-    // TODO(Harrm) check if has value
-    auto module = module_repo_->loadFrom(code).value();
-    // module->instantiate();
-    std::shared_ptr<runtime::Core> core_api;
-    auto version_res = core_api->version(boost::none);
+
+    auto executor = runtime::wavm::Executor{
+        storage_provider_, memory_, module_repo_, block_header_repo_};
+    auto version_res =
+        executor.callAtLatest<boost::optional<primitives::Version>>(
+            "Core_version",
+            boost::optional<primitives::BlockHash>(boost::none));
 
     static const auto kErrorRes =
         scale::encode<boost::optional<primitives::Version>>(boost::none)

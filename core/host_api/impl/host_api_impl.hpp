@@ -15,7 +15,7 @@
 
 namespace kagome::runtime {
   class Core;
-}  // namespace kagome::runtime::binaryen
+}  // namespace kagome::runtime
 
 namespace kagome::host_api {
   /**
@@ -24,16 +24,19 @@ namespace kagome::host_api {
   class HostApiImpl : public HostApi {
    public:
     HostApiImpl() = delete;
-    HostApiImpl(std::shared_ptr<runtime::wavm::Memory> memory,
-                std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
-                std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-                std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
-                std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-                std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
-                std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
-                std::shared_ptr<crypto::Hasher> hasher,
-                std::shared_ptr<crypto::CryptoStore> crypto_store,
-                std::shared_ptr<crypto::Bip39Provider> bip39_provider);
+    HostApiImpl(
+        std::shared_ptr<runtime::wavm::Memory> memory,
+        std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
+        std::shared_ptr<runtime::wavm::IntrinsicResolver> intrinsic_resolver,
+        std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
+        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
+        std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<crypto::CryptoStore> crypto_store,
+        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     ~HostApiImpl() override = default;
 
@@ -86,8 +89,7 @@ namespace kagome::host_api {
 
     void ext_crypto_start_batch_verify_version_1() override;
 
-    [[nodiscard]] int32_t ext_crypto_finish_batch_verify_version_1()
-        override;
+    [[nodiscard]] int32_t ext_crypto_finish_batch_verify_version_1() override;
 
     runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_version_1(
         runtime::WasmPointer sig, runtime::WasmPointer msg) override;
@@ -128,8 +130,8 @@ namespace kagome::host_api {
         runtime::WasmPointer pubkey_data) override;
 
     int32_t ext_crypto_sr25519_verify_version_2(runtime::WasmPointer,
-                                                 runtime::WasmSpan,
-                                                 runtime::WasmPointer) override;
+                                                runtime::WasmSpan,
+                                                runtime::WasmPointer) override;
 
     // ------------------------- Hashing extension/crypto ---------------
 

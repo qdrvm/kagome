@@ -15,10 +15,11 @@ namespace kagome::runtime::wavm {
 
   class WavmGrandpaApi final : public GrandpaApi {
    public:
-    WavmGrandpaApi(std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-                   std::shared_ptr<Executor> executor)
-    : block_header_repo_{std::move(block_header_repo)},
-      executor_{std::move(executor)} {
+    WavmGrandpaApi(
+        std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
+        std::shared_ptr<Executor> executor)
+        : block_header_repo_{std::move(block_header_repo)},
+          executor_{std::move(executor)} {
       BOOST_ASSERT(block_header_repo_);
       BOOST_ASSERT(executor_);
     }
@@ -39,7 +40,8 @@ namespace kagome::runtime::wavm {
         const primitives::BlockId &block_id) override {
       OUTCOME_TRY(header, block_header_repo_->getBlockHeader(block_id));
       return executor_->callAt<AuthorityList>(
-          header.state_root, "GrandpaApi_grandpa_authorities");
+          {header.number - 1, header.parent_hash},
+          "GrandpaApi_grandpa_authorities");
     }
 
    private:

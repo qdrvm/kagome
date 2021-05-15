@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
 
+#include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/impl/crutch.hpp"
@@ -24,32 +25,47 @@ namespace kagome::runtime::wavm {
     Executor(std::shared_ptr<TrieStorageProvider> storage_provider,
              std::shared_ptr<Memory> memory,
              std::shared_ptr<ModuleRepository> module_repo,
-             std::shared_ptr<host_api::HostApi> host_api)
-        : host_api_{std::move(host_api)},
-          storage_provider_{std::move(storage_provider)},
+             std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
+        : storage_provider_{std::move(storage_provider)},
           memory_{std::move(memory)},
-          module_repo_{std::move(module_repo)} {
+          module_repo_{std::move(module_repo)},
+          header_repo_{std::move(header_repo)} {
       BOOST_ASSERT(memory_);
       BOOST_ASSERT(module_repo_);
       BOOST_ASSERT(storage_provider_);
+      BOOST_ASSERT(header_repo_);
+    }
+
+    // should be done before any calls
+    void setHostApi(std::shared_ptr<host_api::HostApi> host_api) {
+      host_api_ = std::move(host_api);
+    }
+
+    // should be done before any calls
+    void setCodeProvider(
+        std::shared_ptr<runtime::RuntimeCodeProvider> code_provider) {
+      code_provider_ = std::move(code_provider);
     }
 
     template <typename Result, typename... Args>
-    outcome::result<Result> persistentCallAtLatest(
-        std::string_view name,
-        Args &&...args) {
+    outcome::result<Result> persistentCallAtLatest(std::string_view name,
+                                                   Args &&...args) {
+      OUTCOME_TRY(instance, module_repo_->getInstanceAtLatest(code_provider_));
       return callInternal<Result>(storage_provider_->getLatestRoot(),
+                                  *instance,
                                   CallPersistency::PERSISTENT,
                                   name,
                                   std::forward<Args>(args)...);
     }
 
     template <typename Result, typename... Args>
-    outcome::result<Result> persistentCallAt(
-        storage::trie::RootHash const &state,
-        std::string_view name,
-        Args &&...args) {
-      return callInternal<Result>(state,
+    outcome::result<Result> persistentCallAt(primitives::BlockInfo const &block,
+                                             std::string_view name,
+                                             Args &&...args) {
+      OUTCOME_TRY(instance, module_repo_->getInstanceAtLatest(code_provider_));
+      OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
+      return callInternal<Result>(block_header.state_root,
+                                  *instance,
                                   CallPersistency::PERSISTENT,
                                   name,
                                   std::forward<Args>(args)...);
@@ -58,23 +74,31 @@ namespace kagome::runtime::wavm {
     template <typename Result, typename... Args>
     outcome::result<Result> callAtLatest(std::string_view name,
                                          Args &&...args) {
+      OUTCOME_TRY(instance, module_repo_->getInstanceAtLatest(code_provider_));
       return callInternal<Result>(storage_provider_->getLatestRoot(),
+                                  *instance,
                                   CallPersistency::TRANSIENT,
                                   name,
                                   std::forward<Args>(args)...);
     }
 
     template <typename Result, typename... Args>
-    outcome::result<Result> callAt(storage::trie::RootHash const &state,
+    outcome::result<Result> callAt(primitives::BlockInfo const &block,
                                    std::string_view name,
                                    Args &&...args) {
-      return callInternal<Result>(
-          state, CallPersistency::TRANSIENT, name, std::forward<Args>(args)...);
+      OUTCOME_TRY(instance, module_repo_->getInstanceAt(code_provider_, block));
+      OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
+      return callInternal<Result>(block_header.state_root,
+                                  *instance,
+                                  CallPersistency::TRANSIENT,
+                                  name,
+                                  std::forward<Args>(args)...);
     }
 
    private:
     template <typename Result, typename... Args>
     outcome::result<Result> callInternal(storage::trie::RootHash const &state,
+                                         ModuleInstance &instance,
                                          CallPersistency persistency,
                                          std::string_view name,
                                          Args &&...args) {
@@ -89,24 +113,23 @@ namespace kagome::runtime::wavm {
         }
       }
 
-      OUTCOME_TRY(instance, module_repo_->getInstanceAt(state));
-
       Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(res, scale::encode(std::forward<Args>(args)...));
         encoded_args.put(std::move(res));
       }
-
-      gsl::finally([this](){
+      BOOST_ASSERT(host_api_);
+      gsl::finally([this]() {
         host_api_->reset();
         memory_->reset();
       });
 
       WasmResult addr{memory_->storeBuffer(encoded_args)};
 
-      [[maybe_unused]] auto res_span = instance->callExportFunction(name, addr);
+      [[maybe_unused]] auto res_span = instance.callExportFunction(name, addr);
 
-      if(auto batch = storage_provider_->tryGetPersistentBatch(); batch.has_value()) {
+      if (auto batch = storage_provider_->tryGetPersistentBatch();
+          batch.has_value()) {
         OUTCOME_TRY(batch.value()->commit());
       }
       if constexpr (std::is_void_v<Result>) {
@@ -120,8 +143,10 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<host_api::HostApi> host_api_;
     std::shared_ptr<TrieStorageProvider> storage_provider_;
     std::shared_ptr<Memory> memory_;
+    std::shared_ptr<runtime::RuntimeCodeProvider> code_provider_;
     // TODO(Harrm): cyclic dependency here
     std::shared_ptr<ModuleRepository> module_repo_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
   };
 
 }  // namespace kagome::runtime::wavm

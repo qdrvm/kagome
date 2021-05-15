@@ -30,7 +30,9 @@ namespace kagome::runtime::wavm {
         OUTCOME_TRY(header,
                     block_header_repo_->getBlockHeader(block_hash.value()));
         return executor_->callAt<OpaqueMetadata>(
-            header.state_root, "Metadata_metadata", block_hash);
+            {header.number - 1, header.parent_hash},
+            "Metadata_metadata",
+            block_hash);
       }
       return executor_->callAtLatest<OpaqueMetadata>("Metadata_metadata",
                                                      block_hash);

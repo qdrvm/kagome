@@ -12,6 +12,7 @@
 #include <gsl/span>
 
 #include "crypto/hasher.hpp"
+#include "host_api/host_api.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/runtime_code_provider.hpp"
@@ -19,7 +20,6 @@
 #include "runtime/wavm/impl/module.hpp"
 #include "runtime/wavm/impl/module_instance.hpp"
 #include "storage/trie/types.hpp"
-#include "host_api/host_api.hpp"
 
 namespace WAVM::Runtime {
   class Compartment;
@@ -33,23 +33,30 @@ namespace kagome::runtime::wavm {
    public:
     ModuleRepository(std::shared_ptr<crypto::Hasher> hasher,
                      std::shared_ptr<Memory>,
-                     std::shared_ptr<IntrinsicResolver>,
-                     std::shared_ptr<RuntimeCodeProvider>);
+                     std::shared_ptr<IntrinsicResolver>);
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        const storage::trie::RootHash &state);
+        std::shared_ptr<RuntimeCodeProvider> code_provider,
+        const primitives::BlockInfo &block);
+
+    outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAtLatest(
+        std::shared_ptr<RuntimeCodeProvider> code_provider);
 
     outcome::result<std::unique_ptr<Module>> loadFrom(
         gsl::span<const uint8_t> byte_code);
 
    private:
+    // just a helper to avoid duplicating logic in getInstanceAt and
+    // getInstanceAtLatest
+    outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt_Internal(
+        gsl::span<const uint8_t> code, storage::trie::RootHash state);
+
     std::unordered_map<common::Hash256, std::shared_ptr<Module>> modules_;
     std::unordered_map<common::Hash256, std::shared_ptr<ModuleInstance>>
         instances_;
     // TODO(Harrm) as it's not a GCPointer, might want to cleanup it in
     // destructor
     WAVM::Runtime::Compartment *compartment_;
-    std::shared_ptr<RuntimeCodeProvider> code_provider_;
     std::shared_ptr<IntrinsicResolver> resolver_;
     std::shared_ptr<Memory> memory_;
     std::shared_ptr<crypto::Hasher> hasher_;
