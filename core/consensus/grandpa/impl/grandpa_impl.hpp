@@ -78,11 +78,10 @@ namespace kagome::consensus::grandpa {
 
    private:
     std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);
-    outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(
-        const MovableRoundState &round_state);
+        const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters);
 
     std::shared_ptr<VotingRound> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);

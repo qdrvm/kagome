@@ -36,7 +36,8 @@ inline kagome::crypto::Ed25519Signature makeSig(std::string s) {
   return sig;
 }
 
-inline kagome::consensus::grandpa::VoteWeight operator"" _W(unsigned long long weight) {
+inline kagome::consensus::grandpa::VoteWeight operator"" _W(
+    unsigned long long weight) {
   return makeVoteWeight(weight);
 }
 

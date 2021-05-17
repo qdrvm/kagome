@@ -14,7 +14,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -39,13 +39,13 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "A",
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 100
@@ -73,7 +73,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "E1"
       ],
       "cumulative_vote": 200
@@ -81,7 +81,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 200
@@ -92,7 +92,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "D1",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     }
   },
@@ -119,7 +119,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "E1",
         "F2"
       ],
@@ -131,13 +131,13 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "D1",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 300
@@ -149,7 +149,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "D2",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     }
   },
@@ -172,7 +172,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -194,13 +194,13 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       "ancestors": [
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "A"
       ],
       "cumulative_vote": 100
@@ -229,7 +229,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
         "B",
         "A"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     },
     "A": {
@@ -237,7 +237,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       "ancestors": [
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "E1"
       ],
       "cumulative_vote": 200
@@ -245,7 +245,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "A"
       ],
       "cumulative_vote": 200
@@ -275,7 +275,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
         "B",
         "A"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     },
     "A": {
@@ -283,7 +283,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       "ancestors": [
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "E1",
         "F2"
       ],
@@ -292,7 +292,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "A"
       ],
       "cumulative_vote": 300
@@ -306,7 +306,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
         "B",
         "A"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     }
   },

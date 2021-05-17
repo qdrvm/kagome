@@ -50,7 +50,7 @@ groups:
       kagome::log::setLoggingSystem(logging_system);
     });
 
-    kagome::log::setLevelOfGroup("*", level);
+    kagome::log::setLevelOfGroup(kagome::log::defaultGroupName, level);
   }
 }  // namespace testutil
 

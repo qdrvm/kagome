@@ -15,7 +15,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -56,13 +56,13 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
         "A",
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "FC"
       ],
       "cumulative_vote": 5
@@ -105,7 +105,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
         "A",
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 7
     },
     "FC": {
@@ -121,13 +121,13 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
         "A",
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "FC",
         "ED"
       ],
@@ -173,7 +173,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "E"
       ],
       "cumulative_vote": 15
@@ -186,7 +186,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
         "EA",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 7
     },
     "FC": {
@@ -197,7 +197,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
         "F",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "E": {
@@ -209,7 +209,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "ED",
         "FC"
       ],

@@ -33,10 +33,10 @@ namespace kagome::network {
   };
 
   /**
- * @brief compares two Roles instances
- * @param lhs first instance
- * @param rhs second instance
- * @return true if equal false otherwise
+   * @brief compares two Roles instances
+   * @param lhs first instance
+   * @param rhs second instance
+   * @return true if equal false otherwise
    */
   inline bool operator==(const Roles &lhs, const Roles &rhs) {
     return lhs.value == rhs.value;

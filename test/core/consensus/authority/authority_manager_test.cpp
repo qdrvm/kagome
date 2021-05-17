@@ -10,10 +10,11 @@
 #include "consensus/authority/impl/schedule_node.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/runtime/grandpa_api_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/digest.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
@@ -21,6 +22,7 @@
 
 using namespace kagome;
 using AuthorityManager = authority::AuthorityManagerImpl;
+using AuthorityList = primitives::AuthorityList;
 using testing::_;
 using testing::Return;
 
@@ -33,11 +35,10 @@ class AuthorityManagerTest : public testing::Test {
   void SetUp() override {
     app_state_manager = std::make_shared<application::AppStateManagerMock>();
 
-    configuration = std::make_shared<primitives::BabeConfiguration>();
-    configuration->genesis_authorities = {
-        makeAuthority("GenesisAuthority1", 5),
-        makeAuthority("GenesisAuthority2", 10),
-        makeAuthority("GenesisAuthority3", 15)};
+    authorities = std::make_shared<AuthorityList>(0);
+    authorities->emplace_back(makeAuthority("GenesisAuthority1", 5));
+    authorities->emplace_back(makeAuthority("GenesisAuthority2", 10));
+    authorities->emplace_back(makeAuthority("GenesisAuthority3", 15));
 
     block_tree = std::make_shared<blockchain::BlockTreeMock>();
 
@@ -47,8 +48,8 @@ class AuthorityManagerTest : public testing::Test {
     EXPECT_CALL(*app_state_manager, atLaunch(_));
     EXPECT_CALL(*app_state_manager, atShutdown(_));
 
-    auth_mngr_ = std::make_shared<AuthorityManager>(
-        app_state_manager, configuration, block_tree, storage);
+    authority_manager = std::make_shared<AuthorityManager>(
+        app_state_manager, block_tree, storage);
 
     ON_CALL(*block_tree, hasDirectChain(_, _))
         .WillByDefault(testing::Invoke([](auto &anc, auto &des) {
@@ -78,21 +79,22 @@ class AuthorityManagerTest : public testing::Test {
 	      //                           \
 	      //                            - EA - EB - EC - ED
 	      //                              30   35   40   45
+              //
             /* A\\D  GEN A  B  C  D  E EA EB EC ED  F FA FB FC */
             /* GEN*/ {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* A	*/ {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* B	*/ {0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* C	*/ {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* D	*/ {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* E	*/ {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
-            /* EA	*/ {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0},
-            /* EB	*/ {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0},
-            /* EC	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
-            /* ED	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-            /* F	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1},
-            /* FA	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
-            /* FB	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-            /* FC	*/ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            /* A  */ {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* B  */ {0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* C  */ {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* D  */ {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* E  */ {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},
+            /* EA */ {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0},
+            /* EB */ {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0},
+            /* EC */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+            /* ED */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            /* F  */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1},
+            /* FA */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+            /* FB */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+            /* FC */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 
               // clang-format on
           };
@@ -111,12 +113,13 @@ class AuthorityManagerTest : public testing::Test {
   using StorageMock =
       storage::face::GenericStorageMock<common::Buffer, common::Buffer>;
 
+  static inline const auto schedulerLookupKey =
+      authority::AuthorityManagerImpl::SCHEDULER_TREE;
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
-  std::shared_ptr<primitives::BabeConfiguration> configuration;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<StorageMock> storage;
-
-  std::shared_ptr<AuthorityManager> auth_mngr_;
+  std::shared_ptr<AuthorityManager> authority_manager;
+  std::shared_ptr<AuthorityList> authorities;
 
   primitives::Authority makeAuthority(std::string_view id, uint32_t weight) {
     primitives::Authority authority;
@@ -129,10 +132,15 @@ class AuthorityManagerTest : public testing::Test {
 
   /// Init by data from genesis config
   void prepareAuthorityManager() {
-    EXPECT_CALL(*storage, get(authority::AuthorityManagerImpl::SCHEDULER_TREE))
-        .WillOnce(Return(outcome::failure(testutil::DummyError::ERROR)));
+    auto node = authority::ScheduleNode::createAsRoot({0, "GEN"_hash256});
+    node->actual_authorities = authorities;
+    EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
+    common::Buffer encoded_data(encode_result.value());
 
-    auth_mngr_->prepare();
+    EXPECT_CALL(*storage, get(schedulerLookupKey))
+        .WillOnce(Return(encoded_data));
+
+    authority_manager->prepare();
   }
 
   /**
@@ -143,8 +151,9 @@ class AuthorityManagerTest : public testing::Test {
    */
   void examine(const primitives::BlockInfo &examining_block,
                const primitives::AuthorityList &expected_authorities) {
-    ASSERT_OUTCOME_SUCCESS(actual_authorities_sptr,
-                           auth_mngr_->authorities(examining_block));
+    ASSERT_OUTCOME_SUCCESS(
+        actual_authorities_sptr,
+        authority_manager->authorities(examining_block, false));
     const auto &actual_authorities = *actual_authorities_sptr;
     EXPECT_EQ(actual_authorities, expected_authorities);
   }
@@ -158,7 +167,7 @@ class AuthorityManagerTest : public testing::Test {
 TEST_F(AuthorityManagerTest, InitFromGenesis) {
   prepareAuthorityManager();
 
-  examine({20, "D"_hash256}, configuration->genesis_authorities);
+  examine({20, "D"_hash256}, *authorities);
 }
 
 /**
@@ -177,24 +186,24 @@ TEST_F(AuthorityManagerTest, InitFromStorage) {
   EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
   common::Buffer encoded_data(encode_result.value());
 
-  EXPECT_CALL(*storage, get(authority::AuthorityManagerImpl::SCHEDULER_TREE))
-      .WillOnce(Return(encoded_data));
+  EXPECT_CALL(*storage, get(schedulerLookupKey)).WillOnce(Return(encoded_data));
 
-  auth_mngr_->prepare();
+  authority_manager->prepare();
 
   examine({20, "D"_hash256}, custom_authorities);
 }
 
 /**
  * @given initialized manager has some state
- * @when do finalize for some block
+ * @when do pruning upto block
  * @then aclual state will be saved to storage
  */
-TEST_F(AuthorityManagerTest, OnFinalize) {
+TEST_F(AuthorityManagerTest, Prune) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(authorities_result,
-                         auth_mngr_->authorities({10, "B"_hash256}));
+  EXPECT_OUTCOME_SUCCESS(
+      authorities_result,
+      authority_manager->authorities({10, "B"_hash256}, true));
 
   auto &orig_authorities = *authorities_result.value();
 
@@ -206,17 +215,18 @@ TEST_F(AuthorityManagerTest, OnFinalize) {
   EXPECT_OUTCOME_SUCCESS(encode_result, scale::encode(node));
   common::Buffer encoded_data(std::move(encode_result.value()));
 
-  ON_CALL(*storage, put_rv(_, _))
+  ON_CALL(*storage, put_rv(schedulerLookupKey, _))
       .WillByDefault(testing::Invoke([&encoded_data](auto &key, auto &val) {
         EXPECT_EQ(key, authority::AuthorityManagerImpl::SCHEDULER_TREE);
         EXPECT_EQ(val, encoded_data);
         return outcome::success();
       }));
 
-  EXPECT_CALL(*storage, put_rv(_, _)).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         auth_mngr_->onFinalize({20, "D"_hash256}));
+                         authority_manager->prune({20, "D"_hash256}));
 
   examine({30, "F"_hash256}, orig_authorities);
 }
@@ -226,26 +236,28 @@ TEST_F(AuthorityManagerTest, OnFinalize) {
  * @when apply Consensus message as ScheduledChange
  * @then actual state was not change before finalize and change after finalize
  * if delay passed (only for block with number of target block number +
- * subchain_lenght)
+ * subchain_length)
  */
 TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_auth_r,
-                         auth_mngr_->authorities({20, "D"_hash256}));
+  EXPECT_OUTCOME_SUCCESS(
+      old_auth_r, authority_manager->authorities({20, "D"_hash256}, true));
   auto &old_authorities = *old_auth_r.value();
 
-  auto engine_id = primitives::kBabeEngineId;
+  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{5, "A"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
-  uint32_t subchain_lenght = 10;
+  uint32_t subchain_length = 10;
 
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      auth_mngr_->onConsensus(
+      authority_manager->onConsensus(
           engine_id,
           target_block,
-          primitives::ScheduledChange(new_authorities, subchain_lenght)));
+          primitives::ScheduledChange(new_authorities, subchain_length)));
 
   examine({5, "A"_hash256}, old_authorities);
   examine({10, "B"_hash256}, old_authorities);
@@ -253,9 +265,10 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
   examine({20, "D"_hash256}, old_authorities);
   examine({25, "E"_hash256}, old_authorities);
 
-  EXPECT_CALL(*storage, put_rv(_, _)).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         auth_mngr_->onFinalize({20, "D"_hash256}));
+                         authority_manager->prune({20, "D"_hash256}));
 
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
@@ -265,26 +278,29 @@ TEST_F(AuthorityManagerTest, OnConsensus_ScheduledChange) {
  * @given initialized manager has some state
  * @when apply Consensus message as ForcedChange
  * @then actual state was change after delay passed (only for block with number
- * of target block number + subchain_lenght)
+ * of target block number + subchain_length)
  */
 TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_auth_r,
-                         auth_mngr_->authorities({35, "F"_hash256}));
+  EXPECT_OUTCOME_SUCCESS(
+      old_auth_r, authority_manager->authorities({35, "F"_hash256}, false));
   auto &old_authorities = *old_auth_r.value();
 
-  auto engine_id = primitives::kBabeEngineId;
+  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{10, "B"_hash256};
   primitives::AuthorityList new_authorities{makeAuthority("Auth1", 123)};
-  uint32_t subchain_lenght = 10;
+  uint32_t subchain_length = 10;
+
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
 
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      auth_mngr_->onConsensus(
+      authority_manager->onConsensus(
           engine_id,
           target_block,
-          primitives::ForcedChange(new_authorities, subchain_lenght)));
+          primitives::ForcedChange(new_authorities, subchain_length)));
 
   examine({5, "A"_hash256}, old_authorities);
   examine({10, "B"_hash256}, old_authorities);
@@ -298,25 +314,31 @@ TEST_F(AuthorityManagerTest, OnConsensus_ForcedChange) {
  * @when apply Consensus message as DisableAuthority
  * @then actual state was change (disable one of authority) for target block and
  * any one after
+ * @note Disabled because this event type wount be used anymore and must be
+ * ignored
  */
-TEST_F(AuthorityManagerTest, OnConsensus_DisableAuthority) {
+TEST_F(AuthorityManagerTest, DISABLED_OnConsensus_DisableAuthority) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         auth_mngr_->authorities({35, "F"_hash256}));
+  EXPECT_OUTCOME_SUCCESS(
+      old_authorities_result,
+      authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_authorities_result.value();
 
-  auto engine_id = primitives::kBabeEngineId;
+  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{10, "B"_hash256};
-  size_t authority_index = 1;
+  uint32_t authority_index = 1;
 
   primitives::AuthorityList new_authorities = old_authorities;
   assert(new_authorities.size() == 3);
   new_authorities[authority_index].weight = 0;
 
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
+
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      auth_mngr_->onConsensus(
+      authority_manager->onConsensus(
           engine_id, target_block, primitives::OnDisabled({authority_index})));
 
   examine({5, "A"_hash256}, old_authorities);
@@ -329,22 +351,25 @@ TEST_F(AuthorityManagerTest, OnConsensus_DisableAuthority) {
  * @when apply Consensus message as ScheduledChange
  * @then actual state was not change before finalize and changed (disabled)
  * after finalize if delay passed (only for block with number of target block
- * number + subchain_lenght)
+ * number + subchain_length)
  */
 TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         auth_mngr_->authorities({35, "F"_hash256}));
+  EXPECT_OUTCOME_SUCCESS(
+      old_authorities_result,
+      authority_manager->authorities({35, "F"_hash256}, true));
   auto &old_authorities = *old_authorities_result.value();
 
-  auto engine_id = primitives::kBabeEngineId;
+  auto engine_id = primitives::kGrandpaEngineId;
   primitives::BlockInfo target_block{5, "A"_hash256};
   uint32_t delay = 10;
 
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(
       r1,
-      auth_mngr_->onConsensus(
+      authority_manager->onConsensus(
           engine_id, target_block, primitives::Pause(delay)));
 
   primitives::AuthorityList new_authorities = old_authorities;
@@ -358,9 +383,10 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
   examine({20, "D"_hash256}, old_authorities);
   examine({25, "E"_hash256}, old_authorities);
 
-  EXPECT_CALL(*storage, put_rv(_, _)).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+      .WillOnce(Return(outcome::success()));
   EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                         auth_mngr_->onFinalize({20, "D"_hash256}));
+                         authority_manager->prune({20, "D"_hash256}));
 
   examine({20, "D"_hash256}, new_authorities);
   examine({25, "E"_hash256}, new_authorities);
@@ -370,14 +396,15 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnPause) {
  * @given initialized manager has some state
  * @when apply Consensus message as ForcedChange
  * @then actual state was change (enabled again) after delay passed (only for
- * block with number of target block number + subchain_lenght)
+ * block with number of target block number + subchain_length)
  */
 
 TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   prepareAuthorityManager();
 
-  EXPECT_OUTCOME_SUCCESS(old_authorities_result,
-                         auth_mngr_->authorities({35, "F"_hash256}));
+  EXPECT_OUTCOME_SUCCESS(
+      old_authorities_result,
+      authority_manager->authorities({35, "F"_hash256}, true));
   auto &enabled_authorities = *old_authorities_result.value();
 
   primitives::AuthorityList disabled_authorities = enabled_authorities;
@@ -388,18 +415,21 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   ASSERT_NE(enabled_authorities, disabled_authorities);
 
   {
-    auto engine_id = primitives::kBabeEngineId;
+    auto engine_id = primitives::kGrandpaEngineId;
     primitives::BlockInfo target_block{5, "A"_hash256};
     uint32_t delay = 5;
 
+    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+        .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(
         r1,
-        auth_mngr_->onConsensus(
+        authority_manager->onConsensus(
             engine_id, target_block, primitives::Pause(delay)));
 
-    EXPECT_CALL(*storage, put_rv(_, _)).WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+        .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(finalisation_result,
-                           auth_mngr_->onFinalize({10, "B"_hash256}));
+                           authority_manager->prune({10, "B"_hash256}));
   }
 
   examine({10, "B"_hash256}, disabled_authorities);
@@ -408,13 +438,15 @@ TEST_F(AuthorityManagerTest, OnConsensus_OnResume) {
   examine({25, "E"_hash256}, disabled_authorities);
 
   {
-    auto engine_id = primitives::kBabeEngineId;
+    auto engine_id = primitives::kGrandpaEngineId;
     primitives::BlockInfo target_block{15, "C"_hash256};
     uint32_t delay = 10;
 
+    EXPECT_CALL(*storage, put_rv(schedulerLookupKey, _))
+        .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_SUCCESS(
         r1,
-        auth_mngr_->onConsensus(
+        authority_manager->onConsensus(
             engine_id, target_block, primitives::Resume(delay)));
   }
 

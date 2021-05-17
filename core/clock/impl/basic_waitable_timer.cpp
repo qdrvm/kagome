@@ -6,9 +6,14 @@
 #include "clock/impl/basic_waitable_timer.hpp"
 
 namespace kagome::clock {
-  BasicWaitableTimer::BasicWaitableTimer(boost::asio::io_context &io_context)
-      : timer_{boost::asio::basic_waitable_timer<std::chrono::system_clock>{
-          io_context}} {}
+  BasicWaitableTimer::BasicWaitableTimer(
+      std::shared_ptr<boost::asio::io_context> io_context)
+      : io_context_([&] {
+          BOOST_ASSERT(io_context);
+          return std::move(io_context);
+        }()),
+        timer_{boost::asio::basic_waitable_timer<std::chrono::system_clock>{
+            *io_context_}} {}
 
   void BasicWaitableTimer::expiresAt(clock::SystemClock::TimePoint at) {
     timer_.expires_at(at);

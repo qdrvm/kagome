@@ -27,7 +27,7 @@ namespace kagome::consensus::grandpa {
 
     /// Insert a vote with given value into the graph at given hash and number.
     outcome::result<void> insert(const BlockInfo &block,
-                                 const VoteWeight &voteWeight) override;
+                                 const VoteWeight &vote_weight) override;
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
@@ -36,15 +36,15 @@ namespace kagome::consensus::grandpa {
         const Condition &condition,
         const Comparator &comparator) const override;
 
-    /// Find the best GHOST descendent of the given block.
+    /// Find the best GHOST descendant of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
     ///
     /// The GHOST (hash, number) returned will be the block with highest number
-    /// for which the cumulative votes of descendents and itself causes the
+    /// for which the cumulative votes of descendants and itself causes the
     /// closure to evaluate to true.
     ///
     /// This assumes that the evaluation closure is one which returns true for
-    /// at most a single descendent of a block, in that only one fork of a block
+    /// at most a single descendant of a block, in that only one fork of a block
     /// can be "heavy" enough to trigger the threshold.
     ///
     /// Returns `None` when the given `current_best` does not fulfill the
@@ -56,13 +56,13 @@ namespace kagome::consensus::grandpa {
 
     // introduce a branch to given vote-nodes.
     //
-    // `descendents` is a list of nodes with ancestor-edges containing the given
+    // `descendants` is a list of nodes with ancestor-edges containing the given
     // ancestor.
     //
-    // This function panics if any member of `descendents` is not a vote-node
+    // This function panics if any member of `descendants` is not a vote-node
     // or does not have ancestor with given hash and number OR if
     // `ancestor_hash` is already a known entry.
-    void introduceBranch(const std::vector<primitives::BlockHash> &descendents,
+    void introduceBranch(const std::vector<primitives::BlockHash> &descendants,
                          const BlockInfo &ancestor);
 
     // append a vote-node onto the chain-tree. This should only be called if
@@ -71,7 +71,7 @@ namespace kagome::consensus::grandpa {
 
     // given a key, node pair (which must correspond), assuming this node
     // fulfills the condition, this function will find the highest point at
-    // which its descendents merge, which may be the node itself.
+    // which its descendants merge, which may be the node itself.
     Subchain ghostFindMergePoint(
         const BlockHash &active_node_hash,
         const Entry &active_node,

@@ -28,8 +28,10 @@ namespace kagome::consensus::grandpa {
 
     boost::optional<SignedMessage> signPrimaryPropose(
         const PrimaryPropose &primary_propose) const override;
-    boost::optional<SignedMessage> signPrevote(const Prevote &prevote) const override;
-    boost::optional<SignedMessage> signPrecommit(const Precommit &precommit) const override;
+    boost::optional<SignedMessage> signPrevote(
+        const Prevote &prevote) const override;
+    boost::optional<SignedMessage> signPrecommit(
+        const Precommit &precommit) const override;
 
    private:
     boost::optional<SignedMessage> sign(Vote vote) const;

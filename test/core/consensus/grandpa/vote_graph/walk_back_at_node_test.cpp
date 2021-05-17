@@ -18,7 +18,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -39,7 +39,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 10
@@ -51,7 +51,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "A",
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 10
     }
   },
@@ -78,7 +78,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "F1"
       ],
       "cumulative_vote": 15
@@ -86,7 +86,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 15
@@ -98,7 +98,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "D1",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     }
   },
@@ -125,7 +125,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "D1",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "C": {
@@ -135,7 +135,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "F1",
         "F2"
       ],
@@ -148,13 +148,13 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "D2",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 20
@@ -192,7 +192,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "D1",
         "C"
       ],
-      "descendents": [
+      "descendants": [
         "I1"
       ],
       "cumulative_vote": 6
@@ -204,7 +204,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "F1",
         "F2"
       ],
@@ -217,13 +217,13 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "D2",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 21
@@ -235,7 +235,7 @@ struct WalkBackAtNode : public VoteGraphFixture,
         "G1",
         "F1"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 1
     }
   },
