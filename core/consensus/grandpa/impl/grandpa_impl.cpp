@@ -83,7 +83,22 @@ namespace kagome::consensus::grandpa {
              "Grandpa will be started with round #{}",
              round_state.round_number + 1);
 
-    current_round_ = makeInitialRound(round_state);
+    auto authorities_res = authority_manager_->authorities(
+        round_state.last_finalized_block, true);
+    if (not authorities_res.has_value()) {
+      logger_->critical("Can't get authorities: {}. Stopping grandpa execution",
+                        authorities_res.error().message());
+      return false;
+    }
+    auto &authorities = authorities_res.value();
+
+    auto voters = std::make_shared<VoterSet>(authorities->id);
+    for (const auto &authority : *authorities) {
+      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+                     authority.weight);
+    }
+
+    current_round_ = makeInitialRound(round_state, std::move(voters));
     if (current_round_ == nullptr) {
       logger_->critical(
           "Next round hasn't been made. Stopping grandpa execution");
@@ -104,30 +119,21 @@ namespace kagome::consensus::grandpa {
 
     executeNextRound();
 
+    if (not current_round_) {
+      return false;
+    }
+
     return true;
   }
 
   void GrandpaImpl::stop() {}
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
-      const MovableRoundState &round_state) {
-    // Obtain grandpa voters
-    auto voters_res = getVoters();
-    if (not voters_res.has_value()) {
-      logger_->critical("Can't retrieve voters: {}. Stopping grandpa execution",
-                        voters_res.error().message());
-      return {};
-    }
-    const auto &voters = voters_res.value();
-    if (voters->empty()) {
-      logger_->critical("Voters are empty. Stopping grandpa execution");
-      return {};
-    }
-
+      const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters) {
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         round_state.last_finalized_block, environment_);
 
-    GrandpaConfig config{.voters = voters,
+    GrandpaConfig config{.voters = std::move(voters),
                          .round_number = round_state.round_number,
                          .duration = round_time_factor_,
                          .id = keypair_
@@ -138,11 +144,12 @@ namespace kagome::consensus::grandpa {
         keypair_ ? boost::make_optional(*keypair_) : boost::none,
         crypto_provider_,
         round_state.round_number,
-        voters);
+        config.voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
+        authority_manager_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
@@ -158,30 +165,28 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeNextRound(
       const std::shared_ptr<VotingRound> &round) {
-    SL_DEBUG(logger_, "Making next round");
-
     BOOST_ASSERT(round->finalizedBlock().has_value());
-
-    // Obtain grandpa voters
-    auto voters_res = getVoters();
-    if (not voters_res.has_value()) {
-      logger_->critical("Can't retrieve voters: {}. Stopping grandpa execution",
-                        voters_res.error().message());
-      return {};
-    }
-    const auto &voters = voters_res.value();
-    if (voters->empty()) {
-      logger_->critical("Voters are empty. Stopping grandpa execution");
-      return {};
-    }
-
-    const auto new_round_number = round->roundNumber() + 1;
 
     BlockInfo best_block = round->finalizedBlock().value();
 
+    auto authorities_res = authority_manager_->authorities(best_block, true);
+    if (not authorities_res.has_value()) {
+      BOOST_ASSERT(authorities_res.error().message().empty());
+    }
+    auto &authorities = authorities_res.value();
+
+    auto voters = std::make_shared<VoterSet>(authorities->id);
+    for (const auto &authority : *authorities) {
+      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+                     authority.weight);
+    }
+
+    const auto new_round_number =
+        round->voterSetId() == voters->id() ? (round->roundNumber() + 1) : 1;
+
     auto vote_graph = std::make_shared<VoteGraphImpl>(best_block, environment_);
 
-    GrandpaConfig config{.voters = voters,
+    GrandpaConfig config{.voters = std::move(voters),
                          .round_number = new_round_number,
                          .duration = round_time_factor_,
                          .id = keypair_
@@ -192,11 +197,12 @@ namespace kagome::consensus::grandpa {
         keypair_ ? boost::make_optional(*keypair_) : boost::none,
         crypto_provider_,
         new_round_number,
-        voters);
+        config.voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
         std::move(config),
+        authority_manager_,
         environment_,
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
@@ -218,20 +224,6 @@ namespace kagome::consensus::grandpa {
       target_round = previous_round_;
     }
     return target_round;
-  }
-
-  outcome::result<std::shared_ptr<VoterSet>> GrandpaImpl::getVoters() const {
-    /*
-     * TODO(kamilsa): PRE-356 Check if voters were updated:
-     * We should check if voters received from runtime (through
-     * grandpa->grandpa_authorities() runtime entry call) differ from the ones
-     * that we obtained from the storage. If so, we should return voter set with
-     * incremented voter set and consisting of new voters. Also round number
-     * should be reset to 0
-     */
-    OUTCOME_TRY(voters_encoded, storage_->get(storage::kAuthoritySetKey));
-    OUTCOME_TRY(voter_set, scale::decode<VoterSet>(voters_encoded));
-    return std::make_shared<VoterSet>(voter_set);
   }
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
@@ -379,7 +371,7 @@ namespace kagome::consensus::grandpa {
 
     MovableRoundState round_state{
         .round_number = msg.round_number,
-        .last_finalized_block = msg.best_final_candidate,
+        .last_finalized_block = current_round_->lastFinalizedBlock(),
         .votes = {},
         .finalized = msg.best_final_candidate};
     std::transform(msg.prevote_justification.items.begin(),
@@ -391,7 +383,20 @@ namespace kagome::consensus::grandpa {
                    std::back_inserter(round_state.votes),
                    [](auto &item) { return item; });
 
-    auto round = makeInitialRound(round_state);
+    auto authorities_res =
+        authority_manager_->authorities(round_state.finalized.value(), false);
+    if (not authorities_res.has_value()) {
+      BOOST_ASSERT(authorities_res.error().message().empty());
+    }
+    auto &authorities = authorities_res.value();
+
+    auto voters = std::make_shared<VoterSet>(authorities->id);
+    for (const auto &authority : *authorities) {
+      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+                     authority.weight);
+    }
+
+    auto round = makeInitialRound(round_state, std::move(voters));
     if (round == nullptr) {
       // Can't make round
       return;
@@ -506,20 +511,30 @@ namespace kagome::consensus::grandpa {
       return target_round->applyJustification(block_info, justification);
     }
 
-    if (current_round_->roundNumber() > justification.round_number) {
-      return VotingRoundError::JUSTIFICATION_FOR_ROUND_IN_PAST;
-    }
-
     if (current_round_->bestPrevoteCandidate().number > block_info.number) {
       return VotingRoundError::JUSTIFICATION_FOR_BLOCK_IN_PAST;
     }
 
-    MovableRoundState round_state{.round_number = justification.round_number,
-                                  .last_finalized_block = block_info,
-                                  .votes = {},
-                                  .finalized = block_info};
+    MovableRoundState round_state{
+        .round_number = justification.round_number,
+        .last_finalized_block = current_round_->lastFinalizedBlock(),
+        .votes = {},
+        .finalized = block_info};
 
-    auto round = makeInitialRound(round_state);
+    auto authorities_res =
+        authority_manager_->authorities(round_state.last_finalized_block, true);
+    if (not authorities_res.has_value()) {
+      BOOST_ASSERT(authorities_res.error().message().empty());
+    }
+    auto &authorities = authorities_res.value();
+
+    auto voters = std::make_shared<VoterSet>(authorities->id);
+    for (const auto &authority : *authorities) {
+      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+                     authority.weight);
+    }
+
+    auto round = makeInitialRound(round_state, std::move(voters));
     assert(round);
 
     SL_DEBUG(logger_,
@@ -547,6 +562,12 @@ namespace kagome::consensus::grandpa {
     }
 
     const auto &round_state = round_state_res.value();
+
+    logger_->debug(
+        "Save state of finalized round #{}: finalized={}, finalizing={}",
+        round_state.round_number,
+        round_state.last_finalized_block.number,
+        round_state.finalized.value().number);
 
     SL_DEBUG(
         logger_, "Event OnCompleted for round #{}", round_state.round_number);

@@ -96,7 +96,7 @@ namespace kagome::consensus {
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
-    std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
+    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<grandpa::Environment> grandpa_environment_;

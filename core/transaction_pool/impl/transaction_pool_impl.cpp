@@ -31,7 +31,8 @@ namespace kagome::transaction_pool {
     BOOST_ASSERT_MSG(header_repo_ != nullptr, "header repo is nullptr");
     BOOST_ASSERT_MSG(moderator_ != nullptr, "moderator is nullptr");
     BOOST_ASSERT_MSG(sub_engine_ != nullptr, "sub engine is nullptr");
-    BOOST_ASSERT_MSG(ext_key_repo_ != nullptr, "extrinsic event key repository is nullptr");
+    BOOST_ASSERT_MSG(ext_key_repo_ != nullptr,
+                     "extrinsic event key repository is nullptr");
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
@@ -66,9 +67,10 @@ namespace kagome::transaction_pool {
       }
       imported_txs_.erase(tx->hash);
     } else {
-      SL_DEBUG(logger_, "Extrinsic {} with hash {} was added to the pool",
-                     tx->ext.data.toHex(),
-                     tx->hash.toHex());
+      SL_DEBUG(logger_,
+               "Extrinsic {} with hash {} was added to the pool",
+               tx->ext.data.toHex(),
+               tx->hash.toHex());
     }
 
     return processResult;
@@ -142,8 +144,8 @@ namespace kagome::transaction_pool {
     auto tx_node = imported_txs_.extract(tx_hash);
     if (tx_node.empty()) {
       SL_TRACE(logger_,
-          "Extrinsic with hash {} was not found in the pool during remove",
-          tx_hash);
+               "Extrinsic with hash {} was not found in the pool during remove",
+               tx_hash);
       return TransactionPoolError::TX_NOT_FOUND;
     }
     auto &tx = tx_node.mapped();
@@ -153,9 +155,10 @@ namespace kagome::transaction_pool {
 
     processPostponedTransactions();
 
-    SL_DEBUG(logger_, "Extrinsic {} with hash {} was removed from the pool",
-                   tx->ext.data.toHex(),
-                   tx->hash.toHex());
+    SL_DEBUG(logger_,
+             "Extrinsic {} with hash {} was removed from the pool",
+             tx->ext.data.toHex(),
+             tx->hash.toHex());
     return std::move(*tx);
   }
 

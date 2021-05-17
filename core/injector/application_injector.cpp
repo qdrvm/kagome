@@ -47,15 +47,14 @@
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/authority/impl/schedule_node.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
-#include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
-#include "consensus/grandpa/impl/finalization_composite.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -98,6 +97,7 @@
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
+#include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -190,40 +190,52 @@ namespace {
         trie_storage->getRootHash(),
         db,
         hasher,
-        [&db, &grandpa_api](const primitives::Block &genesis_block) {
-          // handle genesis initialization, which happens when there is not
-          // authorities and last completed round in the storage
-          if (not db->get(storage::kAuthoritySetKey)) {
-            // insert authorities
-            const auto &weighted_authorities_res = grandpa_api->authorities(
-                primitives::BlockId(primitives::BlockNumber{0}));
-            BOOST_ASSERT_MSG(weighted_authorities_res,
-                             "grandpa_api_->authorities failed");
-            const auto &weighted_authorities = weighted_authorities_res.value();
+        [&](const primitives::Block &genesis_block) {
+          auto log = log::createLogger("Injector", "kagome");
 
-            auto log = log::createLogger("injector", "kagome");
-
-            for (const auto &authority : weighted_authorities) {
-              log->info("Grandpa authority: {}", authority.id.id.toHex());
+          auto res = db->get(authority::AuthorityManagerImpl::SCHEDULER_TREE);
+          if (not res.has_value()
+              && res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
+            auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
+            if (not hash_res.has_value()) {
+              log->critical("Can't decode genesis block hash: {}",
+                            hash_res.error().message());
+              common::raise(hash_res.error());
             }
 
-            consensus::grandpa::VoterSet voters{0};
-            for (const auto &weighted_authority : weighted_authorities) {
-              voters.insert(
-                  primitives::GrandpaSessionKey{weighted_authority.id.id},
-                  weighted_authority.weight);
-              SL_DEBUG(log,
-                       "Added to grandpa authorities: {}, weight: {}",
-                       weighted_authority.id.id.toHex(),
-                       weighted_authority.weight);
+            primitives::BlockHash hash;
+            std::copy(
+                hash_res.value().begin(), hash_res.value().end(), hash.begin());
+
+            // Get initial authorities from genesis
+            auto authorities_res = grandpa_api->authorities(hash);
+            if (not authorities_res.has_value()) {
+              log->critical("Can't get genesis grandpa authorities: {}",
+                            authorities_res.error().message());
+              common::raise(authorities_res.error());
             }
-            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
-            auto authorities_put_res =
-                db->put(storage::kAuthoritySetKey,
-                        common::Buffer(scale::encode(voters).value()));
-            if (not authorities_put_res) {
-              BOOST_ASSERT_MSG(false, "Could not insert authorities");
-              BOOST_UNREACHABLE_RETURN(std::exit(EXIT_FAILURE));
+            auto &authorities = authorities_res.value();
+            authorities.id = 0;
+
+            auto node = authority::ScheduleNode::createAsRoot({0, hash});
+            node->actual_authorities =
+                std::make_shared<primitives::AuthorityList>(
+                    std::move(authorities));
+
+            auto data_res = scale::encode(node);
+            if (!data_res.has_value()) {
+              log->critical("Can't encode authority manager state: {}",
+                            data_res.error().message());
+              common::raise(data_res.error());
+            }
+
+            auto save_res =
+                db->put(authority::AuthorityManagerImpl::SCHEDULER_TREE,
+                        common::Buffer(data_res.value()));
+            if (!save_res.has_value()) {
+              log->critical("Can't store current state: {}",
+                            save_res.error().message());
+              common::raise(save_res.error());
             }
           }
         });
@@ -318,7 +330,7 @@ namespace {
       common::raise(batch.error());
     }
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "kagome");
 
     const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
@@ -352,7 +364,7 @@ namespace {
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
     if (!db_res) {
-      auto log = log::createLogger("injector", "kagome");
+      auto log = log::createLogger("Injector", "kagome");
       log->critical("Can't create LevelDB in {}: {}",
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
@@ -378,7 +390,7 @@ namespace {
     auto chain_spec_res =
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
     if (not chain_spec_res.has_value()) {
-      auto log = log::createLogger("injector", "kagome");
+      auto log = log::createLogger("Injector", "kagome");
       log->critical(
           "Can't load chain spec from {}: {}",
           fs::absolute(chainspec_path.native(), fs::current_path()).native(),
@@ -407,7 +419,7 @@ namespace {
     auto configuration = std::make_shared<primitives::BabeConfiguration>(
         std::move(configuration_res.value()));
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "kagome");
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
     }
@@ -463,7 +475,7 @@ namespace {
       return initialized.value();
     }
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "kagome");
 
     if (app_config.nodeKey()) {
       log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
@@ -761,7 +773,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1229,7 +1241,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&...args) {
+                              Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(

@@ -246,8 +246,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   boost::asio::ip::tcp::endpoint const ws_endpoint =
       get_endpoint("2.2.2.2", 678);
 
-  char const *args[] = {
-      "/path/", "--config-file", config_path.c_str()};
+  char const *args[] = {"/path/", "--config-file", config_path.c_str()};
   ASSERT_TRUE(
       app_config_->initialize_from_args(std::size(args), (char **)args));
 

@@ -69,10 +69,3 @@ target_link_libraries(grandpa
     vote_graph
     vote_tracker
     )
-
-add_library(finalization_composite
-    impl/finalization_composite.cpp
-    )
-target_link_libraries(finalization_composite
-    logger
-    )

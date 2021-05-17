@@ -32,11 +32,11 @@
 #include "network/protocols/protocol_factory.hpp"
 #include "network/protocols/sup_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
+#include "network/router.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "network/types/sync_clients_set.hpp"
-#include "network/router.hpp"
 
 namespace kagome::network {
 
@@ -55,8 +55,7 @@ namespace kagome::network {
         const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_peer_info,
         std::shared_ptr<network::SyncClientsSet> sync_clients,
-        std::shared_ptr<network::Router> router
-    );
+        std::shared_ptr<network::Router> router);
 
     /** @see AppStateManager::takeControl */
     bool prepare();

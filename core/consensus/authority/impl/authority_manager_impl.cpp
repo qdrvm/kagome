@@ -11,24 +11,21 @@
 #include "consensus/authority/authority_manager_error.hpp"
 #include "consensus/authority/authority_update_observer_error.hpp"
 #include "consensus/authority/impl/schedule_node.hpp"
-#include "primitives/babe_configuration.hpp"
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 
 namespace kagome::authority {
 
   AuthorityManagerImpl::AuthorityManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<primitives::BabeConfiguration> genesis_configuration,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<storage::BufferStorage> storage)
       : log_{log::createLogger("AuthorityManager", "authority")},
         app_state_manager_(std::move(app_state_manager)),
-        genesis_configuration_(std::move(genesis_configuration)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(genesis_configuration_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
 
     app_state_manager_->takeControl(*this);
@@ -36,12 +33,9 @@ namespace kagome::authority {
 
   bool AuthorityManagerImpl::prepare() {
     auto encoded_root_res = storage_->get(SCHEDULER_TREE);
-    if (!encoded_root_res.has_value()) {
-      // Get initial authorities from genesis
-      root_ = ScheduleNode::createAsRoot({});
-      root_->actual_authorities = std::make_shared<primitives::AuthorityList>(
-          genesis_configuration_->genesis_authorities);
-      return true;
+    if (not encoded_root_res.has_value()) {
+      log_->critical("Can't restore authority manager state");
+      return false;
     }
 
     auto root_res =
@@ -50,8 +44,10 @@ namespace kagome::authority {
       log_->critical("Can't decode stored state");
       return false;
     }
+    auto &root = root_res.value();
 
-    root_ = std::move(root_res.value());
+    root_ = std::move(root);
+
     return true;
   }
 
@@ -61,29 +57,38 @@ namespace kagome::authority {
 
   void AuthorityManagerImpl::stop() {
     if (!root_) return;
+    std::ignore = save();
+  }
+
+  outcome::result<void> AuthorityManagerImpl::save() {
+    BOOST_ASSERT(root_ != nullptr);
+
     auto data_res = scale::encode(root_);
     if (!data_res.has_value()) {
       log_->critical("Can't encode state to store");
-      return;
+      return AuthorityManagerError::CAN_NOT_SAVE_STATE;
     }
+
     auto save_res =
         storage_->put(SCHEDULER_TREE, common::Buffer(data_res.value()));
     if (!save_res.has_value()) {
       log_->critical("Can't store current state");
-      return;
+      return AuthorityManagerError::CAN_NOT_SAVE_STATE;
     }
+
+    return outcome::success();
   }
 
   outcome::result<std::shared_ptr<const primitives::AuthorityList>>
-  AuthorityManagerImpl::authorities(const primitives::BlockInfo &block) {
+  AuthorityManagerImpl::authorities(const primitives::BlockInfo &block,
+                                    bool finalized) {
     auto node = getAppropriateAncestor(block);
 
     if (not node) {
       return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
     }
 
-    auto adjusted_node =
-        (node->block == block) ? node : node->makeDescendant(block);
+    auto adjusted_node = node->makeDescendant(block, finalized);
 
     if (adjusted_node->enabled) {
       // Original authorities
@@ -109,10 +114,24 @@ namespace kagome::authority {
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
 
-    // Schedule change
-    new_node->scheduled_authorities =
+    auto new_authorities =
         std::make_shared<primitives::AuthorityList>(authorities);
+    new_authorities->id = new_node->actual_authorities->id + 1;
+
+    // Schedule change
+    new_node->scheduled_authorities = std::move(new_authorities);
     new_node->scheduled_after = activate_at;
+
+    SL_VERBOSE(log_,
+               "Change is scheduled after block #{} (set id={})",
+               new_node->scheduled_after,
+               new_node->scheduled_authorities->id);
+    for (auto &authority : *new_node->scheduled_authorities) {
+      SL_VERBOSE(log_,
+                 "New authority id={}, weight={}",
+                 authority.id.id,
+                 authority.weight);
+    }
 
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
@@ -129,6 +148,8 @@ namespace kagome::authority {
     }
     node->descendants.emplace_back(std::move(new_node));
 
+    std::ignore = save();
+
     return outcome::success();
   }
 
@@ -142,14 +163,26 @@ namespace kagome::authority {
 
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
 
+    auto new_authorities =
+        std::make_shared<primitives::AuthorityList>(authorities);
+    new_authorities->id = new_node->actual_authorities->id + 1;
+
     // Force changes
     if (new_node->block.number >= activate_at) {
-      new_node->actual_authorities =
-          std::make_shared<primitives::AuthorityList>(authorities);
+      new_node->actual_authorities = std::move(new_authorities);
     } else {
       new_node->forced_authorities =
           std::make_shared<primitives::AuthorityList>(authorities);
       new_node->forced_for = activate_at;
+    }
+
+    SL_VERBOSE(
+        log_, "Change is forced on block #{}", new_node->scheduled_after);
+    for (auto &authority : *new_node->forced_authorities) {
+      SL_VERBOSE(log_,
+                 "New authority id={}, weight={}",
+                 authority.id.id,
+                 authority.weight);
     }
 
     // Reorganize ancestry
@@ -172,6 +205,8 @@ namespace kagome::authority {
     }
     node->descendants.emplace_back(std::move(new_node));
 
+    std::ignore = save();
+
     return outcome::success();
   }
 
@@ -192,6 +227,11 @@ namespace kagome::authority {
     (*authorities)[authority_index].weight = 0;
     new_node->actual_authorities = std::move(authorities);
 
+    SL_VERBOSE(log_,
+               "Authotity id={} is disabled on block #{}",
+               (*authorities)[authority_index].id.id,
+               new_node->block.number);
+
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
       if (directChainExists(block, descendant->block)) {
@@ -206,6 +246,8 @@ namespace kagome::authority {
     }
     node->descendants.emplace_back(std::move(new_node));
 
+    std::ignore = save();
+
     return outcome::success();
   }
 
@@ -219,6 +261,8 @@ namespace kagome::authority {
 
     new_node->pause_after = activate_at;
 
+    SL_VERBOSE(log_, "Scheduled pause after block #{}", new_node->block.number);
+
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
       auto &ancestor =
@@ -226,6 +270,8 @@ namespace kagome::authority {
       ancestor->descendants.emplace_back(std::move(descendant));
     }
     node->descendants.emplace_back(std::move(new_node));
+
+    std::ignore = save();
 
     return outcome::success();
   }
@@ -239,6 +285,8 @@ namespace kagome::authority {
     OUTCOME_TRY(new_node->ensureReadyToSchedule());
 
     new_node->resume_for = activate_at;
+
+    SL_VERBOSE(log_, "Scheduled resume on block #{}", new_node->block.number);
 
     // Reorganize ancestry
     for (auto &descendant : std::move(node->descendants)) {
@@ -260,6 +308,8 @@ namespace kagome::authority {
     }
     node->descendants.emplace_back(std::move(new_node));
 
+    std::ignore = save();
+
     return outcome::success();
   }
 
@@ -267,68 +317,87 @@ namespace kagome::authority {
       const primitives::ConsensusEngineId &engine_id,
       const primitives::BlockInfo &block,
       const primitives::Consensus &message) {
-    if (std::find(known_engines.begin(), known_engines.end(), engine_id)
-        == known_engines.end()) {
+    OUTCOME_TRY(message.decode());
+    if (engine_id == primitives::kBabeEngineId) {
+      // TODO(xDimon): Perhaps it needs to be refactored.
+      //  It is better handle babe digests here
+      //  Issue: https://github.com/soramitsu/kagome/issues/740
+      return visit_in_place(
+          message.asBabeDigest(),
+          [](const primitives::NextEpochData &msg) -> outcome::result<void> {
+            return outcome::success();
+          },
+          [](const primitives::OnDisabled &msg) {
+            // Note: This event type wount be used anymore and must be ignored
+            return outcome::success();
+          },
+          [](const primitives::NextConfigData &msg) {
+            return outcome::success();
+          },
+          [](auto &) {
+            return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
+          });
+    } else if (engine_id == primitives::kGrandpaEngineId) {
+      return visit_in_place(
+          message.asGrandpaDigest(),
+          [this, &block](
+              const primitives::ScheduledChange &msg) -> outcome::result<void> {
+            return applyScheduledChange(
+                block, msg.authorities, block.number + msg.subchain_length);
+          },
+          [this, &block](const primitives::ForcedChange &msg) {
+            return applyForcedChange(
+                block, msg.authorities, block.number + msg.subchain_length);
+          },
+          [](const primitives::OnDisabled &msg) {
+            // Note: This event type wount be used anymore and must be ignored
+            return outcome::success();
+          },
+          [this, &block](const primitives::Pause &msg) {
+            return applyPause(block, block.number + msg.subchain_length);
+          },
+          [this, &block](const primitives::Resume &msg) {
+            return applyResume(block, block.number + msg.subchain_length);
+          },
+          [](auto &) {
+            return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
+          });
+    } else {
       return AuthorityManagerError::UNKNOWN_ENGINE_ID;
     }
-
-    return visit_in_place(
-        message.payload,
-        [this, &block](
-            const primitives::ScheduledChange &msg) -> outcome::result<void> {
-          return applyScheduledChange(
-              block, msg.authorities, block.number + msg.subchain_lenght);
-        },
-        [this, &block](const primitives::ForcedChange &msg) {
-          return applyForcedChange(
-              block, msg.authorities, block.number + msg.subchain_lenght);
-        },
-        [this, &block](const primitives::OnDisabled &msg) {
-          return applyOnDisabled(block, msg.authority_index);
-        },
-        [this, &block](const primitives::Pause &msg) {
-          return applyPause(block, block.number + msg.subchain_lenght);
-        },
-        [this, &block](const primitives::Resume &msg) {
-          return applyResume(block, block.number + msg.subchain_lenght);
-        },
-        [](const Unused<0> &) {
-          // NOTE(xDimon): Does it nothing? Is it valid?
-          // Sometimes runtime makes consensus digest with unused variant.
-          return outcome::success();
-        },
-        [](auto &) {
-          return AuthorityUpdateObserverError::UNSUPPORTED_MESSAGE_TYPE;
-        });
   }
 
-  outcome::result<void> AuthorityManagerImpl::onFinalize(
+  outcome::result<void> AuthorityManagerImpl::prune(
       const primitives::BlockInfo &block) {
     if (block == root_->block) {
       return outcome::success();
     }
 
     if (block.number < root_->block.number) {
-      return AuthorityManagerError::WRONG_FINALISATION_ORDER;
+      return outcome::success();
     }
 
     auto node = getAppropriateAncestor(block);
 
-    // Create new node
-    auto new_node = node->makeDescendant(block, true);
+    if (node->block == block) {
+      // Rebase
+      root_ = std::move(node);
 
-    // Reorganize ancestry
-    for (auto &descendant : std::move(node->descendants)) {
-      if (directChainExists(block, descendant->block)) {
-        new_node->descendants.emplace_back(std::move(descendant));
+    } else {
+      // Reorganize ancestry
+      auto new_node = node->makeDescendant(block, true);
+      for (auto &descendant : std::move(node->descendants)) {
+        if (directChainExists(block, descendant->block)) {
+          new_node->descendants.emplace_back(std::move(descendant));
+        }
       }
+
+      root_ = std::move(new_node);
     }
 
-    root_ = std::move(new_node);
+    SL_VERBOSE(log_, "Prune authority manager upto block #{}", block.number);
 
-    OUTCOME_TRY(encoded_state, scale::encode(root_));
-    OUTCOME_TRY(storage_->put(SCHEDULER_TREE,
-                              common::Buffer(std::move(encoded_state))));
+    OUTCOME_TRY(save());
 
     return outcome::success();
   }
