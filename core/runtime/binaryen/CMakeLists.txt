@@ -41,6 +41,7 @@ target_link_libraries(binaryen_wasm_module
     logger
     binaryen_runtime_external_interface
     trie_storage_provider
+    mp_utils
     )
 kagome_install(binaryen_wasm_module)
 
