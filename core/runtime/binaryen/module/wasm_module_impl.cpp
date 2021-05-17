@@ -68,7 +68,7 @@ namespace kagome::runtime::binaryen {
       }
     }
 
-    module->memory.initial = kDefaultHeappages;  // default value
+    module->memory.initial = kDefaultHeappages;
     OUTCOME_TRY(heappages_key, common::Buffer::fromString(":heappages"));
     if (auto heappages_res =
             storage_provider->getCurrentBatch()->get(heappages_key);
