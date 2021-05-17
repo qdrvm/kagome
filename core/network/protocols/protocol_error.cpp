@@ -15,7 +15,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, ProtocolError, e) {
     case E::CAN_NOT_CREATE_STATUS:
       return "Can not create status";
     case E::NODE_NOT_SYNCHRONIZED_YET:
-      return "Node not synchrinized yet";
+      return "Node is not synchrinized yet";
   }
   return "Unknown error (kagome::network::ProtocolError)";
 }

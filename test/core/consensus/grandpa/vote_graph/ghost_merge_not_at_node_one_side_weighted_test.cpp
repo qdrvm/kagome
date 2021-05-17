@@ -15,7 +15,7 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -35,7 +35,7 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 0
@@ -46,7 +46,7 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
         "A",
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -75,13 +75,13 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
         "C",
         "B"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 100
@@ -92,7 +92,7 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "G1"
       ],
       "cumulative_vote": 100
@@ -131,13 +131,13 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
         "C",
         "B"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 150
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 250
@@ -148,7 +148,7 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "G1",
         "H2"
       ],
@@ -163,7 +163,7 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
         "C",
         "B"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     }
   },

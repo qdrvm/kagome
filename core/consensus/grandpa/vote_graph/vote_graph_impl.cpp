@@ -45,8 +45,8 @@ namespace kagome::consensus::grandpa {
 
     // iterate vote-heads and their ancestry backwards until we find the one
     // with this target hash in that chain.
-    for (const auto &headHash : heads_) {
-      BlockHash current = headHash;
+    for (const auto &head_hash : heads_) {
+      BlockHash current = head_hash;
       while (true) {
         auto active = entries_.find(current);
         if (active == entries_.end()) {
@@ -58,17 +58,17 @@ namespace kagome::consensus::grandpa {
           break;
         }
 
-        auto ancestorOpt = active->second.getAncestorBlockBy(block.number);
-        if (ancestorOpt && *ancestorOpt == block.hash) {
+        auto ancestor_opt = active->second.getAncestorBlockBy(block.number);
+        if (ancestor_opt && *ancestor_opt == block.hash) {
           containing.push_back(current);
-        } else if (ancestorOpt && *ancestorOpt != block.hash) {
+        } else if (ancestor_opt && *ancestor_opt != block.hash) {
           // nothing in this branch. continue search.
         } else {
-          const Entry &activeEntry = active->second;
-          auto lastAncestorIt = activeEntry.ancestors.rbegin();
-          if (lastAncestorIt != activeEntry.ancestors.rend()) {
+          const Entry &active_entry = active->second;
+          auto last_ancestor_it = active_entry.ancestors.rbegin();
+          if (last_ancestor_it != active_entry.ancestors.rend()) {
             // iterate backwards
-            current = *lastAncestorIt;
+            current = *last_ancestor_it;
             continue;
           }
         }
@@ -81,12 +81,13 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> VoteGraphImpl::insert(const BlockInfo &block,
-                                              const VoteWeight &voteWeight) {
-    if (auto containingOpt = findContainingNodes(block); containingOpt) {
-      if (containingOpt->empty()) {
+                                              const VoteWeight &vote_weight) {
+    if (auto containing_opt = findContainingNodes(block);
+        containing_opt.has_value()) {
+      if (containing_opt->empty()) {
         OUTCOME_TRY(append(block));
       } else {
-        introduceBranch(*containingOpt, block);
+        introduceBranch(*containing_opt, block);
       }
     } else {
       // this entry already exists
@@ -95,13 +96,13 @@ namespace kagome::consensus::grandpa {
     // update cumulative vote data.
     // NOTE: below this point, there always exists a node with the given hash
     // and number.
-    BlockHash inspectingHash = block.hash;
+    BlockHash inspecting_hash = block.hash;
     while (true) {
-      Entry &activeEntry = entries_.at(inspectingHash);
-      activeEntry.cumulative_vote += voteWeight;
-      auto parentIt = activeEntry.ancestors.rbegin();
-      if (parentIt != activeEntry.ancestors.rend()) {
-        inspectingHash = *parentIt;
+      Entry &active_entry = entries_.at(inspecting_hash);
+      active_entry.cumulative_vote += vote_weight;
+      auto parent_it = active_entry.ancestors.rbegin();
+      if (parent_it != active_entry.ancestors.rend()) {
+        inspecting_hash = *parent_it;
       } else {
         break;
       }
@@ -125,27 +126,29 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT_MSG(ancestry.back() == base_.hash,
                      "ancestry always contains base block as the last element");
 
-    auto entryIt = entries_.end();
+    auto entry_it = entries_.end();
 
     // Find first (best) ancestor among those presented in the entries,
     // and take corresponding entry
-    auto ancectryIt = std::find_if(
-        ancestry.begin() + 1, ancestry.end(), [this, &entryIt](auto &ancestor) {
-          return entryIt = entries_.find(ancestor), entryIt != entries_.end();
-        });
-    BOOST_ASSERT(ancectryIt != ancestry.end());
+    auto ancectry_it = std::find_if(ancestry.begin() + 1,
+                                    ancestry.end(),
+                                    [this, &entry_it](auto &ancestor) {
+                                      return entry_it = entries_.find(ancestor),
+                                             entry_it != entries_.end();
+                                    });
+    BOOST_ASSERT(ancectry_it != ancestry.end());
 
     // Found entry is got block as descendant
-    Entry &entry = entryIt->second;
-    entry.descendents.push_back(block.hash);
+    Entry &entry = entry_it->second;
+    entry.descendants.push_back(block.hash);
 
     // Needed ancestries is ancestries from parent to ancestor represented in
     // found entry
-    std::vector<BlockHash> ancestors(ancestry.begin() + 1, ancectryIt + 1);
+    std::vector<BlockHash> ancestors(ancestry.begin() + 1, ancectry_it + 1);
 
     // Block will become a head instead his oldest ancestor
-    BlockHash ancestorHash = ancestors.back();
-    heads_.erase(ancestorHash);
+    BlockHash ancestor_hash = ancestors.back();
+    heads_.erase(ancestor_hash);
     heads_.insert(block.hash);
 
     // New entry is got ancestors and added to entries container
@@ -158,15 +161,15 @@ namespace kagome::consensus::grandpa {
   }
 
   void VoteGraphImpl::introduceBranch(
-      const std::vector<primitives::BlockHash> &descendents,
+      const std::vector<primitives::BlockHash> &descendants,
       const BlockInfo &ancestor) {
-    Entry newEntry;
-    newEntry.number = ancestor.number;
+    Entry new_entry;
+    new_entry.number = ancestor.number;
     bool filled = false;  // is newEntry.ancestors filled
-    boost::optional<BlockHash> prevAncestorOpt;
+    boost::optional<BlockHash> prev_ancestor_opt;
 
-    for (const auto &descendent : descendents) {
-      Entry &entry = entries_.at(descendent);
+    for (const auto &descendant : descendants) {
+      Entry &entry = entries_.at(descendant);
 
       BOOST_ASSERT_MSG(inDirectAncestry(entry, ancestor.hash, ancestor.number),
                        "not in direct ancestry");
@@ -180,14 +183,14 @@ namespace kagome::consensus::grandpa {
 
       if (!filled) {
         // `[offset_size..end)` elements
-        newEntry.ancestors = std::vector<BlockHash>{
+        new_entry.ancestors = std::vector<BlockHash>{
             entry.ancestors.begin() + offset_size, entry.ancestors.end()};
 
-        auto lastIt = entry.ancestors.rbegin();
-        if (lastIt != entry.ancestors.rend()) {
-          prevAncestorOpt = *lastIt;
+        auto last_it = entry.ancestors.rbegin();
+        if (last_it != entry.ancestors.rend()) {
+          prev_ancestor_opt = *last_it;
         } else {
-          prevAncestorOpt = boost::none;
+          prev_ancestor_opt = boost::none;
         }
         filled = true;
       }
@@ -196,26 +199,26 @@ namespace kagome::consensus::grandpa {
       entry.ancestors = std::vector<BlockHash>{
           entry.ancestors.begin(), entry.ancestors.begin() + offset_size};
 
-      newEntry.descendents.push_back(descendent);
-      newEntry.cumulative_vote += entry.cumulative_vote;
+      new_entry.descendants.push_back(descendant);
+      new_entry.cumulative_vote += entry.cumulative_vote;
     }
 
-    if (prevAncestorOpt) {
-      auto it = entries_.find(*prevAncestorOpt);
+    if (prev_ancestor_opt) {
+      auto it = entries_.find(*prev_ancestor_opt);
       BOOST_ASSERT_MSG(it != entries_.end(),
                        "Prior ancestor is referenced from a node; qed");
 
       auto &prev_ancestor_entry = it->second;
-      std::unordered_set<BlockHash> set{newEntry.descendents.begin(),
-                                        newEntry.descendents.end()};
+      std::unordered_set<BlockHash> set{new_entry.descendants.begin(),
+                                        new_entry.descendants.end()};
 
-      // filter descendents
-      filter_if(prev_ancestor_entry.descendents,
+      // filter descendants
+      filter_if(prev_ancestor_entry.descendants,
                 [&set](const BlockHash &hash) { return !contains(set, hash); });
-      prev_ancestor_entry.descendents.push_back(ancestor.hash);
+      prev_ancestor_entry.descendants.push_back(ancestor.hash);
     }
 
-    entries_.insert({ancestor.hash, std::move(newEntry)});
+    entries_.insert({ancestor.hash, std::move(new_entry)});
   }
 
   boost::optional<BlockInfo> VoteGraphImpl::findGhost(
@@ -225,20 +228,20 @@ namespace kagome::consensus::grandpa {
     bool force_constrain = false;
     BlockHash node_key = base_.hash;
 
-    if (current_best) {
-      auto containingOpt = findContainingNodes(*current_best);
-      if (containingOpt) {
-        auto &containing = *containingOpt;
+    if (current_best.has_value()) {
+      auto containing_opt = findContainingNodes(current_best.value());
+      if (containing_opt.has_value()) {
+        auto &containing = containing_opt.value();
         if (containing.empty()) {
           return boost::none;
         }
 
         const Entry &entry = entries_.at(containing[0]);
-        auto ancestorIt = std::rbegin(entry.ancestors);
+        auto ancestor_it = std::rbegin(entry.ancestors);
         BOOST_ASSERT_MSG(
-            ancestorIt != std::rend(entry.ancestors),
+            ancestor_it != std::rend(entry.ancestors),
             "node containing non-node in history always has ancestor; qed");
-        node_key = *ancestorIt;
+        node_key = *ancestor_it;
         force_constrain = true;
       } else {
         node_key = current_best->hash;
@@ -260,27 +263,27 @@ namespace kagome::consensus::grandpa {
       auto &entry = observing_entries.front().get();
       observing_entries.pop_front();
 
-      for (auto &descendent_hash : entry.descendents) {
-        auto &descendent = entries_.at(descendent_hash);
+      for (auto &descendant_hash : entry.descendants) {
+        auto &descendant = entries_.at(descendant_hash);
 
         if (force_constrain && current_best) {
           if (not inDirectAncestry(
-                  descendent, current_best->hash, current_best->number)) {
+                  descendant, current_best->hash, current_best->number)) {
             continue;
           }
         }
-        if (not condition(descendent.cumulative_vote)) {
+        if (not condition(descendant.cumulative_vote)) {
           continue;
         }
 
-        if (descendent.number > active_node.number
-            or (descendent.number == active_node.number
+        if (descendant.number > active_node.number
+            or (descendant.number == active_node.number
                 and comparator(active_node.cumulative_vote,
-                               descendent.cumulative_vote))) {
-          node_key = descendent_hash;
-          active_node = descendent;
+                               descendant.cumulative_vote))) {
+          node_key = descendant_hash;
+          active_node = descendant;
 
-          observing_entries.emplace_back(descendent);
+          observing_entries.emplace_back(descendant);
         }
       }
 
@@ -292,14 +295,14 @@ namespace kagome::consensus::grandpa {
 
     Subchain subchain =
         ghostFindMergePoint(node_key, active_node, info, condition, comparator);
-    auto &h = subchain.hashes;
+    auto &hashes = subchain.hashes;
 
-    if (h.empty()) {
+    if (hashes.empty()) {
       return boost::none;
     }
 
     // return last hash with best number
-    return BlockInfo(subchain.best_number, h[h.size() - 1]);
+    return BlockInfo(subchain.best_number, hashes[hashes.size() - 1]);
   }
 
   VoteGraph::Subchain VoteGraphImpl::ghostFindMergePoint(
@@ -308,8 +311,8 @@ namespace kagome::consensus::grandpa {
       const boost::optional<BlockInfo> &force_constrain,
       const VoteGraph::Condition &condition,
       const Comparator &comparator) const {
-    auto descendents = active_node.descendents;
-    filter_if(descendents, [&](const BlockHash &hash) {
+    auto descendants = active_node.descendants;
+    filter_if(descendants, [&](const BlockHash &hash) {
       if (!force_constrain) {
         return true;
       }
@@ -321,7 +324,7 @@ namespace kagome::consensus::grandpa {
     auto best_number = active_node.number;
     std::vector<BlockHash> hashes{active_node_hash};
 
-    std::unordered_map<BlockHash, VoteWeight> descendent_blocks;
+    std::unordered_map<BlockHash, VoteWeight> descendant_blocks;
 
     size_t offset = 0;
     while (true) {
@@ -329,29 +332,29 @@ namespace kagome::consensus::grandpa {
       boost::optional<VoteWeight> new_best_vote_weight;
 
       ++offset;
-      for (const auto &d_node : descendents) {
+      for (const auto &d_node : descendants) {
         const Entry &entry = entries_.at(d_node);
-        auto ancestorOpt = entry.getAncestorBlockBy(base_number + offset);
-        if (!ancestorOpt) {
+        auto ancestor_opt = entry.getAncestorBlockBy(base_number + offset);
+        if (not ancestor_opt.has_value()) {
           continue;
         }
 
-        BlockHash &d_block = *ancestorOpt;
-        auto it = descendent_blocks.find(d_block);
-        if (it == descendent_blocks.end()) {
+        BlockHash &d_block = ancestor_opt.value();
+        auto it = descendant_blocks.find(d_block);
+        if (it == descendant_blocks.end()) {
           // if not found, insert then
-          descendent_blocks[d_block] = entry.cumulative_vote;
+          descendant_blocks[d_block] = entry.cumulative_vote;
         } else {
           // if found, update weight
-          descendent_blocks[d_block] += entry.cumulative_vote;
+          descendant_blocks[d_block] += entry.cumulative_vote;
           // check if block fullfills condition
-          if (condition(descendent_blocks[d_block])) {
+          if (condition(descendant_blocks[d_block])) {
             if (not new_best_vote_weight
                 or comparator(*new_best_vote_weight,
-                              descendent_blocks[d_block])) {
+                              descendant_blocks[d_block])) {
               // we found our best block
               new_best = d_block;
-              new_best_vote_weight = descendent_blocks[d_block];
+              new_best_vote_weight = descendant_blocks[d_block];
             }
           }
         }
@@ -362,8 +365,8 @@ namespace kagome::consensus::grandpa {
       }
 
       ++best_number;
-      descendent_blocks.clear();
-      filter_if(descendents, [&](const BlockHash &hash) {
+      descendant_blocks.clear();
+      filter_if(descendants, [&](const BlockHash &hash) {
         return inDirectAncestry(entries_.at(hash), *new_best, best_number);
       });
 
@@ -392,12 +395,12 @@ namespace kagome::consensus::grandpa {
 
     primitives::BlockNumber new_number = base_.number - ancestry_proof.size();
 
-    Entry newEntry;
-    newEntry.number = new_number;
-    newEntry.descendents.push_back(base_.hash);
-    newEntry.cumulative_vote = old_entry.cumulative_vote;
+    Entry new_entry;
+    new_entry.number = new_number;
+    new_entry.descendants.push_back(base_.hash);
+    new_entry.cumulative_vote = old_entry.cumulative_vote;
 
-    entries_[new_hash] = std::move(newEntry);
+    entries_[new_hash] = std::move(new_entry);
     base_ = BlockInfo{new_number, new_hash};
   }
 
@@ -412,22 +415,22 @@ namespace kagome::consensus::grandpa {
     boost::optional<Entry> canonical_node = boost::none;
     BlockHash node_key;
 
-    auto nodesOpt = findContainingNodes(block);
-    if (!nodesOpt) {
+    auto nodes_opt = findContainingNodes(block);
+    if (not nodes_opt.has_value()) {
       const Entry &entry = entries_.at(block.hash);
       if (condition(entry.cumulative_vote)) {
         return block;
       }
 
-      auto ancestorIt = std::rbegin(entry.ancestors);
-      if (ancestorIt == std::rend(entry.ancestors)) {
+      auto ancestor_it = std::rbegin(entry.ancestors);
+      if (ancestor_it == std::rend(entry.ancestors)) {
         return boost::none;
       }
 
       canonical_node = entry;
-      node_key = *ancestorIt;
+      node_key = *ancestor_it;
     } else {
-      auto &nodes = *nodesOpt;
+      auto &nodes = nodes_opt.value();
       if (nodes.empty()) {
         return boost::none;
       }
@@ -466,19 +469,19 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(canonical_node);
     // search in reverse order
     auto &hashes = good_subchain.hashes;
-    auto bestHashIt =
+    auto best_hash_it =
         std::find_if(hashes.rbegin(),
                      hashes.rend(),
                      [&canonical_node, number = good_subchain.best_number](
                          const BlockHash &hash) {
                        return inDirectAncestry(*canonical_node, hash, number);
                      });
-    if (bestHashIt == hashes.rend()) {
+    if (best_hash_it == hashes.rend()) {
       // not found
       return boost::none;
     }
 
-    return BlockInfo{good_subchain.best_number, *bestHashIt};
+    return BlockInfo{good_subchain.best_number, *best_hash_it};
   }
 
   VoteGraphImpl::VoteGraphImpl(const BlockInfo &base,

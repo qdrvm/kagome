@@ -24,12 +24,12 @@ namespace kagome::consensus::grandpa {
     if (not keypair_.has_value()) {
       return boost::none;
     }
-    auto& keypair = keypair_.value();
+    auto &keypair = keypair_.value();
     auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
     auto signature = ed_provider_->sign(keypair, payload).value();
     return {{.message = std::move(vote),
-            .signature = signature,
-            .id = keypair.public_key}};
+             .signature = signature,
+             .id = keypair.public_key}};
   }
 
   bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,

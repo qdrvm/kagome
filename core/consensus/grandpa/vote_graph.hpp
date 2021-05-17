@@ -22,14 +22,14 @@ namespace kagome::consensus::grandpa {
     struct Entry : public boost::equality_comparable<Entry> {
       BlockNumber number{};
       std::vector<BlockHash> ancestors{};
-      std::vector<BlockHash> descendents{};
+      std::vector<BlockHash> descendants{};
       VoteWeight cumulative_vote;
 
       bool operator==(const Entry &o) const {
         // clang-format off
         return number == o.number
                && ancestors == o.ancestors
-               && descendents == o.descendents
+               && descendants == o.descendants
                && cumulative_vote == o.cumulative_vote;
         // clang-format on
       }
@@ -97,15 +97,15 @@ namespace kagome::consensus::grandpa {
         const Condition &condition,
         const Comparator &comparator) const = 0;
 
-    /// Find the best GHOST descendent of the given block.
+    /// Find the best GHOST descendant of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
     ///
     /// The GHOST (hash, number) returned will be the block with highest number
-    /// for which the cumulative votes of descendents and itself causes the
+    /// for which the cumulative votes of descendants and itself causes the
     /// closure to evaluate to true.
     ///
     /// This assumes that the evaluation closure is one which returns true for
-    /// at most a single descendent of a block, in that only one fork of a block
+    /// at most a single descendant of a block, in that only one fork of a block
     /// can be "heavy" enough to trigger the threshold.
     ///
     /// Returns `None` when the given `current_best` does not fulfill the

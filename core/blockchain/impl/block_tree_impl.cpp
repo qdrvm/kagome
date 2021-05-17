@@ -577,7 +577,7 @@ namespace kagome::blockchain {
       }
     }
 
-    log_->info("Finalized block number {} with hash {}",
+    log_->info("Finalized block. Number: {}, Hash: {}",
                node->depth,
                block_hash.toHex());
     return outcome::success();

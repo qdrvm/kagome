@@ -42,7 +42,7 @@ namespace kagome::consensus::babe {
         lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
         trie_storage_{std::move(trie_storage)},
-        genesis_configuration_{std::move(configuration)},
+        babe_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         gossiper_{std::move(gossiper)},
@@ -100,15 +100,13 @@ namespace kagome::consensus::babe {
 
           auto ticks_since_epoch = time_since_epoch.count();
           last_epoch_descriptor.start_slot = static_cast<BabeSlotNumber>(
-              ticks_since_epoch
-              / genesis_configuration_->slot_duration.count());
+              ticks_since_epoch / babe_configuration_->slot_duration.count());
           break;
       }
 
       last_epoch_descriptor.epoch_number = 0;
-      last_epoch_descriptor.starting_slot_finish_time =
-          closestNextTimeMultiple(std::chrono::system_clock::now(),
-                                  genesis_configuration_->slot_duration);
+      last_epoch_descriptor.starting_slot_finish_time = closestNextTimeMultiple(
+          std::chrono::system_clock::now(), babe_configuration_->slot_duration);
     }
 
     auto [number, hash] = block_tree_->deepestLeaf();
@@ -247,14 +245,14 @@ namespace kagome::consensus::babe {
 
       rewind_slots = now > next_slot_finish_time_
                      and (now - next_slot_finish_time_)
-                             > genesis_configuration_->slot_duration;
+                             > babe_configuration_->slot_duration;
 
       if (rewind_slots) {
         // we are too far behind; after skipping some slots (but not epochs)
         // control will be returned to this method
 
         current_slot_++;
-        next_slot_finish_time_ += genesis_configuration_->slot_duration;
+        next_slot_finish_time_ += babe_configuration_->slot_duration;
 
         if (current_epoch_.epoch_number
             != babe_util_->slotToEpoch(current_slot_)) {
@@ -315,7 +313,7 @@ namespace kagome::consensus::babe {
              current_epoch_.epoch_number);
 
     ++current_slot_;
-    next_slot_finish_time_ += genesis_configuration_->slot_duration;
+    next_slot_finish_time_ += babe_configuration_->slot_duration;
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       startNextEpoch();
@@ -444,7 +442,7 @@ namespace kagome::consensus::babe {
 
     // check that we are still in the middle of the
     if (clock_->now()
-        > next_slot_finish_time_ + genesis_configuration_->slot_duration) {
+        > next_slot_finish_time_ + babe_configuration_->slot_duration) {
       log_->warn(
           "Block was not built in time. Slot has finished. If you are "
           "executing in debug mode, consider to rebuild in release");
@@ -505,7 +503,7 @@ namespace kagome::consensus::babe {
           keypair_->public_key.toHex());
       throw boost::bad_optional_access();
     }
-    auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
+    auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
                                         authorities,
                                         authority_index_res.value());
     return lottery_->slotsLeadership(epoch, randomness, threshold, *keypair_);
@@ -538,8 +536,8 @@ namespace kagome::consensus::babe {
     // to launch
     const auto diff = first_production_slot - observed_slot;
 
-    first_slot_times_.emplace_back(
-        clock_->now() + diff * genesis_configuration_->slot_duration);
+    first_slot_times_.emplace_back(clock_->now()
+                                   + diff * babe_configuration_->slot_duration);
   }
 
   BabeTimePoint BabeImpl::getFirstSlotTimeEstimate() {
@@ -562,7 +560,7 @@ namespace kagome::consensus::babe {
         slots_calculation_strategy_ == SlotsStrategy::FromZero,
         "This method can be executed only when slots are counting from zero");
     const auto epoch_number =
-        first_production_slot_number / genesis_configuration_->epoch_length;
+        first_production_slot_number / babe_configuration_->epoch_length;
 
     return EpochDescriptor{
         .epoch_number = epoch_number,
@@ -578,19 +576,19 @@ namespace kagome::consensus::babe {
         "This method can be executed only when slots are counting from unix "
         "epoch start");
 
-    const auto epoch_duration = genesis_configuration_->epoch_length;
+    const auto epoch_duration = babe_configuration_->epoch_length;
     const auto start_slot =
         first_production_slot
         - ((first_production_slot - last_known_epoch.start_slot)
            % epoch_duration);
-    auto slot_duration = genesis_configuration_->slot_duration;
+    auto slot_duration = babe_configuration_->slot_duration;
 
     // get new epoch index
     const auto ticks_since_epoch = clock_->now().time_since_epoch().count();
     const auto genesis_slot =
         static_cast<BabeSlotNumber>(ticks_since_epoch / slot_duration.count());
     const auto epoch_number = (first_production_slot - genesis_slot)
-                              / genesis_configuration_->epoch_length;
+                              / babe_configuration_->epoch_length;
 
     return EpochDescriptor{.epoch_number = epoch_number,
                            .start_slot = start_slot};
@@ -640,7 +638,7 @@ namespace kagome::consensus::babe {
 
         // calculate new epoch first slot finish time and run epoch
         epoch.starting_slot_finish_time = BabeTimePoint{
-            (epoch.start_slot + 1) * genesis_configuration_->slot_duration};
+            (epoch.start_slot + 1) * babe_configuration_->slot_duration};
 
         runEpoch(epoch);
         break;

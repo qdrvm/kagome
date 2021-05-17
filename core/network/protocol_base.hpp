@@ -6,7 +6,6 @@
 #ifndef KAGOME_NETWORK_PROTOCOLBASE
 #define KAGOME_NETWORK_PROTOCOLBASE
 
-
 #include "outcome/outcome.hpp"
 
 #include <libp2p/connection/stream.hpp>

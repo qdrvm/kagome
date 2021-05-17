@@ -24,7 +24,7 @@ namespace kagome::consensus::grandpa {
     /**
      * @brief Get the ancestry of a {@param block} up to the {@param base} hash.
      * Should be in reverse order from block's parent.
-     * @return If the block is not a descendent of base, returns an error.
+     * @return If the block is not a descendant of base, returns an error.
      */
     virtual outcome::result<std::vector<primitives::BlockHash>> getAncestry(
         const primitives::BlockHash &base,
@@ -48,7 +48,7 @@ namespace kagome::consensus::grandpa {
         const primitives::BlockHash &base) const = 0;
 
     /**
-     * @returns true if {@param block} is a descendent of or equal to the
+     * @returns true if {@param block} is a descendant of or equal to the
      * given {@param base}.
      */
     inline bool isEqualOrDescendOf(const primitives::BlockHash &base,

@@ -128,7 +128,7 @@ class BabeTest : public testing::Test {
         grandpa_authority_update_observer_,
         babe_util_,
         io_context_,
-        std::make_unique<clock::BasicWaitableTimer>(*io_context_));
+        std::make_unique<clock::BasicWaitableTimer>(io_context_));
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
     EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());

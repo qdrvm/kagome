@@ -13,8 +13,8 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/chain_spec.hpp"
 #include "application/app_configuration.hpp"
+#include "application/chain_spec.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher.hpp"

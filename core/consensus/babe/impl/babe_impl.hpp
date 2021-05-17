@@ -173,7 +173,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
-    std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
+    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<BabeGossiper> gossiper_;
