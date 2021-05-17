@@ -23,11 +23,13 @@ namespace kagome::runtime::binaryen {
     /**
      * A module will be created with the provided \arg code and instantiated
      * with \arg rei (runtime external interface)
+     * \arg storage_provider is required to read runtime properties from state
      * @return the module in case of success
      */
     virtual outcome::result<std::unique_ptr<WasmModule>> createModule(
         const common::Buffer &code,
-        std::shared_ptr<RuntimeExternalInterface> rei) const = 0;
+        std::shared_ptr<RuntimeExternalInterface> rei,
+        std::shared_ptr<TrieStorageProvider> storage_provider) const = 0;
   };
 
 }  // namespace kagome::runtime::binaryen
