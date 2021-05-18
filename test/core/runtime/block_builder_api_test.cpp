@@ -49,6 +49,7 @@ class BlockBuilderApiTest : public RuntimeTest {
  * were valid
  */
 TEST_F(BlockBuilderApiTest, CheckInherents) {
+  prepareEphemeralStorageExpects();
   EXPECT_OUTCOME_FALSE_1(
       builder_->check_inherents(createBlock(), InherentData{}));
 }
@@ -60,6 +61,8 @@ TEST_F(BlockBuilderApiTest, CheckInherents) {
  * were valid
  */
 TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
+  preparePersistentStorageExpects();
+  EXPECT_CALL(*batch_mock_, batchOnTop());
   EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}));
 }
 
@@ -80,6 +83,7 @@ TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed) {
  * were valid
  */
 TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
+  prepareEphemeralStorageExpects();
   EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(InherentData{}));
 }
 
