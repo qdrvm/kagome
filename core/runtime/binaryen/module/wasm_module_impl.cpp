@@ -15,6 +15,7 @@
 #include "common/mp_utils.hpp"
 #include "runtime/binaryen/module/wasm_module_instance_impl.hpp"
 #include "runtime/trie_storage_provider.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 
 using namespace kagome::common::literals;
 
@@ -70,9 +71,9 @@ namespace kagome::runtime::binaryen {
 
     module->memory.initial = kDefaultHeappages;
     OUTCOME_TRY(heappages_key, common::Buffer::fromString(":heappages"));
-    if (auto heappages_res =
-            storage_provider->getCurrentBatch()->get(heappages_key);
-        heappages_res.has_value()) {
+    auto heappages_res =
+        storage_provider->getCurrentBatch()->get(heappages_key);
+    if (heappages_res.has_value()) {
       auto &&heappages = heappages_res.value();
       if (sizeof(uint64_t) != heappages.size()) {
         log->error(
@@ -87,6 +88,9 @@ namespace kagome::runtime::binaryen {
             "Creating wasm module with non-default :heappages value set to {}",
             pages);
       }
+    } else if (kagome::storage::trie::TrieError::NO_VALUE
+               != heappages_res.error()) {
+      return heappages_res.error();
     }
     std::unique_ptr<WasmModuleImpl> wasm_module_impl(
         new WasmModuleImpl(std::move(module)));
