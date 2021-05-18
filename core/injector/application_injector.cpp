@@ -191,7 +191,7 @@ namespace {
         db,
         hasher,
         [&](const primitives::Block &genesis_block) {
-          auto log = log::createLogger("Injector", "kagome");
+          auto log = log::createLogger("Injector", "injector");
 
           auto res = db->get(authority::AuthorityManagerImpl::SCHEDULER_TREE);
           if (not res.has_value()
@@ -330,7 +330,7 @@ namespace {
       common::raise(batch.error());
     }
 
-    auto log = log::createLogger("Injector", "kagome");
+    auto log = log::createLogger("Injector", "injector");
 
     const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
@@ -364,7 +364,7 @@ namespace {
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
     if (!db_res) {
-      auto log = log::createLogger("Injector", "kagome");
+      auto log = log::createLogger("Injector", "injector");
       log->critical("Can't create LevelDB in {}: {}",
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
@@ -390,7 +390,7 @@ namespace {
     auto chain_spec_res =
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
     if (not chain_spec_res.has_value()) {
-      auto log = log::createLogger("Injector", "kagome");
+      auto log = log::createLogger("Injector", "injector");
       log->critical(
           "Can't load chain spec from {}: {}",
           fs::absolute(chainspec_path.native(), fs::current_path()).native(),
@@ -419,7 +419,7 @@ namespace {
     auto configuration = std::make_shared<primitives::BabeConfiguration>(
         std::move(configuration_res.value()));
 
-    auto log = log::createLogger("Injector", "kagome");
+    auto log = log::createLogger("Injector", "injector");
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
     }
@@ -475,7 +475,7 @@ namespace {
       return initialized.value();
     }
 
-    auto log = log::createLogger("Injector", "kagome");
+    auto log = log::createLogger("Injector", "injector");
 
     if (app_config.nodeKey()) {
       log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
@@ -1067,7 +1067,7 @@ namespace {
         injector.template create<const crypto::CryptoStore &>();
     auto &&sr25519_kp = crypto_store.getBabeKeypair();
     if (not sr25519_kp) {
-      auto log = log::createLogger("Injector", "kagome");
+      auto log = log::createLogger("Injector", "injector");
       log->error("Failed to get BABE keypair");
       return {};
     }
@@ -1094,7 +1094,7 @@ namespace {
         injector.template create<const crypto::CryptoStore &>();
     auto &&ed25519_kp = crypto_store.getGrandpaKeypair();
     if (not ed25519_kp) {
-      auto log = log::createLogger("Injector", "kagome");
+      auto log = log::createLogger("Injector", "injector");
       log->error("Failed to get GRANDPA keypair");
       return {};
     }
@@ -1143,7 +1143,7 @@ namespace {
     std::vector<libp2p::multi::Multiaddress> public_addrs =
         config.publicAddresses();
 
-    auto log = log::createLogger("Injector", "kagome");
+    auto log = log::createLogger("Injector", "injector");
     for (auto &addr : listen_addrs) {
       SL_DEBUG(log, "Peer listening on multiaddr: {}", addr.getStringAddress());
     }
