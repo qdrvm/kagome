@@ -10,8 +10,12 @@
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
 
+#include "common/buffer.hpp"
 #include "common/literals.hpp"
+#include "common/mp_utils.hpp"
 #include "runtime/binaryen/module/wasm_module_instance_impl.hpp"
+#include "runtime/trie_storage_provider.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 
 using namespace kagome::common::literals;
 
@@ -38,7 +42,9 @@ namespace kagome::runtime::binaryen {
   outcome::result<std::unique_ptr<WasmModuleImpl>>
   WasmModuleImpl::createFromCode(
       const common::Buffer &code,
-      const std::shared_ptr<RuntimeExternalInterface> &rei) {
+      const std::shared_ptr<RuntimeExternalInterface> &rei,
+      const std::shared_ptr<TrieStorageProvider> &storage_provider) {
+    auto log = log::createLogger("wasm_module", "wasm");
     // that nolint suppresses false positive in a library function
     // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
     if (code.empty()) {
@@ -58,14 +64,34 @@ namespace kagome::runtime::binaryen {
       } catch (wasm::ParseException &e) {
         std::ostringstream msg;
         e.dump(msg);
-        auto log = log::createLogger("wasm_module", "wasm");
         log->error(msg.str());
         return Error::INVALID_STATE_CODE;
       }
     }
 
-    module->memory.initial = 16_MB / 64_kB;  // 64kB pages for 16Mb
-
+    module->memory.initial = kDefaultHeappages;
+    OUTCOME_TRY(heappages_key, common::Buffer::fromString(":heappages"));
+    auto heappages_res =
+        storage_provider->getCurrentBatch()->get(heappages_key);
+    if (heappages_res.has_value()) {
+      auto &&heappages = heappages_res.value();
+      if (sizeof(uint64_t) != heappages.size()) {
+        log->error(
+            "Unable to read :heappages value. Type size mismatch. "
+            "Required {} bytes, but {} available",
+            sizeof(uint64_t),
+            heappages.size());
+      } else {
+        uint64_t pages = common::bytes_to_uint64_t(heappages.asVector());
+        module->memory.initial = pages;
+        log->trace(
+            "Creating wasm module with non-default :heappages value set to {}",
+            pages);
+      }
+    } else if (kagome::storage::trie::TrieError::NO_VALUE
+               != heappages_res.error()) {
+      return heappages_res.error();
+    }
     std::unique_ptr<WasmModuleImpl> wasm_module_impl(
         new WasmModuleImpl(std::move(module)));
     return wasm_module_impl;

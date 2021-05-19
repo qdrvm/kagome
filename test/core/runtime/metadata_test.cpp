@@ -32,6 +32,7 @@ class MetadataTest : public RuntimeTest {
 
   void SetUp() override {
     RuntimeTest::SetUp();
+    prepareEphemeralStorageExpects();
 
     api_ = std::make_shared<MetadataImpl>(
         runtime_env_factory_, std::make_shared<BlockHeaderRepositoryMock>());
@@ -47,5 +48,6 @@ class MetadataTest : public RuntimeTest {
  * @then successful result is returned
  */
 TEST_F(MetadataTest, metadata) {
+  EXPECT_CALL(*storage_provider_, rollbackTransaction());
   ASSERT_TRUE(api_->metadata({}));
 }
