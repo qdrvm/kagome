@@ -22,6 +22,7 @@ namespace kagome::runtime::binaryen {
    */
   class WasmModuleImpl final : public WasmModule, public std::enable_shared_from_this<WasmModuleImpl> {
    public:
+    static constexpr auto kDefaultHeappages = 1024;
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
 
     WasmModuleImpl(WasmModuleImpl &&) = default;
@@ -34,7 +35,8 @@ namespace kagome::runtime::binaryen {
 
     static outcome::result<std::unique_ptr<WasmModuleImpl>> createFromCode(
         const common::Buffer &code,
-        const std::shared_ptr<RuntimeExternalInterface> &rei);
+        const std::shared_ptr<RuntimeExternalInterface> &rei,
+        const std::shared_ptr<TrieStorageProvider> &storage_provider);
 
     std::unique_ptr<WasmModuleInstance> instantiate(
         const std::shared_ptr<RuntimeExternalInterface> &externalInterface)
