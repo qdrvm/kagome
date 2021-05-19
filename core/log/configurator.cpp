@@ -26,6 +26,7 @@ groups:
         level: off
       - name: kagome
         children:
+          - name: injector
           - name: application
           - name: rpc
             children:
