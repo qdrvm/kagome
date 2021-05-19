@@ -16,7 +16,9 @@ namespace kagome::consensus {
       const SlotsStrategy strategy,
       const BabeClock &clock)
       : babe_configuration_(std::move(babe_configuration)),
-        storage_(std::move(storage)) {
+        storage_(std::move(storage)),
+        strategy_(strategy),
+        clock_(clock) {
     BOOST_ASSERT(babe_configuration_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT_MSG(babe_configuration_->epoch_length,
@@ -26,40 +28,65 @@ namespace kagome::consensus {
     // that we are in the initial epoch and calculate with its rules.
     if (auto res = getLastEpoch(); res.has_value()) {
       auto epoch = res.value();
-      genesis_slot_number_ =
-          epoch.start_slot
-          - epoch.epoch_number * babe_configuration_->epoch_length;
+      genesis_slot_number_.emplace(epoch.start_slot
+                                   - epoch.epoch_number
+                                         * babe_configuration_->epoch_length);
     } else {
-      switch (strategy) {
+      switch (strategy_) {
         case SlotsStrategy::FromZero:
-          genesis_slot_number_ = 0;
+          genesis_slot_number_.emplace(0);
           break;
+
         case SlotsStrategy::FromUnixEpoch:
-          auto ticks_since_epoch = clock.now().time_since_epoch().count();
-          genesis_slot_number_ = static_cast<BabeSlotNumber>(
-              ticks_since_epoch / babe_configuration_->slot_duration.count());
+          // Will be initialized at epoch digest received
           break;
       }
     }
-    epoch_length_ = babe_configuration_->epoch_length;
+  }
+
+  BabeSlotNumber BabeUtilImpl::getGenesisSlotNumber() {
+    if (genesis_slot_number_.has_value()) {
+      return genesis_slot_number_.value();
+    }
+
+    switch (strategy_) {
+      case SlotsStrategy::FromZero:
+        genesis_slot_number_.emplace(0);
+        return genesis_slot_number_.value();
+
+      case SlotsStrategy::FromUnixEpoch:
+        auto ticks_since_epoch = clock_.now().time_since_epoch().count();
+        return static_cast<BabeSlotNumber>(
+            ticks_since_epoch / babe_configuration_->slot_duration.count());
+    }
   }
 
   EpochNumber BabeUtilImpl::slotToEpoch(BabeSlotNumber slot) const {
-    if (slot > genesis_slot_number_) {
-      return (slot - genesis_slot_number_) / epoch_length_;
+    auto genesis_slot_number =
+        const_cast<BabeUtilImpl &>(*this).getGenesisSlotNumber();
+    if (slot > genesis_slot_number) {
+      return (slot - genesis_slot_number) / babe_configuration_->epoch_length;
     }
     return 0;
   }
 
   BabeSlotNumber BabeUtilImpl::slotInEpoch(BabeSlotNumber slot) const {
-    if (slot > genesis_slot_number_) {
-      return (slot - genesis_slot_number_) % epoch_length_;
+    auto genesis_slot_number =
+        const_cast<BabeUtilImpl &>(*this).getGenesisSlotNumber();
+    if (slot > genesis_slot_number) {
+      return (slot - genesis_slot_number) % babe_configuration_->epoch_length;
     }
     return 0;
   }
 
   outcome::result<void> BabeUtilImpl::setLastEpoch(
       const EpochDescriptor &epoch_descriptor) {
+    if (not genesis_slot_number_.has_value()) {
+      genesis_slot_number_.emplace(epoch_descriptor.start_slot
+                                   - epoch_descriptor.epoch_number
+                                         * babe_configuration_->epoch_length);
+    }
+
     const auto &key = storage::kLastBabeEpochNumberLookupKey;
     auto val = common::Buffer{scale::encode(epoch_descriptor).value()};
     last_epoch_ = epoch_descriptor;
@@ -74,5 +101,4 @@ namespace kagome::consensus {
     OUTCOME_TRY(epoch_descriptor, storage_->get(key));
     return scale::decode<EpochDescriptor>(epoch_descriptor);
   }
-
 }  // namespace kagome::consensus
