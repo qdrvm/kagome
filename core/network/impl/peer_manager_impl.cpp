@@ -294,7 +294,7 @@ namespace kagome::network {
             self->processFullyConnectedPeer(peer_id);
           }
         },
-        std::chrono::seconds(15));
+        kTimeoutForConnecting);
   }
 
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
