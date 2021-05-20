@@ -406,7 +406,6 @@ namespace kagome::network {
     if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol)) {
       block_announce_protocol->newOutgoingStream(
           peer_info,
-
           [wp = weak_from_this(),
            peer_id = peer_info.id,
            protocol = block_announce_protocol](auto &&stream_res) {
