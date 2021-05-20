@@ -43,6 +43,8 @@ namespace kagome::network {
   class PeerManagerImpl : public PeerManager,
                           public std::enable_shared_from_this<PeerManagerImpl> {
    public:
+    static constexpr std::chrono::seconds kTimeoutForConnecting{15};
+
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
