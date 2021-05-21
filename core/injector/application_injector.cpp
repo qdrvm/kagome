@@ -69,6 +69,8 @@
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "metrics/impl/exposer_impl.hpp"
+#include "metrics/impl/handler_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
@@ -169,6 +171,33 @@ namespace {
                                               std::move(ws_session_config));
 
     initialized.emplace(std::move(listener));
+    return initialized.value();
+  }
+
+  sptr<metrics::Exposer> get_openmetrics_http_exposer(
+      application::AppConfiguration const &config,
+      sptr<application::AppStateManager> app_state_manager,
+      sptr<metrics::Session::Context> context,
+      metrics::Session::Configuration http_session_config) {
+    static auto initialized =
+      boost::optional<sptr<metrics::Exposer>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+
+    auto &endpoint = config.openmetricsHttpEndpoint();
+
+    metrics::Exposer::Configuration exposer_config;
+    exposer_config.endpoint = endpoint;
+
+    auto registry = std::make_shared<prometheus::Registry>();
+    auto handler = std::make_shared<metrics::HandlerImpl>(*registry.get());
+    handler->registerCollectable(registry);
+    auto exposer = std::make_shared<metrics::ExposerImpl>(
+        app_state_manager, context, exposer_config, http_session_config);
+    exposer->setHandler(handler);
+
+    initialized.emplace(std::move(std::dynamic_pointer_cast<metrics::Exposer>(exposer)));
     return initialized.value();
   }
 
@@ -580,6 +609,7 @@ namespace {
     auto server = injector.template create<sptr<api::JRpcServer>>();
     auto listeners =
         injector.template create<api::ApiServiceImpl::ListenerList>();
+    auto exposer = injector.template create<sptr<metrics::Exposer>>();
     auto processors =
         injector.template create<api::ApiServiceImpl::ProcessorSpan>();
     auto storage_sub_engine = injector.template create<
@@ -600,6 +630,7 @@ namespace {
         std::make_shared<api::ApiServiceImpl>(asmgr,
                                               thread_pool,
                                               listeners,
+                                              exposer,
                                               server,
                                               processors,
                                               storage_sub_engine,
@@ -870,6 +901,18 @@ namespace {
               injector.template create<application::AppConfiguration const &>();
           return get_jrpc_api_ws_listener(
               app_config, config, context, app_state_manager);
+        }),
+        di::bind<metrics::Exposer>.to([](const auto &injector) {
+          const application::AppConfiguration &config =
+              injector.template create<application::AppConfiguration const &>();
+          auto app_state_manager =
+              injector.template create<sptr<application::AppStateManager>>();
+          auto context = injector.template create<sptr<metrics::Session::Context>>();
+          auto &&session_config =
+            injector.template create<metrics::Session::Configuration>();
+
+          return get_openmetrics_http_exposer(
+              config, app_state_manager, context, session_config);
         }),
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],

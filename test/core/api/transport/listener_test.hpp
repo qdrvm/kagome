@@ -129,6 +129,7 @@ struct ListenerTest : public ::testing::Test {
       app_state_manager,
       thread_pool,
       ApiServiceImpl::ListenerList{{listener}},
+      nullptr,
       server,
       ApiServiceImpl::ProcessorSpan{processors},
       storage_events_engine,

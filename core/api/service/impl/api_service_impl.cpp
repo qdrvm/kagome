@@ -126,6 +126,7 @@ namespace kagome::api {
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
       ListenerList listeners,
+      std::shared_ptr<metrics::Exposer> exposer,
       std::shared_ptr<JRpcServer> server,
       const ProcessorSpan &processors,
       StorageSubscriptionEnginePtr storage_sub_engine,
@@ -137,6 +138,7 @@ namespace kagome::api {
       std::shared_ptr<storage::trie::TrieStorage> trie_storage)
       : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners.listeners)),
+        exposer_(std::move(exposer)),
         server_(std::move(server)),
         logger_{log::createLogger("ApiService", "api")},
         block_tree_{std::move(block_tree)},

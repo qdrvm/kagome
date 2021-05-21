@@ -35,6 +35,9 @@ namespace kagome::application {
 namespace kagome::blockchain {
   struct BlockTree;
 }
+namespace kagome::metrics {
+  class Exposer;
+}
 namespace kagome::primitives {
   struct Transaction;
 }
@@ -128,6 +131,7 @@ namespace kagome::api {
         const std::shared_ptr<application::AppStateManager> &app_state_manager,
         std::shared_ptr<api::RpcThreadPool> thread_pool,
         ListenerList listeners,
+        std::shared_ptr<metrics::Exposer> exposer,
         std::shared_ptr<JRpcServer> server,
         const ProcessorSpan &processors,
         StorageSubscriptionEnginePtr storage_sub_engine,
@@ -237,6 +241,7 @@ namespace kagome::api {
 
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
     std::vector<sptr<Listener>> listeners_;
+    std::shared_ptr<metrics::Exposer> exposer_;
     std::shared_ptr<JRpcServer> server_;
     log::Logger logger_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
