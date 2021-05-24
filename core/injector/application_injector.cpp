@@ -190,9 +190,9 @@ namespace {
     metrics::Exposer::Configuration exposer_config;
     exposer_config.endpoint = endpoint;
 
-    auto registry = std::make_shared<prometheus::Registry>();
-    auto handler = std::make_shared<metrics::HandlerImpl>(*registry.get());
-    handler->registerCollectable(registry);
+    auto registry = std::make_shared<metrics::Registry>();
+    auto handler = std::make_shared<metrics::HandlerImpl>();
+    registry->setHandler(handler.get());
     auto exposer = std::make_shared<metrics::ExposerImpl>(
         app_state_manager, context, exposer_config, http_session_config);
     exposer->setHandler(handler);

@@ -12,6 +12,11 @@ add_library(metrics
   impl/handler_impl.hpp
   impl/session_impl.cpp
   impl/session_impl.hpp
+  lib/impl/prometheus/metrics_impl.cpp
+  lib/impl/prometheus/metrics_impl.hpp
+  lib/metrics.hpp
+  registry.cpp
+  registry.hpp
   session.hpp)
 
 target_link_libraries(metrics

@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <string_view>
+#include "registry.hpp"
 #include "session.hpp"
 
 namespace kagome::metrics {
@@ -15,6 +16,7 @@ namespace kagome::metrics {
   class Handler {
    public:
     virtual ~Handler() = default;
+    virtual void registerCollectable(Registry* registry) = 0;
     virtual void onSessionRequest(Session::Request request,
                                   std::shared_ptr<Session> session) = 0;
   };

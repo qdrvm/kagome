@@ -7,6 +7,11 @@
 #include <prometheus/text_serializer.h>
 #include "log/logger.hpp"
 
+constexpr const char *EXPOSER_TRANSFERRED_BYTES_TOTAL =
+    "exposer_transferred_bytes_total";
+constexpr const char *EXPOSER_SCRAPES_TOTAL = "exposer_scrapes_total";
+constexpr const char *EXPOSER_REQUEST_LATENCIES = "exposer_request_latencies";
+
 using namespace prometheus;
 
 std::vector<MetricFamily> CollectMetrics(
@@ -30,26 +35,23 @@ std::vector<MetricFamily> CollectMetrics(
 
 namespace kagome::metrics {
 
-  HandlerImpl::HandlerImpl(Registry &registry)
-      : bytes_transferred_family_(
-          BuildCounter()
-              .Name("exposer_transferred_bytes_total")
-              .Help("Transferred bytes to metrics services")
-              .Register(registry)),
-        bytes_transferred_(bytes_transferred_family_.Add({})),
-        num_scrapes_family_(BuildCounter()
-                                .Name("exposer_scrapes_total")
-                                .Help("Number of times metrics were scraped")
-                                .Register(registry)),
-        num_scrapes_(num_scrapes_family_.Add({})),
-        request_latencies_family_(
-            BuildSummary()
-                .Name("exposer_request_latencies")
-                .Help("Latencies of serving scrape requests, in microseconds")
-                .Register(registry)),
-        request_latencies_(request_latencies_family_.Add(
-            {}, Summary::Quantiles{{0.5, 0.05}, {0.9, 0.01}, {0.99, 0.001}})),
-        logger_{log::createLogger("HandlerImpl", "metrics")} {}
+  HandlerImpl::HandlerImpl()
+      : logger_{log::createLogger("HandlerImpl", "metrics")}, registry_{} {
+    registry_.registerFamily<lib::Counter>(EXPOSER_TRANSFERRED_BYTES_TOTAL,
+                             "Transferred bytes to metrics services");
+    bytes_transferred_ =
+      registry_.registerMetric<lib::Counter>(EXPOSER_TRANSFERRED_BYTES_TOTAL, {});
+    registry_.registerFamily<lib::Counter>(EXPOSER_SCRAPES_TOTAL,
+                             "Number of times metrics were scraped");
+    num_scrapes_ = registry_.registerMetric<lib::Counter>(EXPOSER_SCRAPES_TOTAL, {});
+    registry_.registerFamily<lib::Summary>(
+        EXPOSER_REQUEST_LATENCIES,
+        "Latencies of serving scrape requests, in microseconds");
+    request_latencies_ = registry_.registerMetric<lib::Summary>(
+        EXPOSER_REQUEST_LATENCIES,
+        {},
+        Summary::Quantiles{{0.5, 0.05}, {0.9, 0.01}, {0.99, 0.001}});
+  }
 
   void HandlerImpl::onSessionRequest(Session::Request request,
                                      std::shared_ptr<Session> session) {
@@ -69,10 +71,10 @@ namespace kagome::metrics {
     auto stop_time_of_request = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
         stop_time_of_request - start_time_of_request);
-    request_latencies_.Observe(duration.count());
+    request_latencies_->observe(duration.count());
 
-    bytes_transferred_.Increment(size);
-    num_scrapes_.Increment();
+    bytes_transferred_->inc(size);
+    num_scrapes_->inc();
   }
 
   std::size_t HandlerImpl::writeResponse(std::shared_ptr<Session> session,
@@ -87,6 +89,10 @@ namespace kagome::metrics {
     res.prepare_payload();
     session->respond(res);
     return body.size();
+  }
+
+  void HandlerImpl::registerCollectable(Registry *registry) {
+    registerCollectable(registry_.registry());
   }
 
   void HandlerImpl::registerCollectable(
