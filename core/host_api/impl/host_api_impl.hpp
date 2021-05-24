@@ -25,22 +25,20 @@ namespace kagome::host_api {
    public:
     HostApiImpl() = delete;
     HostApiImpl(
-        std::shared_ptr<runtime::wavm::Memory> memory,
-        std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
-        std::shared_ptr<runtime::wavm::IntrinsicResolver> intrinsic_resolver,
+        std::shared_ptr<runtime::Memory> memory,
+        std::shared_ptr<runtime::CoreApiProvider> core_provider,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     ~HostApiImpl() override = default;
 
-    std::shared_ptr<runtime::wavm::Memory> memory() const override;
+    std::shared_ptr<runtime::Memory> memory() const override;
     void reset() override;
 
     // ------------------------ Storage extensions v1 ------------------------
@@ -174,7 +172,7 @@ namespace kagome::host_api {
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
 
-    std::shared_ptr<runtime::wavm::Memory> memory_;
+    std::shared_ptr<runtime::Memory> memory_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 
     std::shared_ptr<CryptoExtension> crypto_ext_;

@@ -17,6 +17,7 @@
 #include "crypto/ed25519_types.hpp"
 #include "log/logger.hpp"
 #include "network/peering_config.hpp"
+#include "network/types/roles.hpp"
 
 namespace kagome::application {
 
@@ -32,12 +33,12 @@ namespace kagome::application {
     static_assert(kAbsolutMinBlocksInResponse <= kAbsolutMaxBlocksInResponse,
                   "Check max and min page bounding values!");
 
-    enum struct LoadScheme {
-      kValidating,
-      kFullSyncing,
-    };
-
     virtual ~AppConfiguration() = default;
+
+    /**
+     * @return roles of current run
+     */
+    virtual network::Roles roles() const = 0;
 
     /**
      * @return file path with genesis configuration.
@@ -67,6 +68,11 @@ namespace kagome::application {
      */
     virtual const boost::optional<crypto::Ed25519PrivateKey> &nodeKey()
         const = 0;
+
+    /**
+     * @return the path to key used for libp2p networking
+     */
+    virtual const boost::optional<std::string> &nodeKeyFile() const = 0;
 
     /**
      * @return port for peer to peer interactions.
@@ -102,14 +108,14 @@ namespace kagome::application {
     virtual const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const = 0;
 
     /**
+     * @return maximum number of WS RPC connections
+     */
+    virtual uint32_t maxWsConnections() const = 0;
+
+    /**
      * @return log level (0-trace, 5-only critical, 6-no logs).
      */
     virtual log::Level verbosity() const = 0;
-
-    /**
-     * @return true if node in only finalizing mode, otherwise false.
-     */
-    virtual bool isOnlyFinalizing() const = 0;
 
     /**
      * If whole nodes was stopped, would not any active node to synchronize.

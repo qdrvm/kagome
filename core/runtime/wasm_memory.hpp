@@ -22,9 +22,9 @@ namespace kagome::runtime {
   //
   // The allocated memory tries to have the same alignment as the memory being
   // simulated.
-  class WasmMemory {
+  class Memory {
    public:
-    virtual ~WasmMemory() = default;
+    virtual ~Memory() = default;
 
     constexpr static uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();

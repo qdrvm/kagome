@@ -28,7 +28,7 @@ namespace kagome::runtime {
      * @brief makes combined pointer-size result from address
      * @return pointer-size uint64_t value
      */
-    WasmSpan combine() const {
+    constexpr WasmSpan combine() const {
       return static_cast<WasmSpan>(address)
              | (static_cast<WasmSpan>(length) << 32ull);
     }

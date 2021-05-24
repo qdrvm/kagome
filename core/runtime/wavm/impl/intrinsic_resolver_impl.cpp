@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "intrinsic_resolver.hpp"
+#include "intrinsic_resolver_impl.hpp"
 
 #include <WAVM/Runtime/Intrinsics.h>
 
 #include "crutch.hpp"
+#include "memory.hpp"
 
 #include "gc_compartment.hpp"
 
@@ -16,7 +17,7 @@ namespace kagome::runtime::wavm {
   static const auto kIntrinsicMemoryType{
       WAVM::IR::MemoryType(false, WAVM::IR::IndexType::i32, {20, UINT64_MAX})};
 
-  IntrinsicResolver::IntrinsicResolver()
+  IntrinsicResolverImpl::IntrinsicResolverImpl()
       : module_{getIntrinsicModule_env()},
         module_instance_{},
         memory_{std::make_shared<Memory>(WAVM::Runtime::createMemory(
@@ -26,7 +27,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(compartment_ != nullptr);
   }
 
-  bool IntrinsicResolver::resolve(const std::string &moduleName,
+  bool IntrinsicResolverImpl::resolve(const std::string &moduleName,
                                   const std::string &exportName,
                                   WAVM::IR::ExternType type,
                                   WAVM::Runtime::Object *&outObject) {
@@ -71,6 +72,17 @@ namespace kagome::runtime::wavm {
       return true;
     }
     return false;
+  }
+
+  std::unique_ptr<IntrinsicResolver> IntrinsicResolverImpl::clone() const {
+    auto copy = std::make_unique<IntrinsicResolverImpl>();
+    copy->module_ = std::unique_ptr<WAVM::Intrinsics::Module>{getIntrinsicModule_env()};
+    copy->functions_ = functions_;
+    copy->module_instance_ = WAVM::Intrinsics::instantiateModule(
+        compartment_, {getIntrinsicModule_env()}, "env");
+    copy->memory_->setUnderlyingMemory(getTypedInstanceExport(
+        copy->module_instance_, "memory", kIntrinsicMemoryType));
+    return copy;
   }
 
 }  // namespace kagome::runtime::wavm

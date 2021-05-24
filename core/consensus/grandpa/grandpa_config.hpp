@@ -10,16 +10,22 @@
 
 namespace kagome::consensus::grandpa {
 
-  // Structure containing necessary information for running grandpa voting round
+  /// Structure containing necessary information for running grandpa voting
+  /// round
   struct GrandpaConfig {
-    std::shared_ptr<VoterSet> voters;  // current round's authorities
+    /// Current round's authorities
+    std::shared_ptr<VoterSet> voters;
+
+    /// Number of round
     RoundNumber round_number;
-    Duration
-        duration;  // time bound which is enough to gossip messages to everyone
-    Id peer_id;    //  key of the peer, do not confuse with libp2p peerid
+
+    /// Time bound which is enough to gossip messages to everyone
+    Duration duration;
+
+    /// Key of the peer, do not confuse with libp2p peerid
+    boost::optional<Id> id;
   };
 
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA_CONFIG_HPP
-

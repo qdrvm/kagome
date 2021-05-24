@@ -36,7 +36,7 @@ namespace kagome::host_api {
     static constexpr uint32_t kVerifyFail = 0;
 
     CryptoExtension(
-        std::shared_ptr<runtime::wavm::Memory> memory,
+        std::shared_ptr<runtime::Memory> memory,
         std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
         std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
@@ -163,7 +163,7 @@ namespace kagome::host_api {
    private:
     common::Blob<32> deriveSeed(std::string_view content);
 
-    std::shared_ptr<runtime::wavm::Memory> memory_;
+    std::shared_ptr<runtime::Memory> memory_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider_;

@@ -16,8 +16,10 @@ namespace kagome::runtime {
 
     ~BasicCodeProvider() override = default;
 
-    outcome::result<gsl::span<const uint8_t>> getCodeAt(
-        const storage::trie::RootHash &at) const override;
+    outcome::result<CodeAndItsState> getCodeAt(
+        const primitives::BlockInfo &at) const override;
+
+    outcome::result<CodeAndItsState> getLatestCode() const override;
 
    private:
     void initialize(std::string_view path);

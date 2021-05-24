@@ -13,7 +13,7 @@
 using namespace kagome::host_api;
 
 using kagome::common::Buffer;
-using kagome::runtime::WasmMemory;
+using kagome::runtime::Memory;
 using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmPointer;
 

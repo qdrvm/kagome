@@ -13,7 +13,7 @@
 #include "runtime/types.hpp"
 #include "runtime/wasm_result.hpp"
 
-namespace kagome::runtime::wavm {
+namespace kagome::runtime {
   class Memory;
 }
 
@@ -26,7 +26,7 @@ namespace kagome::host_api {
    public:
     virtual ~HostApi() = default;
 
-    virtual std::shared_ptr<kagome::runtime::wavm::Memory> memory() const = 0;
+    virtual std::shared_ptr<kagome::runtime::Memory> memory() const = 0;
     virtual void reset() = 0;
 
     // ------------------------ Storage extensions v1 ------------------------

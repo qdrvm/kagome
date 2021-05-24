@@ -100,7 +100,7 @@ class BabeTest : public testing::Test {
     babe_config_->slot_duration = 60ms;
     babe_config_->randomness.fill(0);
     babe_config_->genesis_authorities = {
-        primitives::Authority{{keypair_.public_key}, 1}};
+        primitives::Authority{{keypair_->public_key}, 1}};
     babe_config_->leadership_rate = {1, 4};
     babe_config_->epoch_length = 2;
 
@@ -180,7 +180,8 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<transaction_pool::TransactionPoolMock> tx_pool_;
   std::shared_ptr<BabeGossiperMock> gossiper_;
-  Sr25519Keypair keypair_{generateSr25519Keypair()};
+  std::shared_ptr<Sr25519Keypair> keypair_ =
+      std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<HasherMock> hasher_;
   std::unique_ptr<testutil::TimerMock> timer_mock_;
@@ -240,7 +241,7 @@ TEST_F(BabeTest, Success) {
 
   // runEpoch
   Randomness randomness;
-  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, randomness, _, keypair_))
+  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, randomness, _, *keypair_))
       .WillOnce(Return(leadership_));
   EpochDescriptor next_epoch = epoch_;
   next_epoch.epoch_number++;

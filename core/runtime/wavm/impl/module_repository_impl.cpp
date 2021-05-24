@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/wavm/module_repository.hpp"
+#include "runtime/wavm/impl/module_repository_impl.hpp"
 
 #include <chrono>
 
@@ -16,16 +16,16 @@
 
 namespace kagome::runtime::wavm {
 
-  ModuleRepository::ModuleRepository(
+  ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<Memory> memory,
+      std::shared_ptr<runtime::Memory> memory,
       std::shared_ptr<IntrinsicResolver> resolver)
       : compartment_{getCompartment()},
         resolver_{std::move(resolver)},
         memory_{std::move(memory)},
         hasher_{std::move(hasher)},
         logger_{log::createLogger(
-            "ModuleRepository", "runtime_api", soralog::Level::DEBUG)} {
+            "ModuleRepositoryImpl", "runtime_api", soralog::Level::DEBUG)} {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(resolver_);
     BOOST_ASSERT(memory_);
@@ -34,7 +34,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
-  ModuleRepository::getInstanceAt(
+  ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
     OUTCOME_TRY(code_and_state, code_provider->getCodeAt(block));
@@ -43,7 +43,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
-  ModuleRepository::getInstanceAtLatest(
+  ModuleRepositoryImpl::getInstanceAtLatest(
       std::shared_ptr<RuntimeCodeProvider> code_provider) {
     OUTCOME_TRY(code_and_state, code_provider->getLatestCode());
     return getInstanceAt_Internal(code_and_state.code,
@@ -51,7 +51,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
-  ModuleRepository::getInstanceAt_Internal(gsl::span<const uint8_t> code,
+  ModuleRepositoryImpl::getInstanceAt_Internal(gsl::span<const uint8_t> code,
                                            storage::trie::RootHash state) {
     if (auto it = modules_.find(state); it == modules_.end()) {
       OUTCOME_TRY(module, loadFrom(code));
@@ -68,7 +68,7 @@ namespace kagome::runtime::wavm {
     return instances_[state];
   }
 
-  outcome::result<std::unique_ptr<Module>> ModuleRepository::loadFrom(
+  outcome::result<std::unique_ptr<Module>> ModuleRepositoryImpl::loadFrom(
       gsl::span<const uint8_t> byte_code) {
     // TODO(Harrm): Might want to cache here as well, e.g. for MiscExtension
     // calls

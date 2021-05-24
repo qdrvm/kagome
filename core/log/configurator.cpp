@@ -19,7 +19,7 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: verbose
+    level: info
     children:
       - name: libp2p
       - name: kagome

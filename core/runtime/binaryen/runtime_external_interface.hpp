@@ -17,7 +17,7 @@ namespace kagome::host_api {
 
 namespace kagome::runtime {
   class TrieStorageProvider;
-  class WasmMemory;
+  class Memory;
 
   namespace binaryen {
     class CoreFactory;
@@ -50,7 +50,7 @@ namespace kagome::runtime::binaryen {
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
-    std::shared_ptr<WasmMemory> memory() const;
+    std::shared_ptr<Memory> memory() const;
 
     void reset() const;
 

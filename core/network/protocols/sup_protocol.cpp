@@ -11,11 +11,13 @@
 namespace kagome::network {
 
   SupProtocol::SupProtocol(libp2p::Host &host,
+                           const application::AppConfiguration &app_config,
                            std::shared_ptr<StreamEngine> stream_engine,
                            std::shared_ptr<blockchain::BlockTree> block_tree,
                            std::shared_ptr<blockchain::BlockStorage> storage,
                            std::shared_ptr<PeerManager> peer_manager)
       : host_(host),
+        app_config_(app_config),
         stream_engine_(std::move(stream_engine)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)),
@@ -51,10 +53,7 @@ namespace kagome::network {
 
   outcome::result<Status> SupProtocol::createStatus() const {
     /// Roles
-    Roles roles;
-    // TODO(xDimon): Need to set actual role of node
-    //  issue: https://github.com/soramitsu/kagome/issues/678
-    roles.flags.full = 1;
+    Roles roles = app_config_.roles();
 
     /// Best block info
     BlockInfo best_block;

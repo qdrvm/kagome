@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_MEMORY_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_IMPL_MEMORY_HPP
 
+#include "runtime/wasm_memory.hpp"
+
 #include <boost/optional.hpp>
 #include <gsl/span>
 
@@ -18,7 +20,7 @@
 
 namespace kagome::runtime::wavm {
 
-  class Memory {
+  class Memory final: public kagome::runtime::Memory {
    public:
     ~Memory() = default;
 

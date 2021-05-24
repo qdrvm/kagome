@@ -8,9 +8,9 @@
 #include <WAVM/Runtime/Linker.h>
 #include <boost/assert.hpp>
 
-#include "intrinsic_resolver.hpp"
-#include "module_instance.hpp"
 #include "gc_compartment.hpp"
+#include "intrinsic_resolver_impl.hpp"
+#include "module_instance.hpp"
 
 namespace kagome::runtime::wavm {
 

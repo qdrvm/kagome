@@ -14,9 +14,13 @@ namespace kagome::runtime {
     initialize(path);
   }
 
-  outcome::result<gsl::span<const uint8_t>> BasicCodeProvider::getCodeAt(
-      const storage::trie::RootHash &) const {
-    return buffer_;
+  outcome::result<BasicCodeProvider::CodeAndItsState> BasicCodeProvider::getCodeAt(
+      const primitives::BlockInfo &at) const {
+    return CodeAndItsState { buffer_, {}};
+  }
+
+  outcome::result<BasicCodeProvider::CodeAndItsState> BasicCodeProvider::getLatestCode() const {
+        return CodeAndItsState { buffer_, {}};
   }
 
   void BasicCodeProvider::initialize(std::string_view path) {

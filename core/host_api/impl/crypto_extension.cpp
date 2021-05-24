@@ -19,6 +19,7 @@
 #include "crypto/hasher.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 
@@ -36,7 +37,7 @@ namespace kagome::host_api {
   using crypto::secp256k1::UncompressedPublicKey;
 
   CryptoExtension::CryptoExtension(
-      std::shared_ptr<runtime::wavm::Memory> memory,
+      std::shared_ptr<runtime::Memory> memory,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,

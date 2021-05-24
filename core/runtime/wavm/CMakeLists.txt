@@ -1,20 +1,21 @@
+add_library(wavm_memory impl/memory.cpp)
+target_link_libraries(wavm_memory libWAVM buffer)
+kagome_install(wavm_memory)
 
 add_library(wavm_executor
     impl/module.cpp
     impl/module_instance.cpp
-    impl/module_repository.cpp
-    impl/intrinsic_resolver.cpp
+    impl/module_repository_impl.cpp
+    impl/intrinsic_resolver_impl.cpp
     impl/gc_compartment.cpp
+    impl/core_api_provider.cpp
     impl/crutch.cpp
     )
 target_link_libraries(wavm_executor
     libWAVM
+    wavm_memory
     Boost::boost
     )
-
-add_library(wavm_memory impl/memory.cpp)
-target_link_libraries(wavm_memory libWAVM buffer)
-kagome_install(wavm_memory)
 
 add_library(wavm_account_nonce_api runtime_api/account_nonce_api.hpp)
 target_link_libraries(wavm_account_nonce_api wavm_executor)

@@ -8,6 +8,7 @@
 
 #include "runtime/core.hpp"
 #include "runtime/wavm/executor.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::runtime::wavm {
 

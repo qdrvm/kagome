@@ -9,6 +9,7 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
+#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -26,20 +27,26 @@ namespace {
                             char const *name,
                             Func &&f) {
     assert(nullptr != name);
-    auto it = vm.find(name);
-    if (it != vm.end()) std::forward<Func>(f)(it->second.as<T>());
+    if (auto it = vm.find(name); it != vm.end()) {
+      std::forward<Func>(f)(it->second.as<T>());
+    }
   }
 
   const std::string def_rpc_http_host = "0.0.0.0";
   const std::string def_rpc_ws_host = "0.0.0.0";
   const uint16_t def_rpc_http_port = 9933;
   const uint16_t def_rpc_ws_port = 9944;
+  const uint32_t def_ws_max_connections = 100;
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
-  const bool def_is_only_finalizing = false;
   const bool def_is_already_synchronized = false;
   const bool def_is_unix_slots_strategy = false;
   const bool def_dev_mode = false;
+  const kagome::network::Roles def_roles = [] {
+    kagome::network::Roles roles;
+    roles.flags.full = 1;
+    return roles;
+  }();
 
   /**
    * Generate once at run random node name if form of UUID
@@ -63,10 +70,10 @@ namespace kagome::application {
 
   AppConfigurationImpl::AppConfigurationImpl(log::Logger logger)
       : logger_(std::move(logger)),
+        roles_(def_roles),
         p2p_port_(def_p2p_port),
         verbosity_(static_cast<log::Level>(def_verbosity)),
         is_already_synchronized_(def_is_already_synchronized),
-        is_only_finalizing_(def_is_only_finalizing),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         is_unix_slots_strategy_(def_is_unix_slots_strategy),
         rpc_http_host_(def_rpc_http_host),
@@ -74,7 +81,8 @@ namespace kagome::application {
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
         dev_mode_(def_dev_mode),
-        node_name_(randomNodeName()) {}
+        node_name_(randomNodeName()),
+        max_ws_connections_(def_ws_max_connections) {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -166,6 +174,12 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_general_segment(rapidjson::Value &val) {
+    bool validator_mode = false;
+    load_bool(val, "validator", validator_mode);
+    if (validator_mode) {
+      roles_.flags.authority = 1;
+    }
+
     uint16_t v{};
     if (not load_u16(val, "verbosity", v)) {
       return;
@@ -197,19 +211,18 @@ namespace kagome::application {
     load_u16(val, "rpc-port", rpc_http_port_);
     load_str(val, "ws-host", rpc_ws_host_);
     load_u16(val, "ws-port", rpc_ws_port_);
+    load_u32(val, "ws-max-connections", max_ws_connections_);
     load_str(val, "name", node_name_);
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
-    load_bool(val, "single-finalizing-node", is_only_finalizing_);
     load_bool(val, "already-synchronized", is_already_synchronized_);
     load_u32(val, "max-blocks-in-response", max_blocks_in_response_);
     load_bool(val, "is-unix-slots-strategy", is_unix_slots_strategy_);
     load_bool(val, "dev", dev_mode_);
   }
 
-  bool AppConfigurationImpl::validate_config(
-      AppConfiguration::LoadScheme scheme) {
+  bool AppConfigurationImpl::validate_config() {
     if (not fs::exists(chain_spec_path_)) {
       logger_->error(
           "Chain path {} does not exist, "
@@ -317,8 +330,7 @@ namespace kagome::application {
     return endpoint;
   }
 
-  bool AppConfigurationImpl::initialize_from_args(
-      AppConfiguration::LoadScheme scheme, int argc, char **argv) {
+  bool AppConfigurationImpl::initialize_from_args(int argc, char **argv) {
     namespace po = boost::program_options;
 
     // clang-format off
@@ -326,6 +338,7 @@ namespace kagome::application {
     desc.add_options()
         ("help,h", "show this help message")
         ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no log")
+        ("validator", "Enable validator node")
         ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
         ;
 
@@ -344,19 +357,20 @@ namespace kagome::application {
         ("listen-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses the node listens for open connections on")
         ("public-addr", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses that other nodes use to connect to it")
         ("node-key", po::value<std::string>(), "the secret key to use for libp2p networking")
+        ("node-key-file", po::value<std::string>(), "path to the secret key used for libp2p networking (raw binary or hex-encoded")
         ("bootnodes", po::value<std::vector<std::string>>()->multitoken(), "multiaddresses of bootstrap nodes")
         ("port,p", po::value<uint16_t>(), "port for peer to peer interactions")
         ("rpc-host", po::value<std::string>(), "address for RPC over HTTP")
         ("rpc-port", po::value<uint16_t>(), "port for RPC over HTTP")
         ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
         ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
+        ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
         ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
 
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
-        ("single-finalizing-node,f", "if this is the only finalizing node")
         ("already-synchronized,s", "if need to consider synchronized")
         ("unix-slots,u", "if slots are calculated from unix epoch")
         ;
@@ -446,6 +460,8 @@ namespace kagome::application {
           }
         }
 
+        roles_.flags.full = 1;
+        roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
         is_already_synchronized_ = true;
         rpc_http_host_ = def_rpc_http_host;
@@ -469,12 +485,21 @@ namespace kagome::application {
       }
     });
 
-    /// aggregate data from command line args
-    if (vm.end() != vm.find("single-finalizing-node"))
-      is_only_finalizing_ = true;
+    if (vm.end() != vm.find("validator")) {
+      roles_.flags.authority = 1;
+    }
 
-    if (vm.end() != vm.find("already-synchronized"))
+    if (vm.end() != vm.find("already-synchronized")) {
+      if (roles_.flags.authority == 0) {
+        logger_->error("Non authority node is run as already synced");
+        std::cerr
+            << "Non authority node can't be presented as already synced;\n"
+               "Provide --validator option or remove --already-synchronized"
+            << std::endl;
+        return false;
+      }
       is_already_synchronized_ = true;
+    }
 
     if (vm.end() != vm.find("unix-slots")) is_unix_slots_strategy_ = true;
 
@@ -525,6 +550,13 @@ namespace kagome::application {
         return false;
       }
       node_key_.emplace(std::move(key_res.value()));
+    }
+
+    if (not node_key_.has_value()) {
+      find_argument<std::string>(
+          vm, "node-key-file", [&](const std::string &val) {
+            node_key_file_ = val;
+          });
     }
 
     find_argument<uint16_t>(vm, "port", [&](uint16_t val) { p2p_port_ = val; });
@@ -629,6 +661,10 @@ namespace kagome::application {
     find_argument<uint16_t>(
         vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
 
+    find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
+      max_ws_connections_ = val;
+    });
+
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
 
@@ -636,7 +672,7 @@ namespace kagome::application {
         vm, "name", [&](std::string const &val) { node_name_ = val; });
 
     // if something wrong with config print help message
-    if (not validate_config(scheme)) {
+    if (not validate_config()) {
       std::cout << desc << std::endl;
       return false;
     }

@@ -193,6 +193,13 @@ namespace kagome::consensus::grandpa {
         justification,
         scale::decode<grandpa::GrandpaJustification>(raw_justification.data));
 
+    SL_DEBUG(
+        logger_,
+        "Trying to apply justification on round #{} for block #{} with hash {}",
+        justification.round_number,
+        justification.block_info.number,
+        justification.block_info.hash.toHex());
+
     OUTCOME_TRY(
         justification_observer->applyJustification(block_info, justification));
 

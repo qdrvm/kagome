@@ -11,6 +11,7 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/impl/crutch.hpp"
 #include "runtime/wavm/impl/memory.hpp"
+#include "runtime/wavm/impl/module_instance.hpp"
 #include "runtime/wavm/module_repository.hpp"
 #include "scale/scale.hpp"
 
@@ -23,7 +24,7 @@ namespace kagome::runtime::wavm {
     using Buffer = common::Buffer;
 
     Executor(std::shared_ptr<TrieStorageProvider> storage_provider,
-             std::shared_ptr<Memory> memory,
+             std::shared_ptr<runtime::Memory> memory,
              std::shared_ptr<ModuleRepository> module_repo,
              std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
         : storage_provider_{std::move(storage_provider)},
@@ -142,7 +143,7 @@ namespace kagome::runtime::wavm {
 
     std::shared_ptr<host_api::HostApi> host_api_;
     std::shared_ptr<TrieStorageProvider> storage_provider_;
-    std::shared_ptr<Memory> memory_;
+    std::shared_ptr<runtime::Memory> memory_;
     std::shared_ptr<runtime::RuntimeCodeProvider> code_provider_;
     // TODO(Harrm): cyclic dependency here
     std::shared_ptr<ModuleRepository> module_repo_;

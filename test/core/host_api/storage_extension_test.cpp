@@ -105,7 +105,8 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
       .Times(1)
       .WillOnce(Return(outcome::success()));
 
-  storage_extension_->ext_clear_prefix(prefix_pointer, prefix_size);
+  storage_extension_->ext_storage_clear_prefix_version_1(
+      WasmResult{prefix_pointer, prefix_size}.combine());
 }
 
 /**
@@ -121,7 +122,8 @@ TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*trie_batch_, remove(key)).WillOnce(Return(GetParam()));
 
-  storage_extension_->ext_clear_storage(key_pointer, key_size);
+  storage_extension_->ext_storage_clear_version_1(
+      WasmResult{key_pointer, key_size}.combine());
 }
 
 /**
@@ -141,7 +143,8 @@ TEST_F(StorageExtensionTest, ExistsStorageTest) {
   EXPECT_CALL(*trie_batch_, contains(key)).WillOnce(Return(contains));
 
   ASSERT_EQ(contains,
-            storage_extension_->ext_exists_storage(key_pointer, key_size));
+            storage_extension_->ext_storage_exists_version_1(
+                WasmResult{key_pointer, key_size}.combine()));
 }
 
 /**
@@ -166,9 +169,9 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyNotExistsTest) {
   EXPECT_CALL(*trie_batch_, get(key)).WillOnce(Return(get_res));
 
   EXPECT_CALL(*memory_, store32(len_ptr, kU32Max));
-  ASSERT_EQ(0,
-            storage_extension_->ext_get_allocated_storage(
-                key_pointer, key_size, len_ptr));
+  //  ASSERT_EQ(0,
+  //            storage_extension_->ext_get_allocated_storage(
+  //                key_pointer, key_size, len_ptr));
 }
 
 /**
@@ -207,9 +210,9 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyExistTest) {
                           gsl::span<const uint8_t>(get_res.value())));
 
   // ptr for the allocated value is returned
-  ASSERT_EQ(allocated_value_ptr,
-            storage_extension_->ext_get_allocated_storage(
-                key_pointer, key_size, len_ptr));
+  //  ASSERT_EQ(allocated_value_ptr,
+  //            storage_extension_->ext_get_allocated_storage(
+  //                key_pointer, key_size, len_ptr));
 }
 
 /**
@@ -244,9 +247,9 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
               storeBuffer(value_ptr, gsl::span<const uint8_t>(partial_value)));
 
   // ext_get_storage_into should return the length of stored partial value
-  ASSERT_EQ(partial_value.size(),
-            storage_extension_->ext_get_storage_into(
-                key_pointer, key_size, value_ptr, value_length, value_offset));
+  //  ASSERT_EQ(partial_value.size(),
+  //            storage_extension_->ext_get_storage_into(
+  //              key_pointer, key_size, value_ptr, value_length, value_offset));
 }
 
 /**
@@ -273,9 +276,10 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
       .WillOnce(Return(outcome::failure(std::error_code())));
 
   // ext_get_storage_into should return u32::max()
-  ASSERT_EQ(kU32Max,
-            storage_extension_->ext_get_storage_into(
-                key_pointer, key_size, value_ptr, value_length, value_offset));
+  //  ASSERT_EQ(kU32Max,
+  //            storage_extension_->ext_get_storage_into(
+  //                key_pointer, key_size, value_ptr, value_length,
+  //                value_offset));
 }
 
 /**
@@ -409,8 +413,9 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
   // expect key-value pair was put to db
   EXPECT_CALL(*trie_batch_, put(key, value)).WillOnce(Return(GetParam()));
 
-  storage_extension_->ext_set_storage(
-      key_pointer, key_size, value_pointer, value_size);
+  storage_extension_->ext_storage_set_version_1(
+      WasmResult{key_pointer, key_size}.combine(),
+      WasmResult{value_pointer, value_size}.combine());
 }
 
 /**
@@ -616,8 +621,8 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
               storeBuffer(result, gsl::span<const uint8_t>(hash_array)))
       .Times(1);
 
-  storage_extension_->ext_blake2_256_enumerated_trie_root(
-      values_ptr, lens_ptr, values.size(), result);
+  storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
+      WasmResult{values_ptr, static_cast<WasmSize>(values.size())}.combine());
 }
 
 /**

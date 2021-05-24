@@ -14,6 +14,7 @@
 #include <libp2p/host/host.hpp>
 
 #include "application/chain_spec.hpp"
+#include "application/app_configuration.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher.hpp"
@@ -44,6 +45,7 @@ namespace kagome::network {
     BlockAnnounceProtocol &operator=(BlockAnnounceProtocol const &) = delete;
 
     BlockAnnounceProtocol(libp2p::Host &host,
+                          const application::AppConfiguration &app_config,
                           const application::ChainSpec &chain_spec,
                           std::shared_ptr<StreamEngine> stream_engine,
                           std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -84,6 +86,7 @@ namespace kagome::network {
                        const BlockAnnounce &block_announce);
 
     libp2p::Host &host_;
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
@@ -91,7 +94,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("BlockAnnounceProtocol");
+    log::Logger log_ = log::createLogger("BlockAnnounceProtocol", "protocols");
   };
 
 }  // namespace kagome::network

@@ -17,18 +17,13 @@
 namespace kagome::host_api {
 
   HostApiImpl::HostApiImpl(
-      std::shared_ptr<runtime::wavm::Memory> memory,
-      std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
-      std::shared_ptr<runtime::wavm::IntrinsicResolver> intrinsic_resolver,
+      std::shared_ptr<runtime::Memory> memory,
+      std::shared_ptr<runtime::CoreApiProvider> core_provider,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
-      std::shared_ptr<blockchain::BlockHeaderRepository>
-          header_repo,  //< TODO(Harrm): Needed to create a runtime executor,
-                        //should get rid of this dependency introducing some
-                        //kind of a factory for it
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
       std::shared_ptr<crypto::Bip39Provider> bip39_provider)
@@ -44,18 +39,13 @@ namespace kagome::host_api {
                                               std::move(bip39_provider))},
         io_ext_(memory),
         memory_ext_(memory),
-        misc_ext_{DEFAULT_CHAIN_ID,
-                  std::move(module_repo),
-                  memory,
-                  intrinsic_resolver,
-                  storage_provider_,
-        std::move(header_repo)},
+        misc_ext_{DEFAULT_CHAIN_ID, memory, std::move(core_provider)},
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
   }
 
-  std::shared_ptr<runtime::wavm::Memory> HostApiImpl::memory() const {
+  std::shared_ptr<runtime::Memory> HostApiImpl::memory() const {
     return memory_;
   }
 

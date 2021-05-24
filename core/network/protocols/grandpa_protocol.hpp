@@ -13,6 +13,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
+#include "application/app_configuration.hpp"
 #include "log/logger.hpp"
 #include "network/impl/stream_engine.hpp"
 
@@ -35,6 +36,7 @@ namespace kagome::network {
     GrandpaProtocol &operator=(GrandpaProtocol const &) = delete;
 
     GrandpaProtocol(libp2p::Host &host,
+                    const application::AppConfiguration &app_config,
                     std::shared_ptr<StreamEngine> stream_engine);
 
     const Protocol &protocol() const override {
@@ -53,7 +55,7 @@ namespace kagome::network {
    private:
     enum class Direction { INCOMING, OUTGOING };
     void readHandshake(
-        std::shared_ptr<Stream> stream,
+        std::shared_ptr<Stream> remote_roles_res,
         Direction direction,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
@@ -70,9 +72,10 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
     libp2p::Host &host_;
+    const application::AppConfiguration &app_config_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("GrandpaProtocol");
+    log::Logger log_ = log::createLogger("GrandpaProtocol", "protocols");
   };
 
 }  // namespace kagome::network

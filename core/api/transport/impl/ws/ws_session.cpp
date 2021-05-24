@@ -25,11 +25,28 @@ namespace kagome::api {
                                                            shared_from_this()));
   }
 
+  void WsSession::reject() {
+    stop(boost::beast::websocket::close_code::try_again_later);
+  }
+
   void WsSession::stop() {
+    // none is the default value for close_reason
+    stop(boost::beast::websocket::close_code::none);
+  }
+
+  void WsSession::stop(boost::beast::websocket::close_code code) {
     boost::system::error_code ec;
-    stream_.close(boost::beast::websocket::close_reason(), ec);
+    stream_.close(boost::beast::websocket::close_reason(code), ec);
     boost::ignore_unused(ec);
     notifyOnClose(id_, type());
+    if (nullptr != on_ws_close_) {
+      on_ws_close_();
+    }
+  }
+
+  void WsSession::connectOnWsSessionCloseHandler(
+      WsSession::OnWsSessionCloseHandler &&handler) {
+    on_ws_close_ = std::move(handler);
   }
 
   void WsSession::handleRequest(std::string_view data) {

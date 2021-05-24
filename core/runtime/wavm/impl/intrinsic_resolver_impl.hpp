@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_RESOLVER_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_RESOLVER_HPP
+#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_RESOLVER_IMPL_HPP
+#define KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_RESOLVER_IMPL_HPP
+
+#include "runtime/wavm/intrinsic_resolver.hpp"
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 
-#include "memory.hpp"
+#include "runtime/wavm/impl/memory.hpp"
 
 namespace WAVM::Runtime {
   struct Instance;
@@ -24,10 +26,11 @@ namespace WAVM::Intrinsics {
 
 namespace kagome::runtime::wavm {
 
-  class IntrinsicResolver final : public WAVM::Runtime::Resolver {
+  class Memory;
+
+  class IntrinsicResolverImpl final : public IntrinsicResolver {
    public:
-    explicit IntrinsicResolver();
-    ~IntrinsicResolver() override = default;
+    explicit IntrinsicResolverImpl();
 
     bool resolve(const std::string &moduleName,
                  const std::string &exportName,
@@ -48,9 +51,11 @@ namespace kagome::runtime::wavm {
       functions_.emplace(name, func);
     }
 
-    std::shared_ptr<Memory> getMemory() const {
-      return memory_;
+    std::shared_ptr<runtime::Memory> getMemory() const override {
+      return std::static_pointer_cast<runtime::Memory>(memory_);
     }
+
+    std::unique_ptr<IntrinsicResolver> clone() const override;
 
    private:
     std::unique_ptr<WAVM::Intrinsics::Module> module_;
@@ -66,4 +71,4 @@ namespace kagome::runtime::wavm {
 
 }  // namespace kagome::runtime::wavm
 
-#endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_RESOLVER_HPP
+#endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_INTRINSIC_RESOLVER_IMPL_HPP

@@ -3,23 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "application/impl/syncing_node_application.hpp"
+#include "application/impl/kagome_application_impl.hpp"
 
 #include <thread>
 
-#include <libp2p/log/configurator.hpp>
-
 #include "application/impl/util.hpp"
-#include "injector/application_injector.hpp"
-#include "network/common.hpp"
+#include "consensus/babe/babe.hpp"
 
 namespace kagome::application {
 
-  SyncingNodeApplication::SyncingNodeApplication(
+  KagomeApplicationImpl::KagomeApplicationImpl(
       const AppConfiguration &app_config)
-      : logger_(log::createLogger("SyncingNodeApplication", "application")),
-        injector_{std::make_unique<injector::SyncingNodeInjector>(app_config)},
-        node_name_{app_config.nodeName()} {
+      : app_config_(app_config),
+        injector_{std::make_unique<injector::KagomeNodeInjector>(app_config)},
+        logger_(log::createLogger("Application", "application")),
+        node_name_(app_config.nodeName()) {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     chain_spec_ = injector_->injectChainSpec();
@@ -27,8 +25,8 @@ namespace kagome::application {
 
     app_state_manager_ = injector_->injectAppStateManager();
 
-    chain_path_ = app_config.chainPath(chain_spec_->id());
     io_context_ = injector_->injectIoContext();
+    clock_ = injector_->injectSystemClock();
     babe_ = injector_->injectBabe();
     grandpa_ = injector_->injectGrandpa();
     router_ = injector_->injectRouter();
@@ -37,17 +35,25 @@ namespace kagome::application {
     sync_observer_ = injector_->injectSyncObserver();
   }
 
-  void SyncingNodeApplication::run() {
-    logger_->info(
-        "Start as SyncingNode with PID {} named as {}", getpid(), node_name_);
+  void KagomeApplicationImpl::run() {
+    logger_->info("Start as KagomeApplicationImpl with PID {} named as {}",
+                  getpid(),
+                  node_name_);
 
-    auto res = util::init_directory(chain_path_);
+    auto chain_path = app_config_.chainPath(chain_spec_->id());
+    auto res = util::init_directory(chain_path);
     if (not res) {
       logger_->critical("Error initializing chain directory {}: {}",
-                        chain_path_.native(),
+                        chain_path.native(),
                         res.error().message());
       exit(EXIT_FAILURE);
     }
+
+    auto babe_execution_strategy =
+        app_config_.isAlreadySynchronized()
+            ? consensus::babe::Babe::ExecutionStrategy::START
+            : consensus::babe::Babe::ExecutionStrategy::SYNC_FIRST;
+    babe_->setExecutionStrategy(babe_execution_strategy);
 
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });

@@ -30,7 +30,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<BabeGossiper> gossiper,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      crypto::Sr25519Keypair keypair,
+      std::shared_ptr<crypto::Sr25519Keypair> keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
@@ -46,7 +46,7 @@ namespace kagome::consensus::babe {
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         gossiper_{std::move(gossiper)},
-        keypair_{keypair},
+        keypair_{std::move(keypair)},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
@@ -159,11 +159,13 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
+    BOOST_ASSERT(keypair_ != nullptr);
+
     SL_DEBUG(
         log_,
         "Starting an epoch {}. Session key: {}. First slot ending time: {}",
         epoch.epoch_number,
-        keypair_.public_key.toHex(),
+        keypair_->public_key.toHex(),
         std::chrono::duration_cast<std::chrono::milliseconds>(
             epoch.starting_slot_finish_time.time_since_epoch())
             .count());
@@ -182,6 +184,12 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
+    if (not keypair_) {
+      block_executor_->processNextBlock(
+          peer_id, announce.header, [](auto &) {});
+      return;
+    }
+
     switch (current_state_) {
       case State::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
@@ -193,8 +201,8 @@ namespace kagome::consensus::babe {
         log_->info("Catching up to block number: {}", announce.header.number);
         current_state_ = State::CATCHING_UP;
         block_executor_->requestBlocks(
-            peer_id, announce.header, [self_weak{weak_from_this()}] {
-              if (auto self = self_weak.lock()) {
+            peer_id, announce.header, [wp = weak_from_this()] {
+              if (auto self = wp.lock()) {
                 self->log_->info("Catching up is done, getting slot time");
                 // all blocks were successfully applied, now we need to get
                 // slot time
@@ -227,6 +235,8 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::runSlot() {
+    BOOST_ASSERT(keypair_ != nullptr);
+
     bool rewind_slots;  // NOLINT
     auto slot = current_slot_;
     do {
@@ -272,6 +282,8 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::finishSlot() {
+    BOOST_ASSERT(keypair_ != nullptr);
+
     if (not slots_leadership_.has_value()) {
       auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
 
@@ -290,7 +302,7 @@ namespace kagome::consensus::babe {
     if (slot_leadership) {
       SL_DEBUG(log_,
                "Peer {} is leader (vrfOutput: {}, proof: {})",
-               keypair_.public_key.toHex(),
+               keypair_->public_key.toHex(),
                common::Buffer(slot_leadership->output).toHex(),
                common::Buffer(slot_leadership->proof).toHex());
 
@@ -330,13 +342,15 @@ namespace kagome::consensus::babe {
 
   outcome::result<primitives::Seal> BabeImpl::sealBlock(
       const primitives::Block &block) const {
+    BOOST_ASSERT(keypair_ != nullptr);
+
     auto pre_seal_encoded_block = scale::encode(block.header).value();
 
     auto pre_seal_hash = hasher_->blake2b_256(pre_seal_encoded_block);
 
     Seal seal{};
 
-    if (auto signature = sr25519_provider_->sign(keypair_, pre_seal_hash);
+    if (auto signature = sr25519_provider_->sign(*keypair_, pre_seal_hash);
         signature) {
       seal.signature = signature.value();
     } else {
@@ -349,6 +363,8 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::processSlotLeadership(const crypto::VRFOutput &output) {
+    BOOST_ASSERT(keypair_ != nullptr);
+
     // build a block to be announced
     log_->info("Obtained slot leadership in slot {} epoch {}",
                current_slot_,
@@ -380,7 +396,7 @@ namespace kagome::consensus::babe {
                                                  best_block_hash);
 
     auto authority_index_res =
-        getAuthorityIndex(epoch.value().authorities, keypair_.public_key);
+        getAuthorityIndex(epoch.value().authorities, keypair_->public_key);
     BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
 
     // calculate babe_pre_digest
@@ -478,19 +494,21 @@ namespace kagome::consensus::babe {
       const EpochDescriptor &epoch,
       const primitives::AuthorityList &authorities,
       const Randomness &randomness) const {
+    BOOST_ASSERT(keypair_ != nullptr);
+
     auto authority_index_res =
-        getAuthorityIndex(authorities, keypair_.public_key);
+        getAuthorityIndex(authorities, keypair_->public_key);
     if (not authority_index_res) {
       log_->critical(
           "Block production failed: This node is not in the list of "
           "authorities. (public key: {})",
-          keypair_.public_key.toHex());
+          keypair_->public_key.toHex());
       throw boost::bad_optional_access();
     }
     auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         authorities,
                                         authority_index_res.value());
-    return lottery_->slotsLeadership(epoch, randomness, threshold, keypair_);
+    return lottery_->slotsLeadership(epoch, randomness, threshold, *keypair_);
   }
 
   void BabeImpl::startNextEpoch() {

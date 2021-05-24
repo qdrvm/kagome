@@ -320,7 +320,9 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
 
   // WHEN
   EXPECT_OUTCOME_TRUE(
-      chain, block_tree_->getChainByBlock(kFinalizedBlockInfo.hash, true, 5));
+      chain,
+      block_tree_->getChainByBlock(
+          kFinalizedBlockInfo.hash, BlockTree::GetChainDirection::ASCEND, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);
@@ -356,7 +358,9 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockInfo.hash};
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2, false, 5));
+  EXPECT_OUTCOME_TRUE(chain,
+                      block_tree_->getChainByBlock(
+                          hash2, BlockTree::GetChainDirection::DESCEND, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);

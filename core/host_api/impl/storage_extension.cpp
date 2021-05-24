@@ -22,7 +22,7 @@ namespace {
 namespace kagome::host_api {
   StorageExtension::StorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-      std::shared_ptr<runtime::wavm::Memory> memory,
+      std::shared_ptr<runtime::Memory> memory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : storage_provider_(std::move(storage_provider)),
         memory_(std::move(memory)),

@@ -66,6 +66,25 @@ namespace kagome::crypto {
                                       gsl::span<const uint8_t> public_key,
                                       gsl::span<const uint8_t> seed) const;
 
+    /**
+     * Load key file contents without validation. The file may not exist.
+     * Used when --node-key-file flag is specified.
+     * @param file_path - path to the key. The contents are raw-bytes or
+     * hex-encoded key
+     * @return file contents. Format interpreting is up to the caller
+     */
+    outcome::result<std::string> loadFileContent(const Path &file_path) const;
+
+    /**
+     * Save key as hex to the specific path.
+     * Used when --node-key-file flag is specified.
+     * @param key_bytes - key contents to save
+     * @param file_path - user-provided path to create the file
+     * @return an error if any
+     */
+    outcome::result<void> saveKeyHexAtPath(
+        gsl::span<const uint8_t> private_key, const Path &path) const;
+
    private:
     explicit KeyFileStorage(Path keystore_path);
 
@@ -76,8 +95,6 @@ namespace kagome::crypto {
 
     Path composeKeyPath(KeyTypeId key_type,
                         gsl::span<const uint8_t> public_key) const;
-
-    outcome::result<std::string> loadFileContent(const Path &file_path) const;
 
     Path keystore_path_;
     log::Logger logger_;

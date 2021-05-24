@@ -14,6 +14,8 @@ namespace kagome::application {
 
   class AppConfigurationMock : public AppConfiguration {
    public:
+    MOCK_CONST_METHOD0(roles, network::Roles());
+
     MOCK_CONST_METHOD0(chainSpecPath, boost::filesystem::path());
 
     MOCK_CONST_METHOD1(chainPath,
@@ -27,6 +29,8 @@ namespace kagome::application {
 
     MOCK_CONST_METHOD0(nodeKey,
                        const boost::optional<crypto::Ed25519PrivateKey> &());
+
+    MOCK_CONST_METHOD0(nodeKeyFile, const boost::optional<std::string> &());
 
     MOCK_CONST_METHOD0(listenAddresses,
                        const std::vector<libp2p::multi::Multiaddress> &());
@@ -44,9 +48,9 @@ namespace kagome::application {
 
     MOCK_CONST_METHOD0(rpcWsEndpoint, const boost::asio::ip::tcp::endpoint &());
 
-    MOCK_CONST_METHOD0(verbosity, log::Level());
+    MOCK_CONST_METHOD0(maxWsConnections, uint32_t());
 
-    MOCK_CONST_METHOD0(isOnlyFinalizing, bool());
+    MOCK_CONST_METHOD0(verbosity, log::Level());
 
     MOCK_CONST_METHOD0(isAlreadySynchronized, bool());
 

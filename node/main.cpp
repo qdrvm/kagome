@@ -8,7 +8,7 @@
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
-#include "application/impl/validating_node_application.hpp"
+#include "application/impl/kagome_application_impl.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 
@@ -35,14 +35,10 @@ int main(int argc, char **argv) {
   auto logger = kagome::log::createLogger("AppConfiguration", "main");
   AppConfigurationImpl configuration{logger};
 
-  if (configuration.initialize_from_args(
-          AppConfiguration::LoadScheme::kValidating, argc, argv)) {
-    auto &&app =
-        std::make_shared<kagome::application::ValidatingNodeApplication>(
-            configuration);
-
-    kagome::log::setLevelOfGroup("main", configuration.verbosity());
-
+  if (configuration.initialize_from_args(argc, argv)) {
+    kagome::log::setLevelOfGroup("*", configuration.verbosity());
+    auto app =
+        std::make_shared<kagome::application::KagomeApplicationImpl>(configuration);
     app->run();
   }
 
