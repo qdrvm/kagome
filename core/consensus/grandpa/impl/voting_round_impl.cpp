@@ -625,10 +625,6 @@ namespace kagome::consensus::grandpa {
     return voter_set_->voters().at(index) == id;
   }
 
-  bool VotingRoundImpl::isPrimary() const {
-    return id_.has_value() && isPrimary(id_.value());
-  }
-
   outcome::result<void> VotingRoundImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
     // validate message
@@ -724,6 +720,7 @@ namespace kagome::consensus::grandpa {
       const BlockInfo &vote, const GrandpaJustification &justification) const {
     size_t total_weight = 0;
 
+    auto threshold = threshold_;
     std::unordered_map<Id, BlockHash> validators;
     std::unordered_set<Id> equivocators;
 
@@ -759,7 +756,9 @@ namespace kagome::consensus::grandpa {
       } else if (equivocators.emplace(signed_precommit.id).second) {
         // Detected equivocation
         if (env_->hasAncestry(vote.hash, it->second)) {
-          total_weight -= voter_set_->voterWeight(signed_precommit.id).value();
+          auto weight = voter_set_->voterWeight(signed_precommit.id).value();
+          total_weight -= weight;
+          threshold -= weight;
         }
 
       } else {
@@ -772,9 +771,9 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    if (total_weight < threshold_) {
+    if (total_weight < threshold) {
       return VotingRoundError::NOT_ENOUGH_WEIGHT;
-    };
+    }
 
     return outcome::success();
   }
@@ -943,7 +942,7 @@ namespace kagome::consensus::grandpa {
     if (not index) {
       BOOST_ASSERT_MSG(
           false,
-          "Can't be none after voterWeight() was succeed");  // NOLINTNEXTLINE
+          "Can't be none after voterWeight() was succeed");
       return VotingRoundError::UNKNOWN_VOTER;
     }
 
