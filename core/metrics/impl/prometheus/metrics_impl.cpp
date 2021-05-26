@@ -4,7 +4,7 @@
 #include <prometheus/histogram.h>
 #include <prometheus/summary.h>
 
-namespace kagome::metrics::lib {
+namespace kagome::metrics {
   PrometheusCounter::PrometheusCounter(prometheus::Counter &c) : c_(c) {}
 
   void PrometheusCounter::inc() {
@@ -52,4 +52,4 @@ namespace kagome::metrics::lib {
   void PrometheusHistogram::observe(const double value) {
     h_.Observe(value);
   }
-}  // namespace kagome::metrics::lib
+}  // namespace kagome::metrics

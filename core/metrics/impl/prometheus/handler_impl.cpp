@@ -6,6 +6,7 @@
 #include "handler_impl.hpp"
 #include <prometheus/text_serializer.h>
 #include "log/logger.hpp"
+#include "registry_impl.hpp"
 
 constexpr const char *EXPOSER_TRANSFERRED_BYTES_TOTAL =
     "exposer_transferred_bytes_total";
@@ -35,26 +36,29 @@ std::vector<MetricFamily> CollectMetrics(
 
 namespace kagome::metrics {
 
-  HandlerImpl::HandlerImpl()
-      : logger_{log::createLogger("HandlerImpl", "metrics")}, registry_{} {
-    registry_.registerFamily<lib::Counter>(EXPOSER_TRANSFERRED_BYTES_TOTAL,
-                             "Transferred bytes to metrics services");
-    bytes_transferred_ =
-      registry_.registerMetric<lib::Counter>(EXPOSER_TRANSFERRED_BYTES_TOTAL, {});
-    registry_.registerFamily<lib::Counter>(EXPOSER_SCRAPES_TOTAL,
-                             "Number of times metrics were scraped");
-    num_scrapes_ = registry_.registerMetric<lib::Counter>(EXPOSER_SCRAPES_TOTAL, {});
-    registry_.registerFamily<lib::Summary>(
-        EXPOSER_REQUEST_LATENCIES,
-        "Latencies of serving scrape requests, in microseconds");
-    request_latencies_ = registry_.registerMetric<lib::Summary>(
-        EXPOSER_REQUEST_LATENCIES,
-        {},
-        Summary::Quantiles{{0.5, 0.05}, {0.9, 0.01}, {0.99, 0.001}});
+  HandlerPtr createHandler() {
+    return std::make_shared<PrometheusHandler>();
   }
 
-  void HandlerImpl::onSessionRequest(Session::Request request,
-                                     std::shared_ptr<Session> session) {
+  PrometheusHandler::PrometheusHandler()
+      : logger_{log::createLogger("PrometheusHandler", "metrics")},
+        registry_{createRegistry()} {
+    registry_->registerCounterFamily(EXPOSER_TRANSFERRED_BYTES_TOTAL,
+                                     "Transferred bytes to metrics services");
+    bytes_transferred_ =
+        registry_->registerCounterMetric(EXPOSER_TRANSFERRED_BYTES_TOTAL);
+    registry_->registerCounterFamily(EXPOSER_SCRAPES_TOTAL,
+                                     "Number of times metrics were scraped");
+    num_scrapes_ = registry_->registerCounterMetric(EXPOSER_SCRAPES_TOTAL);
+    registry_->registerSummaryFamily(
+        EXPOSER_REQUEST_LATENCIES,
+        "Latencies of serving scrape requests, in microseconds");
+    request_latencies_ = registry_->registerSummaryMetric(
+        EXPOSER_REQUEST_LATENCIES, {{0.5, 0.05}, {0.9, 0.01}, {0.99, 0.001}});
+  }
+
+  void PrometheusHandler::onSessionRequest(Session::Request request,
+                                           std::shared_ptr<Session> session) {
     auto start_time_of_request = std::chrono::steady_clock::now();
 
     std::vector<MetricFamily> metrics;
@@ -77,9 +81,9 @@ namespace kagome::metrics {
     num_scrapes_->inc();
   }
 
-  std::size_t HandlerImpl::writeResponse(std::shared_ptr<Session> session,
-                                         Session::Request request,
-                                         const std::string &body) {
+  std::size_t PrometheusHandler::writeResponse(std::shared_ptr<Session> session,
+                                               Session::Request request,
+                                               const std::string &body) {
     Session::Response res{boost::beast::http::status::ok, request.version()};
     res.set(boost::beast::http::field::content_type,
             "text/plain; charset=utf-8");
@@ -91,18 +95,19 @@ namespace kagome::metrics {
     return body.size();
   }
 
-  void HandlerImpl::registerCollectable(Registry *registry) {
-    registerCollectable(registry_.registry());
+  void PrometheusHandler::registerCollectable(Registry *registry) {
+    registerCollectable(
+        dynamic_cast<PrometheusRegistry *>(registry_.get())->registry());
   }
 
-  void HandlerImpl::registerCollectable(
+  void PrometheusHandler::registerCollectable(
       const std::weak_ptr<Collectable> &collectable) {
     std::lock_guard<std::mutex> lock{collectables_mutex_};
     cleanupStalePointers(collectables_);
     collectables_.push_back(collectable);
   }
 
-  void HandlerImpl::removeCollectable(
+  void PrometheusHandler::removeCollectable(
       const std::weak_ptr<Collectable> &collectable) {
     std::lock_guard<std::mutex> lock{collectables_mutex_};
 
@@ -117,7 +122,7 @@ namespace kagome::metrics {
         std::end(collectables_));
   }
 
-  void HandlerImpl::cleanupStalePointers(
+  void PrometheusHandler::cleanupStalePointers(
       std::vector<std::weak_ptr<Collectable>> &collectables) {
     collectables.erase(
         std::remove_if(std::begin(collectables),

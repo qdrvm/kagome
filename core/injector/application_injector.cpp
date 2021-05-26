@@ -70,7 +70,8 @@
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "metrics/impl/exposer_impl.hpp"
-#include "metrics/impl/handler_impl.hpp"
+#include "metrics/handler.hpp"
+#include "metrics/metrics.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
@@ -180,7 +181,7 @@ namespace {
       sptr<metrics::Session::Context> context,
       metrics::Session::Configuration http_session_config) {
     static auto initialized =
-      boost::optional<sptr<metrics::Exposer>>(boost::none);
+        boost::optional<sptr<metrics::Exposer>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -190,14 +191,17 @@ namespace {
     metrics::Exposer::Configuration exposer_config;
     exposer_config.endpoint = endpoint;
 
-    auto registry = std::make_shared<metrics::Registry>();
-    auto handler = std::make_shared<metrics::HandlerImpl>();
+    // registry here is temporary, it initiates static global registry
+    // and registers handler in there
+    auto registry = metrics::createRegistry();
+    auto handler = metrics::createHandler();
     registry->setHandler(handler.get());
     auto exposer = std::make_shared<metrics::ExposerImpl>(
         app_state_manager, context, exposer_config, http_session_config);
     exposer->setHandler(handler);
 
-    initialized.emplace(std::move(std::dynamic_pointer_cast<metrics::Exposer>(exposer)));
+    initialized.emplace(
+        std::move(std::dynamic_pointer_cast<metrics::Exposer>(exposer)));
     return initialized.value();
   }
 
@@ -802,7 +806,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -902,18 +906,21 @@ namespace {
           return get_jrpc_api_ws_listener(
               app_config, config, context, app_state_manager);
         }),
+        // starting metrics interfaces
         di::bind<metrics::Exposer>.to([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
           auto app_state_manager =
               injector.template create<sptr<application::AppStateManager>>();
-          auto context = injector.template create<sptr<metrics::Session::Context>>();
+          auto context =
+              injector.template create<sptr<metrics::Session::Context>>();
           auto &&session_config =
-            injector.template create<metrics::Session::Configuration>();
+              injector.template create<metrics::Session::Configuration>();
 
           return get_openmetrics_http_exposer(
               config, app_state_manager, context, session_config);
         }),
+        // ending metrics interfaces
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
@@ -1282,7 +1289,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(

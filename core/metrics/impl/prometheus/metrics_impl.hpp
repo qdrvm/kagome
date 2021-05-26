@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_METRICS_LIB_IMPL_PROMETHEUS_METRICS_IMPL_HPP
-#define KAGOME_CORE_METRICS_LIB_IMPL_PROMETHEUS_METRICS_IMPL_HPP
+#ifndef KAGOME_CORE_METRICS_IMPL_PROMETHEUS_METRICS_IMPL_HPP
+#define KAGOME_CORE_METRICS_IMPL_PROMETHEUS_METRICS_IMPL_HPP
 
-#include "metrics/lib/metrics.hpp"
+#include "metrics/metrics.hpp"
 
 namespace prometheus {
   class Counter;
@@ -15,7 +15,7 @@ namespace prometheus {
   class Histogram;
 }  // namespace prometheus
 
-namespace kagome::metrics::lib {
+namespace kagome::metrics {
   class PrometheusCounter : public Counter {
     friend class Registry;
     prometheus::Counter &c_;
@@ -65,6 +65,6 @@ namespace kagome::metrics::lib {
    public:
     void observe(const double value) override;
   };
-}  // namespace kagome::metrics::lib
+}  // namespace kagome::metrics
 
-#endif  // KAGOME_CORE_METRICS_LIB_IMPL_PROMETHEUS_METRICS_IMPL_HPP
+#endif  // KAGOME_CORE_METRICS_IMPL_PROMETHEUS_METRICS_IMPL_HPP

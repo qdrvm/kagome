@@ -3,12 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_METRICS_LIB_METRICS_HPP
-#define KAGOME_CORE_METRICS_LIB_METRICS_HPP
+#ifndef KAGOME_CORE_METRICS_METRICS_HPP
+#define KAGOME_CORE_METRICS_METRICS_HPP
 
+#include <memory>
 #include <vector>
+#include "registry.hpp"
 
-namespace kagome::metrics::lib {
+namespace kagome::metrics {
+  using RegistryPtr = std::unique_ptr<Registry>;
+
+  // the function recommended to use to create a registry of the chosen
+  // implementation
+  RegistryPtr createRegistry();
+
   class Counter {
    public:
     virtual void inc() = 0;
@@ -34,6 +42,6 @@ namespace kagome::metrics::lib {
    public:
     virtual void observe(const double value) = 0;
   };
-}  // namespace kagome::metrics::lib
+}  // namespace kagome::metrics
 
-#endif  // KAGOME_CORE_METRICS_LIB_METRICS_HPP
+#endif  // KAGOME_CORE_METRICS_METRICS_HPP

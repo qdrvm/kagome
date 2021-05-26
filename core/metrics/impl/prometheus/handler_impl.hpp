@@ -3,32 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_METRICS_IMPL_HANDLER_IMPL_HPP
-#define KAGOME_CORE_METRICS_IMPL_HANDLER_IMPL_HPP
+#ifndef KAGOME_CORE_METRICS_IMPL_PROMETHEUS_HANDLER_IMPL_HPP
+#define KAGOME_CORE_METRICS_IMPL_PROMETHEUS_HANDLER_IMPL_HPP
 
 #include <prometheus/collectable.h>
-#include <prometheus/counter.h>
-#include <prometheus/family.h>
-#include <prometheus/registry.h>
-#include <prometheus/summary.h>
 #include <functional>
 #include <memory>
 #include <string_view>
 #include "log/logger.hpp"
 #include "metrics/handler.hpp"
-#include "metrics/lib/metrics.hpp"
-#include "metrics/registry.hpp"
-
-namespace kagome::api {
-  class Session;
-}
+#include "metrics/metrics.hpp"
 
 namespace kagome::metrics {
 
-  class HandlerImpl : public Handler {
+  class PrometheusHandler : public Handler {
    public:
-    explicit HandlerImpl();
-    ~HandlerImpl() override = default;
+    explicit PrometheusHandler();
+    ~PrometheusHandler() override = default;
 
     void registerCollectable(Registry *registry) override;
 
@@ -48,12 +39,12 @@ namespace kagome::metrics {
 
     std::mutex collectables_mutex_;
     std::vector<std::weak_ptr<prometheus::Collectable>> collectables_;
-    lib::Counter *bytes_transferred_;
-    lib::Counter *num_scrapes_;
-    lib::Summary *request_latencies_;
+    Counter *bytes_transferred_;
+    Counter *num_scrapes_;
+    Summary *request_latencies_;
 
     log::Logger logger_;
-    Registry registry_;
+    RegistryPtr registry_;
   };
 
 }  // namespace kagome::metrics

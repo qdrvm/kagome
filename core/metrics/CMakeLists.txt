@@ -8,14 +8,15 @@ add_library(metrics
   handler.hpp
   impl/exposer_impl.cpp
   impl/exposer_impl.hpp
-  impl/handler_impl.cpp
-  impl/handler_impl.hpp
+  impl/prometheus/handler_impl.cpp
+  impl/prometheus/handler_impl.hpp
+  impl/prometheus/metrics_impl.cpp
+  impl/prometheus/metrics_impl.hpp
+  impl/prometheus/registry_impl.cpp
+  impl/prometheus/registry_impl.hpp
   impl/session_impl.cpp
   impl/session_impl.hpp
-  lib/impl/prometheus/metrics_impl.cpp
-  lib/impl/prometheus/metrics_impl.hpp
-  lib/metrics.hpp
-  registry.cpp
+  metrics.hpp
   registry.hpp
   session.hpp)
 

@@ -7,19 +7,25 @@
 #define KAGOME_CORE_METRICS_HANDLER_HPP
 
 #include <memory>
-#include <string_view>
-#include "registry.hpp"
-#include "session.hpp"
+#include "metrics/session.hpp"
 
 namespace kagome::metrics {
+
+  class Registry;
+  class Session;
 
   class Handler {
    public:
     virtual ~Handler() = default;
-    virtual void registerCollectable(Registry* registry) = 0;
+    virtual void registerCollectable(Registry *registry) = 0;
     virtual void onSessionRequest(Session::Request request,
                                   std::shared_ptr<Session> session) = 0;
   };
+
+  using HandlerPtr = std::shared_ptr<Handler>;
+  // the function that is used in injector that place right metrics
+  // http handler implementation
+  HandlerPtr createHandler();
 
 }  // namespace kagome::metrics
 
