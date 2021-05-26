@@ -15,6 +15,7 @@
 namespace kagome::primitives {
 
   using AuthorityWeight = uint64_t;
+  using AuthorityListId = uint64_t;
 
   struct AuthorityId {
     GenericSessionKey id;
@@ -105,6 +106,8 @@ namespace kagome::primitives {
 
   /// Special type for vector of authorities
   struct AuthorityList : public std::vector<Authority> {
+    AuthorityListId id;
+
     // Attention: When adding a member, we need to ensure correct
     // destruction to avoid memory leaks or any other problem
     using std::vector<Authority>::vector;

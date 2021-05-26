@@ -18,8 +18,7 @@ namespace kagome::network {
    */
   struct Gossiper : public ExtrinsicGossiper,
                     public consensus::BabeGossiper,
-                    public consensus::grandpa::Gossiper {
-  };
+                    public consensus::grandpa::Gossiper {};
 }  // namespace kagome::network
 
 #endif  // KAGOME_CORE_NETWORK_GOSSIPER_HPP

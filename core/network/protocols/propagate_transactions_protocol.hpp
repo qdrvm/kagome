@@ -86,7 +86,7 @@ namespace kagome::network {
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("PropagateTransactionsProtocol", "protocols");
+    log::Logger log_ = log::createLogger("PropagateTransactionsProtocol");
   };
 
 }  // namespace kagome::network

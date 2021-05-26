@@ -37,12 +37,12 @@ namespace kagome::host_api {
 
     CryptoExtension(
         std::shared_ptr<runtime::Memory> memory,
-        std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-        std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
-        std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
-        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
+        std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
+        std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
+        std::shared_ptr<const crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
+        std::shared_ptr<const crypto::Bip39Provider> bip39_provider);
 
     inline void reset() {
       batch_verify_ = boost::none;
@@ -164,12 +164,12 @@ namespace kagome::host_api {
     common::Blob<32> deriveSeed(std::string_view content);
 
     std::shared_ptr<runtime::Memory> memory_;
-    std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
-    std::shared_ptr<crypto::Ed25519Provider> ed25519_provider_;
-    std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider_;
-    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider_;
+    std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider_;
+    std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider_;
+    std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
-    std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
+    std::shared_ptr<const crypto::Bip39Provider> bip39_provider_;
     boost::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
     log::Logger logger_;
   };

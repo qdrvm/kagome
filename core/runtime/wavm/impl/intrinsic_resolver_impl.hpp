@@ -58,7 +58,7 @@ namespace kagome::runtime::wavm {
     std::unique_ptr<IntrinsicResolver> clone() const override;
 
    private:
-    std::unique_ptr<WAVM::Intrinsics::Module> module_;
+    WAVM::Intrinsics::Module* module_;
     // TODO(Harrm) cleanup
     WAVM::Runtime::Instance *module_instance_;
     std::shared_ptr<Memory> memory_;

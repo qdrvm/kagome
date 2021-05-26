@@ -7,12 +7,8 @@
 
 #include <memory>
 
-#include <libp2p/host/host.hpp>
-#include <libp2p/multi/content_identifier_codec.hpp>
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
-#include <libp2p/protocol/kademlia/kademlia.hpp>
 
-#include "network/common.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {
@@ -87,6 +83,10 @@ namespace kagome::network {
     identify_->onIdentifyReceived(
         [wp = weak_from_this()](const PeerId &peer_id) {
           if (auto self = wp.lock()) {
+            SL_DEBUG(self->log_,
+                     "Identify received from peer_id={}",
+                     peer_id.toBase58());
+
             self->processFullyConnectedPeer(peer_id);
           }
         });
@@ -139,6 +139,8 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::align() {
+    SL_TRACE(log_, "Try to align peers number");
+
     const auto target_count = app_config_.peeringConfig().targetPeerAmount;
     const auto soft_limit = app_config_.peeringConfig().softLimit;
     const auto hard_limit = app_config_.peeringConfig().hardLimit;
@@ -146,7 +148,7 @@ namespace kagome::network {
 
     align_timer_.cancel();
 
-    // Check disconnected
+    // Check if disconnected
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, timepoint] = *it++;
@@ -182,31 +184,36 @@ namespace kagome::network {
         disconnectFromPeer(oldest_peer_id);
 
       } else {
-        SL_DEBUG(log_, "No peer to disconnect at soft limit");
+        SL_TRACE(log_, "No peer to disconnect at soft limit");
       }
     }
 
     // Not enough active peers
     if (active_peers_.size() < target_count) {
       if (not queue_to_connect_.empty()) {
-        auto node = peers_in_queue_.extract(queue_to_connect_.front());
-        auto &peer_id = node.value();
+        for (;;) {
+          auto node = peers_in_queue_.extract(queue_to_connect_.front());
+          auto &peer_id = node.value();
 
-        queue_to_connect_.pop_front();
-        BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
+          queue_to_connect_.pop_front();
+          BOOST_ASSERT(queue_to_connect_.size() == peers_in_queue_.size());
 
-        connecting_peers_.emplace(peer_id);
-        connectToPeer(peer_id);
+          if (connecting_peers_.emplace(peer_id).second) {
+            connectToPeer(peer_id);
 
-        SL_DEBUG(log_,
-                 "Remained peers in queue for connect: {}",
-                 peers_in_queue_.size());
+            SL_TRACE(log_,
+                     "Remained peers in queue for connect: {}",
+                     peers_in_queue_.size());
+            break;
+          }
+        }
       } else if (connecting_peers_.empty()) {
         SL_DEBUG(log_, "Queue for connect is empty. Reuse bootstrap nodes");
         for (const auto &bootstrap_node : bootstrap_nodes_) {
           if (own_peer_info_.id != bootstrap_node.id) {
-            connecting_peers_.emplace(bootstrap_node.id);
-            connectToPeer(bootstrap_node.id);
+            if (connecting_peers_.emplace(bootstrap_node.id).second) {
+              connectToPeer(bootstrap_node.id);
+            }
           }
         }
       } else {
@@ -228,16 +235,23 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::connectToPeer(const PeerId &peer_id) {
-    auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
+    // Skip connection to itself
+    if (own_peer_info_.id == peer_id) {
+      connecting_peers_.erase(peer_id);
+      return;
+    }
 
+    auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
     if (peer_info.addresses.empty()) {
       SL_DEBUG(log_, "Not found addresses for peer_id={}", peer_id.toBase58());
+      connecting_peers_.erase(peer_id);
       return;
     }
 
     auto connectedness = host_.connectedness(peer_info);
     if (connectedness == libp2p::Host::Connectedness::CAN_NOT_CONNECT) {
       SL_DEBUG(log_, "Can not connect to peer_id={}", peer_id.toBase58());
+      connecting_peers_.erase(peer_id);
       return;
     }
 
@@ -247,37 +261,41 @@ namespace kagome::network {
     }
 
     host_.connect(
-        peer_info, [wp = weak_from_this(), peer_id = peer_info.id](auto res) {
+        peer_info,
+        [wp = weak_from_this(), peer_id = peer_info.id](auto res) mutable {
           auto self = wp.lock();
           if (not self) {
             return;
           }
-          self->connecting_peers_.erase(peer_id);
+
           if (not res.has_value()) {
             SL_DEBUG(self->log_,
                      "Connecting to peer_id={} is failed: {}",
                      peer_id.toBase58(),
                      res.error().message());
+            self->connecting_peers_.erase(peer_id);
             return;
           }
+
           auto &connection = res.value();
           auto remote_peer_id_res = connection->remotePeer();
           if (not remote_peer_id_res.has_value()) {
             SL_DEBUG(self->log_,
                      "Connected, but not identifyed yet (expecting peer_id={})",
                      peer_id.toBase58());
+            self->connecting_peers_.erase(peer_id);
             return;
           }
+
           auto &remote_peer_id = remote_peer_id_res.value();
           if (remote_peer_id == peer_id) {
-            SL_DEBUG(self->log_,
-                     "Perhaps has already connected to peer_id={}. "
-                     "Processing immediately",
-                     peer_id.toBase58());
+            SL_DEBUG(self->log_, "Connected to peer_id={}", peer_id.toBase58());
+
             self->processFullyConnectedPeer(peer_id);
           }
-        });
-  }  // namespace kagome::network
+        },
+        kTimeoutForConnecting);
+  }
 
   void PeerManagerImpl::disconnectFromPeer(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
@@ -376,90 +394,78 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
-    // Skip connection to himself
+    // Skip connection to itself
     if (own_peer_info_.id == peer_id) {
+      connecting_peers_.erase(peer_id);
       return;
     }
 
-    SL_DEBUG(log_, "New connection with peer_id={}", peer_id.toBase58());
+    PeerInfo peer_info{.id = peer_id, .addresses = {}};
+
+    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
+    if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol)) {
+      block_announce_protocol->newOutgoingStream(
+          peer_info,
+          [wp = weak_from_this(),
+           peer_id = peer_info.id,
+           protocol = block_announce_protocol](auto &&stream_res) {
+            auto self = wp.lock();
+            if (not self) {
+              return;
+            }
+
+            if (not stream_res.has_value()) {
+              self->log_->warn("Unable to create stream {} with {}: {}",
+                               protocol->protocol(),
+                               peer_id.toBase58(),
+                               stream_res.error().message());
+              self->connecting_peers_.erase(peer_id);
+              self->disconnectFromPeer(peer_id);
+              return;
+            }
+
+            // Add to active peer list
+            if (auto [ap_it, added] = self->active_peers_.emplace(
+                    peer_id, ActivePeerData{.time = self->clock_->now(), .status = Status{}});
+                added) {
+              // And remove from queue
+              if (auto piq_it = self->peers_in_queue_.find(peer_id);
+                  piq_it != self->peers_in_queue_.end()) {
+                auto qtc_it =
+                    std::find_if(self->queue_to_connect_.cbegin(),
+                                 self->queue_to_connect_.cend(),
+                                 [&peer_id = peer_id](const auto &item) {
+                                   return peer_id == item.get();
+                                 });
+                self->queue_to_connect_.erase(qtc_it);
+                self->peers_in_queue_.erase(piq_it);
+                BOOST_ASSERT(self->queue_to_connect_.size()
+                             == self->peers_in_queue_.size());
+
+                SL_DEBUG(self->log_,
+                         "Remained peers in queue for connect: {}",
+                         self->peers_in_queue_.size());
+              }
+            }
+
+            self->connecting_peers_.erase(peer_id);
+          });
+
+    } else {
+      SL_DEBUG(log_,
+               "Stream {} with {} is alive",
+               block_announce_protocol->protocol(),
+               peer_id.toBase58());
+      connecting_peers_.erase(peer_id);
+    }
 
     auto addresses_res =
         host_.getPeerRepository().getAddressRepository().getAddresses(peer_id);
-
-    if (not addresses_res.has_value()) {
-      SL_DEBUG(log_, "  addresses are not provided");
-      return;
+    if (addresses_res.has_value()) {
+      auto &addresses = addresses_res.value();
+      PeerInfo peer_info{.id = peer_id, .addresses = std::move(addresses)};
+      kademlia_->addPeer(peer_info, false);
     }
-
-    auto &addresses = addresses_res.value();
-    for (auto addr : addresses) {
-      SL_DEBUG(log_, "  address: {}", addr.getStringAddress());
-    }
-
-    PeerInfo peer_info{.id = peer_id, .addresses = std::move(addresses)};
-
-    const auto hard_limit = app_config_.peeringConfig().hardLimit;
-
-    size_t cur_active_peer = active_peers_.size();
-
-    // Capacity is allow
-    if (cur_active_peer >= hard_limit) {
-      connecting_peers_.erase(peer_id);
-
-    } else {
-      auto block_announce_protocol = router_->getBlockAnnounceProtocol();
-      if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol)) {
-        block_announce_protocol->newOutgoingStream(
-            peer_info,
-
-            [wp = weak_from_this(),
-             peer_id = peer_info.id,
-             protocol = block_announce_protocol](auto &&stream_res) {
-              auto self = wp.lock();
-              if (not self) {
-                return;
-              }
-
-              // Remove from list of connecting peers
-              self->connecting_peers_.erase(peer_id);
-
-              if (not stream_res.has_value()) {
-                self->log_->warn("Unable to create '{}' stream with {}: {}",
-                                 protocol->protocol(),
-                                 peer_id.toBase58(),
-                                 stream_res.error().message());
-                self->disconnectFromPeer(peer_id);
-                return;
-              }
-
-              // Add to active peer list
-              if (auto [ap_it, ok] = self->active_peers_.emplace(
-                      peer_id, ActivePeerData{.time = self->clock_->now(), .status = Status{}});
-                  ok) {
-                // And remove from queue
-                if (auto piq_it = self->peers_in_queue_.find(peer_id);
-                    piq_it != self->peers_in_queue_.end()) {
-                  auto qtc_it =
-                      std::find_if(self->queue_to_connect_.cbegin(),
-                                   self->queue_to_connect_.cend(),
-                                   [&peer_id = peer_id](const auto &item) {
-                                     return peer_id == item.get();
-                                   });
-                  self->queue_to_connect_.erase(qtc_it);
-                  self->peers_in_queue_.erase(piq_it);
-                  BOOST_ASSERT(self->queue_to_connect_.size()
-                               == self->peers_in_queue_.size());
-
-                  SL_DEBUG(self->log_,
-                           "Remained peers in queue for connect: {}",
-                           self->peers_in_queue_.size());
-                }
-              }
-            });
-      }
-    }
-
-    kademlia_->addPeer(peer_info, false);
   }
 
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {

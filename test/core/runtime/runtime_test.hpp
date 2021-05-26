@@ -52,27 +52,32 @@ class RuntimeTest : public ::testing::Test {
     using kagome::storage::trie::EphemeralTrieBatchMock;
     using kagome::storage::trie::PersistentTrieBatch;
     using kagome::storage::trie::PersistentTrieBatchMock;
+    using kagome::storage::trie::TopperTrieBatchMock;
 
-    auto storage_provider =
+    batch_mock_ = std::make_shared<PersistentTrieBatchMock>();
+    ON_CALL(*batch_mock_, get(testing::_))
+        .WillByDefault(testing::Return(kagome::common::Buffer()));
+    ON_CALL(*batch_mock_, batchOnTop()).WillByDefault(testing::Invoke([] {
+      return std::make_unique<TopperTrieBatchMock>();
+    }));
+    storage_provider_ =
         std::make_shared<kagome::runtime::TrieStorageProviderMock>();
-    ON_CALL(*storage_provider, getCurrentBatch())
+    ON_CALL(*storage_provider_, getCurrentBatch())
+        .WillByDefault(testing::Return(batch_mock_));
+    ON_CALL(*storage_provider_, tryGetPersistentBatch())
         .WillByDefault(testing::Invoke(
-            []() { return std::make_unique<PersistentTrieBatchMock>(); }));
-    ON_CALL(*storage_provider, tryGetPersistentBatch())
-        .WillByDefault(testing::Invoke(
-            []() -> boost::optional<std::shared_ptr<PersistentTrieBatch>> {
-              return std::shared_ptr<PersistentTrieBatch>(
-                  std::make_shared<PersistentTrieBatchMock>());
+            [&]() -> boost::optional<std::shared_ptr<PersistentTrieBatch>> {
+              return std::shared_ptr<PersistentTrieBatch>(batch_mock_);
             }));
-    ON_CALL(*storage_provider, setToPersistent())
+    ON_CALL(*storage_provider_, setToPersistent())
         .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*storage_provider, setToEphemeral())
+    ON_CALL(*storage_provider_, setToEphemeral())
         .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*storage_provider, rollbackTransaction())
+    ON_CALL(*storage_provider_, rollbackTransaction())
         .WillByDefault(testing::Return(
             outcome::failure(kagome::runtime::RuntimeTransactionError::
                                  NO_TRANSACTIONS_WERE_STARTED)));
-    ON_CALL(*storage_provider, getLatestRootMock())
+    ON_CALL(*storage_provider_, getLatestRootMock())
         .WillByDefault(testing::Return("42"_hash256));
 
     auto random_generator =
@@ -120,7 +125,8 @@ class RuntimeTest : public ::testing::Test {
     auto memory_factory = std::make_shared<
         kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
 
-    auto header_repo_mock = std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
+    auto header_repo_mock =
+        std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
 
     auto core_factory =
         std::make_shared<kagome::runtime::binaryen::CoreFactoryImpl>(
@@ -133,8 +139,20 @@ class RuntimeTest : public ::testing::Test {
         std::move(extension_factory),
         std::move(module_factory),
         wasm_provider_,
-        std::move(storage_provider),
+        // copying to allow inherited tests add own EXPECT_CALL rules
+        storage_provider_,
         std::move(hasher));
+  }
+
+  void preparePersistentStorageExpects() {
+    EXPECT_CALL(*storage_provider_, setToPersistent());
+    EXPECT_CALL(*storage_provider_, tryGetPersistentBatch());
+    prepareCommonStorageExpects();
+  }
+
+  void prepareEphemeralStorageExpects() {
+    EXPECT_CALL(*storage_provider_, setToEphemeral());
+    prepareCommonStorageExpects();
   }
 
   kagome::primitives::BlockHeader createBlockHeader() {
@@ -169,6 +187,19 @@ class RuntimeTest : public ::testing::Test {
   kagome::primitives::BlockId createBlockId() {
     BlockId res = kagome::primitives::BlockNumber{0};
     return res;
+  }
+
+ private:
+  void prepareCommonStorageExpects() {
+    auto heappages_key_res =
+        kagome::common::Buffer::fromString(std::string(":heappages"));
+    if (not heappages_key_res.has_value()) {
+      GTEST_FAIL() << heappages_key_res.error().message();
+    }
+    auto &&heappages_key = heappages_key_res.value();
+    EXPECT_CALL(*storage_provider_, getLatestRootMock());
+    EXPECT_CALL(*storage_provider_, getCurrentBatch());
+    EXPECT_CALL(*batch_mock_, get(heappages_key));
   }
 
  protected:

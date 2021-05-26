@@ -14,14 +14,16 @@
 #include "runtime/wavm/module_repository.hpp"
 #include "scale/scale.hpp"
 
+#include "runtime/wavm/impl/crutch.hpp"
+
 namespace kagome::host_api {
 
   MiscExtension::MiscExtension(
       uint64_t chain_id,
       std::shared_ptr<runtime::Memory> memory,
-      std::shared_ptr<runtime::CoreApiProvider> core_provider)
-      : core_provider_{std::move(core_provider)},
-        memory_{std::move(memory)},
+      std::shared_ptr<const runtime::CoreApiProvider> core_provider)
+      : memory_{std::move(memory)},
+        core_provider_{std::move(core_provider)},
         logger_{log::createLogger("MiscExtension", "host_api")},
         chain_id_{chain_id} {
     BOOST_ASSERT(core_provider_);
@@ -30,12 +32,12 @@ namespace kagome::host_api {
 
   runtime::WasmSpan MiscExtension::ext_misc_runtime_version_version_1(
       runtime::WasmSpan data) const {
-    SL_TRACE(logger_, "call {}", __FUNCTION__);
     auto [ptr, len] = runtime::splitSpan(data);
 
     auto core_api =
         core_provider_->makeCoreApi(memory_->loadN(ptr, len).asVector());
     auto version_res = core_api->version(boost::none);
+    runtime::wavm::global_host_apis.pop();
 
     static const auto kErrorRes =
         scale::encode<boost::optional<primitives::Version>>(boost::none)

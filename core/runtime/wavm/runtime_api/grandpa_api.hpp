@@ -38,9 +38,10 @@ namespace kagome::runtime::wavm {
 
     outcome::result<AuthorityList> authorities(
         const primitives::BlockId &block_id) override {
-      OUTCOME_TRY(header, block_header_repo_->getBlockHeader(block_id));
+      OUTCOME_TRY(block_number, block_header_repo_->getNumberById(block_id));
+      OUTCOME_TRY(block_hash, block_header_repo_->getHashById(block_id));
       return executor_->callAt<AuthorityList>(
-          {header.number - 1, header.parent_hash},
+          {block_number, block_hash},
           "GrandpaApi_grandpa_authorities");
     }
 

@@ -18,15 +18,15 @@ namespace kagome::host_api {
 
   HostApiImpl::HostApiImpl(
       std::shared_ptr<runtime::Memory> memory,
-      std::shared_ptr<runtime::CoreApiProvider> core_provider,
+      std::shared_ptr<const runtime::CoreApiProvider> core_provider,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
-      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
-      std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
-      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
+      std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
+      std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<crypto::Bip39Provider> bip39_provider)
+      std::shared_ptr<const crypto::Bip39Provider> bip39_provider)
       : memory_(memory),
         storage_provider_(std::move(storage_provider)),
         crypto_ext_{

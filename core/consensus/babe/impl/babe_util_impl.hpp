@@ -33,11 +33,14 @@ namespace kagome::consensus {
     outcome::result<EpochDescriptor> getLastEpoch() const override;
 
    private:
+    BabeSlotNumber getGenesisSlotNumber();
+
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<kagome::storage::BufferStorage> storage_;
+    const SlotsStrategy strategy_;
+    const BabeClock &clock_;
 
-    BabeSlotNumber genesis_slot_number_;
-    BabeSlotNumber epoch_length_;
+    boost::optional<BabeSlotNumber> genesis_slot_number_;
 
     // optimization for storing in memory last epoch
     boost::optional<EpochDescriptor> last_epoch_;

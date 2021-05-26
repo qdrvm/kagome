@@ -23,7 +23,7 @@ namespace kagome::runtime::wavm {
         memory_{std::make_shared<Memory>(WAVM::Runtime::createMemory(
             getCompartment(), kIntrinsicMemoryType, "stub memory"))},
         compartment_{getCompartment()} {
-    BOOST_ASSERT(getIntrinsicModule_env() != nullptr);
+    BOOST_ASSERT(module_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
   }
 
@@ -76,10 +76,10 @@ namespace kagome::runtime::wavm {
 
   std::unique_ptr<IntrinsicResolver> IntrinsicResolverImpl::clone() const {
     auto copy = std::make_unique<IntrinsicResolverImpl>();
-    copy->module_ = std::unique_ptr<WAVM::Intrinsics::Module>{getIntrinsicModule_env()};
+    copy->module_ = getIntrinsicModule_env();
     copy->functions_ = functions_;
     copy->module_instance_ = WAVM::Intrinsics::instantiateModule(
-        compartment_, {getIntrinsicModule_env()}, "env");
+        compartment_, {getIntrinsicModule_env()}, "env_clone");
     copy->memory_->setUnderlyingMemory(getTypedInstanceExport(
         copy->module_instance_, "memory", kIntrinsicMemoryType));
     return copy;

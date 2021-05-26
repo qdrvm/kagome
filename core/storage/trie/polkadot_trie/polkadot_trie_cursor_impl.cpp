@@ -134,7 +134,7 @@ namespace kagome::storage::trie {
                         current->key_nibbles.begin(),
                         current->key_nibbles.end());
       // parts of every sequence within their common length (minimum of their
-      // lenghts) are equal
+      // lengths) are equal
       bool part_equal = left_mismatch == left_nibbles.end()
                         or current_mismatch == current->key_nibbles.end();
       // if current choice is lexicographically less or equal to the left part

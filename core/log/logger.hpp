@@ -23,6 +23,8 @@ namespace kagome::log {
 
   void setLoggingSystem(std::shared_ptr<soralog::LoggingSystem> logging_system);
 
+  static const std::string defaultGroupName("kagome");
+
   [[nodiscard]] Logger createLogger(const std::string &tag);
 
   [[nodiscard]] Logger createLogger(const std::string &tag,

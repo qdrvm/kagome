@@ -59,7 +59,7 @@ target_link_libraries(application_injector
     author_api_service
     extrinsic_observer
     transaction_pool
-    #host_api_factory
+    host_api_factory
     gossiper_broadcast
     kagome_router
     leveldb

@@ -3,7 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# TODO(Harrm) Remove dependency on wavm_memory once it's separated in an interface
+add_library(host_api_factory
+    host_api_factory_impl.cpp
+    )
+target_link_libraries(host_api_factory
+    buffer
+    wavm_executor # TODO(Harrm): might not actually need it, need to remove WAVM header leakage
+    )
 
 add_library(crypto_extension
     crypto_extension.cpp
@@ -40,7 +46,7 @@ target_link_libraries(memory_extension
     logger
     buffer
     wavm_memory
-)
+    )
 kagome_install(memory_extension)
 
 add_library(misc_extension

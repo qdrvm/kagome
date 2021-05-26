@@ -11,8 +11,7 @@
 #include <gmock/gmock.h>
 
 namespace kagome::authority {
-  struct AuthorityUpdateObserverMock
-      : public AuthorityUpdateObserver {
+  struct AuthorityUpdateObserverMock : public AuthorityUpdateObserver {
     MOCK_METHOD3(onConsensus,
                  outcome::result<void>(const primitives::ConsensusEngineId &,
                                        const primitives::BlockInfo &,

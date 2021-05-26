@@ -13,8 +13,8 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 
-#include "application/chain_spec.hpp"
 #include "application/app_configuration.hpp"
+#include "application/chain_spec.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "crypto/hasher.hpp"
@@ -94,7 +94,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("BlockAnnounceProtocol", "protocols");
+    log::Logger log_ = log::createLogger("BlockAnnounceProtocol");
   };
 
 }  // namespace kagome::network

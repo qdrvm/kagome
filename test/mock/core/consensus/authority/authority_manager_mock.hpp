@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_AUTHORITY_MANAGER_MOCK
-#define KAGOME_AUTHORITY_MANAGER_MOCK
+#ifndef KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK
+#define KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK
 
 #include "consensus/authority/authority_manager.hpp"
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
@@ -13,10 +13,10 @@
 
 namespace kagome::authority {
   struct AuthorityManagerMock : public AuthorityManager {
-    MOCK_METHOD1(
+    MOCK_METHOD2(
         authorities,
         outcome::result<std::shared_ptr<const primitives::AuthorityList>>(
-            const primitives::BlockInfo &));
+            const primitives::BlockInfo &, bool));
 
     MOCK_METHOD3(applyScheduledChange,
                  outcome::result<void>(const primitives::BlockInfo &,
@@ -39,7 +39,10 @@ namespace kagome::authority {
     MOCK_METHOD2(applyResume,
                  outcome::result<void>(const primitives::BlockInfo &,
                                        primitives::BlockNumber));
+
+    MOCK_METHOD1(prune,
+                 outcome::result<void>(const primitives::BlockInfo &block));
   };
 }  // namespace kagome::authority
 
-#endif  // KAGOME_AUTHORITY_MANAGER_MOCK
+#endif  // KAGOME_AUTHORITY_AUTHORITYMANAGERMOCK

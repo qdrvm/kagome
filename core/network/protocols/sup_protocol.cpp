@@ -124,7 +124,7 @@ namespace kagome::network {
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     host_.newStream(
-        peer_info,
+        peer_info.id,
         protocol_,
         [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {

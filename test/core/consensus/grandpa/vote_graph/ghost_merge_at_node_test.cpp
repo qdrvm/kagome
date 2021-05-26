@@ -15,7 +15,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -35,7 +35,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 0
@@ -46,7 +46,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "A",
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -67,7 +67,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 100
@@ -78,7 +78,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 100
@@ -88,7 +88,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "ancestors": [
         "B"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     }
   },
@@ -112,7 +112,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "ancestors": [
         "B"
       ],
-      "descendents": [
+      "descendants": [
         "E1"
       ],
       "cumulative_vote": 200
@@ -123,7 +123,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 200
@@ -131,7 +131,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 200
@@ -142,7 +142,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "D1",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     }
   },
@@ -167,7 +167,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
       "ancestors": [
         "B"
       ],
-      "descendents": [
+      "descendants": [
         "E1",
         "F2"
       ],
@@ -179,7 +179,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "C"
       ],
       "cumulative_vote": 300
@@ -187,7 +187,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 300
@@ -198,7 +198,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "D1",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     },
     "F2": {
@@ -208,7 +208,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
         "D2",
         "C"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 100
     }
   },

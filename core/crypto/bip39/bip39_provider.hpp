@@ -24,7 +24,7 @@ namespace kagome::crypto {
      * @return entropy value
      */
     virtual outcome::result<std::vector<uint8_t>> calculateEntropy(
-        const std::vector<std::string> &word_list) = 0;
+        const std::vector<std::string> &word_list) const = 0;
 
     /**
      * @brief makes seed from entropy
@@ -32,10 +32,10 @@ namespace kagome::crypto {
      * @return seed bytes
      */
     virtual outcome::result<bip39::Bip39Seed> makeSeed(
-        gsl::span<const uint8_t> entropy, std::string_view password) = 0;
+        gsl::span<const uint8_t> entropy, std::string_view password) const = 0;
 
     virtual outcome::result<bip39::Bip39Seed> generateSeed(
-        std::string_view mnemonic_phrase) = 0;
+        std::string_view mnemonic_phrase) const = 0;
   };
 
 }  // namespace kagome::crypto

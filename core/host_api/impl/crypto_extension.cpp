@@ -38,12 +38,12 @@ namespace kagome::host_api {
 
   CryptoExtension::CryptoExtension(
       std::shared_ptr<runtime::Memory> memory,
-      std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::Ed25519Provider> ed25519_provider,
-      std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
-      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
+      std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
+      std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
+      std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<crypto::Bip39Provider> bip39_provider)
+      std::shared_ptr<const crypto::Bip39Provider> bip39_provider)
       : memory_(std::move(memory)),
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),

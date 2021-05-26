@@ -14,11 +14,10 @@
 #include "crypto/hasher.hpp"
 #include "crypto/secp256k1_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "host_api/impl/misc_extension.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::host_api {
-/*
+
   class HostApiFactoryImpl final: public HostApiFactory {
    public:
     ~HostApiFactoryImpl() override = default;
@@ -33,8 +32,8 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     std::unique_ptr<HostApi> make(
-        std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
-        std::shared_ptr<runtime::WasmMemory> memory,
+        std::shared_ptr<const runtime::CoreApiProvider> core_provider,
+        std::shared_ptr<runtime::Memory> memory,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider)
         const override;
 
@@ -47,7 +46,7 @@ namespace kagome::host_api {
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
   };
-*/
+
 }  // namespace kagome::host_api
 
 #endif  // KAGOME_CORE_EXTENSIONS_IMPL_HOST_API_FACTORY_IMPL_HPP

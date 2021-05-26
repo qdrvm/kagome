@@ -75,7 +75,7 @@ namespace kagome::network {
     const application::AppConfiguration &app_config_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("GrandpaProtocol", "protocols");
+    log::Logger log_ = log::createLogger("GrandpaProtocol");
   };
 
 }  // namespace kagome::network

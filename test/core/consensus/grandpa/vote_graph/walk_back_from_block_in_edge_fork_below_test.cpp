@@ -19,7 +19,7 @@ struct WalkBackFromBlockInEdgeForkBelow
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -42,13 +42,13 @@ struct WalkBackFromBlockInEdgeForkBelow
         "A",
         "genesis"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 10
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 10
@@ -76,7 +76,7 @@ struct WalkBackFromBlockInEdgeForkBelow
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "F1"
       ],
       "cumulative_vote": 15
@@ -89,13 +89,13 @@ struct WalkBackFromBlockInEdgeForkBelow
         "C",
         "B"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 15
@@ -126,7 +126,7 @@ struct WalkBackFromBlockInEdgeForkBelow
         "C",
         "B"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "F1": {
@@ -137,7 +137,7 @@ struct WalkBackFromBlockInEdgeForkBelow
         "C",
         "B"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "B": {
@@ -146,7 +146,7 @@ struct WalkBackFromBlockInEdgeForkBelow
         "A",
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "F1",
         "G2"
       ],
@@ -155,7 +155,7 @@ struct WalkBackFromBlockInEdgeForkBelow
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "B"
       ],
       "cumulative_vote": 20

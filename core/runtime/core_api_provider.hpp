@@ -8,6 +8,10 @@
 
 #include "runtime/core.hpp"
 
+namespace kagome::host_api {
+  class HostApiFactory;
+}
+
 namespace kagome::runtime {
 
   class CoreApiProvider {
