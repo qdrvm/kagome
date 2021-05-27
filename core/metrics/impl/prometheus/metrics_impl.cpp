@@ -5,51 +5,47 @@
 #include <prometheus/summary.h>
 
 namespace kagome::metrics {
-  PrometheusCounter::PrometheusCounter(prometheus::Counter &c) : c_(c) {}
+  PrometheusCounter::PrometheusCounter(prometheus::Counter &m) : m_(m) {}
 
   void PrometheusCounter::inc() {
-    c_.Increment();
+    m_.Increment();
   }
 
   void PrometheusCounter::inc(double val) {
-    c_.Increment(val);
+    m_.Increment(val);
   }
 
-  double PrometheusCounter::val() {
-    return c_.Value();
-  }
-
-  PrometheusGauge::PrometheusGauge(prometheus::Gauge &g) : g_(g) {}
+  PrometheusGauge::PrometheusGauge(prometheus::Gauge &m) : m_(m) {}
 
   void PrometheusGauge::inc() {
-    g_.Increment();
+    m_.Increment();
   }
 
   void PrometheusGauge::inc(double val) {
-    g_.Increment(val);
+    m_.Increment(val);
   }
 
   void PrometheusGauge::dec() {
-    g_.Decrement();
+    m_.Decrement();
   }
 
   void PrometheusGauge::dec(double val) {
-    g_.Decrement(val);
+    m_.Decrement(val);
   }
 
   void PrometheusGauge::set(double val) {
-    g_.Set(val);
+    m_.Set(val);
   }
 
-  PrometheusSummary::PrometheusSummary(prometheus::Summary &s) : s_(s) {}
+  PrometheusSummary::PrometheusSummary(prometheus::Summary &m) : m_(m) {}
 
   void PrometheusSummary::observe(const double value) {
-    s_.Observe(value);
+    m_.Observe(value);
   }
 
-  PrometheusHistogram::PrometheusHistogram(prometheus::Histogram &h) : h_(h) {}
+  PrometheusHistogram::PrometheusHistogram(prometheus::Histogram &m) : m_(m) {}
 
   void PrometheusHistogram::observe(const double value) {
-    h_.Observe(value);
+    m_.Observe(value);
   }
 }  // namespace kagome::metrics

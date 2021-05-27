@@ -22,11 +22,6 @@ namespace kagome::metrics {
                                   std::shared_ptr<Session> session) = 0;
   };
 
-  using HandlerPtr = std::shared_ptr<Handler>;
-  // the function that is used in injector that place right metrics
-  // http handler implementation
-  HandlerPtr createHandler();
-
 }  // namespace kagome::metrics
 
 #endif  // KAGOME_CORE_METRICS_HANDLER_HPP

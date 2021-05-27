@@ -19,15 +19,10 @@ namespace kagome::metrics {
     using Endpoint = boost::asio::ip::tcp::endpoint;
 
    public:
-    using Context = boost::asio::io_context;
+    struct Context : public boost::asio::io_context {};
 
     struct Configuration {
-      Endpoint endpoint{};
-
-      Configuration() {
-        endpoint.address(boost::asio::ip::address_v4::any());
-        endpoint.port(0);
-      }
+      Endpoint endpoint{boost::asio::ip::address_v4::any(), 0};
     };
 
     void setHandler(const std::shared_ptr<Handler> &handler) {

@@ -4,18 +4,18 @@
  */
 
 #include "exposer_impl.hpp"
+#include <thread>
 #include "session_impl.hpp"
 
 namespace kagome::metrics {
   ExposerImpl::ExposerImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
-      std::shared_ptr<Exposer::Context> context,
       Exposer::Configuration exposer_config,
       Session::Configuration session_config)
-      : context_{std::move(context)},
+      : logger_{log::createLogger("OpenMetrics", "metrics")},
+        context_{std::make_shared<Context>()},
         config_{std::move(exposer_config)},
-        session_config_{session_config},
-        logger_{log::createLogger("Exposer", "metrics")} {
+        session_config_{session_config} {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
@@ -23,7 +23,6 @@ namespace kagome::metrics {
   bool ExposerImpl::prepare() {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
-      logger_->trace("Acceptor created successfully!");
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       logger_->critical("Failed to prepare a listener: {}", exception.what());
       return false;
@@ -50,7 +49,15 @@ namespace kagome::metrics {
       return false;
     }
 
+    logger_->info("Started successfully on host: {}, port: {}",
+                  config_.endpoint.address(),
+                  config_.endpoint.port());
     acceptOnce();
+
+    thread_ = std::make_shared<std::thread>(
+        [context = context_]() { context->run(); });
+    thread_->detach();
+
     return true;
   }
 
@@ -58,6 +65,7 @@ namespace kagome::metrics {
     if (acceptor_) {
       acceptor_->cancel();
     }
+    context_->stop();
   }
 
   void ExposerImpl::acceptOnce() {

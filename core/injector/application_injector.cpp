@@ -70,7 +70,7 @@
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "metrics/impl/exposer_impl.hpp"
-#include "metrics/handler.hpp"
+#include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
@@ -172,36 +172,6 @@ namespace {
                                               std::move(ws_session_config));
 
     initialized.emplace(std::move(listener));
-    return initialized.value();
-  }
-
-  sptr<metrics::Exposer> get_openmetrics_http_exposer(
-      application::AppConfiguration const &config,
-      sptr<application::AppStateManager> app_state_manager,
-      sptr<metrics::Session::Context> context,
-      metrics::Session::Configuration http_session_config) {
-    static auto initialized =
-        boost::optional<sptr<metrics::Exposer>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto &endpoint = config.openmetricsHttpEndpoint();
-
-    metrics::Exposer::Configuration exposer_config;
-    exposer_config.endpoint = endpoint;
-
-    // registry here is temporary, it initiates static global registry
-    // and registers handler in there
-    auto registry = metrics::createRegistry();
-    auto handler = metrics::createHandler();
-    registry->setHandler(handler.get());
-    auto exposer = std::make_shared<metrics::ExposerImpl>(
-        app_state_manager, context, exposer_config, http_session_config);
-    exposer->setHandler(handler);
-
-    initialized.emplace(
-        std::move(std::dynamic_pointer_cast<metrics::Exposer>(exposer)));
     return initialized.value();
   }
 
@@ -613,7 +583,6 @@ namespace {
     auto server = injector.template create<sptr<api::JRpcServer>>();
     auto listeners =
         injector.template create<api::ApiServiceImpl::ListenerList>();
-    auto exposer = injector.template create<sptr<metrics::Exposer>>();
     auto processors =
         injector.template create<api::ApiServiceImpl::ProcessorSpan>();
     auto storage_sub_engine = injector.template create<
@@ -634,7 +603,6 @@ namespace {
         std::make_shared<api::ApiServiceImpl>(asmgr,
                                               thread_pool,
                                               listeners,
-                                              exposer,
                                               server,
                                               processors,
                                               storage_sub_engine,
@@ -907,18 +875,15 @@ namespace {
               app_config, config, context, app_state_manager);
         }),
         // starting metrics interfaces
-        di::bind<metrics::Exposer>.to([](const auto &injector) {
-          const application::AppConfiguration &config =
-              injector.template create<application::AppConfiguration const &>();
-          auto app_state_manager =
-              injector.template create<sptr<application::AppStateManager>>();
-          auto context =
-              injector.template create<sptr<metrics::Session::Context>>();
-          auto &&session_config =
-              injector.template create<metrics::Session::Configuration>();
-
-          return get_openmetrics_http_exposer(
-              config, app_state_manager, context, session_config);
+        di::bind<metrics::Handler>.template to<metrics::PrometheusHandler>(),
+        di::bind<metrics::Exposer>.template to<metrics::ExposerImpl>(),
+        di::bind<metrics::Exposer::Configuration>.to([](const auto &injector) {
+          return metrics::Exposer::Configuration{
+              injector.template create<application::AppConfiguration const &>()
+                  .openmetricsHttpEndpoint()};
+        }),
+        di::bind<metrics::Session::Configuration>.to([](const auto &injector) {
+          return metrics::Session::Configuration{};
         }),
         // ending metrics interfaces
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
@@ -1345,6 +1310,17 @@ namespace kagome::injector {
 
   sptr<boost::asio::io_context> KagomeNodeInjector::injectIoContext() {
     return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
+  }
+
+  sptr<metrics::Exposer> KagomeNodeInjector::injectOpenMetricsService() {
+    // registry here is temporary, it initiates static global registry
+    // and registers handler in there
+    auto registry = metrics::createRegistry();
+    auto handler = pimpl_->injector_.create<sptr<metrics::Handler>>();
+    registry->setHandler(handler.get());
+    auto exposer = pimpl_->injector_.create<sptr<metrics::Exposer>>();
+    exposer->setHandler(handler);
+    return exposer;
   }
 
   sptr<network::Router> KagomeNodeInjector::injectRouter() {

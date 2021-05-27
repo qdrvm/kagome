@@ -19,13 +19,14 @@ namespace kagome::metrics {
 
   class Counter {
    public:
+    virtual ~Counter() = default;
     virtual void inc() = 0;
     virtual void inc(double val) = 0;
-    virtual double val() = 0;
   };
 
   class Gauge {
    public:
+    virtual ~Gauge() = default;
     virtual void inc() = 0;
     virtual void inc(double val) = 0;
     virtual void dec() = 0;
@@ -35,11 +36,13 @@ namespace kagome::metrics {
 
   class Summary {
    public:
+    virtual ~Summary() = default;
     virtual void observe(const double value) = 0;
   };
 
   class Histogram {
    public:
+    virtual ~Histogram() = default;
     virtual void observe(const double value) = 0;
   };
 }  // namespace kagome::metrics

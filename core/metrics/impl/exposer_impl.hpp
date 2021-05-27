@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_METRICS_IMPL_EXPOSER_IMPL_HPP
 #define KAGOME_CORE_METRICS_IMPL_EXPOSER_IMPL_HPP
 
+#include <thread>
 #include "application/app_state_manager.hpp"
 #include "log/logger.hpp"
 #include "metrics/exposer.hpp"
@@ -19,7 +20,6 @@ namespace kagome::metrics {
    public:
     ExposerImpl(
         const std::shared_ptr<application::AppStateManager> &app_state_manager,
-        std::shared_ptr<Exposer::Context> context,
         Exposer::Configuration exposer_config,
         Session::Configuration session_config);
 
@@ -39,6 +39,8 @@ namespace kagome::metrics {
     std::unique_ptr<Acceptor> acceptor_;
 
     std::shared_ptr<Session> new_session_;
+
+    std::shared_ptr<std::thread> thread_;
   };
 
 }  // namespace kagome::metrics

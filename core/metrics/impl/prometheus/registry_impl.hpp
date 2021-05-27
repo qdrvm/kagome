@@ -154,6 +154,11 @@ namespace kagome::metrics {
         std::chrono::milliseconds max_age,
         int age_buckets,
         const std::map<std::string, std::string> &labels) override;
+
+    template <typename T>
+    static typename MetricInfo<T>::type *internalMetric(T *metric) {
+      return &dynamic_cast<typename MetricInfo<T>::dtype *>(metric)->m_;
+    }
   };
 
 }  // namespace kagome::metrics

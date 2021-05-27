@@ -12,7 +12,6 @@
 #include <string_view>
 #include "log/logger.hpp"
 #include "metrics/handler.hpp"
-#include "metrics/metrics.hpp"
 
 namespace kagome::metrics {
 
@@ -39,12 +38,8 @@ namespace kagome::metrics {
 
     std::mutex collectables_mutex_;
     std::vector<std::weak_ptr<prometheus::Collectable>> collectables_;
-    Counter *bytes_transferred_;
-    Counter *num_scrapes_;
-    Summary *request_latencies_;
 
     log::Logger logger_;
-    RegistryPtr registry_;
   };
 
 }  // namespace kagome::metrics

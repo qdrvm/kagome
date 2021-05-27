@@ -17,24 +17,23 @@ namespace prometheus {
 
 namespace kagome::metrics {
   class PrometheusCounter : public Counter {
-    friend class Registry;
-    prometheus::Counter &c_;
+    friend class PrometheusRegistry;
+    prometheus::Counter &m_;
 
    public:
-    PrometheusCounter(prometheus::Counter &c);
+    PrometheusCounter(prometheus::Counter &m);
 
    public:
     void inc() override;
     void inc(double val) override;
-    double val() override;
   };
 
   class PrometheusGauge : public Gauge {
-    friend class Registry;
-    prometheus::Gauge &g_;
+    friend class PrometheusRegistry;
+    prometheus::Gauge &m_;
 
    public:
-    PrometheusGauge(prometheus::Gauge &g);
+    PrometheusGauge(prometheus::Gauge &m);
 
    public:
     void inc() override;
@@ -45,22 +44,22 @@ namespace kagome::metrics {
   };
 
   class PrometheusSummary : public Summary {
-    friend class Registry;
-    prometheus::Summary &s_;
+    friend class PrometheusRegistry;
+    prometheus::Summary &m_;
 
    public:
-    PrometheusSummary(prometheus::Summary &s);
+    PrometheusSummary(prometheus::Summary &m);
 
    public:
     void observe(const double value) override;
   };
 
   class PrometheusHistogram : public Histogram {
-    friend class Registry;
-    prometheus::Histogram &h_;
+    friend class PrometheusRegistry;
+    prometheus::Histogram &m_;
 
    public:
-    PrometheusHistogram(prometheus::Histogram &h);
+    PrometheusHistogram(prometheus::Histogram &m);
 
    public:
     void observe(const double value) override;

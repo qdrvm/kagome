@@ -88,7 +88,7 @@ namespace kagome::metrics {
     /**
      * @brief write completion callback
      */
-    void onWrite(boost::system::error_code ec, std::size_t, bool close);
+    void onWrite(bool close, boost::system::error_code ec, std::size_t);
 
     /**
      * @brief reports error code and message
@@ -105,6 +105,7 @@ namespace kagome::metrics {
     Configuration config_;              ///< session configuration
     boost::beast::tcp_stream stream_;   ///< stream
     boost::beast::flat_buffer buffer_;  ///< read buffer
+    std::shared_ptr<void> res_;
 
     /**
      * @brief request parser type

@@ -7,7 +7,7 @@ namespace kagome::metrics {
       : strand_(boost::asio::make_strand(context)),
         config_{config},
         stream_(boost::asio::ip::tcp::socket(strand_)),
-        logger_{log::createLogger("Session", "metrics")} {}
+        logger_{log::createLogger("OpenMetricsSession", "metrics")} {}
 
   void SessionImpl::start() {
     asyncRead();
@@ -32,28 +32,29 @@ namespace kagome::metrics {
         stream_,
         buffer_,
         parser_->get(),
-        [self = shared_from_this()](auto ec, auto count) {
-          auto *s = dynamic_cast<SessionImpl *>(self.get());
-          BOOST_ASSERT_MSG(s != nullptr, "cannot cast to SessionImpl");
-          s->onRead(ec, count);
-        });
+        boost::beast::bind_front_handler(&SessionImpl::onRead,
+                                         shared_from_this()));
   }
 
   void SessionImpl::asyncWrite(Response message) {
     auto m = std::make_shared<Response>(std::forward<Response>(message));
 
+    res_ = m;
+
     // write response
     boost::beast::http::async_write(
-        stream_, *m, [self = shared_from_this(), m](auto ec, auto size) {
-          self->onWrite(ec, size, m->need_eof());
-        });
+        stream_,
+        *m,
+        boost::beast::bind_front_handler(
+            &SessionImpl::onWrite, shared_from_this(), m->need_eof()));
   }
 
   void SessionImpl::respond(Response response) {
     return asyncWrite(response);
   }
 
-  void SessionImpl::onRead(boost::system::error_code ec, std::size_t) {
+  void SessionImpl::onRead(boost::system::error_code ec,
+                           std::size_t) {
     if (ec) {
       if (HttpError::end_of_stream != ec) {
         reportError(ec, "unknown error occurred");
@@ -65,17 +66,19 @@ namespace kagome::metrics {
     handleRequest(parser_->release());
   }
 
-  void SessionImpl::onWrite(boost::system::error_code ec,
-                            std::size_t,
-                            bool should_stop) {
+  void SessionImpl::onWrite(bool close,
+                            boost::system::error_code ec,
+                            std::size_t) {
     if (ec) {
       reportError(ec, "failed to write message");
       return stop();
     }
 
-    if (should_stop) {
+    if (close) {
       return stop();
     }
+
+    res_ = nullptr;
 
     // read next request
     asyncRead();

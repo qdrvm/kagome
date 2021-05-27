@@ -16,6 +16,7 @@ namespace kagome::metrics {
 
   class Registry {
    public:
+    virtual ~Registry() = default;
     virtual void setHandler(Handler *handler) = 0;
 
     virtual void registerCounterFamily(
