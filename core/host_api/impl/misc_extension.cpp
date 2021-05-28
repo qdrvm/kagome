@@ -38,7 +38,7 @@ namespace kagome::host_api {
         core_provider_->makeCoreApi(memory_->loadN(ptr, len).asVector());
     auto version_res = core_api->version(boost::none);
     SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
-    runtime::wavm::global_host_apis.pop();
+    runtime::wavm::popHostApi();
 
     static const auto kErrorRes =
         scale::encode<boost::optional<primitives::Version>>(boost::none)

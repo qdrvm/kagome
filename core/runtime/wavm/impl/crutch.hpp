@@ -22,8 +22,6 @@ namespace kagome::runtime::wavm {
   void popHostApi();
   std::shared_ptr<host_api::HostApi> peekHostApi();
 
-  extern std::stack<std::shared_ptr<host_api::HostApi>>
-      global_host_apis;  //< TODO(Harrm) fix this wild crutch
   extern log::Logger logger;
 
   using namespace WAVM;

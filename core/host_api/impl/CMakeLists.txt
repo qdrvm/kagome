@@ -59,6 +59,7 @@ target_link_libraries(misc_extension
     outcome
     blob
     wavm_memory
+    wavm_executor
     )
 kagome_install(misc_extension)
 

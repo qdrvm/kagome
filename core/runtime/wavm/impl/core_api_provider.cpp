@@ -51,7 +51,7 @@ namespace kagome::runtime::wavm {
         host_api_factory_->make(shared_from_this(),
                                 new_intrinsic_resolver->getMemory(),
                                 storage_provider_));
-    global_host_apis.push(host_api);
+    pushHostApi(host_api);
     executor->setHostApi(host_api);
     return std::make_unique<WavmCore>(
         executor, changes_tracker_, block_header_repo_);

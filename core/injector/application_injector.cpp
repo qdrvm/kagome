@@ -1016,7 +1016,7 @@ namespace {
             GENERATE_HOST_INTRINSIC(void, ext_allocator_free_version_1, WAVM::I32);
           // clang-format on
 
-          kagome::runtime::wavm::global_host_apis.push(host_api.value());
+          kagome::runtime::wavm::pushHostApi(host_api.value());
 
           return host_api.value();
         }),

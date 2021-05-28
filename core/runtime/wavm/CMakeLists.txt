@@ -17,6 +17,7 @@ target_link_libraries(wavm_executor
     constant_code_provider
     Boost::boost
     )
+kagome_install(wavm_executor)
 
 add_library(wavm_account_nonce_api runtime_api/account_nonce_api.hpp)
 target_link_libraries(wavm_account_nonce_api wavm_executor)
