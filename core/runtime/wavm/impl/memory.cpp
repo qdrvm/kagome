@@ -37,6 +37,7 @@ namespace kagome::runtime::wavm {
   void Memory::setUnderlyingMemory(WAVM::Runtime::Memory *memory) {
     BOOST_ASSERT(memory != nullptr);
     memory_ = memory;
+    SL_TRACE_VOID_FUNC_CALL(logger_, this, fmt::ptr(memory_));
     reset();
   }
 
@@ -70,12 +71,12 @@ namespace kagome::runtime::wavm {
     if (new_offset <= this->size()) {
       offset_ = new_offset;
       allocated_[ptr] = size;
-      SL_TRACE_FUNC_CALL(logger_, ptr, size);
+      //SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
       return ptr;
     }
 
     auto res = freealloc(size);
-    SL_TRACE_FUNC_CALL(logger_, res, size);
+    //SL_TRACE_FUNC_CALL(logger_, res, this, size);
     return res;
   }
 
@@ -88,7 +89,7 @@ namespace kagome::runtime::wavm {
 
     allocated_.erase(ptr);
     deallocated_[ptr] = size;
-    SL_TRACE_FUNC_CALL(logger_, size);
+    //SL_TRACE_FUNC_CALL(logger_, this, size);
     return size;
   }
 
@@ -186,7 +187,7 @@ namespace kagome::runtime::wavm {
     for (auto i = addr; i < addr + n; i++) {
       res.push_back(load<uint8_t>(i));
     }
-    SL_TRACE_FUNC_CALL(logger_, res, addr, n);
+    //SL_TRACE_FUNC_CALL(logger_, res, this, addr, n);
     return res;
   }
 

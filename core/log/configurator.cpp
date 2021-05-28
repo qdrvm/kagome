@@ -54,8 +54,10 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
+            level: trace
             children:
               - name: runtime_api
+                level: trace
               - name: host_api
                 level: trace
               - name: binaryen

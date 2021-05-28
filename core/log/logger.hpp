@@ -42,8 +42,12 @@ namespace kagome::log {
 
   template <typename T, typename Ret>
   Ret format_arg(T const& t) {
-    BOOST_ASSERT_MSG(false, "Not implemented");
-    BOOST_UNREACHABLE_RETURN(Ret{});
+    return static_cast<Ret>(t);
+  }
+
+  template <typename T>
+  auto format_arg(T const* t) {
+    return fmt::ptr(t);
   }
 
   inline std::string_view format_arg(std::string_view s) {
@@ -117,11 +121,11 @@ namespace kagome::log {
 
 #define SL_TRACE_FUNC_CALL(logger, ret, ...) \
   ::kagome::log::trace_function_call(        \
-      (logger), __FUNCTION__, (ret)__VA_OPT__(, ) __VA_ARGS__)
+      (logger), __FUNCTION__, (ret), ##__VA_ARGS__)
 
 #define SL_TRACE_VOID_FUNC_CALL(logger, ...) \
   ::kagome::log::trace_void_function_call(   \
-      (logger), __FUNCTION__ __VA_OPT__(, ) __VA_ARGS__)
+      (logger), __FUNCTION__, ##__VA_ARGS__)
 
 #else
 

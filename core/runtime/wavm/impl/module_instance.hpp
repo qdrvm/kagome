@@ -29,6 +29,10 @@ namespace kagome::runtime::wavm {
     explicit ModuleInstance(WAVM::Runtime::Instance *instance,
                             WAVM::Runtime::Compartment *compartment);
 
+    ~ModuleInstance() {
+
+    }
+
     WasmResult callExportFunction(std::string_view name, WasmResult args);
 
     boost::optional<WAVM::IR::Value> getGlobal(std::string_view name);

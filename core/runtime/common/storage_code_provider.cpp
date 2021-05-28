@@ -67,7 +67,7 @@ namespace kagome::runtime {
       blocks_with_runtime_upgrade_.emplace(it, number, block_hash);
     });
     auto deepest_block = block_tree_->deepestLeaf();
-    // even if runtime's not upgraded in this block,
+    // even if runtime is not upgraded in this block,
     // it is still a solid source of a runtime code
     blocks_with_runtime_upgrade_.emplace_back(deepest_block.number,
                                               std::move(deepest_block.hash));
@@ -123,9 +123,10 @@ namespace kagome::runtime {
 
   outcome::result<RuntimeCodeProvider::CodeAndItsState>
   StorageCodeProvider::getLatestCode() const {
-    if (block_tree_ == nullptr)
+    if (block_tree_ == nullptr) {
       return CodeAndItsState{state_code_,
                              last_state_root_};  //< don't have any other option
+    }
     auto latest_block = block_tree_->deepestLeaf();
     return getCodeAt(latest_block);
   }

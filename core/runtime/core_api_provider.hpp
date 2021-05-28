@@ -16,6 +16,8 @@ namespace kagome::runtime {
 
   class CoreApiProvider {
    public:
+    virtual ~CoreApiProvider() = default;
+
     virtual std::unique_ptr<Core> makeCoreApi(
         gsl::span<uint8_t> runtime_code) const = 0;
   };

@@ -51,7 +51,7 @@ namespace kagome::runtime::wavm {
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T load(WasmPointer addr) const {
       auto res = WAVM::Runtime::memoryRef<T>(memory_, addr);
-      SL_TRACE_FUNC_CALL(logger_, res, addr);
+      //SL_TRACE_FUNC_CALL(logger_, res, this, addr);
       return res;
     }
 
@@ -61,7 +61,7 @@ namespace kagome::runtime::wavm {
         [](){}();
       }
       auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
-      SL_TRACE_FUNC_CALL(logger_, gsl::span<T>(res, num), addr);
+      //SL_TRACE_FUNC_CALL(logger_, gsl::span<T>(res, num), this, addr);
       return res;
     }
 
@@ -81,7 +81,7 @@ namespace kagome::runtime::wavm {
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void store(WasmPointer addr, T value) {
-      SL_TRACE_VOID_FUNC_CALL(logger_, addr, value);
+      //SL_TRACE_VOID_FUNC_CALL(logger_, this, addr, value);
       std::memcpy(
           WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, addr, sizeof(value)),
           &value,
@@ -90,7 +90,7 @@ namespace kagome::runtime::wavm {
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void storeArray(WasmPointer addr, gsl::span<T> array) {
-      SL_TRACE_VOID_FUNC_CALL(logger_, addr, array);
+      //SL_TRACE_VOID_FUNC_CALL(logger_, this, addr, array);
       std::memcpy(
           WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, addr, sizeof(array.size_bytes())),
           array.data(),

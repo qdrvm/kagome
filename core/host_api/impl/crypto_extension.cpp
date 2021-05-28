@@ -520,7 +520,7 @@ namespace kagome::host_api {
     // TODO(Harrm): this should not support deprecated Schnorr signa-
     // tures introduced by the schnorrkel Rust library version 0.1.1
     SL_TRACE_FUNC_CALL(logger_,
-                       "delegate to ext_crypto_sr25519_verify_version_1");
+                       "delegated to ext_crypto_sr25519_verify_version_1");
     return ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data);
   }
 

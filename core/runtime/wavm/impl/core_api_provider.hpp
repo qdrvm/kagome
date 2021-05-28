@@ -38,8 +38,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-        std::shared_ptr<RuntimeCodeProvider> code_provider);
+        std::shared_ptr<host_api::HostApiFactory> host_api_factory);
 
     std::unique_ptr<Core> makeCoreApi(
         gsl::span<uint8_t> runtime_code) const override;
@@ -51,7 +50,6 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
-    std::shared_ptr<RuntimeCodeProvider> code_provider_;
   };
 
 }  // namespace kagome::runtime::wavm

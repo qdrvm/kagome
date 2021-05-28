@@ -14,7 +14,20 @@ namespace kagome::runtime::wavm {
     return &module;
   }
 
-  std::stack<std::shared_ptr<host_api::HostApi>> global_host_apis;
+  std::stack<std::shared_ptr<host_api::HostApi>>
+      global_host_apis;  //< TODO(Harrm) fix this wild crutch
+
+  void pushHostApi(std::shared_ptr<host_api::HostApi> api) {
+    global_host_apis.emplace(std::move(api));
+  }
+
+  void popHostApi() {
+    global_host_apis.pop();
+  }
+
+  std::shared_ptr<host_api::HostApi> peekHostApi() {
+    return global_host_apis.top();
+  }
 
   WAVM::Intrinsics::Memory env_memory{
       getIntrinsicModule_env(),

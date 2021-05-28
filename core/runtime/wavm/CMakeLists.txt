@@ -14,6 +14,7 @@ add_library(wavm_executor
 target_link_libraries(wavm_executor
     libWAVM
     wavm_memory
+    constant_code_provider
     Boost::boost
     )
 
