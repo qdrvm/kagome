@@ -14,11 +14,11 @@
 
 namespace WAVM{
   namespace Runtime {
-    class Instance;
-    class Compartment;
+    struct Instance;
+    struct Compartment;
   }
   namespace IR {
-    class Value;
+    struct Value;
   }
 }
 

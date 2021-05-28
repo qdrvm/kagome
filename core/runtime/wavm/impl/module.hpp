@@ -12,8 +12,8 @@
 
 namespace WAVM::Runtime {
   struct Compartment;
-  class Module;
-  class Object;
+  struct Module;
+  struct Object;
   using ImportBindings = std::vector<Object *>;
 }  // namespace WAVM::Runtime
 

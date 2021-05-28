@@ -24,7 +24,7 @@
 #include "storage/trie/types.hpp"
 
 namespace WAVM::Runtime {
-  class Compartment;
+  struct Compartment;
 }
 
 namespace kagome::runtime::wavm {
