@@ -64,9 +64,13 @@ namespace kagome::application {
     OUTCOME_TRY(id, ensure("id", tree.get_child_optional("id")));
     id_ = id.get<std::string>("");
 
-    OUTCOME_TRY(chain_type,
-                ensure("chainType", tree.get_child_optional("chainType")));
-    chain_type_ = chain_type.get<std::string>("");
+    // acquiring "chainType" value
+    if (auto entry = tree.get_child_optional("chainType"); entry.has_value()) {
+      chain_type_ = entry.value().get<std::string>("");
+    } else {
+      log_->warn("Field 'chainType' was not specified in the chain spec");
+      chain_type_ = std::string("Unspecified");
+    }
 
     auto telemetry_endpoints_opt =
         tree.get_child_optional("telemetryEndpoints");
@@ -101,10 +105,19 @@ namespace kagome::application {
     auto fork_blocks_opt = tree.get_child_optional("forkBlocks");
     if (fork_blocks_opt.has_value()
         && fork_blocks_opt.value().get<std::string>("") != "null") {
+      /*
+       * Currently there is no special handling implemented for forkBlocks.
+       * We read them, but do it in terms of legacy chain specs' support.
+       * We assume we are safe even if there are some values specified.
+       *
+       * The kagome node currently is going to sync with the main fork only.
+       * The full implementation of forkBlocks support is not worth it now but
+       * can be added later on.
+       */
+      log_->warn(
+          "A non-empty set of 'forkBlocks' encountered! They might not be "
+          "taken into account!");
       for (auto &[_, fork_block] : fork_blocks_opt.value()) {
-        // TODO(xDimon): Ensure if implementation is correct, and remove return
-        return Error::NOT_IMPLEMENTED;  // NOLINT
-
         OUTCOME_TRY(hash,
                     primitives::BlockHash::fromHexWithPrefix(
                         fork_block.get<std::string>("")));
@@ -115,14 +128,23 @@ namespace kagome::application {
     auto bad_blocks_opt = tree.get_child_optional("badBlocks");
     if (bad_blocks_opt.has_value()
         && bad_blocks_opt.value().get<std::string>("") != "null") {
+      /*
+       * Currently there is no special handling implemented for badBlocks.
+       * We read them, but do it in terms of legacy chain specs' support.
+       * We assume we are safe even if there are some values specified.
+       *
+       * The kagome node currently is going to sync with the main fork only.
+       * The full implementation of badBlocks support is not worth it now but
+       * can be added later on.
+       */
+      log_->warn(
+          "A non-empty set of 'badBlocks' encountered! They might not be "
+          "taken into account!");
       for (auto &[_, bad_block] : bad_blocks_opt.value()) {
-        // TODO(xDimon): Ensure if implementation is correct, and remove return
-        return Error::NOT_IMPLEMENTED;  // NOLINT
-
         OUTCOME_TRY(hash,
                     primitives::BlockHash::fromHexWithPrefix(
                         bad_block.get<std::string>("")));
-        fork_blocks_.emplace(hash);
+        bad_blocks_.emplace(hash);
       }
     }
 
@@ -169,15 +191,18 @@ namespace kagome::application {
     OUTCOME_TRY(boot_nodes,
                 ensure("bootNodes", tree.get_child_optional("bootNodes")));
     for (auto &v : boot_nodes) {
-      OUTCOME_TRY(multiaddr,
-                  libp2p::multi::Multiaddress::create(v.second.data()));
-
-      if (auto peer_id_base58 = multiaddr.getPeerId();
-          peer_id_base58.has_value()) {
-        OUTCOME_TRY(libp2p::peer::PeerId::fromBase58(peer_id_base58.value()));
-        boot_nodes_.emplace_back(std::move(multiaddr));
+      if (auto ma_res = libp2p::multi::Multiaddress::create(v.second.data())) {
+        auto &&multiaddr = ma_res.value();
+        if (auto peer_id_base58 = multiaddr.getPeerId();
+            peer_id_base58.has_value()) {
+          OUTCOME_TRY(libp2p::peer::PeerId::fromBase58(peer_id_base58.value()));
+          boot_nodes_.emplace_back(std::move(multiaddr));
+        } else {
+          return Error::MISSING_PEER_ID;
+        }
       } else {
-        return Error::MISSING_PEER_ID;
+        log_->warn("Unsupported multiaddress '{}'. Ignoring that boot node",
+                   v.second.data());
       }
     }
     return outcome::success();
