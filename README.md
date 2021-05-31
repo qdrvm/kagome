@@ -71,7 +71,7 @@ The easiest way to get started with Kagome is to execute in development mode whi
 kagome --dev
 ```
 
-That executes node with default accounts Alice and Bob. You can read about this accounts [here](https://kagome.readthedocs.io/en/latest/tutorials/first_kagome_chain.html#launch-kagome-network).
+That executes node with default accounts Alice and Bob. You can read about these accounts [here](https://kagome.readthedocs.io/en/latest/tutorials/first_kagome_chain.html#launch-kagome-network).
 
 To launch with wiping existing data you can do:
 
