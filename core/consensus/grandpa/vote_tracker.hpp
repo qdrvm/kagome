@@ -49,6 +49,11 @@ namespace kagome::consensus::grandpa {
      * @returns total weight of all accepted (non-duplicate) messages
      */
     virtual size_t getTotalWeight() const = 0;
+
+    /**
+     * @returns weight of all accepted (non-duplicate) messages of equivocators
+     */
+    virtual size_t getEquivocatorsWeight() const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
