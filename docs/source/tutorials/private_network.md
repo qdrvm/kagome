@@ -22,7 +22,6 @@ kagome \
     --port 11122 \
     --rpc-port 11133 \
     --ws-port 11144 \
-    --single-finalizing-node \
     --already-synchronized
 ```
 
