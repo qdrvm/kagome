@@ -22,7 +22,6 @@ namespace kagome::runtime::wavm {
         size_{kInitialMemorySize} {
     BOOST_ASSERT(memory_);
     BOOST_ASSERT(heap_base_ > 0);
-    BOOST_ASSERT(heap_base_ == roundUpAlign(heap_base_));
 
     size_ = std::max(size_, offset_);
     resize(size_);
@@ -30,8 +29,7 @@ namespace kagome::runtime::wavm {
 
   void Memory::setHeapBase(WasmSize heap_base) {
     BOOST_ASSERT(heap_base_ > 0);
-    BOOST_ASSERT(heap_base_ == roundUpAlign(heap_base_));
-    heap_base_ = heap_base;
+    heap_base_ = roundUpAlign(heap_base);
   }
 
   void Memory::setUnderlyingMemory(WAVM::Runtime::Memory *memory) {
@@ -58,9 +56,10 @@ namespace kagome::runtime::wavm {
     }
     const auto ptr = offset_;
     const auto new_offset = roundUpAlign(ptr + size);  // align
+    size = new_offset - ptr;
 
-    // BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
-    if (new_offset < static_cast<uint32_t>(ptr)) {  // overflow
+    BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
+    if (kMaxMemorySize - offset_ < size) {  // overflow
       logger_->error(
           "overflow occurred while trying to allocate {} bytes at offset "
           "0x{:x}",
@@ -68,15 +67,15 @@ namespace kagome::runtime::wavm {
           offset_);
       return 0;
     }
-    if (new_offset <= this->size()) {
+    if (new_offset <= size_) {
       offset_ = new_offset;
       allocated_[ptr] = size;
-      //SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
+      SL_TRACE_FUNC_CALL(logger_, ptr, this, size);
       return ptr;
     }
 
     auto res = freealloc(size);
-    //SL_TRACE_FUNC_CALL(logger_, res, this, size);
+    SL_TRACE_FUNC_CALL(logger_, res, this, size);
     return res;
   }
 
@@ -85,23 +84,82 @@ namespace kagome::runtime::wavm {
     if (it == allocated_.end()) {
       return boost::none;
     }
-    const auto size = it->second;
 
-    allocated_.erase(ptr);
-    deallocated_[ptr] = size;
-    //SL_TRACE_FUNC_CALL(logger_, this, size);
+    auto a_node = allocated_.extract(it);
+    auto size = a_node.mapped();
+    auto [d_it, is_emplaced] = deallocated_.emplace(ptr, size);
+    BOOST_ASSERT(is_emplaced);
+
+    // Combine with next chunk if it adjacent
+    while (true) {
+      auto node = deallocated_.extract(ptr + size);
+      if (not node) break;
+      d_it->second += node.mapped();
+    }
+
+    // Combine with previous chunk if it adjacent
+    while (deallocated_.begin() != d_it) {
+      auto d_it_prev = std::prev(d_it);
+      if (d_it_prev->first + d_it_prev->second != d_it->first) {
+        break;
+      }
+      d_it_prev->second += d_it->second;
+      deallocated_.erase(d_it);
+      d_it = d_it_prev;
+    }
+
+    auto d_it_next = std::next(d_it);
+    if (d_it_next == deallocated_.end()) {
+      if (d_it->first + d_it->second == offset_) {
+        offset_ = d_it->first;
+        deallocated_.erase(d_it);
+      }
+    }
+
+    SL_TRACE_FUNC_CALL(logger_, size, this, ptr);
     return size;
   }
 
   WasmPointer Memory::freealloc(WasmSize size) {
-    auto ptr = findContaining(size);
+    if (size == 0) {
+      return 0;
+    }
+
+    // Round up size of allocating memory chunk
+    size = roundUpAlign(size);
+
+    auto min_chunk_size = std::numeric_limits<WasmPointer>::max();
+    WasmPointer ptr = 0;
+    for (const auto &[chunk_ptr, chunk_size] : deallocated_) {
+      BOOST_ASSERT(chunk_size > 0);
+      if (chunk_size >= size and chunk_size < min_chunk_size) {
+        min_chunk_size = chunk_size;
+        ptr = chunk_ptr;
+        if (min_chunk_size == size) {
+          break;
+        }
+      }
+    }
     if (ptr == 0) {
-      // if did not find available space among deallocated memory chunks, then
-      // grow memory and allocate in new space
+      // if did not find available space among deallocated memory chunks,
+      // then grow memory and allocate in new space
       return growAlloc(size);
     }
-    allocated_[ptr] = deallocated_[ptr];
-    deallocated_.erase(ptr);
+
+    const auto node = deallocated_.extract(ptr);
+    BOOST_ASSERT(node);
+
+    auto old_size = node.mapped();
+    if (old_size > size) {
+      auto new_ptr = ptr + size;
+      auto new_size = old_size - size;
+      BOOST_ASSERT(new_size > 0);
+
+      deallocated_[new_ptr] = new_size;
+    }
+
+    allocated_[ptr] = size;
+
     return ptr;
   }
 
@@ -122,7 +180,7 @@ namespace kagome::runtime::wavm {
 
   WasmPointer Memory::growAlloc(WasmSize size) {
     // check that we do not exceed max memory size
-    if (static_cast<uint32_t>(offset_) > kMaxMemorySize - size) {
+    if (kMaxMemorySize - offset_ < size) {
       logger_->error(
           "Memory size exceeded when growing it on {} bytes, offset was 0x{:x}",
           size,
@@ -187,7 +245,7 @@ namespace kagome::runtime::wavm {
     for (auto i = addr; i < addr + n; i++) {
       res.push_back(load<uint8_t>(i));
     }
-    //SL_TRACE_FUNC_CALL(logger_, res, this, addr, n);
+    SL_TRACE_FUNC_CALL(logger_, res, this, addr, n);
     return res;
   }
 

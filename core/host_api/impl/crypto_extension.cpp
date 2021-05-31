@@ -119,6 +119,9 @@ namespace kagome::host_api {
       runtime::WasmSpan data) {
     auto [addr, len] = runtime::WasmResult(data);
     const auto &buf = memory_->loadN(addr, len);
+    if (buf[0] == 'r' && buf[1] == 'e') {
+      []{}();
+    }
     auto hash = hasher_->twox_128(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 

@@ -18,17 +18,14 @@ namespace kagome::runtime::wavm {
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<runtime::Memory> memory,
       std::shared_ptr<IntrinsicResolver> resolver)
       : compartment_{getCompartment()},
         resolver_{std::move(resolver)},
-        memory_{std::move(memory)},
         hasher_{std::move(hasher)},
         logger_{log::createLogger(
             "ModuleRepositoryImpl", "runtime_api", soralog::Level::DEBUG)} {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(resolver_);
-    BOOST_ASSERT(memory_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(logger_);
   }
@@ -59,11 +56,6 @@ namespace kagome::runtime::wavm {
     }
     if (auto it = instances_.find(state); it == instances_.end()) {
       instances_[state] = modules_[state]->instantiate(*resolver_);
-      auto heap_base = instances_[state]->getGlobal("__heap_base");
-      BOOST_ASSERT(heap_base.has_value()
-                   && heap_base.value().type == ValueType::i32);
-      memory_->setHeapBase(heap_base.value().i32);
-      memory_->reset();
     }
     return instances_[state];
   }

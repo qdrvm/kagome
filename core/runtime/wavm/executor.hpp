@@ -113,6 +113,10 @@ namespace kagome::runtime::wavm {
           break;
         }
       }
+      auto heap_base = instance.getGlobal("__heap_base");
+      BOOST_ASSERT(heap_base.has_value()
+                   && heap_base.value().type == ValueType::i32);
+      memory_->setHeapBase(heap_base.value().i32);
 
       Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {

@@ -74,7 +74,7 @@ namespace kagome::log {
       res = ::kagome::common::hex_lower(buffer);
     }
     if (res.size() > 256) {
-      return res.substr(0, 256);
+      return res.substr(0, 256) + "...";
     }
     return res;
   }
