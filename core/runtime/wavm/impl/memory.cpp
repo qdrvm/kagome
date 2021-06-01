@@ -16,15 +16,13 @@ namespace kagome::runtime::wavm {
 
   Memory::Memory(WAVM::Runtime::Memory *memory)
       : memory_(memory),
-        offset_{1},
         heap_base_{kDefaultHeapBase},
-        logger_{log::createLogger("WavmMemory", "runtime")},
-        size_{kInitialMemorySize} {
+        offset_{heap_base_},
+        logger_{log::createLogger("WavmMemory", "runtime")} {
     BOOST_ASSERT(memory_);
     BOOST_ASSERT(heap_base_ > 0);
 
-    size_ = std::max(size_, offset_);
-    resize(size_);
+    resize(kInitialMemorySize);
   }
 
   void Memory::setHeapBase(WasmSize heap_base) {
@@ -43,9 +41,8 @@ namespace kagome::runtime::wavm {
     offset_ = heap_base_;
     allocated_.clear();
     deallocated_.clear();
-    if (size_ < offset_) {
-      size_ = offset_;
-      resize(size_);
+    if (size() < offset_) {
+      resize(offset_);
     }
     SL_TRACE(logger_, "Memory reset; memory ptr: {}", fmt::ptr(memory_));
   }
@@ -67,7 +64,7 @@ namespace kagome::runtime::wavm {
           offset_);
       return 0;
     }
-    if (new_offset <= size_) {
+    if (new_offset <= this->size()) {
       offset_ = new_offset;
       allocated_[ptr] = size;
       SL_TRACE_FUNC_CALL(logger_, ptr, this, size);

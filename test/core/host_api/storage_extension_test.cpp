@@ -6,6 +6,7 @@
 #include "host_api/impl/storage_extension.hpp"
 
 #include <gtest/gtest.h>
+#include <scale/scale.hpp>
 
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/runtime/wasm_memory_mock.hpp"
@@ -145,141 +146,6 @@ TEST_F(StorageExtensionTest, ExistsStorageTest) {
   ASSERT_EQ(contains,
             storage_extension_->ext_storage_exists_version_1(
                 WasmResult{key_pointer, key_size}.combine()));
-}
-
-/**
- * @given key_pointer, key_size of non-existing key and pointer where length
- * will be stored
- * @when ext_get_allocated_storage is invoked on given key and provided
- * length
- * @then length ptr is pointing to the u32::max() and function
- * returns 0
- */
-TEST_F(StorageExtensionTest, GetAllocatedStorageKeyNotExistsTest) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  Buffer key(8, 'k');
-
-  WasmPointer len_ptr = 123;
-
-  /// res with any error, to indicate that get has been failed
-  outcome::result<Buffer> get_res = outcome::failure(std::error_code());
-
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*trie_batch_, get(key)).WillOnce(Return(get_res));
-
-  EXPECT_CALL(*memory_, store32(len_ptr, kU32Max));
-  //  ASSERT_EQ(0,
-  //            storage_extension_->ext_get_allocated_storage(
-  //                key_pointer, key_size, len_ptr));
-}
-
-/**
- * @given key_pointer, key_size of existing key and pointer where length
- * will be stored
- * @when ext_get_allocated_storage is invoked on given key and provided
- * length
- * @then length ptr is pointing to the value's length and result of the function
- * contains the pointer to the memory allocated for the value returns 0
- */
-TEST_F(StorageExtensionTest, GetAllocatedStorageKeyExistTest) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  Buffer key(8, 'k');
-
-  WasmPointer len_ptr = 123;
-
-  /// res with value
-  WasmSize value_length = 12;
-  outcome::result<Buffer> get_res = Buffer(value_length, 'v');
-
-  // expect key was loaded
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*trie_batch_, get(key)).WillOnce(Return(get_res));
-
-  // value length is stored at len ptr as expected
-  EXPECT_CALL(*memory_, store32(len_ptr, value_length)).Times(1);
-
-  WasmPointer allocated_value_ptr = 321;
-  // memory for the value is expected to be allocated
-  EXPECT_CALL(*memory_, allocate(value_length))
-      .WillOnce(Return(allocated_value_ptr));
-  // value is stored in allocated memory
-  EXPECT_CALL(*memory_,
-              storeBuffer(allocated_value_ptr,
-                          gsl::span<const uint8_t>(get_res.value())));
-
-  // ptr for the allocated value is returned
-  //  ASSERT_EQ(allocated_value_ptr,
-  //            storage_extension_->ext_get_allocated_storage(
-  //                key_pointer, key_size, len_ptr));
-}
-
-/**
- * @given key_pointer, key_size of existing key, value_ptr where value will be
- * stored with given offset and length
- * @when ext_get_storage_into is invoked on given key, value_ptr, offset and
- * length
- * @then then value associated with the key is stored on value_ptr with given
- * offset and length @and ext_get_storage_into returns the size of the value
- * written
- */
-TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  Buffer key(8, 'k');
-
-  auto value = "abcdef"_buf;
-  WasmPointer value_ptr = 123;
-  WasmSize value_length = 2;
-  WasmSize value_offset = 3;
-  Buffer partial_value(std::vector<uint8_t>{
-      value.asVector().begin() + value_offset,
-      value.asVector().begin() + value_offset + value_length});
-
-  // expect key was loaded
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*trie_batch_, get(key)).WillOnce(Return(value));
-
-  // only partial value (which is the slice value[offset, offset+length]) should
-  // be stored at value_ptr
-  EXPECT_CALL(*memory_,
-              storeBuffer(value_ptr, gsl::span<const uint8_t>(partial_value)));
-
-  // ext_get_storage_into should return the length of stored partial value
-  //  ASSERT_EQ(partial_value.size(),
-  //            storage_extension_->ext_get_storage_into(
-  //              key_pointer, key_size, value_ptr, value_length, value_offset));
-}
-
-/**
- * @given key_pointer, key_size of non-existing key, and arbitrary value_ptr,
- * value_offset and value_length
- * @when ext_get_storage_into is invoked on given key, value_ptr, offset and
- * length
- * @then ext_get_storage_into returns u32::max()
- */
-TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
-  WasmPointer key_pointer = 43;
-  WasmSize key_size = 43;
-  Buffer key(8, 'k');
-
-  WasmPointer value_ptr = 123;
-  WasmSize value_length = 2;
-  WasmSize value_offset = 3;
-
-  // expect key was loaded
-  EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-
-  // get(key) will return error
-  EXPECT_CALL(*trie_batch_, get(key))
-      .WillOnce(Return(outcome::failure(std::error_code())));
-
-  // ext_get_storage_into should return u32::max()
-  //  ASSERT_EQ(kU32Max,
-  //            storage_extension_->ext_get_storage_into(
-  //                key_pointer, key_size, value_ptr, value_length,
-  //                value_offset));
 }
 
 /**
@@ -602,27 +468,20 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
  */
 TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto &[values, hash_array] = GetParam();
+  auto values_enc = kagome::scale::encode(values).value();
 
   using testing::_;
-  WasmPointer values_ptr = 42;
-  WasmPointer lens_ptr = 1337;
-  uint32_t val_offset = 0;
-  uint32_t len_offset = 0;
-  for (auto &&v : values) {
-    EXPECT_CALL(*memory_, load32u(lens_ptr + len_offset))
-        .WillOnce(Return(v.size()));
-    EXPECT_CALL(*memory_, loadN(values_ptr + val_offset, v.size()))
-        .WillOnce(Return(v));
-    val_offset += v.size();
-    len_offset += 4;
-  }
+  WasmResult values_span {.address = 42, .length = static_cast<WasmSize>(values_enc.size())};
+
+  EXPECT_CALL(*memory_, loadN(values_span.address, values_span.length))
+      .WillOnce(Return(Buffer {values_enc}));
   WasmPointer result = 1984;
   EXPECT_CALL(*memory_,
-              storeBuffer(result, gsl::span<const uint8_t>(hash_array)))
-      .Times(1);
+              storeBuffer(gsl::span<const uint8_t>(hash_array)))
+      .WillOnce(Return(result));
 
   storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
-      WasmResult{values_ptr, static_cast<WasmSize>(values.size())}.combine());
+      values_span.combine());
 }
 
 /**

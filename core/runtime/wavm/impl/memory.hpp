@@ -20,7 +20,7 @@
 
 namespace kagome::runtime::wavm {
 
-  class Memory final: public kagome::runtime::Memory {
+  class Memory final : public kagome::runtime::Memory {
    public:
     ~Memory() = default;
 
@@ -28,7 +28,8 @@ namespace kagome::runtime::wavm {
 
     constexpr static uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
-    constexpr static uint8_t kAlignment = 8;
+    constexpr static uint8_t kAlignment = sizeof(size_t);
+    ;
 
     void setHeapBase(WasmSize heap_base);
 
@@ -41,9 +42,11 @@ namespace kagome::runtime::wavm {
     }
 
     void resize(WasmSize new_size) {
+      /**
+       * We use this condition to avoid deallocated_ pointers fixup
+       */
       BOOST_ASSERT(offset_ <= kMaxMemorySize - new_size);
-      if (new_size >= size_) {
-        size_ = new_size;
+      if (new_size >= size()) {
         auto new_page_number = (new_size / kPageSize) + 1;
         WAVM::Runtime::growMemory(memory_, new_page_number);
       }
@@ -60,7 +63,7 @@ namespace kagome::runtime::wavm {
     }
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-    T* loadArray(WasmPointer addr, size_t num) const {
+    T *loadArray(WasmPointer addr, size_t num) const {
       auto res = WAVM::Runtime::memoryArrayPtr<T>(memory_, addr, num);
       SL_TRACE_FUNC_CALL(logger_, gsl::span<T>(res, num), this, addr);
       return res;
@@ -92,10 +95,10 @@ namespace kagome::runtime::wavm {
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void storeArray(WasmPointer addr, gsl::span<T> array) {
       SL_TRACE_VOID_FUNC_CALL(logger_, this, addr, array);
-      std::memcpy(
-          WAVM::Runtime::memoryArrayPtr<uint8_t>(memory_, addr, sizeof(array.size_bytes())),
-          array.data(),
-          array.size_bytes());
+      std::memcpy(WAVM::Runtime::memoryArrayPtr<uint8_t>(
+                      memory_, addr, sizeof(array.size_bytes())),
+                  array.data(),
+                  array.size_bytes());
     }
 
     void store8(WasmPointer addr, int8_t value);
@@ -110,16 +113,16 @@ namespace kagome::runtime::wavm {
    private:
     constexpr static uint32_t kPageSize = 4096;
     WAVM::Runtime::Memory *memory_;
-    WasmPointer offset_;
     WasmPointer heap_base_;
+    WasmPointer offset_;
     log::Logger logger_;
-    WasmSize size_;
+    //WasmSize size_;
 
     // map containing addresses of allocated MemoryImpl chunks
     std::unordered_map<WasmPointer, WasmSize> allocated_{};
 
     // map containing addresses to the deallocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, WasmSize> deallocated_{};
+    std::map<WasmPointer, WasmSize> deallocated_{};
 
     /**
      * Finds memory segment of given size among deallocated pieces of memory

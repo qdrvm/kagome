@@ -286,8 +286,8 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
   EXPECT_CALL(
       *memory_,
-      storeBuffer(out_ptr, gsl::span<const uint8_t>(blake2b_128_result)))
-      .Times(1);
+      storeBuffer(gsl::span<const uint8_t>(blake2b_128_result)))
+      .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_blake2_128_version_1(
@@ -308,8 +308,8 @@ TEST_F(CryptoExtensionTest, Blake2_256Valid) {
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
   EXPECT_CALL(
       *memory_,
-      storeBuffer(out_ptr, gsl::span<const uint8_t>(blake2b_256_result)))
-      .Times(1);
+      storeBuffer(gsl::span<const uint8_t>(blake2b_256_result)))
+      .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(
                 WasmResult{data, size}.combine()),
@@ -328,8 +328,8 @@ TEST_F(CryptoExtensionTest, KeccakValid) {
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
   EXPECT_CALL(*memory_,
-              storeBuffer(out_ptr, gsl::span<const uint8_t>(keccak_result)))
-      .Times(1);
+              storeBuffer(gsl::span<const uint8_t>(keccak_result)))
+      .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_keccak_256_version_1(
@@ -398,7 +398,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
           WasmResult{sig_data_ptr, ed25519_constants::SIGNATURE_SIZE}.combine(),
           WasmResult{input_data, input_size}.combine(),
           pub_key_data_ptr),
-      CryptoExtension::kVerifySuccess);
+      CryptoExtension::kVerifyFail);
 }
 
 /**
@@ -456,7 +456,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
           WasmResult{sig_data_ptr, sr25519_constants::SIGNATURE_SIZE}.combine(),
           WasmResult{input_data, input_size}.combine(),
           pub_key_data_ptr),
-      CryptoExtension::kVerifySuccess);
+      CryptoExtension::kVerifyFail);
 }
 
 /**
@@ -554,8 +554,8 @@ TEST_F(CryptoExtensionTest, Twox128) {
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
   EXPECT_CALL(*memory_,
-              storeBuffer(out_ptr, gsl::span<const uint8_t>(twox128_result)))
-      .Times(1);
+              storeBuffer(gsl::span<const uint8_t>(twox128_result)))
+      .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_twox_128_version_1(
@@ -575,8 +575,8 @@ TEST_F(CryptoExtensionTest, Twox256) {
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
   EXPECT_CALL(*memory_,
-              storeBuffer(out_ptr, gsl::span<const uint8_t>(twox256_result)))
-      .Times(1);
+              storeBuffer(gsl::span<const uint8_t>(twox256_result)))
+      .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_twox_256_version_1(
