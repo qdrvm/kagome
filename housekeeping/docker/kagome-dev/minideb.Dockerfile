@@ -39,6 +39,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         clang-format-9 \
         make \
         git \
+        ssh \
         ccache \
         lcov \
         unzip && \
