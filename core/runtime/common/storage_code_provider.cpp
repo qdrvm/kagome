@@ -119,6 +119,7 @@ namespace kagome::runtime {
       }
     }
     BOOST_ASSERT(!"Unreachable, there should always be a predecessor with runtime upgrade");
+    BOOST_UNREACHABLE_RETURN({})
   }
 
   outcome::result<RuntimeCodeProvider::CodeAndItsState>
