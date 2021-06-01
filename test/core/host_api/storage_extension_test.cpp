@@ -471,7 +471,7 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto values_enc = kagome::scale::encode(values).value();
 
   using testing::_;
-  WasmResult values_span {.address = 42, .length = static_cast<WasmSize>(values_enc.size())};
+  WasmResult values_span {42, static_cast<WasmSize>(values_enc.size())};
 
   EXPECT_CALL(*memory_, loadN(values_span.address, values_span.length))
       .WillOnce(Return(Buffer {values_enc}));

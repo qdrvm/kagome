@@ -47,7 +47,7 @@ namespace kagome::runtime::wavm {
         block_header_repo_);
     executor->setCodeProvider(
         std::make_shared<ConstantCodeProvider>(common::Buffer{runtime_code}));
-    auto host_api = std::shared_ptr(
+    auto host_api = std::shared_ptr<HostApi>(
         host_api_factory_->make(shared_from_this(),
                                 new_intrinsic_resolver->getMemory(),
                                 storage_provider_));
