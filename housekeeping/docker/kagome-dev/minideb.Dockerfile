@@ -69,6 +69,7 @@ RUN set -e; \
 
 # set env
 ENV LLVM_ROOT=/usr/lib/llvm-9
+ENV LLVM_DIR=/usr/lib/cmake/llvm/LLVMConfig.cmake
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
 ENV CC=gcc-9
 ENV CXX=g++-9
