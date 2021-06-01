@@ -18,7 +18,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<std::vector<uint8_t>> Bip39ProviderImpl::calculateEntropy(
-      const std::vector<std::string> &word_list) {
+      const std::vector<std::string> &word_list) const {
     // make entropy accumulator
     OUTCOME_TRY(entropy_accumulator,
                 bip39::EntropyAccumulator::create(word_list.size()));
@@ -41,7 +41,7 @@ namespace kagome::crypto {
   }
 
   outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::makeSeed(
-      gsl::span<const uint8_t> entropy, std::string_view password) {
+      gsl::span<const uint8_t> entropy, std::string_view password) const {
     constexpr size_t iterations_count = 2048u;
     constexpr auto default_salt = "mnemonic";
 
@@ -52,8 +52,9 @@ namespace kagome::crypto {
     return pbkdf2_provider_->deriveKey(
         entropy, salt, iterations_count, bip39::constants::BIP39_SEED_LEN_512);
   }
+
   outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::generateSeed(
-      std::string_view mnemonic_phrase) {
+      std::string_view mnemonic_phrase) const {
     OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(mnemonic_phrase));
     OUTCOME_TRY(entropy, calculateEntropy(mnemonic.words));
     return makeSeed(entropy, mnemonic.password);

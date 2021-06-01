@@ -6,10 +6,13 @@
 #include "injector/application_injector.hpp"
 
 #define BOOST_DI_CFG_DIAGNOSTICS_LEVEL 2
+#define BOOST_DI_CFG_CTOR_LIMIT_SIZE \
+  16  // TODO(Harrm): check how it influences on compilation time
 
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
+#undef U64  // comes from OpenSSL and messes with WAVM
 #include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/log/configurator.hpp>
 
@@ -67,6 +70,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
+#include "host_api/impl/host_api_impl.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
@@ -78,22 +82,22 @@
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
 #include "outcome/outcome.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
-#include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
-#include "runtime/binaryen/module/wasm_module_impl.hpp"
-#include "runtime/binaryen/runtime_api/account_nonce_api_impl.hpp"
-#include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
-#include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
-#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
-#include "runtime/binaryen/runtime_api/core_impl.hpp"
-#include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
-#include "runtime/binaryen/runtime_api/metadata_impl.hpp"
-#include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
-#include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
-#include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
-#include "runtime/binaryen/runtime_api/transaction_payment_api_impl.hpp"
-#include "runtime/common/storage_wasm_provider.hpp"
+#include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/wavm/impl/core_api_provider.hpp"
+#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/impl/module_repository_impl.hpp"
+#include "runtime/wavm/runtime_api/account_nonce_api.hpp"
+#include "runtime/wavm/runtime_api/babe_api.hpp"
+#include "runtime/wavm/runtime_api/block_builder.hpp"
+#include "runtime/wavm/runtime_api/core.hpp"
+#include "runtime/wavm/runtime_api/grandpa_api.hpp"
+#include "runtime/wavm/runtime_api/metadata.hpp"
+#include "runtime/wavm/runtime_api/offchain_worker.hpp"
+#include "runtime/wavm/runtime_api/parachain_host.hpp"
+#include "runtime/wavm/runtime_api/tagged_transaction_queue.hpp"
+#include "runtime/wavm/runtime_api/transaction_payment_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
@@ -245,34 +249,6 @@ namespace {
     initialized.emplace(std::move(storage));
     return initialized.value();
   }
-
-  sptr<host_api::HostApiFactoryImpl> get_host_api_factory(
-      sptr<storage::changes_trie::ChangesTracker> tracker,
-      sptr<crypto::Sr25519Provider> sr25519_provider,
-      sptr<crypto::Ed25519Provider> ed25519_provider,
-      sptr<crypto::Secp256k1Provider> secp256k1_provider,
-      sptr<crypto::Hasher> hasher,
-      sptr<crypto::CryptoStore> crypto_store,
-      sptr<crypto::Bip39Provider> bip39_provider) {
-    static auto initialized =
-        boost::optional<sptr<host_api::HostApiFactoryImpl>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    auto factory =
-        std::make_shared<host_api::HostApiFactoryImpl>(tracker,
-                                                       sr25519_provider,
-                                                       ed25519_provider,
-                                                       secp256k1_provider,
-                                                       hasher,
-                                                       crypto_store,
-                                                       bip39_provider);
-
-    initialized.emplace(std::move(factory));
-    return initialized.value();
-  }
-
   sptr<storage::trie::TrieStorageBackendImpl> get_trie_storage_backend(
       sptr<storage::BufferStorage> storage) {
     static auto initialized =
@@ -322,26 +298,26 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+    const auto genesis_raw_configs = configuration_storage->getGenesis();
 
-    auto batch = trie_storage->getPersistentBatch();
-    if (not batch) {
-      common::raise(batch.error());
+    auto batch_res = trie_storage->getPersistentBatch();
+    if (not batch_res) {
+      common::raise(batch_res.error());
     }
+    auto batch = std::move(batch_res.value());
 
     auto log = log::createLogger("Injector", "injector");
-
-    const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
     for (const auto &[key_, val_] : genesis_raw_configs) {
       auto &key = key_;
       auto &val = val_;
       SL_DEBUG(
           log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
-      if (auto res = batch.value()->put(key, val); not res) {
+      if (auto res = batch->put(key, val); not res) {
         common::raise(res.error());
       }
     }
-    if (auto res = batch.value()->commit(); not res) {
+    if (auto res = batch->commit(); not res) {
       common::raise(res.error());
     }
 
@@ -408,7 +384,6 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
-
     auto configuration_res = babe_api->configuration();
     if (not configuration_res) {
       common::raise(configuration_res.error());
@@ -665,7 +640,7 @@ namespace {
         injector.template create<std::shared_ptr<consensus::BabeUtil>>();
 
     auto block_tree_res =
-        blockchain::BlockTreeImpl::create(std::move(header_repo),
+        blockchain::BlockTreeImpl::create(header_repo,
                                           std::move(storage),
                                           std::move(block_id),
                                           std::move(extrinsic_observer),
@@ -683,8 +658,15 @@ namespace {
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
     protocol_factory->setBlockTree(block_tree);
+
+    auto storage_code_provider =
+        injector
+            .template create<std::shared_ptr<runtime::StorageCodeProvider>>();
+    auto storage_events_engine = injector.template create<
+        primitives::events::StorageSubscriptionEnginePtr>();
+    storage_code_provider->subscribeToBlockchainEvents(
+        storage_events_engine, header_repo, block_tree);
 
     initialized.emplace(std::move(block_tree));
     return initialized.value();
@@ -940,50 +922,178 @@ namespace {
           return get_key_file_storage(config, chain_spec);
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
-        di::bind<host_api::HostApiFactory>.template to(
-            [](auto const &injector) {
-              auto tracker = injector.template create<
-                  sptr<storage::changes_trie::ChangesTracker>>();
-              auto sr25519_provider =
-                  injector.template create<sptr<crypto::Sr25519Provider>>();
-              auto ed25519_provider =
-                  injector.template create<sptr<crypto::Ed25519Provider>>();
-              auto secp256k1_provider =
-                  injector.template create<sptr<crypto::Secp256k1Provider>>();
-              auto hasher = injector.template create<sptr<crypto::Hasher>>();
-              auto crypto_store =
-                  injector.template create<sptr<crypto::CryptoStore>>();
-              auto bip39_provider =
-                  injector.template create<sptr<crypto::Bip39Provider>>();
+        di::bind<runtime::Memory>.template to([](auto const &injector) {
+          static auto memory =
+              injector
+                  .template create<
+                      std::shared_ptr<runtime::wavm::IntrinsicResolver>>()
+                  ->getMemory();
+          return memory;
+        }),
+        di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
+        di::bind<host_api::HostApi>.template to([](auto const &injector)
+                                                    -> std::shared_ptr<
+                                                        host_api::HostApi> {
+          static boost::optional<std::shared_ptr<host_api::HostApi>> host_api;
+          if (host_api.has_value()) return host_api.value();
 
-              return get_host_api_factory(tracker,
-                                          sr25519_provider,
-                                          ed25519_provider,
-                                          secp256k1_provider,
-                                          hasher,
-                                          crypto_store,
-                                          bip39_provider);
-            }),
+          runtime::wavm::logger = log::createLogger("HostAPI Crutch", "debug");
+
+          host_api = boost::make_optional(
+              injector
+                  .template create<std::shared_ptr<host_api::HostApiImpl>>());
+          auto executor =
+              injector
+                  .template create<std::shared_ptr<runtime::wavm::Executor>>();
+          executor->setHostApi(host_api.value());
+          auto resolver = injector.template create<
+              std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
+
+#define GENERATE_HOST_INTRINSIC(Ret, name, ...) \
+  resolver->addIntrinsic(#name, &kagome::runtime::wavm::name##Intrinsic)
+      /*static auto name = name \
+            std::function<Ret(WAVM::Runtime::ContextRuntimeData *,
+         ##__VA_ARGS__)>( \
+                [&host_api](::WAVM::Runtime::ContextRuntimeData *, \
+                            auto &&...params) -> Ret { \
+                  if constexpr (std::is_void_v<Ret>) { \
+                    host_api->name(std::forward<decltype(params)>(params)...);
+         \
+                  } else { \
+                    return host_api->name( \
+                        std::forward<decltype(params)>(params)...); \
+                  } \
+                }); \*/
+
+#define GENERATE_STUB_INTRINSIC(Ret, name, ...) \
+  resolver->addIntrinsic(#name, &kagome::runtime::wavm::name##Intrinsic)
+          //static auto name =                                                             \
+//      std::function<Ret(WAVM::Runtime::ContextRuntimeData *, ##__VA_ARGS__)>(  \
+//          [](::WAVM::Runtime::ContextRuntimeData *, auto &&...params) -> Ret { \
+//            BOOST_ASSERT_MSG(false, "Not implemented");                        \
+//            throw std::runtime_error("This Host call is not implemented!");    \
+//          });                                                                  \
+
+          // clang-format off
+            GENERATE_HOST_INTRINSIC(void, ext_logging_log_version_1, WAVM::I32, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_hashing_twox_128_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32,ext_hashing_twox_64_version_1,  WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_storage_set_version_1, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_storage_clear_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32,ext_hashing_blake2_128_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_storage_clear_prefix_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64,ext_storage_get_version_1,  WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_misc_print_utf8_version_1, WAVM::I64);
+            GENERATE_STUB_INTRINSIC(WAVM::I32, ext_offchain_random_seed_version_1);
+            GENERATE_HOST_INTRINSIC(void, ext_misc_print_hex_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_crypto_start_batch_verify_version_1);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_finish_batch_verify_version_1);
+            GENERATE_STUB_INTRINSIC(WAVM::I32, ext_offchain_is_validator_version_1);
+            GENERATE_STUB_INTRINSIC(WAVM::I64, ext_offchain_local_storage_get_version_1, WAVM::I32, WAVM::I64);
+            GENERATE_STUB_INTRINSIC(WAVM::I32, ext_offchain_local_storage_compare_and_set_version_1, WAVM::I32, WAVM::I64, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_hashing_blake2_256_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_hashing_keccak_256_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_ed25519_verify_version_1, WAVM::I32, WAVM::I64, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_misc_runtime_version_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_storage_append_version_1, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_next_key_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(void, ext_misc_print_num_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_sr25519_verify_version_2, WAVM::I32, WAVM::I64, WAVM::I32);
+            GENERATE_STUB_INTRINSIC(void, ext_offchain_local_storage_set_version_1, WAVM::I32, WAVM::I64, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_root_version_1);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_changes_root_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_trie_blake2_256_ordered_root_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_ed25519_generate_version_1, WAVM::I32, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_crypto_secp256k1_ecdsa_recover_version_1, WAVM::I32, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, WAVM::I32, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_crypto_sr25519_generate_version_1, WAVM::I32, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_crypto_sr25519_public_keys_version_1, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_crypto_sr25519_sign_version_1, WAVM::I32, WAVM::I32, WAVM::I64);
+            GENERATE_STUB_INTRINSIC(WAVM::I64, ext_offchain_network_state_version_1);
+            GENERATE_STUB_INTRINSIC(WAVM::I64, ext_offchain_submit_transaction_version_1, WAVM::I64);
+            GENERATE_HOST_INTRINSIC(WAVM::I64, ext_storage_read_version_1, WAVM::I64, WAVM::I64, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(WAVM::I32, ext_allocator_malloc_version_1, WAVM::I32);
+            GENERATE_HOST_INTRINSIC(void, ext_allocator_free_version_1, WAVM::I32);
+          // clang-format on
+
+          kagome::runtime::wavm::pushHostApi(host_api.value());
+
+          return host_api.value();
+        }),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::SyncProtocolObserver>.to([](auto const &injector) {
           return get_sync_observer_impl(injector);
         }),
-        di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
-        di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
-        di::bind<runtime::binaryen::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
-        di::bind<runtime::binaryen::RuntimeEnvironmentFactory>.template to<runtime::binaryen::RuntimeEnvironmentFactoryImpl>(),
-        di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
-        di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
-        di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
-        di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
-        di::bind<runtime::GrandpaApi>.template to<runtime::binaryen::GrandpaApiImpl>(),
-        di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
-        di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
-        di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
-        di::bind<runtime::TransactionPaymentApi>.template to<runtime::binaryen::TransactionPaymentApiImpl>(),
-        di::bind<runtime::AccountNonceApi>.template to<runtime::binaryen::AccountNonceApiImpl>(),
+        di::bind<runtime::wavm::IntrinsicResolverImpl>.template to(
+            [](const auto &injector) {
+              static boost::optional<
+                  std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>
+                  initialized = boost::none;
+              if (initialized) {
+                return initialized.value();
+              }
+              auto resolver =
+                  std::make_shared<runtime::wavm::IntrinsicResolverImpl>();
+
+              initialized = std::move(resolver);
+              return initialized.value();
+            }),
+        di::bind<runtime::wavm::IntrinsicResolver>.template to([](const auto &injector) {
+          static boost::optional<
+              std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>
+              initialized = boost::none;
+          if (initialized) {
+            return initialized.value();
+          }
+          auto resolver =
+              injector.template create<std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
+
+          initialized = std::move(resolver);
+          return initialized.value();
+        }),
+        di::bind<runtime::wavm::ModuleRepository>.template to<runtime::wavm::ModuleRepositoryImpl>(),
+        di::bind<runtime::wavm::ModuleRepositoryImpl>.template to(
+            [](const auto &injector) {
+              auto hasher =
+                  injector.template create<std::shared_ptr<crypto::Hasher>>();
+              auto resolver = injector.template create<
+                  std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
+              return std::make_shared<runtime::wavm::ModuleRepositoryImpl>(
+                  hasher, resolver->getMemory(), resolver);
+            }),
+        di::bind<runtime::wavm::Executor>.template to([](const auto &injector) {
+          static boost::optional<std::shared_ptr<runtime::wavm::Executor>>
+              initialized;
+          if (!initialized) {
+            auto storage_provider = injector.template create<
+                std::shared_ptr<runtime::TrieStorageProvider>>();
+            auto resolver = injector.template create<
+                std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
+            auto module_repo = injector.template create<
+                std::shared_ptr<runtime::wavm::ModuleRepository>>();
+            auto header_repo = injector.template create<
+                std::shared_ptr<blockchain::BlockHeaderRepository>>();
+            initialized = std::make_shared<runtime::wavm::Executor>(
+                std::move(storage_provider),
+                resolver->getMemory(),
+                module_repo,
+                header_repo);
+          }
+          return initialized.value();
+        }),
+        di::bind<runtime::CoreApiProvider>.template to<runtime::wavm::CoreApiProvider>(),
+        di::bind<runtime::TaggedTransactionQueue>.template to<runtime::wavm::WavmTaggedTransactionQueue>(),
+        di::bind<runtime::ParachainHost>.template to<runtime::wavm::WavmParachainHost>(),
+        di::bind<runtime::OffchainWorker>.template to<runtime::wavm::WavmOffchainWorker>(),
+        di::bind<runtime::Metadata>.template to<runtime::wavm::WavmMetadata>(),
+        di::bind<runtime::GrandpaApi>.template to<runtime::wavm::WavmGrandpaApi>(),
+        di::bind<runtime::Core>.template to<runtime::wavm::WavmCore>(),
+        di::bind<runtime::BabeApi>.template to<runtime::wavm::WavmBabeApi>(),
+        di::bind<runtime::BlockBuilder>.template to<runtime::wavm::WavmBlockBuilder>(),
+        di::bind<runtime::TransactionPaymentApi>.template to<runtime::wavm::WavmTransactionPaymentApi>(),
+        di::bind<runtime::AccountNonceApi>.template to<runtime::wavm::WavmAccountNonceApi>(),
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
@@ -1015,7 +1125,19 @@ namespace {
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
-        di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
+        di::bind<runtime::RuntimeCodeProvider>.template to(
+            [](const auto &injector) {
+              auto provider = injector.template create<
+                  std::shared_ptr<runtime::StorageCodeProvider>>();
+              static bool initialized = false;
+              if (!initialized) {
+                auto executor = injector.template create<
+                    std::shared_ptr<runtime::wavm::Executor>>();
+                executor->setCodeProvider(provider);
+              }
+              initialized = true;
+              return provider;
+            }),
         di::bind<application::ChainSpec>.to([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
@@ -1258,7 +1380,7 @@ namespace {
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(
             [](auto const &injector) { return get_babe(injector); }),
-        di::bind<runtime::GrandpaApi>.template to<runtime::binaryen::GrandpaApiImpl>()
+        di::bind<runtime::GrandpaApi>.template to<runtime::wavm::WavmGrandpaApi>()
             [di::override],
 
         // user-defined overrides...
@@ -1282,7 +1404,10 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {}
+          makeKagomeNodeInjector(app_config))} {
+    pimpl_->injector_.create<sptr<runtime::RuntimeCodeProvider>>();
+    pimpl_->injector_.create<sptr<host_api::HostApi>>();
+  }
 
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();

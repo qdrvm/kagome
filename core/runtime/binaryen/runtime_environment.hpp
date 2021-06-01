@@ -22,7 +22,7 @@ namespace kagome::storage::trie {
 }  // namespace kagome::storage::trie
 
 namespace kagome::runtime {
-  class WasmMemory;
+  class Memory;
 }
 
 namespace kagome::runtime::binaryen {
@@ -49,9 +49,9 @@ namespace kagome::runtime::binaryen {
     ~RuntimeEnvironment() = default;
 
     std::shared_ptr<WasmModuleInstance> module_instance;
-    std::shared_ptr<WasmMemory> memory;
-    boost::optional<std::shared_ptr<storage::trie::TopperTrieBatch>>
-        batch{};  // in persistent environments all changes of a call must be
+    std::shared_ptr<Memory> memory;
+    //boost::optional<std::shared_ptr<storage::trie::TopperTrieBatch>>
+    //    batch{};  // in persistent environments all changes of a call must be
                   // either applied together or discarded in case of failure
   };
 

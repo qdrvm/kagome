@@ -11,16 +11,10 @@
 #include "runtime/wasm_result.hpp"
 
 namespace kagome::host_api {
-  IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
+  IOExtension::IOExtension(std::shared_ptr<runtime::Memory> memory)
       : memory_(std::move(memory)),
-        logger_{log::createLogger("IoExtention", "extentions")} {
+        logger_{log::createLogger("IoExtension", "host_api")} {
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
-  }
-
-  void IOExtension::ext_print_hex(runtime::WasmPointer data,
-                                  runtime::WasmSize length) {
-    const auto &buf = memory_->loadN(data, length);
-    logger_->info("hex value: {}", buf.toHex());
   }
 
   void IOExtension::ext_logging_log_version_1(runtime::WasmEnum level,
@@ -53,7 +47,7 @@ namespace kagome::host_api {
         SL_TRACE(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       default: {
-        assert(false);
+        BOOST_UNREACHABLE_RETURN();
         logger_->error(
             "Message with incorrect log level. Target: {}\n\tmessage: {}",
             target_str,
@@ -62,13 +56,4 @@ namespace kagome::host_api {
     }
   }
 
-  void IOExtension::ext_print_num(uint64_t value) {
-    logger_->info("number value: {}", value);
-  }
-
-  void IOExtension::ext_print_utf8(runtime::WasmPointer utf8_data,
-                                   runtime::WasmSize utf8_length) {
-    const auto data = memory_->loadStr(utf8_data, utf8_length);
-    logger_->info("string value: {}", data);
-  }
 }  // namespace kagome::host_api

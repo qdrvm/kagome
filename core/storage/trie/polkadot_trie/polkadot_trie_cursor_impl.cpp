@@ -5,6 +5,10 @@
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
+#include "../../../../test/testutil/storage/polkadot_trie_printer.hpp"
+
+#include <iostream>
+
 #include "common/buffer_back_insert_iterator.hpp"
 #include "macro/unreachable.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
@@ -33,7 +37,9 @@ namespace kagome::storage::trie {
   }
 
   PolkadotTrieCursorImpl::PolkadotTrieCursorImpl(const PolkadotTrie &trie)
-      : trie_{trie}, current_{nullptr} {}
+      : trie_{trie},
+        current_{nullptr},
+        log_{log::createLogger("TrieCursor", "trie", soralog::Level::TRACE)} {}
 
   outcome::result<std::unique_ptr<PolkadotTrieCursorImpl>>
   PolkadotTrieCursorImpl::createAt(const common::Buffer &key,
@@ -267,6 +273,7 @@ namespace kagome::storage::trie {
     if (current_ == nullptr) {
       return outcome::success();
     }
+
     if (not visited_root_ and trie_.getRoot()->value.has_value()) {
       visited_root_ = true;
       return outcome::success();
@@ -298,7 +305,9 @@ namespace kagome::storage::trie {
         auto p = std::dynamic_pointer_cast<BranchNode>(current_);
         if (last_visited_child_.empty()
             or last_visited_child_.back().parent != p) {
-          last_visited_child_.emplace_back(p, -1);
+          // indicate that we're going to descend to some child of the current
+          // node
+          last_visited_child_.emplace_back(p, UINT8_MAX);
         }
         while (not hasNextChild(p, last_visited_child_.back().child_idx)) {
           last_visited_child_.pop_back();
@@ -312,6 +321,7 @@ namespace kagome::storage::trie {
         OUTCOME_TRY(c, trie_.retrieveChild(p, i));
         current_ = c;
         updateLastVisitedChild(p, i);
+        std::cout << p << " " << (int)i << " " << c << "\n";
       }
     } while (not current_->value.has_value());
     return outcome::success();
@@ -346,34 +356,37 @@ namespace kagome::storage::trie {
     return boost::none;
   }
 
-  int8_t PolkadotTrieCursorImpl::getNextChildIdx(const BranchPtr &parent,
-                                                 uint8_t child_idx) {
+  uint8_t PolkadotTrieCursorImpl::getNextChildIdx(const BranchPtr &parent,
+                                                  uint8_t child_idx) {
+    // if child_idx is UINT8_MAX then we're gonna return the first child
     for (uint8_t i = child_idx + 1; i < parent->kMaxChildren; i++) {
       if (parent->children.at(i) != nullptr) {
         return i;
       }
     }
-    return -1;
+    return UINT8_MAX;
   }
 
   bool PolkadotTrieCursorImpl::hasNextChild(const BranchPtr &parent,
                                             uint8_t child_idx) {
-    return getNextChildIdx(parent, child_idx) != -1;
+    return getNextChildIdx(parent, child_idx) != UINT8_MAX;
   }
 
-  int8_t PolkadotTrieCursorImpl::getPrevChildIdx(const BranchPtr &parent,
-                                                 uint8_t child_idx) {
+  uint8_t PolkadotTrieCursorImpl::getPrevChildIdx(const BranchPtr &parent,
+                                                  uint8_t child_idx) {
+    if (child_idx == 0 || child_idx >= BranchNode::kMaxChildren)
+      return UINT8_MAX;
     for (int8_t i = child_idx - 1; i >= 0; i--) {
       if (parent->children.at(i) != nullptr) {
         return i;
       }
     }
-    return -1;
+    return UINT8_MAX;
   }
 
   bool PolkadotTrieCursorImpl::hasPrevChild(const BranchPtr &parent,
                                             uint8_t child_idx) {
-    return getPrevChildIdx(parent, child_idx) != -1;
+    return getPrevChildIdx(parent, child_idx) != UINT8_MAX;
   }
 
   void PolkadotTrieCursorImpl::updateLastVisitedChild(const BranchPtr &parent,

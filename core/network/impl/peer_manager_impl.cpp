@@ -426,7 +426,7 @@ namespace kagome::network {
 
             // Add to active peer list
             if (auto [ap_it, added] = self->active_peers_.emplace(
-                    peer_id, ActivePeerData{.time = self->clock_->now()});
+                    peer_id, ActivePeerData{.time = self->clock_->now(), .status = Status{}});
                 added) {
               // And remove from queue
               if (auto piq_it = self->peers_in_queue_.find(peer_id);

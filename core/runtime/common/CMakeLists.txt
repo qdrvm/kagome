@@ -4,22 +4,22 @@
 #
 
 
-add_library(storage_wasm_provider
-    storage_wasm_provider.cpp
+add_library(storage_code_provider
+    storage_code_provider.cpp
     )
-target_link_libraries(storage_wasm_provider
+target_link_libraries(storage_code_provider
     buffer
     blob
     )
 
-add_library(const_wasm_provider
-    const_wasm_provider.cpp
+add_library(constant_code_provider
+    constant_code_provider.cpp
     )
-target_link_libraries(const_wasm_provider
+target_link_libraries(constant_code_provider
     buffer
     )
 
-kagome_install(const_wasm_provider)
+kagome_install(constant_code_provider)
 
 add_library(runtime_transaction_error
     runtime_transaction_error.cpp

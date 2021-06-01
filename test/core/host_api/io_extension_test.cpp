@@ -24,6 +24,7 @@ using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
+using kagome::runtime::WasmSpan;
 
 /**
  * It is impossible to test the console output, but at least we can check, that
@@ -58,13 +59,19 @@ class IOExtensionTest : public ::testing::Test {
  * @then hex encoded for given string is printed
  */
 TEST_F(IOExtensionTest, PrintHex) {
-  WasmPointer data = 0;
-  WasmSize size = hex_bytes_.size();
-  Buffer buf(hex_bytes_);
+  WasmResult msg{0, static_cast<WasmSize>(hex_bytes_.size())};
+  std::string msg_buf{hex_bytes_.begin(), hex_bytes_.end()};
 
-  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(buf));
+  WasmResult target{static_cast<WasmPointer>(hex_bytes_.size()),
+                    static_cast<WasmSize>(hex_bytes_.size())};
+  std::string target_buf{'T', 'e', 's', 't'};
 
-  io_extension_->ext_print_hex(data, size);
+  EXPECT_CALL(*memory_, loadStr(msg.address, msg.length))
+      .WillOnce(Return(msg_buf));
+  EXPECT_CALL(*memory_, loadStr(target.address, target.length))
+      .WillOnce(Return(target_buf));
+
+  io_extension_->ext_logging_log_version_1(1, target.combine(), msg.combine());
 }
 
 /**
@@ -89,8 +96,8 @@ TEST_F(IOExtensionTest, PrintMessage) {
  * @when try to some number using ext_print_num from io_extension
  * @then given number is printed
  */
-TEST_F(IOExtensionTest, PrintNum) {
-  io_extension_->ext_print_num(number_);
+TEST_F(IOExtensionTest, DISABLED_PrintNum) {
+  //io_extension_->ext_print_num(number_);
 }
 
 /**
@@ -98,11 +105,11 @@ TEST_F(IOExtensionTest, PrintNum) {
  * @when try to print string "1 @m $t|>i|\Ng" represented as byte array
  * @then given utf decoded string is printed
  */
-TEST_F(IOExtensionTest, PrintUTF8) {
+TEST_F(IOExtensionTest, DISABLED_PrintUTF8) {
   WasmPointer data = 0;
   WasmSize size = utf8_bytes_.size();
   std::string buf(utf8_bytes_.begin(), utf8_bytes_.end());
 
   EXPECT_CALL(*memory_, loadStr(data, size)).WillOnce(Return(buf));
-  io_extension_->ext_print_utf8(data, size);
+  //io_extension_->ext_print_utf8(data, size);
 }

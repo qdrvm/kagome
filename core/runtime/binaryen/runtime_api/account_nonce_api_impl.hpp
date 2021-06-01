@@ -14,7 +14,7 @@ namespace kagome::runtime::binaryen {
   class AccountNonceApiImpl final : public RuntimeApi, public AccountNonceApi {
    public:
     AccountNonceApiImpl(
-        const std::shared_ptr<WasmProvider> &wasm_provider,
+        const std::shared_ptr<RuntimeCodeProvider> &wasm_provider,
         const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory);
 
     outcome::result<primitives::AccountNonce> account_nonce(

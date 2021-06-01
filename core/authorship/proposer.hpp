@@ -25,7 +25,7 @@ namespace kagome::authorship {
      * Creates block from provided parameters
      * @param parent_block_number number of parent
      * @param inherent_data additional data on block from unsigned extrinsics
-     * @param inherent_digests - chain-specific block auxilary data
+     * @param inherent_digests - chain-specific block auxiliary data
      * @return proposed block or error
      */
     virtual outcome::result<primitives::Block> propose(

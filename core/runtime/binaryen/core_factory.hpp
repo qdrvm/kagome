@@ -26,7 +26,7 @@ namespace kagome::runtime::binaryen {
      */
     virtual std::unique_ptr<Core> createWithCode(
         std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
-        std::shared_ptr<WasmProvider> wasm_provider) = 0;
+        std::shared_ptr<RuntimeCodeProvider> wasm_provider) = 0;
   };
 
 }  // namespace kagome::runtime::binaryen

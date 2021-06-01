@@ -27,7 +27,7 @@ addtest(core_integration_test
 target_link_libraries(core_integration_test
     binaryen_core_api
     basic_wasm_provider
-    host_api_factory
+    #host_api_factory
     binaryen_wasm_memory_factory
     logger_for_tests
     )
@@ -39,7 +39,7 @@ target_link_libraries(tagged_transaction_queue_test
     binaryen_tagged_transaction_queue_api
     testutil_primitives_generator
     basic_wasm_provider
-    host_api_factory
+    #host_api_factory
     binaryen_core_api
     binaryen_wasm_memory_factory
     logger_for_tests
@@ -51,7 +51,7 @@ addtest(block_builder_api_test
 target_link_libraries(block_builder_api_test
     binaryen_block_builder_api
     basic_wasm_provider
-    host_api_factory
+    #host_api_factory
     binaryen_core_api
     binaryen_wasm_memory_factory
     logger_for_tests
@@ -69,7 +69,7 @@ target_link_libraries(wasm_executor_test
     trie_storage_provider
     in_memory_storage
     binaryen_wasm_memory_factory
-    host_api_factory
+    #host_api_factory
     polkadot_trie_factory
     trie_serializer
     logger_for_tests
@@ -81,7 +81,7 @@ addtest(parachain_test
 target_link_libraries(parachain_test
     binaryen_parachain_host_api
     basic_wasm_provider
-    host_api_factory
+    #host_api_factory
     binaryen_core_api
     binaryen_wasm_memory_factory
     )
@@ -93,7 +93,7 @@ target_link_libraries(grandpa_api_test
     binaryen_grandpa_api
     trie_storage_backend
     basic_wasm_provider
-    host_api_factory
+    #host_api_factory
     binaryen_wasm_memory_factory
     binaryen_core_api
     logger_for_tests
@@ -105,7 +105,7 @@ addtest(metadata_test
 target_link_libraries(metadata_test
     binaryen_metadata_api
     basic_wasm_provider
-    host_api_factory
+    #host_api_factory
     trie_storage
     binaryen_wasm_memory_factory
     binaryen_core_api
@@ -119,7 +119,7 @@ target_link_libraries(offchain_worker_test
     binaryen_offchain_worker_api
     basic_wasm_provider
     trie_storage_backend
-    host_api_factory
+    #host_api_factory
     binaryen_wasm_memory_factory
     binaryen_core_api
     logger_for_tests
@@ -129,11 +129,11 @@ addtest(wasm_result_test
     wasm_result_test.cpp
     )
 
-addtest(storage_wasm_provider_test
-    storage_wasm_provider_test.cpp
+addtest(storage_code_provider_test
+    storage_code_provider_test.cpp
     )
-target_link_libraries(storage_wasm_provider_test
-    storage_wasm_provider
+target_link_libraries(storage_code_provider_test
+    storage_code_provider
     logger_for_tests
     )
 

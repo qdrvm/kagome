@@ -203,10 +203,7 @@ class RuntimeTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::runtime::TrieStorageProviderMock> storage_provider_;
-  std::shared_ptr<kagome::storage::trie::PersistentTrieBatchMock> batch_mock_;
-
-  std::shared_ptr<kagome::runtime::WasmProvider> wasm_provider_;
+  std::shared_ptr<kagome::runtime::RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<kagome::runtime::binaryen::RuntimeEnvironmentFactory>
       runtime_env_factory_;
   std::shared_ptr<kagome::storage::changes_trie::ChangesTracker>

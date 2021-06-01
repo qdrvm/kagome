@@ -53,12 +53,12 @@ namespace kagome::storage::trie {
         codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         changes_{std::move(changes)},
-        logger_{log::createLogger("TrieStorage", "changes_trie")} {
+        logger_{log::createLogger("TrieStorage", "storage")} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() and changes_.value() != nullptr)
                  or not changes_.has_value());
-    logger_->info("Initialize trie storage with root: {}", root_hash_.toHex());
+    logger_->verbose("Initialize trie storage with root: {}", root_hash_.toHex());
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>

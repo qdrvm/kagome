@@ -5,18 +5,15 @@
 
 #include <iostream>
 
-#include <boost/program_options.hpp>
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
 #include "application/impl/kagome_application_impl.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
-#include "outcome/outcome.hpp"
 
-using namespace kagome;
-using application::AppConfiguration;
-using application::AppConfigurationImpl;
+using kagome::application::AppConfiguration;
+using kagome::application::AppConfigurationImpl;
 
 int main(int argc, char **argv) {
   {
@@ -42,7 +39,7 @@ int main(int argc, char **argv) {
     kagome::log::setLevelOfGroup(kagome::log::defaultGroupName,
                                  configuration.verbosity());
     auto app =
-        std::make_shared<application::KagomeApplicationImpl>(configuration);
+        std::make_shared<kagome::application::KagomeApplicationImpl>(configuration);
     app->run();
   }
 

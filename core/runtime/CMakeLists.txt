@@ -4,4 +4,5 @@
 #
 
 add_subdirectory(common)
-add_subdirectory(binaryen)
+#add_subdirectory(binaryen)
+add_subdirectory(wavm)

@@ -7,6 +7,7 @@
 #define KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
 
 #include <boost/variant.hpp>
+
 #include "common/blob.hpp"
 #include "primitives/common.hpp"
 

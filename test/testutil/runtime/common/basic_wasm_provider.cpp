@@ -10,16 +10,20 @@
 namespace kagome::runtime {
   using kagome::common::Buffer;
 
-  BasicWasmProvider::BasicWasmProvider(std::string_view path) {
+  BasicCodeProvider::BasicCodeProvider(std::string_view path) {
     initialize(path);
   }
 
-  const common::Buffer &BasicWasmProvider::getStateCodeAt(
-      const primitives::BlockHash &) const {
-    return buffer_;
+  outcome::result<BasicCodeProvider::CodeAndItsState> BasicCodeProvider::getCodeAt(
+      const primitives::BlockInfo &at) const {
+    return CodeAndItsState { buffer_, {}};
   }
 
-  void BasicWasmProvider::initialize(std::string_view path) {
+  outcome::result<BasicCodeProvider::CodeAndItsState> BasicCodeProvider::getLatestCode() const {
+        return CodeAndItsState { buffer_, {}};
+  }
+
+  void BasicCodeProvider::initialize(std::string_view path) {
     // std::ios::ate seeks to the end of file
     std::ifstream ifd(std::string(path), std::ios::binary | std::ios::ate);
     // so size means count of bytes in file
@@ -28,7 +32,7 @@ namespace kagome::runtime {
     ifd.seekg(0, std::ios::beg);
     kagome::common::Buffer buffer(size, 0);
     // read whole file to the buffer
-    ifd.read((char *)buffer.data(), size);  // NOLINT
+    ifd.read(reinterpret_cast<char *>(buffer.data()), size);  // NOLINT
     buffer_ = std::move(buffer);
   }
 }  // namespace kagome::runtime

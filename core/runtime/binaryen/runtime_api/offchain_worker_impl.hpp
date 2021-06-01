@@ -14,7 +14,7 @@ namespace kagome::runtime::binaryen {
   class OffchainWorkerImpl : public RuntimeApi, public OffchainWorker {
    public:
     OffchainWorkerImpl(
-        const std::shared_ptr<WasmProvider> &wasm_provider,
+        const std::shared_ptr<RuntimeCodeProvider> &wasm_provider,
         const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory);
 
     ~OffchainWorkerImpl() override = default;

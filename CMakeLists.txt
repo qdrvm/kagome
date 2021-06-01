@@ -17,7 +17,7 @@ set(
 
 include("cmake/Hunter/init.cmake")
 
-PROJECT(kagome C CXX)
+project(kagome C CXX)
 
 include(cmake/print.cmake)
 print("C flags: ${CMAKE_C_FLAGS}")
@@ -106,6 +106,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/core
 )
 
+add_subdirectory(deps/wavm)
 add_subdirectory(core)
 
 kagome_install_setup(
