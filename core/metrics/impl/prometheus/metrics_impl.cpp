@@ -1,4 +1,10 @@
-#include "metrics_impl.hpp"
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "metrics/impl/prometheus/metrics_impl.hpp"
+
 #include <prometheus/counter.h>
 #include <prometheus/gauge.h>
 #include <prometheus/histogram.h>

@@ -6,13 +6,16 @@
 #ifndef KAGOME_CORE_METRICS_EXPOSER_HPP
 #define KAGOME_CORE_METRICS_EXPOSER_HPP
 
+#include <memory>
+
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <memory>
 #include "handler.hpp"
 
 namespace kagome::metrics {
 
+  // an http server interface to expose metrics on request with custom request
+  // handler
   class Exposer {
    protected:
     using Acceptor = boost::asio::ip::tcp::acceptor;

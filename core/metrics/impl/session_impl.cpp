@@ -1,4 +1,10 @@
-#include "session_impl.hpp"
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "metrics/impl/session_impl.hpp"
+
 #include <boost/system/error_code.hpp>
 
 namespace kagome::metrics {
@@ -53,8 +59,7 @@ namespace kagome::metrics {
     return asyncWrite(response);
   }
 
-  void SessionImpl::onRead(boost::system::error_code ec,
-                           std::size_t) {
+  void SessionImpl::onRead(boost::system::error_code ec, std::size_t) {
     if (ec) {
       if (HttpError::end_of_stream != ec) {
         reportError(ec, "unknown error occurred");

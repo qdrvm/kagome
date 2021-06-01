@@ -7,6 +7,7 @@
 #define KAGOME_CORE_METRICS_HANDLER_HPP
 
 #include <memory>
+
 #include "metrics/session.hpp"
 
 namespace kagome::metrics {
@@ -14,6 +15,8 @@ namespace kagome::metrics {
   class Registry;
   class Session;
 
+  // an interface to add request handler for metrics::Exposer
+  // implementation generally will contain metrics serializer
   class Handler {
    public:
     virtual ~Handler() = default;

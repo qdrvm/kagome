@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "exposer_impl.hpp"
+#include "metrics/impl/exposer_impl.hpp"
+
 #include <thread>
-#include "session_impl.hpp"
+
+#include "metrics/impl/session_impl.hpp"
 
 namespace kagome::metrics {
   ExposerImpl::ExposerImpl(

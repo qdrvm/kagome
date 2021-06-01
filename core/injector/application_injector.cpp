@@ -882,6 +882,7 @@ namespace {
               injector.template create<application::AppConfiguration const &>()
                   .openmetricsHttpEndpoint()};
         }),
+        // hardfix for Mac clang
         di::bind<metrics::Session::Configuration>.to([](const auto &injector) {
           return metrics::Session::Configuration{};
         }),

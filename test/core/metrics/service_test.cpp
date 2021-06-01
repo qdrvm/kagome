@@ -84,6 +84,11 @@ class HttpClient {
   }
 };
 
+/**
+ * @given an empty metrics metering service with minimal app maintenance
+ * @when adding simple metrics
+ * @then get expected response from service endpoint
+ */
 TEST(ServiceTest, create_metrics_exposer) {
   using namespace kagome;
   namespace di = boost::di;
@@ -117,21 +122,19 @@ TEST(ServiceTest, create_metrics_exposer) {
   auto counter = registry->registerCounterMetric("counter");
   counter->inc();
 
-  std::thread thread([app_state_manager] { app_state_manager->run(); });
-  thread.detach();
-
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  exposer->prepare();
+  exposer->start();
 
   HttpClient client;
   auto ec = client.connect();
   ASSERT_FALSE(ec);
   auto res = client.query();
-  std::cout << res.value() << std::endl;
   ASSERT_FALSE(res.has_error());
   std::string answer(R"(# HELP counter It's simple counter!
 # TYPE counter counter
 counter 1
 )");
-  std::cout << answer << std::endl;
   ASSERT_STREQ(res.value().c_str(), answer.c_str());
+
+  exposer->stop();
 }

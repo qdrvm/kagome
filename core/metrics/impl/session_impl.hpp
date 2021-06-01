@@ -6,9 +6,10 @@
 #ifndef KAGOME_CORE_METRICS_IMPL_SESSION_IMPL_HPP
 #define KAGOME_CORE_METRICS_IMPL_SESSION_IMPL_HPP
 
+#include <string_view>
+
 #include <boost/asio/strand.hpp>
 #include <boost/beast.hpp>
-#include <string_view>
 #include "log/logger.hpp"
 #include "metrics/session.hpp"
 

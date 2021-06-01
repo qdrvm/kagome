@@ -25,23 +25,43 @@ class CounterTest : public ::testing::Test {
 
 // all tests have same static prometheus::Registry
 
+/**
+ * @given an empty registry
+ * @when putting an empty counter
+ * @then expected result obtained
+ */
 TEST_F(CounterTest, initialize_with_zero) {
   auto counter = createCounter("counter1");
   EXPECT_DOUBLE_EQ(getMetric(counter).counter.value, 0.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a counter and incrementing
+ * @then expected result obtained
+ */
 TEST_F(CounterTest, inc) {
   auto counter = createCounter("counter2");
   counter->inc();
   EXPECT_DOUBLE_EQ(getMetric(counter).counter.value, 1.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a counter and incrementing by value
+ * @then expected result obtained
+ */
 TEST_F(CounterTest, inc_number) {
   auto counter = createCounter("counter3");
   counter->inc(4.0);
   EXPECT_DOUBLE_EQ(getMetric(counter).counter.value, 4.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a counter and incrementing sequentially
+ * @then expected result obtained
+ */
 TEST_F(CounterTest, inc_multiple) {
   auto counter = createCounter("counter4");
   counter->inc();
@@ -50,6 +70,11 @@ TEST_F(CounterTest, inc_multiple) {
   EXPECT_DOUBLE_EQ(getMetric(counter).counter.value, 7.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a counter and incrementing by negative value
+ * @then expected result obtained
+ */
 TEST_F(CounterTest, inc_negative_value) {
   auto counter = createCounter("counter5");
   counter->inc(5.0);
@@ -71,23 +96,43 @@ class GaugeTest : public ::testing::Test {
   }
 };
 
+/**
+ * @given prev registry
+ * @when putting an empty gauge
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, initialize_with_zero) {
   auto gauge = createGauge("gauge1");
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and incrementing
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, inc) {
   auto gauge = createGauge("gauge2");
   gauge->inc();
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 1.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and incrementing by value
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, inc_number) {
   auto gauge = createGauge("gauge3");
   gauge->inc(4);
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 4.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and incrementing sequentially
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, inc_multiple) {
   auto gauge = createGauge("gauge4");
   gauge->inc();
@@ -96,12 +141,22 @@ TEST_F(GaugeTest, inc_multiple) {
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 7.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and incrementing by negative value
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, inc_negative_value) {
   auto gauge = createGauge("gauge5");
   gauge->inc(-1.0);
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, -1.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and applying few operations
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, dec) {
   auto gauge = createGauge("gauge6");
   gauge->set(5.0);
@@ -109,12 +164,22 @@ TEST_F(GaugeTest, dec) {
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 4.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and decreasing by negative value
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, dec_negative_value) {
   auto gauge = createGauge("gauge7");
   gauge->dec(-1.0);
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 1.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and applying few operations
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, dec_number) {
   auto gauge = createGauge("gauge8");
   gauge->set(5.0);
@@ -122,12 +187,22 @@ TEST_F(GaugeTest, dec_number) {
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 2.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and setting a value
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, set) {
   auto gauge = createGauge("gauge9");
   gauge->set(3.0);
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 3.0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a gauge and setting few values sequentially
+ * @then expected result obtained
+ */
 TEST_F(GaugeTest, set_multiple) {
   auto gauge = createGauge("gauge10");
   gauge->set(3.0);
@@ -151,6 +226,11 @@ class HistogramTest : public ::testing::Test {
   }
 };
 
+/**
+ * @given prev registry
+ * @when putting an empty histogram
+ * @then expected result obtained
+ */
 TEST_F(HistogramTest, initialize_with_zero) {
   auto histogram = createHistogram("histogram1", {});
   auto h = getMetric(histogram).histogram;
@@ -158,6 +238,11 @@ TEST_F(HistogramTest, initialize_with_zero) {
   EXPECT_DOUBLE_EQ(h.sample_sum, 0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a histogram and obsering few values
+ * @then expected result obtained
+ */
 TEST_F(HistogramTest, sample_count) {
   auto histogram = createHistogram("histogram2", {1});
   histogram->observe(0);
@@ -166,6 +251,11 @@ TEST_F(HistogramTest, sample_count) {
   EXPECT_EQ(h.sample_count, 2U);
 }
 
+/**
+ * @given prev registry
+ * @when putting a histogram and obsering few values
+ * @then expected result obtained
+ */
 TEST_F(HistogramTest, sample_sum) {
   auto histogram = createHistogram("histogram3", {1});
   histogram->observe(0);
@@ -175,12 +265,22 @@ TEST_F(HistogramTest, sample_sum) {
   EXPECT_DOUBLE_EQ(h.sample_sum, 102);
 }
 
+/**
+ * @given prev registry
+ * @when putting a histogram and changing backets
+ * @then expected result obtained
+ */
 TEST_F(HistogramTest, bucket_size) {
   auto histogram = createHistogram("histogram4", {1, 2});
   auto h = getMetric(histogram).histogram;
   EXPECT_EQ(h.bucket.size(), 3U);
 }
 
+/**
+ * @given prev registry
+ * @when putting a histogram and changing backets
+ * @then expected correct bucket bounds
+ */
 TEST_F(HistogramTest, bucket_bounds) {
   auto histogram = createHistogram("histogram5", {1, 2});
   auto h = getMetric(histogram).histogram;
@@ -190,6 +290,11 @@ TEST_F(HistogramTest, bucket_bounds) {
                    std::numeric_limits<double>::infinity());
 }
 
+/**
+ * @given prev registry
+ * @when putting a histogram and changing backets
+ * @then expected correct cumulative count
+ */
 TEST_F(HistogramTest, bucket_counts_not_reset_by_collection) {
   auto histogram = createHistogram("histogram6", {1, 2});
   histogram->observe(1.5);
@@ -200,6 +305,11 @@ TEST_F(HistogramTest, bucket_counts_not_reset_by_collection) {
   EXPECT_EQ(h.bucket.at(1).cumulative_count, 2U);
 }
 
+/**
+ * @given prev registry
+ * @when putting a histogram and obsering few values
+ * @then expected result obtained
+ */
 TEST_F(HistogramTest, cumulative_bucket_count) {
   auto histogram = createHistogram("histogram7", {1, 2});
   histogram->observe(0);
@@ -216,6 +326,11 @@ TEST_F(HistogramTest, cumulative_bucket_count) {
   EXPECT_EQ(h.bucket.at(2).cumulative_count, 7U);
 }
 
+/**
+ * @given prev registry
+ * @when putting a histogram and observing negative value
+ * @then expected result obtained
+ */
 TEST_F(HistogramTest, sum_can_go_down) {
   auto histogram = createHistogram("histogram8", {1});
   auto histogram1 = getMetric(histogram).histogram;
@@ -243,6 +358,11 @@ class SummaryTest : public ::testing::Test {
   }
 };
 
+/**
+ * @given prev registry
+ * @when putting an empty summary
+ * @then expected result obtained
+ */
 TEST_F(SummaryTest, initialize_with_zero) {
   auto summary = createSummary("summary1", {});
   auto s = getMetric(summary).summary;
@@ -250,6 +370,11 @@ TEST_F(SummaryTest, initialize_with_zero) {
   EXPECT_DOUBLE_EQ(s.sample_sum, 0);
 }
 
+/**
+ * @given prev registry
+ * @when putting a summary and observing few variables
+ * @then expected result obtained
+ */
 TEST_F(SummaryTest, sample_count) {
   auto summary = createSummary("summary2", {{0.5, 0.05}});
   summary->observe(0);
@@ -258,6 +383,11 @@ TEST_F(SummaryTest, sample_count) {
   EXPECT_EQ(s.sample_count, 2U);
 }
 
+/**
+ * @given prev registry
+ * @when putting a summary and observing few variables
+ * @then expected result obtained
+ */
 TEST_F(SummaryTest, sample_sum) {
   auto summary = createSummary("summary3", {{0.5, 0.05}});
   summary->observe(0);
@@ -267,12 +397,22 @@ TEST_F(SummaryTest, sample_sum) {
   EXPECT_DOUBLE_EQ(s.sample_sum, 102);
 }
 
+/**
+ * @given prev registry
+ * @when putting a summary and applying 2 quantiles
+ * @then expected quantile size
+ */
 TEST_F(SummaryTest, quantile_size) {
   auto summary = createSummary("summary4", {{0.5, 0.05}, {0.90, 0.01}});
   auto s = getMetric(summary).summary;
   EXPECT_EQ(s.quantile.size(), 2U);
 }
 
+/**
+ * @given prev registry
+ * @when putting a summary and applying 3 quantiles
+ * @then expected correct quantile bounds
+ */
 TEST_F(SummaryTest, quantile_bounds) {
   auto summary =
       createSummary("summary5", {{0.5, 0.05}, {0.90, 0.01}, {0.99, 0.001}});
@@ -283,6 +423,11 @@ TEST_F(SummaryTest, quantile_bounds) {
   EXPECT_DOUBLE_EQ(s.quantile.at(2).quantile, 0.99);
 }
 
+/**
+ * @given prev registry
+ * @when putting a summary and applying 3 quantiles
+ * @then expected correct quantile values
+ */
 TEST_F(SummaryTest, quantile_values) {
   static const int SAMPLES = 10000;
 
@@ -298,6 +443,11 @@ TEST_F(SummaryTest, quantile_values) {
   EXPECT_NEAR(s.quantile.at(2).value, 0.99 * SAMPLES, 0.001 * SAMPLES);
 }
 
+/**
+ * @given prev registry
+ * @when putting a summary and sleeping few times
+ * @then expected correct summary values in time
+ */
 TEST_F(SummaryTest, max_age) {
   auto summary =
       createSummary("summary7", {{0.99, 0.001}}, std::chrono::milliseconds(80), 2);

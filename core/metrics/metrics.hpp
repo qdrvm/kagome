@@ -8,7 +8,8 @@
 
 #include <memory>
 #include <vector>
-#include "registry.hpp"
+
+#include "metrics/registry.hpp"
 
 namespace kagome::metrics {
   using RegistryPtr = std::unique_ptr<Registry>;

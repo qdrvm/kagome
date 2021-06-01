@@ -7,6 +7,7 @@
 #define KAGOME_CORE_METRICS_IMPL_EXPOSER_IMPL_HPP
 
 #include <thread>
+
 #include "application/app_state_manager.hpp"
 #include "log/logger.hpp"
 #include "metrics/exposer.hpp"

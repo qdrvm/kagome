@@ -6,17 +6,18 @@
 #ifndef KAGOME_CORE_METRICS_IMPL_PROMETHEUS_REGISTRY_IMPL_HPP
 #define KAGOME_CORE_METRICS_IMPL_PROMETHEUS_REGISTRY_IMPL_HPP
 
+#include <forward_list>
+#include <functional>
+#include <memory>
+#include <tuple>
+#include <type_traits>
+
 #include <prometheus/counter.h>
 #include <prometheus/family.h>
 #include <prometheus/gauge.h>
 #include <prometheus/histogram.h>
 #include <prometheus/registry.h>
 #include <prometheus/summary.h>
-#include <forward_list>
-#include <functional>
-#include <memory>
-#include <tuple>
-#include <type_traits>
 #include "metrics_impl.hpp"
 
 namespace kagome::metrics {
