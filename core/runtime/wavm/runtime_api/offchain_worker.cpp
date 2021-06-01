@@ -15,7 +15,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<void> WavmOffchainWorker::offchain_worker(
-      BlockNumber bn) override {
+      BlockNumber bn) {
     // TODO(Harrm): Perhaps should be invoked on a state of block bn
     return executor_->callAtLatest<void>("OffchainWorker_offchain_worker", bn);
   }
