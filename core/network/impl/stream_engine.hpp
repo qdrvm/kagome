@@ -374,7 +374,7 @@ namespace kagome::network {
                       const std::shared_ptr<ProtocolBase> &protocol,
                       std::shared_ptr<T> msg) {
       protocol->newOutgoingStream(
-          PeerInfo{.id = peer_id, .addresses{}},
+          PeerInfo{.id = peer_id},
           [wp = weak_from_this(), protocol, peer_id, msg = std::move(msg)](
               auto &&stream_res) mutable {
             auto self = wp.lock();

@@ -36,6 +36,7 @@ jobs:
     - name: build
       env:
         DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
+        LLVM_DIR: /usr/local/llvm-9/lib/cmake/llvm/
       run: ./housekeeping/make_build.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
