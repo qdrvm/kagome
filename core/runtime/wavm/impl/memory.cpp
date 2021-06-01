@@ -160,21 +160,6 @@ namespace kagome::runtime::wavm {
     return ptr;
   }
 
-  WasmPointer Memory::findContaining(WasmSize size) {
-    auto min_value = std::numeric_limits<WasmPointer>::max();
-    WasmPointer min_key = 0;
-    for (const auto &[key, value] : deallocated_) {
-      if (min_value <= 0) {
-        return 0;
-      }
-      if (value < static_cast<uint32_t>(min_value) and value >= size) {
-        min_value = value;
-        min_key = key;
-      }
-    }
-    return min_key;
-  }
-
   WasmPointer Memory::growAlloc(WasmSize size) {
     // check that we do not exceed max memory size
     if (kMaxMemorySize - offset_ < size) {

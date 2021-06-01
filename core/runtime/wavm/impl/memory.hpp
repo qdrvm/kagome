@@ -29,7 +29,6 @@ namespace kagome::runtime::wavm {
     constexpr static uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
     constexpr static uint8_t kAlignment = sizeof(size_t);
-    ;
 
     void setHeapBase(WasmSize heap_base);
 
