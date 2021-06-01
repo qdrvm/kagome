@@ -11,39 +11,23 @@
 
 namespace kagome::runtime::wavm {
 
+  class Executor;
+
   class WavmParachainHost final: public ParachainHost {
    public:
-    WavmParachainHost(std::shared_ptr<Executor> executor)
-    : executor_{std::move(executor)} {
-      BOOST_ASSERT(executor_);
-    }
+    WavmParachainHost(std::shared_ptr<Executor> executor);
 
-    outcome::result<DutyRoster> duty_roster() override {
-      return executor_->callAtLatest<DutyRoster>(
-          "ParachainHost_duty_roster");
-    }
+    outcome::result<DutyRoster> duty_roster() override;
 
-    outcome::result<std::vector<ParachainId>> active_parachains() override {
-      return executor_->callAtLatest<std::vector<ParachainId>>(
-          "ParachainHost_active_parachains");
-    }
+    outcome::result<std::vector<ParachainId>> active_parachains() override;
 
     outcome::result<boost::optional<Buffer>> parachain_head(
-        ParachainId id) override {
-      return executor_->callAtLatest<boost::optional<Buffer>>(
-          "ParachainHost_parachain_head", id);
-    }
+        ParachainId id) override;
 
     outcome::result<boost::optional<kagome::common::Buffer>>
-    parachain_code(ParachainId id) override {
-      return executor_->callAtLatest<boost::optional<kagome::common::Buffer>>(
-          "ParachainHost_parachain_code", id);
-    }
+    parachain_code(ParachainId id) override;
 
-    outcome::result<std::vector<ValidatorId>> validators() override {
-      return executor_->callAtLatest<std::vector<ValidatorId>>(
-          "ParachainHost_validators");
-    }
+    outcome::result<std::vector<ValidatorId>> validators() override;
 
    private:
     std::shared_ptr<Executor> executor_;

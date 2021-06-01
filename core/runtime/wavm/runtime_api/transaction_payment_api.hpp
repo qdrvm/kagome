@@ -7,28 +7,22 @@
 #define KAGOME_RUNTIME_WAVM_TRANSACTION_PAYMENT_API_HPP
 
 #include "runtime/transaction_payment_api.hpp"
-#include "runtime/wavm/executor.hpp"
 
 namespace kagome::runtime::wavm {
 
-  class WavmTransactionPaymentApi final: public TransactionPaymentApi {
+  class Executor;
+
+  class WavmTransactionPaymentApi final : public TransactionPaymentApi {
    public:
-    WavmTransactionPaymentApi(std::shared_ptr<Executor> executor)
-    : executor_{std::move(executor)} {
-      BOOST_ASSERT(executor_);
-    }
+    WavmTransactionPaymentApi(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::RuntimeDispatchInfo> query_info(
-        const primitives::Extrinsic &ext, uint32_t len) override {
-      return executor_->callAtLatest<primitives::RuntimeDispatchInfo>(
-          "TransactionPaymentApi_query_info", ext, len);
-    }
+        const primitives::Extrinsic &ext, uint32_t len) override;
 
    private:
     std::shared_ptr<Executor> executor_;
-
   };
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::wavm
 
 #endif  // KAGOME_TRANSACTION_PAYMENT_API_HPP

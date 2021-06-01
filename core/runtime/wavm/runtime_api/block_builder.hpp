@@ -7,45 +7,28 @@
 #define KAGOME_RUNTIME_WAVM_BLOCK_BUILDER_HPP
 
 #include "runtime/block_builder.hpp"
-#include "runtime/wavm/executor.hpp"
 
 namespace kagome::runtime::wavm {
 
+  class Executor;
+
   class WavmBlockBuilder final: public BlockBuilder {
    public:
-    WavmBlockBuilder(std::shared_ptr<Executor> executor)
-        : executor_{std::move(executor)} {
-      BOOST_ASSERT(executor_);
-    }
+    WavmBlockBuilder(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::ApplyResult> apply_extrinsic(
-        const primitives::Extrinsic &extrinsic) override {
-      return executor_->persistentCallAtLatest<primitives::ApplyResult>(
-          "BlockBuilder_apply_extrinsic", extrinsic);
-    }
+        const primitives::Extrinsic &extrinsic) override;
 
-    outcome::result<primitives::BlockHeader> finalise_block() override {
-      return executor_->persistentCallAtLatest<primitives::BlockHeader>(
-          "BlockBuilder_finalise_block");
-    }
+    outcome::result<primitives::BlockHeader> finalise_block() override;
 
     outcome::result<std::vector<primitives::Extrinsic>>
-    inherent_extrinsics(const primitives::InherentData &data) override {
-      return executor_->callAtLatest<std::vector<primitives::Extrinsic>>(
-          "BlockBuilder_inherent_extrinsics", data);
-    }
+    inherent_extrinsics(const primitives::InherentData &data) override;
 
     outcome::result<primitives::CheckInherentsResult> check_inherents(
         const primitives::Block &block,
-        const primitives::InherentData &data) override {
-      return executor_->callAtLatest<primitives::CheckInherentsResult>(
-          "BlockBuilder_check_inherents", block, data);
-    }
+        const primitives::InherentData &data) override;
 
-    outcome::result<common::Hash256> random_seed() override {
-      return executor_->callAtLatest<common::Hash256>(
-          "BlockBuilder_random_seed");
-    }
+    outcome::result<common::Hash256> random_seed() override;
 
    private:
     std::shared_ptr<Executor> executor_;

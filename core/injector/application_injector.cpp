@@ -98,6 +98,7 @@
 #include "runtime/wavm/runtime_api/parachain_host.hpp"
 #include "runtime/wavm/runtime_api/tagged_transaction_queue.hpp"
 #include "runtime/wavm/runtime_api/transaction_payment_api.hpp"
+#include "runtime/wavm/executor.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
