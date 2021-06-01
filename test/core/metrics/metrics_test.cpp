@@ -464,8 +464,8 @@ TEST_F(SummaryTest, MaxAge) {
   };
 
   test_value(8.0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(60));
+  std::this_thread::sleep_for(std::chrono::milliseconds(30));
   test_value(8.0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(60));
+  std::this_thread::sleep_for(std::chrono::milliseconds(90));
   test_value(std::numeric_limits<double>::quiet_NaN());
 }
