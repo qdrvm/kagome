@@ -447,6 +447,7 @@ TEST_F(SummaryTest, QuantileValues) {
  * @given prev registry
  * @when putting a summary and sleeping few times
  * @then expected correct summary values in time
+ * @note problematic test if continues to fail on macos consider removing/rewriting
  */
 TEST_F(SummaryTest, MaxAge) {
   auto summary =
@@ -464,8 +465,8 @@ TEST_F(SummaryTest, MaxAge) {
   };
 
   test_value(8.0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
   test_value(8.0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(90));
+  std::this_thread::sleep_for(std::chrono::milliseconds(110));
   test_value(std::numeric_limits<double>::quiet_NaN());
 }
