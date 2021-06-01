@@ -13,6 +13,9 @@
 
 namespace kagome::metrics {
 
+  /**
+   * @brief session interface for OpenMetrics service
+   */
   class Session {
    public:
     using Body = boost::beast::http::string_body;
@@ -46,14 +49,23 @@ namespace kagome::metrics {
 
     virtual SessionId id() const = 0;
 
+    /**
+     * @brief connects `on request` callback
+     */
     void connectOnRequest(std::function<OnRequestSignature> callback) {
       on_request_ = std::move(callback);
     }
 
+    /**
+     * @brief process request message
+     */
     void processRequest(Request request, std::shared_ptr<Session> session) {
       on_request_(request, std::move(session));
     }
 
+    /**
+     * @brief send response message
+     */
     virtual void respond(Response message) = 0;
   };
 

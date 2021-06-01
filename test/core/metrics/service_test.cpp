@@ -89,7 +89,7 @@ class HttpClient {
  * @when adding simple metrics
  * @then get expected response from service endpoint
  */
-TEST(ServiceTest, create_metrics_exposer) {
+TEST(ServiceTest, CreateMetricsExposer) {
   using namespace kagome;
   namespace di = boost::di;
 
@@ -114,7 +114,7 @@ TEST(ServiceTest, create_metrics_exposer) {
       injector.template create<std::shared_ptr<application::AppStateManager>>();
   auto registry = kagome::metrics::createRegistry();
   auto handler = injector.create<std::shared_ptr<kagome::metrics::Handler>>();
-  registry->setHandler(handler.get());
+  registry->setHandler(*handler.get());
   auto exposer = injector.create<std::shared_ptr<kagome::metrics::Exposer>>();
   exposer->setHandler(handler);
 

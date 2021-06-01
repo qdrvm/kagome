@@ -18,7 +18,7 @@
 #include <prometheus/histogram.h>
 #include <prometheus/registry.h>
 #include <prometheus/summary.h>
-#include "metrics_impl.hpp"
+#include "metrics/impl/prometheus/metrics_impl.hpp"
 
 namespace kagome::metrics {
   class Handler;
@@ -114,7 +114,7 @@ namespace kagome::metrics {
    public:
     // Handler has access to internal prometheus registry and gathers metrics,
     // prepares them for sending by http
-    void setHandler(Handler *handler) override;
+    void setHandler(Handler &handler) override;
 
     void registerCounterFamily(
         const std::string &name,
@@ -156,6 +156,7 @@ namespace kagome::metrics {
         int age_buckets,
         const std::map<std::string, std::string> &labels) override;
 
+    // it is used for test purposes
     template <typename T>
     static typename MetricInfo<T>::type *internalMetric(T *metric) {
       return &dynamic_cast<typename MetricInfo<T>::dtype *>(metric)->m_;

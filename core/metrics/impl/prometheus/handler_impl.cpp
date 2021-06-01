@@ -62,9 +62,12 @@ namespace kagome::metrics {
     return body.size();
   }
 
-  void PrometheusHandler::registerCollectable(Registry *registry) {
-    registerCollectable(
-        dynamic_cast<PrometheusRegistry *>(registry)->registry());
+  // it is called once on init
+  void PrometheusHandler::registerCollectable(Registry &registry) {
+    auto *pregistry = dynamic_cast<PrometheusRegistry *>(&registry);
+    if (pregistry) {
+      registerCollectable(pregistry->registry());
+    }
   }
 
   void PrometheusHandler::registerCollectable(

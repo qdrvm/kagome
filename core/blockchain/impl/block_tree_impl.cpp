@@ -29,7 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
   return "unknown error";
 }
 
-constexpr const char *KAGOME_BLOCK_HEIGHT = "substrate_block_height";
+constexpr char *kBlockHeightGaugeName = "kagome_block_height";
 
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
@@ -382,13 +382,13 @@ namespace kagome::blockchain {
     BOOST_ASSERT(babe_configuration_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
     // initialize metrics
-    registry_->registerGaugeFamily(KAGOME_BLOCK_HEIGHT,
+    registry_->registerGaugeFamily(kBlockHeightGaugeName,
                                      "Block height info of the chain");
-    block_height_best_ = registry_->registerGaugeMetric(KAGOME_BLOCK_HEIGHT,
+    block_height_best_ = registry_->registerGaugeMetric(kBlockHeightGaugeName,
                                                           {{"status", "best"}});
     block_height_best_->set(tree_meta_->deepest_leaf.get().depth);
     block_height_finalized_ = registry_->registerGaugeMetric(
-        KAGOME_BLOCK_HEIGHT, {{"status", "finalized"}});
+        kBlockHeightGaugeName, {{"status", "finalized"}});
     block_height_finalized_->set(tree_meta_->last_finalized.get().depth);
   }
 

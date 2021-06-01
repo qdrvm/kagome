@@ -14,8 +14,8 @@ namespace kagome::metrics {
     return std::make_unique<PrometheusRegistry>();
   }
 
-  void PrometheusRegistry::setHandler(Handler *handler) {
-    handler->registerCollectable(this);
+  void PrometheusRegistry::setHandler(Handler &handler) {
+    handler.registerCollectable(*this);
   }
 
   void PrometheusRegistry::registerCounterFamily(

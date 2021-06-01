@@ -1318,7 +1318,7 @@ namespace kagome::injector {
     // and registers handler in there
     auto registry = metrics::createRegistry();
     auto handler = pimpl_->injector_.create<sptr<metrics::Handler>>();
-    registry->setHandler(handler.get());
+    registry->setHandler(*handler.get());
     auto exposer = pimpl_->injector_.create<sptr<metrics::Exposer>>();
     exposer->setHandler(handler);
     return exposer;

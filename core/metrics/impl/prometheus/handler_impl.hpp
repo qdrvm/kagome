@@ -21,7 +21,7 @@ namespace kagome::metrics {
     explicit PrometheusHandler();
     ~PrometheusHandler() override = default;
 
-    void registerCollectable(Registry *registry) override;
+    void registerCollectable(Registry &registry) override;
 
     void onSessionRequest(Session::Request request,
                           std::shared_ptr<Session> session) override;

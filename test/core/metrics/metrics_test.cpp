@@ -30,7 +30,7 @@ class CounterTest : public ::testing::Test {
  * @when putting an empty counter
  * @then expected result obtained
  */
-TEST_F(CounterTest, initialize_with_zero) {
+TEST_F(CounterTest, InitializeWithZero) {
   auto counter = createCounter("counter1");
   EXPECT_DOUBLE_EQ(getMetric(counter).counter.value, 0.0);
 }
@@ -40,7 +40,7 @@ TEST_F(CounterTest, initialize_with_zero) {
  * @when putting a counter and incrementing
  * @then expected result obtained
  */
-TEST_F(CounterTest, inc) {
+TEST_F(CounterTest, Inc) {
   auto counter = createCounter("counter2");
   counter->inc();
   EXPECT_DOUBLE_EQ(getMetric(counter).counter.value, 1.0);
@@ -51,7 +51,7 @@ TEST_F(CounterTest, inc) {
  * @when putting a counter and incrementing by value
  * @then expected result obtained
  */
-TEST_F(CounterTest, inc_number) {
+TEST_F(CounterTest, IncNumber) {
   auto counter = createCounter("counter3");
   counter->inc(4.0);
   EXPECT_DOUBLE_EQ(getMetric(counter).counter.value, 4.0);
@@ -62,7 +62,7 @@ TEST_F(CounterTest, inc_number) {
  * @when putting a counter and incrementing sequentially
  * @then expected result obtained
  */
-TEST_F(CounterTest, inc_multiple) {
+TEST_F(CounterTest, IncMultiple) {
   auto counter = createCounter("counter4");
   counter->inc();
   counter->inc();
@@ -75,7 +75,7 @@ TEST_F(CounterTest, inc_multiple) {
  * @when putting a counter and incrementing by negative value
  * @then expected result obtained
  */
-TEST_F(CounterTest, inc_negative_value) {
+TEST_F(CounterTest, IncNegativeValue) {
   auto counter = createCounter("counter5");
   counter->inc(5.0);
   counter->inc(-5.0);
@@ -101,7 +101,7 @@ class GaugeTest : public ::testing::Test {
  * @when putting an empty gauge
  * @then expected result obtained
  */
-TEST_F(GaugeTest, initialize_with_zero) {
+TEST_F(GaugeTest, InitializeWithZero) {
   auto gauge = createGauge("gauge1");
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 0);
 }
@@ -111,7 +111,7 @@ TEST_F(GaugeTest, initialize_with_zero) {
  * @when putting a gauge and incrementing
  * @then expected result obtained
  */
-TEST_F(GaugeTest, inc) {
+TEST_F(GaugeTest, Inc) {
   auto gauge = createGauge("gauge2");
   gauge->inc();
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 1.0);
@@ -122,7 +122,7 @@ TEST_F(GaugeTest, inc) {
  * @when putting a gauge and incrementing by value
  * @then expected result obtained
  */
-TEST_F(GaugeTest, inc_number) {
+TEST_F(GaugeTest, IncNumber) {
   auto gauge = createGauge("gauge3");
   gauge->inc(4);
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 4.0);
@@ -133,7 +133,7 @@ TEST_F(GaugeTest, inc_number) {
  * @when putting a gauge and incrementing sequentially
  * @then expected result obtained
  */
-TEST_F(GaugeTest, inc_multiple) {
+TEST_F(GaugeTest, IncMultiple) {
   auto gauge = createGauge("gauge4");
   gauge->inc();
   gauge->inc();
@@ -146,7 +146,7 @@ TEST_F(GaugeTest, inc_multiple) {
  * @when putting a gauge and incrementing by negative value
  * @then expected result obtained
  */
-TEST_F(GaugeTest, inc_negative_value) {
+TEST_F(GaugeTest, IncNegativeValue) {
   auto gauge = createGauge("gauge5");
   gauge->inc(-1.0);
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, -1.0);
@@ -157,7 +157,7 @@ TEST_F(GaugeTest, inc_negative_value) {
  * @when putting a gauge and applying few operations
  * @then expected result obtained
  */
-TEST_F(GaugeTest, dec) {
+TEST_F(GaugeTest, Dec) {
   auto gauge = createGauge("gauge6");
   gauge->set(5.0);
   gauge->dec();
@@ -169,7 +169,7 @@ TEST_F(GaugeTest, dec) {
  * @when putting a gauge and decreasing by negative value
  * @then expected result obtained
  */
-TEST_F(GaugeTest, dec_negative_value) {
+TEST_F(GaugeTest, DecNegativeValue) {
   auto gauge = createGauge("gauge7");
   gauge->dec(-1.0);
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 1.0);
@@ -180,7 +180,7 @@ TEST_F(GaugeTest, dec_negative_value) {
  * @when putting a gauge and applying few operations
  * @then expected result obtained
  */
-TEST_F(GaugeTest, dec_number) {
+TEST_F(GaugeTest, DecNumber) {
   auto gauge = createGauge("gauge8");
   gauge->set(5.0);
   gauge->dec(3.0);
@@ -192,7 +192,7 @@ TEST_F(GaugeTest, dec_number) {
  * @when putting a gauge and setting a value
  * @then expected result obtained
  */
-TEST_F(GaugeTest, set) {
+TEST_F(GaugeTest, Set) {
   auto gauge = createGauge("gauge9");
   gauge->set(3.0);
   EXPECT_DOUBLE_EQ(getMetric(gauge).gauge.value, 3.0);
@@ -203,7 +203,7 @@ TEST_F(GaugeTest, set) {
  * @when putting a gauge and setting few values sequentially
  * @then expected result obtained
  */
-TEST_F(GaugeTest, set_multiple) {
+TEST_F(GaugeTest, SetMultiple) {
   auto gauge = createGauge("gauge10");
   gauge->set(3.0);
   gauge->set(8.0);
@@ -231,7 +231,7 @@ class HistogramTest : public ::testing::Test {
  * @when putting an empty histogram
  * @then expected result obtained
  */
-TEST_F(HistogramTest, initialize_with_zero) {
+TEST_F(HistogramTest, InitializeWithZero) {
   auto histogram = createHistogram("histogram1", {});
   auto h = getMetric(histogram).histogram;
   EXPECT_EQ(h.sample_count, 0U);
@@ -243,7 +243,7 @@ TEST_F(HistogramTest, initialize_with_zero) {
  * @when putting a histogram and obsering few values
  * @then expected result obtained
  */
-TEST_F(HistogramTest, sample_count) {
+TEST_F(HistogramTest, SampleCount) {
   auto histogram = createHistogram("histogram2", {1});
   histogram->observe(0);
   histogram->observe(200);
@@ -256,7 +256,7 @@ TEST_F(HistogramTest, sample_count) {
  * @when putting a histogram and obsering few values
  * @then expected result obtained
  */
-TEST_F(HistogramTest, sample_sum) {
+TEST_F(HistogramTest, SampleSum) {
   auto histogram = createHistogram("histogram3", {1});
   histogram->observe(0);
   histogram->observe(1);
@@ -270,7 +270,7 @@ TEST_F(HistogramTest, sample_sum) {
  * @when putting a histogram and changing backets
  * @then expected result obtained
  */
-TEST_F(HistogramTest, bucket_size) {
+TEST_F(HistogramTest, BucketSize) {
   auto histogram = createHistogram("histogram4", {1, 2});
   auto h = getMetric(histogram).histogram;
   EXPECT_EQ(h.bucket.size(), 3U);
@@ -281,7 +281,7 @@ TEST_F(HistogramTest, bucket_size) {
  * @when putting a histogram and changing backets
  * @then expected correct bucket bounds
  */
-TEST_F(HistogramTest, bucket_bounds) {
+TEST_F(HistogramTest, BucketBounds) {
   auto histogram = createHistogram("histogram5", {1, 2});
   auto h = getMetric(histogram).histogram;
   EXPECT_DOUBLE_EQ(h.bucket.at(0).upper_bound, 1);
@@ -295,7 +295,7 @@ TEST_F(HistogramTest, bucket_bounds) {
  * @when putting a histogram and changing backets
  * @then expected correct cumulative count
  */
-TEST_F(HistogramTest, bucket_counts_not_reset_by_collection) {
+TEST_F(HistogramTest, BucketCountsNotResetByCollection) {
   auto histogram = createHistogram("histogram6", {1, 2});
   histogram->observe(1.5);
   getMetric(histogram);
@@ -310,7 +310,7 @@ TEST_F(HistogramTest, bucket_counts_not_reset_by_collection) {
  * @when putting a histogram and obsering few values
  * @then expected result obtained
  */
-TEST_F(HistogramTest, cumulative_bucket_count) {
+TEST_F(HistogramTest, CumulativeBucketCount) {
   auto histogram = createHistogram("histogram7", {1, 2});
   histogram->observe(0);
   histogram->observe(0.5);
@@ -331,7 +331,7 @@ TEST_F(HistogramTest, cumulative_bucket_count) {
  * @when putting a histogram and observing negative value
  * @then expected result obtained
  */
-TEST_F(HistogramTest, sum_can_go_down) {
+TEST_F(HistogramTest, SumCanGoDown) {
   auto histogram = createHistogram("histogram8", {1});
   auto histogram1 = getMetric(histogram).histogram;
   histogram->observe(-10);
@@ -363,7 +363,7 @@ class SummaryTest : public ::testing::Test {
  * @when putting an empty summary
  * @then expected result obtained
  */
-TEST_F(SummaryTest, initialize_with_zero) {
+TEST_F(SummaryTest, InitializeWithZero) {
   auto summary = createSummary("summary1", {});
   auto s = getMetric(summary).summary;
   EXPECT_EQ(s.sample_count, 0U);
@@ -375,7 +375,7 @@ TEST_F(SummaryTest, initialize_with_zero) {
  * @when putting a summary and observing few variables
  * @then expected result obtained
  */
-TEST_F(SummaryTest, sample_count) {
+TEST_F(SummaryTest, SampleCount) {
   auto summary = createSummary("summary2", {{0.5, 0.05}});
   summary->observe(0);
   summary->observe(200);
@@ -388,7 +388,7 @@ TEST_F(SummaryTest, sample_count) {
  * @when putting a summary and observing few variables
  * @then expected result obtained
  */
-TEST_F(SummaryTest, sample_sum) {
+TEST_F(SummaryTest, SampleSum) {
   auto summary = createSummary("summary3", {{0.5, 0.05}});
   summary->observe(0);
   summary->observe(1);
@@ -402,7 +402,7 @@ TEST_F(SummaryTest, sample_sum) {
  * @when putting a summary and applying 2 quantiles
  * @then expected quantile size
  */
-TEST_F(SummaryTest, quantile_size) {
+TEST_F(SummaryTest, QuantileSize) {
   auto summary = createSummary("summary4", {{0.5, 0.05}, {0.90, 0.01}});
   auto s = getMetric(summary).summary;
   EXPECT_EQ(s.quantile.size(), 2U);
@@ -413,7 +413,7 @@ TEST_F(SummaryTest, quantile_size) {
  * @when putting a summary and applying 3 quantiles
  * @then expected correct quantile bounds
  */
-TEST_F(SummaryTest, quantile_bounds) {
+TEST_F(SummaryTest, QuantileBounds) {
   auto summary =
       createSummary("summary5", {{0.5, 0.05}, {0.90, 0.01}, {0.99, 0.001}});
   auto s = getMetric(summary).summary;
@@ -428,7 +428,7 @@ TEST_F(SummaryTest, quantile_bounds) {
  * @when putting a summary and applying 3 quantiles
  * @then expected correct quantile values
  */
-TEST_F(SummaryTest, quantile_values) {
+TEST_F(SummaryTest, QuantileValues) {
   static const int SAMPLES = 10000;
 
   auto summary =
@@ -448,7 +448,7 @@ TEST_F(SummaryTest, quantile_values) {
  * @when putting a summary and sleeping few times
  * @then expected correct summary values in time
  */
-TEST_F(SummaryTest, max_age) {
+TEST_F(SummaryTest, MaxAge) {
   auto summary =
       createSummary("summary7", {{0.99, 0.001}}, std::chrono::milliseconds(80), 2);
   summary->observe(8.0);

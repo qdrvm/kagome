@@ -26,10 +26,10 @@ namespace kagome::metrics {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
-      logger_->critical("Failed to prepare a listener: {}", exception.what());
+      SL_CRITICAL(logger_, "Failed to prepare a listener: {}", exception.what());
       return false;
     } catch (const std::exception &exception) {
-      logger_->critical("Exception when preparing a listener: {}",
+      SL_CRITICAL(logger_, "Exception when preparing a listener: {}",
                         exception.what());
       return false;
     }
