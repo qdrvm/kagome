@@ -29,7 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
   return "unknown error";
 }
 
-constexpr char *kBlockHeightGaugeName = "kagome_block_height";
+constexpr const char *kBlockHeightGaugeName = "kagome_block_height";
 
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
