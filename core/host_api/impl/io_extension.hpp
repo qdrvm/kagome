@@ -37,6 +37,11 @@ namespace kagome::host_api {
                                    runtime::WasmSpan message);
 
     /**
+     * @see Extension::ext_logging_max_level_version_1
+     */
+    runtime::WasmEnum ext_logging_max_level_version_1();
+
+    /**
      * @see Extension::ext_print_num
      */
     void ext_print_num(uint64_t value);

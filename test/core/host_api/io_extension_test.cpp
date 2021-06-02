@@ -86,6 +86,17 @@ TEST_F(IOExtensionTest, PrintMessage) {
 
 /**
  * @given io_extension
+ * @when try to get max log level
+ * @then log level returned
+ * @note somehow HostApi log level is OFF
+ */
+TEST_F(IOExtensionTest, GetMaxLogLevel) {
+  auto res = io_extension_->ext_logging_max_level_version_1();
+  ASSERT_EQ(res, static_cast<WasmEnum>(WasmLogLevel::WasmLL_Error));
+}
+
+/**
+ * @given io_extension
  * @when try to some number using ext_print_num from io_extension
  * @then given number is printed
  */
