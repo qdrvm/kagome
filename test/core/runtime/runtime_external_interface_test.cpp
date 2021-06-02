@@ -196,6 +196,7 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2)))\n"
       "  (import \"env\" \"ext_print_hex\" (func $ext_print_hex (type 0)))\n"
       "  (import \"env\" \"ext_logging_log_version_1\" (func $ext_logging_log_version_1 (type 12)))\n"
+      "  (import \"env\" \"ext_logging_max_level_version_1\" (func $ext_logging_max_level_version_1 (type 35)))\n"
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
 
       /// version 1
@@ -500,6 +501,25 @@ TEST_F(REITest, ext_logging_log_version_1_Test) {
                                      "    )\n")
                        % ll % position.combine() % position.combine())
                           .str();
+  executeWasm(execute_code);
+}
+
+/**
+ * @given wasm runtime ext_logging_max_level_version_1
+ * @when try to get max log level
+ * @then correct log level returned once
+ */
+TEST_F(REITest, ext_logging_max_level_version_1_Test) {
+  WasmEnum expected_res = static_cast<WasmEnum>(WasmLogLevel::WasmLL_Info);
+
+  EXPECT_CALL(*host_api_, ext_logging_max_level_version_1()).WillOnce(Return(expected_res));
+  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
+                                     "      (call $ext_logging_max_level_version_1)\n"
+                                     "      (i32.const %d)\n"
+                                     "    )\n")
+                       % expected_res)
+                          .str();
+  SCOPED_TRACE("ext_logging_max_level_version_1_Test");
   executeWasm(execute_code);
 }
 

@@ -304,6 +304,11 @@ namespace kagome::host_api {
                                            runtime::WasmSpan message) = 0;
 
     /**
+     * Get host max log level
+     */
+    virtual runtime::WasmEnum ext_logging_max_level_version_1() = 0;
+
+    /**
      * Print a hex value
      * @param data - pointer to an array of bytes with hex
      * @param length of the array

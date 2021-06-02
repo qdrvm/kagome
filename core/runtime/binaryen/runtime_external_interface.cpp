@@ -44,6 +44,8 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_print_hex = "ext_print_hex";
   const static wasm::Name ext_logging_log_version_1 =
       "ext_logging_log_version_1";
+  const static wasm::Name ext_logging_max_level_version_1 =
+      "ext_logging_max_level_version_1";
   const static wasm::Name ext_print_num = "ext_print_num";
   const static wasm::Name ext_print_utf8 = "ext_print_utf8";
 
@@ -293,6 +295,12 @@ namespace kagome::runtime::binaryen {
                                              arguments.at(2).geti64());
         return wasm::Literal();
       }
+      /// ext_logging_max_level_version_1
+      if(import->base == ext_logging_max_level_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        auto res = host_api_->ext_logging_max_level_version_1();
+        return wasm::Literal(res);
+      }
       /// ext_print_num
       if (import->base == ext_print_num) {
         checkArguments(import->base.c_str(), 1, arguments.size());
@@ -343,7 +351,7 @@ namespace kagome::runtime::binaryen {
       }
 
       // ext_finish_batch_verify
-      if (import->base == ext_start_batch_verify) {
+      if (import->base == ext_finish_batch_verify) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         auto res = host_api_->ext_finish_batch_verify();
         return wasm::Literal(res);
