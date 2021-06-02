@@ -34,8 +34,10 @@ namespace {
 
   const std::string def_rpc_http_host = "0.0.0.0";
   const std::string def_rpc_ws_host = "0.0.0.0";
+  const std::string def_openmetrics_http_host = "0.0.0.0";
   const uint16_t def_rpc_http_port = 9933;
   const uint16_t def_rpc_ws_port = 9944;
+  const uint16_t def_openmetrics_http_port = 9615;
   const uint32_t def_ws_max_connections = 100;
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
@@ -78,8 +80,10 @@ namespace kagome::application {
         is_unix_slots_strategy_(def_is_unix_slots_strategy),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
+        openmetrics_http_host_(def_openmetrics_http_host),
         rpc_http_port_(def_rpc_http_port),
         rpc_ws_port_(def_rpc_ws_port),
+        openmetrics_http_port_(def_openmetrics_http_port),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
         max_ws_connections_(def_ws_max_connections) {}
@@ -212,6 +216,8 @@ namespace kagome::application {
     load_str(val, "ws-host", rpc_ws_host_);
     load_u16(val, "ws-port", rpc_ws_port_);
     load_u32(val, "ws-max-connections", max_ws_connections_);
+    load_str(val, "prometheus-host", openmetrics_http_host_);
+    load_u16(val, "prometheus-port", openmetrics_http_port_);
     load_str(val, "name", node_name_);
   }
 
@@ -365,6 +371,8 @@ namespace kagome::application {
         ("ws-host", po::value<std::string>(), "address for RPC over Websocket protocol")
         ("ws-port", po::value<uint16_t>(), "port for RPC over Websocket protocol")
         ("ws-max-connections", po::value<uint32_t>(), "maximum number of WS RPC server connections")
+        ("prometheus-host", po::value<std::string>(), "address for OpenMetrics over HTTP")
+        ("prometheus-port", po::value<uint16_t>(), "port for OpenMetrics over HTTP")
         ("max-blocks-in-response", po::value<int>(), "max block per response while syncing")
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
@@ -466,8 +474,10 @@ namespace kagome::application {
         is_already_synchronized_ = true;
         rpc_http_host_ = def_rpc_http_host;
         rpc_ws_host_ = def_rpc_ws_host;
+        openmetrics_http_host_ = def_openmetrics_http_host;
         rpc_http_port_ = def_rpc_http_port;
         rpc_ws_port_ = def_rpc_ws_port;
+        openmetrics_http_port_ = def_openmetrics_http_port;
 
         auto ma_res =
             libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
@@ -655,11 +665,17 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "ws-host", [&](std::string const &val) { rpc_ws_host_ = val; });
 
+    find_argument<std::string>(
+        vm, "prometheus-host", [&](std::string const &val) { openmetrics_http_host_ = val; });
+
     find_argument<uint16_t>(
         vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
 
     find_argument<uint16_t>(
         vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
+
+    find_argument<uint16_t>(
+        vm, "prometheus-port", [&](uint16_t val) { openmetrics_http_port_ = val; });
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
@@ -667,6 +683,7 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
+    openmetrics_http_endpoint_ = get_endpoint_from(openmetrics_http_host_, openmetrics_http_port_);
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });

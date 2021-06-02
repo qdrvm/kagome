@@ -108,6 +108,11 @@ namespace kagome::application {
     virtual const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const = 0;
 
     /**
+     * @return endpoint for OpenMetrics over HTTP protocol.
+     */
+    virtual const boost::asio::ip::tcp::endpoint &openmetricsHttpEndpoint() const = 0;
+
+    /**
      * @return maximum number of WS RPC connections
      */
     virtual uint32_t maxWsConnections() const = 0;

@@ -69,6 +69,9 @@
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "metrics/impl/exposer_impl.hpp"
+#include "metrics/impl/prometheus/handler_impl.hpp"
+#include "metrics/metrics.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
@@ -771,7 +774,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -871,6 +874,19 @@ namespace {
           return get_jrpc_api_ws_listener(
               app_config, config, context, app_state_manager);
         }),
+        // starting metrics interfaces
+        di::bind<metrics::Handler>.template to<metrics::PrometheusHandler>(),
+        di::bind<metrics::Exposer>.template to<metrics::ExposerImpl>(),
+        di::bind<metrics::Exposer::Configuration>.to([](const auto &injector) {
+          return metrics::Exposer::Configuration{
+              injector.template create<application::AppConfiguration const &>()
+                  .openmetricsHttpEndpoint()};
+        }),
+        // hardfix for Mac clang
+        di::bind<metrics::Session::Configuration>.to([](const auto &injector) {
+          return metrics::Session::Configuration{};
+        }),
+        // ending metrics interfaces
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
@@ -1239,7 +1255,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -1295,6 +1311,17 @@ namespace kagome::injector {
 
   sptr<boost::asio::io_context> KagomeNodeInjector::injectIoContext() {
     return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
+  }
+
+  sptr<metrics::Exposer> KagomeNodeInjector::injectOpenMetricsService() {
+    // registry here is temporary, it initiates static global registry
+    // and registers handler in there
+    auto registry = metrics::createRegistry();
+    auto handler = pimpl_->injector_.create<sptr<metrics::Handler>>();
+    registry->setHandler(*handler.get());
+    auto exposer = pimpl_->injector_.create<sptr<metrics::Exposer>>();
+    exposer->setHandler(handler);
+    return exposer;
   }
 
   sptr<network::Router> KagomeNodeInjector::injectRouter() {

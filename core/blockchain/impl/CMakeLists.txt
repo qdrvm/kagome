@@ -32,4 +32,5 @@ target_link_libraries(block_tree
     blockchain_common
     leveldb
     hasher
+    metrics
     )
