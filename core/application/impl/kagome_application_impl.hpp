@@ -40,6 +40,7 @@ namespace kagome::application {
     sptr<clock::SystemClock> clock_;
     sptr<consensus::babe::Babe> babe_;
     sptr<consensus::grandpa::Grandpa> grandpa_;
+    sptr<metrics::Exposer> exposer_;
     sptr<network::Router> router_;
     sptr<network::PeerManager> peer_manager_;
     sptr<api::ApiService> jrpc_api_service_;

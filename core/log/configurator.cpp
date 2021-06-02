@@ -59,6 +59,7 @@ groups:
                 level: info
               - name: extentions
               - name: binatien
+          - name: metrics
           - name: network
           - name: changes_trie
           - name: storage
