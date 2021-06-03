@@ -53,9 +53,7 @@ namespace kagome::runtime::wavm {
     std::unordered_map<common::Hash256, std::shared_ptr<Module>> modules_;
     std::unordered_map<common::Hash256, std::shared_ptr<ModuleInstance>>
         instances_;
-    // TODO(Harrm) as it's not a GCPointer, might want to cleanup it in
-    // destructor
-    WAVM::Runtime::Compartment *compartment_;
+    GCPointer<WAVM::Runtime::Compartment> compartment_;
     std::shared_ptr<IntrinsicResolver> resolver_;
     std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
