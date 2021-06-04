@@ -6,7 +6,7 @@
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "core/runtime/runtime_test.hpp"
+#include "runtime/runtime_test.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"

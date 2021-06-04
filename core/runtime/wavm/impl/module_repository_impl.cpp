@@ -11,6 +11,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASM/WASM.h>
 
+#include "runtime/wavm/intrinsic_resolver.hpp"
 #include "crutch.hpp"
 #include "gc_compartment.hpp"
 
@@ -19,7 +20,7 @@ namespace kagome::runtime::wavm {
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<IntrinsicResolver> resolver)
-      : compartment_{getCompartment()},
+      : compartment_{resolver->getCompartment()},
         resolver_{std::move(resolver)},
         hasher_{std::move(hasher)},
         logger_{log::createLogger(

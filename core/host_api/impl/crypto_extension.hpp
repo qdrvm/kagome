@@ -13,7 +13,7 @@
 #include "crypto/bip39/bip39_types.hpp"
 #include "crypto/crypto_store.hpp"
 #include "log/logger.hpp"
-#include "runtime/wavm/impl/memory.hpp"
+#include "runtime/types.hpp"
 
 namespace kagome::crypto {
   class Sr25519Provider;
@@ -23,6 +23,10 @@ namespace kagome::crypto {
   class Bip39Provider;
   class CryptoStore;
 }  // namespace kagome::crypto
+
+namespace kagome::runtime {
+  class Memory;
+}
 
 namespace kagome::host_api {
   /**

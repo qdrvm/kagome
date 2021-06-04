@@ -5,13 +5,15 @@
 
 #include <gtest/gtest.h>
 
-#include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/wavm/impl/memory.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-using kagome::runtime::binaryen::kDefaultHeapBase;
-using kagome::runtime::binaryen::kInitialMemorySize;
-using kagome::runtime::binaryen::roundUpAlign;
-using kagome::runtime::binaryen::WasmMemoryImpl;
+using kagome::runtime::wavm::kDefaultHeapBase;
+using kagome::runtime::wavm::kInitialMemorySize;
+using kagome::runtime::wavm::Memory;
+using kagome::math::roundUp;
+
+constexpr auto kAlignment = Memory::kAlignment;
 
 class MemoryHeapTest : public ::testing::Test {
  protected:
@@ -19,14 +21,13 @@ class MemoryHeapTest : public ::testing::Test {
     testutil::prepareLoggers();
   }
 
+  void SetUp() override {
+    memory_ =
+  }
+
   const static uint32_t memory_size_ = kInitialMemorySize;
 
-  static wasm::ShellExternalInterface::Memory *getNewShellExternalInterface() {
-    static std::unique_ptr<wasm::ShellExternalInterface::Memory> interface_;
-    interface_ = std::make_unique<wasm::ShellExternalInterface::Memory>();
-    return interface_.get();
-  }
-  WasmMemoryImpl memory_{getNewShellExternalInterface()};
+  Memory memory_{};
 };
 
 /**
@@ -65,7 +66,7 @@ TEST_F(MemoryHeapTest, AllocatedTooBigMemoryFailed) {
 
   // The memory size that can be allocated is within interval (0, kMaxMemorySize
   // - memory_size_]. Trying to allocate more
-  auto big_memory_size = WasmMemoryImpl::kMaxMemorySize - memory_size_ + 1;
+  auto big_memory_size = Memory::kMaxMemorySize - memory_size_ + 1;
   ASSERT_EQ(memory_.allocate(big_memory_size), 0);
 }
 
@@ -172,7 +173,7 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
   auto ptr3 = memory_.allocate(size1 + 1);
 
   // memory is allocated on mem offset (aligned by 4)
-  ASSERT_EQ(ptr3, kagome::runtime::binaryen::roundUpAlign(mem_offset));
+  ASSERT_EQ(ptr3, Memory::roundUpAlign(mem_offset));
 }
 
 /**
@@ -182,19 +183,19 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
  */
 TEST_F(MemoryHeapTest, CombineDeallocatedChunks) {
   // Fill memory
-  constexpr size_t size1 = roundUpAlign(1) * 1;
+  constexpr size_t size1 = roundUp<kAlignment>(1) * 1;
   auto ptr1 = memory_.allocate(size1);
-  constexpr size_t size2 = roundUpAlign(1) * 2;
+  constexpr size_t size2 = roundUp<kAlignment>(1) * 2;
   auto ptr2 = memory_.allocate(size2);
-  constexpr size_t size3 = roundUpAlign(1) * 3;
+  constexpr size_t size3 = roundUp<kAlignment>(1) * 3;
   auto ptr3 = memory_.allocate(size3);
-  constexpr size_t size4 = roundUpAlign(1) * 4;
+  constexpr size_t size4 = roundUp<kAlignment>(1) * 4;
   auto ptr4 = memory_.allocate(size4);
-  constexpr size_t size5 = roundUpAlign(1) * 5;
+  constexpr size_t size5 = roundUp<kAlignment>(1) * 5;
   auto ptr5 = memory_.allocate(size5);
-  constexpr size_t size6 = roundUpAlign(1) * 6;
+  constexpr size_t size6 = roundUp<kAlignment>(1) * 6;
   auto ptr6 = memory_.allocate(size6);
-  constexpr size_t size7 = roundUpAlign(1) * 7;
+  constexpr size_t size7 = roundUp<kAlignment>(1) * 7;
   auto ptr7 = memory_.allocate(size7);
   // A: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]
   // D:
@@ -269,7 +270,7 @@ TEST_F(MemoryHeapTest, ResetTest) {
   memory_.reset();
   ASSERT_EQ(memory_.allocate(N), kDefaultHeapBase);
 
-  auto newHeapBase = roundUpAlign(kDefaultHeapBase + 12345);
+  auto newHeapBase = roundUp<kAlignment>(kDefaultHeapBase + 12345);
   memory_.setHeapBase(newHeapBase);
   memory_.reset();
   ASSERT_EQ(memory_.allocate(N), newHeapBase);

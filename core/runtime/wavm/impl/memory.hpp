@@ -11,14 +11,23 @@
 #include <boost/optional.hpp>
 #include <gsl/span>
 
-#include "runtime/wavm/impl/crutch.hpp"
-
 #include "common/buffer.hpp"
+#include "common/literals.hpp"
 #include "log/logger.hpp"
 #include "primitives/math.hpp"
 #include "runtime/types.hpp"
+#include "runtime/wavm/impl/crutch.hpp"
 
 namespace kagome::runtime::wavm {
+
+  inline constexpr size_t kInitialMemorySize = []() {
+    using namespace kagome::common::literals;
+    return 2_MB;
+  }();
+  inline constexpr size_t kDefaultHeapBase = []() {
+    using namespace kagome::common::literals;
+    return 1_MB;
+  }();
 
   class Memory final : public kagome::runtime::Memory {
    public:
@@ -115,7 +124,7 @@ namespace kagome::runtime::wavm {
     WasmPointer heap_base_;
     WasmPointer offset_;
     log::Logger logger_;
-    //WasmSize size_;
+    // WasmSize size_;
 
     // map containing addresses of allocated MemoryImpl chunks
     std::unordered_map<WasmPointer, WasmSize> allocated_{};
@@ -133,14 +142,6 @@ namespace kagome::runtime::wavm {
     WasmPointer freealloc(WasmSize size);
 
     /**
-     * Finds memory segment of given size among deallocated pieces of memory
-     * @param size of target memory
-     * @return address of memory of given size, or 0 if it is impossible to
-     * allocate this amount of memory
-     */
-    WasmPointer findContaining(WasmSize size);
-
-    /**
      * Resize memory and allocate memory segment of given size
      * @param size memory size to be allocated
      * @return pointer to the allocated memory @or 0 if it is impossible to
@@ -149,7 +150,7 @@ namespace kagome::runtime::wavm {
     WasmPointer growAlloc(WasmSize size);
 
     template <typename T>
-    inline T roundUpAlign(T t) {
+    static inline T roundUpAlign(T t) {
       return math::roundUp<kAlignment>(t);
     }
   };

@@ -55,18 +55,21 @@ namespace kagome::runtime::wavm {
       return std::static_pointer_cast<runtime::Memory>(memory_);
     }
 
+    WAVM::Runtime::Compartment * getCompartment() const override {
+      return compartment_;
+    }
+
     std::unique_ptr<IntrinsicResolver> clone() const override;
 
    private:
     WAVM::Intrinsics::Module* module_;
     // TODO(Harrm) cleanup
     WAVM::Runtime::Instance *module_instance_;
+    GCPointer<WAVM::Runtime::Compartment> compartment_;
     std::shared_ptr<Memory> memory_;
     std::unordered_map<std::string_view,
                        WAVM::Intrinsics::Function*>
         functions_;
-    // TODO(Harrm) cleanup
-    WAVM::Runtime::Compartment *compartment_;
   };
 
 }  // namespace kagome::runtime::wavm
