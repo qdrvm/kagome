@@ -87,6 +87,7 @@ namespace kagome::consensus::babe {
     }
 
     EpochDescriptor last_epoch_descriptor;
+    const auto now = clock_->now();
     if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
       last_epoch_descriptor = res.value();
     } else {
@@ -95,18 +96,19 @@ namespace kagome::consensus::babe {
           last_epoch_descriptor.start_slot = 0;
           break;
         case SlotsStrategy::FromUnixEpoch:
-          const auto now = clock_->now();
           auto time_since_epoch = now.time_since_epoch();
 
           auto ticks_since_epoch = time_since_epoch.count();
           last_epoch_descriptor.start_slot = static_cast<BabeSlotNumber>(
-              ticks_since_epoch / babe_configuration_->slot_duration.count());
+              ticks_since_epoch / babe_configuration_->slot_duration.count()) + 1;
           break;
       }
 
       last_epoch_descriptor.epoch_number = 0;
+
       last_epoch_descriptor.starting_slot_finish_time = closestNextTimeMultiple(
-          std::chrono::system_clock::now(), babe_configuration_->slot_duration);
+          now, babe_configuration_->slot_duration);
+
     }
 
     auto [number, hash] = block_tree_->deepestLeaf();

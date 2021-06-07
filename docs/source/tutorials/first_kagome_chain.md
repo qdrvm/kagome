@@ -74,7 +74,8 @@ kagome \
     --port 30363 \
     --rpc-port 9933 \
     --ws-port 9944 \
-    --already-synchronized
+    --already-synchronized \
+    --unix-slots
 ```
 
 Let's look at this flags in detail:
@@ -88,6 +89,7 @@ Let's look at this flags in detail:
 | `--rpc-port` | port for RPC over HTTP                            |
 | `--ws-port`   | port for RPC over Websocket protocol              |
 | `--already-synchronized`   | need to be set if need to be considered synchronized              |
+|  --unix-slots    | need to be set if slots are calculated from unix epoch |
 
 More flags info available by running `kagome --help`.
 
@@ -120,13 +122,13 @@ Let's query current balance of Alice's account.
 
 ```shell script
 python3 balance.py localhost:9933 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-# Current free balance: 999998897.549684  
+# Current free balance: 10000.0  
 ```
 
 Let's do the same for the Bob's account.
 ```shell script
 python3 balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
-# Current free balance: 999998901.0  
+# Current free balance: 10000.0  
 ```
 
 #### Send extrinsic
@@ -138,7 +140,7 @@ This command will create extrinsic that transfers 1000 from Alice to Bob's accou
 To send extrinsic use `transfer.py` script as follows:
 ```shell script
 python3 transfer.py localhost:9933 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty 1
-# Extrinsic submitted. Response:  {'jsonrpc': '2.0', 'id': 1, 'result': [39, 212, 157, 212, 66, 199, 109, 255, 180, 146, 47, 243, 118, 221, 233, 172, 35, 201, 157, 96, 248, 24, 22, 14, 230, 108, 217, 211, 29, 216, 65, 255]} 
+Extrinsic '0x315060176633a3e20656bd15c6eceff63b9f8bdc45595dc8ad52a02ae38d1708' sent
 ```
 
 #### Query again the balances
@@ -149,14 +151,14 @@ Get the balance of Bob's account:
 
 ```shell script
 python3 balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
-# Current free balance: 999998902.0  
+# Current free balance: 10001.0  
 ```
 We can see that Bob's balance was increased by 1 as it was set on the subkey command
 
 Now let's check Alice's account:
 ```shell script
 python3 balance.py localhost:9933 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-Current free balance: 999998895.0993682  
+Current free balance: 9999.0  
 ```
 
 We can see that Alice's account was decreased by more than 1. This is caused by the commission paid for transfer

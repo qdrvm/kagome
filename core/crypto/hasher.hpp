@@ -15,6 +15,7 @@ namespace kagome::crypto {
     using Hash64 = common::Hash64;
     using Hash128 = common::Hash128;
     using Hash256 = common::Hash256;
+    using Hash512 = common::Hash512;
 
    public:
     virtual ~Hasher() = default;
@@ -74,6 +75,13 @@ namespace kagome::crypto {
      * @return 256-bit hash value
      */
     virtual Hash256 sha2_256(gsl::span<const uint8_t> buffer) const = 0;
+
+    /**
+     * @brief blake2b_512 function calculates 64-byte blake2b hash
+     * @param buffer source value
+     * @return 512-bit hash value
+     */
+    virtual Hash512 blake2b_512(gsl::span<const uint8_t> buffer) const = 0;
   };
 }  // namespace kagome::crypto
 
