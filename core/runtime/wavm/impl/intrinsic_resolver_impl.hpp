@@ -8,6 +8,8 @@
 
 #include "runtime/wavm/intrinsic_resolver.hpp"
 
+#include <unordered_map>
+
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 
