@@ -168,6 +168,9 @@ namespace kagome::runtime::wavm {
         }
       } catch (WAVM::Runtime::Exception *e) {
         logger_->error(WAVM::Runtime::describeException(e));
+        throw;
+      } catch (...) {
+        throw;
       }
     }
 
