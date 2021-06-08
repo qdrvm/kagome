@@ -50,7 +50,7 @@ namespace kagome::runtime::wavm {
       functions_.emplace(name, func);
     }
 
-    WAVM::Runtime::Memory *getMemory() const;
+    WAVM::Runtime::Memory *getMemory() const override;
 
     WAVM::Runtime::Compartment * getCompartment() const override {
       return compartment_;

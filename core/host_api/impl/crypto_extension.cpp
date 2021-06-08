@@ -119,9 +119,6 @@ namespace kagome::host_api {
       runtime::WasmSpan data) {
     auto [addr, len] = runtime::WasmResult(data);
     const auto &buf = getMemory().loadN(addr, len);
-    if (buf[0] == 'r' && buf[1] == 'e') {
-      []{}();
-    }
     auto hash = hasher_->twox_128(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
@@ -147,7 +144,7 @@ namespace kagome::host_api {
     batch_verify_.emplace();
   }
 
-  [[nodiscard]] int32_t
+  int32_t
   CryptoExtension::ext_crypto_finish_batch_verify_version_1() {
     if (not batch_verify_.has_value()) {
       throw std::runtime_error("No batch_verify is started");
@@ -320,7 +317,7 @@ namespace kagome::host_api {
 
     auto signature_res = crypto::Ed25519Signature::fromSpan(sig_bytes);
     if (!signature_res) {
-      BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+      BOOST_UNREACHABLE_RETURN(kVerifyFail);
     }
     auto &&signature = signature_res.value();
 
@@ -328,7 +325,7 @@ namespace kagome::host_api {
         getMemory().loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE).toVector();
     auto pubkey_res = crypto::Ed25519PublicKey::fromSpan(pubkey_bytes);
     if (!pubkey_res) {
-      BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+      BOOST_UNREACHABLE_RETURN(kVerifyFail);
     }
     auto pubkey = pubkey_res.value();
 
@@ -338,12 +335,11 @@ namespace kagome::host_api {
                      pubkey = std::move(pubkey)]() mutable {
       auto self = self_weak.lock();
       if (not self) {
-        BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+        BOOST_UNREACHABLE_RETURN(kVerifyFail);
       }
 
-      auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
-      auto is_succeeded = result && result.value();
-
+      const auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
+      const auto is_succeeded = result && result.value();
       return is_succeeded ? kVerifySuccess : kVerifyFail;
     };
 
@@ -480,7 +476,7 @@ namespace kagome::host_api {
         getMemory().loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE);
     auto key_res = crypto::Sr25519PublicKey::fromSpan(pubkey_buffer);
     if (!key_res) {
-      BOOST_UNREACHABLE_RETURN(kSr25519LegacyVerifyFail)
+      BOOST_UNREACHABLE_RETURN(kVerifyFail)
     }
     auto &&key = key_res.value();
 
