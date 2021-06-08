@@ -7,21 +7,16 @@
 #define KAGOME_CORE_RUNTIME_WAVM_BABE_API_HPP
 
 #include "runtime/babe_api.hpp"
-#include "runtime/wavm/executor.hpp"
 
 namespace kagome::runtime::wavm {
 
+  class Executor;
+
   class WavmBabeApi final: public BabeApi {
    public:
-    WavmBabeApi(std::shared_ptr<Executor> executor)
-        : executor_{std::move(executor)} {
-      BOOST_ASSERT(executor_);
-    }
+    WavmBabeApi(std::shared_ptr<Executor> executor);
 
-    outcome::result<primitives::BabeConfiguration> configuration() {
-      return executor_->callAtLatest<primitives::BabeConfiguration>(
-          "BabeApi_configuration");
-    }
+    outcome::result<primitives::BabeConfiguration> configuration();
 
    private:
     std::shared_ptr<Executor> executor_;

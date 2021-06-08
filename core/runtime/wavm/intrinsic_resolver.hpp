@@ -11,7 +11,7 @@
 #include <memory>
 #include <string>
 
-#include "runtime/wasm_memory.hpp"
+#include "runtime/memory_provider.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -22,10 +22,12 @@ namespace kagome::runtime::wavm {
                          WAVM::IR::ExternType type,
                          WAVM::Runtime::Object *&outObject) = 0;
 
-    virtual std::shared_ptr<runtime::Memory> getMemory() const = 0;
+    virtual WAVM::Runtime::Memory *getMemory() const = 0;
 
     virtual std::unique_ptr<IntrinsicResolver> clone() const = 0;
+
+    virtual WAVM::Runtime::Compartment *getCompartment() const = 0;
   };
-}
+}  // namespace kagome::runtime::wavm
 
 #endif  // KAGOME_CORE_RUNTIME_WAVM_INTRINSIC_RESOLVER_HPP

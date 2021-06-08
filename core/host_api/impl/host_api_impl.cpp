@@ -17,7 +17,7 @@
 namespace kagome::host_api {
 
   HostApiImpl::HostApiImpl(
-      std::shared_ptr<runtime::Memory> memory,
+      std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<const runtime::CoreApiProvider> core_provider,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
@@ -27,26 +27,22 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
       std::shared_ptr<const crypto::Bip39Provider> bip39_provider)
-      : memory_(memory),
+      : memory_provider_(memory_provider),
         storage_provider_(std::move(storage_provider)),
         crypto_ext_{
-            std::make_shared<CryptoExtension>(memory,
+            std::make_shared<CryptoExtension>(memory_provider_,
                                               std::move(sr25519_provider),
                                               std::move(ed25519_provider),
                                               std::move(secp256k1_provider),
-                                              std::move(hasher),
+                                              hasher,
                                               std::move(crypto_store),
                                               std::move(bip39_provider))},
-        io_ext_(memory),
-        memory_ext_(memory),
-        misc_ext_{DEFAULT_CHAIN_ID, memory, std::move(core_provider)},
-        storage_ext_(storage_provider_, memory_, std::move(tracker)) {
+        io_ext_(memory_provider_),
+        memory_ext_(memory_provider_),
+        misc_ext_{DEFAULT_CHAIN_ID, hasher, memory_provider_, std::move(core_provider)},
+        storage_ext_(storage_provider_, memory_provider_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
-    BOOST_ASSERT(memory_ != nullptr);
-  }
-
-  std::shared_ptr<runtime::Memory> HostApiImpl::memory() const {
-    return memory_;
+    BOOST_ASSERT(memory_provider_ != nullptr);
   }
 
   void HostApiImpl::reset() {

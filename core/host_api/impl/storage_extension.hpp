@@ -9,9 +9,13 @@
 #include <cstdint>
 
 #include "log/logger.hpp"
-#include "runtime/trie_storage_provider.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/types.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
+
+namespace kagome::runtime {
+  class MemoryProvider;
+  class TrieStorageProvider;
+}
 
 namespace kagome::host_api {
   /**
@@ -21,7 +25,7 @@ namespace kagome::host_api {
    public:
     StorageExtension(
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-        std::shared_ptr<runtime::Memory> memory,
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
 
     void reset();
@@ -135,7 +139,7 @@ namespace kagome::host_api {
         common::Hash256 parent) const;
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
-    std::shared_ptr<runtime::Memory> memory_;
+    std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     log::Logger logger_;
 

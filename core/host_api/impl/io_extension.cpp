@@ -7,14 +7,16 @@
 
 #include <boost/assert.hpp>
 
-#include "runtime/wasm_memory.hpp"
+#include "runtime/memory.hpp"
+#include "runtime/memory_provider.hpp"
 #include "runtime/wasm_result.hpp"
 
 namespace kagome::host_api {
-  IOExtension::IOExtension(std::shared_ptr<runtime::Memory> memory)
-      : memory_(std::move(memory)),
+  IOExtension::IOExtension(
+      std::shared_ptr<const runtime::MemoryProvider> memory_provider)
+      : memory_provider_(std::move(memory_provider)),
         logger_{log::createLogger("IoExtension", "host_api")} {
-    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
+    BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
   }
 
   void IOExtension::ext_logging_log_version_1(runtime::WasmEnum level,
@@ -24,7 +26,8 @@ namespace kagome::host_api {
     using runtime::WasmResult;
 
     auto read_str_from_position = [&](WasmResult location) {
-      return memory_->loadStr(location.address, location.length);
+      return memory_provider_->getCurrentMemory().value().loadStr(
+          location.address, location.length);
     };
 
     const auto target_str = read_str_from_position(WasmResult(target));

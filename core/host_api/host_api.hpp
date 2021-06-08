@@ -26,7 +26,6 @@ namespace kagome::host_api {
    public:
     virtual ~HostApi() = default;
 
-    virtual std::shared_ptr<kagome::runtime::Memory> memory() const = 0;
     virtual void reset() = 0;
 
     // ------------------------ Storage extensions v1 ------------------------

@@ -8,12 +8,14 @@
 #include <gtest/gtest.h>
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/core_api_provider_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/runtime/memory_mock.hpp"
+#include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/runtime/wasm_memory_mock.hpp"
 #include "runtime/wavm/impl/crutch.hpp"
 #include "runtime/wavm/impl/module.hpp"
 #include "scale/scale.hpp"
@@ -21,11 +23,14 @@
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
+using kagome::crypto::HasherMock;
 using kagome::host_api::HostApiMock;
 using kagome::host_api::MiscExtension;
 using kagome::runtime::CoreApiProviderMock;
+using kagome::runtime::Memory;
+using kagome::runtime::MemoryMock;
+using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::TrieStorageProviderMock;
-using kagome::runtime::WasmMemoryMock;
 using kagome::runtime::WasmResult;
 using kagome::scale::encode;
 using testing::_;
@@ -45,10 +50,15 @@ class MiscExtensionTest : public ::testing::Test {
  * @then ext_chain_id return the chain id
  */
 TEST_F(MiscExtensionTest, Init) {
-  auto memory = std::make_shared<WasmMemoryMock>();
+  auto memory_provider = std::make_shared<MemoryProviderMock>();
+  auto memory = std::make_shared<MemoryMock>();
+  EXPECT_CALL(*memory_provider, getCurrentMemory())
+      .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
   auto core_provider = std::make_shared<CoreApiProviderMock>();
-  MiscExtension m{42, memory, core_provider};
-  MiscExtension m2{34, memory, core_provider};
+  MiscExtension m{
+      42, std::make_shared<HasherMock>(), memory_provider, core_provider};
+  MiscExtension m2{
+      34, std::make_shared<HasherMock>(), memory_provider, core_provider};
 }
 
 /**
@@ -70,11 +80,14 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   v2.authoring_version = 24;
   Buffer v2_enc{encode(boost::make_optional(encode(v2).value())).value()};
 
-  auto memory = std::make_shared<testing::NiceMock<WasmMemoryMock>>();
+  auto memory_provider = std::make_shared<MemoryProviderMock>();
+  auto memory = std::make_shared<MemoryMock>();
+  EXPECT_CALL(*memory_provider, getCurrentMemory())
+      .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
   auto core_provider = std::make_shared<CoreApiProviderMock>();
 
-  EXPECT_CALL(*core_provider, makeCoreApi(_))
-      .WillOnce(Invoke([&v1](auto &code) {
+  EXPECT_CALL(*core_provider, makeCoreApi(_, _))
+      .WillOnce(Invoke([&v1](auto &, auto &code) {
         auto core = std::make_unique<kagome::runtime::CoreMock>();
         EXPECT_CALL(*core, version(_)).WillOnce(Return(v1));
         kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
@@ -85,12 +98,13 @@ TEST_F(MiscExtensionTest, CoreVersion) {
 
   EXPECT_CALL(*memory, storeBuffer(gsl::span<const uint8_t>(v1_enc)))
       .WillOnce(Return(res1.combine()));
-  kagome::host_api::MiscExtension m{42, memory, core_provider};
+  kagome::host_api::MiscExtension m{
+      42, std::make_shared<HasherMock>(), memory_provider, core_provider};
   ASSERT_EQ(m.ext_misc_runtime_version_version_1(state_code1.combine()),
             res1.combine());
 
-  EXPECT_CALL(*core_provider, makeCoreApi(_))
-      .WillOnce(Invoke([&v2](auto &code) {
+  EXPECT_CALL(*core_provider, makeCoreApi(_, _))
+      .WillOnce(Invoke([&v2](auto &, auto &code) {
         auto core = std::make_unique<kagome::runtime::CoreMock>();
         EXPECT_CALL(*core, version(_)).WillOnce(Return(v2));
         kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
@@ -98,7 +112,8 @@ TEST_F(MiscExtensionTest, CoreVersion) {
       }));
   EXPECT_CALL(*memory, storeBuffer(gsl::span<const uint8_t>(v2_enc)))
       .WillOnce(Return(res2.combine()));
-  kagome::host_api::MiscExtension m2(34, memory, core_provider);
+  kagome::host_api::MiscExtension m2(
+      34, std::make_shared<HasherMock>(), memory_provider, core_provider);
   ASSERT_EQ(m2.ext_misc_runtime_version_version_1(state_code2.combine()),
             res2.combine());
 }

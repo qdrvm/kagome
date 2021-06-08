@@ -7,23 +7,18 @@
 #define KAGOME_RUNTIME_WAVM_TAGGED_TRANSACTION_QUEUE_HPP
 
 #include "runtime/tagged_transaction_queue.hpp"
-#include "runtime/wavm/executor.hpp"
 
 namespace kagome::runtime::wavm {
 
+  class Executor;
+
   class WavmTaggedTransactionQueue final: public TaggedTransactionQueue {
    public:
-    WavmTaggedTransactionQueue(std::shared_ptr<Executor> executor)
-    : executor_{std::move(executor)} {
-      BOOST_ASSERT(executor_);
-    }
+    WavmTaggedTransactionQueue(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::TransactionValidity>
     validate_transaction(primitives::TransactionSource source,
-                        const primitives::Extrinsic &ext) override {
-      return executor_->callAtLatest<primitives::TransactionValidity>(
-          "TaggedTransactionQueue_validate_transaction", ext);
-    }
+                        const primitives::Extrinsic &ext) override;
 
    private:
     std::shared_ptr<Executor> executor_;

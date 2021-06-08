@@ -53,6 +53,7 @@ target_link_libraries(application_injector
     wavm_block_builder_api
     wavm_tagged_transaction_queue_api
     wavm_transaction_payment_api
+    wavm_account_nonce_api
     wavm_executor
     system_api_service
     trie_storage_provider

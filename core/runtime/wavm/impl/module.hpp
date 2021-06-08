@@ -27,10 +27,6 @@ namespace kagome::runtime::wavm {
     Module(WAVM::Runtime::Compartment *compartment,
            std::shared_ptr<WAVM::Runtime::Module> module);
 
-    ~Module() {
-
-    }
-
     std::unique_ptr<ModuleInstance> instantiate(IntrinsicResolver &resolver);
 
    private:

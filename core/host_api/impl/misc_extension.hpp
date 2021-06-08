@@ -17,8 +17,12 @@
 
 namespace kagome::runtime {
   class CoreApiProvider;
-  class Memory;
+  class MemoryProvider;
 }  // namespace kagome::runtime
+
+namespace kagome::crypto {
+  class Hasher;
+}
 
 namespace kagome::host_api {
 
@@ -28,7 +32,8 @@ namespace kagome::host_api {
   class MiscExtension final {
    public:
     MiscExtension(uint64_t chain_id,
-                  std::shared_ptr<runtime::Memory> memory,
+                  std::shared_ptr<const crypto::Hasher> hasher,
+                  std::shared_ptr<const runtime::MemoryProvider> memory_provider,
                   std::shared_ptr<const runtime::CoreApiProvider> core_provider);
 
     ~MiscExtension() = default;
@@ -43,7 +48,8 @@ namespace kagome::host_api {
     void ext_misc_print_utf8_version_1(runtime::WasmSpan data) const;
 
    private:
-    std::shared_ptr<runtime::Memory> memory_;
+    std::shared_ptr<const crypto::Hasher> hasher_;
+    std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<const runtime::CoreApiProvider> core_provider_;
     log::Logger logger_;
     const uint64_t chain_id_ = 42;

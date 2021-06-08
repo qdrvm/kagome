@@ -15,7 +15,7 @@ namespace kagome::runtime::wavm {
 
   WasmResult ModuleInstance::callExportFunction(std::string_view name,
                                                 WasmResult args) {
-    WAVM::Runtime::Context *context =
+    WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
         WAVM::Runtime::createContext(compartment_);
     WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
@@ -61,8 +61,7 @@ namespace kagome::runtime::wavm {
     auto global = WAVM::Runtime::asGlobalNullable(
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
     if (global == nullptr) return boost::none;
-    // TODO(Harrm) Explore how expensive it is and maybe cache
-    WAVM::Runtime::Context *context =
+    WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
         WAVM::Runtime::createContext(compartment_);
     auto value = WAVM::Runtime::getGlobalValue(context, global);
     return value;

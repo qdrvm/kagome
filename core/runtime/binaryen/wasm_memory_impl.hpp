@@ -18,7 +18,7 @@
 #include "common/literals.hpp"
 #include "log/logger.hpp"
 #include "primitives/math.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/memory.hpp"
 
 namespace kagome::runtime::binaryen {
 

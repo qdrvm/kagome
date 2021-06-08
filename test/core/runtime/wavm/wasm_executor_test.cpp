@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/wasm_executor.hpp"
+#include "runtime/wavm/executor.hpp"
 
-#include <binaryen/shell-interface.h>
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
@@ -22,10 +21,6 @@
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
-#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
-#include "runtime/binaryen/runtime_environment_factory_impl.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -54,9 +49,6 @@ using kagome::primitives::BlockHash;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
 using kagome::runtime::TrieStorageProviderImpl;
-using kagome::runtime::binaryen::CoreFactoryImpl;
-using kagome::runtime::binaryen::RuntimeEnvironmentFactory;
-using kagome::runtime::binaryen::WasmExecutor;
 using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;

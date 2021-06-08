@@ -19,7 +19,7 @@
 #include "crypto/hasher.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/memory.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 
@@ -37,14 +37,14 @@ namespace kagome::host_api {
   using crypto::secp256k1::UncompressedPublicKey;
 
   CryptoExtension::CryptoExtension(
-      std::shared_ptr<runtime::Memory> memory,
+      std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
       std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
       std::shared_ptr<const crypto::Bip39Provider> bip39_provider)
-      : memory_(std::move(memory)),
+      : memory_provider_(std::move(memory_provider)),
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
         secp256k1_provider_(std::move(secp256k1_provider)),
@@ -52,7 +52,7 @@ namespace kagome::host_api {
         crypto_store_(std::move(crypto_store)),
         bip39_provider_(std::move(bip39_provider)),
         logger_{log::createLogger("CryptoExtension", "host_api")} {
-    BOOST_ASSERT(memory_ != nullptr);
+    BOOST_ASSERT(memory_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(secp256k1_provider_ != nullptr);
@@ -67,75 +67,72 @@ namespace kagome::host_api {
   runtime::WasmPointer CryptoExtension::ext_hashing_keccak_256_version_1(
       runtime::WasmSpan data) {
     auto [addr, len] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(addr, len);
+    const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->keccak_256(buf);
 
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
-    return memory_->storeBuffer(hash);
+    return getMemory().storeBuffer(hash);
   }
 
   runtime::WasmPointer CryptoExtension::ext_hashing_sha2_256_version_1(
       runtime::WasmSpan data) {
     auto [addr, len] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(addr, len);
+    const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->sha2_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
-    return memory_->storeBuffer(hash);
+    return getMemory().storeBuffer(hash);
   }
 
   runtime::WasmPointer CryptoExtension::ext_hashing_blake2_128_version_1(
       runtime::WasmSpan data) {
     auto [addr, len] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(addr, len);
+    const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->blake2b_128(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
-    return memory_->storeBuffer(hash);
+    return getMemory().storeBuffer(hash);
   }
 
   runtime::WasmPointer CryptoExtension::ext_hashing_blake2_256_version_1(
       runtime::WasmSpan data) {
     auto [addr, len] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(addr, len);
+    const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->blake2b_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
-    return memory_->storeBuffer(hash);
+    return getMemory().storeBuffer(hash);
   }
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_64_version_1(
       runtime::WasmSpan data) {
     auto [addr, len] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(addr, len);
+    const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->twox_64(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
-    return memory_->storeBuffer(hash);
+    return getMemory().storeBuffer(hash);
   }
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_128_version_1(
       runtime::WasmSpan data) {
     auto [addr, len] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(addr, len);
-    if (buf[0] == 'r' && buf[1] == 'e') {
-      []{}();
-    }
+    const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->twox_128(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
-    return memory_->storeBuffer(hash);
+    return getMemory().storeBuffer(hash);
   }
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_256_version_1(
       runtime::WasmSpan data) {
     auto [address, length] = runtime::WasmResult(data);
-    const auto &buf = memory_->loadN(address, length);
+    const auto &buf = getMemory().loadN(address, length);
     auto hash = hasher_->twox_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
-    return memory_->storeBuffer(hash);
+    return getMemory().storeBuffer(hash);
   }
 
   void CryptoExtension::ext_crypto_start_batch_verify_version_1() {
@@ -147,7 +144,7 @@ namespace kagome::host_api {
     batch_verify_.emplace();
   }
 
-  [[nodiscard]] int32_t
+  int32_t
   CryptoExtension::ext_crypto_finish_batch_verify_version_1() {
     if (not batch_verify_.has_value()) {
       throw std::runtime_error("No batch_verify is started");
@@ -175,7 +172,7 @@ namespace kagome::host_api {
     static const auto error_result(scale::encode(ResultType{}).value());
 
     auto key_type_id =
-        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       auto kt = crypto::decodeKeyTypeId(key_type_id);
       logger_->warn("key type '{}' is not officially supported ", kt);
@@ -191,7 +188,7 @@ namespace kagome::host_api {
     common::Buffer buffer{scale::encode(public_keys.value()).value()};
     SL_TRACE_FUNC_CALL(logger_, buffer.size(), key_type_id);
 
-    return memory_->storeBuffer(buffer);
+    return getMemory().storeBuffer(buffer);
   }
 
   common::Blob<32> CryptoExtension::deriveSeed(std::string_view content) {
@@ -237,14 +234,14 @@ namespace kagome::host_api {
   runtime::WasmPointer CryptoExtension::ext_crypto_ed25519_generate_version_1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
     auto key_type_id =
-        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
     }
 
     auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
-    auto seed_buffer = memory_->loadN(seed_ptr, seed_len);
+    auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
     auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
@@ -266,7 +263,7 @@ namespace kagome::host_api {
     }
     auto &key_pair = kp_res.value();
     SL_TRACE_FUNC_CALL(logger_, key_pair.public_key, key_type_id, seed_buffer);
-    runtime::WasmResult res_span{memory_->storeBuffer(key_pair.public_key)};
+    runtime::WasmResult res_span{getMemory().storeBuffer(key_pair.public_key)};
     return res_span.combine();
   }
 
@@ -277,15 +274,15 @@ namespace kagome::host_api {
     using ResultType = boost::optional<crypto::Ed25519Signature>;
 
     auto key_type_id =
-        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
     }
 
-    auto public_buffer = memory_->loadN(key, crypto::Ed25519PublicKey::size());
+    auto public_buffer = getMemory().loadN(key, crypto::Ed25519PublicKey::size());
     auto [msg_data, msg_len] = runtime::WasmResult(msg);
-    auto msg_buffer = memory_->loadN(msg_data, msg_len);
+    auto msg_buffer = getMemory().loadN(msg_data, msg_len);
     auto pk = crypto::Ed25519PublicKey::fromSpan(public_buffer);
     if (!pk) {
       BOOST_UNREACHABLE_RETURN({});
@@ -294,7 +291,7 @@ namespace kagome::host_api {
     if (!key_pair) {
       logger_->error("failed to find required key");
       auto error_result = scale::encode(ResultType(boost::none)).value();
-      return memory_->storeBuffer(error_result);
+      return getMemory().storeBuffer(error_result);
     }
 
     auto sign = ed25519_provider_->sign(key_pair.value(), msg_buffer);
@@ -306,7 +303,7 @@ namespace kagome::host_api {
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
     auto buffer = scale::encode(ResultType(sign.value())).value();
-    return memory_->storeBuffer(buffer);
+    return getMemory().storeBuffer(buffer);
   }
 
   runtime::WasmSize CryptoExtension::ext_crypto_ed25519_verify_version_1(
@@ -314,21 +311,21 @@ namespace kagome::host_api {
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::WasmResult(msg_span);
-    auto msg = memory_->loadN(msg_data, msg_len);
+    auto msg = getMemory().loadN(msg_data, msg_len);
     auto sig_bytes =
-        memory_->loadN(sig, ed25519_constants::SIGNATURE_SIZE).toVector();
+        getMemory().loadN(sig, ed25519_constants::SIGNATURE_SIZE).toVector();
 
     auto signature_res = crypto::Ed25519Signature::fromSpan(sig_bytes);
     if (!signature_res) {
-      BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+      BOOST_UNREACHABLE_RETURN(kVerifyFail);
     }
     auto &&signature = signature_res.value();
 
     auto pubkey_bytes =
-        memory_->loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE).toVector();
+        getMemory().loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE).toVector();
     auto pubkey_res = crypto::Ed25519PublicKey::fromSpan(pubkey_bytes);
     if (!pubkey_res) {
-      BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+      BOOST_UNREACHABLE_RETURN(kVerifyFail);
     }
     auto pubkey = pubkey_res.value();
 
@@ -338,12 +335,11 @@ namespace kagome::host_api {
                      pubkey = std::move(pubkey)]() mutable {
       auto self = self_weak.lock();
       if (not self) {
-        BOOST_UNREACHABLE_RETURN(kEd25519LegacyVerifyFail);
+        BOOST_UNREACHABLE_RETURN(kVerifyFail);
       }
 
-      auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
-      auto is_succeeded = result && result.value();
-
+      const auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
+      const auto is_succeeded = result && result.value();
       return is_succeeded ? kVerifySuccess : kVerifyFail;
     };
 
@@ -366,7 +362,7 @@ namespace kagome::host_api {
     static const auto error_result(scale::encode(ResultType{}).value());
 
     auto key_type_id =
-        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
@@ -381,20 +377,20 @@ namespace kagome::host_api {
     auto buffer = scale::encode(public_keys.value()).value();
     SL_TRACE_FUNC_CALL(logger_, public_keys.value().size(), key_type_id);
 
-    return memory_->storeBuffer(buffer);
+    return getMemory().storeBuffer(buffer);
   }
 
   runtime::WasmPointer CryptoExtension::ext_crypto_sr25519_generate_version_1(
       runtime::WasmSize key_type, runtime::WasmSpan seed) {
     auto key_type_id =
-        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
     }
 
     auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
-    auto seed_buffer = memory_->loadN(seed_ptr, seed_len);
+    auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
     auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
@@ -419,7 +415,7 @@ namespace kagome::host_api {
     SL_TRACE_FUNC_CALL(logger_, key_pair.public_key, key_type_id, seed_buffer);
 
     common::Buffer buffer(key_pair.public_key);
-    runtime::WasmSpan ps = memory_->storeBuffer(buffer);
+    runtime::WasmSpan ps = getMemory().storeBuffer(buffer);
 
     return runtime::WasmResult(ps).address;
   }
@@ -432,16 +428,16 @@ namespace kagome::host_api {
     static const auto error_result =
         scale::encode(ResultType(boost::none)).value();
     auto key_type_id =
-        static_cast<crypto::KeyTypeId>(memory_->load32u(key_type));
+        static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
 
     if (!crypto::isSupportedKeyType(key_type_id)) {
       logger_->warn("key type '{}' is not officially supported",
                     common::int_to_hex(key_type_id, 8));
     }
 
-    auto public_buffer = memory_->loadN(key, crypto::Sr25519PublicKey::size());
+    auto public_buffer = getMemory().loadN(key, crypto::Sr25519PublicKey::size());
     auto [msg_data, msg_len] = runtime::WasmResult(msg);
-    auto msg_buffer = memory_->loadN(msg_data, msg_len);
+    auto msg_buffer = getMemory().loadN(msg_data, msg_len);
     auto pk = crypto::Sr25519PublicKey::fromSpan(public_buffer);
     if (!pk) {
       // error is not possible, since we loaded correct number of bytes
@@ -451,7 +447,7 @@ namespace kagome::host_api {
     if (!key_pair) {
       logger_->error("failed to find required key: {}",
                      key_pair.error().message());
-      return memory_->storeBuffer(error_result);
+      return getMemory().storeBuffer(error_result);
     }
 
     auto sign = sr25519_provider_->sign(key_pair.value(), msg_buffer);
@@ -464,7 +460,7 @@ namespace kagome::host_api {
     SL_TRACE_FUNC_CALL(
         logger_, sign.value(), key_pair.value().public_key, msg_buffer);
     auto buffer = scale::encode(ResultType(sign.value())).value();
-    return memory_->storeBuffer(buffer);
+    return getMemory().storeBuffer(buffer);
   }
 
   int32_t CryptoExtension::ext_crypto_sr25519_verify_version_1(
@@ -472,15 +468,15 @@ namespace kagome::host_api {
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::WasmResult(msg_span);
-    auto msg = memory_->loadN(msg_data, msg_len);
+    auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature_buffer =
-        memory_->loadN(sig, sr25519_constants::SIGNATURE_SIZE);
+        getMemory().loadN(sig, sr25519_constants::SIGNATURE_SIZE);
 
     auto pubkey_buffer =
-        memory_->loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE);
+        getMemory().loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE);
     auto key_res = crypto::Sr25519PublicKey::fromSpan(pubkey_buffer);
     if (!key_res) {
-      BOOST_UNREACHABLE_RETURN(kSr25519LegacyVerifyFail)
+      BOOST_UNREACHABLE_RETURN(kVerifyFail)
     }
     auto &&key = key_res.value();
 
@@ -560,8 +556,8 @@ namespace kagome::host_api {
     constexpr auto signature_size = RSVSignature::size();
     constexpr auto message_size = MessageHash::size();
 
-    auto sig_buffer = memory_->loadN(sig, signature_size);
-    auto msg_buffer = memory_->loadN(msg, message_size);
+    auto sig_buffer = getMemory().loadN(sig, signature_size);
+    auto msg_buffer = getMemory().loadN(msg, message_size);
 
     auto signature = RSVSignature::fromSpan(sig_buffer).value();
     auto message = MessageHash::fromSpan(msg_buffer).value();
@@ -577,7 +573,7 @@ namespace kagome::host_api {
       auto error_result =
           scale::encode(static_cast<ResultType>(error_code)).value();
 
-      return memory_->storeBuffer(error_result);
+      return getMemory().storeBuffer(error_result);
     }
 
     // according to substrate implementation
@@ -589,7 +585,7 @@ namespace kagome::host_api {
         ecdsa::PublicKey::fromSpan(truncated_span).value();
     SL_TRACE_FUNC_CALL(logger_, truncated_public_key, sig_buffer, msg_buffer);
     auto buffer = scale::encode(ResultType(truncated_public_key)).value();
-    return memory_->storeBuffer(buffer);
+    return getMemory().storeBuffer(buffer);
   }
 
   runtime::WasmSpan
@@ -600,8 +596,8 @@ namespace kagome::host_api {
     constexpr auto signature_size = RSVSignature::size();
     constexpr auto message_size = MessageHash::size();
 
-    auto sig_buffer = memory_->loadN(sig, signature_size);
-    auto msg_buffer = memory_->loadN(msg, message_size);
+    auto sig_buffer = getMemory().loadN(sig, signature_size);
+    auto msg_buffer = getMemory().loadN(msg, message_size);
 
     auto signature = RSVSignature::fromSpan(sig_buffer).value();
     auto message = MessageHash::fromSpan(msg_buffer).value();
@@ -616,10 +612,10 @@ namespace kagome::host_api {
           convertFailureToError<CompressedPublicKey>(public_key.as_failure());
       auto error_result =
           scale::encode(static_cast<ResultType>(error_code)).value();
-      return memory_->storeBuffer(error_result);
+      return getMemory().storeBuffer(error_result);
     }
     SL_TRACE_FUNC_CALL(logger_, public_key.value(), sig_buffer, msg_buffer);
     auto buffer = scale::encode(ResultType(public_key.value())).value();
-    return memory_->storeBuffer(buffer);
+    return getMemory().storeBuffer(buffer);
   }
 }  // namespace kagome::host_api

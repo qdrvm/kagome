@@ -8,8 +8,9 @@
 #include <gtest/gtest.h>
 #include <scale/scale.hpp>
 
+#include "mock/core/runtime/memory_mock.hpp"
+#include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/runtime/wasm_memory_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
@@ -26,7 +27,7 @@ using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::host_api::StorageExtension;
 using kagome::runtime::TrieStorageProviderMock;
-using kagome::runtime::WasmMemoryMock;
+using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
@@ -36,6 +37,9 @@ using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using kagome::storage::trie::PolkadotTrieCursorMock;
+using kagome::runtime::MemoryMock;
+using kagome::runtime::Memory;
+using kagome::runtime::MemoryProviderMock;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -58,16 +62,20 @@ class StorageExtensionTest : public ::testing::Test {
         .WillRepeatedly(Return(boost::make_optional(
             std::static_pointer_cast<
                 kagome::storage::trie::PersistentTrieBatch>(trie_batch_))));
-    memory_ = std::make_shared<WasmMemoryMock>();
+    memory_provider_ = std::make_shared<MemoryProviderMock>();
+    memory_ = std::make_shared<MemoryMock>();
+    EXPECT_CALL(*memory_provider_, getCurrentMemory())
+        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
     changes_tracker_ = std::make_shared<ChangesTrackerMock>();
     storage_extension_ = std::make_shared<StorageExtension>(
-        storage_provider_, memory_, changes_tracker_);
+        storage_provider_, memory_provider_, changes_tracker_);
   }
 
  protected:
   std::shared_ptr<PersistentTrieBatchMock> trie_batch_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
-  std::shared_ptr<WasmMemoryMock> memory_;
+  std::shared_ptr<MemoryMock> memory_;
+  std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<StorageExtension> storage_extension_;
   std::shared_ptr<ChangesTrackerMock> changes_tracker_;
 
@@ -471,7 +479,7 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto values_enc = kagome::scale::encode(values).value();
 
   using testing::_;
-  WasmResult values_span {.address = 42, .length = static_cast<WasmSize>(values_enc.size())};
+  WasmResult values_span {42, static_cast<WasmSize>(values_enc.size())};
 
   EXPECT_CALL(*memory_, loadN(values_span.address, values_span.length))
       .WillOnce(Return(Buffer {values_enc}));

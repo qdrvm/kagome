@@ -8,11 +8,10 @@
 #include "host_api/host_api_factory.hpp"
 #include "runtime/common/constant_code_provider.hpp"
 #include "runtime/wavm/executor.hpp"
-#include "runtime/wavm/intrinsic_resolver.hpp"
-#include "runtime/wavm/module_repository.hpp"
-#include "runtime/wavm/runtime_api/core.hpp"
-
 #include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/module_repository_impl.hpp"
+#include "runtime/wavm/intrinsic_resolver.hpp"
+#include "runtime/wavm/runtime_api/core.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -38,19 +37,20 @@ namespace kagome::runtime::wavm {
   }
 
   std::unique_ptr<Core> CoreApiProvider::makeCoreApi(
+      std::shared_ptr<const crypto::Hasher> hasher,
       gsl::span<uint8_t> runtime_code) const {
-    auto new_intrinsic_resolver = intrinsic_resolver_->clone();
+    auto new_intrinsic_resolver = std::shared_ptr(intrinsic_resolver_->clone());
+    auto new_memory_provider =
+        std::make_shared<WavmMemoryProvider>(new_intrinsic_resolver);
     auto executor = std::make_shared<runtime::wavm::Executor>(
         storage_provider_,
-        new_intrinsic_resolver->getMemory(),
-        module_repo_,
+        new_memory_provider,
+        std::make_shared<ModuleRepositoryImpl>(hasher, new_intrinsic_resolver),
         block_header_repo_);
     executor->setCodeProvider(
         std::make_shared<ConstantCodeProvider>(common::Buffer{runtime_code}));
-    auto host_api = std::shared_ptr(
-        host_api_factory_->make(shared_from_this(),
-                                new_intrinsic_resolver->getMemory(),
-                                storage_provider_));
+    auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
+        shared_from_this(), new_memory_provider, storage_provider_));
     pushHostApi(host_api);
     executor->setHostApi(host_api);
     return std::make_unique<WavmCore>(

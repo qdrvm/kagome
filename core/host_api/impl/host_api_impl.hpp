@@ -15,6 +15,7 @@
 
 namespace kagome::runtime {
   class Core;
+  class MemoryProvider;
 }  // namespace kagome::runtime
 
 namespace kagome::host_api {
@@ -25,7 +26,7 @@ namespace kagome::host_api {
    public:
     HostApiImpl() = delete;
     HostApiImpl(
-        std::shared_ptr<runtime::Memory> memory,
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<const runtime::CoreApiProvider> core_provider,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
@@ -38,7 +39,6 @@ namespace kagome::host_api {
 
     ~HostApiImpl() override = default;
 
-    std::shared_ptr<runtime::Memory> memory() const override;
     void reset() override;
 
     // ------------------------ Storage extensions v1 ------------------------
@@ -172,7 +172,7 @@ namespace kagome::host_api {
    private:
     static constexpr uint64_t DEFAULT_CHAIN_ID = 42;
 
-    std::shared_ptr<runtime::Memory> memory_;
+    std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 
     std::shared_ptr<CryptoExtension> crypto_ext_;

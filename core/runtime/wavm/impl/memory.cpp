@@ -5,14 +5,7 @@
 
 #include "memory.hpp"
 
-#include "common/literals.hpp"
-
 namespace kagome::runtime::wavm {
-
-  using namespace kagome::common::literals;
-
-  inline const size_t kInitialMemorySize = 2_MB;
-  inline const size_t kDefaultHeapBase = 1_MB;
 
   Memory::Memory(WAVM::Runtime::Memory *memory)
       : memory_(memory),

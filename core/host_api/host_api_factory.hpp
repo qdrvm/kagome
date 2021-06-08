@@ -11,6 +11,7 @@
 namespace kagome::runtime {
   class CoreApiProvider;
   class TrieStorageProvider;
+  class MemoryProvider;
 }  // namespace kagome::runtime
 
 namespace kagome::host_api {
@@ -27,7 +28,7 @@ namespace kagome::host_api {
      */
     virtual std::unique_ptr<HostApi> make(
         std::shared_ptr<const runtime::CoreApiProvider> core_provider,
-        std::shared_ptr<runtime::Memory> memory,
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider)
         const = 0;
   };

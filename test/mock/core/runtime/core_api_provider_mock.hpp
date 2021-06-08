@@ -14,8 +14,10 @@ namespace kagome::runtime {
 
   class CoreApiProviderMock : public CoreApiProvider {
    public:
-    MOCK_CONST_METHOD1(makeCoreApi,
-                       std::unique_ptr<Core>(gsl::span<uint8_t> runtime_code));
+    MOCK_CONST_METHOD2(
+        makeCoreApi,
+        std::unique_ptr<Core>(std::shared_ptr<const crypto::Hasher> hasher,
+                              gsl::span<uint8_t> runtime_code));
   };
 
 }  // namespace kagome::runtime

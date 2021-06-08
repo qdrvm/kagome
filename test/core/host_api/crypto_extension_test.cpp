@@ -19,7 +19,8 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
-#include "mock/core/runtime/wasm_memory_mock.hpp"
+#include "mock/core/runtime/memory_mock.hpp"
+#include "mock/core/runtime/memory_provider_mock.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
@@ -55,7 +56,9 @@ using kagome::crypto::Sr25519PublicKey;
 using kagome::crypto::Sr25519SecretKey;
 using kagome::crypto::Sr25519Signature;
 using kagome::crypto::secp256k1::EcdsaVerifyError;
-using kagome::runtime::WasmMemoryMock;
+using kagome::runtime::MemoryMock;
+using kagome::runtime::MemoryProviderMock;
+using kagome::runtime::Memory;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
@@ -92,7 +95,10 @@ class CryptoExtensionTest : public ::testing::Test {
       boost::variant<ecdsa::CompressedPublicKey, EcdsaVerifyError>;
 
   void SetUp() override {
-    memory_ = std::make_shared<WasmMemoryMock>();
+    memory_ = std::make_shared<MemoryMock>();
+    memory_provider_ = std::make_shared<MemoryProviderMock>();
+    EXPECT_CALL(*memory_provider_, getCurrentMemory())
+        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
     sr25519_provider_ =
@@ -105,7 +111,7 @@ class CryptoExtensionTest : public ::testing::Test {
         std::make_shared<Pbkdf2ProviderImpl>());
 
     crypto_store_ = std::make_shared<CryptoStoreMock>();
-    crypto_ext_ = std::make_shared<CryptoExtension>(memory_,
+    crypto_ext_ = std::make_shared<CryptoExtension>(memory_provider_,
                                                     sr25519_provider_,
                                                     ed25519_provider_,
                                                     secp256k1_provider_,
@@ -189,7 +195,8 @@ class CryptoExtensionTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<WasmMemoryMock> memory_;
+  std::shared_ptr<MemoryMock> memory_;
+  std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<CSPRNG> random_generator_;
   std::shared_ptr<Sr25519Provider> sr25519_provider_;
   std::shared_ptr<Ed25519Provider> ed25519_provider_;

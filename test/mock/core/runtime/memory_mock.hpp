@@ -6,13 +6,13 @@
 #ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_MEMORY_MOCK
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_WASM_MEMORY_MOCK
 
-#include "runtime/wasm_memory.hpp"
+#include "runtime/memory.hpp"
 
 #include <gmock/gmock.h>
 
 namespace kagome::runtime {
 
-  class WasmMemoryMock : public Memory {
+  class MemoryMock : public Memory {
    public:
     MOCK_METHOD1(setHeapBase, void(WasmSize));
 

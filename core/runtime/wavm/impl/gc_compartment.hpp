@@ -10,6 +10,6 @@ namespace WAVM::Runtime {
   struct Compartment;
 }  // namespace WAVM::Runtime
 
-WAVM::Runtime::Compartment* getCompartment();
+//WAVM::Runtime::Compartment* getCompartment();
 
 #endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_GC_COMPARTMENT_HPP

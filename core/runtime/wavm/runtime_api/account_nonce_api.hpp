@@ -7,22 +7,17 @@
 #define KAGOME_RUNTIME_WAVM_ACCOUNTNONCEAPI_HPP
 
 #include "runtime/account_nonce_api.hpp"
-#include "runtime/wavm/executor.hpp"
 
 namespace kagome::runtime::wavm {
 
+  class Executor;
+
   class WavmAccountNonceApi final: public AccountNonceApi {
    public:
-    WavmAccountNonceApi(std::shared_ptr<Executor> executor)
-        : executor_{std::move(executor)} {
-      BOOST_ASSERT(executor_);
-    }
+    WavmAccountNonceApi(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::AccountNonce> account_nonce(
-        const primitives::AccountId &account_id) override {
-      return executor_->callAtLatest<primitives::AccountNonce>(
-          "AccountNonceApi_account_nonce", account_id);
-    };
+        const primitives::AccountId &account_id) override;
 
    private:
     std::shared_ptr<Executor> executor_;
