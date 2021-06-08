@@ -10,6 +10,7 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using namespace kagome;  // NOLINT
 
@@ -34,6 +35,8 @@ class StorageWasmProviderTest : public ::testing::Test {
  */
 TEST_F(StorageWasmProviderTest, GetCodeWhenNoStorageUpdates) {
   auto trie_db = std::make_shared<storage::trie::TrieStorageMock>();
+  primitives::BlockInfo first_block_info{0,
+                                         primitives::BlockHash{{1, 1, 1, 1}}};
   storage::trie::RootHash first_state_root{{1, 1, 1, 1}};
 
   // given
@@ -49,10 +52,12 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenNoStorageUpdates) {
   EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
 
   // when
-  auto obtained_state_code = wasm_provider->getStateCodeAt(first_state_root);
+  EXPECT_OUTCOME_TRUE(obtained_state_code,
+                      wasm_provider->getCodeAt(first_block_info));
 
   // then
-  ASSERT_EQ(obtained_state_code, state_code_);
+  EXPECT_THAT(gsl::span<const uint8_t>(state_code_),
+              testing::ContainerEq(obtained_state_code.code));
 }
 
 /**
@@ -64,6 +69,11 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenNoStorageUpdates) {
  */
 TEST_F(StorageWasmProviderTest, GetCodeWhenStorageUpdates) {
   auto trie_db = std::make_shared<storage::trie::TrieStorageMock>();
+  primitives::BlockInfo first_block_info{0,
+                                         primitives::BlockHash{{1, 1, 1, 1}}};
+  primitives::BlockInfo second_block_info{1,
+                                          primitives::BlockHash{{2, 2, 2, 2}}};
+
   storage::trie::RootHash first_state_root{{1, 1, 1, 1}};
   storage::trie::RootHash second_state_root{{2, 2, 2, 2}};
 
@@ -88,8 +98,10 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenStorageUpdates) {
       }));
 
   // when
-  auto obtained_state_code = wasm_provider->getStateCodeAt("42"_hash256);
+  EXPECT_OUTCOME_TRUE(obtained_state_code,
+                      wasm_provider->getCodeAt(second_block_info));
 
   // then
-  ASSERT_EQ(obtained_state_code, new_state_code);
+  EXPECT_THAT(gsl::span<const uint8_t>(new_state_code),
+              testing::ContainerEq(obtained_state_code.code));
 }

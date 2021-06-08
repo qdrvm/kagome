@@ -1,0 +1,9 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_MEMORY_PROVIDER_MOCK_HPP
+#define KAGOME_TEST_MOCK_CORE_RUNTIME_MEMORY_PROVIDER_MOCK_HPP
+
+#endif  // KAGOME_TEST_MOCK_CORE_RUNTIME_MEMORY_PROVIDER_MOCK_HPP
