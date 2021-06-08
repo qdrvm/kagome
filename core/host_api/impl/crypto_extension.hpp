@@ -14,6 +14,7 @@
 #include "crypto/crypto_store.hpp"
 #include "log/logger.hpp"
 #include "runtime/types.hpp"
+#include "runtime/memory_provider.hpp"
 
 namespace kagome::crypto {
   class Sr25519Provider;
@@ -23,10 +24,6 @@ namespace kagome::crypto {
   class Bip39Provider;
   class CryptoStore;
 }  // namespace kagome::crypto
-
-namespace kagome::runtime {
-  class Memory;
-}
 
 namespace kagome::host_api {
   /**
@@ -40,7 +37,7 @@ namespace kagome::host_api {
     static constexpr uint32_t kVerifyFail = 0;
 
     CryptoExtension(
-        std::shared_ptr<runtime::Memory> memory,
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,
         std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider,
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
@@ -167,7 +164,11 @@ namespace kagome::host_api {
    private:
     common::Blob<32> deriveSeed(std::string_view content);
 
-    std::shared_ptr<runtime::Memory> memory_;
+    runtime::Memory& getMemory() const {
+      return memory_provider_->getCurrentMemory().value();
+    }
+
+    std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider_;
     std::shared_ptr<const crypto::Ed25519Provider> ed25519_provider_;
     std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider_;

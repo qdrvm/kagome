@@ -8,19 +8,20 @@
 
 #include <string_view>
 
+#include <WAVM/Runtime/Runtime.h>
 #include <boost/optional.hpp>
 
 #include "runtime/wasm_result.hpp"
 
-namespace WAVM{
+namespace WAVM {
   namespace Runtime {
     struct Instance;
     struct Compartment;
-  }
+  }  // namespace Runtime
   namespace IR {
     struct Value;
   }
-}
+}  // namespace WAVM
 
 namespace kagome::runtime::wavm {
 
@@ -34,7 +35,7 @@ namespace kagome::runtime::wavm {
     boost::optional<WAVM::IR::Value> getGlobal(std::string_view name);
 
    private:
-    WAVM::Runtime::Instance *instance_;
+    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
     WAVM::Runtime::Compartment *compartment_;
   };
 

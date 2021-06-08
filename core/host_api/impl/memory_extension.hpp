@@ -10,7 +10,7 @@
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
-  class Memory;
+  class MemoryProvider;
 }
 
 namespace kagome::host_api {
@@ -20,7 +20,7 @@ namespace kagome::host_api {
    */
   class MemoryExtension {
    public:
-    explicit MemoryExtension(std::shared_ptr<runtime::Memory> memory);
+    explicit MemoryExtension(std::shared_ptr<const runtime::MemoryProvider> memory_provider);
 
     void reset();
 
@@ -36,7 +36,7 @@ namespace kagome::host_api {
     void ext_allocator_free_version_1(runtime::WasmPointer ptr);
 
    private:
-    std::shared_ptr<runtime::Memory> memory_;
+    std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     log::Logger logger_;
   };
 }  // namespace kagome::host_api

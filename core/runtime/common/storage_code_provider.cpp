@@ -76,9 +76,11 @@ namespace kagome::runtime {
   outcome::result<boost::optional<storage::trie::RootHash>>
   StorageCodeProvider::getLastCodeUpdateState(
       const primitives::BlockInfo &block) const {
-    if (block_tree_ == nullptr) {
-      return last_state_root_;  //< don't have any other options
+    // TODO(Harrm): check if this can lead to incorrect behaviour
+    if(block_tree_ == nullptr) {
+      return last_state_root_;
     }
+
     if (blocks_with_runtime_upgrade_.empty()) {
       OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.hash));
       return parent.state_root;

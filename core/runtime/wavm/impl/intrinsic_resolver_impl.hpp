@@ -11,8 +11,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 
-#include "runtime/wavm/impl/memory.hpp"
-
 namespace WAVM::Runtime {
   struct Instance;
   struct Compartment;
@@ -31,6 +29,7 @@ namespace kagome::runtime::wavm {
   class IntrinsicResolverImpl final : public IntrinsicResolver {
    public:
     explicit IntrinsicResolverImpl();
+    ~IntrinsicResolverImpl() noexcept override;
 
     bool resolve(const std::string &moduleName,
                  const std::string &exportName,
@@ -51,9 +50,7 @@ namespace kagome::runtime::wavm {
       functions_.emplace(name, func);
     }
 
-    std::shared_ptr<runtime::Memory> getMemory() const override {
-      return std::static_pointer_cast<runtime::Memory>(memory_);
-    }
+    WAVM::Runtime::Memory *getMemory() const;
 
     WAVM::Runtime::Compartment * getCompartment() const override {
       return compartment_;
@@ -65,8 +62,7 @@ namespace kagome::runtime::wavm {
     WAVM::Intrinsics::Module* module_;
     // TODO(Harrm) cleanup
     WAVM::Runtime::Instance *module_instance_;
-    GCPointer<WAVM::Runtime::Compartment> compartment_;
-    std::shared_ptr<Memory> memory_;
+    WAVM::Runtime::GCPointer<WAVM::Runtime::Compartment> compartment_;
     std::unordered_map<std::string_view,
                        WAVM::Intrinsics::Function*>
         functions_;

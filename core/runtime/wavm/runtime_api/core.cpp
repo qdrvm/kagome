@@ -23,8 +23,8 @@ namespace kagome::runtime::wavm {
 
   outcome::result<primitives::Version> WavmCore::version(
       const boost::optional<primitives::BlockHash> &block_hash) {
-    return executor_->callAtLatest<primitives::Version>("Core_version",
-                                                        block_hash);
+    return executor_->nestedCall<primitives::Version>("Core_version",
+                                                      block_hash);
   }
 
   outcome::result<void> WavmCore::execute_block(

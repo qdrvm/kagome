@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_MEMORY_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_IMPL_MEMORY_HPP
 
-#include "runtime/wasm_memory.hpp"
+#include "runtime/memory.hpp"
 
 #include <boost/optional.hpp>
 #include <gsl/span>

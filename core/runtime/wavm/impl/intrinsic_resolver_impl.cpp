@@ -20,22 +20,24 @@ namespace kagome::runtime::wavm {
   IntrinsicResolverImpl::IntrinsicResolverImpl()
       : module_{getIntrinsicModule_env()},
         module_instance_{},
-        compartment_{WAVM::Runtime::createCompartment("Global Compartment")},
-        memory_{std::make_shared<Memory>(WAVM::Runtime::createMemory(
-            compartment_, kIntrinsicMemoryType, "stub memory"))} {
+        compartment_{WAVM::Runtime::createCompartment("Global Compartment")} {
     BOOST_ASSERT(module_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
   }
 
+  WAVM::Runtime::Memory *IntrinsicResolverImpl::getMemory() const {
+    return module_instance_ ? getTypedInstanceExport(
+               module_instance_, "memory", kIntrinsicMemoryType)
+                            : nullptr;
+  }
+
   bool IntrinsicResolverImpl::resolve(const std::string &moduleName,
-                                  const std::string &exportName,
-                                  WAVM::IR::ExternType type,
-                                  WAVM::Runtime::Object *&outObject) {
+                                      const std::string &exportName,
+                                      WAVM::IR::ExternType type,
+                                      WAVM::Runtime::Object *&outObject) {
     if (module_instance_ == nullptr) {
       module_instance_ = WAVM::Intrinsics::instantiateModule(
           compartment_, {getIntrinsicModule_env()}, "env");
-      memory_->setUnderlyingMemory(getTypedInstanceExport(
-          module_instance_, "memory", kIntrinsicMemoryType));
     }
 
     if (moduleName != "env") {
@@ -74,14 +76,14 @@ namespace kagome::runtime::wavm {
     return false;
   }
 
+  IntrinsicResolverImpl::~IntrinsicResolverImpl() noexcept {
+    BOOST_ASSERT(WAVM::Runtime::tryCollectCompartment(std::move(compartment_)));
+  }
+
   std::unique_ptr<IntrinsicResolver> IntrinsicResolverImpl::clone() const {
     auto copy = std::make_unique<IntrinsicResolverImpl>();
     copy->module_ = getIntrinsicModule_env();
     copy->functions_ = functions_;
-    copy->module_instance_ = WAVM::Intrinsics::instantiateModule(
-        copy->compartment_, {getIntrinsicModule_env()}, "env_clone");
-    copy->memory_->setUnderlyingMemory(getTypedInstanceExport(
-        copy->module_instance_, "memory", kIntrinsicMemoryType));
     return copy;
   }
 

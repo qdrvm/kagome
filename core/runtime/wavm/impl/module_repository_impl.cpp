@@ -18,7 +18,7 @@
 namespace kagome::runtime::wavm {
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
-      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<IntrinsicResolver> resolver)
       : compartment_{resolver->getCompartment()},
         resolver_{std::move(resolver)},

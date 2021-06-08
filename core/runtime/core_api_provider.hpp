@@ -12,6 +12,10 @@ namespace kagome::host_api {
   class HostApiFactory;
 }
 
+namespace kagome::crypto {
+  class Hasher;
+}
+
 namespace kagome::runtime {
 
   class CoreApiProvider {
@@ -19,6 +23,7 @@ namespace kagome::runtime {
     virtual ~CoreApiProvider() = default;
 
     virtual std::unique_ptr<Core> makeCoreApi(
+        std::shared_ptr<const crypto::Hasher> hasher,
         gsl::span<uint8_t> runtime_code) const = 0;
   };
 

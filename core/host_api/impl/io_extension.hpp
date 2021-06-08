@@ -12,7 +12,7 @@
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
-  class Memory;
+  class MemoryProvider;
 }
 
 namespace kagome::host_api {
@@ -22,7 +22,7 @@ namespace kagome::host_api {
    */
   class IOExtension {
    public:
-    explicit IOExtension(std::shared_ptr<runtime::Memory> memory);
+    explicit IOExtension(std::shared_ptr<const runtime::MemoryProvider> memory_provider);
 
     /**
      * @see Extension::ext_logging_log_version_1
@@ -32,7 +32,7 @@ namespace kagome::host_api {
                                    runtime::WasmSpan message);
 
    private:
-    std::shared_ptr<runtime::Memory> memory_;
+    std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     log::Logger logger_;
   };
 }  // namespace kagome::host_api

@@ -8,7 +8,7 @@
 #include "crypto/hasher.hpp"
 #include "runtime/binaryen/module/wasm_module.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/memory.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime::binaryen {

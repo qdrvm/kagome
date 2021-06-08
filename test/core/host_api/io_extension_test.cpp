@@ -9,7 +9,8 @@
 
 #include <gtest/gtest.h>
 
-#include "mock/core/runtime/wasm_memory_mock.hpp"
+#include "mock/core/runtime/memory_mock.hpp"
+#include "mock/core/runtime/memory_provider_mock.hpp"
 #include "runtime/wasm_result.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -20,11 +21,14 @@ using ::testing::Return;
 using kagome::common::Buffer;
 using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmLogLevel;
-using kagome::runtime::WasmMemoryMock;
+using kagome::runtime::WasmLogLevel;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
+using kagome::runtime::MemoryMock;
+using kagome::runtime::Memory;
+using kagome::runtime::MemoryProviderMock;
 
 /**
  * It is impossible to test the console output, but at least we can check, that
@@ -37,12 +41,16 @@ class IOExtensionTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    memory_ = std::make_shared<WasmMemoryMock>();
-    io_extension_ = std::make_shared<IOExtension>(memory_);
+    memory_provider_ = std::make_shared<MemoryProviderMock>();
+    memory_ = std::make_shared<MemoryMock>();
+    EXPECT_CALL(*memory_provider_, getCurrentMemory())
+        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
+    io_extension_ = std::make_shared<IOExtension>(memory_provider_);
   }
 
  protected:
-  std::shared_ptr<WasmMemoryMock> memory_;
+  std::shared_ptr<MemoryMock> memory_;
+  std::shared_ptr<MemoryProviderMock> memory_provider_;
   std::shared_ptr<IOExtension> io_extension_;
 
   std::vector<uint8_t> hex_bytes_{"0123456789ABCDEF"_unhex};

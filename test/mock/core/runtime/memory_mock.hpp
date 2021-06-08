@@ -12,7 +12,7 @@
 
 namespace kagome::runtime {
 
-  class WasmMemoryMock : public Memory {
+  class MemoryMock : public Memory {
    public:
     MOCK_METHOD1(setHeapBase, void(WasmSize));
 

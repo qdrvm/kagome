@@ -41,6 +41,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<host_api::HostApiFactory> host_api_factory);
 
     std::unique_ptr<Core> makeCoreApi(
+        std::shared_ptr<const crypto::Hasher> hasher,
         gsl::span<uint8_t> runtime_code) const override;
 
    private:

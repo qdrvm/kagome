@@ -84,6 +84,7 @@
 #include "outcome/outcome.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/wavm/executor.hpp"
 #include "runtime/wavm/impl/core_api_provider.hpp"
 #include "runtime/wavm/impl/crutch.hpp"
 #include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
@@ -98,7 +99,6 @@
 #include "runtime/wavm/runtime_api/parachain_host.hpp"
 #include "runtime/wavm/runtime_api/tagged_transaction_queue.hpp"
 #include "runtime/wavm/runtime_api/transaction_payment_api.hpp"
-#include "runtime/wavm/executor.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
@@ -754,7 +754,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -931,6 +931,15 @@ namespace {
                   ->getMemory();
           return memory;
         }),
+        di::bind<runtime::MemoryProvider>.template to([](const auto &injector) {
+          static auto initialized = [&injector]() {
+            auto resolver = injector.template create<
+                std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
+            return std::make_shared<runtime::wavm::WavmMemoryProvider>(
+                resolver);
+          }();
+          return initialized;
+        }),
         di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
         di::bind<host_api::HostApi>.template to([](auto const &injector)
                                                     -> std::shared_ptr<
@@ -1041,19 +1050,20 @@ namespace {
               initialized = std::move(resolver);
               return initialized.value();
             }),
-        di::bind<runtime::wavm::IntrinsicResolver>.template to([](const auto &injector) {
-          static boost::optional<
-              std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>
-              initialized = boost::none;
-          if (initialized) {
-            return initialized.value();
-          }
-          auto resolver =
-              injector.template create<std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
+        di::bind<runtime::wavm::IntrinsicResolver>.template to(
+            [](const auto &injector) {
+              static boost::optional<
+                  std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>
+                  initialized = boost::none;
+              if (initialized) {
+                return initialized.value();
+              }
+              auto resolver = injector.template create<
+                  std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
 
-          initialized = std::move(resolver);
-          return initialized.value();
-        }),
+              initialized = std::move(resolver);
+              return initialized.value();
+            }),
         di::bind<runtime::wavm::ModuleRepository>.template to<runtime::wavm::ModuleRepositoryImpl>(),
         di::bind<runtime::wavm::ModuleRepositoryImpl>.template to(
             [](const auto &injector) {
@@ -1072,13 +1082,15 @@ namespace {
                 std::shared_ptr<runtime::TrieStorageProvider>>();
             auto resolver = injector.template create<
                 std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
+            auto memory_provider = injector.template create<
+                std::shared_ptr<runtime::MemoryProvider>>();
             auto module_repo = injector.template create<
                 std::shared_ptr<runtime::wavm::ModuleRepository>>();
             auto header_repo = injector.template create<
                 std::shared_ptr<blockchain::BlockHeaderRepository>>();
             initialized = std::make_shared<runtime::wavm::Executor>(
                 std::move(storage_provider),
-                resolver->getMemory(),
+                memory_provider,
                 module_repo,
                 header_repo);
           }
@@ -1362,7 +1374,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
