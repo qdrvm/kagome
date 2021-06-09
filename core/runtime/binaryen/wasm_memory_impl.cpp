@@ -285,7 +285,7 @@ namespace kagome::runtime::binaryen {
       return 0;
     }
     storeBuffer(wasm_pointer, value);
-    return WasmResult(wasm_pointer, value.size()).combine();
+    return PtrSize(wasm_pointer, value.size()).combine();
   }
 
   boost::optional<WasmSize> WasmMemoryImpl::getDeallocatedChunkSize(

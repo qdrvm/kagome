@@ -20,7 +20,7 @@
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "runtime/memory.hpp"
-#include "runtime/wasm_result.hpp"
+#include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::host_api {
@@ -66,7 +66,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_keccak_256_version_1(
       runtime::WasmSpan data) {
-    auto [addr, len] = runtime::WasmResult(data);
+    auto [addr, len] = runtime::PtrSize(data);
     const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->keccak_256(buf);
 
@@ -77,7 +77,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_sha2_256_version_1(
       runtime::WasmSpan data) {
-    auto [addr, len] = runtime::WasmResult(data);
+    auto [addr, len] = runtime::PtrSize(data);
     const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->sha2_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
@@ -87,7 +87,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_blake2_128_version_1(
       runtime::WasmSpan data) {
-    auto [addr, len] = runtime::WasmResult(data);
+    auto [addr, len] = runtime::PtrSize(data);
     const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->blake2b_128(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
@@ -97,7 +97,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_blake2_256_version_1(
       runtime::WasmSpan data) {
-    auto [addr, len] = runtime::WasmResult(data);
+    auto [addr, len] = runtime::PtrSize(data);
     const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->blake2b_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
@@ -107,7 +107,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_64_version_1(
       runtime::WasmSpan data) {
-    auto [addr, len] = runtime::WasmResult(data);
+    auto [addr, len] = runtime::PtrSize(data);
     const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->twox_64(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
@@ -117,7 +117,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_128_version_1(
       runtime::WasmSpan data) {
-    auto [addr, len] = runtime::WasmResult(data);
+    auto [addr, len] = runtime::PtrSize(data);
     const auto &buf = getMemory().loadN(addr, len);
     auto hash = hasher_->twox_128(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
@@ -127,7 +127,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_256_version_1(
       runtime::WasmSpan data) {
-    auto [address, length] = runtime::WasmResult(data);
+    auto [address, length] = runtime::PtrSize(data);
     const auto &buf = getMemory().loadN(address, length);
     auto hash = hasher_->twox_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
@@ -240,7 +240,7 @@ namespace kagome::host_api {
                     common::int_to_hex(key_type_id, 8));
     }
 
-    auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
+    auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
     auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
     if (!seed_res) {
@@ -263,7 +263,7 @@ namespace kagome::host_api {
     }
     auto &key_pair = kp_res.value();
     SL_TRACE_FUNC_CALL(logger_, key_pair.public_key, key_type_id, seed_buffer);
-    runtime::WasmResult res_span{getMemory().storeBuffer(key_pair.public_key)};
+    runtime::PtrSize res_span{getMemory().storeBuffer(key_pair.public_key)};
     return res_span.combine();
   }
 
@@ -281,7 +281,7 @@ namespace kagome::host_api {
     }
 
     auto public_buffer = getMemory().loadN(key, crypto::Ed25519PublicKey::size());
-    auto [msg_data, msg_len] = runtime::WasmResult(msg);
+    auto [msg_data, msg_len] = runtime::PtrSize(msg);
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
     auto pk = crypto::Ed25519PublicKey::fromSpan(public_buffer);
     if (!pk) {
@@ -310,7 +310,7 @@ namespace kagome::host_api {
       runtime::WasmPointer sig,
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
-    auto [msg_data, msg_len] = runtime::WasmResult(msg_span);
+    auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto sig_bytes =
         getMemory().loadN(sig, ed25519_constants::SIGNATURE_SIZE).toVector();
@@ -389,7 +389,7 @@ namespace kagome::host_api {
                     common::int_to_hex(key_type_id, 8));
     }
 
-    auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
+    auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
     auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
     if (!seed_res) {
@@ -417,7 +417,7 @@ namespace kagome::host_api {
     common::Buffer buffer(key_pair.public_key);
     runtime::WasmSpan ps = getMemory().storeBuffer(buffer);
 
-    return runtime::WasmResult(ps).address;
+    return runtime::PtrSize(ps).ptr;
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_sr25519_sign_version_1(
@@ -436,7 +436,7 @@ namespace kagome::host_api {
     }
 
     auto public_buffer = getMemory().loadN(key, crypto::Sr25519PublicKey::size());
-    auto [msg_data, msg_len] = runtime::WasmResult(msg);
+    auto [msg_data, msg_len] = runtime::PtrSize(msg);
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
     auto pk = crypto::Sr25519PublicKey::fromSpan(public_buffer);
     if (!pk) {
@@ -467,7 +467,7 @@ namespace kagome::host_api {
       runtime::WasmPointer sig,
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
-    auto [msg_data, msg_len] = runtime::WasmResult(msg_span);
+    auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature_buffer =
         getMemory().loadN(sig, sr25519_constants::SIGNATURE_SIZE);

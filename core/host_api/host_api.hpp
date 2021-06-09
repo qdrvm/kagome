@@ -10,8 +10,8 @@
 #include <functional>
 #include <memory>
 
+#include "runtime/ptr_size.hpp"
 #include "runtime/types.hpp"
-#include "runtime/wasm_result.hpp"
 
 namespace kagome::runtime {
   class Memory;

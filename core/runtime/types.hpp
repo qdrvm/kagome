@@ -13,12 +13,12 @@ namespace kagome::runtime {
   /**
    * @brief type of wasm log levels
    */
-  enum WasmLogLevel {
-    WasmLL_Error = 0,
-    WasmLL_Warn = 1,
-    WasmLL_Info = 2,
-    WasmLL_Debug = 3,
-    WasmLL_Trace = 4,
+  enum class WasmLogLevel {
+    Error = 0,
+    Warn = 1,
+    Info = 2,
+    Debug = 3,
+    Trace = 4,
   };
   /**
    * @brief type of wasm memory is 32 bit integer
@@ -47,9 +47,9 @@ namespace kagome::runtime {
    * Splits 64 bit wasm span on 32 bit pointer and 32 bit address
    */
   static constexpr std::pair<WasmPointer, WasmSize> splitSpan(WasmSpan span) {
-    auto unsigned_result = static_cast<uint64_t>(span);
-    uint64_t minor_part = unsigned_result & 0xFFFFFFFFLLU;
-    uint64_t major_part = (unsigned_result >> 32u) & 0xFFFFFFFFLLU;
+    const auto unsigned_result = static_cast<uint64_t>(span);
+    const uint32_t minor_part = unsigned_result & 0xFFFFFFFFLLU;
+    const uint32_t major_part = (unsigned_result >> 32u) & 0xFFFFFFFFLLU;
 
     return {minor_part, major_part};
   }

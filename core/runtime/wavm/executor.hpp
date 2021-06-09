@@ -151,26 +151,28 @@ namespace kagome::runtime::wavm {
       BOOST_ASSERT(host_api_);
       gsl::finally([this]() { host_api_->reset(); });
 
-      WasmResult addr{memory.storeBuffer(encoded_args)};
+      PtrSize addr{memory.storeBuffer(encoded_args)};
 
-      try {
-        [[maybe_unused]] auto res_span =
-            instance.callExportFunction(name, addr);
-        if (auto batch = storage_provider_->tryGetPersistentBatch();
-            persistency == CallPersistency::PERSISTENT && batch.has_value()) {
-          OUTCOME_TRY(batch.value()->commit());
-        }
-        if constexpr (std::is_void_v<Result>) {
-          return outcome::success();
-        } else {
-          auto result = memory.loadN(res_span.address, res_span.length);
-          return scale::decode<Result>(result);
-        }
-      } catch (WAVM::Runtime::Exception *e) {
-        logger_->error(WAVM::Runtime::describeException(e));
-        throw;
-      } catch (...) {
-        throw;
+      [[maybe_unused]] PtrSize result{0};
+
+      WAVM::Runtime::catchRuntimeExceptions(
+          [&result, &instance, &name, &addr] {
+            result = instance.callExportFunction(name, addr);
+          },
+          [this](WAVM::Runtime::Exception *e) {
+            logger_->error(WAVM::Runtime::describeException(e));
+            WAVM::Runtime::destroyException(e);
+          });
+      if (auto batch = storage_provider_->tryGetPersistentBatch();
+          persistency == CallPersistency::PERSISTENT
+          && batch.has_value()) {
+        OUTCOME_TRY(batch.value()->commit());
+      }
+      if constexpr (std::is_void_v<Result>) {
+        return outcome::success();
+      } else {
+        return scale::decode<Result>(
+            memory.loadN(result.ptr, result.size));
       }
     }
 

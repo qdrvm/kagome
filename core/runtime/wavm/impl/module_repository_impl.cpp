@@ -13,7 +13,6 @@
 
 #include "runtime/wavm/intrinsic_resolver.hpp"
 #include "crutch.hpp"
-#include "gc_compartment.hpp"
 
 namespace kagome::runtime::wavm {
 

@@ -7,7 +7,6 @@ add_library(wavm_executor
     impl/module_instance.cpp
     impl/module_repository_impl.cpp
     impl/intrinsic_resolver_impl.cpp
-    impl/gc_compartment.cpp
     impl/core_api_provider.cpp
     impl/crutch.cpp
     impl/wavm_memory_provider.cpp

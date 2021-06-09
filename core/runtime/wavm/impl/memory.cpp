@@ -251,7 +251,7 @@ namespace kagome::runtime::wavm {
       return 0;
     }
     storeBuffer(wasm_pointer, value);
-    auto res = WasmResult(wasm_pointer, value.size()).combine();
+    auto res = PtrSize(wasm_pointer, value.size()).combine();
     return res;
   }
 }  // namespace kagome::runtime::wavm

@@ -13,8 +13,8 @@ namespace kagome::runtime::wavm {
                                  WAVM::Runtime::Compartment *compartment)
       : instance_{instance}, compartment_{std::move(compartment)} {}
 
-  WasmResult ModuleInstance::callExportFunction(std::string_view name,
-                                                WasmResult args) {
+  PtrSize ModuleInstance::callExportFunction(std::string_view name,
+                                             PtrSize args) {
     WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
         WAVM::Runtime::createContext(compartment_);
     WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(
@@ -30,8 +30,8 @@ namespace kagome::runtime::wavm {
       // log error
       // return EXIT_FAILURE;
     }
-    invokeArgs.emplace_back(static_cast<WAVM::U32>(args.address));
-    invokeArgs.emplace_back(static_cast<WAVM::U32>(args.length));
+    invokeArgs.emplace_back(static_cast<WAVM::U32>(args.ptr));
+    invokeArgs.emplace_back(static_cast<WAVM::U32>(args.size));
     WAVM_ASSERT(function);
 
     std::vector<WAVM::IR::ValueType> invokeArgTypes;
@@ -54,7 +54,7 @@ namespace kagome::runtime::wavm {
                                   untaggedInvokeArgs.data(),
                                   untaggedInvokeResults.data());
 
-    return WasmResult{untaggedInvokeResults[0].u64};
+    return PtrSize{untaggedInvokeResults[0].u64};
   }
 
   boost::optional<WAVM::IR::Value> ModuleInstance::getGlobal(std::string_view name) {

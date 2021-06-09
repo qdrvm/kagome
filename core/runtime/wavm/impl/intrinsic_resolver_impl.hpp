@@ -31,7 +31,7 @@ namespace kagome::runtime::wavm {
   class IntrinsicResolverImpl final : public IntrinsicResolver {
    public:
     explicit IntrinsicResolverImpl();
-    ~IntrinsicResolverImpl() noexcept override;
+    ~IntrinsicResolverImpl() override;
 
     bool resolve(const std::string &moduleName,
                  const std::string &exportName,

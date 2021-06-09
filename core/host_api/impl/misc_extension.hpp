@@ -12,8 +12,8 @@
 
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
+#include "runtime/ptr_size.hpp"
 #include "runtime/types.hpp"
-#include "runtime/wasm_result.hpp"
 
 namespace kagome::runtime {
   class CoreApiProvider;

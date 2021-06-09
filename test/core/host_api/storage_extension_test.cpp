@@ -14,7 +14,7 @@
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
-#include "runtime/wasm_result.hpp"
+#include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/changes_trie/changes_trie_config.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -27,10 +27,9 @@ using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::host_api::StorageExtension;
 using kagome::runtime::TrieStorageProviderMock;
-using kagome::runtime::TrieStorageProviderMock;
+using kagome::runtime::PtrSize;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
-using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
 using kagome::storage::changes_trie::ChangesTrackerMock;
@@ -115,7 +114,7 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
       .WillOnce(Return(outcome::success()));
 
   storage_extension_->ext_storage_clear_prefix_version_1(
-      WasmResult{prefix_pointer, prefix_size}.combine());
+      PtrSize{prefix_pointer, prefix_size}.combine());
 }
 
 /**
@@ -132,7 +131,7 @@ TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
   EXPECT_CALL(*trie_batch_, remove(key)).WillOnce(Return(GetParam()));
 
   storage_extension_->ext_storage_clear_version_1(
-      WasmResult{key_pointer, key_size}.combine());
+      PtrSize{key_pointer, key_size}.combine());
 }
 
 /**
@@ -153,7 +152,7 @@ TEST_F(StorageExtensionTest, ExistsStorageTest) {
 
   ASSERT_EQ(contains,
             storage_extension_->ext_storage_exists_version_1(
-                WasmResult{key_pointer, key_size}.combine()));
+                PtrSize{key_pointer, key_size}.combine()));
 }
 
 /**
@@ -183,8 +182,7 @@ TEST_F(StorageExtensionTest, NextKey) {
         return cursor;
       }));
 
-  auto expected_key_span =
-      WasmResult{next_key_pointer, next_key_size}.combine();
+  auto expected_key_span = PtrSize{next_key_pointer, next_key_size}.combine();
   EXPECT_CALL(*memory_, storeBuffer(_))
       .WillOnce(Invoke([&expected_next_key,
                         &expected_key_span](auto &&buffer) -> WasmSpan {
@@ -196,7 +194,7 @@ TEST_F(StorageExtensionTest, NextKey) {
       }));
 
   auto next_key_span = storage_extension_->ext_storage_next_key_version_1(
-      WasmResult{key_pointer, key_size}.combine());
+      PtrSize{key_pointer, key_size}.combine());
   ASSERT_EQ(expected_key_span, next_key_span);
 }
 
@@ -230,7 +228,7 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
       }));
 
   storage_extension_->ext_storage_next_key_version_1(
-      WasmResult{key_pointer, key_size}.combine());
+      PtrSize{key_pointer, key_size}.combine());
 }
 
 /**
@@ -262,7 +260,7 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
       }));
 
   storage_extension_->ext_storage_next_key_version_1(
-      WasmResult{key_pointer, key_size}.combine());
+      PtrSize{key_pointer, key_size}.combine());
 }
 
 /**
@@ -288,8 +286,8 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
   EXPECT_CALL(*trie_batch_, put(key, value)).WillOnce(Return(GetParam()));
 
   storage_extension_->ext_storage_set_version_1(
-      WasmResult{key_pointer, key_size}.combine(),
-      WasmResult{value_pointer, value_size}.combine());
+      PtrSize{key_pointer, key_size}.combine(),
+      PtrSize{value_pointer, value_size}.combine());
 }
 
 /**
@@ -315,8 +313,8 @@ TEST_P(OutcomeParameterizedTest, ExtStorageSetV1Test) {
   EXPECT_CALL(*trie_batch_, put(key, value)).WillOnce(Return(GetParam()));
 
   storage_extension_->ext_storage_set_version_1(
-      WasmResult(key_pointer, key_size).combine(),
-      WasmResult(value_pointer, value_size).combine());
+      PtrSize(key_pointer, key_size).combine(),
+      PtrSize(value_pointer, value_size).combine());
 }
 
 /**
@@ -325,10 +323,10 @@ TEST_P(OutcomeParameterizedTest, ExtStorageSetV1Test) {
  * @then data read from db with given key
  */
 TEST_P(OutcomeParameterizedTest, StorageReadTest) {
-  WasmResult key(43, 43);
-  Buffer key_data(key.length, 'k');
-  WasmResult value(42, 41);
-  Buffer value_data(value.length, 'v');
+  PtrSize key(43, 43);
+  Buffer key_data(key.size, 'k');
+  PtrSize value(42, 41);
+  Buffer value_data(value.size, 'v');
   WasmOffset offset = 4;
   Buffer offset_value_data = value_data.subbuffer(offset);
   ASSERT_EQ(offset_value_data.size(), value_data.size() - offset);
@@ -338,14 +336,14 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   WasmSpan res_wasm_span = 1337;
 
   // expect key loaded, than data stored
-  EXPECT_CALL(*memory_, loadN(key.address, key.length))
+  EXPECT_CALL(*memory_, loadN(key.ptr, key.size))
       .WillOnce(Return(key_data));
   EXPECT_CALL(*storage_provider_, getCurrentBatch())
       .WillOnce(Return(trie_batch_));
   EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(value_data));
   EXPECT_CALL(
       *memory_,
-      storeBuffer(value.address, gsl::span<const uint8_t>(offset_value_data)));
+      storeBuffer(value.ptr, gsl::span<const uint8_t>(offset_value_data)));
   EXPECT_CALL(
       *memory_,
       storeBuffer(gsl::span<const uint8_t>(encoded_opt_offset_val_size)))
@@ -368,23 +366,23 @@ INSTANTIATE_TEST_CASE_P(Instance,
 
 TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
   // @given key and two values
-  WasmResult key(43, 43);
-  Buffer key_data(key.length, 'k');
+  PtrSize key(43, 43);
+  Buffer key_data(key.size, 'k');
 
   Buffer value_data1(42, '1');
   Buffer value_data1_encoded{kagome::scale::encode(value_data1).value()};
-  WasmResult value1(42, value_data1_encoded.size());
+  PtrSize value1(42, value_data1_encoded.size());
 
   Buffer value_data2(43, '2');
   Buffer value_data2_encoded{kagome::scale::encode(value_data2).value()};
-  WasmResult value2(45, value_data2_encoded.size());
+  PtrSize value2(45, value_data2_encoded.size());
 
   // @given wasm memory that can provide these key and values
-  EXPECT_CALL(*memory_, loadN(key.address, key.length))
+  EXPECT_CALL(*memory_, loadN(key.ptr, key.size))
       .WillRepeatedly(Return(key_data));
-  EXPECT_CALL(*memory_, loadN(value1.address, value1.length))
+  EXPECT_CALL(*memory_, loadN(value1.ptr, value1.size))
       .WillOnce(Return(value_data1_encoded));
-  EXPECT_CALL(*memory_, loadN(value2.address, value2.length))
+  EXPECT_CALL(*memory_, loadN(value2.ptr, value2.size))
       .WillOnce(Return(value_data2_encoded));
 
   std::vector<kagome::scale::EncodeOpaqueValue> vals;
@@ -425,21 +423,21 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
 
 TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
   // @given key and two values
-  WasmResult key(43, 43);
-  Buffer key_data(key.length, 'k');
+  PtrSize key(43, 43);
+  Buffer key_data(key.size, 'k');
 
   Buffer value_data1(42, '1');
   Buffer value_data1_encoded{kagome::scale::encode(value_data1).value()};
-  WasmResult value1(42, value_data1_encoded.size());
+  PtrSize value1(42, value_data1_encoded.size());
 
   Buffer value_data2(43, '2');
   Buffer value_data2_encoded{kagome::scale::encode(value_data2).value()};
-  WasmResult value2(45, value_data2_encoded.size());
+  PtrSize value2(45, value_data2_encoded.size());
 
   // @given wasm memory that can provide these key and values
-  EXPECT_CALL(*memory_, loadN(key.address, key.length))
+  EXPECT_CALL(*memory_, loadN(key.ptr, key.size))
       .WillRepeatedly(Return(key_data));
-  EXPECT_CALL(*memory_, loadN(value2.address, value2.length))
+  EXPECT_CALL(*memory_, loadN(value2.ptr, value2.size))
       .WillOnce(Return(value_data2_encoded));
 
   // @when vals contains (2^6 - 1) elements (high limit for one-byte compact
@@ -479,9 +477,9 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto values_enc = kagome::scale::encode(values).value();
 
   using testing::_;
-  WasmResult values_span {42, static_cast<WasmSize>(values_enc.size())};
+  PtrSize values_span {42, static_cast<WasmSize>(values_enc.size())};
 
-  EXPECT_CALL(*memory_, loadN(values_span.address, values_span.length))
+  EXPECT_CALL(*memory_, loadN(values_span.ptr, values_span.size))
       .WillOnce(Return(Buffer {values_enc}));
   WasmPointer result = 1984;
   EXPECT_CALL(*memory_,
@@ -505,7 +503,7 @@ TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
   using testing::_;
   WasmPointer values_ptr = 1;
   WasmSize values_size = 2;
-  WasmSpan values_data = WasmResult(values_ptr, values_size).combine();
+  WasmSpan values_data = PtrSize(values_ptr, values_size).combine();
   WasmPointer result = 1984;
 
   Buffer buffer{kagome::scale::encode(values).value()};
@@ -548,8 +546,8 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
   WasmPointer value_pointer = 42;
   WasmSize value_size = 41;
 
-  WasmSpan value_span = WasmResult(value_pointer, value_size).combine();
-  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+  WasmSpan value_span = PtrSize(value_pointer, value_size).combine();
+  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
 
   Buffer value(8, 'v');
   auto encoded_opt_value =
@@ -578,7 +576,7 @@ TEST_P(OutcomeParameterizedTest, ExtStorageClearV1Test) {
   WasmPointer key_pointer = 43;
   WasmSize key_size = 43;
   Buffer key(8, 'k');
-  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   // to ensure that it works when remove() returns success or failure
@@ -597,7 +595,7 @@ TEST_F(StorageExtensionTest, ExtStorageExistsV1Test) {
   WasmPointer key_pointer = 43;
   WasmSize key_size = 43;
   Buffer key(8, 'k');
-  WasmSpan key_span = WasmResult(key_pointer, key_size).combine();
+  WasmSpan key_span = PtrSize(key_pointer, key_size).combine();
 
   /// result of contains method on db
   WasmSize contains = 1;
@@ -618,7 +616,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
   WasmPointer prefix_pointer = 42;
   WasmSize prefix_size = 42;
   Buffer prefix(8, 'p');
-  WasmSpan prefix_span = WasmResult(prefix_pointer, prefix_size).combine();
+  WasmSpan prefix_span = PtrSize(prefix_pointer, prefix_size).combine();
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
@@ -644,7 +642,7 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
 
   WasmPointer values_ptr = 1;
   WasmSize values_size = 2;
-  WasmSpan dict_data = WasmResult(values_ptr, values_size).combine();
+  WasmSpan dict_data = PtrSize(values_ptr, values_size).combine();
   WasmPointer result = 1984;
 
   Buffer buffer{kagome::scale::encode(dict).value()};
@@ -667,8 +665,8 @@ TEST_F(StorageExtensionTest, Blake2_256_TrieRootV1) {
 TEST_F(StorageExtensionTest, ChangesRootEmpty) {
   auto parent_hash = "123456"_hash256;
   Buffer parent_hash_buf{gsl::span(parent_hash.data(), parent_hash.size())};
-  WasmResult parent_root_ptr{1, Hash256::size()};
-  EXPECT_CALL(*memory_, loadN(parent_root_ptr.address, Hash256::size()))
+  PtrSize parent_root_ptr{1, Hash256::size()};
+  EXPECT_CALL(*memory_, loadN(parent_root_ptr.ptr, Hash256::size()))
       .WillOnce(Return(parent_hash_buf));
 
   EXPECT_CALL(*trie_batch_, get(kagome::common::Buffer{}.put(":changes_trie")))
@@ -698,8 +696,8 @@ MATCHER_P(configsAreEqual, n, "") {
 TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
   auto parent_hash = "123456"_hash256;
   Buffer parent_hash_buf{gsl::span(parent_hash.data(), parent_hash.size())};
-  WasmResult parent_root_ptr{1, Hash256::size()};
-  EXPECT_CALL(*memory_, loadN(parent_root_ptr.address, Hash256::size()))
+  PtrSize parent_root_ptr{1, Hash256::size()};
+  EXPECT_CALL(*memory_, loadN(parent_root_ptr.ptr, Hash256::size()))
       .WillOnce(Return(parent_hash_buf));
 
   kagome::storage::changes_trie::ChangesTrieConfig config{.digest_interval = 0,

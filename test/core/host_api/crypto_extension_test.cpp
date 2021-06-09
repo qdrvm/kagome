@@ -21,7 +21,7 @@
 #include "mock/core/crypto/crypto_store_mock.hpp"
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
-#include "runtime/wasm_result.hpp"
+#include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -60,7 +60,7 @@ using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::Memory;
 using kagome::runtime::WasmPointer;
-using kagome::runtime::WasmResult;
+using kagome::runtime::PtrSize;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
 
@@ -298,7 +298,7 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_blake2_128_version_1(
-                WasmResult{data, size}.combine()));
+                PtrSize{data, size}.combine()));
 }
 
 /**
@@ -319,7 +319,7 @@ TEST_F(CryptoExtensionTest, Blake2_256Valid) {
       .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(crypto_ext_->ext_hashing_blake2_256_version_1(
-                WasmResult{data, size}.combine()),
+                PtrSize{data, size}.combine()),
             out_ptr);
 }
 
@@ -340,7 +340,7 @@ TEST_F(CryptoExtensionTest, KeccakValid) {
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_keccak_256_version_1(
-                WasmResult{data, size}.combine()));
+                PtrSize{data, size}.combine()));
 }
 
 /**
@@ -368,8 +368,8 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
 
   ASSERT_EQ(
       crypto_ext_->ext_crypto_ed25519_verify_version_1(
-          WasmResult{sig_data_ptr, ed25519_constants::SIGNATURE_SIZE}.combine(),
-          WasmResult{input_data, input_size}.combine(),
+          PtrSize{sig_data_ptr, ed25519_constants::SIGNATURE_SIZE}.combine(),
+          PtrSize{input_data, input_size}.combine(),
           pub_key_data_ptr),
       CryptoExtension::kVerifySuccess);
 }
@@ -402,8 +402,8 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
 
   ASSERT_EQ(
       crypto_ext_->ext_crypto_ed25519_verify_version_1(
-          WasmResult{sig_data_ptr, ed25519_constants::SIGNATURE_SIZE}.combine(),
-          WasmResult{input_data, input_size}.combine(),
+          PtrSize{sig_data_ptr, ed25519_constants::SIGNATURE_SIZE}.combine(),
+          PtrSize{input_data, input_size}.combine(),
           pub_key_data_ptr),
       CryptoExtension::kVerifyFail);
 }
@@ -428,8 +428,8 @@ TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
 
   ASSERT_EQ(
       crypto_ext_->ext_crypto_sr25519_verify_version_2(
-          WasmResult{sig_data_ptr, sr25519_constants::SIGNATURE_SIZE}.combine(),
-          WasmResult{input_data, input_size}.combine(),
+          PtrSize{sig_data_ptr, sr25519_constants::SIGNATURE_SIZE}.combine(),
+          PtrSize{input_data, input_size}.combine(),
           pub_key_data_ptr),
       CryptoExtension::kVerifySuccess);
 }
@@ -460,8 +460,8 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
 
   ASSERT_EQ(
       crypto_ext_->ext_crypto_sr25519_verify_version_2(
-          WasmResult{sig_data_ptr, sr25519_constants::SIGNATURE_SIZE}.combine(),
-          WasmResult{input_data, input_size}.combine(),
+          PtrSize{sig_data_ptr, sr25519_constants::SIGNATURE_SIZE}.combine(),
+          PtrSize{input_data, input_size}.combine(),
           pub_key_data_ptr),
       CryptoExtension::kVerifyFail);
 }
@@ -498,7 +498,7 @@ TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndSuccess) {
 
   WasmPointer input_data = 0;
   WasmSize input_size = input.size();
-  WasmResult input_span{input_data, input_size};
+  PtrSize input_span{input_data, input_size};
   WasmPointer sig_data_ptr = 42;
   WasmPointer pub_key_data_ptr = 123;
 
@@ -531,7 +531,7 @@ TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndInvalid) {
 
   WasmPointer input_data = 0;
   WasmSize input_size = input.size();
-  WasmResult input_span{input_data, input_size};
+  PtrSize input_span{input_data, input_size};
   WasmPointer sig_data_ptr = 42;
   WasmPointer pub_key_data_ptr = 123;
 
@@ -566,7 +566,7 @@ TEST_F(CryptoExtensionTest, Twox128) {
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_twox_128_version_1(
-                WasmResult{twox_input_data, twox_input_size}.combine()));
+                PtrSize{twox_input_data, twox_input_size}.combine()));
 }
 
 /**
@@ -587,7 +587,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_twox_256_version_1(
-                WasmResult{twox_input_data, twox_input_size}.combine()));
+                PtrSize{twox_input_data, twox_input_size}.combine()));
 }
 
 /**
@@ -598,7 +598,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
 TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedSuccess) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
-  WasmSpan res = WasmResult(20, 20).combine();
+  WasmSpan res = PtrSize(20, 20).combine();
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
 
@@ -627,7 +627,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedSuccess) {
 TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedFailure) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
-  WasmSpan res = WasmResult(20, 20).combine();
+  WasmSpan res = PtrSize(20, 20).combine();
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
   auto sig_buffer = Buffer(sig_input);
@@ -657,7 +657,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressedFailure) {
 TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
-  WasmSpan res = WasmResult(20, 20).combine();
+  WasmSpan res = PtrSize(20, 20).combine();
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
 
@@ -687,7 +687,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
 TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
-  WasmSpan res = WasmResult(20, 20).combine();
+  WasmSpan res = PtrSize(20, 20).combine();
 
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
@@ -718,7 +718,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressedFailure) {
  * @then we get serialized set of existing ed25519 keys
  */
 TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
-  WasmSpan res = WasmResult(1, 2).combine();
+  WasmSpan res = PtrSize(1, 2).combine();
 
   auto key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
@@ -741,7 +741,7 @@ TEST_F(CryptoExtensionTest, Ed25519GetPublicKeysSuccess) {
  * @then we get serialized set of existing sr25519 keys
  */
 TEST_F(CryptoExtensionTest, Sr25519GetPublicKeysSuccess) {
-  WasmSpan res = WasmResult(1, 2).combine();
+  WasmSpan res = PtrSize(1, 2).combine();
 
   auto key_type_ptr = 42u;
   auto key_type = kagome::crypto::KEY_TYPE_BABE;
@@ -767,8 +767,8 @@ TEST_F(CryptoExtensionTest, Ed25519SignSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
-  auto msg = WasmResult(3, 4).combine();
-  auto res = WasmResult(5, 6).combine();
+  auto msg = PtrSize(3, 4).combine();
+  auto res = PtrSize(5, 6).combine();
 
   // load public key
   EXPECT_CALL(*memory_, loadN(2, Ed25519PublicKey::size()))
@@ -799,8 +799,8 @@ TEST_F(CryptoExtensionTest, Ed25519SignFailure) {
   kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
-  auto msg = WasmResult(3, 4).combine();
-  auto res = WasmResult(5, 6).combine();
+  auto msg = PtrSize(3, 4).combine();
+  auto res = PtrSize(5, 6).combine();
 
   // load public key
   EXPECT_CALL(*memory_, loadN(2, Ed25519PublicKey::size()))
@@ -832,8 +832,8 @@ TEST_F(CryptoExtensionTest, Sr25519SignSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
-  auto msg = WasmResult(3, 4).combine();
-  auto res = WasmResult(5, 6).combine();
+  auto msg = PtrSize(3, 4).combine();
+  auto res = PtrSize(5, 6).combine();
 
   // load public key
   EXPECT_CALL(*memory_, loadN(2, Sr25519PublicKey::size()))
@@ -868,8 +868,8 @@ TEST_F(CryptoExtensionTest, Sr25519SignFailure) {
   kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer key = 2;
-  auto msg = WasmResult(3, 4).combine();
-  auto res = WasmResult(5, 6).combine();
+  auto msg = PtrSize(3, 4).combine();
+  auto res = PtrSize(5, 6).combine();
 
   // load public key
   EXPECT_CALL(*memory_, loadN(2, Sr25519PublicKey::size()))
@@ -901,7 +901,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByHexSeedSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
-  auto seed_ptr = WasmResult(3, 4).combine();
+  auto seed_ptr = PtrSize(3, 4).combine();
 
   EXPECT_CALL(*crypto_store_,
               generateEd25519Keypair(key_type, std::string_view(mnemonic)))
@@ -925,7 +925,7 @@ TEST_F(CryptoExtensionTest, Ed25519GenerateByMnemonicSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
-  auto seed_ptr = WasmResult(3, 4).combine();
+  auto seed_ptr = PtrSize(3, 4).combine();
 
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
   EXPECT_CALL(*memory_,
@@ -949,7 +949,7 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByHexSeedSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
-  auto seed_ptr = WasmResult(3, 4).combine();
+  auto seed_ptr = PtrSize(3, 4).combine();
 
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
   EXPECT_CALL(*memory_,
@@ -974,7 +974,7 @@ TEST_F(CryptoExtensionTest, Sr25519GenerateByMnemonicSuccess) {
   kagome::runtime::WasmSize key_type = kagome::crypto::KEY_TYPE_BABE;
   kagome::runtime::WasmSize key_type_ptr = 42;
   kagome::runtime::WasmPointer res = 2;
-  auto seed_ptr = WasmResult(3, 4).combine();
+  auto seed_ptr = PtrSize(3, 4).combine();
 
   EXPECT_CALL(*memory_, loadN(3, 4)).WillOnce(Return(mnemonic_buffer));
   EXPECT_CALL(*memory_,
@@ -998,7 +998,7 @@ TEST_F(CryptoExtensionTest, Keccac256Version1_Success) {
   WasmPointer data = 0;
   WasmSize size = input.size();
   WasmPointer out_ptr = 42;
-  WasmSpan data_span = WasmResult(data, size).combine();
+  WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(keccak_result)))
@@ -1016,7 +1016,7 @@ TEST_F(CryptoExtensionTest, Sha2_256Version1_Success) {
   WasmPointer data = 0;
   WasmSize size = input.size();
   WasmPointer out_ptr = 42;
-  WasmSpan data_span = WasmResult(data, size).combine();
+  WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(sha2_256_result)))
@@ -1034,7 +1034,7 @@ TEST_F(CryptoExtensionTest, Blake2_128Version1_Success) {
   WasmPointer data = 0;
   WasmSize size = input.size();
   WasmPointer out_ptr = 42;
-  WasmSpan data_span = WasmResult(data, size).combine();
+  WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
   EXPECT_CALL(*memory_,
@@ -1053,7 +1053,7 @@ TEST_F(CryptoExtensionTest, Blake2_256Version1_Success) {
   WasmPointer data = 0;
   WasmSize size = input.size();
   WasmPointer out_ptr = 42;
-  WasmSpan data_span = WasmResult(data, size).combine();
+  WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
   EXPECT_CALL(*memory_,
@@ -1072,7 +1072,7 @@ TEST_F(CryptoExtensionTest, Twox_256Version1_Success) {
   WasmPointer data = 0;
   WasmSize size = twox_input.size();
   WasmPointer out_ptr = 42;
-  WasmSpan data_span = WasmResult(data, size).combine();
+  WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox256_result)))
@@ -1090,7 +1090,7 @@ TEST_F(CryptoExtensionTest, Twox_128Version1_Success) {
   WasmPointer data = 0;
   WasmSize size = twox_input.size();
   WasmPointer out_ptr = 42;
-  WasmSpan data_span = WasmResult(data, size).combine();
+  WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox128_result)))
@@ -1108,7 +1108,7 @@ TEST_F(CryptoExtensionTest, Twox_64Version1_Success) {
   WasmPointer data = 0;
   WasmSize size = twox_input.size();
   WasmPointer out_ptr = 42;
-  WasmSpan data_span = WasmResult(data, size).combine();
+  WasmSpan data_span = PtrSize(data, size).combine();
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(twox_input));
   EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(twox64_result)))

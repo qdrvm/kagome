@@ -17,6 +17,8 @@ namespace kagome::runtime::wavm {
 
   class IntrinsicResolver : public WAVM::Runtime::Resolver {
    public:
+    virtual ~IntrinsicResolver() = default;
+
     virtual bool resolve(const std::string &moduleName,
                          const std::string &exportName,
                          WAVM::IR::ExternType type,

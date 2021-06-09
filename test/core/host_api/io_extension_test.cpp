@@ -11,7 +11,7 @@
 
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
-#include "runtime/wasm_result.hpp"
+#include "runtime/ptr_size.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -23,9 +23,10 @@ using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmLogLevel;
 using kagome::runtime::WasmLogLevel;
 using kagome::runtime::WasmPointer;
-using kagome::runtime::WasmResult;
+using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
+using kagome::runtime::PtrSize;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::Memory;
 using kagome::runtime::MemoryProviderMock;
@@ -67,16 +68,16 @@ class IOExtensionTest : public ::testing::Test {
  * @then hex encoded for given string is printed
  */
 TEST_F(IOExtensionTest, PrintHex) {
-  WasmResult msg{0, static_cast<WasmSize>(hex_bytes_.size())};
+  PtrSize msg{0, static_cast<WasmSize>(hex_bytes_.size())};
   std::string msg_buf{hex_bytes_.begin(), hex_bytes_.end()};
 
-  WasmResult target{static_cast<WasmPointer>(hex_bytes_.size()),
+  PtrSize target{static_cast<WasmPointer>(hex_bytes_.size()),
                     static_cast<WasmSize>(hex_bytes_.size())};
   std::string target_buf{'T', 'e', 's', 't'};
 
-  EXPECT_CALL(*memory_, loadStr(msg.address, msg.length))
+  EXPECT_CALL(*memory_, loadStr(msg.ptr, msg.size))
       .WillOnce(Return(msg_buf));
-  EXPECT_CALL(*memory_, loadStr(target.address, target.length))
+  EXPECT_CALL(*memory_, loadStr(target.ptr, target.size))
       .WillOnce(Return(target_buf));
 
   io_extension_->ext_logging_log_version_1(1, target.combine(), msg.combine());
@@ -88,13 +89,13 @@ TEST_F(IOExtensionTest, PrintHex) {
  * @then hex encoded for given string is printed
  */
 TEST_F(IOExtensionTest, PrintMessage) {
-  WasmResult target(0, hex_bytes_.size());
+  PtrSize target(0, hex_bytes_.size());
   std::string buf(&hex_bytes_.front(), &hex_bytes_.back());
 
-  EXPECT_CALL(*memory_, loadStr(target.address, target.length))
+  EXPECT_CALL(*memory_, loadStr(target.ptr, target.size))
       .WillRepeatedly(Return(buf));
   io_extension_->ext_logging_log_version_1(
-      static_cast<WasmEnum>(WasmLogLevel::WasmLL_Error),
+      static_cast<WasmEnum>(WasmLogLevel::Error),
       target.combine(),
       target.combine());
 }

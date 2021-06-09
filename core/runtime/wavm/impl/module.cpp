@@ -8,7 +8,6 @@
 #include <WAVM/Runtime/Linker.h>
 #include <boost/assert.hpp>
 
-#include "gc_compartment.hpp"
 #include "intrinsic_resolver_impl.hpp"
 #include "module_instance.hpp"
 

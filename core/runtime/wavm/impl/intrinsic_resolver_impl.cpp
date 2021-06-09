@@ -10,8 +10,6 @@
 #include "crutch.hpp"
 #include "memory.hpp"
 
-#include "gc_compartment.hpp"
-
 namespace kagome::runtime::wavm {
 
   static const auto kIntrinsicMemoryType{
@@ -76,7 +74,7 @@ namespace kagome::runtime::wavm {
     return false;
   }
 
-  IntrinsicResolverImpl::~IntrinsicResolverImpl() noexcept {
+  IntrinsicResolverImpl::~IntrinsicResolverImpl() {
     BOOST_ASSERT(WAVM::Runtime::tryCollectCompartment(std::move(compartment_)));
   }
 

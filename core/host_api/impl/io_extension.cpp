@@ -9,7 +9,7 @@
 
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
-#include "runtime/wasm_result.hpp"
+#include "runtime/ptr_size.hpp"
 
 namespace kagome::host_api {
   IOExtension::IOExtension(
@@ -23,30 +23,29 @@ namespace kagome::host_api {
                                               runtime::WasmSpan target,
                                               runtime::WasmSpan message) {
     using runtime::WasmLogLevel;
-    using runtime::WasmResult;
 
-    auto read_str_from_position = [&](WasmResult location) {
+    auto read_str_from_position = [&](runtime::PtrSize location) {
       return memory_provider_->getCurrentMemory().value().loadStr(
-          location.address, location.length);
+          location.ptr, location.size);
     };
 
-    const auto target_str = read_str_from_position(WasmResult(target));
-    const auto message_str = read_str_from_position(WasmResult(message));
+    const auto target_str = read_str_from_position(runtime::PtrSize(target));
+    const auto message_str = read_str_from_position(runtime::PtrSize(message));
 
-    switch (level) {
-      case WasmLogLevel::WasmLL_Error:
+    switch (static_cast<WasmLogLevel>(level)) {
+      case WasmLogLevel::Error:
         logger_->error("target: {}\n\tmessage: {}", target_str, message_str);
         break;
-      case WasmLogLevel::WasmLL_Warn:
+      case WasmLogLevel::Warn:
         logger_->warn("target: {}\n\tmessage: {}", target_str, message_str);
         break;
-      case WasmLogLevel::WasmLL_Info:
+      case WasmLogLevel::Info:
         logger_->info("target: {}\n\tmessage: {}", target_str, message_str);
         break;
-      case WasmLogLevel::WasmLL_Debug:
+      case WasmLogLevel::Debug:
         SL_DEBUG(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
         break;
-      case WasmLogLevel::WasmLL_Trace:
+      case WasmLogLevel::Trace:
         SL_TRACE(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
         break;
       default: {

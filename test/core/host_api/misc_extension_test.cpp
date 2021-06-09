@@ -31,7 +31,7 @@ using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::TrieStorageProviderMock;
-using kagome::runtime::WasmResult;
+using kagome::runtime::PtrSize;
 using kagome::scale::encode;
 using testing::_;
 using testing::Invoke;
@@ -67,10 +67,10 @@ TEST_F(MiscExtensionTest, Init) {
  * @then ext_chain_id return the chain id
  */
 TEST_F(MiscExtensionTest, CoreVersion) {
-  WasmResult state_code1{42, 4};
-  WasmResult state_code2{46, 5};
-  WasmResult res1{51, 4};
-  WasmResult res2{55, 4};
+  PtrSize state_code1{42, 4};
+  PtrSize state_code2{46, 5};
+  PtrSize res1{51, 4};
+  PtrSize res2{55, 4};
 
   kagome::primitives::Version v1{};
   v1.authoring_version = 42;

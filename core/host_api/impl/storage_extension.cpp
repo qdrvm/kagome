@@ -8,10 +8,10 @@
 #include <forward_list>
 
 #include "runtime/common/runtime_transaction_error.hpp"
-#include "runtime/wasm_result.hpp"
-#include "runtime/trie_storage_provider.hpp"
-#include "runtime/memory_provider.hpp"
 #include "runtime/memory.hpp"
+#include "runtime/memory_provider.hpp"
+#include "runtime/ptr_size.hpp"
+#include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
@@ -57,8 +57,8 @@ namespace kagome::host_api {
       runtime::WasmSpan key_pos,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
-    auto [key_ptr, key_size] = runtime::WasmResult(key_pos);
-    auto [value_ptr, value_size] = runtime::WasmResult(value_out);
+    auto [key_ptr, key_size] = runtime::PtrSize(key_pos);
+    auto [value_ptr, value_size] = runtime::PtrSize(value_out);
     auto& memory = memory_provider_->getCurrentMemory().value();
 
     auto key = memory.loadN(key_ptr, key_size);
@@ -106,8 +106,8 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_set_version_1(
       runtime::WasmSpan key_span, runtime::WasmSpan value_span) {
-    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
-    auto [value_ptr, value_size] = runtime::WasmResult(value_span);
+    auto [key_ptr, key_size] = runtime::PtrSize(key_span);
+    auto [value_ptr, value_size] = runtime::PtrSize(value_span);
     auto& memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
     auto value = memory.loadN(value_ptr, value_size);
@@ -125,7 +125,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
-    auto [key_ptr, key_size] = runtime::WasmResult(key);
+    auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto& memory = memory_provider_->getCurrentMemory().value();
     auto key_buffer = memory.loadN(key_ptr, key_size);
 
@@ -149,7 +149,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_clear_version_1(
       runtime::WasmSpan key_data) {
-    auto [key_ptr, key_size] = runtime::WasmResult(key_data);
+    auto [key_ptr, key_size] = runtime::PtrSize(key_data);
     auto batch = storage_provider_->getCurrentBatch();
     auto& memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
@@ -165,7 +165,7 @@ namespace kagome::host_api {
 
   runtime::WasmSize StorageExtension::ext_storage_exists_version_1(
       runtime::WasmSpan key_data) const {
-    auto [key_ptr, key_size] = runtime::WasmResult(key_data);
+    auto [key_ptr, key_size] = runtime::PtrSize(key_data);
     auto batch = storage_provider_->getCurrentBatch();
     auto& memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
@@ -174,7 +174,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_clear_prefix_version_1(
       runtime::WasmSpan prefix_span) {
-    auto [prefix_ptr, prefix_size] = runtime::WasmResult(prefix_span);
+    auto [prefix_ptr, prefix_size] = runtime::PtrSize(prefix_span);
     auto batch = storage_provider_->getCurrentBatch();
     auto& memory = memory_provider_->getCurrentMemory().value();
     auto prefix = memory.loadN(prefix_ptr, prefix_size);
@@ -204,10 +204,10 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash_data) {
-    auto parent_hash_span = runtime::WasmResult(parent_hash_data);
+    auto parent_hash_span = runtime::PtrSize(parent_hash_data);
     auto& memory = memory_provider_->getCurrentMemory().value();
     auto parent_hash_bytes =
-        memory.loadN(parent_hash_span.address, parent_hash_span.length);
+        memory.loadN(parent_hash_span.ptr, parent_hash_span.size);
     common::Hash256 parent_hash;
     std::copy_n(parent_hash_bytes.begin(),
                 common::Hash256::size(),
@@ -224,7 +224,7 @@ namespace kagome::host_api {
       runtime::WasmSpan key_span) const {
     static constexpr runtime::WasmSpan kErrorSpan = -1;
 
-    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
+    auto [key_ptr, key_size] = runtime::PtrSize(key_span);
     auto& memory = memory_provider_->getCurrentMemory().value();
     auto key_bytes = memory.loadN(key_ptr, key_size);
     auto res = getStorageNextKey(key_bytes);
@@ -246,8 +246,8 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_append_version_1(
       runtime::WasmSpan key_span, runtime::WasmSpan append_span) const {
-    auto [key_ptr, key_size] = runtime::WasmResult(key_span);
-    auto [append_ptr, append_size] = runtime::WasmResult(append_span);
+    auto [key_ptr, key_size] = runtime::PtrSize(key_span);
+    auto [append_ptr, append_size] = runtime::PtrSize(append_span);
     auto& memory = memory_provider_->getCurrentMemory().value();
     auto key_bytes = memory.loadN(key_ptr, key_size);
     auto append_bytes = memory.loadN(append_ptr, append_size);
@@ -283,7 +283,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer StorageExtension::ext_trie_blake2_256_root_version_1(
       runtime::WasmSpan values_data) {
-    auto [address, length] = runtime::WasmResult(values_data);
+    auto [address, length] = runtime::PtrSize(values_data);
     auto& memory = memory_provider_->getCurrentMemory().value();
     const auto &buffer = memory.loadN(address, length);
     const auto &pairs = scale::decode<KeyValueCollection>(buffer);
@@ -297,7 +297,7 @@ namespace kagome::host_api {
     if (pv.empty()) {
       static const auto empty_root = common::Buffer{}.put(codec.hash256({0}));
       auto res = memory.storeBuffer(empty_root);
-      return runtime::WasmResult(res).address;
+      return runtime::PtrSize(res).ptr;
     }
     storage::trie::PolkadotTrieImpl trie;
     for (auto &&p : pv) {
@@ -322,13 +322,13 @@ namespace kagome::host_api {
     const auto &hash = codec.hash256(enc.value());
 
     auto res = memory.storeBuffer(hash);
-    return runtime::WasmResult(res).address;
+    return runtime::PtrSize(res).ptr;
   }
 
   runtime::WasmPointer
   StorageExtension::ext_trie_blake2_256_ordered_root_version_1(
       runtime::WasmSpan values_data) {
-    auto [address, length] = runtime::WasmResult(values_data);
+    auto [address, length] = runtime::PtrSize(values_data);
     auto& memory = memory_provider_->getCurrentMemory().value();
     const auto &buffer = memory.loadN(address, length);
     const auto &values = scale::decode<ValuesCollection>(buffer);
@@ -348,7 +348,7 @@ namespace kagome::host_api {
     }
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
     auto res = memory.storeBuffer(ordered_hash.value());
-    return runtime::WasmResult(res).address;
+    return runtime::PtrSize(res).ptr;
   }
 
   boost::optional<common::Buffer> StorageExtension::calcStorageChangesRoot(
