@@ -13,6 +13,10 @@ namespace kagome::runtime::wavm {
                                  WAVM::Runtime::Compartment *compartment)
       : instance_{instance}, compartment_{std::move(compartment)} {}
 
+  ModuleInstance::~ModuleInstance() {
+    WAVM::Runtime::collectCompartmentGarbage(compartment_);
+  }
+
   PtrSize ModuleInstance::callExportFunction(std::string_view name,
                                              PtrSize args) {
     WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
@@ -21,13 +25,13 @@ namespace kagome::runtime::wavm {
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
     std::vector<WAVM::IR::Value> invokeArgs;
     if (!function) {
-      // log error
+      // TODO(Harrm): log error
       // return EXIT_FAILURE;
     }
     const WAVM::IR::FunctionType functionType =
         WAVM::Runtime::getFunctionType(function);
     if (functionType.params().size() != 2) {  // address and size
-      // log error
+      // TODO(Harrm): log error
       // return EXIT_FAILURE;
     }
     invokeArgs.emplace_back(static_cast<WAVM::U32>(args.ptr));

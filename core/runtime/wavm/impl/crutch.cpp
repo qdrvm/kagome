@@ -29,7 +29,7 @@ namespace kagome::runtime::wavm {
     return global_host_apis.top();
   }
 
-  WAVM::Intrinsics::Memory env_memory{
+  static WAVM::Intrinsics::Memory env_memory{
       getIntrinsicModule_env(),
       "memory",
       MemoryType{false, IndexType::i32, SizeConstraints{20, UINT64_MAX}}};
@@ -68,7 +68,8 @@ namespace kagome::runtime::wavm {
                                  ext_crypto_ed25519_generate_version_1,
                                  I32 keytype,
                                  I64 seed) {
-    return global_host_apis.top()->ext_crypto_ed25519_generate_version_1(keytype, seed);
+    return global_host_apis.top()->ext_crypto_ed25519_generate_version_1(
+        keytype, seed);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -95,7 +96,8 @@ namespace kagome::runtime::wavm {
                                  ext_crypto_secp256k1_ecdsa_recover_version_1,
                                  I32 sig,
                                  I32 msg) {
-    return global_host_apis.top()->ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
+    return global_host_apis.top()->ext_crypto_secp256k1_ecdsa_recover_version_1(
+        sig, msg);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(
@@ -105,8 +107,8 @@ namespace kagome::runtime::wavm {
       ext_crypto_secp256k1_ecdsa_recover_compressed_version_1,
       I32 sig,
       I32 msg) {
-    return global_host_apis.top()->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
-        sig, msg);
+    return global_host_apis.top()
+        ->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(sig, msg);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -115,7 +117,8 @@ namespace kagome::runtime::wavm {
                                  ext_crypto_sr25519_generate_version_1,
                                  I32 key_type,
                                  I64 seed) {
-    return global_host_apis.top()->ext_crypto_sr25519_generate_version_1(key_type, seed);
+    return global_host_apis.top()->ext_crypto_sr25519_generate_version_1(
+        key_type, seed);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -123,7 +126,8 @@ namespace kagome::runtime::wavm {
                                  I64,
                                  ext_crypto_sr25519_public_keys_version_1,
                                  I32 key_type) {
-    return global_host_apis.top()->ext_crypto_sr25519_public_keys_version_1(key_type);
+    return global_host_apis.top()->ext_crypto_sr25519_public_keys_version_1(
+        key_type);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -133,7 +137,8 @@ namespace kagome::runtime::wavm {
                                  I32 key_type,
                                  I32 key,
                                  I64 msg_data) {
-    return global_host_apis.top()->ext_crypto_sr25519_sign_version_1(key_type, key, msg_data);
+    return global_host_apis.top()->ext_crypto_sr25519_sign_version_1(
+        key_type, key, msg_data);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -159,7 +164,8 @@ namespace kagome::runtime::wavm {
                                  I32,
                                  ext_trie_blake2_256_ordered_root_version_1,
                                  I64 values_data) {
-    return global_host_apis.top()->ext_trie_blake2_256_ordered_root_version_1(values_data);
+    return global_host_apis.top()->ext_trie_blake2_256_ordered_root_version_1(
+        values_data);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -191,7 +197,8 @@ namespace kagome::runtime::wavm {
                                  I64,
                                  ext_misc_runtime_version_version_1,
                                  I64 values_data) {
-    return global_host_apis.top()->ext_misc_runtime_version_version_1(values_data);
+    return global_host_apis.top()->ext_misc_runtime_version_version_1(
+        values_data);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -382,7 +389,8 @@ namespace kagome::runtime::wavm {
                                  I64,
                                  ext_storage_changes_root_version_1,
                                  I64 parent_hash) {
-    return global_host_apis.top()->ext_storage_changes_root_version_1(parent_hash);
+    return global_host_apis.top()->ext_storage_changes_root_version_1(
+        parent_hash);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -432,7 +440,8 @@ namespace kagome::runtime::wavm {
                                  I64 key,
                                  I64 value_out,
                                  I32 offset) {
-    return global_host_apis.top()->ext_storage_read_version_1(key, value_out, offset);
+    return global_host_apis.top()->ext_storage_read_version_1(
+        key, value_out, offset);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,
@@ -483,7 +492,8 @@ namespace kagome::runtime::wavm {
                                  I32 level,
                                  I64 target,
                                  I64 message) {
-    return global_host_apis.top()->ext_logging_log_version_1(level, target, message);
+    return global_host_apis.top()->ext_logging_log_version_1(
+        level, target, message);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(env,

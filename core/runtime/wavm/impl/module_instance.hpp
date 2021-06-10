@@ -25,10 +25,12 @@ namespace WAVM {
 
 namespace kagome::runtime::wavm {
 
-  class ModuleInstance {
+  class ModuleInstance final {
    public:
     explicit ModuleInstance(WAVM::Runtime::Instance *instance,
                             WAVM::Runtime::Compartment *compartment);
+
+    ~ModuleInstance();
 
     PtrSize callExportFunction(std::string_view name, PtrSize args);
 

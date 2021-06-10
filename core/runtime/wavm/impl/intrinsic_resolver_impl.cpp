@@ -8,7 +8,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 #include "crutch.hpp"
-#include "memory.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -75,7 +74,7 @@ namespace kagome::runtime::wavm {
   }
 
   IntrinsicResolverImpl::~IntrinsicResolverImpl() {
-    BOOST_ASSERT(WAVM::Runtime::tryCollectCompartment(std::move(compartment_)));
+    BOOST_VERIFY(WAVM::Runtime::tryCollectCompartment(std::move(compartment_)));
   }
 
   std::unique_ptr<IntrinsicResolver> IntrinsicResolverImpl::clone() const {

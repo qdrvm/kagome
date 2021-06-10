@@ -13,6 +13,7 @@
 #include "WAVM/Runtime/Intrinsics.h"
 #include "WAVM/Runtime/Runtime.h"
 #include "WAVM/WASTParse/WASTParse.h"
+
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
 
@@ -29,7 +30,6 @@ namespace kagome::runtime::wavm {
   using namespace WAVM::Runtime;
 
   WAVM::Intrinsics::Module *getIntrinsicModule_env();
-  extern WAVM::Intrinsics::Memory env_memory;
 
 #define DECLARE_HOST_INTRINSIC(Ret, name, ...)                    \
   Ret name(WAVM::Runtime::ContextRuntimeData *contextRuntimeData, \
