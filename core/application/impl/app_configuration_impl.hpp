@@ -104,6 +104,9 @@ namespace kagome::application {
     const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const override {
       return rpc_ws_endpoint_;
     }
+    const boost::asio::ip::tcp::endpoint &openmetricsHttpEndpoint() const override {
+      return openmetrics_http_endpoint_;
+    }
     uint32_t maxWsConnections() const override {
       return max_ws_connections_;
     }
@@ -187,16 +190,19 @@ namespace kagome::application {
     uint16_t p2p_port_;
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
+    boost::asio::ip::tcp::endpoint openmetrics_http_endpoint_;
     log::Level verbosity_ = log::Level::INFO;
     bool is_already_synchronized_;
     uint32_t max_blocks_in_response_;
     bool is_unix_slots_strategy_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
+    std::string openmetrics_http_host_;
     boost::filesystem::path chain_spec_path_;
     boost::filesystem::path base_path_;
     uint16_t rpc_http_port_;
     uint16_t rpc_ws_port_;
+    uint16_t openmetrics_http_port_;
     network::PeeringConfig peering_config_;
     bool dev_mode_;
     std::string node_name_;

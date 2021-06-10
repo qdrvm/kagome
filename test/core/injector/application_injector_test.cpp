@@ -107,6 +107,9 @@ namespace {
     EXPECT_CALL(config_mock, rpcWsEndpoint())
         .WillRepeatedly(
             testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
+    EXPECT_CALL(config_mock, openmetricsHttpEndpoint())
+        .WillRepeatedly(
+            testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
   }
 }  // namespace
 
@@ -146,6 +149,7 @@ class KagomeInjectorTest : public testing::Test {
 TEST_KAGOME_INJECT(ChainSpec)
 TEST_KAGOME_INJECT(AppStateManager)
 TEST_KAGOME_INJECT(IoContext)
+TEST_KAGOME_INJECT(OpenMetricsService)
 TEST_KAGOME_INJECT(Router)
 TEST_KAGOME_INJECT(PeerManager)
 TEST_KAGOME_INJECT(RpcApiService)

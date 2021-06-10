@@ -23,6 +23,10 @@ namespace kagome {
     class AppStateManager;
   }  // namespace application
 
+  namespace metrics {
+    class Exposer;
+  }  // namespace metrics
+
   namespace network {
     class Router;
     class PeerManager;
@@ -55,6 +59,7 @@ namespace kagome::injector {
     std::shared_ptr<application::ChainSpec> injectChainSpec();
     std::shared_ptr<application::AppStateManager> injectAppStateManager();
     std::shared_ptr<boost::asio::io_context> injectIoContext();
+    std::shared_ptr<metrics::Exposer> injectOpenMetricsService();
     std::shared_ptr<network::Router> injectRouter();
     std::shared_ptr<network::PeerManager> injectPeerManager();
     std::shared_ptr<api::ApiService> injectRpcApiService();

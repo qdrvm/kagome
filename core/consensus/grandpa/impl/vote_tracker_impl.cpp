@@ -40,6 +40,7 @@ namespace kagome::consensus::grandpa {
 
             messages_[vote.id] = v;
             total_weight_ += weight;
+            equivocators_weight_ += weight;
             return PushResult::EQUIVOCATED;
           },
           // otherwise return duplicated
@@ -79,6 +80,10 @@ namespace kagome::consensus::grandpa {
 
   size_t VoteTrackerImpl::getTotalWeight() const {
     return total_weight_;
+  }
+
+  size_t VoteTrackerImpl::getEquivocatorsWeight() const {
+    return equivocators_weight_;
   }
 
 }  // namespace kagome::consensus::grandpa

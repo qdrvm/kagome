@@ -28,6 +28,7 @@ namespace kagome::application {
     io_context_ = injector_->injectIoContext();
     clock_ = injector_->injectSystemClock();
     babe_ = injector_->injectBabe();
+    exposer_ = injector_->injectOpenMetricsService();
     grandpa_ = injector_->injectGrandpa();
     router_ = injector_->injectRouter();
     peer_manager_ = injector_->injectPeerManager();

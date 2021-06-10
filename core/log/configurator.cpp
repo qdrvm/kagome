@@ -58,6 +58,7 @@ groups:
               - name: runtime_api
               - name: host_api
               - name: binaryen
+          - name: metrics
           - name: network
           - name: changes_trie
           - name: storage

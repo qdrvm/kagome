@@ -25,6 +25,9 @@ namespace kagome::host_api {
                  void(runtime::WasmEnum level,
                       runtime::WasmSpan target,
                       runtime::WasmSpan message));
+
+    MOCK_METHOD0(ext_logging_max_level_version_1, runtime::WasmEnum());
+
     MOCK_METHOD3(ext_crypto_sr25519_verify_version_1,
                  int32_t(runtime::WasmPointer sig_data,
                          runtime::WasmSpan msg,

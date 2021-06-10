@@ -22,7 +22,8 @@ namespace kagome::host_api {
    */
   class IOExtension {
    public:
-    explicit IOExtension(std::shared_ptr<const runtime::MemoryProvider> memory_provider);
+    explicit IOExtension(
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider);
 
     /**
      * @see Extension::ext_logging_log_version_1
@@ -30,6 +31,11 @@ namespace kagome::host_api {
     void ext_logging_log_version_1(runtime::WasmEnum level,
                                    runtime::WasmSpan target,
                                    runtime::WasmSpan message);
+
+    /**
+     * @see Extension::ext_logging_max_level_version_1
+     */
+    runtime::WasmEnum ext_logging_max_level_version_1();
 
    private:
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;

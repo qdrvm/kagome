@@ -28,3 +28,9 @@ hunter_config(soralog
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
     KEEP_PACKAGE_SOURCES
     )
+
+hunter_config(prometheus-cpp
+    URL "https://github.com/jupp0r/prometheus-cpp/releases/download/v0.12.3/prometheus-cpp-with-submodules.tar.gz"
+    SHA1 0e337607d4ce55cdc80c37b60dcfe4dbbf7812cf
+    CMAKE_ARGS ENABLE_TESTING=OFF USE_THIRDPARTY_LIBRARIES=OFF OVERRIDE_CXX_STANDARD_FLAGS=OFF ENABLE_PULL=OFF ENABLE_PUSH=OFF ENABLE_COMPRESSION=OFF
+    )

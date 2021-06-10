@@ -182,9 +182,6 @@ namespace kagome::consensus::grandpa {
     /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
 
-    /// Check if current peer is primary
-    bool isPrimary() const;
-
     /// Triggered when we receive \param signed_prevote for the current peer
     outcome::result<void> onSignedPrevote(const SignedMessage &signed_prevote);
 

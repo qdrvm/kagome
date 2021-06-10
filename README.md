@@ -63,26 +63,41 @@ docker run -it --rm soramitsu/kagome:0.0.1 kagome
 
 ```
 
+### Execute kagome node in development mode
 
-### Execute kagome node with validator mode
+The easiest way to get started with Kagome is to execute in development mode which is a single node network:
+
+```
+kagome --dev
+```
+
+That executes node with default accounts Alice and Bob. You can read about these accounts [here](https://kagome.readthedocs.io/en/latest/tutorials/first_kagome_chain.html#launch-kagome-network).
+
+To launch with wiping existing data you can do:
+
+```
+kagome --dev-with-wipe
+```
+
+### Execute Kagome node with validator mode
 
 ---
 **Note**
 
 At the moment launch from the existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
 ```
-rm -rf db
+rm -rf base_path/dev/db
 ```
 ---
 
-To launch kagome validator execute:
+To launch Kagome validator execute:
 ```
 cd examples/first_kagome_chain
 PATH=$PATH:../../build/node/
 kagome --validator --chain localchain.json --base-path base_path
 ```
 
-This command executes kagome full node with authority role which can receive extrinsics locally on port using http: `9933`. Simple transfer transaction can be sent as follows:
+This command executes Kagome full node with authority role which can receive extrinsics locally on port using http: `9933`. Simple transfer transaction can be sent as follows:
 ```
 curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_submitExtrinsic", "params": ["0x290284ffdc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a01e2f2be0a634faeb8401ed2392731df803877dcb2422bb396d48ca24f18661059e3dde41d14b87eb929ec41ab36e6d63be5a1f5c3c5c092c79646a453f4b392890000000600ff488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a972404"]}' http://localhost:9933/
 ```
@@ -92,18 +107,20 @@ If transaction was successfully applied we should see the following output:
 ```
 
 
-### Execute kagome full node
+### Execute Kagome Polkadot archive node
+
+You can synchronize with Polkadot using Kagome and obtain archive node that can be used to query Polkadot network at any state. 
 
 ---
 **Note**
 
-Same note as for full syncing node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
+Same note as for validating node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the chain folder in the base path:
 ```
 rm -rf syncing_chain
 ```
 ---
 
-To launch kagome full node execute:
+To launch Kagome Polkadot archive node execute:
 ```
 cd examples/polkadot/
 PATH=$PATH:../../build/node/
@@ -119,7 +136,7 @@ The ports, which are not set in the app arguments, will take a default value. In
 ___
 
 ### Configuration Details
-To run a kagome node, you need to provide to it a genesis config, cryptographic keys and a place to store db files.
+To run a Kagome node, you need to provide to it a genesis config, cryptographic keys and a place to store db files.
 * Example of a genesis config file can be found in `examples/first_kagome_chain/localchain.json`
 * Example of a base path dir can be found in `examples/first_kagome_chain/base_path`
 * To create leveldb files, just provide any base path into `kagome` executable (mind that start with authority role requires keys to start).
@@ -152,13 +169,6 @@ ctest
 
 Please refer to the [Contributor Documentation](./docs/source/development/dev-guide.md).
 
-
-## Kagome in media
-
-* Press-release: [Soramitsu to implement Polkadot Runtime Environment in C++](https://medium.com/web3foundation/w3f-grants-soramitsu-to-implement-polkadot-runtime-environment-in-c-cf3baa08cbe6)
-* [Kagome: C++ implementation of PRE](https://www.youtube.com/watch?v=181mk2xvBZ4&t=) presentation at DOTCon (18.08.19)
-* [Kagome and consensus in Polkadot](https://www.youtube.com/watch?v=5OrevTjaiPA) presentation (in Russian) during Innopolis blockchain meetup (28.10.19)
-
 ## Supported Features
 * Extrinsic Api
     * Receives extrinsics submitted over JSON-RPC, validates them and stores in transaction pool
@@ -174,11 +184,11 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
         * BlockBuilder – checks inherents, applies extrinsics, derives inherent extrinsics, initializes and finalizes blocks
         * Core – gets version of runtime, executes blocks, gets authorities
         * Grandpa – gets grandpa authorities
-        * Metadata (not used)
+        * Metadata
         * OffchainWorker (not used)
         * ParachainHost (not used)
         * TaggedTransactionQueue – validates transactions
-* Externals (aka Extensions)
+* Host Api (aka Extensions)
     * Exposes a set functions that Runtime needs for:
         * Management of the content
         * Memory allocation
@@ -201,8 +211,15 @@ Please refer to the [Contributor Documentation](./docs/source/development/dev-gu
     * Schnorr's vrf and sr25519 (bindings over Web3’s [schnorrkel library](https://github.com/w3f/schnorrkel))
     * twox
 * Networking
-    * Kagome uses [cpp-libp2p](https://github.com/soramitsu/libp2p) for peer-to-peer interactions
+    * Kagome uses [cpp-libp2p](https://github.com/soramitsu/libp2p) for peer-to-peer interactions and peer discovery
     * Gossiper and Gossiper observer
     * SyncClient and SyncServer 
     
 You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). 
+
+## Kagome in media
+
+* Press-release: [Soramitsu to implement Polkadot Runtime Environment in C++](https://medium.com/web3foundation/w3f-grants-soramitsu-to-implement-polkadot-runtime-environment-in-c-cf3baa08cbe6)
+* [Kagome: C++ implementation of PRE](https://www.youtube.com/watch?v=181mk2xvBZ4&t=) presentation at DOTCon (18.08.19)
+* [Kagome and consensus in Polkadot](https://www.youtube.com/watch?v=5OrevTjaiPA) presentation (in Russian) during Innopolis blockchain meetup (28.10.19)
+* [Web3 Builders: Soramitsu | C++ Implementation of Polkadot Host](https://www.youtube.com/watch?v=We3kiGzg60w) Polkadot's Web3 builders online presentation 

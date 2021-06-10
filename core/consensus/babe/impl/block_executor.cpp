@@ -295,7 +295,7 @@ namespace kagome::consensus {
                 block_tree_->getEpochDescriptor(epoch_number,
                                                 block.header.parent_hash));
 
-    auto &slot_number = babe_header.slot_number;
+    [[maybe_unused]] auto &slot_number = babe_header.slot_number;
     SL_TRACE(
         logger_,
         "EPOCH_DIGEST: Actual epoch digest for epoch {} in slot {} (to apply "

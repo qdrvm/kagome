@@ -60,6 +60,10 @@ find_package(Boost.DI CONFIG REQUIRED)
 hunter_add_package(c-ares)
 find_package(c-ares CONFIG REQUIRED)
 
+# https://hunter.readthedocs.io/en/latest/packages/pkg/prometheus-cpp.html
+hunter_add_package(prometheus-cpp)
+find_package(prometheus-cpp CONFIG REQUIRED)
+
 # https://github.com/soramitsu/libp2p
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)

@@ -20,9 +20,12 @@ namespace kagome::consensus::grandpa {
 
     size_t getTotalWeight() const override;
 
+    size_t getEquivocatorsWeight() const override;
+
    private:
     std::map<Id, VoteVariant> messages_;
     size_t total_weight_ = 0;
+    size_t equivocators_weight_ = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

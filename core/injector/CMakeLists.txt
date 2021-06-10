@@ -20,6 +20,7 @@ target_link_libraries(application_injector
     log_configurator
     api_transport
     api_jrpc_server
+    metrics
     state_api_service
     trie_storage
     polkadot_trie

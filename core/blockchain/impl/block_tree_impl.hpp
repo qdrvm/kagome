@@ -24,6 +24,7 @@
 #include "consensus/babe/types/epoch_digest.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
+#include "metrics/metrics.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
@@ -275,6 +276,10 @@ namespace kagome::blockchain {
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
     boost::optional<primitives::Version> actual_runtime_version_;
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
+    //metrics
+    metrics::RegistryPtr registry_ = metrics::createRegistry();
+    metrics::Gauge* block_height_best_;
+    metrics::Gauge* block_height_finalized_;
   };
 }  // namespace kagome::blockchain
 
