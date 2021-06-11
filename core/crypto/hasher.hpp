@@ -56,6 +56,13 @@ namespace kagome::crypto {
     virtual Hash256 blake2b_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
+     * @brief blake2b_512 function calculates 64-byte blake2b hash
+     * @param buffer source value
+     * @return 512-bit hash value
+     */
+    virtual Hash512 blake2b_512(gsl::span<const uint8_t> buffer) const = 0;
+
+    /**
      * @brief keccak_256 function calculates 32-byte keccak hash
      * @param buffer source value
      * @return 256-bit hash value
@@ -75,13 +82,6 @@ namespace kagome::crypto {
      * @return 256-bit hash value
      */
     virtual Hash256 sha2_256(gsl::span<const uint8_t> buffer) const = 0;
-
-    /**
-     * @brief blake2b_512 function calculates 64-byte blake2b hash
-     * @param buffer source value
-     * @return 512-bit hash value
-     */
-    virtual Hash512 blake2b_512(gsl::span<const uint8_t> buffer) const = 0;
   };
 }  // namespace kagome::crypto
 

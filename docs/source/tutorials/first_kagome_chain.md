@@ -135,7 +135,7 @@ python3 balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694
 
 We can generate extrinsic using the following command:
 
-This command will create extrinsic that transfers 1000 from Alice to Bob's account (Alice's account is defined by secret seed and Bob's account by account id). To define on which blockchain this extrinsic is going to be executed we provide subkey with genesis hash `b86008325a917cd553b122702d1346bf6f132db4ea17155a9eec733413dc9ecf` which corresponds to the hash of the genesis block of our chain.
+This command will create extrinsic that transfers 1 from Alice to Bob's account (Alice's account is defined by secret seed and Bob's account by account id).
 
 To send extrinsic use `transfer.py` script as follows:
 ```shell script
@@ -158,7 +158,7 @@ We can see that Bob's balance was increased by 1 as it was set on the subkey com
 Now let's check Alice's account:
 ```shell script
 python3 balance.py localhost:9933 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-Current free balance: 9999.0  
+Current free balance: 9998.999829217584  
 ```
 
 We can see that Alice's account was decreased by more than 1. This is caused by the commission paid for transfer
