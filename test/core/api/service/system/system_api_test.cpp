@@ -82,8 +82,8 @@ TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
       .WillOnce(Return(kInitialNonce));
   auto hash_preimage = Buffer{}.put("SS58PRE").putUint8(42).put(kAccountId);
   EXPECT_CALL(*hasher_mock_,
-              blake2b_256(gsl::span<const uint8_t>(hash_preimage)))
-      .WillOnce(Return(kagome::common::Hash256{{'\035', '!'}}));
+              blake2b_512(gsl::span<const uint8_t>(hash_preimage)))
+      .WillOnce(Return(kagome::common::Hash512{{'\035', '!'}}));
   EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions());
 
   EXPECT_OUTCOME_TRUE(nonce, system_api_->getNonceFor(kSs58Account))
@@ -103,8 +103,8 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
       .WillOnce(Return(kInitialNonce));
   auto hash_preimage = Buffer{}.put("SS58PRE").putUint8(42).put(kAccountId);
   EXPECT_CALL(*hasher_mock_,
-              blake2b_256(gsl::span<const uint8_t>(hash_preimage)))
-      .WillOnce(Return(kagome::common::Hash256{{'\035', '!'}}));
+              blake2b_512(gsl::span<const uint8_t>(hash_preimage)))
+      .WillOnce(Return(kagome::common::Hash512{{'\035', '!'}}));
 
   constexpr auto kReadyTxNum = 5;
   std::array<std::vector<uint8_t>, kReadyTxNum> encoded_nonces;
