@@ -207,9 +207,9 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlock(
       const primitives::Block &block) {
-    // TODO(xDimon): Need to implement mechanism for wipe out orphan blocks
-    //  (in side-chains whom rejected by finalization)
-    //  for avoid leaks of storage space
+    // TODO(xDimon): Need to implement mechanism for wiping out orphan blocks
+    //  (in side-chains rejected by finalization)
+    //  to avoid storage space leaks
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
     auto block_in_storage_res =
         getWithPrefix(*storage_, Prefix::HEADER, block_hash);

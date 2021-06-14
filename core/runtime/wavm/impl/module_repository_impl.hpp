@@ -31,8 +31,14 @@ namespace kagome::runtime::wavm {
 
   class ModuleRepositoryImpl final: public ModuleRepository {
    public:
-    ModuleRepositoryImpl(std::shared_ptr<const crypto::Hasher> hasher,
+    ModuleRepositoryImpl(
+        WAVM::Runtime::Compartment* compartment,
+        std::shared_ptr<const crypto::Hasher> hasher,
                      std::shared_ptr<IntrinsicResolver>);
+
+    ~ModuleRepositoryImpl() {
+
+    }
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<RuntimeCodeProvider> code_provider,
@@ -53,7 +59,7 @@ namespace kagome::runtime::wavm {
     std::unordered_map<common::Hash256, std::shared_ptr<Module>> modules_;
     std::unordered_map<common::Hash256, std::shared_ptr<ModuleInstance>>
         instances_;
-    GCPointer<WAVM::Runtime::Compartment> compartment_;
+    WAVM::Runtime::GCPointer<WAVM::Runtime::Compartment> compartment_;
     std::shared_ptr<IntrinsicResolver> resolver_;
     std::shared_ptr<const crypto::Hasher> hasher_;
     log::Logger logger_;

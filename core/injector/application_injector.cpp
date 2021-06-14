@@ -90,6 +90,7 @@
 #include "runtime/wavm/executor.hpp"
 #include "runtime/wavm/impl/core_api_provider.hpp"
 #include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_module_instance.hpp"
 #include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/impl/module_repository_impl.hpp"
 #include "runtime/wavm/runtime_api/account_nonce_api.hpp"
@@ -108,7 +109,6 @@
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
-#include "storage/trie/polkadot_trie/polkadot_node.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
@@ -949,10 +949,10 @@ namespace {
         }),
         di::bind<runtime::MemoryProvider>.template to([](const auto &injector) {
           static auto initialized = [&injector]() {
-            auto resolver = injector.template create<
-                std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
+            auto instance = injector.template create<
+                std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>>();
             return std::make_shared<runtime::wavm::WavmMemoryProvider>(
-                resolver);
+                instance);
           }();
           return initialized;
         }),
@@ -1052,6 +1052,24 @@ namespace {
         di::bind<network::SyncProtocolObserver>.to([](auto const &injector) {
           return get_sync_observer_impl(injector);
         }),
+        di::bind<WAVM::Runtime::Compartment>.template to(
+            [](const auto &injector) {
+              static WAVM::Runtime::Compartment *compartment =
+                  WAVM::Runtime::createCompartment("Runtime Compartment");
+              return compartment;
+            }),
+        di::bind<runtime::wavm::IntrinsicModuleInstance>.template to(
+            [](const auto &injector) {
+              static std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>
+                  instance = [&injector]() {
+                    auto compartment =
+                        injector
+                            .template create<WAVM::Runtime::Compartment *>();
+                    return std::make_shared<
+                        runtime::wavm::IntrinsicModuleInstance>(compartment);
+                  }();
+              return instance;
+            }),
         di::bind<runtime::wavm::IntrinsicResolverImpl>.template to(
             [](const auto &injector) {
               static boost::optional<
@@ -1060,8 +1078,13 @@ namespace {
               if (initialized) {
                 return initialized.value();
               }
+              auto instance = injector.template create<
+                  sptr<runtime::wavm::IntrinsicModuleInstance>>();
+              auto compartment =
+                  injector.template create<WAVM::Runtime::Compartment *>();
               auto resolver =
-                  std::make_shared<runtime::wavm::IntrinsicResolverImpl>();
+                  std::make_shared<runtime::wavm::IntrinsicResolverImpl>(
+                      instance, compartment);
 
               initialized = std::move(resolver);
               return initialized.value();
@@ -1096,8 +1119,6 @@ namespace {
           if (!initialized) {
             auto storage_provider = injector.template create<
                 std::shared_ptr<runtime::TrieStorageProvider>>();
-            auto resolver = injector.template create<
-                std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
             auto memory_provider = injector.template create<
                 std::shared_ptr<runtime::MemoryProvider>>();
             auto module_repo = injector.template create<
@@ -1440,6 +1461,11 @@ namespace kagome::injector {
 
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
+  }
+
+  std::shared_ptr<blockchain::BlockStorage>
+  KagomeNodeInjector::injectBlockStorage() {
+    return pimpl_->injector_.create<sptr<blockchain::BlockStorage>>();
   }
 
   sptr<application::AppStateManager>

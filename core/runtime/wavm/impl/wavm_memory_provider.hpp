@@ -10,19 +10,23 @@
 
 namespace kagome::runtime::wavm {
 
-  class IntrinsicResolver;
+  class IntrinsicModuleInstance;
   class Memory;
 
   class WavmMemoryProvider final: public MemoryProvider {
    public:
-    WavmMemoryProvider(std::shared_ptr<IntrinsicResolver> resolver);
+    WavmMemoryProvider(std::shared_ptr<IntrinsicModuleInstance> resolver);
+
+    ~WavmMemoryProvider() {
+
+    }
 
     boost::optional<runtime::Memory&> getCurrentMemory() const override;
     void resetMemory(WasmSize heap_base) override;
 
    private:
-    // it contains a host api module instance from which we take the memory
-    std::shared_ptr<IntrinsicResolver> resolver_;
+    // it contains the memory itself
+    std::shared_ptr<IntrinsicModuleInstance> intrinsic_module_;
     std::unique_ptr<Memory> current_memory_;
   };
 

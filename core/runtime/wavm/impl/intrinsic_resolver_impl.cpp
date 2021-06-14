@@ -8,79 +8,51 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 #include "crutch.hpp"
+#include "intrinsic_module_instance.hpp"
 
 namespace kagome::runtime::wavm {
 
-  static const auto kIntrinsicMemoryType{
-      WAVM::IR::MemoryType(false, WAVM::IR::IndexType::i32, {20, UINT64_MAX})};
-
-  IntrinsicResolverImpl::IntrinsicResolverImpl()
-      : module_{getIntrinsicModule_env()},
-        module_instance_{},
-        compartment_{WAVM::Runtime::createCompartment("Global Compartment")} {
-    BOOST_ASSERT(module_ != nullptr);
+  IntrinsicResolverImpl::IntrinsicResolverImpl(
+      std::shared_ptr<IntrinsicModuleInstance> module_instance,
+      WAVM::Runtime::Compartment *compartment)
+      : module_instance_{std::move(module_instance)},
+        compartment_{compartment} {
+    BOOST_ASSERT(module_instance_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
-  }
-
-  WAVM::Runtime::Memory *IntrinsicResolverImpl::getMemory() const {
-    return module_instance_ ? getTypedInstanceExport(
-               module_instance_, "memory", kIntrinsicMemoryType)
-                            : nullptr;
   }
 
   bool IntrinsicResolverImpl::resolve(const std::string &moduleName,
                                       const std::string &exportName,
                                       WAVM::IR::ExternType type,
                                       WAVM::Runtime::Object *&outObject) {
-    if (module_instance_ == nullptr) {
-      module_instance_ = WAVM::Intrinsics::instantiateModule(
-          compartment_, {getIntrinsicModule_env()}, "env");
-    }
-
-    if (moduleName != "env") {
-      return false;
-    }
+    BOOST_ASSERT(moduleName == "env");
     if (exportName == "memory") {
       if (type.kind == WAVM::IR::ExternKind::memory) {
-        auto memory{getTypedInstanceExport(
-            module_instance_, "memory", kIntrinsicMemoryType)};
-        outObject = WAVM::Runtime::asObject(memory);
+        outObject =
+            WAVM::Runtime::asObject(module_instance_->getExportedMemory());
         return true;
       }
       return false;
     }
     if (type.kind == WAVM::IR::ExternKind::function) {
-      std::string_view func_name{exportName};
-      // cut off "ext_"
-      // func_name = func_name.substr(4);
-      // auto pos = func_name.find('_');
-      // std::string_view category_name = func_name.substr(0, pos);
-      // func_name = func_name.substr(pos + 1);
-
-      auto f = functions_.find(func_name);
-      if (f == functions_.end()) return false;
-      auto func_type = f->second->getType();
-      // discard 'intrinsic' calling convention
-      WAVM::IR::FunctionType new_type{func_type.results(), func_type.params()};
-      auto typed_export =
-          getTypedInstanceExport(module_instance_, func_name.data(), new_type);
-      if (asFunctionType(type) != new_type) {
-        return false;
-      }
-      outObject = WAVM::Runtime::asObject(typed_export);
+      auto export_func = module_instance_->getExportedFunction(
+          exportName, asFunctionType(type));
+      BOOST_ASSERT(export_func != nullptr);
+      outObject = WAVM::Runtime::asObject(export_func);
       return true;
     }
     return false;
   }
 
   IntrinsicResolverImpl::~IntrinsicResolverImpl() {
-    BOOST_VERIFY(WAVM::Runtime::tryCollectCompartment(std::move(compartment_)));
+    WAVM::Runtime::collectCompartmentGarbage(compartment_);
   }
 
   std::unique_ptr<IntrinsicResolver> IntrinsicResolverImpl::clone() const {
-    auto copy = std::make_unique<IntrinsicResolverImpl>();
-    copy->module_ = getIntrinsicModule_env();
+    auto copy = std::make_unique<IntrinsicResolverImpl>(
+        module_instance_->clone(compartment_), compartment_);
     copy->functions_ = functions_;
+    copy->compartment_ = compartment_;
     return copy;
   }
 

@@ -25,9 +25,8 @@ namespace kagome::runtime::wavm {
 
   extern log::Logger logger;
 
-  using namespace WAVM;
-  using namespace WAVM::IR;
-  using namespace WAVM::Runtime;
+  extern const WAVM::IR::MemoryType kIntrinsicMemoryType;
+  constexpr std::string_view kIntrinsicMemoryName = "Host memory";
 
   WAVM::Intrinsics::Module *getIntrinsicModule_env();
 

@@ -44,6 +44,11 @@ namespace kagome {
   namespace consensus::grandpa {
     class Grandpa;
   }
+
+  namespace blockchain {
+    class BlockStorage;
+  }
+
 }  // namespace kagome
 
 namespace kagome::injector {
@@ -57,6 +62,7 @@ namespace kagome::injector {
     explicit KagomeNodeInjector(const application::AppConfiguration &);
 
     std::shared_ptr<application::ChainSpec> injectChainSpec();
+    std::shared_ptr<blockchain::BlockStorage> injectBlockStorage();
     std::shared_ptr<application::AppStateManager> injectAppStateManager();
     std::shared_ptr<boost::asio::io_context> injectIoContext();
     std::shared_ptr<metrics::Exposer> injectOpenMetricsService();

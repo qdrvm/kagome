@@ -6,12 +6,33 @@
 #include "module.hpp"
 
 #include <WAVM/Runtime/Linker.h>
+#include <WAVM/WASM/WASM.h>
 #include <boost/assert.hpp>
 
 #include "intrinsic_resolver_impl.hpp"
 #include "module_instance.hpp"
 
 namespace kagome::runtime::wavm {
+
+  std::unique_ptr<Module> Module::compileFrom(
+      WAVM::Runtime::Compartment *compartment, gsl::span<const uint8_t> code) {
+    std::shared_ptr<WAVM::Runtime::Module> module = nullptr;
+    WAVM::WASM::LoadError loadError;
+    WAVM::IR::FeatureSpec featureSpec;
+
+    log::Logger logger = log::createLogger("WAVM Module", "runtime");
+    logger->verbose(
+        "Compiling WebAssembly module for Runtime (going to take a few dozens "
+        "of seconds)");
+    if (!WAVM::Runtime::loadBinaryModule(
+            code.data(), code.size(), module, featureSpec, &loadError)) {
+      // TODO(Harrm): Introduce an outcome error
+      logger->error("Error loading WAVM binary module: {}", loadError.message);
+      return nullptr;
+    }
+
+    return std::unique_ptr<Module>(new Module{compartment, std::move(module)});
+  }
 
   Module::Module(WAVM::Runtime::Compartment *compartment,
                  std::shared_ptr<WAVM::Runtime::Module> module)

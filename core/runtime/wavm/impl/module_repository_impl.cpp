@@ -7,9 +7,7 @@
 
 #include <chrono>
 
-#include <WAVM/IR/FeatureSpec.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/WASM/WASM.h>
 
 #include "runtime/wavm/intrinsic_resolver.hpp"
 #include "crutch.hpp"
@@ -17,9 +15,10 @@
 namespace kagome::runtime::wavm {
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
+      WAVM::Runtime::Compartment* compartment,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<IntrinsicResolver> resolver)
-      : compartment_{resolver->getCompartment()},
+      : compartment_{compartment},
         resolver_{std::move(resolver)},
         hasher_{std::move(hasher)},
         logger_{log::createLogger(
@@ -64,26 +63,7 @@ namespace kagome::runtime::wavm {
       gsl::span<const uint8_t> byte_code) {
     // TODO(Harrm): Might want to cache here as well, e.g. for MiscExtension
     // calls
-    std::shared_ptr<WAVM::Runtime::Module> module = nullptr;
-    WAVM::WASM::LoadError loadError;
-    WAVM::IR::FeatureSpec featureSpec;
-
-    logger_->verbose(
-        "Compiling WebAssembly module for Runtime (going to take a few dozens "
-        "of seconds)");
-    if (!WAVM::Runtime::loadBinaryModule(byte_code.data(),
-                                         byte_code.size(),
-                                         module,
-                                         featureSpec,
-                                         &loadError)) {
-      // TODO(Harrm): Introduce an outcome error
-      logger_->error("Error loading a WASM module: {}", loadError.message);
-      return nullptr;
-    }
-
-    auto wasm_module =
-        std::make_unique<Module>(compartment_, std::move(module));
-    return wasm_module;
+    return Module::compileFrom(compartment_, byte_code);
   }
 
 }  // namespace kagome::runtime::wavm

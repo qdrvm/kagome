@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_CORE_API_PROVIDER_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_CORE_API_PROVIDER_HPP
 
+#include "../../../../deps/wavm/Lib/Runtime/RuntimePrivate.h"
 #include "runtime/core_api_provider.hpp"
 
 #include <memory>
@@ -26,15 +27,15 @@ namespace kagome::runtime {
 namespace kagome::runtime::wavm {
 
   class ModuleRepository;
-  class IntrinsicResolver;
+  class IntrinsicModuleInstance;
 
   class CoreApiProvider final
       : public runtime::CoreApiProvider,
         public std::enable_shared_from_this<CoreApiProvider> {
    public:
     CoreApiProvider(
-        std::shared_ptr<runtime::wavm::ModuleRepository> module_repo,
-        std::shared_ptr<runtime::wavm::IntrinsicResolver> intrinsic_resolver,
+        WAVM::Runtime::Compartment* compartment,
+        std::shared_ptr<runtime::wavm::IntrinsicModuleInstance> intrinsic_module,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
@@ -45,8 +46,8 @@ namespace kagome::runtime::wavm {
         gsl::span<uint8_t> runtime_code) const override;
 
    private:
-    std::shared_ptr<runtime::wavm::ModuleRepository> module_repo_;
-    std::shared_ptr<runtime::wavm::IntrinsicResolver> intrinsic_resolver_;
+    WAVM::Runtime::Compartment* compartment_;
+    std::shared_ptr<runtime::wavm::IntrinsicModuleInstance> intrinsic_module_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;

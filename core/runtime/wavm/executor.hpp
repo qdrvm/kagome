@@ -138,7 +138,7 @@ namespace kagome::runtime::wavm {
 
       auto heap_base = instance.getGlobal("__heap_base");
       BOOST_ASSERT(heap_base.has_value()
-                   && heap_base.value().type == ValueType::i32);
+                   && heap_base.value().type == WAVM::IR::ValueType::i32);
 
       memory_provider_->resetMemory(heap_base.value().i32);
       auto &memory = memory_provider_->getCurrentMemory().value();

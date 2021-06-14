@@ -5,17 +5,19 @@
 
 #include "runtime/wavm/impl/wavm_memory_provider.hpp"
 
-#include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/impl/intrinsic_module_instance.hpp"
 #include "runtime/wavm/impl/memory.hpp"
 
 namespace kagome::runtime::wavm {
 
   WavmMemoryProvider::WavmMemoryProvider(
-      std::shared_ptr<IntrinsicResolver> resolver)
-      : resolver_{std::move(resolver)} {
-    BOOST_ASSERT(resolver_);
-    if (auto memory = resolver_->getMemory(); memory != nullptr) {
-      current_memory_ = std::make_unique<Memory>(resolver_->getMemory());
+      std::shared_ptr<IntrinsicModuleInstance> module)
+      : intrinsic_module_{std::move(module)} {
+    BOOST_ASSERT(intrinsic_module_);
+    if (auto memory = intrinsic_module_->getExportedMemory();
+        memory != nullptr) {
+      current_memory_ =
+          std::make_unique<Memory>(intrinsic_module_->getExportedMemory());
     }
   }
 
@@ -27,7 +29,8 @@ namespace kagome::runtime::wavm {
   }
 
   void WavmMemoryProvider::resetMemory(WasmSize heap_base) {
-    current_memory_ = std::make_unique<Memory>(resolver_->getMemory());
+    current_memory_ =
+        std::make_unique<Memory>(intrinsic_module_->getExportedMemory());
     current_memory_->setHeapBase(heap_base);
   }
 

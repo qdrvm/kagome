@@ -10,6 +10,7 @@ add_library(wavm_executor
     impl/core_api_provider.cpp
     impl/crutch.cpp
     impl/wavm_memory_provider.cpp
+    impl/intrinsic_module_instance.cpp
     )
 target_link_libraries(wavm_executor
     libWAVM
