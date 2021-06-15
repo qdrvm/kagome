@@ -88,7 +88,7 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<const crypto::Hasher> hasher,
       gsl::span<uint8_t> runtime_code) const {
     auto new_intrinsic_module =
-        std::shared_ptr(intrinsic_module_->clone(compartment_));
+        std::shared_ptr<IntrinsicModuleInstance>(intrinsic_module_->clone(compartment_));
     auto new_memory_provider =
         std::make_shared<WavmMemoryProvider>(new_intrinsic_module);
     auto executor = std::make_shared<runtime::wavm::Executor>(
