@@ -1,4 +1,4 @@
-# specify GITHUB_HUNTER_TOKEN and GITHUB_HUNTER_USERNAME to automatically upload binary cache to github.com/soramitsu/hunter-binary-cache
+# specify GITHUB_HUNTER_TOKEN and GITHUB_HUNTER_USERNAME to automatically upload binary cache to github.com/soramitsu/hunter-binary-cach
 # https://docs.hunter.sh/en/latest/user-guides/hunter-user/github-cache-server.html
 string(COMPARE EQUAL "$ENV{GITHUB_HUNTER_TOKEN}" "" password_is_empty)
 string(COMPARE EQUAL "$ENV{GITHUB_HUNTER_USERNAME}" "" username_is_empty)
@@ -31,7 +31,7 @@ set(
 include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 
 HunterGate(
-    URL  "https://github.com/soramitsu/soramitsu-hunter/archive/tags/v0.23.257-soramitsu7.tar.gz"
-    SHA1 "24f3cae2b6b3212b87daf643cdaad0f9afc1b54b"
+    URL  https://github.com/soramitsu/soramitsu-hunter/archive/tags/v0.23.257-soramitsu9.tar.gz
+    SHA1 5a74567147b7b6c04cc29b7da0d7241d31af60f4
     LOCAL
 )

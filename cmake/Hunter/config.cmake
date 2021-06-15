@@ -22,13 +22,6 @@ hunter_config(libp2p
     KEEP_PACKAGE_SOURCES
     )
 
-hunter_config(soralog
-    URL  "https://github.com/xDimon/soralog/archive/8fbddeef627eeb0456910ba92e89a5b4d9cd75ed.tar.gz"
-    SHA1 "98fa62ef43753ad80b2d64756aaa6fa6a49625c1"
-    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
-    KEEP_PACKAGE_SOURCES
-    )
-
 hunter_config(prometheus-cpp
     URL "https://github.com/jupp0r/prometheus-cpp/releases/download/v0.12.3/prometheus-cpp-with-submodules.tar.gz"
     SHA1 0e337607d4ce55cdc80c37b60dcfe4dbbf7812cf
