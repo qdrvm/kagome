@@ -255,7 +255,7 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success(header)));
   EXPECT_CALL(*storage_, getBlockBody(bid))
       .WillRepeatedly(Return(outcome::success(body)));
-  EXPECT_CALL(*runtime_core_, version(_))
+  EXPECT_CALL(*runtime_core_, version())
       .WillRepeatedly(Return(primitives::Version{}));
 
   // WHEN

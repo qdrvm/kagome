@@ -31,9 +31,6 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<RuntimeCodeProvider> code_provider,
         const primitives::BlockInfo &block) = 0;
 
-    virtual outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAtLatest(
-        std::shared_ptr<RuntimeCodeProvider> code_provider) = 0;
-
     virtual outcome::result<std::unique_ptr<Module>> loadFrom(
         gsl::span<const uint8_t> byte_code) = 0;
 

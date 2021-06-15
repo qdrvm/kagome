@@ -20,14 +20,8 @@ namespace kagome::runtime {
    public:
     virtual ~RuntimeCodeProvider() = default;
 
-    struct CodeAndItsState {
-      gsl::span<const uint8_t> code;
-      storage::trie::RootHash state;
-    };
-    virtual outcome::result<CodeAndItsState> getCodeAt(
-        const primitives::BlockInfo &at) const = 0;
-
-    virtual outcome::result<CodeAndItsState> getLatestCode() const = 0;
+    virtual outcome::result<gsl::span<const uint8_t>> getCodeAt(
+        const storage::trie::RootHash &state) const = 0;
   };
 
 }  // namespace kagome::runtime

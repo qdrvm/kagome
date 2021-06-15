@@ -39,9 +39,10 @@ namespace kagome::host_api {
     auto [ptr, len] = runtime::splitSpan(data);
     auto &memory = memory_provider_->getCurrentMemory().value();
 
+    auto code = memory.loadN(ptr, len).asVector();
     auto core_api =
-        core_provider_->makeCoreApi(hasher_, memory.loadN(ptr, len).asVector());
-    auto version_res = core_api->version(boost::none);
+        core_provider_->makeCoreApi(hasher_, code);
+    auto version_res = core_api->version();
     SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
     runtime::wavm::popHostApi();
 

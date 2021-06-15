@@ -38,7 +38,7 @@ namespace kagome::api::state::request {
   }
 
   outcome::result<primitives::Version> GetRuntimeVersion::execute() {
-    BOOST_ASSERT(!!api_);
+    BOOST_ASSERT(api_);
     return api_->getRuntimeVersion(at_);
   }
 

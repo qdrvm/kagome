@@ -27,20 +27,21 @@ namespace kagome::runtime::wavm {
 
   class Executor final {
    public:
-    enum class CallPersistency { PERSISTENT, TRANSIENT, NESTED };
-
     using Buffer = common::Buffer;
 
     Executor(std::shared_ptr<TrieStorageProvider> storage_provider,
              std::shared_ptr<MemoryProvider> memory_provider,
              std::shared_ptr<ModuleRepository> module_repo,
-             std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
+             std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+             std::shared_ptr<runtime::RuntimeCodeProvider> code_provider)
         : memory_provider_{std::move(memory_provider)},
           storage_provider_{std::move(storage_provider)},
+          code_provider_{std::move(code_provider)},
           module_repo_{std::move(module_repo)},
           header_repo_{std::move(header_repo)},
           logger_{log::createLogger("Executor", "runtime")} {
       BOOST_ASSERT(module_repo_);
+      BOOST_ASSERT(code_provider_);
       BOOST_ASSERT(storage_provider_);
       BOOST_ASSERT(memory_provider_);
       BOOST_ASSERT(header_repo_);
@@ -51,91 +52,70 @@ namespace kagome::runtime::wavm {
       host_api_ = std::move(host_api);
     }
 
-    // should be done before any calls
-    void setCodeProvider(
-        std::shared_ptr<runtime::RuntimeCodeProvider> code_provider) {
-      code_provider_ = std::move(code_provider);
-    }
-
     template <typename Result, typename... Args>
     outcome::result<Result> nestedCall(std::string_view name, Args &&...args) {
-      OUTCOME_TRY(instance, module_repo_->getInstanceAtLatest(code_provider_));
-      return callInternal<Result>(storage_provider_->getLatestRoot(),
-                                  *instance,
-                                  CallPersistency::NESTED,
-                                  name,
-                                  std::forward<Args>(args)...);
+      OUTCOME_TRY(instance, module_repo_->getInstanceAt(code_provider_, {}));
+      return callInternal<Result>(*instance, name, std::forward<Args>(args)...);
     }
 
     template <typename Result, typename... Args>
-    outcome::result<Result> persistentCallAtLatest(std::string_view name,
-                                                   Args &&...args) {
-      OUTCOME_TRY(instance, module_repo_->getInstanceAtLatest(code_provider_));
-      return callInternal<Result>(storage_provider_->getLatestRoot(),
-                                  *instance,
-                                  CallPersistency::PERSISTENT,
-                                  name,
-                                  std::forward<Args>(args)...);
+    outcome::result<Result> persistentCall(std::string_view name,
+                                           Args &&...args) {
+      OUTCOME_TRY(storage_provider_->setToPersistentAt(current_state_root_));
+      auto res = callInternal<Result>(
+          *current_instance_, name, std::forward<Args>(args)...);
+      BOOST_ASSERT(storage_provider_->isCurrentlyPersistent());
+      if (res.has_value()) {
+        OUTCOME_TRY(
+            storage_provider_->tryGetPersistentBatch().value()->commit());
+      }
+      return res;
     }
 
-    template <typename Result, typename... Args>
-    outcome::result<Result> persistentCallAt(primitives::BlockInfo const &block,
-                                             std::string_view name,
-                                             Args &&...args) {
-      OUTCOME_TRY(instance, module_repo_->getInstanceAtLatest(code_provider_));
+    outcome::result<void> startNewEnvironment(
+        primitives::BlockInfo const &block) {
+      OUTCOME_TRY(instance, module_repo_->getInstanceAt(code_provider_, block));
+      current_instance_ = std::move(instance);
       OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
-      return callInternal<Result>(block_header.state_root,
-                                  *instance,
-                                  CallPersistency::PERSISTENT,
-                                  name,
-                                  std::forward<Args>(args)...);
+      current_state_root_ = std::move(block_header.state_root);
+      return outcome::success();
     }
 
     template <typename Result, typename... Args>
     outcome::result<Result> callAtLatest(std::string_view name,
                                          Args &&...args) {
-      OUTCOME_TRY(instance, module_repo_->getInstanceAtLatest(code_provider_));
-      return callInternal<Result>(storage_provider_->getLatestRoot(),
-                                  *instance,
-                                  CallPersistency::TRANSIENT,
-                                  name,
-                                  std::forward<Args>(args)...);
+      if (current_instance_ == nullptr) {
+        OUTCOME_TRY(genesis_hash, header_repo_->getHashByNumber(0));
+        OUTCOME_TRY(genesis_header, header_repo_->getBlockHeader(0));
+        OUTCOME_TRY(
+            instance,
+            module_repo_->getInstanceAt(code_provider_, {0, genesis_hash}));
+        current_instance_ = instance;
+        current_state_root_ = genesis_header.state_root;
+      }
+      OUTCOME_TRY(storage_provider_->setToEphemeralAt(
+          storage_provider_->getLatestRoot()));
+      return callInternal<Result>(
+          *current_instance_, name, std::forward<Args>(args)...);
     }
 
     template <typename Result, typename... Args>
-    outcome::result<Result> callAt(primitives::BlockInfo const &block,
+    outcome::result<Result> callAt(primitives::BlockHash const &block_hash,
                                    std::string_view name,
                                    Args &&...args) {
-      OUTCOME_TRY(instance, module_repo_->getInstanceAt(code_provider_, block));
-      OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
-      return callInternal<Result>(block_header.state_root,
-                                  *instance,
-                                  CallPersistency::TRANSIENT,
-                                  name,
-                                  std::forward<Args>(args)...);
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
+      OUTCOME_TRY(instance,
+                  module_repo_->getInstanceAt(code_provider_,
+                                              {header.number, block_hash}));
+      OUTCOME_TRY(storage_provider_->setToEphemeralAt(header.state_root));
+      return callInternal<Result>(*instance, name, std::forward<Args>(args)...);
     }
 
    private:
     template <typename Result, typename... Args>
-    outcome::result<Result> callInternal(storage::trie::RootHash const &state,
-                                         ModuleInstance &instance,
-                                         CallPersistency persistency,
+    outcome::result<Result> callInternal(ModuleInstance &instance,
                                          std::string_view name,
                                          Args &&...args) {
-      switch (persistency) {
-        case CallPersistency::PERSISTENT: {
-          OUTCOME_TRY(storage_provider_->setToPersistentAt(state));
-          break;
-        }
-        case CallPersistency::TRANSIENT: {
-          OUTCOME_TRY(storage_provider_->setToEphemeralAt(state));
-          break;
-        }
-        case CallPersistency::NESTED: {
-          break;
-        }
-      }
-
       auto heap_base = instance.getGlobal("__heap_base");
       BOOST_ASSERT(heap_base.has_value()
                    && heap_base.value().type == WAVM::IR::ValueType::i32);
@@ -163,18 +143,15 @@ namespace kagome::runtime::wavm {
             logger_->error(WAVM::Runtime::describeException(e));
             WAVM::Runtime::destroyException(e);
           });
-      if (auto batch = storage_provider_->tryGetPersistentBatch();
-          persistency == CallPersistency::PERSISTENT
-          && batch.has_value()) {
-        OUTCOME_TRY(batch.value()->commit());
-      }
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
-        return scale::decode<Result>(
-            memory.loadN(result.ptr, result.size));
+        return scale::decode<Result>(memory.loadN(result.ptr, result.size));
       }
     }
+
+    std::shared_ptr<ModuleInstance> current_instance_;
+    storage::trie::RootHash current_state_root_;
 
     std::shared_ptr<host_api::HostApi> host_api_;
     std::shared_ptr<MemoryProvider> memory_provider_;

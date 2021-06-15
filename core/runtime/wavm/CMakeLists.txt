@@ -11,6 +11,7 @@ add_library(wavm_executor
     impl/crutch.cpp
     impl/wavm_memory_provider.cpp
     impl/intrinsic_module_instance.cpp
+    impl/runtime_upgrade_tracker.cpp
     )
 target_link_libraries(wavm_executor
     libWAVM

@@ -89,7 +89,7 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   EXPECT_CALL(*core_provider, makeCoreApi(_, _))
       .WillOnce(Invoke([&v1](auto &, auto &code) {
         auto core = std::make_unique<kagome::runtime::CoreMock>();
-        EXPECT_CALL(*core, version(_)).WillOnce(Return(v1));
+        EXPECT_CALL(*core, version()).WillOnce(Return(v1));
         kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
         return core;
       }));
@@ -106,7 +106,7 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   EXPECT_CALL(*core_provider, makeCoreApi(_, _))
       .WillOnce(Invoke([&v2](auto &, auto &code) {
         auto core = std::make_unique<kagome::runtime::CoreMock>();
-        EXPECT_CALL(*core, version(_)).WillOnce(Return(v2));
+        EXPECT_CALL(*core, version()).WillOnce(Return(v2));
         kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
         return core;
       }));

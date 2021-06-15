@@ -21,10 +21,13 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(header_repo_ != nullptr);
   }
 
-  outcome::result<primitives::Version> WavmCore::version(
-      const boost::optional<primitives::BlockHash> &block_hash) {
-    return executor_->nestedCall<primitives::Version>("Core_version",
-                                                      block_hash);
+  outcome::result<primitives::Version> WavmCore::versionAt(
+      primitives::BlockHash const &block) {
+    return executor_->callAt<primitives::Version>(block, "Core_version");
+  }
+
+  outcome::result<primitives::Version> WavmCore::version() {
+    return executor_->nestedCall<primitives::Version>("Core_version");
   }
 
   outcome::result<void> WavmCore::execute_block(
@@ -32,22 +35,19 @@ namespace kagome::runtime::wavm {
     OUTCOME_TRY(changes_tracker_->onBlockChange(
         block.header.parent_hash,
         block.header.number - 1));  // parent's number
-    return executor_->persistentCallAt<void>(
-        {block.header.number - 1, block.header.parent_hash},
-        "Core_execute_block",
-        block);
+    OUTCOME_TRY(executor_->startNewEnvironment(
+        {block.header.number - 1, block.header.parent_hash}));
+    return executor_->persistentCall<void>("Core_execute_block", block);
   }
 
   outcome::result<void> WavmCore::initialise_block(
       const primitives::BlockHeader &header) {
-    auto parent = header_repo_->getBlockHeader(header.parent_hash).value();
     OUTCOME_TRY(
         changes_tracker_->onBlockChange(header.parent_hash,
                                         header.number - 1));  // parent's number
-    return executor_->persistentCallAt<void>(
-        {header.number - 1, header.parent_hash},
-        "Core_initialise_block",
-        header);
+    OUTCOME_TRY(executor_->startNewEnvironment(
+        {header.number - 1, header.parent_hash}));
+    return executor_->persistentCall<void>("Core_initialise_block", header);
   }
 
   outcome::result<std::vector<primitives::AuthorityId>> WavmCore::authorities(

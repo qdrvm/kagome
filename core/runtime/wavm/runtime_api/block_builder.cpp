@@ -16,12 +16,12 @@ namespace kagome::runtime::wavm {
 
   outcome::result<primitives::ApplyResult> WavmBlockBuilder::apply_extrinsic(
       const primitives::Extrinsic &extrinsic) {
-    return executor_->persistentCallAtLatest<primitives::ApplyResult>(
+    return executor_->persistentCall<primitives::ApplyResult>(
         "BlockBuilder_apply_extrinsic", extrinsic);
   }
 
   outcome::result<primitives::BlockHeader> WavmBlockBuilder::finalise_block() {
-    return executor_->persistentCallAtLatest<primitives::BlockHeader>(
+    return executor_->persistentCall<primitives::BlockHeader>(
         "BlockBuilder_finalise_block");
   }
 

@@ -16,7 +16,7 @@
 
 namespace kagome::runtime::wavm {
 
-  class OneModuleRepository : public ModuleRepository {
+  class OneModuleRepository final : public ModuleRepository {
    public:
     OneModuleRepository(WAVM::Runtime::Compartment *compartment,
                         std::shared_ptr<IntrinsicResolver> resolver,
@@ -38,15 +38,6 @@ namespace kagome::runtime::wavm {
       return instance_;
     }
 
-    outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAtLatest(
-        std::shared_ptr<RuntimeCodeProvider>) override {
-      if (instance_ == nullptr) {
-        auto module = Module::compileFrom(compartment_, code_);
-        instance_ = module->instantiate(*resolver_);
-      }
-      return instance_;
-    }
-
     outcome::result<std::unique_ptr<Module>> loadFrom(
         gsl::span<const uint8_t> byte_code) override {
       return Module::compileFrom(compartment_, byte_code);
@@ -56,6 +47,19 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<ModuleInstance> instance_;
     std::shared_ptr<IntrinsicResolver> resolver_;
     WAVM::Runtime::Compartment *compartment_;
+    gsl::span<const uint8_t> code_;
+  };
+
+  class OneCodeProvider final : public RuntimeCodeProvider {
+   public:
+    explicit OneCodeProvider(gsl::span<const uint8_t> code) : code_{code} {}
+
+    virtual outcome::result<gsl::span<const uint8_t>> getCodeAt(
+        const storage::trie::RootHash &) const {
+      return code_;
+    }
+
+   private:
     gsl::span<const uint8_t> code_;
   };
 
@@ -95,9 +99,8 @@ namespace kagome::runtime::wavm {
             std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module,
                                                     compartment_),
             runtime_code),
-        block_header_repo_);
-    executor->setCodeProvider(
-        std::make_shared<ConstantCodeProvider>(common::Buffer{runtime_code}));
+        block_header_repo_,
+        std::make_shared<OneCodeProvider>(runtime_code));
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
         shared_from_this(), new_memory_provider, storage_provider_));
     pushHostApi(host_api);

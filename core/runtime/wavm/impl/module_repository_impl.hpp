@@ -29,10 +29,13 @@ namespace WAVM::Runtime {
 
 namespace kagome::runtime::wavm {
 
+  class RuntimeUpgradeTracker;
+
   class ModuleRepositoryImpl final: public ModuleRepository {
    public:
     ModuleRepositoryImpl(
         WAVM::Runtime::Compartment* compartment,
+        std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker_,
         std::shared_ptr<const crypto::Hasher> hasher,
                      std::shared_ptr<IntrinsicResolver>);
 
@@ -44,22 +47,15 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<RuntimeCodeProvider> code_provider,
         const primitives::BlockInfo &block) override;
 
-    outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAtLatest(
-        std::shared_ptr<RuntimeCodeProvider> code_provider) override;
-
     outcome::result<std::unique_ptr<Module>> loadFrom(
         gsl::span<const uint8_t> byte_code) override;
 
    private:
-    // just a helper to avoid duplicating logic in getInstanceAt and
-    // getInstanceAtLatest
-    outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt_Internal(
-        gsl::span<const uint8_t> code, storage::trie::RootHash state);
-
-    std::unordered_map<common::Hash256, std::shared_ptr<Module>> modules_;
-    std::unordered_map<common::Hash256, std::shared_ptr<ModuleInstance>>
-        instances_;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Compartment> compartment_;
+    std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker_;
+    std::unordered_map<storage::trie::RootHash, std::shared_ptr<Module>> modules_;
+    std::unordered_map<storage::trie::RootHash, std::shared_ptr<ModuleInstance>>
+        instances_;
     std::shared_ptr<IntrinsicResolver> resolver_;
     std::shared_ptr<const crypto::Hasher> hasher_;
     log::Logger logger_;

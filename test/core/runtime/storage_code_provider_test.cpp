@@ -44,8 +44,6 @@ class StorageCodeProviderTest : public ::testing::Test {
 TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
   // TODO(Harrm): fix it for the new upgrade logic
   auto trie_db = std::make_shared<storage::trie::TrieStorageMock>();
-  primitives::BlockInfo first_block_info{0,
-                                         primitives::BlockHash{{1, 1, 1, 1}}};
   storage::trie::RootHash first_state_root{{1, 1, 1, 1}};
 
   // given
@@ -60,11 +58,11 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
 
   // when
   EXPECT_OUTCOME_TRUE(obtained_state_code,
-                      wasm_provider->getCodeAt(first_block_info));
+                      wasm_provider->getCodeAt(first_state_root));
 
   // then
   EXPECT_THAT(gsl::span<const uint8_t>(state_code_),
-              testing::ContainerEq(obtained_state_code.code));
+              testing::ContainerEq(obtained_state_code));
 }
 
 /**
@@ -77,11 +75,6 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
 TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   // TODO(Harrm): fix it for the new upgrade logic
   auto trie_db = std::make_shared<storage::trie::TrieStorageMock>();
-  primitives::BlockInfo first_block_info{0,
-                                         primitives::BlockHash{{1, 1, 1, 1}}};
-  primitives::BlockInfo second_block_info{1,
-                                          primitives::BlockHash{{2, 2, 2, 2}}};
-
   storage::trie::RootHash first_state_root{{1, 1, 1, 1}};
   storage::trie::RootHash second_state_root{{2, 2, 2, 2}};
 
@@ -94,16 +87,6 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
     return batch;
   }));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(trie_db);
-  auto block_tree_mock = std::make_shared<blockchain::BlockTreeMock>();
-  auto header_repo_mock =
-      std::make_shared<blockchain::BlockHeaderRepositoryMock>();
-  auto storage_events_engine =
-      std::make_shared<primitives::events::StorageSubscriptionEngine>();
-  EXPECT_CALL(*block_tree_mock, hasDirectChain(_, second_state_root))
-      .WillOnce(Return(true));
-
-  wasm_provider->subscribeToBlockchainEvents(
-      storage_events_engine, header_repo_mock, block_tree_mock);
 
   common::Buffer new_state_code{{1, 3, 3, 8}};
   EXPECT_CALL(*trie_db, getEphemeralBatch())
@@ -116,9 +99,9 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
 
   // when
   EXPECT_OUTCOME_TRUE(obtained_state_code,
-                      wasm_provider->getCodeAt(second_block_info));
+                      wasm_provider->getCodeAt(second_state_root));
 
   // then
   EXPECT_THAT(gsl::span<const uint8_t>(new_state_code),
-              testing::ContainerEq(obtained_state_code.code));
+              testing::ContainerEq(obtained_state_code));
 }
