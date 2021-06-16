@@ -88,9 +88,8 @@ namespace kagome::consensus::grandpa {
     Message second;
   };
 
-  using VotingMessage = SignedMessage;
-  using EquivocatoryVotingMessage = std::pair<VotingMessage, VotingMessage>;
-  using VoteVariant = boost::variant<VotingMessage, EquivocatoryVotingMessage>;
+  using EquivocatorySignedMessage = std::pair<SignedMessage, SignedMessage>;
+  using VoteVariant = boost::variant<SignedMessage, EquivocatorySignedMessage>;
 
   namespace detail {
     /// Proof of an equivocation (double-vote) in a given round.
