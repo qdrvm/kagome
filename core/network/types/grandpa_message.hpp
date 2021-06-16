@@ -9,15 +9,14 @@
 #include <boost/variant.hpp>
 #include "consensus/grandpa/structs.hpp"
 
-namespace {
-  using kagome::consensus::grandpa::BlockInfo;
-  using kagome::consensus::grandpa::Fin;
-  using kagome::consensus::grandpa::GrandpaJustification;
-  using kagome::consensus::grandpa::RoundNumber;
-  using kagome::consensus::grandpa::VoteMessage;
-}  // namespace
-
 namespace kagome::network {
+
+  using consensus::grandpa::BlockInfo;
+  using consensus::grandpa::Fin;
+  using consensus::grandpa::GrandpaJustification;
+  using consensus::grandpa::MembershipCounter;
+  using consensus::grandpa::RoundNumber;
+  using consensus::grandpa::VoteMessage;
 
   struct GrandpaVoteMessage : public VoteMessage {
     using VoteMessage::VoteMessage;
@@ -50,7 +49,7 @@ namespace kagome::network {
 
   struct CatchUpRequest {
     RoundNumber round_number;
-    size_t voter_set_id;
+    MembershipCounter voter_set_id;
   };
 
   template <class Stream,
@@ -66,7 +65,7 @@ namespace kagome::network {
   }
 
   struct CatchUpResponse {
-    size_t voter_set_id{};
+    MembershipCounter voter_set_id{};
     RoundNumber round_number{};
     GrandpaJustification prevote_justification;
     GrandpaJustification precommit_justification;
