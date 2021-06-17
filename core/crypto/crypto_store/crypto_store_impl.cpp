@@ -22,6 +22,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
       return "wrong seed size";
     case E::KEY_NOT_FOUND:
       return "key not found";
+    case E::BABE_ALREADY_EXIST:
+      return "BABE key already exists";
+    case E::GRAN_ALREADY_EXIST:
+      return "GRAN key already exists";
   }
   return "Unknown CryptoStoreError code";
 }

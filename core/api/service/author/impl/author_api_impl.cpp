@@ -8,32 +8,44 @@
 #include <jsonrpc-lean/fault.h>
 #include <boost/assert.hpp>
 #include <boost/system/error_code.hpp>
+#include <stdexcept>
 
 #include "api/service/api_service.hpp"
 #include "common/visitor.hpp"
+#include "crypto/crypto_store.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/crypto_store/crypto_suites.hpp"
+#include "crypto/crypto_store/key_file_storage.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_gossiper.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
+#include "scale/scale_decoder_stream.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
-  AuthorApiImpl::AuthorApiImpl(
-      sptr<runtime::TaggedTransactionQueue> api,
-      sptr<transaction_pool::TransactionPool> pool,
-      sptr<crypto::Hasher> hasher,
-      std::shared_ptr<network::ExtrinsicGossiper> gossiper)
+  AuthorApiImpl::AuthorApiImpl(sptr<runtime::TaggedTransactionQueue> api,
+                               sptr<transaction_pool::TransactionPool> pool,
+                               sptr<crypto::Hasher> hasher,
+                               sptr<network::ExtrinsicGossiper> gossiper,
+                               sptr<crypto::CryptoStore> store,
+                               sptr<crypto::KeyFileStorage> key_store)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)},
         gossiper_{std::move(gossiper)},
+        store_{std::move(store)},
+        key_store_{std::move(key_store)},
         last_id_{0},
         logger_{log::createLogger("AuthorApi", "author_api")} {
     BOOST_ASSERT_MSG(api_ != nullptr, "author api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
     BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
+    BOOST_ASSERT_MSG(store_ != nullptr, "crypto store is nullptr");
+    BOOST_ASSERT_MSG(key_store_ != nullptr, "key store is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
   }
 
@@ -54,6 +66,68 @@ namespace kagome::api {
     // send to pool
     OUTCOME_TRY(pool_->submitOne(std::move(tx)));
     return hash;
+  }
+
+  outcome::result<void> AuthorApiImpl::insertKey(
+      crypto::KeyTypeId key_type,
+      const gsl::span<const uint8_t> &seed,
+      const gsl::span<const uint8_t> &public_key) {
+    if (not(crypto::KEY_TYPE_BABE == key_type)
+        && not(crypto::KEY_TYPE_GRAN == key_type)) {
+      SL_INFO(logger_, "Unsupported key type, only BABE and GRAN are accepted");
+      return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
+    };
+    if (crypto::KEY_TYPE_BABE == key_type && store_->getBabeKeypair()) {
+      SL_INFO(logger_, "Babe key already exists and won't be replaced");
+      return outcome::failure(crypto::CryptoStoreError::BABE_ALREADY_EXIST);
+    }
+    if (crypto::KEY_TYPE_GRAN == key_type && store_->getGrandpaKeypair()) {
+      SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
+      return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
+    }
+    return key_store_->saveKeypair(key_type, public_key, seed);
+  }
+
+  // logic here is polkadot specific only!
+  // it could be extended by reading config from chainspec palletSession/keys
+  // value
+  outcome::result<bool> AuthorApiImpl::hasSessionKeys(
+      const gsl::span<const uint8_t> &keys) {
+    scale::ScaleDecoderStream stream(keys);
+    std::array<uint8_t, 32> key;
+    if (not keys.size() || keys.size() < 32 || keys.size() > 32 * 6
+        || (keys.size() % 32) != 0) {
+      SL_WARN(logger_,
+              "not valid key sequence, author_hasSessionKeys RPC call expects "
+              "no more than 6 public keys "
+              "in concatenated string, keys should be 32 byte in size");
+      return false;
+    }
+    stream >> key;
+    if (store_->findEd25519Keypair(
+            crypto::KEY_TYPE_GRAN,
+            crypto::Ed25519PublicKey(common::Blob<32>(key)))) {
+      unsigned count = 1;
+      while (stream.currentIndex() < keys.size()) {
+        stream >> key;
+        if (not store_->findSr25519Keypair(
+                crypto::polkadot_key_order[count++],
+                crypto::Sr25519PublicKey(common::Blob<32>(key)))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  outcome::result<bool> AuthorApiImpl::hasKey(
+      const gsl::span<const uint8_t> &public_key, crypto::KeyTypeId key_type) {
+    auto res = key_store_->searchForSeed(key_type, public_key);
+    if (not res)
+      return res.error();
+    else
+      return res.value() ? true : false;
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>

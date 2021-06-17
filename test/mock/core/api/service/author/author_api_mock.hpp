@@ -18,9 +18,24 @@ namespace kagome::api {
 
     MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
 
-    MOCK_METHOD1(submitExtrinsic, outcome::result<common::Hash256>(const Extrinsic &));
+    MOCK_METHOD1(submitExtrinsic,
+                 outcome::result<common::Hash256>(const Extrinsic &));
 
-    MOCK_METHOD1(submitAndWatchExtrinsic, outcome::result<SubscriptionId>(Extrinsic));
+    MOCK_METHOD3(insertKey,
+                 outcome::result<void>(crypto::KeyTypeId,
+                                       const gsl::span<const uint8_t> &,
+                                       const gsl::span<const uint8_t> &));
+
+    MOCK_METHOD1(hasSessionKeys,
+                 outcome::result<bool>(const gsl::span<const uint8_t> &));
+
+    MOCK_METHOD2(
+        hasKey,
+        outcome::result<bool>(const gsl::span<const uint8_t> &public_key,
+                              crypto::KeyTypeId key_type));
+
+    MOCK_METHOD1(submitAndWatchExtrinsic,
+                 outcome::result<SubscriptionId>(Extrinsic));
 
     MOCK_METHOD1(unwatchExtrinsic, outcome::result<bool>(SubscriptionId));
 

@@ -24,6 +24,16 @@ namespace kagome::crypto {
     return supported_types.count(k) > 0;
   }
 
+  KeyTypeId encodeKeyTypeId(std::string str) {
+    constexpr unsigned size = sizeof(KeyTypeId);
+    if(str.size() != size) {
+      return 0u;
+    }
+    // little endian order
+    KeyTypeId res = str[3] | (str[2] << 8) | (str[1] << 16) | (str[0] << 24);
+    return res;
+  }
+
   std::string decodeKeyTypeId(KeyTypeId param) {
     constexpr unsigned size = sizeof(KeyTypeId);
     constexpr unsigned bits = size * 8u;
