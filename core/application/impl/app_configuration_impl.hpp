@@ -119,9 +119,6 @@ namespace kagome::application {
     uint32_t maxBlocksInResponse() const override {
       return max_blocks_in_response_;
     }
-    bool isUnixSlotsStrategy() const override {
-      return is_unix_slots_strategy_;
-    }
     const network::PeeringConfig &peeringConfig() const override {
       return peering_config_;
     }
@@ -194,7 +191,6 @@ namespace kagome::application {
     log::Level verbosity_ = log::Level::INFO;
     bool is_already_synchronized_;
     uint32_t max_blocks_in_response_;
-    bool is_unix_slots_strategy_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
     std::string openmetrics_http_host_;

@@ -42,7 +42,6 @@ namespace {
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
   const bool def_is_already_synchronized = false;
-  const bool def_is_unix_slots_strategy = false;
   const bool def_dev_mode = false;
   const kagome::network::Roles def_roles = [] {
     kagome::network::Roles roles;
@@ -77,7 +76,6 @@ namespace kagome::application {
         verbosity_(static_cast<log::Level>(def_verbosity)),
         is_already_synchronized_(def_is_already_synchronized),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
-        is_unix_slots_strategy_(def_is_unix_slots_strategy),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
         openmetrics_http_host_(def_openmetrics_http_host),
@@ -224,7 +222,6 @@ namespace kagome::application {
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
     load_bool(val, "already-synchronized", is_already_synchronized_);
     load_u32(val, "max-blocks-in-response", max_blocks_in_response_);
-    load_bool(val, "is-unix-slots-strategy", is_unix_slots_strategy_);
     load_bool(val, "dev", dev_mode_);
   }
 
@@ -380,7 +377,6 @@ namespace kagome::application {
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
         ("already-synchronized,s", "if need to consider synchronized")
-        ("unix-slots,u", "if slots are calculated from unix epoch")
         ;
 
     po::options_description development_desc("Development options");
@@ -510,8 +506,6 @@ namespace kagome::application {
       }
       is_already_synchronized_ = true;
     }
-
-    if (vm.end() != vm.find("unix-slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });

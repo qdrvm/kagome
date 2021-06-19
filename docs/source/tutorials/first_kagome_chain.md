@@ -74,8 +74,7 @@ kagome \
     --port 30363 \
     --rpc-port 9933 \
     --ws-port 9944 \
-    --already-synchronized \
-    --unix-slots
+    --already-synchronized
 ```
 
 Let's look at this flags in detail:
@@ -89,7 +88,6 @@ Let's look at this flags in detail:
 | `--rpc-port` | port for RPC over HTTP                            |
 | `--ws-port`   | port for RPC over Websocket protocol              |
 | `--already-synchronized`   | need to be set if need to be considered synchronized              |
-|  --unix-slots    | need to be set if slots are calculated from unix epoch |
 
 More flags info available by running `kagome --help`.
 

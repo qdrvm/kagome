@@ -9,7 +9,6 @@
 #include "consensus/babe/babe_util.hpp"
 
 #include "consensus/babe/common.hpp"
-#include "consensus/babe/types/slots_strategy.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -20,7 +19,6 @@ namespace kagome::consensus {
     BabeUtilImpl(
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<storage::BufferStorage> storage,
-        const SlotsStrategy strategy,
         const BabeClock &clock);
 
     EpochNumber slotToEpoch(BabeSlotNumber slot) const override;
@@ -37,7 +35,6 @@ namespace kagome::consensus {
 
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<kagome::storage::BufferStorage> storage_;
-    const SlotsStrategy strategy_;
     const BabeClock &clock_;
 
     boost::optional<BabeSlotNumber> genesis_slot_number_;

@@ -53,7 +53,6 @@
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
-#include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -427,19 +426,6 @@ namespace {
     configuration->leadership_rate.first *= 3;
 
     initialized.emplace(std::move(configuration));
-    return initialized.value();
-  }
-
-  consensus::SlotsStrategy get_slots_strategy(
-      const application::AppConfiguration &app_config) {
-    static auto initialized =
-        boost::optional<consensus::SlotsStrategy>(boost::none);
-    if (not initialized) {
-      auto strategy = app_config.isUnixSlotsStrategy()
-                          ? consensus::SlotsStrategy::FromUnixEpoch
-                          : consensus::SlotsStrategy::FromZero;
-      initialized.emplace(strategy);
-    }
     return initialized.value();
   }
 
@@ -930,13 +916,6 @@ namespace {
           return get_babe_configuration(babe_api);
         }),
         di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
-        di::bind<consensus::SlotsStrategy>.template to(
-            [](const auto &injector) {
-              const application::AppConfiguration &config =
-                  injector
-                      .template create<const application::AppConfiguration &>();
-              return get_slots_strategy(config);
-            }),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
@@ -1193,7 +1172,6 @@ namespace {
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<consensus::SlotsStrategy>(),
         injector.template create<sptr<consensus::BabeUtil>>());
 
     auto protocol_factory =

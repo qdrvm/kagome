@@ -152,7 +152,6 @@ class BabeTest : public testing::Test {
                                              hasher_,
                                              std::move(timer_mock_),
                                              grandpa_authority_update_observer_,
-                                             slots_strategy_,
                                              babe_util_);
 
     epoch_.start_slot = 0;
@@ -188,7 +187,6 @@ class BabeTest : public testing::Test {
   testutil::TimerMock *timer_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
-  SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<boost::asio::io_context> io_context_;

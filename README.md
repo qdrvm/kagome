@@ -124,7 +124,7 @@ To launch Kagome Polkadot archive node execute:
 ```
 cd examples/polkadot/
 PATH=$PATH:../../build/node/
-kagome --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543 --unix-slots
+kagome --chain polkadot.json --base-path syncing_chain --port 50541 --rpc-port 50542 --ws-port 50543
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.

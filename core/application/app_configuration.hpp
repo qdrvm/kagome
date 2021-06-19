@@ -135,13 +135,6 @@ namespace kagome::application {
     virtual uint32_t maxBlocksInResponse() const = 0;
 
     /**
-     * Slots strategy
-     * @return true if we should count slots as `unix_epoch_time() /
-     * slot_duration`. Otherwise slots are counting from 0 and false is returned
-     */
-    virtual bool isUnixSlotsStrategy() const = 0;
-
-    /**
      * Config for PeerManager
      */
     virtual const network::PeeringConfig &peeringConfig() const = 0;
