@@ -112,10 +112,10 @@ namespace kagome::api {
     sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;
+    sptr<network::ExtrinsicGossiper> gossiper_;
     sptr<crypto::CryptoStore> store_;
     sptr<crypto::KeyFileStorage> key_store_;
     sptr<blockchain::BlockTree> block_tree_;
-    sptr<network::ExtrinsicGossiper> gossiper_;
     std::weak_ptr<api::ApiService> api_service_;
     std::atomic<primitives::Transaction::ObservedId> last_id_;
 
