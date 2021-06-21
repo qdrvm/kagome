@@ -111,6 +111,8 @@ add_subdirectory(core)
 kagome_install_setup(
     HEADER_DIRS
     core/common
+    core/clock
+    core/consensus
     core/log
     core/blockchain
     core/primitives
