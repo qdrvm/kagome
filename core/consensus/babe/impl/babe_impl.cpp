@@ -79,11 +79,6 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeImpl::start() {
-    if (not execution_strategy_.has_value()) {
-      log_->critical("Internal error: undefined execution strategy of babe");
-      return false;
-    }
-
     EpochDescriptor last_epoch_descriptor;
     const auto now = clock_->now();
     if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
@@ -108,26 +103,12 @@ namespace kagome::consensus::babe {
     auto &best_block_number = number;
     auto &best_block_hash = hash;
 
-    if (execution_strategy_.value() != ExecutionStrategy::SYNC_FIRST) {
-      SL_DEBUG(log_,
-               "Babe is starting in epoch #{} with block #{}, hash={}",
-               last_epoch_descriptor.epoch_number,
-               best_block_number,
-               best_block_hash);
+    SL_DEBUG(log_,
+             "Babe is starting with syncing from block #{}, hash={}",
+             best_block_number,
+             best_block_hash);
 
-      current_state_ = State::SYNCHRONIZED;
-      runEpoch(last_epoch_descriptor);
-      if (auto on_synchronized = std::move(on_synchronized_)) {
-        on_synchronized();
-      }
-    } else {
-      SL_DEBUG(log_,
-               "Babe is starting with syncing from block #{}, hash={}",
-               best_block_number,
-               best_block_hash);
-
-      current_state_ = State::WAIT_BLOCK;
-    }
+    current_state_ = State::WAIT_BLOCK;
     return true;
   }
 

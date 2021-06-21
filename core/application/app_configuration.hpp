@@ -123,13 +123,6 @@ namespace kagome::application {
     virtual log::Level verbosity() const = 0;
 
     /**
-     * If whole nodes was stopped, would not any active node to synchronize.
-     * This option gives ability to continue block production at cold start.
-     * @return true if need to force block production
-     */
-    virtual bool isAlreadySynchronized() const = 0;
-
-    /**
      * @return max blocks count per response while syncing
      */
     virtual uint32_t maxBlocksInResponse() const = 0;

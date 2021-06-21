@@ -73,8 +73,7 @@ kagome \
     --base-path base_path \
     --port 30363 \
     --rpc-port 9933 \
-    --ws-port 9944 \
-    --already-synchronized
+    --ws-port 9944
 ```
 
 Let's look at this flags in detail:
@@ -87,7 +86,6 @@ Let's look at this flags in detail:
 | `--port`      | port for p2p interactions                         |
 | `--rpc-port` | port for RPC over HTTP                            |
 | `--ws-port`   | port for RPC over Websocket protocol              |
-| `--already-synchronized`   | need to be set if need to be considered synchronized              |
 
 More flags info available by running `kagome --help`.
 

@@ -21,8 +21,7 @@ kagome \
     --base-path validating1 \
     --port 11122 \
     --rpc-port 11133 \
-    --ws-port 11144 \
-    --already-synchronized
+    --ws-port 11144
 ```
 
 ### Execute second validating node (node with authority) 

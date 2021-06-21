@@ -54,8 +54,6 @@ namespace kagome::application {
 
     MOCK_CONST_METHOD0(verbosity, log::Level());
 
-    MOCK_CONST_METHOD0(isAlreadySynchronized, bool());
-
     MOCK_CONST_METHOD0(maxBlocksInResponse, uint32_t());
 
     MOCK_CONST_METHOD0(peeringConfig, const network::PeeringConfig &());

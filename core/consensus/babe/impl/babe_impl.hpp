@@ -73,10 +73,6 @@ namespace kagome::consensus::babe {
 
     bool start();
 
-    void setExecutionStrategy(ExecutionStrategy strategy) override {
-      execution_strategy_ = strategy;
-    }
-
     void runEpoch(EpochDescriptor epoch) override;
 
     State getCurrentState() const override;
@@ -168,8 +164,6 @@ namespace kagome::consensus::babe {
     BabeSlotNumber current_slot_{};
     boost::optional<BabeLottery::SlotsLeadership> slots_leadership_;
     BabeTimePoint next_slot_finish_time_;
-
-    boost::optional<ExecutionStrategy> execution_strategy_;
 
     std::function<void()> on_synchronized_;
 

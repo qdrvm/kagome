@@ -34,19 +34,6 @@ namespace kagome::consensus::babe {
                     // was calculated, current peer can start block production
     };
 
-    enum class ExecutionStrategy {
-      /// Start on last epoch
-      START,
-      /// Node needs to syncronize first
-      SYNC_FIRST,
-    };
-
-    /**
-     * Set execution grategy
-     * @param strategy of execution
-     */
-    virtual void setExecutionStrategy(ExecutionStrategy strategy) = 0;
-
     /**
      * Start a Babe production
      * @param epoch - epoch, which is going to be run
