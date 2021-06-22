@@ -95,8 +95,7 @@ namespace kagome::api {
       const gsl::span<const uint8_t> &keys) {
     scale::ScaleDecoderStream stream(keys);
     std::array<uint8_t, 32> key;
-    if (not keys.size() || keys.size() < 32 || keys.size() > 32 * 6
-        || (keys.size() % 32) != 0) {
+    if (keys.size() < 32 || keys.size() > 32 * 6 || (keys.size() % 32) != 0) {
       SL_WARN(logger_,
               "not valid key sequence, author_hasSessionKeys RPC call expects "
               "no more than 6 public keys "
