@@ -30,7 +30,10 @@ namespace kagome::crypto {
       return 0u;
     }
     // little endian order
-    KeyTypeId res = str[3] | (str[2] << 8) | (str[1] << 16) | (str[0] << 24);
+    KeyTypeId res = (static_cast<uint32_t>(str[3]) & 0xFF)
+                    | ((static_cast<uint32_t>(str[2]) & 0xFF) << 8)
+                    | ((static_cast<uint32_t>(str[1]) & 0xFF) << 16)
+                    | ((static_cast<uint32_t>(str[0]) & 0xFF) << 24);
     return res;
   }
 
