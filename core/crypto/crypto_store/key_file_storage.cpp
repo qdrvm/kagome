@@ -162,7 +162,7 @@ namespace kagome::crypto {
     if (!file.is_open()) {
       return Error::FAILED_OPEN_FILE;
     }
-    auto hex = common::hex_lower(private_key);
+    auto hex = common::hex_lower_0x(private_key);
     file << hex;
     SL_TRACE(logger_, "Saving key to {}", path.native());
     return outcome::success();
@@ -208,7 +208,7 @@ namespace kagome::crypto {
       return boost::none;
     }
     OUTCOME_TRY(content, loadFileContent(key_path));
-    OUTCOME_TRY(seed_bytes, common::unhex(content));
+    OUTCOME_TRY(seed_bytes, common::unhexWith0x(content));
     return Buffer{std::move(seed_bytes)};
   }
 

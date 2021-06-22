@@ -27,6 +27,8 @@ namespace kagome::crypto {
     UNSUPPORTED_CRYPTO_TYPE,
     WRONG_SEED_SIZE,
     KEY_NOT_FOUND,
+    BABE_ALREADY_EXIST,
+    GRAN_ALREADY_EXIST
   };
 
   /// TODO(Harrm) Add policies to emit a warning when found a keypair
