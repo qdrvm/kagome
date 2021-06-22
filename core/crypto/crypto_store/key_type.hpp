@@ -22,15 +22,19 @@ namespace kagome::crypto {
 
   /**
    * Types are 32bit integers, which represent encoded 4-char strings
-   * Big-endian byte order is used
+   * Little-endian byte order is used
    */
   enum KnownKeyTypeId : KeyTypeId {
-    KEY_TYPE_BABE = 1650549349u, // BABE, sr25519
-    KEY_TYPE_GRAN = 1735549294u, // GRANDPA, ed25519
-    KEY_TYPE_ACCO = 1633903471u, // Account control [sr25519, ed25519, secp256k1]
-    KEY_TYPE_IMON = 1768779630u, // I'm Online, sr25519
-    KEY_TYPE_AUDI = 1635083369u, // Account discovery [sr25519, ed25519, secp256k1]
-    KEY_TYPE_LP2P = 1819292272u  // LibP2P
+    // clang-format off
+    KEY_TYPE_BABE = 0x62616265u, // BABE, sr25519
+    KEY_TYPE_GRAN = 0x6772616eu, // GRANDPA, ed25519
+    KEY_TYPE_ACCO = 0x6163636fu, // Account control [sr25519, ed25519, secp256k1]
+    KEY_TYPE_IMON = 0x696d6f6eu, // I'm Online, sr25519
+    KEY_TYPE_AUDI = 0x61756469u, // Account discovery [sr25519, ed25519, secp256k1]
+    KEY_TYPE_LP2P = 0x6c703270u, // LibP2P
+    KEY_TYPE_ASGN = 0x6173676eu, // ASGN
+    KEY_TYPE_PARA = 0x70617261u, // PARA
+    // clang-format on
   };
 
   /**
@@ -40,6 +44,7 @@ namespace kagome::crypto {
    */
   std::string decodeKeyTypeId(KeyTypeId param);
 
+  KeyTypeId encodeKeyTypeId(std::string str);
   /**
    * @brief checks whether key type value is supported
    * @param k key type value

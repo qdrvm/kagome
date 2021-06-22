@@ -15,8 +15,11 @@ using kagome::crypto::KEY_TYPE_BABE;
 using kagome::crypto::KEY_TYPE_GRAN;
 using kagome::crypto::KEY_TYPE_LP2P;
 using kagome::crypto::KEY_TYPE_IMON;
+using kagome::crypto::KEY_TYPE_ASGN;
+using kagome::crypto::KEY_TYPE_PARA;
 
 using kagome::crypto::decodeKeyTypeId;
+using kagome::crypto::encodeKeyTypeId;
 using kagome::crypto::KeyTypeId;
 
 namespace {
@@ -46,6 +49,17 @@ TEST_P(KeyTypeTest, DecodeSuccess) {
   }
 }
 
+TEST_P(KeyTypeTest, EncodeSuccess) {
+  auto [repr, key_type_str, should_succeed] = GetParam();
+  auto key_type = encodeKeyTypeId(std::string(key_type_str));
+
+  if (should_succeed) {
+    ASSERT_EQ(key_type, repr);
+  } else {
+    ASSERT_NE(key_type, repr);
+  }
+}
+
 INSTANTIATE_TEST_CASE_P(KeyTypeTestCases,
                         KeyTypeTest,
                         ::testing::Values(good(KEY_TYPE_BABE, "babe"),
@@ -54,5 +68,7 @@ INSTANTIATE_TEST_CASE_P(KeyTypeTestCases,
                                           good(KEY_TYPE_IMON, "imon"),
                                           good(KEY_TYPE_AUDI, "audi"),
                                           good(KEY_TYPE_LP2P, "lp2p"),
+                                          good(KEY_TYPE_ASGN, "asgn"),
+                                          good(KEY_TYPE_PARA, "para"),
                                           bad(KEY_TYPE_BABE - 5, "babe"),
                                           bad(KEY_TYPE_BABE + 1000, "babe")));

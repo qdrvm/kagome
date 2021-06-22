@@ -8,9 +8,16 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <jsonrpc-lean/fault.h>
+#include <type_traits>
 
 #include "common/blob.hpp"
+#include "common/hexutil.hpp"
+#include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/crypto_store/key_file_storage.hpp"
+#include "crypto/ed25519_types.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
+#include "mock/core/crypto/crypto_store_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/extrinsic_gossiper_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
@@ -24,16 +31,16 @@
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/primitives/mp_utils.hpp"
+#include "testutil/sr25519_utils.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using namespace kagome::api;
+using namespace kagome::common;
 using namespace kagome::crypto;
 using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
 using kagome::blockchain::BlockTree;
-using kagome::common::Buffer;
-using kagome::common::Hash256;
 using kagome::network::ExtrinsicGossiperMock;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
@@ -54,6 +61,7 @@ using kagome::subscription::SubscriptionEngine;
 using ::testing::_;
 using ::testing::ByRef;
 using ::testing::DoAll;
+using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::ReturnRef;
 
@@ -87,6 +95,9 @@ struct AuthorApiTest : public ::testing::Test {
   template <class T>
   using sptr = std::shared_ptr<T>;
 
+  sptr<CryptoStoreMock> store;
+  sptr<KeyFileStorage> key_store;
+  Sr25519Keypair key_pair;
   sptr<HasherMock> hasher;
   sptr<TaggedTransactionQueueMock> ttq;
   sptr<TransactionPoolMock> transaction_pool;
@@ -119,13 +130,20 @@ struct AuthorApiTest : public ::testing::Test {
           event_receiver->receive(set_id, session, id, event);
         });
 
+    store = std::make_shared<CryptoStoreMock>();
+    key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
+    key_pair = generateSr25519Keypair();
+    key_store->saveKeypair(
+        KEY_TYPE_BABE,
+        gsl::make_span(key_pair.public_key.data(), 32),
+        gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1));
     hasher = std::make_shared<HasherMock>();
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     gossiper = std::make_shared<ExtrinsicGossiperMock>();
     api_service_mock = std::make_shared<ApiServiceMock>();
     author_api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, gossiper);
+        ttq, transaction_pool, hasher, gossiper, store, key_store);
     author_api->setApiService(api_service_mock);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
@@ -183,6 +201,223 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
 
 MATCHER_P(eventsAreEqual, n, "") {
   return (arg.id == n.id) and (arg.type == n.type);
+}
+
+/**
+ * @given unsupported KeyTypeId for author_insertKey RPC call
+ * @when insertKey called, check on supported key types fails
+ * @then corresponing error is returned
+ */
+TEST_F(AuthorApiTest, InsertKeyUnsupported) {
+  EXPECT_OUTCOME_ERROR(res,
+                       author_api->insertKey(encodeKeyTypeId("dumy"), {}, {}),
+                       CryptoStoreError::UNSUPPORTED_KEY_TYPE);
+}
+
+/**
+ * @given babe key type with seed and public key
+ * @when insertKey called, check on key of the key type existence succeeds
+ * @then corresponding error is returned
+ */
+TEST_F(AuthorApiTest, InsertKeyBabeAlreadyExists) {
+  EXPECT_CALL(*store, getBabeKeypair())
+      .Times(1)
+      .WillOnce(Return(Sr25519Keypair{}));
+  EXPECT_OUTCOME_ERROR(res,
+                       author_api->insertKey(KEY_TYPE_BABE, {}, {}),
+                       CryptoStoreError::BABE_ALREADY_EXIST);
+}
+
+/**
+ * @given gran key type with seed and public key
+ * @when insertKey called, check on key of the key type existence succeeds
+ * @then corresponding error is returned
+ */
+TEST_F(AuthorApiTest, InsertKeyGranAlreadyExists) {
+  EXPECT_CALL(*store, getGrandpaKeypair())
+      .Times(1)
+      .WillOnce(Return(Ed25519Keypair{}));
+  EXPECT_OUTCOME_ERROR(res,
+                       author_api->insertKey(KEY_TYPE_GRAN, {}, {}),
+                       CryptoStoreError::GRAN_ALREADY_EXIST);
+}
+
+/**
+ * @given babe key type with seed and public key
+ * @when insertKey called, all checks passed
+ * @then call succeeds
+ */
+TEST_F(AuthorApiTest, InsertKeyBabe) {
+  EXPECT_CALL(*store, getBabeKeypair()).Times(1);
+  EXPECT_OUTCOME_SUCCESS(res, author_api->insertKey(KEY_TYPE_BABE, {}, {}));
+}
+
+/**
+ * @given gran key type with seed and public key
+ * @when insertKey called, all checks passed
+ * @then call succeeds
+ */
+TEST_F(AuthorApiTest, InsertKeyGran) {
+  EXPECT_CALL(*store, getGrandpaKeypair()).Times(1);
+  EXPECT_OUTCOME_SUCCESS(res, author_api->insertKey(KEY_TYPE_GRAN, {}, {}));
+}
+
+/**
+ * @given empty keys sequence
+ * @when hasSessionKeys called
+ * @then call succeeds, false result
+ * NOTE could be special error
+ */
+TEST_F(AuthorApiTest, HasSessionKeysEmpty) {
+  Buffer keys;
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_EQ(res.value(), false);
+}
+
+/**
+ * @given keys sequence less than 1 key
+ * @when hasSessionKeys called
+ * @then call succeeds, false result
+ * NOTE could be special error
+ */
+TEST_F(AuthorApiTest, HasSessionKeysLessThanOne) {
+  Buffer keys;
+  keys.resize(31);
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_EQ(res.value(), false);
+}
+
+/**
+ * @given keys sequence greater than 6 keys
+ * @when hasSessionKeys called
+ * @then call succeeds, false result
+ * NOTE could be special error
+ */
+TEST_F(AuthorApiTest, HasSessionKeysOverload) {
+  Buffer keys;
+  keys.resize(32 * 6 + 1);
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_EQ(res.value(), false);
+}
+
+/**
+ * @given keys sequence not equal to n*32 in size
+ * @when hasSessionKeys called
+ * @then call succeeds, false result
+ * NOTE could be special error
+ */
+TEST_F(AuthorApiTest, HasSessionKeysNotEqualKeys) {
+  Buffer keys;
+  keys.resize(32 * 5 + 1);
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_EQ(res.value(), false);
+}
+
+/**
+ * @given keys sequence of 6 keys
+ * @when hasSessionKeys called, all keys found
+ * @then call succeeds, true result
+ */
+TEST_F(AuthorApiTest, HasSessionKeysSuccess6Keys) {
+  Buffer keys;
+  keys.resize(32 * 6);
+  outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
+  outcome::result<Sr25519Keypair> srOk = Sr25519Keypair{};
+  InSequence s;
+  EXPECT_CALL(*store, findEd25519Keypair(KEY_TYPE_GRAN, _))
+      .Times(1)
+      .WillOnce(Return(edOk));
+  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_BABE, _))
+      .Times(1)
+      .WillOnce(Return(srOk));
+  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_IMON, _))
+      .Times(1)
+      .WillOnce(Return(srOk));
+  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_PARA, _))
+      .Times(1)
+      .WillOnce(Return(srOk));
+  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_ASGN, _))
+      .Times(1)
+      .WillOnce(Return(srOk));
+  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_AUDI, _))
+      .Times(1)
+      .WillOnce(Return(srOk));
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_EQ(res.value(), true);
+}
+
+/**
+ * @given keys sequence of 1 key
+ * @when hasSessionKeys called, all keys found
+ * @then call succeeds, true result
+ */
+TEST_F(AuthorApiTest, HasSessionKeysSuccess1Keys) {
+  Buffer keys;
+  keys.resize(32);
+  outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
+  EXPECT_CALL(*store, findEd25519Keypair(KEY_TYPE_GRAN, _))
+      .Times(1)
+      .WillOnce(Return(edOk));
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_EQ(res.value(), true);
+}
+
+/**
+ * @given keys sequence of 6 keys
+ * @when hasSessionKeys called, 1 key not found
+ * @then call succeeds, false result
+ */
+TEST_F(AuthorApiTest, HasSessionKeysFailureNotFound) {
+  Buffer keys;
+  keys.resize(32 * 6);
+  outcome::result<Ed25519Keypair> edOk = Ed25519Keypair{};
+  outcome::result<Sr25519Keypair> srErr = CryptoStoreError::KEY_NOT_FOUND;
+  EXPECT_CALL(*store, findEd25519Keypair(_, _)).Times(1).WillOnce(Return(edOk));
+  EXPECT_CALL(*store, findSr25519Keypair(_, _))
+      .Times(1)
+      .WillOnce(Return(srErr));
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasSessionKeys(gsl::make_span(keys.data(), keys.size())));
+  EXPECT_EQ(res.value(), false);
+}
+
+/**
+ * @given pub_key and type
+ * @when hasKey called, 1 key found
+ * @then call succeeds, true result
+ */
+TEST_F(AuthorApiTest, HasKeySuccess) {
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasKey(gsl::make_span(key_pair.public_key.data(), 32),
+                         KEY_TYPE_BABE));
+  EXPECT_EQ(res.value(), true);
+}
+
+/**
+ * @given pub_key and type
+ * @when hasKey called, key not found
+ * @then call succeeds, false result
+ */
+TEST_F(AuthorApiTest, HasKeyFail) {
+  EXPECT_OUTCOME_SUCCESS(
+      res,
+      author_api->hasKey(gsl::make_span(std::array<uint8_t, 32>{}.data(), 32),
+                         KEY_TYPE_BABE));
+  EXPECT_EQ(res.value(), false);
 }
 
 /**
