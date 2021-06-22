@@ -115,7 +115,7 @@ namespace kagome::network {
                        "Fully established incoming {} stream with {}",
                        self->protocol_,
                        stream->remotePeerId().value().toBase58());
-
+            self->babe_observer_->onSync();
           } else {
             SL_VERBOSE(self->log_,
                        "Fail establishing incoming {} stream with {}: {}",

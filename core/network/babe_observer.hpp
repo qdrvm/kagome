@@ -23,6 +23,7 @@ namespace kagome::network {
      */
     virtual void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const BlockAnnounce &announce) = 0;
+    virtual void onSync() = 0;
   };
 }  // namespace kagome::network
 

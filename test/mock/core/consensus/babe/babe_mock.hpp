@@ -22,6 +22,8 @@ namespace kagome::consensus::babe {
     MOCK_METHOD2(onBlockAnnounce,
                  void(const libp2p::peer::PeerId &peer_id,
                       const network::BlockAnnounce &announce));
+
+    MOCK_METHOD0(onSync, void());
   };
 
 }  // namespace kagome::consensus::babe

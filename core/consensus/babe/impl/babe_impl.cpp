@@ -79,35 +79,6 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeImpl::start() {
-    EpochDescriptor last_epoch_descriptor;
-    const auto now = clock_->now();
-    if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
-      last_epoch_descriptor = res.value();
-    } else {
-      auto time_since_epoch = now.time_since_epoch();
-
-      auto ticks_since_epoch = time_since_epoch.count();
-      last_epoch_descriptor.start_slot =
-          static_cast<BabeSlotNumber>(
-              ticks_since_epoch / babe_configuration_->slot_duration.count())
-          + 1;
-
-      last_epoch_descriptor.epoch_number = 0;
-
-      last_epoch_descriptor.starting_slot_finish_time = closestNextTimeMultiple(
-          now, babe_configuration_->slot_duration);
-
-    }
-
-    auto [number, hash] = block_tree_->deepestLeaf();
-    auto &best_block_number = number;
-    auto &best_block_hash = hash;
-
-    SL_DEBUG(log_,
-             "Babe is starting with syncing from block #{}, hash={}",
-             best_block_number,
-             best_block_hash);
-
     current_state_ = State::WAIT_BLOCK;
     return true;
   }
@@ -198,6 +169,43 @@ namespace kagome::consensus::babe {
             peer_id, announce.header, [](auto &) {});
         break;
     }
+  }
+
+  void BabeImpl::onSync() {
+    if (current_state_ != State::WAIT_BLOCK) return;
+
+    current_state_ = State::SYNCHRONIZED;
+
+    EpochDescriptor last_epoch_descriptor;
+    const auto now = clock_->now();
+    if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
+      last_epoch_descriptor = res.value();
+    } else {
+      auto time_since_epoch = now.time_since_epoch();
+
+      auto ticks_since_epoch = time_since_epoch.count();
+      last_epoch_descriptor.start_slot =
+          static_cast<BabeSlotNumber>(
+              ticks_since_epoch / babe_configuration_->slot_duration.count())
+          + 1;
+
+      last_epoch_descriptor.epoch_number = 0;
+
+      last_epoch_descriptor.starting_slot_finish_time =
+          closestNextTimeMultiple(now, babe_configuration_->slot_duration);
+    }
+
+    auto [number, hash] = block_tree_->deepestLeaf();
+    auto &best_block_number = number;
+    auto &best_block_hash = hash;
+
+    SL_DEBUG(log_,
+             "Babe is starting with syncing from block #{}, hash={}",
+             best_block_number,
+             best_block_hash);
+
+    runEpoch(last_epoch_descriptor);
+    on_synchronized_();
   }
 
   void BabeImpl::doOnSynchronized(std::function<void()> handler) {
