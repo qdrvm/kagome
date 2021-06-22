@@ -98,8 +98,8 @@ namespace kagome::consensus::grandpa {
     network::CatchUpResponse message{
         .voter_set_id = set_id,
         .round_number = round_number,
-        .prevote_justification = std::move(prevote_justification),
-        .precommit_justification = std::move(precommit_justification),
+        .prevote_justification = std::move(prevote_justification.items),
+        .precommit_justification = std::move(precommit_justification.items),
         .best_final_candidate = best_final_candidate};
     gossiper_->catchUpResponse(peer_id, message);
     SL_DEBUG(logger_, "Catch-Up-Response sent upto round {}", round_number);

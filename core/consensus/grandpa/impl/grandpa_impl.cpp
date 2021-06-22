@@ -374,12 +374,13 @@ namespace kagome::consensus::grandpa {
         .last_finalized_block = current_round_->lastFinalizedBlock(),
         .votes = {},
         .finalized = msg.best_final_candidate};
-    std::transform(msg.prevote_justification.items.begin(),
-                   msg.prevote_justification.items.end(),
+
+    std::transform(msg.prevote_justification.begin(),
+                   msg.prevote_justification.end(),
                    std::back_inserter(round_state.votes),
                    [](auto &item) { return item; });
-    std::transform(msg.precommit_justification.items.begin(),
-                   msg.precommit_justification.items.end(),
+    std::transform(msg.precommit_justification.begin(),
+                   msg.precommit_justification.end(),
                    std::back_inserter(round_state.votes),
                    [](auto &item) { return item; });
 
