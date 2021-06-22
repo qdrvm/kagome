@@ -98,8 +98,8 @@ namespace kagome::api {
     if (keys.size() < 32 || keys.size() > 32 * 6 || (keys.size() % 32) != 0) {
       SL_WARN(logger_,
               "not valid key sequence, author_hasSessionKeys RPC call expects "
-              "no more than 6 public keys "
-              "in concatenated string, keys should be 32 byte in size");
+              "no more than 6 public keys in concatenated string, keys should "
+              "be 32 byte in size");
       return false;
     }
     stream >> key;

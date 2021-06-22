@@ -204,9 +204,9 @@ MATCHER_P(eventsAreEqual, n, "") {
 }
 
 /**
- @given unsupported KeyTypeId for author_insertKey RPC call
- @when insertKey called, check on supported key types fails
- @then corresponing error is returned
+ * @given unsupported KeyTypeId for author_insertKey RPC call
+ * @when insertKey called, check on supported key types fails
+ * @then corresponing error is returned
  */
 TEST_F(AuthorApiTest, InsertKeyUnsupported) {
   EXPECT_OUTCOME_ERROR(res,
@@ -215,9 +215,9 @@ TEST_F(AuthorApiTest, InsertKeyUnsupported) {
 }
 
 /**
- @given babe key type with seed and public key
- @when insertKey called, check on key of the key type existence succeeds
- @then corresponding error is returned
+ * @given babe key type with seed and public key
+ * @when insertKey called, check on key of the key type existence succeeds
+ * @then corresponding error is returned
  */
 TEST_F(AuthorApiTest, InsertKeyBabeAlreadyExists) {
   EXPECT_CALL(*store, getBabeKeypair())
@@ -229,9 +229,9 @@ TEST_F(AuthorApiTest, InsertKeyBabeAlreadyExists) {
 }
 
 /**
- @given gran key type with seed and public key
- @when insertKey called, check on key of the key type existence succeeds
- @then corresponding error is returned
+ * @given gran key type with seed and public key
+ * @when insertKey called, check on key of the key type existence succeeds
+ * @then corresponding error is returned
  */
 TEST_F(AuthorApiTest, InsertKeyGranAlreadyExists) {
   EXPECT_CALL(*store, getGrandpaKeypair())
@@ -243,9 +243,9 @@ TEST_F(AuthorApiTest, InsertKeyGranAlreadyExists) {
 }
 
 /**
- @given babe key type with seed and public key
- @when insertKey called, all checks passed
- @then call succeeds
+ * @given babe key type with seed and public key
+ * @when insertKey called, all checks passed
+ * @then call succeeds
  */
 TEST_F(AuthorApiTest, InsertKeyBabe) {
   EXPECT_CALL(*store, getBabeKeypair()).Times(1);
@@ -253,9 +253,9 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
 }
 
 /**
- @given gran key type with seed and public key
- @when insertKey called, all checks passed
- @then call succeeds
+ * @given gran key type with seed and public key
+ * @when insertKey called, all checks passed
+ * @then call succeeds
  */
 TEST_F(AuthorApiTest, InsertKeyGran) {
   EXPECT_CALL(*store, getGrandpaKeypair()).Times(1);
