@@ -200,7 +200,7 @@ namespace kagome::crypto {
               ED25519_SEED_LENGTH)));
       kp = ed_suite_->generateKeypair(seed);
     } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
-      OUTCOME_TRY(seed, Ed25519Seed::fromHex(contents));
+      OUTCOME_TRY(seed, Ed25519Seed::fromHexWithPrefix(contents));
       kp = ed_suite_->generateKeypair(seed);
     }
 
