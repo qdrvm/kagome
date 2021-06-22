@@ -128,7 +128,7 @@ namespace kagome::consensus::grandpa {
   struct GrandpaJustification {
     RoundNumber round_number;
     BlockInfo block_info;
-    std::vector<SignedPrecommit> items;
+    std::vector<SignedMessage> items;
   };
 
   template <class Stream,

@@ -111,7 +111,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &propose) {
     BOOST_ASSERT(propose.is<PrimaryPropose>());
-    network::GrandpaVoteMessage message{
+    network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = propose}};
     gossiper_->vote(message);
     SL_DEBUG(logger_,
@@ -127,7 +127,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &prevote) {
     BOOST_ASSERT(prevote.is<Prevote>());
-    network::GrandpaVoteMessage message{
+    network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = prevote}};
     gossiper_->vote(message);
     SL_DEBUG(logger_,
@@ -143,7 +143,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &precommit) {
     BOOST_ASSERT(precommit.is<Precommit>());
-    network::GrandpaVoteMessage message{
+    network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = precommit}};
     gossiper_->vote(message);
     SL_DEBUG(logger_,
@@ -163,7 +163,7 @@ namespace kagome::consensus::grandpa {
              round,
              vote.number,
              vote.hash.toHex());
-    network::GrandpaPreCommit message{
+    network::GrandpaCommit message{
         {.round_number = round, .vote = vote, .justification = justification}};
     gossiper_->finalize(message);
     return outcome::success();

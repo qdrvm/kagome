@@ -83,8 +83,8 @@ namespace kagome::consensus::grandpa {
              "Grandpa will be started with round #{}",
              round_state.round_number + 1);
 
-    auto authorities_res = authority_manager_->authorities(
-        round_state.last_finalized_block, true);
+    auto authorities_res =
+        authority_manager_->authorities(round_state.last_finalized_block, true);
     if (not authorities_res.has_value()) {
       logger_->critical("Can't get authorities: {}. Stopping grandpa execution",
                         authorities_res.error().message());

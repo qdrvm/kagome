@@ -16,17 +16,18 @@ namespace kagome::network {
   using consensus::grandpa::GrandpaJustification;
   using consensus::grandpa::MembershipCounter;
   using consensus::grandpa::RoundNumber;
+  using consensus::grandpa::SignedMessage;
   using consensus::grandpa::VoteMessage;
 
-  struct GrandpaVoteMessage : public VoteMessage {
+  struct GrandpaVote : public VoteMessage {
     using VoteMessage::VoteMessage;
-    explicit GrandpaVoteMessage(VoteMessage &&vm) noexcept
+    explicit GrandpaVote(VoteMessage &&vm) noexcept
         : VoteMessage(std::move(vm)){};
   };
 
-  struct GrandpaPreCommit : public Fin {
+  struct GrandpaCommit : public Fin {
     using Fin::Fin;
-    explicit GrandpaPreCommit(Fin &&f) noexcept : Fin(std::move(f)){};
+    explicit GrandpaCommit(Fin &&f) noexcept : Fin(std::move(f)){};
   };
 
   struct GrandpaNeighborPacket {};
@@ -67,8 +68,8 @@ namespace kagome::network {
   struct CatchUpResponse {
     MembershipCounter voter_set_id{};
     RoundNumber round_number{};
-    GrandpaJustification prevote_justification;
-    GrandpaJustification precommit_justification;
+    std::vector<SignedMessage> prevote_justification;
+    std::vector<SignedMessage> precommit_justification;
     BlockInfo best_final_candidate;
   };
 
@@ -91,8 +92,8 @@ namespace kagome::network {
 
   using GrandpaMessage =
       /// Note: order of types in variant matters
-      boost::variant<GrandpaVoteMessage,     // 0
-                     GrandpaPreCommit,       // 1
+      boost::variant<GrandpaVote,            // 0
+                     GrandpaCommit,          // 1
                      GrandpaNeighborPacket,  // 2
                      CatchUpRequest,         // 3
                      CatchUpResponse>;       // 4
