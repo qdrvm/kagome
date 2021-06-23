@@ -1042,7 +1042,7 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<crypto::Sr25519Keypair> get_sr25519_keypair(const Injector &injector) {
+  sptr<crypto::Sr25519Keypair> get_babe_keypair(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<crypto::Sr25519Keypair>>(boost::none);
     if (initialized) {
@@ -1240,7 +1240,7 @@ namespace {
         makeApplicationInjector(app_config),
         // bind sr25519 keypair
         di::bind<crypto::Sr25519Keypair>.to(
-            [](auto const &injector) { return get_sr25519_keypair(injector); }),
+            [](auto const &injector) { return get_babe_keypair(injector); }),
         // bind ed25519 keypair
         di::bind<crypto::Ed25519Keypair>.to(
             [](auto const &injector) { return get_ed25519_keypair(injector); }),

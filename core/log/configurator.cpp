@@ -52,6 +52,7 @@ groups:
                   - name: block_executor
                   - name: block_validator
               - name: grandpa
+                level: trace
                 children:
                   - name: voting_round
           - name: runtime

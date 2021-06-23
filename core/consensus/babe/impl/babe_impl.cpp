@@ -129,12 +129,6 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
-    if (not keypair_) {
-      block_executor_->processNextBlock(
-          peer_id, announce.header, [](auto &) {});
-      return;
-    }
-
     switch (current_state_) {
       case State::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
@@ -172,7 +166,15 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::onSync() {
-    if (current_state_ != State::WAIT_BLOCK) return;
+    // sync already started no need to call it again
+    if (current_state_ != State::WAIT_BLOCK) {
+      return;
+    }
+
+    // won't start sync without keypair
+    if (not keypair_) {
+      return;
+    }
 
     current_state_ = State::SYNCHRONIZED;
 
