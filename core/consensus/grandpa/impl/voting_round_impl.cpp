@@ -156,8 +156,8 @@ namespace kagome::consensus::grandpa {
       for (auto &vote_variant : round_state.votes) {
         visit_in_place(
             vote_variant,
-            [&](const VotingMessage &vote) { apply(vote); },
-            [&](const EquivocatoryVotingMessage &pair) {
+            [&](const SignedMessage &vote) { apply(vote); },
+            [&](const EquivocatorySignedMessage &pair) {
               apply(pair.first);
               apply(pair.second);
             });
@@ -1536,7 +1536,7 @@ namespace kagome::consensus::grandpa {
                       static_cast<const SignedPrecommit &>(voting_message));
                 }
               },
-              [&justification](const EquivocatoryVotingMessage
+              [&justification](const EquivocatorySignedMessage
                                    &equivocatory_voting_message) {
                 justification.items.push_back(
                     static_cast<const SignedPrecommit &>(
