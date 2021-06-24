@@ -145,6 +145,8 @@ namespace kagome::host_api {
                                    runtime::WasmSpan target,
                                    runtime::WasmSpan message) override;
 
+    runtime::WasmEnum ext_logging_max_level_version_1() override;
+
     void ext_print_num(uint64_t value) override;
 
     void ext_print_utf8(runtime::WasmPointer utf8_data,

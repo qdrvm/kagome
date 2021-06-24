@@ -28,7 +28,7 @@ namespace kagome::primitives {
       const crypto::Hasher &hasher) {
     constexpr auto PREFIX = "SS58PRE";
     auto preimage = common::Buffer{}.put(PREFIX).put(ss58_address);
-    auto checksum = hasher.blake2b_256(preimage);
+    auto checksum = hasher.blake2b_512(preimage);
     return common::Buffer{
         gsl::make_span(checksum).subspan(0, kSs58ChecksumLength)};
   }

@@ -145,9 +145,9 @@ namespace kagome::runtime::binaryen {
 
     if (!module) {
       // Prepare new module
-      OUTCOME_TRY(
-          new_module,
-          module_factory_->createModule(state_code, external_interface_));
+      OUTCOME_TRY(new_module,
+                  module_factory_->createModule(
+                      state_code, external_interface_, storage_provider_));
 
       // Trying to safe emplace new module, and use existed one
       //  if it already emplaced in another thread
@@ -170,7 +170,8 @@ namespace kagome::runtime::binaryen {
                                                    storage_provider_);
 
     OUTCOME_TRY(module,
-                module_factory_->createModule(state_code, external_interface));
+                module_factory_->createModule(
+                    state_code, external_interface, storage_provider_));
 
     return RuntimeEnvironment::create(external_interface, std::move(module));
   }

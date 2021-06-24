@@ -15,22 +15,23 @@ First we execute validating node in the similar way we did it during previous tu
 To start with let's navigate into the node's folder:
 
 ```shell script
-kagome_validating \
+kagome \
+    --validator \
     --chain testchain.json \
     --base-path validating1 \
     --port 11122 \
     --rpc-port 11133 \
     --ws-port 11144 \
-    --single-finalizing-node \
     --already-synchronized
 ```
 
-### Execute second validating node  
+### Execute second validating node (node with authority) 
 
 Now that validating node is up and running, second node can join the network by bootstrapping from the first node. Command will look very similar.
 
 ```shell script
-kagome_validating \
+kagome \
+    --validator \
     --chain testchain.json \
     --base-path validating2 \
     --port 11222 \
@@ -47,16 +48,21 @@ Second node passes several steps before actual block production begins:
 
 > Because these two nodes are running on the same machine, second node must be specified with different port numbers 
 
-Note that both validating and block producing nodes have the same hash of block 0: `2b32173d63796278d1cea23fcb255866153f07700226f3d7ba348e25ae7f9d29`
+Note that both nodes have the same hash of block 0: `2b32173d63796278d1cea23fcb255866153f07700226f3d7ba348e25ae7f9d29`
 
-### Execute syncing node
+### Execute syncing (without authority) node
 
 Syncing node cannot participate in either block production or block finalization. However, it can connect to the network and import all produced blocks. Besides that, syncing node can also receive extrinsics and broadcast them to the network.
 
-To start syncing node `kagome_full_syncing` binary is used as follows:
+To start syncing node `kagome` binary is used as follows:
 
 ```shell script
-kagome_full_syncing --chain testchain.json --base-path syncing1 --port 21122 --rpc-port 21133 --ws-port 21144
+kagome \
+    --chain testchain.json \
+    --base-path syncing1 \
+    --port 21122 \
+    --rpc-port 21133 \
+    --ws-port 21144
 ```
 
 Note that trie root is the same with validating nodes. When syncing node receives block announcement it first synchronizes missing blocks and then listens to the new blocks and finalization. 

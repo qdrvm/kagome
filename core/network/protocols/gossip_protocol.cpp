@@ -62,7 +62,7 @@ namespace kagome::network {
   void GossipProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
-    if (stream_engine_->add(stream, shared_from_this())) {
+    if (stream_engine_->addIncoming(stream, shared_from_this())) {
       readGossipMessage(std::move(stream));
     }
   }
@@ -70,27 +70,28 @@ namespace kagome::network {
   void GossipProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    host_.newStream(peer_info,
-                    protocol_,
-                    [wp = weak_from_this(),
-                     peer_id = peer_info.id,
-                     cb = std::move(cb)](auto &&stream_res) mutable {
-                      auto self = wp.lock();
-                      if (not self) {
-                        cb(ProtocolError::GONE);
-                        return;
-                      }
+    host_.newStream(
+        peer_info.id,
+        protocol_,
+        [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
+            auto &&stream_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            cb(ProtocolError::GONE);
+            return;
+          }
 
-                      if (not stream_res.has_value()) {
-                        cb(stream_res.as_failure());
-                        return;
-                      }
+          if (not stream_res.has_value()) {
+            cb(stream_res.as_failure());
+            return;
+          }
 
-                      auto &stream = stream_res.value();
+          auto &stream = stream_res.value();
 
-                      cb(stream);
-                      self->readGossipMessage(std::move(stream));
-                    });
+          std::ignore = self->stream_engine_->addOutgoing(stream, self);
+          cb(stream);
+          self->readGossipMessage(std::move(stream));
+        });
   }
 
   void GossipProtocol::readGossipMessage(std::shared_ptr<Stream> stream) {
@@ -116,13 +117,15 @@ namespace kagome::network {
 
       using MsgType = GossipMessage::Type;
 
+      bool success;
+
       switch (gossip_message.type) {
         case MsgType::BLOCK_ANNOUNCE: {
           BOOST_ASSERT(!"Legacy protocol unsupported!");
           self->log_->warn("Legacy protocol message BLOCK_ANNOUNCE from: {}",
                            peer_id.toBase58());
-          stream->reset();
-          return;
+          success = false;
+          break;
         }
         case GossipMessage::Type::CONSENSUS: {
           auto grandpa_msg_res =
@@ -132,71 +135,77 @@ namespace kagome::network {
             self->log_->error(
                 "Error while decoding a consensus (grandpa) message: {}",
                 grandpa_msg_res.error().message());
-            stream->reset();
-            return;
+            success = false;
+            break;
           }
 
           auto &grandpa_msg = grandpa_msg_res.value();
 
           visit_in_place(
               grandpa_msg,
-              [self,
-               &peer_id](const network::GrandpaVoteMessage &vote_message) {
+              [&](const network::GrandpaVote &vote_message) {
                 self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
+                success = true;
               },
-              [self, &peer_id](const network::GrandpaPreCommit &fin_message) {
+              [&](const network::GrandpaCommit &fin_message) {
                 self->grandpa_observer_->onFinalize(peer_id, fin_message);
+                success = true;
               },
-              [](const GrandpaNeighborPacket &neighbor_packet) {
+              [&](const GrandpaNeighborPacket &neighbor_packet) {
                 BOOST_ASSERT_MSG(
                     false,
                     "Unimplemented variant (GrandpaNeighborPacket) "
                     "of consensus (grandpa) message");
+                success = false;
               },
-              [self,
-               &peer_id](const network::CatchUpRequest &catch_up_request) {
+              [&](const network::CatchUpRequest &catch_up_request) {
                 self->grandpa_observer_->onCatchUpRequest(peer_id,
                                                           catch_up_request);
+                success = true;
               },
-              [self,
-               &peer_id](const network::CatchUpResponse &catch_up_response) {
+              [&](const network::CatchUpResponse &catch_up_response) {
                 self->grandpa_observer_->onCatchUpResponse(peer_id,
                                                            catch_up_response);
+                success = true;
               },
-              [&stream](const auto &...) {
+              [&](const auto &...) {
                 BOOST_ASSERT_MSG(
                     false, "Unknown variant of consensus (grandpa) message");
-                stream->reset();
+                success = false;
               });
-          return;
+          break;
         }
         case MsgType::TRANSACTIONS: {
           BOOST_ASSERT(!"Legacy protocol unsupported!");
           self->log_->warn("Legacy protocol message TRANSACTIONS from: {}",
                            peer_id.toBase58());
-          stream->reset();
-          return;
+          success = false;
+          break;
         }
         case GossipMessage::Type::STATUS: {
           self->log_->error("Status message processing is not implemented yet");
-          stream->reset();
-          return;
+          success = false;
+          break;
         }
         case GossipMessage::Type::BLOCK_REQUEST: {
           self->log_->error(
               "BlockRequest message processing is not implemented yet");
-          stream->reset();
-          return;
+          success = false;
+          break;
         }
         case GossipMessage::Type::UNKNOWN:
         default: {
           self->log_->error("unknown message type is set");
-          stream->reset();
-          return;
+          success = false;
+          break;
         }
       }
 
-      self->readGossipMessage(std::move(stream));
+      if (success) {
+        self->readGossipMessage(std::move(stream));
+      } else {
+        stream->reset();
+      }
     });
   }
 

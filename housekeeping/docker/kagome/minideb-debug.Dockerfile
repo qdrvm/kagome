@@ -10,4 +10,4 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y libstdc++6 libc6 curl gdb vim libnsl2 && \
     rm -rf /var/lib/apt/lists/*
 
-COPY kagome_full_syncing kagome_validating /usr/local/bin/
+COPY kagome /usr/local/bin/

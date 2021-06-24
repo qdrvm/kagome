@@ -194,7 +194,7 @@ namespace kagome::host_api {
                      pubkey = std::move(key)]() mutable {
       auto self = self_weak.lock();
       if (not self) {
-        BOOST_ASSERT(!"This is unreachable");
+        BOOST_UNREACHABLE_RETURN(kLegacyVerifyFail);
       }
 
       auto res = self->sr25519_provider_->verify(signature, msg, pubkey);

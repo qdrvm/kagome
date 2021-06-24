@@ -22,6 +22,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, CryptoStoreError, e) {
       return "wrong seed size";
     case E::KEY_NOT_FOUND:
       return "key not found";
+    case E::BABE_ALREADY_EXIST:
+      return "BABE key already exists";
+    case E::GRAN_ALREADY_EXIST:
+      return "GRAN key already exists";
   }
   return "Unknown CryptoStoreError code";
 }
@@ -164,19 +168,63 @@ namespace kagome::crypto {
     }
     auto kp = findEd25519Keypair(KEY_TYPE_LP2P, keys.value().at(0));
     if (kp) {
-      auto &secret_key = kp.value().secret_key;
-      auto &public_key = kp.value().public_key;
-      libp2p::crypto::PublicKey lp2p_public{
-          {libp2p::crypto::Key::Type::Ed25519,
-           std::vector<uint8_t>{public_key.cbegin(), public_key.cend()}}};
-      libp2p::crypto::PrivateKey lp2p_private{
-          {libp2p::crypto::Key::Type::Ed25519,
-           std::vector<uint8_t>{secret_key.cbegin(), secret_key.cend()}}};
-      return libp2p::crypto::KeyPair{
-          .publicKey = lp2p_public,
-          .privateKey = lp2p_private,
-      };
+      return ed25519KeyToLibp2pKeypair(kp.value());
     }
     return boost::none;
+  }
+
+  outcome::result<libp2p::crypto::KeyPair> CryptoStoreImpl::loadLibp2pKeypair(
+      const CryptoStore::Path &key_path) const {
+    auto lookup_res = file_storage_->loadFileContent(key_path);
+    if (lookup_res.has_error()
+        and lookup_res.error() == KeyFileStorage::Error::FILE_DOESNT_EXIST) {
+      auto kp = ed_suite_->generateRandomKeypair();
+      getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)
+          .insert(kp.public_key, kp.secret_key);
+      OUTCOME_TRY(file_storage_->saveKeyHexAtPath(kp.secret_key, key_path));
+      return ed25519KeyToLibp2pKeypair(kp);
+    }
+    // propagate any other error
+    if (lookup_res.has_error()) {
+      return lookup_res.error();
+    }
+    const auto &contents = lookup_res.value();
+    BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
+                 or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
+    boost::optional<Ed25519Keypair> kp;
+    if (ED25519_SEED_LENGTH == contents.size()) {
+      OUTCOME_TRY(
+          seed,
+          Ed25519Seed::fromSpan(gsl::span(
+              reinterpret_cast<const uint8_t *>(contents.data()),  // NOLINT
+              ED25519_SEED_LENGTH)));
+      kp = ed_suite_->generateKeypair(seed);
+    } else if (2 * ED25519_SEED_LENGTH == contents.size()) {  // hex-encoded
+      OUTCOME_TRY(seed, Ed25519Seed::fromHexWithPrefix(contents));
+      kp = ed_suite_->generateKeypair(seed);
+    }
+
+    if (boost::none == kp) {
+      return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
+    }
+    getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)
+        .insert(kp.value().public_key, kp.value().secret_key);
+    return ed25519KeyToLibp2pKeypair(kp.value());
+  }
+
+  libp2p::crypto::KeyPair CryptoStoreImpl::ed25519KeyToLibp2pKeypair(
+      const Ed25519Keypair &kp) const {
+    const auto &secret_key = kp.secret_key;
+    const auto &public_key = kp.public_key;
+    libp2p::crypto::PublicKey lp2p_public{
+        {libp2p::crypto::Key::Type::Ed25519,
+         std::vector<uint8_t>{public_key.cbegin(), public_key.cend()}}};
+    libp2p::crypto::PrivateKey lp2p_private{
+        {libp2p::crypto::Key::Type::Ed25519,
+         std::vector<uint8_t>{secret_key.cbegin(), secret_key.cend()}}};
+    return libp2p::crypto::KeyPair{
+        .publicKey = lp2p_public,
+        .privateKey = lp2p_private,
+    };
   }
 }  // namespace kagome::crypto

@@ -121,6 +121,21 @@ TEST_F(HasherFixture, blake2_256) {
 
 /**
  * @given some common source value
+ * @when Hasher::blake2_512 method is applied
+ * @then expected result obtained
+ */
+TEST_F(HasherFixture, blake2_512) {
+  Buffer buffer = Buffer{}.put("SS58PRE").put(
+      "2ad43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"_unhex);
+  std::vector<uint8_t> match =
+      "1d21e05182aa937aaad71638832ee54547597e374b1bbe6560c9b2f4f738034fc6160de68c76191cc0b5208566e6bb1a3b663429fa580d0f1be7c8f79baf9b97"_unhex;
+
+  auto hash = hasher->blake2b_512(buffer);
+  ASSERT_EQ(blob2buffer<64>(hash).asVector(), match);
+}
+
+/**
+ * @given some common source value
  * @when Hasher::blake2_128 method is applied
  * @then expected result obtained
  */

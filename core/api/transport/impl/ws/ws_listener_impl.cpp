@@ -19,6 +19,7 @@ namespace kagome::api {
         config_{std::move(listener_config)},
         session_config_{session_config},
         next_session_id_{1ull},
+        active_connections_{0},
         logger_{log::createLogger("RpcWsListener", "rpc_transport")} {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
@@ -72,13 +73,27 @@ namespace kagome::api {
   void WsListenerImpl::acceptOnce() {
     new_session_ = std::make_shared<SessionImpl>(
         *context_, session_config_, next_session_id_.fetch_add(1ull));
-    auto on_accept = [wp = weak_from_this()](boost::system::error_code ec) {
+    auto session_stopped_handler = [wp = weak_from_this()] {
+      if (auto self = wp.lock()) {
+        --self->active_connections_;
+      }
+    };
+
+    auto on_accept = [wp = weak_from_this(),
+                      session_stopped_handler](boost::system::error_code ec) {
       if (auto self = wp.lock()) {
         if (not ec) {
-          if (self->on_new_session_) {
-            (*self->on_new_session_)(self->new_session_);
+          self->new_session_->connectOnWsSessionCloseHandler(
+              session_stopped_handler);
+          if (1 + self->active_connections_.fetch_add(1)
+              > self->config_.ws_max_connections) {
+            self->new_session_->reject();
+          } else {
+            if (self->on_new_session_) {
+              (*self->on_new_session_)(self->new_session_);
+            }
+            self->new_session_->start();
           }
-          self->new_session_->start();
         }
 
         if (self->acceptor_->is_open()) {

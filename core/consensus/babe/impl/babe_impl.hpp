@@ -62,7 +62,7 @@ namespace kagome::consensus::babe {
              std::shared_ptr<blockchain::BlockTree> block_tree,
              std::shared_ptr<BabeGossiper> gossiper,
              std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-             crypto::Sr25519Keypair keypair,
+             std::shared_ptr<crypto::Sr25519Keypair> keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
              std::unique_ptr<clock::Timer> timer,
@@ -173,11 +173,11 @@ namespace kagome::consensus::babe {
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
-    std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
+    std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<BabeGossiper> gossiper_;
-    crypto::Sr25519Keypair keypair_;
+    std::shared_ptr<crypto::Sr25519Keypair> keypair_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;

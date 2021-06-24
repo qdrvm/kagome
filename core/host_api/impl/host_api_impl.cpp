@@ -225,6 +225,10 @@ namespace kagome::host_api {
     io_ext_.ext_logging_log_version_1(level, target, message);
   }
 
+  runtime::WasmEnum HostApiImpl::ext_logging_max_level_version_1() {
+    return io_ext_.ext_logging_max_level_version_1();
+  }
+
   void HostApiImpl::ext_print_num(uint64_t value) {
     io_ext_.ext_print_num(value);
   }

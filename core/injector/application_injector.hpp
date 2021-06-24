@@ -23,6 +23,10 @@ namespace kagome {
     class AppStateManager;
   }  // namespace application
 
+  namespace metrics {
+    class Exposer;
+  }  // namespace metrics
+
   namespace network {
     class Router;
     class PeerManager;
@@ -45,48 +49,28 @@ namespace kagome {
 namespace kagome::injector {
 
   /**
-   * Dependency injector for a syncing node. Provides all major components
-   * required by the kagome syncing node application.
+   * Dependency injector for a universal node. Provides all major components
+   * required by the kagome application.
    */
-  class SyncingNodeInjector final {
+  class KagomeNodeInjector final {
    public:
-    explicit SyncingNodeInjector(const application::AppConfiguration &);
+    explicit KagomeNodeInjector(const application::AppConfiguration &);
 
     std::shared_ptr<application::ChainSpec> injectChainSpec();
     std::shared_ptr<application::AppStateManager> injectAppStateManager();
     std::shared_ptr<boost::asio::io_context> injectIoContext();
-    std::shared_ptr<network::Router> injectRouter();
-    std::shared_ptr<network::PeerManager> injectPeerManager();
-    std::shared_ptr<api::ApiService> injectRpcApiService();
-    std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
-    std::shared_ptr<consensus::babe::Babe> injectBabe();
-    std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
-
-   protected:
-    std::shared_ptr<class SyncingNodeInjectorImpl> pimpl_;
-  };
-
-  /**
-   * Dependency injector for a validating node. Provides all major components
-   * required by the kagome validating node application.
-   */
-  class ValidatingNodeInjector final {
-   public:
-    explicit ValidatingNodeInjector(const application::AppConfiguration &);
-
-    std::shared_ptr<application::ChainSpec> injectChainSpec();
-    std::shared_ptr<application::AppStateManager> injectAppStateManager();
-    std::shared_ptr<boost::asio::io_context> injectIoContext();
+    std::shared_ptr<metrics::Exposer> injectOpenMetricsService();
     std::shared_ptr<network::Router> injectRouter();
     std::shared_ptr<network::PeerManager> injectPeerManager();
     std::shared_ptr<api::ApiService> injectRpcApiService();
     std::shared_ptr<clock::SystemClock> injectSystemClock();
-    std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<consensus::babe::Babe> injectBabe();
+    std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
+    std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
 
    protected:
-    std::shared_ptr<class ValidatingNodeInjectorImpl> pimpl_;
+    std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;
   };
 
 }  // namespace kagome::injector

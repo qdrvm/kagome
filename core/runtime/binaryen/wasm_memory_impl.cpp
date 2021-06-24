@@ -18,7 +18,6 @@ namespace kagome::runtime::binaryen {
     // allocating memory at 0 in future, as returning 0 from allocate method
     // means that wasm memory was exhausted
     BOOST_ASSERT(heap_base_ > 0);
-    BOOST_ASSERT(heap_base_ == roundUpAlign(heap_base_));
 
     size_ = std::max(size_, offset_);
 
@@ -26,9 +25,8 @@ namespace kagome::runtime::binaryen {
   }
 
   void WasmMemoryImpl::setHeapBase(WasmSize heap_base) {
-    BOOST_ASSERT(heap_base_ > 0);
-    BOOST_ASSERT(heap_base_ == roundUpAlign(heap_base_));
-    heap_base_ = heap_base;
+    BOOST_ASSERT(heap_base > 0);
+    heap_base_ = roundUpAlign(heap_base);
   }
 
   void WasmMemoryImpl::reset() {

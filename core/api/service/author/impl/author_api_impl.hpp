@@ -29,8 +29,10 @@ namespace kagome::blockchain {
   struct BlockTree;
 }
 namespace kagome::crypto {
+  class CryptoStore;
   class Hasher;
-}
+  class KeyFileStorage;
+}  // namespace kagome::crypto
 namespace kagome::network {
   struct ExtrinsicGossiper;
 }
@@ -67,7 +69,9 @@ namespace kagome::api {
     AuthorApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
                   std::shared_ptr<transaction_pool::TransactionPool> pool,
                   std::shared_ptr<crypto::Hasher> hasher,
-                  std::shared_ptr<network::ExtrinsicGossiper> gossiper);
+                  std::shared_ptr<network::ExtrinsicGossiper> gossiper,
+                  std::shared_ptr<crypto::CryptoStore> store,
+                  std::shared_ptr<crypto::KeyFileStorage> key_store);
 
     ~AuthorApiImpl() override = default;
 
@@ -76,6 +80,17 @@ namespace kagome::api {
 
     outcome::result<common::Hash256> submitExtrinsic(
         const primitives::Extrinsic &extrinsic) override;
+
+    outcome::result<void> insertKey(
+        crypto::KeyTypeId key_type,
+        const gsl::span<const uint8_t> &seed,
+        const gsl::span<const uint8_t> &public_key) override;
+
+    outcome::result<bool> hasSessionKeys(
+        const gsl::span<const uint8_t> &keys) override;
+
+    outcome::result<bool> hasKey(const gsl::span<const uint8_t> &public_key,
+                                 crypto::KeyTypeId key_type) override;
 
     outcome::result<std::vector<primitives::Extrinsic>> pendingExtrinsics()
         override;
@@ -97,8 +112,10 @@ namespace kagome::api {
     sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;
-    sptr<blockchain::BlockTree> block_tree_;
     sptr<network::ExtrinsicGossiper> gossiper_;
+    sptr<crypto::CryptoStore> store_;
+    sptr<crypto::KeyFileStorage> key_store_;
+    sptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<api::ApiService> api_service_;
     std::atomic<primitives::Transaction::ObservedId> last_id_;
 

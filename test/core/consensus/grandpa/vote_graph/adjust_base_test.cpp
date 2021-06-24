@@ -17,7 +17,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     "E": {
       "number": 5,
       "ancestors": [],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 0
     }
   },
@@ -37,7 +37,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     "E": {
       "number": 5,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "FC"
       ],
       "cumulative_vote": 5
@@ -50,7 +50,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "F",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     }
   },
@@ -70,7 +70,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
     "E": {
       "number": 5,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "FC",
         "ED"
       ],
@@ -84,7 +84,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "F",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "ED": {
@@ -95,7 +95,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "EA",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 7
     }
   },
@@ -123,13 +123,13 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "EA",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 7
     },
     "A": {
       "number": 1,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "E"
       ],
       "cumulative_vote": 12
@@ -142,7 +142,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "B",
         "A"
       ],
-      "descendents": [
+      "descendants": [
         "FC",
         "ED"
       ],
@@ -156,7 +156,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "F",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     }
   },
@@ -182,7 +182,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "EA",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 7
     },
     "A": {
@@ -190,7 +190,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "ancestors": [
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "E"
       ],
       "cumulative_vote": 12
@@ -203,7 +203,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "B",
         "A"
       ],
-      "descendents": [
+      "descendants": [
         "FC",
         "ED"
       ],
@@ -217,13 +217,13 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "F",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "A"
       ],
       "cumulative_vote": 12
@@ -254,7 +254,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "2",
         "A"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 3
     },
     "ED": {
@@ -265,7 +265,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "EA",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 7
     },
     "A": {
@@ -273,7 +273,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
       "ancestors": [
         "genesis"
       ],
-      "descendents": [
+      "descendants": [
         "E",
         "4"
       ],
@@ -287,7 +287,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "B",
         "A"
       ],
-      "descendents": [
+      "descendants": [
         "FC",
         "ED"
       ],
@@ -301,13 +301,13 @@ TEST_F(VoteGraphFixture, AdjustBase) {
         "F",
         "E"
       ],
-      "descendents": [],
+      "descendants": [],
       "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
       "ancestors": [],
-      "descendents": [
+      "descendants": [
         "A"
       ],
       "cumulative_vote": 15

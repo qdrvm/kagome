@@ -16,7 +16,8 @@ namespace kagome::runtime::binaryen {
 
     outcome::result<std::unique_ptr<WasmModule>> createModule(
         const common::Buffer &code,
-        std::shared_ptr<RuntimeExternalInterface> rei) const override;
+        std::shared_ptr<RuntimeExternalInterface> rei,
+        std::shared_ptr<TrieStorageProvider> storage_provider) const override;
   };
 
 }  // namespace kagome::runtime::binaryen

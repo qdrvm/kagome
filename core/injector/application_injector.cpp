@@ -47,18 +47,15 @@
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/authority/impl/authority_manager_impl.hpp"
+#include "consensus/authority/impl/schedule_node.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
-#include "consensus/babe/impl/syncing_babe.hpp"
 #include "consensus/babe/types/slots_strategy.hpp"
-#include "consensus/grandpa/finalization_observer.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
-#include "consensus/grandpa/impl/finalization_composite.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
-#include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -72,11 +69,13 @@
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "metrics/impl/exposer_impl.hpp"
+#include "metrics/impl/prometheus/handler_impl.hpp"
+#include "metrics/metrics.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
-#include "network/impl/remote_sync_protocol_client.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/sync_protocol_observer.hpp"
@@ -99,6 +98,7 @@
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
+#include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -151,10 +151,10 @@ namespace {
   }
 
   sptr<api::WsListenerImpl> get_jrpc_api_ws_listener(
+      application::AppConfiguration const &app_config,
       api::WsSession::Configuration ws_session_config,
       sptr<api::RpcContext> context,
-      sptr<application::AppStateManager> app_state_manager,
-      const boost::asio::ip::tcp::endpoint &endpoint) {
+      sptr<application::AppStateManager> app_state_manager) {
     static auto initialized =
         boost::optional<sptr<api::WsListenerImpl>>(boost::none);
     if (initialized) {
@@ -162,7 +162,8 @@ namespace {
     }
 
     api::WsListenerImpl::Configuration listener_config;
-    listener_config.endpoint = endpoint;
+    listener_config.endpoint = app_config.rpcWsEndpoint();
+    listener_config.ws_max_connections = app_config.maxWsConnections();
 
     auto listener =
         std::make_shared<api::WsListenerImpl>(app_state_manager,
@@ -190,40 +191,52 @@ namespace {
         trie_storage->getRootHash(),
         db,
         hasher,
-        [&db, &grandpa_api](const primitives::Block &genesis_block) {
-          // handle genesis initialization, which happens when there is not
-          // authorities and last completed round in the storage
-          if (not db->get(storage::kAuthoritySetKey)) {
-            // insert authorities
-            const auto &weighted_authorities_res = grandpa_api->authorities(
-                primitives::BlockId(primitives::BlockNumber{0}));
-            BOOST_ASSERT_MSG(weighted_authorities_res,
-                             "grandpa_api_->authorities failed");
-            const auto &weighted_authorities = weighted_authorities_res.value();
+        [&](const primitives::Block &genesis_block) {
+          auto log = log::createLogger("Injector", "injector");
 
-            auto log = log::createLogger("injector", "kagome");
-
-            for (const auto &authority : weighted_authorities) {
-              log->info("Grandpa authority: {}", authority.id.id.toHex());
+          auto res = db->get(authority::AuthorityManagerImpl::SCHEDULER_TREE);
+          if (not res.has_value()
+              && res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
+            auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
+            if (not hash_res.has_value()) {
+              log->critical("Can't decode genesis block hash: {}",
+                            hash_res.error().message());
+              common::raise(hash_res.error());
             }
 
-            consensus::grandpa::VoterSet voters{0};
-            for (const auto &weighted_authority : weighted_authorities) {
-              voters.insert(
-                  primitives::GrandpaSessionKey{weighted_authority.id.id},
-                  weighted_authority.weight);
-              SL_DEBUG(log,
-                       "Added to grandpa authorities: {}, weight: {}",
-                       weighted_authority.id.id.toHex(),
-                       weighted_authority.weight);
+            primitives::BlockHash hash;
+            std::copy(
+                hash_res.value().begin(), hash_res.value().end(), hash.begin());
+
+            // Get initial authorities from genesis
+            auto authorities_res = grandpa_api->authorities(hash);
+            if (not authorities_res.has_value()) {
+              log->critical("Can't get genesis grandpa authorities: {}",
+                            authorities_res.error().message());
+              common::raise(authorities_res.error());
             }
-            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
-            auto authorities_put_res =
-                db->put(storage::kAuthoritySetKey,
-                        common::Buffer(scale::encode(voters).value()));
-            if (not authorities_put_res) {
-              BOOST_ASSERT_MSG(false, "Could not insert authorities");
-              BOOST_UNREACHABLE_RETURN(std::exit(EXIT_FAILURE));
+            auto &authorities = authorities_res.value();
+            authorities.id = 0;
+
+            auto node = authority::ScheduleNode::createAsRoot({0, hash});
+            node->actual_authorities =
+                std::make_shared<primitives::AuthorityList>(
+                    std::move(authorities));
+
+            auto data_res = scale::encode(node);
+            if (!data_res.has_value()) {
+              log->critical("Can't encode authority manager state: {}",
+                            data_res.error().message());
+              common::raise(data_res.error());
+            }
+
+            auto save_res =
+                db->put(authority::AuthorityManagerImpl::SCHEDULER_TREE,
+                        common::Buffer(data_res.value()));
+            if (!save_res.has_value()) {
+              log->critical("Can't store current state: {}",
+                            save_res.error().message());
+              common::raise(save_res.error());
             }
           }
         });
@@ -318,7 +331,7 @@ namespace {
       common::raise(batch.error());
     }
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "injector");
 
     const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
@@ -352,7 +365,7 @@ namespace {
     auto db_res = storage::LevelDB::create(
         app_config.databasePath(chain_spec->id()), options);
     if (!db_res) {
-      auto log = log::createLogger("injector", "kagome");
+      auto log = log::createLogger("Injector", "injector");
       log->critical("Can't create LevelDB in {}: {}",
                     fs::absolute(app_config.databasePath(chain_spec->id()),
                                  fs::current_path())
@@ -378,7 +391,7 @@ namespace {
     auto chain_spec_res =
         application::ChainSpecImpl::loadFrom(chainspec_path.native());
     if (not chain_spec_res.has_value()) {
-      auto log = log::createLogger("injector", "kagome");
+      auto log = log::createLogger("Injector", "injector");
       log->critical(
           "Can't load chain spec from {}: {}",
           fs::absolute(chainspec_path.native(), fs::current_path()).native(),
@@ -407,7 +420,7 @@ namespace {
     auto configuration = std::make_shared<primitives::BabeConfiguration>(
         std::move(configuration_res.value()));
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "injector");
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
     }
@@ -463,10 +476,10 @@ namespace {
       return initialized.value();
     }
 
-    auto log = log::createLogger("injector", "kagome");
+    auto log = log::createLogger("Injector", "injector");
 
     if (app_config.nodeKey()) {
-      log->info("Will use LibP2P keypair from config or args");
+      log->info("Will use LibP2P keypair from config or 'node-key' CLI arg");
 
       auto provided_keypair =
           crypto_provider.generateKeypair(app_config.nodeKey().value());
@@ -486,8 +499,27 @@ namespace {
       return initialized.value();
     }
 
-    if (crypto_store.getLibp2pKeypair()) {
-      log->info("Will use LibP2P keypair from key storage");
+    if (app_config.nodeKeyFile()) {
+      const auto &path = app_config.nodeKeyFile().value();
+      log->info(
+          "Will use LibP2P keypair from config or 'node-key-file' CLI arg");
+      auto key = crypto_store.loadLibp2pKeypair(path);
+      if (key.has_error()) {
+        log->error("Unable to load user provided key from {}. Error: {}",
+                   path,
+                   key.error().message());
+      } else {
+        auto key_pair =
+            std::make_shared<libp2p::crypto::KeyPair>(std::move(key.value()));
+        initialized.emplace(std::move(key_pair));
+        return initialized.value();
+      }
+    }
+
+    if (crypto_store.getLibp2pKeypair().has_value()) {
+      log->info(
+          "Will use LibP2P keypair from config or args (loading from base "
+          "path)");
 
       auto stored_keypair = crypto_store.getLibp2pKeypair().value();
 
@@ -742,7 +774,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -839,11 +871,22 @@ namespace {
               injector.template create<sptr<application::AppStateManager>>();
           const application::AppConfiguration &app_config =
               injector.template create<application::AppConfiguration const &>();
-          auto &endpoint = app_config.rpcWsEndpoint();
-
           return get_jrpc_api_ws_listener(
-              config, context, app_state_manager, endpoint);
+              app_config, config, context, app_state_manager);
         }),
+        // starting metrics interfaces
+        di::bind<metrics::Handler>.template to<metrics::PrometheusHandler>(),
+        di::bind<metrics::Exposer>.template to<metrics::ExposerImpl>(),
+        di::bind<metrics::Exposer::Configuration>.to([](const auto &injector) {
+          return metrics::Exposer::Configuration{
+              injector.template create<application::AppConfiguration const &>()
+                  .openmetricsHttpEndpoint()};
+        }),
+        // hardfix for Mac clang
+        di::bind<metrics::Session::Configuration>.to([](const auto &injector) {
+          return metrics::Session::Configuration{};
+        }),
+        // ending metrics interfaces
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
@@ -1020,98 +1063,27 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<network::OwnPeerInfo> get_syncing_peer_info(const Injector &injector) {
-    static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
-    if (initialized) {
-      return initialized.value();
-    }
-
-    // get key storage
-    auto &&local_pair = injector.template create<libp2p::crypto::KeyPair>();
-    libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
-    auto &key_marshaller =
-        injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
-    const auto &config =
-        injector.template create<const application::AppConfiguration &>();
-
-    libp2p::peer::PeerId peer_id =
-        libp2p::peer::PeerId::fromPublicKey(
-            key_marshaller.marshal(public_key).value())
-            .value();
-
-    std::vector<libp2p::multi::Multiaddress> addresses =
-        config.listenAddresses();
-
-    auto log = log::createLogger("syncing_injector", "kagome");
-
-    SL_DEBUG(log, "Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      SL_DEBUG(log, "Received multiaddr: {}", addr.getStringAddress());
-    }
-
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
-    return initialized.value();
-  }
-
-  template <typename Injector>
-  sptr<consensus::babe::Babe> get_syncing_babe(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<consensus::babe::Babe>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    initialized = std::make_shared<consensus::babe::SyncingBabe>(
-        injector.template create<sptr<consensus::BlockExecutor>>());
-
-    auto protocol_factory =
-        injector.template create<std::shared_ptr<network::ProtocolFactory>>();
-
-    protocol_factory->setBabe(initialized.value());
-
-    return initialized.value();
-  }
-
-  template <typename... Ts>
-  auto makeSyncingNodeInjector(const application::AppConfiguration &app_config,
-                               Ts &&... args) {
-    using namespace boost;  // NOLINT;
-
-    return di::make_injector(
-        // inherit application injector
-        makeApplicationInjector(app_config),
-
-        // peer info
-        di::bind<network::OwnPeerInfo>.to([](const auto &injector) {
-          return get_syncing_peer_info(injector);
-        }),
-
-        di::bind<consensus::babe::Babe>.to([](auto const &injector) {
-          return get_syncing_babe(injector);
-        })[di::override],
-        di::bind<network::BabeObserver>.to([](auto const &injector) {
-          return get_syncing_babe(injector);
-        })[di::override],
-
-        // user-defined overrides...
-        std::forward<decltype(args)>(args)...);
-  }
-
-  template <typename Injector>
   sptr<crypto::Sr25519Keypair> get_sr25519_keypair(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<crypto::Sr25519Keypair>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    const crypto::CryptoStore &crypto_store =
+
+    const auto &config =
+        injector.template create<application::AppConfiguration const &>();
+    if (config.roles().flags.authority == 0) {
+      return {};
+      injector.template create<const application::AppConfiguration &>();
+    }
+
+    const auto &crypto_store =
         injector.template create<const crypto::CryptoStore &>();
     auto &&sr25519_kp = crypto_store.getBabeKeypair();
     if (not sr25519_kp) {
-      auto log = log::createLogger("validating_injector", "kagome");
+      auto log = log::createLogger("Injector", "injector");
       log->error("Failed to get BABE keypair");
-      return nullptr;
+      return {};
     }
 
     initialized = std::make_shared<crypto::Sr25519Keypair>(sr25519_kp.value());
@@ -1125,13 +1097,20 @@ namespace {
     if (initialized) {
       return initialized.value();
     }
+
+    const auto &config =
+        injector.template create<application::AppConfiguration const &>();
+    if (config.roles().flags.authority == 0) {
+      return {};
+    }
+
     auto const &crypto_store =
         injector.template create<const crypto::CryptoStore &>();
     auto &&ed25519_kp = crypto_store.getGrandpaKeypair();
     if (not ed25519_kp) {
-      auto log = log::createLogger("validating_injector", "kagome");
+      auto log = log::createLogger("Injector", "injector");
       log->error("Failed to get GRANDPA keypair");
-      return nullptr;
+      return {};
     }
 
     initialized = std::make_shared<crypto::Ed25519Keypair>(ed25519_kp.value());
@@ -1139,41 +1118,55 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<network::OwnPeerInfo> get_validating_peer_info(
-      const Injector &injector) {
+  sptr<network::OwnPeerInfo> get_own_peer_info(const Injector &injector) {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
       return initialized.value();
     }
 
-    // get key storage
+    libp2p::crypto::PublicKey public_key;
+
+    const auto &config =
+        injector.template create<application::AppConfiguration const &>();
+
+    if (config.roles().flags.authority) {
+      auto &crypto_provider =
+          injector.template create<const crypto::Ed25519Provider &>();
+      auto &crypto_store =
+          injector.template create<const crypto::CryptoStore &>();
+
+      auto &local_pair =
+          get_peer_keypair(config, crypto_provider, crypto_store);
+
+      public_key = local_pair->publicKey;
+    } else {
+      auto &&local_pair = injector.template create<libp2p::crypto::KeyPair>();
+      public_key = local_pair.publicKey;
+    }
+
     auto &key_marshaller =
         injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
-    application::AppConfiguration const &config =
-        injector.template create<application::AppConfiguration const &>();
-    auto &crypto_provider =
-        injector.template create<const crypto::Ed25519Provider &>();
-    auto &crypto_store =
-        injector.template create<const crypto::CryptoStore &>();
-
-    auto &local_pair = get_peer_keypair(config, crypto_provider, crypto_store);
-    libp2p::crypto::PublicKey &public_key = local_pair->publicKey;
 
     libp2p::peer::PeerId peer_id =
         libp2p::peer::PeerId::fromPublicKey(
             key_marshaller.marshal(public_key).value())
             .value();
 
-    std::vector<libp2p::multi::Multiaddress> addresses =
+    std::vector<libp2p::multi::Multiaddress> listen_addrs =
         config.listenAddresses();
+    std::vector<libp2p::multi::Multiaddress> public_addrs =
+        config.publicAddresses();
 
-    auto log = log::createLogger("validating_injector", "kagome");
-    SL_DEBUG(log, "Received peer id: {}", peer_id.toBase58());
-    for (auto &addr : addresses) {
-      SL_DEBUG(log, "Received multiaddr: {}", addr.getStringAddress());
+    auto log = log::createLogger("Injector", "injector");
+    for (auto &addr : listen_addrs) {
+      SL_DEBUG(log, "Peer listening on multiaddr: {}", addr.getStringAddress());
     }
-    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
-                                                         std::move(addresses));
+    for (auto &addr : public_addrs) {
+      SL_DEBUG(log, "Peer public multiaddr: {}", addr.getStringAddress());
+    }
+
+    initialized = std::make_shared<network::OwnPeerInfo>(
+        std::move(peer_id), std::move(public_addrs), std::move(listen_addrs));
     return initialized.value();
   }
 
@@ -1195,7 +1188,7 @@ namespace {
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<network::Gossiper>>(),
         injector.template create<sptr<crypto::Sr25519Provider>>(),
-        injector.template create<crypto::Sr25519Keypair>(),
+        injector.template create<sptr<crypto::Sr25519Keypair>>(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
@@ -1246,7 +1239,7 @@ namespace {
         injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Ed25519Provider>>(),
         injector.template create<sptr<runtime::GrandpaApi>>(),
-        injector.template create<const crypto::Ed25519Keypair &>(),
+        injector.template create<sptr<crypto::Ed25519Keypair>>(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
@@ -1261,8 +1254,8 @@ namespace {
   }
 
   template <typename... Ts>
-  auto makeValidatingNodeInjector(
-      const application::AppConfiguration &app_config, Ts &&... args) {
+  auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -1274,151 +1267,98 @@ namespace {
         di::bind<crypto::Ed25519Keypair>.to(
             [](auto const &injector) { return get_ed25519_keypair(injector); }),
         // compose peer info
-        di::bind<network::OwnPeerInfo>.to([](const auto &injector) {
-          return get_validating_peer_info(injector);
-        }),
+        di::bind<network::OwnPeerInfo>.to(
+            [](const auto &injector) { return get_own_peer_info(injector); }),
         di::bind<consensus::babe::Babe>.to(
             [](auto const &injector) { return get_babe(injector); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(
             [](auto const &injector) { return get_babe(injector); }),
-        di::bind<runtime::GrandpaApi>.template to(
-            [](const auto &injector) -> sptr<runtime::GrandpaApi> {
-              static boost::optional<sptr<runtime::GrandpaApi>> initialized =
-                  boost::none;
-              if (initialized) {
-                return initialized.value();
-              }
-              application::AppConfiguration const &config =
-                  injector
-                      .template create<application::AppConfiguration const &>();
-              if (config.isOnlyFinalizing()) {
-                auto grandpa_api = injector.template create<
-                    sptr<runtime::binaryen::GrandpaApiImpl>>();
-                initialized = grandpa_api;
-              } else {
-                auto grandpa_api = injector.template create<
-                    sptr<runtime::binaryen::GrandpaApiImpl>>();
-                initialized = grandpa_api;
-              }
-              return initialized.value();
-            })[di::override],
+        di::bind<runtime::GrandpaApi>.template to<runtime::binaryen::GrandpaApiImpl>()
+            [di::override],
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }
+
 }  // namespace
 
 namespace kagome::injector {
-  class ValidatingNodeInjectorImpl {
+
+  class KagomeNodeInjectorImpl {
    public:
-    using Injector = decltype(makeValidatingNodeInjector(
+    using Injector = decltype(makeKagomeNodeInjector(
         std::declval<application::AppConfiguration const &>()));
 
-    ValidatingNodeInjectorImpl(Injector injector)
+    KagomeNodeInjectorImpl(Injector injector)
         : injector_{std::move(injector)} {}
     Injector injector_;
   };
 
-  class SyncingNodeInjectorImpl {
-   public:
-    using Injector = decltype(makeSyncingNodeInjector(
-        std::declval<application::AppConfiguration const &>()));
-    SyncingNodeInjectorImpl(Injector injector)
-        : injector_{std::move(injector)} {}
-    Injector injector_;
-  };
-
-  SyncingNodeInjector::SyncingNodeInjector(
+  KagomeNodeInjector::KagomeNodeInjector(
       const application::AppConfiguration &app_config)
-      : pimpl_{std::make_unique<SyncingNodeInjectorImpl>(
-          makeSyncingNodeInjector(app_config))} {}
+      : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
+          makeKagomeNodeInjector(app_config))} {}
 
-  sptr<application::ChainSpec> SyncingNodeInjector::injectChainSpec() {
+  sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
   }
 
   sptr<application::AppStateManager>
-  SyncingNodeInjector::injectAppStateManager() {
+  KagomeNodeInjector::injectAppStateManager() {
     return pimpl_->injector_.create<sptr<application::AppStateManager>>();
   }
 
-  sptr<boost::asio::io_context> SyncingNodeInjector::injectIoContext() {
+  sptr<boost::asio::io_context> KagomeNodeInjector::injectIoContext() {
     return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
   }
 
-  sptr<network::Router> SyncingNodeInjector::injectRouter() {
+  sptr<metrics::Exposer> KagomeNodeInjector::injectOpenMetricsService() {
+    // registry here is temporary, it initiates static global registry
+    // and registers handler in there
+    auto registry = metrics::createRegistry();
+    auto handler = pimpl_->injector_.create<sptr<metrics::Handler>>();
+    registry->setHandler(*handler.get());
+    auto exposer = pimpl_->injector_.create<sptr<metrics::Exposer>>();
+    exposer->setHandler(handler);
+    return exposer;
+  }
+
+  sptr<network::Router> KagomeNodeInjector::injectRouter() {
     return pimpl_->injector_.create<sptr<network::Router>>();
   }
 
-  sptr<network::PeerManager> SyncingNodeInjector::injectPeerManager() {
+  sptr<network::PeerManager> KagomeNodeInjector::injectPeerManager() {
     return pimpl_->injector_.create<sptr<network::PeerManager>>();
   }
 
-  sptr<api::ApiService> SyncingNodeInjector::injectRpcApiService() {
+  sptr<api::ApiService> KagomeNodeInjector::injectRpcApiService() {
     return pimpl_->injector_.create<sptr<api::ApiService>>();
   }
 
-  std::shared_ptr<network::SyncProtocolObserver>
-  SyncingNodeInjector::injectSyncObserver() {
-    return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
-  }
-
-  std::shared_ptr<consensus::babe::Babe> SyncingNodeInjector::injectBabe() {
-    return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
-  }
-
-  std::shared_ptr<consensus::grandpa::Grandpa>
-  SyncingNodeInjector::injectGrandpa() {
-    return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
-  }
-
-  ValidatingNodeInjector::ValidatingNodeInjector(
-      const application::AppConfiguration &app_config)
-      : pimpl_{std::make_unique<ValidatingNodeInjectorImpl>(
-          makeValidatingNodeInjector(app_config))} {}
-
-  sptr<application::ChainSpec> ValidatingNodeInjector::injectChainSpec() {
-    return pimpl_->injector_.create<sptr<application::ChainSpec>>();
-  }
-
-  sptr<application::AppStateManager>
-  ValidatingNodeInjector::injectAppStateManager() {
-    return pimpl_->injector_.create<sptr<application::AppStateManager>>();
-  }
-
-  sptr<boost::asio::io_context> ValidatingNodeInjector::injectIoContext() {
-    return pimpl_->injector_.create<sptr<boost::asio::io_context>>();
-  }
-
-  sptr<network::Router> ValidatingNodeInjector::injectRouter() {
-    return pimpl_->injector_.create<sptr<network::Router>>();
-  }
-
-  sptr<network::PeerManager> ValidatingNodeInjector::injectPeerManager() {
-    return pimpl_->injector_.create<sptr<network::PeerManager>>();
-  }
-
-  sptr<api::ApiService> ValidatingNodeInjector::injectRpcApiService() {
-    return pimpl_->injector_.create<sptr<api::ApiService>>();
-  }
-  std::shared_ptr<clock::SystemClock>
-  ValidatingNodeInjector::injectSystemClock() {
+  std::shared_ptr<clock::SystemClock> KagomeNodeInjector::injectSystemClock() {
     return pimpl_->injector_.create<sptr<clock::SystemClock>>();
   }
 
   std::shared_ptr<network::SyncProtocolObserver>
-  ValidatingNodeInjector::injectSyncObserver() {
+  KagomeNodeInjector::injectSyncObserver() {
     return pimpl_->injector_.create<sptr<network::SyncProtocolObserver>>();
   }
 
-  std::shared_ptr<consensus::babe::Babe> ValidatingNodeInjector::injectBabe() {
+  std::shared_ptr<consensus::babe::Babe> KagomeNodeInjector::injectBabe() {
     return pimpl_->injector_.create<sptr<consensus::babe::Babe>>();
   }
 
   std::shared_ptr<consensus::grandpa::Grandpa>
-  ValidatingNodeInjector::injectGrandpa() {
+  KagomeNodeInjector::injectGrandpa() {
     return pimpl_->injector_.create<sptr<consensus::grandpa::Grandpa>>();
+  }
+
+  std::shared_ptr<soralog::LoggingSystem>
+  KagomeNodeInjector::injectLoggingSystem() {
+    return std::make_shared<soralog::LoggingSystem>(
+        std::make_shared<kagome::log::Configurator>(
+            pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));
   }
 
 }  // namespace kagome::injector

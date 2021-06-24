@@ -19,11 +19,14 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: info
+    level: debug
+    is_fallback: true
     children:
       - name: libp2p
+        level: off
       - name: kagome
         children:
+          - name: injector
           - name: application
           - name: rpc
             children:
@@ -56,13 +59,18 @@ groups:
                 level: info
               - name: extentions
               - name: binatien
+          - name: metrics
           - name: network
           - name: changes_trie
           - name: storage
           - name: pubsub
-          - name: transactions
+      - name: others
+        level: info
+        children:
           - name: testing
+            level: info
           - name: debug
+            level: info
 # ----------------
   )");
   }

@@ -16,7 +16,7 @@ namespace kagome::consensus::grandpa {
    public:
     ~VoteCryptoProviderImpl() override = default;
 
-    VoteCryptoProviderImpl(crypto::Ed25519Keypair keypair,
+    VoteCryptoProviderImpl(boost::optional<crypto::Ed25519Keypair> keypair,
                            std::shared_ptr<crypto::Ed25519Provider> ed_provider,
                            RoundNumber round_number,
                            std::shared_ptr<VoterSet> voter_set);
@@ -26,18 +26,18 @@ namespace kagome::consensus::grandpa {
     bool verifyPrevote(const SignedMessage &prevote) const override;
     bool verifyPrecommit(const SignedMessage &precommit) const override;
 
-    SignedMessage signPrimaryPropose(
+    boost::optional<SignedMessage> signPrimaryPropose(
         const PrimaryPropose &primary_propose) const override;
-    SignedMessage signPrevote(const Prevote &prevote) const override;
-    SignedMessage signPrecommit(const Precommit &precommit) const override;
+    boost::optional<SignedMessage> signPrevote(
+        const Prevote &prevote) const override;
+    boost::optional<SignedMessage> signPrecommit(
+        const Precommit &precommit) const override;
 
    private:
-    SignedMessage sign(Vote vote) const;
+    boost::optional<SignedMessage> sign(Vote vote) const;
     bool verify(const SignedMessage &vote, RoundNumber number) const;
 
-    crypto::Ed25519Signature voteSignature(const Vote &vote) const;
-
-    crypto::Ed25519Keypair keypair_;
+    boost::optional<crypto::Ed25519Keypair> keypair_;
     std::shared_ptr<crypto::Ed25519Provider> ed_provider_;
     RoundNumber round_number_;
     std::shared_ptr<VoterSet> voter_set_;

@@ -1,6 +1,7 @@
 import requests
 import sys
-from substrateinterface import SubstrateInterface, SubstrateRequestException, Keypair
+from substrateinterface import SubstrateInterface, Keypair
+from substrateinterface.exceptions import SubstrateRequestException
 
 
 def main():

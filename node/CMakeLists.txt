@@ -3,7 +3,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-add_subdirectory(kagome_validating)
-add_subdirectory(kagome_full_syncing)
+add_executable(kagome
+    main.cpp
+    )
+target_link_libraries(kagome
+    Boost::boost
+    Boost::program_options
+    kagome_application
+    app_config_impl
+    p2p::p2p_identify
+    p2p::p2p_ping
+    )
+kagome_install(kagome)

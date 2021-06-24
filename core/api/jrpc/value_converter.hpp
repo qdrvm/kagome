@@ -19,6 +19,7 @@
 #include "primitives/digest.hpp"
 #include "primitives/event_types.hpp"
 #include "primitives/extrinsic.hpp"
+#include "primitives/rpc_methods.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
 #include "primitives/version.hpp"
 #include "scale/scale.hpp"
@@ -63,6 +64,7 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const primitives::BlockHeader &);
   inline jsonrpc::Value makeValue(const primitives::Version &);
   inline jsonrpc::Value makeValue(const primitives::Justification &);
+  inline jsonrpc::Value makeValue(const primitives::RpcMethods &);
 
   inline jsonrpc::Value makeValue(const uint32_t &val) {
     return static_cast<int64_t>(val);
@@ -203,6 +205,13 @@ namespace kagome::api {
 
   inline jsonrpc::Value makeValue(const primitives::Justification &val) {
     return makeValue(val.data);
+  }
+
+  inline jsonrpc::Value makeValue(const primitives::RpcMethods &v) {
+    jStruct res;
+    res["version"] = makeValue(v.version);
+    res["methods"] = makeValue(v.methods);
+    return res;
   }
 
   inline jsonrpc::Value makeValue(const primitives::BlockData &val) {

@@ -146,6 +146,12 @@ namespace kagome::runtime::binaryen {
       auto &&[module_instance, memory, opt_batch] =
           createRuntimeEnvironment(config, state_root);
 
+      gsl::final_action dispose(
+          [memory = memory, module_instance = module_instance] {
+            memory->reset();
+            module_instance->reset();
+          });
+
       runtime::WasmPointer ptr = 0u;
       runtime::WasmSize len = 0u;
 
@@ -156,14 +162,11 @@ namespace kagome::runtime::binaryen {
         memory->storeBuffer(ptr, common::Buffer(std::move(buffer)));
       }
 
-      gsl::final_action memory_cleaner([memory = memory] { memory->reset(); });
-
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
 
       wasm::Name wasm_name = std::string(name);
 
       OUTCOME_TRY(res, executor_.call(*module_instance, wasm_name, ll));
-      module_instance->reset();
 
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r(res.geti64());

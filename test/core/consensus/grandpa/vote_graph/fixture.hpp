@@ -72,16 +72,16 @@ inline VoteGraph::Entry jsonToEntry(Object &&document) {
   assert(document.IsObject());
   assert(document.HasMember("number"));
   assert(document.HasMember("ancestors"));
-  assert(document.HasMember("descendents"));
+  assert(document.HasMember("descendants"));
   assert(document.HasMember("cumulative_vote"));
   assert(document["number"].IsUint64());
   assert(document["ancestors"].IsArray());
-  assert(document["descendents"].IsArray());
+  assert(document["descendants"].IsArray());
   assert(document["cumulative_vote"].IsUint64());
 
   e.number = document["number"].GetUint64();
   e.ancestors = jsonToHashArray(document["ancestors"]);
-  e.descendents = jsonToHashArray(document["descendents"]);
+  e.descendants = jsonToHashArray(document["descendants"]);
   e.cumulative_vote = makeVoteWeight(document["cumulative_vote"].GetUint64());
 
   return e;
@@ -159,8 +159,8 @@ namespace std {
       *os << a << ", ";
     }
     *os << "], ";
-    *os << "descendents=[";
-    for (auto &a : e.descendents) {
+    *os << "descendants=[";
+    for (auto &a : e.descendants) {
       *os << a << ", ";
     }
     *os << "], ";

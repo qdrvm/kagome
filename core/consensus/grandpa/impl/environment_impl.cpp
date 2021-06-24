@@ -98,8 +98,8 @@ namespace kagome::consensus::grandpa {
     network::CatchUpResponse message{
         .voter_set_id = set_id,
         .round_number = round_number,
-        .prevote_justification = std::move(prevote_justification),
-        .precommit_justification = std::move(precommit_justification),
+        .prevote_justification = std::move(prevote_justification.items),
+        .precommit_justification = std::move(precommit_justification.items),
         .best_final_candidate = best_final_candidate};
     gossiper_->catchUpResponse(peer_id, message);
     SL_DEBUG(logger_, "Catch-Up-Response sent upto round {}", round_number);
@@ -111,7 +111,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &propose) {
     BOOST_ASSERT(propose.is<PrimaryPropose>());
-    network::GrandpaVoteMessage message{
+    network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = propose}};
     gossiper_->vote(message);
     SL_DEBUG(logger_,
@@ -127,7 +127,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &prevote) {
     BOOST_ASSERT(prevote.is<Prevote>());
-    network::GrandpaVoteMessage message{
+    network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = prevote}};
     gossiper_->vote(message);
     SL_DEBUG(logger_,
@@ -143,7 +143,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &precommit) {
     BOOST_ASSERT(precommit.is<Precommit>());
-    network::GrandpaVoteMessage message{
+    network::GrandpaVote message{
         {.round_number = round, .counter = set_id, .vote = precommit}};
     gossiper_->vote(message);
     SL_DEBUG(logger_,
@@ -163,7 +163,7 @@ namespace kagome::consensus::grandpa {
              round,
              vote.number,
              vote.hash.toHex());
-    network::GrandpaPreCommit message{
+    network::GrandpaCommit message{
         {.round_number = round, .vote = vote, .justification = justification}};
     gossiper_->finalize(message);
     return outcome::success();
@@ -192,6 +192,13 @@ namespace kagome::consensus::grandpa {
     OUTCOME_TRY(
         justification,
         scale::decode<grandpa::GrandpaJustification>(raw_justification.data));
+
+    SL_DEBUG(
+        logger_,
+        "Trying to apply justification on round #{} for block #{} with hash {}",
+        justification.round_number,
+        justification.block_info.number,
+        justification.block_info.hash.toHex());
 
     OUTCOME_TRY(
         justification_observer->applyJustification(block_info, justification));

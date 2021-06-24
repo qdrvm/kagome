@@ -31,14 +31,14 @@ namespace kagome::consensus::grandpa {
      * peer already voted for another block more than once or voted for the same
      * block
      */
-    virtual PushResult push(const VotingMessage &vote, size_t weight) = 0;
+    virtual PushResult push(const SignedMessage &vote, size_t weight) = 0;
 
     /**
      * Unpush a vote from a tracker (i.e. at wrong vote)
      * @param vote the voting message was pushed before
      * @param weight weight of this vote
      */
-    virtual void unpush(const VotingMessage &vote, size_t weight) = 0;
+    virtual void unpush(const SignedMessage &vote, size_t weight) = 0;
 
     /**
      * @returns all accepted (non-duplicate) messages
@@ -49,6 +49,11 @@ namespace kagome::consensus::grandpa {
      * @returns total weight of all accepted (non-duplicate) messages
      */
     virtual size_t getTotalWeight() const = 0;
+
+    /**
+     * @returns weight of all accepted (non-duplicate) messages of equivocators
+     */
+    virtual size_t getEquivocatorsWeight() const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

@@ -37,7 +37,7 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<storage::BufferStorage> storage,
                 std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
                 std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-                const crypto::Ed25519Keypair &keypair,
+                std::shared_ptr<crypto::Ed25519Keypair> keypair,
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
@@ -78,11 +78,10 @@ namespace kagome::consensus::grandpa {
 
    private:
     std::shared_ptr<VotingRound> selectRound(RoundNumber round_number);
-    outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
     outcome::result<MovableRoundState> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> makeInitialRound(
-        const MovableRoundState &round_state);
+        const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters);
 
     std::shared_ptr<VotingRound> makeNextRound(
         const std::shared_ptr<VotingRound> &previous_round);
@@ -102,7 +101,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
-    crypto::Ed25519Keypair keypair_;
+    std::shared_ptr<crypto::Ed25519Keypair> keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;

@@ -13,8 +13,10 @@
 
 #include "common/visitor.hpp"
 #include "consensus/grandpa/grandpa.hpp"
+#include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "primitives/justification.hpp"
+#include "primitives/session_key.hpp"
 
 namespace kagome::consensus::grandpa {
   static auto convertToPrimaryPropose = [](const auto &vote) {
@@ -36,6 +38,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
+      std::shared_ptr<authority::AuthorityManager> authority_manager,
       std::shared_ptr<Environment> env,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
@@ -43,11 +46,12 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteGraph> graph,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context)
-      : voter_set_{config.voters},
+      : voter_set_{std::move(config.voters)},
         round_number_{config.round_number},
         duration_{config.duration},
-        id_{config.peer_id},
+        id_{config.id},
         grandpa_(grandpa),
+        authority_manager_{std::move(authority_manager)},
         env_{std::move(env)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
         graph_{std::move(graph)},
@@ -55,19 +59,16 @@ namespace kagome::consensus::grandpa {
         io_context_{std::move(io_context)},
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)},
-        prevote_equivocators_(voter_set_->size(), false),
-        precommit_equivocators_(voter_set_->size(), false),
         timer_{*io_context_},
         pending_timer_{*io_context_} {
     BOOST_ASSERT(not grandpa_.expired());
-    BOOST_ASSERT(voter_set_ != nullptr);
+    BOOST_ASSERT(authority_manager_ != nullptr);
     BOOST_ASSERT(vote_crypto_provider_ != nullptr);
     BOOST_ASSERT(prevotes_ != nullptr);
     BOOST_ASSERT(precommits_ != nullptr);
     BOOST_ASSERT(env_ != nullptr);
     BOOST_ASSERT(graph_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
-    BOOST_ASSERT(not voter_set_->empty());
 
     // calculate supermajority
     threshold_ = [this] {
@@ -78,12 +79,19 @@ namespace kagome::consensus::grandpa {
     auto index = round_number_ % voter_set_->size();
     isPrimary_ = voter_set_->voters().at(index) == id_;
 
-    SL_DEBUG(logger_, "Round #{}: is created", round_number_);
+    prevote_equivocators_.resize(voter_set_->size(), false);
+    precommit_equivocators_.resize(voter_set_->size(), false);
+
+    SL_DEBUG(logger_,
+             "Round #{}: Created with voter set #{}",
+             round_number_,
+             voter_set_->id());
   }
 
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
+      const std::shared_ptr<authority::AuthorityManager> authority_manager,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -94,6 +102,7 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VotingRound> &previous_round)
       : VotingRoundImpl(grandpa,
                         config,
+                        authority_manager,
                         env,
                         vote_crypto_provider,
                         prevotes,
@@ -111,6 +120,7 @@ namespace kagome::consensus::grandpa {
   VotingRoundImpl::VotingRoundImpl(
       const std::shared_ptr<Grandpa> &grandpa,
       const GrandpaConfig &config,
+      const std::shared_ptr<authority::AuthorityManager> authority_manager,
       const std::shared_ptr<Environment> &env,
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
@@ -121,6 +131,7 @@ namespace kagome::consensus::grandpa {
       const MovableRoundState &round_state)
       : VotingRoundImpl(grandpa,
                         config,
+                        authority_manager,
                         env,
                         vote_crypto_provider,
                         prevotes,
@@ -128,34 +139,33 @@ namespace kagome::consensus::grandpa {
                         graph,
                         clock,
                         io_context) {
-    need_to_notice_at_finalizing_ = false;
     last_finalized_block_ = round_state.last_finalized_block;
 
-    // Zero-round is always self-finalized
-    if (round_number_ == 0) {
+    need_to_notice_at_finalizing_ = false;
+
+    if (round_number_ != 0) {
+      // Apply stored votes
+      auto apply = [&](const auto &vote) {
+        visit_in_place(
+            vote.message,
+            [&](const Prevote &) { VotingRoundImpl::onPrevote(vote); },
+            [&](const Precommit &) { VotingRoundImpl::onPrecommit(vote); },
+            [](auto...) {});
+      };
+
+      for (auto &vote_variant : round_state.votes) {
+        visit_in_place(
+            vote_variant,
+            [&](const SignedMessage &vote) { apply(vote); },
+            [&](const EquivocatorySignedMessage &pair) {
+              apply(pair.first);
+              apply(pair.second);
+            });
+      }
+    } else {
+      // Zero-round is always self-finalized
       completable_ = true;
       finalized_ = round_state.finalized;
-      return;
-    }
-
-    // Apply stored votes
-
-    auto apply = [&](const auto &vote) {
-      visit_in_place(
-          vote.message,
-          [&](const Prevote &) { VotingRoundImpl::onPrevote(vote); },
-          [&](const Precommit &) { VotingRoundImpl::onPrecommit(vote); },
-          [](auto...) {});
-    };
-
-    for (auto &vote_variant : round_state.votes) {
-      visit_in_place(
-          vote_variant,
-          [&](const VotingMessage &vote) { apply(vote); },
-          [&](const EquivocatoryVotingMessage &pair) {
-            apply(pair.first);
-            apply(pair.second);
-          });
     }
   }
 
@@ -409,10 +419,12 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::end() {
-    SL_DEBUG(logger_, "Round #{}: End round", round_number_);
-    stage_ = Stage::COMPLETED;
-    on_complete_handler_ = nullptr;
-    timer_.cancel();
+    if (stage_ != Stage::COMPLETED) {
+      SL_DEBUG(logger_, "Round #{}: End round", round_number_);
+      stage_ = Stage::COMPLETED;
+      on_complete_handler_ = nullptr;
+      timer_.cancel();
+    }
   }
 
   void VotingRoundImpl::doProposal() {
@@ -437,14 +449,21 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::sendProposal(const PrimaryPropose &primary_proposal) {
-    auto signed_primary_proposal =
-        vote_crypto_provider_->signPrimaryPropose(primary_proposal);
-
     SL_DEBUG(logger_,
              "Round #{}: Sending primary proposal of block #{} hash={}",
              round_number_,
-             signed_primary_proposal.getBlockNumber(),
-             signed_primary_proposal.getBlockHash());
+             primary_proposal.number,
+             primary_proposal.hash);
+
+    auto signed_primary_proposal_opt =
+        vote_crypto_provider_->signPrimaryPropose(primary_proposal);
+
+    if (not signed_primary_proposal_opt.has_value()) {
+      logger_->error(
+          "Round #{}: Primary proposal was not sent: Can't sign message",
+          round_number_);
+    }
+    auto &signed_primary_proposal = signed_primary_proposal_opt.value();
 
     auto proposed = env_->onProposed(
         round_number_, voter_set_->id(), signed_primary_proposal);
@@ -483,7 +502,13 @@ namespace kagome::consensus::grandpa {
              prevote.number,
              prevote.hash);
 
-    auto signed_prevote = vote_crypto_provider_->signPrevote(prevote);
+    auto signed_prevote_opt = vote_crypto_provider_->signPrevote(prevote);
+    if (not signed_prevote_opt.has_value()) {
+      logger_->error("Round #{}: Prevote was not sent: Can't sign message",
+                     round_number_);
+    }
+    auto &signed_prevote = signed_prevote_opt.value();
+
     auto prevoted =
         env_->onPrevoted(round_number_, voter_set_->id(), signed_prevote);
 
@@ -527,13 +552,18 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::sendPrecommit(const Precommit &precommit) {
-    auto signed_precommit = vote_crypto_provider_->signPrecommit(precommit);
-
     SL_DEBUG(logger_,
              "Round #{}: Sending precommit for block #{} hash={}",
              round_number_,
              precommit.number,
              precommit.hash);
+
+    auto signed_precommit_opt = vote_crypto_provider_->signPrecommit(precommit);
+    if (not signed_precommit_opt.has_value()) {
+      logger_->error("Round #{}: Precommit was not sent: Can't sign message",
+                     round_number_);
+    }
+    auto &signed_precommit = signed_precommit_opt.value();
 
     auto precommited =
         env_->onPrecommitted(round_number_, voter_set_->id(), signed_precommit);
@@ -595,10 +625,6 @@ namespace kagome::consensus::grandpa {
     return voter_set_->voters().at(index) == id;
   }
 
-  bool VotingRoundImpl::isPrimary() const {
-    return isPrimary(id_);
-  }
-
   outcome::result<void> VotingRoundImpl::applyJustification(
       const BlockInfo &block_info, const GrandpaJustification &justification) {
     // validate message
@@ -606,11 +632,6 @@ namespace kagome::consensus::grandpa {
     if (not result.has_value()) {
       env_->onCompleted(result.as_failure());
       return result.as_failure();
-    }
-
-    auto finalized = env_->finalize(block_info.hash, justification);
-    if (not finalized) {
-      return finalized.as_failure();
     }
 
     SL_DEBUG(
@@ -631,6 +652,13 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(finalizable());
     BOOST_ASSERT(
         env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
+
+    auto finalized = env_->finalize(block_info.hash, justification);
+    if (not finalized) {
+      return finalized.as_failure();
+    }
+
+    std::ignore = authority_manager_->prune(last_finalized_block_);
 
     need_to_notice_at_finalizing_ = false;
     env_->onCompleted(state());
@@ -692,6 +720,7 @@ namespace kagome::consensus::grandpa {
       const BlockInfo &vote, const GrandpaJustification &justification) const {
     size_t total_weight = 0;
 
+    auto threshold = threshold_;
     std::unordered_map<Id, BlockHash> validators;
     std::unordered_set<Id> equivocators;
 
@@ -727,7 +756,9 @@ namespace kagome::consensus::grandpa {
       } else if (equivocators.emplace(signed_precommit.id).second) {
         // Detected equivocation
         if (env_->hasAncestry(vote.hash, it->second)) {
-          total_weight -= voter_set_->voterWeight(signed_precommit.id).value();
+          auto weight = voter_set_->voterWeight(signed_precommit.id).value();
+          total_weight -= weight;
+          threshold -= weight;
         }
 
       } else {
@@ -740,9 +771,9 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    if (total_weight < threshold_) {
+    if (total_weight < threshold) {
       return VotingRoundError::NOT_ENOUGH_WEIGHT;
-    };
+    }
 
     return outcome::success();
   }
@@ -911,7 +942,7 @@ namespace kagome::consensus::grandpa {
     if (not index) {
       BOOST_ASSERT_MSG(
           false,
-          "Can't be none after voterWeight() was succeed");  // NOLINTNEXTLINE
+          "Can't be none after voterWeight() was succeed");
       return VotingRoundError::UNKNOWN_VOTER;
     }
 
@@ -954,7 +985,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(vote.is<Precommit>());
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight.has_value()) {
-      logger_->warn("Voter {} is not known: {}", vote.id.toHex());
+      logger_->warn("Voter {} is not known", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
     auto index = voter_set_->voterIndex(vote.id);
@@ -1081,8 +1112,10 @@ namespace kagome::consensus::grandpa {
                round_number_);
     } else {
       SL_TRACE(logger_,
-               "Round #{}: updatePrecommitGhost <- finalizable",
-               round_number_);
+               "Round #{}: updatePrecommitGhost <- finalizable (#{}, was #{})",
+               round_number_,
+               new_precommit_ghost.value().number,
+               currend_best.number);
 
       finalized_ = new_precommit_ghost.value();
     }
@@ -1091,13 +1124,12 @@ namespace kagome::consensus::grandpa {
     precommit_ghost_ = new_precommit_ghost.value();
 
     if (changed) {
-      SL_TRACE(
-          logger_,
-          "Round #{}: updatePrecommitGhost->true (precommit ghost was changed "
-          "to block #{} hash={})",
-          round_number_,
-          precommit_ghost_->number,
-          precommit_ghost_->hash.toHex());
+      SL_TRACE(logger_,
+               "Round #{}: updatePrecommitGhost->true "
+               "(precommit ghost was changed to block #{} hash={})",
+               round_number_,
+               precommit_ghost_->number,
+               precommit_ghost_->hash.toHex());
       return true;
     }
 
@@ -1504,7 +1536,7 @@ namespace kagome::consensus::grandpa {
                       static_cast<const SignedPrecommit &>(voting_message));
                 }
               },
-              [&justification](const EquivocatoryVotingMessage
+              [&justification](const EquivocatorySignedMessage
                                    &equivocatory_voting_message) {
                 justification.items.push_back(
                     static_cast<const SignedPrecommit &>(

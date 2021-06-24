@@ -27,6 +27,8 @@ namespace kagome::crypto {
     UNSUPPORTED_CRYPTO_TYPE,
     WRONG_SEED_SIZE,
     KEY_NOT_FOUND,
+    BABE_ALREADY_EXIST,
+    GRAN_ALREADY_EXIST
   };
 
   /// TODO(Harrm) Add policies to emit a warning when found a keypair
@@ -76,6 +78,9 @@ namespace kagome::crypto {
     boost::optional<Sr25519Keypair> getBabeKeypair() const override;
 
     boost::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const override;
+
+    outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(
+        const Path &key_path) const override;
 
    private:
     template <typename CryptoSuite>
@@ -155,6 +160,9 @@ namespace kagome::crypto {
       }
       return it->second;
     }
+
+    libp2p::crypto::KeyPair ed25519KeyToLibp2pKeypair(
+        const Ed25519Keypair &kp) const;
 
     mutable std::unordered_map<KeyTypeId, KeyCache<Ed25519Suite>> ed_caches_;
     mutable std::unordered_map<KeyTypeId, KeyCache<Sr25519Suite>> sr_caches_;

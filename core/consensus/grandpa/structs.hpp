@@ -88,9 +88,8 @@ namespace kagome::consensus::grandpa {
     Message second;
   };
 
-  using VotingMessage = SignedMessage;
-  using EquivocatoryVotingMessage = std::pair<VotingMessage, VotingMessage>;
-  using VoteVariant = boost::variant<VotingMessage, EquivocatoryVotingMessage>;
+  using EquivocatorySignedMessage = std::pair<SignedMessage, SignedMessage>;
+  using VoteVariant = boost::variant<SignedMessage, EquivocatorySignedMessage>;
 
   namespace detail {
     /// Proof of an equivocation (double-vote) in a given round.
@@ -129,7 +128,7 @@ namespace kagome::consensus::grandpa {
   struct GrandpaJustification {
     RoundNumber round_number;
     BlockInfo block_info;
-    std::vector<SignedPrecommit> items;
+    std::vector<SignedMessage> items;
   };
 
   template <class Stream,

@@ -11,9 +11,13 @@
 
 namespace kagome::network {
 
-  GrandpaProtocol::GrandpaProtocol(libp2p::Host &host,
-                                   std::shared_ptr<StreamEngine> stream_engine)
-      : host_(host), stream_engine_(std::move(stream_engine)) {
+  GrandpaProtocol::GrandpaProtocol(
+      libp2p::Host &host,
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<StreamEngine> stream_engine)
+      : host_(host),
+        app_config_(app_config),
+        stream_engine_(std::move(stream_engine)) {
     const_cast<Protocol &>(protocol_) = kGrandpaProtocol;
   }
 
@@ -72,7 +76,7 @@ namespace kagome::network {
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     host_.newStream(
-        peer_info,
+        peer_info.id,
         protocol_,
         [wp = weak_from_this(), peer_id = peer_info.id, cb = std::move(cb)](
             auto &&stream_res) mutable {
@@ -101,7 +105,7 @@ namespace kagome::network {
 
     read_writer->read<Roles>(
         [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-            auto &&remote_status_res) mutable {
+            auto &&remote_roles_res) mutable {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
@@ -109,11 +113,11 @@ namespace kagome::network {
             return;
           }
 
-          if (not remote_status_res.has_value()) {
+          if (not remote_roles_res.has_value()) {
             self->log_->error("Error while reading roles: {}",
-                              remote_status_res.error().message());
+                              remote_roles_res.error().message());
             stream->reset();
-            cb(remote_status_res.as_failure());
+            cb(remote_roles_res.as_failure());
             return;
           }
 
@@ -144,7 +148,7 @@ namespace kagome::network {
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    Roles roles;
+    Roles roles = app_config_.roles();
 
     read_writer->write(
         roles,

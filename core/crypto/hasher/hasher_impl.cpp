@@ -16,6 +16,7 @@
 namespace kagome::crypto {
   using common::Hash128;
   using common::Hash256;
+  using common::Hash512;
   using common::Hash64;
 
   Hash64 HasherImpl::twox_64(gsl::span<const uint8_t> buffer) const {
@@ -39,6 +40,12 @@ namespace kagome::crypto {
   Hash256 HasherImpl::blake2b_256(gsl::span<const uint8_t> buffer) const {
     Hash256 out;
     blake2b(out.data(), 32, nullptr, 0, buffer.data(), buffer.size());
+    return out;
+  }
+
+  Hash512 HasherImpl::blake2b_512(gsl::span<const uint8_t> buffer) const {
+    Hash512 out;
+    blake2b(out.data(), 64, nullptr, 0, buffer.data(), buffer.size());
     return out;
   }
 

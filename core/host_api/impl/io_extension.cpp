@@ -62,6 +62,29 @@ namespace kagome::host_api {
     }
   }
 
+  runtime::WasmEnum IOExtension::ext_logging_max_level_version_1() {
+    using runtime::WasmLogLevel;
+    using soralog::Level;
+
+    switch (logger_->level()) {
+      case Level::OFF:
+      case Level::CRITICAL:
+      case Level::ERROR:
+        return WasmLogLevel::WasmLL_Error;
+      case Level::WARN:
+        return WasmLogLevel::WasmLL_Warn;
+      case Level::INFO:
+      case Level::VERBOSE:
+        return WasmLogLevel::WasmLL_Info;
+      case Level::DEBUG:
+        return WasmLogLevel::WasmLL_Debug;
+      case Level::TRACE:
+        return WasmLogLevel::WasmLL_Trace;
+      default:
+        return WasmLogLevel::WasmLL_Error;
+    }
+  }
+
   void IOExtension::ext_print_num(uint64_t value) {
     logger_->info("number value: {}", value);
   }

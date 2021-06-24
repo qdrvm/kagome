@@ -16,10 +16,11 @@ namespace kagome::authority {
     /**
      * @brief Returns authorities according specified block
      * @param block for which authority set is requested
+     * @param finalized - true if we consider that the provided block is finalized
      * @return outcome authority set
      */
     virtual outcome::result<std::shared_ptr<const primitives::AuthorityList>>
-    authorities(const primitives::BlockInfo &block) = 0;
+    authorities(const primitives::BlockInfo &block, bool finalized) = 0;
 
     /**
      * @brief Schedule an authority set change after the given delay of N
@@ -85,6 +86,12 @@ namespace kagome::authority {
     virtual outcome::result<void> applyResume(
         const primitives::BlockInfo &block,
         primitives::BlockNumber activate_at) = 0;
+
+    /**
+     * @brief Prunes data which was needed only till {@param block}
+     * and won't be used anymore
+     */
+    virtual outcome::result<void> prune(const primitives::BlockInfo &block) = 0;
   };
 }  // namespace kagome::authority
 

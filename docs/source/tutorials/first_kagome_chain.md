@@ -4,12 +4,12 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 
 ### Prerequisites
 
-1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-full-validating-node).
+1. Kagome validating node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-application).
 2. For your convenience make sure you have this binary included into your path:
 
     ```bash
     # from Kagome's root repo:
-    PATH=$PATH:$(pwd)/build/node/kagome_validating/
+    PATH=$PATH:$(pwd)/build/node/
     ```
    
 3. Python 3 installed in the system with `substrate-interface` package installed
@@ -37,7 +37,7 @@ cd examples/first_kagome_chain
 `first_kagome_chain` folder contains necessary configuration files for our tutorial:
 
 * `localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block
-* `base_path` – Directory, containing kagome base path. It contains several dirs, each one named with the chain id, which data it stores (`dev` in this case). Data for each chain consists of `db/` (will be initialized on node startup) and `keystore/` (keys to sign the messages sent by our validating node). The latter has to exist prior to the node start. This behaviour will be improved in the future.
+* `base_path` – Directory, containing kagome base path. It contains several dirs, each one named with the chain id, which data it stores (`dev` in this case). Data for each chain consists of `db/` (will be initialized on node startup) and `keystore/` (keys to sign the messages sent by our authority). The latter has to exist prior to the node start. This behaviour will be improved in the future.
 
 `localchain.json` contains Alice and Bob accounts. Both have 999998900.0 amount of crypto.
 Their keys can be generated using [subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey) tool:
@@ -67,29 +67,31 @@ subkey inspect //Bob
 For this tutorial you can start a single node network as follows:
 
 ```shell script
-kagome_validating \
+kagome \
+    --validator \
     --chain localchain.json \
     --base-path base_path \
     --port 30363 \
     --rpc-port 9933 \
     --ws-port 9944 \
-    --single-finalizing-node \
-    --already-synchronized
+    --already-synchronized \
+    --unix-slots
 ```
 
 Let's look at this flags in detail:
 
 | Flag              | Description                                       |
 |-------------------|---------------------------------------------------|
+| `--validator` | optional, enables validator mode | 
 | `--chain`       | mandatory, chainspec file path        |
 | `--base-path`       | mandatory, base kagome directory path                 |
 | `--port`      | port for p2p interactions                         |
 | `--rpc-port` | port for RPC over HTTP                            |
 | `--ws-port`   | port for RPC over Websocket protocol              |
-| `--single-finalizing-node`   | need to be set if this is the only finalizing node              |
 | `--already-synchronized`   | need to be set if need to be considered synchronized              |
+|  --unix-slots    | need to be set if slots are calculated from unix epoch |
 
-More flags info available by running `kagome_validating --help`.
+More flags info available by running `kagome --help`.
 
 You should see the log messages notifying about produced and finalized the blocks. 
 
@@ -120,25 +122,25 @@ Let's query current balance of Alice's account.
 
 ```shell script
 python3 balance.py localhost:9933 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-# Current free balance: 999998897.549684  
+# Current free balance: 10000.0  
 ```
 
 Let's do the same for the Bob's account.
 ```shell script
 python3 balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
-# Current free balance: 999998901.0  
+# Current free balance: 10000.0  
 ```
 
 #### Send extrinsic
 
 We can generate extrinsic using the following command:
 
-This command will create extrinsic that transfers 1000 from Alice to Bob's account (Alice's account is defined by secret seed and Bob's account by account id). To define on which blockchain this extrinsic is going to be executed we provide subkey with genesis hash `b86008325a917cd553b122702d1346bf6f132db4ea17155a9eec733413dc9ecf` which corresponds to the hash of the genesis block of our chain.
+This command will create extrinsic that transfers 1 from Alice to Bob's account (Alice's account is defined by secret seed and Bob's account by account id).
 
 To send extrinsic use `transfer.py` script as follows:
 ```shell script
 python3 transfer.py localhost:9933 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty 1
-# Extrinsic submitted. Response:  {'jsonrpc': '2.0', 'id': 1, 'result': [39, 212, 157, 212, 66, 199, 109, 255, 180, 146, 47, 243, 118, 221, 233, 172, 35, 201, 157, 96, 248, 24, 22, 14, 230, 108, 217, 211, 29, 216, 65, 255]} 
+Extrinsic '0x315060176633a3e20656bd15c6eceff63b9f8bdc45595dc8ad52a02ae38d1708' sent
 ```
 
 #### Query again the balances
@@ -149,14 +151,14 @@ Get the balance of Bob's account:
 
 ```shell script
 python3 balance.py localhost:9933 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
-# Current free balance: 999998902.0  
+# Current free balance: 10001.0  
 ```
 We can see that Bob's balance was increased by 1 as it was set on the subkey command
 
 Now let's check Alice's account:
 ```shell script
 python3 balance.py localhost:9933 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-Current free balance: 999998895.0993682  
+Current free balance: 9998.999829217584  
 ```
 
 We can see that Alice's account was decreased by more than 1. This is caused by the commission paid for transfer

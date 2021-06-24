@@ -42,6 +42,10 @@ class CoreTest : public RuntimeTest {
     auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     EXPECT_CALL(*header_repo, getBlockHeader(_))
         .WillRepeatedly(Return(kagome::primitives::BlockHeader{}));
+    EXPECT_CALL(*storage_provider_, getLatestRootMock());
+    EXPECT_CALL(*storage_provider_, getCurrentBatch());
+    EXPECT_CALL(*batch_mock_, get(_));
+    EXPECT_CALL(*storage_provider_, rollbackTransaction());
 
     core_ = std::make_shared<CoreImpl>(
         runtime_env_factory_, wasm_provider_, changes_tracker_, header_repo);

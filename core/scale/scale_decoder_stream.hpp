@@ -202,39 +202,6 @@ namespace kagome::scale {
     }
 
     /**
-     * @brief decodes collection of items
-     * @tparam T item type
-     * @param v reference to collection
-     * @return reference to stream
-     */
-    template <class T>
-    ScaleDecoderStream &operator>>(std::list<T> &v) {
-      using mutableT = std::remove_const_t<T>;
-      using size_type = typename std::list<T>::size_type;
-
-      static_assert(std::is_default_constructible_v<mutableT>);
-
-      CompactInteger size{0u};
-      *this >> size;
-
-      auto item_count = size.convert_to<size_type>();
-
-      std::list<T> lst;
-      try {
-        lst.reserve(item_count);
-      } catch (const std::bad_alloc &) {
-        common::raise(DecodeError::TOO_MANY_ITEMS);
-      }
-
-      for (size_type i = 0u; i < item_count; ++i) {
-        lst.emplace_back();
-        *this >> lst.back();
-      }
-      v = std::move(lst);
-      return *this;
-    }
-
-    /**
      * @brief decodes array of items
      * @tparam T item type
      * @tparam size of the array

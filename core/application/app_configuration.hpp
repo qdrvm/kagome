@@ -17,6 +17,7 @@
 #include "crypto/ed25519_types.hpp"
 #include "log/logger.hpp"
 #include "network/peering_config.hpp"
+#include "network/types/roles.hpp"
 
 namespace kagome::application {
 
@@ -32,12 +33,12 @@ namespace kagome::application {
     static_assert(kAbsolutMinBlocksInResponse <= kAbsolutMaxBlocksInResponse,
                   "Check max and min page bounding values!");
 
-    enum struct LoadScheme {
-      kValidating,
-      kFullSyncing,
-    };
-
     virtual ~AppConfiguration() = default;
+
+    /**
+     * @return roles of current run
+     */
+    virtual network::Roles roles() const = 0;
 
     /**
      * @return file path with genesis configuration.
@@ -69,6 +70,11 @@ namespace kagome::application {
         const = 0;
 
     /**
+     * @return the path to key used for libp2p networking
+     */
+    virtual const boost::optional<std::string> &nodeKeyFile() const = 0;
+
+    /**
      * @return port for peer to peer interactions.
      */
     virtual uint16_t p2pPort() const = 0;
@@ -86,6 +92,12 @@ namespace kagome::application {
         const = 0;
 
     /**
+     * @return multiaddresses the node could be accessed from the network
+     */
+    virtual const std::vector<libp2p::multi::Multiaddress> &publicAddresses()
+        const = 0;
+
+    /**
      * @return endpoint for RPC over HTTP.
      */
     virtual const boost::asio::ip::tcp::endpoint &rpcHttpEndpoint() const = 0;
@@ -96,14 +108,19 @@ namespace kagome::application {
     virtual const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const = 0;
 
     /**
+     * @return endpoint for OpenMetrics over HTTP protocol.
+     */
+    virtual const boost::asio::ip::tcp::endpoint &openmetricsHttpEndpoint() const = 0;
+
+    /**
+     * @return maximum number of WS RPC connections
+     */
+    virtual uint32_t maxWsConnections() const = 0;
+
+    /**
      * @return log level (0-trace, 5-only critical, 6-no logs).
      */
     virtual log::Level verbosity() const = 0;
-
-    /**
-     * @return true if node in only finalizing mode, otherwise false.
-     */
-    virtual bool isOnlyFinalizing() const = 0;
 
     /**
      * If whole nodes was stopped, would not any active node to synchronize.
