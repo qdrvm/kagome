@@ -17,6 +17,8 @@ namespace kagome::network {
   using consensus::grandpa::MembershipCounter;
   using consensus::grandpa::RoundNumber;
   using consensus::grandpa::SignedMessage;
+  using consensus::grandpa::SignedPrecommit;
+  using consensus::grandpa::SignedPrevote;
   using consensus::grandpa::VoteMessage;
 
   struct GrandpaVote : public VoteMessage {
@@ -68,8 +70,8 @@ namespace kagome::network {
   struct CatchUpResponse {
     MembershipCounter voter_set_id{};
     RoundNumber round_number{};
-    std::vector<SignedMessage> prevote_justification;
-    std::vector<SignedMessage> precommit_justification;
+    std::vector<SignedPrevote> prevote_justification;
+    std::vector<SignedPrecommit> precommit_justification;
     BlockInfo best_final_candidate;
   };
 

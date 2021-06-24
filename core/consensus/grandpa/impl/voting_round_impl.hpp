@@ -207,9 +207,16 @@ namespace kagome::consensus::grandpa {
 
     bool updateCompletability();
 
-    /// prepare justification of \param estimate over the provided \param votes
-    boost::optional<GrandpaJustification> getJustification(
+    /// prepare prevote justification of \param estimate over the provided
+    /// \param votes
+    std::vector<SignedPrevote> getPrevoteJustification(
         const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const;
+
+    /// prepare precommit justification of \param estimate over the provided
+    /// \param votes
+    std::vector<SignedPrecommit> getPrecommitJustification(
+        const BlockInfo &precommits,
+        const std::vector<VoteVariant> &votes) const;
 
     /// Check if received \param vote has valid \param justification precommit
     outcome::result<void> validatePrecommitJustification(

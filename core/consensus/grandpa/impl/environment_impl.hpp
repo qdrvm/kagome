@@ -62,8 +62,8 @@ namespace kagome::consensus::grandpa {
         const libp2p::peer::PeerId &peer_id,
         MembershipCounter set_id,
         RoundNumber round_number,
-        GrandpaJustification prevote_justification,
-        GrandpaJustification precommit_justification,
+        std::vector<SignedPrevote> prevote_justification,
+        std::vector<SignedPrecommit> precommit_justification,
         BlockInfo best_final_candidate) override;
 
     outcome::result<void> onProposed(RoundNumber round,
