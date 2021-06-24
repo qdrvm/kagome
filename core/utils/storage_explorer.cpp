@@ -7,7 +7,9 @@
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
-#include "blockchain/impl/block_tree_impl.hpp"
+#include "blockchain/block_tree.hpp"
+#include "blockchain/block_storage.hpp"
+#include "storage/trie/trie_storage.hpp"
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
 
@@ -98,9 +100,10 @@ int main(int argc, char **argv) {
 
   kagome::injector::KagomeNodeInjector injector{configuration};
   auto block_storage = injector.injectBlockStorage();
+  auto trie_storage = injector.injectTrieStorage();
   parser.addCommand(
       "inspect-block",
-      "print info about the block with the given number or hash",
+      "(# or hash) - print info about the block with the given number or hash",
       [&block_storage](int argc, char **argv) {
         auto opt_id = parseBlockId(argv[1]);
         if (!opt_id) {
@@ -120,7 +123,7 @@ int main(int argc, char **argv) {
       });
 
   parser.addCommand("remove-block",
-                    "remove the block from the block tree",
+                    "[# or hash] -  remove the block from the block tree",
                     [&block_storage](int argc, char **argv) {
                       auto opt_id = parseBlockId(argv[1]);
                       if (!opt_id) {
@@ -137,6 +140,27 @@ int main(int argc, char **argv) {
                         std::cerr << "Error: " << res.error().message() << "\n";
                         return;
                       }
+                    });
+
+  parser.addCommand("query-state",
+                    "[state_hash, [key]] - remove the block from the block tree",
+                    [&trie_storage](int argc, char **argv) {
+                      kagome::storage::trie::RootHash state_root{};
+                      if (auto id_bytes = kagome::common::unhex(argv[1]); id_bytes) {
+                        std::copy_n(id_bytes.value().begin(),
+                                    kagome::primitives::BlockHash::size(),
+                                    state_root.begin());
+                      } else {
+                        std::cerr << "Invalid block hash!\n";
+                        return;
+                      }
+                      auto batch = trie_storage->getEphemeralBatchAt(state_root);
+                      if (!batch) {
+                        std::cerr << "Error: " << batch.error().message()
+                                  << "\n";
+                        return;
+                      }
+                      std::cout << "Storage hash is correct\n";
                     });
 
   parser.invoke(argc, argv);

@@ -28,7 +28,7 @@ namespace kagome::runtime {
     if (last_state_root_ != state) {
       last_state_root_ = state;
 
-      auto batch = storage_->getEphemeralBatch();
+      auto batch = storage_->getEphemeralBatchAt(state);
       BOOST_ASSERT_MSG(batch.has_value(),
                        "Error getting a batch of the storage");
       auto state_code_res = batch.value()->get(kRuntimeCodeKey);

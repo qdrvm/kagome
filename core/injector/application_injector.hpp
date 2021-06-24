@@ -49,6 +49,10 @@ namespace kagome {
     class BlockStorage;
   }
 
+  namespace storage::trie {
+    class TrieStorage;
+  }
+
 }  // namespace kagome
 
 namespace kagome::injector {
@@ -74,6 +78,7 @@ namespace kagome::injector {
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
     std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
+    std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

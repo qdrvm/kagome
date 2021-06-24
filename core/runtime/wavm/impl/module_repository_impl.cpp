@@ -47,7 +47,6 @@ namespace kagome::runtime::wavm {
       instances_[state] = modules_[state]->instantiate(*resolver_);
     }
     return instances_[state];
-
   }
 
   outcome::result<std::unique_ptr<Module>> ModuleRepositoryImpl::loadFrom(

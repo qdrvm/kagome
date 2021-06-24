@@ -5,6 +5,7 @@
 
 #include "runtime/wavm/runtime_api/core.hpp"
 
+#include "blockchain/block_header_repository.hpp"
 #include "runtime/wavm/executor.hpp"
 
 namespace kagome::runtime::wavm {
@@ -32,12 +33,13 @@ namespace kagome::runtime::wavm {
 
   outcome::result<void> WavmCore::execute_block(
       const primitives::Block &block) {
-    OUTCOME_TRY(changes_tracker_->onBlockChange(
-        block.header.parent_hash,
-        block.header.number - 1));  // parent's number
-    OUTCOME_TRY(executor_->startNewEnvironment(
-        {block.header.number - 1, block.header.parent_hash}));
-    return executor_->persistentCall<void>("Core_execute_block", block);
+    OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.header.parent_hash));
+    BOOST_ASSERT(parent.number == block.header.number - 1);
+    OUTCOME_TRY(
+        changes_tracker_->onBlockChange(block.header.parent_hash,
+                                        parent.number));  // parent's number
+    return executor_->persistentCallAt<void>(
+        {parent.number, block.header.parent_hash}, "Core_execute_block", block);
   }
 
   outcome::result<void> WavmCore::initialise_block(
@@ -45,9 +47,10 @@ namespace kagome::runtime::wavm {
     OUTCOME_TRY(
         changes_tracker_->onBlockChange(header.parent_hash,
                                         header.number - 1));  // parent's number
-    OUTCOME_TRY(executor_->startNewEnvironment(
-        {header.number - 1, header.parent_hash}));
-    return executor_->persistentCall<void>("Core_initialise_block", header);
+    return executor_->persistentCallAt<void>(
+        {header.number - 1, header.parent_hash},
+        "Core_initialise_block",
+        header);
   }
 
   outcome::result<std::vector<primitives::AuthorityId>> WavmCore::authorities(

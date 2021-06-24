@@ -92,8 +92,8 @@
 #include "runtime/wavm/impl/crutch.hpp"
 #include "runtime/wavm/impl/intrinsic_module_instance.hpp"
 #include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
-#include "runtime/wavm/impl/runtime_upgrade_tracker.hpp"
 #include "runtime/wavm/impl/module_repository_impl.hpp"
+#include "runtime/wavm/impl/runtime_upgrade_tracker.hpp"
 #include "runtime/wavm/runtime_api/account_nonce_api.hpp"
 #include "runtime/wavm/runtime_api/babe_api.hpp"
 #include "runtime/wavm/runtime_api/block_builder.hpp"
@@ -665,13 +665,13 @@ namespace {
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
     protocol_factory->setBlockTree(block_tree);
 
-    auto runtime_upgrade_tracker = injector.template create<
-        sptr<runtime::wavm::RuntimeUpgradeTracker>>();
+    auto runtime_upgrade_tracker =
+        injector.template create<sptr<runtime::wavm::RuntimeUpgradeTracker>>();
     auto storage_events_engine = injector.template create<
         primitives::events::StorageSubscriptionEnginePtr>();
 
-    runtime_upgrade_tracker->subscribeToBlockchainEvents(
-        storage_events_engine, block_tree);
+    runtime_upgrade_tracker->subscribeToBlockchainEvents(storage_events_engine,
+                                                         block_tree);
 
     initialized.emplace(std::move(block_tree));
     return initialized.value();
@@ -1522,6 +1522,11 @@ namespace kagome::injector {
     return std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
             pimpl_->injector_.create<sptr<libp2p::log::Configurator>>()));
+  }
+
+  std::shared_ptr<storage::trie::TrieStorage>
+  KagomeNodeInjector::injectTrieStorage() {
+    return pimpl_->injector_.create<sptr<storage::trie::TrieStorage>>();
   }
 
 }  // namespace kagome::injector

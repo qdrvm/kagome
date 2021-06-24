@@ -3,6 +3,7 @@ target_link_libraries(wavm_memory libWAVM buffer)
 kagome_install(wavm_memory)
 
 add_library(wavm_executor
+    executor.cpp
     impl/module.cpp
     impl/module_instance.cpp
     impl/module_repository_impl.cpp

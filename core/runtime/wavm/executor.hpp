@@ -29,6 +29,8 @@ namespace kagome::runtime::wavm {
    public:
     using Buffer = common::Buffer;
 
+    enum class Error { EXECUTION_ERROR = 1 };
+
     Executor(std::shared_ptr<TrieStorageProvider> storage_provider,
              std::shared_ptr<MemoryProvider> memory_provider,
              std::shared_ptr<ModuleRepository> module_repo,
@@ -59,8 +61,8 @@ namespace kagome::runtime::wavm {
     }
 
     template <typename Result, typename... Args>
-    outcome::result<Result> persistentCall(std::string_view name,
-                                           Args &&...args) {
+    outcome::result<Result> persistentCallAtLatest(std::string_view name,
+                                                   Args &&...args) {
       OUTCOME_TRY(storage_provider_->setToPersistentAt(current_state_root_));
       auto res = callInternal<Result>(
           *current_instance_, name, std::forward<Args>(args)...);
@@ -72,13 +74,18 @@ namespace kagome::runtime::wavm {
       return res;
     }
 
-    outcome::result<void> startNewEnvironment(
-        primitives::BlockInfo const &block) {
-      OUTCOME_TRY(instance, module_repo_->getInstanceAt(code_provider_, block));
+    template <typename Result, typename... Args>
+    outcome::result<Result> persistentCallAt(
+        primitives::BlockInfo const &block_info,
+        std::string_view name,
+        Args &&...args) {
+      OUTCOME_TRY(instance,
+                  module_repo_->getInstanceAt(code_provider_, block_info));
       current_instance_ = std::move(instance);
-      OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
+      OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block_info.hash));
       current_state_root_ = std::move(block_header.state_root);
-      return outcome::success();
+
+      return persistentCallAtLatest<Result>(name, std::forward<Args>(args)...);
     }
 
     template <typename Result, typename... Args>
@@ -135,14 +142,16 @@ namespace kagome::runtime::wavm {
 
       [[maybe_unused]] PtrSize result{0};
 
-      WAVM::Runtime::catchRuntimeExceptions(
-          [&result, &instance, &name, &addr] {
-            result = instance.callExportFunction(name, addr);
-          },
-          [this](WAVM::Runtime::Exception *e) {
-            logger_->error(WAVM::Runtime::describeException(e));
-            WAVM::Runtime::destroyException(e);
-          });
+      try {
+        WAVM::Runtime::unwindSignalsAsExceptions(
+            [&result, &instance, &name, &addr] {
+              result = instance.callExportFunction(name, addr);
+            });
+      } catch (WAVM::Runtime::Exception *e) {
+        logger_->error(WAVM::Runtime::describeException(e));
+        WAVM::Runtime::destroyException(e);
+        return Error::EXECUTION_ERROR;
+      }
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
@@ -163,5 +172,7 @@ namespace kagome::runtime::wavm {
   };
 
 }  // namespace kagome::runtime::wavm
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::wavm, Executor::Error)
 
 #endif  // KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
