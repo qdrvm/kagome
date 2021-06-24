@@ -31,12 +31,14 @@ namespace kagome::api {
                                sptr<crypto::Hasher> hasher,
                                sptr<network::ExtrinsicGossiper> gossiper,
                                sptr<crypto::CryptoStore> store,
+                               sptr<crypto::SessionKeys> keys,
                                sptr<crypto::KeyFileStorage> key_store)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)},
         gossiper_{std::move(gossiper)},
         store_{std::move(store)},
+        keys_{std::move(keys)},
         key_store_{std::move(key_store)},
         last_id_{0},
         logger_{log::createLogger("AuthorApi", "author_api")} {
@@ -45,6 +47,7 @@ namespace kagome::api {
     BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
     BOOST_ASSERT_MSG(store_ != nullptr, "crypto store is nullptr");
+    BOOST_ASSERT_MSG(keys_ != nullptr, "session keys store is nullptr");
     BOOST_ASSERT_MSG(key_store_ != nullptr, "key store is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
   }
@@ -85,7 +88,9 @@ namespace kagome::api {
       SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
     }
-    return key_store_->saveKeypair(key_type, public_key, seed);
+    auto res = key_store_->saveKeypair(key_type, public_key, seed);
+    keys_->getBabeKeyPair();
+    return res;
   }
 
   // logic here is polkadot specific only!

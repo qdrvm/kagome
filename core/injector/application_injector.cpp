@@ -58,6 +58,7 @@
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -876,6 +877,8 @@ namespace {
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
+        di::bind<crypto::SessionKeys>.template to<crypto::SessionKeys>(),
+        di::bind<network::Roles>.to(config.roles()),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
@@ -1042,34 +1045,6 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<crypto::Sr25519Keypair> get_babe_keypair(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<crypto::Sr25519Keypair>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    const auto &config =
-        injector.template create<application::AppConfiguration const &>();
-    if (config.roles().flags.authority == 0) {
-      return {};
-      injector.template create<const application::AppConfiguration &>();
-    }
-
-    const auto &crypto_store =
-        injector.template create<const crypto::CryptoStore &>();
-    auto &&sr25519_kp = crypto_store.getBabeKeypair();
-    if (not sr25519_kp) {
-      auto log = log::createLogger("Injector", "injector");
-      log->error("Failed to get BABE keypair");
-      return {};
-    }
-
-    initialized = std::make_shared<crypto::Sr25519Keypair>(sr25519_kp.value());
-    return initialized.value();
-  }
-
-  template <typename Injector>
   sptr<crypto::Ed25519Keypair> get_ed25519_keypair(const Injector &injector) {
     static auto initialized =
         boost::optional<sptr<crypto::Ed25519Keypair>>(boost::none);
@@ -1157,6 +1132,8 @@ namespace {
       return initialized.value();
     }
 
+    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+
     initialized = std::make_shared<consensus::babe::BabeImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
@@ -1167,7 +1144,7 @@ namespace {
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<network::Gossiper>>(),
         injector.template create<sptr<crypto::Sr25519Provider>>(),
-        injector.template create<sptr<crypto::Sr25519Keypair>>(),
+        session_keys->getBabeKeyPair(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
@@ -1238,9 +1215,6 @@ namespace {
 
     return di::make_injector(
         makeApplicationInjector(app_config),
-        // bind sr25519 keypair
-        di::bind<crypto::Sr25519Keypair>.to(
-            [](auto const &injector) { return get_babe_keypair(injector); }),
         // bind ed25519 keypair
         di::bind<crypto::Ed25519Keypair>.to(
             [](auto const &injector) { return get_ed25519_keypair(injector); }),

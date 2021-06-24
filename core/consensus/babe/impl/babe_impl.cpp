@@ -30,7 +30,7 @@ namespace kagome::consensus::babe {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<BabeGossiper> gossiper,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::Sr25519Keypair> keypair,
+      const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
       std::unique_ptr<clock::Timer> timer,
@@ -45,7 +45,7 @@ namespace kagome::consensus::babe {
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         gossiper_{std::move(gossiper)},
-        keypair_{std::move(keypair)},
+        keypair_{keypair},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
@@ -145,7 +145,9 @@ namespace kagome::consensus::babe {
                 self->log_->info("Catching up is done, getting slot time");
                 // all blocks were successfully applied, now we need to get
                 // slot time
-                self->current_state_ = State::NEED_SLOT_TIME;
+                if (self->keypair_) {
+                  self->current_state_ = State::NEED_SLOT_TIME;
+                }
               }
             });
         break;

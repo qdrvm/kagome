@@ -8,8 +8,12 @@
 
 #include "common/blob.hpp"
 #include "crypto/crypto_store/key_type.hpp"
+#include "network/types/roles.hpp"
 
 namespace kagome::crypto {
+
+  class CryptoStore;
+  class Sr25519Keypair;
 
   // hardcoded keys order for polkadot
   // otherwise it could be read from chainspec palletSession/keys
@@ -21,6 +25,19 @@ namespace kagome::crypto {
                                                  KEY_TYPE_PARA,
                                                  KEY_TYPE_ASGN,
                                                  KEY_TYPE_AUDI};
-}
+
+  class SessionKeys {
+    std::shared_ptr<Sr25519Keypair> babe_key_pair_;
+    network::Roles roles_;
+    std::shared_ptr<CryptoStore> store_;
+
+   public:
+    SessionKeys(std::shared_ptr<CryptoStore> store,
+                const network::Roles &roles);
+    ~SessionKeys();
+
+    const std::shared_ptr<Sr25519Keypair>& getBabeKeyPair();
+  };
+}  // namespace kagome::crypto
 
 #endif  // KAGOME_CRYPTO_SESSION_KEYS_HPP
