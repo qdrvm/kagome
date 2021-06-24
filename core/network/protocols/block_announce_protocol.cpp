@@ -193,10 +193,28 @@ namespace kagome::network {
           }
           auto &remote_status = remote_status_res.value();
 
+          if (auto genesis_res = self->storage_->getGenesisBlockHash();
+              genesis_res.has_value()) {
+            if (remote_status.genesis_hash != genesis_res.value()) {
+              self->log_->error("Error while processing status: {}",
+                                genesis_res.error().message());
+              stream->reset();
+              cb(ProtocolError::GENESIS_NO_MATCH);
+              return;
+            }
+          } else {
+            self->log_->error("Error while processing status: {}",
+                              genesis_res.error().message());
+            stream->reset();
+            cb(ProtocolError::GENESIS_NO_MATCH);
+            return;
+          }
+
           auto peer_id = stream->remotePeerId().value();
           SL_DEBUG(self->log_,
-                   "Received status from peer_id={}",
-                   peer_id.toBase58());
+                   "Received status from peer_id={} (best block {})",
+                   peer_id.toBase58(),
+                   remote_status.best_block.number);
           self->peer_manager_->updatePeerStatus(peer_id, remote_status);
 
           switch (direction) {

@@ -579,14 +579,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(finalizable());
 
     auto block = finalized_.value();
-    const auto &justification_opt =
-        getJustification(block, precommits_->getMessages());
-    if (not justification_opt) {
-      logger_->warn("No justification for block  <{}, {}>",
-                    block.number,
-                    block.hash.toHex());
-    }
-    auto &justification = justification_opt.value();
+    const auto &precommit_justification =
+        getPrecommitJustification(block, precommits_->getMessages());
 
     SL_DEBUG(logger_,
              "Round #{}: Finalizing on block #{} hash={}",
@@ -594,8 +588,13 @@ namespace kagome::consensus::grandpa {
              block.number,
              block.hash.toHex());
 
+    GrandpaJustification justification{
+        .round_number = round_number_,
+        .block_info = block,
+        .items = std::move(precommit_justification)};
+
     if (need_to_notice_at_finalizing_) {
-      sendFinalize(block, justification);
+      sendFinalize(block, std::move(justification));
     }
 
     env_->onCompleted(state());
@@ -940,9 +939,7 @@ namespace kagome::consensus::grandpa {
     }
     auto index = voter_set_->voterIndex(vote.id);
     if (not index) {
-      BOOST_ASSERT_MSG(
-          false,
-          "Can't be none after voterWeight() was succeed");
+      BOOST_ASSERT_MSG(false, "Can't be none after voterWeight() was succeed");
       return VotingRoundError::UNKNOWN_VOTER;
     }
 
@@ -1517,35 +1514,66 @@ namespace kagome::consensus::grandpa {
     return round_state;
   }
 
-  boost::optional<GrandpaJustification> VotingRoundImpl::getJustification(
+  std::vector<SignedPrevote> VotingRoundImpl::getPrevoteJustification(
       const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const {
-    GrandpaJustification result = std::accumulate(
+    auto result = std::accumulate(
         votes.begin(),
         votes.end(),
-        GrandpaJustification{.round_number = round_number_,
-                             .block_info = estimate},
-        [this, &estimate](GrandpaJustification &justification,
+        std::vector<SignedPrevote>(),
+        [this, &estimate](std::vector<SignedPrevote> &prevotes,
                           const auto &voting_variant) {
           visit_in_place(
               voting_variant,
-              [this, &justification, &estimate](
+              [this, &prevotes, &estimate](
                   const SignedMessage &voting_message) {
-                if (env_->isEqualOrDescendOf(estimate.hash,
-                                             voting_message.getBlockHash())) {
-                  justification.items.push_back(
-                      static_cast<const SignedPrecommit &>(voting_message));
+                if (voting_message.is<Prevote>()) {
+                  if (env_->isEqualOrDescendOf(estimate.hash,
+                                               voting_message.getBlockHash())) {
+                    prevotes.push_back(
+                        static_cast<const SignedPrevote &>(voting_message));
+                  }
                 }
               },
-              [&justification](const EquivocatorySignedMessage
-                                   &equivocatory_voting_message) {
-                justification.items.push_back(
-                    static_cast<const SignedPrecommit &>(
-                        equivocatory_voting_message.first));
-                justification.items.push_back(
-                    static_cast<const SignedPrecommit &>(
-                        equivocatory_voting_message.second));
+              [&prevotes](const EquivocatorySignedMessage
+                              &equivocatory_voting_message) {
+                prevotes.push_back(static_cast<const SignedPrevote &>(
+                    equivocatory_voting_message.first));
+                prevotes.push_back(static_cast<const SignedPrevote &>(
+                    equivocatory_voting_message.second));
               });
-          return justification;
+          return prevotes;
+        });
+    return result;
+  }
+
+  std::vector<SignedPrecommit> VotingRoundImpl::getPrecommitJustification(
+      const BlockInfo &estimate, const std::vector<VoteVariant> &votes) const {
+    auto result = std::accumulate(
+        votes.begin(),
+        votes.end(),
+        std::vector<SignedPrecommit>(),
+        [this, &estimate](std::vector<SignedPrecommit> &precommits,
+                          const auto &voting_variant) {
+          visit_in_place(
+              voting_variant,
+              [this, &precommits, &estimate](
+                  const SignedMessage &voting_message) {
+                if (voting_message.is<Precommit>()) {
+                  if (env_->isEqualOrDescendOf(estimate.hash,
+                                               voting_message.getBlockHash())) {
+                    precommits.push_back(
+                        static_cast<const SignedPrecommit &>(voting_message));
+                  }
+                }
+              },
+              [&precommits](const EquivocatorySignedMessage
+                                &equivocatory_voting_message) {
+                precommits.push_back(static_cast<const SignedPrecommit &>(
+                    equivocatory_voting_message.first));
+                precommits.push_back(static_cast<const SignedPrecommit &>(
+                    equivocatory_voting_message.second));
+              });
+          return precommits;
         });
     return result;
   }
@@ -1569,16 +1597,11 @@ namespace kagome::consensus::grandpa {
     const auto &finalised_block = finalized_.value();
 
     auto best_prevote_candidate = bestPrevoteCandidate();
-    auto prevote_justification_opt =
-        getJustification(best_prevote_candidate, prevotes_->getMessages());
-    BOOST_ASSERT(prevote_justification_opt.has_value());
-    auto &prevote_justification = prevote_justification_opt.value();
+    auto prevote_justification = getPrevoteJustification(
+        best_prevote_candidate, prevotes_->getMessages());
 
-    //    auto best_final_candidate = bestFinalCandidate();
-    auto precommit_justification_opt =
-        getJustification(finalised_block, precommits_->getMessages());
-    BOOST_ASSERT(precommit_justification_opt.has_value());
-    auto &precommit_justification = precommit_justification_opt.value();
+    auto precommit_justification =
+        getPrecommitJustification(finalised_block, precommits_->getMessages());
 
     auto result = env_->onCatchUpResponsed(peer_id,
                                            voter_set_->id(),
