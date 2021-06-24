@@ -100,11 +100,11 @@ TEST_F(VoteTrackerTest, GetMessages) {
             [&m](auto &v) {
               return kagome::visit_in_place(
                   v,
-                  [&](const VotingMessage &voting_message) {
+                  [&](const SignedMessage &voting_message) {
                     return m.id == voting_message.id
                            && m.getBlockHash() == voting_message.getBlockHash();
                   },
-                  [&](const EquivocatoryVotingMessage
+                  [&](const EquivocatorySignedMessage
                           &equivocatory_voting_message) {
                     const auto &first_id = equivocatory_voting_message.first.id;
                     const auto &first_block_hash =

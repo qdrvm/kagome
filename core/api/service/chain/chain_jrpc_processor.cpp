@@ -31,6 +31,8 @@ namespace kagome::api::chain {
   void ChainJrpcProcessor::registerHandlers() {
     server_->registerHandler("chain_getBlockHash",
                              Handler<request::GetBlockhash>(api_));
+    server_->registerHandler("chain_getHead",
+                             Handler<request::GetBlockhash>(api_));
 
     server_->registerHandler("chain_getHeader",
                              Handler<request::GetHeader>(api_));

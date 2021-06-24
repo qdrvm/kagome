@@ -93,8 +93,7 @@ namespace kagome::network {
     broadcast(block_announce_protocol_, announce);
   }
 
-  void GossiperBroadcast::vote(
-      const network::GrandpaVoteMessage &vote_message) {
+  void GossiperBroadcast::vote(const network::GrandpaVote &vote_message) {
     SL_DEBUG(logger_,
              "Gossip vote message: grandpa round number {}",
              vote_message.round_number);
@@ -105,7 +104,7 @@ namespace kagome::network {
     broadcast(gossip_protocol_, std::move(message));
   }
 
-  void GossiperBroadcast::finalize(const network::GrandpaPreCommit &fin) {
+  void GossiperBroadcast::finalize(const network::GrandpaCommit &fin) {
     SL_DEBUG(logger_,
              "Gossip fin message: grandpa round number {}",
              fin.round_number);

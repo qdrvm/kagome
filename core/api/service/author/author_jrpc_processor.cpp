@@ -7,9 +7,12 @@
 
 #include "api/jrpc/jrpc_method.hpp"
 #include "api/jrpc/value_converter.hpp"
+#include "api/service/author/requests/has_key.hpp"
+#include "api/service/author/requests/has_session_keys.hpp"
+#include "api/service/author/requests/insert_key.hpp"
 #include "api/service/author/requests/pending_extrinsics.hpp"
-#include "api/service/author/requests/submit_extrinsic.hpp"
 #include "api/service/author/requests/submit_and_watch_extrinsic.hpp"
+#include "api/service/author/requests/submit_extrinsic.hpp"
 #include "api/service/author/requests/unwatch_extrinsic.hpp"
 
 namespace kagome::api::author {
@@ -27,6 +30,14 @@ namespace kagome::api::author {
   void AuthorJRpcProcessor::registerHandlers() {
     server_->registerHandler("author_submitExtrinsic",
                              Handler<request::SubmitExtrinsic>(api_));
+
+    server_->registerHandler("author_insertKey",
+                             Handler<request::InsertKey>(api_));
+
+    server_->registerHandler("author_hasSessionKeys",
+                             Handler<request::HasSessionKeys>(api_));
+
+    server_->registerHandler("author_hasKey", Handler<request::HasKey>(api_));
 
     server_->registerHandler("author_submitAndWatchExtrinsic",
                              Handler<request::SubmitAndWatchExtrinsic>(api_));

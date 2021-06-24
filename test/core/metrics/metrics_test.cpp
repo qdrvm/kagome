@@ -451,7 +451,7 @@ TEST_F(SummaryTest, QuantileValues) {
  */
 TEST_F(SummaryTest, MaxAge) {
   auto summary =
-      createSummary("summary7", {{0.99, 0.001}}, std::chrono::milliseconds(80), 2);
+      createSummary("summary7", {{0.99, 0.001}}, std::chrono::milliseconds(1000), 2);
   summary->observe(8.0);
 
   static const auto test_value = [&summary](double ref) {
@@ -465,8 +465,10 @@ TEST_F(SummaryTest, MaxAge) {
   };
 
   test_value(8.0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  // we just check that value remains after a little waiting, if summary window not expired
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
   test_value(8.0);
-  std::this_thread::sleep_for(std::chrono::milliseconds(110));
+  // check that there is no value sometime after expiration
+  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
   test_value(std::numeric_limits<double>::quiet_NaN());
 }

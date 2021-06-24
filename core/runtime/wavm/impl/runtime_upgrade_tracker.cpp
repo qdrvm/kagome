@@ -67,7 +67,8 @@ namespace kagome::runtime::wavm {
       }
     }
     BOOST_ASSERT(!"Unreachable, there should always be a predecessor with runtime upgrade");
-    BOOST_UNREACHABLE_RETURN({})
+
+  BOOST_UNREACHABLE_RETURN({})
   }
 
   void RuntimeUpgradeTracker::subscribeToBlockchainEvents(

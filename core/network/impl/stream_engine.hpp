@@ -7,6 +7,7 @@
 #define KAGOME_STREAM_ENGINE_HPP
 
 #include <numeric>
+#include <queue>
 #include <unordered_map>
 
 #include "libp2p/connection/stream.hpp"
@@ -22,11 +23,13 @@
 namespace kagome::network {
 
   /**
-   * Is the manager class to manipulate streams. It supports
-   * [Peer] -> [Protocol_0] -> [Stream_0]
-   *        -> [Protocol_1] -> [Stream_1]
-   *        -> [   ....   ] -> [  ....  ]
-   * relationships.
+   * Is the manager class to manipulate streams. It supports next structure
+   * Peer
+   *  ` ProtocolName_0
+   *     ` ProtocolPtr_0,
+   *       Incoming_Stream_0
+   *       Outgoing_Stream_0
+   *       MessagesQueue for creating outgoing stream
    */
   struct StreamEngine final : std::enable_shared_from_this<StreamEngine> {
     using PeerInfo = libp2p::peer::PeerInfo;
@@ -42,6 +45,8 @@ namespace kagome::network {
       std::shared_ptr<ProtocolBase> protocol;
       std::shared_ptr<Stream> incoming;
       std::shared_ptr<Stream> outgoing;
+      std::queue<std::function<void(std::shared_ptr<Stream>)>>
+          deffered_messages;
     };
     using ProtocolMap = std::unordered_map<Protocol, ProtocolDescr>;
     using PeerMap = std::unordered_map<PeerId, ProtocolMap>;
@@ -58,7 +63,7 @@ namespace kagome::network {
         : logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
-    static StreamEnginePtr create(Args &&...args) {
+    static StreamEnginePtr create(Args &&... args) {
       return std::make_shared<StreamEngine>(std::forward<Args>(args)...);
     }
 
@@ -69,7 +74,8 @@ namespace kagome::network {
       std::unique_lock cs(streams_cs_);
       auto &protocols = streams_[peer_id];
       if (protocols
-              .emplace(protocol->protocol(), ProtocolDescr{protocol, {}, {}})
+              .emplace(protocol->protocol(),
+                       ProtocolDescr{protocol, {}, {}, {}})
               .second) {
         SL_DEBUG(logger_,
                  "Reserved {} stream with {}",
@@ -111,14 +117,16 @@ namespace kagome::network {
       proto_map.emplace(protocol->protocol(),
                         ProtocolDescr{protocol,
                                       is_incoming ? stream : nullptr,
-                                      is_outgoing ? stream : nullptr});
-      SL_DEBUG(logger_,
-               "Added {} {} stream with peer_id={}",
-               direction == Direction::INCOMING   ? "incoming"
-               : direction == Direction::OUTGOING ? "outgoing"
-                                                  : "bidirectional",
-               protocol->protocol(),
-               peer_id.toBase58());
+                                      is_outgoing ? stream : nullptr,
+                                      {}});
+      SL_DEBUG(
+          logger_,
+          "Added {} {} stream with peer_id={}",
+          direction == Direction::INCOMING
+              ? "incoming"
+              : direction == Direction::OUTGOING ? "outgoing" : "bidirectional",
+          protocol->protocol(),
+          peer_id.toBase58());
       return outcome::success();
     }
 
@@ -183,9 +191,9 @@ namespace kagome::network {
         auto protocol_it = protocols.find(protocol->protocol());
         if (protocol_it != protocols.end()) {
           auto &descr = protocol_it->second;
-          // if (descr.incoming and not descr.incoming->isClosed()) {
-          //  return true;
-          //}
+          if (descr.incoming and not descr.incoming->isClosed()) {
+            return true;
+          }
           if (descr.outgoing and not descr.outgoing->isClosed()) {
             return true;
           }
@@ -237,7 +245,7 @@ namespace kagome::network {
 
       std::shared_lock cs(streams_cs_);
       forSubscriber(peer_id, protocol, [&](auto type, auto &descr) {
-        if (descr.outgoing) {
+        if (descr.outgoing and not descr.outgoing->isClosed()) {
           send(descr.outgoing, *msg);
           return;
         }
@@ -317,7 +325,8 @@ namespace kagome::network {
       }
     }
 
-    boost::optional<ProtocolMap> findPeer(const PeerId &peer_id) {
+    boost::optional<std::reference_wrapper<ProtocolMap>> findPeer(
+        const PeerId &peer_id) {
       auto find_if_exists = [&](auto &peer_map)
           -> boost::optional<std::reference_wrapper<ProtocolMap>> {
         if (auto it = peer_map.find(peer_id); it != peer_map.end()) {
@@ -327,7 +336,7 @@ namespace kagome::network {
       };
 
       if (auto proto_map = find_if_exists(streams_)) {
-        return proto_map.value().get();
+        return proto_map.value();
       }
       return boost::none;
     }
@@ -335,7 +344,7 @@ namespace kagome::network {
     template <typename F>
     void forPeer(const PeerId &peer_id, F &&f) {
       if (auto proto_descriptor = findPeer(peer_id)) {
-        std::forward<F>(f)(*proto_descriptor);
+        std::forward<F>(f)(proto_descriptor->get());
       }
     }
 
@@ -352,8 +361,8 @@ namespace kagome::network {
                      F &&f) {
       if (auto it = proto_map.find(protocol->protocol());
           it != proto_map.end()) {
-        auto &stream = it->second;
-        std::forward<F>(f)(stream);
+        auto &descr = it->second;
+        std::forward<F>(f)(descr);
       }
     }
 
@@ -369,10 +378,40 @@ namespace kagome::network {
     }
 
    private:
+    void dump(std::string_view msg) {
+      logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+      logger_->debug("DUMP: {}", msg);
+      forEachPeer([&](const auto &peer_id, auto &proto_map) {
+        logger_->debug("DUMP:   Peer {}", peer_id.toBase58());
+        for (auto &[protocol, descr] : proto_map) {
+          logger_->debug("DUMP:     Protocol {}", protocol);
+          logger_->debug("DUMP:       I={} O={}   Messages:{}",
+                         descr.incoming,
+                         descr.outgoing,
+                         descr.deffered_messages.size());
+        }
+      });
+      logger_->debug("DUMP: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+    }
+
     template <typename T>
     void updateStream(const PeerId &peer_id,
                       const std::shared_ptr<ProtocolBase> &protocol,
                       std::shared_ptr<T> msg) {
+      bool need_to_create_new_stream = true;
+
+      forSubscriber(peer_id, protocol, [&](auto, auto &subscriber) {
+        need_to_create_new_stream = subscriber.deffered_messages.empty();
+        subscriber.deffered_messages.push(
+            [this, msg = std::move(msg)](std::shared_ptr<Stream> stream) {
+              send(stream, *msg);
+            });
+      });
+
+      if (not need_to_create_new_stream) {
+        return;
+      }
+
       protocol->newOutgoingStream(
           PeerInfo{.id = peer_id},
           [wp = weak_from_this(), protocol, peer_id, msg = std::move(msg)](
@@ -386,6 +425,11 @@ namespace kagome::network {
               self->logger_->error("Could not send message to {}: Error: {}",
                                    peer_id.toBase58(),
                                    stream_res.error().message());
+              self->forSubscriber(
+                  peer_id, protocol, [&](auto, auto &subscriber) {
+                    std::ignore = std::move(subscriber.deffered_messages);
+                  });
+
               return;
             }
             auto &stream = stream_res.value();
@@ -399,7 +443,14 @@ namespace kagome::network {
                   subscriber.outgoing, stream, protocol, Direction::OUTGOING);
             });
             BOOST_ASSERT(existing);
-            self->send(stream, *msg);
+
+            self->forSubscriber(peer_id, protocol, [&](auto, auto &subscriber) {
+              while (not subscriber.deffered_messages.empty()) {
+                auto &msg = subscriber.deffered_messages.front();
+                msg(stream);
+                subscriber.deffered_messages.pop();
+              }
+            });
           });
     }
 
