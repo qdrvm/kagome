@@ -92,14 +92,14 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       MembershipCounter set_id,
       RoundNumber round_number,
-      GrandpaJustification prevote_justification,
-      GrandpaJustification precommit_justification,
+      std::vector<SignedPrevote> prevote_justification,
+      std::vector<SignedPrecommit> precommit_justification,
       BlockInfo best_final_candidate) {
     network::CatchUpResponse message{
         .voter_set_id = set_id,
         .round_number = round_number,
-        .prevote_justification = std::move(prevote_justification.items),
-        .precommit_justification = std::move(precommit_justification.items),
+        .prevote_justification = std::move(prevote_justification),
+        .precommit_justification = std::move(precommit_justification),
         .best_final_candidate = best_final_candidate};
     gossiper_->catchUpResponse(peer_id, message);
     SL_DEBUG(logger_, "Catch-Up-Response sent upto round {}", round_number);

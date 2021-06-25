@@ -52,7 +52,7 @@ namespace kagome::api::system::request {
         }
       });
 
-      return std::move(result);
+      return result;
     }
 
    private:

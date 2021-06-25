@@ -103,6 +103,26 @@ namespace kagome::consensus::grandpa {
     };
   }  // namespace detail
 
+  class SignedPrevote : public SignedMessage {
+    using SignedMessage::SignedMessage;
+  };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const SignedPrevote &signed_msg) {
+    assert(signed_msg.template is<Prevote>());
+    return s << boost::strict_get<Prevote>(signed_msg.message)
+             << signed_msg.signature << signed_msg.id;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, SignedPrevote &signed_msg) {
+    signed_msg.message = Prevote{};
+    return s >> boost::strict_get<Prevote>(signed_msg.message)
+           >> signed_msg.signature >> signed_msg.id;
+  }
+
   class SignedPrecommit : public SignedMessage {
     using SignedMessage::SignedMessage;
   };
@@ -128,7 +148,7 @@ namespace kagome::consensus::grandpa {
   struct GrandpaJustification {
     RoundNumber round_number;
     BlockInfo block_info;
-    std::vector<SignedMessage> items;
+    std::vector<SignedPrecommit> items{};
   };
 
   template <class Stream,

@@ -61,14 +61,14 @@ namespace kagome::consensus::grandpa {
                                        MembershipCounter set_id,
                                        RoundNumber round_number));
 
-    MOCK_METHOD6(
-        onCatchUpResponsed,
-        outcome::result<void>(const libp2p::peer::PeerId &peer_id,
-                              MembershipCounter set_id,
-                              RoundNumber round_number,
-                              GrandpaJustification prevote_justification,
-                              GrandpaJustification precommit_justification,
-                              BlockInfo best_final_candidate));
+    MOCK_METHOD6(onCatchUpResponsed,
+                 outcome::result<void>(
+                     const libp2p::peer::PeerId &peer_id,
+                     MembershipCounter set_id,
+                     RoundNumber round_number,
+                     std::vector<SignedPrevote> prevote_justification,
+                     std::vector<SignedPrecommit> precommit_justification,
+                     BlockInfo best_final_candidate));
   };
 
 }  // namespace kagome::consensus::grandpa
