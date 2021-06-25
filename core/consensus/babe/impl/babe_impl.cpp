@@ -33,7 +33,7 @@ namespace kagome::consensus::babe {
       const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::unique_ptr<clock::Timer> timer,
+      std::shared_ptr<clock::Ticker> ticker,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util)
@@ -49,7 +49,7 @@ namespace kagome::consensus::babe {
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
-        timer_{std::move(timer)},
+        ticker_{std::move(ticker)},
         authority_update_observer_(std::move(authority_update_observer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
@@ -67,15 +67,6 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(babe_util_);
 
     app_state_manager_->atLaunch([this] { return start(); });
-  }
-
-  BabeTimePoint closestNextTimeMultiple(BabeTimePoint from,
-                                        BabeDuration multiple) {
-    if (multiple.count() == 0) return from;
-
-    const auto remainder = from.time_since_epoch() % multiple;
-
-    return from + multiple - remainder;
   }
 
   bool BabeImpl::start() {
@@ -106,17 +97,12 @@ namespace kagome::consensus::babe {
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    SL_DEBUG(
-        log_,
-        "Starting an epoch {}. Session key: {}. First slot ending time: {}",
-        epoch.epoch_number,
-        keypair_->public_key.toHex(),
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            epoch.starting_slot_finish_time.time_since_epoch())
-            .count());
+    SL_DEBUG(log_,
+             "Starting an epoch {}. Session key: {}",
+             epoch.epoch_number,
+             keypair_->public_key.toHex());
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
-    next_slot_finish_time_ = current_epoch_.starting_slot_finish_time;
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
 
@@ -146,7 +132,7 @@ namespace kagome::consensus::babe {
                 // all blocks were successfully applied, now we need to get
                 // slot time
                 if (self->keypair_) {
-                  self->current_state_ = State::NEED_SLOT_TIME;
+                  self->current_state_ = State::SYNCHRONIZED;
                 }
               }
             });
@@ -188,15 +174,10 @@ namespace kagome::consensus::babe {
       auto time_since_epoch = now.time_since_epoch();
 
       auto ticks_since_epoch = time_since_epoch.count();
-      last_epoch_descriptor.start_slot =
-          static_cast<BabeSlotNumber>(
-              ticks_since_epoch / babe_configuration_->slot_duration.count())
-          + 1;
+      last_epoch_descriptor.start_slot = static_cast<BabeSlotNumber>(
+          ticks_since_epoch / babe_configuration_->slot_duration.count());
 
       last_epoch_descriptor.epoch_number = 0;
-
-      last_epoch_descriptor.starting_slot_finish_time =
-          closestNextTimeMultiple(now, babe_configuration_->slot_duration);
     }
 
     auto [number, hash] = block_tree_->deepestLeaf();
@@ -223,48 +204,19 @@ namespace kagome::consensus::babe {
   void BabeImpl::runSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    bool rewind_slots;  // NOLINT
-    auto slot = current_slot_;
-    do {
-      // check that we are really in the middle of the slot, as expected; we can
-      // cooperate with a relatively little (kMaxLatency) latency, as our node
-      // will be able to retrieve
-      auto now = clock_->now();
-
-      rewind_slots = now > next_slot_finish_time_
-                     and (now - next_slot_finish_time_)
-                             > babe_configuration_->slot_duration;
-
-      if (rewind_slots) {
-        // we are too far behind; after skipping some slots (but not epochs)
-        // control will be returned to this method
-
-        current_slot_++;
-        next_slot_finish_time_ += babe_configuration_->slot_duration;
-
-        if (current_epoch_.epoch_number
-            != babe_util_->slotToEpoch(current_slot_)) {
-          startNextEpoch();
-        }
-      } else if (slot < current_slot_) {
-        log_->info("Slots {}..{} was skipped", slot, current_slot_ - 1);
-      }
-    } while (rewind_slots);
-
-    log_->info("Starting a slot {} in epoch {}",
-               current_slot_,
-               current_epoch_.epoch_number);
-
     // everything is OK: wait for the end of the slot
-    timer_->expiresAt(next_slot_finish_time_);
-    timer_->asyncWait([this](auto &&ec) {
+    ticker_->asyncCallRepeatedly([this](auto &&ec) {
+      log_->info("Starting a slot {} in epoch {}",
+                 current_slot_,
+                 current_epoch_.epoch_number);
       if (ec) {
-        log_->error("error happened while waiting on the timer: {}",
+        log_->error("error happened while waiting on the ticker: {}",
                     ec.message());
         return;
       }
       finishSlot();
     });
+    ticker_->start();
   }
 
   void BabeImpl::finishSlot() {
@@ -300,14 +252,17 @@ namespace kagome::consensus::babe {
              current_slot_,
              current_epoch_.epoch_number);
 
-    ++current_slot_;
-    next_slot_finish_time_ += babe_configuration_->slot_duration;
+    const auto now = clock_->now();
+    auto time_since_epoch = now.time_since_epoch();
+    auto ticks_since_epoch = time_since_epoch.count();
+    current_slot_ =
+        static_cast<BabeSlotNumber>(
+            ticks_since_epoch / babe_configuration_->slot_duration.count())
+        + 1;
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       startNextEpoch();
     }
-
-    runSlot();
   }
 
   outcome::result<primitives::PreRuntime> BabeImpl::babePreDigest(
@@ -429,13 +384,15 @@ namespace kagome::consensus::babe {
     block.header.digest.emplace_back(seal_res.value());
 
     // check that we are still in the middle of the
-    if (clock_->now()
-        > next_slot_finish_time_ + babe_configuration_->slot_duration) {
-      log_->warn(
-          "Block was not built in time. Slot has finished. If you are "
-          "executing in debug mode, consider to rebuild in release");
-      return;
-    }
+    /*
+     * if (clock_->now()
+     *     > next_slot_finish_time_ + babe_configuration_->slot_duration) {
+     *   log_->warn(
+     *       "Block was not built in time. Slot has finished. If you are "
+     *       "executing in debug mode, consider to rebuild in release");
+     *   return;
+     * }
+     */
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
@@ -507,10 +464,8 @@ namespace kagome::consensus::babe {
     current_epoch_.start_slot = current_slot_;
     slots_leadership_.reset();
 
-    [[maybe_unused]] auto res =
-        babe_util_->setLastEpoch({current_epoch_.epoch_number,
-                                  current_epoch_.start_slot,
-                                  next_slot_finish_time_});
+    [[maybe_unused]] auto res = babe_util_->setLastEpoch(
+        {current_epoch_.epoch_number, current_epoch_.start_slot});
   }
 
   EpochDescriptor BabeImpl::prepareFirstEpochUnixTime(
@@ -520,7 +475,8 @@ namespace kagome::consensus::babe {
     const auto start_slot =
         first_production_slot
         - ((first_production_slot - last_known_epoch.start_slot)
-           % epoch_duration);
+           % epoch_duration)
+        + 1;
     auto slot_duration = babe_configuration_->slot_duration;
 
     // get new epoch index
@@ -550,10 +506,6 @@ namespace kagome::consensus::babe {
     const auto last_known_epoch = babe_util_->getLastEpoch().value();
     epoch = prepareFirstEpochUnixTime(last_known_epoch,
                                       babe_header.slot_number + 1);
-
-    // calculate new epoch first slot finish time and run epoch
-    epoch.starting_slot_finish_time = BabeTimePoint{
-        (epoch.start_slot + 1) * babe_configuration_->slot_duration};
 
     runEpoch(epoch);
 

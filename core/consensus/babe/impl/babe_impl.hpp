@@ -14,7 +14,7 @@
 #include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
-#include "clock/timer.hpp"
+#include "clock/ticker.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_gossiper.hpp"
 #include "consensus/babe/babe_lottery.hpp"
@@ -64,7 +64,7 @@ namespace kagome::consensus::babe {
              const std::shared_ptr<crypto::Sr25519Keypair>& keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
-             std::unique_ptr<clock::Timer> timer,
+             std::shared_ptr<clock::Ticker> ticker,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
              std::shared_ptr<BabeUtil> babe_util);
@@ -147,7 +147,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
-    std::unique_ptr<clock::Timer> timer_;
+    std::shared_ptr<clock::Ticker> ticker_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
@@ -156,16 +156,11 @@ namespace kagome::consensus::babe {
 
     EpochDescriptor current_epoch_;
 
-    /// Estimates of the first block production slot time. Input for the median
-    /// algorithm
-    std::vector<BabeTimePoint> first_slot_times_{};
-
     /// Number of blocks we need to use in median algorithm to get the slot time
     const uint32_t kSlotTail = 30;
 
     BabeSlotNumber current_slot_{};
     boost::optional<BabeLottery::SlotsLeadership> slots_leadership_;
-    BabeTimePoint next_slot_finish_time_;
 
     std::function<void()> on_synchronized_;
 
