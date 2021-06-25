@@ -32,14 +32,22 @@ namespace kagome::consensus {
     }
   }
 
+  BabeSlotNumber BabeUtilImpl::getCurrentSlot() const {
+    return static_cast<BabeSlotNumber>(clock_.now().time_since_epoch()
+                                       / babe_configuration_->slot_duration);
+  }
+
+  BabeDuration BabeUtilImpl::slotStartsIn(BabeSlotNumber slot) const {
+    return slot * babe_configuration_->slot_duration
+           - clock_.now().time_since_epoch();
+  }
+
   BabeSlotNumber BabeUtilImpl::getGenesisSlotNumber() {
     if (genesis_slot_number_.has_value()) {
       return genesis_slot_number_.value();
     }
 
-    auto ticks_since_epoch = clock_.now().time_since_epoch().count();
-    return static_cast<BabeSlotNumber>(
-        ticks_since_epoch / babe_configuration_->slot_duration.count());
+    return getCurrentSlot();
   }
 
   EpochNumber BabeUtilImpl::slotToEpoch(BabeSlotNumber slot) const {

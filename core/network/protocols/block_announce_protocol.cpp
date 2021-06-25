@@ -202,7 +202,7 @@ namespace kagome::network {
             if (self_status.value().best_block == remote_status.best_block
                 && self_status.value().roles.flags.authority
                 && remote_status.roles.flags.authority) {
-              self->babe_observer_->onSync();
+              self->babe_observer_->onPeerSync();
             }
           }
 

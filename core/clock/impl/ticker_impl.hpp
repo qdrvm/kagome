@@ -22,9 +22,11 @@ namespace kagome::clock {
 
     ~TickerImpl() override = default;
 
-    void start() override;
+    void start(uint64_t msec) override;
 
     void stop() override;
+
+    bool isStarted() override;
 
     void asyncCallRepeatedly(
         std::function<void(const std::error_code &)> h) override;
@@ -33,6 +35,7 @@ namespace kagome::clock {
 
    private:
     bool callback_set_;
+    bool started_;
     boost::asio::basic_waitable_timer<std::chrono::system_clock> timer_;
     std::function<void(const std::error_code &)> callback_;
     uint64_t interval_;

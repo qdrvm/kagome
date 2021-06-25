@@ -21,6 +21,10 @@ namespace kagome::consensus {
         std::shared_ptr<storage::BufferStorage> storage,
         const BabeClock &clock);
 
+    BabeSlotNumber getCurrentSlot() const override;
+
+    BabeDuration slotStartsIn(BabeSlotNumber slot) const override;
+
     EpochNumber slotToEpoch(BabeSlotNumber slot) const override;
 
     BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const override;

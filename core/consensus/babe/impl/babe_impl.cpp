@@ -106,7 +106,23 @@ namespace kagome::consensus::babe {
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
 
-    runSlot();
+    // main babe block production loop is here
+    ticker_->asyncCallRepeatedly([this](auto &&ec) {
+      log_->info("Starting a slot {} in epoch {}",
+                 current_slot_,
+                 current_epoch_.epoch_number);
+      if (ec) {
+        log_->error("error happened while waiting on the ticker: {}",
+                    ec.message());
+        return;
+      }
+      finishSlot();
+    });
+    auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    babe_util_->slotStartsIn(current_slot_))
+                    .count();
+    SL_TRACE(log_, "Babe starts in {} msec", msec);
+    ticker_->start(msec);
   }
 
   Babe::State BabeImpl::getCurrentState() const {
@@ -131,53 +147,37 @@ namespace kagome::consensus::babe {
                 self->log_->info("Catching up is done, getting slot time");
                 // all blocks were successfully applied, now we need to get
                 // slot time
-                if (self->keypair_) {
-                  self->current_state_ = State::SYNCHRONIZED;
-                }
+                self->current_state_ = State::SYNCHRONIZED;
               }
-            });
-        break;
-      case State::NEED_SLOT_TIME:
-        // if block is new add it to the storage and sync missing blocks. Then
-        // calculate slot time and execute babe
-        block_executor_->processNextBlock(
-            peer_id, announce.header, [this](const auto &header) {
-              synchronizeSlots(header);
             });
         break;
       case State::CATCHING_UP:
       case State::SYNCHRONIZED:
         block_executor_->processNextBlock(
-            peer_id, announce.header, [](auto &) {});
+            peer_id, announce.header, [this](const auto &header) {
+              synchronizeSlots(header);
+            });
         break;
     }
   }
 
-  void BabeImpl::onSync() {
+  void BabeImpl::onPeerSync() {
     // sync already started no need to call it again
-    if (current_state_ != State::WAIT_BLOCK) {
+    if (ticker_->isStarted()) {
       return;
     }
 
-    // won't start sync without keypair
+    // won't start block production without keypair
     if (not keypair_) {
       return;
     }
 
-    current_state_ = State::SYNCHRONIZED;
-
     EpochDescriptor last_epoch_descriptor;
-    const auto now = clock_->now();
     if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
       last_epoch_descriptor = res.value();
     } else {
-      auto time_since_epoch = now.time_since_epoch();
-
-      auto ticks_since_epoch = time_since_epoch.count();
-      last_epoch_descriptor.start_slot = static_cast<BabeSlotNumber>(
-          ticks_since_epoch / babe_configuration_->slot_duration.count());
-
       last_epoch_descriptor.epoch_number = 0;
+      last_epoch_descriptor.start_slot = babe_util_->getCurrentSlot() + 1;
     }
 
     auto [number, hash] = block_tree_->deepestLeaf();
@@ -199,24 +199,6 @@ namespace kagome::consensus::babe {
     } else {
       on_synchronized_ = std::move(handler);
     }
-  }
-
-  void BabeImpl::runSlot() {
-    BOOST_ASSERT(keypair_ != nullptr);
-
-    // everything is OK: wait for the end of the slot
-    ticker_->asyncCallRepeatedly([this](auto &&ec) {
-      log_->info("Starting a slot {} in epoch {}",
-                 current_slot_,
-                 current_epoch_.epoch_number);
-      if (ec) {
-        log_->error("error happened while waiting on the ticker: {}",
-                    ec.message());
-        return;
-      }
-      finishSlot();
-    });
-    ticker_->start();
   }
 
   void BabeImpl::finishSlot() {
@@ -252,13 +234,7 @@ namespace kagome::consensus::babe {
              current_slot_,
              current_epoch_.epoch_number);
 
-    const auto now = clock_->now();
-    auto time_since_epoch = now.time_since_epoch();
-    auto ticks_since_epoch = time_since_epoch.count();
-    current_slot_ =
-        static_cast<BabeSlotNumber>(
-            ticks_since_epoch / babe_configuration_->slot_duration.count())
-        + 1;
+    current_slot_ = babe_util_->getCurrentSlot() + 1;
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       startNextEpoch();
@@ -477,12 +453,7 @@ namespace kagome::consensus::babe {
         - ((first_production_slot - last_known_epoch.start_slot)
            % epoch_duration)
         + 1;
-    auto slot_duration = babe_configuration_->slot_duration;
-
-    // get new epoch index
-    const auto ticks_since_epoch = clock_->now().time_since_epoch().count();
-    const auto genesis_slot =
-        static_cast<BabeSlotNumber>(ticks_since_epoch / slot_duration.count());
+    const auto genesis_slot = babe_util_->getCurrentSlot();
     const auto epoch_number = (first_production_slot - genesis_slot)
                               / babe_configuration_->epoch_length;
 
@@ -491,7 +462,10 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {
-    static boost::optional<BabeSlotNumber> first_production_slot = boost::none;
+    // skip logic without keypair, wait next block announce
+    if (not keypair_) {
+      return;
+    }
 
     const auto &babe_digests_res = getBabeDigests(new_header);
     if (not babe_digests_res) {
@@ -507,10 +481,10 @@ namespace kagome::consensus::babe {
     epoch = prepareFirstEpochUnixTime(last_known_epoch,
                                       babe_header.slot_number + 1);
 
-    runEpoch(epoch);
-
-    if (auto on_synchronized = std::move(on_synchronized_)) {
-      on_synchronized();
+    // runEpoch starts ticker
+    if (not ticker_->isStarted()) {
+      runEpoch(epoch);
+      on_synchronized_();
     }
   }
 }  // namespace kagome::consensus::babe

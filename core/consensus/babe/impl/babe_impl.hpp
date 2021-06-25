@@ -80,16 +80,11 @@ namespace kagome::consensus::babe {
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;
 
-    void onSync() override;
+    void onPeerSync() override;
 
     void doOnSynchronized(std::function<void()> handler) override;
 
    private:
-    /**
-     * Run the next Babe slot
-     */
-    void runSlot();
-
     /**
      * Finish the current Babe slot
      */
