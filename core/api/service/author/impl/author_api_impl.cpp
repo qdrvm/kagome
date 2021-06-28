@@ -80,16 +80,17 @@ namespace kagome::api {
       SL_INFO(logger_, "Unsupported key type, only BABE and GRAN are accepted");
       return outcome::failure(crypto::CryptoStoreError::UNSUPPORTED_KEY_TYPE);
     };
-    if (crypto::KEY_TYPE_BABE == key_type && store_->getBabeKeypair()) {
+    if (crypto::KEY_TYPE_BABE == key_type && keys_->getBabeKeyPair()) {
       SL_INFO(logger_, "Babe key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::BABE_ALREADY_EXIST);
     }
-    if (crypto::KEY_TYPE_GRAN == key_type && store_->getGrandpaKeypair()) {
+    if (crypto::KEY_TYPE_GRAN == key_type && keys_->getGranKeyPair()) {
       SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
     }
     auto res = key_store_->saveKeypair(key_type, public_key, seed);
     keys_->getBabeKeyPair();
+    keys_->getGranKeyPair();
     return res;
   }
 

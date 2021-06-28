@@ -9,6 +9,8 @@
 #include <functional>
 #include <system_error>
 
+#include "clock/clock.hpp"
+
 namespace kagome::clock {
   /**
    * Interface for asynchronous ticker
@@ -17,9 +19,9 @@ namespace kagome::clock {
     virtual ~Ticker() = default;
 
     /**
-     * start ticker after msec
+     * start ticker after duration
      */
-    virtual void start(uint64_t msec) = 0;
+    virtual void start(clock::SystemClock::Duration duration) = 0;
 
     /**
      * cancel ticker

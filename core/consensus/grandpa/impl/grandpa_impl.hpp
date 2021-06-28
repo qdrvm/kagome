@@ -37,7 +37,7 @@ namespace kagome::consensus::grandpa {
                 std::shared_ptr<storage::BufferStorage> storage,
                 std::shared_ptr<crypto::Ed25519Provider> crypto_provider,
                 std::shared_ptr<runtime::GrandpaApi> grandpa_api,
-                std::shared_ptr<crypto::Ed25519Keypair> keypair,
+                const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
                 std::shared_ptr<authority::AuthorityManager> authority_manager,
@@ -101,7 +101,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Ed25519Provider> crypto_provider_;
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
-    std::shared_ptr<crypto::Ed25519Keypair> keypair_;
+    const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;

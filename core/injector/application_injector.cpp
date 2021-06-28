@@ -1050,33 +1050,6 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<crypto::Ed25519Keypair> get_ed25519_keypair(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<crypto::Ed25519Keypair>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    const auto &config =
-        injector.template create<application::AppConfiguration const &>();
-    if (config.roles().flags.authority == 0) {
-      return {};
-    }
-
-    auto const &crypto_store =
-        injector.template create<const crypto::CryptoStore &>();
-    auto &&ed25519_kp = crypto_store.getGrandpaKeypair();
-    if (not ed25519_kp) {
-      auto log = log::createLogger("Injector", "injector");
-      log->error("Failed to get GRANDPA keypair");
-      return {};
-    }
-
-    initialized = std::make_shared<crypto::Ed25519Keypair>(ed25519_kp.value());
-    return initialized.value();
-  }
-
-  template <typename Injector>
   sptr<network::OwnPeerInfo> get_own_peer_info(const Injector &injector) {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
@@ -1193,13 +1166,15 @@ namespace {
       return initialized.value();
     }
 
+    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+
     initialized = std::make_shared<consensus::grandpa::GrandpaImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Ed25519Provider>>(),
         injector.template create<sptr<runtime::GrandpaApi>>(),
-        injector.template create<sptr<crypto::Ed25519Keypair>>(),
+        session_keys->getGranKeyPair(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
@@ -1220,9 +1195,6 @@ namespace {
 
     return di::make_injector(
         makeApplicationInjector(app_config),
-        // bind ed25519 keypair
-        di::bind<crypto::Ed25519Keypair>.to(
-            [](auto const &injector) { return get_ed25519_keypair(injector); }),
         // compose peer info
         di::bind<network::OwnPeerInfo>.to(
             [](const auto &injector) { return get_own_peer_info(injector); }),

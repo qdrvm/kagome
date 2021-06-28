@@ -22,7 +22,7 @@ namespace kagome::clock {
 
     ~TickerImpl() override = default;
 
-    void start(uint64_t msec) override;
+    void start(clock::SystemClock::Duration duration) override;
 
     void stop() override;
 

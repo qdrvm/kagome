@@ -16,10 +16,10 @@ namespace kagome::clock {
             *io_context}},
         interval_{interval} {}
 
-  void TickerImpl::start(uint64_t msec) {
+  void TickerImpl::start(clock::SystemClock::Duration duration) {
     if (callback_set_) {
       started_ = true;
-      timer_.expires_from_now(boost::asio::chrono::milliseconds(msec));
+      timer_.expires_from_now(duration);
       timer_.async_wait(
           [&](const boost::system::error_code &ec) { on_tick(ec); });
     }

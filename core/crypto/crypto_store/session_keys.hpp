@@ -13,6 +13,7 @@
 namespace kagome::crypto {
 
   class CryptoStore;
+  class Ed25519Keypair;
   class Sr25519Keypair;
 
   // hardcoded keys order for polkadot
@@ -28,6 +29,7 @@ namespace kagome::crypto {
 
   class SessionKeys {
     std::shared_ptr<Sr25519Keypair> babe_key_pair_;
+    std::shared_ptr<Ed25519Keypair> gran_key_pair_;
     network::Roles roles_;
     std::shared_ptr<CryptoStore> store_;
 
@@ -36,7 +38,15 @@ namespace kagome::crypto {
                 const network::Roles &roles);
     ~SessionKeys();
 
+    /**
+     * @return current BABE session key pair
+     */
     const std::shared_ptr<Sr25519Keypair>& getBabeKeyPair();
+
+    /**
+     * @return current GRANDPA session key pair
+     */
+    const std::shared_ptr<Ed25519Keypair>& getGranKeyPair();
   };
 }  // namespace kagome::crypto
 

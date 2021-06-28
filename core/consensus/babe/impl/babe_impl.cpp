@@ -118,11 +118,11 @@ namespace kagome::consensus::babe {
       }
       finishSlot();
     });
-    auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    babe_util_->slotStartsIn(current_slot_))
-                    .count();
+    auto duration = babe_util_->slotStartsIn(current_slot_);
+    auto msec =
+        std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
     SL_TRACE(log_, "Babe starts in {} msec", msec);
-    ticker_->start(msec);
+    ticker_->start(duration);
   }
 
   Babe::State BabeImpl::getCurrentState() const {

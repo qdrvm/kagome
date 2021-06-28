@@ -119,16 +119,6 @@ namespace kagome::crypto {
         KeyTypeId key_type) const = 0;
 
     /**
-     * @return current GRANDPA session key pair
-     */
-    virtual boost::optional<Ed25519Keypair> getGrandpaKeypair() const = 0;
-
-    /**
-     * @return current BABE session key pair
-     */
-    virtual boost::optional<Sr25519Keypair> getBabeKeypair() const = 0;
-
-    /**
      * @return current LibP2P keypair
      */
     virtual boost::optional<libp2p::crypto::KeyPair> getLibp2pKeypair()
