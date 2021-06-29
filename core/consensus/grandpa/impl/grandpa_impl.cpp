@@ -5,15 +5,13 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
-#include <boost/asio/post.hpp>
-#include <storage/database_error.hpp>
-
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "scale/scale.hpp"
+#include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -269,6 +267,18 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  void GrandpaImpl::onNeighborMessage(
+      const libp2p::peer::PeerId &peer_id,
+      const network::GrandpaNeighborMessage &msg) {
+    SL_DEBUG(logger_,
+             "NeighborMessage has received from {}: "
+             "voter_set_id={} round={} last_finalized={}",
+             peer_id.toBase58(),
+             msg.voter_set_id,
+             msg.round_number,
+             msg.last_finalized);
+  }
+
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
     if (not is_ready_) {
@@ -280,7 +290,7 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "previous round is dummy yet",
           msg.round_number,
-          peer_id.toHex());
+          peer_id.toBase58());
       return;
     }
     if (previous_round_->voterSetId() != msg.voter_set_id) {
@@ -290,7 +300,7 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "voter set is different",
           msg.round_number,
-          peer_id.toHex());
+          peer_id.toBase58());
       return;
     }
     if (previous_round_->roundNumber() < msg.round_number) {
@@ -300,7 +310,7 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "catching up in to the past",
           msg.round_number,
-          peer_id.toHex());
+          peer_id.toBase58());
       return;
     }
     if (current_round_->roundNumber() + 2 <= msg.round_number) {
@@ -317,7 +327,7 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "round is not completable",
           msg.round_number,
-          peer_id.toHex());
+          peer_id.toBase58());
       return;
     }
     if (not previous_round_->finalizable()) {
@@ -326,14 +336,14 @@ namespace kagome::consensus::grandpa {
           "Catch-up request (since round #{}) received from {} was rejected: "
           "round is not finalizable",
           msg.round_number,
-          peer_id.toHex());
+          peer_id.toBase58());
       return;
     }
 
     SL_DEBUG(logger_,
              "Catch-up request (since round #{}) received from {}",
              msg.round_number,
-             peer_id.toHex());
+             peer_id.toBase58());
     previous_round_->doCatchUpResponse(peer_id);
   }
 
@@ -350,7 +360,7 @@ namespace kagome::consensus::grandpa {
           "Catch-up response (till round #{}) received from {} was rejected: "
           "catching up in to the past",
           msg.round_number,
-          peer_id.toHex());
+          peer_id.toBase58());
       return;
     }
     if (current_round_->voterSetId() != msg.voter_set_id) {
@@ -360,14 +370,14 @@ namespace kagome::consensus::grandpa {
           "Catch-up response (till round #{}) received from {} was rejected: "
           "voter set is different",
           msg.round_number,
-          peer_id.toHex());
+          peer_id.toBase58());
       return;
     }
 
     SL_DEBUG(logger_,
              "Catch-up response (till round #{}) received from {}",
              msg.round_number,
-             peer_id.toHex());
+             peer_id.toBase58());
 
     MovableRoundState round_state{
         .round_number = msg.round_number,

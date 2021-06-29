@@ -58,6 +58,7 @@ namespace kagome::network {
     getPropagateTransactionsProtocol() const override;
     std::shared_ptr<SupProtocol> getSupProtocol() const override;
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
+    std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const override;
 
    private:
     /**
