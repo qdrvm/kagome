@@ -6,7 +6,7 @@ namespace kagome::crypto {
 
   SessionKeys::SessionKeys(std::shared_ptr<CryptoStore> store,
                            const network::Roles &roles)
-      : store_(store), roles_(roles) {}
+      : roles_(roles), store_(store) {}
 
   SessionKeys::~SessionKeys() {
     std::cout << "Die, motherfucker, die!" << std::endl;
