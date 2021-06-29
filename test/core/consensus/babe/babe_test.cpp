@@ -235,8 +235,6 @@ ACTION_P(CheckBlockHeader, expected_block_header) {
  * the next epoch
  */
 TEST_F(BabeTest, Success) {
-  auto test_begin = real_clock_.now();
-
   Randomness randomness;
   EXPECT_CALL(*lottery_, slotsLeadership(epoch_, randomness, _, *keypair_))
       .WillOnce(Return(leadership_));
@@ -261,6 +259,7 @@ TEST_F(BabeTest, Success) {
 
   EXPECT_CALL(*babe_util_, getCurrentSlot())
       .WillOnce(Return(epoch_.start_slot))
+      .WillOnce(Return(epoch_.start_slot + 1))
       .WillOnce(Return(epoch_.start_slot + 1));
 
   EXPECT_CALL(*proposer_, propose(best_block_number_, _, _))

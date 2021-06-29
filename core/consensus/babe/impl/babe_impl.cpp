@@ -360,15 +360,12 @@ namespace kagome::consensus::babe {
     block.header.digest.emplace_back(seal_res.value());
 
     // check that we are still in the middle of the
-    /*
-     * if (clock_->now()
-     *     > next_slot_finish_time_ + babe_configuration_->slot_duration) {
-     *   log_->warn(
-     *       "Block was not built in time. Slot has finished. If you are "
-     *       "executing in debug mode, consider to rebuild in release");
-     *   return;
-     * }
-     */
+    if (current_slot_ != babe_util_->getCurrentSlot()) {
+      log_->warn(
+          "Block was not built in time. Slot has finished. If you are "
+          "executing in debug mode, consider to rebuild in release");
+      return;
+    }
 
     // observe possible changes of authorities
     for (auto &digest_item : block.header.digest) {
@@ -474,7 +471,6 @@ namespace kagome::consensus::babe {
     }
 
     const auto &[_, babe_header] = babe_digests_res.value();
-    auto observed_slot = babe_header.slot_number;
 
     EpochDescriptor epoch;
     const auto last_known_epoch = babe_util_->getLastEpoch().value();
