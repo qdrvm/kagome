@@ -34,10 +34,6 @@ namespace kagome::runtime::wavm {
   const WAVM::IR::MemoryType kIntrinsicMemoryType{
       WAVM::IR::MemoryType(false, WAVM::IR::IndexType::i32, {20, UINT64_MAX})};
 
-  static WAVM::Intrinsics::Memory env_memory{getIntrinsicModule_env(),
-                                             kIntrinsicMemoryName.data(),
-                                             kIntrinsicMemoryType};
-
   void registerHostApiMethods(IntrinsicResolver& resolver, const host_api::HostApi& host_api) {
 
 #define GENERATE_HOST_INTRINSIC(Ret, name, ...) \

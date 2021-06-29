@@ -395,7 +395,7 @@ namespace kagome::application {
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
         ("already-synchronized,s", "if need to consider synchronized")
-        ("runtime-backend", po::value<std::string>(), "choose the runtime backend")
+        ("runtime-backend", po::value<std::string>()->default_value("binaryen"), "choose the runtime backend")
         ("unix-slots,u", "if slots are calculated from unix epoch")
         ;
 
@@ -710,7 +710,7 @@ namespace kagome::application {
 
     boost::optional<RuntimeBackend> runtime_backend_opt;
     find_argument<std::string>(
-        vm, "name", [&runtime_backend_opt](std::string const &val) {
+        vm, "runtime-backend", [&runtime_backend_opt](std::string const &val) {
           runtime_backend_opt = str_to_runtime_backend(val);
         });
     if (not runtime_backend_opt) {

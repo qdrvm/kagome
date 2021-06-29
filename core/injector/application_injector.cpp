@@ -13,7 +13,6 @@
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #undef U64  // comes from OpenSSL and messes with WAVM
-#include <WAVM/Runtime/Runtime.h>
 #include <libp2p/injector/kademlia_injector.hpp>
 #include <libp2p/log/configurator.hpp>
 
@@ -86,7 +85,9 @@
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
 #include "outcome/outcome.hpp"
+#include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+#include "runtime/binaryen/core_api_provider.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/module/wasm_module_impl.hpp"
 #include "runtime/binaryen/module/wasm_module_instance_impl.hpp"
@@ -777,7 +778,9 @@ namespace {
   }
 
   template <typename... Ts>
-  auto makeWavmInjector(application::AppConfiguration::RuntimeBackend chosen_backend, Ts &&...args) {
+  auto makeWavmInjector(
+      application::AppConfiguration::RuntimeBackend chosen_backend,
+      Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::Memory>.template to([](auto const &injector) {
           static auto memory =
@@ -787,16 +790,8 @@ namespace {
                   ->getMemory();
           return memory;
         }),
-        di::bind<runtime::MemoryProvider>.template to([](const auto &injector) {
-          static auto initialized = [&injector]() {
-            auto instance = injector.template create<
-                std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>>();
-            return std::make_shared<runtime::wavm::WavmMemoryProvider>(
-                instance);
-          }();
-          return initialized;
-        }),
-        di::bind<host_api::HostApi>.template to([chosen_backend](auto const &injector)
+        di::bind<host_api::HostApi>.template to([chosen_backend](
+                                                    auto const &injector)
                                                     -> std::shared_ptr<
                                                         host_api::HostApi> {
           static boost::optional<std::shared_ptr<host_api::HostApi>> host_api;
@@ -807,10 +802,10 @@ namespace {
           host_api = boost::make_optional(
               injector
                   .template create<std::shared_ptr<host_api::HostApiImpl>>());
-          if (chosen_backend == application::AppConfiguration::RuntimeBackend::WAVM) {
-            auto executor =
-                injector
-                    .template create<std::shared_ptr<runtime::wavm::Executor>>();
+          if (chosen_backend
+              == application::AppConfiguration::RuntimeBackend::WAVM) {
+            auto executor = injector.template create<
+                std::shared_ptr<runtime::wavm::Executor>>();
             executor->setHostApi(host_api.value());
             auto resolver = injector.template create<
                 std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
@@ -907,7 +902,8 @@ namespace {
   }
 
   template <typename... Ts>
-  auto makeBinaryenInjector(application::AppConfiguration::RuntimeBackend, Ts &&...args) {
+  auto makeBinaryenInjector(application::AppConfiguration::RuntimeBackend,
+                            Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
         di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
@@ -916,24 +912,128 @@ namespace {
         std::forward<decltype(args)>(args)...);
   }
 
+  template <typename CommonType,
+            typename BinaryenType,
+            typename WavmType,
+            typename Injector>
+  auto choose_runtime_implementation(
+      Injector const &injector,
+      application::AppConfiguration::RuntimeBackend backend) {
+    using RuntimeBackend = application::AppConfiguration::RuntimeBackend;
+    static sptr<CommonType> impl = [backend, &injector]() {
+      switch (backend) {
+        case RuntimeBackend::Binaryen:
+          return std::static_pointer_cast<CommonType>(
+              injector.template create<sptr<BinaryenType>>());
+        case RuntimeBackend::WAVM:
+          return std::static_pointer_cast<CommonType>(
+              injector.template create<sptr<WavmType>>());
+      }
+    }();
+    return impl;
+  }
+
   template <typename... Ts>
-  auto makeRuntimeInjector(application::AppConfiguration::RuntimeBackend backend,
-                           Ts &&...args) {
+  auto makeRuntimeInjector(
+      application::AppConfiguration::RuntimeBackend backend, Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         makeWavmInjector(backend),
         makeBinaryenInjector(backend),
-        di::bind<runtime::CoreApiProvider>.template to<runtime::wavm::CoreApiProvider>(),
-        di::bind<runtime::TaggedTransactionQueue>.template to<runtime::wavm::WavmTaggedTransactionQueue>(),
-        di::bind<runtime::ParachainHost>.template to<runtime::wavm::WavmParachainHost>(),
-        di::bind<runtime::OffchainWorker>.template to<runtime::wavm::WavmOffchainWorker>(),
-        di::bind<runtime::Metadata>.template to<runtime::wavm::WavmMetadata>(),
-        di::bind<runtime::GrandpaApi>.template to<runtime::wavm::WavmGrandpaApi>(),
-        di::bind<runtime::Core>.template to<runtime::wavm::WavmCore>(),
-        di::bind<runtime::BabeApi>.template to<runtime::wavm::WavmBabeApi>(),
-        di::bind<runtime::BlockBuilder>.template to<runtime::wavm::WavmBlockBuilder>(),
-        di::bind<runtime::TransactionPaymentApi>.template to<runtime::wavm::WavmTransactionPaymentApi>(),
-        di::bind<runtime::AccountNonceApi>.template to<runtime::wavm::WavmAccountNonceApi>(),
+        di::bind<runtime::MemoryProvider>.template to([backend](const auto
+                                                                    &injector) {
+          static auto initialized =
+              [&injector, backend]() -> sptr<runtime::MemoryProvider> {
+            switch (backend) {
+              case application::AppConfiguration::RuntimeBackend::WAVM: {
+                auto instance = injector.template create<
+                    std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>>();
+                return std::make_shared<runtime::wavm::WavmMemoryProvider>(
+                    instance);
+              }
+              case application::AppConfiguration::RuntimeBackend::Binaryen:
+                return injector.template create<std::shared_ptr<
+                    runtime::binaryen::BinaryenMemoryProvider>>();
+            }
+          }();
+          return initialized;
+        }),
+        di::bind<runtime::CoreApiProvider>.template to(
+            [backend](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::CoreApiProvider,
+                  runtime::binaryen::BinaryenCoreApiProvider,
+                  runtime::wavm::CoreApiProvider>(injector, backend);
+            }),
+        di::bind<runtime::TaggedTransactionQueue>.template to(
+            [backend](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::TaggedTransactionQueue,
+                  runtime::binaryen::TaggedTransactionQueueImpl,
+                  runtime::wavm::WavmTaggedTransactionQueue>(injector, backend);
+            }),
+        di::bind<runtime::ParachainHost>.template to(
+            [backend](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::ParachainHost,
+                  runtime::binaryen::ParachainHostImpl,
+                  runtime::wavm::WavmParachainHost>(injector, backend);
+            }),
+        di::bind<runtime::OffchainWorker>.template to(
+            [backend](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::OffchainWorker,
+                  runtime::binaryen::OffchainWorkerImpl,
+                  runtime::wavm::WavmOffchainWorker>(injector, backend);
+            }),
+        di::bind<runtime::Metadata>.template to([backend](
+                                                    const auto &injector) {
+          return choose_runtime_implementation<runtime::Metadata,
+                                               runtime::binaryen::MetadataImpl,
+                                               runtime::wavm::WavmMetadata>(
+              injector, backend);
+        }),
+        di::bind<runtime::GrandpaApi>.template to(
+            [backend](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::GrandpaApi,
+                  runtime::binaryen::GrandpaApiImpl,
+                  runtime::wavm::WavmGrandpaApi>(injector, backend);
+            }),
+        di::bind<runtime::Core>.template to([backend](const auto &injector) {
+          return choose_runtime_implementation<runtime::Core,
+                                               runtime::binaryen::CoreImpl,
+                                               runtime::wavm::WavmCore>(
+              injector, backend);
+        }),
+        di::bind<runtime::BabeApi>.template to([backend](
+                                                   const auto &injector) {
+          return choose_runtime_implementation<runtime::BabeApi,
+                                               runtime::binaryen::BabeApiImpl,
+                                               runtime::wavm::WavmBabeApi>(
+              injector, backend);
+        }),
+        di::bind<runtime::BlockBuilder>.template to(
+            [backend](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::BlockBuilder,
+                  runtime::binaryen::BlockBuilderImpl,
+                  runtime::wavm::WavmBlockBuilder>(injector, backend);
+            }),
+        di::bind<runtime::TransactionPaymentApi>.template to(
+            [backend](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::TransactionPaymentApi,
+                  runtime::binaryen::TransactionPaymentApiImpl,
+                  runtime::wavm::WavmTransactionPaymentApi>(injector, backend);
+            }),
+        di::bind<runtime::AccountNonceApi>.template to(
+            [backend](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::AccountNonceApi,
+                  runtime::binaryen::AccountNonceApiImpl,
+                  runtime::wavm::WavmAccountNonceApi>(injector, backend);
+            }),
         std::forward<Ts>(args)...);
   }
 
@@ -1408,8 +1508,7 @@ namespace {
             [](auto const &injector) { return get_babe(injector); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(
-            [](auto const &injector) { return get_babe(injector); }),
-        di::bind<runtime::GrandpaApi>.template to<runtime::wavm::WavmGrandpaApi>()
+            [](auto const &injector) { return get_babe(injector); })
             [di::override],
 
         // user-defined overrides...

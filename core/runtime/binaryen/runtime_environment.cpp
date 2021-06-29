@@ -8,8 +8,8 @@
 #include "crypto/hasher.hpp"
 #include "runtime/binaryen/module/wasm_module.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
-#include "runtime/memory_provider.hpp"
 #include "runtime/memory.hpp"
+#include "runtime/memory_provider.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime::binaryen {
@@ -35,7 +35,15 @@ namespace kagome::runtime::binaryen {
     memory.value()->setHeapBase(heap_base);
     memory.value()->reset();
 
-    return RuntimeEnvironment{std::move(module_instance), std::move(memory.value())};
+    return RuntimeEnvironment{std::move(module_instance),
+                              std::move(memory.value()),
+                              rei};
+  }
+
+  RuntimeEnvironment::~RuntimeEnvironment() {
+    if(rei) {
+      rei->reset();
+    }
   }
 
 }  // namespace kagome::runtime::binaryen

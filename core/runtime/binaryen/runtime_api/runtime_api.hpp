@@ -143,7 +143,7 @@ namespace kagome::runtime::binaryen {
         SL_DEBUG(logger_, "Resetting state to: {}", state_root.value().toHex());
       }
 
-      auto &&[module_instance, memory] =
+      auto &&[module_instance, memory, rei] =
           createRuntimeEnvironment(config, state_root);
 
       gsl::final_action dispose(

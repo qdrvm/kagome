@@ -23,7 +23,7 @@ target_link_libraries(application_injector
     metrics
     state_api_service
     key_file_storage
-
+    binaryen_core_api_provider
     trie_storage
     polkadot_trie
     polkadot_trie_factory
@@ -63,7 +63,15 @@ target_link_libraries(application_injector
     binaryen_wasm_module
     binaryen_block_builder_api
     binaryen_grandpa_api
+    binaryen_babe_api
     binaryen_core_api
+    binaryen_metadata_api
+    binaryen_tagged_transaction_queue_api
+    binaryen_transaction_payment_api
+    binaryen_account_nonce_api
+    binaryen_runtime_environment
+    binaryen_runtime_environment_factory
+    binaryen_wasm_memory_factory
     system_api_service
     trie_storage_provider
     author_api_service

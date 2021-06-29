@@ -6,9 +6,9 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP
 
-#include "runtime/memory_provider.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+#include "runtime/memory_provider.hpp"
 
 namespace wasm {
   class ShellExternalInterface;
@@ -18,10 +18,16 @@ namespace kagome::runtime::binaryen {
 
   class BinaryenMemoryProvider final : public MemoryProvider {
    public:
+    BinaryenMemoryProvider(
+        std::unique_ptr<BinaryenWasmMemoryFactory> memory_factory)
+        : memory_factory_{std::move(memory_factory)} {
+      BOOST_ASSERT(memory_factory_);
+    }
+
     boost::optional<std::shared_ptr<Memory>> getCurrentMemory() const override {
-      return memory_ == nullptr
-                 ? boost::none
-                 : boost::optional<std::shared_ptr<Memory>>{std::static_pointer_cast<Memory>(memory_)};
+      return memory_ == nullptr ? boost::none
+                                : boost::optional<std::shared_ptr<Memory>>{
+                                    std::static_pointer_cast<Memory>(memory_)};
     }
 
     void resetMemory(WasmSize heap_base) override {
@@ -38,7 +44,7 @@ namespace kagome::runtime::binaryen {
 
    private:
     wasm::ShellExternalInterface::Memory *internal_memory_;
-    std::unique_ptr<BinaryenWasmMemoryFactory> memory_factory_;
+    std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory_;
     std::shared_ptr<WasmMemoryImpl> memory_;
   };
 
