@@ -45,7 +45,6 @@ groups:
           - name: consensus
             children:
               - name: babe
-                level: trace
                 children:
                   - name: babe_lottery
                   - name: babe_synchronizer
@@ -62,7 +61,6 @@ groups:
               - name: binatien
           - name: metrics
           - name: network
-            level: trace
           - name: changes_trie
           - name: storage
           - name: pubsub

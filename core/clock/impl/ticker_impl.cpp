@@ -9,7 +9,7 @@
 
 namespace kagome::clock {
   TickerImpl::TickerImpl(std::shared_ptr<boost::asio::io_context> io_context,
-                         uint64_t interval)
+                         clock::SystemClock::Duration interval)
       : callback_set_{false},
         started_{false},
         timer_{boost::asio::basic_waitable_timer<std::chrono::system_clock>{
@@ -21,7 +21,7 @@ namespace kagome::clock {
       started_ = true;
       timer_.expires_from_now(duration);
       timer_.async_wait(
-          [&](const boost::system::error_code &ec) { on_tick(ec); });
+          [&](const boost::system::error_code &ec) { onTick(ec); });
     }
   }
 
@@ -40,9 +40,9 @@ namespace kagome::clock {
     callback_set_ = true;
   }
 
-  void TickerImpl::on_tick(const boost::system::error_code &ec) {
+  void TickerImpl::onTick(const boost::system::error_code &ec) {
     callback_(ec);
-    timer_.expires_from_now(boost::asio::chrono::milliseconds(interval_));
-    timer_.async_wait(boost::bind(&TickerImpl::on_tick, this, ec));
+    timer_.expires_from_now(interval_);
+    timer_.async_wait(boost::bind(&TickerImpl::onTick, this, ec));
   }
 }  // namespace kagome::clock

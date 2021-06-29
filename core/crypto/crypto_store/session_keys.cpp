@@ -1,3 +1,8 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "crypto/crypto_store/session_keys.hpp"
 
 #include "crypto/crypto_store.hpp"

@@ -916,8 +916,12 @@ namespace {
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
         di::bind<clock::Ticker>.to([](const auto &injector) {
+          auto conf =
+              injector.template create<sptr<primitives::BabeConfiguration>>();
+
           return std::make_shared<clock::TickerImpl>(
-              injector.template create<sptr<boost::asio::io_context>>(), 6000);
+              injector.template create<sptr<boost::asio::io_context>>(),
+              conf->slot_duration);
         }),
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();

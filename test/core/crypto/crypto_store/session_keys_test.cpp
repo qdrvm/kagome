@@ -12,8 +12,8 @@
 using namespace kagome;
 using namespace crypto;
 
-using testing::Return;
 using testing::_;
+using testing::Return;
 using Ed25519Keys = std::vector<Ed25519PublicKey>;
 using Sr25519Keys = std::vector<Sr25519PublicKey>;
 

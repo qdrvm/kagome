@@ -18,7 +18,7 @@ namespace kagome::clock {
   class TickerImpl : public Ticker {
    public:
     explicit TickerImpl(std::shared_ptr<boost::asio::io_context> io_context,
-                        uint64_t interval);
+                        clock::SystemClock::Duration interval);
 
     ~TickerImpl() override = default;
 
@@ -31,14 +31,14 @@ namespace kagome::clock {
     void asyncCallRepeatedly(
         std::function<void(const std::error_code &)> h) override;
 
-    void on_tick(const boost::system::error_code &ec);
+    void onTick(const boost::system::error_code &ec);
 
    private:
     bool callback_set_;
     bool started_;
     boost::asio::basic_waitable_timer<std::chrono::system_clock> timer_;
     std::function<void(const std::error_code &)> callback_;
-    uint64_t interval_;
+    clock::SystemClock::Duration interval_;
   };
 }  // namespace kagome::clock
 

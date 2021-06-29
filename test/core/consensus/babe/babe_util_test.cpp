@@ -42,6 +42,11 @@ class BabeUtilTest : public testing::Test {
   std::shared_ptr<BufferStorage> storage_;
 };
 
+/**
+ * @given current time
+ * @when getCurrentSlot is called
+ * @then compare slot estimations
+ */
 TEST_F(BabeUtilTest, getCurrentSlot) {
   auto time = std::chrono::system_clock::now();
   EXPECT_CALL(*clock_, now()).Times(1).WillOnce(Return(time));
@@ -50,6 +55,11 @@ TEST_F(BabeUtilTest, getCurrentSlot) {
             babe_util_->getCurrentSlot());
 }
 
+/**
+ * @given current slot
+ * @when slotStartsIn is called
+ * @then compare durations
+ */
 TEST_F(BabeUtilTest, slotStartsIn) {
   auto time = std::chrono::system_clock::now();
   EXPECT_CALL(*clock_, now()).Times(4).WillRepeatedly(Return(time));
