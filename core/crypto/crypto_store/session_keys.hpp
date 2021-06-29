@@ -13,8 +13,8 @@
 namespace kagome::crypto {
 
   class CryptoStore;
-  class Ed25519Keypair;
-  class Sr25519Keypair;
+  struct Ed25519Keypair;
+  struct Sr25519Keypair;
 
   // hardcoded keys order for polkadot
   // otherwise it could be read from chainspec palletSession/keys
