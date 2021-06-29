@@ -95,7 +95,7 @@ TEST(ServiceTest, CreateMetricsExposer) {
 
   auto logging_system = std::make_shared<soralog::LoggingSystem>(
       std::make_shared<Configurator>());
-  logging_system->configure();
+  std::ignore = logging_system->configure();
   log::setLoggingSystem(logging_system);
 
   auto injector = di::make_injector(

@@ -269,10 +269,15 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash>
   KeyValueBlockStorage::getGenesisBlockHash() const {
+    if (genesis_block_hash_.has_value()) {
+      return genesis_block_hash_.value();
+    }
+
     auto hash_res = storage_->get(storage::kGenesisBlockHashLookupKey);
     if (hash_res.has_value()) {
       primitives::BlockHash hash;
       std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
+      const_cast<decltype(genesis_block_hash_)&>(genesis_block_hash_) = hash;
       return hash;
     }
 

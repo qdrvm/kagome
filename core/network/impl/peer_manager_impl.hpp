@@ -227,7 +227,7 @@ namespace kagome::network {
 
     struct ActivePeerData {
       clock::SteadyClock::TimePoint time;
-      Status status;
+      Status status{};
     };
 
     std::map<PeerId, ActivePeerData> active_peers_;

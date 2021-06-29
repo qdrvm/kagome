@@ -68,21 +68,21 @@ namespace kagome::consensus::grandpa {
     /// should be in reverse order from the old base's parent.
     virtual void adjustBase(const std::vector<BlockHash> &ancestry_proof) = 0;
 
-    inline virtual outcome::result<void> insert(const Vote &vote,
-                                                const VoteWeight &weigth) {
+    inline outcome::result<void> insert(const Vote &vote,
+                                        const VoteWeight &weigth) {
       return visit_in_place(
           vote, [this, &weigth](const auto &vote) -> outcome::result<void> {
             return insert(BlockInfo{vote.number, vote.hash}, weigth);
           });
     }
 
-    inline virtual outcome::result<void> insert(const Prevote &prevote,
-                                                const VoteWeight &vote) {
+    inline outcome::result<void> insert(const Prevote &prevote,
+                                        const VoteWeight &vote) {
       return insert(BlockInfo{prevote.number, prevote.hash}, vote);
     }
 
-    inline virtual outcome::result<void> insert(const Precommit &precommit,
-                                                const VoteWeight &vote) {
+    inline outcome::result<void> insert(const Precommit &precommit,
+                                        const VoteWeight &vote) {
       return insert(BlockInfo{precommit.number, precommit.hash}, vote);
     }
 
