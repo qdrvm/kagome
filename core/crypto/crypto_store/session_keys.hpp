@@ -36,7 +36,6 @@ namespace kagome::crypto {
    public:
     SessionKeys(std::shared_ptr<CryptoStore> store,
                 const network::Roles &roles);
-    ~SessionKeys();
 
     /**
      * @return current BABE session key pair

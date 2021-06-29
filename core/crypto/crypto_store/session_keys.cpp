@@ -13,10 +13,6 @@ namespace kagome::crypto {
                            const network::Roles &roles)
       : roles_(roles), store_(store) {}
 
-  SessionKeys::~SessionKeys() {
-    std::cout << "Die, motherfucker, die!" << std::endl;
-  }
-
   const std::shared_ptr<Sr25519Keypair> &SessionKeys::getBabeKeyPair() {
     if (!babe_key_pair_ && roles_.flags.authority) {
       auto keys = store_->getSr25519PublicKeys(KEY_TYPE_BABE);
