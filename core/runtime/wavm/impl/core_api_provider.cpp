@@ -8,6 +8,7 @@
 #include "host_api/host_api_factory.hpp"
 #include "runtime/common/constant_code_provider.hpp"
 #include "runtime/wavm/executor.hpp"
+#include "runtime/wavm/impl/compartment_wrapper.hpp"
 #include "runtime/wavm/impl/crutch.hpp"
 #include "runtime/wavm/impl/intrinsic_module_instance.hpp"
 #include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
@@ -18,7 +19,7 @@ namespace kagome::runtime::wavm {
 
   class OneModuleRepository final : public ModuleRepository {
    public:
-    OneModuleRepository(WAVM::Runtime::Compartment *compartment,
+    OneModuleRepository(std::shared_ptr<CompartmentWrapper> compartment,
                         std::shared_ptr<IntrinsicResolver> resolver,
                         gsl::span<const uint8_t> code)
         : resolver_{std::move(resolver)},
@@ -46,7 +47,7 @@ namespace kagome::runtime::wavm {
    private:
     std::shared_ptr<ModuleInstance> instance_;
     std::shared_ptr<IntrinsicResolver> resolver_;
-    WAVM::Runtime::Compartment *compartment_;
+    std::shared_ptr<CompartmentWrapper> compartment_;
     gsl::span<const uint8_t> code_;
   };
 
@@ -64,7 +65,7 @@ namespace kagome::runtime::wavm {
   };
 
   CoreApiProvider::CoreApiProvider(
-      WAVM::Runtime::Compartment *compartment,
+      std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<runtime::wavm::IntrinsicModuleInstance> intrinsic_module,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
@@ -87,8 +88,8 @@ namespace kagome::runtime::wavm {
   std::unique_ptr<Core> CoreApiProvider::makeCoreApi(
       std::shared_ptr<const crypto::Hasher> hasher,
       gsl::span<uint8_t> runtime_code) const {
-    auto new_intrinsic_module =
-        std::shared_ptr<IntrinsicModuleInstance>(intrinsic_module_->clone(compartment_));
+    auto new_intrinsic_module = std::shared_ptr<IntrinsicModuleInstance>(
+        intrinsic_module_->clone(compartment_));
     auto new_memory_provider =
         std::make_shared<WavmMemoryProvider>(new_intrinsic_module);
     auto executor = std::make_shared<runtime::wavm::Executor>(
@@ -96,8 +97,8 @@ namespace kagome::runtime::wavm {
         new_memory_provider,
         std::make_shared<OneModuleRepository>(
             compartment_,
-            std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module,
-                                                    compartment_),
+            std::make_shared<IntrinsicResolverImpl>(
+                new_intrinsic_module, compartment_),
             runtime_code),
         block_header_repo_,
         std::make_shared<OneCodeProvider>(runtime_code));

@@ -14,6 +14,8 @@ namespace kagome::runtime {
    * bits are the address and next 32 bits are the size of the returned buffer.
    */
   struct PtrSize {
+    constexpr PtrSize() : ptr{0}, size{0} {}
+
     explicit constexpr PtrSize(WasmSpan v) {
       auto [addr, len] = splitSpan(v);
       ptr = addr;

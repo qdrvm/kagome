@@ -6,8 +6,6 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
 
-#include <WAVM/RuntimeABI/RuntimeABI.h>
-
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
@@ -128,7 +126,7 @@ namespace kagome::runtime::wavm {
                    && heap_base.value().type == WAVM::IR::ValueType::i32);
 
       memory_provider_->resetMemory(heap_base.value().i32);
-      auto &memory = memory_provider_->getCurrentMemory().value();
+      auto memory = memory_provider_->getCurrentMemory().value();
 
       Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {
@@ -138,26 +136,18 @@ namespace kagome::runtime::wavm {
       BOOST_ASSERT(host_api_);
       gsl::finally([this]() { host_api_->reset(); });
 
-      PtrSize addr{memory.storeBuffer(encoded_args)};
+      PtrSize args_span{memory->storeBuffer(encoded_args)};
 
-      [[maybe_unused]] PtrSize result{0};
+      OUTCOME_TRY(result, execute(instance, name, args_span));
 
-      try {
-        WAVM::Runtime::unwindSignalsAsExceptions(
-            [&result, &instance, &name, &addr] {
-              result = instance.callExportFunction(name, addr);
-            });
-      } catch (WAVM::Runtime::Exception *e) {
-        logger_->error(WAVM::Runtime::describeException(e));
-        WAVM::Runtime::destroyException(e);
-        return Error::EXECUTION_ERROR;
-      }
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
-        return scale::decode<Result>(memory.loadN(result.ptr, result.size));
+        return scale::decode<Result>(memory->loadN(result.ptr, result.size));
       }
     }
+
+    outcome::result<PtrSize> execute(ModuleInstance &instance, std::string_view name, PtrSize args);
 
     std::shared_ptr<ModuleInstance> current_instance_;
     storage::trie::RootHash current_state_root_;

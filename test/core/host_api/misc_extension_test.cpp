@@ -53,7 +53,7 @@ TEST_F(MiscExtensionTest, Init) {
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
+      .WillRepeatedly(Return(boost::optional<std::shared_ptr<Memory>>(memory)));
   auto core_provider = std::make_shared<CoreApiProviderMock>();
   MiscExtension m{
       42, std::make_shared<HasherMock>(), memory_provider, core_provider};
@@ -83,7 +83,7 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
+      .WillRepeatedly(Return(boost::optional<std::shared_ptr<Memory>>(memory)));
   auto core_provider = std::make_shared<CoreApiProviderMock>();
 
   EXPECT_CALL(*core_provider, makeCoreApi(_, _))

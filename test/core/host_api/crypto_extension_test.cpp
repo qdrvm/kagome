@@ -98,7 +98,7 @@ class CryptoExtensionTest : public ::testing::Test {
     memory_ = std::make_shared<MemoryMock>();
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
+        .WillRepeatedly(Return(boost::optional<std::shared_ptr<Memory>>(memory_)));
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
     sr25519_provider_ =
@@ -472,7 +472,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
  * @then exception is thrown
  */
 TEST_F(CryptoExtensionTest, VerificationBatching_FinishWithoutStart) {
-  ASSERT_THROW(crypto_ext_->ext_crypto_finish_batch_verify_version_1(),
+  ASSERT_THROW((void)crypto_ext_->ext_crypto_finish_batch_verify_version_1(),
                std::runtime_error);
 }
 
@@ -545,7 +545,7 @@ TEST_F(CryptoExtensionTest, VerificationBatching_NormalOrderAndInvalid) {
       sig_data_ptr, input_span.combine(), pub_key_data_ptr);
   ASSERT_EQ(result_in_place, CryptoExtension::kVerifySuccess);
 
-  ASSERT_ANY_THROW(crypto_ext_->ext_crypto_finish_batch_verify_version_1());
+  ASSERT_ANY_THROW((void)crypto_ext_->ext_crypto_finish_batch_verify_version_1());
 }
 
 /**

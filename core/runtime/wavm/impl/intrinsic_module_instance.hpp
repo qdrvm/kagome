@@ -18,19 +18,18 @@ namespace WAVM::Runtime {
 
 namespace kagome::runtime::wavm {
 
+  class CompartmentWrapper;
+
   class IntrinsicModuleInstance final {
    public:
-    IntrinsicModuleInstance(WAVM::Runtime::Compartment *compartment);
-    ~IntrinsicModuleInstance() {
-
-    }
+    IntrinsicModuleInstance(std::shared_ptr<CompartmentWrapper> compartment);
 
     WAVM::Runtime::Memory *getExportedMemory() const;
     WAVM::Runtime::Function *getExportedFunction(
         const std::string &name, WAVM::IR::FunctionType const &type) const;
 
     std::unique_ptr<IntrinsicModuleInstance> clone(
-        WAVM::Runtime::Compartment *compartment) const;
+        std::shared_ptr<CompartmentWrapper> compartment) const;
 
    private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance_;

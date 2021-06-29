@@ -65,6 +65,8 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(isRunInDevMode, bool());
 
     MOCK_CONST_METHOD0(nodeName, const std::string &());
+
+    MOCK_CONST_METHOD0(runtimeBackend, AppConfiguration::RuntimeBackend());
   };
 
 }  // namespace kagome::application

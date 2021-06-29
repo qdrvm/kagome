@@ -11,9 +11,6 @@
 using kagome::runtime::wavm::kDefaultHeapBase;
 using kagome::runtime::wavm::kInitialMemorySize;
 using kagome::runtime::wavm::Memory;
-using kagome::math::roundUp;
-
-constexpr auto kAlignment = Memory::kAlignment;
 
 class MemoryHeapTest : public ::testing::Test {
  protected:
@@ -22,12 +19,12 @@ class MemoryHeapTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    memory_ =
+    memory_.setUnderlyingMemory(nullptr);
   }
 
   const static uint32_t memory_size_ = kInitialMemorySize;
 
-  Memory memory_{};
+  Memory memory_{nullptr};
 };
 
 /**
@@ -86,8 +83,8 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
 
   // allocated second memory chunk
   auto ptr2 = memory_.allocate(size2);
-  // second memory chunk is placed right after the first one (alligned by 4)
-  ASSERT_EQ(ptr2, roundUpAlign(size1 + ptr1));
+  // second memory chunk is placed right after the first one (aligned by 4)
+  ASSERT_EQ(ptr2, Memory::Memory::roundUpAlign(size1 + ptr1));
 }
 
 /**
@@ -102,7 +99,7 @@ TEST_F(MemoryHeapTest, DeallocateExisingMemoryChunk) {
 
   auto opt_deallocated_size = memory_.deallocate(ptr1);
   ASSERT_TRUE(opt_deallocated_size.has_value());
-  ASSERT_EQ(*opt_deallocated_size, roundUpAlign(size1));
+  ASSERT_EQ(*opt_deallocated_size, Memory::roundUpAlign(size1));
 }
 
 /**
@@ -173,7 +170,7 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
   auto ptr3 = memory_.allocate(size1 + 1);
 
   // memory is allocated on mem offset (aligned by 4)
-  ASSERT_EQ(ptr3, Memory::roundUpAlign(mem_offset));
+  ASSERT_EQ(ptr3, Memory::Memory::roundUpAlign(mem_offset));
 }
 
 /**
@@ -183,19 +180,19 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
  */
 TEST_F(MemoryHeapTest, CombineDeallocatedChunks) {
   // Fill memory
-  constexpr size_t size1 = roundUp<kAlignment>(1) * 1;
+  constexpr size_t size1 = Memory::roundUpAlign(1) * 1;
   auto ptr1 = memory_.allocate(size1);
-  constexpr size_t size2 = roundUp<kAlignment>(1) * 2;
+  constexpr size_t size2 = Memory::roundUpAlign(1) * 2;
   auto ptr2 = memory_.allocate(size2);
-  constexpr size_t size3 = roundUp<kAlignment>(1) * 3;
+  constexpr size_t size3 = Memory::roundUpAlign(1) * 3;
   auto ptr3 = memory_.allocate(size3);
-  constexpr size_t size4 = roundUp<kAlignment>(1) * 4;
+  constexpr size_t size4 = Memory::roundUpAlign(1) * 4;
   auto ptr4 = memory_.allocate(size4);
-  constexpr size_t size5 = roundUp<kAlignment>(1) * 5;
+  constexpr size_t size5 = Memory::roundUpAlign(1) * 5;
   auto ptr5 = memory_.allocate(size5);
-  constexpr size_t size6 = roundUp<kAlignment>(1) * 6;
+  constexpr size_t size6 = Memory::roundUpAlign(1) * 6;
   auto ptr6 = memory_.allocate(size6);
-  constexpr size_t size7 = roundUp<kAlignment>(1) * 7;
+  constexpr size_t size7 = Memory::roundUpAlign(1) * 7;
   auto ptr7 = memory_.allocate(size7);
   // A: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]
   // D:
@@ -270,7 +267,7 @@ TEST_F(MemoryHeapTest, ResetTest) {
   memory_.reset();
   ASSERT_EQ(memory_.allocate(N), kDefaultHeapBase);
 
-  auto newHeapBase = roundUp<kAlignment>(kDefaultHeapBase + 12345);
+  auto newHeapBase = Memory::roundUpAlign(kDefaultHeapBase + 12345);
   memory_.setHeapBase(newHeapBase);
   memory_.reset();
   ASSERT_EQ(memory_.allocate(N), newHeapBase);

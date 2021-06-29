@@ -21,7 +21,7 @@
 #include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/runtime_code_provider.hpp"
-#include "runtime/wasm_result.hpp"
+#include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::runtime::binaryen {
@@ -143,13 +143,13 @@ namespace kagome::runtime::binaryen {
         SL_DEBUG(logger_, "Resetting state to: {}", state_root.value().toHex());
       }
 
-      auto &&[module_instance, memory, opt_batch] =
+      auto &&[module_instance, memory] =
           createRuntimeEnvironment(config, state_root);
 
       gsl::final_action dispose(
           [memory = memory, module_instance = module_instance] {
             memory->reset();
-            module_instance->reset();
+            // reset runtime external interface module_instance->reset();
           });
 
       runtime::WasmPointer ptr = 0u;
@@ -174,9 +174,9 @@ namespace kagome::runtime::binaryen {
         return scale::decode<R>(std::move(buffer));
       }
 
-      if (opt_batch) {
+      /*if (opt_batch) {
         OUTCOME_TRY(opt_batch.value()->writeBack());
-      }
+      }*/
       return outcome::success();
     }
 

@@ -16,7 +16,6 @@
 namespace WAVM {
   namespace Runtime {
     struct Instance;
-    struct Compartment;
   }  // namespace Runtime
   namespace IR {
     struct Value;
@@ -25,10 +24,12 @@ namespace WAVM {
 
 namespace kagome::runtime::wavm {
 
+  class CompartmentWrapper;
+
   class ModuleInstance final {
    public:
     explicit ModuleInstance(WAVM::Runtime::Instance *instance,
-                            WAVM::Runtime::Compartment *compartment);
+                            std::shared_ptr<CompartmentWrapper> compartment);
 
     ~ModuleInstance();
 
@@ -38,7 +39,7 @@ namespace kagome::runtime::wavm {
 
    private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
-    WAVM::Runtime::Compartment *compartment_;
+    std::shared_ptr<CompartmentWrapper> compartment_;
   };
 
 }  // namespace kagome::runtime::wavm

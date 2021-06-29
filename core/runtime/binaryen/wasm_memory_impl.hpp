@@ -54,7 +54,7 @@ namespace kagome::runtime::binaryen {
    * @note Memory size of this implementation is at least of the size of one
    * wasm page (4096 bytes)
    */
-  class WasmMemoryImpl final : public WasmMemory {
+  class WasmMemoryImpl final : public Memory {
    public:
     explicit WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory);
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;

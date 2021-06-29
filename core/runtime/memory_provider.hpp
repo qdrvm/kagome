@@ -18,7 +18,7 @@ namespace kagome::runtime {
    public:
     virtual ~MemoryProvider() = default;
 
-    virtual boost::optional<Memory&> getCurrentMemory() const = 0;
+    virtual boost::optional<std::shared_ptr<Memory>> getCurrentMemory() const = 0;
     virtual void resetMemory(WasmSize heap_base) = 0;
 
   };

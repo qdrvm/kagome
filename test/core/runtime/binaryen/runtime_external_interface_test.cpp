@@ -15,8 +15,10 @@
 #include "mock/core/runtime/core_factory_mock.hpp"
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/runtime/wasm_memory_mock.hpp"
-#include "runtime/wasm_result.hpp"
+#include "mock/core/runtime/memory_mock.hpp"
+#include "mock/core/runtime/memory_provider_mock.hpp"
+#include "mock/core/runtime/core_api_provider_mock.hpp"
+#include "runtime/ptr_size.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using ::testing::_;
@@ -30,12 +32,14 @@ using kagome::host_api::HostApiMock;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmLogLevel;
-using kagome::runtime::WasmMemoryMock;
+using kagome::runtime::MemoryMock;
 using kagome::runtime::WasmOffset;
-using kagome::runtime::WasmPointer;
+using kagome::runtime::PtrSize;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
+using kagome::runtime::CoreApiProviderMock;
+using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::binaryen::BinaryenWasmMemoryFactoryMock;
 using kagome::runtime::binaryen::CoreFactoryMock;
 using kagome::runtime::binaryen::RuntimeEnvironmentFactoryMock;
@@ -76,13 +80,13 @@ class REITest : public ::testing::Test {
   }
 
   void SetUp() override {
-    memory_ = std::make_shared<WasmMemoryMock>();
+    memory_ = std::make_shared<MemoryMock>();
     host_api_ = std::make_unique<HostApiMock>();
     host_api_factory_ = std::make_shared<HostApiFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
-    core_api_factory_ = std::make_shared<CoreFactoryMock>();
+    core_api_provider_ = std::make_shared<CoreApiProviderMock>();
     runtime_env_factory_ = std::make_shared<RuntimeEnvironmentFactoryMock>();
-    memory_factory_ = std::make_shared<BinaryenWasmMemoryFactoryMock>();
+    memory_provider_ = std::make_shared<BinaryenWasmMemoryFactoryMock>();
     EXPECT_CALL(*host_api_factory_, make(_, _, _, _))
         .WillRepeatedly(Invoke(
             [this](auto &, auto &, auto &, auto &) -> std::unique_ptr<HostApi> {
@@ -114,9 +118,9 @@ class REITest : public ::testing::Test {
     SExpressionWasmBuilder builder(wasm, *root[0]);
     EXPECT_CALL(*host_api_, memory()).WillRepeatedly(Return(memory_));
 
-    TestableExternalInterface rei(core_api_factory_,
+    TestableExternalInterface rei(core_api_provider_,
                                   runtime_env_factory_,
-                                  memory_factory_,
+                                  memory_provider_,
                                   host_api_factory_,
                                   storage_provider_);
 
@@ -125,13 +129,13 @@ class REITest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<WasmMemoryMock> memory_;
-  std::shared_ptr<CoreFactoryMock> core_api_factory_;
+  std::shared_ptr<MemoryMock> memory_;
+  std::shared_ptr<CoreApiProviderMock> core_api_provider_;
   std::shared_ptr<RuntimeEnvironmentFactoryMock> runtime_env_factory_;
   std::unique_ptr<HostApiMock> host_api_;
   std::shared_ptr<HostApiFactoryMock> host_api_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
-  std::shared_ptr<BinaryenWasmMemoryFactoryMock> memory_factory_;
+  std::shared_ptr<MemoryProviderMock> memory_provider_;
 
   // clang-format off
   const std::string wasm_template_ =

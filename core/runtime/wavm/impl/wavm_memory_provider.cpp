@@ -21,10 +21,10 @@ namespace kagome::runtime::wavm {
     }
   }
 
-  boost::optional<runtime::Memory &> WavmMemoryProvider::getCurrentMemory()
+  boost::optional<std::shared_ptr<runtime::Memory>> WavmMemoryProvider::getCurrentMemory()
       const {
     return current_memory_
-               ? boost::optional<runtime::Memory &>(*current_memory_)
+               ? boost::optional<std::shared_ptr<runtime::Memory>>(current_memory_)
                : boost::none;
   }
 

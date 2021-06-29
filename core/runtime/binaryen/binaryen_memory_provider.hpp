@@ -1,0 +1,47 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP
+
+#include "runtime/memory_provider.hpp"
+#include "runtime/binaryen/binaryen_memory_provider.hpp"
+#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+
+namespace wasm {
+  class ShellExternalInterface;
+}
+
+namespace kagome::runtime::binaryen {
+
+  class BinaryenMemoryProvider final : public MemoryProvider {
+   public:
+    boost::optional<std::shared_ptr<Memory>> getCurrentMemory() const override {
+      return memory_ == nullptr
+                 ? boost::none
+                 : boost::optional<std::shared_ptr<Memory>>{std::static_pointer_cast<Memory>(memory_)};
+    }
+
+    void resetMemory(WasmSize heap_base) override {
+      BOOST_ASSERT(internal_memory_ != nullptr);
+      memory_ = memory_factory_->make(internal_memory_);
+      memory_->setHeapBase(heap_base);
+    }
+
+    void setMemory(wasm::ShellExternalInterface::Memory *memory) {
+      BOOST_ASSERT(memory != nullptr);
+      internal_memory_ = memory;
+      memory_ = memory_factory_->make(memory);
+    }
+
+   private:
+    wasm::ShellExternalInterface::Memory *internal_memory_;
+    std::unique_ptr<BinaryenWasmMemoryFactory> memory_factory_;
+    std::shared_ptr<WasmMemoryImpl> memory_;
+  };
+
+}  // namespace kagome::runtime::binaryen
+
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP

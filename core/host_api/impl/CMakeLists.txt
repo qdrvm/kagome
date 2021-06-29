@@ -8,6 +8,7 @@ add_library(host_api_factory
     )
 target_link_libraries(host_api_factory
     buffer
+    host_api
     wavm_executor # TODO(Harrm): might not actually need it, need to remove WAVM header leakage
     )
 

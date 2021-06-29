@@ -49,6 +49,8 @@ using kagome::primitives::BlockHash;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
 using kagome::runtime::TrieStorageProviderImpl;
+using kagome::runtime::wavm::Executor;
+using kagome::runtime::RuntimeCodeProvider;
 using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
@@ -141,12 +143,11 @@ class WasmExecutorTest : public ::testing::Test {
         storage_provider_,
         std::move(hasher));
 
-    executor_ = std::make_shared<WasmExecutor>();
+    executor_ = std::make_shared<Executor>();
   }
 
  protected:
-  std::shared_ptr<WasmExecutor> executor_;
-  std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory_;
+  std::shared_ptr<Executor> executor_;
   std::shared_ptr<TrieStorageProvider> storage_provider_;
   std::shared_ptr<RuntimeCodeProvider> wasm_provider_;
 };

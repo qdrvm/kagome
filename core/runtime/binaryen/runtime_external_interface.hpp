@@ -18,11 +18,11 @@ namespace kagome::host_api {
 namespace kagome::runtime {
   class TrieStorageProvider;
   class Memory;
+  class CoreApiProvider;
 
   namespace binaryen {
-    class CoreFactory;
     class RuntimeEnvironmentFactory;
-    class BinaryenWasmMemoryFactory;
+    class BinaryenMemoryProvider;
   }
 
 }  // namespace kagome::runtime
@@ -41,16 +41,14 @@ namespace kagome::runtime::binaryen {
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
     RuntimeExternalInterface(
-        std::shared_ptr<CoreFactory> core_factory,
+        std::shared_ptr<CoreApiProvider> core_provider,
         std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
-        std::shared_ptr<BinaryenWasmMemoryFactory> wasm_memory_factory,
+        std::shared_ptr<BinaryenMemoryProvider> wasm_memory_provider,
         const std::shared_ptr<host_api::HostApiFactory> &host_api_factory,
         std::shared_ptr<TrieStorageProvider> storage_provider);
 
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
-
-    std::shared_ptr<Memory> memory() const;
 
     void reset() const;
 

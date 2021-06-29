@@ -254,4 +254,28 @@ namespace kagome::runtime::wavm {
     auto res = PtrSize(wasm_pointer, value.size()).combine();
     return res;
   }
+
+
+  boost::optional<WasmSize> Memory::getDeallocatedChunkSize(
+      WasmPointer ptr) const {
+    auto it = deallocated_.find(ptr);
+    return it != deallocated_.cend() ? boost::make_optional(it->second)
+                                     : boost::none;
+  }
+
+  boost::optional<WasmSize> Memory::getAllocatedChunkSize(
+      WasmPointer ptr) const {
+    auto it = allocated_.find(ptr);
+    return it != allocated_.cend() ? boost::make_optional(it->second)
+                                   : boost::none;
+  }
+
+  size_t Memory::getAllocatedChunksNum() const {
+    return allocated_.size();
+  }
+
+  size_t Memory::getDeallocatedChunksNum() const {
+    return deallocated_.size();
+  }
+
 }  // namespace kagome::runtime::wavm

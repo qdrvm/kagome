@@ -3,24 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "module_instance.hpp"
+#include "runtime/wavm/impl/module_instance.hpp"
 
 #include <WAVM/Runtime/Runtime.h>
+
+#include "runtime/wavm/impl/compartment_wrapper.hpp"
 
 namespace kagome::runtime::wavm {
 
   ModuleInstance::ModuleInstance(WAVM::Runtime::Instance *instance,
-                                 WAVM::Runtime::Compartment *compartment)
+                                 std::shared_ptr<CompartmentWrapper> compartment)
       : instance_{instance}, compartment_{std::move(compartment)} {}
 
   ModuleInstance::~ModuleInstance() {
-    WAVM::Runtime::collectCompartmentGarbage(compartment_);
+    WAVM::Runtime::collectCompartmentGarbage(compartment_->getCompartment());
   }
 
   PtrSize ModuleInstance::callExportFunction(std::string_view name,
                                              PtrSize args) {
     WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
-        WAVM::Runtime::createContext(compartment_);
+        WAVM::Runtime::createContext(compartment_->getCompartment());
     WAVM::Runtime::Function *function = WAVM::Runtime::asFunctionNullable(
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
     std::vector<WAVM::IR::Value> invokeArgs;
@@ -66,7 +68,7 @@ namespace kagome::runtime::wavm {
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
     if (global == nullptr) return boost::none;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
-        WAVM::Runtime::createContext(compartment_);
+        WAVM::Runtime::createContext(compartment_->getCompartment());
     auto value = WAVM::Runtime::getGlobalValue(context, global);
     return value;
   }

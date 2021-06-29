@@ -1,3 +1,7 @@
+add_library(compartment_wrapper impl/compartment_wrapper.cpp)
+target_link_libraries(compartment_wrapper libWAVM buffer)
+kagome_install(compartment_wrapper)
+
 add_library(wavm_memory impl/memory.cpp)
 target_link_libraries(wavm_memory libWAVM buffer)
 kagome_install(wavm_memory)
@@ -19,6 +23,7 @@ target_link_libraries(wavm_executor
     wavm_memory
     constant_code_provider
     Boost::boost
+    compartment_wrapper
     )
 kagome_install(wavm_executor)
 

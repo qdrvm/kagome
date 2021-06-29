@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "core/runtime/runtime_test.hpp"
+#include "core/runtime/binaryen/runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
 #include "primitives/common.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"

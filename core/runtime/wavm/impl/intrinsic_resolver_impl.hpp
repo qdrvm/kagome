@@ -23,7 +23,7 @@ namespace WAVM::Intrinsics {
 }  // namespace WAVM::Intrinsics
 
 namespace kagome::runtime::wavm {
-
+  class CompartmentWrapper;
   class Memory;
   class IntrinsicModuleInstance;
 
@@ -31,7 +31,7 @@ namespace kagome::runtime::wavm {
    public:
     IntrinsicResolverImpl(
         std::shared_ptr<IntrinsicModuleInstance> module_instance,
-        WAVM::Runtime::Compartment *compartment);
+        std::shared_ptr<CompartmentWrapper> compartment);
     ~IntrinsicResolverImpl() override;
 
     bool resolve(const std::string &moduleName,
@@ -39,15 +39,7 @@ namespace kagome::runtime::wavm {
                  WAVM::IR::ExternType type,
                  WAVM::Runtime::Object *&outObject) override;
 
-    // template <typename R, typename... Args>
-    void addIntrinsic(std::string_view name, WAVM::Intrinsics::Function *func) {
-      // side-effect of Function constructor is that this function is registered
-      // in the module by pointer
-
-      /* R (*dummy_pointer)(WAVM::Runtime::ContextRuntimeData *, Args...) {};
-       auto type = WAVM::Intrinsics::inferIntrinsicFunctionType(dummy_pointer);
-       auto function = std::make_unique<WAVM::Intrinsics::Function>(
-           module_.get(), name.data(), static_cast<void *>(&func), type);*/
+    void addIntrinsic(std::string_view name, WAVM::Intrinsics::Function *func) override {
       functions_.emplace(name, func);
     }
 
@@ -55,7 +47,7 @@ namespace kagome::runtime::wavm {
 
    private:
     std::shared_ptr<IntrinsicModuleInstance> module_instance_;
-    WAVM::Runtime::Compartment *compartment_;
+    std::shared_ptr<CompartmentWrapper> compartment_;
     std::unordered_map<std::string_view, WAVM::Intrinsics::Function *>
         functions_;
   };

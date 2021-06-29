@@ -7,20 +7,22 @@
 
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include "crutch.hpp"
+#include "runtime/wavm/impl/compartment_wrapper.hpp"
+#include "runtime/wavm/impl/crutch.hpp"
 
 namespace kagome::runtime::wavm {
 
   IntrinsicModuleInstance::IntrinsicModuleInstance(
-      WAVM::Runtime::Compartment *compartment) {
-    module_instance_ = WAVM::Intrinsics::instantiateModule(
-        compartment, {getIntrinsicModule_env()}, "Host module");
+      std::shared_ptr<CompartmentWrapper> compartment) {
+    module_instance_ =
+        WAVM::Intrinsics::instantiateModule(compartment->getCompartment(),
+                                            {getIntrinsicModule_env()},
+                                            "Host module");
   }
 
   WAVM::Runtime::Memory *IntrinsicModuleInstance::getExportedMemory() const {
-    return getTypedInstanceExport(module_instance_,
-                                  kIntrinsicMemoryName.data(),
-                                  kIntrinsicMemoryType);
+    return getTypedInstanceExport(
+        module_instance_, kIntrinsicMemoryName.data(), kIntrinsicMemoryType);
   }
 
   WAVM::Runtime::Function *IntrinsicModuleInstance::getExportedFunction(
@@ -31,7 +33,7 @@ namespace kagome::runtime::wavm {
   }
 
   std::unique_ptr<IntrinsicModuleInstance> IntrinsicModuleInstance::clone(
-      WAVM::Runtime::Compartment *compartment) const {
+      std::shared_ptr<CompartmentWrapper> compartment) const {
     return std::make_unique<IntrinsicModuleInstance>(compartment);
   }
 

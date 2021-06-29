@@ -17,13 +17,11 @@ namespace kagome::host_api {
 
   class HostApiFactoryMock : public HostApiFactory {
    public:
-    MOCK_CONST_METHOD4(
+    MOCK_CONST_METHOD3(
         make,
         std::unique_ptr<HostApi>(
-            std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
-            std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
-                runtime_env_factory,
-            std::shared_ptr<runtime::WasmMemory>,
+            std::shared_ptr<const runtime::CoreApiProvider> core_provider,
+            std::shared_ptr<const runtime::MemoryProvider> memory_provider,
             std::shared_ptr<runtime::TrieStorageProvider> storage));
   };
 

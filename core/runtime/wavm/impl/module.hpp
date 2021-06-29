@@ -21,23 +21,24 @@ namespace kagome::runtime::wavm {
 
   class ModuleInstance;
   class IntrinsicResolver;
+  class CompartmentWrapper;
 
   class Module final {
    public:
     static std::unique_ptr<Module> compileFrom(
-        WAVM::Runtime::Compartment *compartment, gsl::span<const uint8_t> code);
+        std::shared_ptr<CompartmentWrapper> compartment, gsl::span<const uint8_t> code);
 
     ~Module() {}
 
     std::unique_ptr<ModuleInstance> instantiate(IntrinsicResolver &resolver);
 
    private:
-    Module(WAVM::Runtime::Compartment *compartment,
+    Module(std::shared_ptr<CompartmentWrapper> compartment,
            std::shared_ptr<WAVM::Runtime::Module> module);
 
     WAVM::Runtime::ImportBindings link(IntrinsicResolver &resolver);
 
-    WAVM::Runtime::Compartment *compartment_;
+    std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<WAVM::Runtime::Module> module_;
     log::Logger logger_;
   };

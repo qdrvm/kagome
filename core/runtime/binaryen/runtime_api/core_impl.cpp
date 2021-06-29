@@ -28,22 +28,23 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(header_repo_ != nullptr);
   }
 
-  outcome::result<Version> CoreImpl::version(
-      const boost::optional<primitives::BlockHash> &block_hash) {
-    if (block_hash) {
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash.value()));
-      return executeAt<Version>(
-          "Core_version",
-          header.state_root,
-          CallConfig{.persistency = CallPersistency::ISOLATED,
-                     .runtime_env_config = RuntimeEnvironmentFactory::Config{
-                         .wasm_provider = wasm_provider_}});
-    }
+  outcome::result<primitives::Version> CoreImpl::versionAt(
+      primitives::BlockHash const &block_hash) {
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
+    return executeAt<Version>(
+        "Core_version",
+        header.state_root,
+        CallConfig{.persistency = CallPersistency::ISOLATED,
+            .runtime_env_config = RuntimeEnvironmentFactory::Config{
+                .wasm_provider = wasm_provider_}});
+  }
+
+  outcome::result<primitives::Version> CoreImpl::version() {
     return execute<Version>(
         "Core_version",
         CallConfig{.persistency = CallPersistency::ISOLATED,
-                   .runtime_env_config = RuntimeEnvironmentFactory::Config{
-                       .wasm_provider = wasm_provider_}});
+            .runtime_env_config = RuntimeEnvironmentFactory::Config{
+                .wasm_provider = wasm_provider_}});
   }
 
   outcome::result<void> CoreImpl::execute_block(

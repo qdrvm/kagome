@@ -24,6 +24,7 @@
 namespace kagome::runtime::binaryen {
 
   class CoreFactory;
+  class BinaryenWasmMemoryFactory;
 
   /**
    * @brief RuntimeEnvironmentFactory is a mechanism to prepare environment for
@@ -37,8 +38,8 @@ namespace kagome::runtime::binaryen {
     enum class Error { EMPTY_STATE_CODE = 1, NO_PERSISTENT_BATCH = 2 };
 
     RuntimeEnvironmentFactoryImpl(
-        std::shared_ptr<CoreFactory> core_factory,
-        std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory,
+        std::shared_ptr<CoreApiProvider> core_api_provider,
+        std::shared_ptr<BinaryenMemoryProvider> memory_provider,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
         std::shared_ptr<WasmModuleFactory> module_factory,
         std::shared_ptr<RuntimeCodeProvider> wasm_provider,
@@ -76,8 +77,8 @@ namespace kagome::runtime::binaryen {
     log::Logger logger_ =
         log::createLogger("RuntimeEnvironmentFactory", "wasm");
 
-    std::shared_ptr<CoreFactory> core_factory_;
-    std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory_;
+    std::shared_ptr<CoreApiProvider> core_api_provider_;
+    std::shared_ptr<BinaryenMemoryProvider> memory_provider_;
     std::shared_ptr<TrieStorageProvider> storage_provider_;
     std::shared_ptr<RuntimeCodeProvider> wasm_provider_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;

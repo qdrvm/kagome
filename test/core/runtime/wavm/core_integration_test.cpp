@@ -7,7 +7,7 @@
 
 #include <fstream>
 
-#include "core/runtime/runtime_test.hpp"
+#include "core/runtime/binaryen/runtime_test.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
@@ -21,7 +21,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
-using kagome::runtime::WasmMemory;
+using kagome::runtime::Memory;
 using kagome::runtime::binaryen::CoreImpl;
 using kagome::runtime::binaryen::WasmMemoryImpl;
 
@@ -61,7 +61,7 @@ class CoreTest : public RuntimeTest {
  * @then successful result is returned
  */
 TEST_F(CoreTest, VersionTest) {
-  ASSERT_TRUE(core_->version(boost::none));
+  ASSERT_TRUE(core_->version());
 }
 
 /**

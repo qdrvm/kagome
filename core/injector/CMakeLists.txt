@@ -22,6 +22,8 @@ target_link_libraries(application_injector
     api_jrpc_server
     metrics
     state_api_service
+    key_file_storage
+
     trie_storage
     polkadot_trie
     polkadot_trie_factory
@@ -56,6 +58,12 @@ target_link_libraries(application_injector
     wavm_transaction_payment_api
     wavm_account_nonce_api
     wavm_executor
+    binaryen_wasm_memory
+    binaryen_runtime_external_interface
+    binaryen_wasm_module
+    binaryen_block_builder_api
+    binaryen_grandpa_api
+    binaryen_core_api
     system_api_service
     trie_storage_provider
     author_api_service

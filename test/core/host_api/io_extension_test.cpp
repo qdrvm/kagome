@@ -45,7 +45,7 @@ class IOExtensionTest : public ::testing::Test {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
+        .WillRepeatedly(Return(boost::optional<std::shared_ptr<Memory>>(memory_)));
     io_extension_ = std::make_shared<IOExtension>(memory_provider_);
   }
 

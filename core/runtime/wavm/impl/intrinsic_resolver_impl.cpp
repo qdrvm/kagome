@@ -3,18 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
 
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include "crutch.hpp"
-#include "intrinsic_module_instance.hpp"
+#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_module_instance.hpp"
+#include "runtime/wavm/impl/compartment_wrapper.hpp"
 
 namespace kagome::runtime::wavm {
 
   IntrinsicResolverImpl::IntrinsicResolverImpl(
       std::shared_ptr<IntrinsicModuleInstance> module_instance,
-      WAVM::Runtime::Compartment *compartment)
+      std::shared_ptr<CompartmentWrapper> compartment)
       : module_instance_{std::move(module_instance)},
         compartment_{compartment} {
     BOOST_ASSERT(module_instance_ != nullptr);
@@ -45,7 +46,7 @@ namespace kagome::runtime::wavm {
   }
 
   IntrinsicResolverImpl::~IntrinsicResolverImpl() {
-    WAVM::Runtime::collectCompartmentGarbage(compartment_);
+    WAVM::Runtime::collectCompartmentGarbage(compartment_->getCompartment());
   }
 
   std::unique_ptr<IntrinsicResolver> IntrinsicResolverImpl::clone() const {

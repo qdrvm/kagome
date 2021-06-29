@@ -118,6 +118,17 @@ namespace kagome::runtime::wavm {
 
     WasmSpan storeBuffer(gsl::span<const uint8_t> value);
 
+    /// following methods are needed mostly for testing purposes
+    boost::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
+    boost::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
+    size_t getAllocatedChunksNum() const;
+    size_t getDeallocatedChunksNum() const;
+
+    template <typename T>
+    static constexpr T roundUpAlign(T t) {
+      return math::roundUp<kAlignment>(t);
+    }
+
    private:
     constexpr static uint32_t kPageSize = 4096;
     WAVM::Runtime::Memory *memory_;
@@ -148,11 +159,6 @@ namespace kagome::runtime::wavm {
      * allocate this amount of memory
      */
     WasmPointer growAlloc(WasmSize size);
-
-    template <typename T>
-    static inline T roundUpAlign(T t) {
-      return math::roundUp<kAlignment>(t);
-    }
   };
 
 }  // namespace kagome::runtime::wavm

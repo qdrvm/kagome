@@ -16,7 +16,7 @@
 namespace kagome::runtime::wavm {
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
-      WAVM::Runtime::Compartment* compartment,
+      std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<IntrinsicResolver> resolver)

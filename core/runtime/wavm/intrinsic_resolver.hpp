@@ -13,6 +13,10 @@
 
 #include "runtime/memory_provider.hpp"
 
+namespace WAVM::Intrinsics {
+  struct Function;
+}
+
 namespace kagome::runtime::wavm {
 
   class IntrinsicResolver : public WAVM::Runtime::Resolver {
@@ -25,6 +29,9 @@ namespace kagome::runtime::wavm {
                          WAVM::Runtime::Object *&outObject) = 0;
 
     virtual std::unique_ptr<IntrinsicResolver> clone() const = 0;
+
+    virtual void addIntrinsic(std::string_view name,
+                              WAVM::Intrinsics::Function *func) = 0;
   };
 }  // namespace kagome::runtime::wavm
 

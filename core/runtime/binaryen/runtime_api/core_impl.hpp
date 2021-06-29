@@ -24,8 +24,9 @@ namespace kagome::runtime::binaryen {
 
     ~CoreImpl() override = default;
 
-    outcome::result<primitives::Version> version(
-        const boost::optional<primitives::BlockHash> &block_hash) override;
+    outcome::result<primitives::Version> versionAt(
+        primitives::BlockHash const &block) override;
+    outcome::result<primitives::Version> version() override;
 
     outcome::result<void> execute_block(
         const primitives::Block &block) override;

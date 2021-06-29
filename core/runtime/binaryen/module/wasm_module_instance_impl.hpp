@@ -29,13 +29,10 @@ namespace kagome::runtime::binaryen {
 
     wasm::Literal getExportGlobal(wasm::Name name) override;
 
-    void reset() override;
-
    private:
     std::shared_ptr<wasm::Module>
         parent_;  // must be kept alive because binaryen's module instance keeps
                   // a reference to it
-    std::shared_ptr<RuntimeExternalInterface> rei_;
     std::unique_ptr<wasm::ModuleInstance> module_instance_;
   };
 

@@ -49,6 +49,8 @@ namespace {
     roles.flags.full = 1;
     return roles;
   }();
+  const auto def_runtime_backend =
+      kagome::application::AppConfiguration::RuntimeBackend::Binaryen;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -65,6 +67,18 @@ namespace {
       name = name.substr(0, max_len);
     }
     return name;
+  }
+
+  boost::optional<kagome::application::AppConfiguration::RuntimeBackend>
+  str_to_runtime_backend(std::string_view str) {
+    using RB = kagome::application::AppConfiguration::RuntimeBackend;
+    if (str == "wavm") {
+      return RB::WAVM;
+    }
+    if (str == "binaryen") {
+      return RB::Binaryen;
+    }
+    return boost::none;
   }
 }  // namespace
 
@@ -86,7 +100,8 @@ namespace kagome::application {
         openmetrics_http_port_(def_openmetrics_http_port),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
-        max_ws_connections_(def_ws_max_connections) {}
+        max_ws_connections_(def_ws_max_connections),
+        runtime_backend_{def_runtime_backend} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -380,6 +395,7 @@ namespace kagome::application {
     po::options_description additional_desc("Additional options");
     additional_desc.add_options()
         ("already-synchronized,s", "if need to consider synchronized")
+        ("runtime-backend", po::value<std::string>(), "choose the runtime backend")
         ("unix-slots,u", "if slots are calculated from unix epoch")
         ;
 
@@ -666,7 +682,9 @@ namespace kagome::application {
         vm, "ws-host", [&](std::string const &val) { rpc_ws_host_ = val; });
 
     find_argument<std::string>(
-        vm, "prometheus-host", [&](std::string const &val) { openmetrics_http_host_ = val; });
+        vm, "prometheus-host", [&](std::string const &val) {
+          openmetrics_http_host_ = val;
+        });
 
     find_argument<uint16_t>(
         vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
@@ -674,8 +692,9 @@ namespace kagome::application {
     find_argument<uint16_t>(
         vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
 
-    find_argument<uint16_t>(
-        vm, "prometheus-port", [&](uint16_t val) { openmetrics_http_port_ = val; });
+    find_argument<uint16_t>(vm, "prometheus-port", [&](uint16_t val) {
+      openmetrics_http_port_ = val;
+    });
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
@@ -683,10 +702,23 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
-    openmetrics_http_endpoint_ = get_endpoint_from(openmetrics_http_host_, openmetrics_http_port_);
+    openmetrics_http_endpoint_ =
+        get_endpoint_from(openmetrics_http_host_, openmetrics_http_port_);
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
+
+    boost::optional<RuntimeBackend> runtime_backend_opt;
+    find_argument<std::string>(
+        vm, "name", [&runtime_backend_opt](std::string const &val) {
+          runtime_backend_opt = str_to_runtime_backend(val);
+        });
+    if (not runtime_backend_opt) {
+      logger_->error("Invalid runtime backend specified");
+      return false;
+    } else {
+      runtime_backend_ = runtime_backend_opt.value();
+    }
 
     // if something wrong with config print help message
     if (not validate_config()) {

@@ -5,7 +5,7 @@
 
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 
-#include "runtime/wasm_result.hpp"
+#include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime::binaryen {
   WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory)

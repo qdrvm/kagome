@@ -16,11 +16,9 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<wasm::Module> parent,
       const std::shared_ptr<RuntimeExternalInterface> &rei)
       : parent_{std::move(parent)},
-        rei_{rei},
         module_instance_{
             std::make_unique<wasm::ModuleInstance>(*parent_, rei.get())} {
     BOOST_ASSERT(parent_);
-    BOOST_ASSERT(rei_);
     BOOST_ASSERT(module_instance_);
   }
 
@@ -31,10 +29,6 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal WasmModuleInstanceImpl::getExportGlobal(wasm::Name name) {
     return module_instance_->getExport(name);
-  }
-
-  void WasmModuleInstanceImpl::reset() {
-    rei_->reset();
   }
 
 }  // namespace kagome::runtime::binaryen

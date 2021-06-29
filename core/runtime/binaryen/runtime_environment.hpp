@@ -23,12 +23,13 @@ namespace kagome::storage::trie {
 
 namespace kagome::runtime {
   class Memory;
+  class MemoryProvider;
 }
 
-namespace kagome::runtime::binaryen {
-  class RuntimeExternalInterface;
+namespace kagome::runtime::binaryen {;
   class WasmModuleInstance;
   class WasmModule;
+  class RuntimeExternalInterface;
 
   /**
    * Runtime environment is a structure that contains data necessary to operate
@@ -37,6 +38,7 @@ namespace kagome::runtime::binaryen {
   class RuntimeEnvironment {
    public:
     static outcome::result<RuntimeEnvironment> create(
+        const std::shared_ptr<MemoryProvider> &memory_provider,
         const std::shared_ptr<RuntimeExternalInterface> &rei,
         const std::shared_ptr<WasmModule> &module);
 

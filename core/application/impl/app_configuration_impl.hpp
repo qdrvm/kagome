@@ -131,6 +131,9 @@ namespace kagome::application {
     const std::string &nodeName() const override {
       return node_name_;
     }
+    RuntimeBackend runtimeBackend() const override {
+      return runtime_backend_;
+    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -207,6 +210,7 @@ namespace kagome::application {
     bool dev_mode_;
     std::string node_name_;
     uint32_t max_ws_connections_;
+    RuntimeBackend runtime_backend_;
   };
 
 }  // namespace kagome::application

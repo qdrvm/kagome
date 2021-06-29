@@ -7,17 +7,18 @@
 
 #include <stack>
 
-#include "WAVM/IR/Module.h"
-#include "WAVM/IR/Types.h"
-#include "WAVM/IR/Value.h"
-#include "WAVM/Runtime/Intrinsics.h"
-#include "WAVM/Runtime/Runtime.h"
-#include "WAVM/WASTParse/WASTParse.h"
+#include <WAVM/IR/Module.h>
+#include <WAVM/IR/Types.h>
+#include <WAVM/IR/Value.h>
+#include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/Runtime/Runtime.h>
 
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
 
 namespace kagome::runtime::wavm {
+
+  class IntrinsicResolver;
 
   void pushHostApi(std::shared_ptr<host_api::HostApi>);
   void popHostApi();
@@ -29,6 +30,8 @@ namespace kagome::runtime::wavm {
   constexpr std::string_view kIntrinsicMemoryName = "Host memory";
 
   WAVM::Intrinsics::Module *getIntrinsicModule_env();
+
+  void registerHostApiMethods(IntrinsicResolver& resolver, const host_api::HostApi& host_api);
 
 #define DECLARE_HOST_INTRINSIC(Ret, name, ...)                    \
   Ret name(WAVM::Runtime::ContextRuntimeData *contextRuntimeData, \

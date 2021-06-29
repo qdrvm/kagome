@@ -3,19 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "module.hpp"
+#include "runtime/wavm/impl/module.hpp"
 
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/WASM/WASM.h>
 #include <boost/assert.hpp>
 
-#include "intrinsic_resolver_impl.hpp"
-#include "module_instance.hpp"
+#include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/impl/module_instance.hpp"
+#include "runtime/wavm/impl/compartment_wrapper.hpp"
 
 namespace kagome::runtime::wavm {
 
   std::unique_ptr<Module> Module::compileFrom(
-      WAVM::Runtime::Compartment *compartment, gsl::span<const uint8_t> code) {
+      std::shared_ptr<CompartmentWrapper> compartment, gsl::span<const uint8_t> code) {
     std::shared_ptr<WAVM::Runtime::Module> module = nullptr;
     WAVM::WASM::LoadError loadError;
     WAVM::IR::FeatureSpec featureSpec;
@@ -34,7 +35,7 @@ namespace kagome::runtime::wavm {
     return std::unique_ptr<Module>(new Module{compartment, std::move(module)});
   }
 
-  Module::Module(WAVM::Runtime::Compartment *compartment,
+  Module::Module(std::shared_ptr<CompartmentWrapper> compartment,
                  std::shared_ptr<WAVM::Runtime::Module> module)
       : compartment_{std::move(compartment)},
         module_{std::move(module)},
@@ -46,7 +47,7 @@ namespace kagome::runtime::wavm {
   std::unique_ptr<ModuleInstance> Module::instantiate(
       IntrinsicResolver &resolver) {
     auto instance = WAVM::Runtime::instantiateModule(
-        compartment_, module_, link(resolver), "test_module");
+        compartment_->getCompartment(), module_, link(resolver), "test_module");
 
     return std::make_unique<ModuleInstance>(instance, compartment_);
   }

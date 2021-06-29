@@ -34,6 +34,8 @@
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/core_api_provider.hpp"
+#include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -120,28 +122,29 @@ class RuntimeTest : public ::testing::Test {
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/sub2dev.wasm";
     wasm_provider_ =
-        std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
+        std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
-    auto memory_factory = std::make_shared<
-        kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
+    auto memory_provider = std::make_shared<
+        kagome::runtime::binaryen::BinaryenMemoryProvider>();
 
     auto header_repo_mock =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
 
-    auto core_factory =
-        std::make_shared<kagome::runtime::binaryen::CoreFactoryImpl>(
+    auto core_api_provider =
+        std::make_shared<kagome::runtime::binaryen::BinaryenCoreApiProvider>(
             changes_tracker_, header_repo_mock);
 
     runtime_env_factory_ = std::make_shared<
         kagome::runtime::binaryen::RuntimeEnvironmentFactoryImpl>(
-        std::move(core_factory),
-        std::move(memory_factory),
+        std::move(core_api_provider),
+        std::move(memory_provider),
         std::move(extension_factory),
         std::move(module_factory),
         wasm_provider_,
         // copying to allow inherited tests add own EXPECT_CALL rules
         storage_provider_,
         std::move(hasher));
+    core_api_provider->setRuntimeFactory(runtime_env_factory_);
   }
 
   void preparePersistentStorageExpects() {
@@ -203,6 +206,9 @@ class RuntimeTest : public ::testing::Test {
   }
 
  protected:
+  std::shared_ptr<kagome::runtime::TrieStorageProviderMock> storage_provider_;
+  std::shared_ptr<kagome::storage::trie::PersistentTrieBatchMock> batch_mock_;
+
   std::shared_ptr<kagome::runtime::RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<kagome::runtime::binaryen::RuntimeEnvironmentFactory>
       runtime_env_factory_;
