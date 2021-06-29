@@ -14,6 +14,7 @@ add_library(scale
     types.hpp
     detail/fixed_witdh_integer.hpp
     detail/variant.hpp
+    libp2p_types.cpp
     )
 
 target_link_libraries(scale

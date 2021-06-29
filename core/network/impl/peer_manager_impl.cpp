@@ -8,8 +8,8 @@
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
-
 #include "outcome/outcome.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
@@ -24,7 +24,8 @@ namespace kagome::network {
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<network::SyncClientsSet> sync_clients,
-      std::shared_ptr<network::Router> router)
+      std::shared_ptr<network::Router> router,
+      std::shared_ptr<storage::BufferStorage> storage)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -37,6 +38,7 @@ namespace kagome::network {
         own_peer_info_(own_peer_info),
         sync_clients_(std::move(sync_clients)),
         router_{std::move(router)},
+        storage_{std::move(storage)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -45,6 +47,7 @@ namespace kagome::network {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(sync_clients_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
@@ -94,7 +97,16 @@ namespace kagome::network {
     // Start Identify protocol
     identify_->start();
 
-    // Enqueue bootstrap nodes as first peers set
+    // Enqueue last active peers as first peers set but with limited lifetime
+    auto last_active_peers = loadLastActivePeers();
+    SL_DEBUG(log_,
+             "Loaded {} last active peers' record(s)",
+             last_active_peers.size());
+    for (const libp2p::peer::PeerInfo &peer_info : last_active_peers) {
+      kademlia_->addPeer(peer_info, false);
+    }
+
+    // Enqueue bootstrap nodes with permanent lifetime
     for (const auto &bootstrap_node : bootstrap_nodes_) {
       kademlia_->addPeer(bootstrap_node, true);
     }
@@ -109,6 +121,7 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::stop() {
+    storeActivePeers();
     add_peer_handle_.unsubscribe();
   }
 
@@ -474,6 +487,75 @@ namespace kagome::network {
     stream_engine_->add(peer_id, router_->getGossipProtocol());
     stream_engine_->add(peer_id, router_->getPropagateTransactionsProtocol());
     stream_engine_->add(peer_id, router_->getSupProtocol());
+  }
+
+  std::vector<scale::PeerInfoSerializable>
+  PeerManagerImpl::loadLastActivePeers() {
+    auto key_res = common::Buffer::fromString(kStorageActivePeersKey);
+    if (not key_res) {
+      SL_ERROR(log_,
+               "Cannot load last active peers. Storage key cannot be "
+               "constructed. Error={}",
+               key_res.error().message());
+      return {};
+    }
+    auto &&storage_key = key_res.value();
+
+    auto get_res = storage_->get(storage_key);
+    if (not get_res) {
+      SL_ERROR(log_,
+               "List of last active peers cannot be obtained from storage. "
+               "Error={}",
+               get_res.error().message());
+      return {};
+    }
+
+    std::vector<scale::PeerInfoSerializable> last_active_peers;
+    scale::ScaleDecoderStream s{get_res.value().asVector()};
+    try {
+      s >> last_active_peers;
+    } catch (std::exception &e) {
+      SL_ERROR(log_, "Cannot decode list of active peers. Error={}", e.what());
+      return {};
+    }
+    return last_active_peers;
+  }
+
+  void PeerManagerImpl::storeActivePeers() {
+    auto key_res = common::Buffer::fromString(kStorageActivePeersKey);
+    if (not key_res) {
+      SL_ERROR(log_,
+               "Cannot store active peers. Storage key cannot be constructed. "
+               "Error={}",
+               key_res.error().message());
+      return;
+    }
+    auto &&storage_key = key_res.value();
+
+    std::vector<libp2p::peer::PeerInfo> last_active_peers;
+    forEachPeer([&](const PeerId &peer_id) {
+      auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
+      last_active_peers.push_back(peer_info);
+    });
+
+    scale::ScaleEncoderStream out;
+    try {
+      out << last_active_peers;
+    } catch (std::exception &e) {
+      SL_ERROR(log_, "Cannot encode list of active peers. Error={}", e.what());
+      return;
+    }
+
+    auto save_res = storage_->put(storage_key, common::Buffer{out.data()});
+    if (not save_res) {
+      SL_ERROR(log_,
+               "Cannot store active peers. Error={}",
+               save_res.error().message());
+      return;
+    }
+    SL_DEBUG(log_,
+             "Saved {} last active peers' record(s)",
+             last_active_peers.size());
   }
 
 }  // namespace kagome::network
