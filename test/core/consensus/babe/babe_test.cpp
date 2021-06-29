@@ -89,7 +89,7 @@ class BabeTest : public testing::Test {
     gossiper_ = std::make_shared<BabeGossiperMock>();
     clock_ = std::make_shared<SystemClockMock>();
     hasher_ = std::make_shared<HasherMock>();
-    ticker_mock_ = std::make_shared<testutil::TickerMock>();
+    ticker_mock_ = std::make_unique<testutil::TickerMock>();
     ticker_ = ticker_mock_.get();
     grandpa_authority_update_observer_ =
         std::make_shared<AuthorityUpdateObserverMock>();
@@ -150,7 +150,7 @@ class BabeTest : public testing::Test {
                                              keypair_,
                                              clock_,
                                              hasher_,
-                                             ticker_mock_,
+                                             std::move(ticker_mock_),
                                              grandpa_authority_update_observer_,
                                              babe_util_);
 
@@ -183,7 +183,7 @@ class BabeTest : public testing::Test {
       std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<HasherMock> hasher_;
-  std::shared_ptr<testutil::TickerMock> ticker_mock_;
+  std::unique_ptr<testutil::TickerMock> ticker_mock_;
   testutil::TickerMock *ticker_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
@@ -245,9 +245,9 @@ TEST_F(BabeTest, Success) {
       .Times(1)
       .WillOnce(Return(1ms));
 
-  std::function<void(const std::error_code &ec)> h;
+  std::function<void(const std::error_code &ec)> run_slot;
   EXPECT_CALL(*ticker_, asyncCallRepeatedly(_))
-      .WillOnce(testing::SaveArg<0>(&h));
+      .WillOnce(testing::SaveArg<0>(&run_slot));
 
   EXPECT_CALL(*ticker_, start(_)).Times(1);
 
@@ -274,6 +274,6 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(outcome::success()));
 
   babe_->runEpoch(epoch_);
-  h({});
-  h({});
+  run_slot({});
+  run_slot({});
 }

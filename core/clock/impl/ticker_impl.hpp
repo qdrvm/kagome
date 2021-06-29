@@ -34,7 +34,6 @@ namespace kagome::clock {
     void onTick(const boost::system::error_code &ec);
 
    private:
-    bool callback_set_;
     bool started_;
     boost::asio::basic_waitable_timer<std::chrono::system_clock> timer_;
     std::function<void(const std::error_code &)> callback_;

@@ -86,7 +86,7 @@ namespace kagome::crypto {
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
-        file_storage_->saveKeypair(key_type, kp.public_key, kp.secret_key));
+        file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
     return kp;
   }
 
@@ -96,7 +96,7 @@ namespace kagome::crypto {
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
-        file_storage_->saveKeypair(key_type, kp.public_key, kp.secret_key));
+        file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
     return kp;
   }
 

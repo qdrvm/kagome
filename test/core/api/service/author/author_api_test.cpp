@@ -136,7 +136,7 @@ struct AuthorApiTest : public ::testing::Test {
     store = std::make_shared<CryptoStoreMock>();
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
     key_pair = generateSr25519Keypair();
-    key_store->saveKeypair(
+    key_store->saveKeyPair(
         KEY_TYPE_BABE,
         gsl::make_span(key_pair.public_key.data(), 32),
         gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1));

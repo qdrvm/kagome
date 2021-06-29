@@ -10,8 +10,7 @@
 #include "clock/ticker.hpp"
 
 namespace testutil {
-  class TickerMock : public kagome::clock::Ticker {
-  public:
+  struct TickerMock : public kagome::clock::Ticker {
     MOCK_METHOD1(start, void(kagome::clock::SystemClock::Duration));
 
     MOCK_METHOD0(stop, void());
@@ -20,8 +19,6 @@ namespace testutil {
 
     MOCK_METHOD1(asyncCallRepeatedly,
                  void(std::function<void(const std::error_code &)> h));
-  private:
-
   };
 }  // namespace testutil
 

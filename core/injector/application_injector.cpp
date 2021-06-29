@@ -915,13 +915,11 @@ namespace {
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-        di::bind<clock::Ticker>.to([](const auto &injector) {
+        di::bind<clock::Ticker>.template to<clock::TickerImpl>(),
+        di::bind<clock::SystemClock::Duration>.to([](const auto &injector) {
           auto conf =
               injector.template create<sptr<primitives::BabeConfiguration>>();
-
-          return std::make_shared<clock::TickerImpl>(
-              injector.template create<sptr<boost::asio::io_context>>(),
-              conf->slot_duration);
+          return conf->slot_duration;
         }),
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
@@ -1129,7 +1127,7 @@ namespace {
         session_keys->getBabeKeyPair(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<clock::Ticker>>(),
+        injector.template create<uptr<clock::Ticker>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<consensus::BabeUtil>>());
 

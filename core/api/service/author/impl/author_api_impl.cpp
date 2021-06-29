@@ -88,7 +88,7 @@ namespace kagome::api {
       SL_INFO(logger_, "Grandpa key already exists and won't be replaced");
       return outcome::failure(crypto::CryptoStoreError::GRAN_ALREADY_EXIST);
     }
-    auto res = key_store_->saveKeypair(key_type, public_key, seed);
+    auto res = key_store_->saveKeyPair(key_type, public_key, seed);
     // explicitly load keys from store to cache
     keys_->getBabeKeyPair();
     keys_->getGranKeyPair();

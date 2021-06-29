@@ -48,8 +48,7 @@ namespace kagome::consensus::babe {
      * @param authority_index of this node
      * @param clock to measure time
      * @param hasher to take hashes
-     * @param timer to be used by the implementation; the recommended one is
-     * kagome::clock::BasicWaitableTimer
+     * @param ticker to be used by the implementation
      * @param event_bus to deliver events over
      */
     BabeImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -64,7 +63,7 @@ namespace kagome::consensus::babe {
              const std::shared_ptr<crypto::Sr25519Keypair>& keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
-             std::shared_ptr<clock::Ticker> ticker,
+             std::unique_ptr<clock::Ticker> ticker,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
              std::shared_ptr<BabeUtil> babe_util);
@@ -119,7 +118,7 @@ namespace kagome::consensus::babe {
      * @param first_production_slot slot number where block production starts
      * @return first production epoch structure
      */
-    EpochDescriptor prepareFirstEpochUnixTime(
+    EpochDescriptor prepareFirstEpoch(
         EpochDescriptor last_known_epoch,
         BabeSlotNumber first_production_slot) const;
 
@@ -142,7 +141,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
-    std::shared_ptr<clock::Ticker> ticker_;
+    std::unique_ptr<clock::Ticker> ticker_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;

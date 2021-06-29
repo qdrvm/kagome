@@ -33,7 +33,7 @@ namespace kagome::consensus::babe {
       const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<clock::Ticker> ticker,
+      std::unique_ptr<clock::Ticker> ticker,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util)
@@ -107,16 +107,18 @@ namespace kagome::consensus::babe {
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
 
     // main babe block production loop is here
-    ticker_->asyncCallRepeatedly([this](auto &&ec) {
-      log_->info("Starting a slot {} in epoch {}",
-                 current_slot_,
-                 current_epoch_.epoch_number);
-      if (ec) {
-        log_->error("error happened while waiting on the ticker: {}",
-                    ec.message());
-        return;
+    ticker_->asyncCallRepeatedly([wp = weak_from_this()](auto &&ec) {
+      if (auto self = wp.lock()) {
+        self->log_->info("Starting a slot {} in epoch {}",
+                         self->current_slot_,
+                         self->current_epoch_.epoch_number);
+        if (ec) {
+          self->log_->error("error happened while waiting on the ticker: {}",
+                            ec.message());
+          return;
+        }
+        self->finishSlot();
       }
-      finishSlot();
     });
     auto duration = babe_util_->slotStartsIn(current_slot_);
     auto msec =
@@ -441,7 +443,7 @@ namespace kagome::consensus::babe {
         {current_epoch_.epoch_number, current_epoch_.start_slot});
   }
 
-  EpochDescriptor BabeImpl::prepareFirstEpochUnixTime(
+  EpochDescriptor BabeImpl::prepareFirstEpoch(
       EpochDescriptor last_known_epoch,
       BabeSlotNumber first_production_slot) const {
     const auto epoch_duration = babe_configuration_->epoch_length;
@@ -474,7 +476,7 @@ namespace kagome::consensus::babe {
 
     EpochDescriptor epoch;
     const auto last_known_epoch = babe_util_->getLastEpoch().value();
-    epoch = prepareFirstEpochUnixTime(last_known_epoch,
+    epoch = prepareFirstEpoch(last_known_epoch,
                                       babe_header.slot_number + 1);
 
     // runEpoch starts ticker
