@@ -6,9 +6,10 @@
 #ifndef KAGOME_TICKER_IMPL_HPP
 #define KAGOME_TICKER_IMPL_HPP
 
+#include "clock/ticker.hpp"
+
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_context.hpp>
-#include "clock/ticker.hpp"
 
 namespace kagome::clock {
   /**
