@@ -28,24 +28,9 @@ namespace kagome::consensus::babe {
                     // missing blocks
       CATCHING_UP,  // Node received first block announce and started fetching
                     // blocks between announced one and the latest finalized one
-      NEED_SLOT_TIME,  // Missing blocks were received, now slot time should be
-                       // calculated
       SYNCHRONIZED  // All missing blocks were received and applied, slot time
                     // was calculated, current peer can start block production
     };
-
-    enum class ExecutionStrategy {
-      /// Start on last epoch
-      START,
-      /// Node needs to syncronize first
-      SYNC_FIRST,
-    };
-
-    /**
-     * Set execution grategy
-     * @param strategy of execution
-     */
-    virtual void setExecutionStrategy(ExecutionStrategy strategy) = 0;
 
     /**
      * Start a Babe production

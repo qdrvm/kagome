@@ -21,6 +21,16 @@ namespace kagome::consensus {
     virtual ~BabeUtil() = default;
 
     /**
+     * @returns current unix time slot number
+     */
+    virtual BabeSlotNumber getCurrentSlot() const = 0;
+
+    /**
+     * @returns estimate of time to start slot
+     */
+    virtual BabeDuration slotStartsIn(BabeSlotNumber slot) const = 0;
+
+    /**
      * @returns number of epoch by provided {@param slot_number}
      */
     virtual EpochNumber slotToEpoch(BabeSlotNumber slot_number) const = 0;

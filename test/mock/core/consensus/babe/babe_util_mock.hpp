@@ -14,6 +14,11 @@ namespace kagome::consensus {
 
   class BabeUtilMock : public BabeUtil {
    public:
+
+    MOCK_CONST_METHOD0(getCurrentSlot, BabeSlotNumber());
+
+    MOCK_CONST_METHOD1(slotStartsIn, BabeDuration(BabeSlotNumber));
+
     MOCK_CONST_METHOD1(slotToEpoch, EpochNumber(BabeSlotNumber));
 
     MOCK_CONST_METHOD1(slotInEpoch, BabeSlotNumber(BabeSlotNumber));

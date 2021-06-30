@@ -281,10 +281,7 @@ namespace kagome::consensus {
       if (block.header.number == 1) {
         OUTCOME_TRY(babe_util_->setLastEpoch(EpochDescriptor{
             .epoch_number = 0,
-            .start_slot = babe_header.slot_number,
-            .starting_slot_finish_time =
-                BabeTimePoint{(babe_header.slot_number + 1)
-                              * babe_configuration_->slot_duration}}));
+            .start_slot = babe_header.slot_number}));
       }
     }
 

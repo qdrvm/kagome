@@ -50,12 +50,6 @@ namespace kagome::application {
       exit(EXIT_FAILURE);
     }
 
-    auto babe_execution_strategy =
-        app_config_.isAlreadySynchronized()
-            ? consensus::babe::Babe::ExecutionStrategy::START
-            : consensus::babe::Babe::ExecutionStrategy::SYNC_FIRST;
-    babe_->setExecutionStrategy(babe_execution_strategy);
-
     app_state_manager_->atLaunch([ctx{io_context_}] {
       std::thread asio_runner([ctx{ctx}] { ctx->run(); });
       asio_runner.detach();

@@ -43,6 +43,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
+#include "clock/impl/ticker_impl.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
@@ -53,12 +54,12 @@
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
-#include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -430,19 +431,6 @@ namespace {
     return initialized.value();
   }
 
-  consensus::SlotsStrategy get_slots_strategy(
-      const application::AppConfiguration &app_config) {
-    static auto initialized =
-        boost::optional<consensus::SlotsStrategy>(boost::none);
-    if (not initialized) {
-      auto strategy = app_config.isUnixSlotsStrategy()
-                          ? consensus::SlotsStrategy::FromUnixEpoch
-                          : consensus::SlotsStrategy::FromZero;
-      initialized.emplace(strategy);
-    }
-    return initialized.value();
-  }
-
   sptr<crypto::KeyFileStorage> get_key_file_storage(
       application::AppConfiguration const &config,
       sptr<application::ChainSpec> chain_spec) {
@@ -774,7 +762,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -890,6 +878,8 @@ namespace {
         di::bind<libp2p::crypto::random::RandomGenerator>.template to<libp2p::crypto::random::BoostRandomGenerator>()
             [di::override],
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
+        di::bind<crypto::SessionKeys>.template to<crypto::SessionKeys>(),
+        di::bind<network::Roles>.to(config.roles()),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
@@ -925,18 +915,17 @@ namespace {
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
+        di::bind<clock::Ticker>.template to<clock::TickerImpl>(),
+        di::bind<clock::SystemClock::Duration>.to([](const auto &injector) {
+          auto conf =
+              injector.template create<sptr<primitives::BabeConfiguration>>();
+          return conf->slot_duration;
+        }),
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
           return get_babe_configuration(babe_api);
         }),
         di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
-        di::bind<consensus::SlotsStrategy>.template to(
-            [](const auto &injector) {
-              const application::AppConfiguration &config =
-                  injector
-                      .template create<const application::AppConfiguration &>();
-              return get_slots_strategy(config);
-            }),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
@@ -1063,61 +1052,6 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<crypto::Sr25519Keypair> get_sr25519_keypair(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<crypto::Sr25519Keypair>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    const auto &config =
-        injector.template create<application::AppConfiguration const &>();
-    if (config.roles().flags.authority == 0) {
-      return {};
-      injector.template create<const application::AppConfiguration &>();
-    }
-
-    const auto &crypto_store =
-        injector.template create<const crypto::CryptoStore &>();
-    auto &&sr25519_kp = crypto_store.getBabeKeypair();
-    if (not sr25519_kp) {
-      auto log = log::createLogger("Injector", "injector");
-      log->error("Failed to get BABE keypair");
-      return {};
-    }
-
-    initialized = std::make_shared<crypto::Sr25519Keypair>(sr25519_kp.value());
-    return initialized.value();
-  }
-
-  template <typename Injector>
-  sptr<crypto::Ed25519Keypair> get_ed25519_keypair(const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<crypto::Ed25519Keypair>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    const auto &config =
-        injector.template create<application::AppConfiguration const &>();
-    if (config.roles().flags.authority == 0) {
-      return {};
-    }
-
-    auto const &crypto_store =
-        injector.template create<const crypto::CryptoStore &>();
-    auto &&ed25519_kp = crypto_store.getGrandpaKeypair();
-    if (not ed25519_kp) {
-      auto log = log::createLogger("Injector", "injector");
-      log->error("Failed to get GRANDPA keypair");
-      return {};
-    }
-
-    initialized = std::make_shared<crypto::Ed25519Keypair>(ed25519_kp.value());
-    return initialized.value();
-  }
-
-  template <typename Injector>
   sptr<network::OwnPeerInfo> get_own_peer_info(const Injector &injector) {
     static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
@@ -1178,6 +1112,8 @@ namespace {
       return initialized.value();
     }
 
+    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+
     initialized = std::make_shared<consensus::babe::BabeImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
@@ -1188,12 +1124,11 @@ namespace {
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<network::Gossiper>>(),
         injector.template create<sptr<crypto::Sr25519Provider>>(),
-        injector.template create<sptr<crypto::Sr25519Keypair>>(),
+        session_keys->getBabeKeyPair(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<uptr<clock::Timer>>(),
+        injector.template create<uptr<clock::Ticker>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<consensus::SlotsStrategy>(),
         injector.template create<sptr<consensus::BabeUtil>>());
 
     auto protocol_factory =
@@ -1233,13 +1168,15 @@ namespace {
       return initialized.value();
     }
 
+    auto session_keys = injector.template create<sptr<crypto::SessionKeys>>();
+
     initialized = std::make_shared<consensus::grandpa::GrandpaImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<storage::BufferStorage>>(),
         injector.template create<sptr<crypto::Ed25519Provider>>(),
         injector.template create<sptr<runtime::GrandpaApi>>(),
-        injector.template create<sptr<crypto::Ed25519Keypair>>(),
+        session_keys->getGranKeyPair(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<sptr<authority::AuthorityManager>>(),
@@ -1255,17 +1192,11 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&...args) {
+                              Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
         makeApplicationInjector(app_config),
-        // bind sr25519 keypair
-        di::bind<crypto::Sr25519Keypair>.to(
-            [](auto const &injector) { return get_sr25519_keypair(injector); }),
-        // bind ed25519 keypair
-        di::bind<crypto::Ed25519Keypair>.to(
-            [](auto const &injector) { return get_ed25519_keypair(injector); }),
         // compose peer info
         di::bind<network::OwnPeerInfo>.to(
             [](const auto &injector) { return get_own_peer_info(injector); }),

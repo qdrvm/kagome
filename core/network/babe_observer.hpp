@@ -23,6 +23,11 @@ namespace kagome::network {
      */
     virtual void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const BlockAnnounce &announce) = 0;
+    /**
+     * Triggered when node is validator and received status from another
+     * validator node
+     */
+    virtual void onPeerSync() = 0;
   };
 }  // namespace kagome::network
 
