@@ -386,10 +386,7 @@ namespace kagome::application {
     po::store(parsed, vm);
     po::notify(vm);
 
-    desc.add(blockhain_desc)
-        .add(storage_desc)
-        .add(network_desc)
-        .add(development_desc);
+    desc.add(blockhain_desc).add(storage_desc).add(network_desc);
 
     if (vm.count("help") > 0) {
       std::cout << desc << std::endl;
