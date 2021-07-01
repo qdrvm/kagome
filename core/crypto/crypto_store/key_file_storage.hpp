@@ -62,7 +62,7 @@ namespace kagome::crypto {
      * Stores the \param seed that generates the \param public_key to the key
      * storage
      */
-    outcome::result<void> saveKeypair(KeyTypeId type,
+    outcome::result<void> saveKeyPair(KeyTypeId type,
                                       gsl::span<const uint8_t> public_key,
                                       gsl::span<const uint8_t> seed) const;
 

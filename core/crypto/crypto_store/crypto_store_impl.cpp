@@ -86,7 +86,7 @@ namespace kagome::crypto {
     getCache(ed_suite_, ed_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
-        file_storage_->saveKeypair(key_type, kp.public_key, kp.secret_key));
+        file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
     return kp;
   }
 
@@ -96,7 +96,7 @@ namespace kagome::crypto {
     getCache(sr_suite_, sr_caches_, key_type)
         .insert(kp.public_key, kp.secret_key);
     OUTCOME_TRY(
-        file_storage_->saveKeypair(key_type, kp.public_key, kp.secret_key));
+        file_storage_->saveKeyPair(key_type, kp.public_key, kp.secret_key));
     return kp;
   }
 
@@ -140,24 +140,6 @@ namespace kagome::crypto {
   CryptoStoreImpl::getSr25519PublicKeys(KeyTypeId key_type) const {
     return getPublicKeys(
         key_type, getCache(sr_suite_, sr_caches_, key_type), *sr_suite_);
-  }
-
-  boost::optional<Ed25519Keypair> CryptoStoreImpl::getGrandpaKeypair() const {
-    auto keys = getEd25519PublicKeys(KEY_TYPE_GRAN);
-    if (not keys or keys.value().empty()) {
-      return boost::none;
-    }
-    auto kp = findEd25519Keypair(KEY_TYPE_GRAN, keys.value().at(0));
-    return kp ? boost::make_optional(kp.value()) : boost::none;
-  }
-
-  boost::optional<Sr25519Keypair> CryptoStoreImpl::getBabeKeypair() const {
-    auto keys = getSr25519PublicKeys(KEY_TYPE_BABE);
-    if (not keys or keys.value().empty()) {
-      return boost::none;
-    }
-    auto kp = findSr25519Keypair(KEY_TYPE_BABE, keys.value().at(0));
-    return kp ? boost::make_optional(kp.value()) : boost::none;
   }
 
   boost::optional<libp2p::crypto::KeyPair> CryptoStoreImpl::getLibp2pKeypair()

@@ -30,13 +30,12 @@ namespace kagome::consensus::babe {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<BabeGossiper> gossiper,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::Sr25519Keypair> keypair,
+      const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::unique_ptr<clock::Timer> timer,
+      std::unique_ptr<clock::Ticker> ticker,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      SlotsStrategy slots_calculation_strategy,
       std::shared_ptr<BabeUtil> babe_util)
       : app_state_manager_(std::move(app_state_manager)),
         lottery_{std::move(lottery)},
@@ -46,13 +45,12 @@ namespace kagome::consensus::babe {
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         gossiper_{std::move(gossiper)},
-        keypair_{std::move(keypair)},
+        keypair_{keypair},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
-        timer_{std::move(timer)},
+        ticker_{std::move(ticker)},
         authority_update_observer_(std::move(authority_update_observer)),
-        slots_calculation_strategy_{slots_calculation_strategy},
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
     BOOST_ASSERT(app_state_manager_);
@@ -71,70 +69,8 @@ namespace kagome::consensus::babe {
     app_state_manager_->atLaunch([this] { return start(); });
   }
 
-  BabeTimePoint closestNextTimeMultiple(BabeTimePoint from,
-                                        BabeDuration multiple) {
-    if (multiple.count() == 0) return from;
-
-    const auto remainder = from.time_since_epoch() % multiple;
-
-    return from + multiple - remainder;
-  }
-
   bool BabeImpl::start() {
-    if (not execution_strategy_.has_value()) {
-      log_->critical("Internal error: undefined execution strategy of babe");
-      return false;
-    }
-
-    EpochDescriptor last_epoch_descriptor;
-    const auto now = clock_->now();
-    if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
-      last_epoch_descriptor = res.value();
-    } else {
-      switch (slots_calculation_strategy_) {
-        case SlotsStrategy::FromZero:
-          last_epoch_descriptor.start_slot = 0;
-          break;
-        case SlotsStrategy::FromUnixEpoch:
-          auto time_since_epoch = now.time_since_epoch();
-
-          auto ticks_since_epoch = time_since_epoch.count();
-          last_epoch_descriptor.start_slot = static_cast<BabeSlotNumber>(
-              ticks_since_epoch / babe_configuration_->slot_duration.count()) + 1;
-          break;
-      }
-
-      last_epoch_descriptor.epoch_number = 0;
-
-      last_epoch_descriptor.starting_slot_finish_time = closestNextTimeMultiple(
-          now, babe_configuration_->slot_duration);
-
-    }
-
-    auto [number, hash] = block_tree_->deepestLeaf();
-    auto &best_block_number = number;
-    auto &best_block_hash = hash;
-
-    if (execution_strategy_.value() != ExecutionStrategy::SYNC_FIRST) {
-      SL_DEBUG(log_,
-               "Babe is starting in epoch #{} with block #{}, hash={}",
-               last_epoch_descriptor.epoch_number,
-               best_block_number,
-               best_block_hash);
-
-      current_state_ = State::SYNCHRONIZED;
-      runEpoch(last_epoch_descriptor);
-      if (auto on_synchronized = std::move(on_synchronized_)) {
-        on_synchronized();
-      }
-    } else {
-      SL_DEBUG(log_,
-               "Babe is starting with syncing from block #{}, hash={}",
-               best_block_number,
-               best_block_hash);
-
-      current_state_ = State::WAIT_BLOCK;
-    }
+    current_state_ = State::WAIT_BLOCK;
     return true;
   }
 
@@ -161,21 +97,34 @@ namespace kagome::consensus::babe {
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    SL_DEBUG(
-        log_,
-        "Starting an epoch {}. Session key: {}. First slot ending time: {}",
-        epoch.epoch_number,
-        keypair_->public_key.toHex(),
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            epoch.starting_slot_finish_time.time_since_epoch())
-            .count());
+    SL_DEBUG(log_,
+             "Starting an epoch {}. Session key: {}",
+             epoch.epoch_number,
+             keypair_->public_key.toHex());
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
-    next_slot_finish_time_ = current_epoch_.starting_slot_finish_time;
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
 
-    runSlot();
+    // main babe block production loop is here
+    ticker_->asyncCallRepeatedly([wp = weak_from_this()](auto &&ec) {
+      if (auto self = wp.lock()) {
+        self->log_->info("Starting a slot {} in epoch {}",
+                         self->current_slot_,
+                         self->current_epoch_.epoch_number);
+        if (ec) {
+          self->log_->error("error happened while waiting on the ticker: {}",
+                            ec.message());
+          return;
+        }
+        self->finishSlot();
+      }
+    });
+    auto duration = babe_util_->slotStartsIn(current_slot_);
+    auto msec =
+        std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    SL_TRACE(log_, "Babe starts in {} msec", msec);
+    ticker_->start(duration);
   }
 
   Babe::State BabeImpl::getCurrentState() const {
@@ -184,12 +133,6 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
-    if (not keypair_) {
-      block_executor_->processNextBlock(
-          peer_id, announce.header, [](auto &) {});
-      return;
-    }
-
     switch (current_state_) {
       case State::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
@@ -206,24 +149,50 @@ namespace kagome::consensus::babe {
                 self->log_->info("Catching up is done, getting slot time");
                 // all blocks were successfully applied, now we need to get
                 // slot time
-                self->current_state_ = State::NEED_SLOT_TIME;
+                self->current_state_ = State::SYNCHRONIZED;
               }
-            });
-        break;
-      case State::NEED_SLOT_TIME:
-        // if block is new add it to the storage and sync missing blocks. Then
-        // calculate slot time and execute babe
-        block_executor_->processNextBlock(
-            peer_id, announce.header, [this](const auto &header) {
-              synchronizeSlots(header);
             });
         break;
       case State::CATCHING_UP:
       case State::SYNCHRONIZED:
         block_executor_->processNextBlock(
-            peer_id, announce.header, [](auto &) {});
+            peer_id, announce.header, [this](const auto &header) {
+              synchronizeSlots(header);
+            });
         break;
     }
+  }
+
+  void BabeImpl::onPeerSync() {
+    // sync already started no need to call it again
+    if (ticker_->isStarted()) {
+      return;
+    }
+
+    // won't start block production without keypair
+    if (not keypair_) {
+      return;
+    }
+
+    EpochDescriptor last_epoch_descriptor;
+    if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
+      last_epoch_descriptor = res.value();
+    } else {
+      last_epoch_descriptor.epoch_number = 0;
+      last_epoch_descriptor.start_slot = babe_util_->getCurrentSlot() + 1;
+    }
+
+    auto [number, hash] = block_tree_->deepestLeaf();
+    auto &best_block_number = number;
+    auto &best_block_hash = hash;
+
+    SL_DEBUG(log_,
+             "Babe is starting with syncing from block #{}, hash={}",
+             best_block_number,
+             best_block_hash);
+
+    runEpoch(last_epoch_descriptor);
+    on_synchronized_();
   }
 
   void BabeImpl::doOnSynchronized(std::function<void()> handler) {
@@ -232,53 +201,6 @@ namespace kagome::consensus::babe {
     } else {
       on_synchronized_ = std::move(handler);
     }
-  }
-
-  void BabeImpl::runSlot() {
-    BOOST_ASSERT(keypair_ != nullptr);
-
-    bool rewind_slots;  // NOLINT
-    auto slot = current_slot_;
-    do {
-      // check that we are really in the middle of the slot, as expected; we can
-      // cooperate with a relatively little (kMaxLatency) latency, as our node
-      // will be able to retrieve
-      auto now = clock_->now();
-
-      rewind_slots = now > next_slot_finish_time_
-                     and (now - next_slot_finish_time_)
-                             > babe_configuration_->slot_duration;
-
-      if (rewind_slots) {
-        // we are too far behind; after skipping some slots (but not epochs)
-        // control will be returned to this method
-
-        current_slot_++;
-        next_slot_finish_time_ += babe_configuration_->slot_duration;
-
-        if (current_epoch_.epoch_number
-            != babe_util_->slotToEpoch(current_slot_)) {
-          startNextEpoch();
-        }
-      } else if (slot < current_slot_) {
-        log_->info("Slots {}..{} was skipped", slot, current_slot_ - 1);
-      }
-    } while (rewind_slots);
-
-    log_->info("Starting a slot {} in epoch {}",
-               current_slot_,
-               current_epoch_.epoch_number);
-
-    // everything is OK: wait for the end of the slot
-    timer_->expiresAt(next_slot_finish_time_);
-    timer_->asyncWait([this](auto &&ec) {
-      if (ec) {
-        log_->error("error happened while waiting on the timer: {}",
-                    ec.message());
-        return;
-      }
-      finishSlot();
-    });
   }
 
   void BabeImpl::finishSlot() {
@@ -314,14 +236,11 @@ namespace kagome::consensus::babe {
              current_slot_,
              current_epoch_.epoch_number);
 
-    ++current_slot_;
-    next_slot_finish_time_ += babe_configuration_->slot_duration;
+    current_slot_ = babe_util_->getCurrentSlot() + 1;
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       startNextEpoch();
     }
-
-    runSlot();
   }
 
   outcome::result<primitives::PreRuntime> BabeImpl::babePreDigest(
@@ -443,8 +362,7 @@ namespace kagome::consensus::babe {
     block.header.digest.emplace_back(seal_res.value());
 
     // check that we are still in the middle of the
-    if (clock_->now()
-        > next_slot_finish_time_ + babe_configuration_->slot_duration) {
+    if (current_slot_ != babe_util_->getCurrentSlot()) {
       log_->warn(
           "Block was not built in time. Slot has finished. If you are "
           "executing in debug mode, consider to rebuild in release");
@@ -521,74 +439,20 @@ namespace kagome::consensus::babe {
     current_epoch_.start_slot = current_slot_;
     slots_leadership_.reset();
 
-    [[maybe_unused]] auto res =
-        babe_util_->setLastEpoch({current_epoch_.epoch_number,
-                                  current_epoch_.start_slot,
-                                  next_slot_finish_time_});
+    [[maybe_unused]] auto res = babe_util_->setLastEpoch(
+        {current_epoch_.epoch_number, current_epoch_.start_slot});
   }
 
-  void BabeImpl::storeFirstSlotTimeEstimate(
-      BabeSlotNumber observed_slot, BabeSlotNumber first_production_slot) {
-    BOOST_ASSERT_MSG(
-        slots_calculation_strategy_ == SlotsStrategy::FromZero,
-        "This method can be executed only when slots are counting from zero");
-
-    BOOST_ASSERT(first_production_slot >= observed_slot);
-    // get the difference between observed slot and the one that we are trying
-    // to launch
-    const auto diff = first_production_slot - observed_slot;
-
-    first_slot_times_.emplace_back(clock_->now()
-                                   + diff * babe_configuration_->slot_duration);
-  }
-
-  BabeTimePoint BabeImpl::getFirstSlotTimeEstimate() {
-    BOOST_ASSERT_MSG(
-        slots_calculation_strategy_ == SlotsStrategy::FromZero,
-        "This method can be executed only when slots are counting from zero");
-
-    // get median as here:
-    // https://en.cppreference.com/w/cpp/algorithm/nth_element
-    std::nth_element(first_slot_times_.begin(),
-                     first_slot_times_.begin() + first_slot_times_.size() / 2,
-                     first_slot_times_.end());
-    return first_slot_times_[first_slot_times_.size() / 2];
-  }
-
-  EpochDescriptor BabeImpl::prepareFirstEpochFromZeroStrategy(
-      BabeTimePoint first_slot_time_estimate,
-      BabeSlotNumber first_production_slot_number) const {
-    BOOST_ASSERT_MSG(
-        slots_calculation_strategy_ == SlotsStrategy::FromZero,
-        "This method can be executed only when slots are counting from zero");
-    const auto epoch_number =
-        first_production_slot_number / babe_configuration_->epoch_length;
-
-    return EpochDescriptor{
-        .epoch_number = epoch_number,
-        .start_slot = first_production_slot_number,
-        .starting_slot_finish_time = first_slot_time_estimate};
-  }
-
-  EpochDescriptor BabeImpl::prepareFirstEpochUnixTime(
+  EpochDescriptor BabeImpl::prepareFirstEpoch(
       EpochDescriptor last_known_epoch,
       BabeSlotNumber first_production_slot) const {
-    BOOST_ASSERT_MSG(
-        slots_calculation_strategy_ == SlotsStrategy::FromUnixEpoch,
-        "This method can be executed only when slots are counting from unix "
-        "epoch start");
-
     const auto epoch_duration = babe_configuration_->epoch_length;
     const auto start_slot =
         first_production_slot
         - ((first_production_slot - last_known_epoch.start_slot)
-           % epoch_duration);
-    auto slot_duration = babe_configuration_->slot_duration;
-
-    // get new epoch index
-    const auto ticks_since_epoch = clock_->now().time_since_epoch().count();
-    const auto genesis_slot =
-        static_cast<BabeSlotNumber>(ticks_since_epoch / slot_duration.count());
+           % epoch_duration)
+        + 1;
+    const auto genesis_slot = babe_util_->getCurrentSlot();
     const auto epoch_number = (first_production_slot - genesis_slot)
                               / babe_configuration_->epoch_length;
 
@@ -597,7 +461,10 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {
-    static boost::optional<BabeSlotNumber> first_production_slot = boost::none;
+    // skip logic without keypair, wait next block announce
+    if (not keypair_) {
+      return;
+    }
 
     const auto &babe_digests_res = getBabeDigests(new_header);
     if (not babe_digests_res) {
@@ -606,48 +473,16 @@ namespace kagome::consensus::babe {
     }
 
     const auto &[_, babe_header] = babe_digests_res.value();
-    auto observed_slot = babe_header.slot_number;
 
     EpochDescriptor epoch;
-    switch (slots_calculation_strategy_) {
-      case SlotsStrategy::FromZero: {
-        if (not first_production_slot) {
-          first_production_slot = observed_slot + kSlotTail;
-          log_->info("Peer will start produce blocks at slot number: {}",
-                     *first_production_slot);
-        }
+    const auto last_known_epoch = babe_util_->getLastEpoch().value();
+    epoch = prepareFirstEpoch(last_known_epoch,
+                                      babe_header.slot_number + 1);
 
-        if (observed_slot < first_production_slot.value()) {
-          storeFirstSlotTimeEstimate(observed_slot, *first_production_slot);
-          return;
-        }
-
-        current_state_ = State::SYNCHRONIZED;
-        log_->info("Slot time obtained. Peer is synchronized");
-
-        const auto first_slot_ending_time = getFirstSlotTimeEstimate();
-
-        epoch = prepareFirstEpochFromZeroStrategy(first_slot_ending_time,
-                                                  *first_production_slot);
-
-        runEpoch(epoch);
-        break;
-      }
-      case SlotsStrategy::FromUnixEpoch: {
-        const auto last_known_epoch = babe_util_->getLastEpoch().value();
-        epoch = prepareFirstEpochUnixTime(last_known_epoch,
-                                          babe_header.slot_number + 1);
-
-        // calculate new epoch first slot finish time and run epoch
-        epoch.starting_slot_finish_time = BabeTimePoint{
-            (epoch.start_slot + 1) * babe_configuration_->slot_duration};
-
-        runEpoch(epoch);
-        break;
-      }
-    }
-    if (auto on_synchronized = std::move(on_synchronized_)) {
-      on_synchronized();
+    // runEpoch starts ticker
+    if (not ticker_->isStarted()) {
+      runEpoch(epoch);
+      on_synchronized_();
     }
   }
 }  // namespace kagome::consensus::babe

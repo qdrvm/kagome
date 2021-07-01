@@ -32,6 +32,7 @@ namespace kagome::crypto {
   class CryptoStore;
   class Hasher;
   class KeyFileStorage;
+  class SessionKeys;
 }  // namespace kagome::crypto
 namespace kagome::network {
   struct ExtrinsicGossiper;
@@ -71,6 +72,7 @@ namespace kagome::api {
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<network::ExtrinsicGossiper> gossiper,
                   std::shared_ptr<crypto::CryptoStore> store,
+                  std::shared_ptr<crypto::SessionKeys> keys,
                   std::shared_ptr<crypto::KeyFileStorage> key_store);
 
     ~AuthorApiImpl() override = default;
@@ -114,6 +116,7 @@ namespace kagome::api {
     sptr<crypto::Hasher> hasher_;
     sptr<network::ExtrinsicGossiper> gossiper_;
     sptr<crypto::CryptoStore> store_;
+    sptr<crypto::SessionKeys> keys_;
     sptr<crypto::KeyFileStorage> key_store_;
     sptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<api::ApiService> api_service_;

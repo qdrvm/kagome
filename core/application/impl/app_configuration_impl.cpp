@@ -41,8 +41,6 @@ namespace {
   const uint32_t def_ws_max_connections = 100;
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
-  const bool def_is_already_synchronized = false;
-  const bool def_is_unix_slots_strategy = false;
   const bool def_dev_mode = false;
   const kagome::network::Roles def_roles = [] {
     kagome::network::Roles roles;
@@ -75,9 +73,7 @@ namespace kagome::application {
         roles_(def_roles),
         p2p_port_(def_p2p_port),
         verbosity_(static_cast<log::Level>(def_verbosity)),
-        is_already_synchronized_(def_is_already_synchronized),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
-        is_unix_slots_strategy_(def_is_unix_slots_strategy),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
         openmetrics_http_host_(def_openmetrics_http_host),
@@ -222,9 +218,7 @@ namespace kagome::application {
   }
 
   void AppConfigurationImpl::parse_additional_segment(rapidjson::Value &val) {
-    load_bool(val, "already-synchronized", is_already_synchronized_);
     load_u32(val, "max-blocks-in-response", max_blocks_in_response_);
-    load_bool(val, "is-unix-slots-strategy", is_unix_slots_strategy_);
     load_bool(val, "dev", dev_mode_);
   }
 
@@ -377,14 +371,8 @@ namespace kagome::application {
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
 
-    po::options_description additional_desc("Additional options");
-    additional_desc.add_options()
-        ("already-synchronized,s", "if need to consider synchronized")
-        ("unix-slots,u", "if slots are calculated from unix epoch")
-        ;
-
     po::options_description development_desc("Development options");
-    additional_desc.add_options()
+    development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
         ;
@@ -398,10 +386,7 @@ namespace kagome::application {
     po::store(parsed, vm);
     po::notify(vm);
 
-    desc.add(blockhain_desc)
-        .add(storage_desc)
-        .add(network_desc)
-        .add(additional_desc);
+    desc.add(blockhain_desc).add(storage_desc).add(network_desc);
 
     if (vm.count("help") > 0) {
       std::cout << desc << std::endl;
@@ -471,7 +456,6 @@ namespace kagome::application {
         roles_.flags.full = 1;
         roles_.flags.authority = 1;
         p2p_port_ = def_p2p_port;
-        is_already_synchronized_ = true;
         rpc_http_host_ = def_rpc_http_host;
         rpc_ws_host_ = def_rpc_ws_host;
         openmetrics_http_host_ = def_openmetrics_http_host;
@@ -498,20 +482,6 @@ namespace kagome::application {
     if (vm.end() != vm.find("validator")) {
       roles_.flags.authority = 1;
     }
-
-    if (vm.end() != vm.find("already-synchronized")) {
-      if (roles_.flags.authority == 0) {
-        logger_->error("Non authority node is run as already synced");
-        std::cerr
-            << "Non authority node can't be presented as already synced;\n"
-               "Provide --validator option or remove --already-synchronized"
-            << std::endl;
-        return false;
-      }
-      is_already_synchronized_ = true;
-    }
-
-    if (vm.end() != vm.find("unix-slots")) is_unix_slots_strategy_ = true;
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });

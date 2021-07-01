@@ -115,7 +115,6 @@ namespace kagome::network {
                        "Fully established incoming {} stream with {}",
                        self->protocol_,
                        stream->remotePeerId().value().toBase58());
-
           } else {
             SL_VERBOSE(self->log_,
                        "Fail establishing incoming {} stream with {}: {}",
@@ -216,6 +215,14 @@ namespace kagome::network {
                    peer_id.toBase58(),
                    remote_status.best_block.number);
           self->peer_manager_->updatePeerStatus(peer_id, remote_status);
+          auto self_status = self->createStatus();
+          if (self_status) {
+            if (self_status.value().best_block == remote_status.best_block
+                && self_status.value().roles.flags.authority
+                && remote_status.roles.flags.authority) {
+              self->babe_observer_->onPeerSync();
+            }
+          }
 
           switch (direction) {
             case Direction::OUTGOING:
