@@ -25,13 +25,12 @@ namespace kagome::runtime {
 
   const common::Buffer &StorageWasmProvider::getStateCodeAt(
       const storage::trie::RootHash &at) const {
-    auto current_state_root = storage_->getRootHash();
-    if (last_state_root_ == current_state_root) {
+    if (last_state_root_ == at) {
       return state_code_;
     }
-    last_state_root_ = current_state_root;
+    last_state_root_ = at;
 
-    auto batch = storage_->getEphemeralBatch();
+    auto batch = storage_->getEphemeralBatchAt(at);
     BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
     auto state_code_res = batch.value()->get(kRuntimeCodeKey);
     BOOST_ASSERT_MSG(state_code_res.has_value(),
