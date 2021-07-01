@@ -13,7 +13,6 @@
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/types/slots_strategy.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "crypto/hasher.hpp"
