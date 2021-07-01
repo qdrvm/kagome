@@ -73,10 +73,6 @@ namespace kagome::crypto {
     outcome::result<Sr25519Keys> getSr25519PublicKeys(
         KeyTypeId key_type) const override;
 
-    boost::optional<Ed25519Keypair> getGrandpaKeypair() const override;
-
-    boost::optional<Sr25519Keypair> getBabeKeypair() const override;
-
     boost::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const override;
 
     outcome::result<libp2p::crypto::KeyPair> loadLibp2pKeypair(

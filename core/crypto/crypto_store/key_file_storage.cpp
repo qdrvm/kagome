@@ -92,7 +92,7 @@ namespace kagome::crypto {
     return keystore_path_ / (key_type_str + public_key_hex);
   }
 
-  outcome::result<void> KeyFileStorage::saveKeypair(
+  outcome::result<void> KeyFileStorage::saveKeyPair(
       KeyTypeId type,
       gsl::span<const uint8_t> public_key,
       gsl::span<const uint8_t> seed) const {
