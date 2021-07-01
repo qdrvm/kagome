@@ -20,8 +20,8 @@
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/memory.hpp"
-#include "runtime/runtime_code_provider.hpp"
 #include "runtime/ptr_size.hpp"
+#include "runtime/runtime_code_provider.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::runtime::binaryen {
@@ -102,7 +102,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<R> executeAt(std::string_view name,
                                  const storage::trie::RootHash &state_root,
                                  CallConfig config,
-                                 Args &&... args) {
+                                 Args &&...args) {
       return executeInternal<R>(
           name, state_root, std::move(config), std::forward<Args>(args)...);
     }
@@ -120,7 +120,7 @@ namespace kagome::runtime::binaryen {
     template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name,
                                CallConfig config,
-                               Args &&... args) {
+                               Args &&...args) {
       return executeInternal<R>(
           name, boost::none, std::move(config), std::forward<Args>(args)...);
     }
@@ -137,7 +137,7 @@ namespace kagome::runtime::binaryen {
         std::string_view name,
         boost::optional<storage::trie::RootHash> state_root,
         CallConfig config,
-        Args &&... args) {
+        Args &&...args) {
       SL_DEBUG(logger_, "Executing export function: {}", name);
       if (state_root.has_value()) {
         SL_DEBUG(logger_, "Resetting state to: {}", state_root.value().toHex());
@@ -146,11 +146,12 @@ namespace kagome::runtime::binaryen {
       auto &&[module_instance, memory, rei] =
           createRuntimeEnvironment(config, state_root);
 
-      gsl::final_action dispose(
-          [memory = memory, module_instance = module_instance] {
-            memory->reset();
-            // reset runtime external interface module_instance->reset();
-          });
+      memory->setHeapBase(
+          module_instance->getExportGlobal("__heap_base").geti32());
+
+      gsl::final_action dispose([rei = rei] {
+        rei->reset();
+      });
 
       runtime::WasmPointer ptr = 0u;
       runtime::WasmSize len = 0u;

@@ -31,19 +31,16 @@ namespace kagome::runtime::binaryen {
     }
 
     void resetMemory(WasmSize heap_base) override {
-      BOOST_ASSERT(internal_memory_ != nullptr);
-      memory_ = memory_factory_->make(internal_memory_);
+      memory_->reset();
       memory_->setHeapBase(heap_base);
     }
 
     void setMemory(wasm::ShellExternalInterface::Memory *memory) {
       BOOST_ASSERT(memory != nullptr);
-      internal_memory_ = memory;
       memory_ = memory_factory_->make(memory);
     }
 
    private:
-    wasm::ShellExternalInterface::Memory *internal_memory_;
     std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory_;
     std::shared_ptr<WasmMemoryImpl> memory_;
   };

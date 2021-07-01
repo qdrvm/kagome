@@ -62,6 +62,7 @@ namespace kagome::runtime::binaryen {
                         size_t actual);
 
     std::unique_ptr<host_api::HostApi> host_api_;
+    std::shared_ptr<BinaryenMemoryProvider> wasm_memory_provider_;
     log::Logger logger_ = log::createLogger("RuntimeExternalInterface", "wasm");
   };
 

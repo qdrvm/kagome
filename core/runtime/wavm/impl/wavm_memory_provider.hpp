@@ -15,7 +15,7 @@ namespace kagome::runtime::wavm {
 
   class WavmMemoryProvider final : public MemoryProvider {
    public:
-    WavmMemoryProvider(std::shared_ptr<IntrinsicModuleInstance> resolver);
+    WavmMemoryProvider(std::shared_ptr<IntrinsicModuleInstance> intrinsic_module);
 
     ~WavmMemoryProvider() {}
 

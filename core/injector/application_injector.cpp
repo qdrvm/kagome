@@ -797,8 +797,6 @@ namespace {
           static boost::optional<std::shared_ptr<host_api::HostApi>> host_api;
           if (host_api.has_value()) return host_api.value();
 
-          runtime::wavm::logger = log::createLogger("HostAPI Crutch", "debug");
-
           host_api = boost::make_optional(
               injector
                   .template create<std::shared_ptr<host_api::HostApiImpl>>());

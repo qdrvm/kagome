@@ -152,6 +152,7 @@ namespace kagome::runtime::binaryen {
                      "host api factory is nullptr");
     BOOST_ASSERT_MSG(storage_provider != nullptr,
                      "storage provider is nullptr");
+    wasm_memory_provider_ = wasm_memory_provider;
     wasm_memory_provider->setMemory(&(ShellExternalInterface::memory));
     host_api_ = host_api_factory->make(
         core_provider,
@@ -531,7 +532,7 @@ namespace kagome::runtime::binaryen {
   }
 
   void RuntimeExternalInterface::reset() const {
-    return host_api_->reset();
+    host_api_->reset();
   }
 
 }  // namespace kagome::runtime::binaryen

@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
 
+#include "primitives/version.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
@@ -138,6 +139,10 @@ namespace kagome::runtime::wavm {
 
       PtrSize args_span{memory->storeBuffer(encoded_args)};
 
+      auto res = instance.callExportFunction("Core_version", PtrSize{memory->storeBuffer({})});
+      auto ver = scale::decode<primitives::Version>(memory->loadN(res.ptr, res.size)).value();
+      logger_->info("VERSION {} {}", ver.spec_version, ver.impl_version);
+
       OUTCOME_TRY(result, execute(instance, name, args_span));
 
       if constexpr (std::is_void_v<Result>) {
@@ -147,7 +152,9 @@ namespace kagome::runtime::wavm {
       }
     }
 
-    outcome::result<PtrSize> execute(ModuleInstance &instance, std::string_view name, PtrSize args);
+    outcome::result<PtrSize> execute(ModuleInstance &instance,
+                                     std::string_view name,
+                                     PtrSize args);
 
     std::shared_ptr<ModuleInstance> current_instance_;
     storage::trie::RootHash current_state_root_;
