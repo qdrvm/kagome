@@ -22,7 +22,6 @@
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
-#include "primitives/version.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::runtime::binaryen {
