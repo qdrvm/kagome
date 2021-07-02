@@ -52,6 +52,11 @@ namespace kagome::consensus::grandpa {
     /** @see AppStateManager::takeControl */
     void stop();
 
+    // Neighbor
+
+    void onNeighborMessage(const libp2p::peer::PeerId &peer_id,
+                           const network::GrandpaNeighborMessage &msg) override;
+
     // Catch-up methods
 
     void onCatchUpRequest(const libp2p::peer::PeerId &peer_id,

@@ -23,6 +23,7 @@
 #include "network/impl/stream_engine.hpp"
 #include "network/protocols/block_announce_protocol.hpp"
 #include "network/protocols/gossip_protocol.hpp"
+#include "network/protocols/grandpa_protocol.hpp"
 #include "network/protocols/propagate_transactions_protocol.hpp"
 #include "network/protocols/protocol_factory.hpp"
 #include "network/protocols/sup_protocol.hpp"
@@ -42,6 +43,7 @@ namespace kagome::application {
 
 namespace kagome::network {
   KAGOME_DECLARE_CACHE(stream_engine,
+                       KAGOME_CACHE_UNIT(GrandpaMessage),
                        KAGOME_CACHE_UNIT(GossipMessage),
                        KAGOME_CACHE_UNIT(NoData),
                        KAGOME_CACHE_UNIT(BlockAnnounce),
@@ -65,7 +67,6 @@ namespace kagome::network {
             extrinsic_events_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             ext_event_key_repo_,
-        std::shared_ptr<kagome::application::ChainSpec> config,
         std::shared_ptr<network::Router> router);
 
     ~GossiperBroadcast() override = default;
@@ -137,12 +138,12 @@ namespace kagome::network {
         extrinsic_events_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         ext_event_key_repo_;
-    std::shared_ptr<application::ChainSpec> config_;
 
     std::shared_ptr<network::Router> router_;
 
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
     std::shared_ptr<GossipProtocol> gossip_protocol_;
+    std::shared_ptr<GrandpaProtocol> grandpa_protocol_;
     std::shared_ptr<PropagateTransactionsProtocol>
         propagate_transaction_protocol_;
   };

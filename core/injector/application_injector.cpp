@@ -1043,6 +1043,8 @@ namespace {
             [](auto const &injector) { return get_grandpa_impl(injector); }),
         di::bind<consensus::grandpa::CatchUpObserver>.to(
             [](auto const &injector) { return get_grandpa_impl(injector); }),
+        di::bind<consensus::grandpa::NeighborObserver>.to(
+            [](auto const &injector) { return get_grandpa_impl(injector); }),
         di::bind<consensus::grandpa::GrandpaObserver>.to(
             [](auto const &injector) { return get_grandpa_impl(injector); }),
         di::bind<consensus::BabeUtil>.template to<consensus::BabeUtilImpl>(),

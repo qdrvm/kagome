@@ -14,8 +14,10 @@
 #include <libp2p/host/host.hpp>
 
 #include "application/app_configuration.hpp"
+#include "consensus/grandpa/grandpa_observer.hpp"
 #include "log/logger.hpp"
 #include "network/impl/stream_engine.hpp"
+#include "network/types/own_peer_info.hpp"
 
 namespace kagome::network {
 
@@ -35,9 +37,13 @@ namespace kagome::network {
     GrandpaProtocol &operator=(GrandpaProtocol &&) noexcept = delete;
     GrandpaProtocol &operator=(GrandpaProtocol const &) = delete;
 
-    GrandpaProtocol(libp2p::Host &host,
-                    const application::AppConfiguration &app_config,
-                    std::shared_ptr<StreamEngine> stream_engine);
+    GrandpaProtocol(
+        libp2p::Host &host,
+        std::shared_ptr<boost::asio::io_context> io_context,
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
+        const OwnPeerInfo &own_info,
+        std::shared_ptr<StreamEngine> stream_engine);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -72,7 +78,10 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
 
     libp2p::Host &host_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     const application::AppConfiguration &app_config_;
+    std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer_;
+    const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const libp2p::peer::Protocol protocol_;
     log::Logger log_ = log::createLogger("GrandpaProtocol");

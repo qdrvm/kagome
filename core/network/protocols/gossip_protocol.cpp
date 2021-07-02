@@ -151,7 +151,7 @@ namespace kagome::network {
                 self->grandpa_observer_->onFinalize(peer_id, fin_message);
                 success = true;
               },
-              [&](const GrandpaNeighborPacket &neighbor_packet) {
+              [&](const GrandpaNeighborMessage &neighbor_packet) {
                 BOOST_ASSERT_MSG(
                     false,
                     "Unimplemented variant (GrandpaNeighborPacket) "

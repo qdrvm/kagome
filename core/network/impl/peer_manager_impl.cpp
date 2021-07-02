@@ -476,6 +476,7 @@ namespace kagome::network {
     // Reserve stream slots for needed protocols
 
     stream_engine_->add(peer_id, router_->getGossipProtocol());
+    stream_engine_->add(peer_id, router_->getGrandpaProtocol());
     stream_engine_->add(peer_id, router_->getPropagateTransactionsProtocol());
     stream_engine_->add(peer_id, router_->getSupProtocol());
   }
