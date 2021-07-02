@@ -22,7 +22,6 @@
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
-#include "primitives/version.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::runtime::binaryen {
@@ -146,11 +145,6 @@ namespace kagome::runtime::binaryen {
 
       auto &&[module_instance, memory, opt_batch] =
           createRuntimeEnvironment(config, state_root);
-
-      WasmResult ver_res {(uint64_t)module_instance->callExportFunction("Core_version", wasm::LiteralList {wasm::Literal(0), wasm::Literal(0)}).geti64()};
-      auto enc_ver = memory->loadN(ver_res.address, ver_res.length);
-      auto ver = scale::decode<primitives::Version>(enc_ver.asVector()).value();
-      logger_->info("{} {}", ver.spec_version, ver.impl_version);
 
       gsl::final_action dispose(
           [memory = memory, module_instance = module_instance] {
