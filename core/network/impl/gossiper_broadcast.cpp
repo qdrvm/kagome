@@ -9,8 +9,6 @@
 #include <memory>
 
 #include "application/chain_spec.hpp"
-#include "libp2p/connection/loopback_stream.hpp"
-#include "network/common.hpp"
 
 namespace kagome::network {
   KAGOME_DEFINE_CACHE(stream_engine);
@@ -22,18 +20,15 @@ namespace kagome::network {
           extrinsic_events_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           ext_event_key_repo,
-      std::shared_ptr<kagome::application::ChainSpec> config,
       std::shared_ptr<network::Router> router)
       : logger_{log::createLogger("GossiperBroadcast", "network")},
         stream_engine_{std::move(stream_engine)},
         extrinsic_events_engine_{std::move(extrinsic_events_engine)},
         ext_event_key_repo_{std::move(ext_event_key_repo)},
-        config_{std::move(config)},
         router_{std::move(router)} {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(ext_event_key_repo_ != nullptr);
-    BOOST_ASSERT(config_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
 
     BOOST_ASSERT(app_state_manager);
@@ -43,6 +38,7 @@ namespace kagome::network {
   bool GossiperBroadcast::prepare() {
     block_announce_protocol_ = router_->getBlockAnnounceProtocol();
     gossip_protocol_ = router_->getGossipProtocol();
+    grandpa_protocol_ = router_->getGrandpaProtocol();
     propagate_transaction_protocol_ =
         router_->getPropagateTransactionsProtocol();
     return true;
@@ -55,6 +51,7 @@ namespace kagome::network {
   void GossiperBroadcast::stop() {
     block_announce_protocol_.reset();
     gossip_protocol_.reset();
+    grandpa_protocol_.reset();
     propagate_transaction_protocol_.reset();
   }
 
@@ -97,22 +94,14 @@ namespace kagome::network {
     SL_DEBUG(logger_,
              "Gossip vote message: grandpa round number {}",
              vote_message.round_number);
-    GossipMessage message;
-    message.type = GossipMessage::Type::CONSENSUS;
-    message.data.put(scale::encode(GrandpaMessage(vote_message)).value());
-
-    broadcast(gossip_protocol_, std::move(message));
+    broadcast(grandpa_protocol_, GrandpaMessage(vote_message));
   }
 
   void GossiperBroadcast::finalize(const network::GrandpaCommit &fin) {
     SL_DEBUG(logger_,
              "Gossip fin message: grandpa round number {}",
              fin.round_number);
-    GossipMessage message;
-    message.type = GossipMessage::Type::CONSENSUS;
-    message.data.put(scale::encode(GrandpaMessage(fin)).value());
-
-    broadcast(gossip_protocol_, std::move(message));
+    broadcast(grandpa_protocol_, GrandpaMessage(fin));
   }
 
   void GossiperBroadcast::catchUpRequest(
@@ -121,11 +110,7 @@ namespace kagome::network {
     SL_DEBUG(logger_,
              "Gossip catch-up request: grandpa round number {}",
              catch_up_request.round_number);
-    GossipMessage message;
-    message.type = GossipMessage::Type::CONSENSUS;
-    message.data.put(scale::encode(GrandpaMessage(catch_up_request)).value());
-
-    send(peer_id, gossip_protocol_, std::move(message));
+    broadcast(grandpa_protocol_, GrandpaMessage(catch_up_request));
   }
 
   void GossiperBroadcast::catchUpResponse(
@@ -134,10 +119,6 @@ namespace kagome::network {
     SL_DEBUG(logger_,
              "Gossip catch-up response: grandpa round number {}",
              catch_up_response.round_number);
-    GossipMessage message;
-    message.type = GossipMessage::Type::CONSENSUS;
-    message.data.put(scale::encode(GrandpaMessage(catch_up_response)).value());
-
-    send(peer_id, gossip_protocol_, std::move(message));
+    broadcast(grandpa_protocol_, GrandpaMessage(catch_up_response));
   }
 }  // namespace kagome::network

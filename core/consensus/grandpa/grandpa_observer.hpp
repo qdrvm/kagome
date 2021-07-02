@@ -8,6 +8,7 @@
 
 #include "consensus/grandpa/catch_up_observer.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "consensus/grandpa/neighbor_observer.hpp"
 #include "consensus/grandpa/round_observer.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -17,7 +18,8 @@ namespace kagome::consensus::grandpa {
    */
   class GrandpaObserver : public RoundObserver,
                           public JustificationObserver,
-                          public CatchUpObserver {
+                          public CatchUpObserver,
+                          public NeighborObserver {
    public:
     ~GrandpaObserver() override = default;
   };

@@ -10,6 +10,7 @@
 
 #include "network/protocols/block_announce_protocol.hpp"
 #include "network/protocols/gossip_protocol.hpp"
+#include "network/protocols/grandpa_protocol.hpp"
 #include "network/protocols/propagate_transactions_protocol.hpp"
 #include "network/protocols/sup_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
@@ -30,6 +31,7 @@ namespace kagome::network {
     getPropagateTransactionsProtocol() const = 0;
     virtual std::shared_ptr<SupProtocol> getSupProtocol() const = 0;
     virtual std::shared_ptr<SyncProtocol> getSyncProtocol() const = 0;
+    virtual std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const = 0;
   };
 }  // namespace kagome::network
 
