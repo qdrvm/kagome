@@ -47,8 +47,6 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenNoStorageUpdates) {
       }));
   auto wasm_provider = std::make_shared<runtime::StorageWasmProvider>(trie_db);
 
-//  EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
-
   // when
   auto obtained_state_code = wasm_provider->getStateCodeAt(first_state_root);
 
