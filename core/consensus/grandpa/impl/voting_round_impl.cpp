@@ -1619,15 +1619,15 @@ namespace kagome::consensus::grandpa {
     pending_timer_.cancel();
 
     // Resend defined votes
-//    if (isPrimary_ && primary_vote_.has_value()) {
-//      sendProposal(convertToPrimaryPropose(primary_vote_.value()));
-//    }
-//    if (prevote_.has_value()) {
-//      sendPrevote(convertToPrevote(prevote_.value()));
-//    }
-//    if (precommit_.has_value()) {
-//      sendPrecommit(convertToPrecommit(precommit_.value()));
-//    }
+    if (isPrimary_ && primary_vote_.has_value()) {
+      sendProposal(convertToPrimaryPropose(primary_vote_.value()));
+    }
+    if (prevote_.has_value()) {
+      sendPrevote(convertToPrevote(prevote_.value()));
+    }
+    if (precommit_.has_value()) {
+      sendPrecommit(convertToPrecommit(precommit_.value()));
+    }
     attemptToFinalizeRound();
 
     // Note: Pending interval must be longer than total voting time:
