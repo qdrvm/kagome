@@ -38,15 +38,16 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenNoStorageUpdates) {
 
   // given
   EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
-  EXPECT_CALL(*trie_db, getEphemeralBatch()).WillOnce(Invoke([this]() {
-    auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-    EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
-        .WillOnce(Return(state_code_));
-    return batch;
-  }));
+  EXPECT_CALL(*trie_db, getEphemeralBatch())
+      .WillOnce(Invoke([this]() {
+        auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+        EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
+            .WillOnce(Return(state_code_));
+        return batch;
+      }));
   auto wasm_provider = std::make_shared<runtime::StorageWasmProvider>(trie_db);
 
-  EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
+//  EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
 
   // when
   auto obtained_state_code = wasm_provider->getStateCodeAt(first_state_root);
@@ -69,18 +70,18 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenStorageUpdates) {
 
   // given
   EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
-  EXPECT_CALL(*trie_db, getEphemeralBatch()).WillOnce(Invoke([this]() {
-    auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-    EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
-        .WillOnce(Return(state_code_));
-    return batch;
-  }));
+  EXPECT_CALL(*trie_db, getEphemeralBatch())
+      .WillOnce(Invoke([this]() {
+        auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+        EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
+            .WillOnce(Return(state_code_));
+        return batch;
+      }));
   auto wasm_provider = std::make_shared<runtime::StorageWasmProvider>(trie_db);
 
   common::Buffer new_state_code{{1, 3, 3, 8}};
-  EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(second_state_root));
-  EXPECT_CALL(*trie_db, getEphemeralBatch())
-      .WillOnce(Invoke([&new_state_code]() {
+  EXPECT_CALL(*trie_db, getEphemeralBatchAt(second_state_root))
+      .WillOnce(Invoke([&new_state_code](auto &) {
         auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
         EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
             .WillOnce(Return(new_state_code));
@@ -88,7 +89,7 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenStorageUpdates) {
       }));
 
   // when
-  auto obtained_state_code = wasm_provider->getStateCodeAt("42"_hash256);
+  auto obtained_state_code = wasm_provider->getStateCodeAt(second_state_root);
 
   // then
   ASSERT_EQ(obtained_state_code, new_state_code);
