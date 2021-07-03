@@ -23,7 +23,9 @@ kagome_install(key_file_storage)
 add_library(crypto_store
     crypto_store_impl.cpp
     crypto_suites.hpp
-    key_cache.hpp)
+    key_cache.hpp
+    session_keys.cpp
+    session_keys.hpp)
 
 target_link_libraries(crypto_store
     key_file_storage

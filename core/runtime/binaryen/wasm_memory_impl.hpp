@@ -56,16 +56,13 @@ namespace kagome::runtime::binaryen {
    */
   class WasmMemoryImpl final : public Memory {
    public:
-    explicit WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory);
+    WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory,
+                            WasmSize heap_base);
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl &operator=(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl(WasmMemoryImpl &&move) = delete;
     WasmMemoryImpl &operator=(WasmMemoryImpl &&move) = delete;
     ~WasmMemoryImpl() override = default;
-
-    void setHeapBase(WasmSize initial_offset) override;
-
-    void reset() override;
 
     WasmSize size() const override;
     void resize(WasmSize newSize) override;

@@ -123,23 +123,9 @@ namespace kagome::application {
     virtual log::Level verbosity() const = 0;
 
     /**
-     * If whole nodes was stopped, would not any active node to synchronize.
-     * This option gives ability to continue block production at cold start.
-     * @return true if need to force block production
-     */
-    virtual bool isAlreadySynchronized() const = 0;
-
-    /**
      * @return max blocks count per response while syncing
      */
     virtual uint32_t maxBlocksInResponse() const = 0;
-
-    /**
-     * Slots strategy
-     * @return true if we should count slots as `unix_epoch_time() /
-     * slot_duration`. Otherwise slots are counting from 0 and false is returned
-     */
-    virtual bool isUnixSlotsStrategy() const = 0;
 
     /**
      * Config for PeerManager

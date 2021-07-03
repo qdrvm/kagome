@@ -8,9 +8,9 @@
 #include <gsl/span>
 
 #include "crypto/hasher/hasher_impl.hpp"
+#include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/memory_provider.hpp"
-#include "runtime/binaryen/binaryen_memory_provider.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
                             RuntimeEnvironmentFactoryImpl::Error,
@@ -29,24 +29,26 @@ namespace kagome::runtime::binaryen {
 
   thread_local std::shared_ptr<RuntimeExternalInterface>
       RuntimeEnvironmentFactoryImpl::external_interface_{};
+  thread_local std::shared_ptr<BinaryenMemoryProvider>
+      RuntimeEnvironmentFactoryImpl::memory_provider_{};
 
   RuntimeEnvironmentFactoryImpl::RuntimeEnvironmentFactoryImpl(
       std::shared_ptr<CoreApiProvider> core_api_provider,
-      std::shared_ptr<BinaryenMemoryProvider> memory_provider,
+      std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<WasmModuleFactory> module_factory,
       std::shared_ptr<RuntimeCodeProvider> wasm_provider,
       std::shared_ptr<TrieStorageProvider> storage_provider,
       std::shared_ptr<crypto::Hasher> hasher)
       : core_api_provider_{std::move(core_api_provider)},
-        memory_provider_{std::move(memory_provider)},
         storage_provider_{std::move(storage_provider)},
         wasm_provider_{std::move(wasm_provider)},
         host_api_factory_{std::move(host_api_factory)},
         module_factory_{std::move(module_factory)},
-        hasher_{std::move(hasher)} {
+        hasher_{std::move(hasher)},
+        memory_factory_{std::move(memory_factory)} {
     BOOST_ASSERT(core_api_provider_);
-    BOOST_ASSERT(memory_provider_);
+    BOOST_ASSERT(memory_factory_);
     BOOST_ASSERT(wasm_provider_);
     BOOST_ASSERT(storage_provider_);
     BOOST_ASSERT(host_api_factory_);
@@ -78,11 +80,10 @@ namespace kagome::runtime::binaryen {
     auto persistent_batch = storage_provider_->tryGetPersistentBatch();
     if (!persistent_batch) return Error::NO_PERSISTENT_BATCH;
 
-    OUTCOME_TRY(code,
-                wasm_provider_->getCodeAt(storage_provider_->getLatestRoot()));
+    OUTCOME_TRY(code, wasm_provider_->getCodeAt(state_root));
     auto env = createRuntimeEnvironment(common::Buffer{code});
     if (env.has_value()) {
-      //  env.value().batch = (*persistent_batch)->batchOnTop();
+      env.value().batch = (*persistent_batch)->batchOnTop();
     }
 
     return env;
@@ -108,7 +109,7 @@ namespace kagome::runtime::binaryen {
     auto env = createRuntimeEnvironment(common::Buffer{code});
 
     if (env.has_value()) {
-      //  env.value().batch = (*persistent_batch)->batchOnTop();
+      env.value().batch = (*persistent_batch)->batchOnTop();
     }
 
     return env;
@@ -142,13 +143,15 @@ namespace kagome::runtime::binaryen {
       }
     }
 
+    if (memory_provider_ == nullptr) {
+      memory_provider_ =
+          std::make_shared<BinaryenMemoryProvider>(memory_factory_);
+    }
     if (external_interface_ == nullptr) {
-      external_interface_ = std::make_shared<RuntimeExternalInterface>(
-          core_api_provider_,
-          shared_from_this(),
-          memory_provider_,
-          host_api_factory_,
-          storage_provider_);
+      external_interface_ =
+          std::make_shared<RuntimeExternalInterface>(host_api_factory_->make(
+              core_api_provider_, memory_provider_, storage_provider_));
+      memory_provider_->setExternalInterface(external_interface_);
     }
 
     if (!module) {
@@ -173,12 +176,11 @@ namespace kagome::runtime::binaryen {
   RuntimeEnvironmentFactoryImpl::createIsolatedRuntimeEnvironment(
       const common::Buffer &state_code) {
     // TODO(Harrm): for review; doubt, maybe need a separate storage provider
-    auto external_interface = std::make_shared<RuntimeExternalInterface>(
-        core_api_provider_,
-        shared_from_this(),
-        memory_provider_,
-        host_api_factory_,
-        storage_provider_);
+    auto memory_provider =
+        std::make_shared<BinaryenMemoryProvider>(memory_factory_);
+    auto external_interface =
+        std::make_shared<RuntimeExternalInterface>(host_api_factory_->make(
+            core_api_provider_, memory_provider, storage_provider_));
 
     OUTCOME_TRY(module,
                 module_factory_->createModule(

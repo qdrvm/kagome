@@ -14,24 +14,18 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<IntrinsicModuleInstance> module)
       : intrinsic_module_{std::move(module)} {
     BOOST_ASSERT(intrinsic_module_);
-    if (auto memory = intrinsic_module_->getExportedMemory();
-        memory != nullptr) {
-      current_memory_ =
-          std::make_unique<Memory>(intrinsic_module_->getExportedMemory());
-    }
   }
 
-  boost::optional<std::shared_ptr<runtime::Memory>> WavmMemoryProvider::getCurrentMemory()
-      const {
-    return current_memory_
-               ? boost::optional<std::shared_ptr<runtime::Memory>>(current_memory_)
-               : boost::none;
+  boost::optional<std::shared_ptr<runtime::Memory>>
+  WavmMemoryProvider::getCurrentMemory() const {
+    return current_memory_ ? boost::optional<std::shared_ptr<runtime::Memory>>(
+               current_memory_)
+                           : boost::none;
   }
 
   void WavmMemoryProvider::resetMemory(WasmSize heap_base) {
-    current_memory_ =
-        std::make_unique<Memory>(intrinsic_module_->getExportedMemory());
-    current_memory_->setHeapBase(heap_base);
+    current_memory_ = std::make_unique<Memory>(
+        intrinsic_module_->getExportedMemory(), heap_base);
   }
 
 }  // namespace kagome::runtime::wavm

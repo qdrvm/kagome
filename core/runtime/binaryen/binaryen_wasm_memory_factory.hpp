@@ -15,7 +15,7 @@ namespace kagome::runtime::binaryen {
     virtual ~BinaryenWasmMemoryFactory() = default;
 
     virtual std::unique_ptr<WasmMemoryImpl> make(
-        wasm::ShellExternalInterface::Memory *memory) const;
+        wasm::ShellExternalInterface::Memory *memory, WasmSize heap_base) const;
   };
 
 }  // namespace kagome::runtime::binaryen

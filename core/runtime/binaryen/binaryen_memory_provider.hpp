@@ -8,10 +8,11 @@
 
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/memory_provider.hpp"
 
 namespace wasm {
-  class ShellExternalInterface;
+  class RuntimeExternalInterface;
 }
 
 namespace kagome::runtime::binaryen {
@@ -19,7 +20,7 @@ namespace kagome::runtime::binaryen {
   class BinaryenMemoryProvider final : public MemoryProvider {
    public:
     BinaryenMemoryProvider(
-        std::unique_ptr<BinaryenWasmMemoryFactory> memory_factory)
+        std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory)
         : memory_factory_{std::move(memory_factory)} {
       BOOST_ASSERT(memory_factory_);
     }
@@ -31,16 +32,17 @@ namespace kagome::runtime::binaryen {
     }
 
     void resetMemory(WasmSize heap_base) override {
-      memory_->reset();
-      memory_->setHeapBase(heap_base);
+      memory_ =
+          memory_factory_->make(external_interface_->getMemory(), heap_base);
     }
 
-    void setMemory(wasm::ShellExternalInterface::Memory *memory) {
-      BOOST_ASSERT(memory != nullptr);
-      memory_ = memory_factory_->make(memory);
+    void setExternalInterface(std::shared_ptr<RuntimeExternalInterface> rei) {
+      BOOST_ASSERT(rei != nullptr);
+      external_interface_ = rei;
     }
 
    private:
+    std::shared_ptr<RuntimeExternalInterface> external_interface_;
     std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory_;
     std::shared_ptr<WasmMemoryImpl> memory_;
   };

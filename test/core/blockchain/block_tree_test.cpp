@@ -10,7 +10,6 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
-#include "consensus/babe/types/slots_strategy.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -138,7 +137,6 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
-  SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
   std::shared_ptr<BabeUtilMock> babe_util_;
 
   std::shared_ptr<BlockTreeImpl> block_tree_;

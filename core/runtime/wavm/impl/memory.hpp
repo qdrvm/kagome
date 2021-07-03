@@ -33,17 +33,13 @@ namespace kagome::runtime::wavm {
    public:
     ~Memory() = default;
 
-    explicit Memory(WAVM::Runtime::Memory *memory);
+    Memory(WAVM::Runtime::Memory *memory, WasmSize heap_base);
 
     constexpr static uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
     constexpr static uint8_t kAlignment = sizeof(size_t);
 
-    void setHeapBase(WasmSize heap_base);
-
-    void setUnderlyingMemory(WAVM::Runtime::Memory *memory);
-
-    void reset();
+    //void setUnderlyingMemory(WAVM::Runtime::Memory *memory);
 
     WasmSize size() const {
       return WAVM::Runtime::getMemoryNumPages(memory_) * kPageSize;
@@ -135,7 +131,6 @@ namespace kagome::runtime::wavm {
     WasmPointer heap_base_;
     WasmPointer offset_;
     log::Logger logger_;
-    // WasmSize size_;
 
     // map containing addresses of allocated MemoryImpl chunks
     std::unordered_map<WasmPointer, WasmSize> allocated_{};

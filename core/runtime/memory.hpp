@@ -31,16 +31,6 @@ namespace kagome::runtime {
         std::numeric_limits<uint32_t>::max();
 
     /**
-     * Set heap base to {@param heap_base}
-     */
-    virtual void setHeapBase(WasmSize heap_base) = 0;
-
-    /**
-     * Resets allocated and deallocated memory information
-     */
-    virtual void reset() = 0;
-
-    /**
      * @brief Return the size of the memory
      */
     virtual WasmSize size() const = 0;

@@ -46,7 +46,8 @@ namespace kagome::metrics {
 
     const TextSerializer serializer;
 
-    auto size = writeResponse(session, request, serializer.Serialize(metrics));
+    [[maybe_unused]] auto size =
+        writeResponse(session, request, serializer.Serialize(metrics));
   }
 
   std::size_t PrometheusHandler::writeResponse(std::shared_ptr<Session> session,

@@ -17,7 +17,7 @@
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
-#include "mock/core/clock/timer_mock.hpp"
+#include "mock/core/clock/ticker_mock.hpp"
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_gossiper_mock.hpp"
 #include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
@@ -89,8 +89,8 @@ class BabeTest : public testing::Test {
     gossiper_ = std::make_shared<BabeGossiperMock>();
     clock_ = std::make_shared<SystemClockMock>();
     hasher_ = std::make_shared<HasherMock>();
-    timer_mock_ = std::make_unique<testutil::TimerMock>();
-    timer_ = timer_mock_.get();
+    ticker_mock_ = std::make_unique<testutil::TickerMock>();
+    ticker_ = ticker_mock_.get();
     grandpa_authority_update_observer_ =
         std::make_shared<AuthorityUpdateObserverMock>();
     io_context_ = std::make_shared<boost::asio::io_context>();
@@ -150,9 +150,8 @@ class BabeTest : public testing::Test {
                                              keypair_,
                                              clock_,
                                              hasher_,
-                                             std::move(timer_mock_),
+                                             std::move(ticker_mock_),
                                              grandpa_authority_update_observer_,
-                                             slots_strategy_,
                                              babe_util_);
 
     epoch_.start_slot = 0;
@@ -184,11 +183,10 @@ class BabeTest : public testing::Test {
       std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<HasherMock> hasher_;
-  std::unique_ptr<testutil::TimerMock> timer_mock_;
-  testutil::TimerMock *timer_;
+  std::unique_ptr<testutil::TickerMock> ticker_mock_;
+  testutil::TickerMock *ticker_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
-  SlotsStrategy slots_strategy_{SlotsStrategy::FromZero};
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;
   std::shared_ptr<boost::asio::io_context> io_context_;
@@ -237,41 +235,33 @@ ACTION_P(CheckBlockHeader, expected_block_header) {
  * the next epoch
  */
 TEST_F(BabeTest, Success) {
-  auto test_begin = real_clock_.now();
-
-  // runEpoch
   Randomness randomness;
   EXPECT_CALL(*lottery_, slotsLeadership(epoch_, randomness, _, *keypair_))
       .WillOnce(Return(leadership_));
-  EpochDescriptor next_epoch = epoch_;
-  next_epoch.epoch_number++;
-  next_epoch.start_slot += babe_config_->epoch_length;
 
-  EXPECT_CALL(*trie_db_, getRootHashMock())
-      .WillRepeatedly(Return(storage::trie::RootHash{}));
+  EXPECT_CALL(*clock_, now()).Times(1);
 
-  // runSlot (3 times)
-  EXPECT_CALL(*clock_, now())
-      .WillOnce(Return(test_begin))
-      .WillOnce(Return(test_begin + babe_config_->slot_duration))
-      .WillOnce(Return(test_begin + babe_config_->slot_duration))
-      .WillOnce(Return(test_begin + babe_config_->slot_duration * 2))
-      .WillOnce(Return(test_begin + babe_config_->slot_duration * 2));
+  EXPECT_CALL(*babe_util_, slotStartsIn(epoch_.start_slot))
+      .Times(1)
+      .WillOnce(Return(1ms));
 
-  EXPECT_CALL(*timer_, expiresAt(test_begin + babe_config_->slot_duration));
-  EXPECT_CALL(*timer_, expiresAt(test_begin + babe_config_->slot_duration * 2));
-  EXPECT_CALL(*timer_, expiresAt(test_begin + babe_config_->slot_duration * 3));
+  std::function<void(const std::error_code &ec)> run_slot;
+  EXPECT_CALL(*ticker_, asyncCallRepeatedly(_))
+      .WillOnce(testing::SaveArg<0>(&run_slot));
 
-  EXPECT_CALL(*timer_, asyncWait(_))
-      .WillOnce(testing::InvokeArgument<0>(boost::system::error_code{}))
-      .WillOnce(testing::InvokeArgument<0>(boost::system::error_code{}))
-      .WillOnce({});
+  EXPECT_CALL(*ticker_, start(_)).Times(1);
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
   EXPECT_CALL(*block_tree_, deepestLeaf())
       .Times(2)
       .WillRepeatedly(Return(best_leaf));
+
+  EXPECT_CALL(*babe_util_, getCurrentSlot())
+      .WillOnce(Return(epoch_.start_slot))
+      .WillOnce(Return(epoch_.start_slot + 1))
+      .WillOnce(Return(epoch_.start_slot + 1));
+
   EXPECT_CALL(*proposer_, propose(best_block_number_, _, _))
       .WillOnce(Return(created_block_));
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
@@ -283,7 +273,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*babe_util_, setLastEpoch(_))
       .WillOnce(Return(outcome::success()));
 
-  epoch_.starting_slot_finish_time = test_begin + babe_config_->slot_duration;
-
   babe_->runEpoch(epoch_);
+  run_slot({});
+  run_slot({});
 }

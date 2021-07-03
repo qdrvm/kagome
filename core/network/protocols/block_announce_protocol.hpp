@@ -94,7 +94,7 @@ namespace kagome::network {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("BlockAnnounceProtocol");
+    log::Logger log_ = log::createLogger("BlockAnnounceProtocol", "network");
   };
 
 }  // namespace kagome::network

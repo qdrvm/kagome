@@ -143,11 +143,8 @@ namespace kagome::runtime::binaryen {
         SL_DEBUG(logger_, "Resetting state to: {}", state_root.value().toHex());
       }
 
-      auto &&[module_instance, memory, rei] =
+      auto &&[module_instance, memory, rei, opt_batch] =
           createRuntimeEnvironment(config, state_root);
-
-      memory->setHeapBase(
-          module_instance->getExportGlobal("__heap_base").geti32());
 
       gsl::final_action dispose([rei = rei] {
         rei->reset();
@@ -175,9 +172,9 @@ namespace kagome::runtime::binaryen {
         return scale::decode<R>(std::move(buffer));
       }
 
-      /*if (opt_batch) {
+      if (opt_batch) {
         OUTCOME_TRY(opt_batch.value()->writeBack());
-      }*/
+      }
       return outcome::success();
     }
 

@@ -30,10 +30,9 @@ namespace kagome::runtime::binaryen {
       heap_base = 1024;  // Fallback value
     }
 
+    memory_provider->resetMemory(heap_base);
     auto memory = memory_provider->getCurrentMemory();
     BOOST_ASSERT(memory.has_value());
-    memory.value()->setHeapBase(heap_base);
-    memory.value()->reset();
 
     return RuntimeEnvironment{std::move(module_instance),
                               std::move(memory.value()),

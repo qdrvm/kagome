@@ -3,41 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "memory.hpp"
+#include "runtime/wavm/impl/memory.hpp"
 
 namespace kagome::runtime::wavm {
 
-  Memory::Memory(WAVM::Runtime::Memory *memory)
+  Memory::Memory(WAVM::Runtime::Memory *memory, WasmSize heap_base)
       : memory_(memory),
-        heap_base_{kDefaultHeapBase},
+        heap_base_{heap_base},
         offset_{heap_base_},
         logger_{log::createLogger("WavmMemory", "runtime")} {
     BOOST_ASSERT(memory_);
     BOOST_ASSERT(heap_base_ > 0);
 
     resize(kInitialMemorySize);
-  }
-
-  void Memory::setHeapBase(WasmSize heap_base) {
-    BOOST_ASSERT(heap_base_ > 0);
-    heap_base_ = roundUpAlign(heap_base);
-  }
-
-  void Memory::setUnderlyingMemory(WAVM::Runtime::Memory *memory) {
-    BOOST_ASSERT(memory != nullptr);
-    memory_ = memory;
-    SL_TRACE_VOID_FUNC_CALL(logger_, this, fmt::ptr(memory_));
-    reset();
-  }
-
-  void Memory::reset() {
-    offset_ = heap_base_;
-    allocated_.clear();
-    deallocated_.clear();
-    if (size() < offset_) {
-      resize(offset_);
-    }
-    SL_TRACE(logger_, "Memory reset; memory ptr: {}", fmt::ptr(memory_));
   }
 
   WasmPointer Memory::allocate(WasmSize size) {
