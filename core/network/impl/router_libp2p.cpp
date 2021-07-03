@@ -163,6 +163,9 @@ namespace kagome::network {
   std::shared_ptr<SyncProtocol> RouterLibp2p::getSyncProtocol() const {
     return sync_protocol_;
   }
+  std::shared_ptr<GrandpaProtocol> RouterLibp2p::getGrandpaProtocol() const {
+    return grandpa_protocol_;
+  }
 
   outcome::result<void> RouterLibp2p::appendPeerIdToAddress(
       libp2p::multi::Multiaddress &address) const {

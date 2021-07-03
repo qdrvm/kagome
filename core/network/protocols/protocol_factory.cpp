@@ -53,8 +53,12 @@ namespace kagome::network {
 
   std::shared_ptr<GrandpaProtocol> ProtocolFactory::makeGrandpaProtocol()
       const {
-    return std::make_shared<GrandpaProtocol>(
-        host_, app_config_, stream_engine_);
+    return std::make_shared<GrandpaProtocol>(host_,
+                                             io_context_,
+                                             app_config_,
+                                             grandpa_observer_.lock(),
+                                             own_info_,
+                                             stream_engine_);
   }
 
   std::shared_ptr<PropagateTransactionsProtocol>

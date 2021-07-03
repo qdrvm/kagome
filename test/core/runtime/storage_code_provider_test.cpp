@@ -85,7 +85,6 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
             .WillOnce(Return(state_code_));
         return batch;
       }));
-
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(trie_db);
 
   common::Buffer new_state_code{{1, 3, 3, 8}};

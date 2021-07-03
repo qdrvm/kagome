@@ -48,8 +48,8 @@ namespace kagome::network {
       std::queue<std::function<void(std::shared_ptr<Stream>)>>
           deffered_messages;
     };
-    using ProtocolMap = std::unordered_map<Protocol, ProtocolDescr>;
-    using PeerMap = std::unordered_map<PeerId, ProtocolMap>;
+    using ProtocolMap = std::map<Protocol, ProtocolDescr>;
+    using PeerMap = std::map<PeerId, ProtocolMap>;
 
    public:
     StreamEngine(const StreamEngine &) = delete;
