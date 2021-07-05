@@ -92,14 +92,19 @@ namespace kagome::host_api {
   }
 
   void CryptoExtension::ext_start_batch_verify() {
+    // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
+    /*
     if (batch_verify_.has_value()) {
       throw std::runtime_error("Previous batch_verify is not finished");
     }
 
     batch_verify_.emplace();
+     */
   }
 
   runtime::WasmSize CryptoExtension::ext_finish_batch_verify() {
+    // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
+    /*
     if (not batch_verify_.has_value()) {
       throw std::runtime_error("No batch_verify is started");
     }
@@ -115,7 +120,7 @@ namespace kagome::host_api {
                        "Successful verification result must be equal to 0");
       verification_queue.pop();
     }
-
+    */
     return kVerifyBatchSuccess;
   }
 
