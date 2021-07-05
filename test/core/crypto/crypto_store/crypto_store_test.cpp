@@ -312,28 +312,16 @@ TEST_F(CryptoStoreTest, getSr25519PublicKeysSuccess) {
  */
 TEST_F(CryptoStoreTest, SessionKeys) {
   // GIVEN
-  ASSERT_FALSE(crypto_store->getGrandpaKeypair());
-  ASSERT_FALSE(crypto_store->getBabeKeypair());
   ASSERT_FALSE(crypto_store->getLibp2pKeypair());
 
   // WHEN
   EXPECT_OUTCOME_TRUE(
-      pair1,
-      crypto_store->generateSr25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_BABE))
-  EXPECT_OUTCOME_TRUE(
-      pair2,
-      crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_GRAN))
-  EXPECT_OUTCOME_TRUE(
-      pair3,
+      pair,
       crypto_store->generateEd25519KeypairOnDisk(KnownKeyTypeId::KEY_TYPE_LP2P))
 
   // THEN
-  ASSERT_TRUE(crypto_store->getGrandpaKeypair());
-  ASSERT_EQ(crypto_store->getGrandpaKeypair().value(), pair2);
-  ASSERT_TRUE(crypto_store->getBabeKeypair());
-  ASSERT_EQ(crypto_store->getBabeKeypair().value(), pair1);
   ASSERT_TRUE(crypto_store->getLibp2pKeypair());
-  ASSERT_THAT(pair3.secret_key,
+  ASSERT_THAT(pair.secret_key,
               testing::ElementsAreArray(
                   crypto_store->getLibp2pKeypair().value().privateKey.data));
 }

@@ -14,6 +14,7 @@
 #include "common/hexutil.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/crypto_store/key_file_storage.hpp"
+#include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "mock/core/api/service/api_service_mock.hpp"
@@ -95,7 +96,9 @@ struct AuthorApiTest : public ::testing::Test {
   template <class T>
   using sptr = std::shared_ptr<T>;
 
+  kagome::network::Roles role;
   sptr<CryptoStoreMock> store;
+  sptr<SessionKeys> keys;
   sptr<KeyFileStorage> key_store;
   Sr25519Keypair key_pair;
   sptr<HasherMock> hasher;
@@ -133,17 +136,19 @@ struct AuthorApiTest : public ::testing::Test {
     store = std::make_shared<CryptoStoreMock>();
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
     key_pair = generateSr25519Keypair();
-    key_store->saveKeypair(
+    key_store->saveKeyPair(
         KEY_TYPE_BABE,
         gsl::make_span(key_pair.public_key.data(), 32),
         gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1));
+    role.flags.authority = 1;
+    keys = std::make_shared<SessionKeys>(store, role);
     hasher = std::make_shared<HasherMock>();
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     gossiper = std::make_shared<ExtrinsicGossiperMock>();
     api_service_mock = std::make_shared<ApiServiceMock>();
     author_api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, gossiper, store, key_store);
+        ttq, transaction_pool, hasher, gossiper, store, keys, key_store);
     author_api->setApiService(api_service_mock);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
@@ -220,7 +225,10 @@ TEST_F(AuthorApiTest, InsertKeyUnsupported) {
  * @then corresponding error is returned
  */
 TEST_F(AuthorApiTest, InsertKeyBabeAlreadyExists) {
-  EXPECT_CALL(*store, getBabeKeypair())
+  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
+      .Times(1)
+      .WillOnce(Return(CryptoStore::Sr25519Keys{Sr25519PublicKey{}}));
+  EXPECT_CALL(*store, findSr25519Keypair(KEY_TYPE_BABE, _))
       .Times(1)
       .WillOnce(Return(Sr25519Keypair{}));
   EXPECT_OUTCOME_ERROR(res,
@@ -234,7 +242,10 @@ TEST_F(AuthorApiTest, InsertKeyBabeAlreadyExists) {
  * @then corresponding error is returned
  */
 TEST_F(AuthorApiTest, InsertKeyGranAlreadyExists) {
-  EXPECT_CALL(*store, getGrandpaKeypair())
+  EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
+      .Times(1)
+      .WillOnce(Return(CryptoStore::Ed25519Keys{Ed25519PublicKey{}}));
+  EXPECT_CALL(*store, findEd25519Keypair(KEY_TYPE_GRAN, _))
       .Times(1)
       .WillOnce(Return(Ed25519Keypair{}));
   EXPECT_OUTCOME_ERROR(res,
@@ -248,7 +259,12 @@ TEST_F(AuthorApiTest, InsertKeyGranAlreadyExists) {
  * @then call succeeds
  */
 TEST_F(AuthorApiTest, InsertKeyBabe) {
-  EXPECT_CALL(*store, getBabeKeypair()).Times(1);
+  EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
+      .Times(1)
+      .WillRepeatedly(Return(CryptoStore::Ed25519Keys{}));
+  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
+      .Times(2)
+      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
   EXPECT_OUTCOME_SUCCESS(res, author_api->insertKey(KEY_TYPE_BABE, {}, {}));
 }
 
@@ -258,7 +274,12 @@ TEST_F(AuthorApiTest, InsertKeyBabe) {
  * @then call succeeds
  */
 TEST_F(AuthorApiTest, InsertKeyGran) {
-  EXPECT_CALL(*store, getGrandpaKeypair()).Times(1);
+  EXPECT_CALL(*store, getEd25519PublicKeys(KEY_TYPE_GRAN))
+      .Times(2)
+      .WillRepeatedly(Return(CryptoStore::Ed25519Keys{}));
+  EXPECT_CALL(*store, getSr25519PublicKeys(KEY_TYPE_BABE))
+      .Times(1)
+      .WillRepeatedly(Return(CryptoStore::Sr25519Keys{}));
   EXPECT_OUTCOME_SUCCESS(res, author_api->insertKey(KEY_TYPE_GRAN, {}, {}));
 }
 
