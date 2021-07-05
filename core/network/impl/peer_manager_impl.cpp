@@ -11,6 +11,8 @@
 #include "outcome/outcome.hpp"
 #include "scale/scale.hpp"
 
+using namespace std::chrono_literals;
+
 namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -164,8 +166,10 @@ namespace kagome::network {
     // Check if disconnected
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
-      auto [peer_id, timepoint] = *it++;
-      if (not stream_engine_->isAlive(peer_id, block_announce_protocol)) {
+      auto [peer_id, data] = *it++;
+      // TODO(d.khaustov) consider better alive check logic
+      if (not stream_engine_->isAlive(peer_id, block_announce_protocol) &&
+        clock_->now() - data.time > 5min) {
         // Found disconnected
         auto &peer_id_ref = peer_id;
         SL_DEBUG(log_, "Found dead peer_id={}", peer_id_ref.toBase58());
@@ -488,6 +492,7 @@ namespace kagome::network {
     // Reserve stream slots for needed protocols
 
     stream_engine_->add(peer_id, router_->getGossipProtocol());
+    stream_engine_->add(peer_id, router_->getGrandpaProtocol());
     stream_engine_->add(peer_id, router_->getPropagateTransactionsProtocol());
     stream_engine_->add(peer_id, router_->getSupProtocol());
   }

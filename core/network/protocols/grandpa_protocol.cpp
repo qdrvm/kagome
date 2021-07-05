@@ -5,23 +5,40 @@
 
 #include "network/protocols/grandpa_protocol.hpp"
 
+#include <libp2p/connection/loopback_stream.hpp>
+
 #include "network/common.hpp"
 #include "network/protocols/protocol_error.hpp"
+#include "network/types/grandpa_message.hpp"
 #include "network/types/roles.hpp"
 
 namespace kagome::network {
+  using libp2p::connection::LoopbackStream;
 
   GrandpaProtocol::GrandpaProtocol(
       libp2p::Host &host,
+      std::shared_ptr<boost::asio::io_context> io_context,
       const application::AppConfiguration &app_config,
+      std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
+      const OwnPeerInfo &own_info,
       std::shared_ptr<StreamEngine> stream_engine)
       : host_(host),
+        io_context_(std::move(io_context)),
         app_config_(app_config),
+        grandpa_observer_(std::move(grandpa_observer)),
+        own_info_(own_info),
         stream_engine_(std::move(stream_engine)) {
     const_cast<Protocol &>(protocol_) = kGrandpaProtocol;
   }
 
   bool GrandpaProtocol::start() {
+    auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);
+    auto res = stream_engine_->add(stream, shared_from_this());
+    if (not res.has_value()) {
+      return false;
+    }
+    read(std::move(stream));
+
     host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
@@ -120,6 +137,7 @@ namespace kagome::network {
             cb(remote_roles_res.as_failure());
             return;
           }
+          auto &remote_roles = remote_roles_res.value();
 
           switch (direction) {
             case Direction::OUTGOING:
@@ -128,14 +146,6 @@ namespace kagome::network {
               cb(stream);
               break;
             case Direction::INCOMING:
-              // NOTE: It will removed when protocol will be implemented in
-              // according with spec if any
-              if (true) {  // NOLINT
-                stream->close([](auto &&...) {});
-                cb(ProtocolError::PROTOCOL_NOT_IMPLEMENTED);
-                return;
-              }
-
               self->writeHandshake(std::move(stream), direction, std::move(cb));
               break;
           }
@@ -184,9 +194,50 @@ namespace kagome::network {
   void GrandpaProtocol::read(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    // NOTE: It will changed as soon as this protocol will be implemented in
-    // according with spec if any
-    throw "It is not implemented yet";
+    read_writer->read<GrandpaMessage>(
+        [stream, wp = weak_from_this()](auto &&grandpa_message_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            return;
+          }
+
+          if (not grandpa_message_res) {
+            self->log_->error("Error while reading grandpa message: {}",
+                              grandpa_message_res.error().message());
+            stream->reset();
+            return;
+          }
+
+          auto peer_id = stream->remotePeerId().value();
+          auto &grandpa_message = grandpa_message_res.value();
+
+          visit_in_place(
+              grandpa_message,
+              [&](const network::GrandpaVote &vote_message) {
+                self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
+              },
+              [&](const network::GrandpaCommit &fin_message) {
+                self->grandpa_observer_->onFinalize(peer_id, fin_message);
+              },
+              [&](const GrandpaNeighborMessage &neighbor_message) {
+                self->grandpa_observer_->onNeighborMessage(peer_id,
+                                                           neighbor_message);
+              },
+              [&](const network::CatchUpRequest &catch_up_request) {
+                self->grandpa_observer_->onCatchUpRequest(peer_id,
+                                                          catch_up_request);
+              },
+              [&](const network::CatchUpResponse &catch_up_response) {
+                self->grandpa_observer_->onCatchUpResponse(peer_id,
+                                                           catch_up_response);
+              },
+              [&](const auto &...) {
+                BOOST_ASSERT_MSG(false, "Unknown variant of grandpa message");
+                stream->reset();
+              });
+          self->read(std::move(stream));
+        });
   }
 
   void GrandpaProtocol::write(

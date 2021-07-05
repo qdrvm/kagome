@@ -76,7 +76,7 @@ namespace kagome::runtime::binaryen {
     if (!persistent_batch) return Error::NO_PERSISTENT_BATCH;
 
     auto env = createRuntimeEnvironment(
-        wasm_provider_->getStateCodeAt(storage_provider_->getLatestRoot()));
+        wasm_provider_->getStateCodeAt(state_root));
     if (env.has_value()) {
       env.value().batch = (*persistent_batch)->batchOnTop();
     }

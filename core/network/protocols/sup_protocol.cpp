@@ -180,12 +180,13 @@ namespace kagome::network {
         stream->reset();
         return;
       }
+      auto& remote_status = remote_status_res.value();
 
       auto peer_id = stream->remotePeerId().value();
       SL_VERBOSE(
           self->log_, "Received status from peer_id={}", peer_id.toBase58());
 
-      self->peer_manager_->updatePeerStatus(peer_id, remote_status_res.value());
+      self->peer_manager_->updatePeerStatus(peer_id, remote_status);
 
       self->readStatus(std::move(stream));
     });

@@ -20,6 +20,7 @@ namespace kagome::network {
   using consensus::grandpa::SignedPrecommit;
   using consensus::grandpa::SignedPrevote;
   using consensus::grandpa::VoteMessage;
+  using primitives::BlockNumber;
 
   struct GrandpaVote : public VoteMessage {
     using VoteMessage::VoteMessage;
@@ -32,22 +33,27 @@ namespace kagome::network {
     explicit GrandpaCommit(Fin &&f) noexcept : Fin(std::move(f)){};
   };
 
-  struct GrandpaNeighborPacket {};
+  struct GrandpaNeighborMessage {
+    uint8_t version = 1;
+    RoundNumber round_number;
+    MembershipCounter voter_set_id;
+    BlockNumber last_finalized;
+  };
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const GrandpaNeighborPacket &request) {
-    throw std::runtime_error(
-        "Encoding of GrandpaNeighborPacket is not implemented yet");
-    return s;
+  Stream &operator<<(Stream &s,
+                     const GrandpaNeighborMessage &neighbor_message) {
+    return s << neighbor_message.version << neighbor_message.round_number
+             << neighbor_message.voter_set_id
+             << neighbor_message.last_finalized;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, GrandpaNeighborPacket &request) {
-    throw std::runtime_error(
-        "Decoding of GrandpaNeighborPacket is not implemented yet");
-    return s;
+  Stream &operator>>(Stream &s, GrandpaNeighborMessage &neighbor_message) {
+    return s >> neighbor_message.version >> neighbor_message.round_number
+           >> neighbor_message.voter_set_id >> neighbor_message.last_finalized;
   }
 
   struct CatchUpRequest {
@@ -94,11 +100,11 @@ namespace kagome::network {
 
   using GrandpaMessage =
       /// Note: order of types in variant matters
-      boost::variant<GrandpaVote,            // 0
-                     GrandpaCommit,          // 1
-                     GrandpaNeighborPacket,  // 2
-                     CatchUpRequest,         // 3
-                     CatchUpResponse>;       // 4
+      boost::variant<GrandpaVote,             // 0
+                     GrandpaCommit,           // 1
+                     GrandpaNeighborMessage,  // 2
+                     CatchUpRequest,          // 3
+                     CatchUpResponse>;        // 4
 
 }  // namespace kagome::network
 

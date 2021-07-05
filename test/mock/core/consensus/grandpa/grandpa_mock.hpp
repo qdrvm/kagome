@@ -19,6 +19,10 @@ namespace kagome::consensus::grandpa {
     using CatchUpResponse = network::CatchUpResponse;
 
    public:
+    MOCK_METHOD2(onNeighborMessage,
+                 void(const libp2p::peer::PeerId &peer_id,
+                      const network::GrandpaNeighborMessage &msg));
+
     MOCK_METHOD2(onVoteMessage,
                  void(const PeerId &peer_id, const VoteMessage &));
     MOCK_METHOD2(onFinalize, void(const PeerId &peer_id, const Fin &));
