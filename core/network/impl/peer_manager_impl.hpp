@@ -244,6 +244,7 @@ namespace kagome::network {
 
     std::map<PeerId, ActivePeerData> active_peers_;
     libp2p::protocol::scheduler::Handle align_timer_;
+    std::set<PeerId> recently_active_peers_;
 
     log::Logger log_;
   };

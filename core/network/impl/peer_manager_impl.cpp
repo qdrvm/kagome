@@ -358,6 +358,7 @@ namespace kagome::network {
       // Add as active peer
       active_peers_.emplace(
           peer_id, ActivePeerData{.time = clock_->now(), .status = status});
+      recently_active_peers_.insert(peer_id);
     }
   }
 
@@ -441,6 +442,8 @@ namespace kagome::network {
             if (auto [ap_it, added] = self->active_peers_.emplace(
                     peer_id, ActivePeerData{.time = self->clock_->now()});
                 added) {
+              self->recently_active_peers_.insert(peer_id);
+
               // And remove from queue
               if (auto piq_it = self->peers_in_queue_.find(peer_id);
                   piq_it != self->peers_in_queue_.end()) {
@@ -533,10 +536,17 @@ namespace kagome::network {
     auto &&storage_key = key_res.value();
 
     std::vector<libp2p::peer::PeerInfo> last_active_peers;
-    forEachPeer([&](const PeerId &peer_id) {
+    for (const auto &peer_id : recently_active_peers_) {
       auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
       last_active_peers.push_back(peer_info);
-    });
+    }
+
+    if (last_active_peers.empty()) {
+      SL_DEBUG(log_,
+               "Zero last active peers, won't save zero. Storage will remain "
+               "untouched.");
+      return;
+    }
 
     scale::ScaleEncoderStream out;
     try {
