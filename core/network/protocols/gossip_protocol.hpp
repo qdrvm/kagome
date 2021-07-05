@@ -70,7 +70,7 @@ namespace kagome::network {
     const OwnPeerInfo &own_info_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("GossipProtocol");
+    log::Logger log_ = log::createLogger("GossipProtocol", "protocols");
   };
 
 }  // namespace kagome::network
