@@ -194,6 +194,9 @@ namespace kagome::network {
           });
     }
 
+    /// Right way to check self peer as it takes into account dev mode
+    bool isSelfPeer(const PeerId &peer_id) const;
+
     /// Aligns amount of connected streams
     void align();
 

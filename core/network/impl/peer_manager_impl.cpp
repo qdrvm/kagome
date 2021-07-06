@@ -72,6 +72,7 @@ namespace kagome::network {
 
     // Add themselves into peer routing
     kademlia_->addPeer(host_.getPeerInfo(), true);
+    processDiscoveredPeer(host_.getPeerInfo().id);
 
     add_peer_handle_ =
         host_.getBus()
@@ -240,7 +241,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::connectToPeer(const PeerId &peer_id) {
     // Skip connection to itself
-    if (own_peer_info_.id == peer_id) {
+    if (isSelfPeer(peer_id)) {
       connecting_peers_.erase(peer_id);
       return;
     }
@@ -372,7 +373,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::processDiscoveredPeer(const PeerId &peer_id) {
     // Ignore himself
-    if (own_peer_info_.id == peer_id) {
+    if (isSelfPeer(peer_id)) {
       return;
     }
 
@@ -399,7 +400,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
     // Skip connection to itself
-    if (own_peer_info_.id == peer_id) {
+    if (isSelfPeer(peer_id)) {
       connecting_peers_.erase(peer_id);
       return;
     }
@@ -479,6 +480,12 @@ namespace kagome::network {
     stream_engine_->add(peer_id, router_->getGrandpaProtocol());
     stream_engine_->add(peer_id, router_->getPropagateTransactionsProtocol());
     stream_engine_->add(peer_id, router_->getSupProtocol());
+  }
+
+  // always false in dev mode
+  bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {
+    return own_peer_info_.id == peer_id ? not app_config_.isRunInDevMode()
+                                        : false;
   }
 
 }  // namespace kagome::network

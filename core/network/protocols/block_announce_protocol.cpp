@@ -215,12 +215,18 @@ namespace kagome::network {
                    peer_id.toBase58(),
                    remote_status.best_block.number);
           self->peer_manager_->updatePeerStatus(peer_id, remote_status);
-          auto self_status = self->createStatus();
-          if (self_status) {
-            if (self_status.value().best_block == remote_status.best_block
-                && self_status.value().roles.flags.authority
-                && remote_status.roles.flags.authority) {
-              self->babe_observer_->onPeerSync();
+
+          // dev mode doesn't have to wait any nodes except itself
+          if (self->app_config_.isRunInDevMode()) {
+            self->babe_observer_->onPeerSync();
+          } else {
+            auto self_status = self->createStatus();
+            if (self_status) {
+              if (self_status.value().best_block == remote_status.best_block
+                  && self_status.value().roles.flags.authority
+                  && remote_status.roles.flags.authority) {
+                self->babe_observer_->onPeerSync();
+              }
             }
           }
 
