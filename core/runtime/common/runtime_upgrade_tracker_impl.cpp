@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/wavm/impl/runtime_upgrade_tracker.hpp"
+#include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 
-namespace kagome::runtime::wavm {
+namespace kagome::runtime {
 
-  RuntimeUpgradeTracker::RuntimeUpgradeTracker(
+  RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
       : header_repo_{std::move(header_repo)},
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {
@@ -19,7 +19,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<storage::trie::RootHash>
-  RuntimeUpgradeTracker::getLastCodeUpdateState(
+  RuntimeUpgradeTrackerImpl::getLastCodeUpdateState(
       const primitives::BlockInfo &block) const {
     // TODO(Harrm): check if this can lead to incorrect behaviour
     if (block_tree_ == nullptr) {
@@ -71,7 +71,7 @@ namespace kagome::runtime::wavm {
   BOOST_UNREACHABLE_RETURN({})
   }
 
-  void RuntimeUpgradeTracker::subscribeToBlockchainEvents(
+  void RuntimeUpgradeTrackerImpl::subscribeToBlockchainEvents(
       std::shared_ptr<primitives::events::StorageSubscriptionEngine>
           storage_sub_engine,
       std::shared_ptr<const blockchain::BlockTree> block_tree) {

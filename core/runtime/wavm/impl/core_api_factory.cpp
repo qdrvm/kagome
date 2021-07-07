@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/wavm/impl/core_api_provider.hpp"
+#include "runtime/wavm/impl/core_api_factory.hpp"
 
 #include "host_api/host_api_factory.hpp"
 #include "runtime/common/constant_code_provider.hpp"
 #include "runtime/wavm/executor.hpp"
 #include "runtime/wavm/impl/compartment_wrapper.hpp"
-#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_functions.hpp"
 #include "runtime/wavm/impl/intrinsic_module_instance.hpp"
 #include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/impl/module_repository_impl.hpp"
@@ -30,7 +30,7 @@ namespace kagome::runtime::wavm {
     }
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        std::shared_ptr<RuntimeCodeProvider>,
+        std::shared_ptr<const RuntimeCodeProvider>,
         const primitives::BlockInfo &) override {
       if (instance_ == nullptr) {
         auto module = Module::compileFrom(compartment_, code_);
@@ -64,7 +64,7 @@ namespace kagome::runtime::wavm {
     gsl::span<const uint8_t> code_;
   };
 
-  CoreApiProvider::CoreApiProvider(
+  CoreApiFactory::CoreApiFactory(
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<runtime::wavm::IntrinsicModuleInstance> intrinsic_module,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
@@ -85,9 +85,9 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(host_api_factory_);
   }
 
-  std::unique_ptr<Core> CoreApiProvider::makeCoreApi(
+  std::unique_ptr<Core> CoreApiFactory::make(
       std::shared_ptr<const crypto::Hasher> hasher,
-      gsl::span<uint8_t> runtime_code) const {
+      gsl::span<const uint8_t> runtime_code) const {
     auto new_intrinsic_module = std::shared_ptr<IntrinsicModuleInstance>(
         intrinsic_module_->clone(compartment_));
     auto new_memory_provider =
@@ -97,8 +97,8 @@ namespace kagome::runtime::wavm {
         new_memory_provider,
         std::make_shared<OneModuleRepository>(
             compartment_,
-            std::make_shared<IntrinsicResolverImpl>(
-                new_intrinsic_module, compartment_),
+            std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module,
+                                                    compartment_),
             runtime_code),
         block_header_repo_,
         std::make_shared<OneCodeProvider>(runtime_code));

@@ -27,9 +27,12 @@ namespace WAVM::Runtime {
   struct Compartment;
 }
 
+namespace kagome::runtime {
+  class RuntimeUpgradeTracker;
+}
+
 namespace kagome::runtime::wavm {
 
-  class RuntimeUpgradeTracker;
   class CompartmentWrapper;
 
   class ModuleRepositoryImpl final : public ModuleRepository {
@@ -40,10 +43,8 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<const crypto::Hasher> hasher,
         std::shared_ptr<IntrinsicResolver>);
 
-    ~ModuleRepositoryImpl() {}
-
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        std::shared_ptr<RuntimeCodeProvider> code_provider,
+        std::shared_ptr<const RuntimeCodeProvider> code_provider,
         const primitives::BlockInfo &block) override;
 
     outcome::result<std::unique_ptr<Module>> loadFrom(

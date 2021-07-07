@@ -15,9 +15,9 @@
 
 using namespace kagome;  // NOLINT
 
+using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Return;
-using ::testing::_;
 
 class StorageCodeProviderTest : public ::testing::Test {
  public:
@@ -46,13 +46,12 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
 
   // given
   EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
-  EXPECT_CALL(*trie_db, getEphemeralBatch())
-      .WillOnce(Invoke([this]() {
-        auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-        EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
-            .WillOnce(Return(state_code_));
-        return batch;
-      }));
+  EXPECT_CALL(*trie_db, getEphemeralBatch()).WillOnce(Invoke([this]() {
+    auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+    EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
+        .WillOnce(Return(state_code_));
+    return batch;
+  }));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(trie_db);
 
   // when
@@ -60,7 +59,9 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
                       wasm_provider->getCodeAt(first_state_root));
 
   // then
-  ASSERT_EQ(obtained_state_code, state_code_);
+  ASSERT_EQ(obtained_state_code,
+            gsl::span<const uint8_t>(state_code_.data(),
+                               state_code_.data() + state_code_.size()));
 }
 
 /**
@@ -78,13 +79,12 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
 
   // given
   EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
-  EXPECT_CALL(*trie_db, getEphemeralBatch())
-      .WillOnce(Invoke([this]() {
-        auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-        EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
-            .WillOnce(Return(state_code_));
-        return batch;
-      }));
+  EXPECT_CALL(*trie_db, getEphemeralBatch()).WillOnce(Invoke([this]() {
+    auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+    EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
+        .WillOnce(Return(state_code_));
+    return batch;
+  }));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(trie_db);
 
   common::Buffer new_state_code{{1, 3, 3, 8}};
@@ -101,5 +101,5 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
                       wasm_provider->getCodeAt(second_state_root));
 
   // then
-  ASSERT_EQ(obtained_state_code, new_state_code);
+  ASSERT_EQ(obtained_state_code, gsl::span<const uint8_t>(state_code_));
 }

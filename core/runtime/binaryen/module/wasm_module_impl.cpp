@@ -44,7 +44,7 @@ namespace kagome::runtime::binaryen {
       const common::Buffer &code,
       const std::shared_ptr<RuntimeExternalInterface> &rei,
       const std::shared_ptr<TrieStorageProvider> &storage_provider) {
-    auto log = log::createLogger("wasm_module", "wasm");
+    auto log = log::createLogger("wasm_module", "binaryen");
     // that nolint suppresses false positive in a library function
     // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
     if (code.empty()) {

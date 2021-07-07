@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_PROVIDER_HPP
-#define KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_PROVIDER_HPP
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_FACTORY_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_FACTORY_HPP
 
 #include "runtime/core.hpp"
-#include "runtime/core_api_provider.hpp"
+#include "runtime/core_api_factory.hpp"
 
 namespace kagome::storage::changes_trie {
   class ChangesTracker;
@@ -26,9 +26,9 @@ namespace kagome::runtime::binaryen {
 
   class RuntimeEnvironmentFactory;
 
-  class BinaryenCoreApiProvider final : public runtime::CoreApiProvider {
+  class BinaryenCoreApiFactory final : public runtime::CoreApiFactory {
    public:
-    BinaryenCoreApiProvider(
+    BinaryenCoreApiFactory(
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
 
@@ -37,9 +37,9 @@ namespace kagome::runtime::binaryen {
       runtime_env_factory_ = std::move(runtime_env_factory);
     }
 
-    std::unique_ptr<Core> makeCoreApi(
+    std::unique_ptr<Core> make(
         std::shared_ptr<const crypto::Hasher> hasher,
-        gsl::span<uint8_t> runtime_code) const override;
+        gsl::span<const uint8_t> runtime_code) const override;
 
    private:
     std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory_;
@@ -49,4 +49,4 @@ namespace kagome::runtime::binaryen {
 
 }  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_PROVIDER_HPP
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_CORE_API_FACTORY_HPP

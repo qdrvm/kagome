@@ -16,7 +16,7 @@
 #include "log/logger.hpp"
 #include "primitives/math.hpp"
 #include "runtime/types.hpp"
-#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_functions.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -38,8 +38,6 @@ namespace kagome::runtime::wavm {
     constexpr static uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
     constexpr static uint8_t kAlignment = sizeof(size_t);
-
-    //void setUnderlyingMemory(WAVM::Runtime::Memory *memory);
 
     WasmSize size() const {
       return WAVM::Runtime::getMemoryNumPages(memory_) * kPageSize;

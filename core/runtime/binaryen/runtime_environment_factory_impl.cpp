@@ -33,7 +33,7 @@ namespace kagome::runtime::binaryen {
       RuntimeEnvironmentFactoryImpl::memory_provider_{};
 
   RuntimeEnvironmentFactoryImpl::RuntimeEnvironmentFactoryImpl(
-      std::shared_ptr<CoreApiProvider> core_api_provider,
+      std::shared_ptr<CoreApiFactory> core_api_provider,
       std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory,
       std::shared_ptr<host_api::HostApiFactory> host_api_factory,
       std::shared_ptr<WasmModuleFactory> module_factory,
@@ -130,6 +130,7 @@ namespace kagome::runtime::binaryen {
       return Error::EMPTY_STATE_CODE;
     }
 
+    // TODO(Harrm): Refactor to runtime upgrade tracker as in WAVM
     auto hash = hasher_->twox_256(state_code);
 
     std::shared_ptr<WasmModule> module;

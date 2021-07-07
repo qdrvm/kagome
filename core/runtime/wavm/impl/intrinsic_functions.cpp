@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_functions.hpp"
 
 #include "runtime/wavm/intrinsic_resolver.hpp"
 

@@ -29,6 +29,13 @@ target_link_libraries(wasm_executor_test
     trie_storage_backend
     trie_storage_provider
     in_memory_storage
+    host_api_factory
+    crypto_store
+    key_file_storage
+    sr25519_provider
+    ed25519_provider
+    pbkdf2_provider
+    hasher
     polkadot_trie_factory
     trie_serializer
     logger_for_tests

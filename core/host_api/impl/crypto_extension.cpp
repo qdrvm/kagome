@@ -127,8 +127,8 @@ namespace kagome::host_api {
 
   runtime::WasmPointer CryptoExtension::ext_hashing_twox_256_version_1(
       runtime::WasmSpan data) {
-    auto [address, length] = runtime::PtrSize(data);
-    const auto &buf = getMemory().loadN(address, length);
+    auto [ptr, size] = runtime::PtrSize(data);
+    const auto &buf = getMemory().loadN(ptr, size);
     auto hash = hasher_->twox_256(buf);
     SL_TRACE_FUNC_CALL(logger_, hash, buf);
 
@@ -144,8 +144,8 @@ namespace kagome::host_api {
     batch_verify_.emplace();
   }
 
-  int32_t
-  CryptoExtension::ext_crypto_finish_batch_verify_version_1() {
+  int32_t CryptoExtension::ext_crypto_finish_batch_verify_version_1() {
+    return kVerifyBatchSuccess;
     if (not batch_verify_.has_value()) {
       throw std::runtime_error("No batch_verify is started");
     }
@@ -163,7 +163,6 @@ namespace kagome::host_api {
       verification_queue.pop();
     }
 
-    return kVerifyBatchSuccess;
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_ed25519_public_keys_version_1(
@@ -280,7 +279,8 @@ namespace kagome::host_api {
                     common::int_to_hex(key_type_id, 8));
     }
 
-    auto public_buffer = getMemory().loadN(key, crypto::Ed25519PublicKey::size());
+    auto public_buffer =
+        getMemory().loadN(key, crypto::Ed25519PublicKey::size());
     auto [msg_data, msg_len] = runtime::PtrSize(msg);
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
     auto pk = crypto::Ed25519PublicKey::fromSpan(public_buffer);
@@ -321,8 +321,9 @@ namespace kagome::host_api {
     }
     auto &&signature = signature_res.value();
 
-    auto pubkey_bytes =
-        getMemory().loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE).toVector();
+    auto pubkey_bytes = getMemory()
+                            .loadN(pubkey_data, ed25519_constants::PUBKEY_SIZE)
+                            .toVector();
     auto pubkey_res = crypto::Ed25519PublicKey::fromSpan(pubkey_bytes);
     if (!pubkey_res) {
       BOOST_UNREACHABLE_RETURN(kVerifyFail);
@@ -338,18 +339,19 @@ namespace kagome::host_api {
         BOOST_UNREACHABLE_RETURN(kVerifyFail);
       }
 
-      const auto result = self->ed25519_provider_->verify(signature, msg, pubkey);
+      const auto result =
+          self->ed25519_provider_->verify(signature, msg, pubkey);
       const auto is_succeeded = result && result.value();
       return is_succeeded ? kVerifySuccess : kVerifyFail;
     };
-
+/*
     if (batch_verify_.has_value()) {
       auto &verification_queue = batch_verify_.value();
       SL_TRACE_FUNC_CALL(logger_, "batched", signature, msg, pubkey);
       verification_queue.emplace(
           std::async(std::launch::deferred, std::move(verifier)));
       return kVerifySuccess;
-    }
+    }*/
 
     auto res = verifier();
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
@@ -435,7 +437,8 @@ namespace kagome::host_api {
                     common::int_to_hex(key_type_id, 8));
     }
 
-    auto public_buffer = getMemory().loadN(key, crypto::Sr25519PublicKey::size());
+    auto public_buffer =
+        getMemory().loadN(key, crypto::Sr25519PublicKey::size());
     auto [msg_data, msg_len] = runtime::PtrSize(msg);
     auto msg_buffer = getMemory().loadN(msg_data, msg_len);
     auto pk = crypto::Sr25519PublicKey::fromSpan(public_buffer);
@@ -467,6 +470,8 @@ namespace kagome::host_api {
       runtime::WasmPointer sig,
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
+    // TODO(Harrm): this should support deprecated signatures from schnorrkel
+    // 0.1.1 in contrary to version_2
     auto [msg_data, msg_len] = runtime::PtrSize(msg_span);
     auto msg = getMemory().loadN(msg_data, msg_len);
     auto signature_buffer =
@@ -499,13 +504,13 @@ namespace kagome::host_api {
       bool is_succeeded = res && res.value();
       return is_succeeded ? kVerifySuccess : kVerifyFail;
     };
-    if (batch_verify_.has_value()) {
+    /*if (batch_verify_.has_value()) {
       auto &verification_queue = batch_verify_.value();
       SL_TRACE_FUNC_CALL(logger_, "batched", signature, msg, pubkey_buffer);
       verification_queue.emplace(
           std::async(std::launch::deferred, std::move(verifier)));
       return kVerifySuccess;
-    }
+    }*/
 
     auto res = verifier();
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey_buffer);
@@ -516,8 +521,6 @@ namespace kagome::host_api {
       runtime::WasmPointer sig,
       runtime::WasmSpan msg_span,
       runtime::WasmPointer pubkey_data) {
-    // TODO(Harrm): this should not support deprecated Schnorr signa-
-    // tures introduced by the schnorrkel Rust library version 0.1.1
     SL_TRACE_FUNC_CALL(logger_,
                        "delegated to ext_crypto_sr25519_verify_version_1");
     return ext_crypto_sr25519_verify_version_1(sig, msg_span, pubkey_data);

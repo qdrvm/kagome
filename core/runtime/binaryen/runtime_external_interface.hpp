@@ -18,7 +18,7 @@ namespace kagome::host_api {
 namespace kagome::runtime {
   class TrieStorageProvider;
   class Memory;
-  class CoreApiProvider;
+  class CoreApiFactory;
 
   namespace binaryen {
     class RuntimeEnvironmentFactory;

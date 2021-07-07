@@ -6,12 +6,12 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_EXECUTOR_HPP
 
-#include "primitives/version.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "log/logger.hpp"
+#include "primitives/version.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_functions.hpp"
 #include "runtime/wavm/impl/memory.hpp"
 #include "runtime/wavm/impl/module_instance.hpp"
 #include "runtime/wavm/impl/wavm_memory_provider.hpp"
@@ -51,12 +51,6 @@ namespace kagome::runtime::wavm {
     // should be done before any calls
     void setHostApi(std::shared_ptr<host_api::HostApi> host_api) {
       host_api_ = std::move(host_api);
-    }
-
-    template <typename Result, typename... Args>
-    outcome::result<Result> nestedCall(std::string_view name, Args &&...args) {
-      OUTCOME_TRY(instance, module_repo_->getInstanceAt(code_provider_, {}));
-      return callInternal<Result>(*instance, name, std::forward<Args>(args)...);
     }
 
     template <typename Result, typename... Args>
@@ -122,12 +116,13 @@ namespace kagome::runtime::wavm {
     outcome::result<Result> callInternal(ModuleInstance &instance,
                                          std::string_view name,
                                          Args &&...args) {
-      auto heap_base = instance.getGlobal("__heap_base");
-      BOOST_ASSERT(heap_base.has_value()
-                   && heap_base.value().type == WAVM::IR::ValueType::i32);
+      auto heap_base = instance.getGlobal("__heap_base")
+                           .value_or(WAVM::IR::Value{
+                               static_cast<WAVM::I32>(kDefaultHeapBase)});
+      BOOST_ASSERT(heap_base.type == WAVM::IR::ValueType::i32);
 
-      memory_provider_->resetMemory(heap_base.value().i32);
-      auto memory = memory_provider_->getCurrentMemory().value();
+      memory_provider_->resetMemory(heap_base.i32);
+      auto &memory = memory_provider_->getCurrentMemory().value();
 
       Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {
@@ -137,18 +132,20 @@ namespace kagome::runtime::wavm {
       BOOST_ASSERT(host_api_);
       gsl::finally([this]() { host_api_->reset(); });
 
-      PtrSize args_span{memory->storeBuffer(encoded_args)};
+      PtrSize args_span{memory.storeBuffer(encoded_args)};
 
-      auto res = instance.callExportFunction("Core_version", PtrSize{memory->storeBuffer({})});
-      auto ver = scale::decode<primitives::Version>(memory->loadN(res.ptr, res.size)).value();
-      logger_->info("VERSION {} {}", ver.spec_version, ver.impl_version);
-
-      OUTCOME_TRY(result, execute(instance, name, args_span));
+      auto result = execute(instance, name, args_span);
+      // TODO(Harrm): This is for debug purposes, remove before merging
+      if (!result) {
+        logger_->critical(result.error().message());
+        // std::terminate();
+      }
 
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
-        return scale::decode<Result>(memory->loadN(result.ptr, result.size));
+        return scale::decode<Result>(
+            memory.loadN(result.value().ptr, result.value().size));
       }
     }
 
@@ -162,9 +159,9 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<host_api::HostApi> host_api_;
     std::shared_ptr<MemoryProvider> memory_provider_;
     std::shared_ptr<TrieStorageProvider> storage_provider_;
-    std::shared_ptr<runtime::RuntimeCodeProvider> code_provider_;
+    std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider_;
     std::shared_ptr<ModuleRepository> module_repo_;
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
+    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     log::Logger logger_;
   };
 

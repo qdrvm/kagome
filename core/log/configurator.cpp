@@ -56,8 +56,11 @@ groups:
           - name: runtime
             children:
               - name: runtime_api
+                level: trace
               - name: host_api
+                level: trace
               - name: binaryen
+                level: trace
           - name: metrics
           - name: network
           - name: changes_trie

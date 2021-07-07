@@ -7,9 +7,9 @@
 
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include "runtime/wavm/impl/crutch.hpp"
-#include "runtime/wavm/impl/intrinsic_module_instance.hpp"
 #include "runtime/wavm/impl/compartment_wrapper.hpp"
+#include "runtime/wavm/impl/intrinsic_functions.hpp"
+#include "runtime/wavm/impl/intrinsic_module_instance.hpp"
 
 namespace kagome::runtime::wavm {
 

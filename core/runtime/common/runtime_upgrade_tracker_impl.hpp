@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_RUNTIME_UPGRADE_TRACKER_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_IMPL_RUNTIME_UPGRADE_TRACKER_HPP
 
+#include "runtime/runtime_upgrade_tracker.hpp"
+
 #include <memory>
 
 #include "log/logger.hpp"
@@ -18,11 +20,11 @@ namespace kagome::blockchain {
   class BlockTree;
 }  // namespace kagome::blockchain
 
-namespace kagome::runtime::wavm {
+namespace kagome::runtime {
 
-  class RuntimeUpgradeTracker final {
+  class RuntimeUpgradeTrackerImpl final : public RuntimeUpgradeTracker {
    public:
-    RuntimeUpgradeTracker(
+    RuntimeUpgradeTrackerImpl(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo);
 
     void subscribeToBlockchainEvents(
@@ -44,6 +46,6 @@ namespace kagome::runtime::wavm {
     log::Logger logger_;
   };
 
-}  // namespace kagome::runtime::wavm
+}  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_WAVM_IMPL_RUNTIME_UPGRADE_TRACKER_HPP

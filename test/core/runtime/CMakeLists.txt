@@ -30,4 +30,4 @@ target_link_libraries(trie_storage_provider_test
 add_subdirectory(binaryen)
 
 # TODO(Harrm): Remake tests for WAVM
-# add_subdirectory(wavm)
+add_subdirectory(wavm)

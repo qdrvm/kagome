@@ -16,7 +16,7 @@
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_functions.hpp"
 #include "runtime/wavm/impl/module.hpp"
 #include "scale/scale.hpp"
 #include "testutil/prepare_loggers.hpp"

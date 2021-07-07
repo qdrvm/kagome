@@ -17,7 +17,7 @@ namespace kagome::runtime::wavm {
    public:
     WavmMemoryProvider(std::shared_ptr<IntrinsicModuleInstance> intrinsic_module);
 
-    boost::optional<std::shared_ptr<runtime::Memory>> getCurrentMemory() const override;
+    boost::optional<runtime::Memory&> getCurrentMemory() const override;
     void resetMemory(WasmSize heap_base) override;
 
    private:

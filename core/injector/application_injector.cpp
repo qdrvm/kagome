@@ -88,14 +88,13 @@
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
-#include "runtime/binaryen/core_api_provider.hpp"
+#include "runtime/binaryen/core_api_factory.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/module/wasm_module_impl.hpp"
 #include "runtime/binaryen/module/wasm_module_instance_impl.hpp"
 #include "runtime/binaryen/runtime_api/account_nonce_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
-#include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
 #include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
@@ -106,16 +105,16 @@
 #include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/wavm/executor.hpp"
 #include "runtime/wavm/impl/compartment_wrapper.hpp"
-#include "runtime/wavm/impl/core_api_provider.hpp"
-#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/core_api_factory.hpp"
+#include "runtime/wavm/impl/intrinsic_functions.hpp"
 #include "runtime/wavm/impl/intrinsic_module_instance.hpp"
 #include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/impl/module_repository_impl.hpp"
-#include "runtime/wavm/impl/runtime_upgrade_tracker.hpp"
 #include "runtime/wavm/runtime_api/account_nonce_api.hpp"
 #include "runtime/wavm/runtime_api/babe_api.hpp"
 #include "runtime/wavm/runtime_api/block_builder.hpp"
@@ -675,7 +674,7 @@ namespace {
     protocol_factory->setBlockTree(block_tree);
 
     auto runtime_upgrade_tracker =
-        injector.template create<sptr<runtime::wavm::RuntimeUpgradeTracker>>();
+        injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
     auto storage_events_engine = injector.template create<
         primitives::events::StorageSubscriptionEnginePtr>();
 
@@ -778,28 +777,29 @@ namespace {
                   ->getMemory();
           return memory;
         }),
-        di::bind<host_api::HostApi>.template to([chosen_backend](
-                                                    auto const &injector)
-                                                    -> std::shared_ptr<
-                                                        host_api::HostApi> {
-          static boost::optional<std::shared_ptr<host_api::HostApi>> host_api;
-          if (host_api.has_value()) return host_api.value();
+        di::bind<host_api::HostApi>.template to(
+            [chosen_backend](
+                auto const &injector) -> std::shared_ptr<host_api::HostApi> {
+              static boost::optional<std::shared_ptr<host_api::HostApi>>
+                  host_api;
+              if (host_api.has_value()) return host_api.value();
 
-          host_api = boost::make_optional(
-              injector
-                  .template create<std::shared_ptr<host_api::HostApiImpl>>());
-          if (chosen_backend
-              == application::AppConfiguration::RuntimeBackend::WAVM) {
-            auto executor = injector.template create<
-                std::shared_ptr<runtime::wavm::Executor>>();
-            executor->setHostApi(host_api.value());
-            auto resolver = injector.template create<
-                std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
-            runtime::wavm::registerHostApiMethods(*resolver, *host_api.value());
-            kagome::runtime::wavm::pushHostApi(host_api.value());
-          }
-          return host_api.value();
-        }),
+              host_api = boost::make_optional(
+                  injector.template create<
+                      std::shared_ptr<host_api::HostApiImpl>>());
+              if (chosen_backend
+                  == application::AppConfiguration::RuntimeBackend::WAVM) {
+                auto executor = injector.template create<
+                    std::shared_ptr<runtime::wavm::Executor>>();
+                executor->setHostApi(host_api.value());
+                auto resolver = injector.template create<
+                    std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
+                runtime::wavm::registerHostApiMethods(*resolver,
+                                                      *host_api.value());
+                kagome::runtime::wavm::pushHostApi(host_api.value());
+              }
+              return host_api.value();
+            }),
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
               static auto compartment =
@@ -854,12 +854,8 @@ namespace {
         di::bind<runtime::wavm::ModuleRepository>.template to<runtime::wavm::ModuleRepositoryImpl>(),
         di::bind<runtime::wavm::ModuleRepositoryImpl>.template to(
             [](const auto &injector) {
-              auto hasher =
-                  injector.template create<std::shared_ptr<crypto::Hasher>>();
-              auto resolver = injector.template create<
-                  std::shared_ptr<runtime::wavm::IntrinsicResolver>>();
-              return std::make_shared<runtime::wavm::ModuleRepositoryImpl>(
-                  hasher, resolver->getMemory(), resolver);
+              return injector
+                  .template create<runtime::wavm::ModuleRepositoryImpl>();
             }),
         di::bind<runtime::wavm::Executor>.template to([](const auto &injector) {
           static boost::optional<std::shared_ptr<runtime::wavm::Executor>>
@@ -893,7 +889,6 @@ namespace {
     return di::make_injector(
         di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
         di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
-        di::bind<runtime::binaryen::CoreFactory>.template to<runtime::binaryen::CoreFactoryImpl>(),
         di::bind<runtime::binaryen::RuntimeEnvironmentFactory>.template to<runtime::binaryen::RuntimeEnvironmentFactoryImpl>(),
         std::forward<decltype(args)>(args)...);
   }
@@ -924,6 +919,7 @@ namespace {
       application::AppConfiguration::RuntimeBackend backend, Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
+        di::bind<runtime::RuntimeUpgradeTracker>.template to<runtime::RuntimeUpgradeTrackerImpl>(),
         makeWavmInjector(backend),
         makeBinaryenInjector(backend),
         di::bind<runtime::MemoryProvider>.template to([backend](const auto
@@ -944,12 +940,12 @@ namespace {
           }();
           return initialized;
         }),
-        di::bind<runtime::CoreApiProvider>.template to(
+        di::bind<runtime::CoreApiFactory>.template to(
             [backend](const auto &injector) {
               return choose_runtime_implementation<
-                  runtime::CoreApiProvider,
-                  runtime::binaryen::BinaryenCoreApiProvider,
-                  runtime::wavm::CoreApiProvider>(injector, backend);
+                  runtime::CoreApiFactory,
+                  runtime::binaryen::BinaryenCoreApiFactory,
+                  runtime::wavm::CoreApiFactory>(injector, backend);
             }),
         di::bind<runtime::TaggedTransactionQueue>.template to(
             [backend](const auto &injector) {
@@ -992,8 +988,7 @@ namespace {
                                                runtime::wavm::WavmCore>(
               injector, backend);
         }),
-        di::bind<runtime::BabeApi>.template to([backend](
-                                                   const auto &injector) {
+        di::bind<runtime::BabeApi>.template to([backend](const auto &injector) {
           return choose_runtime_implementation<runtime::BabeApi,
                                                runtime::binaryen::BabeApiImpl,
                                                runtime::wavm::WavmBabeApi>(
@@ -1025,7 +1020,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1427,7 +1422,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -1438,9 +1433,9 @@ namespace {
         di::bind<consensus::babe::Babe>.to(
             [](auto const &injector) { return get_babe(injector); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-        di::bind<network::BabeObserver>.to(
-            [](auto const &injector) { return get_babe(injector); })
-            [di::override],
+        di::bind<network::BabeObserver>.to([](auto const &injector) {
+          return get_babe(injector);
+        })[di::override],
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

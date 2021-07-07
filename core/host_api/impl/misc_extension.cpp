@@ -7,7 +7,7 @@
 
 #include "primitives/version.hpp"
 #include "runtime/core.hpp"
-#include "runtime/core_api_provider.hpp"
+#include "runtime/core_api_factory.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/wavm/executor.hpp"
@@ -15,7 +15,7 @@
 #include "runtime/wavm/module_repository.hpp"
 #include "scale/scale.hpp"
 
-#include "runtime/wavm/impl/crutch.hpp"
+#include "runtime/wavm/impl/intrinsic_functions.hpp"
 
 namespace kagome::host_api {
 
@@ -23,7 +23,7 @@ namespace kagome::host_api {
       uint64_t chain_id,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-      std::shared_ptr<const runtime::CoreApiProvider> core_provider)
+      std::shared_ptr<const runtime::CoreApiFactory> core_provider)
       : hasher_{std::move(hasher)},
         memory_provider_{std::move(memory_provider)},
         core_provider_{std::move(core_provider)},
@@ -37,11 +37,10 @@ namespace kagome::host_api {
   runtime::WasmSpan MiscExtension::ext_misc_runtime_version_version_1(
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
-    auto memory = memory_provider_->getCurrentMemory().value();
+    auto& memory = memory_provider_->getCurrentMemory().value();
 
-    auto code = memory->loadN(ptr, len).asVector();
-    auto core_api =
-        core_provider_->makeCoreApi(hasher_, code);
+    auto code = memory.loadN(ptr, len).asVector();
+    auto core_api = core_provider_->make(hasher_, code);
     auto version_res = core_api->version();
     SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
     runtime::wavm::popHostApi();
@@ -57,20 +56,20 @@ namespace kagome::host_api {
         logger_->error(
             "Error encoding ext_misc_runtime_version_version_1 result: {}",
             enc_version_res.error().message());
-        return memory->storeBuffer(kErrorRes);
+        return memory.storeBuffer(kErrorRes);
       }
-      auto res_span = memory->storeBuffer(enc_version_res.value());
+      auto res_span = memory.storeBuffer(enc_version_res.value());
       return res_span;
     }
     logger_->error("Error inside Core_version: {}",
                    version_res.error().message());
-    return memory->storeBuffer(kErrorRes);
+    return memory.storeBuffer(kErrorRes);
   }
 
   void MiscExtension::ext_misc_print_hex_version_1(
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
-    auto buf = memory_provider_->getCurrentMemory().value()->loadN(ptr, len);
+    auto buf = memory_provider_->getCurrentMemory().value().loadN(ptr, len);
     logger_->info("hex: {}", buf.toHex());
   }
 
@@ -81,7 +80,7 @@ namespace kagome::host_api {
   void MiscExtension::ext_misc_print_utf8_version_1(
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
-    auto buf = memory_provider_->getCurrentMemory().value()->loadN(ptr, len);
+    auto buf = memory_provider_->getCurrentMemory().value().loadN(ptr, len);
     logger_->info("utf8: {}", buf.toString());
   }
 

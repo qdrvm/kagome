@@ -12,11 +12,10 @@ add_library(wavm_executor
     impl/module_instance.cpp
     impl/module_repository_impl.cpp
     impl/intrinsic_resolver_impl.cpp
-    impl/core_api_provider.cpp
-    impl/crutch.cpp
+    impl/core_api_factory.cpp
+    impl/intrinsic_functions.cpp
     impl/wavm_memory_provider.cpp
     impl/intrinsic_module_instance.cpp
-    impl/runtime_upgrade_tracker.cpp
     )
 target_link_libraries(wavm_executor
     libWAVM

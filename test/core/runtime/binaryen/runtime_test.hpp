@@ -29,13 +29,13 @@
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
+#include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+#include "runtime/binaryen/core_api_factory.hpp"
 #include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_factory_impl.hpp"
 #include "runtime/binaryen/runtime_environment_factory_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
-#include "runtime/binaryen/core_api_provider.hpp"
-#include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -124,20 +124,20 @@ class RuntimeTest : public ::testing::Test {
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
-    auto memory_provider = std::make_shared<
-        kagome::runtime::binaryen::BinaryenMemoryProvider>();
+    auto memory_factory = std::make_shared<
+        kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
 
     auto header_repo_mock =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
 
     auto core_api_provider =
-        std::make_shared<kagome::runtime::binaryen::BinaryenCoreApiProvider>(
+        std::make_shared<kagome::runtime::binaryen::BinaryenCoreApiFactory>(
             changes_tracker_, header_repo_mock);
 
     runtime_env_factory_ = std::make_shared<
         kagome::runtime::binaryen::RuntimeEnvironmentFactoryImpl>(
         std::move(core_api_provider),
-        std::move(memory_provider),
+        std::move(memory_factory),
         std::move(extension_factory),
         std::move(module_factory),
         wasm_provider_,

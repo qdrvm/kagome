@@ -91,7 +91,7 @@ kagome_install(binaryen_runtime_api)
 
 
 add_library(binaryen_core_api_provider
-    core_api_provider.cpp
+    core_api_factory.cpp
     )
 target_link_libraries(binaryen_core_api_provider
     binaryen_core_api
@@ -101,7 +101,6 @@ kagome_install(binaryen_core_api_provider)
 
 add_library(binaryen_core_api
     runtime_api/core_impl.cpp
-    runtime_api/core_factory_impl.cpp
     )
 target_link_libraries(binaryen_core_api
     binaryen_wasm_executor

@@ -9,9 +9,9 @@
 
 #include <WAVM/Runtime/Runtime.h>
 
-#include "runtime/wavm/impl/runtime_upgrade_tracker.hpp"
+#include "intrinsic_functions.hpp"
+#include "runtime/runtime_upgrade_tracker.hpp"
 #include "runtime/wavm/intrinsic_resolver.hpp"
-#include "crutch.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -35,7 +35,7 @@ namespace kagome::runtime::wavm {
 
   outcome::result<std::shared_ptr<ModuleInstance>>
   ModuleRepositoryImpl::getInstanceAt(
-      std::shared_ptr<RuntimeCodeProvider> code_provider,
+      std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     OUTCOME_TRY(code, code_provider->getCodeAt(state));

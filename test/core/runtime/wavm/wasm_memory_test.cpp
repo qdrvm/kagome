@@ -19,12 +19,11 @@ class MemoryHeapTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    memory_.setUnderlyingMemory(nullptr);
   }
 
   const static uint32_t memory_size_ = kInitialMemorySize;
 
-  Memory memory_{nullptr};
+  Memory memory_{nullptr, 42};
 };
 
 /**
@@ -252,23 +251,4 @@ TEST_F(MemoryHeapTest, LoadNTest) {
 
   auto res_b = memory_.loadN(ptr, N);
   ASSERT_EQ(b, res_b);
-}
-
-/**
- * @given Some memory is allocated
- * @when Memory is reset
- * @then Allocated memory's offset is min non-zero aligned address
- */
-TEST_F(MemoryHeapTest, ResetTest) {
-  const size_t N = 42;
-
-  ASSERT_EQ(memory_.allocate(N), kDefaultHeapBase);
-
-  memory_.reset();
-  ASSERT_EQ(memory_.allocate(N), kDefaultHeapBase);
-
-  auto newHeapBase = Memory::roundUpAlign(kDefaultHeapBase + 12345);
-  memory_.setHeapBase(newHeapBase);
-  memory_.reset();
-  ASSERT_EQ(memory_.allocate(N), newHeapBase);
 }

@@ -28,7 +28,7 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<primitives::Version> WavmCore::version() {
-    return executor_->nestedCall<primitives::Version>("Core_version");
+    return executor_->callAtLatest<primitives::Version>("Core_version");
   }
 
   outcome::result<void> WavmCore::execute_block(

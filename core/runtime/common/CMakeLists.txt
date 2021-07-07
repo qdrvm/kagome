@@ -38,3 +38,9 @@ target_link_libraries(trie_storage_provider
     blob
     )
 kagome_install(trie_storage_provider)
+
+add_library(runtime_upgrade_tracker runtime_upgrade_tracker_impl.cpp)
+target_link_libraries(runtime_upgrade_tracker
+    logger
+    )
+kagome_install(runtime_upgrade_tracker)

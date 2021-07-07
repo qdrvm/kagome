@@ -25,10 +25,9 @@ namespace kagome::runtime::binaryen {
       BOOST_ASSERT(memory_factory_);
     }
 
-    boost::optional<std::shared_ptr<Memory>> getCurrentMemory() const override {
+    boost::optional<runtime::Memory&> getCurrentMemory() const override {
       return memory_ == nullptr ? boost::none
-                                : boost::optional<std::shared_ptr<Memory>>{
-                                    std::static_pointer_cast<Memory>(memory_)};
+                                : boost::optional<Memory&>{*memory_};
     }
 
     void resetMemory(WasmSize heap_base) override {

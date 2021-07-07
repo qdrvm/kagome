@@ -50,6 +50,7 @@ target_link_libraries(application_injector
     clock
     sr25519_provider
     configuration_storage
+    runtime_upgrade_tracker
     wavm_core_api
     wavm_babe_api
     wavm_grandpa_api

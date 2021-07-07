@@ -156,8 +156,8 @@ namespace kagome::runtime::binaryen {
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
         len = buffer.size();
-        ptr = memory->allocate(len);
-        memory->storeBuffer(ptr, common::Buffer(std::move(buffer)));
+        ptr = memory.allocate(len);
+        memory.storeBuffer(ptr, common::Buffer(std::move(buffer)));
       }
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
@@ -168,7 +168,7 @@ namespace kagome::runtime::binaryen {
 
       if constexpr (!std::is_same_v<void, R>) {
         PtrSize r(res.geti64());
-        auto buffer = memory->loadN(r.ptr, r.size);
+        auto buffer = memory.loadN(r.ptr, r.size);
         return scale::decode<R>(std::move(buffer));
       }
 

@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_CORE_API_PROVIDER_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_CORE_API_PROVIDER_HPP
 
-#include "runtime/core_api_provider.hpp"
+#include "runtime/core_api_factory.hpp"
 
 #include <memory>
 
@@ -29,21 +29,22 @@ namespace kagome::runtime::wavm {
   class IntrinsicModuleInstance;
   class CompartmentWrapper;
 
-  class CoreApiProvider final
-      : public runtime::CoreApiProvider,
-        public std::enable_shared_from_this<CoreApiProvider> {
+  class CoreApiFactory final
+      : public runtime::CoreApiFactory,
+        public std::enable_shared_from_this<CoreApiFactory> {
    public:
-    CoreApiProvider(
+    CoreApiFactory(
         std::shared_ptr<CompartmentWrapper> compartment,
-        std::shared_ptr<runtime::wavm::IntrinsicModuleInstance> intrinsic_module,
+        std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>
+            intrinsic_module,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory);
 
-    std::unique_ptr<Core> makeCoreApi(
+    [[nodiscard]] std::unique_ptr<Core> make(
         std::shared_ptr<const crypto::Hasher> hasher,
-        gsl::span<uint8_t> runtime_code) const override;
+        gsl::span<const uint8_t> runtime_code) const override;
 
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;

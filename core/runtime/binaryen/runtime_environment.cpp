@@ -14,6 +14,30 @@
 
 namespace kagome::runtime::binaryen {
 
+  RuntimeEnvironment::RuntimeEnvironment(
+      Memory &memory,
+      const std::shared_ptr<RuntimeExternalInterface> &rei,
+      const std::shared_ptr<WasmModuleInstance> &module_instance,
+      boost::optional<std::shared_ptr<storage::trie::TopperTrieBatch>> batch)
+      : module_instance{module_instance},
+        memory{memory},
+        rei{rei},
+        batch{batch} {}
+
+  RuntimeEnvironment::RuntimeEnvironment(RuntimeEnvironment &&re)
+      : module_instance{std::move(re.module_instance)},
+        memory{re.memory},
+        rei{std::move(re.rei)},
+        batch{std::move(re.batch)} {}
+
+  RuntimeEnvironment &RuntimeEnvironment::operator=(RuntimeEnvironment &&re) {
+    module_instance = std::move(re.module_instance);
+    memory = re.memory;
+    rei = std::move(re.rei);
+    batch = std::move(re.batch);
+    return *this;
+  }
+
   outcome::result<RuntimeEnvironment> RuntimeEnvironment::create(
       const std::shared_ptr<MemoryProvider> &memory_provider,
       const std::shared_ptr<RuntimeExternalInterface> &rei,
@@ -34,13 +58,12 @@ namespace kagome::runtime::binaryen {
     auto memory = memory_provider->getCurrentMemory();
     BOOST_ASSERT(memory.has_value());
 
-    return RuntimeEnvironment{std::move(module_instance),
-                              std::move(memory.value()),
-                              rei};
+    return outcome::success(RuntimeEnvironment{
+        memory.value(), rei, std::move(module_instance), boost::none});
   }
 
   RuntimeEnvironment::~RuntimeEnvironment() {
-    if(rei) {
+    if (rei) {
       rei->reset();
     }
   }

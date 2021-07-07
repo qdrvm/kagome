@@ -28,7 +28,7 @@ namespace kagome::runtime::wavm {
     virtual ~ModuleRepository() = default;
 
     virtual outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        std::shared_ptr<RuntimeCodeProvider> code_provider,
+        std::shared_ptr<const RuntimeCodeProvider> code_provider,
         const primitives::BlockInfo &block) = 0;
 
     virtual outcome::result<std::unique_ptr<Module>> loadFrom(
