@@ -64,15 +64,13 @@ namespace kagome::network {
 
    private:
     enum class Direction { INCOMING, OUTGOING };
-    void readHandshake(
-        std::shared_ptr<Stream> stream,
-        Direction direction,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+    void readHandshake(std::shared_ptr<Stream> stream,
+                       Direction direction,
+                       std::function<void(outcome::result<void>)> &&cb);
 
-    void writeHandshake(
-        std::shared_ptr<Stream> stream,
-        Direction direction,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+    void writeHandshake(std::shared_ptr<Stream> stream,
+                        Direction direction,
+                        std::function<void(outcome::result<void>)> &&cb);
 
     void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
 
@@ -86,7 +84,8 @@ namespace kagome::network {
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("PropagateTransactionsProtocol", "protocols");
+    log::Logger log_ =
+        log::createLogger("PropagateTransactionsProtocol", "protocols");
   };
 
 }  // namespace kagome::network
