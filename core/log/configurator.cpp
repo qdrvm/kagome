@@ -63,6 +63,8 @@ groups:
                 level: trace
           - name: metrics
           - name: network
+            children:
+              - name: protocols
           - name: changes_trie
           - name: storage
           - name: pubsub

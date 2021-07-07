@@ -13,8 +13,8 @@
 #include "crypto/bip39/bip39_types.hpp"
 #include "crypto/crypto_store.hpp"
 #include "log/logger.hpp"
-#include "runtime/types.hpp"
 #include "runtime/memory_provider.hpp"
+#include "runtime/types.hpp"
 
 namespace kagome::crypto {
   class Sr25519Provider;
@@ -93,61 +93,68 @@ namespace kagome::host_api {
 
     void ext_crypto_start_batch_verify_version_1();
 
-    [[nodiscard]] int32_t ext_crypto_finish_batch_verify_version_1();
+    [[nodiscard]] runtime::WasmSize ext_crypto_finish_batch_verify_version_1();
 
     /**
      * @see HostApi::ext_crypto_ed25519_public_keys
      */
-    runtime::WasmSpan ext_crypto_ed25519_public_keys_version_1(runtime::WasmSize key_type);
+    runtime::WasmSpan ext_crypto_ed25519_public_keys_version_1(
+        runtime::WasmSize key_type);
 
     /**
      *@see HostApi::ext_crypto_ed25519_generate
      */
-    runtime::WasmPointer ext_crypto_ed25519_generate_version_1(runtime::WasmSize key_type,
-                                                 runtime::WasmSpan seed);
+    runtime::WasmPointer ext_crypto_ed25519_generate_version_1(
+        runtime::WasmSize key_type, runtime::WasmSpan seed);
 
     /**
      * @see HostApi::ext_crypto_ed25519_sign
      */
-    runtime::WasmSpan ext_crypto_ed25519_sign_version_1(runtime::WasmSize key_type,
-                                          runtime::WasmPointer key,
-                                          runtime::WasmSpan msg);
+    runtime::WasmSpan ext_crypto_ed25519_sign_version_1(
+        runtime::WasmSize key_type,
+        runtime::WasmPointer key,
+        runtime::WasmSpan msg);
 
     /**
      * @see HostApi::ext_crypto_ed25519_verify
      */
-    runtime::WasmSize ext_crypto_ed25519_verify_version_1(runtime::WasmPointer sig,
-                                            runtime::WasmSpan msg,
-                                            runtime::WasmPointer pubkey_data);
+    runtime::WasmSize ext_crypto_ed25519_verify_version_1(
+        runtime::WasmPointer sig,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data);
 
     /**
      * @see HostApi::ext_crypto_sr25519_public_keys
      */
-    runtime::WasmSpan ext_crypto_sr25519_public_keys_version_1(runtime::WasmSize key_type);
+    runtime::WasmSpan ext_crypto_sr25519_public_keys_version_1(
+        runtime::WasmSize key_type);
 
     /**
      *@see HostApi::ext_crypto_sr25519_generate
      */
-    runtime::WasmPointer ext_crypto_sr25519_generate_version_1(runtime::WasmSize key_type,
-                                                 runtime::WasmSpan seed);
+    runtime::WasmPointer ext_crypto_sr25519_generate_version_1(
+        runtime::WasmSize key_type, runtime::WasmSpan seed);
 
     /**
      * @see HostApi::ext_crypto_sr25519_sign
      */
-    runtime::WasmSpan ext_crypto_sr25519_sign_version_1(runtime::WasmSize key_type,
-                                          runtime::WasmPointer key,
-                                          runtime::WasmSpan msg);
+    runtime::WasmSpan ext_crypto_sr25519_sign_version_1(
+        runtime::WasmSize key_type,
+        runtime::WasmPointer key,
+        runtime::WasmSpan msg);
 
     /**
      * @see HostApi::ext_crypto_sr25519_verify
      */
-    int32_t ext_crypto_sr25519_verify_version_1(runtime::WasmPointer sig,
-                                            runtime::WasmSpan msg,
-                                            runtime::WasmPointer pubkey_data);
-    
-    int32_t ext_crypto_sr25519_verify_version_2(runtime::WasmPointer sig,
-                                            runtime::WasmSpan msg,
-                                            runtime::WasmPointer pubkey_data);
+    int32_t ext_crypto_sr25519_verify_version_1(
+        runtime::WasmPointer sig,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data);
+
+    int32_t ext_crypto_sr25519_verify_version_2(
+        runtime::WasmPointer sig,
+        runtime::WasmSpan msg,
+        runtime::WasmPointer pubkey_data);
 
     /**
      * @see HostApi::ext_crypto_secp256k1_ecdsa_recover_version_1
@@ -164,7 +171,7 @@ namespace kagome::host_api {
    private:
     common::Blob<32> deriveSeed(std::string_view content);
 
-    runtime::Memory& getMemory() const {
+    runtime::Memory &getMemory() const {
       return memory_provider_->getCurrentMemory().value();
     }
 

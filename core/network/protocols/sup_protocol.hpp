@@ -76,7 +76,7 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("SupProtocol");
+    log::Logger log_ = log::createLogger("SupProtocol", "protocols");
   };
 
 }  // namespace kagome::network

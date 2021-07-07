@@ -136,33 +136,13 @@ namespace kagome::host_api {
   }
 
   void CryptoExtension::ext_crypto_start_batch_verify_version_1() {
-    if (batch_verify_.has_value()) {
-      throw std::runtime_error("Previous batch_verify is not finished");
-    }
-    SL_TRACE_VOID_FUNC_CALL(logger_);
-
-    batch_verify_.emplace();
+    // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
   }
 
-  int32_t CryptoExtension::ext_crypto_finish_batch_verify_version_1() {
+  runtime::WasmSize
+  CryptoExtension::ext_crypto_finish_batch_verify_version_1() {
+    // TODO (kamilsa) 05.07.21 https://github.com/soramitsu/kagome/issues/804
     return kVerifyBatchSuccess;
-    if (not batch_verify_.has_value()) {
-      throw std::runtime_error("No batch_verify is started");
-    }
-    SL_TRACE_VOID_FUNC_CALL(logger_);
-
-    auto &verification_queue = batch_verify_.value();
-    while (not verification_queue.empty()) {
-      auto single_verification_result = verification_queue.front().get();
-      if (single_verification_result == kVerifyFail) {
-        batch_verify_.reset();
-        return kVerifyBatchFail;
-      }
-      BOOST_ASSERT_MSG(single_verification_result == kVerifySuccess,
-                       "Successful verification result must be equal to 0");
-      verification_queue.pop();
-    }
-
   }
 
   runtime::WasmSpan CryptoExtension::ext_crypto_ed25519_public_keys_version_1(
@@ -344,14 +324,14 @@ namespace kagome::host_api {
       const auto is_succeeded = result && result.value();
       return is_succeeded ? kVerifySuccess : kVerifyFail;
     };
-/*
-    if (batch_verify_.has_value()) {
-      auto &verification_queue = batch_verify_.value();
-      SL_TRACE_FUNC_CALL(logger_, "batched", signature, msg, pubkey);
-      verification_queue.emplace(
-          std::async(std::launch::deferred, std::move(verifier)));
-      return kVerifySuccess;
-    }*/
+    /*
+        if (batch_verify_.has_value()) {
+          auto &verification_queue = batch_verify_.value();
+          SL_TRACE_FUNC_CALL(logger_, "batched", signature, msg, pubkey);
+          verification_queue.emplace(
+              std::async(std::launch::deferred, std::move(verifier)));
+          return kVerifySuccess;
+        }*/
 
     auto res = verifier();
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
