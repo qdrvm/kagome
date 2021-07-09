@@ -22,6 +22,9 @@ namespace kagome::storage {
 
   inline const common::Buffer kLastBabeEpochNumberLookupKey =
       common::Buffer().put(":kagome:last_babe_epoch_number");
+
+  inline const common::Buffer kActivePeersKey =
+      common::Buffer().put(":kagome:last_active_peers");
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP

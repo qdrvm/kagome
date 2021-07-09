@@ -701,7 +701,8 @@ namespace {
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::SyncClientsSet>>(),
-        injector.template create<sptr<network::Router>>());
+        injector.template create<sptr<network::Router>>(),
+        injector.template create<sptr<storage::BufferStorage>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
