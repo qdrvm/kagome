@@ -5,6 +5,9 @@
 
 #include "scale/libp2p_types.hpp"
 
+#include <algorithm>
+#include <exception>
+
 namespace kagome::scale {
 
   PeerInfoSerializable::PeerInfoSerializable() : PeerInfo{dummyPeerId(), {}} {}
@@ -13,9 +16,7 @@ namespace kagome::scale {
     // some valid dummy peer id
     auto res = libp2p::peer::PeerId::fromBase58(
         "12D3KooWFN2mhgpkJsDBuNuE5427AcDrsib8EoqGMZmkxWwx3Md4");
-    if (not res) {
-      throw std::runtime_error(res.error().message());
-    }
+    BOOST_ASSERT(res);
     return res.value();
   }
 

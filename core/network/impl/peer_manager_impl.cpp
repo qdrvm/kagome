@@ -10,6 +10,7 @@
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 #include "outcome/outcome.hpp"
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 
 using namespace std::chrono_literals;
 
@@ -104,7 +105,7 @@ namespace kagome::network {
     SL_DEBUG(log_,
              "Loaded {} last active peers' record(s)",
              last_active_peers.size());
-    for (const libp2p::peer::PeerInfo &peer_info : last_active_peers) {
+    for (const auto &peer_info : last_active_peers) {
       kademlia_->addPeer(peer_info, false);
     }
 
@@ -168,8 +169,8 @@ namespace kagome::network {
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, data] = *it++;
       // TODO(d.khaustov) consider better alive check logic
-      if (not stream_engine_->isAlive(peer_id, block_announce_protocol) &&
-        clock_->now() - data.time > 5min) {
+      if (not stream_engine_->isAlive(peer_id, block_announce_protocol)
+          && clock_->now() - data.time > 5min) {
         // Found disconnected
         auto &peer_id_ref = peer_id;
         SL_DEBUG(log_, "Found dead peer_id={}", peer_id_ref.toBase58());
@@ -499,17 +500,7 @@ namespace kagome::network {
 
   std::vector<scale::PeerInfoSerializable>
   PeerManagerImpl::loadLastActivePeers() {
-    auto key_res = common::Buffer::fromString(kStorageActivePeersKey);
-    if (not key_res) {
-      SL_ERROR(log_,
-               "Cannot load last active peers. Storage key cannot be "
-               "constructed. Error={}",
-               key_res.error().message());
-      return {};
-    }
-    auto &&storage_key = key_res.value();
-
-    auto get_res = storage_->get(storage_key);
+    auto get_res = storage_->get(storage::kActivePeersKey);
     if (not get_res) {
       SL_ERROR(log_,
                "List of last active peers cannot be obtained from storage. "
@@ -530,16 +521,6 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::storeActivePeers() {
-    auto key_res = common::Buffer::fromString(kStorageActivePeersKey);
-    if (not key_res) {
-      SL_ERROR(log_,
-               "Cannot store active peers. Storage key cannot be constructed. "
-               "Error={}",
-               key_res.error().message());
-      return;
-    }
-    auto &&storage_key = key_res.value();
-
     std::vector<libp2p::peer::PeerInfo> last_active_peers;
     for (const auto &peer_id : recently_active_peers_) {
       auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
@@ -561,7 +542,8 @@ namespace kagome::network {
       return;
     }
 
-    auto save_res = storage_->put(storage_key, common::Buffer{out.data()});
+    auto save_res =
+        storage_->put(storage::kActivePeersKey, common::Buffer{out.data()});
     if (not save_res) {
       SL_ERROR(log_,
                "Cannot store active peers. Error={}",

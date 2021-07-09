@@ -6,9 +6,6 @@
 #ifndef KAGOME_CORE_SCALE_LIBP2P_TYPES_HPP
 #define KAGOME_CORE_SCALE_LIBP2P_TYPES_HPP
 
-#include <algorithm>
-#include <exception>
-
 #include <libp2p/peer/peer_info.hpp>
 #include "scale/scale.hpp"
 

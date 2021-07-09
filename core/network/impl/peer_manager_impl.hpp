@@ -47,8 +47,6 @@ namespace kagome::network {
    public:
     static constexpr std::chrono::seconds kTimeoutForConnecting{15};
 
-    static constexpr auto kStorageActivePeersKey{"last_active_peers"};
-
     PeerManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         libp2p::Host &host,
