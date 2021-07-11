@@ -665,56 +665,6 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  void VotingRoundImpl::onFinalize(const Fin &finalize) {
-    // validate message
-    auto result =
-        validatePrecommitJustification(finalize.vote, finalize.justification);
-    if (not result.has_value()) {
-      logger_->error(
-          "Round #{}: Finalisation is received for block #{} hash={} was "
-          "rejected: validation failed",
-          round_number_,
-          finalize.vote.number,
-          finalize.vote.hash.toHex());
-      env_->onCompleted(result.as_failure());
-      return;
-    }
-
-    auto finalized = env_->finalize(finalize.vote.hash, finalize.justification);
-    if (not finalized) {
-      SL_DEBUG(logger_,
-               "Round #{}: Finalisation is received for block #{} hash={} was "
-               "failed with error: {}",
-               round_number_,
-               finalize.vote.number,
-               finalize.vote.hash.toHex(),
-               finalized.error().message());
-      return;
-    }
-
-    SL_DEBUG(
-        logger_,
-        "Round #{}: Finalisation of round is received for block #{} hash={}",
-        round_number_,
-        finalize.vote.number,
-        finalize.vote.hash.toHex());
-
-    for (auto &item : finalize.justification.items) {
-      visit_in_place(
-          item.message,
-          [this, &item](const Precommit &vote) { onPrecommit(item); },
-          [](auto &...) {});
-    }
-
-    // NOTE: Perhaps it's needless or needs to replace by condition
-    BOOST_ASSERT(finalizable());
-    BOOST_ASSERT(
-        env_->isEqualOrDescendOf(finalize.vote.hash, finalized_.value().hash));
-
-    need_to_notice_at_finalizing_ = false;
-    env_->onCompleted(state());
-  }
-
   outcome::result<void> VotingRoundImpl::validatePrecommitJustification(
       const BlockInfo &vote, const GrandpaJustification &justification) const {
     size_t total_weight = 0;

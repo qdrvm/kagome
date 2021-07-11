@@ -163,8 +163,16 @@ namespace kagome::consensus::grandpa {
              round,
              vote.number,
              vote.hash.toHex());
-    network::GrandpaCommit message{
-        {.round_number = round, .vote = vote, .justification = justification}};
+    FullCommitMessage message{
+        .round = round,
+        .message = {.target_hash = vote.hash, .target_number = vote.number}};
+    for (const auto &item : justification.items) {
+      if (auto* precommit = boost::get<Precommit>(&item.message)) {
+        message.message.precommits.push_back(*precommit);
+        message.message.auth_data.push_back(
+            {.first = item.signature, .second = item.id});
+      }
+    }
     gossiper_->finalize(message);
     return outcome::success();
   }

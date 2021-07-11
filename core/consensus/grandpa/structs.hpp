@@ -192,25 +192,6 @@ namespace kagome::consensus::grandpa {
     return s >> v.round_number >> v.counter >> v.vote;
   }
 
-  // finalizing message
-  struct Fin {
-    RoundNumber round_number{0};
-    BlockInfo vote;
-    GrandpaJustification justification;
-  };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Fin &f) {
-    return s << f.round_number << f.vote << f.justification;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Fin &f) {
-    return s >> f.round_number >> f.vote >> f.justification;
-  }
-
   using PrevoteEquivocation = detail::Equivocation<Prevote>;
   using PrecommitEquivocation = detail::Equivocation<Precommit>;
 
@@ -218,6 +199,57 @@ namespace kagome::consensus::grandpa {
     uint64_t prevote;
     uint64_t precommit;
   };
+
+  // A commit message with compact representation of authentication data.
+  // @See
+  // https://github.com/paritytech/finality-grandpa/blob/v0.14.2/src/lib.rs#L312
+  struct CompactCommit {
+    // The target block's hash.
+    primitives::BlockHash target_hash;
+    // The target block's number.
+    primitives::BlockNumber target_number;
+    // Precommits for target block or any block after it that justify this
+    // commit.
+    std::vector<Precommit> precommits;
+    // Authentication data for the commit.
+    std::vector<std::pair<Signature, Id>> auth_data;
+  };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const CompactCommit &f) {
+    return s << f.target_hash << f.target_number << f.precommits << f.auth_data;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, CompactCommit &f) {
+    return s >> f.target_hash >> f.target_number >> f.precommits >> f.auth_data;
+  }
+
+  // Network level commit message with topic information.
+  // @See
+  // https://github.com/paritytech/substrate/blob/polkadot-v0.9.7/client/finality-grandpa/src/communication/gossip.rs#L350
+  struct FullCommitMessage {
+    // The round this message is from.
+    RoundNumber round{0};
+    // The voter set ID this message is from.
+    uint64_t set_id;
+    // The compact commit message.
+    CompactCommit message;
+  };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const FullCommitMessage &f) {
+    return s << f.round << f.set_id << f.message;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, FullCommitMessage &f) {
+    return s >> f.round >> f.set_id >> f.message;
+  }
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CONSENSUS_GRANDPA_STRUCTS_

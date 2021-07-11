@@ -12,7 +12,6 @@
 namespace kagome::network {
 
   using consensus::grandpa::BlockInfo;
-  using consensus::grandpa::Fin;
   using consensus::grandpa::GrandpaJustification;
   using consensus::grandpa::MembershipCounter;
   using consensus::grandpa::RoundNumber;
@@ -20,17 +19,13 @@ namespace kagome::network {
   using consensus::grandpa::SignedPrecommit;
   using consensus::grandpa::SignedPrevote;
   using consensus::grandpa::VoteMessage;
+  using consensus::grandpa::FullCommitMessage;
   using primitives::BlockNumber;
 
   struct GrandpaVote : public VoteMessage {
     using VoteMessage::VoteMessage;
     explicit GrandpaVote(VoteMessage &&vm) noexcept
         : VoteMessage(std::move(vm)){};
-  };
-
-  struct GrandpaCommit : public Fin {
-    using Fin::Fin;
-    explicit GrandpaCommit(Fin &&f) noexcept : Fin(std::move(f)){};
   };
 
   struct GrandpaNeighborMessage {
@@ -98,10 +93,12 @@ namespace kagome::network {
            >> response.best_final_candidate;
   }
 
+  // @See
+  // https://github.com/paritytech/substrate/blob/polkadot-v0.9.7/client/finality-grandpa/src/communication/gossip.rs#L318
   using GrandpaMessage =
       /// Note: order of types in variant matters
       boost::variant<GrandpaVote,             // 0
-                     GrandpaCommit,           // 1
+                     FullCommitMessage,       // 1
                      GrandpaNeighborMessage,  // 2
                      CatchUpRequest,          // 3
                      CatchUpResponse>;        // 4

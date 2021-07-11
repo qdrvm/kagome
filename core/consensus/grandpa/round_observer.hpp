@@ -35,7 +35,7 @@ namespace kagome::consensus::grandpa {
      * @param f finalization message
      */
     virtual void onFinalize(const libp2p::peer::PeerId &peer_id,
-                            const Fin &f) = 0;
+                            const FullCommitMessage &f) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

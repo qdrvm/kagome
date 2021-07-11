@@ -202,24 +202,6 @@ namespace kagome::network {
       return false;
     }
 
-    bool isAlive(const PeerId &peer_id) {
-      std::unique_lock cs(streams_cs_);
-      auto peer_it = streams_.find(peer_id);
-      if (peer_it != streams_.end()) {
-        auto &protocols = peer_it->second;
-        for (auto &protocol_it : protocols) {
-          auto &descr = protocol_it.second;
-          if (descr.incoming and not descr.incoming->isClosed()) {
-            return true;
-          }
-          if (descr.outgoing and not descr.outgoing->isClosed()) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
     template <typename T>
     void send(std::shared_ptr<Stream> stream, const T &msg) {
       BOOST_ASSERT(stream != nullptr);

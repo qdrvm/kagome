@@ -293,7 +293,7 @@ namespace kagome::network {
               [&](const network::GrandpaVote &vote_message) {
                 self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
               },
-              [&](const network::GrandpaCommit &fin_message) {
+              [&](const FullCommitMessage &fin_message) {
                 self->grandpa_observer_->onFinalize(peer_id, fin_message);
               },
               [&](const GrandpaNeighborMessage &neighbor_message) {

@@ -491,25 +491,43 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
-                               const Fin &fin) {
+                               const FullCommitMessage &fin) {
+    SL_DEBUG(logger_,
+             "Finalization has received from[{}] = {} for block[{}] = {}",
+             fin.set_id,
+             peer_id.toBase58(),
+             fin.message.target_number,
+             fin.message.target_hash.toHex());
+
+    GrandpaJustification justification{
+        .round_number = fin.round,
+        .block_info =
+            BlockInfo(fin.message.target_number, fin.message.target_hash)};
+    for (unsigned i = 0; i < fin.message.precommits.size(); ++i) {
+      SignedPrecommit commit;
+      commit.message = fin.message.precommits[i];
+      commit.signature = fin.message.auth_data[i].first;
+      commit.id = fin.message.auth_data[i].second;
+      justification.items.push_back(commit);
+    }
+
+    if (not std::all_of(fin.message.precommits.begin(),
+                        fin.message.precommits.end(),
+                        [&fin](const auto &el) {
+                          return el.hash == fin.message.target_hash
+                                 && el.number == fin.message.target_number;
+                        })) {
+      logger_->warn("Block does not correspond to the votes");
+      return;
+    }
+
     if (not is_ready_) {
+      // grandpa not initialized, we just finalize block then
+      environment_->finalize(justification.block_info.hash, justification);
       return;
     }
 
-    if (fin.justification.round_number != fin.round_number) {
-      logger_->warn(
-          "Round does not correspond to the fin message it belongs to");
-      return;
-    }
-
-    if (fin.justification.block_info != fin.vote) {
-      logger_->warn(
-          "Block does not correspond to the fin message it belongs to");
-      return;
-    }
-
-    auto res =
-        applyJustification(fin.justification.block_info, fin.justification);
+    auto res = applyJustification(justification.block_info, justification);
     if (not res.has_value()) {
       logger_->warn("Fin message is not applied: {}", res.error().message());
       return;

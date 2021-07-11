@@ -97,11 +97,11 @@ namespace kagome::network {
     broadcast(grandpa_protocol_, GrandpaMessage(vote_message));
   }
 
-  void GossiperBroadcast::finalize(const network::GrandpaCommit &fin) {
+  void GossiperBroadcast::finalize(const FullCommitMessage &msg) {
     SL_DEBUG(logger_,
              "Gossip fin message: grandpa round number {}",
-             fin.round_number);
-    broadcast(grandpa_protocol_, GrandpaMessage(fin));
+             msg.round);
+    broadcast(grandpa_protocol_, GrandpaMessage(msg));
   }
 
   void GossiperBroadcast::catchUpRequest(
