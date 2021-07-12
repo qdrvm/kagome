@@ -76,6 +76,7 @@ namespace kagome::network {
 
     // Add themselves into peer routing
     kademlia_->addPeer(host_.getPeerInfo(), true);
+    // It is used only for DEV mode
     processDiscoveredPeer(host_.getPeerInfo().id);
 
     add_peer_handle_ =
