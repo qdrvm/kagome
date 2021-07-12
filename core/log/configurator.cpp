@@ -19,11 +19,10 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: debug
+    level: trace
     is_fallback: true
     children:
       - name: libp2p
-        level: off
       - name: kagome
         children:
           - name: injector
@@ -54,7 +53,6 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
-            level: info
             children:
               - name: wasm
               - name: extentions
@@ -67,12 +65,9 @@ groups:
           - name: storage
           - name: pubsub
       - name: others
-        level: info
         children:
           - name: testing
-            level: info
           - name: debug
-            level: info
 # ----------------
   )");
   }
