@@ -54,9 +54,9 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
+            level: info
             children:
               - name: wasm
-                level: info
               - name: extentions
               - name: binatien
           - name: metrics

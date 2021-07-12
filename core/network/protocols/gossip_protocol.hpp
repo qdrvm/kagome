@@ -58,8 +58,6 @@ namespace kagome::network {
         override;
 
    private:
-    enum class Direction { INCOMING, OUTGOING };
-
     void readGossipMessage(std::shared_ptr<Stream> stream);
     void writeGossipMessage(std::shared_ptr<Stream> stream,
                             const GossipMessage &gossip_message);

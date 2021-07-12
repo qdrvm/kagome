@@ -40,6 +40,7 @@ namespace kagome::network {
         }
         self->log_->warn("Handled {} protocol stream from unknown peer",
                          self->protocol_);
+        stream->reset();
       }
     });
     return true;
@@ -56,26 +57,40 @@ namespace kagome::network {
     readHandshake(
         stream,
         Direction::INCOMING,
-        [wp = weak_from_this(),
-         stream](outcome::result<std::shared_ptr<Stream>> stream_res) {
+        [wp = weak_from_this(), stream](outcome::result<void> res) {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
             return;
           }
-          if (stream_res.has_value()) {
-            std::ignore = self->stream_engine_->addIncoming(stream, self);
+
+          auto peer_id = stream->remotePeerId().value();
+
+          if (not res.has_value()) {
             SL_VERBOSE(self->log_,
-                       "Fully established incoming {} stream with {}",
+                       "Handshake failed on incoming {} stream with {}: {}",
                        self->protocol_,
-                       stream->remotePeerId().value().toBase58());
+                       peer_id.toBase58(),
+                       res.error().message());
+            stream->reset();
             return;
           }
+
+          res = self->stream_engine_->addIncoming(stream, self);
+          if (not res.has_value()) {
+            SL_VERBOSE(self->log_,
+                       "Can't register incoming {} stream with {}: {}",
+                       self->protocol_,
+                       peer_id.toBase58(),
+                       res.error().message());
+            stream->reset();
+            return;
+          }
+
           SL_VERBOSE(self->log_,
-                     "Fail establishing incoming {} stream with {}: {}",
+                     "Fully established incoming {} stream with {}",
                      self->protocol_,
-                     stream->remotePeerId().value().toBase58(),
-                     stream_res.error().message());
+                     peer_id.toBase58());
         });
   }
 
@@ -94,20 +109,63 @@ namespace kagome::network {
           }
 
           if (not stream_res.has_value()) {
+            SL_VERBOSE(self->log_,
+                       "Can't create outgoing {} stream with {}: {}",
+                       self->protocol_,
+                       peer_id.toBase58(),
+                       stream_res.error().message());
             cb(stream_res.as_failure());
             return;
           }
           auto &stream = stream_res.value();
 
+          auto cb2 = [wp, stream, cb = std::move(cb)](
+                         outcome::result<void> res) {
+            auto self = wp.lock();
+            if (not self) {
+              cb(ProtocolError::GONE);
+              return;
+            }
+
+            if (not res.has_value()) {
+              SL_VERBOSE(self->log_,
+                         "Handshake failed on outgoing {} stream with {}: {}",
+                         self->protocol_,
+                         stream->remotePeerId().value().toBase58(),
+                         res.error().message());
+              stream->reset();
+              cb(res.as_failure());
+              return;
+            }
+
+            res = self->stream_engine_->addOutgoing(stream, self);
+            if (not res.has_value()) {
+              SL_VERBOSE(self->log_,
+                         "Can't register outgoing {} stream with {}: {}",
+                         self->protocol_,
+                         stream->remotePeerId().value().toBase58(),
+                         res.error().message());
+              stream->reset();
+              cb(res.as_failure());
+              return;
+            }
+
+            SL_VERBOSE(self->log_,
+                       "Fully established outgoing {} stream with {}",
+                       self->protocol_,
+                       stream->remotePeerId().value().toBase58());
+            cb(std::move(stream));
+          };
+
           self->writeHandshake(
-              std::move(stream), Direction::OUTGOING, std::move(cb));
+              std::move(stream), Direction::OUTGOING, std::move(cb2));
         });
   }
 
   void PropagateTransactionsProtocol::readHandshake(
       std::shared_ptr<Stream> stream,
       Direction direction,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+      std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
     read_writer->read<NoData>(
@@ -122,23 +180,27 @@ namespace kagome::network {
 
           if (not remote_handshake_res.has_value()) {
             SL_VERBOSE(self->log_,
-                       "Error while reading handshake: {}",
+                       "Can't read handshake from {}: {}",
+                       stream->remotePeerId().value().toBase58(),
                        remote_handshake_res.error().message());
             stream->reset();
             cb(remote_handshake_res.as_failure());
             return;
           }
 
+          SL_TRACE(self->log_,
+                   "Handshake has received from {}",
+                   stream->remotePeerId().value().toBase58());
+
           switch (direction) {
             case Direction::OUTGOING:
-              std::ignore = self->stream_engine_->addOutgoing(stream, self);
-              cb(stream);
+              cb(outcome::success());
               break;
             case Direction::INCOMING:
               if (self->babe_->getCurrentState()
                   == consensus::babe::Babe::State::SYNCHRONIZED) {
                 self->writeHandshake(
-                    std::move(stream), direction, std::move(cb));
+                    std::move(stream), Direction::INCOMING, std::move(cb));
                 return;
               }
 
@@ -152,46 +214,55 @@ namespace kagome::network {
   void PropagateTransactionsProtocol::writeHandshake(
       std::shared_ptr<Stream> stream,
       Direction direction,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+      std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->write(
-        NoData{},
-        [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-            auto &&write_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            stream->reset();
-            cb(ProtocolError::GONE);
-            return;
-          }
+    read_writer->write(NoData{},
+                       [stream = std::move(stream),
+                        direction,
+                        wp = weak_from_this(),
+                        cb = std::move(cb)](auto &&write_res) mutable {
+                         auto self = wp.lock();
+                         if (not self) {
+                           stream->reset();
+                           cb(ProtocolError::GONE);
+                           return;
+                         }
 
-          if (not write_res.has_value()) {
-            SL_VERBOSE(self->log_,
-                       "Error while writing handshake: {}",
-                       write_res.error().message());
-            stream->reset();
-            cb(write_res.as_failure());
-            return;
-          }
+                         if (not write_res.has_value()) {
+                           SL_VERBOSE(self->log_,
+                                      "Can't send handshake to {}: {}",
+                                      stream->remotePeerId().value().toBase58(),
+                                      write_res.error().message());
+                           stream->reset();
+                           cb(write_res.as_failure());
+                           return;
+                         }
 
-          switch (direction) {
-            case Direction::OUTGOING:
-              self->readHandshake(std::move(stream), direction, std::move(cb));
-              break;
-            case Direction::INCOMING:
-              self->readPropagatedExtrinsics(std::move(stream));
-              cb(stream);
-              break;
-          }
-        });
+                         SL_TRACE(self->log_,
+                                  "Handshake has sent to {}",
+                                  stream->remotePeerId().value().toBase58());
+
+                         switch (direction) {
+                           case Direction::OUTGOING:
+                             self->readHandshake(std::move(stream),
+                                                 Direction::OUTGOING,
+                                                 std::move(cb));
+                             break;
+                           case Direction::INCOMING:
+                             cb(outcome::success());
+                             self->readPropagatedExtrinsics(std::move(stream));
+                             break;
+                         }
+                       });
   }
 
   void PropagateTransactionsProtocol::readPropagatedExtrinsics(
       std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->read<PropagatedExtrinsics>([stream, wp = weak_from_this()](
+    read_writer->read<PropagatedExtrinsics>([stream = std::move(stream),
+                                             wp = weak_from_this()](
                                                 auto &&message_res) mutable {
       auto self = wp.lock();
       if (not self) {
@@ -201,16 +272,21 @@ namespace kagome::network {
 
       if (not message_res.has_value()) {
         SL_VERBOSE(self->log_,
-                   "Error while reading propagated transactions: {}",
+                   "Can't read grandpa message from {}: {}",
+                   stream->remotePeerId().value().toBase58(),
                    message_res.error().message());
         stream->reset();
         return;
       }
+
+      auto peer_id = stream->remotePeerId().value();
       auto &message = message_res.value();
 
       SL_VERBOSE(self->log_,
-                 "Received {} propagated transactions",
-                 message.extrinsics.size());
+                 "Received {} propagated transactions from {}",
+                 message.extrinsics.size(),
+                 peer_id.toBase58());
+
       for (auto &ext : message.extrinsics) {
         auto result = self->extrinsic_observer_->onTxMessage(ext);
         if (result) {
@@ -224,34 +300,34 @@ namespace kagome::network {
     });
   }
 
-  void PropagateTransactionsProtocol::writePropagatedExtrinsics(
-      std::shared_ptr<Stream> stream,
-      const PropagatedExtrinsics &message,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    read_writer->write(message,
-                       [stream, wp = weak_from_this(), cb = std::move(cb)](
-                           auto &&write_res) mutable {
-                         auto self = wp.lock();
-                         if (not self) {
-                           stream->reset();
-                           if (cb) cb(ProtocolError::GONE);
-                           return;
-                         }
-
-                         if (not write_res.has_value()) {
-                           SL_VERBOSE(
-                               self->log_,
-                               "Error while writing propagated extrinsics: {}",
-                               write_res.error().message());
-                           stream->reset();
-                           if (cb) cb(write_res.as_failure());
-                           return;
-                         }
-
-                         if (cb) cb(stream);
-                       });
-  }
+  //  void PropagateTransactionsProtocol::writePropagatedExtrinsics(
+  //      std::shared_ptr<Stream> stream,
+  //      const PropagatedExtrinsics &message,
+  //      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+  //    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+  //
+  //    read_writer->write(message,
+  //                       [stream, wp = weak_from_this(), cb = std::move(cb)](
+  //                           auto &&write_res) mutable {
+  //                         auto self = wp.lock();
+  //                         if (not self) {
+  //                           stream->reset();
+  //                           if (cb) cb(ProtocolError::GONE);
+  //                           return;
+  //                         }
+  //
+  //                         if (not write_res.has_value()) {
+  //                           SL_VERBOSE(
+  //                               self->log_,
+  //                               "Error while writing propagated extrinsics:
+  //                               {}", write_res.error().message());
+  //                           stream->reset();
+  //                           if (cb) cb(write_res.as_failure());
+  //                           return;
+  //                         }
+  //
+  //                         if (cb) cb(stream);
+  //                       });
+  //  }
 
 }  // namespace kagome::network
