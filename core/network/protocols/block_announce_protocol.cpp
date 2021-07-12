@@ -221,12 +221,14 @@ namespace kagome::network {
             self->babe_observer_->onPeerSync();
           } else {
             auto self_status = self->createStatus();
-            if (self_status) {
-              if (self_status.value().best_block == remote_status.best_block
-                  && self_status.value().roles.flags.authority
-                  && remote_status.roles.flags.authority) {
-                self->babe_observer_->onPeerSync();
-              }
+            if(not self_status.has_value()) {
+              cb(ProtocolError::CAN_NOT_CREATE_STATUS);
+              return;
+            }
+            if (self_status.value().best_block == remote_status.best_block
+                && self_status.value().roles.flags.authority
+                && remote_status.roles.flags.authority) {
+              self->babe_observer_->onPeerSync();
             }
           }
 
