@@ -9,6 +9,10 @@
 
 #include "application/app_state_manager.hpp"
 
+/// disables limitation on maximum websocket connections
+#define DISABLE_WS_LIMIT
+// ^ this is temporary for debug/testing purposes
+
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(
       const std::shared_ptr<application::AppStateManager> &app_state_manager,
@@ -83,18 +87,22 @@ namespace kagome::api {
                       session_stopped_handler](boost::system::error_code ec) {
       if (auto self = wp.lock()) {
         if (not ec) {
+#ifndef DISABLE_WS_LIMIT
           self->new_session_->connectOnWsSessionCloseHandler(
               session_stopped_handler);
           if (1 + self->active_connections_.fetch_add(1)
               > self->config_.ws_max_connections) {
             self->new_session_->reject();
           } else {
+#endif // DISABLE_WS_LIMIT
             if (self->on_new_session_) {
               (*self->on_new_session_)(self->new_session_);
             }
             self->new_session_->start();
           }
+#ifndef DISABLE_WS_LIMIT
         }
+#endif // DISABLE_WS_LIMIT
 
         if (self->acceptor_->is_open()) {
           // continue to accept until acceptor is ready
