@@ -42,6 +42,7 @@ namespace kagome::network {
         }
         self->log_->warn("Handled {} protocol stream from unknown peer",
                          self->protocol_);
+        stream->reset();
       }
     });
     return true;
@@ -86,37 +87,43 @@ namespace kagome::network {
   void SupProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
-    auto status_res = createStatus();
-    if (not status_res.has_value()) {
-      stream->reset();
-      return;
-    }
-    auto &status = status_res.value();
-
-    writeStatus(
+    readHandshake(
         stream,
-        status,
-        [wp = weak_from_this(),
-         stream](outcome::result<std::shared_ptr<Stream>> stream_res) {
+        Direction::INCOMING,
+        [wp = weak_from_this(), stream](outcome::result<void> res) {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
             return;
           }
-          if (stream_res.has_value()) {
-            std::ignore = self->stream_engine_->addIncoming(stream, self);
+
+          auto peer_id = stream->remotePeerId().value();
+
+          if (not res.has_value()) {
             SL_VERBOSE(self->log_,
-                       "Fully established incoming {} stream with {}",
+                       "Handshake failed on incoming {} stream with {}: {}",
                        self->protocol_,
-                       stream->remotePeerId().value().toBase58());
-            self->readStatus(std::move(stream));
-          } else {
-            SL_VERBOSE(self->log_,
-                       "Fail establishing incoming {} stream with {}: {}",
-                       self->protocol_,
-                       stream->remotePeerId().value().toBase58(),
-                       stream_res.error().message());
+                       peer_id.toBase58(),
+                       res.error().message());
+            stream->reset();
+            return;
           }
+
+          res = self->stream_engine_->addIncoming(stream, self);
+          if (not res.has_value()) {
+            SL_VERBOSE(self->log_,
+                       "Can't register incoming {} stream with {}: {}",
+                       self->protocol_,
+                       peer_id.toBase58(),
+                       res.error().message());
+            stream->reset();
+            return;
+          }
+
+          SL_VERBOSE(self->log_,
+                     "Fully established incoming {} stream with {}",
+                     self->protocol_,
+                     peer_id.toBase58());
         });
   }
 
@@ -130,96 +137,244 @@ namespace kagome::network {
             auto &&stream_res) mutable {
           auto self = wp.lock();
           if (not self) {
-            if (cb) cb(ProtocolError::GONE);
+            cb(ProtocolError::GONE);
             return;
           }
 
           if (not stream_res.has_value()) {
-            SL_VERBOSE(
-                self->log_,
-                "Error happened while connection over {} stream with {}: {}",
-                self->protocol_,
-                peer_id.toBase58(),
-                stream_res.error().message());
-            if (cb) cb(stream_res.as_failure());
+            SL_VERBOSE(self->log_,
+                       "Can't create outgoing {} stream with {}: {}",
+                       self->protocol_,
+                       peer_id.toBase58(),
+                       stream_res.error().message());
+            cb(stream_res.as_failure());
             return;
           }
           auto &stream = stream_res.value();
 
-          SL_DEBUG(self->log_,
-                   "Established connection over {} stream with {}",
-                   self->protocol_,
-                   peer_id.toBase58());
+          auto cb2 = [wp, stream, cb = std::move(cb)](
+                         outcome::result<void> res) {
+            auto self = wp.lock();
+            if (not self) {
+              cb(ProtocolError::GONE);
+              return;
+            }
 
-          auto status_res = self->createStatus();
-          if (not status_res.has_value()) {
-            if (cb) cb(ProtocolError::CAN_NOT_CREATE_STATUS);
+            if (not res.has_value()) {
+              SL_VERBOSE(self->log_,
+                         "Handshake failed on outgoing {} stream with {}: {}",
+                         self->protocol_,
+                         stream->remotePeerId().value().toBase58(),
+                         res.error().message());
+              stream->reset();
+              cb(res.as_failure());
+              return;
+            }
+
+            res = self->stream_engine_->addOutgoing(stream, self);
+            if (not res.has_value()) {
+              SL_VERBOSE(self->log_,
+                         "Can't register outgoing {} stream with {}: {}",
+                         self->protocol_,
+                         stream->remotePeerId().value().toBase58(),
+                         res.error().message());
+              stream->reset();
+              cb(res.as_failure());
+              return;
+            }
+
+            SL_VERBOSE(self->log_,
+                       "Fully established outgoing {} stream with {}",
+                       self->protocol_,
+                       stream->remotePeerId().value().toBase58());
+            cb(std::move(stream));
+          };
+
+          self->writeHandshake(
+              std::move(stream), Direction::OUTGOING, std::move(cb2));
+        });
+  }
+
+  void SupProtocol::readHandshake(
+      std::shared_ptr<Stream> stream,
+      Direction direction,
+      std::function<void(outcome::result<void>)> &&cb) {
+    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+
+    read_writer->read<Status>(
+        [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
+            auto &&remote_status_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            cb(ProtocolError::GONE);
             return;
           }
-          auto &status = status_res.value();
 
-          self->writeStatus(stream, status, std::move(cb));
+          if (not remote_status_res.has_value()) {
+            SL_VERBOSE(self->log_,
+                       "Can't read handshake from {}: {}",
+                       stream->remotePeerId().value().toBase58(),
+                       remote_status_res.error().message());
+            stream->reset();
+            cb(remote_status_res.as_failure());
+            return;
+          }
+          auto &remote_status = remote_status_res.value();
+
+          SL_TRACE(self->log_,
+                   "Handshake has received from {}",
+                   stream->remotePeerId().value().toBase58());
+
+          if (auto genesis_res = self->storage_->getGenesisBlockHash();
+              genesis_res.has_value()) {
+            if (remote_status.genesis_hash != genesis_res.value()) {
+              SL_VERBOSE(self->log_,
+                         "Error while processing status: {}",
+                         genesis_res.error().message());
+              stream->reset();
+              cb(ProtocolError::GENESIS_NO_MATCH);
+              return;
+            }
+          } else {
+            SL_VERBOSE(self->log_,
+                       "Error while processing status: {}",
+                       genesis_res.error().message());
+            stream->reset();
+            cb(ProtocolError::GENESIS_NO_MATCH);
+            return;
+          }
+
+          auto peer_id = stream->remotePeerId().value();
+          SL_TRACE(self->log_,
+                   "Received status from peer_id={} (best block {})",
+                   peer_id.toBase58(),
+                   remote_status.best_block.number);
+          self->peer_manager_->updatePeerStatus(peer_id, remote_status);
+
+          switch (direction) {
+            case Direction::OUTGOING:
+              cb(outcome::success());
+              break;
+            case Direction::INCOMING:
+              self->writeHandshake(
+                  std::move(stream), Direction::INCOMING, std::move(cb));
+              break;
+          }
+        });
+  }
+
+  void SupProtocol::writeHandshake(
+      std::shared_ptr<Stream> stream,
+      Direction direction,
+      std::function<void(outcome::result<void>)> &&cb) {
+    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+
+    auto status_res = createStatus();
+    if (not status_res.has_value()) {
+      stream->reset();
+      cb(ProtocolError::CAN_NOT_CREATE_STATUS);
+      return;
+    }
+
+    read_writer->write(
+        status_res.value(),
+        [stream = std::move(stream),
+         direction,
+         wp = weak_from_this(),
+         cb = std::move(cb)](auto &&write_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            cb(ProtocolError::GONE);
+            return;
+          }
+
+          if (not write_res.has_value()) {
+            SL_VERBOSE(self->log_,"Can't send handshake to {}: {}",
+                              stream->remotePeerId().value().toBase58(),
+                              write_res.error().message());
+            stream->reset();
+            cb(write_res.as_failure());
+            return;
+          }
+
+          SL_TRACE(self->log_,
+                   "Handshake has sent to {}",
+                   stream->remotePeerId().value().toBase58());
+
+          switch (direction) {
+            case Direction::OUTGOING:
+              self->readHandshake(
+                  std::move(stream), Direction::OUTGOING, std::move(cb));
+              break;
+            case Direction::INCOMING:
+              cb(outcome::success());
+              self->readStatus(std::move(stream));
+              break;
+          }
         });
   }
 
   void SupProtocol::readStatus(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->read<Status>([stream, wp = weak_from_this()](
-                                  auto &&remote_status_res) mutable {
-      auto self = wp.lock();
-      if (not self) {
-        stream->reset();
-        return;
-      }
+    read_writer->read<Status>(
+        [stream = std::move(stream),
+         wp = weak_from_this()](auto &&remote_status_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            return;
+          }
 
-      if (not remote_status_res.has_value()) {
-        SL_VERBOSE(self->log_,
-                   "Error while reading status: {}",
-                   remote_status_res.error().message());
-        stream->reset();
-        return;
-      }
-      auto& remote_status = remote_status_res.value();
+          if (not remote_status_res.has_value()) {
+            SL_VERBOSE(self->log_,"Can't read status message from {}: {}",
+                              stream->remotePeerId().value().toBase58(),
+                              remote_status_res.error().message());
+            stream->reset();
+            return;
+          }
 
-      auto peer_id = stream->remotePeerId().value();
-      SL_VERBOSE(
-          self->log_, "Received status from peer_id={}", peer_id.toBase58());
+          auto peer_id = stream->remotePeerId().value();
+          auto &remote_status = remote_status_res.value();
 
-      self->peer_manager_->updatePeerStatus(peer_id, remote_status);
+          SL_VERBOSE(self->log_, "Received status from {}", peer_id.toBase58());
 
-      self->readStatus(std::move(stream));
-    });
+          self->peer_manager_->updatePeerStatus(peer_id, remote_status);
+
+          self->readStatus(std::move(stream));
+        });
   }
 
-  void SupProtocol::writeStatus(
-      std::shared_ptr<Stream> stream,
-      const Status &status,
-      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    read_writer->write(status,
-                       [stream = std::move(stream),
-                        wp = weak_from_this(),
-                        cb = std::move(cb)](auto &&write_res) mutable {
-                         auto self = wp.lock();
-                         if (not self) {
-                           stream->reset();
-                           if (cb) cb(ProtocolError::GONE);
-                           return;
-                         }
-
-                         if (not write_res.has_value()) {
-                           SL_VERBOSE(self->log_,
-                                      "Error while writing own status: {}",
-                                      write_res.error().message());
-                           stream->reset();
-                           if (cb) cb(write_res.as_failure());
-                           return;
-                         }
-
-                         if (cb) cb(std::move(stream));
-                       });
-  }
+  //  void SupProtocol::writeStatus(
+  //      std::shared_ptr<Stream> stream,
+  //      const Status &status,
+  //      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
+  //    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+  //
+  //    read_writer->write(status,
+  //                       [stream = std::move(stream),
+  //                        wp = weak_from_this(),
+  //                        cb = std::move(cb)](auto &&write_res) mutable {
+  //                         auto self = wp.lock();
+  //                         if (not self) {
+  //                           stream->reset();
+  //                           if (cb) cb(ProtocolError::GONE);
+  //                           return;
+  //                         }
+  //
+  //                         if (not write_res.has_value()) {
+  //                           SL_VERBOSE(self->log_,
+  //                                      "Error while writing own status: {}",
+  //                                      write_res.error().message());
+  //                           stream->reset();
+  //                           if (cb) cb(write_res.as_failure());
+  //                           return;
+  //                         }
+  //
+  //                         if (cb) cb(std::move(stream));
+  //                       });
+  //  }
 
 }  // namespace kagome::network

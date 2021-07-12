@@ -71,15 +71,13 @@ namespace kagome::network {
     outcome::result<Status> createStatus() const;
 
     enum class Direction { INCOMING, OUTGOING };
-    void readStatus(
-        std::shared_ptr<Stream> stream,
-        Direction direction,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+    void readStatus(std::shared_ptr<Stream> stream,
+                    Direction direction,
+                    std::function<void(outcome::result<void>)> &&cb);
 
-    void writeStatus(
-        std::shared_ptr<Stream> stream,
-        Direction direction,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+    void writeStatus(std::shared_ptr<Stream> stream,
+                     Direction direction,
+                     std::function<void(outcome::result<void>)> &&cb);
 
     void readAnnounce(std::shared_ptr<Stream> stream);
     void writeAnnounce(std::shared_ptr<Stream> stream,

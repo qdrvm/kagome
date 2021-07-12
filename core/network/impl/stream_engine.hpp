@@ -379,19 +379,21 @@ namespace kagome::network {
 
    private:
     void dump(std::string_view msg) {
-      logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-      logger_->debug("DUMP: {}", msg);
-      forEachPeer([&](const auto &peer_id, auto &proto_map) {
-        logger_->debug("DUMP:   Peer {}", peer_id.toBase58());
-        for (auto &[protocol, descr] : proto_map) {
-          logger_->debug("DUMP:     Protocol {}", protocol);
-          logger_->debug("DUMP:       I={} O={}   Messages:{}",
-                         descr.incoming,
-                         descr.outgoing,
-                         descr.deffered_messages.size());
-        }
-      });
-      logger_->debug("DUMP: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+      if (logger_->level() >= log::Level::DEBUG) {
+        logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+        logger_->debug("DUMP: {}", msg);
+        forEachPeer([&](const auto &peer_id, auto &proto_map) {
+          logger_->debug("DUMP:   Peer {}", peer_id.toBase58());
+          for (auto &[protocol, descr] : proto_map) {
+            logger_->debug("DUMP:     Protocol {}", protocol);
+            logger_->debug("DUMP:       I={} O={}   Messages:{}",
+                           descr.incoming,
+                           descr.outgoing,
+                           descr.deffered_messages.size());
+          }
+        });
+        logger_->debug("DUMP: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+      }
     }
 
     template <typename T>
@@ -427,7 +429,9 @@ namespace kagome::network {
                                    stream_res.error().message());
               self->forSubscriber(
                   peer_id, protocol, [&](auto, auto &subscriber) {
-                    std::ignore = std::move(subscriber.deffered_messages);
+                    while (not subscriber.deffered_messages.empty()) {
+                      subscriber.deffered_messages.pop();
+                    }
                   });
 
               return;

@@ -62,9 +62,22 @@ namespace kagome::network {
   void GossipProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
-    if (stream_engine_->addIncoming(stream, shared_from_this())) {
+    auto res = stream_engine_->addIncoming(stream, shared_from_this());
+    if (res.has_value()) {
+      SL_VERBOSE(log_,
+                 "Fully established incoming {} stream with {}",
+                 protocol_,
+                 stream->remotePeerId().value().toBase58());
       readGossipMessage(std::move(stream));
+      return;
     }
+
+    SL_VERBOSE(log_,
+               "Fail at adding to engine incoming {} stream with {}: {}",
+               protocol_,
+               stream->remotePeerId().value().toBase58(),
+               res.error().message());
+    stream->reset();
   }
 
   void GossipProtocol::newOutgoingStream(
@@ -88,9 +101,13 @@ namespace kagome::network {
 
           auto &stream = stream_res.value();
 
-          std::ignore = self->stream_engine_->addOutgoing(stream, self);
-          cb(stream);
-          self->readGossipMessage(std::move(stream));
+          auto res = self->stream_engine_->addOutgoing(stream, self);
+          if (res.has_value()) {
+            cb(stream);
+            self->readGossipMessage(std::move(stream));
+          } else {
+            cb(res.as_failure());
+          }
         });
   }
 
@@ -106,8 +123,9 @@ namespace kagome::network {
       }
 
       if (not gossip_message_res) {
-        self->log_->error("Error while reading gossip message: {}",
-                          gossip_message_res.error().message());
+        SL_VERBOSE(self->log_,
+                   "Error while reading gossip message: {}",
+                   gossip_message_res.error().message());
         stream->reset();
         return;
       }
@@ -209,34 +227,35 @@ namespace kagome::network {
     });
   }
 
-  void GossipProtocol::writeGossipMessage(std::shared_ptr<Stream> stream,
-                                          const GossipMessage &gossip_message) {
-    std::function<void(outcome::result<std::shared_ptr<Stream>>)> cb =
-        [](outcome::result<std::shared_ptr<Stream>>) {};
-
-    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-    read_writer->write(gossip_message,
-                       [stream, wp = weak_from_this(), cb = std::move(cb)](
-                           auto &&write_res) mutable {
-                         auto self = wp.lock();
-                         if (not self) {
-                           stream->reset();
-                           cb(ProtocolError::GONE);
-                           return;
-                         }
-
-                         if (not write_res.has_value()) {
-                           self->log_->error(
-                               "Error while writing block announce: {}",
-                               write_res.error().message());
-                           stream->reset();
-                           cb(write_res.as_failure());
-                           return;
-                         }
-
-                         cb(stream);
-                       });
-  }
+  //  void GossipProtocol::writeGossipMessage(std::shared_ptr<Stream> stream,
+  //                                          const GossipMessage
+  //                                          &gossip_message) {
+  //    std::function<void(outcome::result<std::shared_ptr<Stream>>)> cb =
+  //        [](outcome::result<std::shared_ptr<Stream>>) {};
+  //
+  //    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
+  //
+  //    read_writer->write(gossip_message,
+  //                       [stream, wp = weak_from_this(), cb = std::move(cb)](
+  //                           auto &&write_res) mutable {
+  //                         auto self = wp.lock();
+  //                         if (not self) {
+  //                           stream->reset();
+  //                           cb(ProtocolError::GONE);
+  //                           return;
+  //                         }
+  //
+  //                         if (not write_res.has_value()) {
+  //                           self->log_->error(
+  //                               "Error while writing block announce: {}",
+  //                               write_res.error().message());
+  //                           stream->reset();
+  //                           cb(write_res.as_failure());
+  //                           return;
+  //                         }
+  //
+  //                         cb(std::move(stream));
+  //                       });
+  //  }
 
 }  // namespace kagome::network
