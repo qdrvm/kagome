@@ -87,7 +87,7 @@ namespace kagome::network {
 
     void vote(const network::GrandpaVote &msg) override;
 
-    void finalize(const network::GrandpaCommit &msg) override;
+    void finalize(const FullCommitMessage &msg) override;
 
     void catchUpRequest(const libp2p::peer::PeerId &peer_id,
                         const CatchUpRequest &catch_up_request) override;

@@ -527,6 +527,10 @@ namespace kagome::host_api {
 
   boost::optional<common::Buffer> StorageExtension::calcStorageChangesRoot(
       common::Hash256 parent_hash) const {
+    if(not storage_provider_->tryGetPersistentBatch()) {
+      logger_->error("ext_storage_changes_root persistent batch not found");
+      return boost::none;
+    }
     auto batch = storage_provider_->tryGetPersistentBatch().value();
     auto config_bytes_res = batch->get(CHANGES_CONFIG_KEY);
     if (config_bytes_res.has_error()) {

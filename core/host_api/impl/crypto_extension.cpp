@@ -204,6 +204,17 @@ namespace kagome::host_api {
 
       auto res = self->sr25519_provider_->verify(signature, msg, pubkey);
       bool is_succeeded = res && res.value();
+      if (not is_succeeded) {
+        SL_DEBUG(self->logger_,
+                 "SR25519 signature verification failed. Signature is "
+                 "{}. Message is {}. Public key is {}.",
+                 signature.toHex(),
+                 msg.toHex(),
+                 pubkey.toHex());
+        if(res.has_error()) {
+          SL_DEBUG(self->logger_, "Error: {}", res.error().message());
+        }
+      }
       return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;
     };
     if (batch_verify_.has_value()) {
