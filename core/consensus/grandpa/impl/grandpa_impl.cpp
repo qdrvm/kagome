@@ -493,7 +493,8 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
                                const FullCommitMessage &fin) {
     SL_DEBUG(logger_,
-             "Finalization has received from[{}] = {} for block[{}] = {}",
+             "Finalization has received from peer #{} with identity {} for "
+             "block #{} with hash {}",
              fin.set_id,
              peer_id.toBase58(),
              fin.message.target_number,

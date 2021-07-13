@@ -15,11 +15,3 @@ target_link_libraries(primitives_codec_test
     testutil_primitives_generator
     Boost::boost
     )
-
-addtest(primitives_base58_test
-    primitives_base58_test.cpp
-    )
-
-target_link_libraries(primitives_base58_test
-    base58_codec
-    )

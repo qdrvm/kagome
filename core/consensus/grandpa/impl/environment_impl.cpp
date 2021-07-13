@@ -167,10 +167,11 @@ namespace kagome::consensus::grandpa {
         .round = round,
         .message = {.target_hash = vote.hash, .target_number = vote.number}};
     for (const auto &item : justification.items) {
+      BOOST_ASSERT(item.message.type() != typeid(Precommit()));
       if (auto* precommit = boost::get<Precommit>(&item.message)) {
         message.message.precommits.push_back(*precommit);
         message.message.auth_data.push_back(
-            {.first = item.signature, .second = item.id});
+            std::make_pair(item.signature, item.id));
       }
     }
     gossiper_->finalize(message);

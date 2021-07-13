@@ -393,6 +393,8 @@ namespace kagome::application {
       return false;
     }
 
+    desc.add(development_desc);
+
     try {
       po::store(po::parse_command_line(argc, argv, desc), vm);
       po::store(parsed, vm);
