@@ -206,8 +206,8 @@ namespace kagome::host_api {
       bool is_succeeded = res && res.value();
       if (not is_succeeded) {
         SL_DEBUG(self->logger_,
-                 "SR25519 signature verification failed. \nSignature: "
-                 "{}\nMessage: {}\nPublic key: {}",
+                 "SR25519 signature verification failed. Signature is "
+                 "{}. Message is {}. Public key is {}.",
                  signature.toHex(),
                  msg.toHex(),
                  pubkey.toHex());

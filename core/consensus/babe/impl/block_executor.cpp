@@ -347,7 +347,7 @@ namespace kagome::consensus {
 
     // apply justification if any
     if (b.justification.has_value()) {
-      logger_->info("Justification received for block number {}",
+      logger_->verbose("Justification received for block number {}",
                     block.header.number);
       OUTCOME_TRY(grandpa_environment_->applyJustification(
           primitives::BlockInfo(block.header.number, block_hash),
