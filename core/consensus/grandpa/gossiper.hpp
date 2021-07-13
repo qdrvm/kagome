@@ -29,7 +29,7 @@ namespace kagome::consensus::grandpa {
     /**
      * Broadcast grandpa's \param fin_message
      */
-    virtual void finalize(const network::GrandpaCommit &message) = 0;
+    virtual void finalize(const FullCommitMessage &message) = 0;
 
     /**
      * Send grandpa's \param catch_up_request

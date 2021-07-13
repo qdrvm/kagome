@@ -145,54 +145,6 @@ namespace kagome::network {
           success = false;
           break;
         }
-        case GossipMessage::Type::CONSENSUS: {
-          auto grandpa_msg_res =
-              scale::decode<GrandpaMessage>(gossip_message.data);
-
-          if (not grandpa_msg_res) {
-            self->log_->error(
-                "Error while decoding a consensus (grandpa) message: {}",
-                grandpa_msg_res.error().message());
-            success = false;
-            break;
-          }
-
-          auto &grandpa_msg = grandpa_msg_res.value();
-
-          visit_in_place(
-              grandpa_msg,
-              [&](const network::GrandpaVote &vote_message) {
-                self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
-                success = true;
-              },
-              [&](const network::GrandpaCommit &fin_message) {
-                self->grandpa_observer_->onFinalize(peer_id, fin_message);
-                success = true;
-              },
-              [&](const GrandpaNeighborMessage &neighbor_packet) {
-                BOOST_ASSERT_MSG(
-                    false,
-                    "Unimplemented variant (GrandpaNeighborPacket) "
-                    "of consensus (grandpa) message");
-                success = false;
-              },
-              [&](const network::CatchUpRequest &catch_up_request) {
-                self->grandpa_observer_->onCatchUpRequest(peer_id,
-                                                          catch_up_request);
-                success = true;
-              },
-              [&](const network::CatchUpResponse &catch_up_response) {
-                self->grandpa_observer_->onCatchUpResponse(peer_id,
-                                                           catch_up_response);
-                success = true;
-              },
-              [&](const auto &...) {
-                BOOST_ASSERT_MSG(
-                    false, "Unknown variant of consensus (grandpa) message");
-                success = false;
-              });
-          break;
-        }
         case MsgType::TRANSACTIONS: {
           BOOST_ASSERT(!"Legacy protocol unsupported!");
           self->log_->warn("Legacy protocol message TRANSACTIONS from: {}",

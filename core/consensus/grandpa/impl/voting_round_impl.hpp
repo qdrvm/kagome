@@ -120,11 +120,6 @@ namespace kagome::consensus::grandpa {
         const GrandpaJustification &justification) override;
 
     /**
-     * Triggered when we receive finalization message
-     */
-    void onFinalize(const Fin &finalize) override;
-
-    /**
      * Invoked when we received a primary propose for the current round
      * Basically method just checks if received propose was produced by the
      * primary and if so, it is stored in primary_vote_ field

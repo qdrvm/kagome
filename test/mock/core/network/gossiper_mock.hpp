@@ -19,7 +19,6 @@ namespace kagome::network {
 
     // From grandpa::Gossiper
     MOCK_METHOD1(vote, void(const GrandpaVoteMessage &vote_message));
-    MOCK_METHOD1(finalize, void(const GrandpaPreCommit &message));
 
     MOCK_METHOD2(catchUpRequest,
                  void(const libp2p::peer::PeerId &peer_id,
