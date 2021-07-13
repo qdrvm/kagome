@@ -6,6 +6,7 @@
 #include "primitives/ss58_codec.hpp"
 
 #include <libp2p/multi/multibase_codec/codecs/base58.hpp>
+
 #include "crypto/hasher.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, Ss58Error, e) {
