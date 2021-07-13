@@ -503,7 +503,7 @@ namespace kagome::consensus::grandpa {
         .round_number = fin.round,
         .block_info =
             BlockInfo(fin.message.target_number, fin.message.target_hash)};
-    for (unsigned i = 0; i < fin.message.precommits.size(); ++i) {
+    for (size_t i = 0; i < fin.message.precommits.size(); ++i) {
       SignedPrecommit commit;
       commit.message = fin.message.precommits[i];
       commit.signature = fin.message.auth_data[i].first;
