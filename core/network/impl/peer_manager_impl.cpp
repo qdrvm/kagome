@@ -12,8 +12,6 @@
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
 
-using namespace std::chrono_literals;
-
 namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -168,15 +166,27 @@ namespace kagome::network {
 
     // Check if disconnected
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
+    boost::optional<PeerId> disconnected_peer;
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, data] = *it++;
       // TODO(d.khaustov) consider better alive check logic
-      if (not stream_engine_->isAlive(peer_id, block_announce_protocol)
-          && clock_->now() - data.time > 5min) {
+      if (not stream_engine_->isAlive(peer_id, block_announce_protocol)) {
         // Found disconnected
-        auto &peer_id_ref = peer_id;
+        const auto &peer_id_ref = peer_id;
         SL_DEBUG(log_, "Found dead peer_id={}", peer_id_ref.toBase58());
         disconnectFromPeer(peer_id);
+        if (not disconnected_peer.has_value()) {
+          disconnected_peer = peer_id;
+        }
+      }
+    }
+    if (disconnected_peer.has_value()) {
+      auto [it, added] = peers_in_queue_.emplace(*disconnected_peer);
+      if (added) {
+        SL_DEBUG(log_,
+                 "Trying to reconnect to peer_id={}",
+                 (*disconnected_peer).toBase58());
+        queue_to_connect_.emplace_front(*it);
       }
     }
 
@@ -252,6 +262,7 @@ namespace kagome::network {
             self->align();
           }
         });
+    SL_DEBUG(log_, "Active peers = {}", active_peers_.size());
   }
 
   void PeerManagerImpl::connectToPeer(const PeerId &peer_id) {
@@ -301,7 +312,7 @@ namespace kagome::network {
           auto remote_peer_id_res = connection->remotePeer();
           if (not remote_peer_id_res.has_value()) {
             SL_DEBUG(self->log_,
-                     "Connected, but not identifyed yet (expecting peer_id={})",
+                     "Connected, but not identified yet (expecting peer_id={})",
                      peer_id.toBase58());
             self->connecting_peers_.erase(peer_id);
             return;
@@ -505,7 +516,7 @@ namespace kagome::network {
     return own_peer_info_.id == peer_id ? not app_config_.isRunInDevMode()
                                         : false;
   }
-  
+
   std::vector<scale::PeerInfoSerializable>
   PeerManagerImpl::loadLastActivePeers() {
     auto get_res = storage_->get(storage::kActivePeersKey);
