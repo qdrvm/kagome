@@ -23,6 +23,7 @@ namespace kagome::api {
     boost::asio::dispatch(stream_.get_executor(),
                           boost::beast::bind_front_handler(&WsSession::onRun,
                                                            shared_from_this()));
+    SL_TRACE(logger_, "Session id = {} started", id_);
   }
 
   void WsSession::reject() {
@@ -42,6 +43,7 @@ namespace kagome::api {
     if (nullptr != on_ws_close_) {
       on_ws_close_();
     }
+    SL_TRACE(logger_, "Session id = {} terminated", id_);
   }
 
   void WsSession::connectOnWsSessionCloseHandler(
@@ -167,8 +169,11 @@ namespace kagome::api {
 
   void WsSession::reportError(boost::system::error_code ec,
                               std::string_view message) {
-    logger_->error(
-        "error occurred: {}, code: {}, message: {}", message, ec, ec.message());
+    SL_ERROR(logger_,
+             "error occurred: {}, code: {}, message: {}",
+             message,
+             ec,
+             ec.message());
   }
 
 }  // namespace kagome::api

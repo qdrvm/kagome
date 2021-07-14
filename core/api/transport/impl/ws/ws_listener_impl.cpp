@@ -53,6 +53,7 @@ namespace kagome::api {
       SL_ERROR(log_, "An attempt to start on non-opened acceptor");
       return false;
     }
+    SL_TRACE(log_, "Connections limit is set to {}", max_ws_connections_);
 
     acceptOnce();
     return true;
@@ -76,6 +77,9 @@ namespace kagome::api {
     auto session_stopped_handler = [wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         --self->active_connections_;
+        SL_TRACE(self->log_,
+                 "Session closed. Active connections count is {}",
+                 self->active_connections_.load());
       }
     };
 
@@ -88,11 +92,19 @@ namespace kagome::api {
           if (1 + self->active_connections_.fetch_add(1)
               > self->max_ws_connections_) {
             self->new_session_->reject();
+            SL_TRACE(self->log_,
+                     "Connection limit ({}) reached, new connection rejected. "
+                     "Active connections count is {}",
+                     self->max_ws_connections_,
+                     self->active_connections_.load());
           } else {
             if (self->on_new_session_) {
               (*self->on_new_session_)(self->new_session_);
             }
             self->new_session_->start();
+            SL_TRACE(self->log_,
+                     "New session started. Active connections count is {}",
+                     self->active_connections_.load());
           }
         }
         if (self->acceptor_->is_open()) {

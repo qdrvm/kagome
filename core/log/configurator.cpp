@@ -7,6 +7,8 @@
 
 namespace kagome::log {
 
+  // TODO remove rpc_transport level trace
+
   namespace {
     std::string embedded_config(R"(
 # ----------------
@@ -30,6 +32,7 @@ groups:
           - name: rpc
             children:
             - name: rpc_transport
+              level: trace
             - name: api
               children:
                 - name: author_api
