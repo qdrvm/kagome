@@ -10,7 +10,7 @@
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/runtime/wasm_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
-#include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
+#include "runtime/runtime_api/impl/block_builder.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "testutil/outcome.hpp"
@@ -22,7 +22,7 @@ using kagome::host_api::HostApiImpl;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilder;
-using kagome::runtime::binaryen::BlockBuilderImpl;
+using kagome::runtime::BlockBuilderImpl;
 using kagome::runtime::binaryen::WasmMemoryImpl;
 using kagome::storage::trie::TrieStorageMock;
 

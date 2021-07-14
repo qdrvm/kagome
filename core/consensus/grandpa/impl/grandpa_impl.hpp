@@ -21,7 +21,7 @@
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "network/gossiper.hpp"
-#include "runtime/grandpa_api.hpp"
+#include "runtime/runtime_api/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus::grandpa {

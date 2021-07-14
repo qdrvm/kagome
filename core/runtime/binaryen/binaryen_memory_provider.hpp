@@ -20,7 +20,7 @@ namespace kagome::runtime::binaryen {
   class BinaryenMemoryProvider final : public MemoryProvider {
    public:
     BinaryenMemoryProvider(
-        std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory)
+        std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory)
         : memory_factory_{std::move(memory_factory)} {
       BOOST_ASSERT(memory_factory_);
     }
@@ -31,6 +31,7 @@ namespace kagome::runtime::binaryen {
     }
 
     void resetMemory(WasmSize heap_base) override {
+      BOOST_ASSERT(external_interface_ != nullptr);
       memory_ =
           memory_factory_->make(external_interface_->getMemory(), heap_base);
     }
@@ -42,7 +43,7 @@ namespace kagome::runtime::binaryen {
 
    private:
     std::shared_ptr<RuntimeExternalInterface> external_interface_;
-    std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory_;
+    std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory_;
     std::shared_ptr<WasmMemoryImpl> memory_;
   };
 

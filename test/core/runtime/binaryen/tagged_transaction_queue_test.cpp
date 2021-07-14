@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
+#include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 
 #include <gtest/gtest.h>
+
 #include "core/runtime/binaryen/runtime_test.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -17,13 +18,13 @@ using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::TransactionSource;
 using kagome::runtime::TaggedTransactionQueue;
-using kagome::runtime::binaryen::TaggedTransactionQueueImpl;
+using kagome::runtime::TaggedTransactionQueueImpl;
 
 class TTQTest : public RuntimeTest {
  public:
   void SetUp() override {
     RuntimeTest::SetUp();
-    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(runtime_env_factory_);
+    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(executor_);
   }
 
  protected:

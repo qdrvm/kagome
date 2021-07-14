@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/wavm/executor.hpp"
-
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
+#include <runtime/wavm/wavm_memory_provider.hpp>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -21,12 +20,15 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/wavm/impl/compartment_wrapper.hpp"
-#include "runtime/wavm/impl/core_api_factory.hpp"
-#include "runtime/wavm/impl/intrinsic_module_instance.hpp"
-#include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
-#include "runtime/wavm/impl/module_repository_impl.hpp"
+#include "runtime/executor.hpp"
+#include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/core_api_factory.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/module_factory_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
@@ -52,10 +54,11 @@ using kagome::crypto::Secp256k1ProviderImpl;
 using kagome::crypto::Sr25519ProviderImpl;
 using kagome::crypto::Sr25519Suite;
 using kagome::primitives::BlockHash;
+using kagome::runtime::Executor;
 using kagome::runtime::RuntimeCodeProvider;
+using kagome::runtime::RuntimeEnvironmentFactory;
 using kagome::runtime::TrieStorageProvider;
 using kagome::runtime::TrieStorageProviderImpl;
-using kagome::runtime::wavm::Executor;
 using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
@@ -90,7 +93,7 @@ class WasmExecutorTest : public ::testing::Test {
     auto serializer =
         std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
 
-    auto trie_db = kagome::storage::trie::TrieStorageImpl::createEmpty(
+    std::shared_ptr trie_db = kagome::storage::trie::TrieStorageImpl::createEmpty(
                        trie_factory, codec, serializer, boost::none)
                        .value();
 
@@ -132,9 +135,10 @@ class WasmExecutorTest : public ::testing::Test {
     auto compartment_wrapper =
         std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
             std::string("test_compartment"));
-    auto intrinsic_module_instance =
-        std::make_shared<kagome::runtime::wavm::IntrinsicModuleInstance>(
+    auto intrinsic_module =
+        std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
             compartment_wrapper);
+    std::shared_ptr intrinsic_module_instance = intrinsic_module->instantiate();
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmMemoryProvider>(
@@ -144,31 +148,31 @@ class WasmExecutorTest : public ::testing::Test {
             intrinsic_module_instance, compartment_wrapper);
     runtime_upgrade_tracker_ =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerMock>();
-    auto module_repo =
-        std::make_shared<kagome::runtime::wavm::ModuleRepositoryImpl>(
-            compartment_wrapper,
-            runtime_upgrade_tracker_,
-            hasher,
-            intrinsic_resolver);
+    auto module_factory =
+        std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
+            compartment_wrapper, intrinsic_resolver);
+    auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
+        runtime_upgrade_tracker_, module_factory);
 
     auto core_provider =
         std::make_shared<kagome::runtime::wavm::CoreApiFactory>(
             compartment_wrapper,
-            intrinsic_module_instance,
-            storage_provider_,
+            intrinsic_module,
+            trie_db,
             header_repo_,
             changes_tracker,
             extension_factory);
     auto host_api = std::shared_ptr{extension_factory->make(
         core_provider, memory_provider, storage_provider_)};
-    kagome::runtime::wavm::pushHostApi(host_api);
 
-    executor_ = std::make_shared<Executor>(storage_provider_,
-                                           memory_provider,
-                                           module_repo,
-                                           header_repo_,
-                                           wasm_provider_);
-    executor_->setHostApi(host_api);
+    auto env_factory =
+        std::make_shared<RuntimeEnvironmentFactory>(storage_provider_,
+                                                    host_api,
+                                                    memory_provider,
+                                                    wasm_provider_,
+                                                    module_repo,
+                                                    header_repo_);
+    executor_ = std::make_shared<Executor>(header_repo_, env_factory);
   }
 
  protected:

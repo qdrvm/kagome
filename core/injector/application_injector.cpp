@@ -1,3 +1,4 @@
+
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -87,44 +88,34 @@
 #include "network/types/sync_clients_set.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
 #include "runtime/binaryen/core_api_factory.hpp"
-#include "runtime/binaryen/module/wasm_module_factory_impl.hpp"
-#include "runtime/binaryen/module/wasm_module_impl.hpp"
-#include "runtime/binaryen/module/wasm_module_instance_impl.hpp"
-#include "runtime/binaryen/runtime_api/account_nonce_api_impl.hpp"
-#include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
-#include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
-#include "runtime/binaryen/runtime_api/core_impl.hpp"
-#include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
-#include "runtime/binaryen/runtime_api/metadata_impl.hpp"
-#include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
-#include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
-#include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
-#include "runtime/binaryen/runtime_api/transaction_payment_api_impl.hpp"
-#include "runtime/binaryen/runtime_environment_factory_impl.hpp"
-#include "runtime/binaryen/wasm_executor.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/module/module_impl.hpp"
+#include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
-#include "runtime/wavm/executor.hpp"
-#include "runtime/wavm/impl/compartment_wrapper.hpp"
-#include "runtime/wavm/impl/core_api_factory.hpp"
-#include "runtime/wavm/impl/intrinsic_functions.hpp"
-#include "runtime/wavm/impl/intrinsic_module_instance.hpp"
-#include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
-#include "runtime/wavm/impl/module_repository_impl.hpp"
-#include "runtime/wavm/runtime_api/account_nonce_api.hpp"
-#include "runtime/wavm/runtime_api/babe_api.hpp"
-#include "runtime/wavm/runtime_api/block_builder.hpp"
-#include "runtime/wavm/runtime_api/core.hpp"
-#include "runtime/wavm/runtime_api/grandpa_api.hpp"
-#include "runtime/wavm/runtime_api/metadata.hpp"
-#include "runtime/wavm/runtime_api/offchain_worker.hpp"
-#include "runtime/wavm/runtime_api/parachain_host.hpp"
-#include "runtime/wavm/runtime_api/tagged_transaction_queue.hpp"
-#include "runtime/wavm/runtime_api/transaction_payment_api.hpp"
+#include "runtime/executor.hpp"
+#include "runtime/module_factory.hpp"
+#include "runtime/runtime_api/impl/account_nonce_api.hpp"
+#include "runtime/runtime_api/impl/babe_api.hpp"
+#include "runtime/runtime_api/impl/block_builder.hpp"
+#include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/runtime_api/impl/grandpa_api.hpp"
+#include "runtime/runtime_api/impl/metadata.hpp"
+#include "runtime/runtime_api/impl/offchain_worker.hpp"
+#include "runtime/runtime_api/impl/parachain_host.hpp"
+#include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
+#include "runtime/runtime_api/impl/transaction_payment_api.hpp"
+#include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/core_api_factory.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/module.hpp"
+#include "runtime/wavm/module_factory_impl.hpp"
+#include "runtime/wavm/wavm_memory_provider.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
@@ -766,40 +757,30 @@ namespace {
 
   template <typename... Ts>
   auto makeWavmInjector(
-      application::AppConfiguration::RuntimeBackend chosen_backend,
+      application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
     return di::make_injector(
-        di::bind<runtime::Memory>.template to([](auto const &injector) {
-          static auto memory =
-              injector
-                  .template create<
-                      std::shared_ptr<runtime::wavm::IntrinsicResolver>>()
-                  ->getMemory();
-          return memory;
-        }),
-        di::bind<host_api::HostApi>.template to(
-            [chosen_backend](
-                auto const &injector) -> std::shared_ptr<host_api::HostApi> {
-              static boost::optional<std::shared_ptr<host_api::HostApi>>
-                  host_api;
-              if (host_api.has_value()) return host_api.value();
+        di::bind<host_api::HostApi>.template to([method](auto const &injector)
+                                                    -> std::shared_ptr<
+                                                        host_api::HostApi> {
+          static boost::optional<std::shared_ptr<host_api::HostApi>> host_api;
+          if (host_api.has_value()) return host_api.value();
 
-              host_api = boost::make_optional(
-                  injector.template create<
-                      std::shared_ptr<host_api::HostApiImpl>>());
-              if (chosen_backend
-                  == application::AppConfiguration::RuntimeBackend::WAVM) {
-                auto executor = injector.template create<
-                    std::shared_ptr<runtime::wavm::Executor>>();
-                executor->setHostApi(host_api.value());
-                auto resolver = injector.template create<
-                    std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
-                runtime::wavm::registerHostApiMethods(*resolver,
-                                                      *host_api.value());
-                kagome::runtime::wavm::pushHostApi(host_api.value());
-              }
-              return host_api.value();
-            }),
+          host_api = boost::make_optional(
+              injector
+                  .template create<std::shared_ptr<host_api::HostApiImpl>>());
+          if (method
+              == application::AppConfiguration::RuntimeExecutionMethod::
+                  Compile) {
+            auto executor =
+                injector.template create<std::shared_ptr<runtime::Executor>>();
+
+            auto intrinsic_module = injector.template create<
+                std::shared_ptr<runtime::wavm::IntrinsicModule>>();
+            kagome::runtime::wavm::pushHostApi(host_api.value());
+          }
+          return host_api.value();
+        }),
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
               static auto compartment =
@@ -807,14 +788,28 @@ namespace {
                       "Runtime Compartment");
               return compartment;
             }),
+        di::bind<runtime::wavm::IntrinsicModule>.template to(
+            [](const auto &injector) {
+              static std::shared_ptr<runtime::wavm::IntrinsicModule> module =
+                  [&injector]() {
+                    auto compartment = injector.template create<
+                        sptr<runtime::wavm::CompartmentWrapper>>();
+                    auto module =
+                        std::make_unique<runtime::wavm::IntrinsicModule>(
+                            compartment);
+                    runtime::wavm::registerHostApiMethods(*module);
+
+                    return module;
+                  }();
+              return module;
+            }),
         di::bind<runtime::wavm::IntrinsicModuleInstance>.template to(
             [](const auto &injector) {
               static std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>
                   instance = [&injector]() {
-                    auto compartment = injector.template create<
-                        sptr<runtime::wavm::CompartmentWrapper>>();
-                    return std::make_shared<
-                        runtime::wavm::IntrinsicModuleInstance>(compartment);
+                    auto module = injector.template create<
+                        sptr<runtime::wavm::IntrinsicModule>>();
+                    return module->instantiate();
                   }();
               return instance;
             }),
@@ -851,46 +846,14 @@ namespace {
               initialized = std::move(resolver);
               return initialized.value();
             }),
-        di::bind<runtime::wavm::ModuleRepository>.template to<runtime::wavm::ModuleRepositoryImpl>(),
-        di::bind<runtime::wavm::ModuleRepositoryImpl>.template to(
-            [](const auto &injector) {
-              return injector
-                  .template create<runtime::wavm::ModuleRepositoryImpl>();
-            }),
-        di::bind<runtime::wavm::Executor>.template to([](const auto &injector) {
-          static boost::optional<std::shared_ptr<runtime::wavm::Executor>>
-              initialized;
-          if (!initialized) {
-            auto storage_provider = injector.template create<
-                std::shared_ptr<runtime::TrieStorageProvider>>();
-            auto memory_provider = injector.template create<
-                std::shared_ptr<runtime::MemoryProvider>>();
-            auto module_repo = injector.template create<
-                std::shared_ptr<runtime::wavm::ModuleRepository>>();
-            auto header_repo = injector.template create<
-                std::shared_ptr<blockchain::BlockHeaderRepository>>();
-            auto code_provider = injector.template create<
-                std::shared_ptr<runtime::RuntimeCodeProvider>>();
-            initialized = std::make_shared<runtime::wavm::Executor>(
-                std::move(storage_provider),
-                std::move(memory_provider),
-                std::move(module_repo),
-                std::move(header_repo),
-                std::move(code_provider));
-          }
-          return initialized.value();
-        }),
         std::forward<decltype(args)>(args)...);
   }
 
   template <typename... Ts>
-  auto makeBinaryenInjector(application::AppConfiguration::RuntimeBackend,
-                            Ts &&...args) {
-    return di::make_injector(
-        di::bind<runtime::binaryen::WasmModule>.template to<runtime::binaryen::WasmModuleImpl>(),
-        di::bind<runtime::binaryen::WasmModuleFactory>.template to<runtime::binaryen::WasmModuleFactoryImpl>(),
-        di::bind<runtime::binaryen::RuntimeEnvironmentFactory>.template to<runtime::binaryen::RuntimeEnvironmentFactoryImpl>(),
-        std::forward<decltype(args)>(args)...);
+  auto makeBinaryenInjector(
+      application::AppConfiguration::RuntimeExecutionMethod method,
+      Ts &&...args) {
+    return di::make_injector(std::forward<decltype(args)>(args)...);
   }
 
   template <typename CommonType,
@@ -899,14 +862,15 @@ namespace {
             typename Injector>
   auto choose_runtime_implementation(
       Injector const &injector,
-      application::AppConfiguration::RuntimeBackend backend) {
-    using RuntimeBackend = application::AppConfiguration::RuntimeBackend;
-    static sptr<CommonType> impl = [backend, &injector]() {
-      switch (backend) {
-        case RuntimeBackend::Binaryen:
+      application::AppConfiguration::RuntimeExecutionMethod method) {
+    using RuntimeExecutionMethod =
+        application::AppConfiguration::RuntimeExecutionMethod;
+    static sptr<CommonType> impl = [method, &injector]() {
+      switch (method) {
+        case RuntimeExecutionMethod::Interpret:
           return std::static_pointer_cast<CommonType>(
               injector.template create<sptr<BinaryenType>>());
-        case RuntimeBackend::WAVM:
+        case RuntimeExecutionMethod::Compile:
           return std::static_pointer_cast<CommonType>(
               injector.template create<sptr<WavmType>>());
       }
@@ -916,105 +880,58 @@ namespace {
 
   template <typename... Ts>
   auto makeRuntimeInjector(
-      application::AppConfiguration::RuntimeBackend backend, Ts &&...args) {
+      application::AppConfiguration::RuntimeExecutionMethod method,
+      Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTracker>.template to<runtime::RuntimeUpgradeTrackerImpl>(),
-        makeWavmInjector(backend),
-        makeBinaryenInjector(backend),
-        di::bind<runtime::MemoryProvider>.template to([backend](const auto
-                                                                    &injector) {
-          static auto initialized =
-              [&injector, backend]() -> sptr<runtime::MemoryProvider> {
-            switch (backend) {
-              case application::AppConfiguration::RuntimeBackend::WAVM: {
-                auto instance = injector.template create<
-                    std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>>();
-                return std::make_shared<runtime::wavm::WavmMemoryProvider>(
-                    instance);
-              }
-              case application::AppConfiguration::RuntimeBackend::Binaryen:
-                return injector.template create<std::shared_ptr<
-                    runtime::binaryen::BinaryenMemoryProvider>>();
-            }
-          }();
-          return initialized;
+        makeWavmInjector(method),
+        makeBinaryenInjector(method),
+        di::bind<runtime::MemoryProvider>.template to([method](const auto
+                                                                   &injector) {
+          return choose_runtime_implementation<
+              runtime::MemoryProvider,
+              runtime::binaryen::BinaryenMemoryProvider,
+              runtime::wavm::WavmMemoryProvider>(injector, method);
         }),
+        di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to(
-            [backend](const auto &injector) {
+            [method](const auto &injector) {
               return choose_runtime_implementation<
                   runtime::CoreApiFactory,
                   runtime::binaryen::BinaryenCoreApiFactory,
-                  runtime::wavm::CoreApiFactory>(injector, backend);
+                  runtime::wavm::CoreApiFactory>(injector, method);
             }),
-        di::bind<runtime::TaggedTransactionQueue>.template to(
-            [backend](const auto &injector) {
+        di::bind<runtime::ModuleFactory>.template to(
+            [method](const auto &injector) {
               return choose_runtime_implementation<
-                  runtime::TaggedTransactionQueue,
-                  runtime::binaryen::TaggedTransactionQueueImpl,
-                  runtime::wavm::WavmTaggedTransactionQueue>(injector, backend);
+                  runtime::ModuleFactory,
+                  runtime::binaryen::ModuleFactoryImpl,
+                  runtime::wavm::ModuleFactoryImpl>(injector, method);
             }),
-        di::bind<runtime::ParachainHost>.template to(
-            [backend](const auto &injector) {
-              return choose_runtime_implementation<
-                  runtime::ParachainHost,
-                  runtime::binaryen::ParachainHostImpl,
-                  runtime::wavm::WavmParachainHost>(injector, backend);
-            }),
-        di::bind<runtime::OffchainWorker>.template to(
-            [backend](const auto &injector) {
-              return choose_runtime_implementation<
-                  runtime::OffchainWorker,
-                  runtime::binaryen::OffchainWorkerImpl,
-                  runtime::wavm::WavmOffchainWorker>(injector, backend);
-            }),
-        di::bind<runtime::Metadata>.template to([backend](
-                                                    const auto &injector) {
-          return choose_runtime_implementation<runtime::Metadata,
-                                               runtime::binaryen::MetadataImpl,
-                                               runtime::wavm::WavmMetadata>(
-              injector, backend);
+        di::bind<runtime::Executor>.template to([](const auto &injector) {
+          static boost::optional<std::shared_ptr<runtime::Executor>>
+              initialized;
+          if (!initialized) {
+            auto env_factory = injector.template create<
+                std::shared_ptr<runtime::RuntimeEnvironmentFactory>>();
+            auto header_repo = injector.template create<
+                std::shared_ptr<blockchain::BlockHeaderRepository>>();
+            initialized = std::make_shared<runtime::Executor>(
+                std::move(header_repo), std::move(env_factory));
+          }
+          return initialized.value();
         }),
-        di::bind<runtime::GrandpaApi>.template to(
-            [backend](const auto &injector) {
-              return choose_runtime_implementation<
-                  runtime::GrandpaApi,
-                  runtime::binaryen::GrandpaApiImpl,
-                  runtime::wavm::WavmGrandpaApi>(injector, backend);
-            }),
-        di::bind<runtime::Core>.template to([backend](const auto &injector) {
-          return choose_runtime_implementation<runtime::Core,
-                                               runtime::binaryen::CoreImpl,
-                                               runtime::wavm::WavmCore>(
-              injector, backend);
-        }),
-        di::bind<runtime::BabeApi>.template to([backend](const auto &injector) {
-          return choose_runtime_implementation<runtime::BabeApi,
-                                               runtime::binaryen::BabeApiImpl,
-                                               runtime::wavm::WavmBabeApi>(
-              injector, backend);
-        }),
-        di::bind<runtime::BlockBuilder>.template to(
-            [backend](const auto &injector) {
-              return choose_runtime_implementation<
-                  runtime::BlockBuilder,
-                  runtime::binaryen::BlockBuilderImpl,
-                  runtime::wavm::WavmBlockBuilder>(injector, backend);
-            }),
-        di::bind<runtime::TransactionPaymentApi>.template to(
-            [backend](const auto &injector) {
-              return choose_runtime_implementation<
-                  runtime::TransactionPaymentApi,
-                  runtime::binaryen::TransactionPaymentApiImpl,
-                  runtime::wavm::WavmTransactionPaymentApi>(injector, backend);
-            }),
-        di::bind<runtime::AccountNonceApi>.template to(
-            [backend](const auto &injector) {
-              return choose_runtime_implementation<
-                  runtime::AccountNonceApi,
-                  runtime::binaryen::AccountNonceApiImpl,
-                  runtime::wavm::WavmAccountNonceApi>(injector, backend);
-            }),
+        di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
+        di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
+        di::bind<runtime::OffchainWorker>.template to<runtime::OffchainWorkerImpl>(),
+        di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
+        di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
+        di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
+        di::bind<runtime::BabeApi>.template to<runtime::BabeApiImpl>(),
+        di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
+        di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
+        di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
         std::forward<Ts>(args)...);
   }
 
@@ -1206,7 +1123,7 @@ namespace {
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
         di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
-        makeRuntimeInjector(config.runtimeBackend()),
+        makeRuntimeInjector(config.runtimeExecMethod()),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),

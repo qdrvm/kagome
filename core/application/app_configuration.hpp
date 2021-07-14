@@ -143,14 +143,14 @@ namespace kagome::application {
      */
     virtual const std::string &nodeName() const = 0;
 
-    enum class RuntimeBackend {
-      WAVM,
-      Binaryen
+    enum class RuntimeExecutionMethod {
+      Compile,
+      Interpret
     };
     /**
      * @return enum constant of the chosen runtime backend
      */
-    virtual RuntimeBackend runtimeBackend() const = 0;
+    virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
   };
 
 }  // namespace kagome::application

@@ -9,7 +9,6 @@
 
 #include "host_api/impl/memory_extension.hpp"
 #include "runtime/memory_provider.hpp"
-#include "runtime/memory.hpp"
 
 namespace kagome::host_api {
   MemoryExtension::MemoryExtension(

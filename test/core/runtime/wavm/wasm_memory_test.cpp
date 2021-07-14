@@ -5,12 +5,12 @@
 
 #include <gtest/gtest.h>
 
-#include "runtime/wavm/impl/memory.hpp"
+#include "runtime/wavm/memory.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::runtime::wavm::kDefaultHeapBase;
 using kagome::runtime::wavm::kInitialMemorySize;
-using kagome::runtime::wavm::Memory;
+using kagome::runtime::wavm::MemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test {
  protected:
@@ -23,7 +23,7 @@ class MemoryHeapTest : public ::testing::Test {
 
   const static uint32_t memory_size_ = kInitialMemorySize;
 
-  Memory memory_{nullptr, 42};
+  MemoryImpl memory_{nullptr, 42};
 };
 
 /**
@@ -62,7 +62,7 @@ TEST_F(MemoryHeapTest, AllocatedTooBigMemoryFailed) {
 
   // The memory size that can be allocated is within interval (0, kMaxMemorySize
   // - memory_size_]. Trying to allocate more
-  auto big_memory_size = Memory::kMaxMemorySize - memory_size_ + 1;
+  auto big_memory_size = MemoryImpl::kMaxMemorySize - memory_size_ + 1;
   ASSERT_EQ(memory_.allocate(big_memory_size), 0);
 }
 
@@ -83,7 +83,7 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
   // allocated second memory chunk
   auto ptr2 = memory_.allocate(size2);
   // second memory chunk is placed right after the first one (aligned by 4)
-  ASSERT_EQ(ptr2, Memory::Memory::roundUpAlign(size1 + ptr1));
+  ASSERT_EQ(ptr2, MemoryImpl::MemoryImpl::roundUpAlign(size1 + ptr1));
 }
 
 /**
@@ -98,7 +98,7 @@ TEST_F(MemoryHeapTest, DeallocateExisingMemoryChunk) {
 
   auto opt_deallocated_size = memory_.deallocate(ptr1);
   ASSERT_TRUE(opt_deallocated_size.has_value());
-  ASSERT_EQ(*opt_deallocated_size, Memory::roundUpAlign(size1));
+  ASSERT_EQ(*opt_deallocated_size, MemoryImpl::roundUpAlign(size1));
 }
 
 /**
@@ -169,7 +169,7 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
   auto ptr3 = memory_.allocate(size1 + 1);
 
   // memory is allocated on mem offset (aligned by 4)
-  ASSERT_EQ(ptr3, Memory::Memory::roundUpAlign(mem_offset));
+  ASSERT_EQ(ptr3, MemoryImpl::MemoryImpl::roundUpAlign(mem_offset));
 }
 
 /**
@@ -179,19 +179,19 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
  */
 TEST_F(MemoryHeapTest, CombineDeallocatedChunks) {
   // Fill memory
-  constexpr size_t size1 = Memory::roundUpAlign(1) * 1;
+  constexpr size_t size1 = MemoryImpl::roundUpAlign(1) * 1;
   auto ptr1 = memory_.allocate(size1);
-  constexpr size_t size2 = Memory::roundUpAlign(1) * 2;
+  constexpr size_t size2 = MemoryImpl::roundUpAlign(1) * 2;
   auto ptr2 = memory_.allocate(size2);
-  constexpr size_t size3 = Memory::roundUpAlign(1) * 3;
+  constexpr size_t size3 = MemoryImpl::roundUpAlign(1) * 3;
   auto ptr3 = memory_.allocate(size3);
-  constexpr size_t size4 = Memory::roundUpAlign(1) * 4;
+  constexpr size_t size4 = MemoryImpl::roundUpAlign(1) * 4;
   auto ptr4 = memory_.allocate(size4);
-  constexpr size_t size5 = Memory::roundUpAlign(1) * 5;
+  constexpr size_t size5 = MemoryImpl::roundUpAlign(1) * 5;
   auto ptr5 = memory_.allocate(size5);
-  constexpr size_t size6 = Memory::roundUpAlign(1) * 6;
+  constexpr size_t size6 = MemoryImpl::roundUpAlign(1) * 6;
   auto ptr6 = memory_.allocate(size6);
-  constexpr size_t size7 = Memory::roundUpAlign(1) * 7;
+  constexpr size_t size7 = MemoryImpl::roundUpAlign(1) * 7;
   auto ptr7 = memory_.allocate(size7);
   // A: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]
   // D:

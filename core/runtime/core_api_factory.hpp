@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_CORE_API_FACTORY_HPP
 #define KAGOME_CORE_RUNTIME_CORE_API_FACTORY_HPP
 
-#include "runtime/core.hpp"
+#include "runtime/runtime_api/core.hpp"
 
 namespace kagome::host_api {
   class HostApiFactory;
@@ -18,13 +18,17 @@ namespace kagome::crypto {
 
 namespace kagome::runtime {
 
+  /**
+   * A factory for Core Runtime API, used where an isolated runtime environment
+   * is required (only Core_version from Host API for now)
+   */
   class CoreApiFactory {
    public:
     virtual ~CoreApiFactory() = default;
 
     [[nodiscard]] virtual std::unique_ptr<Core> make(
         std::shared_ptr<const crypto::Hasher> hasher,
-        gsl::span<const uint8_t> runtime_code) const = 0;
+        const std::vector<uint8_t>& runtime_code) const = 0;
   };
 
 }  // namespace kagome::runtime

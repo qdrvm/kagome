@@ -6,16 +6,12 @@
 #include "host_api/impl/misc_extension.hpp"
 
 #include "primitives/version.hpp"
-#include "runtime/core.hpp"
 #include "runtime/core_api_factory.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
-#include "runtime/wavm/executor.hpp"
-#include "runtime/wavm/impl/intrinsic_resolver_impl.hpp"
-#include "runtime/wavm/module_repository.hpp"
+#include "runtime/runtime_api/core.hpp"
+#include "runtime/module_repository.hpp"
 #include "scale/scale.hpp"
-
-#include "runtime/wavm/impl/intrinsic_functions.hpp"
 
 namespace kagome::host_api {
 
@@ -43,7 +39,6 @@ namespace kagome::host_api {
     auto core_api = core_provider_->make(hasher_, code);
     auto version_res = core_api->version();
     SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
-    runtime::wavm::popHostApi();
 
     static const auto kErrorRes =
         scale::encode<boost::optional<primitives::Version>>(boost::none)

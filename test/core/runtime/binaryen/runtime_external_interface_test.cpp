@@ -42,7 +42,7 @@ using kagome::runtime::CoreApiProviderMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::binaryen::BinaryenWasmMemoryFactoryMock;
 using kagome::runtime::binaryen::CoreFactoryMock;
-using kagome::runtime::binaryen::RuntimeEnvironmentFactoryMock;
+using kagome::runtime::RuntimeEnvironmentFactoryMock;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using wasm::Element;
 using wasm::Module;

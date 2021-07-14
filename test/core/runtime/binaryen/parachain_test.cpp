@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
+#include "runtime/runtime_api/impl/parachain_host.hpp"
 
 #include <gtest/gtest.h>
 
@@ -21,7 +21,7 @@ using kagome::primitives::parachain::ParaId;
 using kagome::primitives::parachain::Relay;
 using kagome::primitives::parachain::ValidatorId;
 using kagome::runtime::ParachainHost;
-using kagome::runtime::binaryen::ParachainHostImpl;
+using kagome::runtime::ParachainHostImpl;
 
 using ::testing::_;
 using ::testing::Return;
@@ -33,7 +33,7 @@ class ParachainHostTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<ParachainHostImpl>(runtime_env_factory_);
+    api_ = std::make_shared<ParachainHostImpl>(executor_);
   }
 
   ParaId createParachainId() const {

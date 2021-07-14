@@ -98,7 +98,7 @@ class CryptoExtensionTest : public ::testing::Test {
     memory_ = std::make_shared<MemoryMock>();
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(boost::optional<std::shared_ptr<Memory>>(memory_)));
+        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
 
     random_generator_ = std::make_shared<BoostRandomGenerator>();
     sr25519_provider_ =

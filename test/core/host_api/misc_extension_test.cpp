@@ -16,8 +16,8 @@
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "runtime/wavm/impl/intrinsic_functions.hpp"
-#include "runtime/wavm/impl/module.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+#include "runtime/wavm/module.hpp"
 #include "scale/scale.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -53,7 +53,7 @@ TEST_F(MiscExtensionTest, Init) {
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(boost::optional<std::shared_ptr<Memory>>(memory)));
+      .WillRepeatedly(Return(boost::optional<Memory&>(*memory)));
   auto core_provider = std::make_shared<CoreApiProviderMock>();
   MiscExtension m{
       42, std::make_shared<HasherMock>(), memory_provider, core_provider};
@@ -83,10 +83,10 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(boost::optional<std::shared_ptr<Memory>>(memory)));
+      .WillRepeatedly(Return(boost::optional<Memory&>(*memory)));
   auto core_provider = std::make_shared<CoreApiProviderMock>();
 
-  EXPECT_CALL(*core_provider, makeCoreApi(_, _))
+  EXPECT_CALL(*core_provider, make(_, _))
       .WillOnce(Invoke([&v1](auto &, auto &code) {
         auto core = std::make_unique<kagome::runtime::CoreMock>();
         EXPECT_CALL(*core, version()).WillOnce(Return(v1));
@@ -103,7 +103,7 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   ASSERT_EQ(m.ext_misc_runtime_version_version_1(state_code1.combine()),
             res1.combine());
 
-  EXPECT_CALL(*core_provider, makeCoreApi(_, _))
+  EXPECT_CALL(*core_provider, make(_, _))
       .WillOnce(Invoke([&v2](auto &, auto &code) {
         auto core = std::make_unique<kagome::runtime::CoreMock>();
         EXPECT_CALL(*core, version()).WillOnce(Return(v2));

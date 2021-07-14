@@ -8,7 +8,7 @@
 
 #include "api/service/system/system_api.hpp"
 
-#include "runtime/account_nonce_api.hpp"
+#include "runtime/runtime_api/account_nonce_api.hpp"
 
 namespace kagome::transaction_pool {
   class TransactionPool;

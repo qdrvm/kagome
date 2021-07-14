@@ -13,7 +13,6 @@
 #include "host_api/host_api_factory.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
-#include "runtime/binaryen/module/wasm_module_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/runtime_environment.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
@@ -41,7 +40,7 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<CoreApiFactory> core_api_provider,
         std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory,
         std::shared_ptr<host_api::HostApiFactory> host_api_factory,
-        std::shared_ptr<WasmModuleFactory> module_factory,
+        std::shared_ptr<ModuleFactory> module_factory,
         std::shared_ptr<RuntimeCodeProvider> wasm_provider,
         std::shared_ptr<TrieStorageProvider> storage_provider,
         std::shared_ptr<crypto::Hasher> hasher);
@@ -81,7 +80,7 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<TrieStorageProvider> storage_provider_;
     std::shared_ptr<RuntimeCodeProvider> wasm_provider_;
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
-    std::shared_ptr<WasmModuleFactory> module_factory_;
+    std::shared_ptr<ModuleFactory> module_factory_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<BinaryenWasmMemoryFactory> memory_factory_;
 

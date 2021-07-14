@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/runtime_api/grandpa_api_impl.hpp"
+#include "runtime/runtime_api/impl/grandpa_api.hpp"
 
 #include <gtest/gtest.h>
 
@@ -19,7 +19,7 @@ using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
 using kagome::primitives::PreRuntime;
 using kagome::runtime::GrandpaApi;
-using kagome::runtime::binaryen::GrandpaApiImpl;
+using kagome::runtime::GrandpaApiImpl;
 
 using ::testing::_;
 using ::testing::Return;
@@ -32,7 +32,7 @@ class GrandpaTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     api_ = std::make_shared<GrandpaApiImpl>(
-        runtime_env_factory_, std::make_shared<BlockHeaderRepositoryMock>());
+        std::make_shared<BlockHeaderRepositoryMock>(), executor_);
   }
 
   Digest createDigest() const {

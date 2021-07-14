@@ -10,8 +10,7 @@
 
 #include <gmock/gmock.h>
 
-// some GMock internals dislike forward declaration of CoreFactory
-#include "runtime/binaryen/core_factory.hpp"
+#include "runtime/core_api_factory.hpp"
 
 namespace kagome::host_api {
 

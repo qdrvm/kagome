@@ -47,8 +47,8 @@ namespace {
     roles.flags.full = 1;
     return roles;
   }();
-  const auto def_runtime_backend =
-      kagome::application::AppConfiguration::RuntimeBackend::Binaryen;
+  const auto def_runtime_exec_method =
+      kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -67,14 +67,14 @@ namespace {
     return name;
   }
 
-  boost::optional<kagome::application::AppConfiguration::RuntimeBackend>
-  str_to_runtime_backend(std::string_view str) {
-    using RB = kagome::application::AppConfiguration::RuntimeBackend;
-    if (str == "wavm") {
-      return RB::WAVM;
+  boost::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
+  str_to_runtime_exec_method(std::string_view str) {
+    using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
+    if (str == "interpreted") {
+      return REM::Interpret;
     }
-    if (str == "binaryen") {
-      return RB::Binaryen;
+    if (str == "compiled") {
+      return REM::Compile;
     }
     return boost::none;
   }
@@ -97,7 +97,7 @@ namespace kagome::application {
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
         max_ws_connections_(def_ws_max_connections),
-        runtime_backend_{def_runtime_backend} {}
+        runtime_exec_method_{def_runtime_exec_method} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -390,7 +390,8 @@ namespace kagome::application {
     development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
-        ("runtime-backend", po::value<std::string>()->default_value("binaryen"), "choose the runtime backend")
+        ("wasm-execution", po::value<std::string>()->default_value("interpreted"),
+          "choose the desired wasm execution method (compiled, interpreted)")
         ;
 
     // clang-format on
@@ -653,7 +654,9 @@ namespace kagome::application {
         vm, "ws-host", [&](std::string const &val) { rpc_ws_host_ = val; });
 
     find_argument<std::string>(
-        vm, "prometheus-host", [&](std::string const &val) { openmetrics_http_host_ = val; });
+        vm, "prometheus-host", [&](std::string const &val) {
+          openmetrics_http_host_ = val;
+        });
 
     find_argument<uint16_t>(
         vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
@@ -661,8 +664,9 @@ namespace kagome::application {
     find_argument<uint16_t>(
         vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
 
-    find_argument<uint16_t>(
-        vm, "prometheus-port", [&](uint16_t val) { openmetrics_http_port_ = val; });
+    find_argument<uint16_t>(vm, "prometheus-port", [&](uint16_t val) {
+      openmetrics_http_port_ = val;
+    });
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
@@ -670,21 +674,27 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
-    openmetrics_http_endpoint_ = get_endpoint_from(openmetrics_http_host_, openmetrics_http_port_);
+    openmetrics_http_endpoint_ =
+        get_endpoint_from(openmetrics_http_host_, openmetrics_http_port_);
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
 
-    boost::optional<RuntimeBackend> runtime_backend_opt;
+    boost::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
     find_argument<std::string>(
-        vm, "runtime-backend", [&runtime_backend_opt](std::string const &val) {
-          runtime_backend_opt = str_to_runtime_backend(val);
+        vm,
+        "wasm-execution",
+        [this, &runtime_exec_method_opt](std::string const &val) {
+          runtime_exec_method_opt = str_to_runtime_exec_method(val);
+          if (not runtime_exec_method_opt) {
+            logger_->error(
+                "Invalid runtime execution method specified: '{}'", val);
+          }
         });
-    if (not runtime_backend_opt) {
-      logger_->error("Invalid runtime backend specified");
+    if (not runtime_exec_method_opt) {
       return false;
     } else {
-      runtime_backend_ = runtime_backend_opt.value();
+      runtime_exec_method_ = runtime_exec_method_opt.value();
     }
 
     // if something wrong with config print help message

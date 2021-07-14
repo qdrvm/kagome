@@ -141,7 +141,7 @@ namespace kagome::runtime::binaryen {
    */
 
   RuntimeExternalInterface::RuntimeExternalInterface(
-      std::unique_ptr<host_api::HostApi> host_api)
+      std::shared_ptr<host_api::HostApi> host_api)
       : host_api_{std::move(host_api)} {
     BOOST_ASSERT(host_api_);
   }
@@ -525,10 +525,6 @@ namespace kagome::runtime::binaryen {
       throw std::runtime_error(
           "Invocation of a Host API method with wrong number of arguments");
     }
-  }
-
-  void RuntimeExternalInterface::reset() const {
-    host_api_->reset();
   }
 
 }  // namespace kagome::runtime::binaryen

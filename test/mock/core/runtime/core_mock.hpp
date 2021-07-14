@@ -6,7 +6,7 @@
 #ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_CORE_MOCK_HPP
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_CORE_MOCK_HPP
 
-#include "runtime/core.hpp"
+#include "runtime/runtime_api/core.hpp"
 
 #include <gmock/gmock.h>
 

@@ -106,7 +106,6 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/core
 )
 
-add_subdirectory(deps/wavm)
 add_subdirectory(core)
 
 kagome_install_setup(

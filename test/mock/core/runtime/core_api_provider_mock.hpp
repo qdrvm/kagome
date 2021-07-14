@@ -17,7 +17,7 @@ namespace kagome::runtime {
     MOCK_CONST_METHOD2(
         make,
         std::unique_ptr<Core>(std::shared_ptr<const crypto::Hasher> hasher,
-                              gsl::span<uint8_t> runtime_code));
+                              const std::vector<uint8_t> &runtime_code));
   };
 
 }  // namespace kagome::runtime

@@ -125,8 +125,8 @@ namespace kagome::application {
     const std::string &nodeName() const override {
       return node_name_;
     }
-    RuntimeBackend runtimeBackend() const override {
-      return runtime_backend_;
+    RuntimeExecutionMethod runtimeExecMethod() const override {
+      return runtime_exec_method_;
     }
 
    private:
@@ -202,7 +202,7 @@ namespace kagome::application {
     bool dev_mode_;
     std::string node_name_;
     uint32_t max_ws_connections_;
-    RuntimeBackend runtime_backend_;
+    RuntimeExecutionMethod runtime_exec_method_;
   };
 
 }  // namespace kagome::application

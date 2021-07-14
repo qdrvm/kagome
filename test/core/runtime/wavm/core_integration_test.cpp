@@ -7,10 +7,11 @@
 
 #include <fstream>
 
-#include "core/runtime/binaryen/runtime_test.hpp"
+#include "core/runtime/wavm/runtime_test.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
-#include "runtime/binaryen/runtime_api/core_impl.hpp"
+#include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/wavm/memory.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -21,9 +22,9 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
+using kagome::runtime::CoreImpl;
 using kagome::runtime::Memory;
-using kagome::runtime::binaryen::CoreImpl;
-using kagome::runtime::binaryen::WasmMemoryImpl;
+using kagome::runtime::wavm::MemoryImpl;
 
 using ::testing::_;
 using ::testing::Return;
@@ -47,8 +48,8 @@ class CoreTest : public RuntimeTest {
     EXPECT_CALL(*batch_mock_, get(_));
     EXPECT_CALL(*storage_provider_, rollbackTransaction());
 
-    core_ = std::make_shared<CoreImpl>(
-        runtime_env_factory_, wasm_provider_, changes_tracker_, header_repo);
+    core_ =
+        std::make_shared<CoreImpl>(executor_, changes_tracker_, header_repo);
   }
 
  protected:

@@ -9,8 +9,8 @@
 #include "api/service/state/state_api.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "runtime/core.hpp"
-#include "runtime/metadata.hpp"
+#include "runtime/runtime_api/core.hpp"
+#include "runtime/runtime_api/metadata.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::api {

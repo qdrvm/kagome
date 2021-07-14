@@ -7,104 +7,98 @@ add_library(application_injector
     application_injector.cpp
     )
 target_link_libraries(application_injector
-    soralog::soralog
-    soralog::fallback_configurator
-    fmt::fmt
-    app_state_manager
-    p2p::p2p
-    p2p::p2p_identify
-    p2p::p2p_ping
-    tsl::tsl_hat_trie
     Boost::Boost.DI
-    rpc_thread_pool
-    log_configurator
-    api_transport
+    account_nonce_api
     api_jrpc_server
-    metrics
-    state_api_service
-    key_file_storage
-    binaryen_core_api_provider
-    trie_storage
-    polkadot_trie
-    polkadot_trie_factory
-    trie_serializer
-    polkadot_codec
-    pbkdf2_provider
-    bip39_provider
-    ed25519_provider
-    secp256k1_provider
-    crypto_store
-    host_api
-    changes_tracker
-    chain_api_service
-    babe
-    babe_lottery
-    block_header_repository
-    block_executor
+    api_transport
     app_config_impl
-    block_storage
+    app_state_manager
+    assets
+    author_api_service
+    authority_manager
+    babe
+    babe_api
+    babe_lottery
     babe_synchronizer
+    babe_util
+    binaryen_core_api_factory
+    binaryen_runtime_external_interface
+    binaryen_wasm_memory
+    binaryen_wasm_memory_factory
+    binaryen_wasm_module
+    binaryen_module_repository
+    binaryen_module_factory
+    bip39_provider
+    block_announce_protocol
+    block_builder_api
+    block_executor
+    block_header_repository
+    block_storage
     block_tree
     block_validator
     buffer
+    chain_api_service
+    changes_tracker
     clock
-    sr25519_provider
     configuration_storage
-    runtime_upgrade_tracker
-    wavm_core_api
-    wavm_babe_api
-    wavm_grandpa_api
-    wavm_block_builder_api
-    wavm_tagged_transaction_queue_api
-    wavm_transaction_payment_api
-    wavm_account_nonce_api
-    wavm_executor
-    binaryen_wasm_memory
-    binaryen_runtime_external_interface
-    binaryen_wasm_module
-    binaryen_block_builder_api
-    binaryen_grandpa_api
-    binaryen_babe_api
-    binaryen_core_api
-    binaryen_metadata_api
-    binaryen_tagged_transaction_queue_api
-    binaryen_transaction_payment_api
-    binaryen_account_nonce_api
-    binaryen_runtime_environment
-    binaryen_runtime_environment_factory
-    binaryen_wasm_memory_factory
-    system_api_service
-    trie_storage_provider
-    author_api_service
-    extrinsic_observer
-    transaction_pool
-    host_api_factory
-    gossiper_broadcast
-    kagome_router
-    leveldb
-    outcome
-    grandpa
-    kagome_router
+    core_api
+    crypto_store
+    ed25519_provider
     environment
-    proposer
-    storage_code_provider
-    remote_sync_protocol_client
-    sync_protocol_observer
-    vrf_provider
-    waitable_timer
-    authority_manager
-    system_api_service
-    payment_api_service
-    rpc_api_service
-    p2p::p2p_kademlia
-    kademlia_storage_backend
-    peer_manager
-    babe_util
-    assets
-    block_announce_protocol
+    extrinsic_observer
+    fmt::fmt
     gossip_protocol
+    gossiper_broadcast
+    grandpa
+    grandpa_api
+    host_api
+    host_api_factory
+    kademlia_storage_backend
+    kagome_router
+    kagome_router
+    key_file_storage
+    leveldb
+    log_configurator
+    metadata_api
+    metrics
+    outcome
+    p2p::p2p
+    p2p::p2p_identify
+    p2p::p2p_kademlia
+    p2p::p2p_ping
+    payment_api_service
+    pbkdf2_provider
+    peer_manager
+    polkadot_codec
+    polkadot_trie
+    polkadot_trie_factory
     propagate_transactions_protocol
+    proposer
+    protocol_factory
+    remote_sync_protocol_client
+    rpc_api_service
+    rpc_thread_pool
+    runtime_upgrade_tracker
+    runtime_environment_factory
+    executor
+    secp256k1_provider
+    soralog::fallback_configurator
+    soralog::soralog
+    sr25519_provider
+    state_api_service
+    storage_code_provider
     sup_protocol
     sync_protocol
-    protocol_factory
+    sync_protocol_observer
+    system_api_service
+    system_api_service
+    tagged_transaction_queue_api
+    transaction_payment_api
+    transaction_pool
+    trie_serializer
+    trie_storage
+    trie_storage_provider
+    tsl::tsl_hat_trie
+    vrf_provider
+    waitable_timer
     )
