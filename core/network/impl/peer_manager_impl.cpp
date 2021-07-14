@@ -175,7 +175,7 @@ namespace kagome::network {
         const auto &peer_id_ref = peer_id;
         SL_DEBUG(log_, "Found dead peer_id={}", peer_id_ref.toBase58());
         disconnectFromPeer(peer_id);
-        if (boost::none == disconnected_peer) {
+        if (not disconnected_peer.has_value()) {
           disconnected_peer = peer_id;
         }
       }
