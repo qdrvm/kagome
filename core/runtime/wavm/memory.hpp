@@ -39,11 +39,11 @@ namespace kagome::runtime::wavm {
         std::numeric_limits<uint32_t>::max();
     constexpr static uint8_t kAlignment = sizeof(size_t);
 
-    WasmSize size() const {
+    WasmSize size() const override{
       return WAVM::Runtime::getMemoryNumPages(memory_) * kPageSize;
     }
 
-    void resize(WasmSize new_size) {
+    void resize(WasmSize new_size) override {
       /**
        * We use this condition to avoid deallocated_ pointers fixup
        */
@@ -54,8 +54,8 @@ namespace kagome::runtime::wavm {
       }
     }
 
-    WasmPointer allocate(WasmSize size);
-    boost::optional<WasmSize> deallocate(WasmPointer ptr);
+    WasmPointer allocate(WasmSize size) override;
+    boost::optional<WasmSize> deallocate(WasmPointer ptr) override;
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T load(WasmPointer addr) const {
@@ -71,19 +71,19 @@ namespace kagome::runtime::wavm {
       return res;
     }
 
-    int8_t load8s(WasmPointer addr) const;
-    uint8_t load8u(WasmPointer addr) const;
-    int16_t load16s(WasmPointer addr) const;
-    uint16_t load16u(WasmPointer addr) const;
-    int32_t load32s(WasmPointer addr) const;
-    uint32_t load32u(WasmPointer addr) const;
-    int64_t load64s(WasmPointer addr) const;
-    uint64_t load64u(WasmPointer addr) const;
-    std::array<uint8_t, 16> load128(WasmPointer addr) const;
+    int8_t load8s(WasmPointer addr) const override;
+    uint8_t load8u(WasmPointer addr) const override;
+    int16_t load16s(WasmPointer addr) const override;
+    uint16_t load16u(WasmPointer addr) const override;
+    int32_t load32s(WasmPointer addr) const override;
+    uint32_t load32u(WasmPointer addr) const override;
+    int64_t load64s(WasmPointer addr) const override;
+    uint64_t load64u(WasmPointer addr) const override;
+    std::array<uint8_t, 16> load128(WasmPointer addr) const override;
 
-    common::Buffer loadN(WasmPointer addr, WasmSize n) const;
+    common::Buffer loadN(WasmPointer addr, WasmSize n) const override;
 
-    std::string loadStr(WasmPointer addr, WasmSize n) const;
+    std::string loadStr(WasmPointer addr, WasmSize n) const override;
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     void store(WasmPointer addr, T value) {
@@ -103,14 +103,14 @@ namespace kagome::runtime::wavm {
                   array.size_bytes());
     }
 
-    void store8(WasmPointer addr, int8_t value);
-    void store16(WasmPointer addr, int16_t value);
-    void store32(WasmPointer addr, int32_t value);
-    void store64(WasmPointer addr, int64_t value);
-    void store128(WasmPointer addr, const std::array<uint8_t, 16> &value);
-    void storeBuffer(WasmPointer addr, gsl::span<const uint8_t> value);
+    void store8(WasmPointer addr, int8_t value) override;
+    void store16(WasmPointer addr, int16_t value) override;
+    void store32(WasmPointer addr, int32_t value) override;
+    void store64(WasmPointer addr, int64_t value) override;
+    void store128(WasmPointer addr, const std::array<uint8_t, 16> &value) override;
+    void storeBuffer(WasmPointer addr, gsl::span<const uint8_t> value) override;
 
-    WasmSpan storeBuffer(gsl::span<const uint8_t> value);
+    WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
 
     /// following methods are needed mostly for testing purposes
     boost::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;

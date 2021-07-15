@@ -56,11 +56,9 @@ groups:
           - name: runtime
             children:
               - name: runtime_api
-                level: trace
               - name: host_api
-                level: trace
               - name: binaryen
-                level: trace
+              - name: wavm
           - name: metrics
           - name: network
             children:
@@ -69,12 +67,9 @@ groups:
           - name: storage
           - name: pubsub
       - name: others
-        level: info
         children:
           - name: testing
-            level: info
           - name: debug
-            level: info
 # ----------------
   )");
   }

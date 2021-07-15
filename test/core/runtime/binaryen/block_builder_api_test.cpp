@@ -35,7 +35,7 @@ class BlockBuilderApiTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    builder_ = std::make_unique<BlockBuilderImpl>(runtime_env_factory_);
+    builder_ = std::make_unique<BlockBuilderImpl>(executor_);
   }
 
  protected:

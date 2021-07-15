@@ -21,7 +21,7 @@ namespace kagome::consensus::grandpa {
                  void(const libp2p::peer::PeerId &,
                       const network::CatchUpResponse &));
     MOCK_METHOD1(vote, void(const network::GrandpaVote &));
-    MOCK_METHOD1(finalize, void(const network::GrandpaCommit &));
+    MOCK_METHOD1(finalize, void(const FullCommitMessage &));
   };
 
 }  // namespace kagome::consensus::grandpa

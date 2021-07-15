@@ -18,10 +18,6 @@ namespace kagome::host_api {
     BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
   }
 
-  void MemoryExtension::reset() {
-    memory_provider_->getCurrentMemory().reset();
-  }
-
   runtime::WasmPointer MemoryExtension::ext_allocator_malloc_version_1(
       runtime::WasmSize size) {
     return memory_provider_->getCurrentMemory().value().allocate(size);

@@ -32,7 +32,6 @@ namespace kagome::runtime::wavm {
     IntrinsicResolverImpl(
         std::shared_ptr<IntrinsicModuleInstance> module_instance,
         std::shared_ptr<CompartmentWrapper> compartment);
-    ~IntrinsicResolverImpl() override;
 
     bool resolve(const std::string &moduleName,
                  const std::string &exportName,

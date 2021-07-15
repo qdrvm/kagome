@@ -20,10 +20,20 @@ namespace kagome::runtime {
   static_assert(sizeof(double) == 8);
   using WasmValue = boost::variant<int32_t, int64_t, float, double>;
 
+  /**
+   * An instance of a WebAssembly code module
+   * Exposes a set of functions and global variables
+   */
   class ModuleInstance {
    public:
     virtual ~ModuleInstance() = default;
 
+    /**
+     * Call the instance's function
+     * @param name - name of the function
+     * @param args - a pointer-size describing a buffer with the function parameters
+     * @return a pointer-size with the buffer returned by the call
+     */
     virtual outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                         PtrSize args) const = 0;
 

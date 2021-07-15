@@ -89,8 +89,8 @@
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory.hpp"
-#include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
 #include "runtime/common/storage_code_provider.hpp"
@@ -696,7 +696,8 @@ namespace {
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
         injector.template create<sptr<network::SyncClientsSet>>(),
-        injector.template create<sptr<network::Router>>());
+        injector.template create<sptr<network::Router>>(),
+        injector.template create<sptr<storage::BufferStorage>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
@@ -774,13 +775,12 @@ namespace {
                   Compile) {
             auto executor =
                 injector.template create<std::shared_ptr<runtime::Executor>>();
-
+            runtime::wavm::pushHostApi(host_api.value());
             auto intrinsic_module = injector.template create<
                 std::shared_ptr<runtime::wavm::IntrinsicModule>>();
-            kagome::runtime::wavm::pushHostApi(host_api.value());
           }
           return host_api.value();
-        }),
+        })[di::override],
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
               static auto compartment =
@@ -853,7 +853,22 @@ namespace {
   auto makeBinaryenInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
-    return di::make_injector(std::forward<decltype(args)>(args)...);
+    return di::make_injector(
+        di::bind<runtime::binaryen::RuntimeExternalInterface>.template to(
+            [](const auto &injector) {
+              static auto rei = [&injector]() {
+                auto host_api =
+                    injector.template create<sptr<host_api::HostApi>>();
+                auto rei = std::make_shared<
+                    runtime::binaryen::RuntimeExternalInterface>(host_api);
+                auto memory_provider = injector.template create<
+                    sptr<runtime::binaryen::BinaryenMemoryProvider>>();
+                memory_provider->setExternalInterface(rei);
+                return rei;
+              }();
+              return rei;
+            }),
+        std::forward<decltype(args)>(args)...);
   }
 
   template <typename CommonType,
@@ -887,13 +902,13 @@ namespace {
         di::bind<runtime::RuntimeUpgradeTracker>.template to<runtime::RuntimeUpgradeTrackerImpl>(),
         makeWavmInjector(method),
         makeBinaryenInjector(method),
-        di::bind<runtime::MemoryProvider>.template to([method](const auto
-                                                                   &injector) {
-          return choose_runtime_implementation<
-              runtime::MemoryProvider,
-              runtime::binaryen::BinaryenMemoryProvider,
-              runtime::wavm::WavmMemoryProvider>(injector, method);
-        }),
+        di::bind<runtime::MemoryProvider>.template to(
+            [method](const auto &injector) {
+              return choose_runtime_implementation<
+                  runtime::MemoryProvider,
+                  runtime::binaryen::BinaryenMemoryProvider,
+                  runtime::wavm::WavmMemoryProvider>(injector, method);
+            }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to(
             [method](const auto &injector) {

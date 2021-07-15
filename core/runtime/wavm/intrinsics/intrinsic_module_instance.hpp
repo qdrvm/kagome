@@ -21,9 +21,14 @@ namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
 
+  /**
+   * A wrapper around WAVM's intrinsic module instance
+   * Exposes the host memory and Host API functions
+   */
   class IntrinsicModuleInstance final {
    public:
-    IntrinsicModuleInstance(WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance);
+    IntrinsicModuleInstance(
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance);
 
     WAVM::Runtime::Memory *getExportedMemory() const;
     WAVM::Runtime::Function *getExportedFunction(

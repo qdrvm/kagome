@@ -22,8 +22,6 @@ namespace kagome::host_api {
    public:
     explicit MemoryExtension(std::shared_ptr<const runtime::MemoryProvider> memory_provider);
 
-    void reset();
-
     // ----------------- memory api v1 -----------------
     /**
      * @see Extension::ext_allocator_malloc_version_1

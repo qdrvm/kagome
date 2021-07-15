@@ -21,7 +21,6 @@ namespace kagome::network {
       BLOCK_REQUEST,
       BLOCK_ANNOUNCE,
       TRANSACTIONS,
-      CONSENSUS,
       UNKNOWN = 99
     };
 

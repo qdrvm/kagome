@@ -9,15 +9,18 @@
 #include <boost/format.hpp>
 
 #include "crypto/crypto_store/key_type.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/binaryen_wasm_memory_factory_mock.hpp"
+#include "mock/core/runtime/core_api_provider_mock.hpp"
 #include "mock/core/runtime/core_factory_mock.hpp"
-#include "mock/core/runtime/runtime_environment_factory_mock.hpp"
-#include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
-#include "mock/core/runtime/core_api_provider_mock.hpp"
+#include "mock/core/runtime/module_repository_mock.hpp"
+#include "mock/core/runtime/runtime_environment_factory_mock.hpp"
+#include "mock/core/runtime/trie_storage_provider_mock.hpp"
+#include "runtime/common/constant_code_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -25,24 +28,27 @@ using ::testing::_;
 using ::testing::Invoke;
 using ::testing::Return;
 
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::crypto::KEY_TYPE_BABE;
 using kagome::host_api::HostApi;
 using kagome::host_api::HostApiFactoryMock;
 using kagome::host_api::HostApiMock;
+using kagome::runtime::ConstantCodeProvider;
+using kagome::runtime::CoreApiProviderMock;
+using kagome::runtime::MemoryMock;
+using kagome::runtime::MemoryProviderMock;
+using kagome::runtime::ModuleRepositoryMock;
+using kagome::runtime::PtrSize;
+using kagome::runtime::RuntimeEnvironmentFactoryMock;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmLogLevel;
-using kagome::runtime::MemoryMock;
 using kagome::runtime::WasmOffset;
-using kagome::runtime::PtrSize;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::runtime::CoreApiProviderMock;
-using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::binaryen::BinaryenWasmMemoryFactoryMock;
 using kagome::runtime::binaryen::CoreFactoryMock;
-using kagome::runtime::RuntimeEnvironmentFactoryMock;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using wasm::Element;
 using wasm::Module;
@@ -85,21 +91,25 @@ class REITest : public ::testing::Test {
     host_api_factory_ = std::make_shared<HostApiFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     core_api_provider_ = std::make_shared<CoreApiProviderMock>();
-    runtime_env_factory_ = std::make_shared<RuntimeEnvironmentFactoryMock>();
-    memory_provider_ = std::make_shared<BinaryenWasmMemoryFactoryMock>();
-    EXPECT_CALL(*host_api_factory_, make(_, _, _, _))
-        .WillRepeatedly(Invoke(
-            [this](auto &, auto &, auto &, auto &) -> std::unique_ptr<HostApi> {
-              if (host_api_) {
-                auto ext = std::move(host_api_);
-                host_api_ = std::make_unique<HostApiMock>();
-                return std::unique_ptr<HostApiMock>(std::move(ext));
-              } else {
-                host_api_ = std::make_unique<HostApiMock>();
-                return std::unique_ptr<HostApi>(
-                    std::make_unique<HostApiMock>());
-              }
-            }));
+    memory_provider_ = std::make_shared<MemoryProviderMock>();
+    auto code_provider =
+        std::make_shared<ConstantCodeProvider>(kagome::common::Buffer{});
+    auto module_repo = std::make_shared<ModuleRepositoryMock>();
+    auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
+    runtime_env_factory_ =
+        std::make_shared<RuntimeEnvironmentFactoryMock>(storage_provider_,
+                                                        host_api_,
+                                                        memory_provider_,
+                                                        code_provider,
+                                                        module_repo,
+                                                        header_repo);
+    /*EXPECT_CALL(*host_api_factory_, make(_, _, _))
+        .WillRepeatedly(
+            Invoke([this](auto &, auto &, auto &) -> std::unique_ptr<HostApi> {
+              auto new_host_api = std::make_unique<HostApiMock>();
+              host_api_ = new_host_api.get();
+              return new_host_api;
+            }));*/
   }
 
   void executeWasm(std::string call_code) {
@@ -118,11 +128,7 @@ class REITest : public ::testing::Test {
     SExpressionWasmBuilder builder(wasm, *root[0]);
     EXPECT_CALL(*host_api_, memory()).WillRepeatedly(Return(memory_));
 
-    TestableExternalInterface rei(core_api_provider_,
-                                  runtime_env_factory_,
-                                  memory_provider_,
-                                  host_api_factory_,
-                                  storage_provider_);
+    TestableExternalInterface rei(host_api_);
 
     // interpret module
     ModuleInstance instance(wasm, &rei);
@@ -132,7 +138,7 @@ class REITest : public ::testing::Test {
   std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<CoreApiProviderMock> core_api_provider_;
   std::shared_ptr<RuntimeEnvironmentFactoryMock> runtime_env_factory_;
-  std::unique_ptr<HostApiMock> host_api_;
+  std::shared_ptr<HostApiMock> host_api_;
   std::shared_ptr<HostApiFactoryMock> host_api_factory_;
   std::shared_ptr<TrieStorageProviderMock> storage_provider_;
   std::shared_ptr<MemoryProviderMock> memory_provider_;
@@ -176,32 +182,6 @@ class REITest : public ::testing::Test {
       "  (type (;33;) (func (param i64 i64 i32) (result i64)))\n"
       "  (type (;34;) (func (param i64) (result i32)))\n"
       "  (type (;35;) (func (result i32)))\n"
-      "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
-      "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
-      "  (import \"env\" \"ext_blake2_128\" (func $ext_blake2_128 (type 5)))\n"
-      "  (import \"env\" \"ext_blake2_256\" (func $ext_blake2_256 (type 5)))\n"
-      "  (import \"env\" \"ext_keccak_256\" (func $ext_keccak_256 (type 28)))\n"
-      "  (import \"env\" \"ext_blake2_256_enumerated_trie_root\" (func $ext_blake2_256_enumerated_trie_root (type 6)))\n"
-      "  (import \"env\" \"ext_print_utf8\" (func $ext_print_utf8 (type 0)))\n"
-      "  (import \"env\" \"ext_print_num\" (func $ext_print_num (type 7)))\n"
-      "  (import \"env\" \"ext_malloc\" (func $ext_malloc (type 8)))\n"
-      "  (import \"env\" \"ext_free\" (func $ext_free (type 1)))\n"
-      "  (import \"env\" \"ext_twox_128\" (func $ext_twox_128 (type 5)))\n"
-      "  (import \"env\" \"ext_twox_256\" (func $ext_twox_256 (type 5)))\n"
-      "  (import \"env\" \"ext_clear_storage\" (func $ext_clear_storage (type 0)))\n"
-      "  (import \"env\" \"ext_set_storage\" (func $ext_set_storage (type 6)))\n"
-      "  (import \"env\" \"ext_clear_prefix\" (func $ext_clear_prefix (type 0)))\n"
-      "  (import \"env\" \"ext_exists_storage\" (func $ext_exists_storage (type 3)))\n"
-      "  (import \"env\" \"ext_start_batch_verify\" (func $ext_start_batch_verify (type 11)))\n"
-      "  (import \"env\" \"ext_finish_batch_verify\" (func $ext_finish_batch_verify (type 35)))\n"
-      "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n"
-      "  (import \"env\" \"ext_ed25519_verify\" (func $ext_ed25519_verify (type 9)))\n"
-      "  (import \"env\" \"ext_storage_root\" (func $ext_storage_root (type 1)))\n"
-      "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2)))\n"
-      "  (import \"env\" \"ext_print_hex\" (func $ext_print_hex (type 0)))\n"
-      "  (import \"env\" \"ext_logging_log_version_1\" (func $ext_logging_log_version_1 (type 12)))\n"
-      "  (import \"env\" \"ext_logging_max_level_version_1\" (func $ext_logging_max_level_version_1 (type 35)))\n"
-      "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
 
       /// version 1
       "  (import \"env\" \"ext_crypto_start_batch_verify\" (func $ext_crypto_start_batch_verify_version_1 (type 11)))\n"
@@ -267,176 +247,17 @@ class REITest : public ::testing::Test {
  * @then corresponding host function is invoked with provided arguments
  */
 
-TEST_F(REITest, ext_malloc_Test) {
-  WasmSize size = 42;
-  WasmPointer ptr = 123;
-  EXPECT_CALL(*host_api_, ext_malloc(size)).WillOnce(Return(ptr));
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
-                                     "      (call $ext_malloc\n"
-                                     "        (i32.const %d)\n"
-                                     "      )\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % size % ptr)
-                          .str();
-  SCOPED_TRACE("ext_malloc_Test");
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_free_Test) {
-  WasmPointer ptr = 123;
-  EXPECT_CALL(*host_api_, ext_free(ptr)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_free\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % ptr)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_clear_prefix_Test) {
-  WasmPointer prefix_ptr = 123;
-  WasmSize prefix_size = 1233;
-
-  EXPECT_CALL(*host_api_, ext_clear_prefix(prefix_ptr, prefix_size)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_clear_prefix\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % prefix_ptr % prefix_size)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_clear_storage_Test) {
-  WasmPointer key_ptr = 123;
-  WasmSize key_size = 1233;
-
-  EXPECT_CALL(*host_api_, ext_clear_storage(key_ptr, key_size)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_clear_storage\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % key_ptr % key_size)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_exists_storage_Test) {
-  WasmPointer key_ptr = 123;
-  WasmSize key_size = 1233;
-
-  WasmSize expected_res = 1;
-
-  EXPECT_CALL(*host_api_, ext_exists_storage(key_ptr, key_size))
-      .WillOnce(Return(expected_res));
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
-                                     "      (call $ext_exists_storage\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "      )\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % key_ptr % key_size % expected_res)
-                          .str();
-  SCOPED_TRACE("ext_exists_storage_Test");
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_get_allocated_storage_Test) {
-  WasmPointer key_ptr = 123;
-  WasmSize key_size = 1233;
-  WasmPointer len_ptr = 42;
-
-  WasmPointer res_ptr = 1;
-
-  EXPECT_CALL(*host_api_, ext_get_allocated_storage(key_ptr, key_size, len_ptr))
-      .WillOnce(Return(res_ptr));
-
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
-                                     "      (call $ext_get_allocated_storage\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "      )\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % key_ptr % key_size % len_ptr % res_ptr)
-                          .str();
-  SCOPED_TRACE("ext_get_allocated_storage_Test");
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_get_storage_into_Test) {
-  WasmPointer key_ptr = 123;
-  WasmSize key_size = 1233;
-  WasmPointer value_ptr = 42;
-  WasmSize value_length = 321;
-  WasmSize value_offset = 453;
-
-  WasmSize res = 1;
-
-  EXPECT_CALL(*host_api_,
-              ext_get_storage_into(
-                  key_ptr, key_size, value_ptr, value_length, value_offset))
-      .WillOnce(Return(res));
-
-  auto execute_code =
-      (boost::format("    (call $assert_eq_i32\n"
-                     "      (call $ext_get_storage_into\n"
-                     "        (i32.const %d)\n"
-                     "        (i32.const %d)\n"
-                     "        (i32.const %d)\n"
-                     "        (i32.const %d)\n"
-                     "        (i32.const %d)\n"
-                     "      )\n"
-                     "      (i32.const %d)\n"
-                     "    )\n")
-       % key_ptr % key_size % value_ptr % value_length % value_offset % res)
-          .str();
-  SCOPED_TRACE("ext_get_allocated_storage_Test");
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_set_storage_Test) {
-  WasmPointer key_ptr = 123;
-  WasmSize key_size = 1233;
-
-  WasmPointer value_ptr = 42;
-  WasmSize value_size = 12;
-
-  EXPECT_CALL(*host_api_,
-              ext_set_storage(key_ptr, key_size, value_ptr, value_size))
-      .Times(1);
-  auto execute_code = (boost::format("    (call $ext_set_storage\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % key_ptr % key_size % value_ptr % value_size)
-                          .str();
-  executeWasm(execute_code);
-}
-
 TEST_F(REITest, ext_blake2_256_enumerated_trie_root_Test) {
-  WasmPointer values_data = 12;
-  WasmPointer lens_data = 42;
-  WasmSize lens_length = 123;
+  WasmSpan values = PtrSize{12, 42}.combine();
   WasmPointer result = 321;
 
-  EXPECT_CALL(*host_api_,
-              ext_blake2_256_enumerated_trie_root(
-                  values_data, lens_data, lens_length, result))
+  EXPECT_CALL(*host_api_, ext_trie_blake2_256_ordered_root_version_1(values))
       .Times(1);
   auto execute_code =
-      (boost::format("    (call $ext_blake2_256_enumerated_trie_root\n"
-                     "      (i32.const %d)\n"
-                     "      (i32.const %d)\n"
-                     "      (i32.const %d)\n"
-                     "      (i32.const %d)\n"
+      (boost::format("    (call $ext_trie_blake2_256_ordered_root_version_1\n"
+                     "      (i64.const %d)\n"
                      "    )\n")
-       % values_data % lens_data % lens_length % result)
+       % values)
           .str();
   executeWasm(execute_code);
 }
@@ -448,19 +269,20 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
 
   WasmSize res = 1;
 
-  EXPECT_CALL(*host_api_, ext_storage_changes_root(parent_hash_data, result))
+  EXPECT_CALL(*host_api_, ext_storage_changes_root_version_1(parent_hash_data))
       .WillOnce(Return(res));
 
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
-                                     "      (call $ext_storage_changes_root\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "      )\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % parent_hash_data % parent_hash_len % result % res)
-                          .str();
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_storage_changes_root_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % parent_hash_data % parent_hash_len % result % res)
+          .str();
   SCOPED_TRACE("ext_storage_changes_root_Test");
   executeWasm(execute_code);
 }
@@ -468,8 +290,8 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
 TEST_F(REITest, ext_storage_root_Test) {
   WasmPointer storage_root = 12;
 
-  EXPECT_CALL(*host_api_, ext_storage_root(storage_root)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_storage_root\n"
+  EXPECT_CALL(*host_api_, ext_storage_root_version_1()).Times(1);
+  auto execute_code = (boost::format("    (call $ext_storage_root_version_1\n"
                                      "      (i32.const %d)\n"
                                      "    )\n")
                        % storage_root)
@@ -477,24 +299,10 @@ TEST_F(REITest, ext_storage_root_Test) {
   executeWasm(execute_code);
 }
 
-TEST_F(REITest, ext_print_hex_Test) {
-  WasmPointer data_ptr = 12;
-  WasmSize data_size = 12;
-
-  EXPECT_CALL(*host_api_, ext_print_hex(data_ptr, data_size)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_print_hex\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % data_ptr % data_size)
-                          .str();
-  executeWasm(execute_code);
-}
-
 TEST_F(REITest, ext_logging_log_version_1_Test) {
   PtrSize position(12, 12);
   const auto pos_packed = position.combine();
-  WasmEnum ll = static_cast<WasmEnum>(WasmLogLevel::WasmLL_Error);
+  WasmEnum ll = static_cast<WasmEnum>(WasmLogLevel::Error);
 
   EXPECT_CALL(*host_api_, ext_logging_log_version_1(ll, pos_packed, pos_packed))
       .Times(1);
@@ -514,147 +322,18 @@ TEST_F(REITest, ext_logging_log_version_1_Test) {
  * @then correct log level returned once
  */
 TEST_F(REITest, ext_logging_max_level_version_1_Test) {
-  WasmEnum expected_res = static_cast<WasmEnum>(WasmLogLevel::WasmLL_Info);
+  WasmEnum expected_res = static_cast<WasmEnum>(WasmLogLevel::Info);
 
-  EXPECT_CALL(*host_api_, ext_logging_max_level_version_1()).WillOnce(Return(expected_res));
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
-                                     "      (call $ext_logging_max_level_version_1)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % expected_res)
-                          .str();
+  EXPECT_CALL(*host_api_, ext_logging_max_level_version_1())
+      .WillOnce(Return(expected_res));
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_logging_max_level_version_1)\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % expected_res)
+          .str();
   SCOPED_TRACE("ext_logging_max_level_version_1_Test");
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_print_num_Test) {
-  uint64_t num = 12;
-
-  EXPECT_CALL(*host_api_, ext_print_num(num)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_print_num\n"
-                                     "      (i64.const %d)\n"
-                                     "    )\n")
-                       % num)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_print_utf8_Test) {
-  WasmPointer data_ptr = 12;
-  WasmSize data_size = 12;
-
-  EXPECT_CALL(*host_api_, ext_print_utf8(data_ptr, data_size)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_print_utf8\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % data_ptr % data_size)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_blake2_128_Test) {
-  WasmPointer data_ptr = 12;
-  WasmSize data_size = 12;
-  WasmPointer out_ptr = 43;
-
-  EXPECT_CALL(*host_api_, ext_blake2_128(data_ptr, data_size, out_ptr))
-      .Times(1);
-  auto execute_code = (boost::format("    (call $ext_blake2_128\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % data_ptr % data_size % out_ptr)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_blake_256_Test) {
-  WasmPointer data_ptr = 12;
-  WasmSize data_size = 12;
-  WasmPointer out_ptr = 43;
-
-  EXPECT_CALL(*host_api_, ext_blake2_256(data_ptr, data_size, out_ptr))
-      .Times(1);
-  auto execute_code = (boost::format("    (call $ext_blake2_256\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % data_ptr % data_size % out_ptr)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_keccak_256_Test) {
-  WasmPointer data_ptr = 12;
-  WasmSize data_size = 12;
-  WasmPointer out_ptr = 43;
-
-  EXPECT_CALL(*host_api_, ext_keccak_256(data_ptr, data_size, out_ptr))
-      .Times(1);
-  auto execute_code = (boost::format("    (call $ext_keccak_256\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % data_ptr % data_size % out_ptr)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_ed25519_verify_Test) {
-  WasmPointer msg_data = 123;
-  WasmSize msg_len = 1233;
-  WasmPointer sig_data = 42;
-  WasmPointer pubkey_data = 321;
-
-  WasmSize res = 1;
-
-  EXPECT_CALL(*host_api_,
-              ext_ed25519_verify(msg_data, msg_len, sig_data, pubkey_data))
-      .WillOnce(Return(res));
-
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
-                                     "      (call $ext_ed25519_verify\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "      )\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % msg_data % msg_len % sig_data % pubkey_data % res)
-                          .str();
-  SCOPED_TRACE("ext_ed25519_verify_Test");
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_sr25519_verify_Test) {
-  WasmPointer msg_data = 123;
-  WasmSize msg_len = 1233;
-  WasmPointer sig_data = 42;
-  WasmPointer pubkey_data = 321;
-
-  WasmSize res = 0;
-
-  EXPECT_CALL(*host_api_,
-              ext_sr25519_verify(msg_data, msg_len, sig_data, pubkey_data))
-      .WillOnce(Return(res));
-
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
-                                     "      (call $ext_sr25519_verify\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "        (i32.const %d)\n"
-                                     "      )\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % msg_data % msg_len % sig_data % pubkey_data % res)
-                          .str();
-  SCOPED_TRACE("ext_sr25519_verify_Test");
   executeWasm(execute_code);
 }
 
@@ -662,7 +341,7 @@ TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
   WasmSize key_type = KEY_TYPE_BABE;
   WasmSpan res = PtrSize(1, 2).combine();
 
-  EXPECT_CALL(*host_api_, ext_ed25519_public_keys_v1(key_type))
+  EXPECT_CALL(*host_api_, ext_crypto_ed25519_public_keys_version_1(key_type))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -684,7 +363,7 @@ TEST_F(REITest, ext_ed25519_generate_v1_Test) {
 
   WasmPointer res = 4;
 
-  EXPECT_CALL(*host_api_, ext_ed25519_generate_v1(key_type, seed))
+  EXPECT_CALL(*host_api_, ext_crypto_ed25519_generate_version_1(key_type, seed))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -707,7 +386,7 @@ TEST_F(REITest, ext_ed25519_sign_v1_Test) {
   WasmSpan msg = PtrSize(33, 2).combine();
   WasmSpan res = PtrSize(35, 25).combine();
 
-  EXPECT_CALL(*host_api_, ext_ed25519_sign_v1(key_type, key, msg))
+  EXPECT_CALL(*host_api_, ext_crypto_ed25519_sign_version_1(key_type, key, msg))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -734,7 +413,8 @@ TEST_F(REITest, ext_ed25519_verify_v1_Test) {
 
   WasmSize res = 1;
 
-  EXPECT_CALL(*host_api_, ext_ed25519_verify_v1(sig_data, msg, pubkey_data))
+  EXPECT_CALL(*host_api_,
+              ext_crypto_ed25519_verify_version_1(sig_data, msg, pubkey_data))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -757,7 +437,7 @@ TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
 
   WasmSpan res = PtrSize(1, 2).combine();
 
-  EXPECT_CALL(*host_api_, ext_sr25519_public_keys_v1(key_type))
+  EXPECT_CALL(*host_api_, ext_crypto_sr25519_public_keys_version_1(key_type))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -779,7 +459,7 @@ TEST_F(REITest, ext_sr25519_generate_v1_Test) {
 
   WasmPointer res = 4;
 
-  EXPECT_CALL(*host_api_, ext_sr25519_generate_v1(key_type, seed))
+  EXPECT_CALL(*host_api_, ext_crypto_sr25519_generate_version_1(key_type, seed))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -802,7 +482,7 @@ TEST_F(REITest, ext_sr25519_sign_v1_Test) {
   WasmSpan msg = PtrSize(33, 2).combine();
   WasmSpan res = PtrSize(35, 25).combine();
 
-  EXPECT_CALL(*host_api_, ext_sr25519_sign_v1(key_type, key, msg))
+  EXPECT_CALL(*host_api_, ext_crypto_sr25519_sign_version_1(key_type, key, msg))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -829,7 +509,8 @@ TEST_F(REITest, ext_sr25519_verify_v2_Test) {
 
   WasmSize res = 1;
 
-  EXPECT_CALL(*host_api_, ext_sr25519_verify_v1(sig_data, msg, pubkey_data))
+  EXPECT_CALL(*host_api_,
+              ext_crypto_sr25519_verify_version_2(sig_data, msg, pubkey_data))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -847,60 +528,13 @@ TEST_F(REITest, ext_sr25519_verify_v2_Test) {
   executeWasm(execute_code);
 }
 
-TEST_F(REITest, ext_twox_128_Test) {
-  WasmPointer data_ptr = 12;
-  WasmSize data_size = 12;
-  WasmPointer out_ptr = 43;
-
-  EXPECT_CALL(*host_api_, ext_twox_128(data_ptr, data_size, out_ptr)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_twox_128\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % data_ptr % data_size % out_ptr)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_twox_256_Test) {
-  WasmPointer data_ptr = 12;
-  WasmSize data_size = 12;
-  WasmPointer out_ptr = 43;
-
-  EXPECT_CALL(*host_api_, ext_twox_256(data_ptr, data_size, out_ptr)).Times(1);
-  auto execute_code = (boost::format("    (call $ext_twox_256\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "      (i32.const %d)\n"
-                                     "    )\n")
-                       % data_ptr % data_size % out_ptr)
-                          .str();
-  executeWasm(execute_code);
-}
-
-TEST_F(REITest, ext_chain_id_Test) {
-  uint64_t res = 123141;
-
-  EXPECT_CALL(*host_api_, ext_chain_id()).WillOnce(Return(res));
-
-  auto execute_code = (boost::format("    (call $assert_eq_i64\n"
-                                     "      (call $ext_chain_id)\n"
-                                     "      (i64.const %d)\n"
-                                     "    )\n")
-                       % res)
-                          .str();
-  SCOPED_TRACE("ext_chain_id_Test");
-  executeWasm(execute_code);
-}
-
 TEST_F(REITest, ext_crypto_secp256k1_ecdsa_recover_version_1_Test) {
   WasmPointer sig_ptr = 12;
   WasmPointer msg_ptr = 77;
   WasmSpan out_span = PtrSize{109, 41}.combine();
 
   EXPECT_CALL(*host_api_,
-              ext_crypto_secp256k1_ecdsa_recover_v1(sig_ptr, msg_ptr))
+              ext_crypto_secp256k1_ecdsa_recover_version_1(sig_ptr, msg_ptr))
       .WillOnce(Return(out_span));
   auto execute_code =
       (boost::format("(call $assert_eq_i64\n"
@@ -922,7 +556,7 @@ TEST_F(REITest, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1_Test) {
 
   EXPECT_CALL(
       *host_api_,
-      ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig_ptr, msg_ptr))
+      ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(sig_ptr, msg_ptr))
       .WillOnce(Return(out_span));
   auto execute_code =
       (boost::format(

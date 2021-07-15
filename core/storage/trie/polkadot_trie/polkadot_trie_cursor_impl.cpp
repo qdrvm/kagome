@@ -5,8 +5,6 @@
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 
-#include "../../../../test/testutil/storage/polkadot_trie_printer.hpp"
-
 #include <iostream>
 
 #include "common/buffer_back_insert_iterator.hpp"

@@ -12,6 +12,12 @@ namespace kagome::runtime {
 
   class ModuleInstance;
 
+  /**
+   * A WebAssembly code module.
+   * Contains a set of exported objects (e. g. functions and variable
+   * declarations) and imported objects (e. g. Host API functions in case of
+   * Polkadot).
+   */
   class Module {
    public:
     virtual ~Module() = default;

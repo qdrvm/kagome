@@ -5,8 +5,9 @@
 
 #include "primitives/ss58_codec.hpp"
 
+#include <libp2p/multi/multibase_codec/codecs/base58.hpp>
+
 #include "crypto/hasher.hpp"
-#include "primitives/base58_codec.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, Ss58Error, e) {
   using E = kagome::primitives::Ss58Error;
@@ -37,7 +38,8 @@ namespace kagome::primitives {
                                         const crypto::Hasher &hasher) noexcept {
     // decode SS58 address: base58(<address-type><address><checksum>)
     // https://github.com/paritytech/substrate/wiki/External-Address-Format-(SS58)
-    OUTCOME_TRY(ss58_account_id, primitives::decodeBase58(account_address));
+    OUTCOME_TRY(ss58_account_id,
+                libp2p::multi::detail::decodeBase58(account_address));
     primitives::AccountId account_id;
 
     // first byte in SS58 is account type, then 32 bytes of the actual account
@@ -51,8 +53,7 @@ namespace kagome::primitives {
     auto checksum = gsl::make_span<const uint8_t>(
         ss58_account_id.data() + ss58_no_checksum.size(), kSs58ChecksumLength);
     auto calculated_checksum = calculateChecksum(ss58_no_checksum, hasher);
-    if (gsl::span<const uint8_t>(calculated_checksum)
-        != checksum) {
+    if (gsl::span<const uint8_t>(calculated_checksum) != checksum) {
       return Ss58Error::INVALID_CHECKSUM;
     }
 
@@ -72,7 +73,7 @@ namespace kagome::primitives {
     auto checksum = calculateChecksum(ss58_bytes, hasher);
     ss58_bytes.put(checksum);
 
-    return encodeBase58(ss58_bytes);
+    return libp2p::multi::detail::encodeBase58(ss58_bytes.asVector());
   }
 
 }  // namespace kagome::primitives

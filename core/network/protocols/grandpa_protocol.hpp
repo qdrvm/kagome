@@ -60,15 +60,13 @@ namespace kagome::network {
 
    private:
     enum class Direction { INCOMING, OUTGOING };
-    void readHandshake(
-        std::shared_ptr<Stream> remote_roles_res,
-        Direction direction,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+    void readHandshake(std::shared_ptr<Stream> stream,
+                       Direction direction,
+                       std::function<void(outcome::result<void>)> &&cb);
 
-    void writeHandshake(
-        std::shared_ptr<Stream> stream,
-        Direction direction,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
+    void writeHandshake(std::shared_ptr<Stream> stream,
+                        Direction direction,
+                        std::function<void(outcome::result<void>)> &&cb);
 
     void read(std::shared_ptr<Stream> stream);
 

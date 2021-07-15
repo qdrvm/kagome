@@ -104,8 +104,6 @@ namespace kagome::consensus::grandpa {
 
     virtual void onPrecommit(const SignedMessage &precommit) = 0;
 
-    virtual void onFinalize(const Fin &f) = 0;
-
     // Auxiliary methods
 
     virtual outcome::result<void> applyJustification(

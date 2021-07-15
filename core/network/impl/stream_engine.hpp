@@ -202,24 +202,6 @@ namespace kagome::network {
       return false;
     }
 
-    bool isAlive(const PeerId &peer_id) {
-      std::unique_lock cs(streams_cs_);
-      auto peer_it = streams_.find(peer_id);
-      if (peer_it != streams_.end()) {
-        auto &protocols = peer_it->second;
-        for (auto &protocol_it : protocols) {
-          auto &descr = protocol_it.second;
-          if (descr.incoming and not descr.incoming->isClosed()) {
-            return true;
-          }
-          if (descr.outgoing and not descr.outgoing->isClosed()) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
     template <typename T>
     void send(std::shared_ptr<Stream> stream, const T &msg) {
       BOOST_ASSERT(stream != nullptr);
@@ -379,19 +361,21 @@ namespace kagome::network {
 
    private:
     void dump(std::string_view msg) {
-      logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-      logger_->debug("DUMP: {}", msg);
-      forEachPeer([&](const auto &peer_id, auto &proto_map) {
-        logger_->debug("DUMP:   Peer {}", peer_id.toBase58());
-        for (auto &[protocol, descr] : proto_map) {
-          logger_->debug("DUMP:     Protocol {}", protocol);
-          logger_->debug("DUMP:       I={} O={}   Messages:{}",
-                         descr.incoming,
-                         descr.outgoing,
-                         descr.deffered_messages.size());
-        }
-      });
-      logger_->debug("DUMP: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+      if (logger_->level() >= log::Level::DEBUG) {
+        logger_->debug("DUMP: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+        logger_->debug("DUMP: {}", msg);
+        forEachPeer([&](const auto &peer_id, auto &proto_map) {
+          logger_->debug("DUMP:   Peer {}", peer_id.toBase58());
+          for (auto &[protocol, descr] : proto_map) {
+            logger_->debug("DUMP:     Protocol {}", protocol);
+            logger_->debug("DUMP:       I={} O={}   Messages:{}",
+                           descr.incoming,
+                           descr.outgoing,
+                           descr.deffered_messages.size());
+          }
+        });
+        logger_->debug("DUMP: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+      }
     }
 
     template <typename T>
@@ -427,7 +411,9 @@ namespace kagome::network {
                                    stream_res.error().message());
               self->forSubscriber(
                   peer_id, protocol, [&](auto, auto &subscriber) {
-                    std::ignore = std::move(subscriber.deffered_messages);
+                    while (not subscriber.deffered_messages.empty()) {
+                      subscriber.deffered_messages.pop();
+                    }
                   });
 
               return;

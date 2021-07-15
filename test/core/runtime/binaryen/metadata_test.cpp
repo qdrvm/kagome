@@ -35,7 +35,7 @@ class MetadataTest : public RuntimeTest {
     prepareEphemeralStorageExpects();
 
     api_ = std::make_shared<MetadataImpl>(
-        runtime_env_factory_, std::make_shared<BlockHeaderRepositoryMock>());
+        std::make_shared<BlockHeaderRepositoryMock>(), executor_);
   }
 
  protected:

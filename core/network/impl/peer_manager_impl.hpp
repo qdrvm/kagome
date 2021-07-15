@@ -37,6 +37,8 @@
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
 #include "network/types/sync_clients_set.hpp"
+#include "scale/libp2p_types.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::network {
 
@@ -57,7 +59,8 @@ namespace kagome::network {
         const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_peer_info,
         std::shared_ptr<network::SyncClientsSet> sync_clients,
-        std::shared_ptr<network::Router> router);
+        std::shared_ptr<network::Router> router,
+        std::shared_ptr<storage::BufferStorage> storage);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -194,6 +197,9 @@ namespace kagome::network {
           });
     }
 
+    /// Right way to check self peer as it takes into account dev mode
+    bool isSelfPeer(const PeerId &peer_id) const;
+
     /// Aligns amount of connected streams
     void align();
 
@@ -207,6 +213,12 @@ namespace kagome::network {
     /// Closes all streams of provided peer
     void disconnectFromPeer(const PeerId &peer_id);
 
+    std::vector<scale::PeerInfoSerializable> loadLastActivePeers();
+
+    /// Stores peers addresses to the state storage to warm up the following
+    /// node start
+    void storeActivePeers();
+
     std::shared_ptr<application::AppStateManager> app_state_manager_;
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
@@ -219,6 +231,7 @@ namespace kagome::network {
     const OwnPeerInfo &own_peer_info_;
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
     std::shared_ptr<network::Router> router_;
+    std::shared_ptr<storage::BufferStorage> storage_;
 
     libp2p::event::Handle add_peer_handle_;
     std::unordered_set<PeerId> peers_in_queue_;
@@ -232,6 +245,7 @@ namespace kagome::network {
 
     std::map<PeerId, ActivePeerData> active_peers_;
     libp2p::protocol::scheduler::Handle align_timer_;
+    std::set<PeerId> recently_active_peers_;
 
     log::Logger log_;
   };

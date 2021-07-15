@@ -35,7 +35,6 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD1(onProposal, void(const SignedMessage &));
     MOCK_METHOD1(onPrevote, void(const SignedMessage &));
     MOCK_METHOD1(onPrecommit, void(const SignedMessage &));
-    MOCK_METHOD1(onFinalize, void(const Fin &));
     MOCK_METHOD2(applyJustification,
                  outcome::result<void>(const BlockInfo &,
                                        const GrandpaJustification &));

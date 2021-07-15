@@ -43,7 +43,6 @@ class CoreTest : public RuntimeTest {
     auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     EXPECT_CALL(*header_repo, getBlockHeader(_))
         .WillRepeatedly(Return(kagome::primitives::BlockHeader{}));
-    EXPECT_CALL(*storage_provider_, getLatestRootMock());
     EXPECT_CALL(*storage_provider_, getCurrentBatch());
     EXPECT_CALL(*batch_mock_, get(_));
     EXPECT_CALL(*storage_provider_, rollbackTransaction());
@@ -70,7 +69,7 @@ TEST_F(CoreTest, VersionTest) {
  * @when execute_block is invoked
  * @then successful result is returned
  */
-TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
+TEST_F(CoreTest, ExecuteBlockTest) {
   auto block = createBlock();
 
   ASSERT_TRUE(core_->execute_block(block));
@@ -81,7 +80,7 @@ TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
  * @when initialise_block is invoked
  * @then successful result is returned
  */
-TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
+TEST_F(CoreTest, InitializeBlockTest) {
   auto header = createBlockHeader();
 
   ASSERT_TRUE(core_->initialise_block(header));
@@ -92,7 +91,7 @@ TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
  * @when authorities is invoked
  * @then successful result is returned
  */
-TEST_F(CoreTest, DISABLED_AuthoritiesTest) {
+TEST_F(CoreTest, AuthoritiesTest) {
   BlockId block_id = 0;
   ASSERT_TRUE(core_->authorities(block_id));
 }

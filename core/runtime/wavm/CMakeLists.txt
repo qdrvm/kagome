@@ -7,7 +7,7 @@ add_library(wavm_memory memory.cpp)
 target_link_libraries(wavm_memory WAVM::libWAVM buffer)
 kagome_install(wavm_memory)
 
-add_library(wavm_executor
+add_library(runtime_wavm
     module.cpp
     module_instance.cpp
     intrinsics/intrinsic_resolver_impl.cpp
@@ -18,11 +18,12 @@ add_library(wavm_executor
     intrinsics/intrinsic_module_instance.cpp
     intrinsics/intrinsic_module.cpp
     )
-target_link_libraries(wavm_executor
+target_link_libraries(runtime_wavm
     WAVM::libWAVM
     wavm_memory
     constant_code_provider
     Boost::boost
     compartment_wrapper
+    trie_storage_provider
     )
-kagome_install(wavm_executor)
+kagome_install(runtime_wavm)

@@ -425,9 +425,7 @@ ACTION_P(onPrecommitted, test_fixture) {
 }
 
 ACTION_P(onFinalize, test_fixture) {
-  kagome::consensus::grandpa::Fin fin{
-      .round_number = arg0, .vote = arg1, .justification = arg2};
-  test_fixture->round_->onFinalize(fin);
+  test_fixture->env_->finalize(arg1.hash, arg2);
   return outcome::success();
 }
 

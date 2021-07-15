@@ -39,7 +39,7 @@ namespace kagome::runtime {
           std::weak_ptr<RuntimeEnvironmentFactory> parent_factory)
       : state_{}, parent_factory_{std::move(parent_factory)} {
     BOOST_ASSERT(parent_factory_.lock() != nullptr);
-    state_ = parent_factory.lock()->latest_state_;
+    state_ = parent_factory_.lock()->latest_state_;
   }
 
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate &
@@ -66,14 +66,6 @@ namespace kagome::runtime {
                   parent_factory->header_repo_->getHashByNumber(0));
       state_ = primitives::BlockInfo{0, genesis_hash};
     }
-    OUTCOME_TRY(instance,
-                parent_factory->module_repo_->getInstanceAt(
-                    parent_factory->code_provider_, state_));
-    OUTCOME_TRY(opt_heap_base, instance->getGlobal("__heap_base"));
-    int32_t heap_base = boost::get<int32_t>(opt_heap_base.value());
-
-    parent_factory->memory_provider_->resetMemory(heap_base);
-
     OUTCOME_TRY(header,
                 parent_factory->header_repo_->getBlockHeader(state_.hash));
     if (persistent_) {
@@ -83,17 +75,28 @@ namespace kagome::runtime {
       OUTCOME_TRY(parent_factory->storage_provider_->setToEphemeralAt(
           header.state_root));
     }
+
+    OUTCOME_TRY(instance,
+                parent_factory->module_repo_->getInstanceAt(
+                    parent_factory->code_provider_, state_));
+    OUTCOME_TRY(opt_heap_base, instance->getGlobal("__heap_base"));
+    int32_t heap_base = boost::get<int32_t>(opt_heap_base.value());
+
+    parent_factory->memory_provider_->resetMemory(heap_base);
+
     return RuntimeEnvironment{
         instance,
         parent_factory->memory_provider_->getCurrentMemory().value(),
         parent_factory->storage_provider_->tryGetPersistentBatch(),
-        [this](auto &env) {
-          auto parent_factory = parent_factory_.lock();
+        [weak_parent_factory = parent_factory_](auto &env) {
+          auto parent_factory = weak_parent_factory.lock();
           if (parent_factory == nullptr) {
             return;
           }
           parent_factory->host_api_->reset();
-          parent_factory->env_cleanup_callback_(env);
+          if (parent_factory->env_cleanup_callback_) {
+            parent_factory->env_cleanup_callback_(env);
+          }
         }};
   }
 

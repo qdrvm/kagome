@@ -10,6 +10,9 @@
 
 namespace kagome::runtime {
 
+  /**
+   * A code provider that serves only one fixed blob of code for any state
+   */
   class ConstantCodeProvider final : public RuntimeCodeProvider {
    public:
     explicit ConstantCodeProvider(common::Buffer code);

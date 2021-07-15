@@ -28,20 +28,6 @@ namespace kagome::runtime::wavm {
   class IntrinsicResolver : public WAVM::Runtime::Resolver {
    public:
     virtual ~IntrinsicResolver() = default;
-
-    /**
-     * Resolves a dependency between a Runtime module and the Host API module
-     * @param moduleName the name of the module which requires the dependency
-     * @param exportName the name of the dependency entity
-     * @param type type of the dependency (e.g. memory or a function)
-     * @param outObject the resolved dependency
-     * @return true if resolved successfully, false otherwise
-     */
-    virtual bool resolve(const std::string &moduleName,
-                         const std::string &exportName,
-                         WAVM::IR::ExternType type,
-                         WAVM::Runtime::Object *&outObject) = 0;
-
   };
 }  // namespace kagome::runtime::wavm
 

@@ -14,7 +14,7 @@ namespace kagome::runtime::binaryen {
         size_(kInitialMemorySize),
         heap_base_{heap_base},
         offset_{heap_base_},
-        logger_{log::createLogger("WasmMemory", "wasm")} {
+        logger_{log::createLogger("WasmMemory", "binaryen")} {
     // Heap base (and offset in according) must be non zero to prohibit
     // allocating memory at 0 in future, as returning 0 from allocate method
     // means that wasm memory was exhausted

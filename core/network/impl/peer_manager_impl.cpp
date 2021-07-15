@@ -8,10 +8,9 @@
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
-
 #include "outcome/outcome.hpp"
-
-using namespace std::chrono_literals;
+#include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 
 namespace kagome::network {
   PeerManagerImpl::PeerManagerImpl(
@@ -26,7 +25,8 @@ namespace kagome::network {
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
       std::shared_ptr<network::SyncClientsSet> sync_clients,
-      std::shared_ptr<network::Router> router)
+      std::shared_ptr<network::Router> router,
+      std::shared_ptr<storage::BufferStorage> storage)
       : app_state_manager_(std::move(app_state_manager)),
         host_(host),
         identify_(std::move(identify)),
@@ -39,6 +39,7 @@ namespace kagome::network {
         own_peer_info_(own_peer_info),
         sync_clients_(std::move(sync_clients)),
         router_{std::move(router)},
+        storage_{std::move(storage)},
         log_(log::createLogger("PeerManager", "network")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
@@ -47,6 +48,7 @@ namespace kagome::network {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(sync_clients_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
 
     app_state_manager_->takeControl(*this);
   }
@@ -72,6 +74,8 @@ namespace kagome::network {
 
     // Add themselves into peer routing
     kademlia_->addPeer(host_.getPeerInfo(), true);
+    // It is used only for DEV mode
+    processDiscoveredPeer(host_.getPeerInfo().id);
 
     add_peer_handle_ =
         host_.getBus()
@@ -96,7 +100,16 @@ namespace kagome::network {
     // Start Identify protocol
     identify_->start();
 
-    // Enqueue bootstrap nodes as first peers set
+    // Enqueue last active peers as first peers set but with limited lifetime
+    auto last_active_peers = loadLastActivePeers();
+    SL_DEBUG(log_,
+             "Loaded {} last active peers' record(s)",
+             last_active_peers.size());
+    for (const auto &peer_info : last_active_peers) {
+      kademlia_->addPeer(peer_info, false);
+    }
+
+    // Enqueue bootstrap nodes with permanent lifetime
     for (const auto &bootstrap_node : bootstrap_nodes_) {
       kademlia_->addPeer(bootstrap_node, true);
     }
@@ -111,6 +124,7 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::stop() {
+    storeActivePeers();
     add_peer_handle_.unsubscribe();
   }
 
@@ -152,15 +166,27 @@ namespace kagome::network {
 
     // Check if disconnected
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
+    boost::optional<PeerId> disconnected_peer;
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, data] = *it++;
       // TODO(d.khaustov) consider better alive check logic
-      if (not stream_engine_->isAlive(peer_id, block_announce_protocol) &&
-        clock_->now() - data.time > 5min) {
+      if (not stream_engine_->isAlive(peer_id, block_announce_protocol)) {
         // Found disconnected
-        auto &peer_id_ref = peer_id;
+        const auto &peer_id_ref = peer_id;
         SL_DEBUG(log_, "Found dead peer_id={}", peer_id_ref.toBase58());
         disconnectFromPeer(peer_id);
+        if (not disconnected_peer.has_value()) {
+          disconnected_peer = peer_id;
+        }
+      }
+    }
+    if (disconnected_peer.has_value()) {
+      auto [it, added] = peers_in_queue_.emplace(*disconnected_peer);
+      if (added) {
+        SL_DEBUG(log_,
+                 "Trying to reconnect to peer_id={}",
+                 (*disconnected_peer).toBase58());
+        queue_to_connect_.emplace_front(*it);
       }
     }
 
@@ -236,11 +262,12 @@ namespace kagome::network {
             self->align();
           }
         });
+    SL_DEBUG(log_, "Active peers = {}", active_peers_.size());
   }
 
   void PeerManagerImpl::connectToPeer(const PeerId &peer_id) {
     // Skip connection to itself
-    if (own_peer_info_.id == peer_id) {
+    if (isSelfPeer(peer_id)) {
       connecting_peers_.erase(peer_id);
       return;
     }
@@ -285,7 +312,7 @@ namespace kagome::network {
           auto remote_peer_id_res = connection->remotePeer();
           if (not remote_peer_id_res.has_value()) {
             SL_DEBUG(self->log_,
-                     "Connected, but not identifyed yet (expecting peer_id={})",
+                     "Connected, but not identified yet (expecting peer_id={})",
                      peer_id.toBase58());
             self->connecting_peers_.erase(peer_id);
             return;
@@ -349,6 +376,7 @@ namespace kagome::network {
       // Add as active peer
       active_peers_.emplace(
           peer_id, ActivePeerData{.time = clock_->now(), .status = status});
+      recently_active_peers_.insert(peer_id);
     }
   }
 
@@ -372,7 +400,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::processDiscoveredPeer(const PeerId &peer_id) {
     // Ignore himself
-    if (own_peer_info_.id == peer_id) {
+    if (isSelfPeer(peer_id)) {
       return;
     }
 
@@ -399,7 +427,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
     // Skip connection to itself
-    if (own_peer_info_.id == peer_id) {
+    if (isSelfPeer(peer_id)) {
       connecting_peers_.erase(peer_id);
       return;
     }
@@ -432,6 +460,8 @@ namespace kagome::network {
             if (auto [ap_it, added] = self->active_peers_.emplace(
                     peer_id, ActivePeerData{.time = self->clock_->now(), .status = Status{}});
                 added) {
+              self->recently_active_peers_.insert(peer_id);
+
               // And remove from queue
               if (auto piq_it = self->peers_in_queue_.find(peer_id);
                   piq_it != self->peers_in_queue_.end()) {
@@ -479,6 +509,69 @@ namespace kagome::network {
     stream_engine_->add(peer_id, router_->getGrandpaProtocol());
     stream_engine_->add(peer_id, router_->getPropagateTransactionsProtocol());
     stream_engine_->add(peer_id, router_->getSupProtocol());
+  }
+
+  // always false in dev mode
+  bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {
+    return own_peer_info_.id == peer_id ? not app_config_.isRunInDevMode()
+                                        : false;
+  }
+
+  std::vector<scale::PeerInfoSerializable>
+  PeerManagerImpl::loadLastActivePeers() {
+    auto get_res = storage_->get(storage::kActivePeersKey);
+    if (not get_res) {
+      SL_ERROR(log_,
+               "List of last active peers cannot be obtained from storage. "
+               "Error={}",
+               get_res.error().message());
+      return {};
+    }
+
+    std::vector<scale::PeerInfoSerializable> last_active_peers;
+    scale::ScaleDecoderStream s{get_res.value().asVector()};
+    try {
+      s >> last_active_peers;
+    } catch (std::exception &e) {
+      SL_ERROR(log_, "Cannot decode list of active peers. Error={}", e.what());
+      return {};
+    }
+    return last_active_peers;
+  }
+
+  void PeerManagerImpl::storeActivePeers() {
+    std::vector<libp2p::peer::PeerInfo> last_active_peers;
+    for (const auto &peer_id : recently_active_peers_) {
+      auto peer_info = host_.getPeerRepository().getPeerInfo(peer_id);
+      last_active_peers.push_back(peer_info);
+    }
+
+    if (last_active_peers.empty()) {
+      SL_DEBUG(log_,
+               "Zero last active peers, won't save zero. Storage will remain "
+               "untouched.");
+      return;
+    }
+
+    scale::ScaleEncoderStream out;
+    try {
+      out << last_active_peers;
+    } catch (std::exception &e) {
+      SL_ERROR(log_, "Cannot encode list of active peers. Error={}", e.what());
+      return;
+    }
+
+    auto save_res =
+        storage_->put(storage::kActivePeersKey, common::Buffer{out.data()});
+    if (not save_res) {
+      SL_ERROR(log_,
+               "Cannot store active peers. Error={}",
+               save_res.error().message());
+      return;
+    }
+    SL_DEBUG(log_,
+             "Saved {} last active peers' record(s)",
+             last_active_peers.size());
   }
 
 }  // namespace kagome::network

@@ -1,11 +1,28 @@
-add_library(runtime_test INTERFACE)
-target_link_libraries(runtime_test INTERFACE key_file_storage sr25519_provider ed25519_provider pbkdf2_provider bip39_provider secp256k1_provider hasher crypto_store host_api host_api_factory binaryen_core_api_factory binaryen_module_factory binaryen_wasm_memory_factory)
+add_library(binaryen_runtime_test INTERFACE)
+target_link_libraries(binaryen_runtime_test INTERFACE
+    key_file_storage
+    sr25519_provider
+    ed25519_provider
+    pbkdf2_provider
+    bip39_provider
+    secp256k1_provider
+    hasher
+    crypto_store
+    host_api
+    host_api_factory
+    core_api
+    binaryen_core_api_factory
+    binaryen_module_factory
+    binaryen_wasm_memory_factory
+    module_repository
+    runtime_upgrade_tracker
+    )
 
 addtest(tagged_transaction_queue_test
     tagged_transaction_queue_test.cpp
     )
 target_link_libraries(tagged_transaction_queue_test
-    runtime_test
+    binaryen_runtime_test
     tagged_transaction_queue_api
     testutil_primitives_generator
     basic_wasm_provider
@@ -17,8 +34,8 @@ addtest(block_builder_api_test
     block_builder_api_test.cpp
     )
 target_link_libraries(block_builder_api_test
-    runtime_test
-    binaryen_block_builder_api
+    binaryen_runtime_test
+    block_builder_api
     basic_wasm_provider
     core_api
     logger_for_tests
@@ -28,7 +45,7 @@ addtest(parachain_test
     parachain_test.cpp
     )
 target_link_libraries(parachain_test
-    runtime_test
+    binaryen_runtime_test
     parachain_host_api
     basic_wasm_provider
     core_api
@@ -40,7 +57,7 @@ addtest(grandpa_api_test
     grandpa_api_test.cpp
     )
 target_link_libraries(grandpa_api_test
-    runtime_test
+    binaryen_runtime_test
     grandpa_api
     trie_storage_backend
     basic_wasm_provider
@@ -53,8 +70,8 @@ addtest(metadata_test
     metadata_test.cpp
     )
 target_link_libraries(metadata_test
-    runtime_test
-    binaryen_metadata_api
+    binaryen_runtime_test
+    metadata_api
     basic_wasm_provider
     trie_storage
     core_api
@@ -65,7 +82,7 @@ addtest(offchain_worker_test
     offchain_worker_test.cpp
     )
 target_link_libraries(offchain_worker_test
-    runtime_test
+    binaryen_runtime_test
     offchain_worker_api
     basic_wasm_provider
     trie_storage_backend
@@ -78,6 +95,8 @@ addtest(runtime_external_interface_test
     )
 target_link_libraries(runtime_external_interface_test
     binaryen_runtime_external_interface
+    runtime_environment_factory
+    constant_code_provider
     blob
     logger_for_tests
     )

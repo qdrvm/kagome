@@ -66,5 +66,6 @@ add_library(binaryen_core_api_factory
 target_link_libraries(binaryen_core_api_factory
     constant_code_provider
     binaryen_memory_provider
+    core_api
     )
 kagome_install(binaryen_core_api_factory)

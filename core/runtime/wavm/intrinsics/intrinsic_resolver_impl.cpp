@@ -45,8 +45,4 @@ namespace kagome::runtime::wavm {
     return false;
   }
 
-  IntrinsicResolverImpl::~IntrinsicResolverImpl() {
-    WAVM::Runtime::collectCompartmentGarbage(compartment_->getCompartment());
-  }
-
 }  // namespace kagome::runtime::wavm

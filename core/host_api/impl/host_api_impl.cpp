@@ -6,7 +6,6 @@
 #include "host_api/impl/host_api_impl.hpp"
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
-#include "crypto/crypto_store/crypto_store_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
@@ -46,7 +45,6 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::reset() {
-    memory_ext_.reset();
     crypto_ext_->reset();
     storage_ext_.reset();
   }

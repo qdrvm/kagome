@@ -71,7 +71,7 @@ namespace kagome::consensus::grandpa {
                        const VoteMessage &msg) override;
 
     void onFinalize(const libp2p::peer::PeerId &peer_id,
-                    const Fin &fin) override;
+                    const FullCommitMessage &fin) override;
 
     outcome::result<void> applyJustification(
         const BlockInfo &block_info,

@@ -11,7 +11,7 @@ namespace kagome::runtime {
       : code_{std::move(code)} {}
 
   outcome::result<gsl::span<const uint8_t>>
-  ConstantCodeProvider::getCodeAt(const storage::trie::RootHash &at) const {
+  ConstantCodeProvider::getCodeAt(const storage::trie::RootHash &) const {
     return code_;
   }
 

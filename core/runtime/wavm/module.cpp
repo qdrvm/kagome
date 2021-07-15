@@ -23,7 +23,7 @@ namespace kagome::runtime::wavm {
     WAVM::WASM::LoadError loadError;
     WAVM::IR::FeatureSpec featureSpec;
 
-    log::Logger logger = log::createLogger("WAVM Module", "runtime");
+    log::Logger logger = log::createLogger("WAVM Module", "wavm");
     logger->verbose(
         "Compiling WebAssembly module for Runtime (going to take a few dozens "
         "of seconds)");

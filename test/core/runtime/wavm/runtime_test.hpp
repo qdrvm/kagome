@@ -39,6 +39,7 @@
 #include "runtime/wavm/core_api_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/wavm_memory_provider.hpp"
 #include "testutil/literals.hpp"
@@ -77,7 +78,11 @@ class RuntimeTest : public ::testing::Test {
             }));
     ON_CALL(*storage_provider_, setToPersistent())
         .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*storage_provider_, setToPersistentAt("genesis state root"_hash256))
+        .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*storage_provider_, setToEphemeral())
+        .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*storage_provider_, setToEphemeralAt("genesis state root"_hash256))
         .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*storage_provider_, rollbackTransaction())
         .WillByDefault(testing::Return(
@@ -125,41 +130,56 @@ class RuntimeTest : public ::testing::Test {
             "Test Compartment");
     auto intrinsic_module =
         std::make_shared<kagome::runtime::wavm::IntrinsicModule>(compartment);
+    kagome::runtime::wavm::registerHostApiMethods(*intrinsic_module);
     std::shared_ptr intrinsic_module_instance = intrinsic_module->instantiate();
-    auto resolver =
+    resolver_ =
         std::make_shared<kagome::runtime::wavm::IntrinsicResolverImpl>(
             intrinsic_module_instance, compartment);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(compartment,
-                                                                   resolver);
+                                                                   resolver_);
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmMemoryProvider>(
             intrinsic_module_instance);
 
-    auto header_repo_mock =
+    header_repo_ =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
+
+    ON_CALL(*header_repo_, getHashByNumber(0))
+        .WillByDefault(testing::Return("genesis hash"_hash256));
+    ON_CALL(*header_repo_,
+            getBlockHeader(testing::AnyOf(
+                kagome::primitives::BlockId{0},
+                kagome::primitives::BlockId{"genesis hash"_hash256})))
+        .WillByDefault(testing::Return(kagome::primitives::BlockHeader{
+            .parent_hash{},
+            .number = 0,
+            .state_root{"genesis state root"_hash256},
+            .extrinsics_root{"genesis ext root"_hash256},
+            .digest{}}));
 
     auto core_factory = std::make_shared<kagome::runtime::wavm::CoreApiFactory>(
         compartment,
         intrinsic_module,
         std::make_shared<kagome::storage::trie::TrieStorageMock>(),
-        header_repo_mock,
+        header_repo_,
         changes_tracker_,
         extension_factory);
 
-    auto host_api = extension_factory->make(
+    std::shared_ptr host_api = extension_factory->make(
         core_factory, memory_provider, storage_provider_);
 
-    auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
-                     + "/wasm/sub2dev.wasm";
+    auto wasm_path =
+        boost::filesystem::path(__FILE__).parent_path().parent_path().string()
+        + "/wasm/sub2dev.wasm";
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
     auto upgrade_tracker =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerImpl>(
-            header_repo_mock);
+            header_repo_);
 
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         upgrade_tracker, module_factory);
@@ -171,10 +191,10 @@ class RuntimeTest : public ::testing::Test {
             std::move(memory_provider),
             std::move(wasm_provider_),
             std::move(module_repo),
-            header_repo_mock);
+            header_repo_);
 
     executor_ = std::make_shared<kagome::runtime::Executor>(
-        header_repo_mock, runtime_env_factory_);
+        header_repo_, runtime_env_factory_);
   }
 
   void preparePersistentStorageExpects() {
@@ -201,6 +221,11 @@ class RuntimeTest : public ::testing::Test {
     extrinsics_root.fill('e');
 
     Digest digest{};
+
+    ON_CALL(*header_repo_, getHashByNumber(number))
+        .WillByDefault(testing::Return(parent_hash));
+    ON_CALL(*header_repo_, getNumberByHash(parent_hash))
+        .WillByDefault(testing::Return(number));
 
     return BlockHeader{
         parent_hash, number, state_root, extrinsics_root, digest};
@@ -236,6 +261,8 @@ class RuntimeTest : public ::testing::Test {
   }
 
  protected:
+  std::shared_ptr<kagome::runtime::wavm::IntrinsicResolverImpl> resolver_;
+  std::shared_ptr<kagome::blockchain::BlockHeaderRepositoryMock> header_repo_;
   std::shared_ptr<kagome::runtime::TrieStorageProviderMock> storage_provider_;
   std::shared_ptr<kagome::storage::trie::PersistentTrieBatchMock> batch_mock_;
   std::shared_ptr<kagome::runtime::RuntimeCodeProvider> wasm_provider_;
