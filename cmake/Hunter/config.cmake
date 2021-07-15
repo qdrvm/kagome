@@ -22,3 +22,12 @@ hunter_config(
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
     KEEP_PACKAGE_SOURCES
 )
+
+hunter_config(
+    libp2p
+    URL https://github.com/libp2p/cpp-libp2p/archive/8d80aa6b984d41ee0d3df0c7b2da01907923dd5b.tar.gz
+    SHA1 f5a3cd6f06e0f9cc69ec0bf9a7e5c1ceb628496f
+    CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
+    KEEP_PACKAGE_SOURCES
+)
+
