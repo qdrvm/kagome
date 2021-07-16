@@ -64,7 +64,7 @@ namespace kagome::host_api {
 
   void HostApiImpl::ext_clear_prefix(runtime::WasmPointer prefix_data,
                                      runtime::WasmSize prefix_length) {
-    return storage_ext_.ext_clear_prefix(prefix_data, prefix_length);
+    storage_ext_.ext_clear_prefix(prefix_data, prefix_length);
   }
 
   void HostApiImpl::ext_clear_storage(runtime::WasmPointer key_data,
@@ -172,6 +172,11 @@ namespace kagome::host_api {
   void HostApiImpl::ext_storage_clear_prefix_version_1(
       runtime::WasmSpan prefix) {
     return storage_ext_.ext_storage_clear_prefix_version_1(prefix);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_storage_clear_prefix_version_2(
+      runtime::WasmSpan prefix, runtime::WasmSpan limit) {
+    return storage_ext_.ext_storage_clear_prefix_version_2(prefix, limit);
   }
 
   runtime::WasmSpan HostApiImpl::ext_storage_root_version_1() {

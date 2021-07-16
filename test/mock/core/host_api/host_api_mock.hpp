@@ -165,6 +165,8 @@ namespace kagome::host_api {
                        runtime::WasmSize(runtime::WasmSpan));
 
     MOCK_METHOD1(ext_storage_clear_prefix_version_1, void(runtime::WasmSpan));
+    MOCK_METHOD2(ext_storage_clear_prefix_version_2,
+                 runtime::WasmSpan(runtime::WasmSpan, runtime::WasmSpan));
 
     MOCK_METHOD0(ext_storage_root_version_1, runtime::WasmSpan());
 

@@ -27,7 +27,9 @@ namespace kagome::storage::trie {
     /**
      * Remove all trie entries which key begins with the supplied prefix
      */
-    virtual outcome::result<void> clearPrefix(const Buffer &prefix) = 0;
+    virtual outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
+        const Buffer &prefix,
+        boost::optional<uint64_t> limit = boost::none) = 0;
   };
 
   class TopperTrieBatch;

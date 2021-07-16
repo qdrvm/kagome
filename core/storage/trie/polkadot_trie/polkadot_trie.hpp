@@ -32,8 +32,11 @@ namespace kagome::storage::trie {
     /**
      * Remove all trie entries which key begins with the supplied prefix
      */
-    virtual outcome::result<void> clearPrefix(
-        const common::Buffer &prefix, const OnDetachCallback &callback) = 0;
+
+    virtual outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
+        const common::Buffer &prefix,
+        boost::optional<uint64_t> limit,
+        const OnDetachCallback &callback) = 0;
 
     /**
      * @return the root node of the trie

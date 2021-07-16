@@ -113,11 +113,12 @@ namespace kagome::storage::trie {
     return trie_->empty();
   }
 
-  outcome::result<void> PersistentTrieBatchImpl::clearPrefix(
-      const Buffer &prefix) {
+  outcome::result<std::tuple<bool, uint32_t>>
+  PersistentTrieBatchImpl::clearPrefix(const Buffer &prefix,
+                                       boost::optional<uint64_t> limit) {
     if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
     return trie_->clearPrefix(
-        prefix, [&](const auto &key, auto &&) -> outcome::result<void> {
+        prefix, limit, [&](const auto &key, auto &&) -> outcome::result<void> {
           if (changes_.has_value()) {
             OUTCOME_TRY(changes_.value()->onRemove(key));
           }

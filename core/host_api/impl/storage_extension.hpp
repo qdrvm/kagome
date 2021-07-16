@@ -31,8 +31,10 @@ namespace kagome::host_api {
     /**
      * @see Extension::ext_clear_prefix
      */
-    void ext_clear_prefix(runtime::WasmPointer prefix_data,
-                          runtime::WasmSize prefix_length);
+    runtime::WasmSpan ext_clear_prefix(
+        runtime::WasmPointer prefix_data,
+        runtime::WasmSize prefix_length,
+        boost::optional<runtime::WasmSpan> limit = boost::none);
 
     /**
      * @see Extension::ext_clear_storage
@@ -144,6 +146,12 @@ namespace kagome::host_api {
      * @see Extension::ext_storage_clear_prefix_version_1
      */
     void ext_storage_clear_prefix_version_1(runtime::WasmSpan prefix);
+
+    /**
+     * @see Extension::ext_storage_clear_prefix_version_2
+     */
+    runtime::WasmSpan ext_storage_clear_prefix_version_2(
+        runtime::WasmSpan prefix, boost::optional<runtime::WasmSpan> limit);
 
     /**
      * @see Extension::ext_storage_root_version_1

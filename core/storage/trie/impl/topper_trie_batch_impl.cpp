@@ -93,7 +93,8 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<void> TopperTrieBatchImpl::clearPrefix(const Buffer &prefix) {
+  outcome::result<std::tuple<bool, uint32_t>> TopperTrieBatchImpl::clearPrefix(
+      const Buffer &prefix, boost::optional<uint64_t>) {
     for (auto it = cache_.lower_bound(prefix);
          it != cache_.end() && it->first.subbuffer(0, prefix.size()) == prefix;
          ++it)
@@ -101,7 +102,7 @@ namespace kagome::storage::trie {
 
     cleared_prefixes_.push_back(prefix);
     if (parent_.lock() != nullptr) {
-      return outcome::success();
+      return outcome::success(std::make_tuple(true, 0ULL));
     }
     return Error::PARENT_EXPIRED;
   }

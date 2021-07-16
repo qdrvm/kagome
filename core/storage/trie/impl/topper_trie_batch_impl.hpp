@@ -36,7 +36,8 @@ namespace kagome::storage::trie {
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
     outcome::result<void> remove(const Buffer &key) override;
-    outcome::result<void> clearPrefix(const Buffer &prefix) override;
+    outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
+        const Buffer &prefix, boost::optional<uint64_t> limit) override;
 
     outcome::result<void> writeBack() override;
 
