@@ -28,7 +28,7 @@ namespace kagome::runtime {
         Memory &memory,
         boost::optional<std::shared_ptr<storage::trie::PersistentTrieBatch>>
             batch,
-        std::function<void(RuntimeEnvironment&)> on_destruction);
+        std::function<void(RuntimeEnvironment &)> on_destruction);
 
     ~RuntimeEnvironment();
 
@@ -37,15 +37,13 @@ namespace kagome::runtime {
     boost::optional<std::shared_ptr<storage::trie::PersistentTrieBatch>> batch;
 
    private:
-    std::function<void(RuntimeEnvironment&)> on_destruction_;
+    std::function<void(RuntimeEnvironment &)> on_destruction_;
   };
 
   class RuntimeEnvironmentFactory
       : public std::enable_shared_from_this<RuntimeEnvironmentFactory> {
    public:
-    enum class Error {
-      PARENT_FACTORY_EXPIRED = 1
-    };
+    enum class Error { PARENT_FACTORY_EXPIRED = 1 };
     struct RuntimeEnvironmentTemplate;
 
     RuntimeEnvironmentFactory(
@@ -86,7 +84,8 @@ namespace kagome::runtime {
 
     [[nodiscard]] virtual RuntimeEnvironmentTemplate &persistent();
 
-    [[nodiscard]] virtual outcome::result<RuntimeEnvironment> make();
+    [[nodiscard]] virtual outcome::result<std::unique_ptr<RuntimeEnvironment>>
+    make();
 
    private:
     primitives::BlockInfo state_;

@@ -72,6 +72,7 @@ namespace kagome::runtime::wavm {
     GENERATE_HOST_INTRINSIC(I64, ext_storage_read_version_1, I64, I64, I32)
     GENERATE_HOST_INTRINSIC(I32, ext_allocator_malloc_version_1, I32)
     GENERATE_HOST_INTRINSIC(, ext_allocator_free_version_1, I32)
+    GENERATE_HOST_INTRINSIC(, ext_offchain_index_set_version_1, I64, I64)
     // clang-format on
   }
 

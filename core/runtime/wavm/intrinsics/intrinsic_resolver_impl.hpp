@@ -13,6 +13,8 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 
+#include "log/logger.hpp"
+
 namespace WAVM::Runtime {
   struct Compartment;
   struct ContextRuntimeData;
@@ -41,6 +43,7 @@ namespace kagome::runtime::wavm {
    private:
     std::shared_ptr<IntrinsicModuleInstance> module_instance_;
     std::shared_ptr<CompartmentWrapper> compartment_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::runtime::wavm

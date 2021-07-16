@@ -55,7 +55,7 @@ namespace kagome::runtime {
     return *this;
   }
 
-  outcome::result<RuntimeEnvironment>
+  outcome::result<std::unique_ptr<RuntimeEnvironment>>
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make() {
     auto parent_factory = parent_factory_.lock();
     if (parent_factory == nullptr) {
@@ -84,7 +84,7 @@ namespace kagome::runtime {
 
     parent_factory->memory_provider_->resetMemory(heap_base);
 
-    return RuntimeEnvironment{
+    return std::make_unique<RuntimeEnvironment>(
         instance,
         parent_factory->memory_provider_->getCurrentMemory().value(),
         parent_factory->storage_provider_->tryGetPersistentBatch(),
@@ -97,7 +97,7 @@ namespace kagome::runtime {
           if (parent_factory->env_cleanup_callback_) {
             parent_factory->env_cleanup_callback_(env);
           }
-        }};
+        });
   }
 
   RuntimeEnvironmentFactory::RuntimeEnvironmentFactory(

@@ -204,14 +204,14 @@ namespace kagome::consensus {
 
             auto block = std::move(blocks[i++]);  // For free memory asap
 
-            auto apply_res = self->applyBlock(block);
+            auto apply_res = self->applyBlock(block); // for debug purposes
 
             // Failed
             if (not apply_res.has_value()
                 && apply_res
                        != outcome::failure(
                            blockchain::BlockTreeError::BLOCK_EXISTS)) {
-              self->logger_->warn(
+              self->logger_->error(
                   "Could not apply block #{} during synchronizing. Error: {}",
                   block.header->number,
                   apply_res.error().message());
@@ -260,7 +260,7 @@ namespace kagome::consensus {
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
 
     // check if block body already exists. If so, do not apply
-    if (block_tree_->getBlockBody(block_hash)) {
+    if (block_tree_->getBlockBody(block_hash) && block.header.number != 29232) {
       SL_DEBUG(logger_,
                "Skipping existed block number: {}, hash: {}",
                block.header.number,
@@ -332,7 +332,7 @@ namespace kagome::consensus {
 
     auto exec_start = std::chrono::high_resolution_clock::now();
     // apply block
-    SL_DEBUG(logger_, "Execute block #{}, hash {}, state {}, a child of block #{}, hash{}, state {}",
+    SL_DEBUG(logger_, "Execute block #{}, hash {}, state {}, a child of block #{}, hash {}, state {}",
              block.header.number,
              block_hash,
              block.header.state_root,

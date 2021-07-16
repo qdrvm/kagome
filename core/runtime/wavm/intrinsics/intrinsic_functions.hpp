@@ -26,7 +26,7 @@ namespace kagome::runtime::wavm {
 
   extern log::Logger logger;
 
-  void registerHostApiMethods(IntrinsicModule& module);
+  void registerHostApiMethods(IntrinsicModule &module);
 
 #define DECLARE_HOST_INTRINSIC(Ret, name, ...)                    \
   Ret name(WAVM::Runtime::ContextRuntimeData *contextRuntimeData, \
@@ -38,9 +38,7 @@ namespace kagome::runtime::wavm {
   DECLARE_HOST_INTRINSIC(WAVM::I32, ext_hashing_twox_64_version_1, WAVM::I64)
   DECLARE_HOST_INTRINSIC(void, ext_storage_set_version_1, WAVM::I64, WAVM::I64)
   DECLARE_HOST_INTRINSIC(void, ext_storage_clear_version_1, WAVM::I64)
-  DECLARE_HOST_INTRINSIC(WAVM::I32,
-                         ext_hashing_blake2_128_version_1,
-                         WAVM::I64)
+  DECLARE_HOST_INTRINSIC(WAVM::I32, ext_hashing_blake2_128_version_1, WAVM::I64)
   DECLARE_HOST_INTRINSIC(void, ext_storage_clear_prefix_version_1, WAVM::I64)
   DECLARE_HOST_INTRINSIC(WAVM::I64, ext_storage_get_version_1, WAVM::I64)
   DECLARE_HOST_INTRINSIC(void, ext_misc_print_utf8_version_1, WAVM::I64)
@@ -59,12 +57,8 @@ namespace kagome::runtime::wavm {
                          WAVM::I64,
                          WAVM::I64,
                          WAVM::I64)
-  DECLARE_HOST_INTRINSIC(WAVM::I32,
-                         ext_hashing_blake2_256_version_1,
-                         WAVM::I64)
-  DECLARE_HOST_INTRINSIC(WAVM::I32,
-                         ext_hashing_keccak_256_version_1,
-                         WAVM::I64)
+  DECLARE_HOST_INTRINSIC(WAVM::I32, ext_hashing_blake2_256_version_1, WAVM::I64)
+  DECLARE_HOST_INTRINSIC(WAVM::I32, ext_hashing_keccak_256_version_1, WAVM::I64)
   DECLARE_HOST_INTRINSIC(WAVM::I32,
                          ext_crypto_ed25519_verify_version_1,
                          WAVM::I32,
@@ -129,5 +123,9 @@ namespace kagome::runtime::wavm {
       WAVM::I64, ext_storage_read_version_1, WAVM::I64, WAVM::I64, WAVM::I32)
   DECLARE_HOST_INTRINSIC(WAVM::I32, ext_allocator_malloc_version_1, WAVM::I32)
   DECLARE_HOST_INTRINSIC(void, ext_allocator_free_version_1, WAVM::I32)
+  DECLARE_HOST_INTRINSIC(void,
+                         ext_offchain_index_set_version_1,
+                         WAVM::I64,
+                         WAVM::I64)
 
 }  // namespace kagome::runtime::wavm

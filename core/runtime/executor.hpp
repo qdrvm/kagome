@@ -8,7 +8,6 @@
 
 #include <boost/optional.hpp>
 
-#include "runtime/runtime_environment_factory.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "host_api/host_api.hpp"
@@ -18,6 +17,7 @@
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/module_repository.hpp"
+#include "runtime/runtime_environment_factory.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
@@ -52,13 +52,12 @@ namespace kagome::runtime {
     outcome::result<Result> persistentCallAtLatest(std::string_view name,
                                                    Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start()->persistent().make());
-      auto res = callInternal<Result>(
-          std::move(env), name, std::forward<Args>(args)...);
+      auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
       if (res) {
         BOOST_ASSERT_MSG(
-            env.batch.has_value(),
+            env->batch.has_value(),
             "Persistent batch should always exist for persistent call");
-        OUTCOME_TRY(env.batch.value()->commit());
+        OUTCOME_TRY(env->batch.value()->commit());
       }
       return res;
     }
@@ -75,13 +74,12 @@ namespace kagome::runtime {
         Args &&...args) {
       OUTCOME_TRY(
           env, env_factory_->start()->persistent().setState(block_info).make());
-      auto res = callInternal<Result>(
-          std::move(env), name, std::forward<Args>(args)...);
+      auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
       if (res) {
         BOOST_ASSERT_MSG(
-            env.batch.has_value(),
+            env->batch.has_value(),
             "Persistent batch should always exist for persistent call");
-        OUTCOME_TRY(env.batch.value()->commit());
+        OUTCOME_TRY(env->batch.value()->commit());
       }
       return res;
     }
@@ -96,8 +94,7 @@ namespace kagome::runtime {
     outcome::result<Result> callAtLatest(std::string_view name,
                                          Args &&...args) {
       OUTCOME_TRY(env, env_factory_->start()->make());
-      return callInternal<Result>(
-          std::move(env), name, std::forward<Args>(args)...);
+      return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
     /**
@@ -113,8 +110,7 @@ namespace kagome::runtime {
       OUTCOME_TRY(
           env,
           env_factory_->start()->setState({header.number, block_hash}).make());
-      return callInternal<Result>(
-          std::move(env), name, std::forward<Args>(args)...);
+      return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
    private:
@@ -126,7 +122,7 @@ namespace kagome::runtime {
      * Changes, made to the Host API state, are reset after the call.
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> callInternal(RuntimeEnvironment env,
+    outcome::result<Result> callInternal(RuntimeEnvironment &env,
                                          std::string_view name,
                                          Args &&...args) {
       auto &memory = env.memory;
@@ -139,13 +135,13 @@ namespace kagome::runtime {
 
       PtrSize args_span{memory.storeBuffer(encoded_args)};
 
-      auto result = env.module_instance->callExportFunction(name, args_span);
+      OUTCOME_TRY(result,
+                  env.module_instance->callExportFunction(name, args_span));
 
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
-        return scale::decode<Result>(
-            memory.loadN(result.value().ptr, result.value().size));
+        return scale::decode<Result>(memory.loadN(result.ptr, result.size));
       }
     }
 
