@@ -15,10 +15,15 @@
 
 #include "application/chain_spec.hpp"
 #include "consensus/babe/babe.hpp"
+#include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
 #include "network/extrinsic_observer.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/propagate_transactions.hpp"
+#include "primitives/event_types.hpp"
+#include "subscription/extrinsic_event_key_repository.hpp"
+#include "subscription/subscriber.hpp"
+#include "subscription/subscription_engine.hpp"
 
 namespace kagome::network {
 
@@ -26,6 +31,9 @@ namespace kagome::network {
   using Protocol = libp2p::peer::Protocol;
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
+
+  KAGOME_DECLARE_CACHE(PropagateTransactionsProtocol,
+                       KAGOME_CACHE_UNIT(PropagatedExtrinsics));
 
   class PropagateTransactionsProtocol final
       : public ProtocolBase,
@@ -47,7 +55,11 @@ namespace kagome::network {
         const application::ChainSpec &chain_spec,
         std::shared_ptr<consensus::babe::Babe> babe,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
-        std::shared_ptr<StreamEngine> stream_engine);
+        std::shared_ptr<StreamEngine> stream_engine,
+        std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+            extrinsic_events_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            ext_event_key_repo);
 
     const Protocol &protocol() const override {
       return protocol_;
@@ -62,6 +74,8 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
+    void propagateTransactions(gsl::span<const primitives::Transaction> txs);
+
    private:
     enum class Direction { INCOMING, OUTGOING };
     void readHandshake(std::shared_ptr<Stream> stream,
@@ -74,15 +88,14 @@ namespace kagome::network {
 
     void readPropagatedExtrinsics(std::shared_ptr<Stream> stream);
 
-    void writePropagatedExtrinsics(
-        std::shared_ptr<Stream> stream,
-        const PropagatedExtrinsics &msg,
-        std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb);
-
     libp2p::Host &host_;
     std::shared_ptr<consensus::babe::Babe> babe_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<StreamEngine> stream_engine_;
+    std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+        extrinsic_events_engine_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+        ext_event_key_repo_;
     const libp2p::peer::Protocol protocol_;
     log::Logger log_ =
         log::createLogger("PropagateTransactionsProtocol", "protocols");

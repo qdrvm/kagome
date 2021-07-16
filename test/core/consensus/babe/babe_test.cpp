@@ -19,7 +19,6 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/ticker_mock.hpp"
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
-#include "mock/core/consensus/babe/babe_gossiper_mock.hpp"
 #include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
@@ -27,6 +26,7 @@
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
+#include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
@@ -86,7 +86,8 @@ class BabeTest : public testing::Test {
     core_ = std::make_shared<runtime::CoreMock>();
     proposer_ = std::make_shared<ProposerMock>();
     block_tree_ = std::make_shared<BlockTreeMock>();
-    gossiper_ = std::make_shared<BabeGossiperMock>();
+    block_announce_transmitter_ =
+        std::make_shared<BlockAnnounceTransmitterMock>();
     clock_ = std::make_shared<SystemClockMock>();
     hasher_ = std::make_shared<HasherMock>();
     ticker_mock_ = std::make_unique<testutil::TickerMock>();
@@ -145,7 +146,7 @@ class BabeTest : public testing::Test {
                                              babe_config_,
                                              proposer_,
                                              block_tree_,
-                                             gossiper_,
+                                             block_announce_transmitter_,
                                              sr25519_provider,
                                              keypair_,
                                              clock_,
@@ -178,7 +179,7 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ProposerMock> proposer_;
   std::shared_ptr<BlockTreeMock> block_tree_;
   std::shared_ptr<transaction_pool::TransactionPoolMock> tx_pool_;
-  std::shared_ptr<BabeGossiperMock> gossiper_;
+  std::shared_ptr<BlockAnnounceTransmitterMock> block_announce_transmitter_;
   std::shared_ptr<Sr25519Keypair> keypair_ =
       std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
   std::shared_ptr<SystemClockMock> clock_;
@@ -267,7 +268,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
   EXPECT_CALL(*block_tree_, addBlock(_)).WillOnce(Return(outcome::success()));
 
-  EXPECT_CALL(*gossiper_, blockAnnounce(_))
+  EXPECT_CALL(*block_announce_transmitter_, blockAnnounce_rv(_))
       .WillOnce(CheckBlockHeader(created_block_.header));
 
   EXPECT_CALL(*babe_util_, setLastEpoch(_))

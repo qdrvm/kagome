@@ -19,7 +19,7 @@ namespace kagome::network {
   using consensus::grandpa::SignedPrecommit;
   using consensus::grandpa::SignedPrevote;
   using consensus::grandpa::VoteMessage;
-  using consensus::grandpa::FullCommitMessage;
+  using consensus::grandpa::CompactCommit;
   using primitives::BlockNumber;
 
   struct GrandpaVote : public VoteMessage {
@@ -27,6 +27,30 @@ namespace kagome::network {
     explicit GrandpaVote(VoteMessage &&vm) noexcept
         : VoteMessage(std::move(vm)){};
   };
+
+  // Network level commit message with topic information.
+  // @See
+  // https://github.com/paritytech/substrate/blob/polkadot-v0.9.7/client/finality-grandpa/src/communication/gossip.rs#L350
+  struct FullCommitMessage {
+    // The round this message is from.
+    RoundNumber round{0};
+    // The voter set ID this message is from.
+    uint64_t set_id;
+    // The compact commit message.
+    CompactCommit message;
+  };
+
+  template <class Stream,
+      typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const FullCommitMessage &f) {
+    return s << f.round << f.set_id << f.message;
+  }
+
+  template <class Stream,
+      typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, FullCommitMessage &f) {
+    return s >> f.round >> f.set_id >> f.message;
+  }
 
   struct GrandpaNeighborMessage {
     uint8_t version = 1;

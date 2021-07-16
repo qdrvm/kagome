@@ -227,29 +227,6 @@ namespace kagome::consensus::grandpa {
     return s >> f.target_hash >> f.target_number >> f.precommits >> f.auth_data;
   }
 
-  // Network level commit message with topic information.
-  // @See
-  // https://github.com/paritytech/substrate/blob/polkadot-v0.9.7/client/finality-grandpa/src/communication/gossip.rs#L350
-  struct FullCommitMessage {
-    // The round this message is from.
-    RoundNumber round{0};
-    // The voter set ID this message is from.
-    uint64_t set_id;
-    // The compact commit message.
-    CompactCommit message;
-  };
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const FullCommitMessage &f) {
-    return s << f.round << f.set_id << f.message;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, FullCommitMessage &f) {
-    return s >> f.round >> f.set_id >> f.message;
-  }
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CONSENSUS_GRANDPA_STRUCTS_

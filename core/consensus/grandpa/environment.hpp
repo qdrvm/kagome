@@ -80,7 +80,7 @@ namespace kagome::consensus::grandpa {
     /**
      * Note that we've done a primary proposal in the given round.
      * Triggered when current peer appears in round \param round with
-     * \param set_id and \param propose is ready to be gossiped.
+     * \param set_id and \param propose is ready to be sent.
      */
     virtual outcome::result<void> onProposed(RoundNumber round,
                                              MembershipCounter set_id,
@@ -88,7 +88,7 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Triggered when current peer appears in round \param round with
-     * \param set_id and \param prevote is ready to be gossiped.
+     * \param set_id and \param prevote is ready to be sent.
      */
     virtual outcome::result<void> onPrevoted(RoundNumber round,
                                              MembershipCounter set_id,
@@ -96,7 +96,7 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Triggered when current peer appears in round \param round with
-     * \param set_id and \param precommit is ready to be gossiped.
+     * \param set_id and \param precommit is ready to be sent.
      */
     virtual outcome::result<void> onPrecommitted(
         RoundNumber round,
@@ -105,7 +105,7 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Triggered when current peer appears in round \param round intends to
-     * gossip committed \param vote justified by \param justification
+     * send committed \param vote justified by \param justification
      */
     virtual outcome::result<void> onCommitted(
         RoundNumber round,

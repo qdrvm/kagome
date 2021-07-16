@@ -19,15 +19,6 @@ target_link_libraries(block_announce_protocol
     protocol_error
     )
 
-add_library(gossip_protocol
-    gossip_protocol.cpp
-    )
-target_link_libraries(gossip_protocol
-    logger
-    p2p::p2p_loopback_stream
-    protocol_error
-    )
-
 add_library(grandpa_protocol
     grandpa_protocol.cpp
     )
@@ -40,14 +31,6 @@ add_library(propagate_transactions_protocol
     propagate_transactions_protocol.cpp
     )
 target_link_libraries(propagate_transactions_protocol
-    logger
-    protocol_error
-    )
-
-add_library(sup_protocol
-    sup_protocol.cpp
-    )
-target_link_libraries(sup_protocol
     logger
     protocol_error
     )
@@ -67,7 +50,4 @@ add_library(protocol_factory
     )
 target_link_libraries(protocol_factory
     logger
-    grandpa_protocol
-    sup_protocol
-    sync_protocol
     )

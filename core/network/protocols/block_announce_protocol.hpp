@@ -17,6 +17,7 @@
 #include "application/chain_spec.hpp"
 #include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
+#include "containers/objects_cache.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
 #include "network/babe_observer.hpp"
@@ -26,6 +27,8 @@
 #include "network/types/status.hpp"
 
 namespace kagome::network {
+
+  KAGOME_DECLARE_CACHE(BlockAnnounceProtocol, KAGOME_CACHE_UNIT(BlockAnnounce));
 
   using Stream = libp2p::connection::Stream;
   using Protocol = libp2p::peer::Protocol;
@@ -67,6 +70,8 @@ namespace kagome::network {
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
 
+    void blockAnnounce(BlockAnnounce &&announce);
+
    private:
     outcome::result<Status> createStatus() const;
 
@@ -80,8 +85,6 @@ namespace kagome::network {
                      std::function<void(outcome::result<void>)> &&cb);
 
     void readAnnounce(std::shared_ptr<Stream> stream);
-    void writeAnnounce(std::shared_ptr<Stream> stream,
-                       const BlockAnnounce &block_announce);
 
     libp2p::Host &host_;
     const application::AppConfiguration &app_config_;

@@ -59,11 +59,6 @@ namespace kagome::network {
       return false;
     }
 
-    gossip_protocol_ = protocol_factory_->makeGossipProtocol();
-    if (not gossip_protocol_) {
-      return false;
-    }
-
     grandpa_protocol_ = protocol_factory_->makeGrandpaProtocol();
     if (not grandpa_protocol_) {
       return false;
@@ -75,21 +70,14 @@ namespace kagome::network {
       return false;
     }
 
-    sup_protocol_ = protocol_factory_->makeSupProtocol();
-    if (not sup_protocol_) {
-      return false;
-    }
-
     sync_protocol_ = protocol_factory_->makeSyncProtocol();
     if (not sync_protocol_) {
       return false;
     }
 
     block_announce_protocol_->start();
-    gossip_protocol_->start();
     grandpa_protocol_->start();
     propagate_transaction_protocol_->start();
-    sup_protocol_->start();
     sync_protocol_->start();
 
     return true;
@@ -150,19 +138,16 @@ namespace kagome::network {
   RouterLibp2p::getBlockAnnounceProtocol() const {
     return block_announce_protocol_;
   }
-  std::shared_ptr<GossipProtocol> RouterLibp2p::getGossipProtocol() const {
-    return gossip_protocol_;
-  }
+
   std::shared_ptr<PropagateTransactionsProtocol>
   RouterLibp2p::getPropagateTransactionsProtocol() const {
     return propagate_transaction_protocol_;
   }
-  std::shared_ptr<SupProtocol> RouterLibp2p::getSupProtocol() const {
-    return sup_protocol_;
-  }
+
   std::shared_ptr<SyncProtocol> RouterLibp2p::getSyncProtocol() const {
     return sync_protocol_;
   }
+
   std::shared_ptr<GrandpaProtocol> RouterLibp2p::getGrandpaProtocol() const {
     return grandpa_protocol_;
   }

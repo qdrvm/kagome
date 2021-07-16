@@ -15,6 +15,8 @@
 namespace kagome::network {
   using libp2p::connection::LoopbackStream;
 
+  KAGOME_DEFINE_CACHE(GrandpaProtocol);
+
   GrandpaProtocol::GrandpaProtocol(
       libp2p::Host &host,
       std::shared_ptr<boost::asio::io_context> io_context,
@@ -312,15 +314,54 @@ namespace kagome::network {
         });
   }
 
-  //  void GrandpaProtocol::write(
-  //      std::shared_ptr<Stream> stream,
-  //      const int &message,
-  //      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-  //    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-  //
-  //    // NOTE: It will changed as soon as this protocol will be implemented in
-  //    // according with spec if any
-  //    throw "It is not implemented yet";
-  //  }
+  void GrandpaProtocol::vote(network::GrandpaVote &&vote_message) {
+    SL_DEBUG(log_,
+             "Send vote message: grandpa round number {}",
+             vote_message.round_number);
+
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(vote_message));
+
+    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
+                                              std::move(shared_msg));
+  }
+
+  void GrandpaProtocol::finalize(FullCommitMessage &&msg) {
+    SL_DEBUG(log_, "Send fin message: grandpa round number {}", msg.round);
+
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(msg));
+
+    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
+                                              std::move(shared_msg));
+  }
+
+  void GrandpaProtocol::catchUpRequest(const libp2p::peer::PeerId &peer_id,
+                                       CatchUpRequest &&catch_up_request) {
+    SL_DEBUG(log_,
+             "Send catch-up request: grandpa round number {}",
+             catch_up_request.round_number);
+
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(catch_up_request));
+
+    stream_engine_->send(peer_id, shared_from_this(), std::move(shared_msg));
+  }
+
+  void GrandpaProtocol::catchUpResponse(const libp2p::peer::PeerId &peer_id,
+                                        CatchUpResponse &&catch_up_response) {
+    SL_DEBUG(log_,
+             "Send catch-up response: grandpa round number {}",
+             catch_up_response.round_number);
+
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(catch_up_response));
+
+    stream_engine_->send(peer_id, shared_from_this(), std::move(shared_msg));
+  }
 
 }  // namespace kagome::network

@@ -11,6 +11,7 @@
 
 #include "consensus/grandpa/structs.hpp"
 #include "primitives/justification.hpp"
+#include "network/types/grandpa_message.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -35,7 +36,7 @@ namespace kagome::consensus::grandpa {
      * @param f finalization message
      */
     virtual void onFinalize(const libp2p::peer::PeerId &peer_id,
-                            const FullCommitMessage &f) = 0;
+                            const network::FullCommitMessage &f) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

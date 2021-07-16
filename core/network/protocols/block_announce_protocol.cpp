@@ -4,13 +4,15 @@
  */
 
 #include "network/protocols/block_announce_protocol.hpp"
-#include <application/app_configuration.hpp>
 
+#include "application/app_configuration.hpp"
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/protocols/protocol_error.hpp"
 
 namespace kagome::network {
+
+  KAGOME_DEFINE_CACHE(BlockAnnounceProtocol);
 
   BlockAnnounceProtocol::BlockAnnounceProtocol(
       libp2p::Host &host,
@@ -276,7 +278,7 @@ namespace kagome::network {
             self->babe_observer_->onPeerSync();
           } else {
             auto self_status = self->createStatus();
-            if(not self_status.has_value()) {
+            if (not self_status.has_value()) {
               cb(ProtocolError::CAN_NOT_CREATE_STATUS);
               return;
             }
@@ -394,34 +396,15 @@ namespace kagome::network {
         });
   }
 
-  //  void BlockAnnounceProtocol::writeAnnounce(
-  //      std::shared_ptr<Stream> stream, const BlockAnnounce &block_announce) {
-  //    std::function<void(outcome::result<std::shared_ptr<Stream>>)> cb =
-  //        [](outcome::result<std::shared_ptr<Stream>>) {};
-  //
-  //    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-  //
-  //    read_writer->write(block_announce,
-  //                       [stream, wp = weak_from_this(), cb = std::move(cb)](
-  //                           auto &&write_res) mutable {
-  //                         auto self = wp.lock();
-  //                         if (not self) {
-  //                           stream->reset();
-  //                           cb(ProtocolError::GONE);
-  //                           return;
-  //                         }
-  //
-  //                         if (not write_res.has_value()) {
-  //                           SL_VERBOSE(self->log_,
-  //                                      "Error while writing block announce:
-  //                                      {}", write_res.error().message());
-  //                           stream->reset();
-  //                           cb(write_res.as_failure());
-  //                           return;
-  //                         }
-  //
-  //                         cb(std::move(stream));
-  //                       });
-  //  }
+  void BlockAnnounceProtocol::blockAnnounce(BlockAnnounce &&announce) {
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(BlockAnnounceProtocol, BlockAnnounce);
+    (*shared_msg) = std::move(announce);
+
+    SL_DEBUG(log_, "Block announce: block number {}", announce.header.number);
+
+    stream_engine_->broadcast<BlockAnnounce>(shared_from_this(),
+                                             std::move(shared_msg));
+  }
 
 }  // namespace kagome::network

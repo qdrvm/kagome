@@ -26,7 +26,8 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD2(onVoteMessage,
                  void(const PeerId &peer_id, const VoteMessage &));
     MOCK_METHOD2(onFinalize,
-                 void(const PeerId &peer_id, const FullCommitMessage &));
+                 void(const PeerId &peer_id,
+                      const network::FullCommitMessage &));
 
     MOCK_METHOD2(
         applyJustification,

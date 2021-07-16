@@ -16,7 +16,6 @@
 #include "blockchain/block_tree.hpp"
 #include "clock/ticker.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
-#include "consensus/babe/babe_gossiper.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/babe_util.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
@@ -29,6 +28,10 @@
 #include "primitives/common.hpp"
 #include "storage/trie/trie_storage.hpp"
 
+namespace kagome::network {
+  class BlockAnnounceTransmitter;
+}
+
 namespace kagome::consensus::babe {
 
   inline const auto kTimestampId =
@@ -40,16 +43,6 @@ namespace kagome::consensus::babe {
    public:
     /**
      * Create an instance of Babe implementation
-     * @param lottery - implementation of Babe Lottery
-     * @param proposer - block proposer
-     * @param block_tree - tree of the blocks
-     * @param gossiper of this consensus
-     * @param keypair - SR25519 keypair of this node
-     * @param authority_index of this node
-     * @param clock to measure time
-     * @param hasher to take hashes
-     * @param ticker to be used by the implementation
-     * @param event_bus to deliver events over
      */
     BabeImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
              std::shared_ptr<BabeLottery> lottery,
@@ -58,9 +51,10 @@ namespace kagome::consensus::babe {
              std::shared_ptr<primitives::BabeConfiguration> configuration,
              std::shared_ptr<authorship::Proposer> proposer,
              std::shared_ptr<blockchain::BlockTree> block_tree,
-             std::shared_ptr<BabeGossiper> gossiper,
+             std::shared_ptr<network::BlockAnnounceTransmitter>
+                 block_announce_transmitter,
              std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
-             const std::shared_ptr<crypto::Sr25519Keypair>& keypair,
+             const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
              std::unique_ptr<clock::Ticker> ticker,
@@ -70,7 +64,14 @@ namespace kagome::consensus::babe {
 
     ~BabeImpl() override = default;
 
+    /** @see AppStateManager::takeControl */
+    bool prepare();
+
+    /** @see AppStateManager::takeControl */
     bool start();
+
+    /** @see AppStateManager::takeControl */
+    void stop();
 
     void runEpoch(EpochDescriptor epoch) override;
 
@@ -129,15 +130,15 @@ namespace kagome::consensus::babe {
     void synchronizeSlots(const primitives::BlockHeader &new_header);
 
    private:
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<BabeGossiper> gossiper_;
-    const std::shared_ptr<crypto::Sr25519Keypair>& keypair_;
+    std::shared_ptr<network::BlockAnnounceTransmitter>
+        block_announce_transmitter_;
+    const std::shared_ptr<crypto::Sr25519Keypair> &keypair_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
@@ -149,9 +150,6 @@ namespace kagome::consensus::babe {
     State current_state_{State::WAIT_BLOCK};
 
     EpochDescriptor current_epoch_;
-
-    /// Number of blocks we need to use in median algorithm to get the slot time
-    const uint32_t kSlotTail = 30;
 
     BabeSlotNumber current_slot_{};
     boost::optional<BabeLottery::SlotsLeadership> slots_leadership_;

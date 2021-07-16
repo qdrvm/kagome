@@ -20,7 +20,7 @@
 #include "mock/core/api/service/api_service_mock.hpp"
 #include "mock/core/crypto/crypto_store_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
-#include "mock/core/network/extrinsic_gossiper_mock.hpp"
+#include "mock/core/network/transactions_transmitter_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/event_types.hpp"
@@ -42,7 +42,7 @@ using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
 using kagome::blockchain::BlockTree;
-using kagome::network::ExtrinsicGossiperMock;
+using kagome::network::TransactionsTransmitterMock;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
@@ -105,7 +105,7 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<TaggedTransactionQueueMock> ttq;
   sptr<TransactionPoolMock> transaction_pool;
   sptr<ApiServiceMock> api_service_mock;
-  sptr<ExtrinsicGossiperMock> gossiper;
+  sptr<TransactionsTransmitterMock> transactions_transmitter;
   sptr<AuthorApiImpl> author_api;
   sptr<Extrinsic> extrinsic;
   sptr<ValidTransaction> valid_transaction;
@@ -145,10 +145,15 @@ struct AuthorApiTest : public ::testing::Test {
     hasher = std::make_shared<HasherMock>();
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
-    gossiper = std::make_shared<ExtrinsicGossiperMock>();
+    transactions_transmitter = std::make_shared<TransactionsTransmitterMock>();
     api_service_mock = std::make_shared<ApiServiceMock>();
-    author_api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, gossiper, store, keys, key_store);
+    author_api = std::make_shared<AuthorApiImpl>(ttq,
+                                                 transaction_pool,
+                                                 hasher,
+                                                 transactions_transmitter,
+                                                 store,
+                                                 keys,
+                                                 key_store);
     author_api->setApiService(api_service_mock);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
@@ -180,7 +185,7 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
                  true};
   EXPECT_CALL(*transaction_pool, submitOne(tr))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*gossiper, propagateTransactions(_)).Times(1);
+  EXPECT_CALL(*transactions_transmitter, propagateTransactions(_)).Times(1);
   EXPECT_OUTCOME_SUCCESS(hash, author_api->submitExtrinsic(*extrinsic));
   ASSERT_EQ(hash.value(), Hash256{});
 }
@@ -199,7 +204,7 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
       .WillOnce(Return(outcome::failure(DummyError::ERROR)));
   EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
   EXPECT_CALL(*transaction_pool, submitOne(_)).Times(0);
-  EXPECT_CALL(*gossiper, propagateTransactions(_)).Times(0);
+  EXPECT_CALL(*transactions_transmitter, propagateTransactions(_)).Times(0);
   EXPECT_OUTCOME_ERROR(
       res, author_api->submitExtrinsic(*extrinsic), DummyError::ERROR);
 }
@@ -471,7 +476,7 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
           }),
           Return(outcome::success())));
 
-  EXPECT_CALL(*gossiper, propagateTransactions(_))
+  EXPECT_CALL(*transactions_transmitter, propagateTransactions(_))
       .WillOnce(testing::Invoke([this](auto &) {
         sub_engine->notify(ext_id,
                            ExtrinsicLifecycleEvent::Broadcast(ext_id, {}));

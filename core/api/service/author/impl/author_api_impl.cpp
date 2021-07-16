@@ -18,7 +18,7 @@
 #include "crypto/crypto_store/key_file_storage.hpp"
 #include "crypto/crypto_store/session_keys.hpp"
 #include "crypto/hasher.hpp"
-#include "network/extrinsic_gossiper.hpp"
+#include "network/transactions_transmitter.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "scale/scale_decoder_stream.hpp"
@@ -26,17 +26,18 @@
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
-  AuthorApiImpl::AuthorApiImpl(sptr<runtime::TaggedTransactionQueue> api,
-                               sptr<transaction_pool::TransactionPool> pool,
-                               sptr<crypto::Hasher> hasher,
-                               sptr<network::ExtrinsicGossiper> gossiper,
-                               sptr<crypto::CryptoStore> store,
-                               sptr<crypto::SessionKeys> keys,
-                               sptr<crypto::KeyFileStorage> key_store)
+  AuthorApiImpl::AuthorApiImpl(
+      sptr<runtime::TaggedTransactionQueue> api,
+      sptr<transaction_pool::TransactionPool> pool,
+      sptr<crypto::Hasher> hasher,
+      sptr<network::TransactionsTransmitter> transactions_transmitter,
+      sptr<crypto::CryptoStore> store,
+      sptr<crypto::SessionKeys> keys,
+      sptr<crypto::KeyFileStorage> key_store)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)},
-        gossiper_{std::move(gossiper)},
+        transactions_transmitter_{std::move(transactions_transmitter)},
         store_{std::move(store)},
         keys_{std::move(keys)},
         key_store_{std::move(key_store)},
@@ -45,7 +46,8 @@ namespace kagome::api {
     BOOST_ASSERT_MSG(api_ != nullptr, "author api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
     BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
-    BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
+    BOOST_ASSERT_MSG(transactions_transmitter_ != nullptr,
+                     "transactions_transmitter is nullptr");
     BOOST_ASSERT_MSG(store_ != nullptr, "crypto store is nullptr");
     BOOST_ASSERT_MSG(keys_ != nullptr, "session keys store is nullptr");
     BOOST_ASSERT_MSG(key_store_ != nullptr, "key store is nullptr");
@@ -63,7 +65,8 @@ namespace kagome::api {
     OUTCOME_TRY(tx, constructTransaction(extrinsic, boost::none));
 
     if (tx.should_propagate) {
-      gossiper_->propagateTransactions(gsl::make_span(std::vector{tx}));
+      transactions_transmitter_->propagateTransactions(
+          gsl::make_span(std::vector{tx}));
     }
     auto hash = tx.hash;
     // send to pool
@@ -171,7 +174,8 @@ namespace kagome::api {
           "Internal error. Api service not initialized.");
     }
     if (tx.should_propagate) {
-      gossiper_->propagateTransactions(gsl::make_span(std::vector{tx}));
+      transactions_transmitter_->propagateTransactions(
+          gsl::make_span(std::vector{tx}));
     }
 
     // send to pool
