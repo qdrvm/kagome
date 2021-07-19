@@ -5,6 +5,7 @@
 
 #include "host_api/impl/storage_extension.hpp"
 
+#include <boost/optional.hpp>
 #include <gtest/gtest.h>
 
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
@@ -101,7 +102,7 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
-  EXPECT_CALL(*trie_batch_, clearPrefix(prefix))
+  EXPECT_CALL(*trie_batch_, clearPrefix(prefix, _))
       .Times(1)
       .WillOnce(Return(outcome::success()));
 
@@ -750,7 +751,7 @@ TEST_F(StorageExtensionTest, ExtStorageClearPrefixV1Test) {
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
-  EXPECT_CALL(*trie_batch_, clearPrefix(prefix))
+  EXPECT_CALL(*trie_batch_, clearPrefix(prefix, _))
       .Times(1)
       .WillOnce(Return(outcome::success()));
 

@@ -22,7 +22,9 @@ namespace kagome::storage::trie {
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;
-    outcome::result<void> clearPrefix(const Buffer &prefix) override;
+    outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
+        const Buffer &prefix,
+        boost::optional<uint64_t> limit = boost::none) override;
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
     outcome::result<void> remove(const Buffer &key) override;

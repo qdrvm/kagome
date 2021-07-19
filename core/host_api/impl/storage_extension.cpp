@@ -50,14 +50,24 @@ namespace kagome::host_api {
 
   // -------------------------Data storage--------------------------
 
-  void StorageExtension::ext_clear_prefix(runtime::WasmPointer prefix_data,
-                                          runtime::WasmSize prefix_length) {
+  runtime::WasmSpan StorageExtension::ext_clear_prefix(
+      runtime::WasmPointer prefix_data,
+      runtime::WasmSize prefix_length,
+      boost::optional<runtime::WasmSpan> limit) {
     auto batch = storage_provider_->getCurrentBatch();
     auto prefix = memory_->loadN(prefix_data, prefix_length);
-    auto res = batch->clearPrefix(prefix);
+    auto res = batch->clearPrefix(prefix, limit);
     if (not res) {
       logger_->error("ext_clear_prefix failed: {}", res.error().message());
+      return 0;
     }
+    auto enc = scale::encode(res.value());
+    if (not enc) {
+      logger_->error("ext_clear_prefix encoding failed: {}",
+                     enc.error().message());
+      return 0;
+    }
+    return memory_->storeBuffer(enc.value());
   }
 
   void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
@@ -361,7 +371,13 @@ namespace kagome::host_api {
   void StorageExtension::ext_storage_clear_prefix_version_1(
       runtime::WasmSpan prefix) {
     auto [prefix_ptr, prefix_size] = runtime::WasmResult(prefix);
-    return ext_clear_prefix(prefix_ptr, prefix_size);
+    ext_clear_prefix(prefix_ptr, prefix_size);
+  }
+
+  runtime::WasmSpan StorageExtension::ext_storage_clear_prefix_version_2(
+      runtime::WasmSpan prefix, boost::optional<runtime::WasmSpan> limit) {
+    auto [prefix_ptr, prefix_size] = runtime::WasmResult(prefix);
+    return ext_clear_prefix(prefix_ptr, prefix_size, limit);
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_root_version_1() const {
@@ -527,7 +543,7 @@ namespace kagome::host_api {
 
   boost::optional<common::Buffer> StorageExtension::calcStorageChangesRoot(
       common::Hash256 parent_hash) const {
-    if(not storage_provider_->tryGetPersistentBatch()) {
+    if (not storage_provider_->tryGetPersistentBatch()) {
       logger_->error("ext_storage_changes_root persistent batch not found");
       return boost::none;
     }
