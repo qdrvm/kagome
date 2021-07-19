@@ -8,23 +8,22 @@
 
 #include "network/grandpa_transmitter.hpp"
 
-#include "network/router.hpp"
-
 namespace kagome::network {
+  class Router;
 
   class GrandpaTransmitterImpl final : public GrandpaTransmitter {
    public:
-    GrandpaTransmitterImpl(std::shared_ptr<network::Router> router);
+    GrandpaTransmitterImpl(std::shared_ptr<Router> router);
 
-    void vote(network::GrandpaVote &&message) override;
-    void finalize(network::FullCommitMessage &&message) override;
+    void vote(GrandpaVote &&message) override;
+    void finalize(FullCommitMessage &&message) override;
     void catchUpRequest(const libp2p::peer::PeerId &peer_id,
-                        network::CatchUpRequest &&message) override;
+                        CatchUpRequest &&message) override;
     void catchUpResponse(const libp2p::peer::PeerId &peer_id,
-                         network::CatchUpResponse &&message) override;
+                         CatchUpResponse &&message) override;
 
    private:
-    std::shared_ptr<network::Router> router_;
+    std::shared_ptr<Router> router_;
   };
 
 }  // namespace kagome::network

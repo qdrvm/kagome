@@ -8,9 +8,6 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
-#include "consensus/grandpa/justification_observer.hpp"
-#include "consensus/grandpa/neighbor_observer.hpp"
-#include "consensus/grandpa/round_observer.hpp"
 #include "network/types/grandpa_message.hpp"
 
 namespace kagome::network {

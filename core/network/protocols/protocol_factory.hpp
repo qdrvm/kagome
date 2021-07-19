@@ -14,9 +14,6 @@
 #include "network/protocols/propagate_transactions_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
 #include "primitives/event_types.hpp"
-#include "subscription/extrinsic_event_key_repository.hpp"
-#include "subscription/subscriber.hpp"
-#include "subscription/subscription_engine.hpp"
 
 namespace kagome::network {
 

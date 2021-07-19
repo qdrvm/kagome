@@ -8,18 +8,17 @@
 
 #include "network/block_announce_transmitter.hpp"
 
-#include "network/router.hpp"
-
 namespace kagome::network {
+  class Router;
 
   class BlockAnnounceTransmitterImpl final : public BlockAnnounceTransmitter {
    public:
-    BlockAnnounceTransmitterImpl(std::shared_ptr<network::Router> router);
+    BlockAnnounceTransmitterImpl(std::shared_ptr<Router> router);
 
-    void blockAnnounce(network::BlockAnnounce &&announce) override;
+    void blockAnnounce(BlockAnnounce &&announce) override;
 
    private:
-    std::shared_ptr<network::Router> router_;
+    std::shared_ptr<Router> router_;
   };
 
 }  // namespace kagome::network

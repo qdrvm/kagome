@@ -5,6 +5,8 @@
 
 #include "network/impl/block_announce_transmitter_impl.hpp"
 
+#include "network/router.hpp"
+
 namespace kagome::network {
 
   BlockAnnounceTransmitterImpl::BlockAnnounceTransmitterImpl(

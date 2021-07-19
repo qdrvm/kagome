@@ -28,18 +28,14 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const EpochDescriptor &led) {
-    return s << led.epoch_number << led.start_slot
-             << static_cast<int64_t>(0)  // TODO(xDimon): Remove it after wipe
-        ;
+    return s << led.epoch_number << led.start_slot;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, EpochDescriptor &led) {
     int64_t starting_slot_finish_time;
-    return s >> led.epoch_number >> led.start_slot
-           >> starting_slot_finish_time  // TODO(xDimon): Remove it after wipe
-        ;
+    return s >> led.epoch_number >> led.start_slot >> starting_slot_finish_time;
   }
 
 }  // namespace kagome::consensus

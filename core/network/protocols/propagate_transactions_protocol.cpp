@@ -319,13 +319,13 @@ namespace kagome::network {
         [&peers](const libp2p::peer::PeerId &peer_id, const auto &) {
           peers.push_back(peer_id);
         });
-    if (peers.size() > 1) {
+    if (peers.size() > 1) {  // One of peers is current node itself
       for (const auto &tx : txs) {
         if (auto key = ext_event_key_repo_->getEventKey(tx); key.has_value()) {
           extrinsic_events_engine_->notify(
               key.value(),
               primitives::events::ExtrinsicLifecycleEvent::Broadcast(
-                  key.value(), std::move(peers)));
+                  key.value(), peers));
         }
       }
     }

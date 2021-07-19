@@ -5,6 +5,8 @@
 
 #include "network/impl/grandpa_transmitter_impl.hpp"
 
+#include "network/router.hpp"
+
 namespace kagome::network {
 
   GrandpaTransmitterImpl::GrandpaTransmitterImpl(
