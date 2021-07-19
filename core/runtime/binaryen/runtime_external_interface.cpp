@@ -654,7 +654,7 @@ namespace kagome::runtime::binaryen {
       }
 
       /// ext_storage_clear_prefix_version_2
-      // TODO(Harrm): Implement limit deletion in polkadot_trie
+      // TODO (Harrm) https://github.com/soramitsu/kagome/issues/829
       // @see
       // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/io/src/lib.rs#L380
       if (import->base == ext_storage_clear_prefix_version_2) {
