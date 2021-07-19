@@ -46,8 +46,7 @@ namespace kagome::consensus {
      * @param led LastEpochDescriptor of last active epoch
      * @return result of store
      */
-    virtual outcome::result<void> setLastEpoch(
-        const EpochDescriptor &led) = 0;
+    virtual outcome::result<void> setLastEpoch(const EpochDescriptor &led) = 0;
 
     /**
      * Get number of last active epoch

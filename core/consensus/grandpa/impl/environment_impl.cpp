@@ -10,8 +10,8 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
+#include "network/grandpa_transmitter.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -23,14 +23,14 @@ namespace kagome::consensus::grandpa {
   EnvironmentImpl::EnvironmentImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-      std::shared_ptr<Gossiper> gossiper)
+      std::shared_ptr<network::GrandpaTransmitter> transmitter)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
-        gossiper_{std::move(gossiper)},
+        transmitter_{std::move(transmitter)},
         logger_{log::createLogger("GrandpaEnvironment", "grandpa")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
-    BOOST_ASSERT(gossiper_ != nullptr);
+    BOOST_ASSERT(transmitter_ != nullptr);
   }
 
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(
@@ -81,10 +81,10 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       MembershipCounter set_id,
       RoundNumber round_number) {
+    SL_DEBUG(logger_, "Send Catch-Up-Request upto round {}", round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
-    gossiper_->catchUpRequest(peer_id, message);
-    SL_DEBUG(logger_, "Catch-Up-Request sent from round #{}", round_number);
+    transmitter_->catchUpRequest(peer_id, std::move(message));
     return outcome::success();
   }
 
@@ -95,14 +95,14 @@ namespace kagome::consensus::grandpa {
       std::vector<SignedPrevote> prevote_justification,
       std::vector<SignedPrecommit> precommit_justification,
       BlockInfo best_final_candidate) {
+    SL_DEBUG(logger_, "Send Catch-Up-Response upto round {}", round_number);
     network::CatchUpResponse message{
         .voter_set_id = set_id,
         .round_number = round_number,
         .prevote_justification = std::move(prevote_justification),
         .precommit_justification = std::move(precommit_justification),
         .best_final_candidate = best_final_candidate};
-    gossiper_->catchUpResponse(peer_id, message);
-    SL_DEBUG(logger_, "Catch-Up-Response sent upto round {}", round_number);
+    transmitter_->catchUpResponse(peer_id, std::move(message));
     return outcome::success();
   }
 
@@ -111,14 +111,16 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &propose) {
     BOOST_ASSERT(propose.is<PrimaryPropose>());
-    network::GrandpaVote message{
-        {.round_number = round, .counter = set_id, .vote = propose}};
-    gossiper_->vote(message);
+
     SL_DEBUG(logger_,
-             "Round #{}: Proposed block #{} with hash {}",
+             "Round #{}: Send proposal for block #{} with hash {}",
              round,
              propose.getBlockNumber(),
              propose.getBlockHash().toHex());
+
+    network::GrandpaVote message{
+        {.round_number = round, .counter = set_id, .vote = propose}};
+    transmitter_->vote(std::move(message));
     return outcome::success();
   }
 
@@ -127,14 +129,17 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &prevote) {
     BOOST_ASSERT(prevote.is<Prevote>());
-    network::GrandpaVote message{
-        {.round_number = round, .counter = set_id, .vote = prevote}};
-    gossiper_->vote(message);
+
     SL_DEBUG(logger_,
-             "Round #{}: Prevoted block #{} with hash {}",
+             "Round #{}: Send prevote for block #{} with hash {}",
              round,
              prevote.getBlockNumber(),
              prevote.getBlockHash().toHex());
+
+    network::GrandpaVote message{
+        {.round_number = round, .counter = set_id, .vote = prevote}};
+    transmitter_->vote(std::move(message));
+
     return outcome::success();
   }
 
@@ -143,14 +148,17 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedMessage &precommit) {
     BOOST_ASSERT(precommit.is<Precommit>());
-    network::GrandpaVote message{
-        {.round_number = round, .counter = set_id, .vote = precommit}};
-    gossiper_->vote(message);
+
     SL_DEBUG(logger_,
-             "Round #{}: Precommitted block #{} with hash {}",
+             "Round #{}: Send precommit for block #{} with hash {}",
              round,
              precommit.getBlockNumber(),
              precommit.getBlockHash().toHex());
+
+    network::GrandpaVote message{
+        {.round_number = round, .counter = set_id, .vote = precommit}};
+    transmitter_->vote(std::move(message));
+
     return outcome::success();
   }
 
@@ -158,12 +166,14 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
+
     SL_DEBUG(logger_,
-             "Round #{}: Committed block #{} with hash {}",
+             "Round #{}: Send commit of block #{} with hash {}",
              round,
              vote.number,
              vote.hash.toHex());
-    FullCommitMessage message{
+
+    network::FullCommitMessage message{
         .round = round,
         .message = {.target_hash = vote.hash, .target_number = vote.number}};
     for (const auto &item : justification.items) {
@@ -173,7 +183,8 @@ namespace kagome::consensus::grandpa {
       message.message.auth_data.emplace_back(
           std::make_pair(item.signature, item.id));
     }
-    gossiper_->finalize(message);
+    transmitter_->finalize(std::move(message));
+
     return outcome::success();
   }
 

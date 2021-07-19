@@ -8,14 +8,13 @@
 
 #include <gmock/gmock.h>
 
-#include "network/extrinsic_gossiper.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {
 
-  struct Dummy{};
+  struct Dummy {};
   bool operator==(const Dummy &d_0, const Dummy &d_1) {
-    return true;//&d_0 == &d_1;
+    return true;  //&d_0 == &d_1;
   }
 
   class AdapterMock final {
@@ -32,6 +31,6 @@ namespace kagome::network {
     MOCK_METHOD3(m_read, Result(Dummy &, const Buffer &, BufferCIt));
   };
 
-}  // namespace kagome::api
+}  // namespace kagome::network
 
 #endif  // KAGOME_TEST_CORE_NETWORK_ADAPTER_MOCK_HPP

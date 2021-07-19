@@ -14,6 +14,7 @@
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "network/block_announce_transmitter.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
@@ -28,7 +29,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<BabeGossiper> gossiper,
+      std::shared_ptr<network::BlockAnnounceTransmitter>
+          block_announce_transmitter,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
@@ -37,14 +39,13 @@ namespace kagome::consensus::babe {
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util)
-      : app_state_manager_(std::move(app_state_manager)),
-        lottery_{std::move(lottery)},
+      : lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
         trie_storage_{std::move(trie_storage)},
         babe_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
-        gossiper_{std::move(gossiper)},
+        block_announce_transmitter_{std::move(block_announce_transmitter)},
         keypair_{keypair},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
@@ -53,12 +54,11 @@ namespace kagome::consensus::babe {
         authority_update_observer_(std::move(authority_update_observer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
-    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
-    BOOST_ASSERT(gossiper_);
+    BOOST_ASSERT(block_announce_transmitter_);
     BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
@@ -66,13 +66,20 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(authority_update_observer_);
     BOOST_ASSERT(babe_util_);
 
-    app_state_manager_->atLaunch([this] { return start(); });
+    BOOST_ASSERT(app_state_manager);
+    app_state_manager->takeControl(*this);
+  }
+
+  bool BabeImpl::prepare() {
+    return true;
   }
 
   bool BabeImpl::start() {
     current_state_ = State::WAIT_BLOCK;
     return true;
   }
+
+  void BabeImpl::stop() {}
 
   /**
    * @brief Get index of authority
@@ -398,7 +405,8 @@ namespace kagome::consensus::babe {
     }
 
     // finally, broadcast the sealed block
-    gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
+    block_announce_transmitter_->blockAnnounce(
+        network::BlockAnnounce{block.header});
     SL_DEBUG(
         log_,
         "Announced block number {} in slot {} (epoch {}) with timestamp {}",
@@ -476,8 +484,7 @@ namespace kagome::consensus::babe {
 
     EpochDescriptor epoch;
     const auto last_known_epoch = babe_util_->getLastEpoch().value();
-    epoch = prepareFirstEpoch(last_known_epoch,
-                                      babe_header.slot_number + 1);
+    epoch = prepareFirstEpoch(last_known_epoch, babe_header.slot_number + 1);
 
     // runEpoch starts ticker
     if (not ticker_->isStarted()) {

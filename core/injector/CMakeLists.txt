@@ -56,7 +56,6 @@ target_link_libraries(application_injector
     extrinsic_observer
     transaction_pool
     host_api_factory
-    gossiper_broadcast
     kagome_router
     leveldb
     outcome
@@ -80,9 +79,12 @@ target_link_libraries(application_injector
     babe_util
     assets
     block_announce_protocol
-    gossip_protocol
     propagate_transactions_protocol
-    sup_protocol
+    grandpa_protocol
     sync_protocol
     protocol_factory
+    p2p::p2p_loopback_stream
+    grandpa_transmitter
+    block_announce_transmitter
+    transactions_transmitter
     )
