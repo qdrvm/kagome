@@ -107,6 +107,8 @@ namespace kagome::runtime::binaryen {
       "ext_storage_read_version_1";
   const static wasm::Name ext_storage_clear_prefix_version_1 =
       "ext_storage_clear_prefix_version_1";
+  const static wasm::Name ext_storage_clear_prefix_version_2 =
+      "ext_storage_clear_prefix_version_2";
   const static wasm::Name ext_storage_root_version_1 =
       "ext_storage_root_version_1";
   const static wasm::Name ext_storage_changes_root_version_1 =
@@ -296,7 +298,7 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal();
       }
       /// ext_logging_max_level_version_1
-      if(import->base == ext_logging_max_level_version_1) {
+      if (import->base == ext_logging_max_level_version_1) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         auto res = host_api_->ext_logging_max_level_version_1();
         return wasm::Literal(res);
@@ -649,6 +651,18 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_storage_clear_prefix_version_1(arguments.at(0).geti64());
         return wasm::Literal();
+      }
+
+      /// ext_storage_clear_prefix_version_2
+      // TODO (Harrm) https://github.com/soramitsu/kagome/issues/829
+      // @see
+      // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/io/src/lib.rs#L380
+      if (import->base == ext_storage_clear_prefix_version_2) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_storage_clear_prefix_version_2(
+            arguments.at(0).geti64(), arguments.at(1).geti64());
+        // always remove successfully all elements
+        return wasm::Literal(res);
       }
 
       /// ext_storage_root_version_1

@@ -203,6 +203,15 @@ namespace kagome::host_api {
         runtime::WasmSpan prefix) = 0;
 
     /**
+     * @brief Clear the storage of each key/value pair where the key starts with
+     * the given prefix.
+     * @param prefix memory span containing prefix
+     * @param limit of entries to be removed
+     */
+    virtual runtime::WasmSpan ext_storage_clear_prefix_version_2(
+        runtime::WasmSpan prefix, runtime::WasmSpan limit) = 0;
+
+    /**
      * @brief Commits all existing operations and computes the resulting storage
      * root.
      * @return memory span containing scale-encoded storage root
