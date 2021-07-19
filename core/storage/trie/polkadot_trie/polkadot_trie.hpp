@@ -31,6 +31,11 @@ namespace kagome::storage::trie {
 
     /**
      * Remove all trie entries which key begins with the supplied prefix
+     * @param prefix key prefix for nodes to be removed
+     * @param limit number of elements to remove, boost::none if no limit
+     * @param callback function that will be called for each node removal
+     * @returns tuple first element true if removed all nodes to be removed,
+     * second tuple element is a number of removed elements
      */
 
     virtual outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
