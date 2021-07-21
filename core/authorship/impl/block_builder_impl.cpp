@@ -51,6 +51,8 @@ namespace kagome::authorship {
               extrinsics_.push_back(extrinsic);
               return extrinsics_.size() - 1;
           }
+          // Not going to happen
+          throw std::runtime_error("Not all ApplyOutcome cases are checked");
         },
         [this, &extrinsic](primitives::ApplyError)
             -> outcome::result<primitives::ExtrinsicIndex> {
