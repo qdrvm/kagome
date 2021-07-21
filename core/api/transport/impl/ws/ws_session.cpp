@@ -42,7 +42,7 @@ namespace kagome::api {
       stream_.close(boost::beast::websocket::close_reason(code), ec);
       boost::ignore_unused(ec);
       notifyOnClose(id_, type());
-      if (nullptr != on_ws_close_) {
+      if (on_ws_close_) {
         on_ws_close_();
       }
       SL_TRACE(logger_, "Session id = {} terminated, reason = {} ", id_, code);
