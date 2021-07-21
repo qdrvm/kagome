@@ -369,10 +369,15 @@ namespace kagome::consensus::babe {
     block.header.digest.emplace_back(seal_res.value());
 
     // check that we are still in the middle of the
-    if (current_slot_ != babe_util_->getCurrentSlot()) {
+    auto block_delay = babe_util_->getCurrentSlot() - current_slot_;
+    if (block_delay > kMaxBlockSlotsOvertime) {
       log_->warn(
-          "Block was not built in time. Slot has finished. If you are "
-          "executing in debug mode, consider to rebuild in release");
+          "Block was not built in time. "
+          "Allowed slots ({}) have passed. "
+          "Block delayed for {} slots. "
+          "If you are executing in debug mode, consider to rebuild in release",
+          kMaxBlockSlotsOvertime,
+          block_delay);
       return;
     }
 

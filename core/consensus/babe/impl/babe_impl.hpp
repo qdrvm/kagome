@@ -39,6 +39,10 @@ namespace kagome::consensus::babe {
   inline const auto kBabeSlotId =
       primitives::InherentIdentifier::fromString("babeslot").value();
 
+  /// The maximum allowed number of slots past the expected slot as a delay for
+  /// block production. This is an intentional relaxation of block dropping algo
+  static constexpr auto kMaxBlockSlotsOvertime = 2;
+
   class BabeImpl : public Babe, public std::enable_shared_from_this<BabeImpl> {
    public:
     /**
