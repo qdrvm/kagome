@@ -36,14 +36,23 @@ namespace kagome::api {
   }
 
   void WsSession::stop(boost::beast::websocket::close_code code) {
-    boost::system::error_code ec;
-    stream_.close(boost::beast::websocket::close_reason(code), ec);
-    boost::ignore_unused(ec);
-    notifyOnClose(id_, type());
-    if (nullptr != on_ws_close_) {
-      on_ws_close_();
+    bool already_stopped = false;
+    if (stopped_.compare_exchange_strong(already_stopped, true)) {
+      boost::system::error_code ec;
+      stream_.close(boost::beast::websocket::close_reason(code), ec);
+      boost::ignore_unused(ec);
+      notifyOnClose(id_, type());
+      if (nullptr != on_ws_close_) {
+        on_ws_close_();
+      }
+      SL_TRACE(logger_, "Session id = {} terminated, reason = {} ", id_, code);
+    } else {
+      SL_TRACE(logger_,
+               "Session id = {} was already terminated. Doing nothing. Called "
+               "for reason = {}",
+               id_,
+               code);
     }
-    SL_TRACE(logger_, "Session id = {} terminated", id_);
   }
 
   void WsSession::connectOnWsSessionCloseHandler(
