@@ -75,7 +75,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Wno-gnu-zero-variadic-macro-arguments)   # https://stackoverflow.com/questions/21266380/is-the-gnu-zero-variadic-macro-arguments-safe-to-ignore
 
   # clang compiler starting from version 12 wont compile when these unknown for it flags are specified
-  if (NOT ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang)$") AND (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "12.0"))
+  if (NOT (("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang)$") AND (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "12.0")))
     # promote to errors
     add_flag(-Werror-unused-lambda-capture)  # error if lambda capture is unused
     add_flag(-Werror-return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
