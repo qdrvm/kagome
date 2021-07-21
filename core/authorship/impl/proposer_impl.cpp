@@ -63,8 +63,9 @@ namespace kagome::authorship {
     auto remove_res = transaction_pool_->removeStale(parent_block_number);
     if (remove_res.has_error()) {
       SL_DEBUG(logger_,
-               "Stale transactions remove failure: {}",
-               remove_res.error().message());
+               "Stale transactions remove failure: {}, Block number is {}",
+               remove_res.error().message(),
+               parent_block_number);
     }
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
 
