@@ -73,10 +73,13 @@ namespace kagome::network {
         } break;
 
         case msg.kNumber: {
-          libp2p::multi::UVarint varint(
-              gsl::make_span((uint8_t *)(msg.number().data()),  // NOLINT
+          auto varint_opt = libp2p::multi::UVarint::create(
+              gsl::make_span((const uint8_t *)(msg.number().data()),  // NOLINT
                              msg.number().size()));
-          primitives::BlockNumber bn(varint.toUInt64());
+          if (not varint_opt.has_value()) {
+            return AdaptersError::PARSE_FAILED;
+          }
+          primitives::BlockNumber bn(varint_opt->toUInt64());
           out.from = bn;
         } break;
 

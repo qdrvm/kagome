@@ -40,6 +40,7 @@ target_link_libraries(proto_block_request_test
     node_api_proto
     blob
     adapter_errors
+    p2p::p2p_uvarint
     )
 
 addtest(block_response_test
