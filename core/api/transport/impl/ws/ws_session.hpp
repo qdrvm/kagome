@@ -156,6 +156,7 @@ namespace kagome::api {
     std::queue<std::string> pending_responses_;
 
     std::atomic_bool writing_in_progress_ = false;
+    std::atomic_bool stopped_ = false;
 
     SessionId const id_;
     OnWsSessionCloseHandler on_ws_close_;
