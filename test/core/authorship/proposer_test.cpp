@@ -125,6 +125,9 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
   EXPECT_CALL(*transaction_pool_, removeOne("fakeHash"_hash256))
       .WillOnce(Return(outcome::success()));
 
+  EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_number_)))
+      .WillOnce(Return(outcome::success()));
+
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   // when
@@ -183,6 +186,8 @@ TEST_F(ProposerTest, PushFailed) {
       .WillOnce(Return(Transaction{}));
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
       .WillOnce(Return(ready_transactions));
+  EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_number_)))
+      .WillOnce(Return(outcome::success()));
 
   // when
   auto block_res =
