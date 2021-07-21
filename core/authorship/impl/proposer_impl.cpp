@@ -60,10 +60,16 @@ namespace kagome::authorship {
       }
     }
 
+    auto remove_res = transaction_pool_->removeStale(parent_block_number);
+    if (remove_res.has_error()) {
+      SL_DEBUG(logger_,
+               "Stale transactions remove failure: {}",
+               remove_res.error().message());
+    }
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
 
     for (const auto &[hash, tx] : ready_txs) {
-      auto& tx_ref = tx;
+      const auto &tx_ref = tx;
       SL_DEBUG(logger_, "Adding extrinsic: {}", tx_ref->ext.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
