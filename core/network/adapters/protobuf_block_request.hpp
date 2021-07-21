@@ -8,6 +8,9 @@
 
 #include "network/adapters/protobuf.hpp"
 
+#include <gsl/span>
+#include <libp2p/multi/uvarint.hpp>
+
 #include "common/visitor.hpp"
 #include "macro/endianness_utils.hpp"
 #include "network/types/blocks_request.hpp"
@@ -70,15 +73,21 @@ namespace kagome::network {
         } break;
 
         case msg.kNumber: {
-          out.from = std::stoull(msg.number());
+          libp2p::multi::UVarint varint(gsl::make_span(
+              (uint8_t *)(msg.number().data()), msg.number().size()));
+          auto &&bn = primitives::BlockNumber(varint.toUInt64());
+          out.from = bn;
         } break;
 
         default:
           return AdaptersError::UNEXPECTED_VARIANT;
       }
 
-      OUTCOME_TRY(to_block, primitives::BlockHash::fromString(msg.to_block()));
-      out.to = to_block;
+      if (not msg.to_block().empty()) {
+        OUTCOME_TRY(to_block,
+                    primitives::BlockHash::fromString(msg.to_block()));
+        out.to = to_block;
+      }
       out.max = msg.max_blocks();
 
       std::advance(from, msg.ByteSizeLong());
