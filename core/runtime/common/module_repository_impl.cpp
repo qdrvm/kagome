@@ -45,7 +45,7 @@ namespace kagome::runtime {
       std::lock_guard guard{instances_mutex_};
       if (auto it = instances_.find(state); it == instances_.end()) {
         OUTCOME_TRY(instance, modules_[state]->instantiate());
-        std::shared_ptr shared_instance = std::move(instance);
+        std::shared_ptr<ModuleInstance> shared_instance = std::move(instance);
         instances_[state] = shared_instance;
         return shared_instance;
       } else {

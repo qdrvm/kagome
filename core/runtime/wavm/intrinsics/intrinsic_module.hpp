@@ -9,6 +9,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 
 #include <boost/assert.hpp>
+#include <unordered_map>
 
 #include "runtime/wavm/compartment_wrapper.hpp"
 

@@ -8,6 +8,8 @@
 
 #include "runtime/module_repository.hpp"
 
+#include <unordered_map>
+
 namespace kagome::runtime {
 
   class RuntimeUpgradeTracker;
