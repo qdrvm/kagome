@@ -18,9 +18,12 @@ namespace kagome::primitives {
   enum class TransactionSource : uint8_t {
     /// Transaction is already included in block.
     ///
-    /// This means that we can't really tell where the transaction is coming from,
-    /// since it's already in the received block. Note that the custom validation logic
-    /// using either `Local` or `External` should most likely just allow `InBlock`
+    /// This means that we can't really tell where the transaction is coming
+    /// from,
+    /// since it's already in the received block. Note that the custom
+    /// validation logic
+    /// using either `Local` or `External` should most likely just allow
+    /// `InBlock`
     /// transactions as well.
     InBlock,
 
@@ -33,13 +36,14 @@ namespace kagome::primitives {
 
     /// Transaction has been received externally.
     ///
-    /// This means the transaction has been received from (usually) "untrusted" source,
+    /// This means the transaction has been received from (usually) "untrusted"
+    /// source,
     /// for instance received over the network or RPC.
     External,
   };
 
   template <class Stream,
-      typename = std::enable_if_t<Stream::is_encoder_stream>>
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const TransactionSource &v) {
     return s << static_cast<uint8_t>(v);
   }
@@ -63,7 +67,8 @@ namespace kagome::primitives {
      * A non-empty list signifies that some other transactions which provide
      * given tags are required to be included before that one.
      */
-    std::vector<Transaction::Tag> requires;
+    std::vector<Transaction::Tag>
+    requires;
 
     /**
      * @brief Provided tags
@@ -125,7 +130,15 @@ namespace kagome::primitives {
     /// in the current block.
     ExhaustsResources,
     /// Any other custom invalid validity that is not covered by this enum.
-    Custom
+    Custom,
+    /// An extrinsic with a Mandatory dispatch resulted in Error. This is
+    /// indicative of either a malicious validator or a buggy
+    /// `provide_inherent`. In any case, it can result in dangerously overweight
+    /// blocks and therefore if found, invalidates the block.
+    BadMandatory,
+    /// A transaction with a mandatory dispatch. This is invalid; only inherent extrinsics are
+    /// allowed to have mandatory dispatches.
+    MandatoryDispatch,
   };
 
   template <class Stream,

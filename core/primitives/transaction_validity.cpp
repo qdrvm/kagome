@@ -30,6 +30,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InvalidTransaction, e) {
              "resources left in the current block";
     case E::Custom:
       return "Custom invalid error";
+    case E::BadMandatory:
+      return "A call was labelled as mandatory, but resulted in an Error.";
+    case E::MandatoryDispatch:
+      return "Transaction dispatch is mandatory; transactions may not have "
+             "mandatory dispatches.";
   }
   return "Unknown InvalidTransaction error";
 }
