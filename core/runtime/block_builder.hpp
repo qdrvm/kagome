@@ -27,7 +27,7 @@ namespace kagome::runtime {
     /**
      * Apply the given extrinsic.
      */
-    virtual outcome::result<primitives::ApplyResult> apply_extrinsic(
+    virtual outcome::result<primitives::ApplyExtrinsicResult> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) = 0;
 
     /**

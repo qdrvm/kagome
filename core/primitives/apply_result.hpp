@@ -59,7 +59,7 @@ namespace kagome::primitives {
     return s;
   }
 
-  using ApplyResult = boost::variant<ApplyOutcome, ApplyError>;
+  using ApplyExtrinsicResult = boost::variant<ApplyOutcome, ApplyError>;
 
 }  // namespace kagome::primitives
 
