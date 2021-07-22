@@ -43,14 +43,14 @@ namespace kagome::authorship {
         "applied";
     return visit_in_place(
         apply_res.value(),
-        [this, &extrinsic](primitives::ApplyOutcome apply_outcome)
+        [this, &extrinsic](primitives::DispatchOutcome outcome)
             -> outcome::result<primitives::ExtrinsicIndex> {
-          switch (apply_outcome) {
-            case primitives::ApplyOutcome::FAIL:
+          switch (outcome) {
+            case primitives::DispatchOutcome::FAIL:
               logger_->warn(logger_error_template,
                             extrinsic.data.toHex().substr(0, 8));
               [[fallthrough]];
-            case primitives::ApplyOutcome::SUCCESS:
+            case primitives::DispatchOutcome::SUCCESS:
               extrinsics_.push_back(extrinsic);
               return extrinsics_.size() - 1;
           }

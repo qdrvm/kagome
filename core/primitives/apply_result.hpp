@@ -10,21 +10,21 @@
 
 namespace kagome::primitives {
 
-  enum class ApplyOutcome : uint8_t { SUCCESS = 0, FAIL = 1 };
+  enum class DispatchOutcome : uint8_t { SUCCESS = 0, FAIL = 1 };
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const ApplyOutcome &outcome) {
+  Stream &operator<<(Stream &s, const DispatchOutcome &outcome) {
     uint8_t r{static_cast<uint8_t>(outcome)};
     return s << r;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, ApplyOutcome &outcome) {
+  Stream &operator>>(Stream &s, DispatchOutcome &outcome) {
     uint8_t int_res = 0;
     s >> int_res;
-    outcome = ApplyOutcome{int_res};
+    outcome = DispatchOutcome{int_res};
     return s;
   }
 
@@ -59,7 +59,7 @@ namespace kagome::primitives {
     return s;
   }
 
-  using ApplyExtrinsicResult = boost::variant<ApplyOutcome, ApplyError>;
+  using ApplyExtrinsicResult = boost::variant<DispatchOutcome, ApplyError>;
 
 }  // namespace kagome::primitives
 

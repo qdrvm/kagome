@@ -6,19 +6,19 @@
 #include "authorship/impl/block_builder_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "testutil/prepare_loggers.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::Return;
 
 using kagome::authorship::BlockBuilderImpl;
-using kagome::primitives::ApplyOutcome;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
+using kagome::primitives::DispatchOutcome;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilderApiMock;
@@ -80,7 +80,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
   // given
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
-      .WillOnce(Return(ApplyOutcome::SUCCESS));
+      .WillOnce(Return(DispatchOutcome::SUCCESS));
   EXPECT_CALL(*block_builder_api_, finalise_block())
       .WillOnce(Return(expected_header_));
 
@@ -105,7 +105,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
   // given
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
-      .WillOnce(Return(ApplyOutcome::FAIL));
+      .WillOnce(Return(DispatchOutcome::FAIL));
   EXPECT_CALL(*block_builder_api_, finalise_block())
       .WillOnce(Return(expected_header_));
 
