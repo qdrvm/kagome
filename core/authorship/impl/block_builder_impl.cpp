@@ -27,6 +27,9 @@ namespace kagome::authorship {
       const primitives::Extrinsic &extrinsic) {
     auto apply_res = block_builder_api_->apply_extrinsic(extrinsic);
     if (not apply_res) {
+      // Takes place when API method execution fails for some technical kind of
+      // problem. This WON'T be executed when apply_extrinsic returned an error
+      // regarding the business-logic part.
       logger_->warn(
           "Extrinsic {} was not pushed to block. Error during xt application: "
           "{}",
