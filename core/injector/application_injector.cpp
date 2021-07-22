@@ -813,39 +813,7 @@ namespace {
                   }();
               return instance;
             }),
-        di::bind<runtime::wavm::IntrinsicResolverImpl>.template to(
-            [](const auto &injector) {
-              static boost::optional<
-                  std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>
-                  initialized = boost::none;
-              if (initialized) {
-                return initialized.value();
-              }
-              auto instance = injector.template create<
-                  sptr<runtime::wavm::IntrinsicModuleInstance>>();
-              auto compartment = injector.template create<
-                  sptr<runtime::wavm::CompartmentWrapper>>();
-              auto resolver =
-                  std::make_shared<runtime::wavm::IntrinsicResolverImpl>(
-                      instance, compartment);
-
-              initialized = std::move(resolver);
-              return initialized.value();
-            }),
-        di::bind<runtime::wavm::IntrinsicResolver>.template to(
-            [](const auto &injector) {
-              static boost::optional<
-                  std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>
-                  initialized = boost::none;
-              if (initialized) {
-                return initialized.value();
-              }
-              auto resolver = injector.template create<
-                  std::shared_ptr<runtime::wavm::IntrinsicResolverImpl>>();
-
-              initialized = std::move(resolver);
-              return initialized.value();
-            }),
+        di::bind<runtime::wavm::IntrinsicResolver>.template to<runtime::wavm::IntrinsicResolverImpl>(),
         std::forward<decltype(args)>(args)...);
   }
 

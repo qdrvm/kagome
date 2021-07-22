@@ -29,7 +29,7 @@ namespace kagome::runtime {
     MOCK_METHOD1(on_state_destruction,
                  RuntimeEnvironmentTemplate &(std::function<void()> callback));
 
-    MOCK_METHOD0(make, outcome::result<RuntimeEnvironment>());
+    MOCK_METHOD0(make, outcome::result<std::unique_ptr<RuntimeEnvironment>>());
   };
 
   class RuntimeEnvironmentFactoryMock : public RuntimeEnvironmentFactory {

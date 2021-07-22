@@ -59,7 +59,7 @@ namespace kagome::host_api {
       runtime::WasmOffset offset) {
     auto [key_ptr, key_size] = runtime::PtrSize(key_pos);
     auto [value_ptr, value_size] = runtime::PtrSize(value_out);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
 
     auto key = memory.loadN(key_ptr, key_size);
     boost::optional<uint32_t> res{boost::none};
@@ -68,7 +68,8 @@ namespace kagome::host_api {
       auto offset_data = data.subspan(std::min<size_t>(offset, data.size()));
       auto written = std::min<size_t>(offset_data.size(), value_size);
       memory.storeBuffer(value_ptr, offset_data.subspan(0, written));
-      SL_TRACE_FUNC_CALL(logger_, key, common::Buffer{offset_data.subspan(0, written)});
+      SL_TRACE_FUNC_CALL(
+          logger_, key, common::Buffer{offset_data.subspan(0, written)});
       res = offset_data.size();
     }
     return memory.storeBuffer(scale::encode(res).value());
@@ -108,7 +109,7 @@ namespace kagome::host_api {
       runtime::WasmSpan key_span, runtime::WasmSpan value_span) {
     auto [key_ptr, key_size] = runtime::PtrSize(key_span);
     auto [value_ptr, value_size] = runtime::PtrSize(value_span);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
     auto value = memory.loadN(value_ptr, value_size);
 
@@ -126,7 +127,7 @@ namespace kagome::host_api {
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
     auto [key_ptr, key_size] = runtime::PtrSize(key);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     auto key_buffer = memory.loadN(key_ptr, key_size);
 
     auto result = get(key_buffer);
@@ -151,12 +152,14 @@ namespace kagome::host_api {
       runtime::WasmSpan key_data) {
     auto [key_ptr, key_size] = runtime::PtrSize(key_data);
     auto batch = storage_provider_->getCurrentBatch();
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
     auto del_result = batch->remove(key);
+    SL_TRACE_FUNC_CALL(logger_, del_result.has_value(), key);
     if (not del_result) {
       logger_->warn(
-          "ext_clear_storage did not delete key {} from trie db with reason: "
+          "ext_storage_clear_version_1 did not delete key {} from trie db with "
+          "reason: "
           "{}",
           key_data,
           del_result.error().message());
@@ -167,7 +170,7 @@ namespace kagome::host_api {
       runtime::WasmSpan key_data) const {
     auto [key_ptr, key_size] = runtime::PtrSize(key_data);
     auto batch = storage_provider_->getCurrentBatch();
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
     return batch->contains(key) ? 1 : 0;
   }
@@ -176,11 +179,13 @@ namespace kagome::host_api {
       runtime::WasmSpan prefix_span) {
     auto [prefix_ptr, prefix_size] = runtime::PtrSize(prefix_span);
     auto batch = storage_provider_->getCurrentBatch();
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     auto prefix = memory.loadN(prefix_ptr, prefix_size);
+    SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
     auto res = batch->clearPrefix(prefix);
     if (not res) {
-      logger_->error("ext_clear_prefix failed: {}", res.error().message());
+      logger_->error("ext_storage_clear_prefix_version_1 failed: {}",
+                     res.error().message());
     }
   }
 
@@ -198,14 +203,14 @@ namespace kagome::host_api {
                      res.error().message());
     }
     const auto &root = res.value();
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     return memory.storeBuffer(root);
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash_data) {
     auto parent_hash_span = runtime::PtrSize(parent_hash_data);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     auto parent_hash_bytes =
         memory.loadN(parent_hash_span.ptr, parent_hash_span.size);
     common::Hash256 parent_hash;
@@ -225,7 +230,7 @@ namespace kagome::host_api {
     static constexpr runtime::WasmSpan kErrorSpan = -1;
 
     auto [key_ptr, key_size] = runtime::PtrSize(key_span);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     auto key_bytes = memory.loadN(key_ptr, key_size);
     auto res = getStorageNextKey(key_bytes);
     if (res.has_error()) {
@@ -248,7 +253,7 @@ namespace kagome::host_api {
       runtime::WasmSpan key_span, runtime::WasmSpan append_span) const {
     auto [key_ptr, key_size] = runtime::PtrSize(key_span);
     auto [append_ptr, append_size] = runtime::PtrSize(append_span);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     auto key_bytes = memory.loadN(key_ptr, key_size);
     auto append_bytes = memory.loadN(append_ptr, append_size);
 
@@ -257,7 +262,8 @@ namespace kagome::host_api {
 
     if (scale::append_or_new_vec(val.asVector(), append_bytes).has_value()) {
       auto batch = storage_provider_->getCurrentBatch();
-      auto &&put_result = batch->put(key_bytes, std::move(val));
+      SL_TRACE_VOID_FUNC_CALL(logger_, key_bytes, val);
+      auto put_result = batch->put(key_bytes, std::move(val));
       if (not put_result) {
         logger_->error(
             "ext_storage_append_version_1 failed, due to fail in trie db with "
@@ -284,7 +290,7 @@ namespace kagome::host_api {
   runtime::WasmPointer StorageExtension::ext_trie_blake2_256_root_version_1(
       runtime::WasmSpan values_data) {
     auto [address, length] = runtime::PtrSize(values_data);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     const auto &buffer = memory.loadN(address, length);
     const auto &pairs = scale::decode<KeyValueCollection>(buffer);
     if (!pairs) {
@@ -329,7 +335,7 @@ namespace kagome::host_api {
   StorageExtension::ext_trie_blake2_256_ordered_root_version_1(
       runtime::WasmSpan values_data) {
     auto [address, size] = runtime::PtrSize(values_data);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
     const auto &buffer = memory.loadN(address, size);
     const auto &values = scale::decode<ValuesCollection>(buffer);
     if (!values) {
@@ -353,7 +359,7 @@ namespace kagome::host_api {
 
   boost::optional<common::Buffer> StorageExtension::calcStorageChangesRoot(
       common::Hash256 parent_hash) const {
-    if(not storage_provider_->tryGetPersistentBatch()) {
+    if (not storage_provider_->tryGetPersistentBatch()) {
       logger_->error("ext_storage_changes_root persistent batch not found");
       return boost::none;
     }

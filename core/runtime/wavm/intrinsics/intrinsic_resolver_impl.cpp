@@ -14,13 +14,10 @@
 namespace kagome::runtime::wavm {
 
   IntrinsicResolverImpl::IntrinsicResolverImpl(
-      std::shared_ptr<IntrinsicModuleInstance> module_instance,
-      std::shared_ptr<CompartmentWrapper> compartment)
+      std::shared_ptr<IntrinsicModuleInstance> module_instance)
       : module_instance_{std::move(module_instance)},
-        compartment_{compartment},
         logger_{log::createLogger("IntrinsicResolver", "wavm")} {
     BOOST_ASSERT(module_instance_ != nullptr);
-    BOOST_ASSERT(compartment_ != nullptr);
   }
 
   bool IntrinsicResolverImpl::resolve(const std::string &moduleName,

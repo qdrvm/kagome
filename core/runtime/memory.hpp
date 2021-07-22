@@ -16,13 +16,14 @@
 
 namespace kagome::runtime {
 
-  // The underlying memory can be accessed through unaligned pointers which
-  // isn't well-behaved in C++. WebAssembly nonetheless expects it to behave
-  // properly. Avoid emitting unaligned load/store by checking for alignment
-  // explicitly, and performing memcpy if unaligned.
-  //
-  // The allocated memory tries to have the same alignment as the memory being
-  // simulated.
+  /** The underlying memory can be accessed through unaligned pointers which
+   * isn't well-behaved in C++. WebAssembly nonetheless expects it to behave
+   * properly. Avoid emitting unaligned load/store by checking for alignment
+   * explicitly, and performing memcpy if unaligned.
+   *
+   * The allocated memory tries to have the same alignment as the memory being
+   * simulated.
+   */
   class Memory {
    public:
     virtual ~Memory() = default;

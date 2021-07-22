@@ -13,6 +13,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
   switch (e) {
     case E::PARENT_FACTORY_EXPIRED:
       return "The parent factory has expired";
+    case E::ABSENT_BLOCK:
+      return "Failed to obtain the required block from storage";
+    case E::ABSENT_HEAP_BASE:
+      return "Failed to extract heap base from a module";
+    case E::FAILED_TO_SET_STORAGE_STATE:
+      return "Failed to set the storage state to the desired value";
   }
   return "Unknown runtime environment construction error";
 }
@@ -62,25 +68,54 @@ namespace kagome::runtime {
       return RuntimeEnvironmentFactory::Error::PARENT_FACTORY_EXPIRED;
     }
     if (state_.hash == primitives::BlockHash{}) {
-      OUTCOME_TRY(genesis_hash,
-                  parent_factory->header_repo_->getHashByNumber(0));
-      state_ = primitives::BlockInfo{0, genesis_hash};
+      auto genesis_hash = parent_factory->header_repo_->getHashByNumber(0);
+      if (!genesis_hash) {
+        parent_factory->logger_->error(
+            "Failed to obtain the genesis block for runtime executor "
+            "initialization; Reason: {}",
+            genesis_hash.error().message());
+        return Error::ABSENT_BLOCK;
+      }
+      state_ = primitives::BlockInfo{0, std::move(genesis_hash.value())};
     }
-    OUTCOME_TRY(header,
-                parent_factory->header_repo_->getBlockHeader(state_.hash));
+    auto header_res = parent_factory->header_repo_->getBlockHeader(state_.hash);
+    if (!header_res) {
+      parent_factory->logger_->error(
+          "Failed to obtain the block header with hash {} when initializing a "
+          "runtime environment; Reason: {}",
+          state_.hash.toHex(), header_res.error().message());
+      return Error::ABSENT_BLOCK;
+    }
     if (persistent_) {
-      OUTCOME_TRY(parent_factory->storage_provider_->setToPersistentAt(
-          header.state_root));
+      if (auto res = parent_factory->storage_provider_->setToPersistentAt(
+              header_res.value().state_root); !res) {
+        parent_factory->logger_->error(
+            "Failed to set the storage state to hash {} when initializing a "
+            "runtime environment; Reason: {}",
+            header_res.value().state_root.toHex(), res.error().message());
+        return Error::FAILED_TO_SET_STORAGE_STATE;
+      }
     } else {
-      OUTCOME_TRY(parent_factory->storage_provider_->setToEphemeralAt(
-          header.state_root));
+      if (auto res = parent_factory->storage_provider_->setToEphemeralAt(
+              header_res.value().state_root); !res) {
+        parent_factory->logger_->error(
+            "Failed to set the storage state to hash {} when initializing a "
+            "runtime environment; Reason: {}",
+            header_res.value().state_root.toHex(), res.error().message());
+        return Error::FAILED_TO_SET_STORAGE_STATE;
+      }
     }
 
     OUTCOME_TRY(instance,
                 parent_factory->module_repo_->getInstanceAt(
                     parent_factory->code_provider_, state_));
-    OUTCOME_TRY(opt_heap_base, instance->getGlobal("__heap_base"));
-    int32_t heap_base = boost::get<int32_t>(opt_heap_base.value());
+    auto opt_heap_base = instance->getGlobal("__heap_base");
+    if (!opt_heap_base.has_value() || !opt_heap_base.value()) {
+      parent_factory->logger_->error(
+          "Failed to obtain __heap_base from a runtime module; Reason: ");
+      return Error::ABSENT_HEAP_BASE;
+    }
+    int32_t heap_base = boost::get<int32_t>(opt_heap_base.value().value());
 
     parent_factory->memory_provider_->resetMemory(heap_base);
 
@@ -114,6 +149,7 @@ namespace kagome::runtime {
         code_provider_{std::move(code_provider)},
         module_repo_{std::move(module_repo)},
         header_repo_{std::move(header_repo)},
+        logger_{log::createLogger("RuntimeEnvironmentFactory", "runtime")},
         env_cleanup_callback_{} {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(host_api_ != nullptr);

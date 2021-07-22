@@ -1,3 +1,0 @@
-[submodule "wavm"]
-	path = deps/wavm
-	url = https://github.com/Harrm/WAVM.git

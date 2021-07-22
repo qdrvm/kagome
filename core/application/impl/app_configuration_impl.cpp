@@ -70,10 +70,10 @@ namespace {
   boost::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
-    if (str == "interpreted") {
+    if (str == "Interpreted") {
       return REM::Interpret;
     }
-    if (str == "compiled") {
+    if (str == "Compiled") {
       return REM::Compile;
     }
     return boost::none;
@@ -390,8 +390,8 @@ namespace kagome::application {
     development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
-        ("wasm-execution", po::value<std::string>()->default_value("interpreted"),
-          "choose the desired wasm execution method (compiled, interpreted)")
+        ("wasm-execution", po::value<std::string>()->default_value("Interpreted"),
+          "choose the desired wasm execution method (Compiled, Interpreted)")
         ;
 
     // clang-format on

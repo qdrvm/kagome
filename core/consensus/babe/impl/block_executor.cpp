@@ -260,7 +260,7 @@ namespace kagome::consensus {
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
 
     // check if block body already exists. If so, do not apply
-    if (block_tree_->getBlockBody(block_hash) && block.header.number != 29232) {
+    if (block_tree_->getBlockBody(block_hash)) {
       SL_DEBUG(logger_,
                "Skipping existed block number: {}, hash: {}",
                block.header.number,

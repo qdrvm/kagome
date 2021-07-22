@@ -52,7 +52,6 @@ namespace kagome::host_api {
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<const runtime::CoreApiFactory> core_provider_;
     log::Logger logger_;
-    const uint64_t chain_id_ = 42;
   };
 
 }  // namespace kagome::host_api

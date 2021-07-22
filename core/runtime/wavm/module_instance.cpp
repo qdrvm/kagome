@@ -94,7 +94,8 @@ namespace kagome::runtime::wavm {
       });
       return PtrSize{untaggedInvokeResults[0].u64};
     } catch (WAVM::Runtime::Exception *e) {
-      logger_->debug(WAVM::Runtime::describeException(e));
+      const auto desc = WAVM::Runtime::describeException(e);
+      logger_->debug(desc);
       WAVM::Runtime::destroyException(e);
       return Error::EXECUTION_ERROR;
     }

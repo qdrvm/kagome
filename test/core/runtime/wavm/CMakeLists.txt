@@ -23,6 +23,7 @@ addtest(wasm_memory_test
 target_link_libraries(wasm_memory_test
     wavm_memory
     logger_for_tests
+    runtime_wavm
     )
 
 addtest(core_integration_test

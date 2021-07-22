@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_TEST_HPP
-#define KAGOME_RUNTIME_TEST_HPP
+#ifndef KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP
+#define KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP
 
 #include <gtest/gtest.h>
 
@@ -24,26 +24,26 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
-#include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
-#include "runtime/binaryen/core_api_factory.hpp"
-#include "runtime/binaryen/module/module_factory_impl.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
+#include "runtime/core_api_factory.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/runtime_environment_factory.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
 
-class RuntimeTest : public ::testing::Test {
+using testing::_;
+using testing::Return;
+
+class RuntimeTestBase : public ::testing::Test {
  public:
   using Buffer = kagome::common::Buffer;
   using Block = kagome::primitives::Block;
@@ -52,7 +52,7 @@ class RuntimeTest : public ::testing::Test {
   using Extrinsic = kagome::primitives::Extrinsic;
   using Digest = kagome::primitives::Digest;
 
-  void SetUp() override {
+  void initStorage() {
     using kagome::storage::trie::EphemeralTrieBatchMock;
     using kagome::storage::trie::PersistentTrieBatch;
     using kagome::storage::trie::PersistentTrieBatchMock;
@@ -60,9 +60,25 @@ class RuntimeTest : public ::testing::Test {
 
     batch_mock_ = std::make_shared<PersistentTrieBatchMock>();
     ON_CALL(*batch_mock_, get(testing::_))
-        .WillByDefault(testing::Return(kagome::common::Buffer()));
+        .WillByDefault(testing::Invoke([](auto &key) {
+          std::cerr << "Get " << key.toHex() << " from storage\n";
+          return kagome::common::Buffer();
+        }));
+    ON_CALL(*batch_mock_, put(testing::_, testing::_))
+        .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*batch_mock_, remove(testing::_))
+        .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*batch_mock_, clearPrefix(testing::_))
+        .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*batch_mock_, batchOnTop()).WillByDefault(testing::Invoke([] {
       return std::make_unique<TopperTrieBatchMock>();
+    }));
+    ON_CALL(*batch_mock_, trieCursor()).WillByDefault(testing::Invoke([] {
+      auto cursor =
+          std::make_unique<kagome::storage::trie::PolkadotTrieCursorMock>();
+      ON_CALL(*cursor, seekUpperBound(_))
+          .WillByDefault(Return(outcome::success()));
+      return cursor;
     }));
     storage_provider_ =
         std::make_shared<kagome::runtime::TrieStorageProviderMock>();
@@ -75,7 +91,11 @@ class RuntimeTest : public ::testing::Test {
             }));
     ON_CALL(*storage_provider_, setToPersistent())
         .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*storage_provider_, setToPersistentAt("genesis state root"_hash256))
+        .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*storage_provider_, setToEphemeral())
+        .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*storage_provider_, setToEphemeralAt("genesis state root"_hash256))
         .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*storage_provider_, rollbackTransaction())
         .WillByDefault(testing::Return(
@@ -92,7 +112,7 @@ class RuntimeTest : public ::testing::Test {
         std::make_shared<kagome::crypto::Ed25519ProviderImpl>(random_generator);
     auto secp256k1_provider =
         std::make_shared<kagome::crypto::Secp256k1ProviderImpl>();
-    auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
+    hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
     auto pbkdf2_provider =
         std::make_shared<kagome::crypto::Pbkdf2ProviderImpl>();
     auto bip39_provider =
@@ -108,52 +128,56 @@ class RuntimeTest : public ::testing::Test {
     changes_tracker_ =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
 
-    auto extension_factory =
-        std::make_shared<kagome::host_api::HostApiFactoryImpl>(
-            changes_tracker_,
-            sr25519_provider,
-            ed25519_provider,
-            secp256k1_provider,
-            hasher,
-            crypto_store,
-            bip39_provider);
+    host_api_factory_ = std::make_shared<kagome::host_api::HostApiFactoryImpl>(
+        changes_tracker_,
+        sr25519_provider,
+        ed25519_provider,
+        secp256k1_provider,
+        hasher_,
+        crypto_store,
+        bip39_provider);
 
-    auto memory_factory = std::make_shared<
-        kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
-    auto memory_provider =
-        std::make_shared<kagome::runtime::binaryen::BinaryenMemoryProvider>(
-            memory_factory);
-
-    auto header_repo_mock =
+    header_repo_ =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
 
-    auto core_api_provider =
-        std::make_shared<kagome::runtime::binaryen::BinaryenCoreApiFactory>(
-            changes_tracker_,
-            header_repo_mock,
-            memory_factory,
-            extension_factory,
-            std::make_shared<kagome::storage::trie::TrieStorageMock>());
+    ON_CALL(*header_repo_, getHashByNumber(0))
+        .WillByDefault(testing::Return("genesis hash"_hash256));
+    ON_CALL(*header_repo_,
+            getBlockHeader(testing::AnyOf(
+                kagome::primitives::BlockId{0},
+                kagome::primitives::BlockId{"genesis hash"_hash256})))
+        .WillByDefault(testing::Return(kagome::primitives::BlockHeader{
+            .parent_hash{},
+            .number = 0,
+            .state_root{"genesis state root"_hash256},
+            .extrinsics_root{"genesis ext root"_hash256},
+            .digest{}}));
+  }
 
-    std::shared_ptr host_api = extension_factory->make(
-        core_api_provider, memory_provider, storage_provider_);
+  struct ImplementationSpecificRuntimeClasses {
+    std::shared_ptr<kagome::runtime::ModuleFactory> module_factory_;
+    std::shared_ptr<kagome::runtime::CoreApiFactory> core_api_factory_;
+    std::shared_ptr<kagome::runtime::MemoryProvider> memory_provider_;
+    std::shared_ptr<kagome::host_api::HostApi> host_api_;
+  };
 
-    auto rei =
-        std::make_shared<kagome::runtime::binaryen::RuntimeExternalInterface>(
-            host_api);
+  virtual ImplementationSpecificRuntimeClasses getImplementationSpecific() = 0;
 
-    auto module_factory =
-        std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(
-            rei, storage_provider_);
+  void SetUp() override {
+    initStorage();
 
-    auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
-                     + "/wasm/sub2dev.wasm";
+    auto &&[module_factory, core_api_factory, memory_provider, host_api] =
+        getImplementationSpecific();
+
+    auto wasm_path =
+        boost::filesystem::path(__FILE__).parent_path().parent_path().string()
+        + "/wasm/sub2dev.wasm";
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
     auto upgrade_tracker =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerImpl>(
-            header_repo_mock);
+            header_repo_);
 
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         upgrade_tracker, module_factory);
@@ -165,10 +189,10 @@ class RuntimeTest : public ::testing::Test {
             std::move(memory_provider),
             std::move(wasm_provider_),
             std::move(module_repo),
-            header_repo_mock);
-    core_api_provider->setRuntimeFactory(runtime_env_factory_);
+            header_repo_);
+
     executor_ = std::make_shared<kagome::runtime::Executor>(
-        header_repo_mock, runtime_env_factory_);
+        header_repo_, runtime_env_factory_);
   }
 
   void preparePersistentStorageExpects() {
@@ -183,8 +207,7 @@ class RuntimeTest : public ::testing::Test {
   }
 
   kagome::primitives::BlockHeader createBlockHeader() {
-    kagome::common::Hash256 parent_hash;
-    parent_hash.fill('p');
+    kagome::common::Hash256 parent_hash = "genesis hash"_hash256;
 
     kagome::primitives::BlockNumber number = 1;
 
@@ -196,6 +219,20 @@ class RuntimeTest : public ::testing::Test {
 
     Digest digest{};
 
+    // runtime checks the correctness of the parent hash
+    auto parent_number_enc = kagome::scale::encode(number - 1).value();
+    ON_CALL(
+        *batch_mock_,
+        get(Buffer{hasher_->twox_64(parent_number_enc)}.putUint32(number - 1)))
+        .WillByDefault(testing::Invoke([parent_hash](auto &) {
+          std::cerr << "Get the parent root";
+          return Buffer{parent_hash};
+        }));
+    ON_CALL(*header_repo_, getHashByNumber(number))
+        .WillByDefault(testing::Return(parent_hash));
+    ON_CALL(*header_repo_, getNumberByHash(parent_hash))
+        .WillByDefault(testing::Return(number));
+
     return BlockHeader{
         parent_hash, number, state_root, extrinsics_root, digest};
   }
@@ -205,15 +242,7 @@ class RuntimeTest : public ::testing::Test {
 
     std::vector<Extrinsic> xts;
 
-    xts.emplace_back(Extrinsic{Buffer{'a', 'b', 'c'}});
-    xts.emplace_back(Extrinsic{Buffer{'1', '2', '3'}});
-
     return Block{header, xts};
-  }
-
-  kagome::primitives::BlockId createBlockId() {
-    BlockId res = kagome::primitives::BlockNumber{0};
-    return res;
   }
 
  private:
@@ -230,15 +259,17 @@ class RuntimeTest : public ::testing::Test {
   }
 
  protected:
+  std::shared_ptr<kagome::blockchain::BlockHeaderRepositoryMock> header_repo_;
   std::shared_ptr<kagome::runtime::TrieStorageProviderMock> storage_provider_;
   std::shared_ptr<kagome::storage::trie::PersistentTrieBatchMock> batch_mock_;
-
-  std::shared_ptr<kagome::runtime::Executor> executor_;
   std::shared_ptr<kagome::runtime::RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<kagome::runtime::RuntimeEnvironmentFactory>
       runtime_env_factory_;
-  std::shared_ptr<kagome::storage::changes_trie::ChangesTracker>
+  std::shared_ptr<kagome::runtime::Executor> executor_;
+  std::shared_ptr<kagome::storage::changes_trie::ChangesTrackerMock>
       changes_tracker_;
+  std::shared_ptr<kagome::crypto::Hasher> hasher_;
+  std::shared_ptr<kagome::host_api::HostApiFactory> host_api_factory_;
 };
 
-#endif  // KAGOME_RUNTIME_TEST_HPP
+#endif  // KAGOME_TEST_CORE_RUNTIME_RUNTIME_TEST_BASE_HPP

@@ -54,11 +54,13 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
+            level: debug
             children:
               - name: runtime_api
               - name: host_api
               - name: binaryen
               - name: wavm
+                level: trace
           - name: metrics
           - name: network
             children:

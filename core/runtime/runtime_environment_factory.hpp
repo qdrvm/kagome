@@ -43,7 +43,12 @@ namespace kagome::runtime {
   class RuntimeEnvironmentFactory
       : public std::enable_shared_from_this<RuntimeEnvironmentFactory> {
    public:
-    enum class Error { PARENT_FACTORY_EXPIRED = 1 };
+    enum class Error {
+      PARENT_FACTORY_EXPIRED = 1,
+      ABSENT_BLOCK,
+      ABSENT_HEAP_BASE,
+      FAILED_TO_SET_STORAGE_STATE
+    };
     struct RuntimeEnvironmentTemplate;
 
     RuntimeEnvironmentFactory(
@@ -69,6 +74,7 @@ namespace kagome::runtime {
     std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider_;
     std::shared_ptr<ModuleRepository> module_repo_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
+    log::Logger logger_;
     std::function<void(RuntimeEnvironment &)> env_cleanup_callback_;
   };
 

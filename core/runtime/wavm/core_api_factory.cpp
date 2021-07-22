@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "core_api_factory.hpp"
+#include "runtime/wavm/core_api_factory.hpp"
 
-#include "compartment_wrapper.hpp"
+#include "runtime/wavm/compartment_wrapper.hpp"
 #include "host_api/host_api_factory.hpp"
-#include "module.hpp"
-#include "module_instance.hpp"
+#include "runtime/wavm/module.hpp"
+#include "runtime/wavm/module_instance.hpp"
 #include "runtime/common/constant_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
@@ -17,7 +17,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
-#include "wavm_memory_provider.hpp"
+#include "runtime/wavm/wavm_memory_provider.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -103,8 +103,7 @@ namespace kagome::runtime::wavm {
         std::make_shared<OneCodeProvider>(runtime_code),
         std::make_shared<OneModuleRepository>(
             compartment_,
-            std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module,
-                                                    compartment_),
+            std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module),
             gsl::span<const uint8_t>{
                 runtime_code.data(),
                 static_cast<gsl::span<const uint8_t>::index_type>(

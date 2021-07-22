@@ -137,7 +137,6 @@ namespace kagome::runtime {
 
       OUTCOME_TRY(result,
                   env.module_instance->callExportFunction(name, args_span));
-
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {

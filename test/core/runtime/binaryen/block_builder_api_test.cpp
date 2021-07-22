@@ -5,14 +5,14 @@
 
 #include <gtest/gtest.h>
 
-#include "core/runtime/binaryen/runtime_test.hpp"
+#include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/runtime/wasm_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
-#include "runtime/runtime_api/impl/block_builder.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
+#include "runtime/runtime_api/impl/block_builder.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 

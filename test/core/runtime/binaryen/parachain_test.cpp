@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "core/runtime/binaryen/runtime_test.hpp"
+#include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"

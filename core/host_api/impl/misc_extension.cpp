@@ -23,8 +23,7 @@ namespace kagome::host_api {
       : hasher_{std::move(hasher)},
         memory_provider_{std::move(memory_provider)},
         core_provider_{std::move(core_provider)},
-        logger_{log::createLogger("MiscExtension", "host_api")},
-        chain_id_{chain_id} {
+        logger_{log::createLogger("MiscExtension", "host_api")} {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(core_provider_);
     BOOST_ASSERT(memory_provider_);

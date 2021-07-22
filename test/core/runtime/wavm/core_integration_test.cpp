@@ -7,7 +7,7 @@
 
 #include <fstream>
 
-#include "core/runtime/wavm/runtime_test.hpp"
+#include "core/runtime/wavm/wavm_runtime_test.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
@@ -43,8 +43,6 @@ class CoreTest : public RuntimeTest {
     auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     EXPECT_CALL(*header_repo, getBlockHeader(_))
         .WillRepeatedly(Return(kagome::primitives::BlockHeader{}));
-    EXPECT_CALL(*storage_provider_, getCurrentBatch());
-    EXPECT_CALL(*batch_mock_, get(_));
     EXPECT_CALL(*storage_provider_, rollbackTransaction());
 
     core_ =
@@ -69,8 +67,11 @@ TEST_F(CoreTest, VersionTest) {
  * @when execute_block is invoked
  * @then successful result is returned
  */
-TEST_F(CoreTest, ExecuteBlockTest) {
+TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
   auto block = createBlock();
+  EXPECT_CALL(*changes_tracker_,
+              onBlockChange(block.header.parent_hash, block.header.number - 1))
+      .WillOnce(Return(outcome::success()));
 
   ASSERT_TRUE(core_->execute_block(block));
 }
@@ -80,8 +81,11 @@ TEST_F(CoreTest, ExecuteBlockTest) {
  * @when initialise_block is invoked
  * @then successful result is returned
  */
-TEST_F(CoreTest, InitializeBlockTest) {
+TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
   auto header = createBlockHeader();
+  EXPECT_CALL(*changes_tracker_,
+              onBlockChange(header.parent_hash, header.number - 1))
+      .WillOnce(Return(outcome::success()));
 
   ASSERT_TRUE(core_->initialise_block(header));
 }
@@ -91,7 +95,7 @@ TEST_F(CoreTest, InitializeBlockTest) {
  * @when authorities is invoked
  * @then successful result is returned
  */
-TEST_F(CoreTest, AuthoritiesTest) {
+TEST_F(CoreTest, DISABLED_AuthoritiesTest) {
   BlockId block_id = 0;
   ASSERT_TRUE(core_->authorities(block_id));
 }

@@ -36,15 +36,14 @@ namespace kagome::runtime::wavm {
     }
 
     template <typename Ret, typename... Args>
-    void addFunction(std::string_view name, Ret (*f)(Args...), WAVM::IR::FunctionType type) {
+    void addFunction(std::string_view name,
+                     Ret (*f)(WAVM::Runtime::ContextRuntimeData *, Args...),
+                     WAVM::IR::FunctionType type) {
       auto inferred_type = WAVM::Intrinsics::inferIntrinsicFunctionType(f);
       BOOST_ASSERT(type.results() == inferred_type.results());
       BOOST_ASSERT(type.params() == inferred_type.params());
       auto intrinsic = std::make_unique<WAVM::Intrinsics::Function>(
-          &module_,
-          name.data(),
-          (void *)f,
-          inferred_type);
+          &module_, name.data(), (void *)f, inferred_type);
       functions_.insert(std::pair{name, std::move(intrinsic)});
     }
 
