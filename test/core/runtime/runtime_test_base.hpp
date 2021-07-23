@@ -147,11 +147,11 @@ class RuntimeTestBase : public ::testing::Test {
                 kagome::primitives::BlockId{0},
                 kagome::primitives::BlockId{"genesis hash"_hash256})))
         .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
-            .parent_hash{},
+            .parent_hash = {},
             .number = 0,
-            .state_root{"genesis state root"_hash256},
-            .extrinsics_root{"genesis ext root"_hash256},
-            .digest{}}));
+            .state_root = {"genesis state root"_hash256},
+            .extrinsics_root = {"genesis ext root"_hash256},
+            .digest = {}}));
   }
 
   struct ImplementationSpecificRuntimeClasses {

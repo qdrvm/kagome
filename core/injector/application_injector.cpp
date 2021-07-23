@@ -858,6 +858,7 @@ namespace {
           return std::static_pointer_cast<CommonType>(
               injector.template create<sptr<WavmType>>());
       }
+      throw std::runtime_error("Unknown runtime execution method");
     }();
     return impl;
   }
