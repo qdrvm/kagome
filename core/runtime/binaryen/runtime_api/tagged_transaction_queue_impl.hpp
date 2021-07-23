@@ -6,6 +6,7 @@
 #ifndef KAGOME_RUNTIME_BINARYEN_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
 #define KAGOME_RUNTIME_BINARYEN_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
 
+#include "log/logger.hpp"
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 
@@ -13,6 +14,8 @@ namespace kagome::runtime::binaryen {
 
   class TaggedTransactionQueueImpl : public RuntimeApi,
                                      public TaggedTransactionQueue {
+    log::Logger logger_;
+
    public:
     TaggedTransactionQueueImpl(
         const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory);
