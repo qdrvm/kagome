@@ -93,9 +93,10 @@ class WasmExecutorTest : public ::testing::Test {
     auto serializer =
         std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
 
-    std::shared_ptr<TrieStorageImpl> trie_db = kagome::storage::trie::TrieStorageImpl::createEmpty(
-                       trie_factory, codec, serializer, boost::none)
-                       .value();
+    std::shared_ptr<TrieStorageImpl> trie_db =
+        kagome::storage::trie::TrieStorageImpl::createEmpty(
+            trie_factory, codec, serializer, boost::none)
+            .value();
 
     storage_provider_ =
         std::make_shared<TrieStorageProviderImpl>(std::move(trie_db));
@@ -138,7 +139,8 @@ class WasmExecutorTest : public ::testing::Test {
     auto intrinsic_module =
         std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
             compartment_wrapper);
-    std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance> intrinsic_module_instance = intrinsic_module->instantiate();
+    std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance>
+        intrinsic_module_instance = intrinsic_module->instantiate();
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmMemoryProvider>(
@@ -162,8 +164,9 @@ class WasmExecutorTest : public ::testing::Test {
             header_repo_,
             changes_tracker,
             extension_factory);
-    auto host_api = std::shared_ptr<kagome::host_api::HostApi>{extension_factory->make(
-        core_provider, memory_provider, storage_provider_)};
+    auto host_api =
+        std::shared_ptr<kagome::host_api::HostApi>{extension_factory->make(
+            core_provider, memory_provider, storage_provider_)};
 
     auto env_factory =
         std::make_shared<RuntimeEnvironmentFactory>(storage_provider_,
@@ -194,11 +197,11 @@ TEST_F(WasmExecutorTest, DISABLED_ExecuteCode) {
       .WillOnce(Return("blockhash0"_hash256));
   EXPECT_CALL(*header_repo_, getBlockHeader(kagome::primitives::BlockId{0}))
       .WillOnce(Return(
-          kagome::primitives::BlockHeader{.parent_hash{},
+          kagome::primitives::BlockHeader{.parent_hash = {},
                                           .number = 0,
-                                          .state_root{"stateroot0"_hash256},
-                                          .extrinsics_root{},
-                                          .digest{}}));
+                                          .state_root = {"stateroot0"_hash256},
+                                          .extrinsics_root = {},
+                                          .digest = {}}));
   EXPECT_CALL(*runtime_upgrade_tracker_,
               getLastCodeUpdateState(
                   kagome::primitives::BlockInfo{0, "blockhash0"_hash256}))
