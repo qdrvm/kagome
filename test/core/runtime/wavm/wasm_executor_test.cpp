@@ -93,7 +93,7 @@ class WasmExecutorTest : public ::testing::Test {
     auto serializer =
         std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
 
-    std::shared_ptr trie_db = kagome::storage::trie::TrieStorageImpl::createEmpty(
+    std::shared_ptr<TrieStorageImpl> trie_db = kagome::storage::trie::TrieStorageImpl::createEmpty(
                        trie_factory, codec, serializer, boost::none)
                        .value();
 
@@ -138,7 +138,7 @@ class WasmExecutorTest : public ::testing::Test {
     auto intrinsic_module =
         std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
             compartment_wrapper);
-    std::shared_ptr intrinsic_module_instance = intrinsic_module->instantiate();
+    std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance> intrinsic_module_instance = intrinsic_module->instantiate();
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmMemoryProvider>(
@@ -162,7 +162,7 @@ class WasmExecutorTest : public ::testing::Test {
             header_repo_,
             changes_tracker,
             extension_factory);
-    auto host_api = std::shared_ptr{extension_factory->make(
+    auto host_api = std::shared_ptr<kagome::host_api::HostApi>{extension_factory->make(
         core_provider, memory_provider, storage_provider_)};
 
     auto env_factory =

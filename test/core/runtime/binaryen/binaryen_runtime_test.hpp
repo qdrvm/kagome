@@ -30,8 +30,9 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
             host_api_factory_,
             std::make_shared<kagome::storage::trie::TrieStorageMock>());
 
-    std::shared_ptr host_api = host_api_factory_->make(
-        core_api_factory, memory_provider, storage_provider_);
+    std::shared_ptr<kagome::host_api::HostApi> host_api =
+        host_api_factory_->make(
+            core_api_factory, memory_provider, storage_provider_);
 
     rei_ =
         std::make_shared<kagome::runtime::binaryen::RuntimeExternalInterface>(
