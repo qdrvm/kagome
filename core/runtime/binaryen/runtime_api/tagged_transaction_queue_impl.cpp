@@ -11,7 +11,7 @@ namespace kagome::runtime::binaryen {
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
       const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory)
       : RuntimeApi(runtime_env_factory),
-        logger_{log::createLogger("TaggedTransactionQueue", "binarien")} {}
+        logger_{log::createLogger("TaggedTransactionQueue", "binaryen")} {}
 
   void TaggedTransactionQueueImpl::setBlockTree(
       std::shared_ptr<blockchain::BlockTree> block_tree) {

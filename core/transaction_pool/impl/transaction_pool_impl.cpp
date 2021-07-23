@@ -39,29 +39,16 @@ namespace kagome::transaction_pool {
     return submitOne(std::make_shared<Transaction>(std::move(tx)));
   }
 
-  outcome::result<void> TransactionPoolImpl::submit(
-      std::vector<Transaction> txs) {
-    for (auto &tx : txs) {
-      OUTCOME_TRY(submitOne(std::make_shared<Transaction>(std::move(tx))));
-    }
-
-    return outcome::success();
-  }
-
   outcome::result<void> TransactionPoolImpl::submitOne(
       const std::shared_ptr<Transaction> &tx) {
     if (auto [_, ok] = imported_txs_.emplace(tx->hash, tx); !ok) {
-      if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
-        sub_engine_->notify(key.value(),
-                            ExtrinsicLifecycleEvent::Invalid(key.value()));
-      }
       return TransactionPoolError::TX_ALREADY_IMPORTED;
     }
 
     auto processResult = processTransaction(tx);
     if (processResult.has_error()
         && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
-      if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+      if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
         sub_engine_->notify(key.value(),
                             ExtrinsicLifecycleEvent::Dropped(key.value()));
       }
@@ -105,7 +92,7 @@ namespace kagome::transaction_pool {
   void TransactionPoolImpl::postponeTransaction(
       const std::shared_ptr<Transaction> &tx) {
     postponed_txs_.push_back(tx);
-    if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+    if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
       sub_engine_->notify(key.value(),
                           ExtrinsicLifecycleEvent::Future(key.value()));
     }
@@ -133,7 +120,7 @@ namespace kagome::transaction_pool {
     for (auto &tag : tx->requires) {
       tx_waits_tag_.emplace(tag, tx);
     }
-    if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+    if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
       sub_engine_->notify(key.value(),
                           ExtrinsicLifecycleEvent::Future(key.value()));
     }
@@ -160,13 +147,6 @@ namespace kagome::transaction_pool {
              tx->ext.data.toHex(),
              tx->hash.toHex());
     return std::move(*tx);
-  }
-
-  void TransactionPoolImpl::remove(
-      const std::vector<Transaction::Hash> &tx_hashes) {
-    for (auto &tx_hash : tx_hashes) {
-      [[maybe_unused]] auto result = removeOne(tx_hash);
-    }
   }
 
   void TransactionPoolImpl::processPostponedTransactions() {
@@ -230,10 +210,10 @@ namespace kagome::transaction_pool {
 
     for (auto &tx_hash : remove_to) {
       OUTCOME_TRY(tx, removeOne(tx_hash));
-      if (auto key = ext_key_repo_->getEventKey(tx); key.has_value()) {
+      if (auto key = ext_key_repo_->get(tx.hash); key.has_value()) {
         sub_engine_->notify(key.value(),
                             ExtrinsicLifecycleEvent::Dropped(key.value()));
-        ext_key_repo_->dropTransaction(tx.observed_id.value());
+        ext_key_repo_->remove(tx.hash);
       }
     }
 
@@ -259,7 +239,7 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::setReady(const std::shared_ptr<Transaction> &tx) {
     if (auto [_, ok] = ready_txs_.emplace(tx->hash, tx); ok) {
-      if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+      if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
         sub_engine_->notify(key.value(),
                             ExtrinsicLifecycleEvent::Ready(key.value()));
       }
@@ -310,7 +290,7 @@ namespace kagome::transaction_pool {
     if (auto tx_node = ready_txs_.extract(tx->hash); !tx_node.empty()) {
       rollbackRequiredTags(tx);
       rollbackProvidedTags(tx);
-      if (auto key = ext_key_repo_->getEventKey(*tx); key.has_value()) {
+      if (auto key = ext_key_repo_->get(tx->hash); key.has_value()) {
         sub_engine_->notify(key.value(),
                             ExtrinsicLifecycleEvent::Future(key.value()));
       }

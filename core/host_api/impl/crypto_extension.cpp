@@ -212,7 +212,7 @@ namespace kagome::host_api {
                  msg.toHex(),
                  pubkey.toHex());
         if(res.has_error()) {
-          SL_DEBUG(self->logger_, "Error: {}", res.error().message());
+          SL_WARN(self->logger_, "Error: {}", res.error().message());
         }
       }
       return is_succeeded ? kLegacyVerifySuccess : kLegacyVerifyFail;

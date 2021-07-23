@@ -38,11 +38,9 @@ namespace kagome::transaction_pool {
         &getPendingTransactions() const override;
 
     outcome::result<void> submitOne(Transaction &&tx) override;
-    outcome::result<void> submit(std::vector<Transaction> txs) override;
 
     outcome::result<Transaction> removeOne(
         const Transaction::Hash &tx_hash) override;
-    void remove(const std::vector<Transaction::Hash> &tx_hashes) override;
 
     std::map<Transaction::Hash, std::shared_ptr<Transaction>>
     getReadyTransactions() const override;

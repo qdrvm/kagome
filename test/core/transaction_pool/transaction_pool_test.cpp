@@ -73,6 +73,14 @@ Transaction makeTx(Transaction::Hash hash,
   return tx;
 }
 
+outcome::result<void> submit(TransactionPoolImpl &pool,
+                             std::vector<Transaction> txs) {
+  for (auto &tx : txs) {
+    OUTCOME_TRY(pool.submitOne(std::move(tx)));
+  }
+  return outcome::success();
+}
+
 /**
  * @given a set of transactions and transaction pool
  * @when import transactions to the pool
@@ -88,28 +96,28 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
                                makeTx("04"_hash256, {{4}}, {{3}}),
                                makeTx("05"_hash256, {{5}}, {{4}})};
 
-  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2]}));
+  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[0], txs[2]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 1);
   ASSERT_EQ(pool_->getStatus().ready_num, 1);
 
-  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[1]}));
+  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[1]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
-  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[3]}));
+  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[3]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 1);
   ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
   // already imported
   {
-    auto outcome = pool_->submit({txs[0]});
+    auto outcome = submit(*pool_.get(), {txs[0]});
     ASSERT_TRUE(outcome.has_error());
     EXPECT_EQ(outcome.error(), TransactionPoolError::TX_ALREADY_IMPORTED);
   }
 
   // pool is full
   {
-    auto outcome = pool_->submit({txs[4]});
+    auto outcome = submit(*pool_.get(), {txs[4]});
     ASSERT_TRUE(outcome.has_error());
     EXPECT_EQ(outcome.error(), TransactionPoolError::POOL_IS_FULL);
   }
@@ -128,11 +136,11 @@ TEST_F(TransactionPoolTest, CorrectRemoveTx) {
                                makeTx("02"_hash256, {{2}}, {{1}}),
                                makeTx("03"_hash256, {{3}}, {{2}})};
 
-  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2]}));
+  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[0], txs[2]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 1);
   ASSERT_EQ(pool_->getStatus().ready_num, 1);
 
-  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[1]}));
+  EXPECT_OUTCOME_TRUE_1(submit(*pool_.get(), {txs[1]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
