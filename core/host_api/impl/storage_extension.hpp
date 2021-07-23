@@ -15,7 +15,7 @@
 namespace kagome::runtime {
   class MemoryProvider;
   class TrieStorageProvider;
-}
+}  // namespace kagome::runtime
 
 namespace kagome::host_api {
   /**
@@ -67,6 +67,12 @@ namespace kagome::host_api {
      * @see Extension::ext_storage_clear_prefix_version_1
      */
     void ext_storage_clear_prefix_version_1(runtime::WasmSpan prefix);
+
+    /**
+     * @see Extension::ext_storage_clear_prefix_version_2
+     */
+    runtime::WasmSpan ext_storage_clear_prefix_version_2(
+        runtime::WasmSpan prefix, runtime::WasmSpan limit);
 
     /**
      * @see Extension::ext_storage_root_version_1
@@ -137,6 +143,9 @@ namespace kagome::host_api {
 
     boost::optional<common::Buffer> calcStorageChangesRoot(
         common::Hash256 parent) const;
+
+    runtime::WasmPointer clearPrefix(
+        const common::Buffer &prefix, boost::optional<uint32_t> limit);
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;

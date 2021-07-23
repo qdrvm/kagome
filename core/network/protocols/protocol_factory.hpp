@@ -10,24 +10,28 @@
 #include "consensus/babe/babe.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/protocols/block_announce_protocol.hpp"
-#include "network/protocols/gossip_protocol.hpp"
 #include "network/protocols/grandpa_protocol.hpp"
 #include "network/protocols/propagate_transactions_protocol.hpp"
-#include "network/protocols/sup_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
+#include "primitives/event_types.hpp"
 
 namespace kagome::network {
 
   class ProtocolFactory final {
    public:
-    ProtocolFactory(libp2p::Host &host,
-                    const application::AppConfiguration &app_config,
-                    const application::ChainSpec &chain_spec,
-                    const OwnPeerInfo &own_info,
-                    std::shared_ptr<boost::asio::io_context> io_context,
-                    std::shared_ptr<blockchain::BlockStorage> storage,
-                    std::shared_ptr<crypto::Hasher> hasher,
-                    std::shared_ptr<StreamEngine> stream_engine);
+    ProtocolFactory(
+        libp2p::Host &host,
+        const application::AppConfiguration &app_config,
+        const application::ChainSpec &chain_spec,
+        const OwnPeerInfo &own_info,
+        std::shared_ptr<boost::asio::io_context> io_context,
+        std::shared_ptr<blockchain::BlockStorage> storage,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<StreamEngine> stream_engine,
+        std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+            extrinsic_events_engine,
+        std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+            ext_event_key_repo);
 
     void setBlockTree(
         const std::shared_ptr<blockchain::BlockTree> &block_tree) {
@@ -60,14 +64,10 @@ namespace kagome::network {
 
     std::shared_ptr<BlockAnnounceProtocol> makeBlockAnnounceProtocol() const;
 
-    std::shared_ptr<GossipProtocol> makeGossipProtocol() const;
-
     std::shared_ptr<GrandpaProtocol> makeGrandpaProtocol() const;
 
     std::shared_ptr<PropagateTransactionsProtocol>
     makePropagateTransactionsProtocol() const;
-
-    std::shared_ptr<SupProtocol> makeSupProtocol() const;
 
     std::shared_ptr<SyncProtocol> makeSyncProtocol() const;
 
@@ -80,6 +80,10 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<StreamEngine> stream_engine_;
+    std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+        extrinsic_events_engine_;
+    std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+        ext_event_key_repo_;
 
     std::weak_ptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<consensus::babe::Babe> babe_;

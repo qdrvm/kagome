@@ -178,15 +178,32 @@ namespace kagome::host_api {
   void StorageExtension::ext_storage_clear_prefix_version_1(
       runtime::WasmSpan prefix_span) {
     auto [prefix_ptr, prefix_size] = runtime::PtrSize(prefix_span);
-    auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory().value();
     auto prefix = memory.loadN(prefix_ptr, prefix_size);
     SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
-    auto res = batch->clearPrefix(prefix);
-    if (not res) {
-      logger_->error("ext_storage_clear_prefix_version_1 failed: {}",
-                     res.error().message());
+    (void)clearPrefix(prefix, boost::none);
+  }
+
+  runtime::WasmSpan StorageExtension::ext_storage_clear_prefix_version_2(
+      runtime::WasmSpan prefix_span, runtime::WasmSpan limit_span) {
+    auto [prefix_ptr, prefix_size] = runtime::PtrSize(prefix_span);
+    auto [limit_ptr, limit_size] = runtime::PtrSize(limit_span);
+    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto prefix = memory.loadN(prefix_ptr, prefix_size);
+    auto enc_limit = memory.loadN(limit_ptr, limit_size);
+    auto limit_res = scale::decode<boost::optional<uint32_t>>(enc_limit);
+    if (!limit_res) {
+      auto msg = fmt::format("ext_storage_clear_prefix_version_2 failed at decoding second argument: {}", limit_res.error());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
     }
+    auto limit_opt = std::move(limit_res.value());
+    if (limit_opt) {
+      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, limit_opt.value());
+    } else {
+      SL_TRACE_VOID_FUNC_CALL(logger_, prefix, "none");
+    }
+    return clearPrefix(prefix, limit_opt);
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_root_version_1() const {
@@ -289,9 +306,9 @@ namespace kagome::host_api {
 
   runtime::WasmPointer StorageExtension::ext_trie_blake2_256_root_version_1(
       runtime::WasmSpan values_data) {
-    auto [address, length] = runtime::PtrSize(values_data);
+    auto [ptr, size] = runtime::PtrSize(values_data);
     auto &memory = memory_provider_->getCurrentMemory().value();
-    const auto &buffer = memory.loadN(address, length);
+    const auto &buffer = memory.loadN(ptr, size);
     const auto &pairs = scale::decode<KeyValueCollection>(buffer);
     if (!pairs) {
       logger_->error("failed to decode pairs: {}", pairs.error().message());
@@ -397,6 +414,29 @@ namespace kagome::host_api {
     common::Buffer result_buf(trie_hash_res.value());
     SL_TRACE_FUNC_CALL(logger_, result_buf, parent_hash);
     return result_buf;
+  }
+
+  runtime::WasmPointer StorageExtension::clearPrefix(
+      const common::Buffer& prefix, boost::optional<uint32_t> limit) {
+    auto batch = storage_provider_->getCurrentBatch();
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto res = batch->clearPrefix(
+        prefix, limit ? boost::optional<uint64_t>(limit.value()) : boost::none);
+    if (not res) {
+      auto msg = fmt::format("ext_storage_clear_prefix failed: {}",
+                             res.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+    auto enc_res = scale::encode(res.value());
+    if (not enc_res) {
+      auto msg = fmt::format("ext_storage_clear_prefix failed: {}",
+                             enc_res.error().message());
+      logger_->error(msg);
+      throw std::runtime_error(msg);
+    }
+    return memory.storeBuffer(enc_res.value());
   }
 
 }  // namespace kagome::host_api

@@ -20,10 +20,10 @@ using kagome::primitives::TransactionSource;
 using kagome::runtime::TaggedTransactionQueue;
 using kagome::runtime::TaggedTransactionQueueImpl;
 
-class TTQTest : public RuntimeTest {
+class TTQTest : public BinaryenRuntimeTest {
  public:
   void SetUp() override {
-    RuntimeTest::SetUp();
+    BinaryenRuntimeTest::SetUp();
     ttq_ = std::make_unique<TaggedTransactionQueueImpl>(executor_);
   }
 

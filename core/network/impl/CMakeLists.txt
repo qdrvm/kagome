@@ -3,12 +3,24 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(gossiper_broadcast
-    gossiper_broadcast.cpp
-    gossiper_broadcast.hpp
+add_library(grandpa_transmitter
+    grandpa_transmitter_impl.cpp
     )
-target_link_libraries(gossiper_broadcast
-    scale_message_read_writer
+target_link_libraries(grandpa_transmitter
+    logger
+    )
+
+add_library(block_announce_transmitter
+    block_announce_transmitter_impl.cpp
+    )
+target_link_libraries(block_announce_transmitter
+    logger
+    )
+
+add_library(transactions_transmitter
+    transactions_transmitter_impl.cpp
+    )
+target_link_libraries(transactions_transmitter
     logger
     )
 
@@ -20,7 +32,6 @@ target_link_libraries(kagome_router
     logger
     outcome
     block_announce_protocol
-    gossip_protocol
     )
 
 add_library(extrinsic_observer

@@ -5,8 +5,9 @@
 
 #include "wavm_memory_provider.hpp"
 
-#include "memory.hpp"
+#include "runtime/common/memory_allocator.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
+#include "runtime/wavm/memory_impl.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -16,11 +17,11 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(intrinsic_module_);
   }
 
-  boost::optional<runtime::Memory&>
-  WavmMemoryProvider::getCurrentMemory() const {
-    return current_memory_ ? boost::optional<runtime::Memory&>(
-               *current_memory_)
-                           : boost::none;
+  boost::optional<runtime::Memory &> WavmMemoryProvider::getCurrentMemory()
+      const {
+    return current_memory_
+               ? boost::optional<runtime::Memory &>(*current_memory_)
+               : boost::none;
   }
 
   void WavmMemoryProvider::resetMemory(WasmSize heap_base) {

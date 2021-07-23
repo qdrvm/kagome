@@ -268,8 +268,14 @@ namespace kagome::runtime::wavm {
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
                                  ext_storage_clear_prefix_version_1,
-                                 WAVM::I64 key_data) {
-    return peekHostApi()->ext_storage_clear_prefix_version_1(key_data);
+                                 WAVM::I64 prefix) {
+    return peekHostApi()->ext_storage_clear_prefix_version_1(prefix);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_storage_clear_prefix_version_2,
+                                 WAVM::I64 prefix, WAVM::I64 limit) {
+    return peekHostApi()->ext_storage_clear_prefix_version_2(prefix, limit);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,

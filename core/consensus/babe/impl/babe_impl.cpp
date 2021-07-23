@@ -14,6 +14,7 @@
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "network/block_announce_transmitter.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
@@ -28,7 +29,8 @@ namespace kagome::consensus::babe {
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<BabeGossiper> gossiper,
+      std::shared_ptr<network::BlockAnnounceTransmitter>
+          block_announce_transmitter,
       std::shared_ptr<crypto::Sr25519Provider> sr25519_provider,
       const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
@@ -37,14 +39,13 @@ namespace kagome::consensus::babe {
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util)
-      : app_state_manager_(std::move(app_state_manager)),
-        lottery_{std::move(lottery)},
+      : lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
         trie_storage_{std::move(trie_storage)},
         babe_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
-        gossiper_{std::move(gossiper)},
+        block_announce_transmitter_{std::move(block_announce_transmitter)},
         keypair_{keypair},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
@@ -53,12 +54,11 @@ namespace kagome::consensus::babe {
         authority_update_observer_(std::move(authority_update_observer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
-    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
-    BOOST_ASSERT(gossiper_);
+    BOOST_ASSERT(block_announce_transmitter_);
     BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
@@ -66,13 +66,20 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(authority_update_observer_);
     BOOST_ASSERT(babe_util_);
 
-    app_state_manager_->atLaunch([this] { return start(); });
+    BOOST_ASSERT(app_state_manager);
+    app_state_manager->takeControl(*this);
+  }
+
+  bool BabeImpl::prepare() {
+    return true;
   }
 
   bool BabeImpl::start() {
     current_state_ = State::WAIT_BLOCK;
     return true;
   }
+
+  void BabeImpl::stop() {}
 
   /**
    * @brief Get index of authority
@@ -109,12 +116,14 @@ namespace kagome::consensus::babe {
     // main babe block production loop is here
     ticker_->asyncCallRepeatedly([wp = weak_from_this()](auto &&ec) {
       if (auto self = wp.lock()) {
-        self->log_->info("Starting a slot {} in epoch {}",
-                         self->current_slot_,
-                         self->current_epoch_.epoch_number);
+        SL_INFO(self->log_,
+                "Starting a slot {} in epoch {}",
+                self->current_slot_,
+                self->current_epoch_.epoch_number);
         if (ec) {
-          self->log_->error("error happened while waiting on the ticker: {}",
-                            ec.message());
+          SL_ERROR(self->log_,
+                   "error happened while waiting on the ticker: {}",
+                   ec.message());
           return;
         }
         self->finishSlot();
@@ -141,12 +150,13 @@ namespace kagome::consensus::babe {
         //  the latest state of a blockchain
 
         // synchronize missing blocks with their bodies
-        log_->info("Catching up to block number: {}", announce.header.number);
+        SL_INFO(
+            log_, "Catching up to block number: {}", announce.header.number);
         current_state_ = State::CATCHING_UP;
         block_executor_->requestBlocks(
             peer_id, announce.header, [wp = weak_from_this()] {
               if (auto self = wp.lock()) {
-                self->log_->info("Catching up is done, getting slot time");
+                SL_INFO(self->log_, "Catching up is done, getting slot time");
                 // all blocks were successfully applied, now we need to get
                 // slot time
                 self->current_state_ = State::SYNCHRONIZED;
@@ -250,8 +260,9 @@ namespace kagome::consensus::babe {
         BabeBlockHeader::kVRFHeader, current_slot_, output, authority_index};
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
-      log_->error("cannot encode BabeBlockHeader: {}",
-                  encoded_header_res.error().message());
+      SL_ERROR(log_,
+               "cannot encode BabeBlockHeader: {}",
+               encoded_header_res.error().message());
       return encoded_header_res.error();
     }
     common::Buffer encoded_header{encoded_header_res.value()};
@@ -273,8 +284,8 @@ namespace kagome::consensus::babe {
         signature) {
       seal.signature = signature.value();
     } else {
-      log_->error("Error signing a block seal: {}",
-                  signature.error().message());
+      SL_ERROR(
+          log_, "Error signing a block seal: {}", signature.error().message());
       return signature.error();
     }
     auto encoded_seal = common::Buffer(scale::encode(seal).value());
@@ -285,9 +296,10 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(keypair_ != nullptr);
 
     // build a block to be announced
-    log_->info("Obtained slot leadership in slot {} epoch {}",
-               current_slot_,
-               current_epoch_.epoch_number);
+    SL_INFO(log_,
+            "Obtained slot leadership in slot {} epoch {}",
+            current_slot_,
+            current_epoch_.epoch_number);
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -296,20 +308,21 @@ namespace kagome::consensus::babe {
     // identifiers are guaranteed to be correct, so use .value() directly
     auto put_res = inherent_data.putData<uint64_t>(kTimestampId, now);
     if (!put_res) {
-      return log_->error("cannot put an inherent data: {}",
-                         put_res.error().message());
+      return SL_ERROR(
+          log_, "cannot put an inherent data: {}", put_res.error().message());
     }
     put_res = inherent_data.putData(kBabeSlotId, current_slot_);
     if (!put_res) {
-      return log_->error("cannot put an inherent data: {}",
-                         put_res.error().message());
+      return SL_ERROR(
+          log_, "cannot put an inherent data: {}", put_res.error().message());
     }
 
     auto best_block_info = block_tree_->deepestLeaf();
     auto &[best_block_number, best_block_hash] = best_block_info;
-    log_->info("Babe builds block on top of block with number {} and hash {}",
-               best_block_number,
-               best_block_hash);
+    SL_INFO(log_,
+            "Babe builds block on top of block with number {} and hash {}",
+            best_block_info.number,
+            best_block_info.hash);
 
     auto epoch = block_tree_->getEpochDescriptor(current_epoch_.epoch_number,
                                                  best_block_hash);
@@ -322,8 +335,9 @@ namespace kagome::consensus::babe {
     auto babe_pre_digest_res =
         babePreDigest(output, authority_index_res.value());
     if (not babe_pre_digest_res) {
-      return log_->error("cannot propose a block: {}",
-                         babe_pre_digest_res.error().message());
+      return SL_ERROR(log_,
+                      "cannot propose a block: {}",
+                      babe_pre_digest_res.error().message());
     }
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
@@ -331,8 +345,9 @@ namespace kagome::consensus::babe {
     auto pre_seal_block_res =
         proposer_->propose(best_block_number, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
-      return log_->error("Cannot propose a block: {}",
-                         pre_seal_block_res.error().message());
+      return SL_ERROR(log_,
+                      "Cannot propose a block: {}",
+                      pre_seal_block_res.error().message());
     }
 
     auto block = pre_seal_block_res.value();
@@ -354,18 +369,24 @@ namespace kagome::consensus::babe {
     // seal the block
     auto seal_res = sealBlock(block);
     if (!seal_res) {
-      return log_->error("Failed to seal the block: {}",
-                         seal_res.error().message());
+      return SL_ERROR(
+          log_, "Failed to seal the block: {}", seal_res.error().message());
     }
 
     // add seal digest item
     block.header.digest.emplace_back(seal_res.value());
 
     // check that we are still in the middle of the
-    if (current_slot_ != babe_util_->getCurrentSlot()) {
-      log_->warn(
-          "Block was not built in time. Slot has finished. If you are "
-          "executing in debug mode, consider to rebuild in release");
+    auto block_delay = babe_util_->getCurrentSlot() - current_slot_;
+    if (block_delay > kMaxBlockSlotsOvertime) {
+      SL_WARN(
+          log_,
+          "Block was not built in time. "
+          "Allowed slots ({}) have passed. "
+          "Block delayed for {} slots. "
+          "If you are executing in debug mode, consider to rebuild in release",
+          kMaxBlockSlotsOvertime,
+          block_delay);
       return;
     }
 
@@ -384,21 +405,23 @@ namespace kagome::consensus::babe {
 
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
-      log_->error("Could not add block: {}", add_res.error().message());
+      SL_ERROR(log_, "Could not add block: {}", add_res.error().message());
       return;
     }
 
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
         next_epoch_digest_res) {
       auto &next_epoch_digest = next_epoch_digest_res.value();
-      log_->info("Got next epoch digest in slot {} (block #{}). Randomness: {}",
-                 current_slot_,
-                 block.header.number,
-                 next_epoch_digest.randomness.toHex());
+      SL_INFO(log_,
+              "Got next epoch digest in slot {} (block #{}). Randomness: {}",
+              current_slot_,
+              block.header.number,
+              next_epoch_digest.randomness.toHex());
     }
 
     // finally, broadcast the sealed block
-    gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
+    block_announce_transmitter_->blockAnnounce(
+        network::BlockAnnounce{block.header});
     SL_DEBUG(
         log_,
         "Announced block number {} in slot {} (epoch {}) with timestamp {}",
@@ -417,10 +440,10 @@ namespace kagome::consensus::babe {
     auto authority_index_res =
         getAuthorityIndex(authorities, keypair_->public_key);
     if (not authority_index_res) {
-      log_->critical(
-          "Block production failed: This node is not in the list of "
-          "authorities. (public key: {})",
-          keypair_->public_key.toHex());
+      SL_CRITICAL(log_,
+                  "Block production failed: This node is not in the list of "
+                  "authorities. (public key: {})",
+                  keypair_->public_key.toHex());
       throw boost::bad_optional_access();
     }
     auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
@@ -468,16 +491,16 @@ namespace kagome::consensus::babe {
 
     const auto &babe_digests_res = getBabeDigests(new_header);
     if (not babe_digests_res) {
-      log_->error("Could not get digests: {}",
-                  babe_digests_res.error().message());
+      SL_ERROR(log_,
+               "Could not get digests: {}",
+               babe_digests_res.error().message());
     }
 
     const auto &[_, babe_header] = babe_digests_res.value();
 
     EpochDescriptor epoch;
     const auto last_known_epoch = babe_util_->getLastEpoch().value();
-    epoch = prepareFirstEpoch(last_known_epoch,
-                                      babe_header.slot_number + 1);
+    epoch = prepareFirstEpoch(last_known_epoch, babe_header.slot_number + 1);
 
     // runEpoch starts ticker
     if (not ticker_->isStarted()) {

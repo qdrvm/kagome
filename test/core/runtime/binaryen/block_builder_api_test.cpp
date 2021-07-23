@@ -7,33 +7,32 @@
 
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
-#include "mock/core/host_api/host_api_factory_mock.hpp"
-#include "mock/core/runtime/wasm_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/runtime_api/impl/block_builder.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
-using namespace testing;
 using kagome::common::Buffer;
 using kagome::host_api::HostApiImpl;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilder;
 using kagome::runtime::BlockBuilderImpl;
-using kagome::runtime::binaryen::WasmMemoryImpl;
+using kagome::runtime::binaryen::MemoryImpl;
 using kagome::storage::trie::TrieStorageMock;
+using testing::_;
+using testing::Return;
 
-class BlockBuilderApiTest : public RuntimeTest {
+class BlockBuilderApiTest : public BinaryenRuntimeTest {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
   void SetUp() override {
-    RuntimeTest::SetUp();
+    BinaryenRuntimeTest::SetUp();
 
     builder_ = std::make_unique<BlockBuilderImpl>(executor_);
   }
@@ -50,8 +49,8 @@ class BlockBuilderApiTest : public RuntimeTest {
  */
 TEST_F(BlockBuilderApiTest, CheckInherents) {
   prepareEphemeralStorageExpects();
-  EXPECT_OUTCOME_FALSE_1(
-      builder_->check_inherents(createBlock(), InherentData{}));
+  EXPECT_OUTCOME_TRUE_1(
+      builder_->check_inherents(createBlock(), InherentData{}))
 }
 
 /**
@@ -63,7 +62,7 @@ TEST_F(BlockBuilderApiTest, CheckInherents) {
 TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   preparePersistentStorageExpects();
   EXPECT_CALL(*batch_mock_, batchOnTop());
-  EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}));
+  EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}))
 }
 
 /**
@@ -72,9 +71,8 @@ TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed) {
-  EXPECT_OUTCOME_FALSE_1(builder_->random_seed());
-}
+TEST_F(BlockBuilderApiTest,
+       DISABLED_RandomSeed){EXPECT_OUTCOME_FALSE_1(builder_->random_seed())}
 
 /**
  * @given block builder
@@ -84,7 +82,7 @@ TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed) {
  */
 TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
   prepareEphemeralStorageExpects();
-  EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(InherentData{}));
+  EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(InherentData{}))
 }
 
 /**
@@ -94,5 +92,5 @@ TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
  * were valid
  */
 TEST_F(BlockBuilderApiTest, DISABLED_FinalizeBlock) {
-  EXPECT_OUTCOME_FALSE_1(builder_->finalise_block());
+  EXPECT_OUTCOME_FALSE_1(builder_->finalise_block())
 }

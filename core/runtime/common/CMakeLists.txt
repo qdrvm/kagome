@@ -52,3 +52,7 @@ kagome_install(module_repository)
 add_library(runtime_environment_factory runtime_environment_factory.cpp)
 target_link_libraries(runtime_environment_factory logger)
 kagome_install(runtime_environment_factory)
+
+add_library(memory_allocator memory_allocator.cpp)
+target_link_libraries(memory_allocator Boost::boost)
+kagome_install(memory_allocator)

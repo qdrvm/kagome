@@ -11,7 +11,7 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
-#include "runtime/wavm/memory.hpp"
+#include "runtime/wavm/memory_impl.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -31,14 +31,14 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class CoreTest : public RuntimeTest {
+class CoreTest : public WavmRuntimeTest {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
   void SetUp() override {
-    RuntimeTest::SetUp();
+    WavmRuntimeTest::SetUp();
 
     auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     EXPECT_CALL(*header_repo, getBlockHeader(_))

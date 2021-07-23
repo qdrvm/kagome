@@ -8,7 +8,7 @@
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/consensus/grandpa/gossiper_mock.hpp"
+#include "mock/core/network/grandpa_transmitter_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -21,7 +21,7 @@ using kagome::common::Blob;
 using kagome::common::Hash256;
 using kagome::consensus::grandpa::Chain;
 using kagome::consensus::grandpa::EnvironmentImpl;
-using kagome::consensus::grandpa::GossiperMock;
+using kagome::network::GrandpaTransmitterMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
@@ -75,10 +75,11 @@ class ChainTest : public testing::Test {
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo =
       std::make_shared<BlockHeaderRepositoryMock>();
 
-  std::shared_ptr<GossiperMock> gossiper = std::make_shared<GossiperMock>();
+  std::shared_ptr<GrandpaTransmitterMock> grandpa_transmitter =
+      std::make_shared<GrandpaTransmitterMock>();
 
   std::shared_ptr<Chain> chain =
-      std::make_shared<EnvironmentImpl>(tree, header_repo, gossiper);
+      std::make_shared<EnvironmentImpl>(tree, header_repo, grandpa_transmitter);
 };
 
 /**

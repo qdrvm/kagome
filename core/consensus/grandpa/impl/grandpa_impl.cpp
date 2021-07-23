@@ -491,7 +491,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
-                               const FullCommitMessage &fin) {
+                               const network::FullCommitMessage &fin) {
     SL_DEBUG(logger_,
              "Finalization has received from peer #{} with identity {} for "
              "block #{} with hash {}",
@@ -524,7 +524,10 @@ namespace kagome::consensus::grandpa {
 
     if (not is_ready_) {
       // grandpa not initialized, we just finalize block then
-      environment_->finalize(justification.block_info.hash, justification);
+      auto res = environment_->finalize(justification.block_info.hash, justification);
+      if (not res.has_value()) {
+        logger_->warn("Can't make simple block finalization: {}", res.error().message());
+      }
       return;
     }
 

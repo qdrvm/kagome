@@ -293,8 +293,8 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
   EXPECT_CALL(
       *memory_,
-      storeBuffer(out_ptr, gsl::span<const uint8_t>(blake2b_128_result)))
-      .Times(1);
+      storeBuffer(gsl::span<const uint8_t>(blake2b_128_result)))
+      .WillOnce(Return(out_ptr));
 
   ASSERT_EQ(out_ptr,
             crypto_ext_->ext_hashing_blake2_128_version_1(

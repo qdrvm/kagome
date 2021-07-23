@@ -12,9 +12,15 @@
 #include <gsl/span>
 
 #include "common/buffer.hpp"
+#include "common/literals.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
+
+  constexpr inline size_t kInitialMemorySize = []() {
+    using kagome::common::literals::operator""_MB;
+    return 2_MB;
+  }();
 
   /** The underlying memory can be accessed through unaligned pointers which
    * isn't well-behaved in C++. WebAssembly nonetheless expects it to behave

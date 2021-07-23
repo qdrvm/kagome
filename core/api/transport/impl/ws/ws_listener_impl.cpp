@@ -6,12 +6,7 @@
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 
 #include <boost/asio.hpp>
-
 #include "application/app_state_manager.hpp"
-
-/// disables limitation on maximum websocket connections
-#define DISABLE_WS_LIMIT
-// ^ this is temporary for debug/testing purposes
 
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(
@@ -22,9 +17,10 @@ namespace kagome::api {
       : context_{std::move(context)},
         config_{std::move(listener_config)},
         session_config_{session_config},
+        max_ws_connections_{config_.ws_max_connections},
         next_session_id_{1ull},
         active_connections_{0},
-        logger_{log::createLogger("RpcWsListener", "rpc_transport")} {
+        log_{log::createLogger("RpcWsListener", "rpc_transport")} {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
   }
@@ -33,18 +29,18 @@ namespace kagome::api {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
     } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
-      logger_->critical("Failed to prepare a listener: {}", exception.what());
+      SL_CRITICAL(log_, "Failed to prepare a listener: {}", exception.what());
       return false;
     } catch (const std::exception &exception) {
-      logger_->critical("Exception when preparing a listener: {}",
-                        exception.what());
+      SL_CRITICAL(
+          log_, "Exception when preparing a listener: {}", exception.what());
       return false;
     }
 
     boost::system::error_code ec;
     acceptor_->set_option(boost::asio::socket_base::reuse_address(true), ec);
     if (ec) {
-      logger_->error("Failed to set `reuse address` option to acceptor");
+      SL_ERROR(log_, "Failed to set `reuse address` option to acceptor");
       return false;
     }
     return true;
@@ -54,9 +50,10 @@ namespace kagome::api {
     BOOST_ASSERT(acceptor_);
 
     if (!acceptor_->is_open()) {
-      logger_->error("error: trying to start on non opened acceptor");
+      SL_ERROR(log_, "An attempt to start on non-opened acceptor");
       return false;
     }
+    SL_TRACE(log_, "Connections limit is set to {}", max_ws_connections_);
 
     acceptOnce();
     return true;
@@ -80,6 +77,9 @@ namespace kagome::api {
     auto session_stopped_handler = [wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         --self->active_connections_;
+        SL_TRACE(self->log_,
+                 "Session closed. Active connections count is {}",
+                 self->active_connections_.load());
       }
     };
 
@@ -87,23 +87,26 @@ namespace kagome::api {
                       session_stopped_handler](boost::system::error_code ec) {
       if (auto self = wp.lock()) {
         if (not ec) {
-#ifndef DISABLE_WS_LIMIT
           self->new_session_->connectOnWsSessionCloseHandler(
               session_stopped_handler);
           if (1 + self->active_connections_.fetch_add(1)
-              > self->config_.ws_max_connections) {
+              > self->max_ws_connections_) {
             self->new_session_->reject();
+            SL_TRACE(self->log_,
+                     "Connection limit ({}) reached, new connection rejected. "
+                     "Active connections count is {}",
+                     self->max_ws_connections_,
+                     self->active_connections_.load());
           } else {
-#endif // DISABLE_WS_LIMIT
             if (self->on_new_session_) {
               (*self->on_new_session_)(self->new_session_);
             }
             self->new_session_->start();
+            SL_TRACE(self->log_,
+                     "New session started. Active connections count is {}",
+                     self->active_connections_.load());
           }
-#ifndef DISABLE_WS_LIMIT
         }
-#endif // DISABLE_WS_LIMIT
-
         if (self->acceptor_->is_open()) {
           // continue to accept until acceptor is ready
           self->acceptOnce();

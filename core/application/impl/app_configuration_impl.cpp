@@ -38,7 +38,7 @@ namespace {
   const uint16_t def_rpc_http_port = 9933;
   const uint16_t def_rpc_ws_port = 9944;
   const uint16_t def_openmetrics_http_port = 9615;
-  const uint32_t def_ws_max_connections = 100;
+  const uint32_t def_ws_max_connections = 500;
   const uint16_t def_p2p_port = 30363;
   const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
   const bool def_dev_mode = false;

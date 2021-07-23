@@ -53,10 +53,8 @@ namespace kagome::network {
 
     std::shared_ptr<BlockAnnounceProtocol> getBlockAnnounceProtocol()
         const override;
-    std::shared_ptr<GossipProtocol> getGossipProtocol() const override;
     std::shared_ptr<PropagateTransactionsProtocol>
     getPropagateTransactionsProtocol() const override;
-    std::shared_ptr<SupProtocol> getSupProtocol() const override;
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
     std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const override;
 
@@ -80,11 +78,9 @@ namespace kagome::network {
     std::shared_ptr<network::ProtocolFactory> protocol_factory_;
 
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;
-    std::shared_ptr<GossipProtocol> gossip_protocol_;
     std::shared_ptr<GrandpaProtocol> grandpa_protocol_;
     std::shared_ptr<PropagateTransactionsProtocol>
         propagate_transaction_protocol_;
-    std::shared_ptr<SupProtocol> sup_protocol_;
     std::shared_ptr<SyncProtocol> sync_protocol_;
   };
 

@@ -35,7 +35,7 @@ namespace kagome::crypto {
   class SessionKeys;
 }  // namespace kagome::crypto
 namespace kagome::network {
-  struct ExtrinsicGossiper;
+  class TransactionsTransmitter;
 }
 namespace kagome::primitives {
   struct Extrinsic;
@@ -67,18 +67,18 @@ namespace kagome::api {
      * @param hasher hasher instance shared ptr
      * @param block_tree block tree instance shared ptr
      */
-    AuthorApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
-                  std::shared_ptr<transaction_pool::TransactionPool> pool,
-                  std::shared_ptr<crypto::Hasher> hasher,
-                  std::shared_ptr<network::ExtrinsicGossiper> gossiper,
-                  std::shared_ptr<crypto::CryptoStore> store,
-                  std::shared_ptr<crypto::SessionKeys> keys,
-                  std::shared_ptr<crypto::KeyFileStorage> key_store);
+    AuthorApiImpl(
+        sptr<runtime::TaggedTransactionQueue> api,
+        sptr<transaction_pool::TransactionPool> pool,
+        sptr<crypto::Hasher> hasher,
+        sptr<network::TransactionsTransmitter> transactions_transmitter,
+        sptr<crypto::CryptoStore> store,
+        sptr<crypto::SessionKeys> keys,
+        sptr<crypto::KeyFileStorage> key_store);
 
     ~AuthorApiImpl() override = default;
 
-    void setApiService(
-        std::shared_ptr<api::ApiService> const &api_service) override;
+    void setApiService(sptr<api::ApiService> const &api_service) override;
 
     outcome::result<common::Hash256> submitExtrinsic(
         const primitives::Extrinsic &extrinsic) override;
@@ -114,7 +114,7 @@ namespace kagome::api {
     sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;
-    sptr<network::ExtrinsicGossiper> gossiper_;
+    sptr<network::TransactionsTransmitter> transactions_transmitter_;
     sptr<crypto::CryptoStore> store_;
     sptr<crypto::SessionKeys> keys_;
     sptr<crypto::KeyFileStorage> key_store_;

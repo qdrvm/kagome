@@ -21,6 +21,7 @@
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "runtime/common/constant_code_provider.hpp"
+#include "runtime/common/memory_allocator.hpp"
 #include "runtime/ptr_size.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -103,13 +104,6 @@ class REITest : public ::testing::Test {
                                                         code_provider,
                                                         module_repo,
                                                         header_repo);
-    /*EXPECT_CALL(*host_api_factory_, make(_, _, _))
-        .WillRepeatedly(
-            Invoke([this](auto &, auto &, auto &) -> std::unique_ptr<HostApi> {
-              auto new_host_api = std::make_unique<HostApiMock>();
-              host_api_ = new_host_api.get();
-              return new_host_api;
-            }));*/
   }
 
   void executeWasm(std::string call_code) {
@@ -217,8 +211,8 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_storage_exists_version_1\" (func $ext_storage_exists_version_1 (type 34)))\n"
       "  (import \"env\" \"ext_storage_read_version_1\" (func $ext_storage_read_version_1 (type 33)))\n"
       "  (import \"env\" \"ext_storage_clear_prefix_version_1\" (func $ext_storage_clear_prefix_version_1 (type 7)))\n"
-      "  (import \"env\" \"ext_storage_changes_root_version_1\" (func $ext_storage_changes_root_version_1 (type 29)))\n"
-      "  (import \"env\" \"ext_storage_root_version_1\" (func $ext_storage_root_version_1 (type 27)))\n"
+      "  (import \"env\" \"ext_storage_changes_root_version_1\" (func $ext_storage_changes_root_version_1 (type 34)))\n"
+      "  (import \"env\" \"ext_storage_root_version_1\" (func $ext_storage_root_version_1 (type 35)))\n"
       "  (import \"env\" \"ext_storage_next_key_version_1\" (func $ext_storage_next_key_version_1 (type 29)))\n"
 
       /// trie methods
@@ -229,6 +223,9 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"assert\" (func $assert (param i32)))\n"
       "  (import \"env\" \"assert_eq_i32\" (func $assert_eq_i32 (param i32 i32)))\n"
       "  (import \"env\" \"assert_eq_i64\" (func $assert_eq_i64 (param i64 i64)))\n"
+
+      "  (import \"env\" \"ext_logging_log_version_1\" (func $ext_logging_log_version_1 (type 12)))\n"
+      "  (import \"env\" \"ext_logging_max_level_version_1\" (func $ext_logging_max_level_version_1 (type 35)))\n"
 
       /// below is start function with import function call defined in test case
       "  (type $v (func))\n"
@@ -252,12 +249,15 @@ TEST_F(REITest, ext_blake2_256_enumerated_trie_root_Test) {
   WasmPointer result = 321;
 
   EXPECT_CALL(*host_api_, ext_trie_blake2_256_ordered_root_version_1(values))
-      .Times(1);
+      .WillOnce(Return(result));
   auto execute_code =
-      (boost::format("    (call $ext_trie_blake2_256_ordered_root_version_1\n"
+      (boost::format("(call $assert_eq_i32\n"
+                     "    (call $ext_trie_blake2_256_ordered_root_version_1\n"
                      "      (i64.const %d)\n"
-                     "    )\n")
-       % values)
+                     "    )\n"
+                     "    (i32.const %d)\n"
+                     ")\n")
+       % values % result)
           .str();
   executeWasm(execute_code);
 }
@@ -267,21 +267,17 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
   WasmSize parent_hash_len = 42;
   WasmPointer result = 321;
 
-  WasmSize res = 1;
-
-  EXPECT_CALL(*host_api_, ext_storage_changes_root_version_1(parent_hash_data))
-      .WillOnce(Return(res));
+  EXPECT_CALL(*host_api_, ext_storage_changes_root_version_1(PtrSize(parent_hash_data, parent_hash_len).combine()))
+      .WillOnce(Return(result));
 
   auto execute_code =
       (boost::format("    (call $assert_eq_i32\n"
                      "      (call $ext_storage_changes_root_version_1\n"
-                     "        (i32.const %d)\n"
-                     "        (i32.const %d)\n"
-                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
                      "      )\n"
                      "      (i32.const %d)\n"
                      "    )\n")
-       % parent_hash_data % parent_hash_len % result % res)
+       % PtrSize(parent_hash_data, parent_hash_len).combine() % result)
           .str();
   SCOPED_TRACE("ext_storage_changes_root_Test");
   executeWasm(execute_code);
@@ -290,12 +286,11 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
 TEST_F(REITest, ext_storage_root_Test) {
   WasmPointer storage_root = 12;
 
-  EXPECT_CALL(*host_api_, ext_storage_root_version_1()).Times(1);
-  auto execute_code = (boost::format("    (call $ext_storage_root_version_1\n"
+  EXPECT_CALL(*host_api_, ext_storage_root_version_1()).WillOnce(Return(storage_root));
+  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
+                                     "      (call $ext_storage_root_version_1)\n"
                                      "      (i32.const %d)\n"
-                                     "    )\n")
-                       % storage_root)
-                          .str();
+                                     "    )\n") % storage_root).str();
   executeWasm(execute_code);
 }
 

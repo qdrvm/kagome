@@ -20,31 +20,17 @@ namespace kagome::runtime::binaryen {
   class BinaryenMemoryProvider final : public MemoryProvider {
    public:
     BinaryenMemoryProvider(
-        std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory)
-        : memory_factory_{std::move(memory_factory)} {
-      BOOST_ASSERT(memory_factory_);
-    }
+        std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory);
 
-    boost::optional<runtime::Memory&> getCurrentMemory() const override {
-      return memory_ == nullptr ? boost::none
-                                : boost::optional<Memory&>{*memory_};
-    }
+    boost::optional<runtime::Memory&> getCurrentMemory() const override;
+    void resetMemory(WasmSize heap_base) override;
 
-    void resetMemory(WasmSize heap_base) override {
-      BOOST_ASSERT(external_interface_ != nullptr);
-      memory_ =
-          memory_factory_->make(external_interface_->getMemory(), heap_base);
-    }
-
-    void setExternalInterface(std::shared_ptr<RuntimeExternalInterface> rei) {
-      BOOST_ASSERT(rei != nullptr);
-      external_interface_ = rei;
-    }
+    void setExternalInterface(std::shared_ptr<RuntimeExternalInterface> rei);
 
    private:
     std::shared_ptr<RuntimeExternalInterface> external_interface_;
     std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory_;
-    std::shared_ptr<WasmMemoryImpl> memory_;
+    std::shared_ptr<MemoryImpl> memory_;
   };
 
 }  // namespace kagome::runtime::binaryen

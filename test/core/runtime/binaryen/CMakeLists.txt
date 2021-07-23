@@ -100,3 +100,12 @@ target_link_libraries(runtime_external_interface_test
     blob
     logger_for_tests
     )
+
+addtest(binaryen_memory_test
+    wasm_memory_test.cpp
+    )
+target_link_libraries(binaryen_memory_test
+    binaryen_wasm_memory
+    binaryen_runtime_external_interface
+    log_configurator
+    )

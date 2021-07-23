@@ -34,24 +34,24 @@ namespace kagome::host_api {
 
     switch (static_cast<WasmLogLevel>(level)) {
       case WasmLogLevel::Error:
-        logger_->error("target: {}\n\tmessage: {}", target_str, message_str);
+        logger_->error("target: {}, message: {}", target_str, message_str);
         break;
       case WasmLogLevel::Warn:
-        logger_->warn("target: {}\n\tmessage: {}", target_str, message_str);
+        logger_->warn("target: {}, message: {}", target_str, message_str);
         break;
       case WasmLogLevel::Info:
-        logger_->info("target: {}\n\tmessage: {}", target_str, message_str);
+        logger_->info("target: {}, message: {}", target_str, message_str);
         break;
       case WasmLogLevel::Debug:
-        SL_DEBUG(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
+        SL_DEBUG(logger_, "target: {}, message: {}", target_str, message_str);
         break;
       case WasmLogLevel::Trace:
-        SL_TRACE(logger_, "target: {}\n\tmessage: {}", target_str, message_str);
+        SL_TRACE(logger_, "target: {}, message: {}", target_str, message_str);
         break;
       default: {
         BOOST_UNREACHABLE_RETURN();
         logger_->error(
-            "Message with incorrect log level. Target: {}\n\tmessage: {}",
+            "Message with incorrect log level. Target: {}, message: {}",
             target_str,
             message_str);
       }

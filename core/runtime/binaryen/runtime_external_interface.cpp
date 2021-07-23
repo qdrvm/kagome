@@ -6,9 +6,6 @@
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
 #include "host_api/host_api_factory.hpp"
-#include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
 
 namespace kagome::runtime {
   class TrieStorageProvider;
@@ -18,24 +15,6 @@ namespace kagome::runtime::binaryen {
 
   const static wasm::Name env = "env";
 
-  const static wasm::Name ext_malloc = "ext_malloc";
-  const static wasm::Name ext_free = "ext_free";
-
-  const static wasm::Name ext_clear_prefix = "ext_clear_prefix";
-  const static wasm::Name ext_clear_storage = "ext_clear_storage";
-  const static wasm::Name ext_get_storage_into = "ext_get_storage_into";
-  const static wasm::Name ext_set_storage = "ext_set_storage";
-  const static wasm::Name ext_storage_changes_root = "ext_storage_changes_root";
-  const static wasm::Name ext_storage_root = "ext_storage_root";
-  const static wasm::Name ext_child_storage_root = "ext_child_storage_root";
-  const static wasm::Name ext_clear_child_storage = "ext_clear_child_storage";
-  const static wasm::Name ext_get_allocated_child_storage =
-      "ext_get_allocated_child_storage";
-  const static wasm::Name ext_get_child_storage_into =
-      "ext_get_child_storage_into";
-  const static wasm::Name ext_set_child_storage = "ext_set_child_storage";
-
-  const static wasm::Name ext_print_hex = "ext_print_hex";
   const static wasm::Name ext_logging_log_version_1 =
       "ext_logging_log_version_1";
   const static wasm::Name ext_logging_max_level_version_1 =
@@ -44,9 +23,6 @@ namespace kagome::runtime::binaryen {
 
   const static wasm::Name ext_ed25519_verify = "ext_ed25519_verify";
   const static wasm::Name ext_sr25519_verify = "ext_sr25519_verify";
-
-  const static wasm::Name ext_twox_64 = "ext_twox_64";
-  const static wasm::Name ext_twox_128 = "ext_twox_128";
 
   const static wasm::Name ext_misc_print_hex_version_1 =
       "ext_misc_print_hex_version_1";
@@ -90,6 +66,8 @@ namespace kagome::runtime::binaryen {
       "ext_storage_read_version_1";
   const static wasm::Name ext_storage_clear_prefix_version_1 =
       "ext_storage_clear_prefix_version_1";
+  const static wasm::Name ext_storage_clear_prefix_version_2 =
+      "ext_storage_clear_prefix_version_2";
   const static wasm::Name ext_storage_root_version_1 =
       "ext_storage_root_version_1";
   const static wasm::Name ext_storage_changes_root_version_1 =
@@ -425,6 +403,14 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_storage_clear_prefix_version_1(arguments.at(0).geti64());
         return wasm::Literal();
+      }
+
+      /// ext_storage_clear_prefix_version_2
+      if (import->base == ext_storage_clear_prefix_version_2) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_storage_clear_prefix_version_2(
+            arguments.at(0).geti64(), arguments.at(1).geti64());
+        return wasm::Literal(res);
       }
 
       /// ext_storage_root_version_1

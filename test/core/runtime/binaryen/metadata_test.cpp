@@ -10,7 +10,7 @@
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/runtime_api/impl/metadata.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -24,14 +24,14 @@ using kagome::runtime::MetadataImpl;
 
 namespace fs = boost::filesystem;
 
-class MetadataTest : public RuntimeTest {
+class MetadataTest : public BinaryenRuntimeTest {
  public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
 
   void SetUp() override {
-    RuntimeTest::SetUp();
+    BinaryenRuntimeTest::SetUp();
     prepareEphemeralStorageExpects();
 
     api_ = std::make_shared<MetadataImpl>(
@@ -49,5 +49,5 @@ class MetadataTest : public RuntimeTest {
  */
 TEST_F(MetadataTest, metadata) {
   EXPECT_CALL(*storage_provider_, rollbackTransaction());
-  ASSERT_TRUE(api_->metadata({}));
+  ASSERT_TRUE(api_->metadata(boost::none));
 }

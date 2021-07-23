@@ -6,7 +6,7 @@
 #ifndef KAGOME_BINARYEN_WASM_MEMORY_FACTORY_HPP
 #define KAGOME_BINARYEN_WASM_MEMORY_FACTORY_HPP
 
-#include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/memory_impl.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -14,7 +14,7 @@ namespace kagome::runtime::binaryen {
    public:
     virtual ~BinaryenWasmMemoryFactory() = default;
 
-    virtual std::unique_ptr<WasmMemoryImpl> make(
+    virtual std::unique_ptr<MemoryImpl> make(
         wasm::ShellExternalInterface::Memory *memory, WasmSize heap_base) const;
   };
 

@@ -18,41 +18,23 @@
 #include "runtime/types.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 
-namespace kagome::runtime::wavm {
+namespace kagome::runtime {
+  class MemoryAllocator;
+}
 
-  inline constexpr size_t kInitialMemorySize = []() {
-    using namespace kagome::common::literals;
-    return 2_MB;
-  }();
-  inline constexpr size_t kDefaultHeapBase = []() {
-    using namespace kagome::common::literals;
-    return 1_MB;
-  }();
+namespace kagome::runtime::wavm {
 
   class MemoryImpl final : public kagome::runtime::Memory {
    public:
     ~MemoryImpl() = default;
 
+    MemoryImpl(WAVM::Runtime::Memory *memory,
+               std::unique_ptr<MemoryAllocator>&& allocator);
     MemoryImpl(WAVM::Runtime::Memory *memory, WasmSize heap_base);
-
-    constexpr static uint32_t kMaxMemorySize =
-        std::numeric_limits<uint32_t>::max();
-    constexpr static uint8_t kAlignment = sizeof(size_t);
-
-    WasmSize size() const override{
-      return WAVM::Runtime::getMemoryNumPages(memory_) * kPageSize;
-    }
-
-    void resize(WasmSize new_size) override {
-      /**
-       * We use this condition to avoid deallocated_ pointers fixup
-       */
-      BOOST_ASSERT(offset_ <= kMaxMemorySize - new_size);
-      if (new_size >= size()) {
-        auto new_page_number = (new_size / kPageSize) + 1;
-        WAVM::Runtime::growMemory(memory_, new_page_number);
-      }
-    }
+    MemoryImpl(const MemoryImpl &copy) = delete;
+    MemoryImpl &operator=(const MemoryImpl &copy) = delete;
+    MemoryImpl(MemoryImpl &&move) = delete;
+    MemoryImpl &operator=(MemoryImpl &&move) = delete;
 
     WasmPointer allocate(WasmSize size) override;
     boost::optional<WasmSize> deallocate(WasmPointer ptr) override;
@@ -107,51 +89,31 @@ namespace kagome::runtime::wavm {
     void store16(WasmPointer addr, int16_t value) override;
     void store32(WasmPointer addr, int32_t value) override;
     void store64(WasmPointer addr, int64_t value) override;
-    void store128(WasmPointer addr, const std::array<uint8_t, 16> &value) override;
+    void store128(WasmPointer addr,
+                  const std::array<uint8_t, 16> &value) override;
     void storeBuffer(WasmPointer addr, gsl::span<const uint8_t> value) override;
 
     WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
 
-    /// following methods are needed mostly for testing purposes
-    boost::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
-    boost::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
-    size_t getAllocatedChunksNum() const;
-    size_t getDeallocatedChunksNum() const;
+    WasmSize size() const override {
+      return WAVM::Runtime::getMemoryNumPages(memory_) * kPageSize;
+    }
 
-    template <typename T>
-    static constexpr T roundUpAlign(T t) {
-      return math::roundUp<kAlignment>(t);
+    void resize(WasmSize new_size) override {
+      /**
+       * We use this condition to avoid deallocated_ pointers fixup
+       */
+      if (new_size >= size()) {
+        auto new_page_number = (new_size / kPageSize) + 1;
+        WAVM::Runtime::growMemory(memory_, new_page_number);
+      }
     }
 
    private:
     constexpr static uint32_t kPageSize = 4096;
+    std::unique_ptr<MemoryAllocator> allocator_;
     WAVM::Runtime::Memory *memory_;
-    WasmPointer heap_base_;
-    WasmPointer offset_;
     log::Logger logger_;
-
-    // map containing addresses of allocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, WasmSize> allocated_{};
-
-    // map containing addresses to the deallocated MemoryImpl chunks
-    std::map<WasmPointer, WasmSize> deallocated_{};
-
-    /**
-     * Finds memory segment of given size among deallocated pieces of memory
-     * and allocates a memory there
-     * @param size of target memory
-     * @return address of memory of given size, or -1 if it is impossible to
-     * allocate this amount of memory
-     */
-    WasmPointer freealloc(WasmSize size);
-
-    /**
-     * Resize memory and allocate memory segment of given size
-     * @param size memory size to be allocated
-     * @return pointer to the allocated memory @or 0 if it is impossible to
-     * allocate this amount of memory
-     */
-    WasmPointer growAlloc(WasmSize size);
   };
 
 }  // namespace kagome::runtime::wavm

@@ -4,12 +4,13 @@
 #
 
 add_library(binaryen_wasm_memory
-    wasm_memory_impl.cpp
+    memory_impl.cpp
     )
 target_link_libraries(binaryen_wasm_memory
     buffer
     logger
     binaryen::binaryen
+    memory_allocator
     )
 kagome_install(binaryen_wasm_memory)
 

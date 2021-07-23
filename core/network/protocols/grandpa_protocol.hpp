@@ -15,6 +15,7 @@
 
 #include "application/app_configuration.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
+#include "containers/objects_cache.hpp"
 #include "log/logger.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/types/own_peer_info.hpp"
@@ -25,6 +26,8 @@ namespace kagome::network {
   using Protocol = libp2p::peer::Protocol;
   using PeerId = libp2p::peer::PeerId;
   using PeerInfo = libp2p::peer::PeerInfo;
+
+  KAGOME_DECLARE_CACHE(GrandpaProtocol, KAGOME_CACHE_UNIT(GrandpaMessage));
 
   class GrandpaProtocol final
       : public ProtocolBase,
@@ -57,6 +60,13 @@ namespace kagome::network {
         const PeerInfo &peer_info,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override;
+
+    void vote(network::GrandpaVote &&vote_message);
+    void finalize(FullCommitMessage &&msg);
+    void catchUpRequest(const libp2p::peer::PeerId &peer_id,
+                        CatchUpRequest &&catch_up_request);
+    void catchUpResponse(const libp2p::peer::PeerId &peer_id,
+                         CatchUpResponse &&catch_up_response);
 
    private:
     enum class Direction { INCOMING, OUTGOING };

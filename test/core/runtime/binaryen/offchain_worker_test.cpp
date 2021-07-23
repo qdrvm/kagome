@@ -10,7 +10,7 @@
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
 #include "primitives/common.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using ::testing::_;
@@ -18,14 +18,14 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class OffchainWorkerTest : public RuntimeTest {
+class OffchainWorkerTest : public BinaryenRuntimeTest {
   using OffchainWorker = kagome::runtime::OffchainWorker;
   using OffchainWorkerImpl = kagome::runtime::OffchainWorkerImpl;
   using BlockNumber = kagome::primitives::BlockNumber;
 
  public:
   void SetUp() override {
-    RuntimeTest::SetUp();
+    BinaryenRuntimeTest::SetUp();
 
     api_ = std::make_shared<OffchainWorkerImpl>(executor_);
   }

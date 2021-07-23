@@ -11,18 +11,28 @@
 
 namespace kagome::network {
 
+  KAGOME_DEFINE_CACHE(PropagateTransactionsProtocol);
+
   PropagateTransactionsProtocol::PropagateTransactionsProtocol(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
       std::shared_ptr<consensus::babe::Babe> babe,
       std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
-      std::shared_ptr<StreamEngine> stream_engine)
+      std::shared_ptr<StreamEngine> stream_engine,
+      std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
+          extrinsic_events_engine,
+      std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
+          ext_event_key_repo)
       : host_(host),
         babe_(std::move(babe)),
         extrinsic_observer_(std::move(extrinsic_observer)),
-        stream_engine_(std::move(stream_engine)) {
+        stream_engine_(std::move(stream_engine)),
+        extrinsic_events_engine_{std::move(extrinsic_events_engine)},
+        ext_event_key_repo_{std::move(ext_event_key_repo)} {
     BOOST_ASSERT(extrinsic_observer_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
+    BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
+    BOOST_ASSERT(ext_event_key_repo_ != nullptr);
     const_cast<Protocol &>(protocol_) = fmt::format(
         kPropagateTransactionsProtocol.data(), chain_spec.protocolId());
   }
@@ -300,34 +310,39 @@ namespace kagome::network {
     });
   }
 
-  //  void PropagateTransactionsProtocol::writePropagatedExtrinsics(
-  //      std::shared_ptr<Stream> stream,
-  //      const PropagatedExtrinsics &message,
-  //      std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
-  //    auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-  //
-  //    read_writer->write(message,
-  //                       [stream, wp = weak_from_this(), cb = std::move(cb)](
-  //                           auto &&write_res) mutable {
-  //                         auto self = wp.lock();
-  //                         if (not self) {
-  //                           stream->reset();
-  //                           if (cb) cb(ProtocolError::GONE);
-  //                           return;
-  //                         }
-  //
-  //                         if (not write_res.has_value()) {
-  //                           SL_VERBOSE(
-  //                               self->log_,
-  //                               "Error while writing propagated extrinsics:
-  //                               {}", write_res.error().message());
-  //                           stream->reset();
-  //                           if (cb) cb(write_res.as_failure());
-  //                           return;
-  //                         }
-  //
-  //                         if (cb) cb(stream);
-  //                       });
-  //  }
+  void PropagateTransactionsProtocol::propagateTransactions(
+      gsl::span<const primitives::Transaction> txs) {
+    SL_DEBUG(log_, "Propagate transactions : {} extrinsics", txs.size());
+
+    std::vector<libp2p::peer::PeerId> peers;
+    stream_engine_->forEachPeer(
+        [&peers](const libp2p::peer::PeerId &peer_id, const auto &) {
+          peers.push_back(peer_id);
+        });
+    if (peers.size() > 1) {  // One of peers is current node itself
+      for (const auto &tx : txs) {
+        if (auto key = ext_event_key_repo_->getEventKey(tx); key.has_value()) {
+          extrinsic_events_engine_->notify(
+              key.value(),
+              primitives::events::ExtrinsicLifecycleEvent::Broadcast(
+                  key.value(), peers));
+        }
+      }
+    }
+
+    PropagatedExtrinsics exts;
+    exts.extrinsics.resize(txs.size());
+    std::transform(
+        txs.begin(), txs.end(), exts.extrinsics.begin(), [](auto &tx) {
+          return tx.ext;
+        });
+
+    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(PropagateTransactionsProtocol,
+                                                  PropagatedExtrinsics);
+    (*shared_msg) = std::move(exts);
+
+    stream_engine_->broadcast<PropagatedExtrinsics>(shared_from_this(),
+                                                    std::move(shared_msg));
+  }
 
 }  // namespace kagome::network

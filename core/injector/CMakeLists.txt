@@ -46,14 +46,8 @@ target_link_libraries(application_injector
     ed25519_provider
     environment
     extrinsic_observer
-    fmt::fmt
-    gossip_protocol
-    gossiper_broadcast
-    grandpa
-    grandpa_api
-    host_api
+    transaction_pool
     host_api_factory
-    kademlia_storage_backend
     kagome_router
     kagome_router
     key_file_storage
@@ -87,7 +81,6 @@ target_link_libraries(application_injector
     sr25519_provider
     state_api_service
     storage_code_provider
-    sup_protocol
     sync_protocol
     sync_protocol_observer
     system_api_service
@@ -101,4 +94,24 @@ target_link_libraries(application_injector
     tsl::tsl_hat_trie
     vrf_provider
     waitable_timer
+    authority_manager
+    system_api_service
+    payment_api_service
+    rpc_api_service
+    p2p::p2p_kademlia
+    kademlia_storage_backend
+    peer_manager
+    babe_util
+    assets
+    block_announce_protocol
+    propagate_transactions_protocol
+    grandpa_protocol
+    grandpa_api
+    grandpa
+    sync_protocol
+    protocol_factory
+    p2p::p2p_loopback_stream
+    grandpa_transmitter
+    block_announce_transmitter
+    transactions_transmitter
     )

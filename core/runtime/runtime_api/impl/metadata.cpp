@@ -25,11 +25,9 @@ namespace kagome::runtime {
                   block_header_repo_->getBlockHeader(block_hash.value()));
       return executor_->callAt<OpaqueMetadata>(
           header.parent_hash,
-          "Metadata_metadata",
-          block_hash);
+          "Metadata_metadata");
     }
-    return executor_->callAtLatest<OpaqueMetadata>("Metadata_metadata",
-                                                   block_hash);
+    return executor_->callAtLatest<OpaqueMetadata>("Metadata_metadata");
   }
 
 }  // namespace kagome::runtime::wavm

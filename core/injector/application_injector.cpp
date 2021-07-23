@@ -1,4 +1,3 @@
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -78,12 +77,14 @@
 #include "metrics/impl/exposer_impl.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
+#include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
-#include "network/impl/gossiper_broadcast.hpp"
+#include "network/impl/grandpa_transmitter_impl.hpp"
 #include "network/impl/kademlia_storage_backend.hpp"
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
+#include "network/impl/transactions_transmitter_impl.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
 #include "outcome/outcome.hpp"
@@ -1110,9 +1111,6 @@ namespace {
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
-        di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
-        di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
-        di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::SyncProtocolObserver>.to([](auto const &injector) {
           return get_sync_observer_impl(injector);
         }),
@@ -1157,7 +1155,6 @@ namespace {
         di::bind<network::ExtrinsicObserver>.to([](const auto &injector) {
           return get_extrinsic_observer_impl(injector);
         }),
-        di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<authority::AuthorityUpdateObserver>.template to<authority::AuthorityManagerImpl>(),
         di::bind<authority::AuthorityManager>.template to<authority::AuthorityManagerImpl>(),
         di::bind<network::PeerManager>.to(
@@ -1176,6 +1173,9 @@ namespace {
         di::bind<consensus::grandpa::GrandpaObserver>.to(
             [](auto const &injector) { return get_grandpa_impl(injector); }),
         di::bind<consensus::BabeUtil>.template to<consensus::BabeUtilImpl>(),
+        di::bind<network::BlockAnnounceTransmitter>.template to<network::BlockAnnounceTransmitterImpl>(),
+        di::bind<network::GrandpaTransmitter>.template to<network::GrandpaTransmitterImpl>(),
+        di::bind<network::TransactionsTransmitter>.template to<network::TransactionsTransmitterImpl>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
@@ -1252,7 +1252,7 @@ namespace {
         injector.template create<sptr<primitives::BabeConfiguration>>(),
         injector.template create<sptr<authorship::Proposer>>(),
         injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<network::Gossiper>>(),
+        injector.template create<sptr<network::BlockAnnounceTransmitter>>(),
         injector.template create<sptr<crypto::Sr25519Provider>>(),
         session_keys->getBabeKeyPair(),
         injector.template create<sptr<clock::SystemClock>>(),

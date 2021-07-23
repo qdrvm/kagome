@@ -17,10 +17,10 @@ target_link_libraries(wavm_runtime_test INTERFACE
     )
 
 
-addtest(wasm_memory_test
+addtest(wavm_memory_test
     wasm_memory_test.cpp
     )
-target_link_libraries(wasm_memory_test
+target_link_libraries(wavm_memory_test
     wavm_memory
     logger_for_tests
     runtime_wavm

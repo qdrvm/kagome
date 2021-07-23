@@ -9,7 +9,7 @@
 
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/binaryen/memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
@@ -28,10 +28,10 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class ParachainHostTest : public RuntimeTest {
+class ParachainHostTest : public BinaryenRuntimeTest {
  public:
   void SetUp() override {
-    RuntimeTest::SetUp();
+    BinaryenRuntimeTest::SetUp();
 
     api_ = std::make_shared<ParachainHostImpl>(executor_);
   }

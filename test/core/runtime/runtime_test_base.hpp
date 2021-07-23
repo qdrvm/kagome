@@ -59,16 +59,16 @@ class RuntimeTestBase : public ::testing::Test {
     using kagome::storage::trie::TopperTrieBatchMock;
 
     batch_mock_ = std::make_shared<PersistentTrieBatchMock>();
-    ON_CALL(*batch_mock_, get(testing::_))
+    ON_CALL(*batch_mock_, get(_))
         .WillByDefault(testing::Invoke([](auto &key) {
           std::cerr << "Get " << key.toHex() << " from storage\n";
           return kagome::common::Buffer();
         }));
-    ON_CALL(*batch_mock_, put(testing::_, testing::_))
+    ON_CALL(*batch_mock_, put(_, _))
         .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*batch_mock_, remove(testing::_))
+    ON_CALL(*batch_mock_, remove(_))
         .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*batch_mock_, clearPrefix(testing::_))
+    ON_CALL(*batch_mock_, clearPrefix(_, _))
         .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*batch_mock_, batchOnTop()).WillByDefault(testing::Invoke([] {
       return std::make_unique<TopperTrieBatchMock>();
@@ -140,13 +140,13 @@ class RuntimeTestBase : public ::testing::Test {
     header_repo_ =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
 
-    ON_CALL(*header_repo_, getHashByNumber(0))
-        .WillByDefault(testing::Return("genesis hash"_hash256));
-    ON_CALL(*header_repo_,
+    EXPECT_CALL(*header_repo_, getHashByNumber(0))
+        .WillRepeatedly(testing::Return("genesis hash"_hash256));
+    EXPECT_CALL(*header_repo_,
             getBlockHeader(testing::AnyOf(
                 kagome::primitives::BlockId{0},
                 kagome::primitives::BlockId{"genesis hash"_hash256})))
-        .WillByDefault(testing::Return(kagome::primitives::BlockHeader{
+        .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
             .parent_hash{},
             .number = 0,
             .state_root{"genesis state root"_hash256},
@@ -170,7 +170,7 @@ class RuntimeTestBase : public ::testing::Test {
         getImplementationSpecific();
 
     auto wasm_path =
-        boost::filesystem::path(__FILE__).parent_path().parent_path().string()
+        boost::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/sub2dev.wasm";
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
@@ -253,7 +253,6 @@ class RuntimeTestBase : public ::testing::Test {
       GTEST_FAIL() << heappages_key_res.error().message();
     }
     auto &&heappages_key = heappages_key_res.value();
-    EXPECT_CALL(*storage_provider_, getLatestRootMock());
     EXPECT_CALL(*storage_provider_, getCurrentBatch());
     EXPECT_CALL(*batch_mock_, get(heappages_key));
   }

@@ -26,10 +26,10 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class GrandpaTest : public RuntimeTest {
+class GrandpaTest : public BinaryenRuntimeTest {
  public:
   void SetUp() override {
-    RuntimeTest::SetUp();
+    BinaryenRuntimeTest::SetUp();
 
     api_ = std::make_shared<GrandpaApiImpl>(
         std::make_shared<BlockHeaderRepositoryMock>(), executor_);

@@ -33,7 +33,10 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));
 
-    MOCK_METHOD1(clearPrefix, outcome::result<void>(const common::Buffer &buf));
+    MOCK_METHOD2(clearPrefix,
+                 outcome::result<std::tuple<bool, uint32_t>>(
+                     const common::Buffer &buf,
+                     boost::optional<uint64_t> limit));
 
     MOCK_CONST_METHOD0(empty, bool());
 
@@ -68,7 +71,10 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));
 
-    MOCK_METHOD1(clearPrefix, outcome::result<void>(const common::Buffer &buf));
+    MOCK_METHOD2(clearPrefix,
+                 outcome::result<std::tuple<bool, uint32_t>>(
+                     const common::Buffer &buf,
+                     boost::optional<uint64_t> limit));
 
     MOCK_CONST_METHOD0(empty, bool());
   };
@@ -98,7 +104,10 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
 
-    MOCK_METHOD1(clearPrefix, outcome::result<void>(const common::Buffer &buf));
+    MOCK_METHOD2(clearPrefix,
+                 outcome::result<std::tuple<bool, uint32_t>>(
+                     const common::Buffer &buf,
+                     boost::optional<uint64_t> limit));
   };
 
 }  // namespace kagome::storage::trie

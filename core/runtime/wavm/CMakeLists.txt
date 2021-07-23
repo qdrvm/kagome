@@ -3,8 +3,8 @@ add_library(compartment_wrapper compartment_wrapper.cpp)
 target_link_libraries(compartment_wrapper WAVM::libWAVM buffer)
 kagome_install(compartment_wrapper)
 
-add_library(wavm_memory memory.cpp)
-target_link_libraries(wavm_memory WAVM::libWAVM buffer)
+add_library(wavm_memory memory_impl.cpp)
+target_link_libraries(wavm_memory WAVM::libWAVM buffer memory_allocator)
 kagome_install(wavm_memory)
 
 add_library(runtime_wavm
