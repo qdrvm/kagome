@@ -19,20 +19,27 @@ namespace kagome::runtime::binaryen {
 
   class BinaryenMemoryProvider final : public MemoryProvider {
    public:
+    enum class Error {
+        OUTDATED_EXTERNAL_INTERFACE = 1
+    };
+
     BinaryenMemoryProvider(
         std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory);
 
     boost::optional<runtime::Memory&> getCurrentMemory() const override;
-    void resetMemory(WasmSize heap_base) override;
+    [[nodiscard]]
+    outcome::result<void> resetMemory(WasmSize heap_base) override;
 
-    void setExternalInterface(std::shared_ptr<RuntimeExternalInterface> rei);
+    void setExternalInterface(std::weak_ptr<RuntimeExternalInterface> rei);
 
    private:
-    std::shared_ptr<RuntimeExternalInterface> external_interface_;
+    std::weak_ptr<RuntimeExternalInterface> external_interface_;
     std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory_;
     std::shared_ptr<MemoryImpl> memory_;
   };
 
 }  // namespace kagome::runtime::binaryen
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::binaryen, BinaryenMemoryProvider::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_BINARYEN_BINARYEN_MEMORY_PROVIDER_HPP

@@ -73,6 +73,10 @@ namespace kagome::host_api {
     MOCK_CONST_METHOD2(ext_storage_append_version_1,
                        void(runtime::WasmSpan, runtime::WasmSpan));
 
+    MOCK_METHOD0(ext_storage_start_transaction_version_1, void());
+    MOCK_METHOD0(ext_storage_rollback_transaction_version_1, void());
+    MOCK_METHOD0(ext_storage_commit_transaction_version_1, void());
+
     MOCK_METHOD1(ext_trie_blake2_256_root_version_1,
                  runtime::WasmPointer(runtime::WasmSpan values_data));
 

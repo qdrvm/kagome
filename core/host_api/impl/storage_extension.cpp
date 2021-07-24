@@ -76,22 +76,6 @@ namespace kagome::host_api {
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
-      const common::Buffer &key,
-      runtime::WasmSize offset,
-      runtime::WasmSize max_length) const {
-    auto batch = storage_provider_->getCurrentBatch();
-    OUTCOME_TRY(data, batch->get(key));
-
-    const auto data_length =
-        std::min<runtime::WasmSize>(max_length, data.size() - offset);
-
-    auto res = common::Buffer(std::vector<uint8_t>(
-        data.begin() + offset, data.begin() + offset + data_length));
-    SL_TRACE_FUNC_CALL(logger_, res, key, offset, max_length);
-    return res;
-  }
-
-  outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key) const {
     auto batch = storage_provider_->getCurrentBatch();
     return batch->get(key);
@@ -193,7 +177,10 @@ namespace kagome::host_api {
     auto enc_limit = memory.loadN(limit_ptr, limit_size);
     auto limit_res = scale::decode<boost::optional<uint32_t>>(enc_limit);
     if (!limit_res) {
-      auto msg = fmt::format("ext_storage_clear_prefix_version_2 failed at decoding second argument: {}", limit_res.error());
+      auto msg = fmt::format(
+          "ext_storage_clear_prefix_version_2 failed at decoding second "
+          "argument: {}",
+          limit_res.error());
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
@@ -288,6 +275,33 @@ namespace kagome::host_api {
             put_result.error().message());
       }
       return;
+    }
+  }
+
+  void StorageExtension::ext_storage_start_transaction_version_1() {
+    auto res = storage_provider_->startTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction start has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
+    }
+  }
+
+  void StorageExtension::ext_storage_commit_transaction_version_1() {
+    auto res = storage_provider_->rollbackTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction rollback has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
+    }
+  }
+
+  void StorageExtension::ext_storage_rollback_transaction_version_1() {
+    auto res = storage_provider_->commitTransaction();
+    if (res.has_error()) {
+      logger_->error("Storage transaction commit has failed: {}",
+                     res.error().message());
+      throw std::runtime_error(res.error().message());
     }
   }
 
@@ -417,7 +431,7 @@ namespace kagome::host_api {
   }
 
   runtime::WasmPointer StorageExtension::clearPrefix(
-      const common::Buffer& prefix, boost::optional<uint32_t> limit) {
+      const common::Buffer &prefix, boost::optional<uint32_t> limit) {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory().value();
 

@@ -45,7 +45,6 @@ namespace kagome::host_api {
   }
 
   void HostApiImpl::reset() {
-    crypto_ext_->reset();
     storage_ext_.reset();
   }
 
@@ -102,6 +101,18 @@ namespace kagome::host_api {
   runtime::WasmPointer HostApiImpl::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash) {
     return storage_ext_.ext_storage_changes_root_version_1(parent_hash);
+  }
+
+  void HostApiImpl::ext_storage_start_transaction_version_1() {
+    return storage_ext_.ext_storage_start_transaction_version_1();
+  }
+
+  void HostApiImpl::ext_storage_rollback_transaction_version_1() {
+    return storage_ext_.ext_storage_rollback_transaction_version_1();
+  }
+
+  void HostApiImpl::ext_storage_commit_transaction_version_1() {
+    return storage_ext_.ext_storage_commit_transaction_version_1();
   }
 
   runtime::WasmPointer HostApiImpl::ext_trie_blake2_256_root_version_1(

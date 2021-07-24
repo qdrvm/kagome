@@ -26,7 +26,6 @@
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
-#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
@@ -59,11 +58,9 @@ class RuntimeTestBase : public ::testing::Test {
     using kagome::storage::trie::TopperTrieBatchMock;
 
     batch_mock_ = std::make_shared<PersistentTrieBatchMock>();
-    ON_CALL(*batch_mock_, get(_))
-        .WillByDefault(testing::Invoke([](auto &key) {
-          std::cerr << "Get " << key.toHex() << " from storage\n";
-          return kagome::common::Buffer();
-        }));
+    ON_CALL(*batch_mock_, get(_)).WillByDefault(testing::Invoke([](auto &key) {
+      return kagome::common::Buffer();
+    }));
     ON_CALL(*batch_mock_, put(_, _))
         .WillByDefault(testing::Return(outcome::success()));
     ON_CALL(*batch_mock_, remove(_))
@@ -143,9 +140,9 @@ class RuntimeTestBase : public ::testing::Test {
     EXPECT_CALL(*header_repo_, getHashByNumber(0))
         .WillRepeatedly(testing::Return("genesis hash"_hash256));
     EXPECT_CALL(*header_repo_,
-            getBlockHeader(testing::AnyOf(
-                kagome::primitives::BlockId{0},
-                kagome::primitives::BlockId{"genesis hash"_hash256})))
+                getBlockHeader(testing::AnyOf(
+                    kagome::primitives::BlockId{0},
+                    kagome::primitives::BlockId{"genesis hash"_hash256})))
         .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
             .parent_hash = {},
             .number = 0,
@@ -169,9 +166,8 @@ class RuntimeTestBase : public ::testing::Test {
     auto &&[module_factory, core_api_factory, memory_provider, host_api] =
         getImplementationSpecific();
 
-    auto wasm_path =
-        boost::filesystem::path(__FILE__).parent_path().string()
-        + "/wasm/sub2dev.wasm";
+    auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
+                     + "/wasm/sub2dev.wasm";
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
@@ -196,13 +192,13 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
   void preparePersistentStorageExpects() {
-    EXPECT_CALL(*storage_provider_, setToPersistent());
+    EXPECT_CALL(*storage_provider_, setToPersistentAt(_));
     EXPECT_CALL(*storage_provider_, tryGetPersistentBatch());
     prepareCommonStorageExpects();
   }
 
   void prepareEphemeralStorageExpects() {
-    EXPECT_CALL(*storage_provider_, setToEphemeral());
+    EXPECT_CALL(*storage_provider_, setToEphemeralAt(_));
     prepareCommonStorageExpects();
   }
 

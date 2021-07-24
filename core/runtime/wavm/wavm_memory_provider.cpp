@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "wavm_memory_provider.hpp"
+#include "runtime/wavm/wavm_memory_provider.hpp"
 
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
@@ -24,9 +24,10 @@ namespace kagome::runtime::wavm {
                : boost::none;
   }
 
-  void WavmMemoryProvider::resetMemory(WasmSize heap_base) {
+  outcome::result<void> WavmMemoryProvider::resetMemory(WasmSize heap_base) {
     current_memory_ = std::make_unique<MemoryImpl>(
         intrinsic_module_->getExportedMemory(), heap_base);
+    return outcome::success();
   }
 
 }  // namespace kagome::runtime::wavm

@@ -18,11 +18,11 @@ namespace kagome::runtime {
    public:
     virtual ~MemoryProvider() = default;
 
-    virtual boost::optional<runtime::Memory&> getCurrentMemory() const = 0;
-    virtual void resetMemory(WasmSize heap_base) = 0;
-
+    virtual boost::optional<runtime::Memory &> getCurrentMemory() const = 0;
+    [[nodiscard]] virtual outcome::result<void> resetMemory(
+        WasmSize heap_base) = 0;
   };
 
-}
+}  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_MEMORY_PROVIDER_HPP

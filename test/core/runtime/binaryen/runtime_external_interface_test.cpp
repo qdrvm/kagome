@@ -852,11 +852,11 @@ TEST_F(REITest, ext_storage_changes_root_version_1_Test) {
       .WillOnce(Return(res));
 
   auto execute_code =
-      (boost::format("    (call $assert_eq_i64\n"
+      (boost::format("    (call $assert_eq_i32\n"
                      "      (call $ext_storage_changes_root_version_1\n"
                      "        (i64.const %d)\n"
                      "      )\n"
-                     "      (i64.const %d)\n"
+                     "      (i32.const %d)\n"
                      "    )\n")
        % key_type % res)
           .str();
@@ -870,9 +870,9 @@ TEST_F(REITest, ext_storage_root_version_1_Test) {
   EXPECT_CALL(*host_api_, ext_storage_root_version_1()).WillOnce(Return(res));
 
   auto execute_code =
-      (boost::format("    (call $assert_eq_i64\n"
+      (boost::format("    (call $assert_eq_i32\n"
                      "      (call $ext_storage_root_version_1)\n"
-                     "      (i64.const %d)\n"
+                     "      (i32.const %d)\n"
                      "    )\n")
        % res)
           .str();

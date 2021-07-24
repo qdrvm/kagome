@@ -7,7 +7,20 @@
 
 #include "runtime/common/memory_allocator.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
+                            BinaryenMemoryProvider::Error,
+                            e) {
+  using E = kagome::runtime::binaryen::BinaryenMemoryProvider::Error;
+  switch (e) {
+    case E::OUTDATED_EXTERNAL_INTERFACE:
+      return "Reference to the runtime external interface is outdated "
+             "(nullptr)";
+  }
+  return "Unknown error in BinaryenMemoryProvider";
+}
+
 namespace kagome::runtime::binaryen {
+
   BinaryenMemoryProvider::BinaryenMemoryProvider(
       std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory)
       : memory_factory_{std::move(memory_factory)} {
@@ -20,16 +33,21 @@ namespace kagome::runtime::binaryen {
                               : boost::optional<Memory &>{*memory_};
   }
 
-  void BinaryenMemoryProvider::resetMemory(WasmSize heap_base) {
-    BOOST_ASSERT(external_interface_ != nullptr);
-    memory_ =
-        memory_factory_->make(external_interface_->getMemory(), heap_base);
+  outcome::result<void> BinaryenMemoryProvider::resetMemory(
+      WasmSize heap_base) {
+    auto rei = external_interface_.lock();
+    BOOST_ASSERT(rei != nullptr);
+    if (rei) {
+      memory_ = memory_factory_->make(rei->getMemory(), heap_base);
+      return outcome::success();
+    }
+    return Error::OUTDATED_EXTERNAL_INTERFACE;
   }
 
   void BinaryenMemoryProvider::setExternalInterface(
-      std::shared_ptr<RuntimeExternalInterface> rei) {
-    BOOST_ASSERT(rei != nullptr);
-    external_interface_ = rei;
+      std::weak_ptr<RuntimeExternalInterface> rei) {
+    BOOST_ASSERT(rei.lock() != nullptr);
+    external_interface_ = std::move(rei);
   }
 
 }  // namespace kagome::runtime::binaryen

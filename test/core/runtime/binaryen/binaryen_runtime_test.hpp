@@ -13,6 +13,7 @@
 #include "runtime/binaryen/core_api_factory.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 
 class BinaryenRuntimeTest : public RuntimeTestBase {
  public:

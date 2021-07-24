@@ -45,10 +45,6 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<const crypto::Bip39Provider> bip39_provider);
 
-    inline void reset() {
-      batch_verify_ = boost::none;
-    }
-
     // -------------------- hashing methods v1 --------------------
 
     /**
@@ -182,7 +178,6 @@ namespace kagome::host_api {
     std::shared_ptr<const crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<const crypto::Bip39Provider> bip39_provider_;
-    boost::optional<std::queue<std::future<runtime::WasmSize>>> batch_verify_;
     log::Logger logger_;
   };
 }  // namespace kagome::host_api

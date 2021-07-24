@@ -97,9 +97,6 @@ namespace kagome::runtime {
     // map containing addresses to the deallocated MemoryImpl chunks
     std::map<WasmPointer, WasmSize> deallocated_;
 
-    // Heap base. Offset is reset to it on reset()
-    WasmPointer heap_base_;
-
     // Offset on the tail of the last allocated MemoryImpl chunk
     size_t offset_;
 

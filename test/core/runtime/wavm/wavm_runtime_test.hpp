@@ -15,6 +15,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/wavm_memory_provider.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 
 class WavmRuntimeTest : public RuntimeTestBase {
  public:

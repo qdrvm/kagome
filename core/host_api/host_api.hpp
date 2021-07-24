@@ -102,8 +102,8 @@ namespace kagome::host_api {
      * @param parent_hash wasm span containing parent hash
      * @return wasm span containing scale-encoded optional change root
      */
-    [[nodiscard]] virtual runtime::WasmPointer ext_storage_changes_root_version_1(
-        runtime::WasmSpan parent_hash) = 0;
+    [[nodiscard]] virtual runtime::WasmPointer
+    ext_storage_changes_root_version_1(runtime::WasmSpan parent_hash) = 0;
 
     /**
      * Gets the next key in storage after the given one in lexicographic order.
@@ -125,6 +125,26 @@ namespace kagome::host_api {
      */
     virtual void ext_storage_append_version_1(
         runtime::WasmSpan key, runtime::WasmSpan value) const = 0;
+
+    /**
+     * Start a new nested transaction. This allows to either commit or roll back
+     * all changes that are made after this call. For every transaction there
+     * must be a matching call to either ext_storage_rollback_transaction
+     * or ext_storage_commit_transaction.
+     */
+    virtual void ext_storage_start_transaction_version_1() = 0;
+
+    /**
+     * Rollback the last transaction started by ext_storage_start_transaction.
+     * Any changes made during that transaction are discarded.
+     */
+    virtual void ext_storage_rollback_transaction_version_1() = 0;
+
+    /**
+     * Commit the last transaction started by ext_storage_start_transaction. Any
+     * changes made during that transaction are committed to the main state.
+     */
+    virtual void ext_storage_commit_transaction_version_1() = 0;
 
     /**
      * Conducts a 256-bit Blake2 trie root formed from the iterated items.

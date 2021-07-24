@@ -15,10 +15,11 @@ namespace kagome::runtime::wavm {
 
   class WavmMemoryProvider final : public MemoryProvider {
    public:
-    WavmMemoryProvider(std::shared_ptr<IntrinsicModuleInstance> intrinsic_module);
+    WavmMemoryProvider(
+        std::shared_ptr<IntrinsicModuleInstance> intrinsic_module);
 
-    boost::optional<runtime::Memory&> getCurrentMemory() const override;
-    void resetMemory(WasmSize heap_base) override;
+    boost::optional<runtime::Memory &> getCurrentMemory() const override;
+    outcome::result<void> resetMemory(WasmSize heap_base) override;
 
    private:
     // it contains the memory itself

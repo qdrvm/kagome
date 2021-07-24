@@ -19,10 +19,6 @@ namespace kagome::runtime::binaryen {
       "ext_logging_log_version_1";
   const static wasm::Name ext_logging_max_level_version_1 =
       "ext_logging_max_level_version_1";
-  const static wasm::Name ext_print_num = "ext_print_num";
-
-  const static wasm::Name ext_ed25519_verify = "ext_ed25519_verify";
-  const static wasm::Name ext_sr25519_verify = "ext_sr25519_verify";
 
   const static wasm::Name ext_misc_print_hex_version_1 =
       "ext_misc_print_hex_version_1";
@@ -76,6 +72,13 @@ namespace kagome::runtime::binaryen {
       "ext_storage_next_key_version_1";
   const static wasm::Name ext_storage_append_version_1 =
       "ext_storage_append_version_1";
+
+  const static wasm::Name ext_storage_start_transaction_version_1 =
+      "ext_storage_start_transaction_version_1";
+  const static wasm::Name ext_storage_commit_transaction_version_1 =
+      "ext_storage_commit_transaction_version_1";
+  const static wasm::Name ext_storage_rollback_transaction_version_1 =
+      "ext_storage_rollback_transaction_version_1";
 
   const static wasm::Name ext_crypto_start_batch_verify_version_1 =
       "ext_crypto_start_batch_verify_version_1";
@@ -248,7 +251,7 @@ namespace kagome::runtime::binaryen {
       /// ext_crypto_sr25519_verify_version_2
       if (import->base == ext_crypto_sr25519_verify_version_2) {
         checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res = host_api_->ext_crypto_sr25519_verify_version_1(
+        auto res = host_api_->ext_crypto_sr25519_verify_version_2(
             arguments.at(0).geti32(),
             arguments.at(1).geti64(),
             arguments.at(2).geti32());
@@ -440,6 +443,25 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         host_api_->ext_storage_append_version_1(arguments.at(0).geti64(),
                                                 arguments.at(1).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_storage_start_transaction_version_1
+      if (import->base == ext_storage_start_transaction_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        host_api_->ext_storage_start_transaction_version_1();
+        return wasm::Literal();
+      }
+      /// ext_storage_commit_transaction_version_1
+      if (import->base == ext_storage_commit_transaction_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        host_api_->ext_storage_commit_transaction_version_1();
+        return wasm::Literal();
+      }
+      /// ext_storage_rollback_transaction_version_1
+      if (import->base == ext_storage_rollback_transaction_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        host_api_->ext_storage_rollback_transaction_version_1();
         return wasm::Literal();
       }
 

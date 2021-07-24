@@ -61,7 +61,6 @@ TEST_F(BlockBuilderApiTest, CheckInherents) {
  */
 TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   preparePersistentStorageExpects();
-  EXPECT_CALL(*batch_mock_, batchOnTop());
   EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}))
 }
 

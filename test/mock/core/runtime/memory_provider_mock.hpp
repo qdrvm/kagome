@@ -14,7 +14,7 @@ namespace kagome::runtime {
   class MemoryProviderMock final : public MemoryProvider {
    public:
     MOCK_CONST_METHOD0(getCurrentMemory, boost::optional<Memory&>());
-    MOCK_METHOD1(resetMemory, void (WasmSize));
+    MOCK_METHOD1(resetMemory, outcome::result<void> (WasmSize));
   };
 
 }  // namespace kagome::runtime
