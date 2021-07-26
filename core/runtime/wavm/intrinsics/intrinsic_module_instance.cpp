@@ -3,19 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "intrinsic_module_instance.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include "intrinsic_functions.hpp"
-#include "intrinsic_module.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 
 namespace kagome::runtime::wavm {
 
   IntrinsicModuleInstance::IntrinsicModuleInstance(
-      WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance)
-      : module_instance_{std::move(module_instance)} {}
+      WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
+      std::shared_ptr<const CompartmentWrapper> compartment)
+      : module_instance_{std::move(module_instance)},
+        compartment_{std::move(compartment)} {
+    BOOST_ASSERT(compartment_);
+  }
+
+  IntrinsicModuleInstance::~IntrinsicModuleInstance() {
+
+  }
 
   WAVM::Runtime::Memory *IntrinsicModuleInstance::getExportedMemory() const {
     return getTypedInstanceExport(module_instance_,

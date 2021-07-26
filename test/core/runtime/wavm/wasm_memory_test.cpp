@@ -41,7 +41,7 @@ class WavmMemoryHeapTest : public ::testing::Test {
         static_cast<void (*)(WAVM::Runtime::ContextRuntimeData *)>(
             [](WAVM::Runtime::ContextRuntimeData *) {}),
         WAVM::IR::FunctionType{});
-    auto intr_module_instance = intr_module->instantiate();
+    instance_ = intr_module->instantiate();
 
     auto allocator = std::make_unique<MemoryAllocator>(
         MemoryAllocator::MemoryHandle{
@@ -49,13 +49,14 @@ class WavmMemoryHeapTest : public ::testing::Test {
             [this] { return memory_->size(); }},
         kInitialMemorySize, kDefaultHeapBase);
     allocator_ = allocator.get();
-    memory_ = std::make_unique<MemoryImpl>(
-        intr_module_instance->getExportedMemory(), std::move(allocator));
+    memory_ = std::make_unique<MemoryImpl>(compartment_wrapper,
+        instance_->getExportedMemory(), std::move(allocator));
   }
 
   const static uint32_t memory_size_ = kInitialMemorySize;
 
   std::unique_ptr<MemoryImpl> memory_;
+  std::unique_ptr<IntrinsicModuleInstance> instance_;
   MemoryAllocator* allocator_;
 };
 

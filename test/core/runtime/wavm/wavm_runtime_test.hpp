@@ -8,6 +8,7 @@
 
 #include "core/runtime/runtime_test_base.hpp"
 
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/core_api_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
@@ -15,7 +16,6 @@
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
 #include "runtime/wavm/wavm_memory_provider.hpp"
-#include "mock/core/storage/trie/trie_storage_mock.hpp"
 
 class WavmRuntimeTest : public RuntimeTestBase {
  public:
@@ -26,7 +26,8 @@ class WavmRuntimeTest : public RuntimeTestBase {
     auto intrinsic_module =
         std::make_shared<kagome::runtime::wavm::IntrinsicModule>(compartment);
     kagome::runtime::wavm::registerHostApiMethods(*intrinsic_module);
-    std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance> intrinsic_module_instance = intrinsic_module->instantiate();
+    std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance>
+        intrinsic_module_instance = intrinsic_module->instantiate();
     resolver_ = std::make_shared<kagome::runtime::wavm::IntrinsicResolverImpl>(
         intrinsic_module_instance);
 
@@ -36,7 +37,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmMemoryProvider>(
-            intrinsic_module_instance);
+            intrinsic_module_instance, compartment);
 
     auto core_api_factory =
         std::make_shared<kagome::runtime::wavm::CoreApiFactory>(
@@ -47,8 +48,9 @@ class WavmRuntimeTest : public RuntimeTestBase {
             changes_tracker_,
             host_api_factory_);
 
-    std::shared_ptr<kagome::host_api::HostApi> host_api = host_api_factory_->make(
-        core_api_factory, memory_provider, storage_provider_);
+    std::shared_ptr<kagome::host_api::HostApi> host_api =
+        host_api_factory_->make(
+            core_api_factory, memory_provider, storage_provider_);
 
     kagome::runtime::wavm::pushHostApi(host_api);
 
@@ -60,4 +62,4 @@ class WavmRuntimeTest : public RuntimeTestBase {
   std::shared_ptr<kagome::runtime::wavm::IntrinsicResolver> resolver_;
 };
 
-#endif // KAGOME_WAVM_RUNTIME_TEST_HPP
+#endif  // KAGOME_WAVM_RUNTIME_TEST_HPP

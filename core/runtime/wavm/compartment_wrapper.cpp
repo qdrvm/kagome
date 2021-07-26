@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "compartment_wrapper.hpp"
+#include "runtime/wavm/compartment_wrapper.hpp"
 
 #include <WAVM/Runtime/Runtime.h>
+#include <boost/assert.hpp>
+#include <stdexcept>
 
 namespace kagome::runtime::wavm {
 
@@ -20,6 +22,11 @@ namespace kagome::runtime::wavm {
   CompartmentWrapper::CompartmentWrapper(std::string &&name)
       : impl_{std::make_unique<CompartmentWrapperImpl>(WAVM::Runtime::GCPointer{
           WAVM::Runtime::createCompartment(std::move(name))})} {}
+
+  CompartmentWrapper::~CompartmentWrapper() {
+    BOOST_VERIFY(
+        WAVM::Runtime::tryCollectCompartment(std::move(impl_->compartment_)));
+  }
 
   WAVM::Runtime::Compartment *CompartmentWrapper::getCompartment() const {
     return impl_->compartment_;

@@ -31,3 +31,6 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(wavm VERSION 1.0.0
+    CMAKE_ARGS TESTING=OFF
+    KEEP_PACKAGE_SOURCES)

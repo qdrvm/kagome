@@ -24,6 +24,7 @@ namespace kagome::runtime::wavm {
   class CompartmentWrapper final {
    public:
     CompartmentWrapper(std::string &&name);
+    ~CompartmentWrapper();
 
     WAVM::Runtime::Compartment *getCompartment() const;
 

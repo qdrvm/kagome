@@ -5,18 +5,18 @@
 
 #include "runtime/wavm/core_api_factory.hpp"
 
-#include "runtime/wavm/compartment_wrapper.hpp"
 #include "host_api/host_api_factory.hpp"
-#include "runtime/wavm/module.hpp"
-#include "runtime/wavm/module_instance.hpp"
 #include "runtime/common/constant_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+#include "runtime/wavm/module.hpp"
+#include "runtime/wavm/module_instance.hpp"
 #include "runtime/wavm/wavm_memory_provider.hpp"
 
 namespace kagome::runtime::wavm {
@@ -90,8 +90,8 @@ namespace kagome::runtime::wavm {
       const std::vector<uint8_t> &runtime_code) const {
     auto new_intrinsic_module = std::shared_ptr<IntrinsicModuleInstance>(
         intrinsic_module_->instantiate());
-    auto new_memory_provider =
-        std::make_shared<WavmMemoryProvider>(new_intrinsic_module);
+    auto new_memory_provider = std::make_shared<WavmMemoryProvider>(
+        new_intrinsic_module, compartment_);
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_);
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(

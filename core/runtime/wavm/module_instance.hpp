@@ -36,7 +36,7 @@ namespace kagome::runtime::wavm {
     };
     ModuleInstance(
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
-        std::shared_ptr<CompartmentWrapper> compartment);
+        std::shared_ptr<const CompartmentWrapper> compartment);
 
     ~ModuleInstance() override;
 
@@ -47,7 +47,7 @@ namespace kagome::runtime::wavm {
 
    private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
-    std::shared_ptr<CompartmentWrapper> compartment_;
+    std::shared_ptr<const CompartmentWrapper> compartment_;
     log::Logger logger_;
   };
 

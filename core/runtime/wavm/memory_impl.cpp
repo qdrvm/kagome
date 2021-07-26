@@ -9,23 +9,34 @@
 
 namespace kagome::runtime::wavm {
 
-  MemoryImpl::MemoryImpl(WAVM::Runtime::Memory *memory,
-                         std::unique_ptr<MemoryAllocator> &&allocator)
+  MemoryImpl::MemoryImpl(
+      std::shared_ptr<const CompartmentWrapper> const &compartment,
+      WAVM::Runtime::Memory *memory,
+      std::unique_ptr<MemoryAllocator> &&allocator)
       : allocator_{std::move(allocator)},
+        compartment_{compartment},
         memory_{memory},
         logger_{log::createLogger("WAVM Memory", "wavm")} {
     BOOST_ASSERT(memory_);
+    BOOST_ASSERT(compartment_);
 
     resize(kInitialMemorySize);
   }
 
-  MemoryImpl::MemoryImpl(WAVM::Runtime::Memory *memory, WasmSize heap_base)
-      : MemoryImpl(memory,
+  MemoryImpl::MemoryImpl(
+      std::shared_ptr<const CompartmentWrapper> const &compartment,
+      WAVM::Runtime::Memory *memory,
+      WasmSize heap_base)
+      : MemoryImpl(compartment,
+                   memory,
                    std::make_unique<MemoryAllocator>(
                        MemoryAllocator::MemoryHandle{
                            [this](auto size) { return resize(size); },
                            [this]() { return size(); }},
-                       kInitialMemorySize, heap_base)) {}
+                       kInitialMemorySize,
+                       heap_base)) {}
+
+  MemoryImpl::~MemoryImpl() {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);

@@ -58,7 +58,7 @@ class CoreTest : public WavmRuntimeTest {
  * @when version is invoked
  * @then successful result is returned
  */
-TEST_F(CoreTest, VersionTest) {
+TEST_F(CoreTest, DISABLED_VersionTest) {
   ASSERT_TRUE(core_->version());
 }
 

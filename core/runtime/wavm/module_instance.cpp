@@ -30,7 +30,7 @@ namespace kagome::runtime::wavm {
 
   ModuleInstance::ModuleInstance(
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
-      std::shared_ptr<CompartmentWrapper> compartment)
+      std::shared_ptr<const CompartmentWrapper> compartment)
       : instance_{std::move(instance)},
         compartment_{std::move(compartment)},
         logger_{log::createLogger("ModuleInstance", "wavm")} {

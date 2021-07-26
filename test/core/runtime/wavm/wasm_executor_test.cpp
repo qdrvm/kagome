@@ -144,7 +144,7 @@ class WasmExecutorTest : public ::testing::Test {
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmMemoryProvider>(
-            intrinsic_module_instance);
+            intrinsic_module_instance, compartment_wrapper);
     auto intrinsic_resolver =
         std::make_shared<kagome::runtime::wavm::IntrinsicResolverImpl>(
             intrinsic_module_instance);

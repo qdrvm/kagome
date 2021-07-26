@@ -271,11 +271,11 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
       .WillOnce(Return(result));
 
   auto execute_code =
-      (boost::format("    (call $assert_eq_i32\n"
+      (boost::format("    (call $assert_eq_i64\n"
                      "      (call $ext_storage_changes_root_version_1\n"
                      "        (i64.const %d)\n"
                      "      )\n"
-                     "      (i32.const %d)\n"
+                     "      (i64.const %d)\n"
                      "    )\n")
        % PtrSize(parent_hash_data, parent_hash_len).combine() % result)
           .str();
@@ -287,9 +287,9 @@ TEST_F(REITest, ext_storage_root_Test) {
   WasmPointer storage_root = 12;
 
   EXPECT_CALL(*host_api_, ext_storage_root_version_1()).WillOnce(Return(storage_root));
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
+  auto execute_code = (boost::format("    (call $assert_eq_i64\n"
                                      "      (call $ext_storage_root_version_1)\n"
-                                     "      (i32.const %d)\n"
+                                     "      (i64.const %d)\n"
                                      "    )\n") % storage_root).str();
   executeWasm(execute_code);
 }

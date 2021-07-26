@@ -28,7 +28,9 @@ namespace kagome::runtime::wavm {
   class IntrinsicModuleInstance final {
    public:
     IntrinsicModuleInstance(
-        WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance);
+        WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
+        std::shared_ptr<const CompartmentWrapper> compartment);
+    ~IntrinsicModuleInstance();
 
     WAVM::Runtime::Memory *getExportedMemory() const;
     WAVM::Runtime::Function *getExportedFunction(
@@ -36,6 +38,7 @@ namespace kagome::runtime::wavm {
 
    private:
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance_;
+    const std::shared_ptr<const CompartmentWrapper> compartment_;
   };
 
 }  // namespace kagome::runtime::wavm

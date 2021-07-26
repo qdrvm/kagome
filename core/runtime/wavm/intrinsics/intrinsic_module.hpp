@@ -25,6 +25,11 @@ namespace kagome::runtime::wavm {
     explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment)
         : compartment_{compartment} {}
 
+    ~IntrinsicModule() {
+      functions_.clear();
+      compartment_.reset();
+    }
+
     std::unique_ptr<IntrinsicModuleInstance> instantiate() {
       BOOST_ASSERT_MSG(
           !functions_.empty(),
@@ -33,7 +38,8 @@ namespace kagome::runtime::wavm {
       return std::make_unique<IntrinsicModuleInstance>(
           WAVM::Intrinsics::instantiateModule(compartment_->getCompartment(),
                                               {&module_},
-                                              "Intrinsic Module Instance"));
+                                              "Intrinsic Module Instance"),
+          compartment_);
     }
 
     template <typename Ret, typename... Args>
