@@ -19,12 +19,9 @@ namespace kagome::primitives {
     /// Transaction is already included in block.
     ///
     /// This means that we can't really tell where the transaction is coming
-    /// from,
-    /// since it's already in the received block. Note that the custom
-    /// validation logic
-    /// using either `Local` or `External` should most likely just allow
-    /// `InBlock`
-    /// transactions as well.
+    /// from, since it's already in the received block. Note that the custom
+    /// validation logic using either `Local` or `External` should most likely
+    /// just allow `InBlock` transactions as well.
     InBlock,
 
     /// Transaction is coming from a local source.
@@ -136,8 +133,8 @@ namespace kagome::primitives {
     /// `provide_inherent`. In any case, it can result in dangerously overweight
     /// blocks and therefore if found, invalidates the block.
     BadMandatory,
-    /// A transaction with a mandatory dispatch. This is invalid; only inherent extrinsics are
-    /// allowed to have mandatory dispatches.
+    /// A transaction with a mandatory dispatch. This is invalid; only inherent
+    /// extrinsics are allowed to have mandatory dispatches.
     MandatoryDispatch,
   };
 

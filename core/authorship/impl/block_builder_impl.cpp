@@ -38,30 +38,44 @@ namespace kagome::authorship {
       return apply_res.error();
     }
 
-    const static std::string logger_error_template =
-        "Extrinsic {} was not pushed to block. Extrinsic cannot be "
-        "applied";
+    using return_type = outcome::result<primitives::ExtrinsicIndex>;
     return visit_in_place(
         apply_res.value(),
-        [this, &extrinsic](primitives::DispatchOutcome outcome)
-            -> outcome::result<primitives::ExtrinsicIndex> {
-          switch (outcome) {
-            case primitives::DispatchOutcome::FAIL:
-              logger_->warn(logger_error_template,
-                            extrinsic.data.toHex().substr(0, 8));
-              [[fallthrough]];
-            case primitives::DispatchOutcome::SUCCESS:
-              extrinsics_.push_back(extrinsic);
-              return extrinsics_.size() - 1;
+        [this, &extrinsic](
+            const primitives::DispatchOutcome &outcome) -> return_type {
+          if (1 == outcome.which()) {  // DispatchError
+            SL_WARN(
+                logger_,
+                "Extrinsic {} pushed to the block, but dispatch error occurred",
+                extrinsic.data.toHex().substr(0, 8));
           }
-          // Not going to happen
-          throw std::runtime_error("Not all ApplyOutcome cases are checked");
+          extrinsics_.push_back(extrinsic);
+          return extrinsics_.size() - 1;
         },
-        [this, &extrinsic](primitives::ApplyError)
-            -> outcome::result<primitives::ExtrinsicIndex> {
-          logger_->warn(logger_error_template,
-                        extrinsic.data.toHex().substr(0, 8));
-          return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+        [/*this, &extrinsic*/](
+            const primitives::TransactionValidityError &tx_error)
+            -> return_type {
+          return visit_in_place(
+              tx_error,
+              [](const primitives::InvalidTransaction &reason) -> return_type {
+                switch (reason) {
+                  case primitives::InvalidTransaction::ExhaustsResources:
+                    return BlockBuilderError::EXHAUSTS_RESOURCES;
+                  case primitives::InvalidTransaction::BadMandatory:
+                    return BlockBuilderError::BAD_MANDATORY;
+                  default:
+                    return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+                }
+              },
+              [](const primitives::UnknownTransaction &) -> return_type {
+                return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+              });
+          //
+          //          SL_WARN(
+          //              logger_,
+          //              "Extrinsic {} cannot be applied and was not pushed to
+          //              the block.", extrinsic.data.toHex().substr(0, 8));
+          //          return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
         });
   }
 
