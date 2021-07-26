@@ -78,3 +78,6 @@ find_package(fmt CONFIG REQUIRED)
 
 hunter_add_package(yaml-cpp)
 find_package(yaml-cpp CONFIG REQUIRED)
+
+hunter_add_package(zstd)
+find_package(zstd CONFIG REQUIRED)
