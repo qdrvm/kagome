@@ -319,7 +319,6 @@ namespace kagome::storage::trie {
         OUTCOME_TRY(c, trie_.retrieveChild(p, i));
         current_ = c;
         updateLastVisitedChild(p, i);
-        std::cout << p << " " << (int)i << " " << c << "\n";
       }
     } while (not current_->value.has_value());
     return outcome::success();

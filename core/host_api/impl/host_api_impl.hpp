@@ -22,7 +22,7 @@ namespace kagome::host_api {
   /**
    * Fair implementation of the extensions interface
    */
-  class  HostApiImpl : public HostApi {
+  class HostApiImpl : public HostApi {
    public:
     HostApiImpl() = delete;
     HostApiImpl(
@@ -60,8 +60,8 @@ namespace kagome::host_api {
 
     void ext_storage_clear_prefix_version_1(runtime::WasmSpan prefix) override;
 
-    runtime::WasmSpan ext_storage_clear_prefix_version_2(runtime::WasmSpan prefix,
-                                            runtime::WasmSpan limit) override;
+    runtime::WasmSpan ext_storage_clear_prefix_version_2(
+        runtime::WasmSpan prefix, runtime::WasmSpan limit) override;
 
     runtime::WasmSpan ext_storage_root_version_1() override;
 

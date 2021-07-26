@@ -94,13 +94,6 @@ namespace kagome::runtime::binaryen {
     std::unique_ptr<MemoryAllocator> allocator_;
 
     log::Logger logger_;
-
-    /*template <typename T>
-    static bool aligned(const char *address) {
-      static_assert(!(sizeof(T) & (sizeof(T) - 1)), "must be a power of 2");
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      return 0 == (reinterpret_cast<uintptr_t>(address) & (sizeof(T) - 1));
-    }*/
   };
 }  // namespace kagome::runtime::binaryen
 
