@@ -28,7 +28,7 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
     using std::string_literals::operator""s;
 
     auto host_api = std::make_shared<host_api::HostApiMock>();
-    auto rei =
+    rei_ =
         std::make_unique<runtime::binaryen::RuntimeExternalInterface>(host_api);
     auto allocator = std::make_unique<MemoryAllocator>(
         MemoryAllocator::MemoryHandle{
@@ -37,11 +37,17 @@ class BinaryenMemoryHeapTest : public ::testing::Test {
         kInitialMemorySize, kDefaultHeapBase);
     allocator_ = allocator.get();
     memory_ = std::make_unique<MemoryImpl>(
-        rei->getMemory(), std::move(allocator));
+        rei_->getMemory(), std::move(allocator));
+  }
+
+  void TearDown() override {
+    memory_.reset();
+    rei_.reset();
   }
 
   const static uint32_t memory_size_ = kInitialMemorySize;
 
+  std::unique_ptr<runtime::binaryen::RuntimeExternalInterface> rei_;
   std::unique_ptr<MemoryImpl> memory_;
   MemoryAllocator* allocator_;
 };
