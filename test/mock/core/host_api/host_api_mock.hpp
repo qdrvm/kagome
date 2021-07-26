@@ -62,10 +62,10 @@ namespace kagome::host_api {
     MOCK_METHOD2(ext_storage_clear_prefix_version_2,
                  runtime::WasmSpan(runtime::WasmSpan, runtime::WasmSpan));
 
-    MOCK_METHOD0(ext_storage_root_version_1, runtime::WasmPointer());
+    MOCK_METHOD0(ext_storage_root_version_1, runtime::WasmSpan());
 
     MOCK_METHOD1(ext_storage_changes_root_version_1,
-                 runtime::WasmPointer(runtime::WasmSpan));
+                 runtime::WasmSpan(runtime::WasmSpan));
 
     MOCK_CONST_METHOD1(ext_storage_next_key_version_1,
                        runtime::WasmSpan(runtime::WasmSpan));

@@ -123,7 +123,8 @@ namespace kagome::runtime::binaryen {
 
   RuntimeExternalInterface::RuntimeExternalInterface(
       std::shared_ptr<host_api::HostApi> host_api)
-      : host_api_{std::move(host_api)} {
+      : host_api_{std::move(host_api)},
+        logger_{log::createLogger("RuntimeExternalInterface", "binaryen")} {
     BOOST_ASSERT(host_api_);
   }
 

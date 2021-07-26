@@ -63,9 +63,9 @@ namespace kagome::host_api {
     runtime::WasmSpan ext_storage_clear_prefix_version_2(runtime::WasmSpan prefix,
                                             runtime::WasmSpan limit) override;
 
-    runtime::WasmPointer ext_storage_root_version_1() override;
+    runtime::WasmSpan ext_storage_root_version_1() override;
 
-    runtime::WasmPointer ext_storage_changes_root_version_1(
+    runtime::WasmSpan ext_storage_changes_root_version_1(
         runtime::WasmSpan parent_hash) override;
 
     void ext_storage_start_transaction_version_1() override;

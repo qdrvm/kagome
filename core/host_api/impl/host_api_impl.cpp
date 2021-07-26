@@ -94,11 +94,11 @@ namespace kagome::host_api {
     return storage_ext_.ext_storage_clear_prefix_version_2(prefix, limit);
   }
 
-  runtime::WasmPointer HostApiImpl::ext_storage_root_version_1() {
+  runtime::WasmSpan HostApiImpl::ext_storage_root_version_1() {
     return storage_ext_.ext_storage_root_version_1();
   }
 
-  runtime::WasmPointer HostApiImpl::ext_storage_changes_root_version_1(
+  runtime::WasmSpan HostApiImpl::ext_storage_changes_root_version_1(
       runtime::WasmSpan parent_hash) {
     return storage_ext_.ext_storage_changes_root_version_1(parent_hash);
   }

@@ -157,9 +157,9 @@ namespace kagome::runtime::wavm {
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(void,
-                                 ext_default_child_storage_clear_version_1,
-                                 WAVM::I64,
-                                 WAVM::I64)
+                                      ext_default_child_storage_clear_version_1,
+                                      WAVM::I64,
+                                      WAVM::I64)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
                                       ext_default_child_storage_get_version_1,
@@ -274,12 +274,13 @@ namespace kagome::runtime::wavm {
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
                                  ext_storage_clear_prefix_version_2,
-                                 WAVM::I64 prefix, WAVM::I64 limit) {
+                                 WAVM::I64 prefix,
+                                 WAVM::I64 limit) {
     return peekHostApi()->ext_storage_clear_prefix_version_2(prefix, limit);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
-                                      ext_storage_commit_transaction_version_1) {
+                                 ext_storage_commit_transaction_version_1) {
     return peekHostApi()->ext_storage_commit_transaction_version_1();
   }
 
@@ -303,8 +304,8 @@ namespace kagome::runtime::wavm {
     return peekHostApi()->ext_storage_read_version_1(key, value_out, offset);
   }
 
-  WAVM_DEFINE_INTRINSIC_FUNCTION(
-      void, ext_storage_rollback_transaction_version_1) {
+  WAVM_DEFINE_INTRINSIC_FUNCTION(void,
+                                 ext_storage_rollback_transaction_version_1) {
     return peekHostApi()->ext_storage_rollback_transaction_version_1();
   }
 
@@ -320,7 +321,7 @@ namespace kagome::runtime::wavm {
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(void,
-                                      ext_storage_start_transaction_version_1) {
+                                 ext_storage_start_transaction_version_1) {
     return peekHostApi()->ext_storage_start_transaction_version_1();
   }
 

@@ -47,7 +47,7 @@ namespace kagome::runtime::binaryen {
                         size_t actual);
 
     std::shared_ptr<host_api::HostApi> host_api_;
-    log::Logger logger_ = log::createLogger("RuntimeExternalInterface", "binaryen");
+    log::Logger logger_;
   };
 
 }  // namespace kagome::runtime::binaryen
