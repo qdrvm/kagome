@@ -7,6 +7,8 @@
 
 #include <zstd.h>
 
+#include "log/logger.hpp"
+
 namespace kagome::runtime {
 
   // @see
@@ -18,10 +20,23 @@ namespace kagome::runtime {
   constexpr size_t kCodeBlobBombLimit = 50 * 1024 * 1024;
 
   void uncompressCodeIfNeeded(const common::Buffer &buf, common::Buffer &res) {
-    if (std::equal(buf.begin(),
-                   buf.begin() + 8,
-                   std::begin(kZstdPrefix),
-                   std::end(kZstdPrefix))) {
+    if (buf.size() > 8
+        && std::equal(buf.begin(),
+                      buf.begin() + 8,
+                      std::begin(kZstdPrefix),
+                      std::end(kZstdPrefix))) {
+      auto logger = log::createLogger("UncompressCodeIfNeeded", "wasm");
+      // here we can check that blob is really ZSTD compressed
+      // but we don't use the result size, it's unknown for the WASM blob
+      // @see ZSTD_CONTENTSIZE_UNKNOWN
+      auto check_size =
+          ZSTD_getFrameContentSize(buf.data() + 8, buf.size() - 8);
+      // error here would mean an update of codebase
+      // so we leave it to try the previous runtime if any
+      if (check_size == ZSTD_CONTENTSIZE_ERROR) {
+        logger->error("WASM code not compressed by zstd!");
+        return;
+      }
       res.resize(kCodeBlobBombLimit);
       auto size = ZSTD_decompress(
           res.data(), kCodeBlobBombLimit, buf.data() + 8, buf.size() - 8);

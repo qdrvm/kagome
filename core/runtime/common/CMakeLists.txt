@@ -10,6 +10,7 @@ add_library(storage_wasm_provider
 target_link_libraries(storage_wasm_provider
     blob
     buffer
+    logger
     zstd::libzstd_static
     )
 kagome_install(storage_wasm_provider)

@@ -153,5 +153,6 @@ addtest(uncompress_code_test
     uncompress_code_test.cpp
     )
 target_link_libraries(uncompress_code_test
+    log_configurator
     storage_wasm_provider
     )
