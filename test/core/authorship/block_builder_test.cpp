@@ -18,9 +18,11 @@ using kagome::authorship::BlockBuilderImpl;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
-using kagome::primitives::DispatchOutcome;
+using kagome::primitives::DispatchError;
+using kagome::primitives::DispatchSuccess;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
+using kagome::primitives::dispatch_error::Other;
 using kagome::runtime::BlockBuilderApiMock;
 
 class BlockBuilderTest : public ::testing::Test {
@@ -80,7 +82,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
   // given
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
-      .WillOnce(Return(DispatchOutcome::SUCCESS));
+      .WillOnce(Return(DispatchSuccess{}));
   EXPECT_CALL(*block_builder_api_, finalise_block())
       .WillOnce(Return(expected_header_));
 
@@ -105,7 +107,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
   // given
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
-      .WillOnce(Return(DispatchOutcome::FAIL));
+      .WillOnce(Return(DispatchError{Other{}}));
   EXPECT_CALL(*block_builder_api_, finalise_block())
       .WillOnce(Return(expected_header_));
 

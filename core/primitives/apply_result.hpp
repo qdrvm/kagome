@@ -7,7 +7,6 @@
 #define KAGOME_CORE_PRIMITIVES_APPLY_RESULT_HPP
 
 #include <boost/variant.hpp>
-#include "common/variant_builder.hpp"
 #include "primitives/arithmetic_error.hpp"
 #include "primitives/token_error.hpp"
 #include "primitives/transaction_validity.hpp"
@@ -20,17 +19,22 @@ namespace kagome::primitives {
   // https://w3f-research.readthedocs.io/en/latest/_static/pdfview/viewer.html?file=https://w3f.github.io/polkadot-spec/spec/host/nightly.pdf#label329
 
   class DispatchSuccess {};
+  SCALE_EMPTY_CODER(DispatchSuccess);
 
   namespace dispatch_error {
     /// Some unclassified error occurred.
     struct Other {
-      // not currently used in rust impl, thus not scale encoded
       std::string value;
     };
+    // string value is not currently encodes in rust implementation,
+    // thus we use empty coder
+    SCALE_EMPTY_CODER(Other);
     /// Failed to lookup some data.
     struct CannotLookup {};
+    SCALE_EMPTY_CODER(CannotLookup);
     /// A bad origin.
     struct BadOrigin {};
+    SCALE_EMPTY_CODER(BadOrigin);
     /// A custom error in a module.
     struct Module {
       /// Module index, matching the metadata module index.
@@ -41,18 +45,62 @@ namespace kagome::primitives {
       boost::optional<std::string>
           message;  // not currently used in rust impl, thus not scale encoded
     };
+
+    template <typename Stream,
+              typename = std::enable_if_t<Stream::is_encoder_stream>>
+    Stream &operator<<(Stream &s, const Module &v) {
+      return s << v.index << v.error;
+    }
+
+    template <typename Stream,
+              typename = std::enable_if_t<Stream::is_decoder_stream>>
+    Stream &operator>>(Stream &s, Module &v) {
+      s >> v.index >> v.error;
+      return s;
+    }
+
     /// At least one consumer is remaining so the account cannot be destroyed.
     struct ConsumerRemaining {};
+    SCALE_EMPTY_CODER(ConsumerRemaining);
     /// There are no providers so the account cannot be created.
     struct NoProviders {};
+    SCALE_EMPTY_CODER(NoProviders);
     /// An error to do with tokens.
     struct Token {
       TokenError error;
     };
+
+    template <typename Stream,
+              typename = std::enable_if_t<Stream::is_encoder_stream>>
+    Stream &operator<<(Stream &s, const Token &v) {
+      return s << v.error;
+    }
+
+    template <typename Stream,
+              typename = std::enable_if_t<Stream::is_decoder_stream>>
+    Stream &operator>>(Stream &s, Token &v) {
+      s >> v.error;
+      return s;
+    }
+
     /// An arithmetic error.
     struct Arithmetic {
       ArithmeticError error;
     };
+
+    template <typename Stream,
+              typename = std::enable_if_t<Stream::is_encoder_stream>>
+    Stream &operator<<(Stream &s, const Arithmetic &v) {
+      return s << v.error;
+    }
+
+    template <typename Stream,
+              typename = std::enable_if_t<Stream::is_decoder_stream>>
+    Stream &operator>>(Stream &s, Arithmetic &v) {
+      s >> v.error;
+      return s;
+    }
+
   }  // namespace dispatch_error
 
   namespace de = dispatch_error;
@@ -69,74 +117,6 @@ namespace kagome::primitives {
 
   using ApplyExtrinsicResult =
       boost::variant<DispatchOutcome, TransactionValidityError>;
-
-  template <typename Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const DispatchError &v) {
-    uint8_t index{static_cast<uint8_t>(v.which())};
-    s << index;
-    if (3 == index) {
-      const auto &module = boost::get<de::Module>(v);
-      s << module.index << module.error;
-      // message field is omitted for compatibility with rust implementation
-      // (there it is declared but omitted too)
-    } else if (6 == index) {
-      const auto &token = boost::get<de::Token>(v);
-      s << static_cast<uint8_t>(token.error);
-    } else if (7 == index) {
-      const auto &arithmetic = boost::get<de::Arithmetic>(v);
-      s << static_cast<uint8_t>(arithmetic.error);
-    }
-    return s;
-  }
-
-  template <typename Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, DispatchError &v) {
-    uint8_t index = 0;
-    s >> index;
-    kagome::common::VariantBuilder builder(v);
-    builder.init(index);
-    if (3 == index) {
-      auto &module = boost::get<de::Module>(v);
-      s >> module.index >> module.error;
-      // message field is omitted for compatibility with rust implementation
-      // (there it is declared but omitted too)
-    } else if (6 == index) {
-      auto &token = boost::get<de::Token>(v);
-      token.error = TokenError{index};
-    } else if (7 == index) {
-      auto &arithmetic = boost::get<de::Arithmetic>(v);
-      arithmetic.error = ArithmeticError{index};
-    }
-    return s;
-  }
-
-  template <typename Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const DispatchOutcome &v) {
-    uint8_t index{static_cast<uint8_t>(v.which())};
-    s << index;
-    if (1 == index) {  // DispatchError
-      const auto &error = boost::get<DispatchError>(v);
-      s << error;
-    }
-    return s;
-  }
-
-  template <typename Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, DispatchOutcome &v) {
-    uint8_t index = 0;
-    s >> index;
-    kagome::common::VariantBuilder builder(v);
-    builder.init(index);
-    if (1 == index) {  // DispatchError
-      auto &error = boost::get<DispatchError>(v);
-      s >> error;
-    }
-    return s;
-  }
 
 }  // namespace kagome::primitives
 
