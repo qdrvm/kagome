@@ -31,10 +31,6 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<IntrinsicResolver> resolver,
         gsl::span<const uint8_t> code);
 
-    ~ModuleImpl() override {
-
-    }
-
     outcome::result<std::unique_ptr<runtime::ModuleInstance>> instantiate() const override;
 
    private:

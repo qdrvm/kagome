@@ -21,10 +21,6 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(compartment_);
   }
 
-  IntrinsicModuleInstance::~IntrinsicModuleInstance() {
-
-  }
-
   WAVM::Runtime::Memory *IntrinsicModuleInstance::getExportedMemory() const {
     return getTypedInstanceExport(module_instance_,
                                   IntrinsicModule::kIntrinsicMemoryName.data(),

@@ -28,8 +28,6 @@ namespace kagome::runtime::wavm {
 
   class MemoryImpl final : public kagome::runtime::Memory {
    public:
-    ~MemoryImpl();
-
     MemoryImpl(std::shared_ptr<const CompartmentWrapper> const &compartment,
                WAVM::Runtime::Memory *memory,
                std::unique_ptr<MemoryAllocator> &&allocator);

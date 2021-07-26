@@ -8,15 +8,15 @@ target_link_libraries(wavm_memory WAVM::libWAVM buffer memory_allocator)
 kagome_install(wavm_memory)
 
 add_library(runtime_wavm
-    module.cpp
-    module_instance.cpp
-    intrinsics/intrinsic_resolver_impl.cpp
     core_api_factory.cpp
     intrinsics/intrinsic_functions.cpp
-    wavm_memory_provider.cpp
-    module_factory_impl.cpp
-    intrinsics/intrinsic_module_instance.cpp
     intrinsics/intrinsic_module.cpp
+    intrinsics/intrinsic_module_instance.cpp
+    intrinsics/intrinsic_resolver_impl.cpp
+    module.cpp
+    module_factory_impl.cpp
+    module_instance.cpp
+    wavm_memory_provider.cpp
     )
 target_link_libraries(runtime_wavm
     WAVM::libWAVM

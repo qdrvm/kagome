@@ -30,7 +30,7 @@ namespace kagome::runtime::wavm {
     IntrinsicModuleInstance(
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
         std::shared_ptr<const CompartmentWrapper> compartment);
-    ~IntrinsicModuleInstance();
+    ~IntrinsicModuleInstance() = default;
 
     WAVM::Runtime::Memory *getExportedMemory() const;
     WAVM::Runtime::Function *getExportedFunction(
