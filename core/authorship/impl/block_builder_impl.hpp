@@ -11,8 +11,8 @@
 #include "log/logger.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/event_types.hpp"
-#include "runtime/runtime_api/block_builder.hpp"
-#include "runtime/runtime_api/core.hpp"
+#include "runtime/block_builder.hpp"
+#include "runtime/core.hpp"
 
 namespace kagome::authorship {
 

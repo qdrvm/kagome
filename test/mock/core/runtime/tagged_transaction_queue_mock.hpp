@@ -6,7 +6,7 @@
 #ifndef KAGOME_TAGGED_TRANSACTION_QUEUE_MOCK_HPP
 #define KAGOME_TAGGED_TRANSACTION_QUEUE_MOCK_HPP
 
-#include "runtime/runtime_api/tagged_transaction_queue.hpp"
+#include "runtime/tagged_transaction_queue.hpp"
 
 #include <gmock/gmock.h>
 

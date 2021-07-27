@@ -17,7 +17,7 @@ set(
 
 include("cmake/Hunter/init.cmake")
 
-project(kagome C CXX)
+PROJECT(kagome C CXX)
 
 include(cmake/print.cmake)
 print("C flags: ${CMAKE_C_FLAGS}")

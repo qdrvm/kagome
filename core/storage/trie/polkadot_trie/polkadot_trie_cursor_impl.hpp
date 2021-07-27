@@ -8,7 +8,6 @@
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 
-#include "log/logger.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::storage::trie {
@@ -64,18 +63,18 @@ namespace kagome::storage::trie {
      * index of its child which is the next node in the path
      */
     struct TriePathEntry {
-      TriePathEntry(BranchPtr parent, uint8_t child_idx)
+      TriePathEntry(BranchPtr parent, int8_t child_idx)
           : parent{std::move(parent)}, child_idx{child_idx} {}
 
       BranchPtr parent;
-      uint8_t child_idx;
+      int8_t child_idx;
     };
 
-    static uint8_t getNextChildIdx(const BranchPtr &parent, uint8_t child_idx);
+    static int8_t getNextChildIdx(const BranchPtr &parent, uint8_t child_idx);
 
     static bool hasNextChild(const BranchPtr &parent, uint8_t child_idx);
 
-    static uint8_t getPrevChildIdx(const BranchPtr &parent, uint8_t child_idx);
+    static int8_t getPrevChildIdx(const BranchPtr &parent, uint8_t child_idx);
 
     static bool hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
 
@@ -98,12 +97,11 @@ namespace kagome::storage::trie {
 
     common::Buffer collectKey() const;
 
-    PolkadotCodec codec_;
-    std::list<TriePathEntry> last_visited_child_;
     const PolkadotTrie &trie_;
+    PolkadotCodec codec_;
     NodePtr current_;
     bool visited_root_ = false;
-    log::Logger log_;
+    std::list<TriePathEntry> last_visited_child_;
   };
 
 }  // namespace kagome::storage::trie

@@ -85,9 +85,7 @@ namespace kagome::network {
       const BlocksRequest &request,
       const primitives::BlockHash &from_hash) const {
     auto ascending_direction =
-        request.direction == network::Direction::ASCENDING
-            ? blockchain::BlockTree::GetChainDirection::ASCEND
-            : blockchain::BlockTree::GetChainDirection::DESCEND;
+        request.direction == network::Direction::ASCENDING;
     blockchain::BlockTree::BlockHashVecRes chain_hash_res{{}};
 
     uint32_t request_count =
@@ -107,8 +105,7 @@ namespace kagome::network {
       OUTCOME_TRY(
           chain_hash,
           block_tree_->getChainByBlocks(from_hash, *request.to, request_count));
-      if (ascending_direction
-          == blockchain::BlockTree::GetChainDirection::DESCEND) {
+      if (!ascending_direction) {
         std::reverse(chain_hash.begin(), chain_hash.end());
       }
       chain_hash_res = std::move(chain_hash);

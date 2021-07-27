@@ -13,7 +13,7 @@ target_link_libraries(state_api_service
     api_service
     trie_storage
     blob
-    metadata_api
+    binaryen_metadata_api
     )
 
 add_subdirectory(requests)

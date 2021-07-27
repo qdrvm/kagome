@@ -23,7 +23,6 @@ add_library(polkadot_trie_cursor
 target_link_libraries(polkadot_trie_cursor
     buffer
     polkadot_codec
-    logger
     )
 kagome_install(polkadot_trie_cursor)
 

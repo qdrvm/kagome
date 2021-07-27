@@ -31,7 +31,6 @@ add_library(kagome_router
 target_link_libraries(kagome_router
     logger
     outcome
-    block_announce_protocol
     )
 
 add_library(extrinsic_observer

@@ -28,7 +28,7 @@
 #include "network/extrinsic_observer.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
-#include "runtime/runtime_api/core.hpp"
+#include "runtime/core.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -162,28 +162,28 @@ namespace kagome::blockchain {
         const primitives::Justification &justification) override;
 
     BlockHashVecRes getChainByBlock(
-        const primitives::BlockHash &block) const override;
+        const primitives::BlockHash &block) override;
 
     BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
                                      const primitives::BlockHash &bottom_block,
-                                     const uint32_t max_count) const override;
+                                     const uint32_t max_count) override;
 
     BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
-                                    GetChainDirection ascending,
-                                    uint64_t maximum) const override;
+                                    bool ascending,
+                                    uint64_t maximum) override;
 
     BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block) const override;
+        const primitives::BlockHash &bottom_block) override;
 
     boost::optional<primitives::Version> runtimeVersion() const override {
       return actual_runtime_version_;
     }
 
     bool hasDirectChain(const primitives::BlockHash &ancestor,
-                        const primitives::BlockHash &descendant) const override;
+                        const primitives::BlockHash &descendant) override;
 
-    BlockHashVecRes longestPath() const override;
+    BlockHashVecRes longestPath() override;
 
     primitives::BlockInfo deepestLeaf() const override;
 
@@ -239,11 +239,11 @@ namespace kagome::blockchain {
     boost::optional<std::vector<primitives::BlockHash>>
     tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
                                  const primitives::BlockHash &bottom_block,
-                                 boost::optional<uint32_t> max_count) const;
+                                 boost::optional<uint32_t> max_count);
 
     BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
                                      const primitives::BlockHash &bottom_block,
-                                     boost::optional<uint32_t> max_count) const;
+                                     boost::optional<uint32_t> max_count);
 
     /**
      * @returns the tree leaves sorted by their depth

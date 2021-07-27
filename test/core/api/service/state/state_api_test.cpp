@@ -201,7 +201,8 @@ namespace kagome::api {
                                      .spec_version = 0x111,
                                      .impl_version = 0x202};
 
-    EXPECT_CALL(*runtime_core, version())
+    boost::optional<primitives::BlockHash> hash1 = boost::none;
+    EXPECT_CALL(*runtime_core, version(hash1))
         .WillOnce(testing::Return(test_version));
 
     {
@@ -209,8 +210,8 @@ namespace kagome::api {
       ASSERT_EQ(result, test_version);
     }
 
-    primitives::BlockHash hash = "T"_hash256;
-    EXPECT_CALL(*runtime_core, versionAt(hash))
+    boost::optional<primitives::BlockHash> hash = "T"_hash256;
+    EXPECT_CALL(*runtime_core, version(hash))
         .WillOnce(testing::Return(test_version));
 
     {

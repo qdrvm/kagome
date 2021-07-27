@@ -21,11 +21,10 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: debug
+    level: trace
     is_fallback: true
     children:
       - name: libp2p
-        level: off
       - name: kagome
         children:
           - name: injector
@@ -57,13 +56,10 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
-            level: debug
             children:
-              - name: runtime_api
-              - name: host_api
-              - name: binaryen
-              - name: wavm
-                level: trace
+              - name: wasm
+              - name: extentions
+              - name: binatien
           - name: metrics
           - name: network
             children:

@@ -26,7 +26,7 @@ namespace kagome::api {
   class ApiService;
 }
 namespace kagome::blockchain {
-  class BlockTree;
+  struct BlockTree;
 }
 namespace kagome::crypto {
   class CryptoStore;

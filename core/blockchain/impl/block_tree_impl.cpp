@@ -10,6 +10,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "blockchain/impl/storage_util.hpp"
+#include "common/visitor.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "storage/database_error.hpp"
@@ -569,7 +570,7 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(
         primitives::events::ChainEventType::kFinalizedHeads, header);
 
-    OUTCOME_TRY(new_runtime_version, runtime_core_->version());
+    OUTCOME_TRY(new_runtime_version, runtime_core_->version(boost::none));
     if (not actual_runtime_version_.has_value()
         || actual_runtime_version_ != new_runtime_version) {
       actual_runtime_version_ = new_runtime_version;
@@ -612,14 +613,12 @@ namespace kagome::blockchain {
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
-      const primitives::BlockHash &block) const {
+      const primitives::BlockHash &block) {
     return getChainByBlocks(tree_meta_->last_finalized.get().block_hash, block);
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
-      const primitives::BlockHash &block,
-      GetChainDirection direction,
-      uint64_t maximum) const {
+      const primitives::BlockHash &block, bool ascending, uint64_t maximum) {
     auto block_number_res = header_repo_->getNumberByHash(block);
     if (!block_number_res) {
       log_->error("cannot retrieve block with hash {}: {}",
@@ -630,7 +629,7 @@ namespace kagome::blockchain {
     auto start_block_number = block_number_res.value();
 
     primitives::BlockNumber finish_block_number;  // NOLINT
-    if (direction == GetChainDirection::DESCEND) {
+    if (!ascending) {
       if (start_block_number < maximum) {
         // we want to finish at the root
         finish_block_number = 0;
@@ -656,7 +655,7 @@ namespace kagome::blockchain {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
 
-    if (direction == GetChainDirection::ASCEND) {
+    if (ascending) {
       return getChainByBlocks(block, finish_block_hash.value());
     }
 
@@ -670,7 +669,7 @@ namespace kagome::blockchain {
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block,
-      const uint32_t max_count) const {
+      const uint32_t max_count) {
     return getChainByBlocks(
         top_block, bottom_block, boost::make_optional(max_count));
   }
@@ -678,7 +677,7 @@ namespace kagome::blockchain {
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block,
-      boost::optional<uint32_t> max_count) const {
+      boost::optional<uint32_t> max_count) {
     if (auto from_cache =
             tryGetChainByBlocksFromCache(top_block, bottom_block, max_count)) {
       return std::move(from_cache.value());
@@ -731,7 +730,7 @@ namespace kagome::blockchain {
   BlockTreeImpl::tryGetChainByBlocksFromCache(
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block,
-      boost::optional<uint32_t> max_count) const {
+      boost::optional<uint32_t> max_count) {
     if (auto from = tree_->getByHash(top_block)) {
       if (auto way_opt = from->getPathTo(bottom_block)) {
         auto &way = way_opt.value();
@@ -761,13 +760,12 @@ namespace kagome::blockchain {
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
       const primitives::BlockHash &top_block,
-      const primitives::BlockHash &bottom_block) const {
+      const primitives::BlockHash &bottom_block) {
     return getChainByBlocks(top_block, bottom_block, boost::none);
   }
 
-  bool BlockTreeImpl::hasDirectChain(
-      const primitives::BlockHash &ancestor,
-      const primitives::BlockHash &descendant) const {
+  bool BlockTreeImpl::hasDirectChain(const primitives::BlockHash &ancestor,
+                                     const primitives::BlockHash &descendant) {
     auto ancestor_node_ptr = tree_->getByHash(ancestor);
     auto descendant_node_ptr = tree_->getByHash(descendant);
 
@@ -796,7 +794,7 @@ namespace kagome::blockchain {
     return true;
   }
 
-  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::longestPath() const {
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::longestPath() {
     auto &&[_, block_hash] = deepestLeaf();
     return getChainByBlock(block_hash);
   }

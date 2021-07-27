@@ -18,7 +18,7 @@
 
 namespace kagome::blockchain {
   class BlockHeaderRepository;
-  class BlockTree;
+  struct BlockTree;
 }  // namespace kagome::blockchain
 
 namespace kagome::primitives {

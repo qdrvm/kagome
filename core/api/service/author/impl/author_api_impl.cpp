@@ -20,7 +20,7 @@
 #include "crypto/hasher.hpp"
 #include "network/transactions_transmitter.hpp"
 #include "primitives/transaction.hpp"
-#include "runtime/runtime_api/tagged_transaction_queue.hpp"
+#include "runtime/tagged_transaction_queue.hpp"
 #include "scale/scale_decoder_stream.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool.hpp"

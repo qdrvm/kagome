@@ -19,7 +19,7 @@ namespace kagome::crypto::bip39 {
     }
   }
 
-  outcome::result<EntropyToken> Dictionary::findValue(std::string_view word) const {
+  outcome::result<EntropyToken> Dictionary::findValue(std::string_view word) {
     auto loc = entropy_map_.find(word);
     if (entropy_map_.end() != loc) {
       return loc->second;

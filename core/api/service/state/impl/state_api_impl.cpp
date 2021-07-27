@@ -95,10 +95,7 @@ namespace kagome::api {
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(
       const boost::optional<primitives::BlockHash> &at) const {
-    if(at) {
-      return runtime_core_->versionAt(at.value());
-    }
-    return runtime_core_->version();
+    return runtime_core_->version(at);
   }
 
   outcome::result<uint32_t> StateApiImpl::subscribeStorage(

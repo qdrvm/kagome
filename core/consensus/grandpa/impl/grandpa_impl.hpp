@@ -20,7 +20,7 @@
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
-#include "runtime/runtime_api/grandpa_api.hpp"
+#include "runtime/grandpa_api.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus::grandpa {

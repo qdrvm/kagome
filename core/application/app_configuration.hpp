@@ -142,15 +142,6 @@ namespace kagome::application {
      * The name of node is going to be used in telemetry, etc.
      */
     virtual const std::string &nodeName() const = 0;
-
-    enum class RuntimeExecutionMethod {
-      Compile,
-      Interpret
-    };
-    /**
-     * @return enum constant of the chosen runtime backend
-     */
-    virtual RuntimeExecutionMethod runtimeExecMethod() const = 0;
   };
 
 }  // namespace kagome::application

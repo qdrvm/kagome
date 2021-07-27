@@ -29,7 +29,7 @@ namespace kagome::crypto {
 
   Hash128 HasherImpl::blake2b_128(gsl::span<const uint8_t> buffer) const {
     Hash128 out;
-    blake2b(out.data(), out.size(), nullptr, 0, buffer.data(), buffer.size());
+    blake2b(out.data(), 16, nullptr, 0, buffer.data(), buffer.size());
     return out;
   }
 

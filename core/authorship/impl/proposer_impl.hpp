@@ -10,7 +10,7 @@
 
 #include "authorship/block_builder_factory.hpp"
 #include "log/logger.hpp"
-#include "runtime/runtime_api/block_builder.hpp"
+#include "runtime/block_builder.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 

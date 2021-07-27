@@ -87,7 +87,7 @@ namespace kagome::storage::trie {
 
     // Has 1..16 children.
     // Stores their hashes to search for them in a storage and encode them more
-    // easily. @see DummyNode
+    // easily.
     std::array<std::shared_ptr<PolkadotNode>, kMaxChildren> children;
   };
 
