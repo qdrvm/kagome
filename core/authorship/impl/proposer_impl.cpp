@@ -78,11 +78,6 @@ namespace kagome::authorship {
         log_push_warn(tx->ext, inserted_res.error().message());
         continue;
       }
-      if (tx->observed_id.has_value()) {
-        extrinsic_event_key_repo_->upgradeTransaction(tx->observed_id.value(),
-                                                      parent_block_number + 1,
-                                                      inserted_res.value());
-      }
     }
 
     OUTCOME_TRY(block, block_builder->bake());

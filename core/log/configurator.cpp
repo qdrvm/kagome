@@ -21,7 +21,7 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: trace
+    level: off
     is_fallback: true
     children:
       - name: libp2p
@@ -59,7 +59,7 @@ groups:
             children:
               - name: wasm
               - name: extentions
-              - name: binatien
+              - name: binaryen
           - name: metrics
           - name: network
             children:
