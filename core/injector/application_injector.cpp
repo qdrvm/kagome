@@ -674,6 +674,10 @@ namespace {
     }
     auto &block_tree = block_tree_res.value();
 
+    auto tagged_transaction_queue = injector.template create<
+        std::shared_ptr<runtime::binaryen::TaggedTransactionQueueImpl>>();
+    tagged_transaction_queue->setBlockTree(block_tree);
+
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
 
