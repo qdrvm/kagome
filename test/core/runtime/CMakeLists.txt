@@ -148,3 +148,11 @@ target_link_libraries(trie_storage_provider_test
     trie_serializer
     logger_for_tests
     )
+
+addtest(uncompress_code_test
+    uncompress_code_test.cpp
+    )
+target_link_libraries(uncompress_code_test
+    log_configurator
+    storage_wasm_provider
+    )

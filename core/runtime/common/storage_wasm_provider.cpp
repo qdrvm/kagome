@@ -5,6 +5,7 @@
 
 #include "runtime/common/storage_wasm_provider.hpp"
 
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::runtime {
@@ -16,11 +17,7 @@ namespace kagome::runtime {
 
     last_state_root_ = storage_->getRootHash();
     auto batch = storage_->getEphemeralBatch();
-    BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
-    auto state_code_res = batch.value()->get(kRuntimeCodeKey);
-    BOOST_ASSERT_MSG(state_code_res.has_value(),
-                     "Runtime code does not exist in the storage");
-    state_code_ = state_code_res.value();
+    setStateCodeFromBatch(batch);
   }
 
   const common::Buffer &StorageWasmProvider::getStateCodeAt(
@@ -31,12 +28,18 @@ namespace kagome::runtime {
     last_state_root_ = at;
 
     auto batch = storage_->getEphemeralBatchAt(at);
+    setStateCodeFromBatch(batch);
+    return state_code_;
+  }
+
+  void StorageWasmProvider::setStateCodeFromBatch(
+      const outcome::result<std::unique_ptr<storage::trie::EphemeralTrieBatch>>
+          &batch) const {
     BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
     auto state_code_res = batch.value()->get(kRuntimeCodeKey);
     BOOST_ASSERT_MSG(state_code_res.has_value(),
                      "Runtime code does not exist in the storage");
-    state_code_ = state_code_res.value();
-    return state_code_;
+    uncompressCodeIfNeeded(state_code_res.value(), state_code_);
   }
 
 }  // namespace kagome::runtime
