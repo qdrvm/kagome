@@ -17,7 +17,7 @@
 
 namespace kagome::storage::trie {
 
-  class PersistentTrieBatchImpl final : public PersistentTrieBatch {
+  class PersistentTrieBatchImpl : public PersistentTrieBatch {
    public:
     using RootChangedEventHandler = std::function<void(const RootHash &)>;
     enum class Error {
@@ -63,7 +63,7 @@ namespace kagome::storage::trie {
     RootChangedEventHandler root_changed_handler_;
 
     log::Logger logger_ =
-        log::createLogger("PersistentTrieBatch", "storage");
+        log::createLogger("PersistentTrieBatch", "changes_trie");
   };
 
 }  // namespace kagome::storage::trie

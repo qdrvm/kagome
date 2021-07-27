@@ -5,7 +5,7 @@
 
 #include "api/service/payment/impl/payment_api_impl.hpp"
 
-#include "runtime/runtime_api/transaction_payment_api.hpp"
+#include "runtime/transaction_payment_api.hpp"
 #include "scale/types.hpp"
 
 namespace kagome::api {

@@ -206,7 +206,6 @@ namespace kagome::primitives::events {
                                           ref_t<const primitives::BlockHeader>,
                                           ref_t<primitives::Version>>;
 
-  // SubscriptionEngine for changes in trie storage
   using StorageSubscriptionEngine =
       subscription::SubscriptionEngine<common::Buffer,
                                        std::shared_ptr<api::Session>,

@@ -125,9 +125,6 @@ namespace kagome::application {
     const std::string &nodeName() const override {
       return node_name_;
     }
-    RuntimeExecutionMethod runtimeExecMethod() const override {
-      return runtime_exec_method_;
-    }
 
    private:
     void parse_general_segment(rapidjson::Value &val);
@@ -202,7 +199,6 @@ namespace kagome::application {
     bool dev_mode_;
     std::string node_name_;
     uint32_t max_ws_connections_;
-    RuntimeExecutionMethod runtime_exec_method_;
   };
 
 }  // namespace kagome::application

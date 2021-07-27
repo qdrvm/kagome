@@ -33,7 +33,7 @@ namespace kagome::application {
   class AppStateManager;
 }
 namespace kagome::blockchain {
-  class BlockTree;
+  struct BlockTree;
 }
 namespace kagome::primitives {
   struct Transaction;

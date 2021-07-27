@@ -19,7 +19,7 @@
 #include "log/logger.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
-#include "runtime/runtime_api/core.hpp"
+#include "runtime/core.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::consensus {

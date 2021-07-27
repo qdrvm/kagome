@@ -1,3 +1,0 @@
-
-add_executable(storage_explorer storage_explorer.cpp)
-target_link_libraries(storage_explorer application_injector)

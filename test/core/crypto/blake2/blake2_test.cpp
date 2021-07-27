@@ -31,7 +31,7 @@ TEST(Blake2b, Correctness) {
 
   size_t i, j, outlen, inlen;
   uint8_t in[1024], md[64], key[64];
-  kagome::crypto::blake2b_ctx ctx;
+  blake2b_ctx ctx;
 
   // 256-bit hash for testing
   if (blake2b_init(&ctx, 32, NULL, 0)) {
@@ -44,11 +44,11 @@ TEST(Blake2b, Correctness) {
       inlen = b2b_in_len[j];
 
       selftest_seq(in, inlen, inlen);  // unkeyed hash
-      kagome::crypto::blake2b(md, outlen, NULL, 0, in, inlen);
+      blake2b(md, outlen, NULL, 0, in, inlen);
       blake2b_update(&ctx, md, outlen);  // hash the hash
 
       selftest_seq(key, outlen, outlen);  // keyed hash
-      kagome::crypto::blake2b(md, outlen, key, outlen, in, inlen);
+      blake2b(md, outlen, key, outlen, in, inlen);
       blake2b_update(&ctx, md, outlen);  // hash the hash
     }
   }
@@ -68,7 +68,7 @@ TEST(Blake2s, Correctness) {
 
   size_t i, j, outlen, inlen;
   uint8_t in[1024], md[32], key[32];
-  kagome::crypto::blake2s_ctx ctx;
+  blake2s_ctx ctx;
 
   // 256-bit hash for testing.
   if (blake2s_init(&ctx, 32, nullptr, 0)) {
@@ -81,11 +81,11 @@ TEST(Blake2s, Correctness) {
       inlen = b2s_in_len[j];
 
       selftest_seq(in, inlen, inlen);  // unkeyed hash
-      kagome::crypto::blake2s(md, outlen, nullptr, 0, in, inlen);
+      blake2s(md, outlen, nullptr, 0, in, inlen);
       blake2s_update(&ctx, md, outlen);  // hash the hash
 
       selftest_seq(key, outlen, outlen);  // keyed hash
-      kagome::crypto::blake2s(md, outlen, key, outlen, in, inlen);
+      blake2s(md, outlen, key, outlen, in, inlen);
       blake2s_update(&ctx, md, outlen);  // hash the hash
     }
   }
@@ -97,7 +97,7 @@ TEST(Blake2s, Correctness) {
 }
 
 TEST(Blake2s, UnkeyedInit) {
-  kagome::crypto::blake2s_ctx ctx1, ctx2;
+  blake2s_ctx ctx1, ctx2;
 
   blake2s_init(&ctx1, 32, nullptr, 0);
   blake2s_256_init(&ctx2);

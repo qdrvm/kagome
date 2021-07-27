@@ -6,7 +6,7 @@
 #ifndef KAGOME_RUNTIME_GRANDPAAPIMOCK
 #define KAGOME_RUNTIME_GRANDPAAPIMOCK
 
-#include "runtime/runtime_api/grandpa_api.hpp"
+#include "runtime/grandpa_api.hpp"
 
 #include <gmock/gmock.h>
 

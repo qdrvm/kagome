@@ -6,13 +6,13 @@
 #ifndef KAGOME_TEST_CORE_RUNTIME_WASM_RESULT_TEST_CPP
 #define KAGOME_TEST_CORE_RUNTIME_WASM_RESULT_TEST_CPP
 
-#include "runtime/ptr_size.hpp"
+#include "runtime/wasm_result.hpp"
 
 #include <cstdint>
 
 #include <gtest/gtest.h>
 
-using kagome::runtime::PtrSize;
+using kagome::runtime::WasmResult;
 
 struct TestCase {
   int64_t res;
@@ -33,9 +33,9 @@ TEST_P(WasmResultTest, DecomposeSuccess) {
   auto [res, pair] = GetParam();
   auto [address, length] = pair;
 
-  PtrSize r(res);
-  ASSERT_EQ(r.ptr, address);
-  ASSERT_EQ(r.size, length);
+  WasmResult r(res);
+  ASSERT_EQ(r.address, address);
+  ASSERT_EQ(r.length, length);
 }
 
 INSTANTIATE_TEST_CASE_P(WasmResultTestCases, WasmResultTest,

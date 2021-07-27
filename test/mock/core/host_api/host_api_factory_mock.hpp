@@ -10,17 +10,20 @@
 
 #include <gmock/gmock.h>
 
-#include "runtime/core_api_factory.hpp"
+// some GMock internals dislike forward declaration of CoreFactory
+#include "runtime/binaryen/core_factory.hpp"
 
 namespace kagome::host_api {
 
   class HostApiFactoryMock : public HostApiFactory {
    public:
-    MOCK_CONST_METHOD3(
+    MOCK_CONST_METHOD4(
         make,
         std::unique_ptr<HostApi>(
-            std::shared_ptr<const runtime::CoreApiFactory> core_provider,
-            std::shared_ptr<const runtime::MemoryProvider> memory_provider,
+            std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
+            std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
+                runtime_env_factory,
+            std::shared_ptr<runtime::WasmMemory>,
             std::shared_ptr<runtime::TrieStorageProvider> storage));
   };
 

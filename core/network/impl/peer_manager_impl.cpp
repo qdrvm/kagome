@@ -458,7 +458,7 @@ namespace kagome::network {
 
             // Add to active peer list
             if (auto [ap_it, added] = self->active_peers_.emplace(
-                    peer_id, ActivePeerData{.time = self->clock_->now(), .status = Status{}});
+                    peer_id, ActivePeerData{.time = self->clock_->now()});
                 added) {
               self->recently_active_peers_.insert(peer_id);
 

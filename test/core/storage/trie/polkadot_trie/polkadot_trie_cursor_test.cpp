@@ -13,7 +13,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/polkadot_trie_printer.hpp"
-#include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
 using kagome::storage::trie::PolkadotTrie;
@@ -21,13 +20,7 @@ using kagome::storage::trie::PolkadotTrieCursorImpl;
 using kagome::storage::trie::PolkadotTrieImpl;
 using kagome::storage::trie::operator<<;
 
-class PolkadotTrieCursorTest : public testing::Test {
-
-  void SetUp() override {
-    testutil::prepareLoggers();
-  }
-
-};
+class PolkadotTrieCursorTest : public testing::Test {};
 
 // The default values for arguments are somewhat randomly chosen,
 // they totally depend on what you want to test.

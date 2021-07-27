@@ -6,7 +6,7 @@
 #ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_CORE_MOCK_HPP
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_CORE_MOCK_HPP
 
-#include "runtime/runtime_api/core.hpp"
+#include "runtime/core.hpp"
 
 #include <gmock/gmock.h>
 
@@ -14,11 +14,9 @@ namespace kagome::runtime {
 
   class CoreMock : public Core {
    public:
-    MOCK_METHOD1(versionAt,
+    MOCK_METHOD1(version,
                  outcome::result<primitives::Version>(
-                     primitives::BlockHash const &));
-    MOCK_METHOD0(version,
-                 outcome::result<primitives::Version>());
+                     boost::optional<primitives::BlockHash> const &));
     MOCK_METHOD1(execute_block,
                  outcome::result<void>(const primitives::Block &));
     MOCK_METHOD1(initialise_block,

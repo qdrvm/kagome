@@ -17,8 +17,13 @@ namespace kagome::host_api {
 
 namespace kagome::runtime {
   class TrieStorageProvider;
-  class Memory;
-  class CoreApiFactory;
+  class WasmMemory;
+
+  namespace binaryen {
+    class CoreFactory;
+    class RuntimeEnvironmentFactory;
+    class BinaryenWasmMemoryFactory;
+  }
 
 }  // namespace kagome::runtime
 
@@ -28,14 +33,26 @@ namespace wasm {
 
 namespace kagome::runtime::binaryen {
 
+  class WasmMemoryImpl;  // not fancy to refer to impl, but have to do it  for
+                         // now because it depends on shell interface memory
+                         // belonging to RuntimeExternalInterface (see
+                         // constructor)
+
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
-    explicit RuntimeExternalInterface(std::shared_ptr<host_api::HostApi> host_api);
+    RuntimeExternalInterface(
+        std::shared_ptr<CoreFactory> core_factory,
+        std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
+        std::shared_ptr<BinaryenWasmMemoryFactory> wasm_memory_factory,
+        const std::shared_ptr<host_api::HostApiFactory> &host_api_factory,
+        std::shared_ptr<TrieStorageProvider> storage_provider);
 
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
-    wasm::ShellExternalInterface::Memory* getMemory();
+    std::shared_ptr<WasmMemory> memory() const;
+
+    void reset() const;
 
    private:
     /**
@@ -46,8 +63,8 @@ namespace kagome::runtime::binaryen {
                         size_t expected,
                         size_t actual);
 
-    std::shared_ptr<host_api::HostApi> host_api_;
-    log::Logger logger_;
+    std::unique_ptr<host_api::HostApi> host_api_;
+    log::Logger logger_ = log::createLogger("RuntimeExternalInterface", "wasm");
   };
 
 }  // namespace kagome::runtime::binaryen
