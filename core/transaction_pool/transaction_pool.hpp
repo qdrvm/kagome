@@ -40,24 +40,12 @@ namespace kagome::transaction_pool {
     virtual outcome::result<void> submitOne(Transaction &&tx) = 0;
 
     /**
-     * Import several transactions to the pool
-     * @see submitOne()
-     */
-    virtual outcome::result<void> submit(std::vector<Transaction> txs) = 0;
-
-    /**
      * Remove transaction from the pool
      * @param txHash - hash of the removed transaction
      * @returns removed transaction or error
      */
     virtual outcome::result<Transaction> removeOne(
         const Transaction::Hash &txHash) = 0;
-
-    /**
-     * Trying to remove several transactions from the pool
-     * @see removeOne()
-     */
-    virtual void remove(const std::vector<Transaction::Hash> &txHashes) = 0;
 
     /**
      * @return transactions ready to included in the next block
