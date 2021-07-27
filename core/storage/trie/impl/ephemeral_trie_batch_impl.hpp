@@ -12,7 +12,7 @@
 
 namespace kagome::storage::trie {
 
-  class EphemeralTrieBatchImpl : public EphemeralTrieBatch {
+  class EphemeralTrieBatchImpl final : public EphemeralTrieBatch {
    public:
     EphemeralTrieBatchImpl(std::shared_ptr<Codec> codec,
                            std::shared_ptr<PolkadotTrie> trie);

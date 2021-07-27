@@ -27,7 +27,8 @@ namespace kagome::blockchain {
    *      production (handling forks, pruning the blocks, resolving child-parent
    *      relations, etc)
    */
-  struct BlockTree {
+  class BlockTree {
+   public:
     using BlockHashVecRes = outcome::result<std::vector<primitives::BlockHash>>;
 
     virtual ~BlockTree() = default;
@@ -129,7 +130,12 @@ namespace kagome::blockchain {
      * block to the provided one) or error
      */
     virtual BlockHashVecRes getChainByBlock(
-        const primitives::BlockHash &block) = 0;
+        const primitives::BlockHash &block) const = 0;
+
+    enum class GetChainDirection {
+      ASCEND,
+      DESCEND
+    };
 
     /**
      * Get a chain of blocks from the (\param block)
@@ -140,8 +146,8 @@ namespace kagome::blockchain {
      * @return chain or blocks or error
      */
     virtual BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
-                                            bool ascending,
-                                            uint64_t maximum) = 0;
+                                            GetChainDirection ascending,
+                                            uint64_t maximum) const = 0;
 
     /**
      * Get a chain of blocks
@@ -151,7 +157,7 @@ namespace kagome::blockchain {
      */
     virtual BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,
-        const primitives::BlockHash &bottom_block) = 0;
+        const primitives::BlockHash &bottom_block) const = 0;
 
     /**
      * Get a chain of blocks
@@ -163,7 +169,7 @@ namespace kagome::blockchain {
     virtual BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,
         const primitives::BlockHash &bottom_block,
-        const uint32_t max_count) = 0;
+        const uint32_t max_count) const = 0;
 
     /**
      * Check if one block is ancestor of second one (direct chain exists)
@@ -172,7 +178,7 @@ namespace kagome::blockchain {
      * @return true if \param ancestor is ancestor of \param descendant
      */
     virtual bool hasDirectChain(const primitives::BlockHash &ancestor,
-                                const primitives::BlockHash &descendant) = 0;
+                                const primitives::BlockHash &descendant) const = 0;
 
     /**
      * Get a longest path (chain of blocks) from the last finalized block down
@@ -181,7 +187,7 @@ namespace kagome::blockchain {
      *
      * @note this function is equivalent to "getChainByBlock(deepestLeaf())"
      */
-    virtual BlockHashVecRes longestPath() = 0;
+    virtual BlockHashVecRes longestPath() const = 0;
 
     /**
      * Get a deepest leaf of the tree

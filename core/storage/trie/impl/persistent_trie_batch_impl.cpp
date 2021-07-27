@@ -86,6 +86,7 @@ namespace kagome::storage::trie {
   outcome::result<RootHash> PersistentTrieBatchImpl::commit() {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
     root_changed_handler_(root);
+    SL_TRACE_FUNC_CALL(logger_, root);
     if (changes_.has_value()) {
       changes_.value()->onCommit();
     }
@@ -117,6 +118,7 @@ namespace kagome::storage::trie {
   PersistentTrieBatchImpl::clearPrefix(const Buffer &prefix,
                                        boost::optional<uint64_t> limit) {
     if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
+    SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
     return trie_->clearPrefix(
         prefix, limit, [&](const auto &key, auto &&) -> outcome::result<void> {
           if (changes_.has_value()) {
@@ -131,6 +133,7 @@ namespace kagome::storage::trie {
     bool is_new_entry = not trie_->contains(key);
     auto res = trie_->put(key, value);
     if (res and changes_.has_value()) {
+      SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
       OUTCOME_TRY(changes_.value()->onPut(key, value, is_new_entry));
     }
     return res;
@@ -145,6 +148,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PersistentTrieBatchImpl::remove(const Buffer &key) {
     auto res = trie_->remove(key);
     if (res and changes_.has_value()) {
+      SL_TRACE_VOID_FUNC_CALL(logger_, key);
       OUTCOME_TRY(changes_.value()->onRemove(key));
     }
     return res;

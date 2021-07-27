@@ -9,6 +9,8 @@ if [ "$BUILD_TYPE" != "Debug" ] && [ "$BUILD_TYPE" != "Release" ]; then
   echo "Invalid build type $BUILD_TYPE, should be either Debug or Release"
 fi
 
+git submodule update --init
+
 cd "$(dirname $0)/../../.."
 
 cmake . -B${BUILD_DIR} -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=${BUILD_TYPE}

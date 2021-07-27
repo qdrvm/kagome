@@ -41,6 +41,7 @@ namespace kagome::api {
 
     virtual outcome::result<primitives::Version> getRuntimeVersion(
         const boost::optional<primitives::BlockHash> &at) const = 0;
+
     virtual outcome::result<uint32_t> subscribeRuntimeVersion() = 0;
     virtual outcome::result<void> unsubscribeRuntimeVersion(
         uint32_t subscription_id) = 0;

@@ -21,7 +21,7 @@
 #include "primitives/authority.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/transcript.hpp"
-#include "runtime/tagged_transaction_queue.hpp"
+#include "runtime/runtime_api/tagged_transaction_queue.hpp"
 
 namespace kagome::crypto {
   class Sr25519Provider;

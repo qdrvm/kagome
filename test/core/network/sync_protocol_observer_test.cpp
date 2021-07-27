@@ -77,7 +77,7 @@ TEST_F(SynchronizerTest, ProcessRequest) {
                                  Direction::DESCENDING,
                                  boost::none};
 
-  EXPECT_CALL(*tree_, getChainByBlock(block1_hash_, false, 10))
+  EXPECT_CALL(*tree_, getChainByBlock(block1_hash_, BlockTree::GetChainDirection::DESCEND, 10))
       .WillOnce(Return(std::vector<BlockHash>{block1_hash_, block2_hash_}));
   EXPECT_CALL(*headers_, getBlockHeader(BlockId{block1_hash_}))
       .WillOnce(Return(block1_.header));

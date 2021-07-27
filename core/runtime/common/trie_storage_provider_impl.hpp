@@ -11,6 +11,7 @@
 #include <stack>
 
 #include "common/buffer.hpp"
+#include "log/logger.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "storage/trie/trie_storage.hpp"
 
@@ -54,6 +55,8 @@ namespace kagome::runtime {
     // need to store it because it has to be the same in different runtime calls
     // to keep accumulated changes for commit to the main storage
     std::shared_ptr<PersistentBatch> persistent_batch_;
+
+    log::Logger logger_;
   };
 
 }  // namespace kagome::runtime

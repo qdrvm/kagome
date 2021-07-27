@@ -4,22 +4,22 @@
 #
 
 
-add_library(storage_wasm_provider
-    storage_wasm_provider.cpp
+add_library(storage_code_provider
+    storage_code_provider.cpp
     )
-target_link_libraries(storage_wasm_provider
+target_link_libraries(storage_code_provider
     buffer
     blob
     )
 
-add_library(const_wasm_provider
-    const_wasm_provider.cpp
+add_library(constant_code_provider
+    constant_code_provider.cpp
     )
-target_link_libraries(const_wasm_provider
+target_link_libraries(constant_code_provider
     buffer
     )
 
-kagome_install(const_wasm_provider)
+kagome_install(constant_code_provider)
 
 add_library(runtime_transaction_error
     runtime_transaction_error.cpp
@@ -38,3 +38,21 @@ target_link_libraries(trie_storage_provider
     blob
     )
 kagome_install(trie_storage_provider)
+
+add_library(runtime_upgrade_tracker runtime_upgrade_tracker_impl.cpp)
+target_link_libraries(runtime_upgrade_tracker
+    logger
+    )
+kagome_install(runtime_upgrade_tracker)
+
+add_library(module_repository module_repository_impl.cpp)
+target_link_libraries(module_repository outcome)
+kagome_install(module_repository)
+
+add_library(runtime_environment_factory runtime_environment_factory.cpp)
+target_link_libraries(runtime_environment_factory logger)
+kagome_install(runtime_environment_factory)
+
+add_library(memory_allocator memory_allocator.cpp)
+target_link_libraries(memory_allocator Boost::boost)
+kagome_install(memory_allocator)

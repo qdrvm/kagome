@@ -64,12 +64,9 @@ set(kagome_LIBRARIES
         kagome::secp256k1_provider
         kagome::bip39_provider
         kagome::host_api_factory
-        kagome::binaryen_core_api
-        kagome::binaryen_runtime_api
+        kagome::core_api
         kagome::binaryen_runtime_external_interface
-        kagome::binaryen_runtime_environment_factory
-        kagome::binaryen_runtime_environment
-        kagome::binaryen_wasm_executor
+        kagome::runtime_environment_factory
         kagome::binaryen_wasm_memory
         kagome::binaryen_wasm_module
     )

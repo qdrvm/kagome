@@ -44,7 +44,7 @@ namespace kagome::application {
     auto chain_path = app_config_.chainPath(chain_spec_->id());
     auto res = util::init_directory(chain_path);
     if (not res) {
-      logger_->critical("Error initalizing chain directory {}: {}",
+      logger_->critical("Error initializing chain directory {}: {}",
                         chain_path.native(),
                         res.error().message());
       exit(EXIT_FAILURE);

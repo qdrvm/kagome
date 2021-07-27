@@ -4,13 +4,13 @@
 #
 
 add_library(binaryen_wasm_memory
-    wasm_memory_impl.hpp
-    wasm_memory_impl.cpp
+    memory_impl.cpp
     )
 target_link_libraries(binaryen_wasm_memory
     buffer
     logger
     binaryen::binaryen
+    memory_allocator
     )
 kagome_install(binaryen_wasm_memory)
 
@@ -31,10 +31,16 @@ target_link_libraries(binaryen_runtime_external_interface
     )
 kagome_install(binaryen_runtime_external_interface)
 
+add_library(binaryen_memory_provider binaryen_memory_provider.cpp)
+target_link_libraries(binaryen_memory_provider
+    binaryen_wasm_memory_factory
+    binaryen_runtime_external_interface
+    )
+kagome_install(binaryen_memory_provider)
+
 add_library(binaryen_wasm_module
-    module/wasm_module_impl.cpp
-    module/wasm_module_factory_impl.cpp
-    module/wasm_module_instance_impl.cpp
+    module/module_impl.cpp
+    module/module_instance_impl.cpp
     )
 target_link_libraries(binaryen_wasm_module
     binaryen::binaryen
@@ -45,122 +51,22 @@ target_link_libraries(binaryen_wasm_module
     )
 kagome_install(binaryen_wasm_module)
 
-add_library(binaryen_runtime_environment
-    runtime_environment.cpp
-    )
-target_link_libraries(binaryen_runtime_environment
-    binaryen_wasm_module
-    binaryen_runtime_external_interface
-    )
-kagome_install(binaryen_runtime_environment)
+add_library(binaryen_module_factory module/module_factory_impl.cpp)
+target_link_libraries(binaryen_module_factory binaryen_wasm_module)
+kagome_install(binaryen_module_factory)
 
-add_library(binaryen_runtime_environment_factory
-    runtime_environment_factory_impl.cpp
-    )
-target_link_libraries(binaryen_runtime_environment_factory
-    binaryen_runtime_environment
-    binaryen_wasm_module
-    binaryen_runtime_external_interface
-    )
-kagome_install(binaryen_runtime_environment_factory)
-
-add_library(binaryen_wasm_executor
-    wasm_executor.hpp
-    wasm_executor.cpp
-    )
-target_link_libraries(binaryen_wasm_executor
-    binaryen::binaryen
-    binaryen_runtime_environment_factory
-    logger
-    )
-kagome_install(binaryen_wasm_executor)
-
-add_library(binaryen_runtime_api INTERFACE)
-target_link_libraries(binaryen_runtime_api INTERFACE
-    binaryen_runtime_external_interface
+add_library(binaryen_module_repository ../common/module_repository_impl.cpp)
+target_link_libraries(binaryen_module_repository
     binaryen_wasm_module
     )
-kagome_install(binaryen_runtime_api)
+kagome_install(binaryen_module_repository)
 
-add_library(binaryen_core_api
-    runtime_api/core_impl.cpp
-    runtime_api/core_factory_impl.cpp
+add_library(binaryen_core_api_factory
+    core_api_factory.cpp
     )
-target_link_libraries(binaryen_core_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
+target_link_libraries(binaryen_core_api_factory
+    constant_code_provider
+    binaryen_memory_provider
+    core_api
     )
-kagome_install(binaryen_core_api)
-
-add_library(binaryen_tagged_transaction_queue_api
-    runtime_api/tagged_transaction_queue_impl.cpp
-    )
-target_link_libraries(binaryen_tagged_transaction_queue_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
-
-add_library(binaryen_block_builder_api
-    runtime_api/block_builder_impl.cpp
-    )
-target_link_libraries(binaryen_block_builder_api
-    primitives
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
-
-add_library(binaryen_parachain_host_api
-    runtime_api/parachain_host_impl.cpp
-    )
-target_link_libraries(binaryen_parachain_host_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
-
-add_library(binaryen_grandpa_api
-    runtime_api/grandpa_api_impl.cpp
-    )
-target_link_libraries(binaryen_grandpa_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
-
-add_library(binaryen_metadata_api
-    runtime_api/metadata_impl.cpp
-    )
-target_link_libraries(binaryen_metadata_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
-
-add_library(binaryen_offchain_worker_api
-    runtime_api/offchain_worker_impl.cpp
-    )
-target_link_libraries(binaryen_offchain_worker_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
-
-add_library(binaryen_babe_api
-    runtime_api/babe_api_impl.cpp
-    )
-target_link_libraries(binaryen_babe_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
-
-add_library(binaryen_transaction_payment_api
-    runtime_api/transaction_payment_api_impl.cpp
-    )
-target_link_libraries(binaryen_transaction_payment_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
-
-add_library(binaryen_system_api
-    runtime_api/account_nonce_api_impl.cpp
-    )
-target_link_libraries(binaryen_system_api
-    binaryen_wasm_executor
-    binaryen_runtime_api
-    )
+kagome_install(binaryen_core_api_factory)

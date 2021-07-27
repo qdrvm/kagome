@@ -6,18 +6,18 @@
 #ifndef KAGOME_TEST_TESTUTIL_RUNTIME_BASIC_WASM_PROVIDER_HPP
 #define KAGOME_TEST_TESTUTIL_RUNTIME_BASIC_WASM_PROVIDER_HPP
 
-#include "runtime/wasm_provider.hpp"
+#include "runtime/runtime_code_provider.hpp"
 
 namespace kagome::runtime {
 
-  class BasicWasmProvider final : public kagome::runtime::WasmProvider {
+  class BasicCodeProvider final : public kagome::runtime::RuntimeCodeProvider {
    public:
-    explicit BasicWasmProvider(std::string_view path);
+    explicit BasicCodeProvider(std::string_view path);
 
-    ~BasicWasmProvider() override = default;
+    ~BasicCodeProvider() override = default;
 
-    const common::Buffer &getStateCodeAt(
-        const primitives::BlockHash &at) const override;
+    outcome::result<gsl::span<const uint8_t>> getCodeAt(
+        const storage::trie::RootHash &state) const override;
 
    private:
     void initialize(std::string_view path);

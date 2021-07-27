@@ -7,7 +7,7 @@
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_BLOCK_BUILDER_API_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "runtime/block_builder.hpp"
+#include "runtime/runtime_api/block_builder.hpp"
 
 namespace kagome::runtime {
 

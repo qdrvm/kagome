@@ -48,7 +48,8 @@ namespace kagome::application {
 
     MOCK_CONST_METHOD0(rpcWsEndpoint, const boost::asio::ip::tcp::endpoint &());
 
-    MOCK_CONST_METHOD0(openmetricsHttpEndpoint, const boost::asio::ip::tcp::endpoint &());
+    MOCK_CONST_METHOD0(openmetricsHttpEndpoint,
+                       const boost::asio::ip::tcp::endpoint &());
 
     MOCK_CONST_METHOD0(maxWsConnections, uint32_t());
 
@@ -61,6 +62,9 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(isRunInDevMode, bool());
 
     MOCK_CONST_METHOD0(nodeName, const std::string &());
+
+    MOCK_CONST_METHOD0(runtimeExecMethod,
+                       AppConfiguration::RuntimeExecutionMethod());
   };
 
 }  // namespace kagome::application

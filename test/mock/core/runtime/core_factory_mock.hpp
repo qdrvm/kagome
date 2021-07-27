@@ -6,21 +6,20 @@
 #ifndef KAGOME_CORE_FACTORY_MOCK_HPP
 #define KAGOME_CORE_FACTORY_MOCK_HPP
 
-#include "runtime/binaryen/core_factory.hpp"
+#include "runtime/binaryen/core_api_factory.hpp"
 
 #include <gmock/gmock.h>
 
 namespace kagome::runtime::binaryen {
 
-  class CoreFactoryMock : public CoreFactory {
+  class CoreFactoryMock : public CoreApiFactory {
    public:
     ~CoreFactoryMock() override = default;
 
-    MOCK_METHOD2(
-        createWithCode,
-        std::unique_ptr<Core>(
-            std::shared_ptr<RuntimeEnvironmentFactory> runtime_env_factory,
-            std::shared_ptr<WasmProvider> wasm_provider));
+    MOCK_CONST_METHOD2(
+        make,
+        std::unique_ptr<Core>(std::shared_ptr<const crypto::Hasher> hasher,
+                              const std::vector<uint8_t> &runtime_code));
   };
 
 }  // namespace kagome::runtime::binaryen

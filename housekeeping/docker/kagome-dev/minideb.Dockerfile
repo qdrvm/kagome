@@ -33,7 +33,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         g++-9 \
         gcc-10 \
         g++-10 \
-        llvm-9 \
+        llvm-9-dev \
         clang-9 \
         clang-tidy-9 \
         clang-format-9 \
@@ -41,6 +41,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         git \
         ccache \
         lcov \
+        zlib1g-dev \
         unzip && \
     rm -rf /var/lib/apt/lists/*
 
@@ -68,6 +69,7 @@ RUN set -e; \
 
 # set env
 ENV LLVM_ROOT=/usr/lib/llvm-9
+ENV LLVM_DIR=/usr/lib/llvm-9/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
 ENV CC=gcc-9
 ENV CXX=g++-9

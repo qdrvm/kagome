@@ -6,7 +6,7 @@
 #ifndef KAGOME_RUNTIME_SYSTEM_MOCK
 #define KAGOME_RUNTIME_SYSTEM_MOCK
 
-#include "runtime/account_nonce_api.hpp"
+#include "runtime/runtime_api/account_nonce_api.hpp"
 
 #include <gmock/gmock.h>
 
