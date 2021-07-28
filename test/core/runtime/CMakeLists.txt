@@ -27,5 +27,10 @@ target_link_libraries(trie_storage_provider_test
     logger_for_tests
     )
 
-add_subdirectory(binaryen)
-add_subdirectory(wavm)
+addtest(uncompress_code_test
+    uncompress_code_test.cpp
+    )
+target_link_libraries(uncompress_code_test
+    log_configurator
+    storage_code_provider
+    )

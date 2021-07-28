@@ -21,7 +21,7 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: debug
+    level: off
     is_fallback: true
     children:
       - name: libp2p
@@ -57,7 +57,6 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
-            level: debug
             children:
               - name: runtime_api
               - name: host_api

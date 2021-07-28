@@ -108,8 +108,7 @@ namespace kagome::api {
 
    private:
     outcome::result<primitives::Transaction> constructTransaction(
-        primitives::Extrinsic ext,
-        boost::optional<primitives::Transaction::ObservedId> id) const;
+        primitives::Extrinsic ext) const;
 
     sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
@@ -120,7 +119,6 @@ namespace kagome::api {
     sptr<crypto::KeyFileStorage> key_store_;
     sptr<blockchain::BlockTree> block_tree_;
     std::weak_ptr<api::ApiService> api_service_;
-    std::atomic<primitives::Transaction::ObservedId> last_id_;
 
     log::Logger logger_;
   };

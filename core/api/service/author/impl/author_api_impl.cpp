@@ -41,7 +41,6 @@ namespace kagome::api {
         store_{std::move(store)},
         keys_{std::move(keys)},
         key_store_{std::move(key_store)},
-        last_id_{0},
         logger_{log::createLogger("AuthorApi", "author_api")} {
     BOOST_ASSERT_MSG(api_ != nullptr, "author api is nullptr");
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
@@ -62,7 +61,7 @@ namespace kagome::api {
 
   outcome::result<common::Hash256> AuthorApiImpl::submitExtrinsic(
       const primitives::Extrinsic &extrinsic) {
-    OUTCOME_TRY(tx, constructTransaction(extrinsic, boost::none));
+    OUTCOME_TRY(tx, constructTransaction(extrinsic));
 
     if (tx.should_propagate) {
       transactions_transmitter_->propagateTransactions(
@@ -163,12 +162,16 @@ namespace kagome::api {
 
   outcome::result<AuthorApi::SubscriptionId>
   AuthorApiImpl::submitAndWatchExtrinsic(Extrinsic extrinsic) {
-    OUTCOME_TRY(tx, constructTransaction(extrinsic, last_id_++));
+    OUTCOME_TRY(tx, constructTransaction(extrinsic));
 
     SubscriptionId sub_id{};
     if (auto service = api_service_.lock()) {
-      OUTCOME_TRY(sub_id_, service->subscribeForExtrinsicLifecycle(tx));
-      sub_id = sub_id_;
+      OUTCOME_TRY(res_sub_id, service->subscribeForExtrinsicLifecycle(tx));
+      SL_DEBUG(logger_,
+               "Subscribe for ex #{} 0x{}",
+               tx.hash.toHex(),
+               tx.ext.data.toHex());
+      sub_id = res_sub_id;
     } else {
       throw jsonrpc::InternalErrorFault(
           "Internal error. Api service not initialized.");
@@ -193,8 +196,7 @@ namespace kagome::api {
   }
 
   outcome::result<primitives::Transaction> AuthorApiImpl::constructTransaction(
-      primitives::Extrinsic extrinsic,
-      boost::optional<primitives::Transaction::ObservedId> id) const {
+      primitives::Extrinsic extrinsic) const {
     OUTCOME_TRY(res,
                 api_->validate_transaction(
                     primitives::TransactionSource::External, extrinsic));
@@ -215,8 +217,7 @@ namespace kagome::api {
           common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
           size_t length = extrinsic.data.size();
 
-          return primitives::Transaction{id,
-                                         extrinsic,
+          return primitives::Transaction{extrinsic,
                                          length,
                                          hash,
                                          v.priority,

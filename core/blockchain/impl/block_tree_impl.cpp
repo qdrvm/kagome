@@ -382,9 +382,9 @@ namespace kagome::blockchain {
     BOOST_ASSERT(babe_util_ != nullptr);
     // initialize metrics
     registry_->registerGaugeFamily(kBlockHeightGaugeName,
-                                     "Block height info of the chain");
+                                   "Block height info of the chain");
     block_height_best_ = registry_->registerGaugeMetric(kBlockHeightGaugeName,
-                                                          {{"status", "best"}});
+                                                        {{"status", "best"}});
     block_height_best_->set(tree_meta_->deepest_leaf.get().depth);
     block_height_finalized_ = registry_->registerGaugeMetric(
         kBlockHeightGaugeName, {{"status", "finalized"}});
@@ -475,8 +475,8 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
     for (size_t idx = 0; idx < block.body.size(); idx++) {
-      if (auto key = extrinsic_event_key_repo_->getEventKey(block.header.number,
-                                                            idx)) {
+      if (auto key = extrinsic_event_key_repo_->get(
+              hasher_->blake2b_256(block.body[idx].data))) {
         extrinsic_events_engine_->notify(
             key.value(),
             primitives::events::ExtrinsicLifecycleEvent::InBlock(
@@ -580,8 +580,8 @@ namespace kagome::blockchain {
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
 
     for (size_t idx = 0; idx < body.size(); idx++) {
-      if (auto key =
-              extrinsic_event_key_repo_->getEventKey(header.number, idx)) {
+      if (auto key = extrinsic_event_key_repo_->get(
+              hasher_->blake2b_256(body[idx].data))) {
         extrinsic_events_engine_->notify(
             key.value(),
             primitives::events::ExtrinsicLifecycleEvent::Finalized(
@@ -978,7 +978,8 @@ namespace kagome::blockchain {
       if (block_body_res.has_value()) {
         extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
         for (size_t idx = 0; idx < block_body_res.value().size(); idx++) {
-          if (auto key = extrinsic_event_key_repo_->getEventKey(number, idx)) {
+          if (auto key = extrinsic_event_key_repo_->get(
+                  hasher_->blake2b_256(block_body_res.value()[idx].data))) {
             extrinsic_events_engine_->notify(
                 key.value(),
                 primitives::events::ExtrinsicLifecycleEvent::Retracted(

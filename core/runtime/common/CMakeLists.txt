@@ -6,11 +6,15 @@
 
 add_library(storage_code_provider
     storage_code_provider.cpp
+    uncompress_code_if_needed.cpp
     )
 target_link_libraries(storage_code_provider
     buffer
     blob
+    logger
+    zstd::libzstd_static
     )
+kagome_install(storage_code_provider)
 
 add_library(constant_code_provider
     constant_code_provider.cpp
