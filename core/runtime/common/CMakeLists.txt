@@ -3,14 +3,17 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-
 add_library(storage_wasm_provider
     storage_wasm_provider.cpp
+    uncompress_code_if_needed.cpp
     )
 target_link_libraries(storage_wasm_provider
-    buffer
     blob
+    buffer
+    logger
+    zstd::libzstd_static
     )
+kagome_install(storage_wasm_provider)
 
 add_library(const_wasm_provider
     const_wasm_provider.cpp
