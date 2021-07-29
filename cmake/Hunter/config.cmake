@@ -31,14 +31,3 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
-hunter_config(
-  binaryen
-  VERSION version_101
-  URL "https://github.com/soramitsu/binaryen/archive/refs/tags/version_101.tar.gz"
-  SHA1 c8dcb3081d3416587927bcadd66864b7e6e11b26
-  CMAKE_ARGS
-    BUILD_LLVM_DWARF=OFF
-    BUILD_STATIC_LIB=ON
-    ENABLE_WERROR=OFF
-  )
-
