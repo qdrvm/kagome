@@ -33,9 +33,9 @@ hunter_config(
 
 hunter_config(
   binaryen
-  VERSION version_102
-  URL "https://github.com/sanblch/binaryen/archive/refs/tags/version_102.tar.gz"
-  SHA1 3bb2d29c78d785bcb819091094bb061c7645d532
+  VERSION version_101
+  URL "https://github.com/soramitsu/binaryen/archive/refs/tags/version_101.tar.gz"
+  SHA1 c8dcb3081d3416587927bcadd66864b7e6e11b26
   CMAKE_ARGS
     BUILD_LLVM_DWARF=OFF
     BUILD_STATIC_LIB=ON
