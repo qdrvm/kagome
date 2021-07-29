@@ -217,7 +217,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto storage_exists = host_api_->ext_exists_storage(
             arguments.at(0).geti32(), arguments.at(1).geti32());
-        return wasm::Literals(storage_exists);
+        return {wasm::Literal(storage_exists)};
       }
       /// ext_get_allocated_storage
       if (import->base == ext_get_allocated_storage) {
@@ -226,7 +226,7 @@ namespace kagome::runtime::binaryen {
             host_api_->ext_get_allocated_storage(arguments.at(0).geti32(),
                                                  arguments.at(1).geti32(),
                                                  arguments.at(2).geti32());
-        return wasm::Literals(ptr);
+        return {wasm::Literal(ptr)};
       }
       /// ext_get_storage_into
       if (import->base == ext_get_storage_into) {
