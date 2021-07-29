@@ -31,3 +31,14 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+hunter_config(
+  binaryen
+  VERSION version_102
+  URL "https://github.com/sanblch/binaryen/archive/refs/tags/version_102.tar.gz"
+  SHA1 3bb2d29c78d785bcb819091094bb061c7645d532
+  CMAKE_ARGS
+    BUILD_LLVM_DWARF=OFF
+    BUILD_STATIC_LIB=ON
+    ENABLE_WERROR=OFF
+  )
+

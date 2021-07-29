@@ -178,7 +178,7 @@ namespace kagome::runtime::binaryen {
         std::move(storage_provider));
   }
 
-  wasm::Literal RuntimeExternalInterface::callImport(
+  wasm::Literals RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
     SL_TRACE(logger_, "Call import {}", import->base);
     // TODO(kamilsa): PRE-359 Replace ifs with switch case
@@ -188,13 +188,13 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_malloc) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto ptr = host_api_->ext_malloc(arguments.at(0).geti32());
-        return wasm::Literal(ptr);
+        return {wasm::Literal(ptr)};
       }
       /// ext_free
       if (import->base == ext_free) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_free(arguments.at(0).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// storage externals
 
@@ -203,21 +203,21 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         host_api_->ext_clear_prefix(arguments.at(0).geti32(),
                                     arguments.at(1).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_clear_storage
       if (import->base == ext_clear_storage) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         host_api_->ext_clear_storage(arguments.at(0).geti32(),
                                      arguments.at(1).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_exists_storage
       if (import->base == ext_exists_storage) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto storage_exists = host_api_->ext_exists_storage(
             arguments.at(0).geti32(), arguments.at(1).geti32());
-        return wasm::Literal(storage_exists);
+        return wasm::Literals(storage_exists);
       }
       /// ext_get_allocated_storage
       if (import->base == ext_get_allocated_storage) {
@@ -226,7 +226,7 @@ namespace kagome::runtime::binaryen {
             host_api_->ext_get_allocated_storage(arguments.at(0).geti32(),
                                                  arguments.at(1).geti32(),
                                                  arguments.at(2).geti32());
-        return wasm::Literal(ptr);
+        return wasm::Literals(ptr);
       }
       /// ext_get_storage_into
       if (import->base == ext_get_storage_into) {
@@ -236,7 +236,7 @@ namespace kagome::runtime::binaryen {
                                                    arguments.at(2).geti32(),
                                                    arguments.at(3).geti32(),
                                                    arguments.at(4).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
       /// ext_storage_read_version_1
       if (import->base == ext_storage_read_version_1) {
@@ -245,7 +245,7 @@ namespace kagome::runtime::binaryen {
             host_api_->ext_storage_read_version_1(arguments.at(0).geti64(),
                                                   arguments.at(1).geti64(),
                                                   arguments.at(2).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
       /// ext_set_storage
       if (import->base == ext_set_storage) {
@@ -254,7 +254,7 @@ namespace kagome::runtime::binaryen {
                                    arguments.at(1).geti32(),
                                    arguments.at(2).geti32(),
                                    arguments.at(3).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_blake2_256_enumerated_trie_root
       if (import->base == ext_blake2_256_enumerated_trie_root) {
@@ -264,20 +264,20 @@ namespace kagome::runtime::binaryen {
             arguments.at(1).geti32(),
             arguments.at(2).geti32(),
             arguments.at(3).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_storage_changes_root
       if (import->base == ext_storage_changes_root) {
         checkArguments(import->base.c_str(), 3, arguments.size());
         auto res = host_api_->ext_storage_changes_root(
             arguments.at(0).geti32(), arguments.at(2).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
       /// ext_storage_root
       if (import->base == ext_storage_root) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_storage_root(arguments.at(0).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// IO extensions
@@ -287,7 +287,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         host_api_->ext_print_hex(arguments.at(0).geti32(),
                                  arguments.at(1).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_logging_log_version_1
       if (import->base == ext_logging_log_version_1) {
@@ -295,26 +295,26 @@ namespace kagome::runtime::binaryen {
         host_api_->ext_logging_log_version_1(arguments.at(0).geti32(),
                                              arguments.at(1).geti64(),
                                              arguments.at(2).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_logging_max_level_version_1
       if (import->base == ext_logging_max_level_version_1) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         auto res = host_api_->ext_logging_max_level_version_1();
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
       /// ext_print_num
       if (import->base == ext_print_num) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_print_num(arguments.at(0).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_print_utf8
       if (import->base == ext_print_utf8) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         host_api_->ext_print_utf8(arguments.at(0).geti32(),
                                   arguments.at(1).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// Cryptographic extensions
@@ -324,7 +324,7 @@ namespace kagome::runtime::binaryen {
         host_api_->ext_blake2_128(arguments.at(0).geti32(),
                                   arguments.at(1).geti32(),
                                   arguments.at(2).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_blake2_256
@@ -333,7 +333,7 @@ namespace kagome::runtime::binaryen {
         host_api_->ext_blake2_256(arguments.at(0).geti32(),
                                   arguments.at(1).geti32(),
                                   arguments.at(2).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_keccak_256
@@ -342,21 +342,21 @@ namespace kagome::runtime::binaryen {
         host_api_->ext_keccak_256(arguments.at(0).geti32(),
                                   arguments.at(1).geti32(),
                                   arguments.at(2).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       // ext_start_batch_verify
       if (import->base == ext_start_batch_verify) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         host_api_->ext_start_batch_verify();
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       // ext_finish_batch_verify
       if (import->base == ext_finish_batch_verify) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         auto res = host_api_->ext_finish_batch_verify();
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_ed25519_verify
@@ -366,7 +366,7 @@ namespace kagome::runtime::binaryen {
                                                  arguments.at(1).geti32(),
                                                  arguments.at(2).geti32(),
                                                  arguments.at(3).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
       /// ext_sr25519_verify
       if (import->base == ext_sr25519_verify) {
@@ -375,7 +375,7 @@ namespace kagome::runtime::binaryen {
                                                  arguments.at(1).geti32(),
                                                  arguments.at(2).geti32(),
                                                  arguments.at(3).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
       /// ext_twox_64
       if (import->base == ext_twox_64) {
@@ -383,7 +383,7 @@ namespace kagome::runtime::binaryen {
         host_api_->ext_twox_64(arguments.at(0).geti32(),
                                arguments.at(1).geti32(),
                                arguments.at(2).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_twox_128
       if (import->base == ext_twox_128) {
@@ -391,7 +391,7 @@ namespace kagome::runtime::binaryen {
         host_api_->ext_twox_128(arguments.at(0).geti32(),
                                 arguments.at(1).geti32(),
                                 arguments.at(2).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_twox_256
       if (import->base == ext_twox_256) {
@@ -400,13 +400,13 @@ namespace kagome::runtime::binaryen {
         host_api_->ext_twox_256(arguments.at(0).geti32(),
                                 arguments.at(1).geti32(),
                                 arguments.at(2).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
       /// ext_chain_id
       if (import->base == ext_chain_id) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         auto res = host_api_->ext_chain_id();
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       // ----------------------- api version 1 ---------------------------
@@ -417,14 +417,14 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_crypto_start_batch_verify_version_1) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         host_api_->ext_start_batch_verify();
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       // ext_crypto_finish_batch_verify_version_1
       if (import->base == ext_crypto_finish_batch_verify_version_1) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         auto res = host_api_->ext_finish_batch_verify();
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_ed25519_public_keys_version_1
@@ -432,7 +432,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_ed25519_public_keys_v1(arguments.at(0).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_ed25519_generate_version_1
@@ -440,7 +440,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = host_api_->ext_ed25519_generate_v1(arguments.at(0).geti32(),
                                                       arguments.at(1).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_ed25519_sign_version_1
@@ -449,7 +449,7 @@ namespace kagome::runtime::binaryen {
         auto res = host_api_->ext_ed25519_sign_v1(arguments.at(0).geti32(),
                                                   arguments.at(1).geti32(),
                                                   arguments.at(2).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_ed25519_verify_version_1
@@ -458,7 +458,7 @@ namespace kagome::runtime::binaryen {
         auto res = host_api_->ext_ed25519_verify_v1(arguments.at(0).geti32(),
                                                     arguments.at(1).geti64(),
                                                     arguments.at(2).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_sr25519_public_keys_version_1
@@ -466,7 +466,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_sr25519_public_keys_v1(arguments.at(0).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_sr25519_generate_version_1
@@ -474,7 +474,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = host_api_->ext_sr25519_generate_v1(arguments.at(0).geti32(),
                                                       arguments.at(1).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_sr25519_sign_version_1
@@ -483,7 +483,7 @@ namespace kagome::runtime::binaryen {
         auto res = host_api_->ext_sr25519_sign_v1(arguments.at(0).geti32(),
                                                   arguments.at(1).geti32(),
                                                   arguments.at(2).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_sr25519_verify_version_1
@@ -492,7 +492,7 @@ namespace kagome::runtime::binaryen {
         auto res = host_api_->ext_sr25519_verify_v1(arguments.at(0).geti32(),
                                                     arguments.at(1).geti64(),
                                                     arguments.at(2).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_sr25519_verify_version_2
@@ -501,7 +501,7 @@ namespace kagome::runtime::binaryen {
         auto res = host_api_->ext_sr25519_verify_v1(arguments.at(0).geti32(),
                                                     arguments.at(1).geti64(),
                                                     arguments.at(2).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_secp256k1_ecdsa_recover_version_1
@@ -509,7 +509,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = host_api_->ext_crypto_secp256k1_ecdsa_recover_v1(
             arguments.at(0).geti32(), arguments.at(1).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
@@ -518,7 +518,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = host_api_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
             arguments.at(0).geti32(), arguments.at(1).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       // ----------------------- hashing functions ------------------------
@@ -528,7 +528,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res = host_api_->ext_hashing_keccak_256_version_1(
             arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_hashing_sha2_256_version_1
@@ -536,7 +536,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_hashing_sha2_256_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_hashing_blake2_128_version_1
@@ -544,7 +544,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res = host_api_->ext_hashing_blake2_128_version_1(
             arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_hashing_blake2_256_version_1
@@ -552,7 +552,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res = host_api_->ext_hashing_blake2_256_version_1(
             arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_hashing_twox_256_version_1
@@ -560,7 +560,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_hashing_twox_256_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_hashing_twox_128_version_1
@@ -568,7 +568,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_hashing_twox_128_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_hashing_twox_64_version_1
@@ -576,7 +576,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_hashing_twox_64_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_allocator_malloc_version_1
@@ -584,7 +584,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_allocator_malloc_version_1(arguments.at(0).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       // ----------------------- memory functions ------------------------
@@ -594,14 +594,14 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_allocator_malloc_version_1(arguments.at(0).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_allocator_free_version_1
       if (import->base == ext_allocator_free_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_allocator_free_version_1(arguments.at(0).geti32());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       // ----------------------- storage functions ------------------------
@@ -610,7 +610,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 2, arguments.size());
         host_api_->ext_storage_set_version_1(arguments.at(0).geti64(),
                                              arguments.at(1).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_storage_get_version_1
@@ -618,14 +618,14 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_storage_get_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_storage_clear_version_1
       if (import->base == ext_storage_clear_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_storage_clear_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_storage_exists_version_1
@@ -633,7 +633,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_storage_exists_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_storage_read_version_1
@@ -643,14 +643,14 @@ namespace kagome::runtime::binaryen {
             host_api_->ext_storage_read_version_1(arguments.at(0).geti64(),
                                                   arguments.at(1).geti64(),
                                                   arguments.at(2).geti32());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_storage_clear_prefix_version_1
       if (import->base == ext_storage_clear_prefix_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_storage_clear_prefix_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_storage_clear_prefix_version_2
@@ -662,14 +662,14 @@ namespace kagome::runtime::binaryen {
         auto res = host_api_->ext_storage_clear_prefix_version_2(
             arguments.at(0).geti64(), arguments.at(1).geti64());
         // always remove successfully all elements
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_storage_root_version_1
       if (import->base == ext_storage_root_version_1) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         auto res = host_api_->ext_storage_root_version_1();
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_storage_changes_root_version_1
@@ -677,7 +677,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res = host_api_->ext_storage_changes_root_version_1(
             arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_storage_next_key_version_1
@@ -685,14 +685,14 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res =
             host_api_->ext_storage_next_key_version_1(arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
       /// ext_storage_append_version_1
       if (import->base == ext_storage_append_version_1) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         host_api_->ext_storage_append_version_1(arguments.at(0).geti64(),
                                                 arguments.at(1).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_trie_blake2_256_root_version_1
@@ -700,7 +700,7 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res = host_api_->ext_trie_blake2_256_root_version_1(
             arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_trie_blake2_256_ordered_root_version_1
@@ -708,28 +708,28 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res = host_api_->ext_trie_blake2_256_ordered_root_version_1(
             arguments.at(0).geti64());
-        return wasm::Literal(res);
+        return {wasm::Literal(res)};
       }
 
       /// ext_misc_print_hex_version_1
       if (import->base == ext_misc_print_hex_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_misc_print_hex_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_misc_print_num_version_1
       if (import->base == ext_misc_print_num_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_misc_print_num_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_misc_print_utf8_version_1
       if (import->base == ext_misc_print_utf8_version_1) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         host_api_->ext_misc_print_utf8_version_1(arguments.at(0).geti64());
-        return wasm::Literal();
+        return wasm::Literals();
       }
 
       /// ext_misc_runtime_version_version_1
@@ -737,13 +737,13 @@ namespace kagome::runtime::binaryen {
         checkArguments(import->base.c_str(), 1, arguments.size());
         auto res = host_api_->ext_misc_runtime_version_version_1(
             arguments.at(0).geti64());
-        return wasm::Literal(res.combine());
+        return {wasm::Literal(res.combine())};
       }
 
       // TODO(xDimon): It is temporary suppress fails at calling of
       //  callImport(ext_offchain_index_set_version_1)
       if (import->base == "ext_offchain_index_set_version_1") {
-        return wasm::Literal();
+        return wasm::Literals();
       }
     }
 

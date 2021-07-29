@@ -56,8 +56,7 @@ namespace kagome::runtime::binaryen {
       wasm::WasmBinaryBuilder parser(
           *module,
           reinterpret_cast<std::vector<char> const &>(  // NOLINT
-              code.asVector()),
-          false);
+              code.asVector()));
 
       try {
         parser.read();
