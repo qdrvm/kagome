@@ -31,3 +31,10 @@ target_link_libraries(mp_utils_test
     mp_utils
     blob
     )
+
+addtest(variant_builder_test
+    variant_builder_test.cpp
+    )
+target_link_libraries(variant_builder_test
+    Boost::boost
+    )

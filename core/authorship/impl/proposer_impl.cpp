@@ -5,6 +5,8 @@
 
 #include "authorship/impl/proposer_impl.hpp"
 
+#include "authorship/impl/block_builder_error.hpp"
+
 namespace kagome::authorship {
 
   ProposerImpl::ProposerImpl(
@@ -55,8 +57,20 @@ namespace kagome::authorship {
       SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
-        log_push_warn(xt, inserted_res.error().message());
-        return inserted_res.error();
+        if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
+          SL_WARN(logger_,
+                  "Dropping non-mandatory inherent extrinsic from overweight "
+                  "block.");
+        } else if (BlockBuilderError::BAD_MANDATORY == inserted_res.error()) {
+          SL_ERROR(logger_,
+                   "Mandatory inherent extrinsic returned error. Block cannot "
+                   "be produced.");
+          return inserted_res.error();
+        } else {
+          SL_WARN(logger_,
+                  "Inherent extrinsic returned unexpected error: {}. Dropping.",
+                  inserted_res.error().message());
+        }
       }
     }
 
