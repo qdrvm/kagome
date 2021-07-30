@@ -7,6 +7,7 @@
 
 #include "authorship/impl/block_builder_error.hpp"
 #include "common/visitor.hpp"
+#include "primitives/transaction_validity.hpp"
 
 namespace kagome::authorship {
 
@@ -69,7 +70,7 @@ namespace kagome::authorship {
                         "Extrinsic {} cannot be applied and was not pushed to "
                         "the block. (InvalidTransaction response, code {})",
                         extrinsic.data.toHex().substr(0, 8),
-                        reason);
+                        static_cast<uint8_t>(reason));
                     return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
                 }
               },
@@ -79,7 +80,7 @@ namespace kagome::authorship {
                         "Extrinsic {} cannot be applied and was not pushed to "
                         "the block. (UnknownTransaction response, code {})",
                         extrinsic.data.toHex().substr(0, 8),
-                        reason);
+                        static_cast<uint8_t>(reason));
                 return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
               });
         });
