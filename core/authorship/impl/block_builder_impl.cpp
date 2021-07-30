@@ -52,30 +52,36 @@ namespace kagome::authorship {
           extrinsics_.push_back(extrinsic);
           return extrinsics_.size() - 1;
         },
-        [/*this, &extrinsic*/](
-            const primitives::TransactionValidityError &tx_error)
+        [this, &extrinsic](const primitives::TransactionValidityError &tx_error)
             -> return_type {
           return visit_in_place(
               tx_error,
-              [](const primitives::InvalidTransaction &reason) -> return_type {
+              [this, &extrinsic](
+                  const primitives::InvalidTransaction &reason) -> return_type {
                 switch (reason) {
                   case primitives::InvalidTransaction::ExhaustsResources:
                     return BlockBuilderError::EXHAUSTS_RESOURCES;
                   case primitives::InvalidTransaction::BadMandatory:
                     return BlockBuilderError::BAD_MANDATORY;
                   default:
+                    SL_WARN(
+                        logger_,
+                        "Extrinsic {} cannot be applied and was not pushed to "
+                        "the block. (InvalidTransaction response, code {})",
+                        extrinsic.data.toHex().substr(0, 8),
+                        reason);
                     return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
                 }
               },
-              [](const primitives::UnknownTransaction &) -> return_type {
+              [this, &extrinsic](
+                  const primitives::UnknownTransaction &reason) -> return_type {
+                SL_WARN(logger_,
+                        "Extrinsic {} cannot be applied and was not pushed to "
+                        "the block. (UnknownTransaction response, code {})",
+                        extrinsic.data.toHex().substr(0, 8),
+                        reason);
                 return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
               });
-          //
-          //          SL_WARN(
-          //              logger_,
-          //              "Extrinsic {} cannot be applied and was not pushed to
-          //              the block.", extrinsic.data.toHex().substr(0, 8));
-          //          return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
         });
   }
 

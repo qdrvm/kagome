@@ -34,8 +34,7 @@ namespace kagome::primitives {
     /// Transaction has been received externally.
     ///
     /// This means the transaction has been received from (usually) "untrusted"
-    /// source,
-    /// for instance received over the network or RPC.
+    /// source, for instance received over the network or RPC.
     External,
   };
 
