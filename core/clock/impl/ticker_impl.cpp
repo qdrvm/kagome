@@ -33,6 +33,10 @@ namespace kagome::clock {
     return started_;
   }
 
+  clock::SystemClock::Duration TickerImpl::interval() {
+    return interval_;
+  }
+
   void TickerImpl::asyncCallRepeatedly(
       std::function<void(const std::error_code &)> h) {
     callback_ = std::move(h);

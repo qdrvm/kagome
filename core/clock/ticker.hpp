@@ -34,6 +34,11 @@ namespace kagome::clock {
     virtual bool isStarted() = 0;
 
     /**
+     * interval
+     */
+    virtual clock::SystemClock::Duration interval() = 0;
+
+    /**
      * Wait for the ticker interval to last
      * @param h - handler, which is called, when the ticker interval lasts, or error
      * happens

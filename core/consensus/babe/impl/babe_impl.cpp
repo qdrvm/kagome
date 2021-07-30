@@ -9,6 +9,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_tree_error.hpp"
+#include "clock/impl/ticker_impl.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
@@ -19,6 +20,8 @@
 #include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+
+using namespace std::literals::chrono_literals;
 
 namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
@@ -35,7 +38,7 @@ namespace kagome::consensus::babe {
       const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::unique_ptr<clock::Ticker> ticker,
+      std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util)
@@ -50,7 +53,6 @@ namespace kagome::consensus::babe {
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
-        ticker_{std::move(ticker)},
         authority_update_observer_(std::move(authority_update_observer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
@@ -68,6 +70,9 @@ namespace kagome::consensus::babe {
 
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
+
+    ticker_ = std::make_unique<clock::TickerImpl>(io_context, 6s);
+    key_wait_ticker_ = std::make_unique<clock::TickerImpl>(io_context, 60s);
   }
 
   bool BabeImpl::prepare() {
@@ -181,7 +186,30 @@ namespace kagome::consensus::babe {
 
     // won't start block production without keypair
     if (not keypair_) {
+      // launch timer that would check key appearance
+      if (not key_wait_ticker_->isStarted()) {
+        key_wait_ticker_->asyncCallRepeatedly(
+            [wp = weak_from_this()](auto &&ec) {
+              if (auto self = wp.lock()) {
+                if (ec) {
+                  SL_ERROR(
+                      self->log_,
+                      "error happened while waiting on the key_wait_ticker: {}",
+                      ec.message());
+                  return;
+                }
+                SL_INFO(self->log_, "Check if babe key appeared...");
+                self->onPeerSync();
+              }
+            });
+        key_wait_ticker_->start(key_wait_ticker_->interval());
+      }
       return;
+    } else {
+      // stop key wait ticker when key appeared if started
+      if (key_wait_ticker_->isStarted()) {
+        key_wait_ticker_->stop();
+      }
     }
 
     EpochDescriptor last_epoch_descriptor;

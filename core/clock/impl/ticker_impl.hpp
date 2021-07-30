@@ -31,6 +31,8 @@ namespace kagome::clock {
 
     bool isStarted() override;
 
+    clock::SystemClock::Duration interval() override;
+
     void asyncCallRepeatedly(
         std::function<void(const std::error_code &)> h) override;
 
