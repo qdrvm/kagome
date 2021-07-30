@@ -11,6 +11,8 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_context.hpp>
 
+#include <atomic>
+
 namespace kagome::clock {
   /**
    * Implementation of ticker over boost::asio::basic_waitable_timer
@@ -35,7 +37,7 @@ namespace kagome::clock {
     void onTick(const boost::system::error_code &ec);
 
    private:
-    bool started_;
+    std::atomic_bool started_;
     boost::asio::basic_waitable_timer<std::chrono::system_clock> timer_;
     std::function<void(const std::error_code &)> callback_;
     clock::SystemClock::Duration interval_;
