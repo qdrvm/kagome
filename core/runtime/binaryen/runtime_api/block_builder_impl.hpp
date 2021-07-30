@@ -18,7 +18,7 @@ namespace kagome::runtime::binaryen {
 
     ~BlockBuilderImpl() override = default;
 
-    outcome::result<primitives::ApplyResult> apply_extrinsic(
+    outcome::result<primitives::ApplyExtrinsicResult> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<primitives::BlockHeader> finalise_block() override;

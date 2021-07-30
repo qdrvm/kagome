@@ -18,9 +18,9 @@ namespace kagome::runtime::binaryen {
       const std::shared_ptr<RuntimeEnvironmentFactory> &runtime_env_factory)
       : RuntimeApi(runtime_env_factory) {}
 
-  outcome::result<primitives::ApplyResult> BlockBuilderImpl::apply_extrinsic(
-      const Extrinsic &extrinsic) {
-    return execute<primitives::ApplyResult>(
+  outcome::result<primitives::ApplyExtrinsicResult>
+  BlockBuilderImpl::apply_extrinsic(const Extrinsic &extrinsic) {
+    return execute<primitives::ApplyExtrinsicResult>(
         "BlockBuilder_apply_extrinsic",
         CallConfig{.persistency = CallPersistency::PERSISTENT},
         extrinsic);
