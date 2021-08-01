@@ -14,6 +14,7 @@ target_link_libraries(block_builder
     outcome
     buffer
     logger
+    scale
     )
 
 add_library(block_builder_factory
@@ -33,4 +34,5 @@ add_library(proposer
     )
 target_link_libraries(proposer
     block_builder_factory
+    scale
     )
