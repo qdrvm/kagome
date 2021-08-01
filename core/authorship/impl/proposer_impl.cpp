@@ -84,14 +84,62 @@ namespace kagome::authorship {
     }
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
 
+    bool transaction_pushed = false;
+    bool hit_block_size_limit = false;
+
+    auto block_size_limit = kBlockSizeLimit;
+    auto skipped = 0;
+
     for (const auto &[hash, tx] : ready_txs) {
+      const auto block_size = block_builder->estimateBlockSize();
       const auto &tx_ref = tx;
+      auto estimate_tx_size = [&tx_ref]() -> size_t {
+        scale::ScaleEncoderStream s(true);
+        s << tx_ref->ext;
+        return s.size();
+      };
+
+      if (block_size + estimate_tx_size() > block_size_limit) {
+        if (skipped < kMaxSkippedTransactions) {
+          ++skipped;
+          SL_DEBUG(logger_,
+                   "Transaction would overflow the block size limit, but will "
+                   "try {} more transactions before quitting.",
+                   kMaxSkippedTransactions - skipped);
+          continue;
+        }
+        SL_DEBUG(logger_,
+                 "Reached block size limit, proceeding with proposing.");
+        hit_block_size_limit = true;
+        break;
+      }
+
       SL_DEBUG(logger_, "Adding extrinsic: {}", tx_ref->ext.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
-        log_push_warn(tx->ext, inserted_res.error().message());
-        continue;
+        if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
+          if (skipped < kMaxSkippedTransactions) {
+            ++skipped;
+            SL_DEBUG(logger_,
+                     "Block seems full, but will try {} more transactions "
+                     "before quitting.",
+                     kMaxSkippedTransactions - skipped);
+          } else {  // maximum amount of txs is pushed
+            SL_DEBUG(logger_, "Block is full, proceed with proposing.");
+            break;
+          }
+        } else {  // any other error than exhausted resources
+          log_push_warn(tx->ext, inserted_res.error().message());
+        }
+      } else {  // tx was pushed successfully
+        transaction_pushed = true;
       }
+    }
+
+    if (hit_block_size_limit and not transaction_pushed) {
+      SL_WARN(logger_,
+              "Hit block size limit of `{}` without including any transaction!",
+              block_size_limit);
     }
 
     OUTCOME_TRY(block, block_builder->bake());
