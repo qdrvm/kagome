@@ -88,6 +88,9 @@ namespace kagome::consensus::babe {
 
     void doOnSynchronized(std::function<void()> handler) override;
 
+    /** for test purposes only */
+    void setTicker(std::unique_ptr<clock::Ticker>&& ticker);
+
    private:
     /**
      * Finish the current Babe slot

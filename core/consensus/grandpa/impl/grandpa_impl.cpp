@@ -166,10 +166,7 @@ namespace kagome::consensus::grandpa {
                                    : boost::none};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_ ? boost::make_optional(*keypair_) : boost::none,
-        crypto_provider_,
-        round_state.round_number,
-        config.voters);
+        keypair_, crypto_provider_, round_state.round_number, config.voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
@@ -219,10 +216,7 @@ namespace kagome::consensus::grandpa {
                                    : boost::none};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_ ? boost::make_optional(*keypair_) : boost::none,
-        crypto_provider_,
-        new_round_number,
-        config.voters);
+        keypair_, crypto_provider_, new_round_number, config.voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),

@@ -241,6 +241,10 @@ namespace kagome::consensus::babe {
     }
   }
 
+  void BabeImpl::setTicker(std::unique_ptr<clock::Ticker>&& ticker) {
+    ticker_ = std::move(ticker);
+  }
+
   void BabeImpl::finishSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
