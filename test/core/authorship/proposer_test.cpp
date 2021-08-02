@@ -130,6 +130,8 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
   EXPECT_CALL(*transaction_pool_, removeStale(BlockId(expected_number_)))
       .WillOnce(Return(outcome::success()));
 
+  EXPECT_CALL(*block_builder_, estimateBlockSize()).WillOnce(Return(1));
+
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   // when
@@ -179,6 +181,7 @@ TEST_F(ProposerTest, PushFailed) {
       .WillOnce(Return(outcome::failure(
           boost::system::error_code{})));  // for xt from tx pool, will emit
                                            // Error: Success though
+  EXPECT_CALL(*block_builder_, estimateBlockSize()).WillOnce(Return(1));
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{

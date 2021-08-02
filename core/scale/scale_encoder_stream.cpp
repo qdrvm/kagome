@@ -106,6 +106,12 @@ namespace kagome::scale {
     }
   }  // namespace
 
+  ScaleEncoderStream::ScaleEncoderStream()
+      : drop_data_{false}, bytes_written_{0} {}
+
+  ScaleEncoderStream::ScaleEncoderStream(bool drop_data)
+      : drop_data_{drop_data}, bytes_written_{0} {}
+
   ByteArray ScaleEncoderStream::data() const {
     ByteArray buffer(stream_.size(), 0u);
     for (auto &&[it, dest] = std::pair(stream_.begin(), buffer.begin());
@@ -116,8 +122,15 @@ namespace kagome::scale {
     return buffer;
   }
 
+  size_t ScaleEncoderStream::size() const {
+    return bytes_written_;
+  }
+
   ScaleEncoderStream &ScaleEncoderStream::putByte(uint8_t v) {
-    stream_.push_back(v);
+    ++bytes_written_;
+    if (not drop_data_) {
+      stream_.push_back(v);
+    }
     return *this;
   }
 
