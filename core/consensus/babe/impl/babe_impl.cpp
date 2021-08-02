@@ -185,6 +185,10 @@ namespace kagome::consensus::babe {
   void BabeImpl::onPeerSync() {
     // sync already started no need to call it again
     if (ticker_->isStarted()) {
+      // stop key wait ticker when key appeared if started
+      if (key_wait_ticker_->isStarted()) {
+        key_wait_ticker_->stop();
+      }
       return;
     }
 
@@ -209,11 +213,6 @@ namespace kagome::consensus::babe {
         key_wait_ticker_->start(key_wait_ticker_->interval());
       }
       return;
-    } else {
-      // stop key wait ticker when key appeared if started
-      if (key_wait_ticker_->isStarted()) {
-        key_wait_ticker_->stop();
-      }
     }
 
     EpochDescriptor last_epoch_descriptor;
