@@ -18,6 +18,8 @@ namespace kagome::authorship {
                   outcome::result<primitives::ExtrinsicIndex>(
                       const primitives::Extrinsic &extrinsic));
     MOCK_CONST_METHOD0(bake, outcome::result<primitives::Block>());
+
+    MOCK_CONST_METHOD0(estimateBlockSize, size_t());
   };
 
 }  // namespace kagome::authorship

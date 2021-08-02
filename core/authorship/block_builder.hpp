@@ -30,6 +30,12 @@ namespace kagome::authorship {
      * Create a block from extrinsics and header
      */
     virtual outcome::result<primitives::Block> bake() const = 0;
+
+    /**
+     * Estimate size of encoded block representation
+     * @return size in bytes
+     */
+    virtual size_t estimateBlockSize() const = 0;
   };
 
 }  // namespace kagome::authorship
