@@ -91,4 +91,21 @@ namespace kagome::authorship {
     return primitives::Block{finalised_header, extrinsics_};
   }
 
+  size_t BlockBuilderImpl::estimateBlockSize() const {
+    scale::ScaleEncoderStream s(true);
+    for (const auto &xt : extrinsics_) {
+      s << xt;
+    }
+    return estimatedBlockHeaderSize() + s.size();
+  }
+
+  size_t BlockBuilderImpl::estimatedBlockHeaderSize() const {
+    static boost::optional<size_t> size = boost::none;
+    if (not size) {
+      scale::ScaleEncoderStream s(true);
+      s << block_header_;
+      size = s.size();
+    }
+    return size.value();
+  }
 }  // namespace kagome::authorship
