@@ -23,6 +23,8 @@
 
 using namespace std::literals::chrono_literals;
 
+constexpr auto kKeyWaitTimerDuration = 60s;
+
 namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -71,8 +73,10 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
 
-    ticker_ = std::make_unique<clock::TickerImpl>(io_context, 6s);
-    key_wait_ticker_ = std::make_unique<clock::TickerImpl>(io_context, 60s);
+    ticker_ = std::make_unique<clock::TickerImpl>(
+        io_context, babe_configuration_->slot_duration);
+    key_wait_ticker_ =
+        std::make_unique<clock::TickerImpl>(io_context, kKeyWaitTimerDuration);
   }
 
   bool BabeImpl::prepare() {
@@ -241,7 +245,7 @@ namespace kagome::consensus::babe {
     }
   }
 
-  void BabeImpl::setTicker(std::unique_ptr<clock::Ticker>&& ticker) {
+  void BabeImpl::setTicker(std::unique_ptr<clock::Ticker> &&ticker) {
     ticker_ = std::move(ticker);
   }
 

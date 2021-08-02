@@ -17,6 +17,8 @@
 
 using namespace std::literals::chrono_literals;
 
+constexpr auto kKeyWaitTimerDuration = 60s;
+
 namespace kagome::consensus::grandpa {
 
   GrandpaImpl::GrandpaImpl(
@@ -53,7 +55,8 @@ namespace kagome::consensus::grandpa {
     app_state_manager_->takeControl(*this);
     catch_up_request_suppressed_until_ = clock_->now();
 
-    key_wait_ticker_ = std::make_unique<clock::TickerImpl>(io_context_, 60s);
+    key_wait_ticker_ =
+        std::make_unique<clock::TickerImpl>(io_context_, kKeyWaitTimerDuration);
   }
 
   bool GrandpaImpl::prepare() {
