@@ -7,6 +7,7 @@
 
 #include "authorship/impl/block_builder_error.hpp"
 #include "common/visitor.hpp"
+#include "primitives/transaction_validity.hpp"
 
 namespace kagome::authorship {
 
@@ -27,6 +28,9 @@ namespace kagome::authorship {
       const primitives::Extrinsic &extrinsic) {
     auto apply_res = block_builder_api_->apply_extrinsic(extrinsic);
     if (not apply_res) {
+      // Takes place when API method execution fails for some technical kind of
+      // problem. This WON'T be executed when apply_extrinsic returned an error
+      // regarding the business-logic part.
       logger_->warn(
           "Extrinsic {} was not pushed to block. Error during xt application: "
           "{}",
@@ -35,30 +39,50 @@ namespace kagome::authorship {
       return apply_res.error();
     }
 
-    const static std::string logger_error_template =
-        "Extrinsic {} was not pushed to block. Extrinsic cannot be "
-        "applied";
+    using return_type = outcome::result<primitives::ExtrinsicIndex>;
     return visit_in_place(
         apply_res.value(),
-        [this, &extrinsic](primitives::ApplyOutcome apply_outcome)
-            -> outcome::result<primitives::ExtrinsicIndex> {
-          switch (apply_outcome) {
-            case primitives::ApplyOutcome::FAIL:
-              logger_->warn(logger_error_template,
-                            extrinsic.data.toHex().substr(0, 8));
-              [[fallthrough]];
-            case primitives::ApplyOutcome::SUCCESS:
-              extrinsics_.push_back(extrinsic);
-              return extrinsics_.size() - 1;
+        [this, &extrinsic](
+            const primitives::DispatchOutcome &outcome) -> return_type {
+          if (1 == outcome.which()) {  // DispatchError
+            SL_WARN(
+                logger_,
+                "Extrinsic {} pushed to the block, but dispatch error occurred",
+                extrinsic.data.toHex().substr(0, 8));
           }
-          // Not going to happen
-          throw std::runtime_error("Not all ApplyOutcome cases are checked");
+          extrinsics_.push_back(extrinsic);
+          return extrinsics_.size() - 1;
         },
-        [this, &extrinsic](primitives::ApplyError)
-            -> outcome::result<primitives::ExtrinsicIndex> {
-          logger_->warn(logger_error_template,
-                        extrinsic.data.toHex().substr(0, 8));
-          return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+        [this, &extrinsic](const primitives::TransactionValidityError &tx_error)
+            -> return_type {
+          return visit_in_place(
+              tx_error,
+              [this, &extrinsic](
+                  const primitives::InvalidTransaction &reason) -> return_type {
+                switch (reason) {
+                  case primitives::InvalidTransaction::ExhaustsResources:
+                    return BlockBuilderError::EXHAUSTS_RESOURCES;
+                  case primitives::InvalidTransaction::BadMandatory:
+                    return BlockBuilderError::BAD_MANDATORY;
+                  default:
+                    SL_WARN(
+                        logger_,
+                        "Extrinsic {} cannot be applied and was not pushed to "
+                        "the block. (InvalidTransaction response, code {})",
+                        extrinsic.data.toHex().substr(0, 8),
+                        static_cast<uint8_t>(reason));
+                    return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+                }
+              },
+              [this, &extrinsic](
+                  const primitives::UnknownTransaction &reason) -> return_type {
+                SL_WARN(logger_,
+                        "Extrinsic {} cannot be applied and was not pushed to "
+                        "the block. (UnknownTransaction response, code {})",
+                        extrinsic.data.toHex().substr(0, 8),
+                        static_cast<uint8_t>(reason));
+                return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+              });
         });
   }
 

@@ -10,7 +10,11 @@
 
 namespace kagome::authorship {
 
-  enum class BlockBuilderError { EXTRINSIC_APPLICATION_FAILED = 1 };
+  enum class BlockBuilderError {
+    EXTRINSIC_APPLICATION_FAILED = 1,
+    EXHAUSTS_RESOURCES,
+    BAD_MANDATORY,
+  };
 
 }
 

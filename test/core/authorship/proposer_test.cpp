@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include "authorship/impl/block_builder_error.hpp"
 #include "mock/core/authorship/block_builder_factory_mock.hpp"
 #include "mock/core/authorship/block_builder_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
@@ -22,6 +23,7 @@ using ::testing::Return;
 using ::testing::Test;
 
 using kagome::authorship::BlockBuilder;
+using kagome::authorship::BlockBuilderError;
 using kagome::authorship::BlockBuilderFactoryMock;
 using kagome::authorship::BlockBuilderMock;
 using kagome::authorship::ProposerImpl;
@@ -149,7 +151,7 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
 TEST_F(ProposerTest, CreateBlockFailsWhenXtNotPushed) {
   // given
   EXPECT_CALL(*block_builder_, pushExtrinsic(inherent_xts[0]))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillOnce(Return(outcome::failure(BlockBuilderError::BAD_MANDATORY)));
 
   // when
   auto block_res =
