@@ -46,7 +46,8 @@ namespace kagome::clock {
     callback_(ec);
     if (started_) {
       timer_.expires_after(interval_);
-      timer_.async_wait(boost::bind(&TickerImpl::onTick, this, ec));
+      timer_.async_wait(
+          [&](const boost::system::error_code &ec) { onTick(ec); });
     }
   }
 }  // namespace kagome::clock

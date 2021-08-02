@@ -36,5 +36,5 @@ TEST(TickerTest, Reuse) {
   ticker->start(10ms);
   ASSERT_TRUE(ticker->isStarted());
 
-  ctx->run();
+  ctx->run_for(100ms);
 }
