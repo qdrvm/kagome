@@ -87,19 +87,23 @@ namespace kagome::authorship {
     bool transaction_pushed = false;
     bool hit_block_size_limit = false;
 
-    auto block_size_limit = kBlockSizeLimit;
     auto skipped = 0;
+    auto block_size_limit = kBlockSizeLimit;
+    const auto kMaxVarintLength = 9;  /// Max varint size in bytes when encoded
+    // we move estimateBlockSize() out of the loop for optimization purposes.
+    // to avoid varint bytes length recalculation which indicates extrinsics
+    // quantity, we add the maximum varint length at once.
+    auto block_size = block_builder->estimateBlockSize() + kMaxVarintLength;
+    // at the moment block_size includes block headers and a counter to hold a
+    // number of transactions to be pushed to the block
 
     for (const auto &[hash, tx] : ready_txs) {
-      const auto block_size = block_builder->estimateBlockSize();
       const auto &tx_ref = tx;
-      auto estimate_tx_size = [&tx_ref]() -> size_t {
-        scale::ScaleEncoderStream s(true);
-        s << tx_ref->ext;
-        return s.size();
-      };
+      scale::ScaleEncoderStream s(true);
+      s << tx_ref->ext;
+      auto estimate_tx_size = s.size();
 
-      if (block_size + estimate_tx_size() > block_size_limit) {
+      if (block_size + estimate_tx_size > block_size_limit) {
         if (skipped < kMaxSkippedTransactions) {
           ++skipped;
           SL_DEBUG(logger_,
@@ -132,6 +136,7 @@ namespace kagome::authorship {
           log_push_warn(tx->ext, inserted_res.error().message());
         }
       } else {  // tx was pushed successfully
+        block_size += estimate_tx_size;
         transaction_pushed = true;
       }
     }
