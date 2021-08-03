@@ -62,9 +62,7 @@ groups:
               - name: host_api
                 level: trace
               - name: binaryen
-                level: trace
               - name: wavm
-                level: trace
           - name: metrics
           - name: network
             children:
