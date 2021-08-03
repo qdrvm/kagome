@@ -47,7 +47,7 @@ namespace kagome::runtime::binaryen {
         const std::shared_ptr<host_api::HostApiFactory> &host_api_factory,
         std::shared_ptr<TrieStorageProvider> storage_provider);
 
-    wasm::Literal callImport(wasm::Function *import,
+    wasm::Literals callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
     std::shared_ptr<WasmMemory> memory() const;
