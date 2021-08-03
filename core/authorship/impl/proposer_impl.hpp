@@ -18,6 +18,13 @@ namespace kagome::authorship {
 
   class ProposerImpl : public Proposer {
    public:
+    /// Maximum transactions quantity to try to push into the block before
+    /// finalization when resources are exhausted (block size limit reached)
+    static constexpr auto kMaxSkippedTransactions = 8;
+
+    /// Default block size limit in bytes
+    static constexpr size_t kBlockSizeLimit = 4 * 1024 * 1024 + 512;
+
     ~ProposerImpl() override = default;
 
     ProposerImpl(

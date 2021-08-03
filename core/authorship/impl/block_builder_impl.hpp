@@ -28,7 +28,11 @@ namespace kagome::authorship {
 
     outcome::result<primitives::Block> bake() const override;
 
+    size_t estimateBlockSize() const override;
+
    private:
+    size_t estimatedBlockHeaderSize() const;
+
     primitives::BlockHeader block_header_;
     std::shared_ptr<runtime::BlockBuilder> block_builder_api_;
     log::Logger logger_;

@@ -23,11 +23,26 @@ namespace kagome::scale {
     // special tag to differentiate encoding streams from others
     static constexpr auto is_encoder_stream = true;
 
+    ScaleEncoderStream();
+
+    /**
+     * Stream initialization
+     * @param drop_data - when true will only count encoded data size while
+     * omitting the data itself
+     */
+    explicit ScaleEncoderStream(bool drop_data);
+
     /// Getters
     /**
      * @return vector of bytes containing encoded data
      */
     std::vector<uint8_t> data() const;
+
+    /**
+     * Get amount of encoded data written to the stream
+     * @return size in bytes
+     */
+    size_t size() const;
 
     /**
      * @brief scale-encodes pair of values
@@ -275,7 +290,10 @@ namespace kagome::scale {
 
    private:
     ScaleEncoderStream &encodeOptionalBool(const boost::optional<bool> &v);
+
+    const bool drop_data_;
     std::deque<uint8_t> stream_;
+    size_t bytes_written_;
   };
 
 }  // namespace kagome::scale
