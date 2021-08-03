@@ -4,8 +4,8 @@
  */
 
 #include <gtest/gtest.h>
-
 #include <boost/asio/io_context.hpp>
+
 #include <chrono>
 #include <memory>
 
@@ -65,6 +65,9 @@ Hash256 createHash(uint8_t byte) {
 namespace kagome::primitives {
   std::ostream &operator<<(std::ostream &s,
                            const detail::DigestItemCommon &dic) {
+    return s;
+  }
+  std::ostream &operator<<(std::ostream &s, const ChangesTrieSignal &) {
     return s;
   }
 }  // namespace kagome::primitives
