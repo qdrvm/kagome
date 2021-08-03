@@ -37,8 +37,8 @@ namespace kagome::authorship {
     header.parent_hash = parent_hash;
     header.digest = std::move(inherent_digest);
 
-    if (auto res = r_core_->initialise_block(header); not res) {
-      logger_->error("Core->initialise_block failed: {}",
+    if (auto res = r_core_->initialize_block(header); not res) {
+      logger_->error("Core_initialize_block failed: {}",
                      res.error().message());
       return res.error();
     }

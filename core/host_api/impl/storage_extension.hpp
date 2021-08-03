@@ -144,7 +144,7 @@ namespace kagome::host_api {
     boost::optional<common::Buffer> calcStorageChangesRoot(
         common::Hash256 parent) const;
 
-    runtime::WasmPointer clearPrefix(const common::Buffer &prefix,
+    runtime::WasmSpan clearPrefix(const common::Buffer &prefix,
                                      boost::optional<uint32_t> limit);
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;

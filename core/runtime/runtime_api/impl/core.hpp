@@ -30,7 +30,7 @@ namespace kagome::runtime {
     outcome::result<void> execute_block(
         const primitives::Block &block) override;
 
-    outcome::result<void> initialise_block(
+    outcome::result<void> initialize_block(
         const primitives::BlockHeader &header) override;
 
     outcome::result<std::vector<primitives::AuthorityId>> authorities(

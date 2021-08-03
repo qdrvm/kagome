@@ -42,14 +42,14 @@ namespace kagome::runtime {
         {parent.number, block.header.parent_hash}, "Core_execute_block", block);
   }
 
-  outcome::result<void> CoreImpl::initialise_block(
+  outcome::result<void> CoreImpl::initialize_block(
       const primitives::BlockHeader &header) {
     OUTCOME_TRY(
         changes_tracker_->onBlockChange(header.parent_hash,
                                         header.number - 1));  // parent's number
     return executor_->persistentCallAt<void>(
         {header.number - 1, header.parent_hash},
-        "Core_initialise_block",
+        "Core_initialize_block",
         header);
   }
 

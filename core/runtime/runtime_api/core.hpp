@@ -47,7 +47,7 @@ namespace kagome::runtime {
      * @brief Initialize a block with the given header.
      * @param header header used for block initialization
      */
-    virtual outcome::result<void> initialise_block(
+    virtual outcome::result<void> initialize_block(
         const primitives::BlockHeader &header) = 0;
 
     /**

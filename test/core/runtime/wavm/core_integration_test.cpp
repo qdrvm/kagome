@@ -78,7 +78,7 @@ TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
 
 /**
  * @given initialised core api
- * @when initialise_block is invoked
+ * @when initialize_block is invoked
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
@@ -87,7 +87,7 @@ TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
               onBlockChange(header.parent_hash, header.number - 1))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_TRUE(core_->initialise_block(header));
+  ASSERT_TRUE(core_->initialize_block(header));
 }
 
 /**

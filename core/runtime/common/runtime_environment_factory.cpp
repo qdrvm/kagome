@@ -117,7 +117,7 @@ namespace kagome::runtime {
     }
     int32_t heap_base = boost::get<int32_t>(opt_heap_base.value().value());
 
-    parent_factory->memory_provider_->resetMemory(heap_base);
+    OUTCOME_TRY(parent_factory->memory_provider_->resetMemory(heap_base));
 
     return std::make_unique<RuntimeEnvironment>(
         instance,

@@ -430,7 +430,7 @@ namespace kagome::host_api {
     return result_buf;
   }
 
-  runtime::WasmPointer StorageExtension::clearPrefix(
+  runtime::WasmSpan StorageExtension::clearPrefix(
       const common::Buffer &prefix, boost::optional<uint32_t> limit) {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory().value();
