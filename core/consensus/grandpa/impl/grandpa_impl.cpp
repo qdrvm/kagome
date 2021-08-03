@@ -126,6 +126,11 @@ namespace kagome::consensus::grandpa {
               [wp = self->weak_from_this()](auto &&ec) {
                 if (auto self = wp.lock()) {
                   if (ec) {
+                    if (ec.value() == boost::system::errc::operation_canceled) {
+                      SL_INFO(self->logger_,
+                              "key_wait_ticker {}", ec.message());
+                      return;
+                    }
                     SL_ERROR(self->logger_,
                              "error happened while waiting on the "
                              "key_wait_ticker: {}",
