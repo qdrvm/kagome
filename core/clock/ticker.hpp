@@ -19,9 +19,9 @@ namespace kagome::clock {
     virtual ~Ticker() = default;
 
     /**
-     * start ticker after duration
+     * start ticker after delay
      */
-    virtual void start(clock::SystemClock::Duration duration) = 0;
+    virtual void start(clock::SystemClock::Duration delay) = 0;
 
     /**
      * cancel ticker
@@ -35,9 +35,8 @@ namespace kagome::clock {
 
     /**
      * Wait for the ticker interval to last
-     * @param h - handler, which is called, when the ticker interval lasts, or error
-     * happens
-     * Start ticker only after setting callback here!
+     * @param h - handler, which is called, when the ticker interval lasts, or
+     * error happens Start ticker only after setting callback here!
      */
     virtual void asyncCallRepeatedly(
         std::function<void(const std::error_code &)> h) = 0;

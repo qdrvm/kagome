@@ -42,6 +42,10 @@ namespace kagome::consensus {
            - clock_.now().time_since_epoch();
   }
 
+  BabeDuration BabeUtilImpl::slotDuration() const {
+    return babe_configuration_->slot_duration;
+  }
+
   BabeSlotNumber BabeUtilImpl::getGenesisSlotNumber() {
     if (genesis_slot_number_.has_value()) {
       return genesis_slot_number_.value();
