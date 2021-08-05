@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_TESTUTIL_RUNTIME_BASIC_WASM_PROVIDER_HPP
-#define KAGOME_TEST_TESTUTIL_RUNTIME_BASIC_WASM_PROVIDER_HPP
+#ifndef KAGOME_TEST_TESTUTIL_RUNTIME_basic_code_provider_HPP
+#define KAGOME_TEST_TESTUTIL_RUNTIME_basic_code_provider_HPP
 
 #include "runtime/runtime_code_provider.hpp"
 
@@ -27,4 +27,4 @@ namespace kagome::runtime {
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_TEST_TESTUTIL_RUNTIME_BASIC_WASM_PROVIDER_HPP
+#endif  // KAGOME_TEST_TESTUTIL_RUNTIME_basic_code_provider_HPP

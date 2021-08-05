@@ -10,7 +10,7 @@
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/common/basic_wasm_provider.hpp"
+#include "testutil/runtime/common/basic_code_provider.hpp"
 
 using namespace testing;
 

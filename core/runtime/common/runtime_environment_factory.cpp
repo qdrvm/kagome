@@ -42,17 +42,13 @@ namespace kagome::runtime {
 
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::
       RuntimeEnvironmentTemplate(
-          std::weak_ptr<RuntimeEnvironmentFactory> parent_factory)
-      : state_{}, parent_factory_{std::move(parent_factory)} {
+          std::weak_ptr<RuntimeEnvironmentFactory> parent_factory,
+          const primitives::BlockInfo &blockchain_state,
+          const storage::trie::RootHash &storage_state)
+      : blockchain_state_{blockchain_state},
+        storage_state_{storage_state},
+        parent_factory_{std::move(parent_factory)} {
     BOOST_ASSERT(parent_factory_.lock() != nullptr);
-    state_ = parent_factory_.lock()->latest_state_;
-  }
-
-  RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate &
-  RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::setState(
-      const primitives::BlockInfo &state) {
-    state_ = state;
-    return *this;
   }
 
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate &
@@ -67,7 +63,7 @@ namespace kagome::runtime {
     if (parent_factory == nullptr) {
       return RuntimeEnvironmentFactory::Error::PARENT_FACTORY_EXPIRED;
     }
-    if (state_.hash == primitives::BlockHash{}) {
+    if (blockchain_state_.hash == primitives::BlockHash{}) {
       auto genesis_hash = parent_factory->header_repo_->getHashByNumber(0);
       if (!genesis_hash) {
         parent_factory->logger_->error(
@@ -76,39 +72,46 @@ namespace kagome::runtime {
             genesis_hash.error().message());
         return Error::ABSENT_BLOCK;
       }
-      state_ = primitives::BlockInfo{0, std::move(genesis_hash.value())};
+      blockchain_state_ =
+          primitives::BlockInfo{0, std::move(genesis_hash.value())};
     }
-    auto header_res = parent_factory->header_repo_->getBlockHeader(state_.hash);
+    auto header_res =
+        parent_factory->header_repo_->getBlockHeader(blockchain_state_.hash);
     if (!header_res) {
       parent_factory->logger_->error(
           "Failed to obtain the block header with hash {} when initializing a "
           "runtime environment; Reason: {}",
-          state_.hash.toHex(), header_res.error().message());
+          blockchain_state_.hash.toHex(),
+          header_res.error().message());
       return Error::ABSENT_BLOCK;
     }
     if (persistent_) {
       if (auto res = parent_factory->storage_provider_->setToPersistentAt(
-              header_res.value().state_root); !res) {
+              header_res.value().state_root);
+          !res) {
         parent_factory->logger_->error(
             "Failed to set the storage state to hash {} when initializing a "
             "runtime environment; Reason: {}",
-            header_res.value().state_root.toHex(), res.error().message());
+            header_res.value().state_root.toHex(),
+            res.error().message());
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
     } else {
       if (auto res = parent_factory->storage_provider_->setToEphemeralAt(
-              header_res.value().state_root); !res) {
+              header_res.value().state_root);
+          !res) {
         parent_factory->logger_->error(
             "Failed to set the storage state to hash {} when initializing a "
             "runtime environment; Reason: {}",
-            header_res.value().state_root.toHex(), res.error().message());
+            header_res.value().state_root.toHex(),
+            res.error().message());
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
     }
 
     OUTCOME_TRY(instance,
                 parent_factory->module_repo_->getInstanceAt(
-                    parent_factory->code_provider_, state_));
+                    parent_factory->code_provider_, blockchain_state_));
     auto opt_heap_base = instance->getGlobal("__heap_base");
     if (!opt_heap_base.has_value() || !opt_heap_base.value()) {
       parent_factory->logger_->error(
@@ -142,8 +145,7 @@ namespace kagome::runtime {
       std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider,
       std::shared_ptr<ModuleRepository> module_repo,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
-      : latest_state_{},
-        storage_provider_{std::move(storage_provider)},
+      : storage_provider_{std::move(storage_provider)},
         host_api_{std::move(host_api)},
         memory_provider_{std::move(memory_provider)},
         code_provider_{std::move(code_provider)},
@@ -161,8 +163,11 @@ namespace kagome::runtime {
   }
 
   std::unique_ptr<RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate>
-  RuntimeEnvironmentFactory::start() {
-    return std::make_unique<RuntimeEnvironmentTemplate>(weak_from_this());
+  RuntimeEnvironmentFactory::start(
+      const primitives::BlockInfo &blockchain_state,
+      const storage::trie::RootHash &storage_state) {
+    return std::make_unique<RuntimeEnvironmentTemplate>(
+        weak_from_this(), blockchain_state, storage_state);
   }
 
   void RuntimeEnvironmentFactory::setEnvCleanupCallback(

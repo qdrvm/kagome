@@ -16,9 +16,11 @@ namespace kagome::runtime {
       : public RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate {
    public:
     RuntimeEnvironmentTemplateMock(
-        std::weak_ptr<RuntimeEnvironmentFactory> parent)
+        std::weak_ptr<RuntimeEnvironmentFactory> parent,
+        const primitives::BlockInfo &blockchain_state,
+        const storage::trie::RootHash &storage_state)
         : RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate{
-            std::move(parent)} {}
+            std::move(parent), blockchain_state, storage_state} {}
 
     MOCK_METHOD1(
         setState,
@@ -48,8 +50,11 @@ namespace kagome::runtime {
                                     std::move(module_repo),
                                     std::move(header_repo)} {}
 
-    std::unique_ptr<RuntimeEnvironmentTemplate> start() override {
-      return std::make_unique<RuntimeEnvironmentTemplateMock>(weak_from_this());
+    std::unique_ptr<RuntimeEnvironmentTemplate> start(
+        const primitives::BlockInfo &blockchain_state,
+        const storage::trie::RootHash &storage_state) override {
+      return std::make_unique<RuntimeEnvironmentTemplateMock>(
+          weak_from_this(), blockchain_state, storage_state);
     }
   };
 

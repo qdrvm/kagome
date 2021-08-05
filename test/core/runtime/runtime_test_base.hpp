@@ -37,7 +37,7 @@
 #include "runtime/runtime_environment_factory.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/common/basic_wasm_provider.hpp"
+#include "testutil/runtime/common/basic_code_provider.hpp"
 
 using testing::_;
 using testing::Return;

@@ -32,7 +32,7 @@ addtest(core_integration_test
 target_link_libraries(core_integration_test
     wavm_runtime_test
     core_api
-    basic_wasm_provider
+    basic_code_provider
     logger_for_tests
     )
 
@@ -41,7 +41,7 @@ addtest(wasm_executor_test
     )
 target_link_libraries(wasm_executor_test
     runtime_wavm
-    basic_wasm_provider
+    basic_code_provider
     core_api
     trie_storage
     trie_storage_backend

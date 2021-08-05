@@ -99,6 +99,10 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
 
+    if (key.toHex()
+        == "1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed") {
+      [] {}();
+    }
     auto batch = storage_provider_->getCurrentBatch();
     auto put_result = batch->put(key, value);
     if (not put_result) {
@@ -113,6 +117,11 @@ namespace kagome::host_api {
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto &memory = memory_provider_->getCurrentMemory().value();
     auto key_buffer = memory.loadN(key_ptr, key_size);
+
+    if (key_buffer.toHex()
+        == "1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed") {
+      [] {}();
+    }
 
     auto result = get(key_buffer);
     auto option = result ? boost::make_optional(result.value()) : boost::none;

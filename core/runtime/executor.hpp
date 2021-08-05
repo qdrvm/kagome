@@ -29,7 +29,7 @@ namespace kagome::runtime {
    * Provides access to the Runtime API methods, which can be called by their
    * names with the required environment
    */
-  class Executor {
+  class Executor final {
    public:
     using Buffer = common::Buffer;
 
@@ -37,7 +37,8 @@ namespace kagome::runtime {
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
         : header_repo_{std::move(header_repo)},
-          env_factory_{std::move(env_factory)} {
+          env_factory_{std::move(env_factory)},
+          logger_{log::createLogger("Executor", "runtime")} {
       BOOST_ASSERT(header_repo_ != nullptr);
       BOOST_ASSERT(env_factory_ != nullptr);
     }
@@ -51,13 +52,19 @@ namespace kagome::runtime {
     template <typename Result, typename... Args>
     outcome::result<Result> persistentCallAtLatest(std::string_view name,
                                                    Args &&...args) {
-      OUTCOME_TRY(env, env_factory_->start()->persistent().make());
+      SL_DEBUG(logger_, "Runtime calls {} persistently at latest", name);
+      OUTCOME_TRY(
+          env,
+          env_factory_->start(last_blockchain_state_, last_storage_state_)
+              ->persistent()
+              .make());
       auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
       if (res) {
         BOOST_ASSERT_MSG(
             env->batch.has_value(),
             "Persistent batch should always exist for persistent call");
-        OUTCOME_TRY(env->batch.value()->commit());
+        OUTCOME_TRY(state_root, env->batch.value()->commit());
+        last_storage_state_ = std::move(state_root);
       }
       return res;
     }
@@ -72,14 +79,24 @@ namespace kagome::runtime {
         primitives::BlockInfo const &block_info,
         std::string_view name,
         Args &&...args) {
-      OUTCOME_TRY(
-          env, env_factory_->start()->persistent().setState(block_info).make());
+      SL_DEBUG(logger_,
+               "Runtime calls {} persistently at #{} hash: {}",
+               name,
+               block_info.number,
+               block_info.hash.toHex());
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_info.hash));
+      OUTCOME_TRY(env,
+                  env_factory_->start(block_info, header.state_root)
+                      ->persistent()
+                      .make());
       auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
       if (res) {
         BOOST_ASSERT_MSG(
             env->batch.has_value(),
             "Persistent batch should always exist for persistent call");
-        OUTCOME_TRY(env->batch.value()->commit());
+        OUTCOME_TRY(state_root, env->batch.value()->commit());
+        last_storage_state_ = std::move(state_root);
+        last_blockchain_state_ = block_info;
       }
       return res;
     }
@@ -93,7 +110,11 @@ namespace kagome::runtime {
     template <typename Result, typename... Args>
     outcome::result<Result> callAtLatest(std::string_view name,
                                          Args &&...args) {
-      OUTCOME_TRY(env, env_factory_->start()->make());
+      SL_DEBUG(logger_, "Runtime calls {} at latest", name);
+      OUTCOME_TRY(
+          env,
+          env_factory_->start(last_blockchain_state_, last_storage_state_)
+              ->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
@@ -107,9 +128,15 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
+      SL_DEBUG(logger_,
+               "Runtime calls {} at #{} hash: {}",
+               name,
+               header.number,
+               block_hash.toHex());
       OUTCOME_TRY(
           env,
-          env_factory_->start()->setState({header.number, block_hash}).make());
+          env_factory_->start({header.number, block_hash}, header.state_root)
+              ->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
@@ -144,6 +171,8 @@ namespace kagome::runtime {
       }
     }
 
+    primitives::BlockInfo last_blockchain_state_;
+    storage::trie::RootHash last_storage_state_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
     log::Logger logger_;

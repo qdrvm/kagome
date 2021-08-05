@@ -25,7 +25,7 @@ target_link_libraries(tagged_transaction_queue_test
     binaryen_runtime_test
     tagged_transaction_queue_api
     testutil_primitives_generator
-    basic_wasm_provider
+    basic_code_provider
     core_api
     logger_for_tests
     )
@@ -36,7 +36,7 @@ addtest(block_builder_api_test
 target_link_libraries(block_builder_api_test
     binaryen_runtime_test
     block_builder_api
-    basic_wasm_provider
+    basic_code_provider
     core_api
     logger_for_tests
     )
@@ -47,7 +47,7 @@ addtest(parachain_test
 target_link_libraries(parachain_test
     binaryen_runtime_test
     parachain_host_api
-    basic_wasm_provider
+    basic_code_provider
     core_api
     hasher
     pbkdf2_provider
@@ -60,7 +60,7 @@ target_link_libraries(grandpa_api_test
     binaryen_runtime_test
     grandpa_api
     trie_storage_backend
-    basic_wasm_provider
+    basic_code_provider
     key_file_storage
     core_api
     logger_for_tests
@@ -72,7 +72,7 @@ addtest(metadata_test
 target_link_libraries(metadata_test
     binaryen_runtime_test
     metadata_api
-    basic_wasm_provider
+    basic_code_provider
     trie_storage
     core_api
     logger_for_tests
@@ -84,7 +84,7 @@ addtest(offchain_worker_test
 target_link_libraries(offchain_worker_test
     binaryen_runtime_test
     offchain_worker_api
-    basic_wasm_provider
+    basic_code_provider
     trie_storage_backend
     core_api
     logger_for_tests

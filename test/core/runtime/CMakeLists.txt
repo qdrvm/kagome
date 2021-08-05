@@ -34,3 +34,15 @@ target_link_libraries(uncompress_code_test
     log_configurator
     storage_code_provider
     )
+
+addtest(executor_test
+    executor_test.cpp
+    )
+target_link_libraries(executor_test
+    executor
+    buffer
+    basic_code_provider
+    scale
+    logger
+    log_configurator
+    )

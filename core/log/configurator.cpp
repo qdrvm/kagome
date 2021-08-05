@@ -57,6 +57,7 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
+            level: debug
             children:
               - name: runtime_api
               - name: host_api

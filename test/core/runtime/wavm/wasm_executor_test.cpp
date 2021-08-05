@@ -37,7 +37,7 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
-#include "testutil/runtime/common/basic_wasm_provider.hpp"
+#include "testutil/runtime/common/basic_code_provider.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
 using kagome::blockchain::BlockHeaderRepositoryMock;

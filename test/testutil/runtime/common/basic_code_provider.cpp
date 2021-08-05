@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "testutil/runtime/common/basic_wasm_provider.hpp"
+#include "testutil/runtime/common/basic_code_provider.hpp"
 
 #include <fstream>
 
