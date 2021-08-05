@@ -130,19 +130,11 @@ namespace kagome::consensus::babe {
       }
     });
     auto slot_start_delay = babe_util_->slotStartsIn(current_slot_);
-    auto delay_shift = babe_util_->slotDuration() / 2;
+    auto delay_shift = babe_util_->slotDuration() / 3 * 2;
     /*
-     * The delay lets us start slot processing when half of the time of the slot
+     * The delay lets us start slot processing when 2/3 of the time of the slot
      * duration passed, thus more transactions could have been arrived to be
      * baked into the block.
-     *
-     * That approach moves us closer to substrate's implementation where pushing
-     * extrinsics into the block starts when 2/3 of slot time is passed.
-     *
-     * Having a whole slot processing started 1/2 of slot time, pushing
-     * extrinsics to the block will approximately happen at the same time at a
-     * point of 2/3 of the whole slot time as it has done in rust
-     * implementation.
      */
     auto shifted_slot_start_delay = slot_start_delay + delay_shift;
     auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(
