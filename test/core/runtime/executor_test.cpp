@@ -93,7 +93,7 @@ class ExecutorTest : public testing::Test {
             [weak_env_factory =
                  std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
                      env_factory_},
-             &next_storage_state,
+             next_storage_state = std::move(next_storage_state),
              ARGS_LOCATION,
              RESULT_LOCATION,
              this](auto &blockchain_state, auto &storage_state) {
@@ -106,7 +106,8 @@ class ExecutorTest : public testing::Test {
                   .WillOnce(Invoke([this,
                                     ARGS_LOCATION,
                                     RESULT_LOCATION,
-                                    &next_storage_state] {
+                                    next_storage_state =
+                                        std::move(next_storage_state)] {
                     auto module_instance =
                         std::make_shared<ModuleInstanceMock>();
                     EXPECT_CALL(*module_instance,
@@ -188,6 +189,8 @@ class ExecutorTest : public testing::Test {
 };
 
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
+  EXPECT_CALL(*storage_, getRootHashMock())
+      .WillOnce(Return("state_hash0"_hash256));
   Executor executor{header_repo_, env_factory_, *storage_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
