@@ -50,12 +50,10 @@ namespace kagome::runtime {
                                     std::move(module_repo),
                                     std::move(header_repo)} {}
 
-    std::unique_ptr<RuntimeEnvironmentTemplate> start(
-        const primitives::BlockInfo &blockchain_state,
-        const storage::trie::RootHash &storage_state) override {
-      return std::make_unique<RuntimeEnvironmentTemplateMock>(
-          weak_from_this(), blockchain_state, storage_state);
-    }
+    MOCK_METHOD2(start,
+                 std::unique_ptr<RuntimeEnvironmentTemplate>(
+                     const primitives::BlockInfo &blockchain_state,
+                     const storage::trie::RootHash &storage_state));
   };
 
 }  // namespace kagome::runtime

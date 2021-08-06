@@ -29,7 +29,7 @@ class IntParamExternalInterface : public ShellExternalInterface {
                                      FunType &&f)
       : env_name_(std::move(env_name)), fun_name_(std::move(fun_name)), f_(std::move(f)) {}
 
-  Literal callImport(Function *import, LiteralList &arguments) override {
+  Literals callImport(Function *import, LiteralList &arguments) override {
     if (import->module == env_name_.c_str()
         && import->base == fun_name_.c_str()) {
       if (arguments.size() != 1) {
@@ -37,7 +37,7 @@ class IntParamExternalInterface : public ShellExternalInterface {
       }
       auto arg = *arguments.begin();
       f_(arg.geti32());
-      return Literal();
+      return Literals();
     }
     Fatal() << "callImport: unknown import: " << import->module.str << "."
             << import->name.str;
@@ -82,7 +82,7 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
   char *data = const_cast<char *>(expression.data());
   SExpressionParser parser(data);
   Element &root = *parser.root;
-  SExpressionWasmBuilder builder(wasm, *root[0]);
+  SExpressionWasmBuilder builder(wasm, *root[0], IRProfile::Normal);
 
   // prepare external interface with imported function's implementation
   IntParamExternalInterface interface(env_name, fun_name, fun_impl);
@@ -122,7 +122,7 @@ TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
   Module wasm{};
 
   // build wasm module
-  SExpressionWasmBuilder builder(wasm, *root[0]);
+  SExpressionWasmBuilder builder(wasm, *root[0], IRProfile::Normal);
 
   // interface
   ShellExternalInterface shellInterface;
@@ -134,8 +134,8 @@ TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
   LiteralList arguments = {Literal{1}, Literal{2}};
 
   // call exported function
-  Literal result = moduleInstance.callExport("sumtwo", arguments);
+  Literals result = moduleInstance.callExport("sumtwo", arguments);
 
-  ASSERT_EQ(result.type, Type::i32);
-  ASSERT_EQ(result.geti32(), 3);
+  ASSERT_EQ(result[0].type, Type::i32);
+  ASSERT_EQ(result[0].geti32(), 3);
 }

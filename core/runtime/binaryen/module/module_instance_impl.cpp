@@ -44,7 +44,7 @@ namespace kagome::runtime::binaryen {
         wasm::LiteralList{wasm::Literal{args.ptr}, wasm::Literal{args.size}};
     try {
       const auto res = static_cast<uint64_t>(
-          module_instance_->callExport(wasm::Name{name.data()}, args_list)
+          module_instance_->callExport(wasm::Name{name.data()}, args_list)[0]
               .geti64());
       return PtrSize{res};
     } catch (wasm::ExitException &e) {
@@ -57,8 +57,8 @@ namespace kagome::runtime::binaryen {
   outcome::result<boost::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
       std::string_view name) const {
     try {
-      auto val = module_instance_->getExport(name.data());
-      switch (val.type) {
+      auto val = module_instance_->getExport(name.data())[0];
+      switch (val.type.getBasic()) {
         case wasm::Type::i32:
           return WasmValue{val.geti32()};
         case wasm::Type::i64:
@@ -70,7 +70,7 @@ namespace kagome::runtime::binaryen {
         default:
           logger_->debug(
               "Runtime function returned result of unsupported type: {}",
-              wasm::printType(val.type));
+              val.type.toString());
           return boost::none;
       }
     } catch (wasm::TrapException &e) {

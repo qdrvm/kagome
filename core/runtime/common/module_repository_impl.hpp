@@ -19,8 +19,7 @@ namespace kagome::runtime {
    public:
     ModuleRepositoryImpl(
         std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
-        std::shared_ptr<const ModuleFactory> module_factory
-        );
+        std::shared_ptr<const ModuleFactory> module_factory);
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider> code_provider,

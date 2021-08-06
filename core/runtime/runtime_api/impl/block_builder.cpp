@@ -14,15 +14,15 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<primitives::ApplyResult> BlockBuilderImpl::apply_extrinsic(
+  outcome::result<primitives::ApplyExtrinsicResult> BlockBuilderImpl::apply_extrinsic(
       const primitives::Extrinsic &extrinsic) {
-    return executor_->persistentCallAtLatest<primitives::ApplyResult>(
+    return executor_->persistentCallAtLatest<primitives::ApplyExtrinsicResult>(
         "BlockBuilder_apply_extrinsic", extrinsic);
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalise_block() {
     return executor_->persistentCallAtLatest<primitives::BlockHeader>(
-        "BlockBuilder_finalise_block");
+        "BlockBuilder_finalize_block");
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>

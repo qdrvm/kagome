@@ -16,6 +16,24 @@
 #include "scale/scale_decoder_stream.hpp"
 #include "scale/scale_encoder_stream.hpp"
 
+#define SCALE_EMPTY_DECODER(TargetType)                             \
+  template <typename Stream,                                        \
+            typename = std::enable_if_t<Stream::is_decoder_stream>> \
+  Stream &operator>>(Stream &s, TargetType &) {                     \
+    return s;                                                       \
+  }
+
+#define SCALE_EMPTY_ENCODER(TargetType)                             \
+  template <typename Stream,                                        \
+            typename = std::enable_if_t<Stream::is_encoder_stream>> \
+  Stream &operator<<(Stream &s, const TargetType &) {               \
+    return s;                                                       \
+  }
+
+#define SCALE_EMPTY_CODER(TargetType) \
+  SCALE_EMPTY_ENCODER(TargetType)     \
+  SCALE_EMPTY_DECODER(TargetType)
+
 namespace kagome::scale {
   /**
    * @brief convenience function for encoding primitives data to stream
@@ -24,7 +42,7 @@ namespace kagome::scale {
    * @return encoded data
    */
   template <typename... Args>
-  outcome::result<std::vector<uint8_t>> encode(Args &&... args) {
+  outcome::result<std::vector<uint8_t>> encode(Args &&...args) {
     ScaleEncoderStream s{};
     try {
       (s << ... << std::forward<Args>(args));

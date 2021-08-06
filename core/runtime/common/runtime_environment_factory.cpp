@@ -87,23 +87,23 @@ namespace kagome::runtime {
     }
     if (persistent_) {
       if (auto res = parent_factory->storage_provider_->setToPersistentAt(
-              header_res.value().state_root);
+          storage_state_);
           !res) {
         parent_factory->logger_->error(
             "Failed to set the storage state to hash {} when initializing a "
             "runtime environment; Reason: {}",
-            header_res.value().state_root.toHex(),
+            storage_state_.toHex(),
             res.error().message());
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
     } else {
       if (auto res = parent_factory->storage_provider_->setToEphemeralAt(
-              header_res.value().state_root);
+          storage_state_);
           !res) {
         parent_factory->logger_->error(
             "Failed to set the storage state to hash {} when initializing a "
             "runtime environment; Reason: {}",
-            header_res.value().state_root.toHex(),
+            storage_state_.toHex(),
             res.error().message());
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }

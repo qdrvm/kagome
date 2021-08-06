@@ -62,19 +62,19 @@ class TestableExternalInterface : public RuntimeExternalInterface {
  public:
   using RuntimeExternalInterface::RuntimeExternalInterface;
 
-  wasm::Literal callImport(wasm::Function *import,
+  wasm::Literals callImport(wasm::Function *import,
                            wasm::LiteralList &arguments) override {
     if (import->module == "env" && import->base == "assert") {
       EXPECT_TRUE(arguments.at(0).geti32());
-      return wasm::Literal();
+      return wasm::Literals();
     }
     if (import->module == "env" && import->base == "assert_eq_i32") {
       EXPECT_EQ(arguments.at(0).geti32(), arguments.at(1).geti32());
-      return wasm::Literal();
+      return wasm::Literals();
     }
     if (import->module == "env" && import->base == "assert_eq_i64") {
       EXPECT_EQ(arguments.at(0).geti64(), arguments.at(1).geti64());
-      return wasm::Literal();
+      return wasm::Literals();
     }
     return RuntimeExternalInterface::callImport(import, arguments);
   }
@@ -119,7 +119,7 @@ class REITest : public ::testing::Test {
     Element &root = *parser.root;
     ASSERT_GT(root.size(), 0);
     ASSERT_NE(root[0], nullptr);
-    SExpressionWasmBuilder builder(wasm, *root[0]);
+    SExpressionWasmBuilder builder(wasm, *root[0], wasm::IRProfile::Normal);
     EXPECT_CALL(*host_api_, memory()).WillRepeatedly(Return(memory_));
 
     TestableExternalInterface rei(host_api_);

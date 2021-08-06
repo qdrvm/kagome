@@ -16,7 +16,7 @@ namespace kagome::runtime {
    public:
     explicit BlockBuilderImpl(std::shared_ptr<Executor> executor);
 
-    outcome::result<primitives::ApplyResult> apply_extrinsic(
+    outcome::result<primitives::ApplyExtrinsicResult> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<primitives::BlockHeader> finalise_block() override;

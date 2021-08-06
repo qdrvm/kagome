@@ -906,8 +906,10 @@ namespace {
                 std::shared_ptr<runtime::RuntimeEnvironmentFactory>>();
             auto header_repo = injector.template create<
                 std::shared_ptr<blockchain::BlockHeaderRepository>>();
+            auto storage = injector.template create<
+                std::shared_ptr<storage::trie::TrieStorage>>();
             initialized = std::make_shared<runtime::Executor>(
-                std::move(header_repo), std::move(env_factory));
+                std::move(header_repo), std::move(env_factory), *storage);
           }
           return initialized.value();
         }),

@@ -21,6 +21,7 @@
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::runtime {
 
@@ -35,8 +36,10 @@ namespace kagome::runtime {
 
     Executor(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-        std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
-        : header_repo_{std::move(header_repo)},
+        std::shared_ptr<RuntimeEnvironmentFactory> env_factory,
+        const storage::trie::TrieStorage& storage)
+        : last_storage_state_{storage.getRootHash()},
+          header_repo_{std::move(header_repo)},
           env_factory_{std::move(env_factory)},
           logger_{log::createLogger("Executor", "runtime")} {
       BOOST_ASSERT(header_repo_ != nullptr);
@@ -65,6 +68,9 @@ namespace kagome::runtime {
             "Persistent batch should always exist for persistent call");
         OUTCOME_TRY(state_root, env->batch.value()->commit());
         last_storage_state_ = std::move(state_root);
+        SL_DEBUG(logger_,
+                 "Runtime call committed new state with hash {}",
+                 last_storage_state_.toHex());
       }
       return res;
     }
@@ -97,6 +103,12 @@ namespace kagome::runtime {
         OUTCOME_TRY(state_root, env->batch.value()->commit());
         last_storage_state_ = std::move(state_root);
         last_blockchain_state_ = block_info;
+        SL_DEBUG(logger_,
+                 "Runtime call committed new state with hash {} and reset the "
+                 "latest block to #{}, hash {}",
+                 last_storage_state_.toHex(),
+                 last_blockchain_state_.number,
+                 last_blockchain_state_.hash.toHex());
       }
       return res;
     }

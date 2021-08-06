@@ -5,6 +5,8 @@
 
 #include "authorship/impl/proposer_impl.hpp"
 
+#include "authorship/impl/block_builder_error.hpp"
+
 namespace kagome::authorship {
 
   ProposerImpl::ProposerImpl(
@@ -55,8 +57,20 @@ namespace kagome::authorship {
       SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
-        log_push_warn(xt, inserted_res.error().message());
-        return inserted_res.error();
+        if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
+          SL_WARN(logger_,
+                  "Dropping non-mandatory inherent extrinsic from overweight "
+                  "block.");
+        } else if (BlockBuilderError::BAD_MANDATORY == inserted_res.error()) {
+          SL_ERROR(logger_,
+                   "Mandatory inherent extrinsic returned error. Block cannot "
+                   "be produced.");
+          return inserted_res.error();
+        } else {
+          SL_WARN(logger_,
+                  "Inherent extrinsic returned unexpected error: {}. Dropping.",
+                  inserted_res.error().message());
+        }
       }
     }
 
@@ -70,14 +84,67 @@ namespace kagome::authorship {
     }
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
 
+    bool transaction_pushed = false;
+    bool hit_block_size_limit = false;
+
+    auto skipped = 0;
+    auto block_size_limit = kBlockSizeLimit;
+    const auto kMaxVarintLength = 9;  /// Max varint size in bytes when encoded
+    // we move estimateBlockSize() out of the loop for optimization purposes.
+    // to avoid varint bytes length recalculation which indicates extrinsics
+    // quantity, we add the maximum varint length at once.
+    auto block_size = block_builder->estimateBlockSize() + kMaxVarintLength;
+    // at the moment block_size includes block headers and a counter to hold a
+    // number of transactions to be pushed to the block
+
     for (const auto &[hash, tx] : ready_txs) {
       const auto &tx_ref = tx;
+      scale::ScaleEncoderStream s(true);
+      s << tx_ref->ext;
+      auto estimate_tx_size = s.size();
+
+      if (block_size + estimate_tx_size > block_size_limit) {
+        if (skipped < kMaxSkippedTransactions) {
+          ++skipped;
+          SL_DEBUG(logger_,
+                   "Transaction would overflow the block size limit, but will "
+                   "try {} more transactions before quitting.",
+                   kMaxSkippedTransactions - skipped);
+          continue;
+        }
+        SL_DEBUG(logger_,
+                 "Reached block size limit, proceeding with proposing.");
+        hit_block_size_limit = true;
+        break;
+      }
+
       SL_DEBUG(logger_, "Adding extrinsic: {}", tx_ref->ext.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
-        log_push_warn(tx->ext, inserted_res.error().message());
-        continue;
+        if (BlockBuilderError::EXHAUSTS_RESOURCES == inserted_res.error()) {
+          if (skipped < kMaxSkippedTransactions) {
+            ++skipped;
+            SL_DEBUG(logger_,
+                     "Block seems full, but will try {} more transactions "
+                     "before quitting.",
+                     kMaxSkippedTransactions - skipped);
+          } else {  // maximum amount of txs is pushed
+            SL_DEBUG(logger_, "Block is full, proceed with proposing.");
+            break;
+          }
+        } else {  // any other error than exhausted resources
+          log_push_warn(tx->ext, inserted_res.error().message());
+        }
+      } else {  // tx was pushed successfully
+        block_size += estimate_tx_size;
+        transaction_pushed = true;
       }
+    }
+
+    if (hit_block_size_limit and not transaction_pushed) {
+      SL_WARN(logger_,
+              "Hit block size limit of `{}` without including any transaction!",
+              block_size_limit);
     }
 
     OUTCOME_TRY(block, block_builder->bake());
