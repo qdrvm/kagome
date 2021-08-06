@@ -485,6 +485,10 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
+    if (not boost::filesystem::exists(chain_spec_path_)) {
+      std::cerr << "Specified chain spec " << chain_spec_path_
+                << " does not exist." << std::endl;
+    }
 
     find_argument<std::string>(
         vm, "base-path", [&](const std::string &val) { base_path_ = val; });
@@ -636,7 +640,9 @@ namespace kagome::application {
         vm, "ws-host", [&](std::string const &val) { rpc_ws_host_ = val; });
 
     find_argument<std::string>(
-        vm, "prometheus-host", [&](std::string const &val) { openmetrics_http_host_ = val; });
+        vm, "prometheus-host", [&](std::string const &val) {
+          openmetrics_http_host_ = val;
+        });
 
     find_argument<uint16_t>(
         vm, "rpc-port", [&](uint16_t val) { rpc_http_port_ = val; });
@@ -644,8 +650,9 @@ namespace kagome::application {
     find_argument<uint16_t>(
         vm, "ws-port", [&](uint16_t val) { rpc_ws_port_ = val; });
 
-    find_argument<uint16_t>(
-        vm, "prometheus-port", [&](uint16_t val) { openmetrics_http_port_ = val; });
+    find_argument<uint16_t>(vm, "prometheus-port", [&](uint16_t val) {
+      openmetrics_http_port_ = val;
+    });
 
     find_argument<uint32_t>(vm, "ws-max-connections", [&](uint32_t val) {
       max_ws_connections_ = val;
@@ -653,7 +660,8 @@ namespace kagome::application {
 
     rpc_http_endpoint_ = get_endpoint_from(rpc_http_host_, rpc_http_port_);
     rpc_ws_endpoint_ = get_endpoint_from(rpc_ws_host_, rpc_ws_port_);
-    openmetrics_http_endpoint_ = get_endpoint_from(openmetrics_http_host_, openmetrics_http_port_);
+    openmetrics_http_endpoint_ =
+        get_endpoint_from(openmetrics_http_host_, openmetrics_http_port_);
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
