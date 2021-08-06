@@ -21,7 +21,8 @@ kagome \
     --base-path validating1 \
     --port 11122 \
     --rpc-port 11133 \
-    --ws-port 11144
+    --ws-port 11144 \
+    --prometheus-port 11155
 ```
 
 ### Execute second validating node (node with authority) 
@@ -35,7 +36,8 @@ kagome \
     --base-path validating2 \
     --port 11222 \
     --rpc-port 11233 \
-    --ws-port 11244
+    --ws-port 11244 \
+    --prometheus-port 11255
 ```
 
 Second node passes several steps before actual block production begins:
@@ -61,7 +63,8 @@ kagome \
     --base-path syncing1 \
     --port 21122 \
     --rpc-port 21133 \
-    --ws-port 21144
+    --ws-port 21144 \
+    --prometheus-port 21155
 ```
 
 Note that trie root is the same with validating nodes. When syncing node receives block announcement it first synchronizes missing blocks and then listens to the new blocks and finalization. 
