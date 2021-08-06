@@ -23,6 +23,7 @@ groups:
     is_fallback: true
     children:
       - name: libp2p
+        level: verbose
       - name: kagome
         children:
           - name: injector
