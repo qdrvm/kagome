@@ -34,8 +34,7 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, EpochDescriptor &led) {
-    int64_t starting_slot_finish_time;
-    return s >> led.epoch_number >> led.start_slot >> starting_slot_finish_time;
+    return s >> led.epoch_number >> led.start_slot;
   }
 
 }  // namespace kagome::consensus

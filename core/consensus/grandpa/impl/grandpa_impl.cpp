@@ -435,6 +435,17 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
+    SL_DEBUG(logger_,
+             "{} has received from {}: voter_set_id={} round={} #{} hash={}",
+             msg.vote.is<Prevote>()
+                 ? "Prevote"
+                 : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
+             peer_id.toBase58(),
+             msg.counter,
+             msg.round_number,
+             msg.vote.getBlockNumber(),
+             msg.vote.getBlockHash());
+
     if (not is_ready_) {
       return;
     }
@@ -524,9 +535,11 @@ namespace kagome::consensus::grandpa {
 
     if (not is_ready_) {
       // grandpa not initialized, we just finalize block then
-      auto res = environment_->finalize(justification.block_info.hash, justification);
+      auto res =
+          environment_->finalize(justification.block_info.hash, justification);
       if (not res.has_value()) {
-        logger_->warn("Can't make simple block finalization: {}", res.error().message());
+        logger_->warn("Can't make simple block finalization: {}",
+                      res.error().message());
       }
       return;
     }
