@@ -23,6 +23,7 @@
 
 using namespace std::literals::chrono_literals;
 
+// a period of time to check key appearance when absent
 constexpr auto kKeyWaitTimerDuration = 60s;
 
 namespace kagome::consensus::babe {
@@ -117,7 +118,7 @@ namespace kagome::consensus::babe {
              "Starting an epoch {}. Session key: {}",
              epoch.epoch_number,
              keypair_->public_key.toHex());
-    current_epoch_ = std::move(epoch);
+    current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
@@ -135,14 +136,22 @@ namespace kagome::consensus::babe {
                    ec.message());
           return;
         }
-        self->finishSlot();
+        self->processSlot();
       }
     });
-    auto duration = babe_util_->slotStartsIn(current_slot_);
-    auto msec =
-        std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    auto slot_start_delay = babe_util_->slotStartsIn(current_slot_);
+    auto delay_shift = babe_util_->slotDuration() / 3 * 2;
+    /*
+     * The delay lets us start slot processing when 2/3 of the time of the slot
+     * duration passed, thus more transactions could have been arrived to be
+     * baked into the block.
+     */
+    auto shifted_slot_start_delay = slot_start_delay + delay_shift;
+    auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    shifted_slot_start_delay)
+                    .count();
     SL_TRACE(log_, "Babe starts in {} msec", msec);
-    ticker_->start(duration);
+    ticker_->start(shifted_slot_start_delay);
   }
 
   Babe::State BabeImpl::getCurrentState() const {
@@ -252,7 +261,7 @@ namespace kagome::consensus::babe {
     ticker_ = std::move(ticker);
   }
 
-  void BabeImpl::finishSlot() {
+  void BabeImpl::processSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
     if (not slots_leadership_.has_value()) {

@@ -17,6 +17,7 @@
 
 using namespace std::literals::chrono_literals;
 
+// a period of time to check key appearance when absent
 constexpr auto kKeyWaitTimerDuration = 60s;
 
 namespace kagome::consensus::grandpa {

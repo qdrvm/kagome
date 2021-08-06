@@ -25,6 +25,8 @@ namespace kagome::consensus {
 
     BabeDuration slotStartsIn(BabeSlotNumber slot) const override;
 
+    BabeDuration slotDuration() const override;
+
     EpochNumber slotToEpoch(BabeSlotNumber slot) const override;
 
     BabeSlotNumber slotInEpoch(BabeSlotNumber slot) const override;

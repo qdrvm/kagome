@@ -31,6 +31,11 @@ namespace kagome::consensus {
     virtual BabeDuration slotStartsIn(BabeSlotNumber slot) const = 0;
 
     /**
+     * @returns configured slot duration
+     */
+    virtual BabeDuration slotDuration() const = 0;
+
+    /**
      * @returns number of epoch by provided {@param slot_number}
      */
     virtual EpochNumber slotToEpoch(BabeSlotNumber slot_number) const = 0;

@@ -15,10 +15,10 @@ namespace kagome::clock {
             *io_context}},
         interval_{interval} {}
 
-  void TickerImpl::start(clock::SystemClock::Duration duration) {
+  void TickerImpl::start(clock::SystemClock::Duration delay) {
     if (callback_) {
       started_ = true;
-      timer_.expires_after(duration);
+      timer_.expires_after(delay);
       timer_.async_wait(
           [&](const boost::system::error_code &ec) { onTick(ec); });
     }
