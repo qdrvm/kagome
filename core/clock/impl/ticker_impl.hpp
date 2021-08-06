@@ -11,6 +11,8 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_context.hpp>
 
+#include <atomic>
+
 namespace kagome::clock {
   /**
    * Implementation of ticker over boost::asio::basic_waitable_timer
@@ -23,11 +25,13 @@ namespace kagome::clock {
 
     ~TickerImpl() override = default;
 
-    void start(clock::SystemClock::Duration duration) override;
+    void start(clock::SystemClock::Duration delay) override;
 
     void stop() override;
 
     bool isStarted() override;
+
+    clock::SystemClock::Duration interval() override;
 
     void asyncCallRepeatedly(
         std::function<void(const std::error_code &)> h) override;

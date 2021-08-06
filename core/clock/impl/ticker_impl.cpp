@@ -15,10 +15,10 @@ namespace kagome::clock {
             *io_context}},
         interval_{interval} {}
 
-  void TickerImpl::start(clock::SystemClock::Duration duration) {
+  void TickerImpl::start(clock::SystemClock::Duration delay) {
     if (callback_) {
       started_ = true;
-      timer_.expires_from_now(duration);
+      timer_.expires_after(delay);
       timer_.async_wait(
           [&](const boost::system::error_code &ec) { onTick(ec); });
     }
@@ -33,16 +33,21 @@ namespace kagome::clock {
     return started_;
   }
 
+  clock::SystemClock::Duration TickerImpl::interval() {
+    return interval_;
+  }
+
   void TickerImpl::asyncCallRepeatedly(
       std::function<void(const std::error_code &)> h) {
-    if(not started_) {
-      callback_ = std::move(h);
-    }
+    callback_ = std::move(h);
   }
 
   void TickerImpl::onTick(const boost::system::error_code &ec) {
     callback_(ec);
-    timer_.expires_from_now(interval_);
-    timer_.async_wait(boost::bind(&TickerImpl::onTick, this, ec));
+    if (started_) {
+      timer_.expires_after(interval_);
+      timer_.async_wait(
+          [&](const boost::system::error_code &ec) { onTick(ec); });
+    }
   }
 }  // namespace kagome::clock

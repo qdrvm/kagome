@@ -9,6 +9,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_tree_error.hpp"
+#include "clock/impl/ticker_impl.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
@@ -19,6 +20,11 @@
 #include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+
+using namespace std::literals::chrono_literals;
+
+// a period of time to check key appearance when absent
+constexpr auto kKeyWaitTimerDuration = 60s;
 
 namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
@@ -35,7 +41,7 @@ namespace kagome::consensus::babe {
       const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::unique_ptr<clock::Ticker> ticker,
+      std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util)
@@ -50,7 +56,6 @@ namespace kagome::consensus::babe {
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
-        ticker_{std::move(ticker)},
         authority_update_observer_(std::move(authority_update_observer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
@@ -68,6 +73,11 @@ namespace kagome::consensus::babe {
 
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
+
+    ticker_ = std::make_unique<clock::TickerImpl>(
+        io_context, babe_configuration_->slot_duration);
+    key_wait_ticker_ =
+        std::make_unique<clock::TickerImpl>(io_context, kKeyWaitTimerDuration);
   }
 
   bool BabeImpl::prepare() {
@@ -108,7 +118,7 @@ namespace kagome::consensus::babe {
              "Starting an epoch {}. Session key: {}",
              epoch.epoch_number,
              keypair_->public_key.toHex());
-    current_epoch_ = std::move(epoch);
+    current_epoch_ = epoch;
     current_slot_ = current_epoch_.start_slot;
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
@@ -126,14 +136,22 @@ namespace kagome::consensus::babe {
                    ec.message());
           return;
         }
-        self->finishSlot();
+        self->processSlot();
       }
     });
-    auto duration = babe_util_->slotStartsIn(current_slot_);
-    auto msec =
-        std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    auto slot_start_delay = babe_util_->slotStartsIn(current_slot_);
+    auto delay_shift = babe_util_->slotDuration() / 3 * 2;
+    /*
+     * The delay lets us start slot processing when 2/3 of the time of the slot
+     * duration passed, thus more transactions could have been arrived to be
+     * baked into the block.
+     */
+    auto shifted_slot_start_delay = slot_start_delay + delay_shift;
+    auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    shifted_slot_start_delay)
+                    .count();
     SL_TRACE(log_, "Babe starts in {} msec", msec);
-    ticker_->start(duration);
+    ticker_->start(shifted_slot_start_delay);
   }
 
   Babe::State BabeImpl::getCurrentState() const {
@@ -176,11 +194,37 @@ namespace kagome::consensus::babe {
   void BabeImpl::onPeerSync() {
     // sync already started no need to call it again
     if (ticker_->isStarted()) {
+      // stop key wait ticker when key appeared if started
+      if (key_wait_ticker_->isStarted()) {
+        key_wait_ticker_->stop();
+      }
       return;
     }
 
     // won't start block production without keypair
     if (not keypair_) {
+      // launch timer that would check key appearance
+      if (not key_wait_ticker_->isStarted()) {
+        key_wait_ticker_->asyncCallRepeatedly(
+            [wp = weak_from_this()](auto &&ec) {
+              if (auto self = wp.lock()) {
+                if (ec) {
+                  if (ec.value() == boost::system::errc::operation_canceled) {
+                    SL_INFO(self->log_, "key_wait_ticker {}", ec.message());
+                    return;
+                  }
+                  SL_ERROR(
+                      self->log_,
+                      "error happened while waiting on the key_wait_ticker: {}",
+                      ec.message());
+                  return;
+                }
+                SL_INFO(self->log_, "Check if babe key appeared...");
+                self->onPeerSync();
+              }
+            });
+        key_wait_ticker_->start(key_wait_ticker_->interval());
+      }
       return;
     }
 
@@ -213,7 +257,11 @@ namespace kagome::consensus::babe {
     }
   }
 
-  void BabeImpl::finishSlot() {
+  void BabeImpl::setTicker(std::unique_ptr<clock::Ticker> &&ticker) {
+    ticker_ = std::move(ticker);
+  }
+
+  void BabeImpl::processSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
     if (not slots_leadership_.has_value()) {

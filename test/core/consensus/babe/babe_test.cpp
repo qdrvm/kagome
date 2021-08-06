@@ -154,9 +154,11 @@ class BabeTest : public testing::Test {
                                              keypair_,
                                              clock_,
                                              hasher_,
-                                             std::move(ticker_mock_),
+                                             io_context_,
                                              grandpa_authority_update_observer_,
                                              babe_util_);
+
+    babe_->setTicker(std::move(ticker_mock_));
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
