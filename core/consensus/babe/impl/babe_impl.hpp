@@ -61,7 +61,7 @@ namespace kagome::consensus::babe {
              const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
-             std::unique_ptr<clock::Ticker> ticker,
+             std::shared_ptr<boost::asio::io_context> io_context,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
              std::shared_ptr<BabeUtil> babe_util);
@@ -87,6 +87,9 @@ namespace kagome::consensus::babe {
     void onPeerSync() override;
 
     void doOnSynchronized(std::function<void()> handler) override;
+
+    /** for test purposes only */
+    void setTicker(std::unique_ptr<clock::Ticker>&& ticker);
 
    private:
     /**
@@ -147,6 +150,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::unique_ptr<clock::Ticker> ticker_;
+    std::unique_ptr<clock::Ticker> key_wait_ticker_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;

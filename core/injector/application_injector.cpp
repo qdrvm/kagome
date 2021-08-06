@@ -46,7 +46,6 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
-#include "clock/impl/ticker_impl.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
@@ -1081,7 +1080,6 @@ namespace {
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-        di::bind<clock::Ticker>.template to<clock::TickerImpl>(),
         di::bind<clock::SystemClock::Duration>.to([](const auto &injector) {
           auto conf =
               injector.template create<sptr<primitives::BabeConfiguration>>();
@@ -1264,7 +1262,7 @@ namespace {
         session_keys->getBabeKeyPair(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<uptr<clock::Ticker>>(),
+        injector.template create<sptr<boost::asio::io_context>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<consensus::BabeUtil>>());
 

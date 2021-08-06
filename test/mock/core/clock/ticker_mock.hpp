@@ -17,6 +17,8 @@ namespace testutil {
 
     MOCK_METHOD0(isStarted, bool());
 
+    MOCK_METHOD0(interval, kagome::clock::SystemClock::Duration());
+
     MOCK_METHOD1(asyncCallRepeatedly,
                  void(std::function<void(const std::error_code &)> h));
   };

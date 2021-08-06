@@ -11,6 +11,7 @@
 
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
+#include "clock/ticker.hpp"
 #include "consensus/authority/authority_manager.hpp"
 #include "consensus/babe/babe.hpp"
 #include "consensus/grandpa/environment.hpp"
@@ -107,6 +108,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<Clock> clock_;
+    std::unique_ptr<clock::Ticker> key_wait_ticker_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
 
