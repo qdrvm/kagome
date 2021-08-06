@@ -28,35 +28,35 @@ namespace kagome::consensus {
     BOOST_ASSERT(logger_);
     BOOST_ASSERT(configuration);
     epoch_length_ = configuration->epoch_length;
+    epoch_.epoch_number = std::numeric_limits<uint64_t>::max();
   }
 
-  BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
-      const EpochDescriptor &epoch,
-      const Randomness &randomness,
-      const Threshold &threshold,
-      const crypto::Sr25519Keypair &keypair) const {
-    BabeLottery::SlotsLeadership result;
-    result.reserve(epoch_length_);
+  void BabeLotteryImpl::changeEpoch(const EpochDescriptor &epoch,
+                                    const Randomness &randomness,
+                                    const Threshold &threshold,
+                                    const crypto::Sr25519Keypair &keypair) {
+    epoch_ = epoch;
+    randomness_ = randomness;
+    threshold_ = threshold;
+    keypair_ = keypair;
+  }
 
-    for (BabeSlotNumber i = epoch.start_slot;
-         i < epoch.start_slot + epoch_length_;
-         ++i) {
-      primitives::Transcript transcript;
-      prepareTranscript(transcript, randomness, i, epoch.epoch_number);
-      SL_TRACE(
-          logger_,
-          "prepareTranscript (leadership): randomness {}, slot {}, epoch {}",
-          randomness,
-          i,
-          epoch.epoch_number);
+  EpochDescriptor BabeLotteryImpl::epoch() const {
+    return epoch_;
+  }
 
-      auto sign_opt =
-          vrf_provider_->signTranscript(transcript, keypair, threshold);
+  boost::optional<crypto::VRFOutput> BabeLotteryImpl::getSlotLeadership(
+      primitives::BabeSlotNumber i) const {
+    primitives::Transcript transcript;
+    prepareTranscript(
+        transcript, randomness_, i, epoch_.epoch_number);
+    SL_TRACE(logger_,
+             "prepareTranscript (leadership): randomness {}, slot {}, epoch {}",
+             randomness_,
+             i,
+             epoch_.epoch_number);
 
-      result.push_back(sign_opt);
-    }
-
-    return result;
+    return vrf_provider_->signTranscript(transcript, keypair_, threshold_);
   }
 
   Randomness BabeLotteryImpl::computeRandomness(

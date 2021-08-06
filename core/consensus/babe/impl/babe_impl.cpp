@@ -264,20 +264,18 @@ namespace kagome::consensus::babe {
   void BabeImpl::processSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    if (not slots_leadership_.has_value()) {
+    if (not(lottery_->epoch() == current_epoch_)) {
       auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
 
       auto epoch_res = block_tree_->getEpochDescriptor(
           current_epoch_.epoch_number, best_block_hash);
       BOOST_ASSERT(epoch_res.has_value());
-      auto &epoch = epoch_res.value();
+      const auto &epoch = epoch_res.value();
 
-      slots_leadership_ = getEpochLeadership(
-          current_epoch_, epoch.authorities, epoch.randomness);
+      getEpochLeadership(current_epoch_, epoch.authorities, epoch.randomness);
     }
 
-    auto slot_leadership =
-        slots_leadership_.value()[current_slot_ - current_epoch_.start_slot];
+    auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
 
     if (slot_leadership) {
       SL_DEBUG(log_,
@@ -479,7 +477,7 @@ namespace kagome::consensus::babe {
         now);
   }
 
-  BabeLottery::SlotsLeadership BabeImpl::getEpochLeadership(
+  void BabeImpl::getEpochLeadership(
       const EpochDescriptor &epoch,
       const primitives::AuthorityList &authorities,
       const Randomness &randomness) const {
@@ -497,7 +495,7 @@ namespace kagome::consensus::babe {
     auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
                                         authorities,
                                         authority_index_res.value());
-    return lottery_->slotsLeadership(epoch, randomness, threshold, *keypair_);
+    lottery_->changeEpoch(epoch, randomness, threshold, *keypair_);
   }
 
   void BabeImpl::startNextEpoch() {
@@ -508,7 +506,6 @@ namespace kagome::consensus::babe {
 
     ++current_epoch_.epoch_number;
     current_epoch_.start_slot = current_slot_;
-    slots_leadership_.reset();
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(
         {current_epoch_.epoch_number, current_epoch_.start_slot});

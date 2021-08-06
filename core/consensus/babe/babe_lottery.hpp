@@ -10,6 +10,7 @@
 
 #include "consensus/babe/types/epoch_descriptor.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "primitives/babe_configuration.hpp"
 
 namespace kagome::consensus {
   /**
@@ -29,8 +30,6 @@ namespace kagome::consensus {
   struct BabeLottery {
     virtual ~BabeLottery() = default;
 
-    using SlotsLeadership = std::vector<boost::optional<crypto::VRFOutput>>;
-
     /**
      * Compute leadership for all slots in the given epoch
      * @param epoch is an information about epoch where we calculate leadership
@@ -38,11 +37,15 @@ namespace kagome::consensus {
      * @return vector of outputs; none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
      */
-    virtual SlotsLeadership slotsLeadership(
-        const EpochDescriptor &epoch,
-        const Randomness &randomness,
-        const Threshold &threshold,
-        const crypto::Sr25519Keypair &keypair) const = 0;
+    virtual void changeEpoch(const EpochDescriptor &epoch,
+                             const Randomness &randomness,
+                             const Threshold &threshold,
+                             const crypto::Sr25519Keypair &keypair) = 0;
+
+    virtual EpochDescriptor epoch() const = 0;
+
+    virtual boost::optional<crypto::VRFOutput> getSlotLeadership(
+        primitives::BabeSlotNumber i) const = 0;
 
     /**
      * Compute randomness for the next epoch

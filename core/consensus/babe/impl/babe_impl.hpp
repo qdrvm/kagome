@@ -108,7 +108,7 @@ namespace kagome::consensus::babe {
      */
     void startNextEpoch();
 
-    BabeLottery::SlotsLeadership getEpochLeadership(
+    void getEpochLeadership(
         const EpochDescriptor &epoch,
         const primitives::AuthorityList &authorities,
         const Randomness &randomness) const;
@@ -160,7 +160,6 @@ namespace kagome::consensus::babe {
     EpochDescriptor current_epoch_;
 
     BabeSlotNumber current_slot_{};
-    boost::optional<BabeLottery::SlotsLeadership> slots_leadership_;
 
     std::function<void()> on_synchronized_;
 
