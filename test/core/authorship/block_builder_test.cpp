@@ -60,7 +60,7 @@ TEST_F(BlockBuilderTest, PushWhenApplyFails) {
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
-  EXPECT_CALL(*block_builder_api_, finalise_block())
+  EXPECT_CALL(*block_builder_api_, finalize_block())
       .WillOnce(Return(expected_header_));
 
   // when
@@ -83,7 +83,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
       .WillOnce(Return(DispatchSuccess{}));
-  EXPECT_CALL(*block_builder_api_, finalise_block())
+  EXPECT_CALL(*block_builder_api_, finalize_block())
       .WillOnce(Return(expected_header_));
 
   // when
@@ -108,7 +108,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
       .WillOnce(Return(DispatchError{Other{}}));
-  EXPECT_CALL(*block_builder_api_, finalise_block())
+  EXPECT_CALL(*block_builder_api_, finalize_block())
       .WillOnce(Return(expected_header_));
 
   // when

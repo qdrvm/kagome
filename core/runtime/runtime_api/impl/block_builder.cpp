@@ -20,7 +20,7 @@ namespace kagome::runtime {
         "BlockBuilder_apply_extrinsic", extrinsic);
   }
 
-  outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalise_block() {
+  outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block() {
     return executor_->persistentCallAtLatest<primitives::BlockHeader>(
         "BlockBuilder_finalize_block");
   }

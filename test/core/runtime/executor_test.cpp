@@ -17,6 +17,7 @@
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -69,6 +70,7 @@ class ExecutorTest : public testing::Test {
             code_provider,
             module_repo,
             header_repo_);
+    storage_ = std::make_shared<kagome::storage::trie::TrieStorageMock>();
   }
 
   void preparePersistentCall(
@@ -176,10 +178,11 @@ class ExecutorTest : public testing::Test {
   std::unique_ptr<MemoryMock> memory_;
   std::shared_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock> env_factory_;
   std::shared_ptr<BlockHeaderRepositoryMock> header_repo_;
+  std::shared_ptr<kagome::storage::trie::TrieStorageMock> storage_;
 };
 
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
-  Executor executor{header_repo_, env_factory_};
+  Executor executor{header_repo_, env_factory_, *storage_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};

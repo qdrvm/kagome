@@ -19,7 +19,7 @@ namespace kagome::runtime {
     outcome::result<primitives::ApplyExtrinsicResult> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) override;
 
-    outcome::result<primitives::BlockHeader> finalise_block() override;
+    outcome::result<primitives::BlockHeader> finalize_block() override;
 
     outcome::result<std::vector<primitives::Extrinsic>> inherent_extrinsics(
         const primitives::InherentData &data) override;

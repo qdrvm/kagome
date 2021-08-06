@@ -33,7 +33,7 @@ namespace kagome::runtime {
     /**
      * Finish the current block.
      */
-    virtual outcome::result<primitives::BlockHeader> finalise_block() = 0;
+    virtual outcome::result<primitives::BlockHeader> finalize_block() = 0;
 
     /**
      * Generate inherent extrinsics. The inherent data will vary from chain to
