@@ -503,6 +503,10 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "chain", [&](const std::string &val) { chain_spec_path_ = val; });
+    if (not boost::filesystem::exists(chain_spec_path_)) {
+      std::cerr << "Specified chain spec " << chain_spec_path_
+                << " does not exist." << std::endl;
+    }
 
     find_argument<std::string>(
         vm, "base-path", [&](const std::string &val) { base_path_ = val; });
