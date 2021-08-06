@@ -90,9 +90,9 @@ namespace kagome::consensus::babe {
 
    private:
     /**
-     * Finish the current Babe slot
+     * Process the current Babe slot
      */
-    void finishSlot();
+    void processSlot();
 
     /**
      * Gather the block and broadcast it
