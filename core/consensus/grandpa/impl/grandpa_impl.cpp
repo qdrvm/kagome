@@ -5,6 +5,7 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include "clock/impl/ticker_impl.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
@@ -13,6 +14,11 @@
 #include "scale/scale.hpp"
 #include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
+
+using namespace std::literals::chrono_literals;
+
+// a period of time to check key appearance when absent
+constexpr auto kKeyWaitTimerDuration = 60s;
 
 namespace kagome::consensus::grandpa {
 
@@ -49,6 +55,9 @@ namespace kagome::consensus::grandpa {
 
     app_state_manager_->takeControl(*this);
     catch_up_request_suppressed_until_ = clock_->now();
+
+    key_wait_ticker_ =
+        std::make_unique<clock::TickerImpl>(io_context_, kKeyWaitTimerDuration);
   }
 
   bool GrandpaImpl::prepare() {
@@ -110,8 +119,35 @@ namespace kagome::consensus::grandpa {
     babe_->doOnSynchronized([wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         // Planning play next round
-        self->is_ready_ = true;
-        self->current_round_->play();
+        if (self->keypair_) {
+          self->is_ready_ = true;
+          self->current_round_->play();
+        } else {
+          self->key_wait_ticker_->asyncCallRepeatedly(
+              [wp = self->weak_from_this()](auto &&ec) {
+                if (auto self = wp.lock()) {
+                  if (ec) {
+                    if (ec.value() == boost::system::errc::operation_canceled) {
+                      SL_INFO(self->logger_,
+                              "key_wait_ticker {}", ec.message());
+                      return;
+                    }
+                    SL_ERROR(self->logger_,
+                             "error happened while waiting on the "
+                             "key_wait_ticker: {}",
+                             ec.message());
+                    return;
+                  }
+                  SL_INFO(self->logger_, "Check if grandpa key appeared...");
+                  if (self->keypair_) {
+                    self->is_ready_ = true;
+                    self->current_round_->play();
+                    self->key_wait_ticker_->stop();
+                  }
+                }
+              });
+          self->key_wait_ticker_->start(self->key_wait_ticker_->interval());
+        }
       }
     });
 
@@ -139,10 +175,7 @@ namespace kagome::consensus::grandpa {
                                    : boost::none};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_ ? boost::make_optional(*keypair_) : boost::none,
-        crypto_provider_,
-        round_state.round_number,
-        config.voters);
+        keypair_, crypto_provider_, round_state.round_number, config.voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
@@ -192,10 +225,7 @@ namespace kagome::consensus::grandpa {
                                    : boost::none};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
-        keypair_ ? boost::make_optional(*keypair_) : boost::none,
-        crypto_provider_,
-        new_round_number,
-        config.voters);
+        keypair_, crypto_provider_, new_round_number, config.voters);
 
     auto new_round = std::make_shared<VotingRoundImpl>(
         shared_from_this(),
@@ -524,9 +554,11 @@ namespace kagome::consensus::grandpa {
 
     if (not is_ready_) {
       // grandpa not initialized, we just finalize block then
-      auto res = environment_->finalize(justification.block_info.hash, justification);
+      auto res =
+          environment_->finalize(justification.block_info.hash, justification);
       if (not res.has_value()) {
-        logger_->warn("Can't make simple block finalization: {}", res.error().message());
+        logger_->warn("Can't make simple block finalization: {}",
+                      res.error().message());
       }
       return;
     }
