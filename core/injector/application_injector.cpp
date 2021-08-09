@@ -396,13 +396,14 @@ namespace {
   }
 
   sptr<primitives::BabeConfiguration> get_babe_configuration(
+      primitives::BlockHash const &block_hash,
       sptr<runtime::BabeApi> babe_api) {
     static auto initialized =
         boost::optional<sptr<primitives::BabeConfiguration>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
-    auto configuration_res = babe_api->configuration();
+    auto configuration_res = babe_api->configuration(block_hash);
     if (not configuration_res) {
       common::raise(configuration_res.error());
     }
@@ -909,7 +910,7 @@ namespace {
             auto storage = injector.template create<
                 std::shared_ptr<storage::trie::TrieStorage>>();
             initialized = std::make_shared<runtime::Executor>(
-                std::move(header_repo), std::move(env_factory), *storage);
+                std::move(header_repo), std::move(env_factory));
           }
           return initialized.value();
         }),
@@ -1089,9 +1090,11 @@ namespace {
         }),
         di::bind<primitives::BabeConfiguration>.to([](auto const &injector) {
           // need it to add genesis block if it's not there
-          injector.template create<sptr<blockchain::BlockStorage>>();
+          auto block_storage =
+              injector.template create<sptr<blockchain::BlockStorage>>();
           auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
-          return get_babe_configuration(babe_api);
+          return get_babe_configuration(
+              block_storage->getGenesisBlockHash().value(), babe_api);
         }),
         di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),

@@ -21,9 +21,11 @@ namespace kagome::runtime {
         std::shared_ptr<Executor> executor);
 
     outcome::result<boost::optional<ScheduledChange>> pending_change(
+        primitives::BlockHash const& block,
         const Digest &digest) override;
 
     outcome::result<boost::optional<ForcedChange>> forced_change(
+        primitives::BlockHash const& block,
         const Digest &digest) override;
 
     outcome::result<AuthorityList> authorities(

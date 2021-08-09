@@ -569,7 +569,7 @@ namespace kagome::blockchain {
     chain_events_engine_->notify(
         primitives::events::ChainEventType::kFinalizedHeads, header);
 
-    OUTCOME_TRY(new_runtime_version, runtime_core_->version());
+    OUTCOME_TRY(new_runtime_version, runtime_core_->version(block_hash));
     if (not actual_runtime_version_.has_value()
         || actual_runtime_version_ != new_runtime_version) {
       actual_runtime_version_ = new_runtime_version;

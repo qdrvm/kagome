@@ -97,7 +97,7 @@ namespace kagome::runtime::binaryen {
             runtime_code, external_interface, new_storage_provider),
         header_repo_);
     auto executor =
-        std::make_shared<Executor>(header_repo_, env_factory, *storage_);
+        std::make_shared<Executor>(header_repo_, env_factory);
     return std::make_unique<CoreImpl>(executor, changes_tracker_, header_repo_);
   }
 

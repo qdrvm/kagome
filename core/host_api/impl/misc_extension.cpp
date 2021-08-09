@@ -36,7 +36,7 @@ namespace kagome::host_api {
 
     auto code = memory.loadN(ptr, len).asVector();
     auto core_api = core_provider_->make(hasher_, code);
-    auto version_res = core_api->version();
+    auto version_res = core_api->version({});
     SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
 
     static const auto kErrorRes =

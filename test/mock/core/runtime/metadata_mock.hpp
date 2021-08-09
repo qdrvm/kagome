@@ -16,7 +16,7 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD1(metadata,
                  outcome::result<Metadata::OpaqueMetadata>(
-                     const boost::optional<primitives::BlockHash> &));
+                     const primitives::BlockHash &));
   };
 
 }  // namespace kagome::runtime

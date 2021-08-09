@@ -23,7 +23,8 @@ namespace kagome::runtime {
      * Get configuration for the babe
      * @return Babe configuration
      */
-    virtual outcome::result<primitives::BabeConfiguration> configuration() = 0;
+    virtual outcome::result<primitives::BabeConfiguration> configuration(
+        primitives::BlockHash const &block) = 0;
   };
 
 }  // namespace kagome::runtime

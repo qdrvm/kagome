@@ -191,7 +191,7 @@ class ExecutorTest : public testing::Test {
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   EXPECT_CALL(*storage_, getRootHashMock())
       .WillOnce(Return("state_hash0"_hash256));
-  Executor executor{header_repo_, env_factory_, *storage_};
+  Executor executor{header_repo_, env_factory_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
@@ -199,36 +199,45 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
   expectHeader(block_info1.number, block_info1.hash, "state_hash1"_hash256);
   preparePersistentCall(
       block_info1, "state_hash1"_hash256, 2, 3, 5, "state_hash2"_hash256);
-  EXPECT_OUTCOME_TRUE(
-      res, executor.persistentCallAt<int>(block_info1, "addTwo", 2, 3));
-  ASSERT_EQ(res, 5);
+  EXPECT_OUTCOME_TRUE(res,
+                      executor.persistentCallAt<int>(
+                          block_info1, "state_hash1"_hash256, "addTwo", 2, 3));
+  ASSERT_EQ(res.result, 5);
+  ASSERT_EQ(res.new_storage_root, "state_hash2"_hash256);
 
   prepareEphemeralCall(block_info1, "state_hash2"_hash256, 7, 10, 17);
-  EXPECT_OUTCOME_TRUE(res2, executor.callAtLatest<int>("addTwo", 7, 10));
+  EXPECT_OUTCOME_TRUE(res2,
+                      executor.callAt<int>(
+                          block_info1, "state_hash2"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res2, 17);
 
   preparePersistentCall(
       block_info1, "state_hash2"_hash256, 0, 0, 0, "state_hash3"_hash256);
   EXPECT_OUTCOME_TRUE(res3,
-                      executor.persistentCallAtLatest<int>("addTwo", 0, 0));
-  ASSERT_EQ(res3, 0);
+                      executor.persistentCallAt<int>(
+                          block_info1, "state_hash2"_hash256, "addTwo", 0, 0));
+  ASSERT_EQ(res3.result, 0);
+  ASSERT_EQ(res3.new_storage_root, "state_hash3"_hash256);
 
   prepareEphemeralCall(block_info1, "state_hash3"_hash256, 7, 10, 17);
-  EXPECT_OUTCOME_TRUE(res4, executor.callAtLatest<int>("addTwo", 7, 10));
+  EXPECT_OUTCOME_TRUE(res4,
+                      executor.callAt<int>(
+                          block_info1, "state_hash3"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res4, 17);
 
   expectHeader(block_info2.number, block_info2.hash, "state_hash4"_hash256);
   preparePersistentCall(
       block_info2, "state_hash4"_hash256, -5, 5, 0, "state_hash5"_hash256);
   EXPECT_OUTCOME_TRUE(
-      res5, executor.persistentCallAt<int>(block_info2, "addTwo", -5, 5));
-  ASSERT_EQ(res5, 0);
+      res5,
+      executor.persistentCallAt<int>(
+          block_info2, "state_hash4"_hash256, "addTwo", -5, 5));
+  ASSERT_EQ(res5.result, 0);
+  ASSERT_EQ(res5.new_storage_root, "state_hash5"_hash256);
 
   prepareEphemeralCall(block_info2, "state_hash5"_hash256, 7, 10, 17);
-  EXPECT_OUTCOME_TRUE(res6, executor.callAtLatest<int>("addTwo", 7, 10));
+  EXPECT_OUTCOME_TRUE(res6,
+                      executor.callAt<int>(
+                          block_info2, "state_hash5"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res6, 17);
-
-  // check last state
-  // check committed root
-  // check result
 }

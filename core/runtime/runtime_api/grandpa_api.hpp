@@ -42,6 +42,7 @@ namespace kagome::runtime {
      * scheduled change item if exists or error if error occured
      */
     virtual outcome::result<boost::optional<ScheduledChange>> pending_change(
+        primitives::BlockHash const& block,
         const Digest &digest) = 0;
 
     /**
@@ -53,6 +54,7 @@ namespace kagome::runtime {
      *
      */
     virtual outcome::result<boost::optional<ForcedChange>> forced_change(
+        primitives::BlockHash const& block,
         const Digest &digest) = 0;
 
     /**

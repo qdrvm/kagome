@@ -14,7 +14,7 @@ sinks:
   - name: console
     type: console
     thread: none
-    color: false
+    color: true
     latency: 0
 groups:
   - name: main

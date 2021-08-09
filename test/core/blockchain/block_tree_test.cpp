@@ -172,7 +172,7 @@ TEST_F(BlockTreeTest, GetBody) {
  */
 TEST_F(BlockTreeTest, AddBlock) {
   // GIVEN
-  auto &&[_, deepest_block_hash] = block_tree_->deepestLeaf();
+  auto &&[deepest_block_number, deepest_block_hash] = block_tree_->deepestLeaf();
   ASSERT_EQ(deepest_block_hash, kFinalizedBlockInfo.hash);
 
   auto leaves = block_tree_->getLeaves();
@@ -253,7 +253,7 @@ TEST_F(BlockTreeTest, Finalize) {
       .WillRepeatedly(Return(outcome::success(header)));
   EXPECT_CALL(*storage_, getBlockBody(bid))
       .WillRepeatedly(Return(outcome::success(body)));
-  EXPECT_CALL(*runtime_core_, version())
+  EXPECT_CALL(*runtime_core_, version(hash))
       .WillRepeatedly(Return(primitives::Version{}));
 
   // WHEN

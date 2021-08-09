@@ -41,8 +41,9 @@ namespace kagome::authorship {
       logger_->error("Core_initialize_block failed: {}",
                      res.error().message());
       return res.error();
+    } else {
+      return std::make_unique<BlockBuilderImpl>(header, res.value(), r_block_builder_);
     }
-    return std::make_unique<BlockBuilderImpl>(header, r_block_builder_);
   }
 
 }  // namespace kagome::authorship

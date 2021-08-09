@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "mock/core/runtime/block_builder_api_mock.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
@@ -16,14 +17,19 @@ using ::testing::Return;
 
 using kagome::authorship::BlockBuilderImpl;
 using kagome::primitives::Block;
+using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
+using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::DispatchError;
+using kagome::primitives::DispatchOutcome;
 using kagome::primitives::DispatchSuccess;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::primitives::dispatch_error::Other;
 using kagome::runtime::BlockBuilderApiMock;
+using kagome::runtime::PersistentResult;
+using kagome::storage::trie::RootHash;
 
 class BlockBuilderTest : public ::testing::Test {
  public:
@@ -33,10 +39,14 @@ class BlockBuilderTest : public ::testing::Test {
 
   void SetUp() override {
     // add some number to the header to make it possible to differentiate it
-    expected_header_.number = number_;
+    expected_header_.number = block_number_;
+    expected_header_.state_root = "state123"_hash256;
+    expected_header_.parent_hash = "block122"_hash256;
 
-    block_builder_ = std::make_shared<BlockBuilderImpl>(expected_header_,
-                                                        block_builder_api_);
+    parent_block_ = BlockInfo{block_number_ - 1, expected_header_.parent_hash};
+
+    block_builder_ = std::make_shared<BlockBuilderImpl>(
+        expected_header_, initial_state_, block_builder_api_);
   }
 
  protected:
@@ -44,7 +54,9 @@ class BlockBuilderTest : public ::testing::Test {
       std::make_shared<BlockBuilderApiMock>();
 
   BlockHeader expected_header_;
-  BlockNumber number_ = 123;
+  BlockNumber block_number_ = 123;
+  RootHash initial_state_ = "init_state"_hash256;
+  BlockInfo parent_block_;
 
   std::shared_ptr<BlockBuilderImpl> block_builder_;
 };
@@ -58,9 +70,11 @@ class BlockBuilderTest : public ::testing::Test {
 TEST_F(BlockBuilderTest, PushWhenApplyFails) {
   // given
   Extrinsic xt{};
-  EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
+  EXPECT_CALL(*block_builder_api_,
+              apply_extrinsic(parent_block_, initial_state_, xt))
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
-  EXPECT_CALL(*block_builder_api_, finalize_block())
+  EXPECT_CALL(*block_builder_api_,
+              finalize_block(parent_block_, initial_state_))
       .WillOnce(Return(expected_header_));
 
   // when
@@ -81,9 +95,13 @@ TEST_F(BlockBuilderTest, PushWhenApplyFails) {
 TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
   // given
   Extrinsic xt{};
-  EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
-      .WillOnce(Return(DispatchSuccess{}));
-  EXPECT_CALL(*block_builder_api_, finalize_block())
+  EXPECT_CALL(*block_builder_api_,
+              apply_extrinsic(parent_block_, initial_state_, xt))
+      .WillOnce(Return(outcome::success(
+          PersistentResult<kagome::primitives::ApplyExtrinsicResult>{
+              DispatchSuccess{}, "next_state"_hash256})));
+  EXPECT_CALL(*block_builder_api_,
+              finalize_block(parent_block_, "next_state"_hash256))
       .WillOnce(Return(expected_header_));
 
   // when
@@ -106,9 +124,13 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
 TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
   // given
   Extrinsic xt{};
-  EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
-      .WillOnce(Return(DispatchError{Other{}}));
-  EXPECT_CALL(*block_builder_api_, finalize_block())
+  EXPECT_CALL(*block_builder_api_,
+              apply_extrinsic(parent_block_, initial_state_, xt))
+      .WillOnce(Return(kagome::runtime::PersistentResult<
+                       kagome::primitives::ApplyExtrinsicResult>{
+          DispatchError{Other{}}, "next_state"_hash256}));
+  EXPECT_CALL(*block_builder_api_,
+              finalize_block(parent_block_, "next_state"_hash256))
       .WillOnce(Return(expected_header_));
 
   // when

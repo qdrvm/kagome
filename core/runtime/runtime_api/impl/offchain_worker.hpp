@@ -16,7 +16,8 @@ namespace kagome::runtime {
    public:
     explicit OffchainWorkerImpl(std::shared_ptr<Executor> executor);
 
-    outcome::result<void> offchain_worker(BlockNumber bn) override;
+    outcome::result<void> offchain_worker(
+        primitives::BlockInfo block_info) override;
 
    private:
     std::shared_ptr<Executor> executor_;

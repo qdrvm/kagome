@@ -24,17 +24,17 @@ namespace kagome::runtime {
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo);
 
-    outcome::result<primitives::Version> version() override;
-    outcome::result<primitives::Version> versionAt(primitives::BlockHash const& block) override;
+    outcome::result<primitives::Version> version(
+        primitives::BlockHash const &block) override;
 
     outcome::result<void> execute_block(
         const primitives::Block &block) override;
 
-    outcome::result<void> initialize_block(
+    outcome::result<storage::trie::RootHash> initialize_block(
         const primitives::BlockHeader &header) override;
 
     outcome::result<std::vector<primitives::AuthorityId>> authorities(
-        const primitives::BlockId &block_id) override;
+        const primitives::BlockHash &block_hash) override;
 
    private:
     std::shared_ptr<Executor> executor_;

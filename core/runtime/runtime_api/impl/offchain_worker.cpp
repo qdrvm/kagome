@@ -14,8 +14,9 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<void> OffchainWorkerImpl::offchain_worker(BlockNumber bn) {
-    // TODO(Harrm): Perhaps should be invoked on a state of block bn
-    return executor_->callAtLatest<void>("OffchainWorker_offchain_worker", bn);
+  outcome::result<void> OffchainWorkerImpl::offchain_worker(
+      primitives::BlockInfo block_info) {
+    return executor_->callAt<void>(
+        block_info.hash, "OffchainWorker_offchain_worker", block_info.number);
   }
 }  // namespace kagome::runtime

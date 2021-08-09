@@ -12,21 +12,26 @@ namespace kagome::runtime {
   class TransactionPaymentApi;
 }
 
+namespace kagome::blockchain {
+  class BlockTree;
+}
+
 namespace kagome::api {
 
   class PaymentApiImpl : public PaymentApi {
    public:
-    PaymentApiImpl(std::shared_ptr<runtime::TransactionPaymentApi> api);
+    PaymentApiImpl(std::shared_ptr<runtime::TransactionPaymentApi> api,
+                   std::shared_ptr<const blockchain::BlockTree> block_tree);
     ~PaymentApiImpl() override = default;
 
     outcome::result<primitives::RuntimeDispatchInfo> queryInfo(
         const primitives::Extrinsic &extrinsic,
         uint32_t len,
-        OptionalHashRef at)
-        const override;
+        OptionalHashRef at) const override;
 
    private:
     std::shared_ptr<runtime::TransactionPaymentApi> api_;
+    std::shared_ptr<const blockchain::BlockTree> block_tree_;
   };
 
 }  // namespace kagome::api

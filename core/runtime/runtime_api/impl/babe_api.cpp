@@ -14,9 +14,10 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration() {
-    return executor_->callAtLatest<primitives::BabeConfiguration>(
-        "BabeApi_configuration");
+  outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration(
+      primitives::BlockHash const &block) {
+    return executor_->callAt<primitives::BabeConfiguration>(
+        block, "BabeApi_configuration");
   }
 
 }  // namespace kagome::runtime

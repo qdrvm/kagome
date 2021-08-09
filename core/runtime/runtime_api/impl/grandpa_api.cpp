@@ -19,15 +19,17 @@ namespace kagome::runtime {
   }
 
   outcome::result<boost::optional<GrandpaApi::ScheduledChange>>
-  GrandpaApiImpl::pending_change(const Digest &digest) {
-    return executor_->callAtLatest<boost::optional<ScheduledChange>>(
-        "GrandpaApi_pending_change", digest);
+  GrandpaApiImpl::pending_change(primitives::BlockHash const &block,
+                                 const Digest &digest) {
+    return executor_->callAt<boost::optional<ScheduledChange>>(
+        block, "GrandpaApi_pending_change", digest);
   }
 
   outcome::result<boost::optional<GrandpaApi::ForcedChange>>
-  GrandpaApiImpl::forced_change(const Digest &digest) {
-    return executor_->callAtLatest<boost::optional<ForcedChange>>(
-        "GrandpaApi_forced_change", digest);
+  GrandpaApiImpl::forced_change(primitives::BlockHash const &block,
+                                const Digest &digest) {
+    return executor_->callAt<boost::optional<ForcedChange>>(
+        block, "GrandpaApi_forced_change", digest);
   }
 
   outcome::result<GrandpaApi::AuthorityList> GrandpaApiImpl::authorities(
@@ -37,4 +39,4 @@ namespace kagome::runtime {
                                             "GrandpaApi_grandpa_authorities");
   }
 
-}  // namespace kagome::runtime::wavm
+}  // namespace kagome::runtime

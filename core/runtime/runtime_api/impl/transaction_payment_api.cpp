@@ -16,10 +16,11 @@ namespace kagome::runtime {
   }
 
   outcome::result<primitives::RuntimeDispatchInfo>
-  TransactionPaymentApiImpl::query_info(const primitives::Extrinsic &ext,
+  TransactionPaymentApiImpl::query_info(const primitives::BlockHash &block,
+                                        const primitives::Extrinsic &ext,
                                         uint32_t len) {
-    return executor_->callAtLatest<primitives::RuntimeDispatchInfo>(
-        "TransactionPaymentApi_query_info", ext, len);
+    return executor_->callAt<primitives::RuntimeDispatchInfo>(
+        block, "TransactionPaymentApi_query_info", ext, len);
   }
 
 }  // namespace kagome::runtime

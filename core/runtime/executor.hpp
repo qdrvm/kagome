@@ -17,6 +17,7 @@
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/module_repository.hpp"
+#include "runtime/persistent_result.hpp"
 #include "runtime/runtime_environment_factory.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/scale.hpp"
@@ -36,10 +37,8 @@ namespace kagome::runtime {
 
     Executor(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
-        std::shared_ptr<RuntimeEnvironmentFactory> env_factory,
-        const storage::trie::TrieStorage& storage)
-        : last_storage_state_{storage.getRootHash()},
-          header_repo_{std::move(header_repo)},
+        std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
+        : header_repo_{std::move(header_repo)},
           env_factory_{std::move(env_factory)},
           logger_{log::createLogger("Executor", "runtime")} {
       BOOST_ASSERT(header_repo_ != nullptr);
@@ -49,30 +48,41 @@ namespace kagome::runtime {
     /**
      * Call a runtime method in a persistent environment, e. g. the storage
      * changes, made by this call, will persist in the node's Trie storage
-     * The call will be done on the latest chosen state (the state can be chosen
-     * with persistentCallAt)
+     * The call will be done with the runtime code from \param block_info state
+     * on \param storage_state storage state
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> persistentCallAtLatest(std::string_view name,
-                                                   Args &&...args) {
-      SL_DEBUG(logger_, "Runtime calls {} persistently at latest", name);
+    outcome::result<PersistentResult<Result>> persistentCallAt(
+        primitives::BlockInfo const &block_info,
+        storage::trie::RootHash const &storage_state,
+        std::string_view name,
+        Args &&...args) {
+      SL_DEBUG(logger_,
+               "Runtime calls {} persistently at state: #{} hash: {} "
+               "state: {}",
+               name,
+               block_info.number,
+               block_info.hash.toHex(),
+               storage_state.toHex());
       OUTCOME_TRY(
           env,
-          env_factory_->start(last_blockchain_state_, last_storage_state_)
-              ->persistent()
-              .make());
+          env_factory_->start(block_info, storage_state)->persistent().make());
       auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
       if (res) {
         BOOST_ASSERT_MSG(
             env->batch.has_value(),
             "Persistent batch should always exist for persistent call");
         OUTCOME_TRY(state_root, env->batch.value()->commit());
-        last_storage_state_ = std::move(state_root);
         SL_DEBUG(logger_,
                  "Runtime call committed new state with hash {}",
-                 last_storage_state_.toHex());
+                 state_root.toHex());
+        if constexpr (std::is_void_v<Result>) {
+          return PersistentResult<Result>{state_root};
+        } else {
+          return PersistentResult<Result>{std::move(res.value()), state_root};
+        }
       }
-      return res;
+      return res.error();
     }
 
     /**
@@ -81,52 +91,36 @@ namespace kagome::runtime {
      * The call will be done on the \param block_info state
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> persistentCallAt(
-        primitives::BlockInfo const &block_info,
+    outcome::result<PersistentResult<Result>> persistentCallAt(
+        primitives::BlockHash const &block_hash,
         std::string_view name,
         Args &&...args) {
-      SL_DEBUG(logger_,
-               "Runtime calls {} persistently at #{} hash: {}",
-               name,
-               block_info.number,
-               block_info.hash.toHex());
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_info.hash));
-      OUTCOME_TRY(env,
-                  env_factory_->start(block_info, header.state_root)
-                      ->persistent()
-                      .make());
-      auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
-      if (res) {
-        BOOST_ASSERT_MSG(
-            env->batch.has_value(),
-            "Persistent batch should always exist for persistent call");
-        OUTCOME_TRY(state_root, env->batch.value()->commit());
-        last_storage_state_ = std::move(state_root);
-        last_blockchain_state_ = block_info;
-        SL_DEBUG(logger_,
-                 "Runtime call committed new state with hash {} and reset the "
-                 "latest block to #{}, hash {}",
-                 last_storage_state_.toHex(),
-                 last_blockchain_state_.number,
-                 last_blockchain_state_.hash.toHex());
-      }
-      return res;
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
+      return persistentCallAt<Result>(
+          primitives::BlockInfo{header.number, block_hash},
+          header.state_root,
+          name,
+          std::forward<Args>(args)...);
     }
 
     /**
      * Call a runtime method in an ephemeral environment, e. g. the storage
      * changes, made by this call, will NOT persist in the node's Trie storage
-     * The call will be done on the latest chosen state (the state can be chosen
-     * with persistentCallAt)
+     * The call will be done with the runtime code from \param block_info state
+     * on \param storage_state storage state
      */
     template <typename Result, typename... Args>
-    outcome::result<Result> callAtLatest(std::string_view name,
-                                         Args &&...args) {
-      SL_DEBUG(logger_, "Runtime calls {} at latest", name);
-      OUTCOME_TRY(
-          env,
-          env_factory_->start(last_blockchain_state_, last_storage_state_)
-              ->make());
+    outcome::result<Result> callAt(primitives::BlockInfo const &block_info,
+                                   storage::trie::RootHash const &storage_state,
+                                   std::string_view name,
+                                   Args &&...args) {
+      SL_DEBUG(logger_,
+               "Runtime calls {} at state: #{} hash: {} state: {}",
+               name,
+               block_info.number,
+               block_info.hash.toHex(),
+               storage_state.toHex());
+      OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
@@ -141,10 +135,11 @@ namespace kagome::runtime {
                                    Args &&...args) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
       SL_DEBUG(logger_,
-               "Runtime calls {} at #{} hash: {}",
+               "Runtime calls {} at #{} hash: {}, state: {}",
                name,
                header.number,
-               block_hash.toHex());
+               block_hash.toHex(),
+               header.state_root.toHex());
       OUTCOME_TRY(
           env,
           env_factory_->start({header.number, block_hash}, header.state_root)
@@ -182,9 +177,6 @@ namespace kagome::runtime {
         return scale::decode<Result>(memory.loadN(result.ptr, result.size));
       }
     }
-
-    primitives::BlockInfo last_blockchain_state_;
-    storage::trie::RootHash last_storage_state_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
     log::Logger logger_;

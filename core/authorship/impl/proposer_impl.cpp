@@ -38,7 +38,7 @@ namespace kagome::authorship {
         block_builder_factory_->create(parent_block_number, inherent_digest));
 
     auto inherent_xts_res =
-        r_block_builder_->inherent_extrinsics(inherent_data);
+        block_builder->getInherentExtrinsics(inherent_data);
     if (not inherent_xts_res) {
       logger_->error("BlockBuilder->inherent_extrinsics failed with error: {}",
                      inherent_xts_res.error().message());
@@ -70,6 +70,7 @@ namespace kagome::authorship {
           SL_WARN(logger_,
                   "Inherent extrinsic returned unexpected error: {}. Dropping.",
                   inserted_res.error().message());
+          return inserted_res.error();
         }
       }
     }

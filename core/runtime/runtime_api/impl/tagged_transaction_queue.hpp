@@ -18,15 +18,15 @@ namespace kagome::runtime {
 
   class Executor;
 
-  class TaggedTransactionQueueImpl final: public TaggedTransactionQueue {
+  class TaggedTransactionQueueImpl final : public TaggedTransactionQueue {
    public:
     explicit TaggedTransactionQueueImpl(std::shared_ptr<Executor> executor);
 
     void setBlockTree(std::shared_ptr<blockchain::BlockTree> block_tree);
 
-    outcome::result<primitives::TransactionValidity>
-    validate_transaction(primitives::TransactionSource source,
-                        const primitives::Extrinsic &ext) override;
+    outcome::result<primitives::TransactionValidity> validate_transaction(
+        primitives::TransactionSource source,
+        const primitives::Extrinsic &ext) override;
 
    private:
     std::shared_ptr<Executor> executor_;

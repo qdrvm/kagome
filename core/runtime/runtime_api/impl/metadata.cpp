@@ -19,15 +19,10 @@ namespace kagome::runtime {
   }
 
   outcome::result<Metadata::OpaqueMetadata> MetadataImpl::metadata(
-      const boost::optional<primitives::BlockHash> &block_hash) {
-    if (block_hash.has_value()) {
-      OUTCOME_TRY(header,
-                  block_header_repo_->getBlockHeader(block_hash.value()));
-      return executor_->callAt<OpaqueMetadata>(
-          header.parent_hash,
-          "Metadata_metadata");
-    }
-    return executor_->callAtLatest<OpaqueMetadata>("Metadata_metadata");
+      const primitives::BlockHash &block_hash) {
+    OUTCOME_TRY(header, block_header_repo_->getBlockHeader(block_hash));
+    return executor_->callAt<OpaqueMetadata>(header.parent_hash,
+                                             "Metadata_metadata");
   }
 
-}  // namespace kagome::runtime::wavm
+}  // namespace kagome::runtime

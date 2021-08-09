@@ -21,7 +21,7 @@ namespace kagome::runtime {
         std::shared_ptr<Executor> executor);
 
     outcome::result<OpaqueMetadata> metadata(
-        const boost::optional<primitives::BlockHash> &block_hash) override;
+        const primitives::BlockHash &block_hash) override;
 
    private:
     std::shared_ptr<Executor> executor_;

@@ -17,17 +17,20 @@ namespace kagome::runtime {
    public:
     explicit ParachainHostImpl(std::shared_ptr<Executor> executor);
 
-    outcome::result<DutyRoster> duty_roster() override;
+    outcome::result<DutyRoster> duty_roster(
+        const primitives::BlockHash &block) override;
 
-    outcome::result<std::vector<ParachainId>> active_parachains() override;
+    outcome::result<std::vector<ParachainId>> active_parachains(
+        const primitives::BlockHash &block) override;
 
     outcome::result<boost::optional<Buffer>> parachain_head(
-        ParachainId id) override;
+        const primitives::BlockHash &block, ParachainId id) override;
 
     outcome::result<boost::optional<kagome::common::Buffer>> parachain_code(
-        ParachainId id) override;
+        const primitives::BlockHash &block, ParachainId id) override;
 
-    outcome::result<std::vector<ValidatorId>> validators() override;
+    outcome::result<std::vector<ValidatorId>> validators(
+        const primitives::BlockHash &block) override;
 
    private:
     std::shared_ptr<Executor> executor_;

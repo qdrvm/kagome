@@ -17,12 +17,14 @@ namespace kagome::runtime {
     explicit TransactionPaymentApiImpl(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::RuntimeDispatchInfo> query_info(
-        const primitives::Extrinsic &ext, uint32_t len) override;
+        const primitives::BlockHash &block,
+        const primitives::Extrinsic &ext,
+        uint32_t len) override;
 
    private:
     std::shared_ptr<Executor> executor_;
   };
 
-}  // namespace kagome::runtime::wavm
+}  // namespace kagome::runtime
 
 #endif  // KAGOME_TRANSACTION_PAYMENT_API_HPP

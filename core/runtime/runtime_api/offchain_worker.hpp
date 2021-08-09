@@ -21,10 +21,11 @@ namespace kagome::runtime {
 
     /**
      * @brief calls offchain_worker method of OffchainWorker runtime api
-     * @param bn block number
+     * @param block_info block number
      * @return success or error
      */
-    virtual outcome::result<void> offchain_worker(BlockNumber bn) = 0;
+    virtual outcome::result<void> offchain_worker(
+        primitives::BlockInfo block_info) = 0;
   };
 
 }  // namespace kagome::runtime

@@ -14,32 +14,35 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<ParachainHost::DutyRoster> ParachainHostImpl::duty_roster() {
-    return executor_->callAtLatest<DutyRoster>("ParachainHost_duty_roster");
+  outcome::result<ParachainHost::DutyRoster> ParachainHostImpl::duty_roster(
+      const primitives::BlockHash &block) {
+    return executor_->callAt<DutyRoster>(block, "ParachainHost_duty_roster");
   }
 
   outcome::result<std::vector<ParachainHost::ParachainId>>
-  ParachainHostImpl::active_parachains() {
-    return executor_->callAtLatest<std::vector<ParachainId>>(
-        "ParachainHost_active_parachains");
+  ParachainHostImpl::active_parachains(const primitives::BlockHash &block) {
+    return executor_->callAt<std::vector<ParachainId>>(
+        block, "ParachainHost_active_parachains");
   }
 
   outcome::result<boost::optional<common::Buffer>>
-  ParachainHostImpl::parachain_head(ParachainId id) {
-    return executor_->callAtLatest<boost::optional<Buffer>>(
-        "ParachainHost_parachain_head", id);
+  ParachainHostImpl::parachain_head(const primitives::BlockHash &block,
+                                    ParachainId id) {
+    return executor_->callAt<boost::optional<Buffer>>(
+        block, "ParachainHost_parachain_head", id);
   }
 
   outcome::result<boost::optional<common::Buffer>>
-  ParachainHostImpl::parachain_code(ParachainId id) {
-    return executor_->callAtLatest<boost::optional<common::Buffer>>(
-        "ParachainHost_parachain_code", id);
+  ParachainHostImpl::parachain_code(const primitives::BlockHash &block,
+                                    ParachainId id) {
+    return executor_->callAt<boost::optional<common::Buffer>>(
+        block, "ParachainHost_parachain_code", id);
   }
 
   outcome::result<std::vector<ParachainHost::ValidatorId>>
-  ParachainHostImpl::validators() {
-    return executor_->callAtLatest<std::vector<ValidatorId>>(
-        "ParachainHost_validators");
+  ParachainHostImpl::validators(const primitives::BlockHash &block) {
+    return executor_->callAt<std::vector<ValidatorId>>(
+        block, "ParachainHost_validators");
   }
 
 }  // namespace kagome::runtime

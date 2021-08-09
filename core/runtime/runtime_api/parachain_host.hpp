@@ -25,13 +25,15 @@ namespace kagome::runtime {
      * @brief Calls the ParachainHost_duty_roster function from wasm code
      * @return DutyRoster structure or error if fails
      */
-    virtual outcome::result<DutyRoster> duty_roster() = 0;
+    virtual outcome::result<DutyRoster> duty_roster(
+        const primitives::BlockHash &block) = 0;
 
     /**
      * @brief Calls the ParachainHost_active_parachains function from wasm code
      * @return vector of ParachainId items or error if fails
      */
-    virtual outcome::result<std::vector<ParachainId>> active_parachains() = 0;
+    virtual outcome::result<std::vector<ParachainId>> active_parachains(
+        const primitives::BlockHash &block) = 0;
 
     /**
      * @brief Calls the ParachainHost_parachain_head function from wasm code
@@ -39,7 +41,7 @@ namespace kagome::runtime {
      * @return parachain head or error if fails
      */
     virtual outcome::result<boost::optional<Buffer>> parachain_head(
-        ParachainId id) = 0;
+        const primitives::BlockHash &block, ParachainId id) = 0;
 
     /**
      * @brief Calls the ParachainHost_parachain_code function from wasm code
@@ -47,13 +49,14 @@ namespace kagome::runtime {
      * @return parachain code or error if fails
      */
     virtual outcome::result<boost::optional<kagome::common::Buffer>>
-    parachain_code(ParachainId id) = 0;
+    parachain_code(const primitives::BlockHash &block, ParachainId id) = 0;
 
     /**
      * @brief reports validators list for given block_id
      * @return validators list
      */
-    virtual outcome::result<std::vector<ValidatorId>> validators() = 0;
+    virtual outcome::result<std::vector<ValidatorId>> validators(
+        const primitives::BlockHash &block) = 0;
   };
 
 }  // namespace kagome::runtime

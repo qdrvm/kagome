@@ -15,9 +15,10 @@ namespace kagome::runtime {
   }
 
   outcome::result<primitives::AccountNonce> AccountNonceApiImpl::account_nonce(
+      const primitives::BlockHash &block,
       const primitives::AccountId &account_id) {
-    return executor_->callAtLatest<primitives::AccountNonce>(
-        "AccountNonceApi_account_nonce", account_id);
+    return executor_->callAt<primitives::AccountNonce>(
+        block, "AccountNonceApi_account_nonce", account_id);
   };
 
 }  // namespace kagome::runtime::wavm

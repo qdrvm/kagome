@@ -14,32 +14,43 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<primitives::ApplyExtrinsicResult> BlockBuilderImpl::apply_extrinsic(
-      const primitives::Extrinsic &extrinsic) {
-    return executor_->persistentCallAtLatest<primitives::ApplyExtrinsicResult>(
-        "BlockBuilder_apply_extrinsic", extrinsic);
+  outcome::result<PersistentResult<primitives::ApplyExtrinsicResult>>
+  BlockBuilderImpl::apply_extrinsic(const primitives::BlockInfo &block,
+                                    storage::trie::RootHash const &storage_hash,
+                                    const primitives::Extrinsic &extrinsic) {
+    return executor_->persistentCallAt<primitives::ApplyExtrinsicResult>(
+        block, storage_hash, "BlockBuilder_apply_extrinsic", extrinsic);
   }
 
-  outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block() {
-    return executor_->persistentCallAtLatest<primitives::BlockHeader>(
-        "BlockBuilder_finalize_block");
+  outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block(
+      const primitives::BlockInfo &block,
+      storage::trie::RootHash const &storage_hash) {
+    const auto res = executor_->persistentCallAt<primitives::BlockHeader>(
+        block, storage_hash, "BlockBuilder_finalize_block");
+    if (res) return res.value().result;
+    return res.error();
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
-  BlockBuilderImpl::inherent_extrinsics(const primitives::InherentData &data) {
-    return executor_->callAtLatest<std::vector<primitives::Extrinsic>>(
-        "BlockBuilder_inherent_extrinsics", data);
+  BlockBuilderImpl::inherent_extrinsics(
+      const primitives::BlockInfo &block,
+      storage::trie::RootHash const &storage_hash,
+      const primitives::InherentData &data) {
+    return executor_->callAt<std::vector<primitives::Extrinsic>>(
+        block, storage_hash, "BlockBuilder_inherent_extrinsics", data);
   }
 
   outcome::result<primitives::CheckInherentsResult>
   BlockBuilderImpl::check_inherents(const primitives::Block &block,
                                     const primitives::InherentData &data) {
-    return executor_->callAtLatest<primitives::CheckInherentsResult>(
-        "BlockBuilder_check_inherents", block, data);
+    return executor_->callAt<primitives::CheckInherentsResult>(
+        block.header.parent_hash, "BlockBuilder_check_inherents", block, data);
   }
 
-  outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
-    return executor_->callAtLatest<common::Hash256>("BlockBuilder_random_seed");
+  outcome::result<common::Hash256> BlockBuilderImpl::random_seed(
+      const primitives::BlockHash &block) {
+    return executor_->callAt<common::Hash256>(block,
+                                              "BlockBuilder_random_seed");
   }
 
-}  // namespace kagome::runtime::wavm
+}  // namespace kagome::runtime

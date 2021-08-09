@@ -16,6 +16,9 @@ namespace kagome::transaction_pool {
 namespace kagome::crypto {
   class Hasher;
 }
+namespace kagome::blockchain {
+  class BlockTree;
+}
 
 namespace kagome::api {
 
@@ -27,6 +30,7 @@ namespace kagome::api {
         std::shared_ptr<network::PeerManager> peer_manager,
         std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
         std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
+        std::shared_ptr<const blockchain::BlockTree> block_tree,
         std::shared_ptr<crypto::Hasher> hasher);
 
     std::shared_ptr<application::ChainSpec> getConfig() const override;
@@ -53,6 +57,7 @@ namespace kagome::api {
     std::shared_ptr<network::PeerManager> peer_manager_;
     std::shared_ptr<runtime::AccountNonceApi> account_nonce_api_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
+    std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<crypto::Hasher> hasher_;
   };
 

@@ -25,7 +25,7 @@ namespace kagome::runtime {
      * @return opaque metadata object or error
      */
     virtual outcome::result<OpaqueMetadata> metadata(
-        const boost::optional<primitives::BlockHash> &block_hash) = 0;
+        const primitives::BlockHash &block_hash) = 0;
   };
 
 }  // namespace kagome::runtime

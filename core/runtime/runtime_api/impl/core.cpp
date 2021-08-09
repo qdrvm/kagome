@@ -22,13 +22,9 @@ namespace kagome::runtime {
     BOOST_ASSERT(header_repo_ != nullptr);
   }
 
-  outcome::result<primitives::Version> CoreImpl::versionAt(
+  outcome::result<primitives::Version> CoreImpl::version(
       primitives::BlockHash const &block) {
     return executor_->callAt<primitives::Version>(block, "Core_version");
-  }
-
-  outcome::result<primitives::Version> CoreImpl::version() {
-    return executor_->callAtLatest<primitives::Version>("Core_version");
   }
 
   outcome::result<void> CoreImpl::execute_block(
@@ -38,25 +34,29 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         changes_tracker_->onBlockChange(block.header.parent_hash,
                                         parent.number));  // parent's number
-    return executor_->persistentCallAt<void>(
-        {parent.number, block.header.parent_hash}, "Core_execute_block", block);
+    const auto res = executor_->persistentCallAt<void>(
+        block.header.parent_hash, "Core_execute_block", block);
+    if (res) return outcome::success();
+    return res.error();
   }
 
-  outcome::result<void> CoreImpl::initialize_block(
+  outcome::result<storage::trie::RootHash> CoreImpl::initialize_block(
       const primitives::BlockHeader &header) {
     OUTCOME_TRY(
         changes_tracker_->onBlockChange(header.parent_hash,
                                         header.number - 1));  // parent's number
-    return executor_->persistentCallAt<void>(
-        {header.number - 1, header.parent_hash},
-        "Core_initialize_block",
-        header);
+    const auto res = executor_->persistentCallAt<void>(
+        header.parent_hash, "Core_initialize_block", header);
+    if (res.has_value()) {
+      return res.value().new_storage_root;
+    }
+    return res.error();
   }
 
   outcome::result<std::vector<primitives::AuthorityId>> CoreImpl::authorities(
-      const primitives::BlockId &block_id) {
-    return executor_->callAtLatest<std::vector<primitives::AuthorityId>>(
-        "Core_authorities", block_id);
+      const primitives::BlockHash &block_hash) {
+    return executor_->callAt<std::vector<primitives::AuthorityId>>(
+        block_hash, "Core_authorities", block_hash);
   }
 
-}  // namespace kagome::runtime::wavm
+}  // namespace kagome::runtime

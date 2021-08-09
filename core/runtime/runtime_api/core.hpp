@@ -32,9 +32,8 @@ namespace kagome::runtime {
      * @brief Returns the version of the runtime
      * @return runtime version
      */
-    virtual outcome::result<primitives::Version> versionAt(
+    virtual outcome::result<primitives::Version> version(
         primitives::BlockHash const &block) = 0;
-    virtual outcome::result<primitives::Version> version() = 0;
 
     /**
      * @brief Executes the given block
@@ -47,7 +46,7 @@ namespace kagome::runtime {
      * @brief Initialize a block with the given header.
      * @param header header used for block initialization
      */
-    virtual outcome::result<void> initialize_block(
+    virtual outcome::result<storage::trie::RootHash> initialize_block(
         const primitives::BlockHeader &header) = 0;
 
     /**
@@ -55,7 +54,7 @@ namespace kagome::runtime {
      * @return collection of authorities
      */
     virtual outcome::result<std::vector<primitives::AuthorityId>> authorities(
-        const primitives::BlockId &block_id) = 0;
+        const primitives::BlockHash &block_hash) = 0;
   };
 
 }  // namespace kagome::runtime

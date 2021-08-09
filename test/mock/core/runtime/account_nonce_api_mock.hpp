@@ -14,8 +14,9 @@ namespace kagome::runtime {
 
   class AccountNonceApiMock : public AccountNonceApi {
    public:
-    MOCK_METHOD1(account_nonce,
+    MOCK_METHOD2(account_nonce,
                  outcome::result<primitives::AccountNonce>(
+                     const primitives::BlockHash &block,
                      const primitives::AccountId &));
   };
 

@@ -17,6 +17,7 @@ namespace kagome::runtime {
     explicit AccountNonceApiImpl(std::shared_ptr<Executor> executor);
 
     outcome::result<primitives::AccountNonce> account_nonce(
+        const primitives::BlockHash &block,
         const primitives::AccountId &account_id) override;
 
    private:

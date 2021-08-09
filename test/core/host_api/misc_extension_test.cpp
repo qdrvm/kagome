@@ -30,8 +30,8 @@ using kagome::runtime::CoreApiProviderMock;
 using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
-using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::PtrSize;
+using kagome::runtime::TrieStorageProviderMock;
 using kagome::scale::encode;
 using testing::_;
 using testing::Invoke;
@@ -53,7 +53,7 @@ TEST_F(MiscExtensionTest, Init) {
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(boost::optional<Memory&>(*memory)));
+      .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
   auto core_provider = std::make_shared<CoreApiProviderMock>();
   MiscExtension m{
       42, std::make_shared<HasherMock>(), memory_provider, core_provider};
@@ -83,13 +83,14 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(boost::optional<Memory&>(*memory)));
+      .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
   auto core_provider = std::make_shared<CoreApiProviderMock>();
 
   EXPECT_CALL(*core_provider, make(_, _))
       .WillOnce(Invoke([&v1](auto &, auto &code) {
         auto core = std::make_unique<kagome::runtime::CoreMock>();
-        EXPECT_CALL(*core, version()).WillOnce(Return(v1));
+        EXPECT_CALL(*core, version(kagome::primitives::BlockHash{}))
+            .WillOnce(Return(v1));
         kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
         return core;
       }));
@@ -106,7 +107,8 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   EXPECT_CALL(*core_provider, make(_, _))
       .WillOnce(Invoke([&v2](auto &, auto &code) {
         auto core = std::make_unique<kagome::runtime::CoreMock>();
-        EXPECT_CALL(*core, version()).WillOnce(Return(v2));
+        EXPECT_CALL(*core, version(kagome::primitives::BlockHash{}))
+            .WillOnce(Return(v2));
         kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
         return core;
       }));
