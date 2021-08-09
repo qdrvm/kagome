@@ -18,7 +18,7 @@ namespace kagome::consensus {
                       const Threshold &,
                       const crypto::Sr25519Keypair &));
 
-    MOCK_CONST_METHOD0(epoch, EpochDescriptor());
+    MOCK_CONST_METHOD0(getEpoch, EpochDescriptor());
 
     MOCK_CONST_METHOD1(
         getSlotLeadership,

@@ -241,7 +241,7 @@ ACTION_P(CheckBlockHeader, expected_block_header) {
 TEST_F(BabeTest, Success) {
   Randomness randomness;
   EXPECT_CALL(*lottery_, changeEpoch(epoch_, randomness, _, *keypair_)).Times(1);
-  EXPECT_CALL(*lottery_, epoch()).Times(2)
+  EXPECT_CALL(*lottery_, getEpoch()).Times(2)
       .WillOnce(Return(EpochDescriptor{0, std::numeric_limits<uint64_t>::max()}))
       .WillOnce(Return(epoch_));
   EXPECT_CALL(*lottery_, getSlotLeadership(_)).Times(2)
