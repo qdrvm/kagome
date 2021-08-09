@@ -189,14 +189,11 @@ class ExecutorTest : public testing::Test {
 };
 
 TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
-  EXPECT_CALL(*storage_, getRootHashMock())
-      .WillOnce(Return("state_hash0"_hash256));
   Executor executor{header_repo_, env_factory_};
   kagome::primitives::BlockInfo block_info1{42, "block_hash1"_hash256};
   kagome::primitives::BlockInfo block_info2{43, "block_hash2"_hash256};
   kagome::primitives::BlockInfo block_info3{44, "block_hash3"_hash256};
 
-  expectHeader(block_info1.number, block_info1.hash, "state_hash1"_hash256);
   preparePersistentCall(
       block_info1, "state_hash1"_hash256, 2, 3, 5, "state_hash2"_hash256);
   EXPECT_OUTCOME_TRUE(res,
@@ -225,7 +222,6 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
                           block_info1, "state_hash3"_hash256, "addTwo", 7, 10));
   ASSERT_EQ(res4, 17);
 
-  expectHeader(block_info2.number, block_info2.hash, "state_hash4"_hash256);
   preparePersistentCall(
       block_info2, "state_hash4"_hash256, -5, 5, 0, "state_hash5"_hash256);
   EXPECT_OUTCOME_TRUE(

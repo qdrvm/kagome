@@ -19,6 +19,7 @@
 #include "testutil/prepare_loggers.hpp"
 
 using ::testing::_;
+using ::testing::Invoke;
 using ::testing::Return;
 using ::testing::Test;
 
@@ -64,18 +65,14 @@ class ProposerTest : public ::testing::Test {
   void SetUp() override {
     ASSERT_TRUE(inherent_data_.putData(InherentIdentifier{}, Buffer{1, 2, 3}));
 
-    block_builder_ = std::make_unique<BlockBuilderMock>();
-    EXPECT_CALL(*block_builder_factory_,
-                createProxy(expected_block_id_, inherent_digests_))
-        .WillOnce(Return(block_builder_.get()));
-
-    EXPECT_CALL(*block_builder_api_mock_,
-                inherent_extrinsics(
-                    kagome::primitives::BlockInfo{expected_number_ - 1,
-                                                  "parent_block_hash"_hash256},
-                    "storage_state"_hash256,
-                    inherent_data_))
+    block_builder_ = new BlockBuilderMock;
+    EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
         .WillOnce(Return(inherent_xts));
+    EXPECT_CALL(*block_builder_factory_,
+                create(expected_block_id_, inherent_digests_))
+        .WillOnce(Invoke([this](auto &, auto &) {
+          return std::unique_ptr<BlockBuilderMock>{block_builder_};
+        }));
   }
 
  protected:
@@ -83,18 +80,15 @@ class ProposerTest : public ::testing::Test {
       std::make_shared<BlockBuilderFactoryMock>();
   std::shared_ptr<TransactionPoolMock> transaction_pool_ =
       std::make_shared<TransactionPoolMock>();
-  std::shared_ptr<BlockBuilderApiMock> block_builder_api_mock_ =
-      std::make_shared<BlockBuilderApiMock>();
   std::shared_ptr<ExtrinsicSubscriptionEngine> extrinsic_sub_engine_ =
       std::make_shared<ExtrinsicSubscriptionEngine>();
   std::shared_ptr<ExtrinsicEventKeyRepository> extrinsic_event_key_repo_ =
       std::make_shared<ExtrinsicEventKeyRepository>();
 
-  std::unique_ptr<BlockBuilderMock> block_builder_;
+  BlockBuilderMock *block_builder_;
 
   ProposerImpl proposer_{block_builder_factory_,
                          transaction_pool_,
-                         block_builder_api_mock_,
                          extrinsic_sub_engine_,
                          extrinsic_event_key_repo_};
 
@@ -121,9 +115,6 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
   EXPECT_CALL(*block_builder_, pushExtrinsic(_))
       .WillOnce(Return(outcome::success()))
       .WillOnce(Return(outcome::success()));
-
-  EXPECT_CALL(*block_builder_, getInherentExtrinsics(inherent_data_))
-  .WillOnce(Return(inherent_xts));
 
   // getReadyTransaction will return vector with single transaction
   std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{

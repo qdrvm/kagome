@@ -12,19 +12,16 @@ namespace kagome::authorship {
   ProposerImpl::ProposerImpl(
       std::shared_ptr<BlockBuilderFactory> block_builder_factory,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
-      std::shared_ptr<runtime::BlockBuilder> r_block_builder,
       std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
           ext_sub_engine,
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo)
       : block_builder_factory_{std::move(block_builder_factory)},
         transaction_pool_{std::move(transaction_pool)},
-        r_block_builder_{std::move(r_block_builder)},
         ext_sub_engine_{std::move(ext_sub_engine)},
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)} {
     BOOST_ASSERT(block_builder_factory_);
     BOOST_ASSERT(transaction_pool_);
-    BOOST_ASSERT(r_block_builder_);
     BOOST_ASSERT(ext_sub_engine_);
     BOOST_ASSERT(extrinsic_event_key_repo_);
   }
