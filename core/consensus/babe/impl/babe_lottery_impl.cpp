@@ -41,7 +41,7 @@ namespace kagome::consensus {
     keypair_ = keypair;
   }
 
-  EpochDescriptor BabeLotteryImpl::epoch() const {
+  EpochDescriptor BabeLotteryImpl::getEpoch() const {
     return epoch_;
   }
 

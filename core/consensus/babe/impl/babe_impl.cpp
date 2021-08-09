@@ -160,6 +160,9 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
+    if (1 == announce.header.number) {
+      current_state_ = State::SYNCHRONIZED;
+    }
     switch (current_state_) {
       case State::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
@@ -264,15 +267,15 @@ namespace kagome::consensus::babe {
   void BabeImpl::processSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    if (not(lottery_->epoch() == current_epoch_)) {
-      auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+    if (lottery_->getEpoch() != current_epoch_) {
+      const auto &[_, best_block_hash] = block_tree_->deepestLeaf();
 
       auto epoch_res = block_tree_->getEpochDescriptor(
           current_epoch_.epoch_number, best_block_hash);
       BOOST_ASSERT(epoch_res.has_value());
       const auto &epoch = epoch_res.value();
 
-      getEpochLeadership(current_epoch_, epoch.authorities, epoch.randomness);
+      changeLotteryEpoch(current_epoch_, epoch.authorities, epoch.randomness);
     }
 
     auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
@@ -477,7 +480,7 @@ namespace kagome::consensus::babe {
         now);
   }
 
-  void BabeImpl::getEpochLeadership(
+  void BabeImpl::changeLotteryEpoch(
       const EpochDescriptor &epoch,
       const primitives::AuthorityList &authorities,
       const Randomness &randomness) const {
@@ -534,23 +537,28 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    const auto &babe_digests_res = getBabeDigests(new_header);
-    if (not babe_digests_res) {
-      SL_ERROR(log_,
-               "Could not get digests: {}",
-               babe_digests_res.error().message());
-    }
-
-    const auto &[_, babe_header] = babe_digests_res.value();
-
-    EpochDescriptor epoch;
-    const auto last_known_epoch = babe_util_->getLastEpoch().value();
-    epoch = prepareFirstEpoch(last_known_epoch, babe_header.slot_number + 1);
-
     // runEpoch starts ticker
     if (not ticker_->isStarted()) {
-      runEpoch(epoch);
-      on_synchronized_();
+      const auto &babe_digests_res = getBabeDigests(new_header);
+      if (not babe_digests_res) {
+        SL_ERROR(log_,
+                 "Could not get digests: {}",
+                 babe_digests_res.error().message());
+      }
+
+      const auto &[_, babe_header] = babe_digests_res.value();
+
+      EpochDescriptor epoch;
+      auto last_known_epoch_res = babe_util_->getLastEpoch();
+      if (last_known_epoch_res.has_value()) {
+        epoch = prepareFirstEpoch(last_known_epoch_res.value(),
+                                  babe_header.slot_number + 1);
+        runEpoch(epoch);
+        on_synchronized_();
+      } else {
+        SL_ERROR(log_, "Could not get last known epoch: {}",
+                 last_known_epoch_res.error().message());
+      }
     }
   }
 }  // namespace kagome::consensus::babe

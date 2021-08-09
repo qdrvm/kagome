@@ -31,19 +31,28 @@ namespace kagome::consensus {
     virtual ~BabeLottery() = default;
 
     /**
-     * Compute leadership for all slots in the given epoch
+     * Set new epoch and corresponding randomness, threshold and keypair values
      * @param epoch is an information about epoch where we calculate leadership
+     * @param randomness is an epoch random byte sequence
      * @param threshold is a maximum value that is considered valid by vrf
-     * @return vector of outputs; none means the peer was not chosen as a leader
-     * for that slot, value contains VRF value and proof
+     * @param keypair is a current babe sign pair
      */
     virtual void changeEpoch(const EpochDescriptor &epoch,
                              const Randomness &randomness,
                              const Threshold &threshold,
                              const crypto::Sr25519Keypair &keypair) = 0;
 
-    virtual EpochDescriptor epoch() const = 0;
+    /**
+     * Return lottery current epoch
+     */
+    virtual EpochDescriptor getEpoch() const = 0;
 
+    /**
+     * Compute leadership for the slot
+     * @param i is a slot number
+     * @return none means the peer was not chosen as a leader
+     * for that slot, value contains VRF value and proof
+     */
     virtual boost::optional<crypto::VRFOutput> getSlotLeadership(
         primitives::BabeSlotNumber i) const = 0;
 

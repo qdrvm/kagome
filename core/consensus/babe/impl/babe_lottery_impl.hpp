@@ -28,7 +28,7 @@ namespace kagome::consensus {
                      const Threshold &threshold,
                      const crypto::Sr25519Keypair &keypair) override;
 
-    EpochDescriptor epoch() const override;
+    EpochDescriptor getEpoch() const override;
 
     boost::optional<crypto::VRFOutput> getSlotLeadership(
         primitives::BabeSlotNumber i) const override;

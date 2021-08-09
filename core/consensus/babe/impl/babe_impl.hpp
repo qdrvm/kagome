@@ -108,7 +108,7 @@ namespace kagome::consensus::babe {
      */
     void startNextEpoch();
 
-    void getEpochLeadership(
+    void changeLotteryEpoch(
         const EpochDescriptor &epoch,
         const primitives::AuthorityList &authorities,
         const Randomness &randomness) const;
