@@ -145,9 +145,14 @@ namespace kagome::runtime::binaryen {
 
   const static wasm::Name ext_crypto_secp256k1_ecdsa_recover_version_1 =
       "ext_crypto_secp256k1_ecdsa_recover_version_1";
+  const static wasm::Name ext_crypto_secp256k1_ecdsa_recover_version_2 =
+      "ext_crypto_secp256k1_ecdsa_recover_version_2";
   const static wasm::Name
       ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 =
           "ext_crypto_secp256k1_ecdsa_recover_compressed_version_1";
+  const static wasm::Name
+      ext_crypto_secp256k1_ecdsa_recover_compressed_version_2 =
+          "ext_crypto_secp256k1_ecdsa_recover_compressed_version_2";
 
   const static wasm::Name ext_trie_blake2_256_root_version_1 =
       "ext_trie_blake2_256_root_version_1";
@@ -504,8 +509,18 @@ namespace kagome::runtime::binaryen {
         return {wasm::Literal(res)};
       }
 
+      /**
+       *  secp256k1 recovery algorithms version_1 and version_2 are not
+       * different for our bitcoin secp256k1 library. They have difference only
+       * for rust implementation and it is use of `parse_standard` instead of
+       * `parse_overflowing`. In comment, @see
+       * https://github.com/paritytech/libsecp256k1/blob/d2ca104ea2cbda8f0708a6d80eb1da63e0cc0e69/src/lib.rs#L461
+       * it is said that `parse_overflowing` is implementation specific and
+       * won't be used in any other standard libraries
+       */
       /// ext_crypto_secp256k1_ecdsa_recover_version_1
-      if (import->base == ext_crypto_secp256k1_ecdsa_recover_version_1) {
+      if (import->base == ext_crypto_secp256k1_ecdsa_recover_version_1
+          || import->base == ext_crypto_secp256k1_ecdsa_recover_version_2) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = host_api_->ext_crypto_secp256k1_ecdsa_recover_v1(
             arguments.at(0).geti32(), arguments.at(1).geti32());
@@ -514,7 +529,9 @@ namespace kagome::runtime::binaryen {
 
       /// ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
       if (import->base
-          == ext_crypto_secp256k1_ecdsa_recover_compressed_version_1) {
+              == ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
+          || import->base
+                 == ext_crypto_secp256k1_ecdsa_recover_compressed_version_2) {
         checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = host_api_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
             arguments.at(0).geti32(), arguments.at(1).geti32());
