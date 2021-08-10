@@ -67,9 +67,10 @@ namespace kagome::authorship {
                    "be produced.");
           return inserted_res.error();
         } else {
-          SL_WARN(logger_,
+          SL_ERROR(logger_,
                   "Inherent extrinsic returned unexpected error: {}. Dropping.",
                   inserted_res.error().message());
+          return inserted_res.error();
         }
       }
     }
