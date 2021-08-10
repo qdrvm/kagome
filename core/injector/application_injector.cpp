@@ -699,7 +699,7 @@ namespace {
         injector.template create<libp2p::Host &>(),
         injector.template create<sptr<libp2p::protocol::Identify>>(),
         injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>(),
-        injector.template create<sptr<libp2p::protocol::Scheduler>>(),
+        injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<clock::SteadyClock>>(),
@@ -768,7 +768,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1198,7 +1198,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
