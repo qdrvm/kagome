@@ -27,6 +27,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
       return "VRF value and output are invalid";
     case E::TWO_BLOCKS_IN_SLOT:
       return "peer tried to distribute several blocks in one slot";
+    case E::SECONDARY_SLOT_ASSIGNMENTS_DISABLED:
+      return "Secondary slot assignments are disabled for the current epoch.";
   }
   return "unknown error";
 }
@@ -67,6 +69,12 @@ namespace kagome::consensus {
     // get BABE-specific digests, which must be inside of this block
     OUTCOME_TRY(babe_digests, getBabeDigests(header));
     const auto &[seal, babe_header] = babe_digests;
+
+    // error if not primary slot
+    if (not babe_header.needVRFWithThresholdCheck()) {
+      SL_WARN(log_, "Secondary slots assignments disabled");
+      return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
+    }
 
     // signature in seal of the header must be valid
     if (!verifySignature(header,

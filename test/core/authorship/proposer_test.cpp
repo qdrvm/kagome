@@ -48,6 +48,9 @@ namespace kagome::primitives {
                            const detail::DigestItemCommon &dic) {
     return s;
   }
+  std::ostream &operator<<(std::ostream &s, const ChangesTrieSignal &) {
+    return s;
+  }
 }  // namespace kagome::primitives
 
 class ProposerTest : public ::testing::Test {

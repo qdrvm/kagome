@@ -9,7 +9,7 @@
 #include <cstdint>
 
 namespace kagome::storage::changes_trie {
-
+  /// https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/core/src/changes_trie.rs#L28
   struct ChangesTrieConfig {
     /**
      * The interval (in blocks) at which
@@ -17,7 +17,7 @@ namespace kagome::storage::changes_trie {
      * less or equal to 1.
      */
     uint32_t digest_interval;
-    
+
     /**
      * Maximal number of levels in the
      * hierarchy. 0 means that block mappings are not created at
@@ -27,6 +27,15 @@ namespace kagome::storage::changes_trie {
      * each level in 1 to digest_levels.
      */
     uint32_t digest_levels;
+
+    bool operator==(const ChangesTrieConfig &rhs) const {
+      return digest_interval == rhs.digest_interval
+             and digest_levels == rhs.digest_levels;
+    }
+
+    bool operator!=(const ChangesTrieConfig &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   /**
@@ -40,8 +49,7 @@ namespace kagome::storage::changes_trie {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const ChangesTrieConfig &config) {
-    s << config.digest_interval << config.digest_levels;
-    return s;
+    return s << config.digest_interval << config.digest_levels;
   }
 
   /**
@@ -55,8 +63,7 @@ namespace kagome::storage::changes_trie {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, ChangesTrieConfig &config) {
-    s >> config.digest_interval >> config.digest_levels;
-    return s;
+    return s >> config.digest_interval >> config.digest_levels;
   }
 }  // namespace kagome::storage::changes_trie
 
