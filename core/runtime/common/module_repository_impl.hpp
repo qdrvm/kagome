@@ -10,6 +10,8 @@
 
 #include <unordered_map>
 
+#include "log/logger.hpp"
+
 namespace kagome::runtime {
 
   class RuntimeUpgradeTracker;

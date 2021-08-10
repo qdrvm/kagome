@@ -22,14 +22,27 @@ namespace kagome::runtime {
   RuntimeUpgradeTrackerImpl::getLastCodeUpdateState(
       const primitives::BlockInfo &block) const {
     // TODO(Harrm): check if this can lead to incorrect behaviour
+    // if the block tree is not yet initialized, means we can only access the
+    // genesis block
     if (block_tree_ == nullptr) {
       OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
+      logger_->debug("Pick runtime state at genesis for block #{} hash {}",
+                     block.number,
+                     block.hash.toHex());
       return genesis.state_root;
     }
 
+    // if there are no known blocks with runtime upgrades (means
+    // subscribeToBlockchainEvents hasn't been called yet, because genesis is
+    // always a runtime upgrade), we just fall back to returning the state of
+    // the current block
     if (blocks_with_runtime_upgrade_.empty()) {
-      OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.hash));
-      return parent.state_root;
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(block.hash));
+      logger_->debug(
+          "Pick runtime state at block #{} hash {} for the same block",
+          block.number,
+          block.hash.toHex());
+      return header.state_root;
     }
 
     auto block_number = block.number;
@@ -45,6 +58,10 @@ namespace kagome::runtime {
       // state
       // TODO(Harrm): fetch code updates from block tree on initialization
       OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
+      logger_->debug(
+          "Pick runtime state at block #{} hash {} for the same block",
+          block.number,
+          block.hash.toHex());
       return block_header.state_root;
     }
     latest_state_update_it--;
@@ -63,12 +80,23 @@ namespace kagome::runtime {
                     header_repo_->getBlockHeader(latest_state_update_it->hash));
         SL_TRACE_FUNC_CALL(
             logger_, predecessor_header.state_root, block.hash, block.number);
+        logger_->debug(
+            "Pick runtime state at block #{} hash {} for block #{} hash {}",
+            predecessor_header.number,
+            latest_state_update_it->hash,
+            block.number,
+            block.hash.toHex());
         return predecessor_header.state_root;
       }
     }
-    BOOST_ASSERT(!"Unreachable, there should always be a predecessor with runtime upgrade");
-
-    BOOST_UNREACHABLE_RETURN({})
+    // if this is an orphan block for some reason, just return its state_root
+    // (there is no other choice)
+    OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
+    logger_->warn("Block #{} hash {}, child of block with hash {} is orphan",
+                  block.number,
+                  block.hash.toHex(),
+                  block_header.parent_hash.toHex());
+    return block_header.state_root;
   }
 
   void RuntimeUpgradeTrackerImpl::subscribeToBlockchainEvents(

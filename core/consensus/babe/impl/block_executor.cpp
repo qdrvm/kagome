@@ -325,7 +325,7 @@ namespace kagome::consensus {
     // block should be applied without last digest which contains the seal
     block_without_seal_digest.header.digest.pop_back();
 
-    auto parent = block_tree_->getBlockHeader(block.header.number - 1).value();
+    auto parent = block_tree_->getBlockHeader(block.header.parent_hash).value();
 
     auto exec_start = std::chrono::high_resolution_clock::now();
     // apply block
@@ -334,7 +334,7 @@ namespace kagome::consensus {
              block_hash,
              block.header.state_root,
              parent.number,
-             block_hash,
+             block.header.parent_hash,
              parent.state_root
     );
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));

@@ -33,7 +33,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(parent.number == block.header.number - 1);
     OUTCOME_TRY(
         changes_tracker_->onBlockChange(block.header.parent_hash,
-                                        parent.number));  // parent's number
+                                        parent.number));
     const auto res = executor_->persistentCallAt<void>(
         block.header.parent_hash, "Core_execute_block", block);
     if (res) return outcome::success();

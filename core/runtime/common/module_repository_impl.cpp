@@ -6,8 +6,8 @@
 #include "module_repository_impl.hpp"
 
 #include "runtime/module.hpp"
-#include "runtime/module_instance.hpp"
 #include "runtime/module_factory.hpp"
+#include "runtime/module_instance.hpp"
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
 
