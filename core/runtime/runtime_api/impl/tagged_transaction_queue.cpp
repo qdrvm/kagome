@@ -29,7 +29,7 @@ namespace kagome::runtime {
     auto hash = block_tree_->deepestLeaf().hash;
     SL_TRACE(logger_, "Validate transaction called at {}", hash.toHex());
     return executor_->callAt<primitives::TransactionValidity>(
-        hash, "TaggedTransactionQueue_validate_transaction", source, ext);
+        hash, "TaggedTransactionQueue_validate_transaction", source, ext, hash);
   }
 
 }  // namespace kagome::runtime
