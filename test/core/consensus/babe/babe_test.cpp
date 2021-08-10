@@ -4,8 +4,8 @@
  */
 
 #include <gtest/gtest.h>
-
 #include <boost/asio/io_context.hpp>
+
 #include <chrono>
 #include <memory>
 
@@ -65,6 +65,9 @@ Hash256 createHash(uint8_t byte) {
 namespace kagome::primitives {
   std::ostream &operator<<(std::ostream &s,
                            const detail::DigestItemCommon &dic) {
+    return s;
+  }
+  std::ostream &operator<<(std::ostream &s, const ChangesTrieSignal &) {
     return s;
   }
 }  // namespace kagome::primitives
@@ -203,7 +206,8 @@ class BabeTest : public testing::Test {
       {0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33,
        0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22,
        0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44}};
-  BabeLottery::SlotsLeadership leadership_{boost::none, leader_vrf_output_};
+  std::array<boost::optional<VRFOutput>, 2> leadership_{boost::none,
+                                                        leader_vrf_output_};
 
   BlockHash best_block_hash_{{0x41, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
                               0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x54,
@@ -239,8 +243,13 @@ ACTION_P(CheckBlockHeader, expected_block_header) {
  */
 TEST_F(BabeTest, Success) {
   Randomness randomness;
-  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, randomness, _, *keypair_))
-      .WillOnce(Return(leadership_));
+  EXPECT_CALL(*lottery_, changeEpoch(epoch_, randomness, _, *keypair_)).Times(1);
+  EXPECT_CALL(*lottery_, getEpoch()).Times(2)
+      .WillOnce(Return(EpochDescriptor{0, std::numeric_limits<uint64_t>::max()}))
+      .WillOnce(Return(epoch_));
+  EXPECT_CALL(*lottery_, getSlotLeadership(_)).Times(2)
+      .WillOnce(Return(leadership_[0]))
+      .WillOnce(Return(leadership_[1]));
 
   EXPECT_CALL(*clock_, now()).Times(1);
 

@@ -89,8 +89,12 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   }
 
   // WHEN
-  auto leadership = lottery_.slotsLeadership(
-      current_epoch_, randomness_, threshold_, keypair_);
+  lottery_.changeEpoch(current_epoch_, randomness_, threshold_, keypair_);
+
+  std::array<boost::optional<VRFOutput>, 3> leadership = {
+      lottery_.getSlotLeadership(0),
+      lottery_.getSlotLeadership(1),
+      lottery_.getSlotLeadership(2)};
 
   // THEN
   ASSERT_TRUE(leadership[0]);

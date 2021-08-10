@@ -56,7 +56,8 @@ namespace kagome::consensus {
       NO_AUTHORITIES = 1,
       INVALID_SIGNATURE,
       INVALID_VRF,
-      TWO_BLOCKS_IN_SLOT
+      TWO_BLOCKS_IN_SLOT,
+      SECONDARY_SLOT_ASSIGNMENTS_DISABLED
     };
 
     outcome::result<void> validateHeader(

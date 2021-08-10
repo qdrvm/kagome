@@ -23,11 +23,15 @@ namespace kagome::consensus {
         std::shared_ptr<primitives::BabeConfiguration> configuration,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    SlotsLeadership slotsLeadership(
-        const EpochDescriptor &epoch,
-        const Randomness &randomness,
-        const Threshold &threshold,
-        const crypto::Sr25519Keypair &keypair) const override;
+    void changeEpoch(const EpochDescriptor &epoch,
+                     const Randomness &randomness,
+                     const Threshold &threshold,
+                     const crypto::Sr25519Keypair &keypair) override;
+
+    EpochDescriptor getEpoch() const override;
+
+    boost::optional<crypto::VRFOutput> getSlotLeadership(
+        primitives::BabeSlotNumber i) const override;
 
     Randomness computeRandomness(const Randomness &last_epoch_randomness,
                                  EpochNumber last_epoch_number) override;
@@ -42,6 +46,11 @@ namespace kagome::consensus {
     /// also known as "rho" (greek letter) in the spec
     std::vector<crypto::VRFPreOutput> last_epoch_vrf_values_;
     log::Logger logger_;
+
+    EpochDescriptor epoch_;
+    Randomness randomness_;
+    Threshold threshold_;
+    crypto::Sr25519Keypair keypair_;
   };
 }  // namespace kagome::consensus
 

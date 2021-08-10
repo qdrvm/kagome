@@ -5,7 +5,6 @@
 
 #include "consensus/babe/impl/babe_digests_util.hpp"
 
-#include "consensus/babe/types/consensus_log.hpp"
 #include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, DigestError, e) {
@@ -66,16 +65,16 @@ namespace kagome::consensus {
           [&epoch_digest](const primitives::Consensus &consensus) {
             if (consensus.consensus_engine_id == primitives::kBabeEngineId) {
               auto consensus_log_res =
-                  scale::decode<ConsensusLog>(consensus.data);
+                scale::decode<primitives::Consensus::BabeDigest>(consensus.data);
               if (not consensus_log_res) {
                 return;
               }
 
               visit_in_place(
                   consensus_log_res.value(),
-                  [&epoch_digest](const EpochDigest &next_epoch) {
+                  [&epoch_digest](const primitives::NextEpochData &next_epoch) {
                     if (not epoch_digest) {
-                      epoch_digest = next_epoch;
+                      epoch_digest = static_cast<EpochDigest>(next_epoch);
                     } else {
                       epoch_digest = DigestError::MULTIPLE_EPOCH_CHANGE_DIGESTS;
                     }

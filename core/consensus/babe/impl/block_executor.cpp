@@ -85,8 +85,6 @@ namespace kagome::consensus {
                     header.number,
                     block_hash.toHex());
 
-      auto [_, babe_header] = getBabeDigests(header).value();
-
       if (not block_tree_->getBlockHeader(header.parent_hash)) {
         if (sync_state_ == kReadyState) {
           /// We don't have past block, it means we have a gap and must sync
@@ -130,7 +128,6 @@ namespace kagome::consensus {
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
     BOOST_ASSERT(new_header.number >= last_number);
-    auto [_, babe_header] = getBabeDigests(new_header).value();
     return requestBlocks(last_hash, new_block_hash, peer_id, std::move(next));
   }
 
