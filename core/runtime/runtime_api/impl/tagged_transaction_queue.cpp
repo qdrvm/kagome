@@ -27,7 +27,7 @@ namespace kagome::runtime {
       primitives::TransactionSource source, const primitives::Extrinsic &ext) {
     BOOST_ASSERT(block_tree_);
     auto hash = block_tree_->deepestLeaf().hash;
-    logger_->trace("Validate transaction called at {}", hash.toHex());
+    SL_TRACE(logger_, "Validate transaction called at {}", hash.toHex());
     return executor_->callAt<primitives::TransactionValidity>(
         hash, "TaggedTransactionQueue_validate_transaction", source, ext);
   }

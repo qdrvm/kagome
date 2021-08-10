@@ -58,7 +58,7 @@ namespace kagome::runtime {
         std::string_view name,
         Args &&...args) {
       SL_DEBUG(logger_,
-               "Runtime calls {} persistently at state: #{} hash: {} "
+               "Execute {} persistently at state: #{} hash: {} "
                "state: {}",
                name,
                block_info.number,
@@ -115,7 +115,7 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       SL_DEBUG(logger_,
-               "Runtime calls {} at state: #{} hash: {} state: {}",
+               "Execute {} at state: #{} hash: {} state: {}",
                name,
                block_info.number,
                block_info.hash.toHex(),
@@ -135,7 +135,7 @@ namespace kagome::runtime {
                                    Args &&...args) {
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
       SL_DEBUG(logger_,
-               "Runtime calls {} at #{} hash: {}, state: {}",
+               "Execute {} at #{} hash: {}, state: {}",
                name,
                header.number,
                block_hash.toHex(),

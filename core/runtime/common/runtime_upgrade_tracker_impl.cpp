@@ -68,7 +68,7 @@ namespace kagome::runtime {
     }
     BOOST_ASSERT(!"Unreachable, there should always be a predecessor with runtime upgrade");
 
-  BOOST_UNREACHABLE_RETURN({})
+    BOOST_UNREACHABLE_RETURN({})
   }
 
   void RuntimeUpgradeTrackerImpl::subscribeToBlockchainEvents(
@@ -118,4 +118,4 @@ namespace kagome::runtime {
                                               std::move(deepest_block.hash));
   }
 
-}  // namespace kagome::runtime::wavm
+}  // namespace kagome::runtime
