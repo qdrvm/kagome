@@ -487,6 +487,7 @@ namespace kagome::consensus::grandpa {
     });
 
     // get authorities
+    // TODO (xdimon) reduce number of call to this runtime function
     const auto &weighted_authorities_res =
         grandpa_api_->authorities(primitives::BlockId(blockInfo.number));
     if (!weighted_authorities_res.has_value()) {
@@ -542,15 +543,7 @@ namespace kagome::consensus::grandpa {
       justification.items.push_back(commit);
     }
 
-    if (not std::all_of(fin.message.precommits.begin(),
-                        fin.message.precommits.end(),
-                        [&fin](const auto &el) {
-                          return el.hash == fin.message.target_hash
-                                 && el.number == fin.message.target_number;
-                        })) {
-      logger_->warn("Block does not correspond to the votes");
-      return;
-    }
+    // TODO (xdimon) create check for votes to block correspondence
 
     if (not is_ready_) {
       // grandpa not initialized, we just finalize block then

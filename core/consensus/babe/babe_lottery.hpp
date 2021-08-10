@@ -10,6 +10,7 @@
 
 #include "consensus/babe/types/epoch_descriptor.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "primitives/babe_configuration.hpp"
 
 namespace kagome::consensus {
   /**
@@ -29,20 +30,31 @@ namespace kagome::consensus {
   struct BabeLottery {
     virtual ~BabeLottery() = default;
 
-    using SlotsLeadership = std::vector<boost::optional<crypto::VRFOutput>>;
+    /**
+     * Set new epoch and corresponding randomness, threshold and keypair values
+     * @param epoch is an information about epoch where we calculate leadership
+     * @param randomness is an epoch random byte sequence
+     * @param threshold is a maximum value that is considered valid by vrf
+     * @param keypair is a current babe sign pair
+     */
+    virtual void changeEpoch(const EpochDescriptor &epoch,
+                             const Randomness &randomness,
+                             const Threshold &threshold,
+                             const crypto::Sr25519Keypair &keypair) = 0;
 
     /**
-     * Compute leadership for all slots in the given epoch
-     * @param epoch is an information about epoch where we calculate leadership
-     * @param threshold is a maximum value that is considered valid by vrf
-     * @return vector of outputs; none means the peer was not chosen as a leader
+     * Return lottery current epoch
+     */
+    virtual EpochDescriptor getEpoch() const = 0;
+
+    /**
+     * Compute leadership for the slot
+     * @param i is a slot number
+     * @return none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
      */
-    virtual SlotsLeadership slotsLeadership(
-        const EpochDescriptor &epoch,
-        const Randomness &randomness,
-        const Threshold &threshold,
-        const crypto::Sr25519Keypair &keypair) const = 0;
+    virtual boost::optional<crypto::VRFOutput> getSlotLeadership(
+        primitives::BabeSlotNumber i) const = 0;
 
     /**
      * Compute randomness for the next epoch
