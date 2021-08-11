@@ -32,7 +32,7 @@ namespace kagome::runtime::binaryen {
    public:
     explicit RuntimeExternalInterface(std::shared_ptr<host_api::HostApi> host_api);
 
-    wasm::Literals callImport(wasm::Function *import,
+    wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
     wasm::ShellExternalInterface::Memory* getMemory();
