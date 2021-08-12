@@ -57,6 +57,13 @@ void FillSmallTree(PolkadotTrie &trie) {
   }
 }
 
+struct ClearPrefixData {
+  std::vector<std::pair<Buffer, Buffer>> data;
+  Buffer prefix;
+  size_t limit;
+  std::vector<std::pair<Buffer, Buffer>> res;
+};
+
 /**
  * Runs a sequence of commands provided as a test parameter and checks the
  * result of their execution

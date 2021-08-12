@@ -24,6 +24,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
 
 namespace kagome::storage::trie {
 
+  uint32_t getCommonPrefixLength(const KeyNibbles &, const KeyNibbles &);
+
   PolkadotTrieImpl::PolkadotTrieImpl(ChildRetrieveFunctor f)
       : retrieve_child_{std::move(f)} {
     BOOST_ASSERT(retrieve_child_);
@@ -60,18 +62,18 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
+  outcome::result<size_t> detachNode(PolkadotTrie::NodePtr &,
+                                     const KeyNibbles &,
+                                     const PolkadotTrie::OnDetachCallback &);
+
   outcome::result<std::tuple<bool, uint32_t>> PolkadotTrieImpl::clearPrefix(
       const common::Buffer &prefix,
       boost::optional<uint64_t> limit,
       const OnDetachCallback &callback) {
-    if (not root_) {
-      return outcome::success(std::make_tuple(true, 0ULL));
-    }
     auto key_nibbles = PolkadotCodec::keyToNibbles(prefix);
-    OUTCOME_TRY(tup, detachNode(root_, key_nibbles, callback));
-    root_ = std::get<0>(tup);
+    OUTCOME_TRY(size, detachNode(root_, key_nibbles, callback));
 
-    return outcome::success(std::make_tuple(true, std::get<1>(tup)));
+    return outcome::success(std::make_tuple(true, size));
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::insert(
@@ -279,11 +281,11 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieImpl::remove(const common::Buffer &key) {
     if (root_) {
       auto key_nibbles = PolkadotCodec::keyToNibbles(key);
-      // delete node will fetch nodes that it needs from the storage (the nodes
-      // typically are a path in the trie) and work on them in memory
+      // delete node will fetch nodes that it needs from the storage (the
+      // nodes typically are a path in the trie) and work on them in memory
       OUTCOME_TRY(n, deleteNode(root_, key_nibbles));
-      // afterwards, the nodes are written back to the storage and the new trie
-      // root hash is obtained
+      // afterwards, the nodes are written back to the storage and the new
+      // trie root hash is obtained
       root_ = n;
     }
     return outcome::success();
@@ -367,58 +369,52 @@ namespace kagome::storage::trie {
     return newRoot;
   }
 
-  outcome::result<std::tuple<PolkadotTrie::NodePtr, size_t>>
-  PolkadotTrieImpl::detachNode(const NodePtr &parent,
-                               const KeyNibbles &prefix_nibbles,
-                               const OnDetachCallback &callback) {
+  outcome::result<size_t> notifyIsDetached(
+      const PolkadotTrie::NodePtr &, const PolkadotTrie::OnDetachCallback &);
+
+  outcome::result<size_t> detachNode(
+      PolkadotTrie::NodePtr &parent,
+      const KeyNibbles &prefix,
+      const PolkadotTrie::OnDetachCallback &callback) {
     size_t count = 0;
+
     if (parent == nullptr) {
-      return {nullptr, count};
+      return count;
     }
-    if (parent->key_nibbles.size() >= prefix_nibbles.size()) {
+
+    if (parent->key_nibbles.size() >= prefix.size()) {
       // if this is the node to be detached -- detach it
-      bool prefix_equal = std::equal(prefix_nibbles.begin(),
-                                     prefix_nibbles.end(),
-                                     parent->key_nibbles.begin());
-      if (prefix_equal) {
-        return {nullptr, count};
+      if (std::equal(
+              prefix.begin(), prefix.end(), parent->key_nibbles.begin())) {
+        OUTCOME_TRY(size, notifyIsDetached(parent, callback));
+        parent.reset();
+        return count + size;
       }
-      return {parent, count};
+      return count;
     }
+
     // if parent's key is smaller and it is not a prefix of the prefix, don't
     // change anything
-    bool prefix_equal = std::equal(parent->key_nibbles.begin(),
-                                   parent->key_nibbles.end(),
-                                   prefix_nibbles.begin());
-    if (not prefix_equal) {
-      return {parent, count};
+    if (not std::equal(parent->key_nibbles.begin(),
+                       parent->key_nibbles.end(),
+                       prefix.begin())) {
+      return count;
     }
-    using T = PolkadotNode::Type;
-    if (parent->getTrieType() == T::BranchWithValue
-        or parent->getTrieType() == T::BranchEmptyValue) {
-      auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
 
+    if (parent->isBranch()) {
       const auto length = parent->key_nibbles.size();
-      BOOST_ASSERT(
-          length == getCommonPrefixLength(parent->key_nibbles, prefix_nibbles));
+      auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
+      auto& child = branch->children.at(prefix[length]);
 
-      OUTCOME_TRY(child, retrieveChild(branch, prefix_nibbles[length]));
-      if (child == nullptr) {
-        return {parent, count};
-      }
-      OUTCOME_TRY(
-          tup, detachNode(child, prefix_nibbles.subspan(length + 1), callback));
-      auto to_detach = branch->children.at(prefix_nibbles[length]);
-      branch->children.at(prefix_nibbles[length]) = std::get<0>(tup);
-
-      OUTCOME_TRY(size, notifyIsDetached(to_detach, callback));
-      return {branch, count + size};
+      return detachNode(child, prefix.subspan(length + 1), callback);
     }
-    return {parent, count};
+
+    return count;
   }
 
-  outcome::result<size_t> PolkadotTrieImpl::notifyIsDetached(
-      const PolkadotTrie::NodePtr &node, const OnDetachCallback &callback) {
+  outcome::result<size_t> notifyIsDetached(
+      const PolkadotTrie::NodePtr &node,
+      const PolkadotTrie::OnDetachCallback &callback) {
     size_t count = 0;
     if (node) {
       if (node->isBranch()) {
@@ -441,11 +437,11 @@ namespace kagome::storage::trie {
     return retrieve_child_(std::move(parent), idx);
   }
 
-  uint32_t PolkadotTrieImpl::getCommonPrefixLength(
-      const KeyNibbles &first, const KeyNibbles &second) const {
-    auto &&[it1, it2] =
+  uint32_t getCommonPrefixLength(const KeyNibbles &first,
+                                 const KeyNibbles &second) {
+    auto &&[it, _] =
         std::mismatch(first.begin(), first.end(), second.begin(), second.end());
-    return it1 - first.begin();
+    return it - first.begin();
   }
 
 }  // namespace kagome::storage::trie
