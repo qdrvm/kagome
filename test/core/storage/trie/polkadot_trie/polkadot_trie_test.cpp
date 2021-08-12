@@ -57,13 +57,6 @@ void FillSmallTree(PolkadotTrie &trie) {
   }
 }
 
-struct ClearPrefixData {
-  std::vector<std::pair<Buffer, Buffer>> data;
-  Buffer prefix;
-  size_t limit;
-  std::vector<std::pair<Buffer, Buffer>> res;
-};
-
 /**
  * Runs a sequence of commands provided as a test parameter and checks the
  * result of their execution
@@ -339,6 +332,41 @@ TEST_F(TrieTest, ClearPrefix) {
   ASSERT_FALSE(trie->contains("bat"_buf));
   ASSERT_TRUE(trie->empty());
 }
+
+struct ClearPrefixData {
+  std::vector<std::pair<Buffer, Buffer>> data;
+  Buffer prefix;
+  size_t limit;
+  std::vector<std::pair<Buffer, Buffer>> res;
+  size_t count;
+};
+
+class ClearPrefixTest
+    : public testing::Test,
+      public ::testing::WithParamInterface<ClearPrefixData> {
+ public:
+  ClearPrefixTest() {}
+
+  void SetUp() override {
+    trie = std::make_unique<PolkadotTrieImpl>();
+  }
+
+  std::unique_ptr<PolkadotTrieImpl> trie;
+};
+
+// INSTANTIATE_TEST_CASE_P(ClearPrefixSuite,
+//                         ClearPrefixTest,
+//                         testing::ValuesIn({PutAndGetBranch,
+//                                            PutAndGetOddKeyLengths,
+//                                            concat(BuildSmallTrie, DeleteSmall),
+//                                            concat(BuildSmallTrie,
+//                                                   DeleteCombineBranch),
+//                                            DeleteFromBranch,
+//                                            DeleteOddKeyLengths}));
+
+// TEST_P(ClearPrefixTest, ManyCases) {
+//   ;
+// }
 
 /**
  * @given an empty trie

@@ -82,12 +82,6 @@ namespace kagome::storage::trie {
                                           const KeyNibbles &key_nibbles,
                                           const NodePtr &node);
 
-    outcome::result<NodePtr> deleteNode(NodePtr parent,
-                                        const KeyNibbles &key_nibbles);
-    outcome::result<NodePtr> handleDeletion(const BranchPtr &parent,
-                                            NodePtr node,
-                                            const KeyNibbles &key_nibbles);
-
     outcome::result<NodePtr> retrieveChild(BranchPtr parent,
                                            uint8_t idx) const override;
 
