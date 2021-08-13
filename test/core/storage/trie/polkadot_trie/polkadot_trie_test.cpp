@@ -385,7 +385,8 @@ struct ClearPrefixData {
   Buffer prefix;
   boost::optional<size_t> limit;
   std::vector<Buffer> res;
-  size_t count;
+  std::tuple<bool, uint32_t> ret;
+  size_t size;
 };
 
 class ClearPrefixTest : public testing::Test,
@@ -404,22 +405,30 @@ TEST_P(ClearPrefixTest, ManyCases) {
   for (const auto &entry : GetParam().data) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry, "123"_buf));
   }
-  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix(
-      GetParam().prefix, GetParam().limit, [](const auto &, auto &&) {
-        return outcome::success();
-      }));
+  EXPECT_OUTCOME_TRUE_2(
+      ret,
+      trie->clearPrefix(
+          GetParam().prefix, GetParam().limit, [](const auto &, auto &&) {
+            return outcome::success();
+          }));
+  EXPECT_EQ(ret, GetParam().ret);
   for (const auto &entry : GetParam().res) {
     ASSERT_TRUE(trie->contains(entry));
   }
+  ASSERT_EQ(size(trie->getRoot()), GetParam().size);
 }
 
 INSTANTIATE_TEST_CASE_P(
     ClearPrefixSuite,
     ClearPrefixTest,
-    testing::ValuesIn(
-        {ClearPrefixData{{}, "bar"_buf, boost::none, {}, 0},
-         ClearPrefixData{
-             {"bar"_buf, "foo"_buf}, "bar"_buf, boost::none, {"foo"_buf}, 1}}));
+    testing::ValuesIn({ClearPrefixData{
+                           {}, "bar"_buf, boost::none, {}, {true, 0}, 0},
+                       ClearPrefixData{{"bar"_buf, "foo"_buf},
+                                       "bar"_buf,
+                                       boost::none,
+                                       {"foo"_buf},
+                                       {true, 1},
+                                       1}}));
 
 /**
  * @given an empty trie
