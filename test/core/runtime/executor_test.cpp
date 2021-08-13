@@ -92,8 +92,7 @@ class ExecutorTest : public testing::Test {
                      env_factory_},
              next_storage_state = std::move(next_storage_state),
              ARGS_LOCATION,
-             RESULT_LOCATION,
-             this](auto &blockchain_state, auto &storage_state) {
+             RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
               auto env_template =
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
                       weak_env_factory, blockchain_state, storage_state);
@@ -143,8 +142,7 @@ class ExecutorTest : public testing::Test {
                  std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
                      env_factory_},
              ARGS_LOCATION,
-             RESULT_LOCATION,
-             this](auto &blockchain_state, auto &storage_state) {
+             RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
               auto env_template =
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
                       weak_env_factory, blockchain_state, storage_state);
@@ -164,18 +162,6 @@ class ExecutorTest : public testing::Test {
                   }));
               return env_template;
             }));
-  }
-
-  void expectHeader(kagome::primitives::BlockNumber number,
-                    kagome::primitives::BlockHash hash,
-                    kagome::storage::trie::RootHash state_hash) {
-    EXPECT_CALL(*header_repo_,
-                getBlockHeader(kagome::primitives::BlockId{hash}))
-        .WillOnce(Return(kagome::primitives::BlockHeader{std::move(hash),
-                                                         number,
-                                                         std::move(state_hash),
-                                                         "ext_hash"_hash256,
-                                                         {}}));
   }
 
  protected:
