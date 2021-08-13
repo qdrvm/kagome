@@ -333,17 +333,63 @@ TEST_F(TrieTest, ClearPrefix) {
   ASSERT_TRUE(trie->empty());
 }
 
+struct DeleteData {
+  std::vector<Buffer> data;
+  Buffer key;
+  size_t size;
+};
+
+class DeleteTest : public testing::Test,
+                   public ::testing::WithParamInterface<DeleteData> {
+ public:
+  DeleteTest() {}
+
+  void SetUp() override {
+    trie = std::make_unique<PolkadotTrieImpl>();
+  }
+
+  std::unique_ptr<PolkadotTrieImpl> trie;
+};
+
+size_t size(const PolkadotTrie::NodePtr &node) {
+  size_t count = 0;
+  if (node) {
+    if (node->isBranch()) {
+      auto branch =
+          std::dynamic_pointer_cast<kagome::storage::trie::BranchNode>(node);
+      for (const auto &child : branch->children) {
+        count += size(child);
+      }
+    }
+    ++count;
+  }
+  return count;
+}
+
+TEST_P(DeleteTest, DeleteData) {
+  for (auto &entry : GetParam().data) {
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry, "123"_buf));
+  }
+  EXPECT_OUTCOME_TRUE_1(trie->remove(GetParam().key));
+  ASSERT_EQ(size(trie->getRoot()), GetParam().size);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    DeleteSuite,
+    DeleteTest,
+    testing::ValuesIn({DeleteData{{}, "bar"_buf, 0},
+                       DeleteData{{"bar"_buf, "foo"_buf}, "bar"_buf, 1}}));
+
 struct ClearPrefixData {
-  std::vector<std::pair<Buffer, Buffer>> data;
+  std::vector<Buffer> data;
   Buffer prefix;
-  size_t limit;
-  std::vector<std::pair<Buffer, Buffer>> res;
+  boost::optional<size_t> limit;
+  std::vector<Buffer> res;
   size_t count;
 };
 
-class ClearPrefixTest
-    : public testing::Test,
-      public ::testing::WithParamInterface<ClearPrefixData> {
+class ClearPrefixTest : public testing::Test,
+                        public ::testing::WithParamInterface<ClearPrefixData> {
  public:
   ClearPrefixTest() {}
 
@@ -354,19 +400,26 @@ class ClearPrefixTest
   std::unique_ptr<PolkadotTrieImpl> trie;
 };
 
-// INSTANTIATE_TEST_CASE_P(ClearPrefixSuite,
-//                         ClearPrefixTest,
-//                         testing::ValuesIn({PutAndGetBranch,
-//                                            PutAndGetOddKeyLengths,
-//                                            concat(BuildSmallTrie, DeleteSmall),
-//                                            concat(BuildSmallTrie,
-//                                                   DeleteCombineBranch),
-//                                            DeleteFromBranch,
-//                                            DeleteOddKeyLengths}));
+TEST_P(ClearPrefixTest, ManyCases) {
+  for (const auto &entry : GetParam().data) {
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry, "123"_buf));
+  }
+  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix(
+      GetParam().prefix, GetParam().limit, [](const auto &, auto &&) {
+        return outcome::success();
+      }));
+  for (const auto &entry : GetParam().res) {
+    ASSERT_TRUE(trie->contains(entry));
+  }
+}
 
-// TEST_P(ClearPrefixTest, ManyCases) {
-//   ;
-// }
+INSTANTIATE_TEST_CASE_P(
+    ClearPrefixSuite,
+    ClearPrefixTest,
+    testing::ValuesIn(
+        {ClearPrefixData{{}, "bar"_buf, boost::none, {}, 0},
+         ClearPrefixData{
+             {"bar"_buf, "foo"_buf}, "bar"_buf, boost::none, {"foo"_buf}, 1}}));
 
 /**
  * @given an empty trie
