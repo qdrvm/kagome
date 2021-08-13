@@ -6,13 +6,13 @@
 #ifndef KAGOME_BINARYEN_WASM_MEMORY_FACTORY_MOCK_HPP
 #define KAGOME_BINARYEN_WASM_MEMORY_FACTORY_MOCK_HPP
 
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+#include "runtime/binaryen/binaryen_memory_factory.hpp"
 
 #include <gmock/gmock.h>
 
 namespace kagome::runtime::binaryen {
 
-  class BinaryenWasmMemoryFactoryMock : public BinaryenWasmMemoryFactory {
+  class BinaryenWasmMemoryFactoryMock : public BinaryenMemoryFactory {
    public:
     ~BinaryenWasmMemoryFactoryMock() override = default;
 

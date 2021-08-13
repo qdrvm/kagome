@@ -13,27 +13,23 @@
 namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
-  class IntrinsicResolver;
+  class InstanceEnvironmentFactory;
 
   class ModuleFactoryImpl final : public ModuleFactory {
    public:
-    enum class Error {
-      RESOLVER_EXPIRED = 1
-    };
-
-    ModuleFactoryImpl(std::shared_ptr<CompartmentWrapper> compartment,
-                      std::weak_ptr<IntrinsicResolver> resolver);
+    ModuleFactoryImpl(
+        std::shared_ptr<CompartmentWrapper> compartment,
+        std::shared_ptr<const InstanceEnvironmentFactory> env_factory);
 
     outcome::result<std::unique_ptr<Module>> make(
+        const storage::trie::RootHash &state,
         gsl::span<const uint8_t> code) const override;
 
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;
-    std::weak_ptr<IntrinsicResolver> resolver_;
+    std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
   };
 
 }  // namespace kagome::runtime::wavm
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::wavm, ModuleFactoryImpl::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_WAVM_MODULE_FACTORY_IMPL_HPP

@@ -23,6 +23,8 @@ namespace kagome::runtime {
   class Module;
   class Memory;
 
+  struct InstanceEnvironment;
+
   /**
    * Repository for runtime modules
    * Allows loading and compiling a module directly from its web assembly byte
@@ -40,10 +42,10 @@ namespace kagome::runtime {
      * @param block info of the block at which the runtime code should be
      * extracted
      */
-    virtual outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
-        std::shared_ptr<const RuntimeCodeProvider> code_provider,
-        const primitives::BlockInfo &block) = 0;
-
+    virtual outcome::result<
+        std::pair<std::shared_ptr<ModuleInstance>, InstanceEnvironment>>
+    getInstanceAt(std::shared_ptr<const RuntimeCodeProvider> code_provider,
+                  const primitives::BlockInfo &block) = 0;
   };
 
 }  // namespace kagome::runtime

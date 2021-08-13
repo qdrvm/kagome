@@ -10,12 +10,14 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
-#include "mock/core/runtime/core_api_provider_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/runtime/executor_factory_mock.hpp"
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
+#include "mock/core/runtime/module_repository_mock.hpp"
 #include "mock/core/runtime/runtime_environment_factory_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
+#include "runtime/common/constant_code_provider.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/module.hpp"
 #include "scale/scale.hpp"
@@ -26,7 +28,7 @@ using kagome::common::Buffer;
 using kagome::crypto::HasherMock;
 using kagome::host_api::HostApiMock;
 using kagome::host_api::MiscExtension;
-using kagome::runtime::CoreApiProviderMock;
+using kagome::runtime::ExecutorFactoryMock;
 using kagome::runtime::Memory;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
@@ -54,11 +56,28 @@ TEST_F(MiscExtensionTest, Init) {
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
       .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
-  auto core_provider = std::make_shared<CoreApiProviderMock>();
+  auto executor_factory = std::make_shared<ExecutorFactoryMock>();
   MiscExtension m{
-      42, std::make_shared<HasherMock>(), memory_provider, core_provider};
+      42, std::make_shared<HasherMock>(), memory_provider, executor_factory};
   MiscExtension m2{
-      34, std::make_shared<HasherMock>(), memory_provider, core_provider};
+      34, std::make_shared<HasherMock>(), memory_provider, executor_factory};
+}
+
+ACTION(MakeExecutorFactory) {
+  auto code_provider =
+      std::make_shared<kagome::runtime::ConstantCodeProvider>(
+          kagome::common::Buffer{});
+  auto module_repo =
+      std::make_shared<kagome::runtime::ModuleRepositoryMock>();
+  auto header_repo =
+      std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
+  auto env_factory =
+      std::make_shared<kagome::runtime::RuntimeEnvironmentFactoryMock>(
+          code_provider, module_repo, header_repo);
+  auto executor = std::make_unique<kagome::runtime::Executor>(
+      header_repo, env_factory);
+  kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
+  return executor;
 }
 
 /**
@@ -84,38 +103,26 @@ TEST_F(MiscExtensionTest, CoreVersion) {
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
       .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
-  auto core_provider = std::make_shared<CoreApiProviderMock>();
+  auto executor_factory = std::make_shared<ExecutorFactoryMock>();
 
-  EXPECT_CALL(*core_provider, make(_, _))
-      .WillOnce(Invoke([&v1](auto &, auto &code) {
-        auto core = std::make_unique<kagome::runtime::CoreMock>();
-        EXPECT_CALL(*core, version(kagome::primitives::BlockHash{}))
-            .WillOnce(Return(v1));
-        kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
-        return core;
-      }));
+  EXPECT_CALL(*executor_factory, make(_, _))
+  .WillOnce(MakeExecutorFactory());
 
   using namespace std::placeholders;
 
   EXPECT_CALL(*memory, storeBuffer(gsl::span<const uint8_t>(v1_enc)))
       .WillOnce(Return(res1.combine()));
   kagome::host_api::MiscExtension m{
-      42, std::make_shared<HasherMock>(), memory_provider, core_provider};
+      42, std::make_shared<HasherMock>(), memory_provider, executor_factory};
   ASSERT_EQ(m.ext_misc_runtime_version_version_1(state_code1.combine()),
             res1.combine());
 
-  EXPECT_CALL(*core_provider, make(_, _))
-      .WillOnce(Invoke([&v2](auto &, auto &code) {
-        auto core = std::make_unique<kagome::runtime::CoreMock>();
-        EXPECT_CALL(*core, version(kagome::primitives::BlockHash{}))
-            .WillOnce(Return(v2));
-        kagome::runtime::wavm::pushHostApi(std::make_shared<HostApiMock>());
-        return core;
-      }));
+  EXPECT_CALL(*executor_factory, make(_, _))
+  .WillOnce(MakeExecutorFactory());
   EXPECT_CALL(*memory, storeBuffer(gsl::span<const uint8_t>(v2_enc)))
       .WillOnce(Return(res2.combine()));
   kagome::host_api::MiscExtension m2(
-      34, std::make_shared<HasherMock>(), memory_provider, core_provider);
+      34, std::make_shared<HasherMock>(), memory_provider, executor_factory);
   ASSERT_EQ(m2.ext_misc_runtime_version_version_1(state_code2.combine()),
             res2.combine());
 }

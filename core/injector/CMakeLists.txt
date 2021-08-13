@@ -21,12 +21,12 @@ target_link_libraries(application_injector
     babe_lottery
     babe_synchronizer
     babe_util
-    binaryen_core_api_factory
+    binaryen_executor_factory
     binaryen_runtime_external_interface
     binaryen_wasm_memory
     binaryen_wasm_memory_factory
     binaryen_wasm_module
-    binaryen_module_repository
+    module_repository
     binaryen_module_factory
     bip39_provider
     block_announce_protocol

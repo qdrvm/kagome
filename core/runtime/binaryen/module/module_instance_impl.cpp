@@ -27,15 +27,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 
 namespace kagome::runtime::binaryen {
 
-  ModuleInstanceImpl::ModuleInstanceImpl(
-      std::shared_ptr<wasm::Module> parent,
-      const std::shared_ptr<RuntimeExternalInterface> &rei)
-      : parent_{std::move(parent)},
+  ModuleInstanceImpl::ModuleInstanceImpl(std::shared_ptr<wasm::Module> parent,
+                                         std::shared_ptr<RuntimeExternalInterface> rei)
+      : rei_{std::move(rei)},
+        parent_{std::move(parent)},
         module_instance_{
-            std::make_unique<wasm::ModuleInstance>(*parent_, rei.get())},
+            std::make_unique<wasm::ModuleInstance>(*parent_, rei_.get())},
         logger_{log::createLogger("ModuleInstance", "binaryen")} {
     BOOST_ASSERT(parent_);
     BOOST_ASSERT(module_instance_);
+    BOOST_ASSERT(rei_);
   }
 
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(

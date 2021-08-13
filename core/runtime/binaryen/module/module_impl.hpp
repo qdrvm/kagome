@@ -17,7 +17,13 @@ namespace wasm {
   class Module;
 }  // namespace wasm
 
+namespace kagome::storage::trie {
+  class EphemeralTrieBatch;
+}
+
 namespace kagome::runtime::binaryen {
+
+  class InstanceEnvironmentFactory;
 
   /**
    * Stores a wasm::Module and a wasm::Module instance which contains the module
@@ -39,17 +45,18 @@ namespace kagome::runtime::binaryen {
 
     static outcome::result<std::unique_ptr<ModuleImpl>> createFromCode(
         const std::vector<uint8_t> &code,
-        const std::shared_ptr<TrieStorageProvider> &storage_provider,
-        std::shared_ptr<RuntimeExternalInterface> external_interface);
+        std::shared_ptr<const InstanceEnvironmentFactory> env_factory_);
 
-    outcome::result<std::unique_ptr<ModuleInstance>> instantiate()
-        const override;
+    outcome::result<
+        std::pair<std::unique_ptr<ModuleInstance>, InstanceEnvironment>>
+    instantiate() const override;
 
    private:
-    ModuleImpl(std::unique_ptr<wasm::Module> &&module,
-               std::shared_ptr<RuntimeExternalInterface> external_interface);
+    ModuleImpl(
+        std::unique_ptr<wasm::Module> &&module,
+        std::shared_ptr<const InstanceEnvironmentFactory> env_factory);
 
-    std::shared_ptr<RuntimeExternalInterface> external_interface_;
+    std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<wasm::Module> module_;  // shared to module instances
   };
 

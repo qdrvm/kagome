@@ -10,7 +10,7 @@
 
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/core_api_factory.hpp"
+#include "runtime/wavm/executor_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
@@ -40,7 +40,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
             intrinsic_module_instance, compartment);
 
     auto core_api_factory =
-        std::make_shared<kagome::runtime::wavm::CoreApiFactory>(
+        std::make_shared<kagome::runtime::wavm::ExecutorFactory>(
             compartment,
             intrinsic_module,
             std::make_shared<kagome::storage::trie::TrieStorageMock>(),

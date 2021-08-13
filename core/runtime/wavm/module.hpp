@@ -22,27 +22,30 @@ namespace WAVM::Runtime {
 namespace kagome::runtime::wavm {
 
   class IntrinsicResolver;
+  class InstanceEnvironmentFactory;
   class CompartmentWrapper;
 
   class ModuleImpl final : public runtime::Module {
    public:
     static std::unique_ptr<ModuleImpl> compileFrom(
         std::shared_ptr<CompartmentWrapper> compartment,
-        std::shared_ptr<IntrinsicResolver> resolver,
+        std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
         gsl::span<const uint8_t> code);
 
-    outcome::result<std::unique_ptr<runtime::ModuleInstance>> instantiate() const override;
+    outcome::result<std::pair<std::unique_ptr<kagome::runtime::ModuleInstance>,
+                              InstanceEnvironment>>
+    instantiate() const override;
 
    private:
     ModuleImpl(std::shared_ptr<CompartmentWrapper> compartment,
-           std::shared_ptr<IntrinsicResolver> resolver,
-           std::shared_ptr<WAVM::Runtime::Module> module);
+               std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+               std::shared_ptr<WAVM::Runtime::Module> module);
 
     WAVM::Runtime::ImportBindings link(IntrinsicResolver &resolver) const;
 
+    std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<WAVM::Runtime::Module> module_;
-    std::shared_ptr<IntrinsicResolver> resolver_;
     log::Logger logger_;
   };
 

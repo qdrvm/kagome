@@ -37,16 +37,10 @@ namespace kagome::runtime {
   class RuntimeEnvironmentFactoryMock : public RuntimeEnvironmentFactory {
    public:
     RuntimeEnvironmentFactoryMock(
-        std::shared_ptr<TrieStorageProvider> storage_provider,
-        std::shared_ptr<host_api::HostApi> host_api,
-        std::shared_ptr<MemoryProvider> memory_provider,
         std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider,
         std::shared_ptr<ModuleRepository> module_repo,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
-        : RuntimeEnvironmentFactory{std::move(storage_provider),
-                                    std::move(host_api),
-                                    std::move(memory_provider),
-                                    std::move(code_provider),
+        : RuntimeEnvironmentFactory{std::move(code_provider),
                                     std::move(module_repo),
                                     std::move(header_repo)} {}
 

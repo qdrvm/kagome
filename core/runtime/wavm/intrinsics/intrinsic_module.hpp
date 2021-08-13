@@ -20,15 +20,10 @@ namespace kagome::runtime::wavm {
     static inline const WAVM::IR::MemoryType kIntrinsicMemoryType{
         WAVM::IR::MemoryType(
             false, WAVM::IR::IndexType::i32, {20, UINT64_MAX})};
-    static constexpr std::string_view kIntrinsicMemoryName = "Host Memory";
+    static constexpr std::string_view kIntrinsicMemoryName = "Runtime Memory";
 
     explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment)
         : compartment_{compartment} {}
-
-    ~IntrinsicModule() {
-      functions_.clear();
-      compartment_.reset();
-    }
 
     std::unique_ptr<IntrinsicModuleInstance> instantiate() {
       BOOST_ASSERT_MSG(
@@ -60,7 +55,7 @@ namespace kagome::runtime::wavm {
     WAVM::Intrinsics::Module module_;
 
     // actually used, because added to the intrinsic module
-    [[maybe_unused]] WAVM::Intrinsics::Memory memory_{
+    WAVM::Intrinsics::Memory memory_{
         &module_, kIntrinsicMemoryName.data(), kIntrinsicMemoryType};
 
     std::unordered_map<std::string, std::unique_ptr<WAVM::Intrinsics::Function>>

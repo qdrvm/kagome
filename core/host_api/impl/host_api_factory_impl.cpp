@@ -34,7 +34,7 @@ namespace kagome::host_api {
   }
 
   std::unique_ptr<HostApi> HostApiFactoryImpl::make(
-      std::shared_ptr<const runtime::CoreApiFactory> core_provider,
+      std::shared_ptr<const runtime::ExecutorFactory> core_provider,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const {
     return std::make_unique<HostApiImpl>(memory_provider,

@@ -4,6 +4,9 @@
  */
 
 #include "runtime/runtime_environment_factory.hpp"
+#include <storage/trie/polkadot_trie/trie_error.hpp>
+
+#include "runtime/instance_environment.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
                             RuntimeEnvironmentFactory::Error,
@@ -27,14 +30,17 @@ namespace kagome::runtime {
 
   RuntimeEnvironment::RuntimeEnvironment(
       std::shared_ptr<const ModuleInstance> module_instance,
-      Memory &memory,
-      boost::optional<std::shared_ptr<storage::trie::PersistentTrieBatch>>
-          batch,
+      std::shared_ptr<const MemoryProvider> memory_provider,
+      std::shared_ptr<const TrieStorageProvider> storage_provider,
       std::function<void(RuntimeEnvironment &)> on_destruction)
       : module_instance{std::move(module_instance)},
-        memory{memory},
-        batch{std::move(batch)},
-        on_destruction_{std::move(on_destruction)} {}
+        memory_provider{std::move(memory_provider)},
+        storage_provider{std::move(storage_provider)},
+        on_destruction_{std::move(on_destruction)} {
+    BOOST_ASSERT(this->module_instance);
+    BOOST_ASSERT(this->memory_provider);
+    BOOST_ASSERT(this->storage_provider);
+  }
 
   RuntimeEnvironment::~RuntimeEnvironment() {
     on_destruction_(*this);
@@ -85,9 +91,14 @@ namespace kagome::runtime {
           header_res.error().message());
       return Error::ABSENT_BLOCK;
     }
+
+    OUTCOME_TRY(instance_and_env,
+                parent_factory->module_repo_->getInstanceAt(
+                    parent_factory->code_provider_, blockchain_state_));
+    auto &&[instance, env] = std::move(instance_and_env);
+
     if (persistent_) {
-      if (auto res = parent_factory->storage_provider_->setToPersistentAt(
-          storage_state_);
+      if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {
         parent_factory->logger_->error(
             "Failed to set the storage state to hash {} when initializing a "
@@ -97,8 +108,7 @@ namespace kagome::runtime {
         return Error::FAILED_TO_SET_STORAGE_STATE;
       }
     } else {
-      if (auto res = parent_factory->storage_provider_->setToEphemeralAt(
-          storage_state_);
+      if (auto res = env.storage_provider->setToEphemeralAt(storage_state_);
           !res) {
         parent_factory->logger_->error(
             "Failed to set the storage state to hash {} when initializing a "
@@ -109,9 +119,6 @@ namespace kagome::runtime {
       }
     }
 
-    OUTCOME_TRY(instance,
-                parent_factory->module_repo_->getInstanceAt(
-                    parent_factory->code_provider_, blockchain_state_));
     auto opt_heap_base = instance->getGlobal("__heap_base");
     if (!opt_heap_base.has_value() || !opt_heap_base.value()) {
       parent_factory->logger_->error(
@@ -120,43 +127,56 @@ namespace kagome::runtime {
     }
     int32_t heap_base = boost::get<int32_t>(opt_heap_base.value().value());
 
-    OUTCOME_TRY(parent_factory->memory_provider_->resetMemory(heap_base));
+    OUTCOME_TRY(env.memory_provider->resetMemory(heap_base));
+
+    OUTCOME_TRY(heappages_key, common::Buffer::fromString(":heappages"));
+    auto heappages_res =
+        env.storage_provider->getCurrentBatch()->get(heappages_key);
+    if (heappages_res.has_value()) {
+      auto &&heappages = heappages_res.value();
+      if (sizeof(uint64_t) != heappages.size()) {
+        parent_factory->logger_->error(
+            "Unable to read :heappages value. Type size mismatch. "
+            "Required {} bytes, but {} available",
+            sizeof(uint64_t),
+            heappages.size());
+      } else {
+        uint64_t pages = common::bytes_to_uint64_t(heappages.asVector());
+        env.memory_provider->getCurrentMemory()->resize(pages
+                                                        * kMemoryPageSize);
+        parent_factory->logger_->trace(
+            "Creating wasm module with non-default :heappages value set to {}",
+            pages);
+      }
+    } else if (kagome::storage::trie::TrieError::NO_VALUE
+               != heappages_res.error()) {
+      return heappages_res.error();
+    }
 
     return std::make_unique<RuntimeEnvironment>(
         instance,
-        parent_factory->memory_provider_->getCurrentMemory().value(),
-        parent_factory->storage_provider_->tryGetPersistentBatch(),
-        [weak_parent_factory = parent_factory_](auto &env) {
+        env.memory_provider,
+        env.storage_provider,
+        [weak_parent_factory = parent_factory_](auto &runtime_env) {
           auto parent_factory = weak_parent_factory.lock();
           if (parent_factory == nullptr) {
             return;
           }
-          parent_factory->host_api_->reset();
           if (parent_factory->env_cleanup_callback_) {
-            parent_factory->env_cleanup_callback_(env);
+            parent_factory->env_cleanup_callback_(runtime_env);
           }
         });
   }
 
   RuntimeEnvironmentFactory::RuntimeEnvironmentFactory(
-      std::shared_ptr<TrieStorageProvider> storage_provider,
-      std::shared_ptr<host_api::HostApi> host_api,
-      std::shared_ptr<MemoryProvider> memory_provider,
       std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider,
       std::shared_ptr<ModuleRepository> module_repo,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
-      : storage_provider_{std::move(storage_provider)},
-        host_api_{std::move(host_api)},
-        memory_provider_{std::move(memory_provider)},
-        code_provider_{std::move(code_provider)},
+      : code_provider_{std::move(code_provider)},
         module_repo_{std::move(module_repo)},
         header_repo_{std::move(header_repo)},
         logger_{log::createLogger("RuntimeEnvironmentFactory", "runtime")},
         env_cleanup_callback_{} {
-    BOOST_ASSERT(storage_provider_ != nullptr);
-    BOOST_ASSERT(host_api_ != nullptr);
-    BOOST_ASSERT(storage_provider_ != nullptr);
-    BOOST_ASSERT(memory_provider_ != nullptr);
     BOOST_ASSERT(code_provider_ != nullptr);
     BOOST_ASSERT(module_repo_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);

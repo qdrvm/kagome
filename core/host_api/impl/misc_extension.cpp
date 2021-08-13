@@ -6,10 +6,10 @@
 #include "host_api/impl/misc_extension.hpp"
 
 #include "primitives/version.hpp"
-#include "runtime/core_api_factory.hpp"
+#include "runtime/executor.hpp"
+#include "runtime/executor_factory.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
-#include "runtime/runtime_api/core.hpp"
 #include "runtime/module_repository.hpp"
 #include "scale/scale.hpp"
 
@@ -19,24 +19,25 @@ namespace kagome::host_api {
       uint64_t chain_id,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-      std::shared_ptr<const runtime::CoreApiFactory> core_provider)
+      std::shared_ptr<const runtime::ExecutorFactory> core_provider)
       : hasher_{std::move(hasher)},
         memory_provider_{std::move(memory_provider)},
-        core_provider_{std::move(core_provider)},
+        executor_factory_{std::move(core_provider)},
         logger_{log::createLogger("MiscExtension", "host_api")} {
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(core_provider_);
+    BOOST_ASSERT(executor_factory_);
     BOOST_ASSERT(memory_provider_);
   }
 
   runtime::WasmSpan MiscExtension::ext_misc_runtime_version_version_1(
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
-    auto& memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory().value();
 
     auto code = memory.loadN(ptr, len).asVector();
-    auto core_api = core_provider_->make(hasher_, code);
-    auto version_res = core_api->version({});
+    auto executor = executor_factory_->make(hasher_, code);
+    auto version_res =
+        executor->callAt<primitives::Version>({}, "Core_version");
     SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
 
     static const auto kErrorRes =

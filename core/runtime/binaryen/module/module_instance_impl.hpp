@@ -29,7 +29,7 @@ namespace kagome::runtime::binaryen {
     };
 
     ModuleInstanceImpl(std::shared_ptr<wasm::Module> parent,
-                       const std::shared_ptr<RuntimeExternalInterface> &rei);
+                       std::shared_ptr<RuntimeExternalInterface> rei);
 
     outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                 PtrSize args) const override;
@@ -38,6 +38,7 @@ namespace kagome::runtime::binaryen {
         std::string_view name) const override;
 
    private:
+    std::shared_ptr<RuntimeExternalInterface> rei_;
     std::shared_ptr<wasm::Module>
         parent_;  // must be kept alive because binaryen's module instance keeps
                   // a reference to it

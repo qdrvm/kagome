@@ -6,13 +6,13 @@
 #ifndef KAGOME_CORE_FACTORY_MOCK_HPP
 #define KAGOME_CORE_FACTORY_MOCK_HPP
 
-#include "runtime/binaryen/core_api_factory.hpp"
+#include "runtime/binaryen/executor_factory.hpp"
 
 #include <gmock/gmock.h>
 
 namespace kagome::runtime::binaryen {
 
-  class CoreFactoryMock : public CoreApiFactory {
+  class CoreFactoryMock : public ExecutorFactory {
    public:
     ~CoreFactoryMock() override = default;
 

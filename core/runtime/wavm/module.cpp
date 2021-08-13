@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "module.hpp"
+#include "runtime/wavm/module.hpp"
 
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/WASM/WASM.h>
 #include <boost/assert.hpp>
 
 #include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_instance.hpp"
 
@@ -17,7 +18,7 @@ namespace kagome::runtime::wavm {
 
   std::unique_ptr<ModuleImpl> ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
-      std::shared_ptr<IntrinsicResolver> resolver,
+      std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
       gsl::span<const uint8_t> code) {
     std::shared_ptr<WAVM::Runtime::Module> module = nullptr;
     WAVM::WASM::LoadError loadError;
@@ -35,30 +36,33 @@ namespace kagome::runtime::wavm {
     }
 
     return std::unique_ptr<ModuleImpl>(new ModuleImpl{
-        std::move(compartment), std::move(resolver), std::move(module)});
+        std::move(compartment), std::move(env_factory), std::move(module)});
   }
 
-  ModuleImpl::ModuleImpl(std::shared_ptr<CompartmentWrapper> compartment,
-                 std::shared_ptr<IntrinsicResolver> resolver,
-                 std::shared_ptr<WAVM::Runtime::Module> module)
-      : compartment_{std::move(compartment)},
+  ModuleImpl::ModuleImpl(
+      std::shared_ptr<CompartmentWrapper> compartment,
+      std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+      std::shared_ptr<WAVM::Runtime::Module> module)
+      : env_factory_{std::move(env_factory)},
+        compartment_{std::move(compartment)},
         module_{std::move(module)},
-        resolver_{std::move(resolver)},
-        logger_{log::createLogger("WAVM Module", "RuntimeAPI")} {
+        logger_{log::createLogger("WAVM Module", "wavm")} {
     BOOST_ASSERT(compartment_);
+    BOOST_ASSERT(env_factory_);
     BOOST_ASSERT(module_);
-    BOOST_ASSERT(resolver_);
   }
 
-  outcome::result<std::unique_ptr<runtime::ModuleInstance>>
+  outcome::result<std::pair<std::unique_ptr<kagome::runtime::ModuleInstance>,
+                            kagome::runtime::InstanceEnvironment>>
   ModuleImpl::instantiate() const {
+    auto env = env_factory_->make();
     auto instance =
         WAVM::Runtime::instantiateModule(compartment_->getCompartment(),
                                          module_,
-                                         link(*resolver_),
+                                         link(*env.resolver),
                                          "test_module");
-
-    return std::make_unique<ModuleInstance>(instance, compartment_);
+    return {std::make_unique<ModuleInstance>(instance, compartment_),
+            std::move(env.env)};
   }
 
   WAVM::Runtime::ImportBindings ModuleImpl::link(

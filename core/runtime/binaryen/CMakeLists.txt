@@ -14,7 +14,7 @@ target_link_libraries(binaryen_wasm_memory
     )
 kagome_install(binaryen_wasm_memory)
 
-add_library(binaryen_wasm_memory_factory binaryen_wasm_memory_factory.cpp)
+add_library(binaryen_wasm_memory_factory binaryen_memory_factory.cpp)
 target_link_libraries(binaryen_wasm_memory_factory
     binaryen_wasm_memory
     )
@@ -51,22 +51,27 @@ target_link_libraries(binaryen_wasm_module
     )
 kagome_install(binaryen_wasm_module)
 
-add_library(binaryen_module_factory module/module_factory_impl.cpp)
-target_link_libraries(binaryen_module_factory binaryen_wasm_module)
-kagome_install(binaryen_module_factory)
-
-add_library(binaryen_module_repository ../common/module_repository_impl.cpp)
-target_link_libraries(binaryen_module_repository
-    binaryen_wasm_module
+add_library(binaryen_executor_factory
+    executor_factory.cpp
     )
-kagome_install(binaryen_module_repository)
-
-add_library(binaryen_core_api_factory
-    core_api_factory.cpp
-    )
-target_link_libraries(binaryen_core_api_factory
+target_link_libraries(binaryen_executor_factory
     constant_code_provider
     binaryen_memory_provider
     core_api
     )
-kagome_install(binaryen_core_api_factory)
+kagome_install(binaryen_executor_factory)
+
+add_library(binaryen_instance_environment_factory
+    instance_environment_factory.cpp
+    )
+target_link_libraries(binaryen_instance_environment_factory
+    binaryen_executor_factory
+    )
+kagome_install(binaryen_instance_environment_factory)
+
+add_library(binaryen_module_factory module/module_factory_impl.cpp)
+target_link_libraries(binaryen_module_factory
+    binaryen_wasm_module
+    binaryen_instance_environment_factory
+    )
+kagome_install(binaryen_module_factory)

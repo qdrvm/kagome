@@ -22,7 +22,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 namespace kagome::runtime::binaryen {
 
   BinaryenMemoryProvider::BinaryenMemoryProvider(
-      std::shared_ptr<const BinaryenWasmMemoryFactory> memory_factory)
+      std::shared_ptr<const BinaryenMemoryFactory> memory_factory)
       : memory_factory_{std::move(memory_factory)} {
     BOOST_ASSERT(memory_factory_);
   }

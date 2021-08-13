@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_CORE_API_PROVIDER_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_CORE_API_PROVIDER_HPP
 
-#include "runtime/core_api_factory.hpp"
+#include "runtime/executor_factory.hpp"
 
 #include <memory>
 
@@ -31,30 +31,27 @@ namespace kagome::runtime::wavm {
 
   class IntrinsicModule;
   class CompartmentWrapper;
+  class InstanceEnvironmentFactory;
 
-  class CoreApiFactory final
-      : public runtime::CoreApiFactory,
-        public std::enable_shared_from_this<CoreApiFactory> {
+  class ExecutorFactory final
+      : public runtime::ExecutorFactory,
+        public std::enable_shared_from_this<ExecutorFactory> {
    public:
-    CoreApiFactory(
+    ExecutorFactory(
         std::shared_ptr<CompartmentWrapper> compartment,
-        std::shared_ptr<runtime::wavm::IntrinsicModule> intrinsic_module,
         std::shared_ptr<storage::trie::TrieStorage> storage,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-        std::shared_ptr<host_api::HostApiFactory> host_api_factory);
+        std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory);
 
-    [[nodiscard]] std::unique_ptr<Core> make(
+    [[nodiscard]] std::unique_ptr<Executor> make(
         std::shared_ptr<const crypto::Hasher> hasher,
         const std::vector<uint8_t> &runtime_code) const override;
 
    private:
+    std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
-    std::shared_ptr<runtime::wavm::IntrinsicModule> intrinsic_module_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
-    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
-    std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
   };
 
 }  // namespace kagome::runtime::wavm

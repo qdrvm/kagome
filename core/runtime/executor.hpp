@@ -70,9 +70,11 @@ namespace kagome::runtime {
       auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
       if (res) {
         BOOST_ASSERT_MSG(
-            env->batch.has_value(),
+            env->storage_provider->tryGetPersistentBatch(),
             "Persistent batch should always exist for persistent call");
-        OUTCOME_TRY(state_root, env->batch.value()->commit());
+        OUTCOME_TRY(
+            state_root,
+            env->storage_provider->tryGetPersistentBatch().value()->commit());
         SL_DEBUG(logger_,
                  "Runtime call committed new state with hash {}",
                  state_root.toHex());
@@ -159,7 +161,7 @@ namespace kagome::runtime {
     outcome::result<Result> callInternal(RuntimeEnvironment &env,
                                          std::string_view name,
                                          Args &&...args) {
-      auto &memory = env.memory;
+      auto &memory = env.memory_provider->getCurrentMemory().value();
 
       Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {

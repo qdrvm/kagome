@@ -8,23 +8,23 @@
 
 #include "core/runtime/runtime_test_base.hpp"
 
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "runtime/binaryen/binaryen_memory_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
-#include "runtime/binaryen/core_api_factory.hpp"
+#include "runtime/binaryen/executor_factory.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
-#include "mock/core/storage/trie/trie_storage_mock.hpp"
 
 class BinaryenRuntimeTest : public RuntimeTestBase {
  public:
   virtual ImplementationSpecificRuntimeClasses getImplementationSpecific() {
     auto memory_factory = std::make_shared<
-        kagome::runtime::binaryen::BinaryenWasmMemoryFactory>();
+        kagome::runtime::binaryen::BinaryenMemoryFactory>();
     auto memory_provider =
         std::make_shared<kagome::runtime::binaryen::BinaryenMemoryProvider>(
             memory_factory);
     auto core_api_factory =
-        std::make_shared<kagome::runtime::binaryen::BinaryenCoreApiFactory>(
+        std::make_shared<kagome::runtime::binaryen::BinaryenExecutorFactory>(
             changes_tracker_,
             header_repo_,
             memory_factory,

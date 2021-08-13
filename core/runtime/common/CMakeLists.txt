@@ -54,7 +54,11 @@ target_link_libraries(module_repository outcome)
 kagome_install(module_repository)
 
 add_library(runtime_environment_factory runtime_environment_factory.cpp)
-target_link_libraries(runtime_environment_factory logger)
+target_link_libraries(runtime_environment_factory
+    logger
+    trie_error
+    mp_utils
+    )
 kagome_install(runtime_environment_factory)
 
 add_library(memory_allocator memory_allocator.cpp)

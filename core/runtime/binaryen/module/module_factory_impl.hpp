@@ -12,31 +12,40 @@ namespace kagome::runtime {
   class TrieStorageProvider;
 }
 
+namespace kagome::host_api {
+  class HostApiFactory;
+}
+
+namespace kagome::storage::trie {
+  class TrieStorage;
+}
+
+namespace kagome::blockchain {
+  class BlockHeaderRepository;
+}
+
+namespace kagome::storage::changes_trie {
+  class ChangesTracker;
+}
+
 namespace kagome::runtime::binaryen {
 
-  class RuntimeExternalInterface;
+  class InstanceEnvironmentFactory;
 
   class ModuleFactoryImpl final : public ModuleFactory {
    public:
-    enum class Error {
-      EXTERNAL_INTERFACE_OUTDATED = 1,
-    };
-
-    ModuleFactoryImpl(std::weak_ptr<RuntimeExternalInterface> rei,
-                      std::shared_ptr<TrieStorageProvider> storage_provider);
+    ModuleFactoryImpl(std::shared_ptr<InstanceEnvironmentFactory> env_factory,
+                      std::shared_ptr<storage::trie::TrieStorage> storage);
 
     outcome::result<std::unique_ptr<Module>> make(
+        storage::trie::RootHash const &state,
         gsl::span<const uint8_t> code) const override;
 
-    void setExternalInterface(std::weak_ptr<RuntimeExternalInterface> rei);
-
    private:
-    std::weak_ptr<RuntimeExternalInterface> rei_;
-    std::shared_ptr<TrieStorageProvider> storage_provider_;
+    std::shared_ptr<InstanceEnvironmentFactory> env_factory_;
+    std::shared_ptr<storage::trie::TrieStorage> storage_;
   };
 
 }  // namespace kagome::runtime::binaryen
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::binaryen, ModuleFactoryImpl::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_BINARYEN_MODULE_MODULE_FACTORY_IMPL_HPP

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/wavm/core_api_factory.hpp"
+#include "runtime/wavm/executor_factory.hpp"
 
 #include "host_api/host_api_factory.hpp"
 #include "runtime/common/constant_code_provider.hpp"
@@ -12,6 +12,7 @@
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
@@ -23,30 +24,35 @@ namespace kagome::runtime::wavm {
 
   class OneModuleRepository final : public ModuleRepository {
    public:
-    OneModuleRepository(std::shared_ptr<CompartmentWrapper> compartment,
-                        std::shared_ptr<IntrinsicResolver> resolver,
-                        gsl::span<const uint8_t> code)
-        : resolver_{std::move(resolver)},
+    OneModuleRepository(
+        std::shared_ptr<CompartmentWrapper> compartment,
+        std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
+        gsl::span<const uint8_t> code)
+        : instance_env_factory_{std::move(instance_env_factory)},
           compartment_{compartment},
           code_{code} {
-      BOOST_ASSERT(resolver_);
+      BOOST_ASSERT(instance_env_factory_);
       BOOST_ASSERT(compartment_);
     }
 
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
-        std::shared_ptr<const RuntimeCodeProvider>,
-        const primitives::BlockInfo &) override {
+    outcome::result<std::pair<std::shared_ptr<runtime::ModuleInstance>,
+                              InstanceEnvironment>>
+    getInstanceAt(std::shared_ptr<const RuntimeCodeProvider>,
+                  const primitives::BlockInfo &) override {
       if (instance_ == nullptr) {
-        auto module = ModuleImpl::compileFrom(compartment_, resolver_, code_);
-        OUTCOME_TRY(inst, module->instantiate());
-        instance_ = std::move(inst);
+        auto module =
+            ModuleImpl::compileFrom(compartment_, instance_env_factory_, code_);
+        OUTCOME_TRY(inst_and_env, module->instantiate());
+        instance_ = std::move(inst_and_env.first);
+        env_ = std::move(inst_and_env.second);
       }
-      return instance_;
+      return {instance_, env_};
     }
 
    private:
     std::shared_ptr<runtime::ModuleInstance> instance_;
-    std::shared_ptr<IntrinsicResolver> resolver_;
+    InstanceEnvironment env_;
+    std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
     gsl::span<const uint8_t> code_;
   };
@@ -64,57 +70,38 @@ namespace kagome::runtime::wavm {
     gsl::span<const uint8_t> code_;
   };
 
-  CoreApiFactory::CoreApiFactory(
+  ExecutorFactory::ExecutorFactory(
       std::shared_ptr<CompartmentWrapper> compartment,
-      std::shared_ptr<runtime::wavm::IntrinsicModule> intrinsic_module,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
-      std::shared_ptr<host_api::HostApiFactory> host_api_factory)
-      : compartment_{compartment},
-        intrinsic_module_{std::move(intrinsic_module)},
+      std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory)
+      : instance_env_factory_{std::move(instance_env_factory)},
+        compartment_{compartment},
         storage_{std::move(storage)},
-        block_header_repo_{std::move(block_header_repo)},
-        changes_tracker_{std::move(changes_tracker)},
-        host_api_factory_{std::move(host_api_factory)} {
+        block_header_repo_{std::move(block_header_repo)} {
     BOOST_ASSERT(compartment_);
-    BOOST_ASSERT(intrinsic_module_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(block_header_repo_);
-    BOOST_ASSERT(changes_tracker_);
-    BOOST_ASSERT(host_api_factory_);
+    BOOST_ASSERT(instance_env_factory_);
   }
 
-  std::unique_ptr<Core> CoreApiFactory::make(
+  std::unique_ptr<Executor> ExecutorFactory::make(
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
-    auto new_intrinsic_module = std::shared_ptr<IntrinsicModuleInstance>(
-        intrinsic_module_->instantiate());
-    auto new_memory_provider = std::make_shared<WavmMemoryProvider>(
-        new_intrinsic_module, compartment_);
-    auto new_storage_provider =
-        std::make_shared<TrieStorageProviderImpl>(storage_);
-    auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
-        shared_from_this(), new_memory_provider, new_storage_provider));
     auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
-        new_storage_provider,
-        host_api,
-        new_memory_provider,
         std::make_shared<OneCodeProvider>(runtime_code),
         std::make_shared<OneModuleRepository>(
             compartment_,
-            std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module),
+            instance_env_factory_,
             gsl::span<const uint8_t>{
                 runtime_code.data(),
                 static_cast<gsl::span<const uint8_t>::index_type>(
                     runtime_code.size())}),
         block_header_repo_);
-    auto executor = std::make_shared<runtime::Executor>(
-        block_header_repo_, env_factory);
-    pushHostApi(host_api);
+    auto executor =
+        std::make_unique<runtime::Executor>(block_header_repo_, env_factory);
     env_factory->setEnvCleanupCallback([](auto &) { popHostApi(); });
-    return std::make_unique<CoreImpl>(
-        executor, changes_tracker_, block_header_repo_);
+    return executor;
   }
 
 }  // namespace kagome::runtime::wavm

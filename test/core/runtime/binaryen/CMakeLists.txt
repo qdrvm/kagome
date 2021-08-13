@@ -11,7 +11,7 @@ target_link_libraries(binaryen_runtime_test INTERFACE
     host_api
     host_api_factory
     core_api
-    binaryen_core_api_factory
+    binaryen_executor_factory
     binaryen_module_factory
     binaryen_wasm_memory_factory
     module_repository

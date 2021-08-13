@@ -10,9 +10,9 @@
 
 namespace kagome::runtime::binaryen {
 
-  class BinaryenWasmMemoryFactory {
+  class BinaryenMemoryFactory {
    public:
-    virtual ~BinaryenWasmMemoryFactory() = default;
+    virtual ~BinaryenMemoryFactory() = default;
 
     virtual std::unique_ptr<MemoryImpl> make(
         wasm::ShellExternalInterface::Memory *memory, WasmSize heap_base) const;

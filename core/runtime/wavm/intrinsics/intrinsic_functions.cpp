@@ -11,7 +11,8 @@ namespace kagome::runtime::wavm {
 
   log::Logger logger;
 
-  std::stack<std::shared_ptr<host_api::HostApi>> global_host_apis;
+  static thread_local std::stack<std::shared_ptr<host_api::HostApi>>
+      global_host_apis;
 
   void pushHostApi(std::shared_ptr<host_api::HostApi> api) {
     global_host_apis.emplace(std::move(api));

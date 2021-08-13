@@ -32,8 +32,8 @@
 #include "runtime/common/module_repository_impl.hpp"
 #include "runtime/common/runtime_transaction_error.hpp"
 #include "runtime/common/runtime_upgrade_tracker_impl.hpp"
-#include "runtime/core_api_factory.hpp"
 #include "runtime/executor.hpp"
+#include "runtime/executor_factory.hpp"
 #include "runtime/runtime_environment_factory.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -153,7 +153,7 @@ class RuntimeTestBase : public ::testing::Test {
 
   struct ImplementationSpecificRuntimeClasses {
     std::shared_ptr<kagome::runtime::ModuleFactory> module_factory_;
-    std::shared_ptr<kagome::runtime::CoreApiFactory> core_api_factory_;
+    std::shared_ptr<kagome::runtime::ExecutorFactory> core_api_factory_;
     std::shared_ptr<kagome::runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<kagome::host_api::HostApi> host_api_;
   };

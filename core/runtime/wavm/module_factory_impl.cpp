@@ -7,34 +7,20 @@
 
 #include "runtime/wavm/module.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm,
-                            ModuleFactoryImpl::Error,
-                            e) {
-  using E = kagome::runtime::wavm::ModuleFactoryImpl::Error;
-
-  switch (e) {
-    case E::RESOLVER_EXPIRED:
-      return "Attempt to use an expired intrinsic resolver";
-  }
-  return "Unknown wavm's ModuleFactory error";
-}
-
 namespace kagome::runtime::wavm {
 
   ModuleFactoryImpl::ModuleFactoryImpl(
       std::shared_ptr<CompartmentWrapper> compartment,
-      std::weak_ptr<IntrinsicResolver> resolver)
-      : compartment_{std::move(compartment)}, resolver_{std::move(resolver)} {
+      std::shared_ptr<const InstanceEnvironmentFactory> env_factory)
+      : compartment_{std::move(compartment)}, env_factory_{std::move(env_factory)} {
     BOOST_ASSERT(compartment_ != nullptr);
-    BOOST_ASSERT(resolver_.lock() != nullptr);
+    BOOST_ASSERT(env_factory_ != nullptr);
   }
 
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
+      const storage::trie::RootHash &state,
       gsl::span<const uint8_t> code) const {
-    if (resolver_.lock() == nullptr) {
-      return Error::RESOLVER_EXPIRED;
-    }
-    return ModuleImpl::compileFrom(compartment_, resolver_.lock(), code);
+    return ModuleImpl::compileFrom(compartment_, env_factory_, code);
   }
 
 }  // namespace kagome::runtime::wavm

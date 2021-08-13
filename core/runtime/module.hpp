@@ -7,6 +7,7 @@
 #define KAGOME_CORE_RUNTIME_MODULE_HPP
 
 #include "outcome/outcome.hpp"
+#include "runtime/instance_environment.hpp"
 
 namespace kagome::runtime {
 
@@ -22,8 +23,9 @@ namespace kagome::runtime {
    public:
     virtual ~Module() = default;
 
-    virtual outcome::result<std::unique_ptr<ModuleInstance>> instantiate()
-        const = 0;
+    virtual outcome::result<
+        std::pair<std::unique_ptr<ModuleInstance>, InstanceEnvironment>>
+    instantiate() const = 0;
   };
 
 }  // namespace kagome::runtime

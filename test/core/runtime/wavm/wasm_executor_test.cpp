@@ -24,7 +24,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/core_api_factory.hpp"
+#include "runtime/wavm/executor_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
@@ -157,7 +157,7 @@ class WasmExecutorTest : public ::testing::Test {
         runtime_upgrade_tracker_, module_factory);
 
     auto core_provider =
-        std::make_shared<kagome::runtime::wavm::CoreApiFactory>(
+        std::make_shared<kagome::runtime::wavm::ExecutorFactory>(
             compartment_wrapper,
             intrinsic_module,
             trie_db,

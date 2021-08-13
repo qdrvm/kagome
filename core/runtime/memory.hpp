@@ -22,6 +22,12 @@ namespace kagome::runtime {
     return 2_MB;
   }();
 
+  // according to $3.1.2.1 in the Polkadot Host Spec
+  constexpr inline size_t kMemoryPageSize = []() {
+    using kagome::common::literals::operator""_kB;
+    return 64_kB;
+  }();
+
   /** The underlying memory can be accessed through unaligned pointers which
    * isn't well-behaved in C++. WebAssembly nonetheless expects it to behave
    * properly. Avoid emitting unaligned load/store by checking for alignment

@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "module_repository_impl.hpp"
+#include "runtime/common/module_repository_impl.hpp"
 
+#include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
@@ -22,7 +23,8 @@ namespace kagome::runtime {
     BOOST_ASSERT(module_factory_);
   }
 
-  outcome::result<std::shared_ptr<ModuleInstance>>
+  outcome::result<
+      std::pair<std::shared_ptr<ModuleInstance>, InstanceEnvironment>>
   ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
@@ -33,7 +35,7 @@ namespace kagome::runtime {
       std::lock_guard guard{modules_mutex_};
       if (auto it = modules_.find(state); it == modules_.end()) {
         OUTCOME_TRY(code, code_provider->getCodeAt(state));
-        OUTCOME_TRY(new_module, module_factory_->make(code));
+        OUTCOME_TRY(new_module, module_factory_->make(state, code));
         module = std::move(new_module);
         modules_[state] = module;
       } else {
@@ -43,14 +45,11 @@ namespace kagome::runtime {
 
     {
       std::lock_guard guard{instances_mutex_};
-      if (auto it = instances_.find(state); it == instances_.end()) {
-        OUTCOME_TRY(instance, modules_[state]->instantiate());
-        std::shared_ptr<ModuleInstance> shared_instance = std::move(instance);
-        instances_[state] = shared_instance;
+        OUTCOME_TRY(instance_and_env, modules_[state]->instantiate());
+        auto shared_instance = std::make_pair(
+            std::shared_ptr<ModuleInstance>(std::move(instance_and_env.first)),
+            std::move(instance_and_env.second));
         return shared_instance;
-      } else {
-        return it->second;
-      }
     }
   }
 

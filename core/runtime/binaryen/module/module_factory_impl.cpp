@@ -5,45 +5,33 @@
 
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 
+#include "host_api/host_api_factory.hpp"
+#include "runtime/binaryen/binaryen_memory_factory.hpp"
+#include "runtime/binaryen/binaryen_memory_provider.hpp"
+#include "runtime/binaryen/executor_factory.hpp"
+#include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
-                            ModuleFactoryImpl::Error,
-                            e) {
-  using E = kagome::runtime::binaryen::ModuleFactoryImpl::Error;
-  switch (e) {
-    case E::EXTERNAL_INTERFACE_OUTDATED:
-      return "Attempt to use a destroyed external interface";
-  }
-  return "Unknown error in binaryen's ModuleFactory";
-}
+#include "runtime/common/trie_storage_provider_impl.hpp"
 
 namespace kagome::runtime::binaryen {
 
   ModuleFactoryImpl::ModuleFactoryImpl(
-      std::weak_ptr<RuntimeExternalInterface> rei,
-      std::shared_ptr<TrieStorageProvider> storage_provider)
-      : rei_{std::move(rei)}, storage_provider_{std::move(storage_provider)} {
-    BOOST_ASSERT(rei_.lock() != nullptr);
-    BOOST_ASSERT(storage_provider_ != nullptr);
+      std::shared_ptr<InstanceEnvironmentFactory> env_factory,
+      std::shared_ptr<storage::trie::TrieStorage> storage)
+      : env_factory_{std::move(env_factory)}, storage_{std::move(storage)} {
+    BOOST_ASSERT(env_factory_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
   }
 
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
+      storage::trie::RootHash const &state,
       gsl::span<const uint8_t> code) const {
-    if (rei_.lock() == nullptr) {
-      return Error::EXTERNAL_INTERFACE_OUTDATED;
-    }
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
-    auto res = ModuleImpl::createFromCode(code_vec, storage_provider_, rei_.lock());
+    auto res = ModuleImpl::createFromCode(code_vec, env_factory_);
     if (res.has_value()) {
       return std::unique_ptr<Module>(std::move(res.value()));
     }
     return res.error();
-  }
-
-  void ModuleFactoryImpl::setExternalInterface(
-      std::weak_ptr<RuntimeExternalInterface> rei) {
-    rei_ = std::move(rei);
   }
 
 }  // namespace kagome::runtime::binaryen

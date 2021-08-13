@@ -64,9 +64,6 @@ class ExecutorTest : public testing::Test {
     header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
     env_factory_ =
         std::make_shared<kagome::runtime::RuntimeEnvironmentFactoryMock>(
-            storage_provider,
-            host_api,
-            memory_provider,
             code_provider,
             module_repo,
             header_repo_);
@@ -119,10 +116,8 @@ class ExecutorTest : public testing::Test {
                         .WillOnce(Return(next_storage_state));
                     return std::make_unique<RuntimeEnvironment>(
                         module_instance,
-                        *memory_,
-                        boost::make_optional(
-                            std::static_pointer_cast<PersistentTrieBatch>(
-                                batch)),
+                        std::make_shared<kagome::runtime::MemoryProviderMock>(),
+                        std::make_shared<kagome::runtime::TrieStorageProviderMock>(),
                         [](auto &) {});
                   }));
               return env_template;
@@ -163,7 +158,10 @@ class ExecutorTest : public testing::Test {
                                                    ARGS_LOCATION))
                         .WillOnce(Return(RESULT_LOCATION));
                     return std::make_unique<RuntimeEnvironment>(
-                        module_instance, *memory_, boost::none, [](auto &) {});
+                        module_instance,
+                        std::make_shared<kagome::runtime::MemoryProviderMock>(),
+                        std::make_shared<kagome::runtime::TrieStorageProviderMock>(),
+                        [](auto &) {});
                   }));
               return env_template;
             }));
@@ -224,10 +222,9 @@ TEST_F(ExecutorTest, LatestStateSwitchesCorrectly) {
 
   preparePersistentCall(
       block_info2, "state_hash4"_hash256, -5, 5, 0, "state_hash5"_hash256);
-  EXPECT_OUTCOME_TRUE(
-      res5,
-      executor.persistentCallAt<int>(
-          block_info2, "state_hash4"_hash256, "addTwo", -5, 5));
+  EXPECT_OUTCOME_TRUE(res5,
+                      executor.persistentCallAt<int>(
+                          block_info2, "state_hash4"_hash256, "addTwo", -5, 5));
   ASSERT_EQ(res5.result, 0);
   ASSERT_EQ(res5.new_storage_root, "state_hash5"_hash256);
 
