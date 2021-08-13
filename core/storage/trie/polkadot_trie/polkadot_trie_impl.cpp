@@ -62,19 +62,23 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<size_t> detachNode(PolkadotTrie::NodePtr &,
-                                     const KeyNibbles &,
-                                     boost::optional<uint64_t>,
-                                     const PolkadotTrie::OnDetachCallback &);
+  outcome::result<void> detachNode(PolkadotTrie::NodePtr &,
+                                   const KeyNibbles &,
+                                   boost::optional<uint64_t>,
+                                   bool &,
+                                   uint32_t &,
+                                   const PolkadotTrie::OnDetachCallback &);
 
   outcome::result<std::tuple<bool, uint32_t>> PolkadotTrieImpl::clearPrefix(
       const common::Buffer &prefix,
       boost::optional<uint64_t> limit,
       const OnDetachCallback &callback) {
+    bool finished = true;
+    uint32_t count = 0;
     auto key_nibbles = PolkadotCodec::keyToNibbles(prefix);
-    OUTCOME_TRY(size, detachNode(root_, key_nibbles, limit, callback));
-
-    return outcome::success(std::make_tuple(true, size));
+    OUTCOME_TRY(
+        detachNode(root_, key_nibbles, limit, finished, count, callback));
+    return {finished, count};
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::insert(
@@ -344,15 +348,20 @@ namespace kagome::storage::trie {
   outcome::result<void> notifyOnDetached(
       PolkadotTrie::NodePtr &, const PolkadotTrie::OnDetachCallback &);
 
-  outcome::result<size_t> detachNode(
+  outcome::result<void> detachNode(
       PolkadotTrie::NodePtr &parent,
       const KeyNibbles &prefix,
       boost::optional<uint64_t> limit,
+      bool &finished,
+      uint32_t &count,
       const PolkadotTrie::OnDetachCallback &callback) {
-    size_t count = 0;
-
     if (parent == nullptr) {
-      return count;
+      return outcome::success();
+    }
+
+    if (limit and count == limit.value()) {
+      finished = false;
+      return outcome::success();
     }
 
     if (parent->key_nibbles.size() >= prefix.size()) {
@@ -363,8 +372,8 @@ namespace kagome::storage::trie {
         if (parent->isBranch()) {
           auto &children = dynamic_cast<BranchNode &>(*parent.get()).children;
           for (auto &child : children) {
-            OUTCOME_TRY(size, detachNode(child, KeyNibbles(), limit, callback));
-            count += size;
+            OUTCOME_TRY(detachNode(
+                child, KeyNibbles(), limit, finished, count, callback));
           }
         }
         if (not limit or count < limit.value()) {
@@ -377,7 +386,7 @@ namespace kagome::storage::trie {
           // fix block after children removal
           handleDeletion(parent);
         }
-        return count;
+        return outcome::success();
       }
     }
 
@@ -386,21 +395,19 @@ namespace kagome::storage::trie {
     if (not std::equal(parent->key_nibbles.begin(),
                        parent->key_nibbles.end(),
                        prefix.begin())) {
-      return count;
+      return outcome::success();
     }
 
     if (parent->isBranch()) {
       const auto length = parent->key_nibbles.size();
       auto &child =
-          dynamic_cast<BranchNode&>(*parent.get()).children.at(prefix[length]);
+          dynamic_cast<BranchNode &>(*parent.get()).children.at(prefix[length]);
 
-      OUTCOME_TRY(
-          size, detachNode(child, prefix.subspan(length + 1), limit, callback));
+      OUTCOME_TRY(detachNode(
+          child, prefix.subspan(length + 1), limit, finished, count, callback));
       handleDeletion(parent);
-      return count + size;
     }
-
-    return count;
+    return outcome::success();
   }
 
   outcome::result<void> notifyOnDetached(
