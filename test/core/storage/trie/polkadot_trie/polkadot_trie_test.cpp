@@ -422,21 +422,32 @@ INSTANTIATE_TEST_CASE_P(
     ClearPrefixSuite,
     ClearPrefixTest,
     testing::ValuesIn(
+        /* empty tree */
         {ClearPrefixData{{}, "bar"_buf, boost::none, {}, {true, 0}, 0},
+         /* prefix matches leaf */
          ClearPrefixData{{"bar"_buf, "foo"_buf},
                          "bar"_buf,
                          boost::none,
                          {"foo"_buf},
                          {true, 1},
                          1},
+         /* empty prefix */
          ClearPrefixData{
              {"bar"_buf, "foo"_buf}, ""_buf, boost::none, {}, {true, 2}, 0},
+         /* "b"-node converts to leaf */
          ClearPrefixData{{"a"_buf, "b"_buf, "boa"_buf, "bob"_buf},
                          "bo"_buf,
                          boost::none,
                          {"a"_buf, "b"_buf},
                          {true, 2},
-                         3}}));
+                         3},
+         /* "b"-node becomes "ba"-node */
+         ClearPrefixData{{"a"_buf, "baa"_buf, "bab"_buf, "boa"_buf, "bob"_buf},
+                         "bo"_buf,
+                         boost::none,
+                         {"a"_buf, "baa"_buf, "bab"_buf},
+                         {true, 2},
+                         5}}));
 
 /**
  * @given an empty trie
