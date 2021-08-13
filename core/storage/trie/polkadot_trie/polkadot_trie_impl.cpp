@@ -298,7 +298,7 @@ namespace kagome::storage::trie {
       auto length = getCommonPrefixLength(parent->key_nibbles, key);
       auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
       if (parent->key_nibbles == key or key.empty()) {
-        branch->value = boost::none;
+        parent->value = boost::none;
       } else {
         auto &child = branch->children.at(key[length]);
         deleteNode(child, key.subspan(length + 1));
@@ -397,8 +397,11 @@ namespace kagome::storage::trie {
       }
 
       auto key = PolkadotCodec::nibblesToKey(node->key_nibbles);
+      // count only valued nodes
+      if(node->value) {
+        ++count;
+      }
       OUTCOME_TRY(callback(key, std::move(node->value)));
-      ++count;
     }
     return outcome::success(count);
   }
