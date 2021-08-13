@@ -100,8 +100,7 @@ class ExecutorTest : public testing::Test {
               EXPECT_CALL(*env_template, persistent())
                   .WillOnce(ReturnRef(*env_template));
               EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([this,
-                                    ARGS_LOCATION,
+                  .WillOnce(Invoke([ARGS_LOCATION,
                                     RESULT_LOCATION,
                                     next_storage_state =
                                         std::move(next_storage_state)] {
@@ -150,7 +149,7 @@ class ExecutorTest : public testing::Test {
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
                       weak_env_factory, blockchain_state, storage_state);
               EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([this, ARGS_LOCATION, RESULT_LOCATION] {
+                  .WillOnce(Invoke([ARGS_LOCATION, RESULT_LOCATION] {
                     auto module_instance =
                         std::make_shared<ModuleInstanceMock>();
                     EXPECT_CALL(*module_instance,
