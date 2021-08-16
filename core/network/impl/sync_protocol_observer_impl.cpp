@@ -94,7 +94,7 @@ namespace kagome::network {
         request.direction == network::Direction::ASCENDING;
 
     uint32_t request_count =
-        application::AppConfiguration::kAbsolutMinBlocksInResponse;
+        application::AppConfiguration::kAbsolutMaxBlocksInResponse;
     if (request.max.has_value()) {
       request_count = std::clamp(
           request.max.value(),
