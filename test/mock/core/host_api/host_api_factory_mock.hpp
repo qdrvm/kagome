@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-#include "runtime/executor_factory.hpp"
+#include "runtime/core_api_factory.hpp"
 
 namespace kagome::host_api {
 

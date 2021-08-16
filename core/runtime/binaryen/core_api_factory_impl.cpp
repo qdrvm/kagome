@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/executor_factory.hpp"
+#include "runtime/binaryen/core_api_factory_impl.hpp"
 
 #include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
@@ -58,24 +58,29 @@ namespace kagome::runtime::binaryen {
     gsl::span<const uint8_t> code_;
   };
 
-  BinaryenExecutorFactory::BinaryenExecutorFactory(
+  CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
-      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
+      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : instance_env_factory_{std::move(instance_env_factory)},
-        header_repo_{std::move(header_repo)} {
+        header_repo_{std::move(header_repo)},
+        changes_tracker_{std::move(changes_tracker)} {
     BOOST_ASSERT(instance_env_factory_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);
+    BOOST_ASSERT(changes_tracker_ != nullptr);
   }
 
-  std::unique_ptr<Executor> BinaryenExecutorFactory::make(
+  std::unique_ptr<Core> CoreApiFactoryImpl::make(
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
     auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::make_shared<OneCodeProvider>(runtime_code),
-        std::make_shared<OneModuleRepository>(runtime_code, instance_env_factory_),
+        std::make_shared<OneModuleRepository>(runtime_code,
+                                              instance_env_factory_),
         header_repo_);
     auto executor = std::make_unique<Executor>(header_repo_, env_factory);
-    return executor;
+    return std::make_unique<CoreImpl>(
+        std::move(executor), changes_tracker_, header_repo_);
   }
 
 }  // namespace kagome::runtime::binaryen

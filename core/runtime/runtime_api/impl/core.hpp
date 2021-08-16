@@ -27,6 +27,8 @@ namespace kagome::runtime {
     outcome::result<primitives::Version> version(
         primitives::BlockHash const &block) override;
 
+    outcome::result<primitives::Version> version() override;
+
     outcome::result<void> execute_block(
         const primitives::Block &block) override;
 

@@ -62,17 +62,39 @@ namespace kagome::runtime {
         std::function<void(RuntimeEnvironment &)> &&callback);
 
     /**
-     * @param blockchain_state
+     * @param blockchain_state - the block to take the runtime code from
      * @param storage_state
      *        need to store separately from
      *        blockchain state because, for example, when we're in
      *        process of producing a block, there is no particular
      *        storage state associated with the block
-     * @return
+     * @return a RuntimeEnvironmentTemplate which can be used to configure and
+     * produce a RuntimeEnvironment
      */
     [[nodiscard]] virtual std::unique_ptr<RuntimeEnvironmentTemplate> start(
         const primitives::BlockInfo &blockchain_state,
-        const storage::trie::RootHash &storage_state);
+        const storage::trie::RootHash &storage_state) const;
+
+    /**
+     * @brief returns a handle to make a RuntimeEnvironment at the state of the
+     * provided block
+     * @param blockchain_state - the block to take the runtime code from
+     * @return a RuntimeEnvironmentTemplate which can be used to configure and
+     * produce a RuntimeEnvironment
+     */
+    [[nodiscard]] virtual outcome::result<
+        std::unique_ptr<RuntimeEnvironmentTemplate>>
+    start(const primitives::BlockHash &blockchain_state) const;
+
+    /**
+     * @brief returns a handle to make a RuntimeEnvironment at genesis block
+     * state
+     * @return a RuntimeEnvironmentTemplate which can be used to configure and
+     * produce a RuntimeEnvironment
+     */
+    [[nodiscard]] virtual outcome::result<
+        std::unique_ptr<RuntimeEnvironmentTemplate>>
+    start() const;
 
    private:
     std::shared_ptr<const runtime::RuntimeCodeProvider> code_provider_;
@@ -85,7 +107,7 @@ namespace kagome::runtime {
   struct RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate {
    public:
     RuntimeEnvironmentTemplate(
-        std::weak_ptr<RuntimeEnvironmentFactory> parent_factory_,
+        std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory_,
         const primitives::BlockInfo &blockchain_state,
         const storage::trie::RootHash &storage_state);
 
@@ -105,7 +127,7 @@ namespace kagome::runtime {
     // storage state associated with the block
     storage::trie::RootHash storage_state_;
 
-    std::weak_ptr<RuntimeEnvironmentFactory> parent_factory_;
+    std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory_;
     bool persistent_{false};
   };
 

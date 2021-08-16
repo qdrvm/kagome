@@ -16,6 +16,7 @@
 namespace kagome::runtime {
   class Core;
   class MemoryProvider;
+  class CoreApiFactory;
 }  // namespace kagome::runtime
 
 namespace kagome::host_api {
@@ -27,7 +28,7 @@ namespace kagome::host_api {
     HostApiImpl() = delete;
     HostApiImpl(
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-        std::shared_ptr<const runtime::ExecutorFactory> core_provider,
+        std::shared_ptr<const runtime::CoreApiFactory> core_provider,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<storage::changes_trie::ChangesTracker> tracker,
         std::shared_ptr<const crypto::Sr25519Provider> sr25519_provider,

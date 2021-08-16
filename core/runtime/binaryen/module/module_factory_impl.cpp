@@ -8,7 +8,7 @@
 #include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/executor_factory.hpp"
+#include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"

@@ -48,7 +48,7 @@ namespace kagome::runtime {
 
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::
       RuntimeEnvironmentTemplate(
-          std::weak_ptr<RuntimeEnvironmentFactory> parent_factory,
+          std::weak_ptr<const RuntimeEnvironmentFactory> parent_factory,
           const primitives::BlockInfo &blockchain_state,
           const storage::trie::RootHash &storage_state)
       : blockchain_state_{blockchain_state},
@@ -68,18 +68,6 @@ namespace kagome::runtime {
     auto parent_factory = parent_factory_.lock();
     if (parent_factory == nullptr) {
       return RuntimeEnvironmentFactory::Error::PARENT_FACTORY_EXPIRED;
-    }
-    if (blockchain_state_.hash == primitives::BlockHash{}) {
-      auto genesis_hash = parent_factory->header_repo_->getHashByNumber(0);
-      if (!genesis_hash) {
-        parent_factory->logger_->error(
-            "Failed to obtain the genesis block for runtime executor "
-            "initialization; Reason: {}",
-            genesis_hash.error().message());
-        return Error::ABSENT_BLOCK;
-      }
-      blockchain_state_ =
-          primitives::BlockInfo{0, std::move(genesis_hash.value())};
     }
     auto header_res =
         parent_factory->header_repo_->getBlockHeader(blockchain_state_.hash);
@@ -153,6 +141,12 @@ namespace kagome::runtime {
       return heappages_res.error();
     }
 
+    SL_DEBUG(parent_factory->logger_,
+             "Runtime environment at #{} hash: {}, state: {}",
+             blockchain_state_.number,
+             blockchain_state_.hash.toHex(),
+             storage_state_.toHex());
+
     return std::make_unique<RuntimeEnvironment>(
         instance,
         env.memory_provider,
@@ -185,9 +179,32 @@ namespace kagome::runtime {
   std::unique_ptr<RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate>
   RuntimeEnvironmentFactory::start(
       const primitives::BlockInfo &blockchain_state,
-      const storage::trie::RootHash &storage_state) {
+      const storage::trie::RootHash &storage_state) const {
     return std::make_unique<RuntimeEnvironmentTemplate>(
         weak_from_this(), blockchain_state, storage_state);
+  }
+
+  outcome::result<
+      std::unique_ptr<RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate>>
+  RuntimeEnvironmentFactory::start(
+      const primitives::BlockHash &block_hash) const {
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
+    return start({header.number, std::move(block_hash)},
+                 std::move(header.state_root));
+  }
+
+  outcome::result<
+      std::unique_ptr<RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate>>
+  RuntimeEnvironmentFactory::start() const {
+    auto genesis_hash = header_repo_->getHashByNumber(0);
+    if (!genesis_hash) {
+    logger_->error(
+          "Failed to obtain the genesis block for runtime executor "
+          "initialization; Reason: {}",
+          genesis_hash.error().message());
+      return Error::ABSENT_BLOCK;
+    }
+    return start(genesis_hash.value());
   }
 
   void RuntimeEnvironmentFactory::setEnvCleanupCallback(

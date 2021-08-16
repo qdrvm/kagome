@@ -54,9 +54,6 @@ class ExecutorTest : public testing::Test {
 
   void SetUp() override {
     memory_ = std::make_unique<MemoryMock>();
-    auto storage_provider = std::make_shared<TrieStorageProviderMock>();
-    auto host_api = std::make_shared<HostApiMock>();
-    auto memory_provider = std::make_shared<MemoryProviderMock>();
     auto code_provider = std::make_shared<BasicCodeProvider>(
         boost::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/sumtwo.wasm");
@@ -64,9 +61,7 @@ class ExecutorTest : public testing::Test {
     header_repo_ = std::make_shared<BlockHeaderRepositoryMock>();
     env_factory_ =
         std::make_shared<kagome::runtime::RuntimeEnvironmentFactoryMock>(
-            code_provider,
-            module_repo,
-            header_repo_);
+            code_provider, module_repo, header_repo_);
     storage_ = std::make_shared<kagome::storage::trie::TrieStorageMock>();
   }
 
@@ -91,6 +86,7 @@ class ExecutorTest : public testing::Test {
                  std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
                      env_factory_},
              next_storage_state = std::move(next_storage_state),
+             this,
              ARGS_LOCATION,
              RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
               auto env_template =
@@ -99,7 +95,8 @@ class ExecutorTest : public testing::Test {
               EXPECT_CALL(*env_template, persistent())
                   .WillOnce(ReturnRef(*env_template));
               EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([ARGS_LOCATION,
+                  .WillOnce(Invoke([this,
+                                    ARGS_LOCATION,
                                     RESULT_LOCATION,
                                     next_storage_state =
                                         std::move(next_storage_state)] {
@@ -109,13 +106,29 @@ class ExecutorTest : public testing::Test {
                                 callExportFunction(std::string_view{"addTwo"},
                                                    ARGS_LOCATION))
                         .WillOnce(Return(RESULT_LOCATION));
-                    auto batch = std::make_shared<PersistentTrieBatchMock>();
+                    auto memory_provider =
+                        std::make_shared<kagome::runtime::MemoryProviderMock>();
+                    EXPECT_CALL(*memory_provider, getCurrentMemory())
+                        .WillOnce(
+                            Return(boost::optional<kagome::runtime::Memory &>(
+                                *memory_)));
+
+                    auto storage_provider = std::make_shared<
+                        kagome::runtime::TrieStorageProviderMock>();
+                    auto batch = std::make_shared<
+                        kagome::storage::trie::PersistentTrieBatchMock>();
                     EXPECT_CALL(*batch, commit())
                         .WillOnce(Return(next_storage_state));
+                    EXPECT_CALL(*storage_provider, tryGetPersistentBatch())
+                        .WillRepeatedly(Return(
+                            boost::make_optional<std::shared_ptr<
+                                kagome::storage::trie::PersistentTrieBatch>>(
+                                std::move(batch))));
+
                     return std::make_unique<RuntimeEnvironment>(
                         module_instance,
-                        std::make_shared<kagome::runtime::MemoryProviderMock>(),
-                        std::make_shared<kagome::runtime::TrieStorageProviderMock>(),
+                        memory_provider,
+                        storage_provider,
                         [](auto &) {});
                   }));
               return env_template;
@@ -141,23 +154,34 @@ class ExecutorTest : public testing::Test {
             [weak_env_factory =
                  std::weak_ptr<kagome::runtime::RuntimeEnvironmentFactoryMock>{
                      env_factory_},
+             this,
              ARGS_LOCATION,
              RESULT_LOCATION](auto &blockchain_state, auto &storage_state) {
               auto env_template =
                   std::make_unique<RuntimeEnvironmentTemplateMock>(
                       weak_env_factory, blockchain_state, storage_state);
               EXPECT_CALL(*env_template, make())
-                  .WillOnce(Invoke([ARGS_LOCATION, RESULT_LOCATION] {
+                  .WillOnce(Invoke([this, ARGS_LOCATION, RESULT_LOCATION] {
                     auto module_instance =
                         std::make_shared<ModuleInstanceMock>();
                     EXPECT_CALL(*module_instance,
                                 callExportFunction(std::string_view{"addTwo"},
                                                    ARGS_LOCATION))
                         .WillOnce(Return(RESULT_LOCATION));
+                    auto memory_provider =
+                        std::make_shared<kagome::runtime::MemoryProviderMock>();
+                    EXPECT_CALL(*memory_provider, getCurrentMemory())
+                        .WillOnce(
+                            Return(boost::optional<kagome::runtime::Memory &>(
+                                *memory_)));
+
+                    auto storage_provider = std::make_shared<
+                        kagome::runtime::TrieStorageProviderMock>();
+
                     return std::make_unique<RuntimeEnvironment>(
                         module_instance,
-                        std::make_shared<kagome::runtime::MemoryProviderMock>(),
-                        std::make_shared<kagome::runtime::TrieStorageProviderMock>(),
+                        memory_provider,
+                        storage_provider,
                         [](auto &) {});
                   }));
               return env_template;

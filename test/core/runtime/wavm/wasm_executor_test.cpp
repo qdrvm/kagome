@@ -24,7 +24,7 @@
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/executor_factory.hpp"
+#include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"

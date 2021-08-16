@@ -32,7 +32,7 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     std::unique_ptr<HostApi> make(
-        std::shared_ptr<const runtime::ExecutorFactory> core_factory,
+        std::shared_ptr<const runtime::CoreApiFactory> core_factory,
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider)
         const override;

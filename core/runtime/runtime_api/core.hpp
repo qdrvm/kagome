@@ -36,6 +36,13 @@ namespace kagome::runtime {
         primitives::BlockHash const &block) = 0;
 
     /**
+     * @brief Returns the version of the runtime - version for nested calls,
+     * such as in MiscExtension
+     * @return runtime version
+     */
+    virtual outcome::result<primitives::Version> version() = 0;
+
+    /**
      * @brief Executes the given block
      * @param block block to execute
      */

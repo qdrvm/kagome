@@ -52,7 +52,7 @@ target_link_libraries(binaryen_wasm_module
 kagome_install(binaryen_wasm_module)
 
 add_library(binaryen_executor_factory
-    executor_factory.cpp
+    core_api_factory_impl.cpp
     )
 target_link_libraries(binaryen_executor_factory
     constant_code_provider

@@ -88,7 +88,7 @@
 #include "network/types/sync_clients_set.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
-#include "runtime/binaryen/executor_factory.hpp"
+#include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 #include "runtime/common/module_repository_impl.hpp"
@@ -108,7 +108,7 @@
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/executor_factory.hpp"
+#include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
@@ -885,12 +885,12 @@ namespace {
                   runtime::wavm::WavmMemoryProvider>(injector, method);
             }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
-        di::bind<runtime::ExecutorFactory>.template to(
+        di::bind<runtime::CoreApiFactory>.template to(
             [method](const auto &injector) {
               return choose_runtime_implementation<
-                  runtime::ExecutorFactory,
-                  runtime::binaryen::BinaryenExecutorFactory,
-                  runtime::wavm::ExecutorFactory>(injector, method);
+                  runtime::CoreApiFactory,
+                  runtime::binaryen::CoreApiFactoryImpl,
+                  runtime::wavm::CoreApiFactoryImpl>(injector, method);
             }),
         di::bind<runtime::ModuleFactory>.template to(
             [method](const auto &injector) {

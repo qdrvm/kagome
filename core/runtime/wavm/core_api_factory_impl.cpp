@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/wavm/executor_factory.hpp"
+#include "runtime/wavm/core_api_factory_impl.hpp"
 
 #include "host_api/host_api_factory.hpp"
 #include "runtime/common/constant_code_provider.hpp"
@@ -11,6 +11,7 @@
 #include "runtime/executor.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "runtime/runtime_environment_factory.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
@@ -70,22 +71,25 @@ namespace kagome::runtime::wavm {
     gsl::span<const uint8_t> code_;
   };
 
-  ExecutorFactory::ExecutorFactory(
+  CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
-      std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory)
+      std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : instance_env_factory_{std::move(instance_env_factory)},
         compartment_{compartment},
         storage_{std::move(storage)},
-        block_header_repo_{std::move(block_header_repo)} {
+        block_header_repo_{std::move(block_header_repo)},
+        changes_tracker_{std::move(changes_tracker)} {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(block_header_repo_);
     BOOST_ASSERT(instance_env_factory_);
+    BOOST_ASSERT(changes_tracker_);
   }
 
-  std::unique_ptr<Executor> ExecutorFactory::make(
+  std::unique_ptr<Core> CoreApiFactoryImpl::make(
       std::shared_ptr<const crypto::Hasher> hasher,
       const std::vector<uint8_t> &runtime_code) const {
     auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
@@ -101,7 +105,8 @@ namespace kagome::runtime::wavm {
     auto executor =
         std::make_unique<runtime::Executor>(block_header_repo_, env_factory);
     env_factory->setEnvCleanupCallback([](auto &) { popHostApi(); });
-    return executor;
+    return std::make_unique<CoreImpl>(
+        std::move(executor), changes_tracker_, block_header_repo_);
   }
 
 }  // namespace kagome::runtime::wavm

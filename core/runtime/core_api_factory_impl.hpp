@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_EXECUTOR_FACTORY_HPP
-#define KAGOME_CORE_RUNTIME_EXECUTOR_FACTORY_HPP
+#ifndef KAGOME_CORE_RUNTIME_CORE_API_FACTORY_IMPL_HPP
+#define KAGOME_CORE_RUNTIME_CORE_API_FACTORY_IMPL_HPP
 
 #include <memory>
 #include <vector>
@@ -19,21 +19,21 @@ namespace kagome::crypto {
 
 namespace kagome::runtime {
 
-  class Executor;
+  class Core;
 
   /**
-   * A factory for Runtime Executor, used where an isolated runtime environment
+   * A factory for Core API, used where an isolated runtime environment
    * is required
    */
-  class ExecutorFactory {
+  class CoreApiFactory {
    public:
-    virtual ~ExecutorFactory() = default;
+    virtual ~CoreApiFactory() = default;
 
-    [[nodiscard]] virtual std::unique_ptr<Executor> make(
+    [[nodiscard]] virtual std::unique_ptr<Core> make(
         std::shared_ptr<const crypto::Hasher> hasher,
         const std::vector<uint8_t> &runtime_code) const = 0;
   };
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_CORE_RUNTIME_EXECUTOR_FACTORY_HPP
+#endif  // KAGOME_CORE_RUNTIME_CORE_API_FACTORY_IMPL_HPP

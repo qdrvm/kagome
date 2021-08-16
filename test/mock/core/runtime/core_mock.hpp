@@ -14,6 +14,8 @@ namespace kagome::runtime {
 
   class CoreMock : public Core {
    public:
+    MOCK_METHOD0(version,
+                 outcome::result<primitives::Version>());
     MOCK_METHOD1(version,
                  outcome::result<primitives::Version>(
                      primitives::BlockHash const &block));

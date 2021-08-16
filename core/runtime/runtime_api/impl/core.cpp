@@ -27,6 +27,10 @@ namespace kagome::runtime {
     return executor_->callAt<primitives::Version>(block, "Core_version");
   }
 
+  outcome::result<primitives::Version> CoreImpl::version() {
+    return executor_->callAtGenesis<primitives::Version>("Core_version");
+  }
+
   outcome::result<void> CoreImpl::execute_block(
       const primitives::Block &block) {
     OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.header.parent_hash));

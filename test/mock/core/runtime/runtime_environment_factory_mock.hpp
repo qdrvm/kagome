@@ -44,10 +44,16 @@ namespace kagome::runtime {
                                     std::move(module_repo),
                                     std::move(header_repo)} {}
 
-    MOCK_METHOD2(start,
-                 std::unique_ptr<RuntimeEnvironmentTemplate>(
-                     const primitives::BlockInfo &blockchain_state,
-                     const storage::trie::RootHash &storage_state));
+    MOCK_CONST_METHOD2(start,
+                       std::unique_ptr<RuntimeEnvironmentTemplate>(
+                           const primitives::BlockInfo &blockchain_state,
+                           const storage::trie::RootHash &storage_state));
+    MOCK_CONST_METHOD1(
+        start,
+        outcome::result<std::unique_ptr<RuntimeEnvironmentTemplate>>(
+            const primitives::BlockHash &blockchain_state));
+    MOCK_CONST_METHOD0(
+        start, outcome::result<std::unique_ptr<RuntimeEnvironmentTemplate>>());
   };
 
 }  // namespace kagome::runtime

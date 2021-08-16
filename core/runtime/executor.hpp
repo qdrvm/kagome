@@ -38,10 +38,8 @@ namespace kagome::runtime {
     Executor(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<RuntimeEnvironmentFactory> env_factory)
-        : header_repo_{std::move(header_repo)},
-          env_factory_{std::move(env_factory)},
+        : env_factory_{std::move(env_factory)},
           logger_{log::createLogger("Executor", "runtime")} {
-      BOOST_ASSERT(header_repo_ != nullptr);
       BOOST_ASSERT(env_factory_ != nullptr);
     }
 
@@ -57,31 +55,17 @@ namespace kagome::runtime {
         storage::trie::RootHash const &storage_state,
         std::string_view name,
         Args &&...args) {
-      SL_DEBUG(logger_,
-               "Execute {} persistently at state: #{} hash: {} "
-               "state: {}",
-               name,
-               block_info.number,
-               block_info.hash.toHex(),
-               storage_state.toHex());
       OUTCOME_TRY(
           env,
           env_factory_->start(block_info, storage_state)->persistent().make());
       auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
       if (res) {
-        BOOST_ASSERT_MSG(
-            env->storage_provider->tryGetPersistentBatch(),
-            "Persistent batch should always exist for persistent call");
-        OUTCOME_TRY(
-            state_root,
-            env->storage_provider->tryGetPersistentBatch().value()->commit());
-        SL_DEBUG(logger_,
-                 "Runtime call committed new state with hash {}",
-                 state_root.toHex());
+        OUTCOME_TRY(new_state_root, commitState(*env));
         if constexpr (std::is_void_v<Result>) {
-          return PersistentResult<Result>{state_root};
+          return PersistentResult<Result>{new_state_root};
         } else {
-          return PersistentResult<Result>{std::move(res.value()), state_root};
+          return PersistentResult<Result>{std::move(res.value()),
+                                          new_state_root};
         }
       }
       return res.error();
@@ -97,12 +81,19 @@ namespace kagome::runtime {
         primitives::BlockHash const &block_hash,
         std::string_view name,
         Args &&...args) {
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
-      return persistentCallAt<Result>(
-          primitives::BlockInfo{header.number, block_hash},
-          header.state_root,
-          name,
-          std::forward<Args>(args)...);
+      OUTCOME_TRY(env_template, env_factory_->start(block_hash));
+      OUTCOME_TRY(env, env_template->persistent().make());
+      auto res = callInternal<Result>(*env, name, std::forward<Args>(args)...);
+      if (res) {
+        OUTCOME_TRY(new_state_root, commitState(*env));
+        if constexpr (std::is_void_v<Result>) {
+          return PersistentResult<Result>{new_state_root};
+        } else {
+          return PersistentResult<Result>{std::move(res.value()),
+                                          new_state_root};
+        }
+      }
+      return res.error();
     }
 
     /**
@@ -116,18 +107,12 @@ namespace kagome::runtime {
                                    storage::trie::RootHash const &storage_state,
                                    std::string_view name,
                                    Args &&...args) {
-      SL_DEBUG(logger_,
-               "Execute {} at state: #{} hash: {} state: {}",
-               name,
-               block_info.number,
-               block_info.hash.toHex(),
-               storage_state.toHex());
       OUTCOME_TRY(env, env_factory_->start(block_info, storage_state)->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
     /**
-     * Call a runtime method in a persistent environment, e. g. the storage
+     * Call a runtime method in an ephemeral environment, e. g. the storage
      * changes, made by this call, will NOT persist in the node's Trie storage
      * The call will be done on the \param block_hash state
      */
@@ -135,17 +120,21 @@ namespace kagome::runtime {
     outcome::result<Result> callAt(primitives::BlockHash const &block_hash,
                                    std::string_view name,
                                    Args &&...args) {
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
-      SL_DEBUG(logger_,
-               "Execute {} at #{} hash: {}, state: {}",
-               name,
-               header.number,
-               block_hash.toHex(),
-               header.state_root.toHex());
-      OUTCOME_TRY(
-          env,
-          env_factory_->start({header.number, block_hash}, header.state_root)
-              ->make());
+      OUTCOME_TRY(env_template, env_factory_->start(block_hash));
+      OUTCOME_TRY(env, env_template->persistent().make());
+      return callInternal<Result>(*env, name, std::forward<Args>(args)...);
+    }
+
+    /**
+     * Call a runtime method in an ephemeral environment, e. g. the storage
+     * changes, made by this call, will NOT persist in the node's Trie storage
+     * The call will be done on the genesis state
+     */
+    template <typename Result, typename... Args>
+    outcome::result<Result> callAtGenesis(std::string_view name,
+                                   Args &&...args) {
+      OUTCOME_TRY(env_template, env_factory_->start());
+      OUTCOME_TRY(env, env_template->persistent().make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
@@ -179,7 +168,21 @@ namespace kagome::runtime {
         return scale::decode<Result>(memory.loadN(result.ptr, result.size));
       }
     }
-    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
+
+    outcome::result<storage::trie::RootHash> commitState(
+        const RuntimeEnvironment &env) {
+      BOOST_ASSERT_MSG(
+          env.storage_provider->tryGetPersistentBatch(),
+          "Current batch should always be persistent for a persistent call");
+      OUTCOME_TRY(
+          new_state_root,
+          env.storage_provider->tryGetPersistentBatch().value()->commit());
+      SL_DEBUG(logger_,
+               "Runtime call committed new state with hash {}",
+               new_state_root.toHex());
+      return std::move(new_state_root);
+    }
+
     std::shared_ptr<RuntimeEnvironmentFactory> env_factory_;
     log::Logger logger_;
   };
