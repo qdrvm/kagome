@@ -61,7 +61,7 @@ namespace kagome::consensus::babe {
              const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
-             std::unique_ptr<clock::Ticker> ticker,
+             std::shared_ptr<boost::asio::io_context> io_context,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
              std::shared_ptr<BabeUtil> babe_util);
@@ -88,6 +88,9 @@ namespace kagome::consensus::babe {
 
     void doOnSynchronized(std::function<void()> handler) override;
 
+    /** for test purposes only */
+    void setTicker(std::unique_ptr<clock::Ticker>&& ticker);
+
    private:
     /**
      * Process the current Babe slot
@@ -105,7 +108,7 @@ namespace kagome::consensus::babe {
      */
     void startNextEpoch();
 
-    BabeLottery::SlotsLeadership getEpochLeadership(
+    void changeLotteryEpoch(
         const EpochDescriptor &epoch,
         const primitives::AuthorityList &authorities,
         const Randomness &randomness) const;
@@ -147,6 +150,7 @@ namespace kagome::consensus::babe {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
     std::unique_ptr<clock::Ticker> ticker_;
+    std::unique_ptr<clock::Ticker> key_wait_ticker_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
@@ -156,7 +160,6 @@ namespace kagome::consensus::babe {
     EpochDescriptor current_epoch_;
 
     BabeSlotNumber current_slot_{};
-    boost::optional<BabeLottery::SlotsLeadership> slots_leadership_;
 
     std::function<void()> on_synchronized_;
 

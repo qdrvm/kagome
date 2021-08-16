@@ -14,6 +14,9 @@
 namespace kagome::consensus {
   /**
    * Contains specific data, needed in BABE for validation
+   *
+   * @see
+   * https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/consensus/babe/src/digests.rs#L74
    */
   struct BabeBlockHeader {
     static constexpr uint8_t kVRFHeader = 0x01;
@@ -50,11 +53,7 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BabeBlockHeader &bh) {
-    // were added to immitate substrate's enum type for BabePreDigest where our
-    // BabeBlockHeader is Primary type and missing weight. For now just set
-    // weight to 1
-    uint8_t fake_type_index = 1;
-    return s << fake_type_index << bh.authority_index << bh.slot_number
+    return s << bh.check_type << bh.authority_index << bh.slot_number
              << bh.vrf_output;
   }
 

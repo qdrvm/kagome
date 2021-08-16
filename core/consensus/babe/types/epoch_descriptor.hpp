@@ -23,6 +23,10 @@ namespace kagome::consensus {
       return epoch_number == other.epoch_number
              && start_slot == other.start_slot;
     }
+
+    bool operator!=(const EpochDescriptor &other) const {
+      return !operator==(other);
+    }
   };
 
   template <class Stream,

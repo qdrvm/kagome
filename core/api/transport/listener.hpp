@@ -33,7 +33,7 @@ namespace kagome::api {
       Endpoint endpoint{};
 
       /// max allowed simultaneous connections through websocket
-      uint32_t ws_max_connections;
+      uint32_t ws_max_connections{};
 
       Configuration() {
         endpoint.address(boost::asio::ip::address_v4::any());

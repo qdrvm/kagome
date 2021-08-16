@@ -9,6 +9,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_tree_error.hpp"
+#include "clock/impl/ticker_impl.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
@@ -19,6 +20,11 @@
 #include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+
+using namespace std::literals::chrono_literals;
+
+// a period of time to check key appearance when absent
+constexpr auto kKeyWaitTimerDuration = 60s;
 
 namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
@@ -35,7 +41,7 @@ namespace kagome::consensus::babe {
       const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::unique_ptr<clock::Ticker> ticker,
+      std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util)
@@ -50,7 +56,6 @@ namespace kagome::consensus::babe {
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
-        ticker_{std::move(ticker)},
         authority_update_observer_(std::move(authority_update_observer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
@@ -68,6 +73,11 @@ namespace kagome::consensus::babe {
 
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
+
+    ticker_ = std::make_unique<clock::TickerImpl>(
+        io_context, babe_configuration_->slot_duration);
+    key_wait_ticker_ =
+        std::make_unique<clock::TickerImpl>(io_context, kKeyWaitTimerDuration);
   }
 
   bool BabeImpl::prepare() {
@@ -149,6 +159,9 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
+    if (1 == announce.header.number) {
+      current_state_ = State::SYNCHRONIZED;
+    }
     switch (current_state_) {
       case State::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
@@ -183,11 +196,37 @@ namespace kagome::consensus::babe {
   void BabeImpl::onPeerSync() {
     // sync already started no need to call it again
     if (ticker_->isStarted()) {
+      // stop key wait ticker when key appeared if started
+      if (key_wait_ticker_->isStarted()) {
+        key_wait_ticker_->stop();
+      }
       return;
     }
 
     // won't start block production without keypair
     if (not keypair_) {
+      // launch timer that would check key appearance
+      if (not key_wait_ticker_->isStarted()) {
+        key_wait_ticker_->asyncCallRepeatedly(
+            [wp = weak_from_this()](auto &&ec) {
+              if (auto self = wp.lock()) {
+                if (ec) {
+                  if (ec.value() == boost::system::errc::operation_canceled) {
+                    SL_INFO(self->log_, "key_wait_ticker {}", ec.message());
+                    return;
+                  }
+                  SL_ERROR(
+                      self->log_,
+                      "error happened while waiting on the key_wait_ticker: {}",
+                      ec.message());
+                  return;
+                }
+                SL_INFO(self->log_, "Check if babe key appeared...");
+                self->onPeerSync();
+              }
+            });
+        key_wait_ticker_->start(key_wait_ticker_->interval());
+      }
       return;
     }
 
@@ -222,23 +261,25 @@ namespace kagome::consensus::babe {
     }
   }
 
+  void BabeImpl::setTicker(std::unique_ptr<clock::Ticker> &&ticker) {
+    ticker_ = std::move(ticker);
+  }
+
   void BabeImpl::processSlot() {
     BOOST_ASSERT(keypair_ != nullptr);
 
-    if (not slots_leadership_.has_value()) {
-      auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+    if (lottery_->getEpoch() != current_epoch_) {
+      const auto &[_, best_block_hash] = block_tree_->deepestLeaf();
 
       auto epoch_res = block_tree_->getEpochDescriptor(
           current_epoch_.epoch_number, best_block_hash);
       BOOST_ASSERT(epoch_res.has_value());
-      auto &epoch = epoch_res.value();
+      const auto &epoch = epoch_res.value();
 
-      slots_leadership_ = getEpochLeadership(
-          current_epoch_, epoch.authorities, epoch.randomness);
+      changeLotteryEpoch(current_epoch_, epoch.authorities, epoch.randomness);
     }
 
-    auto slot_leadership =
-        slots_leadership_.value()[current_slot_ - current_epoch_.start_slot];
+    auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
 
     if (slot_leadership) {
       SL_DEBUG(log_,
@@ -440,7 +481,7 @@ namespace kagome::consensus::babe {
         now);
   }
 
-  BabeLottery::SlotsLeadership BabeImpl::getEpochLeadership(
+  void BabeImpl::changeLotteryEpoch(
       const EpochDescriptor &epoch,
       const primitives::AuthorityList &authorities,
       const Randomness &randomness) const {
@@ -458,7 +499,7 @@ namespace kagome::consensus::babe {
     auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
                                         authorities,
                                         authority_index_res.value());
-    return lottery_->slotsLeadership(epoch, randomness, threshold, *keypair_);
+    lottery_->changeEpoch(epoch, randomness, threshold, *keypair_);
   }
 
   void BabeImpl::startNextEpoch() {
@@ -469,7 +510,6 @@ namespace kagome::consensus::babe {
 
     ++current_epoch_.epoch_number;
     current_epoch_.start_slot = current_slot_;
-    slots_leadership_.reset();
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(
         {current_epoch_.epoch_number, current_epoch_.start_slot});
@@ -498,23 +538,28 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    const auto &babe_digests_res = getBabeDigests(new_header);
-    if (not babe_digests_res) {
-      SL_ERROR(log_,
-               "Could not get digests: {}",
-               babe_digests_res.error().message());
-    }
-
-    const auto &[_, babe_header] = babe_digests_res.value();
-
-    EpochDescriptor epoch;
-    const auto last_known_epoch = babe_util_->getLastEpoch().value();
-    epoch = prepareFirstEpoch(last_known_epoch, babe_header.slot_number + 1);
-
     // runEpoch starts ticker
     if (not ticker_->isStarted()) {
-      runEpoch(epoch);
-      on_synchronized_();
+      const auto &babe_digests_res = getBabeDigests(new_header);
+      if (not babe_digests_res) {
+        SL_ERROR(log_,
+                 "Could not get digests: {}",
+                 babe_digests_res.error().message());
+      }
+
+      const auto &[_, babe_header] = babe_digests_res.value();
+
+      EpochDescriptor epoch;
+      auto last_known_epoch_res = babe_util_->getLastEpoch();
+      if (last_known_epoch_res.has_value()) {
+        epoch = prepareFirstEpoch(last_known_epoch_res.value(),
+                                  babe_header.slot_number + 1);
+        runEpoch(epoch);
+        on_synchronized_();
+      } else {
+        SL_ERROR(log_, "Could not get last known epoch: {}",
+                 last_known_epoch_res.error().message());
+      }
     }
   }
 }  // namespace kagome::consensus::babe
