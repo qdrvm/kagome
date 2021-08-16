@@ -41,18 +41,15 @@ namespace kagome::network {
             msg.set_number(&n, sizeof(n));
           });
 
+      // Note: request.to is not used in substrate
       if (t.to) {
         msg.set_to_block(t.to->toString());
-      } else {
-        msg.clear_to_block();
       }
 
       msg.set_direction(static_cast<::api::v1::Direction>(t.direction));
 
       if (t.max) {
         msg.set_max_blocks(*t.max);
-      } else {
-        msg.clear_max_blocks();
       }
 
       const size_t distance_was = std::distance(out.begin(), loaded);
