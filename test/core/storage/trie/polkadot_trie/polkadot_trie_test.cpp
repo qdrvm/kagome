@@ -377,8 +377,10 @@ TEST_P(DeleteTest, DeleteData) {
 INSTANTIATE_TEST_CASE_P(
     DeleteSuite,
     DeleteTest,
-    testing::ValuesIn({DeleteData{{}, "bar"_buf, 0},
-                       DeleteData{{"bar"_buf, "foo"_buf}, "bar"_buf, 1}}));
+    testing::ValuesIn(
+        {DeleteData{{}, "bar"_buf, 0},
+         DeleteData{{"bar"_buf, "foo"_buf}, "bar"_buf, 1},
+         DeleteData{{"612355"_hex2buf, "6124"_hex2buf}, "6123"_hex2buf, 3}}));
 
 struct ClearPrefixData {
   std::vector<Buffer> data;

@@ -300,16 +300,16 @@ namespace kagome::storage::trie {
       return;
     }
     if (parent->isBranch()) {
-      auto length = getCommonPrefixLength(parent->key_nibbles, key);
-      if (parent->key_nibbles == key or key.empty()) {
+      if (parent->key_nibbles == key) {
         parent->value = boost::none;
       } else {
+        auto length = getCommonPrefixLength(parent->key_nibbles, key);
         auto &child =
             dynamic_cast<BranchNode &>(*parent.get()).children.at(key[length]);
         deleteNode(child, key.subspan(length + 1));
       }
       handleDeletion(parent);
-    } else if (parent->key_nibbles == key or key.empty()) {
+    } else if (parent->key_nibbles == key) {
       parent.reset();
     }
   }
