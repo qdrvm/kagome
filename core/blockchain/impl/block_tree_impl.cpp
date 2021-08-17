@@ -636,33 +636,33 @@ namespace kagome::blockchain {
         finish_block_number = 0;
       } else {
         // some non-root block
-        finish_block_number = start_block_number - maximum;
+        finish_block_number = start_block_number - maximum + 1;
       }
     } else {
-      auto finish_block_number_candidate = start_block_number + maximum;
+      finish_block_number = start_block_number + maximum - 1;
       auto current_depth = tree_meta_->deepest_leaf.get().depth;
-      if (finish_block_number_candidate <= current_depth) {
-        finish_block_number = finish_block_number_candidate;
-      } else {
+      if (current_depth < finish_block_number) {
         finish_block_number = current_depth;
       }
     }
 
-    auto finish_block_hash = header_repo_->getHashByNumber(finish_block_number);
-    if (!finish_block_hash) {
+    auto finish_block_hash_res =
+        header_repo_->getHashByNumber(finish_block_number);
+    if (not finish_block_hash_res.has_value()) {
       log_->error("cannot retrieve block with number {}: {}",
                   finish_block_number,
-                  finish_block_hash.error().message());
+                  finish_block_hash_res.error().message());
       return BlockTreeError::NO_SUCH_BLOCK;
     }
+    auto &finish_block_hash = finish_block_hash_res.value();
 
     if (direction == GetChainDirection::ASCEND) {
-      return getChainByBlocks(block, finish_block_hash.value());
+      return getChainByBlocks(block, finish_block_hash);
     }
 
     // the function returns the blocks in the chronological order, but we want a
     // reverted one in this case
-    OUTCOME_TRY(chain, getChainByBlocks(finish_block_hash.value(), block));
+    OUTCOME_TRY(chain, getChainByBlocks(finish_block_hash, block));
     std::reverse(chain.begin(), chain.end());
     return std::move(chain);
   }
@@ -679,9 +679,10 @@ namespace kagome::blockchain {
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block,
       boost::optional<uint32_t> max_count) const {
-    if (auto from_cache =
+    if (auto chain_res =
             tryGetChainByBlocksFromCache(top_block, bottom_block, max_count)) {
-      return std::move(from_cache.value());
+      auto& chain = chain_res.value();
+      return std::move(chain);
     }
 
     OUTCOME_TRY(from, header_repo_->getNumberByHash(top_block));

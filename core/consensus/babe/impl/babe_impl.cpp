@@ -100,15 +100,14 @@ namespace kagome::consensus::babe {
   boost::optional<uint64_t> getAuthorityIndex(
       const primitives::AuthorityList &authorities,
       const primitives::BabeSessionKey &authority_key) {
-    auto it = std::find_if(authorities.begin(),
-                           authorities.end(),
-                           [&authority_key](const auto &authority) {
-                             return authority.id.id == authority_key;
-                           });
-    if (it == authorities.end()) {
-      return boost::none;
+    uint64_t n = 0;
+    for (auto &authority : authorities) {
+      if (authority.id.id == authority_key) {
+        return n;
+      }
+      ++n;
     }
-    return std::distance(authorities.begin(), it);
+    return boost::none;
   }
 
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
@@ -230,6 +229,8 @@ namespace kagome::consensus::babe {
       }
       return;
     }
+
+    current_state_ = State::SYNCHRONIZED;
 
     EpochDescriptor last_epoch_descriptor;
     if (auto res = babe_util_->getLastEpoch(); res.has_value()) {

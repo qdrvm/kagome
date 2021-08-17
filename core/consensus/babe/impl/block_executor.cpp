@@ -164,7 +164,7 @@ namespace kagome::consensus {
 
           if (blocks.front().header && blocks.back().header) {
             self->logger_->info(
-                "Received portion of blocks: {}..{}, {}..{}, count {}",
+                "Received portion of blocks: {}..{}, #{}..#{}, count {}",
                 blocks.front().hash.toHex(),
                 blocks.back().hash.toHex(),
                 blocks.front().header->number,

@@ -245,7 +245,7 @@ namespace kagome::network {
       std::shared_lock cs(streams_cs_);
       forEachPeer([&](const auto &peer_id, auto &proto_map) {
         forProtocol(proto_map, protocol, [&](auto &descr) {
-          if (descr.outgoing) {
+          if (descr.outgoing and not descr.outgoing->isClosed()) {
             send(descr.outgoing, *msg);
             return;
           }
