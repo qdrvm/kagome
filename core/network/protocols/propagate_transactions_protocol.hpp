@@ -98,7 +98,7 @@ namespace kagome::network {
         ext_event_key_repo_;
     const libp2p::peer::Protocol protocol_;
     log::Logger log_ =
-        log::createLogger("PropagateTransactionsProtocol", "protocols");
+        log::createLogger("PropagateTransactionsProtocol", "kagome_protocols");
   };
 
 }  // namespace kagome::network
