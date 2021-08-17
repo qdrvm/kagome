@@ -60,7 +60,7 @@ groups:
           - name: metrics
           - name: network
             children:
-              - name: protocols
+              - name: kagome_protocols
           - name: changes_trie
           - name: storage
           - name: pubsub
