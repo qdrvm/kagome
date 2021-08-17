@@ -123,6 +123,23 @@ namespace kagome::network {
       }
       auto &block_request = block_request_res.value();
 
+      SL_VERBOSE(
+          self->log_,
+          "Block request is received from incoming {} stream with {}: "
+          "id={} fields={} dir={} from={} to={} amount={}",
+          self->protocol_,
+          stream->remotePeerId().value().toBase58(),
+          block_request.id,
+          block_request.fields.attributes,
+          block_request.direction == Direction::ASCENDING ? "anc" : "desc",
+          boost::relaxed_get<primitives::BlockHash>(block_request.from).toHex(),
+          block_request.to.has_value() ? block_request.to.value().toHex()
+                                       : "max",
+          block_request.max.has_value()
+              ? std::to_string(block_request.max.value())
+              : "max"
+          );
+
       auto block_response_res =
           self->sync_observer_->onBlocksRequest(block_request);
 

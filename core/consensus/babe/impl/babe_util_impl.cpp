@@ -92,6 +92,8 @@ namespace kagome::consensus {
     }
     const auto &key = storage::kLastBabeEpochNumberLookupKey;
     OUTCOME_TRY(epoch_descriptor, storage_->get(key));
-    return scale::decode<EpochDescriptor>(epoch_descriptor);
+    auto&& res = scale::decode<EpochDescriptor>(epoch_descriptor);
+    BOOST_ASSERT(res.has_value());
+    return std::move(res);
   }
 }  // namespace kagome::consensus
