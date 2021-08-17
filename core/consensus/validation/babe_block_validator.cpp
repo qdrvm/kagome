@@ -70,10 +70,19 @@ namespace kagome::consensus {
     OUTCOME_TRY(babe_digests, getBabeDigests(header));
     const auto &[seal, babe_header] = babe_digests;
 
-    // error if not primary slot
-    if (not babe_header.needVRFWithThresholdCheck()) {
-      SL_WARN(log_, "Secondary slots assignments disabled");
-      return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
+    // @see
+    // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/client/consensus/babe/src/verification.rs#L111
+    if (babe_header.needAuthorCheck()) {
+      if ((not babe_header.needVRFCheck()
+           and configuration_->allowed_slots
+                   != primitives::AllowedSlots::PrimaryAndSecondaryPlainSlots)
+          or (babe_header.needVRFCheck()
+              and configuration_->allowed_slots
+                      != primitives::AllowedSlots::
+                          PrimaryAndSecondaryVRFSlots)) {
+        SL_WARN(log_, "Secondary slots assignments disabled");
+        return ValidationError::SECONDARY_SLOT_ASSIGNMENTS_DISABLED;
+      }
     }
 
     // signature in seal of the header must be valid
