@@ -280,13 +280,11 @@ namespace kagome::network {
               return;
             }
 
-            if (self_status.value().best_block.number
-                < remote_status.best_block.number) {
-              self->observer_->onRemoteStatus(peer_id, remote_status);
-            } else if (self_status.value().best_block
-                           == remote_status.best_block
-                       && self_status.value().roles.flags.authority
-                       && remote_status.roles.flags.authority) {
+            self->observer_->onRemoteStatus(peer_id, remote_status);
+
+            if (self_status.value().best_block == remote_status.best_block
+                && self_status.value().roles.flags.authority
+                && remote_status.roles.flags.authority) {
               // Considered synced if connected to another authority node
               self->observer_->onPeerSync();
             }
