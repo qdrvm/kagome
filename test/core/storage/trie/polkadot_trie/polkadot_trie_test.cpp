@@ -380,13 +380,16 @@ INSTANTIATE_TEST_CASE_P(
     testing::ValuesIn(
         {DeleteData{{}, "bar"_buf, 0},
          DeleteData{{"bar"_buf, "foo"_buf}, "bar"_buf, 1},
+         DeleteData{{""_buf, "bar"_buf, "foo"_buf}, "bar"_buf, 2},
+         DeleteData{{"bar"_buf, "foa"_buf, "fob"_buf}, "bar"_buf, 3},
          DeleteData{{"612355"_hex2buf, "6124"_hex2buf}, "6123"_hex2buf, 3},
-         DeleteData{{"b"_buf, "ba"_buf, "bb"_buf}, "b"_buf, 3}}));
+         DeleteData{{"b"_buf, "ba"_buf, "bb"_buf}, "b"_buf, 3},
+         DeleteData{{"a"_buf, "b"_buf, "z"_buf}, "z"_buf, 3}}));
 
 struct ClearPrefixData {
   std::vector<Buffer> data;
   Buffer prefix;
-  boost::optional<size_t> limit;
+  boost::optional<uint64_t> limit;
   std::vector<Buffer> res;
   std::tuple<bool, uint32_t> ret;
   size_t size;
