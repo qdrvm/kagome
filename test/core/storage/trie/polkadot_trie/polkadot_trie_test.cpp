@@ -380,7 +380,8 @@ INSTANTIATE_TEST_CASE_P(
     testing::ValuesIn(
         {DeleteData{{}, "bar"_buf, 0},
          DeleteData{{"bar"_buf, "foo"_buf}, "bar"_buf, 1},
-         DeleteData{{"612355"_hex2buf, "6124"_hex2buf}, "6123"_hex2buf, 3}}));
+         DeleteData{{"612355"_hex2buf, "6124"_hex2buf}, "6123"_hex2buf, 3},
+         DeleteData{{"b"_buf, "ba"_buf, "bb"_buf}, "b"_buf, 3}}));
 
 struct ClearPrefixData {
   std::vector<Buffer> data;
@@ -459,13 +460,16 @@ INSTANTIATE_TEST_CASE_P(
          /* a limit to remove all */
          ClearPrefixData{
              {"a"_buf, "b"_buf, "c"_buf}, ""_buf, 3, {}, {true, 3}, 0},
-         /* remove partially, stop by limit */
-         ClearPrefixData{{"a"_buf, "b"_buf, "c"_buf},
-                         ""_buf,
+         /* remove from wide tree, stop by limit */
+         ClearPrefixData{
+             {"a"_buf, "b"_buf, "c"_buf}, ""_buf, 2, {"c"_buf}, {false, 2}, 1},
+         /* remove from long tree, stop by limit */
+         ClearPrefixData{{""_buf, "a"_buf, "aa"_buf, "aaa"_buf},
+                         "a"_buf,
                          2,
-                         {"c"_buf},
+                         {""_buf, "a"_buf},
                          {false, 2},
-                         1}}));
+                         2}}));
 
 /**
  * @given an empty trie

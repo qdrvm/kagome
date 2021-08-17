@@ -359,8 +359,8 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
 
-    if (limit and count == limit.value()) {
-      finished = false;
+    // means 'limit ended'
+    if (not finished) {
       return outcome::success();
     }
 
@@ -382,9 +382,15 @@ namespace kagome::storage::trie {
             ++count;
           }
           parent.reset();
-        } else if (parent->isBranch()) {
-          // fix block after children removal
-          handleDeletion(parent);
+        } else {
+          if (parent->value) {
+            // we saw a value after limit, so not finished
+            finished = false;
+          }
+          if (parent->isBranch()) {
+            // fix block after children removal
+            handleDeletion(parent);
+          }
         }
         return outcome::success();
       }
