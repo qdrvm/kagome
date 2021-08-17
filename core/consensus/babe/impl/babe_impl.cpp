@@ -158,11 +158,45 @@ namespace kagome::consensus::babe {
     return current_state_;
   }
 
+  void BabeImpl::onRemoteStatus(const libp2p::peer::PeerId &peer_id,
+                                const network::Status &status) {
+    if (current_state_ == State::WAIT_BLOCK) {
+      if (status.best_block.number == 1) {
+        current_state_ = State::SYNCHRONIZED;
+        return;
+      }
+
+      const auto &last_finalized_block = block_tree_->getLastFinalized();
+
+      auto current_best_block_res = block_tree_->getBestContaining(
+          last_finalized_block.hash, boost::none);
+      BOOST_ASSERT(current_best_block_res.has_value());
+      const auto &current_best_block = current_best_block_res.value();
+
+      if (current_best_block.number > status.best_block.number) {
+        return;
+      }
+
+      // synchronize missing blocks with their bodies
+      SL_INFO(
+          log_, "Catching up to block number: {}", status.best_block.number);
+      current_state_ = State::CATCHING_UP;
+
+      block_executor_->requestBlocks(
+          last_finalized_block.hash,
+          status.best_block.hash,
+          peer_id,
+          [wp = weak_from_this()] {
+            if (auto self = wp.lock()) {
+              SL_INFO(self->log_, "Catching up is done");
+              self->current_state_ = State::SYNCHRONIZED;
+            }
+          });
+    }
+  }
+
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
-    if (1 == announce.header.number) {
-      current_state_ = State::SYNCHRONIZED;
-    }
     switch (current_state_) {
       case State::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
@@ -177,9 +211,7 @@ namespace kagome::consensus::babe {
         block_executor_->requestBlocks(
             peer_id, announce.header, [wp = weak_from_this()] {
               if (auto self = wp.lock()) {
-                SL_INFO(self->log_, "Catching up is done, getting slot time");
-                // all blocks were successfully applied, now we need to get
-                // slot time
+                SL_INFO(self->log_, "Catching up is done");
                 self->current_state_ = State::SYNCHRONIZED;
               }
             });
@@ -556,7 +588,8 @@ namespace kagome::consensus::babe {
         runEpoch(epoch);
         on_synchronized_();
       } else {
-        SL_ERROR(log_, "Could not get last known epoch: {}",
+        SL_ERROR(log_,
+                 "Could not get last known epoch: {}",
                  last_known_epoch_res.error().message());
       }
     }

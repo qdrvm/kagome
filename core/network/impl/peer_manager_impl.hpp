@@ -24,7 +24,6 @@
 #include "clock/clock.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
-#include "network/babe_observer.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/protocols/block_announce_protocol.hpp"
 #include "network/protocols/propagate_transactions_protocol.hpp"

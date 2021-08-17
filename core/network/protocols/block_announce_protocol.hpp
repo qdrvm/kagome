@@ -20,7 +20,7 @@
 #include "containers/objects_cache.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
-#include "network/babe_observer.hpp"
+#include "network/block_announce_observer.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "network/peer_manager.hpp"
 #include "network/types/block_announce.hpp"
@@ -53,7 +53,7 @@ namespace kagome::network {
                           std::shared_ptr<StreamEngine> stream_engine,
                           std::shared_ptr<blockchain::BlockTree> block_tree,
                           std::shared_ptr<blockchain::BlockStorage> storage,
-                          std::shared_ptr<BabeObserver> babe_observer,
+                          std::shared_ptr<BlockAnnounceObserver> observer,
                           std::shared_ptr<crypto::Hasher> hasher,
                           std::shared_ptr<PeerManager> peer_manager);
 
@@ -91,7 +91,7 @@ namespace kagome::network {
     std::shared_ptr<StreamEngine> stream_engine_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockStorage> storage_;
-    std::shared_ptr<BabeObserver> babe_observer_;
+    std::shared_ptr<BlockAnnounceObserver> observer_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<PeerManager> peer_manager_;
     const libp2p::peer::Protocol protocol_;
