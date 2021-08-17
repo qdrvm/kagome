@@ -21,7 +21,7 @@ namespace kagome::network {
       std::shared_ptr<StreamEngine> stream_engine,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockStorage> storage,
-      std::shared_ptr<BabeObserver> babe_observer,
+      std::shared_ptr<BlockAnnounceObserver> observer,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<PeerManager> peer_manager)
       : host_(host),
@@ -29,13 +29,13 @@ namespace kagome::network {
         stream_engine_(std::move(stream_engine)),
         block_tree_(std::move(block_tree)),
         storage_(std::move(storage)),
-        babe_observer_(std::move(babe_observer)),
+        observer_(std::move(observer)),
         hasher_(std::move(hasher)),
         peer_manager_(std::move(peer_manager)) {
     BOOST_ASSERT(stream_engine_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(babe_observer_ != nullptr);
+    BOOST_ASSERT(observer_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(peer_manager_ != nullptr);
     const_cast<Protocol &>(protocol_) =
@@ -273,20 +273,25 @@ namespace kagome::network {
                    remote_status.best_block.number);
           self->peer_manager_->updatePeerStatus(peer_id, remote_status);
 
-          // dev mode doesn't have to wait any nodes except itself
-          if (self->app_config_.isRunInDevMode()) {
-            self->babe_observer_->onPeerSync();
-          } else {
+          if (not self->app_config_.isRunInDevMode()) {
             auto self_status = self->createStatus();
             if (not self_status.has_value()) {
               cb(ProtocolError::CAN_NOT_CREATE_STATUS);
               return;
             }
+
+            self->observer_->onRemoteStatus(peer_id, remote_status);
+
             if (self_status.value().best_block == remote_status.best_block
                 && self_status.value().roles.flags.authority
                 && remote_status.roles.flags.authority) {
-              self->babe_observer_->onPeerSync();
+              // Considered synced if connected to another authority node
+              self->observer_->onPeerSync();
             }
+          } else {
+            // Developer mode means that this node is the only authority node,
+            // and is considered to be already synchronized
+            self->observer_->onPeerSync();
           }
 
           switch (direction) {
@@ -383,7 +388,7 @@ namespace kagome::network {
                      block_announce.header.number,
                      peer_id.toBase58());
 
-          self->babe_observer_->onBlockAnnounce(peer_id, block_announce);
+          self->observer_->onBlockAnnounce(peer_id, block_announce);
 
           auto hash = self->hasher_->blake2b_256(
               scale::encode(block_announce.header).value());

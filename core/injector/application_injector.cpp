@@ -1209,7 +1209,7 @@ namespace {
         di::bind<consensus::babe::Babe>.to(
             [](auto const &injector) { return get_babe(injector); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-        di::bind<network::BabeObserver>.to(
+        di::bind<network::BlockAnnounceObserver>.to(
             [](auto const &injector) { return get_babe(injector); }),
         di::bind<runtime::GrandpaApi>.template to<runtime::binaryen::GrandpaApiImpl>()
             [di::override],

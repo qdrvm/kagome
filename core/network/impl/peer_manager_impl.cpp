@@ -166,6 +166,9 @@ namespace kagome::network {
 
     // Check if disconnected
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
+    BOOST_ASSERT_MSG(block_announce_protocol,
+                     "Router did not provide block announce protocol");
+
     boost::optional<PeerId> disconnected_peer;
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, data] = *it++;
@@ -435,6 +438,9 @@ namespace kagome::network {
     PeerInfo peer_info{.id = peer_id, .addresses = {}};
 
     auto block_announce_protocol = router_->getBlockAnnounceProtocol();
+    BOOST_ASSERT_MSG(block_announce_protocol,
+                     "Router did not provide block announce protocol");
+
     if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol)) {
       block_announce_protocol->newOutgoingStream(
           peer_info,
@@ -504,9 +510,16 @@ namespace kagome::network {
 
   void PeerManagerImpl::reserveStreams(const PeerId &peer_id) const {
     // Reserve stream slots for needed protocols
+    auto grandpa_protocol = router_->getGrandpaProtocol();
+    BOOST_ASSERT_MSG(grandpa_protocol,
+                     "Router did not provide grandpa protocol");
 
-    stream_engine_->add(peer_id, router_->getGrandpaProtocol());
-    stream_engine_->add(peer_id, router_->getPropagateTransactionsProtocol());
+    auto transaction_protocol = router_->getGrandpaProtocol();
+    BOOST_ASSERT_MSG(transaction_protocol,
+                     "Router did not provide propogate transaction protocol");
+
+    stream_engine_->add(peer_id, grandpa_protocol);
+    stream_engine_->add(peer_id, transaction_protocol);
   }
 
   // always false in dev mode
