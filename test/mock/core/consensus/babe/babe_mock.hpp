@@ -19,6 +19,10 @@ namespace kagome::consensus::babe {
 
     MOCK_METHOD1(doOnSynchronized, void(std::function<void()> handler));
 
+    MOCK_METHOD2(onRemoteStatus,
+                 void(const libp2p::peer::PeerId &peer_id,
+                      const network::Status &status));
+
     MOCK_METHOD2(onBlockAnnounce,
                  void(const libp2p::peer::PeerId &peer_id,
                       const network::BlockAnnounce &announce));
