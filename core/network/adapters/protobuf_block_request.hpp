@@ -28,18 +28,29 @@ namespace kagome::network {
         std::vector<uint8_t> &out,
         std::vector<uint8_t>::iterator loaded) {
       ::api::v1::BlockRequest msg;
+
       msg.set_fields(LE_BE_SWAP32(t.fields.attributes.to_ulong()));
 
-      if (t.max) msg.set_max_blocks(*t.max);
-      if (t.to) msg.set_to_block(t.to->toString());
-
-      msg.set_direction(static_cast<::api::v1::Direction>(t.direction));
       kagome::visit_in_place(
           t.from,
-          [&](const primitives::BlockHash &v) { msg.set_hash(v.toString()); },
-          [&](const primitives::BlockNumber &v) {
-            msg.set_number(std::to_string(v));
+          [&](const primitives::BlockHash &block_hash) {
+            msg.set_hash(block_hash.toString());
+          },
+          [&](const primitives::BlockNumber &block_number) {
+            uint32_t n = htole32(block_number);
+            msg.set_number(&n, sizeof(n));
           });
+
+      // Note: request.to is not used in substrate
+      if (t.to) {
+        msg.set_to_block(t.to->toString());
+      }
+
+      msg.set_direction(static_cast<::api::v1::Direction>(t.direction));
+
+      if (t.max) {
+        msg.set_max_blocks(*t.max);
+      }
 
       const size_t distance_was = std::distance(out.begin(), loaded);
       const size_t was_size = out.size();
@@ -73,13 +84,9 @@ namespace kagome::network {
         } break;
 
         case msg.kNumber: {
-          auto varint_opt = libp2p::multi::UVarint::create(
-              gsl::make_span((const uint8_t *)(msg.number().data()),  // NOLINT
-                             msg.number().size()));
-          if (not varint_opt.has_value()) {
-            return AdaptersError::PARSE_FAILED;
-          }
-          primitives::BlockNumber bn(varint_opt->toUInt64());
+          uint32_t n = 0;
+          memcpy(&n, msg.number().data(), std::min(sizeof(n), msg.number().size()));
+          primitives::BlockNumber bn(le32toh(n));
           out.from = bn;
         } break;
 

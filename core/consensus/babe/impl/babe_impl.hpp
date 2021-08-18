@@ -81,6 +81,9 @@ namespace kagome::consensus::babe {
 
     State getCurrentState() const override;
 
+    void onRemoteStatus(const libp2p::peer::PeerId &peer_id,
+                        const network::Status &status) override;
+
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;
 
@@ -89,7 +92,7 @@ namespace kagome::consensus::babe {
     void doOnSynchronized(std::function<void()> handler) override;
 
     /** for test purposes only */
-    void setTicker(std::unique_ptr<clock::Ticker>&& ticker);
+    void setTicker(std::unique_ptr<clock::Ticker> &&ticker);
 
    private:
     /**
@@ -108,10 +111,9 @@ namespace kagome::consensus::babe {
      */
     void startNextEpoch();
 
-    void changeLotteryEpoch(
-        const EpochDescriptor &epoch,
-        const primitives::AuthorityList &authorities,
-        const Randomness &randomness) const;
+    void changeLotteryEpoch(const EpochDescriptor &epoch,
+                            const primitives::AuthorityList &authorities,
+                            const Randomness &randomness) const;
 
     outcome::result<primitives::PreRuntime> babePreDigest(
         const crypto::VRFOutput &output,

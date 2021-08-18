@@ -10,7 +10,7 @@
 
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/epoch_descriptor.hpp"
-#include "network/babe_observer.hpp"
+#include "network/block_announce_observer.hpp"
 
 namespace kagome::consensus::babe {
   /**
@@ -18,7 +18,7 @@ namespace kagome::consensus::babe {
    * the two parts in that consensus; the other is Grandpa finality
    * Read more: https://research.web3.foundation/en/latest/polkadot/BABE/Babe/
    */
-  class Babe : public network::BabeObserver {
+  class Babe : public network::BlockAnnounceObserver {
    public:
     ~Babe() override = default;
 
