@@ -6,7 +6,7 @@
 #ifndef KAGOME_RUNTIME_SYSTEM_MOCK
 #define KAGOME_RUNTIME_SYSTEM_MOCK
 
-#include "runtime/account_nonce_api.hpp"
+#include "runtime/runtime_api/account_nonce_api.hpp"
 
 #include <gmock/gmock.h>
 
@@ -14,8 +14,9 @@ namespace kagome::runtime {
 
   class AccountNonceApiMock : public AccountNonceApi {
    public:
-    MOCK_METHOD1(account_nonce,
+    MOCK_METHOD2(account_nonce,
                  outcome::result<primitives::AccountNonce>(
+                     const primitives::BlockHash &block,
                      const primitives::AccountId &));
   };
 

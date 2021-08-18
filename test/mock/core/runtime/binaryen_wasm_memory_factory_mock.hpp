@@ -6,19 +6,20 @@
 #ifndef KAGOME_BINARYEN_WASM_MEMORY_FACTORY_MOCK_HPP
 #define KAGOME_BINARYEN_WASM_MEMORY_FACTORY_MOCK_HPP
 
-#include "runtime/binaryen/binaryen_wasm_memory_factory.hpp"
+#include "runtime/binaryen/binaryen_memory_factory.hpp"
 
 #include <gmock/gmock.h>
 
 namespace kagome::runtime::binaryen {
 
-  class BinaryenWasmMemoryFactoryMock : public BinaryenWasmMemoryFactory {
+  class BinaryenWasmMemoryFactoryMock : public BinaryenMemoryFactory {
    public:
     ~BinaryenWasmMemoryFactoryMock() override = default;
 
-    MOCK_CONST_METHOD1(make,
-                       std::unique_ptr<WasmMemoryImpl>(
-                           wasm::ShellExternalInterface::Memory *));
+    MOCK_CONST_METHOD2(make,
+                       std::unique_ptr<MemoryImpl>(
+                           wasm::ShellExternalInterface::Memory *memory,
+                           WasmSize heap_base));
   };
 
 }  // namespace kagome::runtime::binaryen

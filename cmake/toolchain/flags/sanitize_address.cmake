@@ -12,6 +12,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
 set(FLAGS
     -fsanitize=address
     -fsanitize-address-use-after-scope
+    -fno-omit-frame-pointer
     -g
     -O1
     -DNDEBUG

@@ -10,6 +10,7 @@
 #include "primitives/arithmetic_error.hpp"
 #include "primitives/token_error.hpp"
 #include "primitives/transaction_validity.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::primitives {
 

@@ -500,7 +500,7 @@ namespace kagome::consensus::grandpa {
     // get authorities
     // TODO (xdimon) reduce number of call to this runtime function
     const auto &weighted_authorities_res =
-        grandpa_api_->authorities(primitives::BlockId(blockInfo.number));
+        grandpa_api_->authorities(primitives::BlockId(blockInfo.hash));
     if (!weighted_authorities_res.has_value()) {
       logger_->error("Can't get authorities");
       return;

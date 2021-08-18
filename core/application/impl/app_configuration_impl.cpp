@@ -47,6 +47,8 @@ namespace {
     roles.flags.full = 1;
     return roles;
   }();
+  const auto def_runtime_exec_method =
+      kagome::application::AppConfiguration::RuntimeExecutionMethod::Interpret;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -63,6 +65,18 @@ namespace {
       name = name.substr(0, max_len);
     }
     return name;
+  }
+
+  boost::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
+  str_to_runtime_exec_method(std::string_view str) {
+    using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
+    if (str == "Interpreted") {
+      return REM::Interpret;
+    }
+    if (str == "Compiled") {
+      return REM::Compile;
+    }
+    return boost::none;
   }
 }  // namespace
 
@@ -82,7 +96,8 @@ namespace kagome::application {
         openmetrics_http_port_(def_openmetrics_http_port),
         dev_mode_(def_dev_mode),
         node_name_(randomNodeName()),
-        max_ws_connections_(def_ws_max_connections) {}
+        max_ws_connections_(def_ws_max_connections),
+        runtime_exec_method_{def_runtime_exec_method} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -371,11 +386,14 @@ namespace kagome::application {
         ("name", po::value<std::string>(), "the human-readable name for this node")
         ;
 
-    po::options_description development_desc("Development options");
+    po::options_description development_desc("Additional options");
     development_desc.add_options()
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
+        ("wasm-execution", po::value<std::string>()->default_value("Interpreted"),
+          "choose the desired wasm execution method (Compiled, Interpreted)")
         ;
+
     // clang-format on
 
     po::variables_map vm;
@@ -665,6 +683,23 @@ namespace kagome::application {
 
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
+
+    boost::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
+    find_argument<std::string>(
+        vm,
+        "wasm-execution",
+        [this, &runtime_exec_method_opt](std::string const &val) {
+          runtime_exec_method_opt = str_to_runtime_exec_method(val);
+          if (not runtime_exec_method_opt) {
+            logger_->error(
+                "Invalid runtime execution method specified: '{}'", val);
+          }
+        });
+    if (not runtime_exec_method_opt) {
+      return false;
+    } else {
+      runtime_exec_method_ = runtime_exec_method_opt.value();
+    }
 
     // if something wrong with config print help message
     if (not validate_config()) {

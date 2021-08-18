@@ -53,12 +53,12 @@ namespace kagome::storage::trie {
         codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         changes_{std::move(changes)},
-        logger_{log::createLogger("TrieStorage", "changes_trie")} {
+        logger_{log::createLogger("TrieStorage", "storage")} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() and changes_.value() != nullptr)
                  or not changes_.has_value());
-    logger_->info("Initialize trie storage with root: {}", root_hash_.toHex());
+    logger_->verbose("Initialize trie storage with root: {}", root_hash_.toHex());
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
@@ -66,17 +66,12 @@ namespace kagome::storage::trie {
     SL_DEBUG(logger_,
              "Initialize persistent trie batch with root: {}",
              root_hash_.toHex());
-    auto trie_res = serializer_->retrieveTrie(Buffer{root_hash_});
-    if (trie_res.has_error()) {
-      logger_->error("Batch initialization failed, invalid root: {}",
-                     root_hash_.toHex());
-      return trie_res.error();
-    }
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
     return PersistentTrieBatchImpl::create(
         codec_,
         serializer_,
         changes_,
-        std::move(trie_res.value()),
+        std::move(trie),
         [this](const auto &new_root) {
           root_hash_ = new_root;
           SL_DEBUG(logger_, "Update state root: {}", root_hash_);
@@ -97,17 +92,12 @@ namespace kagome::storage::trie {
     SL_DEBUG(logger_,
              "Initialize persistent trie batch with root: {}",
              root.toHex());
-    auto trie_res = serializer_->retrieveTrie(Buffer{root});
-    if (trie_res.has_error()) {
-      logger_->error("Batch initialization failed, invalid root: {}",
-                     root.toHex());
-      return trie_res.error();
-    }
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
     return PersistentTrieBatchImpl::create(
         codec_,
         serializer_,
         changes_,
-        std::move(trie_res.value()),
+        std::move(trie),
         [this](const auto &new_root) {
           root_hash_ = new_root;
           SL_DEBUG(logger_, "Update state root: {}", root_hash_);

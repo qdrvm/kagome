@@ -35,7 +35,6 @@ find_package(Protobuf CONFIG REQUIRED)
 # http://rapidjson.org
 hunter_add_package(RapidJSON)
 find_package(RapidJSON CONFIG REQUIRED)
-#target_link_libraries(... RapidJSON::rapidjson)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
 hunter_add_package(Microsoft.GSL)
@@ -78,6 +77,9 @@ find_package(fmt CONFIG REQUIRED)
 
 hunter_add_package(yaml-cpp)
 find_package(yaml-cpp CONFIG REQUIRED)
+
+hunter_add_package(wavm)
+find_package(WAVM CONFIG REQUIRED)
 
 hunter_add_package(zstd)
 find_package(zstd CONFIG REQUIRED)

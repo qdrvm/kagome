@@ -8,18 +8,20 @@
 #include <gtest/gtest.h>
 
 #include "mock/core/application/chain_spec_mock.hpp"
+#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/babe/babe_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/runtime/account_nonce_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "scale/scale.hpp"
 
 using kagome::api::SystemApi;
 using kagome::api::SystemApiImpl;
 using kagome::application::ChainSpecMock;
+using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::consensus::babe::BabeMock;
@@ -39,6 +41,7 @@ class SystemApiTest : public ::testing::Test {
     babe_mock_ = std::make_shared<BabeMock>();
     peer_manager_mock_ = std::make_shared<PeerManagerMock>();
     transaction_pool_mock_ = std::make_shared<TransactionPoolMock>();
+    block_tree_mock_ = std::make_shared<BlockTreeMock>();
     account_nonce_api_mock_ = std::make_shared<AccountNonceApiMock>();
     hasher_mock_ = std::make_shared<HasherMock>();
 
@@ -47,6 +50,7 @@ class SystemApiTest : public ::testing::Test {
                                                   peer_manager_mock_,
                                                   account_nonce_api_mock_,
                                                   transaction_pool_mock_,
+                                                  block_tree_mock_,
                                                   hasher_mock_);
   }
 
@@ -57,6 +61,7 @@ class SystemApiTest : public ::testing::Test {
   std::shared_ptr<BabeMock> babe_mock_;
   std::shared_ptr<PeerManagerMock> peer_manager_mock_;
   std::shared_ptr<TransactionPoolMock> transaction_pool_mock_;
+  std::shared_ptr<BlockTreeMock> block_tree_mock_;
   std::shared_ptr<AccountNonceApiMock> account_nonce_api_mock_;
   std::shared_ptr<HasherMock> hasher_mock_;
 
@@ -78,7 +83,10 @@ class SystemApiTest : public ::testing::Test {
 TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
   constexpr auto kInitialNonce = 42;
 
-  EXPECT_CALL(*account_nonce_api_mock_, account_nonce(kAccountId))
+  EXPECT_CALL(*block_tree_mock_, deepestLeaf())
+      .WillOnce(Return(kagome::primitives::BlockInfo{1, "block1"_hash256}));
+  EXPECT_CALL(*account_nonce_api_mock_,
+              account_nonce("block1"_hash256, kAccountId))
       .WillOnce(Return(kInitialNonce));
   auto hash_preimage = Buffer{}.put("SS58PRE").putUint8(42).put(kAccountId);
   EXPECT_CALL(*hasher_mock_,
@@ -99,7 +107,10 @@ TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
 TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   constexpr auto kInitialNonce = 42;
 
-  EXPECT_CALL(*account_nonce_api_mock_, account_nonce(kAccountId))
+  EXPECT_CALL(*block_tree_mock_, deepestLeaf())
+  .WillOnce(Return(kagome::primitives::BlockInfo{1, "block1"_hash256}));
+  EXPECT_CALL(*account_nonce_api_mock_,
+              account_nonce("block1"_hash256, kAccountId))
       .WillOnce(Return(kInitialNonce));
   auto hash_preimage = Buffer{}.put("SS58PRE").putUint8(42).put(kAccountId);
   EXPECT_CALL(*hasher_mock_,

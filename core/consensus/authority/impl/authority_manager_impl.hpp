@@ -19,7 +19,7 @@ namespace kagome::authority {
   class ScheduleNode;
 }
 namespace kagome::blockchain {
-  struct BlockTree;
+  class BlockTree;
 }
 namespace kagome::primitives {
   struct AuthorityList;

@@ -27,7 +27,7 @@ TEST_P(Hash256Test, Valid) {
 
 Buffer getBlake2b(const Buffer &in) {
   Buffer out(32, 0);
-  blake2b(out.data(), 32, nullptr, 0, in.data(), in.size());
+  kagome::crypto::blake2b(out.data(), 32, nullptr, 0, in.data(), in.size());
   return out;
 }
 

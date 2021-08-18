@@ -91,7 +91,10 @@ namespace kagome::network {
       const BlocksRequest &request,
       const primitives::BlockHash &from_hash) const {
     auto ascending_direction =
-        request.direction == network::Direction::ASCENDING;
+        request.direction == network::Direction::ASCENDING
+            ? blockchain::BlockTree::GetChainDirection::ASCEND
+            : blockchain::BlockTree::GetChainDirection::DESCEND;
+    blockchain::BlockTree::BlockHashVecRes chain_hash_res{{}};
 
     uint32_t request_count =
         application::AppConfiguration::kAbsolutMaxBlocksInResponse;

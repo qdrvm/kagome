@@ -33,7 +33,7 @@ namespace kagome::crypto::bip39 {
      * @param word word to look for
      * @return entropy value or error if not found
      */
-    outcome::result<EntropyToken> findValue(std::string_view word);
+    outcome::result<EntropyToken> findValue(std::string_view word) const;
 
    private:
     std::unordered_map<std::string_view, EntropyToken> entropy_map_;

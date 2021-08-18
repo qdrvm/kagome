@@ -9,9 +9,10 @@
 
 #include <jsonrpc-lean/request.h>
 
+#include "blockchain/block_tree.hpp"
 #include "primitives/ss58_codec.hpp"
-#include "transaction_pool/transaction_pool.hpp"
 #include "scale/scale.hpp"
+#include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
 
@@ -21,12 +22,14 @@ namespace kagome::api {
       std::shared_ptr<network::PeerManager> peer_manager,
       std::shared_ptr<runtime::AccountNonceApi> account_nonce_api,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
+      std::shared_ptr<const blockchain::BlockTree> block_tree,
       std::shared_ptr<crypto::Hasher> hasher)
       : config_(std::move(config)),
         babe_(std::move(babe)),
         peer_manager_(std::move(peer_manager)),
         account_nonce_api_(std::move(account_nonce_api)),
         transaction_pool_(std::move(transaction_pool)),
+        block_tree_(std::move(block_tree)),
         hasher_{std::move(hasher)} {
     BOOST_ASSERT(config_ != nullptr);
     BOOST_ASSERT(babe_ != nullptr);
@@ -34,6 +37,7 @@ namespace kagome::api {
     BOOST_ASSERT(account_nonce_api_ != nullptr);
     BOOST_ASSERT(transaction_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(block_tree_ != nullptr);
   }
 
   std::shared_ptr<application::ChainSpec> SystemApiImpl::getConfig() const {
@@ -51,7 +55,9 @@ namespace kagome::api {
   outcome::result<primitives::AccountNonce> SystemApiImpl::getNonceFor(
       std::string_view account_address) const {
     OUTCOME_TRY(account_id, primitives::decodeSs58(account_address, *hasher_));
-    OUTCOME_TRY(nonce, account_nonce_api_->account_nonce(account_id));
+    OUTCOME_TRY(nonce,
+                account_nonce_api_->account_nonce(
+                    block_tree_->deepestLeaf().hash, account_id));
 
     return adjustNonce(account_id, nonce);
   }

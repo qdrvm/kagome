@@ -8,6 +8,7 @@
 
 #include "primitives/block.hpp"
 #include "primitives/extrinsic.hpp"
+#include "primitives/inherent_data.hpp"
 
 namespace kagome::authorship {
 
@@ -18,6 +19,9 @@ namespace kagome::authorship {
   class BlockBuilder {
    public:
     virtual ~BlockBuilder() = default;
+
+    virtual outcome::result<std::vector<primitives::Extrinsic>>
+    getInherentExtrinsics(const primitives::InherentData &data) const = 0;
 
     /**
      * Push extrinsic to wait its inclusion to the block
