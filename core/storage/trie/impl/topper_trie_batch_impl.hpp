@@ -18,7 +18,7 @@ namespace kagome::storage::trie {
 
 namespace kagome::storage::trie {
 
-  class TopperTrieBatchImpl : public TopperTrieBatch {
+  class TopperTrieBatchImpl final : public TopperTrieBatch {
    public:
     enum class Error { PARENT_EXPIRED = 1 };
 

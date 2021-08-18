@@ -108,6 +108,9 @@ namespace {
     EXPECT_CALL(config_mock, openmetricsHttpEndpoint())
         .WillRepeatedly(
             testing::ReturnRefOfCopy<boost::asio::ip::tcp::endpoint>({}));
+    EXPECT_CALL(config_mock, runtimeExecMethod())
+        .WillRepeatedly(testing::Return(kagome::application::AppConfiguration::
+                                            RuntimeExecutionMethod::Interpret));
   }
 }  // namespace
 

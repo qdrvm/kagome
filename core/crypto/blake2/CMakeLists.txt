@@ -4,8 +4,8 @@
 #
 
 add_library(blake2
-  blake2s.c
-  blake2b.c
+  blake2s.cpp
+  blake2b.cpp
   )
 disable_clang_tidy(blake2)
 kagome_install(blake2)

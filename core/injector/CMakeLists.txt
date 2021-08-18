@@ -7,66 +7,91 @@ add_library(application_injector
     application_injector.cpp
     )
 target_link_libraries(application_injector
-    soralog::soralog
-    soralog::fallback_configurator
-    fmt::fmt
-    app_state_manager
-    p2p::p2p
-    p2p::p2p_identify
-    p2p::p2p_ping
-    binaryen::binaryen
-    tsl::tsl_hat_trie
     Boost::Boost.DI
-    rpc_thread_pool
-    log_configurator
-    api_transport
+    account_nonce_api
     api_jrpc_server
-    metrics
-    state_api_service
-    trie_storage
-    polkadot_trie
-    polkadot_trie_factory
-    trie_serializer
-    polkadot_codec
-    changes_tracker
-    chain_api_service
-    babe
-    babe_lottery
-    block_header_repository
-    block_executor
+    api_transport
     app_config_impl
-    block_storage
+    app_state_manager
+    assets
+    author_api_service
+    authority_manager
+    babe
+    babe_api
+    babe_lottery
     babe_synchronizer
+    babe_util
+    binaryen_executor_factory
+    binaryen_runtime_external_interface
+    binaryen_wasm_memory
+    binaryen_wasm_memory_factory
+    binaryen_wasm_module
+    module_repository
+    binaryen_module_factory
+    bip39_provider
+    block_announce_protocol
+    block_builder_api
+    block_executor
+    block_header_repository
+    block_storage
     block_tree
     block_validator
     buffer
+    chain_api_service
+    changes_tracker
     clock
-    sr25519_provider
     configuration_storage
-    binaryen_core_api
-    binaryen_babe_api
-    binaryen_grandpa_api
-    binaryen_block_builder_api
-    binaryen_tagged_transaction_queue_api
-    binaryen_transaction_payment_api
-    binaryen_wasm_executor
-    binaryen_system_api
-    trie_storage_provider
-    author_api_service
+    core_api
+    crypto_store
+    ed25519_provider
+    environment
     extrinsic_observer
     transaction_pool
     host_api_factory
     kagome_router
-    leveldb
-    outcome
-    grandpa
     kagome_router
-    environment
+    key_file_storage
+    leveldb
+    log_configurator
+    metadata_api
+    metrics
+    outcome
+    p2p::p2p
+    p2p::p2p_identify
+    p2p::p2p_kademlia
+    p2p::p2p_ping
+    payment_api_service
+    pbkdf2_provider
+    peer_manager
+    polkadot_codec
+    polkadot_trie
+    polkadot_trie_factory
+    propagate_transactions_protocol
     proposer
-    storage_wasm_provider
-    binaryen_wasm_memory_factory
+    protocol_factory
     remote_sync_protocol_client
+    rpc_api_service
+    rpc_thread_pool
+    runtime_upgrade_tracker
+    runtime_environment_factory
+    executor
+    secp256k1_provider
+    soralog::fallback_configurator
+    soralog::soralog
+    sr25519_provider
+    state_api_service
+    storage_code_provider
+    sync_protocol
     sync_protocol_observer
+    system_api_service
+    system_api_service
+    tagged_transaction_queue_api
+    transaction_payment_api
+    transaction_pool
+    trie_serializer
+    trie_storage
+    trie_storage_provider
+    tsl::tsl_hat_trie
     vrf_provider
     waitable_timer
     authority_manager
@@ -81,6 +106,8 @@ target_link_libraries(application_injector
     block_announce_protocol
     propagate_transactions_protocol
     grandpa_protocol
+    grandpa_api
+    grandpa
     sync_protocol
     protocol_factory
     p2p::p2p_loopback_stream

@@ -7,17 +7,21 @@
 
 #include <gtest/gtest.h>
 
-#include "mock/core/runtime/wasm_memory_mock.hpp"
+#include "mock/core/runtime/memory_mock.hpp"
+#include "mock/core/runtime/memory_provider_mock.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::host_api;
 
 using kagome::common::Buffer;
-using kagome::runtime::WasmMemory;
-using kagome::runtime::WasmMemoryMock;
+using kagome::runtime::Memory;
+using kagome::runtime::MemoryMock;
+using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::WasmPointer;
+using testing::Return;
 
 using ::testing::Return;
+using ::testing::ReturnRef;
 
 class MemoryExtensionsTest : public ::testing::Test {
  public:
@@ -26,12 +30,16 @@ class MemoryExtensionsTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    memory_ = std::make_shared<WasmMemoryMock>();
-    memory_extension_ = std::make_shared<MemoryExtension>(memory_);
+    memory_provider_ = std::make_shared<MemoryProviderMock>();
+    memory_ = std::make_shared<MemoryMock>();
+    EXPECT_CALL(*memory_provider_, getCurrentMemory())
+        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
+    memory_extension_ = std::make_shared<MemoryExtension>(memory_provider_);
   }
 
  protected:
-  std::shared_ptr<WasmMemoryMock> memory_;
+  std::shared_ptr<MemoryProviderMock> memory_provider_;
+  std::shared_ptr<MemoryMock> memory_;
   std::shared_ptr<MemoryExtension> memory_extension_;
 };
 
@@ -47,7 +55,7 @@ TEST_F(MemoryExtensionsTest, MallocIsCalled) {
   EXPECT_CALL(*memory_, allocate(allocated_size))
       .WillOnce(Return(expected_address));
 
-  auto ptr = memory_extension_->ext_malloc(allocated_size);
+  auto ptr = memory_extension_->ext_allocator_malloc_version_1(allocated_size);
   ASSERT_EQ(ptr, expected_address);
 }
 
@@ -62,7 +70,7 @@ TEST_F(MemoryExtensionsTest, FreeIsCalled) {
   boost::optional<uint32_t> deallocate_result{42};
   EXPECT_CALL(*memory_, deallocate(ptr)).WillOnce(Return(deallocate_result));
 
-  memory_extension_->ext_free(ptr);
+  memory_extension_->ext_allocator_free_version_1(ptr);
 }
 
 /**

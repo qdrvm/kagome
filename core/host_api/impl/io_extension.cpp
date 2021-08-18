@@ -7,53 +7,49 @@
 
 #include <boost/assert.hpp>
 
-#include "runtime/wasm_memory.hpp"
-#include "runtime/wasm_result.hpp"
+#include "runtime/memory.hpp"
+#include "runtime/memory_provider.hpp"
+#include "runtime/ptr_size.hpp"
 
 namespace kagome::host_api {
-  IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
-      : memory_(std::move(memory)),
-        logger_{log::createLogger("IoExtention", "extentions")} {
-    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
-  }
-
-  void IOExtension::ext_print_hex(runtime::WasmPointer data,
-                                  runtime::WasmSize length) {
-    const auto &buf = memory_->loadN(data, length);
-    logger_->info("hex value: {}", buf.toHex());
+  IOExtension::IOExtension(
+      std::shared_ptr<const runtime::MemoryProvider> memory_provider)
+      : memory_provider_(std::move(memory_provider)),
+        logger_{log::createLogger("IoExtension", "host_api")} {
+    BOOST_ASSERT_MSG(memory_provider_ != nullptr, "memory provider is nullptr");
   }
 
   void IOExtension::ext_logging_log_version_1(runtime::WasmEnum level,
                                               runtime::WasmSpan target,
                                               runtime::WasmSpan message) {
     using runtime::WasmLogLevel;
-    using runtime::WasmResult;
 
-    auto read_str_from_position = [&](WasmResult location) {
-      return memory_->loadStr(location.address, location.length);
+    auto read_str_from_position = [&](runtime::PtrSize location) {
+      return memory_provider_->getCurrentMemory().value().loadStr(
+          location.ptr, location.size);
     };
 
-    const auto target_str = read_str_from_position(WasmResult(target));
-    const auto message_str = read_str_from_position(WasmResult(message));
+    const auto target_str = read_str_from_position(runtime::PtrSize(target));
+    const auto message_str = read_str_from_position(runtime::PtrSize(message));
 
-    switch (level) {
-      case WasmLogLevel::WasmLL_Error:
+    switch (static_cast<WasmLogLevel>(level)) {
+      case WasmLogLevel::Error:
         logger_->error("target: {}, message: {}", target_str, message_str);
         break;
-      case WasmLogLevel::WasmLL_Warn:
+      case WasmLogLevel::Warn:
         logger_->warn("target: {}, message: {}", target_str, message_str);
         break;
-      case WasmLogLevel::WasmLL_Info:
+      case WasmLogLevel::Info:
         logger_->info("target: {}, message: {}", target_str, message_str);
         break;
-      case WasmLogLevel::WasmLL_Debug:
+      case WasmLogLevel::Debug:
         SL_DEBUG(logger_, "target: {}, message: {}", target_str, message_str);
         break;
-      case WasmLogLevel::WasmLL_Trace:
+      case WasmLogLevel::Trace:
         SL_TRACE(logger_, "target: {}, message: {}", target_str, message_str);
         break;
       default: {
-        assert(false);
+        BOOST_UNREACHABLE_RETURN();
         logger_->error(
             "Message with incorrect log level. Target: {}, message: {}",
             target_str,
@@ -70,28 +66,19 @@ namespace kagome::host_api {
       case Level::OFF:
       case Level::CRITICAL:
       case Level::ERROR:
-        return WasmLogLevel::WasmLL_Error;
+        return static_cast<runtime::WasmEnum>(WasmLogLevel::Error);
       case Level::WARN:
-        return WasmLogLevel::WasmLL_Warn;
+        return static_cast<runtime::WasmEnum>(WasmLogLevel::Warn);
       case Level::INFO:
       case Level::VERBOSE:
-        return WasmLogLevel::WasmLL_Info;
+        return static_cast<runtime::WasmEnum>(WasmLogLevel::Info);
       case Level::DEBUG:
-        return WasmLogLevel::WasmLL_Debug;
+        return static_cast<runtime::WasmEnum>(WasmLogLevel::Debug);
       case Level::TRACE:
-        return WasmLogLevel::WasmLL_Trace;
+        return static_cast<runtime::WasmEnum>(WasmLogLevel::Trace);
       default:
-        return WasmLogLevel::WasmLL_Error;
+        return static_cast<runtime::WasmEnum>(WasmLogLevel::Error);
     }
   }
 
-  void IOExtension::ext_print_num(uint64_t value) {
-    logger_->info("number value: {}", value);
-  }
-
-  void IOExtension::ext_print_utf8(runtime::WasmPointer utf8_data,
-                                   runtime::WasmSize utf8_length) {
-    const auto data = memory_->loadStr(utf8_data, utf8_length);
-    logger_->info("string value: {}", data);
-  }
 }  // namespace kagome::host_api

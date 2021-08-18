@@ -44,6 +44,15 @@ namespace kagome {
   namespace consensus::grandpa {
     class Grandpa;
   }
+
+  namespace blockchain {
+    class BlockStorage;
+  }
+
+  namespace storage::trie {
+    class TrieStorage;
+  }
+
 }  // namespace kagome
 
 namespace kagome::injector {
@@ -57,6 +66,7 @@ namespace kagome::injector {
     explicit KagomeNodeInjector(const application::AppConfiguration &);
 
     std::shared_ptr<application::ChainSpec> injectChainSpec();
+    std::shared_ptr<blockchain::BlockStorage> injectBlockStorage();
     std::shared_ptr<application::AppStateManager> injectAppStateManager();
     std::shared_ptr<boost::asio::io_context> injectIoContext();
     std::shared_ptr<metrics::Exposer> injectOpenMetricsService();
@@ -68,6 +78,7 @@ namespace kagome::injector {
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<consensus::grandpa::Grandpa> injectGrandpa();
     std::shared_ptr<soralog::LoggingSystem> injectLoggingSystem();
+    std::shared_ptr<storage::trie::TrieStorage> injectTrieStorage();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

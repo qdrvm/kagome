@@ -6,7 +6,7 @@
 #ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_BABE_API_MOCK_HPP
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_BABE_API_MOCK_HPP
 
-#include "runtime/babe_api.hpp"
+#include "runtime/runtime_api/babe_api.hpp"
 
 #include <gmock/gmock.h>
 

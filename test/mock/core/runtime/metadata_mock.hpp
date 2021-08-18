@@ -6,7 +6,7 @@
 #ifndef KAGOME_RUNTIME_METADATAMOCK
 #define KAGOME_RUNTIME_METADATAMOCK
 
-#include "runtime/metadata.hpp"
+#include "runtime/runtime_api/metadata.hpp"
 
 #include <gmock/gmock.h>
 
@@ -16,7 +16,7 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD1(metadata,
                  outcome::result<Metadata::OpaqueMetadata>(
-                     const boost::optional<primitives::BlockHash> &));
+                     const primitives::BlockHash &));
   };
 
 }  // namespace kagome::runtime

@@ -14,7 +14,7 @@ sinks:
   - name: console
     type: console
     thread: none
-    color: false
+    color: true
     latency: 0
 groups:
   - name: main
@@ -23,6 +23,7 @@ groups:
     is_fallback: true
     children:
       - name: libp2p
+        level: off
       - name: kagome
         children:
           - name: injector
@@ -53,10 +54,12 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
+            level: debug
             children:
-              - name: wasm
-              - name: extentions
+              - name: runtime_api
+              - name: host_api
               - name: binaryen
+              - name: wavm
           - name: metrics
           - name: network
             children:

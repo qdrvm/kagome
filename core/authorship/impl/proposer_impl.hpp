@@ -10,7 +10,7 @@
 
 #include "authorship/block_builder_factory.hpp"
 #include "log/logger.hpp"
-#include "runtime/block_builder.hpp"
+#include "runtime/runtime_api/block_builder.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -30,7 +30,6 @@ namespace kagome::authorship {
     ProposerImpl(
         std::shared_ptr<BlockBuilderFactory> block_builder_factory,
         std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
-        std::shared_ptr<runtime::BlockBuilder> r_block_builder,
         std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
             ext_sub_engine,
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
@@ -44,7 +43,6 @@ namespace kagome::authorship {
    private:
     std::shared_ptr<BlockBuilderFactory> block_builder_factory_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
-    std::shared_ptr<runtime::BlockBuilder> r_block_builder_;
     std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
         ext_sub_engine_;
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>

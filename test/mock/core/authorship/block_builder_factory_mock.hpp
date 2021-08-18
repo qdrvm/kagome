@@ -14,18 +14,9 @@ namespace kagome::authorship {
 
   class BlockBuilderFactoryMock : public BlockBuilderFactory {
    public:
-    // Dirty hack from https://stackoverflow.com/a/11548191 to overcome issue
-    // with returning unique_ptr from gmock
-    outcome::result<std::unique_ptr<BlockBuilder>> create(
-        const primitives::BlockId &parent_id,
-        primitives::Digest inherent_digest) const override {
-      return std::unique_ptr<BlockBuilder>(
-          createProxy(parent_id, std::move(inherent_digest)));
-    }
-
-    MOCK_CONST_METHOD2(createProxy,
-                       BlockBuilder *(const primitives::BlockId &,
-                                      primitives::Digest));
+    MOCK_CONST_METHOD2(create,
+                       outcome::result<std::unique_ptr<BlockBuilder>>(
+                           const primitives::BlockId &, primitives::Digest));
   };
 
 }  // namespace kagome::authorship

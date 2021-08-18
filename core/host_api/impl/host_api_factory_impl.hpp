@@ -14,7 +14,6 @@
 #include "crypto/hasher.hpp"
 #include "crypto/secp256k1_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "host_api/impl/misc_extension.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::host_api {
@@ -33,10 +32,8 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     std::unique_ptr<HostApi> make(
-        std::shared_ptr<runtime::binaryen::CoreFactory> core_factory,
-        std::shared_ptr<runtime::binaryen::RuntimeEnvironmentFactory>
-            runtime_env_factory,
-        std::shared_ptr<runtime::WasmMemory> memory,
+        std::shared_ptr<const runtime::CoreApiFactory> core_factory,
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider)
         const override;
 
