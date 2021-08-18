@@ -27,8 +27,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 
 namespace kagome::runtime::binaryen {
 
-  ModuleInstanceImpl::ModuleInstanceImpl(std::shared_ptr<wasm::Module> parent,
-                                         std::shared_ptr<RuntimeExternalInterface> rei)
+  ModuleInstanceImpl::ModuleInstanceImpl(
+      std::shared_ptr<wasm::Module> parent,
+      std::shared_ptr<RuntimeExternalInterface> rei)
       : rei_{std::move(rei)},
         parent_{std::move(parent)},
         module_instance_{
@@ -45,7 +46,7 @@ namespace kagome::runtime::binaryen {
         wasm::LiteralList{wasm::Literal{args.ptr}, wasm::Literal{args.size}};
     try {
       const auto res = static_cast<uint64_t>(
-          module_instance_->callExport(wasm::Name{name.data()}, args_list)[0]
+          module_instance_->callExport(wasm::Name{name.data()}, args_list)
               .geti64());
       return PtrSize{res};
     } catch (wasm::ExitException &e) {
@@ -58,8 +59,8 @@ namespace kagome::runtime::binaryen {
   outcome::result<boost::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
       std::string_view name) const {
     try {
-      auto val = module_instance_->getExport(name.data())[0];
-      switch (val.type.getBasic()) {
+      auto val = module_instance_->getExport(name.data());
+      switch (val.type) {
         case wasm::Type::i32:
           return WasmValue{val.geti32()};
         case wasm::Type::i64:
@@ -71,7 +72,7 @@ namespace kagome::runtime::binaryen {
         default:
           logger_->debug(
               "Runtime function returned result of unsupported type: {}",
-              val.type.toString());
+              wasm::printType(val.type));
           return boost::none;
       }
     } catch (wasm::TrapException &e) {
