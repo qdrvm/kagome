@@ -471,19 +471,19 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_storage_start_transaction_version_1) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         host_api_->ext_storage_start_transaction_version_1();
-        return wasm::Literals();
+        return wasm::Literal();
       }
       /// ext_storage_commit_transaction_version_1
       if (import->base == ext_storage_commit_transaction_version_1) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         host_api_->ext_storage_commit_transaction_version_1();
-        return wasm::Literals();
+        return wasm::Literal();
       }
       /// ext_storage_rollback_transaction_version_1
       if (import->base == ext_storage_rollback_transaction_version_1) {
         checkArguments(import->base.c_str(), 0, arguments.size());
         host_api_->ext_storage_rollback_transaction_version_1();
-        return wasm::Literals();
+        return wasm::Literal();
       }
 
       /// ext_trie_blake2_256_root_version_1
