@@ -366,6 +366,11 @@ size_t size(const PolkadotTrie::NodePtr &node) {
   return count;
 }
 
+/**
+ * @given a trie with entries from DeleteData::data
+ * @when removing an entry DeleteData::key
+ * @then check key removal by checking tree size equal DeleteData::size
+ */
 TEST_P(DeleteTest, DeleteData) {
   for (auto &entry : GetParam().data) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry, "123"_buf));
@@ -407,6 +412,13 @@ class ClearPrefixTest : public testing::Test,
   std::unique_ptr<PolkadotTrieImpl> trie;
 };
 
+/**
+ * @given a trie with entries from ClearPrefixData::data
+ * @when deleting entries in it that start with a prefix ClearPrefixData::prefix
+ * with limit set to ClearPrefixData::limit
+ * @then then check that trie has all values from ClearPrefixData::res, has size
+ * ClearPrefixData::size, and returns ClearPrefixData::ret
+ */
 TEST_P(ClearPrefixTest, ManyCases) {
   for (const auto &entry : GetParam().data) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry, "123"_buf));
