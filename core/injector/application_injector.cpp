@@ -1342,9 +1342,8 @@ namespace {
         di::bind<consensus::babe::Babe>.to(
             [](auto const &injector) { return get_babe(injector); }),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-        di::bind<network::BabeObserver>.to([](auto const &injector) {
-          return get_babe(injector);
-        })[di::override],
+        di::bind<network::BlockAnnounceObserver>.to(
+            [](auto const &injector) { return get_babe(injector); }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

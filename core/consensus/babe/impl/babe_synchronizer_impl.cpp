@@ -107,9 +107,10 @@ namespace kagome::consensus {
       network::BlocksRequest request,
       const libp2p::peer::PeerId &peer_id,
       const BlocksHandler &requested_blocks_handler) const {
-    auto sync_protocol = router_->getSyncProtocol();
+    auto protocol = router_->getSyncProtocol();
+    BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");
 
-    sync_protocol->request(
+    protocol->request(
         peer_id,
         std::move(request),
         [wp = weak_from_this(),
