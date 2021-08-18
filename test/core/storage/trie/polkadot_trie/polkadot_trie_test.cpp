@@ -333,6 +333,159 @@ TEST_F(TrieTest, ClearPrefix) {
   ASSERT_TRUE(trie->empty());
 }
 
+struct DeleteData {
+  std::vector<Buffer> data;
+  Buffer key;
+  size_t size;
+};
+
+class DeleteTest : public testing::Test,
+                   public ::testing::WithParamInterface<DeleteData> {
+ public:
+  DeleteTest() {}
+
+  void SetUp() override {
+    trie = std::make_unique<PolkadotTrieImpl>();
+  }
+
+  std::unique_ptr<PolkadotTrieImpl> trie;
+};
+
+size_t size(const PolkadotTrie::NodePtr &node) {
+  size_t count = 0;
+  if (node) {
+    if (node->isBranch()) {
+      auto branch =
+          std::dynamic_pointer_cast<kagome::storage::trie::BranchNode>(node);
+      for (const auto &child : branch->children) {
+        count += size(child);
+      }
+    }
+    ++count;
+  }
+  return count;
+}
+
+/**
+ * @given a trie with entries from DeleteData::data
+ * @when removing an entry DeleteData::key
+ * @then check key removal by checking tree size equal DeleteData::size
+ */
+TEST_P(DeleteTest, DeleteData) {
+  for (auto &entry : GetParam().data) {
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry, "123"_buf));
+  }
+  EXPECT_OUTCOME_TRUE_1(trie->remove(GetParam().key));
+  ASSERT_EQ(size(trie->getRoot()), GetParam().size);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    DeleteSuite,
+    DeleteTest,
+    testing::ValuesIn(
+        {DeleteData{{}, "bar"_buf, 0},
+         DeleteData{{"bar"_buf, "foo"_buf}, "bar"_buf, 1},
+         DeleteData{{""_buf, "bar"_buf, "foo"_buf}, "bar"_buf, 2},
+         DeleteData{{"bar"_buf, "foa"_buf, "fob"_buf}, "bar"_buf, 3},
+         DeleteData{{"612355"_hex2buf, "6124"_hex2buf}, "6123"_hex2buf, 3},
+         DeleteData{{"b"_buf, "ba"_buf, "bb"_buf}, "b"_buf, 3},
+         DeleteData{{"a"_buf, "b"_buf, "z"_buf}, "z"_buf, 3}}));
+
+struct ClearPrefixData {
+  std::vector<Buffer> data;
+  Buffer prefix;
+  boost::optional<uint64_t> limit;
+  std::vector<Buffer> res;
+  std::tuple<bool, uint32_t> ret;
+  size_t size;
+};
+
+class ClearPrefixTest : public testing::Test,
+                        public ::testing::WithParamInterface<ClearPrefixData> {
+ public:
+  ClearPrefixTest() {}
+
+  void SetUp() override {
+    trie = std::make_unique<PolkadotTrieImpl>();
+  }
+
+  std::unique_ptr<PolkadotTrieImpl> trie;
+};
+
+/**
+ * @given a trie with entries from ClearPrefixData::data
+ * @when deleting entries in it that start with a prefix ClearPrefixData::prefix
+ * with limit set to ClearPrefixData::limit
+ * @then then check that trie has all values from ClearPrefixData::res, has size
+ * ClearPrefixData::size, and returns ClearPrefixData::ret
+ */
+TEST_P(ClearPrefixTest, ManyCases) {
+  for (const auto &entry : GetParam().data) {
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry, "123"_buf));
+  }
+  EXPECT_OUTCOME_TRUE_2(
+      ret,
+      trie->clearPrefix(
+          GetParam().prefix, GetParam().limit, [](const auto &, auto &&) {
+            return outcome::success();
+          }));
+  EXPECT_EQ(ret, GetParam().ret);
+  for (const auto &entry : GetParam().res) {
+    ASSERT_TRUE(trie->contains(entry));
+  }
+  ASSERT_EQ(size(trie->getRoot()), GetParam().size);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    ClearPrefixSuite,
+    ClearPrefixTest,
+    testing::ValuesIn(
+        /* empty tree */
+        {ClearPrefixData{{}, "bar"_buf, boost::none, {}, {true, 0}, 0},
+         /* miss */
+         ClearPrefixData{
+             {"bo"_buf}, "agu"_buf, boost::none, {"bo"_buf}, {true, 0}, 1},
+         /* equal start but no children */
+         ClearPrefixData{
+             {"bo"_buf}, "boo"_buf, boost::none, {"bo"_buf}, {true, 0}, 1},
+         /* prefix matches leaf */
+         ClearPrefixData{{"bar"_buf, "foo"_buf},
+                         "bar"_buf,
+                         boost::none,
+                         {"foo"_buf},
+                         {true, 1},
+                         1},
+         /* empty prefix */
+         ClearPrefixData{
+             {"bar"_buf, "foo"_buf}, ""_buf, boost::none, {}, {true, 2}, 0},
+         /* "b"-node converts to leaf */
+         ClearPrefixData{{"a"_buf, "b"_buf, "boa"_buf, "bob"_buf},
+                         "bo"_buf,
+                         boost::none,
+                         {"a"_buf, "b"_buf},
+                         {true, 2},
+                         3},
+         /* "b"-node becomes "ba"-node */
+         ClearPrefixData{{"a"_buf, "baa"_buf, "bab"_buf, "boa"_buf, "bob"_buf},
+                         "bo"_buf,
+                         boost::none,
+                         {"a"_buf, "baa"_buf, "bab"_buf},
+                         {true, 2},
+                         5},
+         /* a limit to remove all */
+         ClearPrefixData{
+             {"a"_buf, "b"_buf, "c"_buf}, ""_buf, 3, {}, {true, 3}, 0},
+         /* remove from wide tree, stop by limit */
+         ClearPrefixData{
+             {"a"_buf, "b"_buf, "c"_buf}, ""_buf, 2, {"c"_buf}, {false, 2}, 1},
+         /* remove from long tree, stop by limit */
+         ClearPrefixData{{""_buf, "a"_buf, "aa"_buf, "aaa"_buf},
+                         "a"_buf,
+                         2,
+                         {""_buf, "a"_buf},
+                         {false, 2},
+                         2}}));
+
 /**
  * @given an empty trie
  * @when putting something into the trie
