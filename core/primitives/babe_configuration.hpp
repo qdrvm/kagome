@@ -18,6 +18,12 @@ namespace kagome::primitives {
   using BabeDuration = BabeClock::Duration;
   using Randomness = common::Blob<crypto::constants::sr25519::vrf::OUTPUT_SIZE>;
 
+  enum class AllowedSlots : uint8_t {
+    PrimarySlots,
+    PrimaryAndSecondaryPlainSlots,
+    PrimaryAndSecondaryVRFSlots
+  };
+
   /// Configuration data used by the BABE consensus engine.
   struct BabeConfiguration {
     /// The slot duration in milliseconds for BABE. Currently, only
@@ -42,6 +48,9 @@ namespace kagome::primitives {
 
     /// The randomness for the genesis epoch.
     Randomness randomness;
+
+    /// Type of allowed slots.
+    AllowedSlots allowed_slots;
   };
 
   template <class Stream,
@@ -53,16 +62,18 @@ namespace kagome::primitives {
             .count();
     return s << slot_duration_u64 << config.epoch_length
              << config.leadership_rate << config.genesis_authorities
-             << config.randomness;
+             << config.randomness << static_cast<uint8_t>(config.allowed_slots);
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeConfiguration &config) {
     size_t slot_duration_u64{};
+    uint8_t allowed_slots;
     s >> slot_duration_u64 >> config.epoch_length >> config.leadership_rate
-        >> config.genesis_authorities >> config.randomness;
+        >> config.genesis_authorities >> config.randomness >> allowed_slots;
     config.slot_duration = std::chrono::milliseconds(slot_duration_u64);
+    config.allowed_slots = static_cast<AllowedSlots>(allowed_slots);
     return s;
   }
 }  // namespace kagome::primitives
