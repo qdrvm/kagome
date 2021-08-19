@@ -68,13 +68,18 @@ namespace kagome::consensus::grandpa {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const SignedMessage &signed_msg) {
-    return s << signed_msg.message << signed_msg.signature << signed_msg.id;
+    return s << (scale::encode(signed_msg.message).value())
+             << signed_msg.signature << signed_msg.id;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, SignedMessage &signed_msg) {
-    return s >> signed_msg.message >> signed_msg.signature >> signed_msg.id;
+    common::Buffer encoded_vote;
+    s >> encoded_vote;
+    auto decoded_vote = scale::template decode<Vote>(encoded_vote).value();
+    signed_msg.message = decoded_vote;
+    return s >> signed_msg.signature >> signed_msg.id;
   }
 
   template <typename Message>

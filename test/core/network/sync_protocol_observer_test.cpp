@@ -10,7 +10,6 @@
 #include <boost/optional.hpp>
 #include <functional>
 
-#include "application/app_configuration.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
@@ -25,7 +24,6 @@ using namespace blockchain;
 using namespace network;
 using namespace primitives;
 using namespace common;
-using application::AppConfiguration;
 
 using namespace libp2p;
 using namespace peer;
@@ -42,6 +40,11 @@ class SynchronizerTest : public testing::Test {
   }
 
   void SetUp() override {
+    block1_.header.parent_hash.fill(2);
+    block1_hash_.fill(3);
+    block2_.header.parent_hash = block1_hash_;
+    block2_hash_.fill(4);
+
     sync_protocol_observer_ =
         std::make_shared<SyncProtocolObserverImpl>(tree_, headers_);
   }
@@ -55,11 +58,9 @@ class SynchronizerTest : public testing::Test {
 
   std::shared_ptr<SyncProtocolObserver> sync_protocol_observer_;
 
-  const Hash256 block2_hash_ = "2"_hash256;
-  const Block block3_{{block2_hash_, 3}, {{{0x31, 0x32}}, {{0x33, 0x34}}}};
-  const Hash256 block3_hash_ = "3"_hash256;
-  const Block block4_{{block3_hash_, 4}, {{{0x41, 0x42}}, {{0x43, 0x44}}}};
-  const Hash256 block4_hash_ = "4"_hash256;
+  Block block1_{{{}, 2}, {{{0x11, 0x22}}, {{0x55, 0x66}}}},
+      block2_{{{}, 3}, {{{0x13, 0x23}}, {{0x35, 0x63}}}};
+  Hash256 block1_hash_{}, block2_hash_{};
 };
 
 /**
@@ -71,30 +72,26 @@ TEST_F(SynchronizerTest, ProcessRequest) {
   // GIVEN
   BlocksRequest received_request{1,
                                  BlocksRequest::kBasicAttributes,
-                                 block3_hash_,
+                                 block1_hash_,
                                  boost::none,
-                                 Direction::ASCENDING,
+                                 Direction::DESCENDING,
                                  boost::none};
 
-  EXPECT_CALL(*tree_,
-              getChainByBlock(block3_hash_,
-                              BlockTree::GetChainDirection::ASCEND,
-                              AppConfiguration::kAbsolutMaxBlocksInResponse))
-      .WillOnce(Return(std::vector<BlockHash>{block3_hash_, block4_hash_}));
+  EXPECT_CALL(*tree_, getChainByBlock(block1_hash_, BlockTree::GetChainDirection::ASCEND, 10))
+      .WillOnce(Return(std::vector<BlockHash>{block1_hash_, block2_hash_}));
+  EXPECT_CALL(*headers_, getBlockHeader(BlockId{block1_hash_}))
+      .WillOnce(Return(block1_.header));
+  EXPECT_CALL(*headers_, getBlockHeader(BlockId{block2_hash_}))
+      .WillOnce(Return(block2_.header));
 
-  EXPECT_CALL(*headers_, getBlockHeader(BlockId{block3_hash_}))
-      .WillOnce(Return(block3_.header));
-  EXPECT_CALL(*headers_, getBlockHeader(BlockId{block4_hash_}))
-      .WillOnce(Return(block4_.header));
+  EXPECT_CALL(*tree_, getBlockBody(BlockId{block1_hash_}))
+      .WillOnce(Return(block1_.body));
+  EXPECT_CALL(*tree_, getBlockBody(BlockId{block2_hash_}))
+      .WillOnce(Return(block2_.body));
 
-  EXPECT_CALL(*tree_, getBlockBody(BlockId{block3_hash_}))
-      .WillOnce(Return(block3_.body));
-  EXPECT_CALL(*tree_, getBlockBody(BlockId{block4_hash_}))
-      .WillOnce(Return(block4_.body));
-
-  EXPECT_CALL(*tree_, getBlockJustification(BlockId{block3_hash_}))
+  EXPECT_CALL(*tree_, getBlockJustification(BlockId{block1_hash_}))
       .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
-  EXPECT_CALL(*tree_, getBlockJustification(BlockId{block4_hash_}))
+  EXPECT_CALL(*tree_, getBlockJustification(BlockId{block2_hash_}))
       .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
 
   // WHEN
@@ -107,13 +104,13 @@ TEST_F(SynchronizerTest, ProcessRequest) {
   const auto &received_blocks = response.blocks;
   ASSERT_EQ(received_blocks.size(), 2);
 
-  ASSERT_EQ(received_blocks[0].hash, block3_hash_);
-  ASSERT_EQ(received_blocks[0].header, block3_.header);
-  ASSERT_EQ(received_blocks[0].body, block3_.body);
+  ASSERT_EQ(received_blocks[0].hash, block1_hash_);
+  ASSERT_EQ(received_blocks[0].header, block1_.header);
+  ASSERT_EQ(received_blocks[0].body, block1_.body);
   ASSERT_FALSE(received_blocks[0].justification);
 
-  ASSERT_EQ(received_blocks[1].hash, block4_hash_);
-  ASSERT_EQ(received_blocks[1].header, block4_.header);
-  ASSERT_EQ(received_blocks[1].body, block4_.body);
+  ASSERT_EQ(received_blocks[1].hash, block2_hash_);
+  ASSERT_EQ(received_blocks[1].header, block2_.header);
+  ASSERT_EQ(received_blocks[1].body, block2_.body);
   ASSERT_FALSE(received_blocks[1].justification);
 }

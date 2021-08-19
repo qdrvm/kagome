@@ -384,7 +384,7 @@ namespace kagome::network {
           auto &block_announce = block_announce_res.value();
 
           SL_VERBOSE(self->log_,
-                     "Announce of block #{} is received from {}",
+                     "Received block #{} announce from {}",
                      block_announce.header.number,
                      peer_id.toBase58());
 

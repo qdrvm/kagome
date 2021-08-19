@@ -26,7 +26,7 @@ namespace kagome::application {
    */
   class AppConfiguration {
    public:
-    static constexpr uint32_t kAbsolutMinBlocksInResponse = 1;
+    static constexpr uint32_t kAbsolutMinBlocksInResponse = 10;
     static constexpr uint32_t kAbsolutMaxBlocksInResponse = 128;
     static constexpr uint32_t kNodeNameMaxLength = 64;
 

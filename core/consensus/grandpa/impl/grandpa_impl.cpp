@@ -465,17 +465,6 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
-    SL_DEBUG(logger_,
-             "{} has received from {}: voter_set_id={} round={} #{} hash={}",
-             msg.vote.is<Prevote>()
-                 ? "Prevote"
-                 : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
-             peer_id.toBase58(),
-             msg.counter,
-             msg.round_number,
-             msg.vote.getBlockNumber(),
-             msg.vote.getBlockHash());
-
     if (not is_ready_) {
       return;
     }

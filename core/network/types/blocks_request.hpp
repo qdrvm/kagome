@@ -43,6 +43,44 @@ namespace kagome::network {
              != 0;
     }
   };
+
+  /**
+   * @brief compares two BlockRequest instances
+   * @param lhs first instance
+   * @param rhs second instance
+   * @return true if equal false otherwise
+   */
+  inline bool operator==(const BlocksRequest &lhs, const BlocksRequest &rhs) {
+    return lhs.id == rhs.id && lhs.fields == rhs.fields && lhs.from == rhs.from
+           && lhs.to == rhs.to && lhs.direction == rhs.direction
+           && lhs.max == rhs.max;
+  }
+
+  /**
+   * @brief outputs object of type BlockRequest to stream
+   * @tparam Stream output stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const BlocksRequest &v) {
+    return s << v.id << v.fields << v.from << v.to << v.direction << v.max;
+  }
+
+  /**
+   * @brief decodes object of type BlockRequest from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, BlocksRequest &v) {
+    return s >> v.id >> v.fields >> v.from >> v.to >> v.direction >> v.max;
+  }
 }  // namespace kagome::network
 
 #endif  // KAGOME_BLOCKS_REQUEST_HPP

@@ -15,7 +15,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, ProtocolError, e) {
     case E::CAN_NOT_CREATE_STATUS:
       return "Can not create status";
     case E::NODE_NOT_SYNCHRONIZED_YET:
-      return "Node is not synchronized yet";
+      return "Node is not synchrinized yet";
     case E::GENESIS_NO_MATCH:
       return "Local and remote genesis don't match";
   }

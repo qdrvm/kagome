@@ -44,41 +44,35 @@ namespace kagome::network {
 
     // firstly, check if we have both "from" & "to" blocks (if set)
     auto from_hash_res = blocks_headers_->getHashById(request.from);
-    if (not from_hash_res.has_value()) {
+    if (!from_hash_res) {
       log_->warn("cannot find a requested block with id {}", request.from);
       requested_ids_.erase(request.id);
       return response;
     }
-    auto &from_hash = from_hash_res.value();
 
     // secondly, retrieve hashes of blocks the other peer is interested in
-    auto chain_hash_res = retrieveRequestedHashes(request, from_hash);
-    if (not chain_hash_res.has_value()) {
+    auto chain_hash_res =
+        retrieveRequestedHashes(request, from_hash_res.value());
+    if (!chain_hash_res) {
       log_->warn("cannot retrieve a chain of blocks: {}",
                  chain_hash_res.error().message());
       requested_ids_.erase(request.id);
       return response;
     }
-    auto &chain_hash = chain_hash_res.value();
 
     // thirdly, fill the resulting response with data, which we were asked for
-    fillBlocksResponse(request, response, chain_hash);
+    fillBlocksResponse(request, response, chain_hash_res.value());
     if (response.blocks.empty()) {
-      SL_DEBUG(log_, "Return response id={}: empty", response.id);
+      SL_DEBUG(log_, "Return response: empty");
     } else if (response.blocks.size() == 1) {
       SL_DEBUG(log_,
-               "Return response id={}: {}, #{}, count 1",
-               response.id,
-               response.blocks.front().hash.toHex(),
-               response.blocks.front().header.value().number);
+               "Return response: {}, count 1",
+               response.blocks.front().hash.toHex());
     } else {
       SL_DEBUG(log_,
-               "Return response id={}: {}..{}, #{}..#{}, count {}",
-               response.id,
+               "Return response: {}..{}, count {}",
                response.blocks.front().hash.toHex(),
                response.blocks.back().hash.toHex(),
-               response.blocks.front().header.value().number,
-               response.blocks.back().header.value().number,
                response.blocks.size());
     }
 
@@ -97,21 +91,28 @@ namespace kagome::network {
     blockchain::BlockTree::BlockHashVecRes chain_hash_res{{}};
 
     uint32_t request_count =
-        application::AppConfiguration::kAbsolutMaxBlocksInResponse;
-    if (request.max.has_value()) {
+        application::AppConfiguration::kAbsolutMinBlocksInResponse;
+    if (request.max)
       request_count = std::clamp(
-          request.max.value(),
+          *request.max,
           application::AppConfiguration::kAbsolutMinBlocksInResponse,
           application::AppConfiguration::kAbsolutMaxBlocksInResponse);
+
+    if (!request.to) {
+      // if there's no "stop" block, get as many as possible
+      chain_hash_res = block_tree_->getChainByBlock(
+          from_hash, ascending_direction, request_count);
+    } else {
+      // else, both blocks are specified
+      OUTCOME_TRY(
+          chain_hash,
+          block_tree_->getChainByBlocks(from_hash, *request.to, request_count));
+      if (!ascending_direction) {
+        std::reverse(chain_hash.begin(), chain_hash.end());
+      }
+      chain_hash_res = std::move(chain_hash);
     }
-
-    // Note: request.to is not used in substrate
-
-    OUTCOME_TRY(chain_hash,
-                block_tree_->getChainByBlock(
-                    from_hash, ascending_direction, request_count));
-
-    return std::move(chain_hash);
+    return chain_hash_res;
   }
 
   void SyncProtocolObserverImpl::fillBlocksResponse(
