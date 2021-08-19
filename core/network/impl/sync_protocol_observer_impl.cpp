@@ -84,7 +84,7 @@ namespace kagome::network {
   SyncProtocolObserverImpl::retrieveRequestedHashes(
       const BlocksRequest &request,
       const primitives::BlockHash &from_hash) const {
-    auto ascending_direction =
+    auto direction =
         request.direction == network::Direction::ASCENDING
             ? blockchain::BlockTree::GetChainDirection::ASCEND
             : blockchain::BlockTree::GetChainDirection::DESCEND;
@@ -101,13 +101,13 @@ namespace kagome::network {
     if (!request.to) {
       // if there's no "stop" block, get as many as possible
       chain_hash_res = block_tree_->getChainByBlock(
-          from_hash, ascending_direction, request_count);
+          from_hash, direction, request_count);
     } else {
       // else, both blocks are specified
       OUTCOME_TRY(
           chain_hash,
           block_tree_->getChainByBlocks(from_hash, *request.to, request_count));
-      if (!ascending_direction) {
+      if (direction == blockchain::BlockTree::GetChainDirection::ASCEND) {
         std::reverse(chain_hash.begin(), chain_hash.end());
       }
       chain_hash_res = std::move(chain_hash);

@@ -8,6 +8,7 @@ add_library(application_injector
     )
 target_link_libraries(application_injector
     Boost::Boost.DI
+    runtime_wavm
     account_nonce_api
     api_jrpc_server
     api_transport

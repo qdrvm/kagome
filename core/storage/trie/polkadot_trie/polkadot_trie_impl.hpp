@@ -74,9 +74,6 @@ namespace kagome::storage::trie {
     bool empty() const override;
 
    private:
-    outcome::result<size_t> notifyIsDetached(const NodePtr &parent,
-                                             const OnDetachCallback &callback);
-
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const KeyNibbles &key_nibbles,
                                     NodePtr node);
@@ -84,20 +81,6 @@ namespace kagome::storage::trie {
     outcome::result<NodePtr> updateBranch(BranchPtr parent,
                                           const KeyNibbles &key_nibbles,
                                           const NodePtr &node);
-
-    outcome::result<NodePtr> deleteNode(NodePtr parent,
-                                        const KeyNibbles &key_nibbles);
-    outcome::result<NodePtr> handleDeletion(const BranchPtr &parent,
-                                            NodePtr node,
-                                            const KeyNibbles &key_nibbles);
-    // remove a node with its children
-    outcome::result<std::tuple<NodePtr, size_t>> detachNode(
-        const NodePtr &parent,
-        const KeyNibbles &prefix_nibbles,
-        const OnDetachCallback &callback);
-
-    uint32_t getCommonPrefixLength(const KeyNibbles &pref1,
-                                   const KeyNibbles &pref2) const;
 
     outcome::result<NodePtr> retrieveChild(BranchPtr parent,
                                            uint8_t idx) const override;
