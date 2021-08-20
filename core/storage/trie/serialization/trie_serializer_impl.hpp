@@ -52,11 +52,10 @@ namespace kagome::storage::trie {
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
         const common::Buffer &db_key) const;
     /**
-     * Retrieves a node child, replacing a dummy node to an actual node if
+     * Retrieves a node, replacing a dummy node to an actual node if
      * needed
      */
-    outcome::result<PolkadotTrie::NodePtr> retrieveChild(
-        const PolkadotTrie::BranchPtr &parent, uint8_t idx) const;
+    outcome::result<void> retrieveNode(PolkadotTrie::NodePtr &parent) const;
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;

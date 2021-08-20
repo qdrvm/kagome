@@ -21,7 +21,7 @@ namespace kagome::storage::trie {
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
     // will never be used, so content of the callback doesn't matter
     auto empty_trie = trie_factory->createEmpty(
-        [](const auto &branch, auto idx) { return nullptr; });
+        [](auto &branch) { return outcome::success(); });
     // ensure retrieval of empty trie succeeds
     OUTCOME_TRY(empty_root, serializer->storeTrie(*empty_trie));
     return std::unique_ptr<TrieStorageImpl>(
