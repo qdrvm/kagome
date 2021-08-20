@@ -32,11 +32,12 @@ namespace kagome::runtime {
       return genesis.state_root;
     }
 
-    // if there are no known blocks with runtime upgrades (means
-    // subscribeToBlockchainEvents hasn't been called yet, because genesis is
-    // always a runtime upgrade), we just fall back to returning the state of
-    // the current block
+    // if there are no known blocks with runtime upgrades, we just fall back to
+    // returning the state of the current block
     if (blocks_with_runtime_upgrade_.empty()) {
+      // even if it doesn't actually upgrade runtime, still a solid source of
+      // runtime code
+      blocks_with_runtime_upgrade_.push_back(block);
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block.hash));
       logger_->debug(
           "Pick runtime state at block #{} hash {} for the same block",
@@ -139,11 +140,6 @@ namespace kagome::runtime {
       BOOST_ASSERT(it != blocks_with_runtime_upgrade_.begin());
       blocks_with_runtime_upgrade_.emplace(it, number, block_hash);
     });
-    auto deepest_block = block_tree_->deepestLeaf();
-    // even if runtime is not upgraded in this block,
-    // it is still a solid source of a runtime code
-    blocks_with_runtime_upgrade_.emplace_back(deepest_block.number,
-                                              std::move(deepest_block.hash));
   }
 
 }  // namespace kagome::runtime

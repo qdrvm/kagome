@@ -134,7 +134,7 @@ namespace kagome::runtime {
     outcome::result<Result> callAtGenesis(std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
-      OUTCOME_TRY(env, env_template->persistent().make());
+      OUTCOME_TRY(env, env_template->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 

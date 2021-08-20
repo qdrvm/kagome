@@ -38,7 +38,7 @@ namespace kagome::runtime {
    private:
     // assumption: insertions in the middle should be extremely rare, if any
     // assumption: runtime upgrades are rare
-    std::vector<primitives::BlockInfo> blocks_with_runtime_upgrade_;
+    mutable std::vector<primitives::BlockInfo> blocks_with_runtime_upgrade_;
     std::shared_ptr<primitives::events::StorageEventSubscriber>
         storage_subscription_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;

@@ -90,7 +90,7 @@ namespace kagome::network {
   SyncProtocolObserverImpl::retrieveRequestedHashes(
       const BlocksRequest &request,
       const primitives::BlockHash &from_hash) const {
-    auto ascending_direction =
+    auto direction =
         request.direction == network::Direction::ASCENDING
             ? blockchain::BlockTree::GetChainDirection::ASCEND
             : blockchain::BlockTree::GetChainDirection::DESCEND;
@@ -109,7 +109,7 @@ namespace kagome::network {
 
     OUTCOME_TRY(chain_hash,
                 block_tree_->getChainByBlock(
-                    from_hash, ascending_direction, request_count));
+                    from_hash, direction, request_count));
 
     return std::move(chain_hash);
   }

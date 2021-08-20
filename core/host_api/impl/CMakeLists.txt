@@ -9,7 +9,6 @@ add_library(host_api_factory
 target_link_libraries(host_api_factory
     buffer
     host_api
-    runtime_wavm # TODO(Harrm): might not actually need it, need to remove WAVM header leakage
     )
 
 add_library(crypto_extension
@@ -60,7 +59,6 @@ target_link_libraries(misc_extension
     outcome
     blob
     wavm_memory
-    runtime_wavm
     )
 kagome_install(misc_extension)
 
