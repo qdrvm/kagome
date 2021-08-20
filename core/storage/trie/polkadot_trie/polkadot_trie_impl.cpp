@@ -25,17 +25,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
 namespace {
   using namespace kagome::storage::trie;
 
-  size_t last_bit_index(uint16_t bitmap) {
-    size_t idx = 0;
-    for (idx = 0; idx < 16; idx++) {
-      bitmap >>= 1u;
-      if (bitmap == 0) {
-        break;
-      }
-    }
-    return idx;
-  }
-
   uint32_t getCommonPrefixLength(const KeyNibbles &first,
                                  const KeyNibbles &second) {
     auto &&[it, _] =
@@ -65,7 +54,8 @@ namespace {
         parent.reset();
       }
     } else if (branch->childrenNum() == 1 && !parent->value) {
-      size_t idx = last_bit_index(bitmap);
+      size_t idx = 0;
+      while (bitmap >>= 1u) ++idx;
       auto child = branch->children.at(idx);
 
       OUTCOME_TRY(retrieveNode(child));
@@ -97,7 +87,8 @@ namespace {
         parent->value = boost::none;
       } else {
         auto length = getCommonPrefixLength(parent->key_nibbles, key);
-        auto &child = dynamic_cast<BranchNode &>(*parent.get()).children.at(key[length]);
+        auto &child =
+            dynamic_cast<BranchNode &>(*parent.get()).children.at(key[length]);
         OUTCOME_TRY(deleteNode(child, key.subspan(length + 1), retrieveNode));
       }
       OUTCOME_TRY(handleDeletion(parent, retrieveNode));
@@ -465,7 +456,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::retrieveChild(
       BranchPtr parent, uint8_t idx) const {
-    auto& child = parent->children.at(idx);
+    auto &child = parent->children.at(idx);
     OUTCOME_TRY(retrieve_node_(child));
     return child;
   }
