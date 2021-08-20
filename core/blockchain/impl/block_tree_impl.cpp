@@ -657,7 +657,7 @@ namespace kagome::blockchain {
     auto &finish_block_hash = finish_block_hash_res.value();
 
     if (direction == GetChainDirection::ASCEND) {
-      return getChainByBlocks(block, finish_block_hash.value());
+      return getChainByBlocks(block, finish_block_hash);
     }
 
     // the function returns the blocks in the chronological order, but we want a
