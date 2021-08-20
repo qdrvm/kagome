@@ -72,7 +72,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     const libp2p::peer::Protocol protocol_;
-    log::Logger log_ = log::createLogger("SyncProtocol", "protocols");
+    log::Logger log_ = log::createLogger("SyncProtocol", "kagome_protocols");
   };
 
 }  // namespace kagome::network
