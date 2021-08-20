@@ -10,6 +10,8 @@
 
 namespace kagome::log {
 
+  Logger _profiling_logger = nullptr;
+
   namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::shared_ptr<soralog::LoggingSystem> logging_system_;
@@ -27,6 +29,7 @@ namespace kagome::log {
     BOOST_ASSERT(logging_system != nullptr);
     libp2p::log::setLoggingSystem(logging_system);
     logging_system_ = std::move(logging_system);
+    _profiling_logger = createLogger("Profiler", "profile");
   }
 
   Logger createLogger(const std::string &tag) {

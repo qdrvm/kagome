@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_HPP
 #define KAGOME_CORE_RUNTIME_RUNTIME_ENVIRONMENT_FACTORY_HPP
 
-#include <host_api/host_api_factory.hpp>
+#include "host_api/host_api_factory.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "host_api/host_api.hpp"

@@ -4,9 +4,10 @@
  */
 
 #include "runtime/runtime_environment_factory.hpp"
-#include <storage/trie/polkadot_trie/trie_error.hpp>
 
 #include "runtime/instance_environment.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "log/logger.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
                             RuntimeEnvironmentFactory::Error,
@@ -65,6 +66,7 @@ namespace kagome::runtime {
 
   outcome::result<std::unique_ptr<RuntimeEnvironment>>
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make() {
+    SL_PROFILE_START(runtime_env_making);
     auto parent_factory = parent_factory_.lock();
     if (parent_factory == nullptr) {
       return RuntimeEnvironmentFactory::Error::PARENT_FACTORY_EXPIRED;
@@ -147,7 +149,7 @@ namespace kagome::runtime {
              blockchain_state_.hash.toHex(),
              storage_state_.toHex());
 
-    return std::make_unique<RuntimeEnvironment>(
+    auto runtime_env = std::make_unique<RuntimeEnvironment>(
         instance,
         env.memory_provider,
         env.storage_provider,
@@ -160,6 +162,8 @@ namespace kagome::runtime {
             parent_factory->env_cleanup_callback_(runtime_env);
           }
         });
+    SL_PROFILE_END(runtime_env_making);
+    return runtime_env;
   }
 
   RuntimeEnvironmentFactory::RuntimeEnvironmentFactory(
@@ -198,7 +202,7 @@ namespace kagome::runtime {
   RuntimeEnvironmentFactory::start() const {
     auto genesis_hash = header_repo_->getHashByNumber(0);
     if (!genesis_hash) {
-    logger_->error(
+      logger_->error(
           "Failed to obtain the genesis block for runtime executor "
           "initialization; Reason: {}",
           genesis_hash.error().message());

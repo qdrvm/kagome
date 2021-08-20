@@ -38,27 +38,39 @@ namespace kagome::runtime::wavm {
   }
 
   WavmInstanceEnvironment InstanceEnvironmentFactory::make() const {
+    SL_PROFILE_START(new_intrinsic_module_instance)
     auto new_intrinsic_module_instance =
         std::shared_ptr<IntrinsicModuleInstance>(
             intrinsic_module_->instantiate());
+    SL_PROFILE_END(new_intrinsic_module_instance)
+    SL_PROFILE_START(new_memory_provider)
     auto new_memory_provider = std::make_shared<WavmMemoryProvider>(
         new_intrinsic_module_instance, compartment_);
+    SL_PROFILE_END(new_memory_provider)
+    SL_PROFILE_START(new_storage_provider)
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_);
+    SL_PROFILE_END(new_storage_provider)
     auto core_factory = std::make_shared<CoreApiFactoryImpl>(compartment_,
                                                              storage_,
                                                              block_header_repo_,
                                                              shared_from_this(),
                                                              changes_tracker_);
+    SL_PROFILE_START(host_api)
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
         core_factory, new_memory_provider, new_storage_provider));
     pushHostApi(host_api);
+    SL_PROFILE_END(host_api)
+
+    SL_PROFILE_START(resolver)
+    auto resolver = std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module_instance);
+    SL_PROFILE_END(resolver)
 
     return WavmInstanceEnvironment{
         InstanceEnvironment{std::move(new_memory_provider),
                             std::move(new_storage_provider),
                             std::move(host_api)},
-        std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module_instance)};
+                            resolver};
   }
 
 }  // namespace kagome::runtime::wavm

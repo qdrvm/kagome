@@ -339,7 +339,7 @@ namespace kagome::consensus {
     );
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
     auto exec_end = std::chrono::high_resolution_clock::now();
-    logger_->debug("Core_execute_block: {} ms",
+    SL_DEBUG(logger_, "Core_execute_block: {} ms",
                    std::chrono::duration_cast<std::chrono::milliseconds>(
                        exec_end - exec_start)
                        .count());

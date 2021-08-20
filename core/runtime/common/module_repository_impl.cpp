@@ -11,6 +11,7 @@
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::runtime {
 
@@ -28,8 +29,11 @@ namespace kagome::runtime {
   ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
+    SL_PROFILE_START(state_retrieval);
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
+    SL_PROFILE_END(state_retrieval);
 
+    SL_PROFILE_START(module_retrieval);
     std::shared_ptr<Module> module;
     {
       std::lock_guard guard{modules_mutex_};
@@ -42,13 +46,16 @@ namespace kagome::runtime {
         module = it->second;
       }
     }
+    SL_PROFILE_END(module_retrieval);
 
+    SL_PROFILE_START(module_instantiation);
     {
       std::lock_guard guard{instances_mutex_};
         OUTCOME_TRY(instance_and_env, modules_[state]->instantiate());
         auto shared_instance = std::make_pair(
             std::shared_ptr<ModuleInstance>(std::move(instance_and_env.first)),
             std::move(instance_and_env.second));
+        SL_PROFILE_END(module_instantiation);
         return shared_instance;
     }
   }

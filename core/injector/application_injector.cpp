@@ -767,26 +767,30 @@ namespace {
       application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
     return di::make_injector(
-        di::bind<host_api::HostApi>.template to([method](auto const &injector)
-                                                    -> std::shared_ptr<
-                                                        host_api::HostApi> {
-          static boost::optional<std::shared_ptr<host_api::HostApi>> host_api;
-          if (host_api.has_value()) return host_api.value();
+        di::bind<runtime::RuntimeEnvironmentFactory>.template to(
+            [method](auto const &injector)
+                -> std::shared_ptr<runtime::RuntimeEnvironmentFactory> {
+              static boost::optional<
+                  std::shared_ptr<runtime::RuntimeEnvironmentFactory>>
+                  env_factory;
+              if (env_factory.has_value()) return env_factory.value();
 
-          host_api = boost::make_optional(
-              injector
-                  .template create<std::shared_ptr<host_api::HostApiImpl>>());
-          if (method
-              == application::AppConfiguration::RuntimeExecutionMethod::
-                  Compile) {
-            auto executor =
-                injector.template create<std::shared_ptr<runtime::Executor>>();
-            runtime::wavm::pushHostApi(host_api.value());
-            auto intrinsic_module = injector.template create<
-                std::shared_ptr<runtime::wavm::IntrinsicModule>>();
-          }
-          return host_api.value();
-        })[di::override],
+              env_factory = boost::make_optional(
+                  std::make_shared<runtime::RuntimeEnvironmentFactory>(
+                      injector.template create<
+                          sptr<const runtime::RuntimeCodeProvider>>(),
+                      injector
+                          .template create<sptr<runtime::ModuleRepository>>(),
+                      injector.template create<
+                          sptr<const blockchain::BlockHeaderRepository>>()));
+              if (method
+                  == application::AppConfiguration::RuntimeExecutionMethod::
+                      Compile) {
+                env_factory.value()->setEnvCleanupCallback(
+                    [](auto &) { runtime::wavm::popHostApi(); });
+              }
+              return env_factory.value();
+            })[di::override],
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
               static auto compartment =
@@ -1115,6 +1119,7 @@ namespace {
           return get_key_file_storage(config, chain_spec);
         }),
         di::bind<crypto::CryptoStore>.template to<crypto::CryptoStoreImpl>(),
+        di::bind<host_api::HostApi>.template to<host_api::HostApiImpl>(),
         di::bind<host_api::HostApiFactory>.template to<host_api::HostApiFactoryImpl>(),
         makeRuntimeInjector(config.runtimeExecMethod()),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
@@ -1366,10 +1371,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       const application::AppConfiguration &app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(app_config))} {
-    // need to initialize it before anything calls Runtime API
-    pimpl_->injector_.create<sptr<host_api::HostApi>>();
-  }
+          makeKagomeNodeInjector(app_config))} {}
 
   sptr<application::ChainSpec> KagomeNodeInjector::injectChainSpec() {
     return pimpl_->injector_.create<sptr<application::ChainSpec>>();
