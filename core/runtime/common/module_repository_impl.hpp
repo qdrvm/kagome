@@ -32,9 +32,9 @@ namespace kagome::runtime {
     std::unordered_map<storage::trie::RootHash, std::shared_ptr<Module>>
         modules_;
     std::mutex modules_mutex_;
-    static thread_local std::unordered_map<storage::trie::RootHash,
-                                           std::shared_ptr<ModuleInstance>>
-        instances_cache_;
+    //static thread_local std::unordered_map<storage::trie::RootHash,
+    //                                       std::shared_ptr<ModuleInstance>>
+    //    instances_cache_;
     std::mutex instances_mutex_;
     std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
