@@ -18,7 +18,6 @@ namespace kagome::runtime::wavm {
   }
 
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
-      const storage::trie::RootHash &state,
       gsl::span<const uint8_t> code) const {
     return ModuleImpl::compileFrom(compartment_, env_factory_, code);
   }

@@ -21,7 +21,6 @@ namespace kagome::runtime {
     virtual ~ModuleFactory() = default;
 
     virtual outcome::result<std::unique_ptr<Module>> make(
-        storage::trie::RootHash const& state,
         gsl::span<const uint8_t> code) const = 0;
   };
 
