@@ -20,8 +20,8 @@ namespace kagome::storage::trie {
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
     // will never be used, so content of the callback doesn't matter
-    auto empty_trie = trie_factory->createEmpty(
-        [](const auto &branch, auto idx) { return nullptr; });
+    auto empty_trie =
+        trie_factory->createEmpty([](auto &) { return outcome::success(); });
     // ensure retrieval of empty trie succeeds
     OUTCOME_TRY(empty_root, serializer->storeTrie(*empty_trie));
     return std::unique_ptr<TrieStorageImpl>(
@@ -58,7 +58,8 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() and changes_.value() != nullptr)
                  or not changes_.has_value());
-    logger_->verbose("Initialize trie storage with root: {}", root_hash_.toHex());
+    logger_->verbose("Initialize trie storage with root: {}",
+                     root_hash_.toHex());
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>

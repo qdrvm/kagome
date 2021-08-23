@@ -21,6 +21,7 @@ namespace kagome::storage::trie {
    public:
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
+    using NodeRetrieveFunctor = std::function<outcome::result<void>(NodePtr &)>;
 
     /**
      * This callback is called when a node is detached from a trie. It is called
@@ -72,6 +73,13 @@ namespace kagome::storage::trie {
 
     std::unique_ptr<BufferMapCursor> cursor() final {
       return trieCursor();
+    }
+
+    inline static outcome::result<void> defaultNodeRetrieveFunctor(
+        NodePtr &node) {
+      BOOST_ASSERT_MSG(not node or not node->isDummy(),
+                       "Dummy node unexpected.");
+      return outcome::success();
     }
   };
 
