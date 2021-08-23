@@ -41,7 +41,7 @@ namespace kagome::runtime {
       std::lock_guard guard{modules_mutex_};
       if (auto it = modules_.find(state); it == modules_.end()) {
         OUTCOME_TRY(code, code_provider->getCodeAt(state));
-        OUTCOME_TRY(new_module, module_factory_->make(state, code));
+        OUTCOME_TRY(new_module, module_factory_->make(code));
         module = std::move(new_module);
         modules_[state] = module;
       } else {

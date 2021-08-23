@@ -22,7 +22,6 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory);
 
     outcome::result<std::unique_ptr<Module>> make(
-        const storage::trie::RootHash &state,
         gsl::span<const uint8_t> code) const override;
 
    private:
