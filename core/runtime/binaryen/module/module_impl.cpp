@@ -75,11 +75,10 @@ namespace kagome::runtime::binaryen {
     return wasm_module_impl;
   }
 
-  outcome::result<
-      std::pair<std::unique_ptr<ModuleInstance>, InstanceEnvironment>>
-  ModuleImpl::instantiate() const {
+  outcome::result<std::unique_ptr<ModuleInstance>> ModuleImpl::instantiate()
+      const {
     auto env = env_factory_->make();
-    return {std::make_unique<ModuleInstanceImpl>(module_, env.rei), env.env};
+    return std::make_unique<ModuleInstanceImpl>(std::move(env.env), module_, env.rei);
   }
 
 }  // namespace kagome::runtime::binaryen

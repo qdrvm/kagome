@@ -5,9 +5,9 @@
 
 #include "runtime/runtime_environment_factory.hpp"
 
+#include "log/logger.hpp"
 #include "runtime/instance_environment.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
-#include "log/logger.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
                             RuntimeEnvironmentFactory::Error,
@@ -32,19 +32,13 @@ namespace kagome::runtime {
   RuntimeEnvironment::RuntimeEnvironment(
       std::shared_ptr<const ModuleInstance> module_instance,
       std::shared_ptr<const MemoryProvider> memory_provider,
-      std::shared_ptr<const TrieStorageProvider> storage_provider,
-      std::function<void(RuntimeEnvironment &)> on_destruction)
+      std::shared_ptr<const TrieStorageProvider> storage_provider)
       : module_instance{std::move(module_instance)},
         memory_provider{std::move(memory_provider)},
-        storage_provider{std::move(storage_provider)},
-        on_destruction_{std::move(on_destruction)} {
+        storage_provider{std::move(storage_provider)} {
     BOOST_ASSERT(this->module_instance);
     BOOST_ASSERT(this->memory_provider);
     BOOST_ASSERT(this->storage_provider);
-  }
-
-  RuntimeEnvironment::~RuntimeEnvironment() {
-    on_destruction_(*this);
   }
 
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::
@@ -82,11 +76,11 @@ namespace kagome::runtime {
       return Error::ABSENT_BLOCK;
     }
 
-    OUTCOME_TRY(instance_and_env,
+    OUTCOME_TRY(instance,
                 parent_factory->module_repo_->getInstanceAt(
                     parent_factory->code_provider_, blockchain_state_));
-    auto &&[instance, env] = std::move(instance_and_env);
 
+    auto& env = instance->getEnvironment();
     if (persistent_) {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {
@@ -150,18 +144,7 @@ namespace kagome::runtime {
              storage_state_.toHex());
 
     auto runtime_env = std::make_unique<RuntimeEnvironment>(
-        instance,
-        env.memory_provider,
-        env.storage_provider,
-        [weak_parent_factory = parent_factory_](auto &runtime_env) {
-          auto parent_factory = weak_parent_factory.lock();
-          if (parent_factory == nullptr) {
-            return;
-          }
-          if (parent_factory->env_cleanup_callback_) {
-            parent_factory->env_cleanup_callback_(runtime_env);
-          }
-        });
+        instance, env.memory_provider, env.storage_provider);
     SL_PROFILE_END(runtime_env_making);
     return runtime_env;
   }

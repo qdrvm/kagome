@@ -47,14 +47,12 @@ namespace kagome::runtime::binaryen {
         const std::vector<uint8_t> &code,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory_);
 
-    outcome::result<
-        std::pair<std::unique_ptr<ModuleInstance>, InstanceEnvironment>>
-    instantiate() const override;
+    outcome::result<std::unique_ptr<ModuleInstance>> instantiate()
+        const override;
 
    private:
-    ModuleImpl(
-        std::unique_ptr<wasm::Module> &&module,
-        std::shared_ptr<const InstanceEnvironmentFactory> env_factory);
+    ModuleImpl(std::unique_ptr<wasm::Module> &&module,
+               std::shared_ptr<const InstanceEnvironmentFactory> env_factory);
 
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     std::shared_ptr<wasm::Module> module_;  // shared to module instances

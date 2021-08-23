@@ -29,9 +29,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
 namespace kagome::runtime::wavm {
 
   ModuleInstance::ModuleInstance(
+      InstanceEnvironment&& env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
       std::shared_ptr<const CompartmentWrapper> compartment)
-      : instance_{std::move(instance)},
+      : env_{std::move(env)},
+        instance_{std::move(instance)},
         compartment_{std::move(compartment)},
         logger_{log::createLogger("ModuleInstance", "wavm")} {
     BOOST_ASSERT(instance_ != nullptr);
@@ -124,6 +126,10 @@ namespace kagome::runtime::wavm {
             asString(value));
         return Error::WRONG_RETURN_TYPE;
     }
+  }
+
+  InstanceEnvironment const& ModuleInstance::getEnvironment() const {
+    return env_;
   }
 
 }  // namespace kagome::runtime::wavm

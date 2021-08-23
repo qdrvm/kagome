@@ -5,15 +5,19 @@
 
 #include "runtime/common/module_repository_impl.hpp"
 
+#include "log/logger.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
 #include "runtime/module_instance.hpp"
 #include "runtime/runtime_code_provider.hpp"
 #include "runtime/runtime_upgrade_tracker.hpp"
-#include "log/logger.hpp"
 
 namespace kagome::runtime {
+
+  thread_local std::unordered_map<storage::trie::RootHash,
+                            std::shared_ptr<ModuleInstance>>
+      ModuleRepositoryImpl::instances_cache_;
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
@@ -24,8 +28,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(module_factory_);
   }
 
-  outcome::result<
-      std::pair<std::shared_ptr<ModuleInstance>, InstanceEnvironment>>
+  outcome::result<std::shared_ptr<ModuleInstance>>
   ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
@@ -51,12 +54,19 @@ namespace kagome::runtime {
     SL_PROFILE_START(module_instantiation);
     {
       std::lock_guard guard{instances_mutex_};
-        OUTCOME_TRY(instance_and_env, modules_[state]->instantiate());
-        auto shared_instance = std::make_pair(
-            std::shared_ptr<ModuleInstance>(std::move(instance_and_env.first)),
-            std::move(instance_and_env.second));
+      if (auto it = instances_cache_.find(state);
+          it == instances_cache_.end()) {
+        OUTCOME_TRY(instance, modules_[state]->instantiate());
+        auto shared_instance =
+            std::shared_ptr<ModuleInstance>(std::move(instance));
         SL_PROFILE_END(module_instantiation);
-        return shared_instance;
+        auto emplaced_it = instances_cache_.emplace(
+            std::make_pair(state, std::move(shared_instance)));
+        BOOST_ASSERT(emplaced_it.second);
+        return emplaced_it.first->second;
+      } else {
+        return it->second;
+      }
     }
   }
 

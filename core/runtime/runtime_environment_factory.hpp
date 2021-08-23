@@ -27,17 +27,11 @@ namespace kagome::runtime {
     RuntimeEnvironment(
         std::shared_ptr<const ModuleInstance> module_instance,
         std::shared_ptr<const MemoryProvider> memory_provider,
-        std::shared_ptr<const TrieStorageProvider> storage_provider,
-        std::function<void(RuntimeEnvironment &)> on_destruction);
-
-    ~RuntimeEnvironment();
+        std::shared_ptr<const TrieStorageProvider> storage_provider);
 
     const std::shared_ptr<const ModuleInstance> module_instance;
     const std::shared_ptr<const MemoryProvider> memory_provider;
     const std::shared_ptr<const TrieStorageProvider> storage_provider;
-
-   private:
-    std::function<void(RuntimeEnvironment &)> on_destruction_;
   };
 
   class RuntimeEnvironmentFactory

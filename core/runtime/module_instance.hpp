@@ -12,6 +12,7 @@
 #include <boost/variant.hpp>
 
 #include "outcome/outcome.hpp"
+#include "runtime/instance_environment.hpp"
 #include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime {
@@ -31,7 +32,8 @@ namespace kagome::runtime {
     /**
      * Call the instance's function
      * @param name - name of the function
-     * @param args - a pointer-size describing a buffer with the function parameters
+     * @param args - a pointer-size describing a buffer with the function
+     * parameters
      * @return a pointer-size with the buffer returned by the call
      */
     virtual outcome::result<PtrSize> callExportFunction(std::string_view name,
@@ -39,6 +41,8 @@ namespace kagome::runtime {
 
     virtual outcome::result<boost::optional<WasmValue>> getGlobal(
         std::string_view name) const = 0;
+
+    virtual InstanceEnvironment const &getEnvironment() const = 0;
   };
 
 }  // namespace kagome::runtime
