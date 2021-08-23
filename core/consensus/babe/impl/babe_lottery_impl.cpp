@@ -46,17 +46,21 @@ namespace kagome::consensus {
   }
 
   boost::optional<crypto::VRFOutput> BabeLotteryImpl::getSlotLeadership(
-      primitives::BabeSlotNumber i) const {
+      primitives::BabeSlotNumber slot) const {
     primitives::Transcript transcript;
-    prepareTranscript(
-        transcript, randomness_, i, epoch_.epoch_number);
-    SL_TRACE(logger_,
-             "prepareTranscript (leadership): randomness {}, slot {}, epoch {}",
-             randomness_,
-             i,
-             epoch_.epoch_number);
+    prepareTranscript(transcript, randomness_, slot, epoch_.epoch_number);
 
-    return vrf_provider_->signTranscript(transcript, keypair_, threshold_);
+    auto res = vrf_provider_->signTranscript(transcript, keypair_, threshold_);
+
+    SL_TRACE(
+        logger_,
+        "prepareTranscript (leadership): randomness {}, slot {}, epoch {}{}",
+        randomness_,
+        slot,
+        epoch_.epoch_number,
+        res.has_value() ? " - SLOT LEADER" : "");
+
+    return res;
   }
 
   Randomness BabeLotteryImpl::computeRandomness(

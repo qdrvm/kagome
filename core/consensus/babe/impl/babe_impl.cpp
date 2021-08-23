@@ -23,9 +23,6 @@
 
 using namespace std::literals::chrono_literals;
 
-// a period of time to check key appearance when absent
-constexpr auto kKeyWaitTimerDuration = 60s;
-
 namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -41,7 +38,7 @@ namespace kagome::consensus::babe {
       const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<boost::asio::io_context> io_context,
+      std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
       std::shared_ptr<BabeUtil> babe_util)
@@ -56,6 +53,7 @@ namespace kagome::consensus::babe {
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         sr25519_provider_{std::move(sr25519_provider)},
+        timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
@@ -67,17 +65,13 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
+    BOOST_ASSERT(timer_);
     BOOST_ASSERT(log_);
     BOOST_ASSERT(authority_update_observer_);
     BOOST_ASSERT(babe_util_);
 
     BOOST_ASSERT(app_state_manager);
     app_state_manager->takeControl(*this);
-
-    ticker_ = std::make_unique<clock::TickerImpl>(
-        io_context, babe_configuration_->slot_duration);
-    key_wait_ticker_ =
-        std::make_unique<clock::TickerImpl>(io_context, kKeyWaitTimerDuration);
   }
 
   bool BabeImpl::prepare() {
@@ -85,7 +79,39 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeImpl::start() {
-    current_state_ = State::WAIT_BLOCK;
+    auto [number, hash] = block_tree_->deepestLeaf();
+    auto &best_block_number = number;
+    auto &best_block_hash = hash;
+
+    SL_DEBUG(log_,
+             "Babe is starting with syncing from block #{}, hash={}",
+             best_block_number,
+             best_block_hash);
+
+    EpochDescriptor last_epoch_descriptor;
+    const auto now = clock_->now();
+    if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
+      last_epoch_descriptor = res.value();
+
+      SL_DEBUG(log_,
+               "Pre-saved epoch #{} (started in slot #{})",
+               last_epoch_descriptor.epoch_number,
+               last_epoch_descriptor.start_slot);
+
+    } else {
+      last_epoch_descriptor.epoch_number = 0;
+      last_epoch_descriptor.start_slot =
+          static_cast<BabeSlotNumber>(now.time_since_epoch()
+                                      / babe_configuration_->slot_duration)
+          + 1;
+
+      SL_DEBUG(log_,
+               "Temporary epoch #{} (started in slot #{})",
+               last_epoch_descriptor.epoch_number,
+               last_epoch_descriptor.start_slot);
+    }
+
+    current_state_ = State::WAIT_REMOTE_STATUS;
     return true;
   }
 
@@ -111,46 +137,23 @@ namespace kagome::consensus::babe {
   }
 
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
+    bool already_active = false;
+    if (not active_.compare_exchange_strong(already_active, true)) {
+      return;
+    }
+
     BOOST_ASSERT(keypair_ != nullptr);
 
     SL_DEBUG(log_,
              "Starting an epoch {}. Session key: {}",
              epoch.epoch_number,
              keypair_->public_key.toHex());
-    current_epoch_ = epoch;
+    current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(current_epoch_);
 
-    // main babe block production loop is here
-    ticker_->asyncCallRepeatedly([wp = weak_from_this()](auto &&ec) {
-      if (auto self = wp.lock()) {
-        SL_INFO(self->log_,
-                "Starting a slot {} in epoch {}",
-                self->current_slot_,
-                self->current_epoch_.epoch_number);
-        if (ec) {
-          SL_ERROR(self->log_,
-                   "error happened while waiting on the ticker: {}",
-                   ec.message());
-          return;
-        }
-        self->processSlot();
-      }
-    });
-    auto slot_start_delay = babe_util_->slotStartsIn(current_slot_);
-    auto delay_shift = babe_util_->slotDuration() / 3 * 2;
-    /*
-     * The delay lets us start slot processing when 2/3 of the time of the slot
-     * duration passed, thus more transactions could have been arrived to be
-     * baked into the block.
-     */
-    auto shifted_slot_start_delay = slot_start_delay + delay_shift;
-    auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    shifted_slot_start_delay)
-                    .count();
-    SL_TRACE(log_, "Babe starts in {} msec", msec);
-    ticker_->start(shifted_slot_start_delay);
+    runSlot();
   }
 
   Babe::State BabeImpl::getCurrentState() const {
@@ -159,12 +162,8 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onRemoteStatus(const libp2p::peer::PeerId &peer_id,
                                 const network::Status &status) {
-    if (current_state_ == State::WAIT_BLOCK) {
-      if (status.best_block.number == 1) {
-        current_state_ = State::SYNCHRONIZED;
-        return;
-      }
-
+    if (current_state_ == State::WAIT_REMOTE_STATUS
+        or current_state_ == State::WAIT_BLOCK_ANNOUNCE) {
       const auto &last_finalized_block = block_tree_->getLastFinalized();
 
       auto current_best_block_res = block_tree_->getBestContaining(
@@ -172,117 +171,106 @@ namespace kagome::consensus::babe {
       BOOST_ASSERT(current_best_block_res.has_value());
       const auto &current_best_block = current_best_block_res.value();
 
+      if (current_best_block == status.best_block) {
+        onSynchronized();
+        return;
+      }
+
+      // Remote peer is lagged
       if (current_best_block.number > status.best_block.number) {
         return;
       }
 
-      // synchronize missing blocks with their bodies
-      SL_INFO(
-          log_, "Catching up to block number: {}", status.best_block.number);
-      current_state_ = State::CATCHING_UP;
-
-      block_executor_->requestBlocks(
-          last_finalized_block.hash,
-          status.best_block.hash,
-          peer_id,
-          [wp = weak_from_this()] {
-            if (auto self = wp.lock()) {
-              SL_INFO(self->log_, "Catching up is done");
-              self->current_state_ = State::SYNCHRONIZED;
-            }
-          });
+      startCatchUp(
+          peer_id, last_finalized_block, current_best_block, status.best_block);
     }
   }
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
-    switch (current_state_) {
-      case State::WAIT_BLOCK:
-        // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
-        //  need t know VRF threshold for validation. To calculate that we need
-        //  to have weights of the authorities and to get it we need to have
-        //  the latest state of a blockchain
+    if (current_state_ == State::WAIT_BLOCK_ANNOUNCE
+        or current_state_ == State::SYNCHRONIZED) {
+      const auto &last_finalized_block = block_tree_->getLastFinalized();
 
-        // synchronize missing blocks with their bodies
-        SL_INFO(
-            log_, "Catching up to block number: {}", announce.header.number);
-        current_state_ = State::CATCHING_UP;
-        block_executor_->requestBlocks(
-            peer_id, announce.header, [wp = weak_from_this()] {
-              if (auto self = wp.lock()) {
-                SL_INFO(self->log_, "Catching up is done");
-                self->current_state_ = State::SYNCHRONIZED;
-              }
-            });
-        break;
-      case State::CATCHING_UP:
-      case State::SYNCHRONIZED:
-        block_executor_->processNextBlock(
-            peer_id, announce.header, [this](const auto &header) {
-              synchronizeSlots(header);
-            });
-        break;
+      auto current_best_block_res = block_tree_->getBestContaining(
+          last_finalized_block.hash, boost::none);
+      BOOST_ASSERT(current_best_block_res.has_value());
+      const auto &current_best_block = current_best_block_res.value();
+
+      auto block_hash =
+          hasher_->blake2b_256(scale::encode(announce.header).value());
+      const primitives::BlockInfo announced_block(announce.header.number,
+                                                  block_hash);
+
+      // Skip obsoleted announce
+      if (announced_block.number < current_best_block.number) {
+        return;
+      }
+
+      // Start catching up if gap recognized
+      if (announced_block.number > current_best_block.number + 1) {
+        startCatchUp(
+            peer_id, last_finalized_block, current_best_block, announced_block);
+      }
+
+      // Already has block with same number as ours best block or next of that
+      block_executor_->processNextBlock(
+          peer_id, announce.header, [this](const auto &header) {
+            onSynchronized();
+          });
     }
   }
 
-  void BabeImpl::onPeerSync() {
-    // sync already started no need to call it again
-    if (ticker_->isStarted()) {
-      // stop key wait ticker when key appeared if started
-      if (key_wait_ticker_->isStarted()) {
-        key_wait_ticker_->stop();
-      }
-      return;
-    }
+  void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
+                              const primitives::BlockInfo &finalized_block,
+                              const primitives::BlockInfo &best_block,
+                              const primitives::BlockInfo &target_block) {
+    // synchronize missing blocks with their bodies
+    SL_INFO(log_, "Catching up to block #{} is ran", target_block.number);
+    current_state_ = State::CATCHING_UP;
 
+    block_executor_->requestBlocks(
+        finalized_block.hash,
+        target_block.hash,
+        peer_id,
+        [wp = weak_from_this(), bn = target_block.number] {
+          if (auto self = wp.lock()) {
+            SL_INFO(self->log_, "Catching up to block #{} is done", bn);
+            self->current_state_ = State::WAIT_BLOCK_ANNOUNCE;
+          }
+        });
+  }
+
+  void BabeImpl::onSynchronized() {
     // won't start block production without keypair
     if (not keypair_) {
-      // launch timer that would check key appearance
-      if (not key_wait_ticker_->isStarted()) {
-        key_wait_ticker_->asyncCallRepeatedly(
-            [wp = weak_from_this()](auto &&ec) {
-              if (auto self = wp.lock()) {
-                if (ec) {
-                  if (ec.value() == boost::system::errc::operation_canceled) {
-                    SL_INFO(self->log_, "key_wait_ticker {}", ec.message());
-                    return;
-                  }
-                  SL_ERROR(
-                      self->log_,
-                      "error happened while waiting on the key_wait_ticker: {}",
-                      ec.message());
-                  return;
-                }
-                SL_INFO(self->log_, "Check if babe key appeared...");
-                self->onPeerSync();
-              }
-            });
-        key_wait_ticker_->start(key_wait_ticker_->interval());
-      }
+      current_state_ = State::WAIT_BLOCK_ANNOUNCE;
       return;
     }
 
     current_state_ = State::SYNCHRONIZED;
 
-    EpochDescriptor last_epoch_descriptor;
-    if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
-      last_epoch_descriptor = res.value();
-    } else {
-      last_epoch_descriptor.epoch_number = 0;
-      last_epoch_descriptor.start_slot = babe_util_->getCurrentSlot() + 1;
+    if (not active_) {
+      EpochDescriptor last_epoch_descriptor;
+      if (auto res = babe_util_->getLastEpoch(); res.has_value()) {
+        last_epoch_descriptor = res.value();
+      } else {
+        last_epoch_descriptor.epoch_number = 0;
+        last_epoch_descriptor.start_slot = babe_util_->getCurrentSlot() + 1;
+      }
+
+      auto [number, hash] = block_tree_->deepestLeaf();
+      const auto &best_block_number = number;
+      const auto &best_block_hash = hash;
+
+      SL_DEBUG(log_,
+               "Babe is starting with syncing from block #{}, hash={}",
+               best_block_number,
+               best_block_hash);
+
+      runEpoch(last_epoch_descriptor);
+      on_synchronized_();
     }
-
-    auto [number, hash] = block_tree_->deepestLeaf();
-    auto &best_block_number = number;
-    auto &best_block_hash = hash;
-
-    SL_DEBUG(log_,
-             "Babe is starting with syncing from block #{}, hash={}",
-             best_block_number,
-             best_block_hash);
-
-    runEpoch(last_epoch_descriptor);
-    on_synchronized_();
   }
 
   void BabeImpl::doOnSynchronized(std::function<void()> handler) {
@@ -293,8 +281,59 @@ namespace kagome::consensus::babe {
     }
   }
 
-  void BabeImpl::setTicker(std::unique_ptr<clock::Ticker> &&ticker) {
-    ticker_ = std::move(ticker);
+  void BabeImpl::runSlot() {
+    BOOST_ASSERT(keypair_ != nullptr);
+
+    bool rewind_slots;  // NOLINT
+    auto slot = current_slot_;
+    do {
+      // check that we are really in the middle of the slot, as expected; we can
+      // cooperate with a relatively little (kMaxLatency) latency, as our node
+      // will be able to retrieve
+      auto now = clock_->now();
+
+      auto finish_time = babe_util_->slotFinishTime(current_slot_);
+
+      rewind_slots =
+          now > finish_time
+          and (now - finish_time) > babe_configuration_->slot_duration;
+
+      if (rewind_slots) {
+        // we are too far behind; after skipping some slots (but not epochs)
+        // control will be returned to this method
+
+        ++current_slot_;
+
+        if (current_epoch_.epoch_number
+            != babe_util_->slotToEpoch(current_slot_)) {
+          startNextEpoch();
+        }
+      } else if (slot < current_slot_) {
+        log_->info("Slots {}..{} was skipped", slot, current_slot_ - 1);
+      }
+    } while (rewind_slots);
+
+    auto finish_time = babe_util_->slotFinishTime(current_slot_)
+                       - babe_util_->slotDuration() / 3;
+
+    log_->info("Starting a slot {} in epoch {} (remains {:.2f} sec.)",
+               current_slot_,
+               current_epoch_.epoch_number,
+               std::chrono::duration_cast<std::chrono::milliseconds>(
+                   babe_util_->remainToFinishOfSlot(current_slot_))
+                       .count()
+                   / 1000.);
+
+    // everything is OK: wait for the end of the slot
+    timer_->expiresAt(finish_time);
+    timer_->asyncWait([this](auto &&ec) {
+      if (ec) {
+        log_->error("error happened while waiting on the timer: {}",
+                    ec.message());
+        return;
+      }
+      processSlot();
+    });
   }
 
   void BabeImpl::processSlot() {
@@ -313,14 +352,15 @@ namespace kagome::consensus::babe {
 
     auto slot_leadership = lottery_->getSlotLeadership(current_slot_);
 
-    if (slot_leadership) {
+    if (slot_leadership.has_value()) {
+      const auto &vrf_result = slot_leadership.value();
       SL_DEBUG(log_,
                "Peer {} is leader (vrfOutput: {}, proof: {})",
                keypair_->public_key.toHex(),
-               common::Buffer(slot_leadership->output).toHex(),
-               common::Buffer(slot_leadership->proof).toHex());
+               common::Buffer(vrf_result.output).toHex(),
+               common::Buffer(vrf_result.proof).toHex());
 
-      processSlotLeadership(*slot_leadership);
+      processSlotLeadership(vrf_result);
     }
 
     SL_DEBUG(log_,
@@ -328,11 +368,32 @@ namespace kagome::consensus::babe {
              current_slot_,
              current_epoch_.epoch_number);
 
-    current_slot_ = babe_util_->getCurrentSlot() + 1;
+    ++current_slot_;
 
     if (current_epoch_.epoch_number != babe_util_->slotToEpoch(current_slot_)) {
       startNextEpoch();
     }
+
+    auto start_time = babe_util_->slotStartTime(current_slot_);
+
+    log_->info("Slot {} in epoch {} will start after {:.2f} sec.",
+               current_slot_,
+               current_epoch_.epoch_number,
+               std::chrono::duration_cast<std::chrono::milliseconds>(
+                   babe_util_->remainToStartOfSlot(current_slot_))
+                       .count()
+                   / 1000.);
+
+    // everything is OK: wait for the end of the slot
+    timer_->expiresAt(start_time);
+    timer_->asyncWait([this](auto &&ec) {
+      if (ec) {
+        log_->error("error happened while waiting on the timer: {}",
+                    ec.message());
+        return;
+      }
+      runSlot();
+    });
   }
 
   outcome::result<primitives::PreRuntime> BabeImpl::babePreDigest(
@@ -459,16 +520,15 @@ namespace kagome::consensus::babe {
     block.header.digest.emplace_back(seal_res.value());
 
     // check that we are still in the middle of the
-    auto block_delay = babe_util_->getCurrentSlot() - current_slot_;
-    if (block_delay > kMaxBlockSlotsOvertime) {
+    if (babe_util_->remainToFinishOfSlot(current_slot_ + kMaxBlockSlotsOvertime)
+            .count()
+        == 0) {
       SL_WARN(
           log_,
           "Block was not built in time. "
           "Allowed slots ({}) have passed. "
-          "Block delayed for {} slots. "
           "If you are executing in debug mode, consider to rebuild in release",
-          kMaxBlockSlotsOvertime,
-          block_delay);
+          kMaxBlockSlotsOvertime);
       return;
     }
 
@@ -526,11 +586,13 @@ namespace kagome::consensus::babe {
                   "Block production failed: This node is not in the list of "
                   "authorities. (public key: {})",
                   keypair_->public_key.toHex());
-      throw boost::bad_optional_access();
+      return;
     }
+
     auto threshold = calculateThreshold(babe_configuration_->leadership_rate,
                                         authorities,
                                         authority_index_res.value());
+
     lottery_->changeEpoch(epoch, randomness, threshold, *keypair_);
   }
 
@@ -545,54 +607,5 @@ namespace kagome::consensus::babe {
 
     [[maybe_unused]] auto res = babe_util_->setLastEpoch(
         {current_epoch_.epoch_number, current_epoch_.start_slot});
-  }
-
-  EpochDescriptor BabeImpl::prepareFirstEpoch(
-      EpochDescriptor last_known_epoch,
-      BabeSlotNumber first_production_slot) const {
-    const auto epoch_duration = babe_configuration_->epoch_length;
-    const auto start_slot =
-        first_production_slot
-        - ((first_production_slot - last_known_epoch.start_slot)
-           % epoch_duration)
-        + 1;
-    const auto genesis_slot = babe_util_->getCurrentSlot();
-    const auto epoch_number = (first_production_slot - genesis_slot)
-                              / babe_configuration_->epoch_length;
-
-    return EpochDescriptor{.epoch_number = epoch_number,
-                           .start_slot = start_slot};
-  }
-
-  void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {
-    // skip logic without keypair, wait next block announce
-    if (not keypair_) {
-      return;
-    }
-
-    // runEpoch starts ticker
-    if (not ticker_->isStarted()) {
-      const auto &babe_digests_res = getBabeDigests(new_header);
-      if (not babe_digests_res) {
-        SL_ERROR(log_,
-                 "Could not get digests: {}",
-                 babe_digests_res.error().message());
-      }
-
-      const auto &[_, babe_header] = babe_digests_res.value();
-
-      EpochDescriptor epoch;
-      auto last_known_epoch_res = babe_util_->getLastEpoch();
-      if (last_known_epoch_res.has_value()) {
-        epoch = prepareFirstEpoch(last_known_epoch_res.value(),
-                                  babe_header.slot_number + 1);
-        runEpoch(epoch);
-        on_synchronized_();
-      } else {
-        SL_ERROR(log_,
-                 "Could not get last known epoch: {}",
-                 last_known_epoch_res.error().message());
-      }
-    }
   }
 }  // namespace kagome::consensus::babe

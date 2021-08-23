@@ -49,12 +49,12 @@ namespace kagome::consensus {
 
     /**
      * Compute leadership for the slot
-     * @param i is a slot number
+     * @param slot is a slot number
      * @return none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
      */
     virtual boost::optional<crypto::VRFOutput> getSlotLeadership(
-        primitives::BabeSlotNumber i) const = 0;
+        primitives::BabeSlotNumber slot) const = 0;
 
     /**
      * Compute randomness for the next epoch

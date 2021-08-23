@@ -23,7 +23,10 @@ namespace kagome::consensus {
 
     BabeSlotNumber getCurrentSlot() const override;
 
-    BabeDuration slotStartsIn(BabeSlotNumber slot) const override;
+    BabeTimePoint slotStartTime(BabeSlotNumber slot) const override;
+    BabeDuration remainToStartOfSlot(BabeSlotNumber slot) const override;
+    BabeTimePoint slotFinishTime(BabeSlotNumber slot) const override;
+    BabeDuration remainToFinishOfSlot(BabeSlotNumber slot) const override;
 
     BabeDuration slotDuration() const override;
 

@@ -61,7 +61,7 @@ namespace kagome::consensus::babe {
              const std::shared_ptr<crypto::Sr25519Keypair> &keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
-             std::shared_ptr<boost::asio::io_context> io_context,
+             std::unique_ptr<clock::Timer> timer,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
              std::shared_ptr<BabeUtil> babe_util);
@@ -87,14 +87,18 @@ namespace kagome::consensus::babe {
     void onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                          const network::BlockAnnounce &announce) override;
 
-    void onPeerSync() override;
+    void onSynchronized() override;
 
     void doOnSynchronized(std::function<void()> handler) override;
 
-    /** for test purposes only */
-    void setTicker(std::unique_ptr<clock::Ticker> &&ticker);
-
    private:
+    void startCatchUp(const libp2p::peer::PeerId &peer_id,
+                      const primitives::BlockInfo &finalized_block,
+                      const primitives::BlockInfo &best_block,
+                      const primitives::BlockInfo &target_block);
+
+    void runSlot();
+
     /**
      * Process the current Babe slot
      */
@@ -122,22 +126,6 @@ namespace kagome::consensus::babe {
     outcome::result<primitives::Seal> sealBlock(
         const primitives::Block &block) const;
 
-    /**
-     * Create first block production epoch
-     * @param last_known_epoch information about last epoch we know
-     * @param first_production_slot slot number where block production starts
-     * @return first production epoch structure
-     */
-    EpochDescriptor prepareFirstEpoch(
-        EpochDescriptor last_known_epoch,
-        BabeSlotNumber first_production_slot) const;
-
-    /**
-     * To be called if we are far behind other nodes to skip some slots and
-     * finally synchronize with the network
-     */
-    void synchronizeSlots(const primitives::BlockHeader &new_header);
-
    private:
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BlockExecutor> block_executor_;
@@ -151,13 +139,14 @@ namespace kagome::consensus::babe {
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::Sr25519Provider> sr25519_provider_;
-    std::unique_ptr<clock::Ticker> ticker_;
-    std::unique_ptr<clock::Ticker> key_wait_ticker_;
+    std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
 
-    State current_state_{State::WAIT_BLOCK};
+    State current_state_{State::WAIT_REMOTE_STATUS};
+
+    std::atomic_bool active_{false};
 
     EpochDescriptor current_epoch_;
 

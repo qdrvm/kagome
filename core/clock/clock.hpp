@@ -38,6 +38,10 @@ namespace kagome::clock {
      * epoch (Jan 1, 1970)
      */
     virtual uint64_t nowUint64() const = 0;
+
+    static TimePoint zero() {
+      return TimePoint{};
+    }
   };
 
   /**

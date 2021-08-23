@@ -201,7 +201,7 @@ namespace kagome::consensus {
 
             auto block = std::move(blocks[i++]);  // For free memory asap
 
-            auto apply_res = self->applyBlock(block); // for debug purposes
+            auto apply_res = self->applyBlock(block);  // for debug purposes
 
             // Failed
             if (not apply_res.has_value()
@@ -267,20 +267,21 @@ namespace kagome::consensus {
 
       return blockchain::BlockTreeError::BLOCK_EXISTS;
     }
-    logger_->info("Applying block number: {}, hash: {}",
-                  block.header.number,
-                  block_hash.toHex());
 
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
     const auto &[seal, babe_header] = babe_digests;
 
+    logger_->info("Applying block number: {}, hash: {} (slot #{})",
+                  block.header.number,
+                  block_hash.toHex(),
+                  babe_header.slot_number);
+
     {
       // add information about epoch to epoch storage
       if (block.header.number == 1) {
         OUTCOME_TRY(babe_util_->setLastEpoch(EpochDescriptor{
-            .epoch_number = 0,
-            .start_slot = babe_header.slot_number}));
+            .epoch_number = 0, .start_slot = babe_header.slot_number}));
       }
     }
 
@@ -329,14 +330,15 @@ namespace kagome::consensus {
 
     auto exec_start = std::chrono::high_resolution_clock::now();
     // apply block
-    SL_DEBUG(logger_, "Execute block #{}, hash {}, state {}, a child of block #{}, hash {}, state {}",
+    SL_DEBUG(logger_,
+             "Execute block #{}, hash {}, state {}, "
+             "a child of block #{}, hash {}, state {}",
              block.header.number,
              block_hash,
              block.header.state_root,
              parent.number,
              block.header.parent_hash,
-             parent.state_root
-    );
+             parent.state_root);
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
     auto exec_end = std::chrono::high_resolution_clock::now();
     logger_->debug("Core_execute_block: {} ms",
@@ -364,7 +366,7 @@ namespace kagome::consensus {
     // apply justification if any
     if (b.justification.has_value()) {
       logger_->verbose("Justification received for block number {}",
-                    block.header.number);
+                       block.header.number);
       OUTCOME_TRY(grandpa_environment_->applyJustification(
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value()));
