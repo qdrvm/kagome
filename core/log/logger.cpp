@@ -7,10 +7,9 @@
 #include <libp2p/log/logger.hpp>
 
 #include "log/logger.hpp"
+#include "log/profiling_logger.hpp"
 
 namespace kagome::log {
-
-  Logger _profiling_logger = nullptr;
 
   namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)

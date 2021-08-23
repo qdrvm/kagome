@@ -5,7 +5,7 @@
 
 #include "runtime/runtime_environment_factory.hpp"
 
-#include "log/logger.hpp"
+#include "log/profiling_logger.hpp"
 #include "runtime/instance_environment.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 

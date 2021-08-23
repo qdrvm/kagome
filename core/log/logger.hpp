@@ -138,31 +138,6 @@ namespace kagome::log {
 
 #endif
 
-  extern Logger _profiling_logger;
-
 }  // namespace kagome::log
-
-#ifndef NDEBUG  // TODO(Harrm): maybe add a separate compile-time constant
-
-#include "clock/impl/clock_impl.hpp"
-
-#define SL_PROFILE_START(scope) \
-  auto _profiling_start_##scope = ::kagome::clock::SteadyClockImpl{}.now();
-
-#define SL_PROFILE_END(scope)                                             \
-  auto _profiling_end_##scope = ::kagome::clock::SteadyClockImpl{}.now(); \
-  SL_DEBUG(::kagome::log::_profiling_logger,                              \
-           "{} took {} ms",                                               \
-           #scope,                                                        \
-           ::std::chrono::duration_cast<::std::chrono::milliseconds>(     \
-               _profiling_end_##scope - _profiling_start_##scope)         \
-               .count());
-
-#else
-
-#define SL_PROFILE_START(scope)
-#define SL_PROFILE_END(scope, msg, ...)
-
-#endif
 
 #endif  // KAGOME_LOGGER_HPP
