@@ -76,9 +76,9 @@ namespace kagome::storage::trie {
     }
 
     inline static outcome::result<void> defaultNodeRetrieveFunctor(
-        NodePtr &parent) {
-      BOOST_ASSERT_MSG(not parent or not parent->isDummy(),
-                   "Dummy node unexpected.");
+        NodePtr &node) {
+      BOOST_ASSERT_MSG(not node or not node->isDummy(),
+                       "Dummy node unexpected.");
       return outcome::success();
     }
   };
