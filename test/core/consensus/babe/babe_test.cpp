@@ -197,20 +197,20 @@ class BabeTest : public testing::Test {
   std::array<boost::optional<VRFOutput>, 2> leadership_{boost::none,
                                                         leader_vrf_output_};
 
-  BlockHash best_block_hash_ = "block#1"_hash256;
-  BlockNumber best_block_number_ = 1u;
+  BlockHash best_block_hash_ = "block#0"_hash256;
+  BlockNumber best_block_number_ = 0u;
 
   primitives::BlockInfo best_leaf{best_block_number_, best_block_hash_};
 
   BlockHeader block_header_{best_block_hash_,
-                            2,
+                            1,
                             "state_root"_hash256,
                             "extrinsic_root"_hash256,
                             {PreRuntime{}}};
   Extrinsic extrinsic_{{1, 2, 3}};
   Block created_block_{block_header_, {extrinsic_}};
 
-  Hash256 created_block_hash_{"block#2"_hash256};
+  Hash256 created_block_hash_{"block#1"_hash256};
 
   SystemClockImpl real_clock_{};
 };
@@ -268,8 +268,10 @@ TEST_F(BabeTest, Success) {
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
   EXPECT_CALL(*block_tree_, deepestLeaf())
-      .Times(2)
       .WillRepeatedly(Return(best_leaf));
+
+  EXPECT_CALL(*block_tree_, getBlockHeader(_))
+      .WillRepeatedly(Return(outcome::success(BlockHeader{})));
 
   EXPECT_CALL(*proposer_, propose(best_block_number_, _, _))
       .WillOnce(Return(created_block_));
