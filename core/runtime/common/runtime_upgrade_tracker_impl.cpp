@@ -12,38 +12,44 @@
 namespace kagome::runtime {
 
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
-      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo)
+      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+      const application::CodeSubstitutes &code_substitutes)
       : header_repo_{std::move(header_repo)},
+        code_substitutes_{code_substitutes},
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {
     BOOST_ASSERT(header_repo_);
   }
 
-  outcome::result<storage::trie::RootHash>
-  RuntimeUpgradeTrackerImpl::getLastCodeUpdateState(
+  outcome::result<std::tuple<primitives::BlockId, bool>>
+  RuntimeUpgradeTrackerImpl::getRuntimeChangeBlock(
       const primitives::BlockInfo &block) const {
+    if (block.number == 0 && blocks_with_runtime_upgrade_.empty()) {
+      blocks_with_runtime_upgrade_.push_back(block);
+    }
     // TODO(Harrm): check if this can lead to incorrect behaviour
     // if the block tree is not yet initialized, means we can only access the
     // genesis block
     if (block_tree_ == nullptr) {
-      OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
       logger_->debug("Pick runtime state at genesis for block #{} hash {}",
                      block.number,
                      block.hash.toHex());
-      return genesis.state_root;
+      return {0, true};
     }
 
     // if there are no known blocks with runtime upgrades, we just fall back to
     // returning the state of the current block
     if (blocks_with_runtime_upgrade_.empty()) {
-      // even if it doesn't actually upgrade runtime, still a solid source of
-      // runtime code
-      blocks_with_runtime_upgrade_.push_back(block);
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block.hash));
       logger_->debug(
           "Pick runtime state at block #{} hash {} for the same block",
           block.number,
           block.hash.toHex());
-      return header.state_root;
+      return {block.hash, false};
+    }
+
+    if (auto it = code_substitutes_.find(block.hash);
+        it != code_substitutes_.end()) {
+      blocks_with_runtime_upgrade_.push_back(block);
+      return {block.hash, true};
     }
 
     auto block_number = block.number;
@@ -58,12 +64,11 @@ namespace kagome::runtime {
       // if we have no info on updates before this block, we just return its
       // state
       // TODO(Harrm): fetch code updates from block tree on initialization
-      OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
       logger_->debug(
           "Pick runtime state at block #{} hash {} for the same block",
           block.number,
           block.hash.toHex());
-      return block_header.state_root;
+      return {block.hash, false};
     }
     latest_state_update_it--;
 
@@ -76,28 +81,21 @@ namespace kagome::runtime {
          latest_state_update_it--) {
       if (block_tree_->hasDirectChain(latest_state_update_it->hash,
                                       block.hash)) {
-        // found the predecessor with the latest runtime upgrade
-        OUTCOME_TRY(predecessor_header,
-                    header_repo_->getBlockHeader(latest_state_update_it->hash));
-        SL_TRACE_FUNC_CALL(
-            logger_, predecessor_header.state_root, block.hash, block.number);
         logger_->debug(
             "Pick runtime state at block #{} hash {} for block #{} hash {}",
-            predecessor_header.number,
+            latest_state_update_it->number,
             latest_state_update_it->hash,
             block.number,
             block.hash.toHex());
-        return predecessor_header.state_root;
+        return {block.hash, true};
       }
     }
+
     // if this is an orphan block for some reason, just return its state_root
     // (there is no other choice)
-    OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
-    logger_->warn("Block #{} hash {}, child of block with hash {} is orphan",
-                  block.number,
-                  block.hash.toHex(),
-                  block_header.parent_hash.toHex());
-    return block_header.state_root;
+    logger_->warn(
+        "Block #{} hash {} is orphan", block.number, block.hash.toHex());
+    return {block.hash, false};
   }
 
   void RuntimeUpgradeTrackerImpl::subscribeToBlockchainEvents(

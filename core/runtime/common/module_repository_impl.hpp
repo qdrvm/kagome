@@ -10,6 +10,8 @@
 
 #include <unordered_map>
 
+#include "application/chain_spec.hpp"
+#include "blockchain/block_header_repository.hpp"
 #include "log/logger.hpp"
 #include "runtime/instance_environment.hpp"
 
@@ -22,7 +24,9 @@ namespace kagome::runtime {
    public:
     ModuleRepositoryImpl(
         std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
-        std::shared_ptr<const ModuleFactory> module_factory);
+        std::shared_ptr<const ModuleFactory> module_factory,
+        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+        const application::CodeSubstitutes &code_substitutes);
 
     outcome::result<
         std::pair<std::shared_ptr<ModuleInstance>, InstanceEnvironment>>
@@ -36,6 +40,8 @@ namespace kagome::runtime {
     std::mutex instances_mutex_;
     std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
+    std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
+    const application::CodeSubstitutes &code_substitutes_;
   };
 
 }  // namespace kagome::runtime

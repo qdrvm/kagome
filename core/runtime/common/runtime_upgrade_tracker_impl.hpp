@@ -10,6 +10,7 @@
 
 #include <memory>
 
+#include "application/chain_spec.hpp"
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
@@ -25,15 +26,16 @@ namespace kagome::runtime {
   class RuntimeUpgradeTrackerImpl final : public RuntimeUpgradeTracker {
    public:
     RuntimeUpgradeTrackerImpl(
-        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo);
+        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+        const application::CodeSubstitutes &code_substitutes);
 
     void subscribeToBlockchainEvents(
         std::shared_ptr<primitives::events::StorageSubscriptionEngine>
             storage_sub_engine,
         std::shared_ptr<const blockchain::BlockTree> block_tree);
 
-    outcome::result<storage::trie::RootHash> getLastCodeUpdateState(
-        const primitives::BlockInfo &block) const;
+    outcome::result<std::tuple<primitives::BlockId, bool>>
+    getRuntimeChangeBlock(const primitives::BlockInfo &block) const;
 
    private:
     // assumption: insertions in the middle should be extremely rare, if any
@@ -43,6 +45,7 @@ namespace kagome::runtime {
         storage_subscription_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
+    const application::CodeSubstitutes &code_substitutes_;
     log::Logger logger_;
   };
 
