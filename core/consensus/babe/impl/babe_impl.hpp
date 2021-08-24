@@ -152,6 +152,8 @@ namespace kagome::consensus::babe {
 
     BabeSlotNumber current_slot_{};
 
+    primitives::BlockInfo best_block_{};
+
     std::function<void()> on_synchronized_;
 
     log::Logger log_;

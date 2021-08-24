@@ -79,14 +79,12 @@ namespace kagome::consensus::babe {
   }
 
   bool BabeImpl::start() {
-    auto [number, hash] = block_tree_->deepestLeaf();
-    auto &best_block_number = number;
-    auto &best_block_hash = hash;
+    best_block_ = block_tree_->deepestLeaf();
 
     SL_DEBUG(log_,
              "Babe is starting with syncing from block #{}, hash={}",
-             best_block_number,
-             best_block_hash);
+             best_block_.number,
+             best_block_.hash);
 
     EpochDescriptor last_epoch_descriptor;
     const auto now = clock_->now();
@@ -94,7 +92,7 @@ namespace kagome::consensus::babe {
       last_epoch_descriptor = res.value();
 
       SL_DEBUG(log_,
-               "Pre-saved epoch #{} (started in slot #{})",
+               "Pre-saved epoch {} (started in slot {})",
                last_epoch_descriptor.epoch_number,
                last_epoch_descriptor.start_slot);
 
@@ -106,7 +104,7 @@ namespace kagome::consensus::babe {
           + 1;
 
       SL_DEBUG(log_,
-               "Temporary epoch #{} (started in slot #{})",
+               "Temporary epoch {} (started in slot {})",
                last_epoch_descriptor.epoch_number,
                last_epoch_descriptor.start_slot);
     }
@@ -259,14 +257,12 @@ namespace kagome::consensus::babe {
         last_epoch_descriptor.start_slot = babe_util_->getCurrentSlot() + 1;
       }
 
-      auto [number, hash] = block_tree_->deepestLeaf();
-      const auto &best_block_number = number;
-      const auto &best_block_hash = hash;
+      best_block_ = block_tree_->deepestLeaf();
 
       SL_DEBUG(log_,
-               "Babe is starting with syncing from block #{}, hash={}",
-               best_block_number,
-               best_block_hash);
+               "Babe is synchronized on block #{}, hash={}",
+               best_block_.number,
+               best_block_.hash);
 
       runEpoch(last_epoch_descriptor);
       on_synchronized_();
@@ -313,6 +309,35 @@ namespace kagome::consensus::babe {
       }
     } while (rewind_slots);
 
+    best_block_ = block_tree_->deepestLeaf();
+
+    // Resolve slot collisions: if best block slot greater than current slot,
+    // that select his ancestor as best
+    for (;;) {
+      const auto &hash = best_block_.hash;
+      const auto header_res = block_tree_->getBlockHeader(hash);
+      BOOST_ASSERT(header_res.has_value());
+      const auto &header = header_res.value();
+      const auto babe_digests_res = getBabeDigests(header);
+      if (babe_digests_res.has_value()) {
+        const auto &babe_digests = babe_digests_res.value();
+        auto best_block_slot = babe_digests.second.slot_number;
+        if (current_slot_ > best_block_slot) {  // Condition met
+          break;
+        }
+        // Shift to parent block and check again
+        best_block_ =
+            primitives::BlockInfo(header.number - 1, header.parent_hash);
+        continue;
+
+      } else if (best_block_.number == 0) {
+        // Only genesis may not have a babe digest
+        break;
+      }
+      BOOST_ASSERT(babe_digests_res.has_value());
+    }
+
+    // Slot processing begins in 1/3 slot time before end
     auto finish_time = babe_util_->slotFinishTime(current_slot_)
                        - babe_util_->slotDuration() / 3;
 
@@ -340,10 +365,8 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(keypair_ != nullptr);
 
     if (lottery_->getEpoch() != current_epoch_) {
-      const auto &[_, best_block_hash] = block_tree_->deepestLeaf();
-
       auto epoch_res = block_tree_->getEpochDescriptor(
-          current_epoch_.epoch_number, best_block_hash);
+          current_epoch_.epoch_number, best_block_.hash);
       BOOST_ASSERT(epoch_res.has_value());
       const auto &epoch = epoch_res.value();
 
@@ -460,15 +483,14 @@ namespace kagome::consensus::babe {
           log_, "cannot put an inherent data: {}", put_res.error().message());
     }
 
-    auto best_block_info = block_tree_->deepestLeaf();
-    auto &[best_block_number, best_block_hash] = best_block_info;
+    //    auto &[best_block_number, best_block_hash] = best_block_;
     SL_INFO(log_,
             "Babe builds block on top of block with number {} and hash {}",
-            best_block_info.number,
-            best_block_info.hash);
+            best_block_.number,
+            best_block_.hash);
 
     auto epoch = block_tree_->getEpochDescriptor(current_epoch_.epoch_number,
-                                                 best_block_hash);
+                                                 best_block_.hash);
 
     auto authority_index_res =
         getAuthorityIndex(epoch.value().authorities, keypair_->public_key);
@@ -485,8 +507,8 @@ namespace kagome::consensus::babe {
     const auto &babe_pre_digest = babe_pre_digest_res.value();
 
     // create new block
-    auto pre_seal_block_res =
-        proposer_->propose(best_block_number, inherent_data, {babe_pre_digest});
+    auto pre_seal_block_res = proposer_->propose(
+        best_block_.number, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
       return SL_ERROR(log_,
                       "Cannot propose a block: {}",
@@ -539,7 +561,7 @@ namespace kagome::consensus::babe {
           [&](const primitives::Consensus &consensus_message) {
             [[maybe_unused]] auto res = authority_update_observer_->onConsensus(
                 consensus_message.consensus_engine_id,
-                best_block_info,
+                best_block_,
                 consensus_message);
           },
           [](const auto &) {});
