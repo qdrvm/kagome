@@ -51,16 +51,11 @@ namespace kagome::consensus {
   }
 
   BabeTimePoint BabeUtilImpl::slotFinishTime(BabeSlotNumber slot) const {
-    return clock_.zero() + ++slot * babe_configuration_->slot_duration;
+    return slotStartTime(slot + 1);
   }
 
   BabeDuration BabeUtilImpl::remainToFinishOfSlot(BabeSlotNumber slot) const {
-    auto deadline = slotFinishTime(slot);
-    auto now = clock_.now();
-    if (deadline > now) {
-      return deadline - now;
-    }
-    return BabeDuration{};
+    return remainToStartOfSlot(slot + 1);
   }
 
   BabeDuration BabeUtilImpl::slotDuration() const {
