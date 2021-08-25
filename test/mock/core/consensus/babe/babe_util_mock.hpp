@@ -16,7 +16,13 @@ namespace kagome::consensus {
    public:
     MOCK_CONST_METHOD0(getCurrentSlot, BabeSlotNumber());
 
-    MOCK_CONST_METHOD1(slotStartsIn, BabeDuration(BabeSlotNumber));
+    MOCK_CONST_METHOD1(slotStartTime, BabeTimePoint(BabeSlotNumber slot));
+
+    MOCK_CONST_METHOD1(remainToStartOfSlot, BabeDuration(BabeSlotNumber slot));
+
+    MOCK_CONST_METHOD1(slotFinishTime, BabeTimePoint(BabeSlotNumber slot));
+
+    MOCK_CONST_METHOD1(remainToFinishOfSlot, BabeDuration(BabeSlotNumber slot));
 
     MOCK_CONST_METHOD0(slotDuration, BabeDuration());
 

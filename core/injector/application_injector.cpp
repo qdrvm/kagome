@@ -415,7 +415,6 @@ namespace {
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
     }
-    configuration->leadership_rate.first *= 3;
 
     initialized.emplace(std::move(configuration));
     return initialized.value();
@@ -1266,7 +1265,7 @@ namespace {
         session_keys->getBabeKeyPair(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<boost::asio::io_context>>(),
+        injector.template create<uptr<clock::Timer>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<consensus::BabeUtil>>());
 

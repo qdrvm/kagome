@@ -54,22 +54,3 @@ TEST_F(BabeUtilTest, getCurrentSlot) {
                                         / babe_config_->slot_duration),
             babe_util_->getCurrentSlot());
 }
-
-/**
- * @given current slot
- * @when slotStartsIn is called
- * @then compare durations
- */
-TEST_F(BabeUtilTest, slotStartsIn) {
-  auto time = std::chrono::system_clock::now();
-  EXPECT_CALL(*clock_, now()).Times(4).WillRepeatedly(Return(time));
-  auto slot = babe_util_->getCurrentSlot();
-  EXPECT_EQ(babe_util_->slotStartsIn(slot),
-            -time.time_since_epoch() % babe_config_->slot_duration);
-  EXPECT_EQ(babe_util_->slotStartsIn(slot + 1),
-            -time.time_since_epoch() % babe_config_->slot_duration
-                + babe_config_->slot_duration);
-  EXPECT_EQ(babe_util_->slotStartsIn(slot - 1),
-            -time.time_since_epoch() % babe_config_->slot_duration
-                - babe_config_->slot_duration);
-}

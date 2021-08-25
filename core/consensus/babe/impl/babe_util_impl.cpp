@@ -37,9 +37,25 @@ namespace kagome::consensus {
                                        / babe_configuration_->slot_duration);
   }
 
-  BabeDuration BabeUtilImpl::slotStartsIn(BabeSlotNumber slot) const {
-    return slot * babe_configuration_->slot_duration
-           - clock_.now().time_since_epoch();
+  BabeTimePoint BabeUtilImpl::slotStartTime(BabeSlotNumber slot) const {
+    return clock_.zero() + slot * babe_configuration_->slot_duration;
+  }
+
+  BabeDuration BabeUtilImpl::remainToStartOfSlot(BabeSlotNumber slot) const {
+    auto deadline = slotStartTime(slot);
+    auto now = clock_.now();
+    if (deadline > now) {
+      return deadline - now;
+    }
+    return BabeDuration{};
+  }
+
+  BabeTimePoint BabeUtilImpl::slotFinishTime(BabeSlotNumber slot) const {
+    return slotStartTime(slot + 1);
+  }
+
+  BabeDuration BabeUtilImpl::remainToFinishOfSlot(BabeSlotNumber slot) const {
+    return remainToStartOfSlot(slot + 1);
   }
 
   BabeDuration BabeUtilImpl::slotDuration() const {
@@ -92,7 +108,7 @@ namespace kagome::consensus {
     }
     const auto &key = storage::kLastBabeEpochNumberLookupKey;
     OUTCOME_TRY(epoch_descriptor, storage_->get(key));
-    auto&& res = scale::decode<EpochDescriptor>(epoch_descriptor);
+    auto &&res = scale::decode<EpochDescriptor>(epoch_descriptor);
     BOOST_ASSERT(res.has_value());
     return std::move(res);
   }

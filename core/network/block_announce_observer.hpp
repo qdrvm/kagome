@@ -36,7 +36,7 @@ namespace kagome::network {
      * Triggered when node is validator and received status from another
      * validator node
      */
-    virtual void onPeerSync() = 0;
+    virtual void onSynchronized() = 0;
   };
 }  // namespace kagome::network
 
