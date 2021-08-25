@@ -728,6 +728,11 @@ namespace kagome::consensus::grandpa {
         // New vote
         if (env_->hasAncestry(vote.hash, signed_precommit.getBlockHash())) {
           total_weight += voter_set_->voterWeight(signed_precommit.id).value();
+        } else {
+          SL_DEBUG(logger_,
+                   "Vote has not ancestry with tagret block: vote={} target={}",
+                   vote.hash.toHex(),
+                   signed_precommit.getBlockHash());
         }
 
       } else if (equivocators.emplace(signed_precommit.id).second) {
@@ -736,6 +741,11 @@ namespace kagome::consensus::grandpa {
           auto weight = voter_set_->voterWeight(signed_precommit.id).value();
           total_weight -= weight;
           threshold -= weight;
+        } else {
+          SL_DEBUG(logger_,
+                   "Vote has not ancestry with tagret block: vote={} target={}",
+                   vote.hash.toHex(),
+                   signed_precommit.getBlockHash());
         }
 
       } else {
@@ -949,11 +959,9 @@ namespace kagome::consensus::grandpa {
 
     switch (prevotes_->push(vote, weight.value())) {
       case VoteTracker::PushResult::SUCCESS: {
-        const auto &voters = voter_set_->voters();
-
         // prepare VoteWeight which contains index of who has voted and what
         // kind of vote it was
-        VoteWeight voteWeight{voters.size()};
+        VoteWeight voteWeight;
 
         voteWeight.setPrevote(index.value(),
                               voter_set_->voterWeight(vote.id).value());
@@ -990,18 +998,19 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::UNKNOWN_VOTER;
     }
     auto index = voter_set_->voterIndex(vote.id);
-    if (not index) {
-      BOOST_ASSERT_MSG(false, "Can't be none after voterWeight() was succeed");
-      return VotingRoundError::UNKNOWN_VOTER;
+    if (not index.has_value()) {
+      // Can't be none after voterWeight() was succeed
+      BOOST_UNREACHABLE_RETURN(VotingRoundError::UNKNOWN_VOTER);
+    }
+    if (voter_set_->voterWeight(vote.id).value() == 0) {
+      return VotingRoundError::ZERO_WEIGHT_VOTER;
     }
 
     switch (precommits_->push(vote, weight.value())) {
       case VoteTracker::PushResult::SUCCESS: {
-        const auto &voters = voter_set_->voters();
-
         // prepare VoteWeight which contains index of who has voted and what
         // kind of vote it was
-        VoteWeight voteWeight{voters.size()};
+        VoteWeight voteWeight;
 
         voteWeight.setPrecommit(index.value(),
                                 voter_set_->voterWeight(vote.id).value());
@@ -1032,8 +1041,11 @@ namespace kagome::consensus::grandpa {
   bool VotingRoundImpl::updatePrevoteGhost() {
     if (prevotes_->getTotalWeight() < threshold_) {
       SL_TRACE(logger_,
-               "Round #{}: updatePrevoteGhost->false (not reached threshold)",
-               round_number_);
+               "Round #{}: updatePrevoteGhost->false "
+               "(total_weight={} < threshold={})",
+               round_number_,
+               prevotes_->getTotalWeight(),
+               threshold_);
       return false;
     }
 
@@ -1060,17 +1072,16 @@ namespace kagome::consensus::grandpa {
       prevote_ghost_ = new_prevote_ghost.value();
 
       if (changed) {
-        SL_TRACE(
-            logger_,
-            "Round #{}: updatePrevoteGhost->true (prevote ghost was changed to "
-            "block #{} hash={})",
-            round_number_,
-            prevote_ghost_->number,
-            prevote_ghost_->hash.toHex());
+        SL_TRACE(logger_,
+                 "Round #{}: updatePrevoteGhost->true "
+                 "(prevote ghost was changed to block #{} hash={})",
+                 round_number_,
+                 prevote_ghost_->number,
+                 prevote_ghost_->hash.toHex());
       } else {
         SL_TRACE(logger_,
-                 "Round #{}: updatePrevoteGhost->false (prevote ghost was not "
-                 "changed)",
+                 "Round #{}: updatePrevoteGhost->false "
+                 "(prevote ghost was not changed)",
                  round_number_);
       }
       return changed || new_prevote_ghost == last_finalized_block_;
@@ -1085,13 +1096,13 @@ namespace kagome::consensus::grandpa {
   bool VotingRoundImpl::updatePrecommitGhost() {
     if (precommits_->getTotalWeight() < threshold_) {
       SL_TRACE(logger_,
-               "Round #{}: updatePrecommitGhost->false (not reached threshold)",
-               round_number_);
+               "Round #{}: updatePrecommitGhost->false "
+               "(total_weight={} < threshold={})",
+               round_number_,
+               precommits_->getTotalWeight(),
+               threshold_);
       return false;
     }
-
-    auto currend_best = prevote_ghost_.has_value() ? prevote_ghost_.value()
-                                                   : last_finalized_block_;
 
     auto posible_to_finalize = [this](const VoteWeight &vote_weight) {
       return vote_weight
@@ -1101,6 +1112,15 @@ namespace kagome::consensus::grandpa {
              >= threshold_;
     };
 
+    auto previous_round = previous_round_.lock();
+
+    auto currend_best =
+        previous_round ? previous_round->bestFinalCandidate()
+                       : prevote_ghost_.get_value_or(last_finalized_block_);
+
+    //    auto currend_best = precommit_ghost_.get_value_or(
+    //        prevote_ghost_.get_value_or(last_finalized_block_));
+
     /// @see spec: Grandpa-Ghost
     auto new_precommit_ghost = graph_->findGhost(
         currend_best, posible_to_finalize, VoteWeight::precommitComparator);
@@ -1109,11 +1129,12 @@ namespace kagome::consensus::grandpa {
       new_precommit_ghost = currend_best;
 
       SL_TRACE(logger_,
-               "Round #{}: updatePrecommitGhost <- not finalizable",
-               round_number_);
+               "Round #{}: updatePrecommitGhost <- not finalizable (best #{})",
+               round_number_,
+               currend_best.number);
     } else {
       SL_TRACE(logger_,
-               "Round #{}: updatePrecommitGhost <- finalizable (#{}, was #{})",
+               "Round #{}: updatePrecommitGhost <- finalizable (#{}, best #{})",
                round_number_,
                new_precommit_ghost.value().number,
                currend_best.number);
@@ -1135,8 +1156,8 @@ namespace kagome::consensus::grandpa {
     }
 
     SL_TRACE(logger_,
-             "Round #{}: updatePrecommitGhost->false (prevote ghost was not "
-             "changed)",
+             "Round #{}: updatePrecommitGhost->false "
+             "(precommit ghost was not changed)",
              round_number_);
     return false;
   }
@@ -1344,9 +1365,8 @@ namespace kagome::consensus::grandpa {
   BlockInfo VotingRoundImpl::bestFinalCandidate() {
     auto current_precommits = precommits_->getTotalWeight();
 
-    const auto &best_prevote_candidate = prevote_ghost_.has_value()
-                                             ? prevote_ghost_.value()
-                                             : last_finalized_block_;
+    const auto &best_prevote_candidate = prevote_ghost_.get_value_or(
+        finalized_.get_value_or(last_finalized_block_));
 
     if (current_precommits >= threshold_) {
       auto possible_to_finalize = [this](const VoteWeight &vote_weight) {
@@ -1358,13 +1378,20 @@ namespace kagome::consensus::grandpa {
                >= threshold_;
       };
 
-      auto finalized = graph_->findAncestor(best_prevote_candidate,
-                                            possible_to_finalize,
-                                            VoteWeight::precommitComparator);
-      if (finalized.has_value()) {
-        if (not finalized_.has_value()
-            or env_->isEqualOrDescendOf(finalized_->hash, finalized->hash)) {
+      auto finalized_opt =
+          graph_->findAncestor(best_prevote_candidate,
+                               possible_to_finalize,
+                               VoteWeight::precommitComparator);
+      if (finalized_opt.has_value()) {
+        const auto &finalized = finalized_opt.value();
+        if (not finalized_.has_value()) {
           finalized_ = finalized;
+        } else {
+          const auto &existing_finalized = finalized_.value();
+          if (env_->isEqualOrDescendOf(existing_finalized.hash,
+                                       finalized.hash)) {
+            finalized_ = finalized;
+          }
         }
       }
     }
