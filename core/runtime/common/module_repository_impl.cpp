@@ -15,9 +15,8 @@
 
 namespace kagome::runtime {
 
-  //thread_local std::unordered_map<storage::trie::RootHash,
-  //                          std::shared_ptr<ModuleInstance>>
-  //    ModuleRepositoryImpl::instances_cache_;
+  thread_local ModuleRepositoryImpl::InstanceCache
+      ModuleRepositoryImpl::instances_cache_;
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
@@ -32,9 +31,9 @@ namespace kagome::runtime {
   ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
-    SL_PROFILE_START(state_retrieval);
+    SL_PROFILE_START(code_retrieval);
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
-    SL_PROFILE_END(state_retrieval);
+    SL_PROFILE_END(code_retrieval);
 
     SL_PROFILE_START(module_retrieval);
     std::shared_ptr<Module> module;
@@ -54,11 +53,18 @@ namespace kagome::runtime {
     SL_PROFILE_START(module_instantiation);
     {
       std::lock_guard guard{instances_mutex_};
+      if (auto cached_instance = instances_cache_.get(state);
+          not cached_instance.has_value()) {
         OUTCOME_TRY(instance, modules_[state]->instantiate());
         auto shared_instance =
             std::shared_ptr<ModuleInstance>(std::move(instance));
+        auto emplaced = instances_cache_.put(state, shared_instance);
+        BOOST_ASSERT(emplaced);
         SL_PROFILE_END(module_instantiation);
         return shared_instance;
+      } else {
+        return cached_instance.value();
+      }
     }
   }
 

@@ -404,14 +404,15 @@ namespace kagome::application {
     po::store(parsed, vm);
     po::notify(vm);
 
-    desc.add(blockhain_desc).add(storage_desc).add(network_desc);
+    desc.add(blockhain_desc)
+        .add(storage_desc)
+        .add(network_desc)
+        .add(development_desc);
 
     if (vm.count("help") > 0) {
       std::cout << desc << std::endl;
       return false;
     }
-
-    desc.add(development_desc);
 
     try {
       po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -691,8 +692,8 @@ namespace kagome::application {
         [this, &runtime_exec_method_opt](std::string const &val) {
           runtime_exec_method_opt = str_to_runtime_exec_method(val);
           if (not runtime_exec_method_opt) {
-            logger_->error(
-                "Invalid runtime execution method specified: '{}'", val);
+            logger_->error("Invalid runtime execution method specified: '{}'",
+                           val);
           }
         });
     if (not runtime_exec_method_opt) {

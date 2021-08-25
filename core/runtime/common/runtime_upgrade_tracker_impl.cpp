@@ -7,6 +7,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "log/profiling_logger.hpp"
 #include "runtime/common/storage_code_provider.hpp"
 
 namespace kagome::runtime {
@@ -46,6 +47,7 @@ namespace kagome::runtime {
       return header.state_root;
     }
 
+    SL_PROFILE_START(blocks_with_runtime_upgrade_search);
     auto block_number = block.number;
     auto latest_state_update_it =
         std::upper_bound(blocks_with_runtime_upgrade_.begin(),
@@ -54,6 +56,7 @@ namespace kagome::runtime {
                          [](auto block_number, auto const &block_info) {
                            return block_number < block_info.number;
                          });
+    SL_PROFILE_END(blocks_with_runtime_upgrade_search);
     if (latest_state_update_it == blocks_with_runtime_upgrade_.begin()) {
       // if we have no info on updates before this block, we just return its
       // state
@@ -71,11 +74,27 @@ namespace kagome::runtime {
     // less or equal to our \arg block number
     // we may have several entries with the same block number, we have to pick
     // one which is the predecessor of our block
+    SL_PROFILE_START(search_for_proper_fork);
     for (; std::next(latest_state_update_it)
            != blocks_with_runtime_upgrade_.begin();
          latest_state_update_it--) {
-      if (block_tree_->hasDirectChain(latest_state_update_it->hash,
-                                      block.hash)) {
+      bool state_in_the_same_chain = false;
+
+      // if the found state is finalized, it is guaranteed to not belong to a
+      // different fork
+      if (block_tree_->getLastFinalized().number >= latest_state_update_it->number) {
+        state_in_the_same_chain = true;
+        // a non-finalized state may belong to a different fork, need to check
+        // explicitly (may be expensive if blocks are far apart)
+      } else {
+        SL_PROFILE_START(has_direct_chain);
+        bool has_direct_chain = block_tree_->hasDirectChain(
+            latest_state_update_it->hash, block.hash);
+        SL_PROFILE_END(has_direct_chain);
+        state_in_the_same_chain = has_direct_chain;
+      }
+
+      if (state_in_the_same_chain) {
         // found the predecessor with the latest runtime upgrade
         OUTCOME_TRY(predecessor_header,
                     header_repo_->getBlockHeader(latest_state_update_it->hash));
@@ -90,6 +109,7 @@ namespace kagome::runtime {
         return predecessor_header.state_root;
       }
     }
+    SL_PROFILE_END(search_for_proper_fork);
     // if this is an orphan block for some reason, just return its state_root
     // (there is no other choice)
     OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));

@@ -324,14 +324,6 @@ namespace kagome::host_api {
       const auto is_succeeded = result && result.value();
       return is_succeeded ? kVerifySuccess : kVerifyFail;
     };
-    /*
-        if (batch_verify_.has_value()) {
-          auto &verification_queue = batch_verify_.value();
-          SL_TRACE_FUNC_CALL(logger_, "batched", signature, msg, pubkey);
-          verification_queue.emplace(
-              std::async(std::launch::deferred, std::move(verifier)));
-          return kVerifySuccess;
-        }*/
 
     auto res = verifier();
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
