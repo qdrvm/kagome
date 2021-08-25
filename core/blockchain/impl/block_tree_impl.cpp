@@ -875,7 +875,7 @@ namespace kagome::blockchain {
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChildren(
-      const primitives::BlockHash &block) {
+      const primitives::BlockHash &block) const {
     auto node = tree_->getByHash(block);
     if (!node) {
       return BlockTreeError::NO_SUCH_BLOCK;

@@ -82,7 +82,8 @@ namespace kagome::runtime {
 
       // if the found state is finalized, it is guaranteed to not belong to a
       // different fork
-      if (block_tree_->getLastFinalized().number >= latest_state_update_it->number) {
+      if (block_tree_->getLastFinalized().number
+          >= latest_state_update_it->number) {
         state_in_the_same_chain = true;
         // a non-finalized state may belong to a different fork, need to check
         // explicitly (may be expensive if blocks are far apart)
@@ -96,17 +97,23 @@ namespace kagome::runtime {
 
       if (state_in_the_same_chain) {
         // found the predecessor with the latest runtime upgrade
-        OUTCOME_TRY(predecessor_header,
-                    header_repo_->getBlockHeader(latest_state_update_it->hash));
+        OUTCOME_TRY(children,
+                    block_tree_->getChildren(latest_state_update_it->hash));
+        BOOST_ASSERT(
+            children.size()
+            == 1);  // temporary; need to find a way to tackle forks here
+        // the runtime upgrades are reported for the state of the parent of the
+        // block with the runtime upgrade, so we need to fetch a child block
+        OUTCOME_TRY(target_header, header_repo_->getBlockHeader(children[0]));
         SL_TRACE_FUNC_CALL(
-            logger_, predecessor_header.state_root, block.hash, block.number);
+            logger_, target_header.state_root, block.hash, block.number);
         logger_->debug(
             "Pick runtime state at block #{} hash {} for block #{} hash {}",
-            predecessor_header.number,
-            latest_state_update_it->hash,
+            target_header.number,
+            children[0],
             block.number,
             block.hash.toHex());
-        return predecessor_header.state_root;
+        return target_header.state_root;
       }
     }
     SL_PROFILE_END(search_for_proper_fork);

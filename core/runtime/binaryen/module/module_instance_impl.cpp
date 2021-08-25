@@ -9,6 +9,7 @@
 #include <binaryen/wasm.h>
 
 #include "runtime/binaryen/runtime_external_interface.hpp"
+#include "host_api/host_api.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
                             ModuleInstanceImpl::Error,
@@ -84,6 +85,11 @@ namespace kagome::runtime::binaryen {
 
   InstanceEnvironment const &ModuleInstanceImpl::getEnvironment() const {
     return env_;
+  }
+
+  outcome::result<void> ModuleInstanceImpl::resetEnvironment() {
+    env_.host_api->reset();
+    return outcome::success();
   }
 
 }  // namespace kagome::runtime::binaryen

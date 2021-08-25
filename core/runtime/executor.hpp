@@ -165,6 +165,9 @@ namespace kagome::runtime {
       OUTCOME_TRY(result,
                   env.module_instance->callExportFunction(name, args_span));
       SL_PROFILE_END(call_execution)
+
+      env.module_instance->resetEnvironment();
+
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {

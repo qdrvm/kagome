@@ -30,7 +30,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime,
 namespace kagome::runtime {
 
   RuntimeEnvironment::RuntimeEnvironment(
-      std::shared_ptr<const ModuleInstance> module_instance,
+      std::shared_ptr<ModuleInstance> module_instance,
       std::shared_ptr<const MemoryProvider> memory_provider,
       std::shared_ptr<const TrieStorageProvider> storage_provider)
       : module_instance{std::move(module_instance)},

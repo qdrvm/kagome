@@ -23,6 +23,7 @@ namespace kagome::runtime {
         outcome::result<boost::optional<WasmValue>>(std::string_view name));
 
     MOCK_CONST_METHOD0(getEnvironment, InstanceEnvironment const &());
+    MOCK_METHOD0(resetEnvironment, outcome::result<void>());
 
   };
 }  // namespace kagome::runtime

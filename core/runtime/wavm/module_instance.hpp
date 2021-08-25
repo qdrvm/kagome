@@ -47,6 +47,7 @@ namespace kagome::runtime::wavm {
         std::string_view name) const override;
 
     InstanceEnvironment const &getEnvironment() const override;
+    outcome::result<void> resetEnvironment() override;
 
    private:
     InstanceEnvironment env_;

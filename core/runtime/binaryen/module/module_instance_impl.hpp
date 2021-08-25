@@ -28,7 +28,7 @@ namespace kagome::runtime::binaryen {
       CAN_NOT_OBTAIN_GLOBAL
     };
 
-    ModuleInstanceImpl(InstanceEnvironment&& env,
+    ModuleInstanceImpl(InstanceEnvironment &&env,
                        std::shared_ptr<wasm::Module> parent,
                        std::shared_ptr<RuntimeExternalInterface> rei);
 
@@ -39,6 +39,8 @@ namespace kagome::runtime::binaryen {
         std::string_view name) const override;
 
     InstanceEnvironment const &getEnvironment() const override;
+
+    outcome::result<void> resetEnvironment() override;
 
    private:
     InstanceEnvironment env_;

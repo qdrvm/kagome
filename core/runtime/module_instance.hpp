@@ -43,6 +43,7 @@ namespace kagome::runtime {
         std::string_view name) const = 0;
 
     virtual InstanceEnvironment const &getEnvironment() const = 0;
+    virtual outcome::result<void> resetEnvironment() = 0;
   };
 
 }  // namespace kagome::runtime
