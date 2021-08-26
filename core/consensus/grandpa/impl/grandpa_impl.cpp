@@ -128,8 +128,8 @@ namespace kagome::consensus::grandpa {
                 if (auto self = wp.lock()) {
                   if (ec) {
                     if (ec.value() == boost::system::errc::operation_canceled) {
-                      SL_INFO(self->logger_,
-                              "key_wait_ticker {}", ec.message());
+                      SL_INFO(
+                          self->logger_, "key_wait_ticker {}", ec.message());
                       return;
                     }
                     SL_ERROR(self->logger_,
@@ -307,6 +307,15 @@ namespace kagome::consensus::grandpa {
              msg.voter_set_id,
              msg.round_number,
              msg.last_finalized);
+    if (current_round_->voterSetId() != msg.voter_set_id
+        || current_round_->roundNumber() < msg.round_number) {
+      if (catch_up_request_suppressed_until_ < clock_->now()) {
+        catch_up_request_suppressed_until_ =
+            clock_->now() + catch_up_request_suppression_duration_;
+        current_round_->doCatchUpRequest(peer_id);
+      }
+      return;
+    }
   }
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
@@ -344,7 +353,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     if (current_round_->roundNumber() + 2 <= msg.round_number) {
-      if (catch_up_request_suppressed_until_ > clock_->now()) {
+      if (catch_up_request_suppressed_until_ < clock_->now()) {
         catch_up_request_suppressed_until_ =
             clock_->now() + catch_up_request_suppression_duration_;
         current_round_->doCatchUpRequest(peer_id);
@@ -383,7 +392,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     BOOST_ASSERT(current_round_ != nullptr);
-    if (current_round_->roundNumber() >= msg.round_number) {
+    if (current_round_->roundNumber() > msg.round_number) {
       // Catching up in to the past
       SL_DEBUG(
           logger_,
@@ -408,6 +417,16 @@ namespace kagome::consensus::grandpa {
              "Catch-up response (till round #{}) received from {}",
              msg.round_number,
              peer_id.toBase58());
+
+    // TODO(xDimon): Probably will cheaper update same round instead recreate
+    // if (current_round_->roundNumber() == msg.round_number) {
+    //  for (auto& prevote : msg.prevote_justification) {
+    //    current_round_->onPrevote(prevote);
+    //  }
+    //  for (auto& precommit : msg.precommit_justification) {
+    //    current_round_->onPrecommit(precommit);
+    //  }
+    //}
 
     MovableRoundState round_state{
         .round_number = msg.round_number,
@@ -443,11 +462,12 @@ namespace kagome::consensus::grandpa {
       return;
     }
 
-    if (current_round_->bestPrevoteCandidate().number
-        > round->bestFinalCandidate().number) {
-      // GHOST-less Catch-up
-      return;
-    }
+    // TODO(xDimon): Ensure if this ckecking is really needed
+    // if (current_round_->bestPrevoteCandidate().number
+    //     > round->bestFinalCandidate().number) {
+    //   // GHOST-less Catch-up
+    //   return;
+    // }
 
     if (not round->completable()) {
       // Catch-up round is not completable
@@ -483,7 +503,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
       if (current_round_->roundNumber() + 2 <= msg.round_number) {
-        if (catch_up_request_suppressed_until_ > clock_->now()) {
+        if (catch_up_request_suppressed_until_ < clock_->now()) {
           catch_up_request_suppressed_until_ =
               clock_->now() + catch_up_request_suppression_duration_;
           current_round_->doCatchUpRequest(peer_id);
