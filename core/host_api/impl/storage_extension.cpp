@@ -297,7 +297,7 @@ namespace kagome::host_api {
   }
 
   void StorageExtension::ext_storage_commit_transaction_version_1() {
-    auto res = storage_provider_->rollbackTransaction();
+    auto res = storage_provider_->commitTransaction();
     if (res.has_error()) {
       logger_->error("Storage transaction rollback has failed: {}",
                      res.error().message());
@@ -306,7 +306,7 @@ namespace kagome::host_api {
   }
 
   void StorageExtension::ext_storage_rollback_transaction_version_1() {
-    auto res = storage_provider_->commitTransaction();
+    auto res = storage_provider_->rollbackTransaction();
     if (res.has_error()) {
       logger_->error("Storage transaction commit has failed: {}",
                      res.error().message());

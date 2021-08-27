@@ -1149,12 +1149,7 @@ namespace {
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
-        di::bind<runtime::RuntimeCodeProvider>.template to(
-            [](const auto &injector) {
-              auto provider = injector.template create<
-                  std::shared_ptr<runtime::StorageCodeProvider>>();
-              return provider;
-            }),
+        di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
         di::bind<application::ChainSpec>.to([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
