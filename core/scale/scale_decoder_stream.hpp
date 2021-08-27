@@ -175,8 +175,9 @@ namespace kagome::scale {
      * @return reference to stream
      */
     template <class T,
-              std::enable_if_t<not std::is_integral_v<T> or sizeof(T) != 1> * =
-                  nullptr>
+              std::enable_if_t<not std::is_integral_v<
+                                   typename std::decay_t<T>> or sizeof(T) != 1u,
+                               bool> = true>
     ScaleDecoderStream &operator>>(std::vector<T> &v) {
       using mutableT = std::remove_const_t<T>;
       using size_type = typename std::list<T>::size_type;
@@ -203,9 +204,18 @@ namespace kagome::scale {
       return *this;
     }
 
+    /**
+     * @brief decodes vector of bytes
+     * @tparam T item type
+     * @param v reference to vector
+     * @return reference to stream
+     * @see nextByte() call condition for integral types deserialization
+     */
     template <
         class T,
-        std::enable_if_t<std::is_integral_v<T> and sizeof(T) == 1> * = nullptr>
+        std::enable_if_t<
+            std::is_integral_v<typename std::decay_t<T>> and sizeof(T) == 1u,
+            bool> = true>
     ScaleDecoderStream &operator>>(std::vector<T> &v) {
       CompactInteger size{0u};
       *this >> size;
@@ -218,8 +228,7 @@ namespace kagome::scale {
 
       try {
         v.reserve(item_count);
-        v.insert(
-            v.begin(), current_iterator_, current_iterator_ + item_count);
+        v.insert(v.begin(), current_iterator_, current_iterator_ + item_count);
         current_index_ += item_count;
         current_iterator_ += item_count;
       } catch (const std::bad_alloc &) {
