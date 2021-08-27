@@ -314,7 +314,6 @@ namespace kagome::consensus::grandpa {
             clock_->now() + catch_up_request_suppression_duration_;
         current_round_->doCatchUpRequest(peer_id);
       }
-      return;
     }
   }
 
@@ -418,7 +417,7 @@ namespace kagome::consensus::grandpa {
              msg.round_number,
              peer_id.toBase58());
 
-    // TODO(xDimon): Probably will cheaper update same round instead recreate
+    // TODO(xDimon): Probably will be cheaper update same round instead recreate
     // if (current_round_->roundNumber() == msg.round_number) {
     //  for (auto& prevote : msg.prevote_justification) {
     //    current_round_->onPrevote(prevote);
