@@ -55,7 +55,7 @@ namespace kagome::consensus {
         babe_util_(std::move(babe_util)),
         io_context_(std::move(io_context)),
         logger_{log::createLogger(
-            "BlockExecutor", "block_executor", soralog::Level::DEBUG)} {
+            "BlockExecutor", "block_executor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
