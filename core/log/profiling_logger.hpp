@@ -12,7 +12,7 @@ namespace kagome::log {
   extern Logger _profiling_logger;
 }
 
-#ifndef NDEBUG  // TODO(Harrm): maybe add a separate compile-time constant
+//#ifndef NDEBUG  // TODO(Harrm): maybe add a separate compile-time constant
 
 #include "clock/impl/clock_impl.hpp"
 
@@ -28,11 +28,11 @@ namespace kagome::log {
                _profiling_end_##scope - _profiling_start_##scope)         \
                .count());
 
-#else
+//#else
 
-#define SL_PROFILE_START(scope)
-#define SL_PROFILE_END(scope)
+//#define SL_PROFILE_START(scope)
+//#define SL_PROFILE_END(scope)
 
-#endif
+//#endif
 
 #endif  // KAGOME_CORE_LOG_PROFILING_LOGGER_HPP
