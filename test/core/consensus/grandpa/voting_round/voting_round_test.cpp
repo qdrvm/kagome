@@ -274,7 +274,8 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
       .WillOnce(Return(std::vector<BlockHash>{
           "FC"_H, "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H}));
 
-  round_->onPrevote(alice_vote);
+  round_->onPrevote(alice_vote, false);
+  round_->update(true, false);
 
   // when 2.
   // Bob prevotes
@@ -284,7 +285,8 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
       .WillOnce(Return(std::vector<BlockHash>{
           "ED"_H, "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H}));
 
-  round_->onPrevote(bob_vote);
+  round_->onPrevote(bob_vote, false);
+  round_->update(true, false);
 
   // then 1.
   ASSERT_EQ(round_->bestPrecommitCandidate(), BlockInfo(5, "E"_H));
@@ -297,7 +299,8 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   // Eve prevotes
   auto eve_vote = preparePrevote(kEve, kEveSignature, Prevote{6, "F"_H});
 
-  round_->onPrevote(eve_vote);
+  round_->onPrevote(eve_vote, false);
+  round_->update(true, false);
 
   // then 3.
   ASSERT_EQ(round_->bestPrecommitCandidate(), BlockInfo(5, "E"_H));
@@ -339,7 +342,8 @@ TEST_F(VotingRoundTest, Finalization) {
           "FC"_H, "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H}));
 
   auto alice_precommit = preparePrecommit(kAlice, kAliceSignature, {9, "FC"_H});
-  round_->onPrecommit(alice_precommit);
+  round_->onPrecommit(alice_precommit, false);
+  round_->update(false, true);
 
   // when 2.
   // Bob precommits ED
@@ -348,7 +352,8 @@ TEST_F(VotingRoundTest, Finalization) {
           "ED"_H, "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H}));
 
   auto bob_precommit = preparePrecommit(kBob, kBobSignature, {9, "ED"_H});
-  round_->onPrecommit(bob_precommit);
+  round_->onPrecommit(bob_precommit, false);
+  round_->update(false, true);
 
   // then 1.
   ASSERT_FALSE(round_->finalizedBlock().has_value());
@@ -358,31 +363,37 @@ TEST_F(VotingRoundTest, Finalization) {
   // when 3.
   // Alice Prevotes
   auto alice_prevote = preparePrevote(kAlice, kAliceSignature, {9, "FC"_H});
-  round_->onPrevote(alice_prevote);
+  round_->onPrevote(alice_prevote, false);
+  round_->update(true, false);
 
   // when 4.
   // Bob prevotes
   auto bob_prevote = preparePrevote(kBob, kBobSignature, {9, "ED"_H});
-  round_->onPrevote(bob_prevote);
+  round_->onPrevote(bob_prevote, false);
+  round_->update(true, false);
   // then 2.
   ASSERT_EQ(round_->finalizedBlock(), BlockInfo(5, "E"_H));
 
   // when 5.
   // Eve prevotes
-  round_->onPrevote(preparePrevote(kEve, kEveSignature, {6, "EA"_H}));
+  round_->onPrevote(preparePrevote(kEve, kEveSignature, {6, "EA"_H}), false);
+  round_->update(true, false);
   // then 3.
   ASSERT_EQ(round_->finalizedBlock(), BlockInfo(5, "E"_H));
 
   // when 6.
   // Eve precommits
-  round_->onPrecommit(preparePrecommit(kEve, kEveSignature, {6, "EA"_H}));
+  round_->onPrecommit(preparePrecommit(kEve, kEveSignature, {6, "EA"_H}),
+                      false);
+  round_->update(false, true);
+
   // then 3.
   ASSERT_EQ(round_->finalizedBlock(), BlockInfo(6, "EA"_H));
 }
 
 ACTION_P(onProposed, test_fixture) {
   // immitating primary proposed is received from network
-  test_fixture->round_->onProposal(arg2);
+  test_fixture->round_->onProposal(arg2, false);
   return outcome::success();
 }
 
@@ -391,17 +402,20 @@ ACTION_P(onPrevoted, test_fixture) {
   auto signed_prevote = arg2;
 
   // send Alice's prevote
-  test_fixture->round_->onPrevote(signed_prevote);
+  test_fixture->round_->onPrevote(signed_prevote, false);
   // send Bob's prevote
   test_fixture->round_->onPrevote(
       SignedMessage{.message = signed_prevote.message,
                     .signature = test_fixture->kBobSignature,
-                    .id = test_fixture->kBob});
+                    .id = test_fixture->kBob},
+      false);
   // send Eve's prevote
   test_fixture->round_->onPrevote(
       SignedMessage{.message = signed_prevote.message,
                     .signature = test_fixture->kEveSignature,
-                    .id = test_fixture->kEve});
+                    .id = test_fixture->kEve},
+      false);
+  test_fixture->round_->update(true, false);
   return outcome::success();
 }
 
@@ -410,17 +424,19 @@ ACTION_P(onPrecommitted, test_fixture) {
   auto signed_precommit = arg2;
 
   // send Alice's precommit
-  test_fixture->round_->onPrecommit(signed_precommit);
+  test_fixture->round_->onPrecommit(signed_precommit, false);
   // send Bob's precommit
   test_fixture->round_->onPrecommit(
       SignedMessage{.message = signed_precommit.message,
                     .signature = test_fixture->kBobSignature,
-                    .id = test_fixture->kBob});
+                    .id = test_fixture->kBob},
+      false);
   //  // send Eve's precommit
   //  test_fixture->round_->onPrecommit(
   //      SignedMessage{.message = signed_precommit.message,
   //                    .signature = test_fixture->kEveSignature,
-  //                    .id = test_fixture->kEve});
+  //                    .id = test_fixture->kEve}, false);
+  test_fixture->round_->update(false, true);
   return outcome::success();
 }
 

@@ -32,9 +32,10 @@ namespace kagome::consensus::grandpa {
     MOCK_METHOD0(doFinalize, void());
     MOCK_METHOD1(doCatchUpRequest, void(const libp2p::peer::PeerId &));
     MOCK_METHOD1(doCatchUpResponse, void(const libp2p::peer::PeerId &));
-    MOCK_METHOD1(onProposal, void(const SignedMessage &));
-    MOCK_METHOD1(onPrevote, void(const SignedMessage &));
-    MOCK_METHOD1(onPrecommit, void(const SignedMessage &));
+    MOCK_METHOD2(onProposal, void(const SignedMessage &, bool));
+    MOCK_METHOD2(onPrevote, bool(const SignedMessage &, bool));
+    MOCK_METHOD2(onPrecommit, bool(const SignedMessage &, bool));
+    MOCK_METHOD2(update, void(bool, bool));
     MOCK_METHOD2(applyJustification,
                  outcome::result<void>(const BlockInfo &,
                                        const GrandpaJustification &));

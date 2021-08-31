@@ -144,12 +144,23 @@ namespace kagome::consensus::grandpa {
     need_to_notice_at_finalizing_ = false;
 
     if (round_number_ != 0) {
+      bool isPrevotesChanged = false;
+      bool isPrecommitsChanged = false;
+
       // Apply stored votes
       auto apply = [&](const auto &vote) {
         visit_in_place(
             vote.message,
-            [&](const Prevote &) { VotingRoundImpl::onPrevote(vote); },
-            [&](const Precommit &) { VotingRoundImpl::onPrecommit(vote); },
+            [&](const Prevote &) {
+              if (VotingRoundImpl::onPrevote(vote, false)) {
+                isPrevotesChanged = true;
+              };
+            },
+            [&](const Precommit &) {
+              if (VotingRoundImpl::onPrecommit(vote, false)) {
+                isPrecommitsChanged = true;
+              };
+            },
             [](auto...) {});
       };
 
@@ -162,6 +173,9 @@ namespace kagome::consensus::grandpa {
               apply(pair.second);
             });
       }
+
+      update(isPrevotesChanged, isPrecommitsChanged);
+
     } else {
       // Zero-round is always self-finalized
       completable_ = true;
@@ -640,12 +654,26 @@ namespace kagome::consensus::grandpa {
         block_info.number,
         block_info.hash.toHex());
 
-    for (auto &item : justification.items) {
+    bool isPrevotesChanged = false;
+    bool isPrecommitsChanged = false;
+
+    for (auto &vote : justification.items) {
       visit_in_place(
-          item.message,
-          [this, &item](const Precommit &vote) { onPrecommit(item); },
-          [](auto &...) {});
+          vote.message,
+          [&](const Prevote &) {
+            if (VotingRoundImpl::onPrevote(vote, false)) {
+              isPrevotesChanged = true;
+            };
+          },
+          [&](const Precommit &) {
+            if (VotingRoundImpl::onPrecommit(vote, false)) {
+              isPrecommitsChanged = true;
+            };
+          },
+          [](auto...) {});
     }
+
+    update(isPrevotesChanged, isPrecommitsChanged);
 
     // NOTE: Perhaps it's needless or needs to replace by condition
     BOOST_ASSERT(finalizable());
@@ -763,7 +791,8 @@ namespace kagome::consensus::grandpa {
     return voter_set_->id();
   }
 
-  void VotingRoundImpl::onProposal(const SignedMessage &proposal) {
+  void VotingRoundImpl::onProposal(const SignedMessage &proposal,
+                                   bool propagate) {
     if (not isPrimary(proposal.id)) {
       logger_->warn(
           "Round #{}: Proposal received from {} was rejected: voter is not "
@@ -790,29 +819,38 @@ namespace kagome::consensus::grandpa {
              proposal.getBlockHash(),
              proposal.id.toHex());
 
+    if (primary_vote_.has_value()) {
+      propagate = false;
+    }
+
     primary_vote_ = {{proposal.getBlockNumber(), proposal.getBlockHash()}};
+
+    if (propagate) {
+      sendProposal(convertToPrimaryPropose(proposal.getBlockInfo()));
+    }
   }
 
-  void VotingRoundImpl::onPrevote(const SignedMessage &prevote) {
+  bool VotingRoundImpl::onPrevote(const SignedMessage &prevote,
+                                  bool propagate) {
     bool isValid = vote_crypto_provider_->verifyPrevote(prevote);
     if (not isValid) {
       logger_->warn(
           "Round #{}: Prevote received from {} was rejected: invalid signature",
           round_number_,
           prevote.id.toHex());
-      return;
+      return false;
     }
 
     if (auto result = onSignedPrevote(prevote); result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
-        return;
+        return false;
       }
       logger_->warn("Round #{}: Prevote received from {} was rejected: {}",
                     round_number_,
                     prevote.id.toHex(),
                     result.error().message());
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
-        return;
+        return false;
       }
     }
 
@@ -828,28 +866,28 @@ namespace kagome::consensus::grandpa {
       SL_DEBUG(logger_, "Round #{}: Own prevote was restored", round_number_);
     }
 
-    if (updatePrevoteGhost()) {
-      if (updatePrecommitGhost()) {
-        updateCompletability();
-      }
-      attemptToFinalizeRound();
+    if (propagate) {
+      sendPrevote(convertToPrevote(prevote.getBlockInfo()));
     }
+
+    return true;
   }
 
-  void VotingRoundImpl::onPrecommit(const SignedMessage &precommit) {
+  bool VotingRoundImpl::onPrecommit(const SignedMessage &precommit,
+                                    bool propagate) {
     bool isValid = vote_crypto_provider_->verifyPrecommit(precommit);
     if (not isValid) {
       logger_->warn(
-          "Round #{}: Precommit received from {} was rejected: invalid "
-          "signature",
+          "Round #{}: Precommit received from {} was rejected: "
+          "invalid signature",
           round_number_,
           precommit.id.toHex());
-      return;
+      return false;
     }
 
     if (auto result = onSignedPrecommit(precommit); result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
-        return;
+        return false;
       }
       logger_->warn("Round #{}: Precommit received from {} was rejected: {}",
                     round_number_,
@@ -857,7 +895,7 @@ namespace kagome::consensus::grandpa {
                     result.error().message());
       env_->onCompleted(result.as_failure());
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
-        return;
+        return false;
       }
     }
 
@@ -873,10 +911,26 @@ namespace kagome::consensus::grandpa {
       SL_DEBUG(logger_, "Round #{}: Own precommit was restored", round_number_);
     }
 
-    if (updatePrecommitGhost()) {
-      updateCompletability();
+    if (propagate) {
+      sendPrecommit(convertToPrecommit(precommit.getBlockInfo()));
     }
-    attemptToFinalizeRound();
+
+    return true;
+  }
+
+  void VotingRoundImpl::update(bool isPrevotesChanged,
+                               bool isPrecommitsChanged) {
+    if (isPrevotesChanged) {
+      if (updatePrevoteGhost()) {
+        isPrecommitsChanged = true;
+      }
+    }
+    if (isPrecommitsChanged) {
+      if (updatePrecommitGhost()) {
+        updateCompletability();
+      }
+      attemptToFinalizeRound();
+    }
   }
 
   outcome::result<void> VotingRoundImpl::onSignedPrevote(
