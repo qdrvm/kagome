@@ -681,7 +681,7 @@ namespace kagome::blockchain {
       boost::optional<uint32_t> max_count) const {
     if (auto chain_res =
             tryGetChainByBlocksFromCache(top_block, bottom_block, max_count)) {
-      auto& chain = chain_res.value();
+      auto &chain = chain_res.value();
       return std::move(chain);
     }
 
@@ -772,7 +772,45 @@ namespace kagome::blockchain {
     auto ancestor_node_ptr = tree_->getByHash(ancestor);
     auto descendant_node_ptr = tree_->getByHash(descendant);
 
-    // if both nodes are in our light tree, we can use this representation only
+    /*
+     * check that ancestor is above descendant
+     * optimization that prevents reading blockDB up the genesis
+     * TODO (xDimon) it could be not right place for this check
+     * or changing logic may make it obsolete
+     * block numbers may be obtained somewhere else
+     */
+    primitives::BlockNumber ancestor_depth = 0u;
+    primitives::BlockNumber descendant_depth = 0u;
+    if (ancestor_node_ptr) {
+      ancestor_depth = ancestor_node_ptr->depth;
+    } else {
+      auto header_res = header_repo_->getBlockHeader(ancestor);
+      if (!header_res) {
+        return false;
+      }
+      ancestor_depth = header_res.value().number;
+    }
+    if (descendant_node_ptr) {
+      descendant_depth = descendant_node_ptr->depth;
+    } else {
+      auto header_res = header_repo_->getBlockHeader(descendant);
+      if (!header_res) {
+        return false;
+      }
+      descendant_depth = header_res.value().number;
+    }
+    if (descendant_depth < ancestor_depth) {
+      SL_WARN(log_,
+              "Ancestor block is lower. #{} {} in comparison to #{} {}",
+              ancestor_depth,
+              ancestor.toHex(),
+              descendant_depth,
+              descendant.toHex());
+      return false;
+    }
+
+    // if both nodes are in our light tree, we can use this representation
+    // only
     if (ancestor_node_ptr && descendant_node_ptr) {
       auto current_node = descendant_node_ptr;
       while (current_node != ancestor_node_ptr) {
