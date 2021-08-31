@@ -84,11 +84,23 @@ namespace kagome::authority {
                                     bool finalized) {
     auto node = getAppropriateAncestor(block);
 
-    if (not node) {
-      return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
-    }
+    std::shared_ptr<ScheduleNode> adjusted_node;
 
-    auto adjusted_node = node->makeDescendant(block, finalized);
+    if (not node) {
+      if (not directChainExists(block, root_->block)) {
+        return AuthorityManagerError::ORPHAN_BLOCK_OR_ALREADY_FINALISED;
+      }
+      // a fix that helps to run node from accidentally created db state
+      // when finalizing block is earlier than scheduled node block
+      // may be removed when sure that node doesn't fail
+      // because of justification errors
+      adjusted_node = ScheduleNode::createAsRoot(block);
+      adjusted_node->actual_authorities =
+          std::make_shared<primitives::AuthorityList>(
+              *root_->actual_authorities);
+    } else {
+      adjusted_node = node->makeDescendant(block, finalized);
+    }
 
     if (adjusted_node->enabled) {
       // Original authorities

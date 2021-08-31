@@ -631,6 +631,12 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(round->applyJustification(block_info, justification));
 
+    if (not round->finalizable()) {
+      SL_WARN(
+          logger_, "Round #{} is not finalizable.", justification.round_number);
+      return outcome::success();
+    }
+
     previous_round_.swap(current_round_);
     previous_round_->end();
     current_round_ = std::move(round);

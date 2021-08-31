@@ -647,8 +647,10 @@ namespace kagome::consensus::grandpa {
           [](auto &...) {});
     }
 
-    // NOTE: Perhaps it's needless or needs to replace by condition
-    BOOST_ASSERT(finalizable());
+    if (not finalizable()) {
+      logger_->warn("Round #{} not finalizable", round_number_);
+      return outcome::success();
+    }
     BOOST_ASSERT(
         env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
 

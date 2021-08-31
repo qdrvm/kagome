@@ -44,6 +44,7 @@ groups:
               - name: ed25519
           - name: consensus
             children:
+              - name: authority
               - name: babe
                 children:
                   - name: babe_lottery
