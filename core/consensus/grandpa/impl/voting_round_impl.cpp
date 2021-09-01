@@ -152,12 +152,12 @@ namespace kagome::consensus::grandpa {
         visit_in_place(
             vote.message,
             [&](const Prevote &) {
-              if (VotingRoundImpl::onPrevote(vote, false)) {
+              if (VotingRoundImpl::onPrevote(vote, Propagation::NEEDLESS)) {
                 isPrevotesChanged = true;
               };
             },
             [&](const Precommit &) {
-              if (VotingRoundImpl::onPrecommit(vote, false)) {
+              if (VotingRoundImpl::onPrecommit(vote, Propagation::NEEDLESS)) {
                 isPrecommitsChanged = true;
               };
             },
@@ -661,12 +661,12 @@ namespace kagome::consensus::grandpa {
       visit_in_place(
           vote.message,
           [&](const Prevote &) {
-            if (VotingRoundImpl::onPrevote(vote, false)) {
+            if (VotingRoundImpl::onPrevote(vote, Propagation::NEEDLESS)) {
               isPrevotesChanged = true;
             };
           },
           [&](const Precommit &) {
-            if (VotingRoundImpl::onPrecommit(vote, false)) {
+            if (VotingRoundImpl::onPrecommit(vote, Propagation::NEEDLESS)) {
               isPrecommitsChanged = true;
             };
           },
@@ -792,11 +792,11 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onProposal(const SignedMessage &proposal,
-                                   bool propagate) {
+                                   Propagation propagation) {
     if (not isPrimary(proposal.id)) {
       logger_->warn(
-          "Round #{}: Proposal received from {} was rejected: voter is not "
-          "primary",
+          "Round #{}: Proposal received from {} was rejected: "
+          "voter is not primary",
           round_number_,
           proposal.id.toHex());
       return;
@@ -805,8 +805,8 @@ namespace kagome::consensus::grandpa {
     bool isValid = vote_crypto_provider_->verifyPrimaryPropose(proposal);
     if (not isValid) {
       logger_->warn(
-          "Round #{}: Proposal received from {} was rejected: invalid "
-          "signature",
+          "Round #{}: Proposal received from {} was rejected: "
+          "invalid signature",
           round_number_,
           proposal.id.toHex());
       return;
@@ -820,18 +820,18 @@ namespace kagome::consensus::grandpa {
              proposal.id.toHex());
 
     if (primary_vote_.has_value()) {
-      propagate = false;
+      propagation = Propagation::NEEDLESS;
     }
 
     primary_vote_ = {{proposal.getBlockNumber(), proposal.getBlockHash()}};
 
-    if (propagate) {
+    if (propagation == Propagation::REQUESTED) {
       sendProposal(convertToPrimaryPropose(proposal.getBlockInfo()));
     }
   }
 
   bool VotingRoundImpl::onPrevote(const SignedMessage &prevote,
-                                  bool propagate) {
+                                  Propagation propagation) {
     bool isValid = vote_crypto_provider_->verifyPrevote(prevote);
     if (not isValid) {
       logger_->warn(
@@ -866,7 +866,7 @@ namespace kagome::consensus::grandpa {
       SL_DEBUG(logger_, "Round #{}: Own prevote was restored", round_number_);
     }
 
-    if (propagate) {
+    if (propagation == Propagation::REQUESTED) {
       sendPrevote(convertToPrevote(prevote.getBlockInfo()));
     }
 
@@ -874,7 +874,7 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VotingRoundImpl::onPrecommit(const SignedMessage &precommit,
-                                    bool propagate) {
+                                    Propagation propagation) {
     bool isValid = vote_crypto_provider_->verifyPrecommit(precommit);
     if (not isValid) {
       logger_->warn(
@@ -911,7 +911,7 @@ namespace kagome::consensus::grandpa {
       SL_DEBUG(logger_, "Round #{}: Own precommit was restored", round_number_);
     }
 
-    if (propagate) {
+    if (propagation == Propagation::REQUESTED) {
       sendPrecommit(convertToPrecommit(precommit.getBlockInfo()));
     }
 

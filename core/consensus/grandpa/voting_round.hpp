@@ -98,18 +98,21 @@ namespace kagome::consensus::grandpa {
 
     // Handling incoming messages
 
+    enum class Propagation : bool { NEEDLESS = false, REQUESTED = true };
+
     /**
      * Invoked when we received a primary propose for this round
      */
     virtual void onProposal(const SignedMessage &primary_propose,
-                            bool propagate) = 0;
+                            Propagation propagate = Propagation::NEEDLESS) = 0;
 
     /**
      * Triggered when we receive {@param prevote} for current round.
      * Prevote will be propogated if {@param propagate} is true
      * @returns true if inner state has changed
      */
-    virtual bool onPrevote(const SignedMessage &prevote, bool propagate) = 0;
+    virtual bool onPrevote(const SignedMessage &prevote,
+                           Propagation propagate = Propagation::NEEDLESS) = 0;
 
     /**
      * Triggered when we receive {@param precommit} for current round.
@@ -117,7 +120,7 @@ namespace kagome::consensus::grandpa {
      * @returns true if inner state has changed
      */
     virtual bool onPrecommit(const SignedMessage &precommit,
-                             bool propagate) = 0;
+                             Propagation propagate = Propagation::NEEDLESS) = 0;
 
     /**
      * Updates inner state if {@param prevote} or {@param precommit} was changed
