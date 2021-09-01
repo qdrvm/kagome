@@ -104,7 +104,7 @@ namespace kagome::consensus::grandpa {
      * Invoked when we received a primary propose for this round
      */
     virtual void onProposal(const SignedMessage &primary_propose,
-                            Propagation propagate = Propagation::NEEDLESS) = 0;
+                            Propagation propagation) = 0;
 
     /**
      * Triggered when we receive {@param prevote} for current round.
@@ -112,7 +112,7 @@ namespace kagome::consensus::grandpa {
      * @returns true if inner state has changed
      */
     virtual bool onPrevote(const SignedMessage &prevote,
-                           Propagation propagate = Propagation::NEEDLESS) = 0;
+                           Propagation propagation) = 0;
 
     /**
      * Triggered when we receive {@param precommit} for current round.
@@ -120,7 +120,7 @@ namespace kagome::consensus::grandpa {
      * @returns true if inner state has changed
      */
     virtual bool onPrecommit(const SignedMessage &precommit,
-                             Propagation propagate = Propagation::NEEDLESS) = 0;
+                             Propagation propagation) = 0;
 
     /**
      * Updates inner state if {@param prevote} or {@param precommit} was changed

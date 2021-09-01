@@ -546,15 +546,15 @@ namespace kagome::consensus::grandpa {
     visit_in_place(
         msg.vote.message,
         [&](const PrimaryPropose &) {
-          target_round->onProposal(msg.vote, true);
+          target_round->onProposal(msg.vote, VotingRound::Propagation::REQUESTED);
         },
         [&](const Prevote &) {
-          if (target_round->onPrevote(msg.vote, true)) {
+          if (target_round->onPrevote(msg.vote, VotingRound::Propagation::REQUESTED)) {
             isPrevotesChanged = true;
           }
         },
         [&](const Precommit &) {
-          if (target_round->onPrecommit(msg.vote, true)) {
+          if (target_round->onPrecommit(msg.vote, VotingRound::Propagation::REQUESTED)) {
             isPrecommitsChanged = true;
           }
         });
