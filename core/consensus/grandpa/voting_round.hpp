@@ -96,13 +96,37 @@ namespace kagome::consensus::grandpa {
     /// peer
     virtual void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) = 0;
 
-    // Handling inner messages
+    // Handling incoming messages
 
-    virtual void onProposal(const SignedMessage &primary_propose) = 0;
+    enum class Propagation : bool { NEEDLESS = false, REQUESTED = true };
 
-    virtual void onPrevote(const SignedMessage &prevote) = 0;
+    /**
+     * Invoked when we received a primary propose for this round
+     */
+    virtual void onProposal(const SignedMessage &primary_propose,
+                            Propagation propagation) = 0;
 
-    virtual void onPrecommit(const SignedMessage &precommit) = 0;
+    /**
+     * Triggered when we receive {@param prevote} for current round.
+     * Prevote will be propogated if {@param propagate} is true
+     * @returns true if inner state has changed
+     */
+    virtual bool onPrevote(const SignedMessage &prevote,
+                           Propagation propagation) = 0;
+
+    /**
+     * Triggered when we receive {@param precommit} for current round.
+     * Precommit will be propogated if {@param propagate} is true
+     * @returns true if inner state has changed
+     */
+    virtual bool onPrecommit(const SignedMessage &precommit,
+                             Propagation propagation) = 0;
+
+    /**
+     * Updates inner state if {@param prevote} or {@param precommit} was changed
+     * since last call
+     */
+    virtual void update(bool isPrevotesChanged, bool isPrecommitsChanged) = 0;
 
     // Auxiliary methods
 
