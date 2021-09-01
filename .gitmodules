@@ -1,0 +1,3 @@
+[submodule "deps/wasmedge"]
+	path = deps/wasmedge
+	url = git@github.com:WasmEdge/WasmEdge.git

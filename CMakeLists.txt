@@ -178,3 +178,5 @@ if(TESTING)
 endif()
 
 add_subdirectory(node)
+
+add_subdirectory(deps/wasmedge)
