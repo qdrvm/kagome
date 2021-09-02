@@ -102,6 +102,8 @@ class ExecutorTest : public testing::Test {
                                         std::move(next_storage_state)] {
                     auto module_instance =
                         std::make_shared<ModuleInstanceMock>();
+                    EXPECT_CALL(*module_instance, resetEnvironment())
+                        .WillOnce(Return(outcome::success()));
                     EXPECT_CALL(*module_instance,
                                 callExportFunction(std::string_view{"addTwo"},
                                                    ARGS_LOCATION))
@@ -161,6 +163,8 @@ class ExecutorTest : public testing::Test {
                   .WillOnce(Invoke([this, ARGS_LOCATION, RESULT_LOCATION] {
                     auto module_instance =
                         std::make_shared<ModuleInstanceMock>();
+                    EXPECT_CALL(*module_instance, resetEnvironment())
+                        .WillOnce(Return(outcome::success()));
                     EXPECT_CALL(*module_instance,
                                 callExportFunction(std::string_view{"addTwo"},
                                                    ARGS_LOCATION))
