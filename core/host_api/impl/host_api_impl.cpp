@@ -63,8 +63,7 @@ namespace kagome::host_api {
     storage_ext_.reset();
   }
 
-  void HostApiImpl::reg(WasmEdge_ImportObjectContext *ImpObj);
-  {
+  void HostApiImpl::reg(WasmEdge_ImportObjectContext *ImpObj) {
     REGISTER_HOST_API_FUNC(
         HostApiImpl, ext_trie_blake2_256_ordered_root_version_1, ImpObj);
     REGISTER_HOST_API_FUNC(
@@ -112,7 +111,7 @@ namespace kagome::host_api {
     REGISTER_HOST_API_FUNC(
         HostApiImpl, ext_offchain_local_storage_clear_version_1, ImpObj);
     REGISTER_HOST_API_FUNC(
-        HostApi, ext_offchain_local_storage_compare_and_set_version_1, ImpObj);
+        HostApiImpl, ext_offchain_local_storage_compare_and_set_version_1, ImpObj);
     REGISTER_HOST_API_FUNC(
         HostApiImpl, ext_offchain_local_storage_get_version_1, ImpObj);
     REGISTER_HOST_API_FUNC(

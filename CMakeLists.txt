@@ -19,6 +19,9 @@ include("cmake/Hunter/init.cmake")
 
 project(kagome C CXX)
 
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_define_targets()
+
 include(cmake/print.cmake)
 print("C flags: ${CMAKE_C_FLAGS}")
 print("CXX flags: ${CMAKE_CXX_FLAGS}")
@@ -178,5 +181,3 @@ if(TESTING)
 endif()
 
 add_subdirectory(node)
-
-add_subdirectory(deps/wasmedge)

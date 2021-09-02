@@ -25,6 +25,9 @@ namespace kagome::runtime {
   class CoreApiFactory;
 }  // namespace kagome::runtime
 
+using I32 = int32_t;
+using I64 = int64_t;
+
 namespace kagome::host_api {
 
   class OffchainExtension;
@@ -52,9 +55,37 @@ namespace kagome::host_api {
 
     ~HostApiImpl() override = default;
 
-    void reg(WasmEdge_ImportObjectContext* ImpObj);
+    void reg(WasmEdge_ImportObjectContext *ImpObj);
 
     void reset() override;
+
+    void ext_offchain_index_set_version_1(I64, I64) {}
+    I32 ext_offchain_is_validator_version_1() {
+      return 0;
+    }
+    void ext_offchain_local_storage_clear_version_1(I32, I64) {}
+    I32 ext_offchain_local_storage_compare_and_set_version_1(I32,
+                                                             I64,
+                                                             I64,
+                                                             I64) {
+      return 0;
+    }
+    I64 ext_offchain_local_storage_get_version_1(I32, I64) {
+      return 0;
+    }
+    void ext_offchain_local_storage_set_version_1(I32, I64, I64) {}
+    I64 ext_offchain_network_state_version_1() {
+      return 0;
+    }
+    I32 ext_offchain_random_seed_version_1() {
+      return 0;
+    }
+    I64 ext_offchain_submit_transaction_version_1(I64) {
+      return 0;
+    }
+    I64 ext_offchain_timestamp_version_1() {
+      return 0;
+    }
 
     // ------------------------ Storage extensions v1 ------------------------
 
