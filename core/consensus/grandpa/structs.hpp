@@ -51,6 +51,12 @@ namespace kagome::consensus::grandpa {
                             [](const auto &vote) { return vote.hash; });
     }
 
+    BlockInfo getBlockInfo() const {
+      return visit_in_place(message, [](const auto &vote) {
+        return BlockInfo(vote.number, vote.hash);
+      });
+    }
+
     template <typename T>
     bool is() const {
       return message.type() == typeid(T);
