@@ -163,8 +163,7 @@ namespace kagome::host_api {
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
-    auto res = batch->contains(key) ? 1 : 0;
-    return res;
+    return batch->contains(key) ? 1 : 0;
   }
 
   void StorageExtension::ext_storage_clear_prefix_version_1(
@@ -373,7 +372,6 @@ namespace kagome::host_api {
   runtime::WasmPointer
   StorageExtension::ext_trie_blake2_256_ordered_root_version_1(
       runtime::WasmSpan values_data) {
-    SL_PROFILE_START(ext_trie_blake2_256_ordered_root_version_1)
     auto [address, size] = runtime::PtrSize(values_data);
     auto &memory = memory_provider_->getCurrentMemory().value();
     const auto &buffer = memory.loadN(address, size);
@@ -394,7 +392,6 @@ namespace kagome::host_api {
     }
     SL_TRACE_FUNC_CALL(logger_, ordered_hash.value());
     auto res = memory.storeBuffer(ordered_hash.value());
-    SL_PROFILE_END(ext_trie_blake2_256_ordered_root_version_1)
     return runtime::PtrSize(res).ptr;
   }
 

@@ -71,7 +71,6 @@ groups:
           - name: testing
           - name: debug
           - name: profile
-            level: debug
 # ----------------
   )");
   }
