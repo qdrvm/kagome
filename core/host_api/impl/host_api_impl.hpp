@@ -17,6 +17,8 @@
 #include "host_api/impl/child_storage_extension.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
 
+struct WasmEdge_ImportObjectContext;
+
 namespace kagome::runtime {
   class Core;
   class MemoryProvider;
@@ -49,6 +51,8 @@ namespace kagome::host_api {
             offchain_persistent_storage);
 
     ~HostApiImpl() override = default;
+
+    void reg(WasmEdge_ImportObjectContext* ImpObj);
 
     void reset() override;
 
