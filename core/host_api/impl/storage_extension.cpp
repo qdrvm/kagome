@@ -51,30 +51,6 @@ namespace kagome::host_api {
         break;
       }
     }
-    log::_profiling_logger->debug(
-        "Storage reads took {} ms",
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            storage_reads_duration_)
-            .count());
-    log::_profiling_logger->debug(
-        "Storage writes took {} ms",
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            storage_writes_duration_)
-            .count());
-    log::_profiling_logger->debug(
-        "Storage next key took {} ms",
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            storage_next_key_duration_)
-            .count());
-    log::_profiling_logger->debug(
-        "Storage clear prefix took {} ms",
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            storage_clear_prefix_duration_)
-            .count());
-    storage_reads_duration_ = storage_reads_duration_.zero();
-    storage_writes_duration_ = storage_writes_duration_.zero();
-    storage_next_key_duration_ = storage_next_key_duration_.zero();
-    storage_clear_prefix_duration_ = storage_clear_prefix_duration_.zero();
   }
 
   // -------------------------Data storage--------------------------
@@ -103,34 +79,20 @@ namespace kagome::host_api {
 
   outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key) const {
-    auto clock = clock::SteadyClockImpl{};
-    auto start = clock.now();
     auto batch = storage_provider_->getCurrentBatch();
-    auto res = batch->get(key);
-    auto end = clock.now();
-    storage_reads_duration_ +=
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    return res;
+    return batch->get(key);
   }
 
   outcome::result<boost::optional<Buffer>> StorageExtension::getStorageNextKey(
       const common::Buffer &key) const {
-    auto clock = clock::SteadyClockImpl{};
-    auto start = clock.now();
     auto batch = storage_provider_->getCurrentBatch();
     auto cursor = batch->trieCursor();
     OUTCOME_TRY(cursor->seekUpperBound(key));
-    auto res = cursor->key();
-    auto end = clock.now();
-    storage_next_key_duration_ +=
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    return res;
+    return cursor->key();
   }
 
   void StorageExtension::ext_storage_set_version_1(
       runtime::WasmSpan key_span, runtime::WasmSpan value_span) {
-    auto clock = clock::SteadyClockImpl{};
-    auto start = clock.now();
     auto [key_ptr, key_size] = runtime::PtrSize(key_span);
     auto [value_ptr, value_size] = runtime::PtrSize(value_span);
     auto &memory = memory_provider_->getCurrentMemory().value();
@@ -139,15 +101,8 @@ namespace kagome::host_api {
 
     SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
 
-    if (key.toHex()
-        == "1cb6f36e027abb2091cfb5110ab5087f06155b3cd9a8c9e5e9a23fd5dc13a5ed") {
-      [] {}();
-    }
     auto batch = storage_provider_->getCurrentBatch();
     auto put_result = batch->put(key, value);
-    auto end = clock.now();
-    storage_writes_duration_ +=
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     if (not put_result) {
       logger_->error(
           "ext_set_storage failed, due to fail in trie db with reason: {}",
@@ -186,16 +141,11 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_clear_version_1(
       runtime::WasmSpan key_data) {
-    auto clock = clock::SteadyClockImpl{};
-    auto start = clock.now();
     auto [key_ptr, key_size] = runtime::PtrSize(key_data);
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
     auto del_result = batch->remove(key);
-    auto end = clock.now();
-    storage_writes_duration_ +=
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     SL_TRACE_FUNC_CALL(logger_, del_result.has_value(), key);
     if (not del_result) {
       logger_->warn(
@@ -209,16 +159,11 @@ namespace kagome::host_api {
 
   runtime::WasmSize StorageExtension::ext_storage_exists_version_1(
       runtime::WasmSpan key_data) const {
-    auto clock = clock::SteadyClockImpl{};
-    auto start = clock.now();
     auto [key_ptr, key_size] = runtime::PtrSize(key_data);
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory().value();
     auto key = memory.loadN(key_ptr, key_size);
     auto res = batch->contains(key) ? 1 : 0;
-    auto end = clock.now();
-    storage_reads_duration_ +=
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     return res;
   }
 
@@ -258,7 +203,6 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_root_version_1() const {
     outcome::result<storage::trie::RootHash> res{{}};
-    SL_PROFILE_START(ext_storage_root_version_1)
     if (auto opt_batch = storage_provider_->tryGetPersistentBatch();
         opt_batch.has_value() and opt_batch.value() != nullptr) {
       res = opt_batch.value()->commit();
@@ -272,7 +216,6 @@ namespace kagome::host_api {
     }
     const auto &root = res.value();
     auto &memory = memory_provider_->getCurrentMemory().value();
-    SL_PROFILE_END(ext_storage_root_version_1)
     return memory.storeBuffer(root);
   }
 
@@ -385,7 +328,6 @@ namespace kagome::host_api {
 
   runtime::WasmPointer StorageExtension::ext_trie_blake2_256_root_version_1(
       runtime::WasmSpan values_data) {
-    SL_PROFILE_START(ext_trie_blake2_256_root_version_1)
     auto [ptr, size] = runtime::PtrSize(values_data);
     auto &memory = memory_provider_->getCurrentMemory().value();
     const auto &buffer = memory.loadN(ptr, size);
@@ -425,7 +367,6 @@ namespace kagome::host_api {
     const auto &hash = codec.hash256(enc.value());
 
     auto res = memory.storeBuffer(hash);
-    SL_PROFILE_END(ext_trie_blake2_256_root_version_1)
     return runtime::PtrSize(res).ptr;
   }
 
@@ -501,8 +442,6 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::clearPrefix(
       const common::Buffer &prefix, boost::optional<uint32_t> limit) {
-    auto clock = clock::SteadyClockImpl{};
-    auto start = clock.now();
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory().value();
 
@@ -521,9 +460,6 @@ namespace kagome::host_api {
       logger_->error(msg);
       throw std::runtime_error(msg);
     }
-    auto end = clock.now();
-    storage_clear_prefix_duration_ +=
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     return memory.storeBuffer(enc_res.value());
   }
 

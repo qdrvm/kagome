@@ -152,11 +152,6 @@ namespace kagome::host_api {
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     log::Logger logger_;
 
-    mutable std::chrono::nanoseconds storage_reads_duration_ {};
-    mutable std::chrono::nanoseconds storage_writes_duration_ {};
-    mutable std::chrono::nanoseconds storage_next_key_duration_ {};
-    mutable std::chrono::nanoseconds storage_clear_prefix_duration_ {};
-
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };
 
