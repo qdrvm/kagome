@@ -34,21 +34,13 @@ namespace kagome::authorship {
         block_builder,
         block_builder_factory_->create(parent_block_number, inherent_digest));
 
-    auto inherent_xts_res =
-        block_builder->getInherentExtrinsics(inherent_data);
+    auto inherent_xts_res = block_builder->getInherentExtrinsics(inherent_data);
     if (not inherent_xts_res) {
       logger_->error("BlockBuilder->inherent_extrinsics failed with error: {}",
                      inherent_xts_res.error().message());
       return inherent_xts_res.error();
     }
     auto inherent_xts = inherent_xts_res.value();
-
-    auto log_push_warn = [this](const primitives::Extrinsic &xt,
-                                std::string_view message) {
-      logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
-                    xt.data.toHex().substr(0, 8),
-                    message);
-    };
 
     for (const auto &xt : inherent_xts) {
       SL_DEBUG(logger_, "Adding inherent extrinsic: {}", xt.data.toHex());
@@ -64,9 +56,10 @@ namespace kagome::authorship {
                    "be produced.");
           return inserted_res.error();
         } else {
-          SL_ERROR(logger_,
-                  "Inherent extrinsic returned unexpected error: {}. Dropping.",
-                  inserted_res.error().message());
+          SL_ERROR(
+              logger_,
+              "Inherent extrinsic returned unexpected error: {}. Dropping.",
+              inserted_res.error().message());
           return inserted_res.error();
         }
       }
@@ -131,7 +124,9 @@ namespace kagome::authorship {
             break;
           }
         } else {  // any other error than exhausted resources
-          log_push_warn(tx->ext, inserted_res.error().message());
+          logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
+                        tx->ext.data.toHex().substr(0, 8),
+                        inserted_res.error().message());
         }
       } else {  // tx was pushed successfully
         block_size += estimate_tx_size;

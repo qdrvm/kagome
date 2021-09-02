@@ -61,8 +61,7 @@ std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(
 
 std::shared_ptr<PolkadotTrie> makeTrie(
     const std::vector<std::pair<Buffer, Buffer>> &vals) {
-  auto trie = std::make_shared<PolkadotTrieImpl>(
-      [](auto b, uint8_t idx) { return b->children.at(idx); });
+  auto trie = std::make_shared<PolkadotTrieImpl>();
   for (auto &p : vals) {
     EXPECT_OUTCOME_TRUE_1(trie->put(p.first, p.second));
   }

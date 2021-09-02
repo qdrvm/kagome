@@ -26,9 +26,24 @@ namespace kagome::consensus {
     virtual BabeSlotNumber getCurrentSlot() const = 0;
 
     /**
-     * @returns estimate of time to start slot
+     * @returns timepoint of start of slot #{@param slot}
      */
-    virtual BabeDuration slotStartsIn(BabeSlotNumber slot) const = 0;
+    virtual BabeTimePoint slotStartTime(BabeSlotNumber slot) const = 0;
+
+    /**
+     * @returns duration to start of slot #{@param slot}
+     */
+    virtual BabeDuration remainToStartOfSlot(BabeSlotNumber slot) const = 0;
+
+    /**
+     * @returns timepoint of finish of slot #{@param slot}
+     */
+    virtual BabeTimePoint slotFinishTime(BabeSlotNumber slot) const = 0;
+
+    /**
+     * @returns duration to finish of slot #{@param slot}
+     */
+    virtual BabeDuration remainToFinishOfSlot(BabeSlotNumber slot) const = 0;
 
     /**
      * @returns configured slot duration

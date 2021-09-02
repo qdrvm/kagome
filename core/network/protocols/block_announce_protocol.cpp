@@ -251,8 +251,7 @@ namespace kagome::network {
               genesis_res.has_value()) {
             if (remote_status.genesis_hash != genesis_res.value()) {
               SL_VERBOSE(self->log_,
-                         "Error while processing status: {}",
-                         genesis_res.error().message());
+                         "Error while processing status: genesis no match");
               stream->reset();
               cb(ProtocolError::GENESIS_NO_MATCH);
               return;
@@ -273,26 +272,6 @@ namespace kagome::network {
                    remote_status.best_block.number);
           self->peer_manager_->updatePeerStatus(peer_id, remote_status);
 
-          if (not self->app_config_.isRunInDevMode()) {
-            auto self_status = self->createStatus();
-            if (not self_status.has_value()) {
-              cb(ProtocolError::CAN_NOT_CREATE_STATUS);
-              return;
-            }
-
-            self->observer_->onRemoteStatus(peer_id, remote_status);
-
-            if (self_status.value().best_block == remote_status.best_block
-                && self_status.value().roles.flags.authority
-                && remote_status.roles.flags.authority) {
-              // Considered synced if connected to another authority node
-              self->observer_->onPeerSync();
-            }
-          } else {
-            // Developer mode means that this node is the only authority node,
-            // and is considered to be already synchronized
-            self->observer_->onPeerSync();
-          }
 
           switch (direction) {
             case Direction::OUTGOING:
@@ -303,6 +282,8 @@ namespace kagome::network {
                   std::move(stream), Direction::INCOMING, std::move(cb));
               break;
           }
+
+          self->observer_->onRemoteStatus(peer_id, remote_status);
         });
   }
 
@@ -406,7 +387,7 @@ namespace kagome::network {
         KAGOME_EXTRACT_SHARED_CACHE(BlockAnnounceProtocol, BlockAnnounce);
     (*shared_msg) = std::move(announce);
 
-    SL_DEBUG(log_, "Block announce: block number {}", announce.header.number);
+    SL_DEBUG(log_, "Send announce of block #{}", announce.header.number);
 
     stream_engine_->broadcast<BlockAnnounce>(shared_from_this(),
                                              std::move(shared_msg));

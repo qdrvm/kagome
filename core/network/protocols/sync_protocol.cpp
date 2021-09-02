@@ -132,13 +132,17 @@ namespace kagome::network {
           block_request.id,
           block_request.fields.attributes,
           block_request.direction == Direction::ASCENDING ? "anc" : "desc",
-          boost::relaxed_get<primitives::BlockHash>(block_request.from).toHex(),
+          visit_in_place(
+              block_request.from,
+              [](const primitives::BlockHash &hash) { return hash.toHex(); },
+              [](const primitives::BlockNumber &number) {
+                return std::to_string(number);
+              }),
           block_request.to.has_value() ? block_request.to.value().toHex()
                                        : "max",
           block_request.max.has_value()
               ? std::to_string(block_request.max.value())
-              : "max"
-          );
+              : "max");
 
       auto block_response_res =
           self->sync_observer_->onBlocksRequest(block_request);

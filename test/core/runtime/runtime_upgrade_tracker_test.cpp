@@ -92,15 +92,18 @@ TEST_F(RuntimeUpgradeTrackerTest, EmptyUpdatesCache) {
 TEST_F(RuntimeUpgradeTrackerTest, CorrectFirstUpgrade) {
   tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
 
-  EXPECT_CALL(*header_repo_, getNumberByHash("block_genesis_hash"_hash256))
+  EXPECT_CALL(*header_repo_, getNumberByHash(genesis_block.hash))
       .WillOnce(testing::Return(0));
 
-  sub_engine_->notify(":code"_buf, "12345"_buf, "block_genesis_hash"_hash256);
+  sub_engine_->notify(":code"_buf, "12345"_buf, genesis_block.hash);
 
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillOnce(testing::Return(block_2));
+  EXPECT_CALL(*header_repo_, getBlockHeader(kagome::primitives::BlockId{0}))
+      .WillOnce(testing::Return(genesis_block_header));
+
   EXPECT_OUTCOME_TRUE(state, tracker_->getLastCodeUpdateState(block_42));
-  ASSERT_EQ(state, "genesis_state_root"_hash256);
+  ASSERT_EQ(state, genesis_block_header.state_root);
 }
 
 TEST_F(RuntimeUpgradeTrackerTest, FirstBlockUpgrade) {}

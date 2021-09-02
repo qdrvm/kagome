@@ -14,17 +14,7 @@
 namespace kagome::storage::trie {
 
   class PolkadotTrieImpl : public PolkadotTrie {
-    // a child is obtained from the branch list of children as-is.
-    // should be used when the trie is completely in memory
-    inline static outcome::result<NodePtr> defaultChildRetrieveFunctor(
-        const BranchPtr &parent, uint8_t idx) {
-      return parent->children.at(idx);
-    }
-
    public:
-    using ChildRetrieveFunctor =
-        std::function<outcome::result<NodePtr>(BranchPtr, uint8_t)>;
-
     enum class Error { INVALID_NODE_TYPE = 1 };
 
     /**
@@ -33,11 +23,12 @@ namespace kagome::storage::trie {
      * by its index. Most useful if Trie grows too big to occupy main memory and
      * is stored on an external storage
      */
-    explicit PolkadotTrieImpl(
-        ChildRetrieveFunctor f = defaultChildRetrieveFunctor);
+    explicit PolkadotTrieImpl(PolkadotTrie::NodeRetrieveFunctor f =
+                                  PolkadotTrie::defaultNodeRetrieveFunctor);
 
-    explicit PolkadotTrieImpl(
-        NodePtr root, ChildRetrieveFunctor f = defaultChildRetrieveFunctor);
+    explicit PolkadotTrieImpl(NodePtr root,
+                              PolkadotTrie::NodeRetrieveFunctor f =
+                                  PolkadotTrie::defaultNodeRetrieveFunctor);
 
     NodePtr getRoot() const override;
 
@@ -85,7 +76,7 @@ namespace kagome::storage::trie {
     outcome::result<NodePtr> retrieveChild(BranchPtr parent,
                                            uint8_t idx) const override;
 
-    ChildRetrieveFunctor retrieve_child_;
+    NodeRetrieveFunctor retrieve_node_;
     NodePtr root_;
   };
 

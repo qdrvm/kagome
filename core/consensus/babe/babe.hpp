@@ -23,12 +23,16 @@ namespace kagome::consensus::babe {
     ~Babe() override = default;
 
     enum class State {
-      WAIT_BLOCK,   // Node is just executed and waits for the new block to sync
-                    // missing blocks
-      CATCHING_UP,  // Node received first block announce and started fetching
-                    // blocks between announced one and the latest finalized one
-      SYNCHRONIZED  // All missing blocks were received and applied, slot time
-                    // was calculated, current peer can start block production
+      WAIT_REMOTE_STATUS,  // Node is just executed and waits status of remote
+                           // peer to sync missing blocks
+      CATCHING_UP,  // Node recognized the missing blocks and started fetching
+                    // blocks between the best missing one and one of the
+                    // available ones
+      WAIT_BLOCK_ANNOUNCE,  // Node is fetched missed blocks and wait block
+                            // announce with next block to confirm state
+                            // 'synchronized'
+      SYNCHRONIZED  // All missing blocks were received and applied, current
+                    // peer doing block production
     };
 
     /**

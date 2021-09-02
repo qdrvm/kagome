@@ -38,10 +38,9 @@ namespace kagome::storage::trie {
 
   outcome::result<std::shared_ptr<PolkadotTrie>>
   TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key) const {
-    PolkadotTrieFactory::ChildRetrieveFunctor f =
-        [this](const PolkadotTrie::BranchPtr &parent, uint8_t idx) {
-          return retrieveChild(parent, idx);
-        };
+    PolkadotTrie::NodeRetrieveFunctor f = [this](PolkadotTrie::NodePtr &parent) {
+      return retrieveNode(parent);
+    };
     if (db_key == getEmptyRootHash()) {
       return trie_factory_->createEmpty(std::move(f));
     }
@@ -102,18 +101,13 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveChild(
-      const PolkadotTrie::BranchPtr &parent, uint8_t idx) const {
-    if (parent->children.at(idx) == nullptr) {
-      return nullptr;
+  outcome::result<void> TrieSerializerImpl::retrieveNode(
+      PolkadotTrie::NodePtr &parent) const {
+    if (parent and parent->isDummy()) {
+      OUTCOME_TRY(n, retrieveNode(dynamic_cast<DummyNode&>(*parent.get()).db_key));
+      parent = n;
     }
-    if (parent->children.at(idx)->isDummy()) {
-      auto dummy =
-          std::dynamic_pointer_cast<DummyNode>(parent->children.at(idx));
-      OUTCOME_TRY(n, retrieveNode(dummy->db_key));
-      parent->children.at(idx) = n;
-    }
-    return parent->children.at(idx);
+    return outcome::success();
   }
 
   outcome::result<PolkadotTrie::NodePtr> TrieSerializerImpl::retrieveNode(

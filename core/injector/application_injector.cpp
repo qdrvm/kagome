@@ -415,7 +415,6 @@ namespace {
     for (const auto &authority : configuration->genesis_authorities) {
       SL_DEBUG(log, "Babe authority: {}", authority.id.id.toHex());
     }
-    configuration->leadership_rate.first *= 3;
 
     initialized.emplace(std::move(configuration));
     return initialized.value();
@@ -1155,12 +1154,7 @@ namespace {
         di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
-        di::bind<runtime::RuntimeCodeProvider>.template to(
-            [](const auto &injector) {
-              auto provider = injector.template create<
-                  std::shared_ptr<runtime::StorageCodeProvider>>();
-              return provider;
-            }),
+        di::bind<runtime::RuntimeCodeProvider>.template to<runtime::StorageCodeProvider>(),
         di::bind<application::ChainSpec>.to([](const auto &injector) {
           const application::AppConfiguration &config =
               injector.template create<application::AppConfiguration const &>();
@@ -1271,7 +1265,7 @@ namespace {
         session_keys->getBabeKeyPair(),
         injector.template create<sptr<clock::SystemClock>>(),
         injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<sptr<boost::asio::io_context>>(),
+        injector.template create<uptr<clock::Timer>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<consensus::BabeUtil>>());
 

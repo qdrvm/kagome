@@ -17,7 +17,7 @@
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
-#include "mock/core/clock/ticker_mock.hpp"
+#include "mock/core/clock/timer_mock.hpp"
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
@@ -55,12 +55,6 @@ using testing::Return;
 using testing::ReturnRef;
 using std::chrono_literals::operator""ms;
 
-Hash256 createHash(uint8_t byte) {
-  Hash256 h;
-  h.fill(byte);
-  return h;
-}
-
 // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
 namespace kagome::primitives {
   std::ostream &operator<<(std::ostream &s,
@@ -93,8 +87,8 @@ class BabeTest : public testing::Test {
         std::make_shared<BlockAnnounceTransmitterMock>();
     clock_ = std::make_shared<SystemClockMock>();
     hasher_ = std::make_shared<HasherMock>();
-    ticker_mock_ = std::make_unique<testutil::TickerMock>();
-    ticker_ = ticker_mock_.get();
+    timer_mock_ = std::make_unique<testutil::TimerMock>();
+    timer_ = timer_mock_.get();
     grandpa_authority_update_observer_ =
         std::make_shared<AuthorityUpdateObserverMock>();
     io_context_ = std::make_shared<boost::asio::io_context>();
@@ -154,11 +148,9 @@ class BabeTest : public testing::Test {
                                              keypair_,
                                              clock_,
                                              hasher_,
-                                             io_context_,
+                                             std::move(timer_mock_),
                                              grandpa_authority_update_observer_,
                                              babe_util_);
-
-    babe_->setTicker(std::move(ticker_mock_));
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -189,8 +181,8 @@ class BabeTest : public testing::Test {
       std::make_shared<Sr25519Keypair>(generateSr25519Keypair());
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<HasherMock> hasher_;
-  std::unique_ptr<testutil::TickerMock> ticker_mock_;
-  testutil::TickerMock *ticker_;
+  std::unique_ptr<testutil::TimerMock> timer_mock_;
+  testutil::TimerMock *timer_;
   std::shared_ptr<AuthorityUpdateObserverMock>
       grandpa_authority_update_observer_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
@@ -201,28 +193,24 @@ class BabeTest : public testing::Test {
 
   EpochDescriptor epoch_;
 
-  VRFOutput leader_vrf_output_{
-      uint256_t_to_bytes(50),
-      {0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33,
-       0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22,
-       0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44}};
+  VRFOutput leader_vrf_output_{uint256_t_to_bytes(50), {}};
   std::array<boost::optional<VRFOutput>, 2> leadership_{boost::none,
                                                         leader_vrf_output_};
 
-  BlockHash best_block_hash_{{0x41, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
-                              0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x54,
-                              0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
-                              0x11, 0x22, 0x33, 0x44, 0x11, 0x24, 0x33, 0x44}};
-  BlockNumber best_block_number_ = 1u;
+  BlockHash best_block_hash_ = "block#0"_hash256;
+  BlockNumber best_block_number_ = 0u;
 
   primitives::BlockInfo best_leaf{best_block_number_, best_block_hash_};
 
-  BlockHeader block_header_{
-      createHash(0), 2, createHash(1), createHash(2), {PreRuntime{}}};
+  BlockHeader block_header_{best_block_hash_,
+                            1,
+                            "state_root"_hash256,
+                            "extrinsic_root"_hash256,
+                            {PreRuntime{}}};
   Extrinsic extrinsic_{{1, 2, 3}};
   Block created_block_{block_header_, {extrinsic_}};
 
-  Hash256 created_block_hash_{createHash(3)};
+  Hash256 created_block_hash_{"block#1"_hash256};
 
   SystemClockImpl real_clock_{};
 };
@@ -243,39 +231,51 @@ ACTION_P(CheckBlockHeader, expected_block_header) {
  */
 TEST_F(BabeTest, Success) {
   Randomness randomness;
-  EXPECT_CALL(*lottery_, changeEpoch(epoch_, randomness, _, *keypair_)).Times(1);
-  EXPECT_CALL(*lottery_, getEpoch()).Times(2)
-      .WillOnce(Return(EpochDescriptor{0, std::numeric_limits<uint64_t>::max()}))
+  EXPECT_CALL(*lottery_, getEpoch())
+      .WillOnce(
+          Return(EpochDescriptor{0, std::numeric_limits<uint64_t>::max()}))
       .WillOnce(Return(epoch_));
-  EXPECT_CALL(*lottery_, getSlotLeadership(_)).Times(2)
+  EXPECT_CALL(*lottery_, changeEpoch(epoch_, randomness, _, *keypair_))
+      .Times(1);
+  EXPECT_CALL(*lottery_, getSlotLeadership(_))
       .WillOnce(Return(leadership_[0]))
       .WillOnce(Return(leadership_[1]));
 
-  EXPECT_CALL(*clock_, now()).Times(1);
+  EXPECT_CALL(*clock_, now())
+      .WillRepeatedly(Return(clock::SystemClockMock::zero()));
 
-  EXPECT_CALL(*babe_util_, slotStartsIn(epoch_.start_slot))
-      .Times(1)
-      .WillOnce(Return(1ms));
+  EXPECT_CALL(*babe_util_, slotDuration()).WillRepeatedly(Return(1ms));
+  EXPECT_CALL(*babe_util_, slotStartTime(_))
+      .WillRepeatedly(Return(clock::SystemClockMock::zero()));
+  EXPECT_CALL(*babe_util_, slotFinishTime(_))
+      .WillRepeatedly(Return(clock::SystemClockMock::zero()));
+  EXPECT_CALL(*babe_util_, remainToStartOfSlot(_)).WillRepeatedly(Return(1ms));
+  EXPECT_CALL(*babe_util_, remainToFinishOfSlot(_)).WillRepeatedly(Return(1ms));
 
-  std::function<void(const std::error_code &ec)> run_slot;
-  EXPECT_CALL(*ticker_, asyncCallRepeatedly(_))
-      .WillOnce(testing::SaveArg<0>(&run_slot));
-
-  EXPECT_CALL(*ticker_, start(_)).Times(1);
+  testing::Sequence s;
+  std::function<void(const std::error_code &ec)> on_process_slot_1;
+  std::function<void(const std::error_code &ec)> on_run_slot_2;
+  std::function<void(const std::error_code &ec)> on_process_slot_2;
+  std::function<void(const std::error_code &ec)> on_run_slot_3;
+  EXPECT_CALL(*timer_, asyncWait(_))
+      .InSequence(s)
+      .WillOnce(testing::SaveArg<0>(&on_process_slot_1))
+      .WillOnce(testing::SaveArg<0>(&on_run_slot_2))
+      .WillOnce(testing::SaveArg<0>(&on_process_slot_2))
+      .WillOnce(testing::SaveArg<0>(&on_run_slot_3));
+  EXPECT_CALL(*timer_, expiresAt(_)).WillRepeatedly(Return());
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
   EXPECT_CALL(*block_tree_, deepestLeaf())
-      .Times(2)
       .WillRepeatedly(Return(best_leaf));
 
-  EXPECT_CALL(*babe_util_, getCurrentSlot())
-      .WillOnce(Return(epoch_.start_slot))
-      .WillOnce(Return(epoch_.start_slot + 1))
-      .WillOnce(Return(epoch_.start_slot + 1));
+  EXPECT_CALL(*block_tree_, getBlockHeader(_))
+      .WillRepeatedly(Return(outcome::success(BlockHeader{})));
 
   EXPECT_CALL(*proposer_, propose(best_block_number_, _, _))
       .WillOnce(Return(created_block_));
+
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
   EXPECT_CALL(*block_tree_, addBlock(_)).WillOnce(Return(outcome::success()));
 
@@ -286,6 +286,7 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(outcome::success()));
 
   babe_->runEpoch(epoch_);
-  run_slot({});
-  run_slot({});
+  on_process_slot_1({});
+  on_run_slot_2({});
+  on_process_slot_2({});
 }

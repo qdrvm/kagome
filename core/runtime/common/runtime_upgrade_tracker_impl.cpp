@@ -39,8 +39,7 @@ namespace kagome::runtime {
       // even if it doesn't actually upgrade runtime, still a solid source of
       // runtime code
       OUTCOME_TRY(header, header_repo_->getBlockHeader(block.hash));
-      runtime_upgrade_parents_.push_back(
-          primitives::BlockInfo{block.number - 1, header.parent_hash});
+      runtime_upgrade_parents_.emplace_back(block.number - 1, header.parent_hash);
       logger_->debug(
           "Pick runtime state at block #{} hash {} for the same block",
           block.number,
@@ -96,6 +95,14 @@ namespace kagome::runtime {
       }
 
       if (state_in_the_same_chain) {
+        if (latest_state_update_it->number == 0) {
+          OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
+          logger_->debug("Pick runtime state at genesis for block #{} hash {}",
+                         block.number,
+                         block.hash.toHex());
+          return genesis.state_root;
+        }
+
         // found the predecessor with the latest runtime upgrade
         OUTCOME_TRY(children,
                     block_tree_->getChildren(latest_state_update_it->hash));
