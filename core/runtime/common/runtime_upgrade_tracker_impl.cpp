@@ -51,7 +51,7 @@ namespace kagome::runtime {
       return header.state_root;
     }
 
-    SL_PROFILE_START(blocks_with_runtime_upgrade_search)
+    KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
     auto block_number = block.number;
     auto latest_state_update_it =
         std::upper_bound(runtime_upgrade_parents_.begin(),
@@ -60,7 +60,7 @@ namespace kagome::runtime {
                          [](auto block_number, auto const &block_info) {
                            return block_number < block_info.number;
                          });
-    SL_PROFILE_END(blocks_with_runtime_upgrade_search)
+    KAGOME_PROFILE_END(blocks_with_runtime_upgrade_search)
     if (latest_state_update_it == runtime_upgrade_parents_.begin()) {
       // if we have no info on updates before this block, we just return its
       // state
@@ -77,7 +77,7 @@ namespace kagome::runtime {
     // less or equal to our \arg block number
     // we may have several entries with the same block number, we have to pick
     // one which is the predecessor of our block
-    SL_PROFILE_START(search_for_proper_fork);
+    KAGOME_PROFILE_START(search_for_proper_fork);
     for (;
          std::next(latest_state_update_it) != runtime_upgrade_parents_.begin();
          latest_state_update_it--) {
@@ -91,10 +91,10 @@ namespace kagome::runtime {
       } else {
         // a non-finalized state may belong to a different fork, need to check
         // explicitly (can be expensive if blocks are far apart)
-        SL_PROFILE_START(has_direct_chain);
+        KAGOME_PROFILE_START(has_direct_chain);
         bool has_direct_chain = block_tree_->hasDirectChain(
             latest_state_update_it->hash, block.hash);
-        SL_PROFILE_END(has_direct_chain);
+        KAGOME_PROFILE_END(has_direct_chain);
         state_in_the_same_chain = has_direct_chain;
       }
 
@@ -136,7 +136,7 @@ namespace kagome::runtime {
         return target_header.state_root;
       }
     }
-    SL_PROFILE_END(search_for_proper_fork);
+    KAGOME_PROFILE_END(search_for_proper_fork);
     // if this is an orphan block for some reason, just return its state_root
     // (there is no other choice)
     OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));

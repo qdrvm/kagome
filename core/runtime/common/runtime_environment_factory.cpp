@@ -60,7 +60,7 @@ namespace kagome::runtime {
 
   outcome::result<std::unique_ptr<RuntimeEnvironment>>
   RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate::make() {
-    SL_PROFILE_START(runtime_env_making);
+    KAGOME_PROFILE_START(runtime_env_making);
     auto parent_factory = parent_factory_.lock();
     if (parent_factory == nullptr) {
       return RuntimeEnvironmentFactory::Error::PARENT_FACTORY_EXPIRED;
@@ -145,7 +145,7 @@ namespace kagome::runtime {
 
     auto runtime_env = std::make_unique<RuntimeEnvironment>(
         instance, env.memory_provider, env.storage_provider);
-    SL_PROFILE_END(runtime_env_making);
+    KAGOME_PROFILE_END(runtime_env_making);
     return runtime_env;
   }
 
