@@ -13,10 +13,7 @@
 
 #include "common/visitor.hpp"
 #include "consensus/grandpa/grandpa.hpp"
-#include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
-#include "primitives/justification.hpp"
-#include "primitives/session_key.hpp"
 
 namespace kagome::consensus::grandpa {
   static auto convertToPrimaryPropose = [](const auto &vote) {
@@ -1608,12 +1605,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::doCatchUpRequest(const libp2p::peer::PeerId &peer_id) {
-    //	TODO(xDimon): Perhaps need to check if peer is known validator
-    //
-    //	if (not voter_set_->voterIndex(peer_id).has_value()) {
-    //	  return;
-    //	}
-
     auto res =
         env_->onCatchUpRequested(peer_id, voter_set_->id(), round_number_);
     if (not res) {
