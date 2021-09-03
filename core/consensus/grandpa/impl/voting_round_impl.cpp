@@ -154,12 +154,12 @@ namespace kagome::consensus::grandpa {
             [&](const Prevote &) {
               if (VotingRoundImpl::onPrevote(vote, Propagation::NEEDLESS)) {
                 isPrevotesChanged = true;
-              };
+              }
             },
             [&](const Precommit &) {
               if (VotingRoundImpl::onPrecommit(vote, Propagation::NEEDLESS)) {
                 isPrecommitsChanged = true;
-              };
+              }
             },
             [](auto...) {});
       };
@@ -663,12 +663,12 @@ namespace kagome::consensus::grandpa {
           [&](const Prevote &) {
             if (VotingRoundImpl::onPrevote(vote, Propagation::NEEDLESS)) {
               isPrevotesChanged = true;
-            };
+            }
           },
           [&](const Precommit &) {
             if (VotingRoundImpl::onPrecommit(vote, Propagation::NEEDLESS)) {
               isPrecommitsChanged = true;
-            };
+            }
           },
           [](auto...) {});
     }
@@ -730,7 +730,7 @@ namespace kagome::consensus::grandpa {
           total_weight += voter_set_->voterWeight(signed_precommit.id).value();
         } else {
           SL_DEBUG(logger_,
-                   "Vote has not ancestry with tagret block: vote={} target={}",
+                   "Vote has not ancestry with target block: vote={} target={}",
                    vote.hash.toHex(),
                    signed_precommit.getBlockHash());
         }
@@ -743,7 +743,7 @@ namespace kagome::consensus::grandpa {
           threshold -= weight;
         } else {
           SL_DEBUG(logger_,
-                   "Vote has not ancestry with tagret block: vote={} target={}",
+                   "Vote has not ancestry with target block: vote={} target={}",
                    vote.hash.toHex(),
                    signed_precommit.getBlockHash());
         }
@@ -999,7 +999,7 @@ namespace kagome::consensus::grandpa {
     }
     auto index = voter_set_->voterIndex(vote.id);
     if (not index.has_value()) {
-      // Can't be none after voterWeight() was succeed
+      // Can't be none after voterWeight() succeeded
       BOOST_UNREACHABLE_RETURN(VotingRoundError::UNKNOWN_VOTER);
     }
     if (voter_set_->voterWeight(vote.id).value() == 0) {
@@ -1112,14 +1112,12 @@ namespace kagome::consensus::grandpa {
              >= threshold_;
     };
 
-    auto previous_round = previous_round_.lock();
-
     auto currend_best =
-        previous_round ? previous_round->bestFinalCandidate()
-                       : prevote_ghost_.get_value_or(last_finalized_block_);
-
-    //    auto currend_best = precommit_ghost_.get_value_or(
-    //        prevote_ghost_.get_value_or(last_finalized_block_));
+        precommit_ghost_.get_value_or(prevote_ghost_.get_value_or([&] {
+          auto previous_round = previous_round_.lock();
+          return previous_round ? previous_round->bestFinalCandidate()
+                                : last_finalized_block_;
+        }()));
 
     /// @see spec: Grandpa-Ghost
     auto new_precommit_ghost = graph_->findGhost(
