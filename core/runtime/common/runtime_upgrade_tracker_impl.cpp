@@ -111,8 +111,11 @@ namespace kagome::runtime {
         }
 
         // found the predecessor with the latest runtime upgrade
-        OUTCOME_TRY(children,
-                    block_tree_->getChildren(latest_state_update_it->hash));
+        auto children_res = block_tree_->getChildren(latest_state_update_it->hash);
+        if(!children_res) {
+          return children_res.error();
+        }
+        auto children = std::move(children_res.value());
         // temporary; need to find a way to tackle forks here
         // the runtime upgrades are reported for the state of the parent of the
         // block with the runtime upgrade, so we need to fetch a child block
