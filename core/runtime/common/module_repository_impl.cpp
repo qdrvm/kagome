@@ -31,11 +31,11 @@ namespace kagome::runtime {
   ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
-    SL_PROFILE_START(code_retrieval);
+    KAGOME_PROFILE_START(code_retrieval);
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
-    SL_PROFILE_END(code_retrieval);
+    KAGOME_PROFILE_END(code_retrieval);
 
-    SL_PROFILE_START(module_retrieval);
+    KAGOME_PROFILE_START(module_retrieval);
     std::shared_ptr<Module> module;
     {
       std::lock_guard guard{modules_mutex_};
@@ -48,9 +48,9 @@ namespace kagome::runtime {
         module = it->second;
       }
     }
-    SL_PROFILE_END(module_retrieval);
+    KAGOME_PROFILE_END(module_retrieval);
 
-    SL_PROFILE_START(module_instantiation);
+    KAGOME_PROFILE_START(module_instantiation);
     {
       std::lock_guard guard{instances_mutex_};
       if (auto cached_instance = instances_cache_.get(state);
@@ -60,7 +60,7 @@ namespace kagome::runtime {
             std::shared_ptr<ModuleInstance>(std::move(instance));
         auto emplaced = instances_cache_.put(state, shared_instance);
         BOOST_ASSERT(emplaced);
-        SL_PROFILE_END(module_instantiation);
+        KAGOME_PROFILE_END(module_instantiation);
         return shared_instance;
       } else {
         return cached_instance.value();

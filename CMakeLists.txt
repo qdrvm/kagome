@@ -39,6 +39,7 @@ option(CLANG_FORMAT "Enable clang-format target"                  ON )
 option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE     "Enable generation of coverage info"          OFF)
 option(EMBEDDINGS   "Embed developers assets"                     ON)
+option(PROFILING    "Enable internal profiling instruments"       OFF )
 
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
 option(ASAN         "Enable address sanitizer"                    OFF)
@@ -110,6 +111,9 @@ if(CLANG_FORMAT)
 endif()
 if(EMBEDDINGS)
   add_compile_definitions(PRIVATE USE_KAGOME_EMBEDDINGS)
+endif()
+if(PROFILING)
+  add_compile_definitions(PRIVATE KAGOME_PROFILING)
 endif()
 
 include(GNUInstallDirs)

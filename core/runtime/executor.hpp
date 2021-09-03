@@ -161,10 +161,10 @@ namespace kagome::runtime {
 
       PtrSize args_span{memory.storeBuffer(encoded_args)};
 
-      SL_PROFILE_START(call_execution)
+      KAGOME_PROFILE_START(call_execution)
       OUTCOME_TRY(result,
                   env.module_instance->callExportFunction(name, args_span));
-      SL_PROFILE_END(call_execution)
+      KAGOME_PROFILE_END(call_execution)
 
       OUTCOME_TRY(env.module_instance->resetEnvironment());
 
@@ -177,7 +177,7 @@ namespace kagome::runtime {
 
     outcome::result<storage::trie::RootHash> commitState(
         const RuntimeEnvironment &env) {
-      SL_PROFILE_START(state_commit)
+      KAGOME_PROFILE_START(state_commit)
       BOOST_ASSERT_MSG(
           env.storage_provider->tryGetPersistentBatch(),
           "Current batch should always be persistent for a persistent call");
@@ -187,7 +187,7 @@ namespace kagome::runtime {
       SL_DEBUG(logger_,
                "Runtime call committed new state with hash {}",
                new_state_root.toHex());
-      SL_PROFILE_END(state_commit)
+      KAGOME_PROFILE_END(state_commit)
       return std::move(new_state_root);
     }
 
