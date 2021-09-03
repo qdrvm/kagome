@@ -485,7 +485,8 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
                                   const VoteMessage &msg) {
     SL_DEBUG(logger_,
-             "{} has received from {}: voter_set_id={} round={} #{} hash={}",
+             "{} has received from {}: "
+             "voter_set_id={} round={} for block #{} hash={}",
              msg.vote.is<Prevote>()
                  ? "Prevote"
                  : msg.vote.is<Precommit>() ? "Precommit" : "PrimaryPropose",
@@ -521,7 +522,8 @@ namespace kagome::consensus::grandpa {
     const auto &weighted_authorities_res =
         grandpa_api_->authorities(primitives::BlockId(blockInfo.hash));
     if (!weighted_authorities_res.has_value()) {
-      logger_->error("Can't get authorities");
+      logger_->error("Can't get authorities: {}",
+                     weighted_authorities_res.error().message());
       return;
     };
     auto &weighted_authorities = weighted_authorities_res.value();
@@ -538,17 +540,25 @@ namespace kagome::consensus::grandpa {
       logger_->warn("Vote signed by unknown validator");
       return;
     };
+
+    bool isPrevotesChanged = false;
+    bool isPrecommitsChanged = false;
     visit_in_place(
         msg.vote.message,
-        [&target_round, &msg](const PrimaryPropose &) {
-          target_round->onProposal(msg.vote);
+        [&](const PrimaryPropose &) {
+          target_round->onProposal(msg.vote, VotingRound::Propagation::REQUESTED);
         },
-        [&target_round, &msg](const Prevote &) {
-          target_round->onPrevote(msg.vote);
+        [&](const Prevote &) {
+          if (target_round->onPrevote(msg.vote, VotingRound::Propagation::REQUESTED)) {
+            isPrevotesChanged = true;
+          }
         },
-        [&target_round, &msg](const Precommit &) {
-          target_round->onPrecommit(msg.vote);
+        [&](const Precommit &) {
+          if (target_round->onPrecommit(msg.vote, VotingRound::Propagation::REQUESTED)) {
+            isPrecommitsChanged = true;
+          }
         });
+    target_round->update(isPrevotesChanged, isPrecommitsChanged);
   }
 
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
