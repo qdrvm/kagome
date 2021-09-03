@@ -174,7 +174,7 @@ namespace kagome::consensus::grandpa {
             });
       }
 
-      update(isPrevotesChanged, isPrecommitsChanged);
+      VotingRoundImpl::update(isPrevotesChanged, isPrecommitsChanged);
 
     } else {
       // Zero-round is always self-finalized
@@ -730,7 +730,7 @@ namespace kagome::consensus::grandpa {
           total_weight += voter_set_->voterWeight(signed_precommit.id).value();
         } else {
           SL_DEBUG(logger_,
-                   "Vote has not ancestry with target block: vote={} target={}",
+                   "Vote does not have ancestry with target block: vote={} target={}",
                    vote.hash.toHex(),
                    signed_precommit.getBlockHash());
         }
@@ -743,7 +743,7 @@ namespace kagome::consensus::grandpa {
           threshold -= weight;
         } else {
           SL_DEBUG(logger_,
-                   "Vote has not ancestry with target block: vote={} target={}",
+                   "Vote does not have ancestry with target block: vote={} target={}",
                    vote.hash.toHex(),
                    signed_precommit.getBlockHash());
         }
