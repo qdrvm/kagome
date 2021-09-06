@@ -15,8 +15,6 @@
 
 namespace kagome::consensus::grandpa {
 
-  inline const size_t kMaxNumberOfVoters = 256;
-
   /**
    * Vote weight is a structure that keeps track of who voted for the vote and
    * with which weight
@@ -24,8 +22,6 @@ namespace kagome::consensus::grandpa {
   class VoteWeight : public boost::equality_comparable<VoteWeight>,
                      public boost::less_than_comparable<VoteWeight> {
    public:
-    explicit VoteWeight(size_t voters_size = kMaxNumberOfVoters);
-
     /**
      * Get total weight of current vote's weight
      * @param prevotes_equivocators describes peers which equivocated (voted
@@ -51,17 +47,22 @@ namespace kagome::consensus::grandpa {
     size_t prevotes_sum = 0;
     size_t precommits_sum = 0;
 
-    std::vector<size_t> prevotes = std::vector<size_t>(kMaxNumberOfVoters, 0UL);
-    std::vector<size_t> precommits =
-        std::vector<size_t>(kMaxNumberOfVoters, 0UL);
+    std::vector<size_t> prevotes;
+    std::vector<size_t> precommits;
 
     void setPrevote(size_t index, size_t weight) {
+      if (prevotes.size() <= index) {
+        prevotes.resize(index + 1, 0);
+      }
       prevotes_sum -= prevotes[index];
       prevotes[index] = weight;
       prevotes_sum += weight;
     }
 
     void setPrecommit(size_t index, size_t weight) {
+      if (precommits.size() <= index) {
+        precommits.resize(index + 1, 0);
+      }
       precommits_sum -= precommits[index];
       precommits[index] = weight;
       precommits_sum += weight;
