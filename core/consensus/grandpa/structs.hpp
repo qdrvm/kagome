@@ -197,8 +197,8 @@ namespace kagome::consensus::grandpa {
   using PrecommitEquivocation = detail::Equivocation<Precommit>;
 
   struct TotalWeight {
-    uint64_t prevote;
-    uint64_t precommit;
+    uint64_t prevote = 0;
+    uint64_t precommit = 0;
   };
 
   // A commit message with compact representation of authentication data.

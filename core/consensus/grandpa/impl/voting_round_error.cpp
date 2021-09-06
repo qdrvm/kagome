@@ -23,6 +23,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
              "last round estimate or is descendant of it";
     case E::UNKNOWN_VOTER:
       return "Provided vote is the vote of unknown voter";
+    case E::ZERO_WEIGHT_VOTER:
+      return "Provided vote of zero weight voter";
     case E::DUPLICATED_VOTE:
       return "Provided vote duplicates the existing one";
     case E::EQUIVOCATED_VOTE:

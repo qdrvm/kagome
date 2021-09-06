@@ -8,8 +8,6 @@
 
 #include "runtime/module_repository.hpp"
 
-#include <queue>
-
 #include "log/logger.hpp"
 #include "runtime/instance_environment.hpp"
 

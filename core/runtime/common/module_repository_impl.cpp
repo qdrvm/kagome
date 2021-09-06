@@ -58,8 +58,7 @@ namespace kagome::runtime {
         OUTCOME_TRY(instance, modules_[state]->instantiate());
         auto shared_instance =
             std::shared_ptr<ModuleInstance>(std::move(instance));
-        auto emplaced = instances_cache_.put(state, shared_instance);
-        BOOST_ASSERT(emplaced);
+        BOOST_VERIFY(instances_cache_.put(state, shared_instance));
         KAGOME_PROFILE_END(module_instantiation);
         return shared_instance;
       } else {
