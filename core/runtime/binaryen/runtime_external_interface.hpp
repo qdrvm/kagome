@@ -13,7 +13,7 @@
 namespace kagome::host_api {
   class HostApiFactory;
   class HostApi;
-}
+}  // namespace kagome::host_api
 
 namespace kagome::runtime {
   class TrieStorageProvider;
@@ -30,12 +30,13 @@ namespace kagome::runtime::binaryen {
 
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
-    explicit RuntimeExternalInterface(std::shared_ptr<host_api::HostApi> host_api);
+    explicit RuntimeExternalInterface(
+        std::shared_ptr<host_api::HostApi> host_api);
 
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;
 
-    wasm::ShellExternalInterface::Memory* getMemory();
+    wasm::ShellExternalInterface::Memory *getMemory();
 
    private:
     /**

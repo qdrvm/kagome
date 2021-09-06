@@ -46,25 +46,25 @@ namespace kagome::blockchain {
                                        const primitives::Justification &));
 
     MOCK_CONST_METHOD1(getChainByBlock,
-                 BlockHashVecRes(const primitives::BlockHash &));
+                       BlockHashVecRes(const primitives::BlockHash &));
 
     MOCK_CONST_METHOD3(getChainByBlock,
-                 BlockHashVecRes(const primitives::BlockHash &,
-                                 GetChainDirection,
-                                 uint64_t));
+                       BlockHashVecRes(const primitives::BlockHash &,
+                                       GetChainDirection,
+                                       uint64_t));
 
     MOCK_CONST_METHOD2(getChainByBlocks,
-                 BlockHashVecRes(const primitives::BlockHash &,
-                                 const primitives::BlockHash &));
+                       BlockHashVecRes(const primitives::BlockHash &,
+                                       const primitives::BlockHash &));
 
     MOCK_CONST_METHOD3(getChainByBlocks,
-                 BlockHashVecRes(const primitives::BlockHash &,
-                                 const primitives::BlockHash &,
-                                 const uint32_t));
+                       BlockHashVecRes(const primitives::BlockHash &,
+                                       const primitives::BlockHash &,
+                                       const uint32_t));
 
     MOCK_CONST_METHOD2(hasDirectChain,
-                 bool(const primitives::BlockHash &,
-                      const primitives::BlockHash &));
+                       bool(const primitives::BlockHash &,
+                            const primitives::BlockHash &));
 
     MOCK_CONST_METHOD2(getBestContaining,
                        outcome::result<primitives::BlockInfo>(
@@ -77,7 +77,8 @@ namespace kagome::blockchain {
 
     MOCK_CONST_METHOD0(getLeaves, std::vector<primitives::BlockHash>());
 
-    MOCK_METHOD1(getChildren, BlockHashVecRes(const primitives::BlockHash &));
+    MOCK_CONST_METHOD1(getChildren,
+                       BlockHashVecRes(const primitives::BlockHash &));
 
     MOCK_CONST_METHOD0(getLastFinalized, primitives::BlockInfo());
 

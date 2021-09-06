@@ -14,13 +14,13 @@ namespace kagome::runtime {
 
   class GrandpaApiMock : public GrandpaApi {
    public:
-    MOCK_METHOD1(pending_change,
+    MOCK_METHOD2(pending_change,
                  outcome::result<boost::optional<ScheduledChange>>(
-                     const Digest &digest));
+                     primitives::BlockHash const &block, const Digest &digest));
 
-    MOCK_METHOD1(
-        forced_change,
-        outcome::result<boost::optional<ForcedChange>>(const Digest &digest));
+    MOCK_METHOD2(forced_change,
+                 outcome::result<boost::optional<ForcedChange>>(
+                     primitives::BlockHash const &block, const Digest &digest));
 
     MOCK_METHOD1(
         authorities,

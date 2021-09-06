@@ -42,7 +42,8 @@ namespace kagome::runtime::binaryen {
     return BinaryenInstanceEnvironment{
         InstanceEnvironment{std::move(new_memory_provider),
                             std::move(new_storage_provider),
-                            std::move(host_api)},
+                            std::move(host_api),
+                            [](auto &) {}},
         std::move(rei)};
   }
 }  // namespace kagome::runtime::binaryen

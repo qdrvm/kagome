@@ -46,3 +46,14 @@ target_link_libraries(executor_test
     logger
     log_configurator
     )
+
+addtest(runtime_upgrade_tracker_test
+    runtime_upgrade_tracker_test.cpp
+    )
+target_link_libraries(runtime_upgrade_tracker_test
+    runtime_upgrade_tracker
+    blob
+    buffer
+    logger
+    log_configurator
+    )

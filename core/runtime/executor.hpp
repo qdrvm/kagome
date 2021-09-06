@@ -23,6 +23,7 @@
 #include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "log/profiling_logger.hpp"
 
 namespace kagome::runtime {
 
@@ -160,8 +161,13 @@ namespace kagome::runtime {
 
       PtrSize args_span{memory.storeBuffer(encoded_args)};
 
+      KAGOME_PROFILE_START(call_execution)
       OUTCOME_TRY(result,
                   env.module_instance->callExportFunction(name, args_span));
+      KAGOME_PROFILE_END(call_execution)
+
+      OUTCOME_TRY(env.module_instance->resetEnvironment());
+
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
@@ -171,6 +177,7 @@ namespace kagome::runtime {
 
     outcome::result<storage::trie::RootHash> commitState(
         const RuntimeEnvironment &env) {
+      KAGOME_PROFILE_START(state_commit)
       BOOST_ASSERT_MSG(
           env.storage_provider->tryGetPersistentBatch(),
           "Current batch should always be persistent for a persistent call");
@@ -180,6 +187,7 @@ namespace kagome::runtime {
       SL_DEBUG(logger_,
                "Runtime call committed new state with hash {}",
                new_state_root.toHex());
+      KAGOME_PROFILE_END(state_commit)
       return std::move(new_state_root);
     }
 

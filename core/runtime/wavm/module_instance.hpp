@@ -34,18 +34,23 @@ namespace kagome::runtime::wavm {
       EXECUTION_ERROR,
       WRONG_RETURN_TYPE
     };
-    ModuleInstance(
-        WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
-        std::shared_ptr<const CompartmentWrapper> compartment);
+    ModuleInstance(InstanceEnvironment &&env,
+                   WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
+                   std::shared_ptr<const CompartmentWrapper> compartment);
 
     ~ModuleInstance() override;
 
     outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                 PtrSize args) const override;
 
-    outcome::result<boost::optional<WasmValue>> getGlobal(std::string_view name) const override;
+    outcome::result<boost::optional<WasmValue>> getGlobal(
+        std::string_view name) const override;
+
+    InstanceEnvironment const &getEnvironment() const override;
+    outcome::result<void> resetEnvironment() override;
 
    private:
+    InstanceEnvironment env_;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance_;
     std::shared_ptr<const CompartmentWrapper> compartment_;
     log::Logger logger_;

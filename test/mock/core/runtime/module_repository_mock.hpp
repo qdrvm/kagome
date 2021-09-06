@@ -17,8 +17,7 @@ namespace kagome::runtime {
   class ModuleRepositoryMock final : public ModuleRepository {
    public:
     MOCK_METHOD2(getInstanceAt,
-                 outcome::result<std::pair<std::shared_ptr<ModuleInstance>,
-                                           InstanceEnvironment>>(
+                 outcome::result<std::shared_ptr<ModuleInstance>>(
                      std::shared_ptr<const RuntimeCodeProvider> code_provider,
                      const primitives::BlockInfo &block));
   };

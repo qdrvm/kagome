@@ -1,10 +1,12 @@
 add_library(logger
     logger.cpp
+    profiling_logger.cpp
     )
 target_link_libraries(logger
     fmt::fmt
     soralog::soralog
     p2p::p2p_logger
+    clock
     )
 kagome_install(logger)
 

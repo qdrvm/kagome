@@ -692,8 +692,8 @@ namespace kagome::application {
         [this, &runtime_exec_method_opt](std::string const &val) {
           runtime_exec_method_opt = str_to_runtime_exec_method(val);
           if (not runtime_exec_method_opt) {
-            logger_->error(
-                "Invalid runtime execution method specified: '{}'", val);
+            logger_->error("Invalid runtime execution method specified: '{}'",
+                           val);
           }
         });
     if (not runtime_exec_method_opt) {

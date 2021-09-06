@@ -5,6 +5,7 @@
 
 #include "runtime/common/module_repository_impl.hpp"
 
+#include "log/profiling_logger.hpp"
 #include "runtime/instance_environment.hpp"
 #include "runtime/module.hpp"
 #include "runtime/module_factory.hpp"
@@ -13,6 +14,9 @@
 #include "runtime/runtime_upgrade_tracker.hpp"
 
 namespace kagome::runtime {
+
+  thread_local ModuleRepositoryImpl::InstanceCache
+      ModuleRepositoryImpl::instances_cache_;
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
@@ -23,13 +27,15 @@ namespace kagome::runtime {
     BOOST_ASSERT(module_factory_);
   }
 
-  outcome::result<
-      std::pair<std::shared_ptr<ModuleInstance>, InstanceEnvironment>>
+  outcome::result<std::shared_ptr<ModuleInstance>>
   ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
+    KAGOME_PROFILE_START(code_retrieval);
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
+    KAGOME_PROFILE_END(code_retrieval);
 
+    KAGOME_PROFILE_START(module_retrieval);
     std::shared_ptr<Module> module;
     {
       std::lock_guard guard{modules_mutex_};
@@ -42,14 +48,22 @@ namespace kagome::runtime {
         module = it->second;
       }
     }
+    KAGOME_PROFILE_END(module_retrieval);
 
+    KAGOME_PROFILE_START(module_instantiation);
     {
       std::lock_guard guard{instances_mutex_};
-        OUTCOME_TRY(instance_and_env, modules_[state]->instantiate());
-        auto shared_instance = std::make_pair(
-            std::shared_ptr<ModuleInstance>(std::move(instance_and_env.first)),
-            std::move(instance_and_env.second));
+      if (auto cached_instance = instances_cache_.get(state);
+          not cached_instance.has_value()) {
+        OUTCOME_TRY(instance, modules_[state]->instantiate());
+        auto shared_instance =
+            std::shared_ptr<ModuleInstance>(std::move(instance));
+        BOOST_VERIFY(instances_cache_.put(state, shared_instance));
+        KAGOME_PROFILE_END(module_instantiation);
         return shared_instance;
+      } else {
+        return cached_instance.value();
+      }
     }
   }
 

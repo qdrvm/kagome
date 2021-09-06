@@ -28,7 +28,8 @@ namespace kagome::runtime::binaryen {
       CAN_NOT_OBTAIN_GLOBAL
     };
 
-    ModuleInstanceImpl(std::shared_ptr<wasm::Module> parent,
+    ModuleInstanceImpl(InstanceEnvironment &&env,
+                       std::shared_ptr<wasm::Module> parent,
                        std::shared_ptr<RuntimeExternalInterface> rei);
 
     outcome::result<PtrSize> callExportFunction(std::string_view name,
@@ -37,7 +38,12 @@ namespace kagome::runtime::binaryen {
     outcome::result<boost::optional<WasmValue>> getGlobal(
         std::string_view name) const override;
 
+    InstanceEnvironment const &getEnvironment() const override;
+
+    outcome::result<void> resetEnvironment() override;
+
    private:
+    InstanceEnvironment env_;
     std::shared_ptr<RuntimeExternalInterface> rei_;
     std::shared_ptr<wasm::Module>
         parent_;  // must be kept alive because binaryen's module instance keeps

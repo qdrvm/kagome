@@ -23,9 +23,8 @@ namespace kagome::runtime {
    public:
     virtual ~Module() = default;
 
-    virtual outcome::result<
-        std::pair<std::unique_ptr<ModuleInstance>, InstanceEnvironment>>
-    instantiate() const = 0;
+    virtual outcome::result<std::unique_ptr<ModuleInstance>> instantiate()
+        const = 0;
   };
 
 }  // namespace kagome::runtime

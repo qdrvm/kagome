@@ -5,7 +5,6 @@
 
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 
-#include "host_api/host_api_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
 #include "runtime/binaryen/module/module_impl.hpp"
@@ -25,22 +24,19 @@ namespace kagome::runtime::binaryen {
       BOOST_ASSERT(env_factory_);
     }
 
-    outcome::result<std::pair<std::shared_ptr<runtime::ModuleInstance>,
-                              InstanceEnvironment>>
+    outcome::result<std::shared_ptr<runtime::ModuleInstance>>
     getInstanceAt(std::shared_ptr<const RuntimeCodeProvider>,
                   const primitives::BlockInfo &b) override {
       if (instance_ == nullptr) {
         OUTCOME_TRY(module, ModuleImpl::createFromCode(code_, env_factory_));
-        OUTCOME_TRY(inst_and_env, module->instantiate());
-        instance_ = std::move(inst_and_env.first);
-        env_ = std::move(inst_and_env.second);
+        OUTCOME_TRY(inst, module->instantiate());
+        instance_ = std::move(inst);
       }
-      return {instance_, env_};
+      return instance_;
     }
 
    private:
     std::shared_ptr<runtime::ModuleInstance> instance_;
-    InstanceEnvironment env_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     const std::vector<uint8_t> &code_;
   };

@@ -132,10 +132,7 @@ namespace kagome::blockchain {
     virtual BlockHashVecRes getChainByBlock(
         const primitives::BlockHash &block) const = 0;
 
-    enum class GetChainDirection {
-      ASCEND,
-      DESCEND
-    };
+    enum class GetChainDirection { ASCEND, DESCEND };
 
     /**
      * Get a chain of blocks from the (\param block)
@@ -177,8 +174,9 @@ namespace kagome::blockchain {
      * @param descendant - block, which is the bottom of the chain
      * @return true if \param ancestor is ancestor of \param descendant
      */
-    virtual bool hasDirectChain(const primitives::BlockHash &ancestor,
-                                const primitives::BlockHash &descendant) const = 0;
+    virtual bool hasDirectChain(
+        const primitives::BlockHash &ancestor,
+        const primitives::BlockHash &descendant) const = 0;
 
     /**
      * Get a longest path (chain of blocks) from the last finalized block down
@@ -221,7 +219,8 @@ namespace kagome::blockchain {
      * @param block to get children of
      * @return collection of children hashes or error
      */
-    virtual BlockHashVecRes getChildren(const primitives::BlockHash &block) = 0;
+    virtual BlockHashVecRes getChildren(
+        const primitives::BlockHash &block) const = 0;
 
     /**
      * Get the last finalized block

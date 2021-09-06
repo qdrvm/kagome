@@ -6,8 +6,9 @@
 #ifndef KAGOME_CORE_STORAGE_CHANGES_TRIE_IMPL_CHANGES_TRIE
 #define KAGOME_CORE_STORAGE_CHANGES_TRIE_IMPL_CHANGES_TRIE
 
-#include <boost/variant.hpp>
 #include <map>
+
+#include <boost/variant.hpp>
 
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"

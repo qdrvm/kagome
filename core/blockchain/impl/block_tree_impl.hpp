@@ -194,7 +194,8 @@ namespace kagome::blockchain {
 
     std::vector<primitives::BlockHash> getLeaves() const override;
 
-    BlockHashVecRes getChildren(const primitives::BlockHash &block) override;
+    BlockHashVecRes getChildren(
+        const primitives::BlockHash &block) const override;
 
     primitives::BlockInfo getLastFinalized() const override;
 
@@ -276,10 +277,10 @@ namespace kagome::blockchain {
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
     boost::optional<primitives::Version> actual_runtime_version_;
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
-    //metrics
+    // metrics
     metrics::RegistryPtr registry_ = metrics::createRegistry();
-    metrics::Gauge* block_height_best_;
-    metrics::Gauge* block_height_finalized_;
+    metrics::Gauge *block_height_best_;
+    metrics::Gauge *block_height_finalized_;
   };
 }  // namespace kagome::blockchain
 

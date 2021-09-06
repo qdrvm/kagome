@@ -5,7 +5,6 @@
 
 #include "runtime/wavm/core_api_factory_impl.hpp"
 
-#include "host_api/host_api_factory.hpp"
 #include "runtime/common/constant_code_provider.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/executor.hpp"
@@ -19,7 +18,6 @@
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_instance.hpp"
-#include "runtime/wavm/wavm_memory_provider.hpp"
 
 namespace kagome::runtime::wavm {
 
@@ -36,23 +34,20 @@ namespace kagome::runtime::wavm {
       BOOST_ASSERT(compartment_);
     }
 
-    outcome::result<std::pair<std::shared_ptr<runtime::ModuleInstance>,
-                              InstanceEnvironment>>
-    getInstanceAt(std::shared_ptr<const RuntimeCodeProvider>,
-                  const primitives::BlockInfo &) override {
+    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
+        std::shared_ptr<const RuntimeCodeProvider>,
+        const primitives::BlockInfo &) override {
       if (instance_ == nullptr) {
         auto module =
             ModuleImpl::compileFrom(compartment_, instance_env_factory_, code_);
-        OUTCOME_TRY(inst_and_env, module->instantiate());
-        instance_ = std::move(inst_and_env.first);
-        env_ = std::move(inst_and_env.second);
+        OUTCOME_TRY(inst, module->instantiate());
+        instance_ = std::move(inst);
       }
-      return {instance_, env_};
+      return instance_;
     }
 
    private:
     std::shared_ptr<runtime::ModuleInstance> instance_;
-    InstanceEnvironment env_;
     std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
     gsl::span<const uint8_t> code_;

@@ -52,8 +52,7 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(module_);
   }
 
-  outcome::result<std::pair<std::unique_ptr<kagome::runtime::ModuleInstance>,
-                            kagome::runtime::InstanceEnvironment>>
+  outcome::result<std::unique_ptr<kagome::runtime::ModuleInstance>>
   ModuleImpl::instantiate() const {
     auto env = env_factory_->make();
     auto instance =
@@ -61,8 +60,8 @@ namespace kagome::runtime::wavm {
                                          module_,
                                          link(*env.resolver),
                                          "test_module");
-    return {std::make_unique<ModuleInstance>(instance, compartment_),
-            std::move(env.env)};
+    return std::make_unique<ModuleInstance>(
+        std::move(env.env), instance, compartment_);
   }
 
   WAVM::Runtime::ImportBindings ModuleImpl::link(

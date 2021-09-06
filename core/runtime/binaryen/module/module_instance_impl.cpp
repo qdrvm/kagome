@@ -9,6 +9,7 @@
 #include <binaryen/wasm.h>
 
 #include "runtime/binaryen/runtime_external_interface.hpp"
+#include "host_api/host_api.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
                             ModuleInstanceImpl::Error,
@@ -28,9 +29,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 namespace kagome::runtime::binaryen {
 
   ModuleInstanceImpl::ModuleInstanceImpl(
+      InstanceEnvironment &&env,
       std::shared_ptr<wasm::Module> parent,
       std::shared_ptr<RuntimeExternalInterface> rei)
-      : rei_{std::move(rei)},
+      : env_{std::move(env)},
+        rei_{std::move(rei)},
         parent_{std::move(parent)},
         module_instance_{
             std::make_unique<wasm::ModuleInstance>(*parent_, rei_.get())},
@@ -78,6 +81,15 @@ namespace kagome::runtime::binaryen {
     } catch (wasm::TrapException &e) {
       return Error::CAN_NOT_OBTAIN_GLOBAL;
     }
+  }
+
+  InstanceEnvironment const &ModuleInstanceImpl::getEnvironment() const {
+    return env_;
+  }
+
+  outcome::result<void> ModuleInstanceImpl::resetEnvironment() {
+    env_.host_api->reset();
+    return outcome::success();
   }
 
 }  // namespace kagome::runtime::binaryen

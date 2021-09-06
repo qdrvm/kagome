@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "module_instance.hpp"
+#include "runtime/wavm/module_instance.hpp"
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/RuntimeABI/RuntimeABI.h>
 
-#include "compartment_wrapper.hpp"
+#include "host_api/host_api.hpp"
+#include "runtime/trie_storage_provider.hpp"
+#include "runtime/wavm/compartment_wrapper.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
   using E = kagome::runtime::wavm::ModuleInstance::Error;
@@ -29,9 +31,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
 namespace kagome::runtime::wavm {
 
   ModuleInstance::ModuleInstance(
+      InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
       std::shared_ptr<const CompartmentWrapper> compartment)
-      : instance_{std::move(instance)},
+      : env_{std::move(env)},
+        instance_{std::move(instance)},
         compartment_{std::move(compartment)},
         logger_{log::createLogger("ModuleInstance", "wavm")} {
     BOOST_ASSERT(instance_ != nullptr);
@@ -124,6 +128,15 @@ namespace kagome::runtime::wavm {
             asString(value));
         return Error::WRONG_RETURN_TYPE;
     }
+  }
+
+  InstanceEnvironment const &ModuleInstance::getEnvironment() const {
+    return env_;
+  }
+
+  outcome::result<void> ModuleInstance::resetEnvironment() {
+    env_.host_api->reset();
+    return outcome::success();
   }
 
 }  // namespace kagome::runtime::wavm

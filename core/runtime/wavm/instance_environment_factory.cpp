@@ -53,12 +53,15 @@ namespace kagome::runtime::wavm {
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
         core_factory, new_memory_provider, new_storage_provider));
     pushHostApi(host_api);
+    auto resolver =
+        std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module_instance);
 
     return WavmInstanceEnvironment{
         InstanceEnvironment{std::move(new_memory_provider),
                             std::move(new_storage_provider),
-                            std::move(host_api)},
-        std::make_shared<IntrinsicResolverImpl>(new_intrinsic_module_instance)};
+                            std::move(host_api),
+                            [](auto &) { popHostApi(); }},
+        resolver};
   }
 
 }  // namespace kagome::runtime::wavm
