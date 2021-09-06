@@ -26,7 +26,7 @@ namespace kagome::runtime {
     // genesis block
     if (block_tree_ == nullptr) {
       OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
-      logger_->debug("Pick runtime state at genesis for block #{} hash {}",
+      SL_DEBUG(logger_, "Pick runtime state at genesis for block #{} hash {}",
                      block.number,
                      block.hash.toHex());
       return genesis.state_root;
@@ -44,7 +44,7 @@ namespace kagome::runtime {
         runtime_upgrade_parents_.emplace_back(block.number - 1,
                                               header.parent_hash);
       }
-      logger_->debug(
+      SL_DEBUG(logger_,
           "Pick runtime state at block #{} hash {} for the same block",
           block.number,
           block.hash.toHex());
@@ -65,14 +65,14 @@ namespace kagome::runtime {
       // if we have no info on updates before this block, we just return its
       // state
       OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
-      logger_->debug(
+      SL_DEBUG(logger_,
           "Pick runtime state at block #{} hash {} for the same block",
           block.number,
           block.hash.toHex());
       return block_header.state_root;
     }
 
-    latest_state_update_it--;
+    --latest_state_update_it;
     // we are now at the last element in block_with_runtime_upgrade which is
     // less or equal to our \arg block number
     // we may have several entries with the same block number, we have to pick
@@ -103,16 +103,16 @@ namespace kagome::runtime {
           OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
           SL_TRACE_FUNC_CALL(
               logger_, genesis.state_root, block.hash, block.number);
-          logger_->debug(
-              "Pick runtime state at genesis for block #{} hash {}",
-              block.number,
-              block.hash.toHex());
+          SL_DEBUG(logger_, "Pick runtime state at genesis for block #{} hash {}",
+                         block.number,
+                         block.hash.toHex());
           return genesis.state_root;
         }
 
         // found the predecessor with the latest runtime upgrade
-        auto children_res = block_tree_->getChildren(latest_state_update_it->hash);
-        if(!children_res) {
+        auto children_res =
+            block_tree_->getChildren(latest_state_update_it->hash);
+        if (!children_res) {
           return children_res.error();
         }
         auto children = std::move(children_res.value());
@@ -127,7 +127,7 @@ namespace kagome::runtime {
 
         SL_TRACE_FUNC_CALL(
             logger_, target_header.state_root, block.hash, block.number);
-        logger_->debug(
+        SL_DEBUG(logger_,
             "Pick runtime state at block #{} hash {} for block #{} hash {}",
             target_header.number,
             children[0],
@@ -155,7 +155,6 @@ namespace kagome::runtime {
         std::make_shared<primitives::events::StorageEventSubscriber>(
             storage_sub_engine);
     block_tree_ = std::move(block_tree);
-    BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(storage_subscription_ != nullptr);
 
