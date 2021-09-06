@@ -914,18 +914,18 @@ namespace kagome::blockchain {
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChildren(
       const primitives::BlockHash &block) const {
-    auto node = tree_->getByHash(block);
-    if (!node) {
-      return BlockTreeError::NO_SUCH_BLOCK;
-    }
 
-    std::vector<primitives::BlockHash> result;
-    result.reserve(node->children.size());
-    for (const auto &child : node->children) {
-      result.push_back(child->block_hash);
+    if (auto node = tree_->getByHash(block); node != nullptr) {
+      std::vector<primitives::BlockHash> result;
+      result.reserve(node->children.size());
+      for (const auto &child : node->children) {
+        result.push_back(child->block_hash);
+      }
+      return result;
     }
-
-    return result;
+    OUTCOME_TRY(header, storage_->getBlockHeader(block));
+    OUTCOME_TRY(child_hash, header_repo_->getHashByNumber(header.number + 1));
+    return outcome::success(std::vector<primitives::BlockHash>{child_hash});
   }
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
@@ -1031,7 +1031,7 @@ namespace kagome::blockchain {
       OUTCOME_TRY(storage_->removeBlock(hash, number));
     }
 
-    // trying to return back extrinsics to transaction pool
+    // trying to return extrinsics back to transaction pool
     for (auto &&extrinsic : extrinsics) {
       auto result = extrinsic_observer_->onTxMessage(extrinsic);
       if (result) {
