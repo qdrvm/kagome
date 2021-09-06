@@ -1048,7 +1048,7 @@ namespace kagome::consensus::grandpa {
 
     auto previous_round = previous_round_.lock();
 
-    auto currend_best = previous_round ? previous_round->bestFinalCandidate()
+    auto current_best = previous_round ? previous_round->bestFinalCandidate()
                                        : last_finalized_block_;
 
     auto posible_to_prevote = [this](const VoteWeight &vote_weight) {
@@ -1061,7 +1061,7 @@ namespace kagome::consensus::grandpa {
 
     /// @see spec: Grandpa-Ghost
     auto new_prevote_ghost = graph_->findGhost(
-        currend_best, posible_to_prevote, VoteWeight::prevoteComparator);
+        current_best, posible_to_prevote, VoteWeight::prevoteComparator);
 
     if (new_prevote_ghost.has_value()) {
       bool changed = new_prevote_ghost != prevote_ghost_;
@@ -1109,7 +1109,7 @@ namespace kagome::consensus::grandpa {
              >= threshold_;
     };
 
-    auto currend_best =
+    auto current_best =
         precommit_ghost_.get_value_or(prevote_ghost_.get_value_or([&] {
           auto previous_round = previous_round_.lock();
           return previous_round ? previous_round->bestFinalCandidate()
@@ -1118,21 +1118,21 @@ namespace kagome::consensus::grandpa {
 
     /// @see spec: Grandpa-Ghost
     auto new_precommit_ghost = graph_->findGhost(
-        currend_best, posible_to_finalize, VoteWeight::precommitComparator);
+        current_best, posible_to_finalize, VoteWeight::precommitComparator);
 
     if (not new_precommit_ghost.has_value()) {
-      new_precommit_ghost = currend_best;
+      new_precommit_ghost = current_best;
 
       SL_TRACE(logger_,
                "Round #{}: updatePrecommitGhost <- not finalizable (best #{})",
                round_number_,
-               currend_best.number);
+               current_best.number);
     } else {
       SL_TRACE(logger_,
                "Round #{}: updatePrecommitGhost <- finalizable (#{}, best #{})",
                round_number_,
                new_precommit_ghost.value().number,
-               currend_best.number);
+               current_best.number);
 
       finalized_ = new_precommit_ghost.value();
     }
