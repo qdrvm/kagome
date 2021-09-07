@@ -5,6 +5,7 @@
 
 add_subdirectory(common)
 add_subdirectory(binaryen)
+add_subdirectory(wasmedge)
 add_subdirectory(wavm)
 
 add_library(executor INTERFACE)

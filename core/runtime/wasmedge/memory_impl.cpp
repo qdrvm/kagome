@@ -5,6 +5,7 @@
 
 #include "runtime/wasmedge/memory_impl.hpp"
 
+#include "common/literals.hpp"
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/ptr_size.hpp"
 
@@ -19,11 +20,22 @@ namespace {
     }
     return res;
   }
+
+  template <typename T, auto N = sizeof(T)>
+  auto fromArray(std::array<uint8_t, N> a) {
+    T res{0};
+    for (unsigned i = 0; i < N; ++i) {
+      res |= static_cast<T>(a[i]) << (i * 8);
+    }
+    return res;
+  }
 }  // namespace
 
 namespace kagome::runtime::wasmedge {
 
-  MemoryImpl::MemoryImpl(wasm::WasmEdge_MemoryInstanceContext *memory,
+  using namespace kagome::common::literals;
+
+  MemoryImpl::MemoryImpl(WasmEdge_MemoryInstanceContext *memory,
                          std::unique_ptr<MemoryAllocator> &&allocator)
       : memory_{memory},
         size_{kInitialMemorySize},
@@ -32,15 +44,14 @@ namespace kagome::runtime::wasmedge {
     resize(size_);
   }
 
-  MemoryImpl::MemoryImpl(wasm::ShellExternalInterface::Memory *memory,
-                         WasmSize heap_base)
+  MemoryImpl::MemoryImpl(WasmEdge_MemoryInstanceContext *memory)
       : MemoryImpl{memory,
                    std::make_unique<MemoryAllocator>(
                        MemoryAllocator::MemoryHandle{
                            [this](auto new_size) { return resize(new_size); },
                            [this]() { return size_; }},
                        kInitialMemorySize,
-                       heap_base)} {}
+                       5_MB)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);
@@ -48,6 +59,70 @@ namespace kagome::runtime::wasmedge {
 
   boost::optional<WasmSize> MemoryImpl::deallocate(WasmPointer ptr) {
     return allocator_->deallocate(ptr);
+  }
+
+  int8_t MemoryImpl::load8s(WasmPointer addr) const {
+    BOOST_ASSERT(allocator_->checkAddress<int8_t>(addr));
+    int8_t res;
+    WasmEdge_Result Res = WasmEdge_MemoryInstanceGetData(
+        memory_, reinterpret_cast<uint8_t *>(&res), addr, sizeof(res));
+    return res;
+  }
+  uint8_t MemoryImpl::load8u(WasmPointer addr) const {
+    BOOST_ASSERT(allocator_->checkAddress<uint8_t>(addr));
+    uint8_t res;
+    WasmEdge_Result Res =
+        WasmEdge_MemoryInstanceGetData(memory_, &res, addr, sizeof(res));
+    return res;
+  }
+  int16_t MemoryImpl::load16s(WasmPointer addr) const {
+    BOOST_ASSERT(allocator_->checkAddress<int16_t>(addr));
+    std::array<uint8_t, 2> res;
+    WasmEdge_Result Res =
+        WasmEdge_MemoryInstanceGetData(memory_, res.data(), addr, sizeof(res));
+    return fromArray<int16_t>(res);
+  }
+  uint16_t MemoryImpl::load16u(WasmPointer addr) const {
+    BOOST_ASSERT(allocator_->checkAddress<uint16_t>(addr));
+    std::array<uint8_t, 2> res;
+    WasmEdge_Result Res =
+        WasmEdge_MemoryInstanceGetData(memory_, res.data(), addr, sizeof(res));
+    return fromArray<uint16_t>(res);
+  }
+  int32_t MemoryImpl::load32s(WasmPointer addr) const {
+    BOOST_ASSERT(allocator_->checkAddress<int32_t>(addr));
+    std::array<uint8_t, 4> res;
+    WasmEdge_Result Res =
+        WasmEdge_MemoryInstanceGetData(memory_, res.data(), addr, sizeof(res));
+    return fromArray<int32_t>(res);
+  }
+  uint32_t MemoryImpl::load32u(WasmPointer addr) const {
+    BOOST_ASSERT(allocator_->checkAddress<uint32_t>(addr));
+    std::array<uint8_t, 4> res;
+    WasmEdge_Result Res =
+        WasmEdge_MemoryInstanceGetData(memory_, res.data(), addr, sizeof(res));
+    return fromArray<uint32_t>(res);
+  }
+  int64_t MemoryImpl::load64s(WasmPointer addr) const {
+    BOOST_ASSERT(allocator_->checkAddress<int64_t>(addr));
+    std::array<uint8_t, 8> res;
+    WasmEdge_Result Res =
+        WasmEdge_MemoryInstanceGetData(memory_, res.data(), addr, sizeof(res));
+    return fromArray<int64_t>(res);
+  }
+  uint64_t MemoryImpl::load64u(WasmPointer addr) const {
+    BOOST_ASSERT(allocator_->checkAddress<uint64_t>(addr));
+    std::array<uint8_t, 8> res;
+    WasmEdge_Result Res =
+        WasmEdge_MemoryInstanceGetData(memory_, res.data(), addr, sizeof(res));
+    return fromArray<uint64_t>(res);
+  }
+  std::array<uint8_t, 16> MemoryImpl::load128(WasmPointer addr) const {
+    BOOST_ASSERT((allocator_->checkAddress<std::array<uint8_t, 16>>(addr)));
+    std::array<uint8_t, 16> res;
+    WasmEdge_Result Res =
+        WasmEdge_MemoryInstanceGetData(memory_, res.data(), addr, sizeof(res));
+    return res;
   }
 
   common::Buffer MemoryImpl::loadN(kagome::runtime::WasmPointer addr,
@@ -63,8 +138,8 @@ namespace kagome::runtime::wasmedge {
                                   kagome::runtime::WasmSize length) const {
     BOOST_ASSERT(size_ > addr and size_ - addr >= length);
     std::string res(length, '\0');
-    WasmEdge_Result Res =
-        WasmEdge_MemoryInstanceGetData(memory_, res.data(), addr, length);
+    WasmEdge_Result Res = WasmEdge_MemoryInstanceGetData(
+        memory_, reinterpret_cast<uint8_t *>(res.data()), addr, length);
     return res;
   }
 
@@ -96,15 +171,15 @@ namespace kagome::runtime::wasmedge {
                             const std::array<uint8_t, 16> &value) {
     BOOST_ASSERT((allocator_->checkAddress<std::array<uint8_t, 16>>(addr)));
     WasmEdge_Result Res = WasmEdge_MemoryInstanceGetData(
-        memory_, value.data(), addr, sizeof(value));
+        memory_, const_cast<uint8_t *>(value.data()), addr, sizeof(value));
   }
 
   void MemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
                                gsl::span<const uint8_t> value) {
     const auto size = static_cast<size_t>(value.size());
     BOOST_ASSERT((allocator_->checkAddress(addr, size)));
-    WasmEdge_Result Res =
-        WasmEdge_MemoryInstanceGetData(memory_, value.data(), addr, size);
+    WasmEdge_Result Res = WasmEdge_MemoryInstanceGetData(
+        memory_, const_cast<uint8_t *>(value.data()), addr, size);
   }
 
   WasmSpan MemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
@@ -118,4 +193,4 @@ namespace kagome::runtime::wasmedge {
     return PtrSize(wasm_pointer, value.size()).combine();
   }
 
-}  // namespace kagome::runtime::binaryen
+}  // namespace kagome::runtime::wasmedge

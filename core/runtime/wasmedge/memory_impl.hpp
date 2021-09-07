@@ -3,10 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP
-#define KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP
-
-#include <binaryen/shell-interface.h>
+#ifndef KAGOME_RUNTIME_WASMEDGE_MEMORY_IMPL_HPP
+#define KAGOME_RUNTIME_WASMEDGE_MEMORY_IMPL_HPP
 
 #include <array>
 #include <cstring>  // for std::memset in gcc
@@ -30,6 +28,7 @@ namespace kagome::runtime::wasmedge {
 
   class MemoryImpl final : public Memory {
    public:
+    MemoryImpl(WasmEdge_MemoryInstanceContext *memory);
     MemoryImpl(WasmEdge_MemoryInstanceContext *memory,
                std::unique_ptr<MemoryAllocator>&& allocator);
     MemoryImpl(const MemoryImpl &copy) = delete;
@@ -41,6 +40,15 @@ namespace kagome::runtime::wasmedge {
     WasmPointer allocate(WasmSize size) override;
     boost::optional<WasmSize> deallocate(WasmPointer ptr) override;
 
+    int8_t load8s(WasmPointer addr) const override;
+    uint8_t load8u(WasmPointer addr) const override;
+    int16_t load16s(WasmPointer addr) const override;
+    uint16_t load16u(WasmPointer addr) const override;
+    int32_t load32s(WasmPointer addr) const override;
+    uint32_t load32u(WasmPointer addr) const override;
+    int64_t load64s(WasmPointer addr) const override;
+    uint64_t load64u(WasmPointer addr) const override;
+    std::array<uint8_t, 16> load128(WasmPointer addr) const override;
     common::Buffer loadN(kagome::runtime::WasmPointer addr,
                          kagome::runtime::WasmSize n) const override;
     std::string loadStr(kagome::runtime::WasmPointer addr,
@@ -57,23 +65,14 @@ namespace kagome::runtime::wasmedge {
 
     WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
 
-    void resize(WasmSize new_size) override {
-      /**
-       * We use this condition to avoid
-       * deallocated_ pointers fixup
-       */
-      if (new_size >= size_) {
-        size_ = new_size;
-        memory_->resize(new_size);
-      }
-    }
+    void resize(WasmSize new_size) override {}
 
     WasmSize size() const override {
       return size_;
     }
 
    private:
-    WasmEdge_ImportObjectContext *memory_;
+    WasmEdge_MemoryInstanceContext *memory_;
     WasmSize size_;
     std::unique_ptr<MemoryAllocator> allocator_;
 
@@ -81,4 +80,4 @@ namespace kagome::runtime::wasmedge {
   };
 }  // namespace kagome::runtime::wasmedge
 
-#endif  // KAGOME_RUNTIME_WASMEDGE_WASM_MEMORY_IMPL_HPP
+#endif  // KAGOME_RUNTIME_WASMEDGE_MEMORY_IMPL_HPP

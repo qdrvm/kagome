@@ -33,6 +33,11 @@ namespace kagome::runtime {
     BOOST_ASSERT(offset_ <= Memory::kMaxMemorySize - size_);
   }
 
+  void MemoryAllocator::reset() {
+    allocated_.clear();
+    deallocated_.clear();
+  }
+
   WasmPointer MemoryAllocator::allocate(WasmSize size) {
     if (size == 0) {
       return 0;

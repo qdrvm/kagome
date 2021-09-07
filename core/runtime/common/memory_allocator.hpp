@@ -67,6 +67,7 @@ namespace kagome::runtime {
     std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
     size_t getAllocatedChunksNum() const;
     size_t getDeallocatedChunksNum() const;
+    void reset();
 
    private:
     /**

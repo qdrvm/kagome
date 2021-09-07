@@ -1,4 +1,5 @@
 [generators]
+cmake
 cmake_find_package_multi
 
 [requires]
