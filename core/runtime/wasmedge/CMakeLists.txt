@@ -15,3 +15,9 @@ target_link_libraries(wasmedge_wasm_memory
     memory_allocator
     )
 kagome_install(wasmedge_wasm_memory)
+
+add_library(wasmedge_wasm_runtime
+  module_instance_impl.cpp)
+target_link_libraries(wasmedge_wasm_runtime
+  wasmedge_wasm_memory)
+kagome_install(wasmedge_wasm_runtime)
