@@ -25,19 +25,24 @@ namespace kagome::runtime::wasmedge {
 
   outcome::result<void> WasmedgeMemoryProvider::resetMemory(
       WasmSize heap_base) {
-    if (store_ctx_) {
-      WasmEdge_String MemoryName = WasmEdge_StringCreateByCString("memory");
-      auto memory = WasmEdge_StoreFindMemory(store_ctx_, MemoryName);
-      if(memory) {
-        memory_ = memory_factory_->make(memory);
-      }
+    /*
+     * if (store_ctx_) {
+     *   WasmEdge_String MemoryName = WasmEdge_StringCreateByCString("memory");
+     *   auto memory = WasmEdge_StoreFindMemory(store_ctx_, MemoryName);
+     *   if(memory) {
+     *     memory_ = memory_factory_->make(memory);
+     *   }
+     * }
+     */
+    if(imp_obj_) {
+      memory_ = memory_factory_->make(imp_obj_);
     }
     return outcome::success();
   }
 
   void WasmedgeMemoryProvider::setExternalInterface(
-      WasmEdge_StoreContext *storeCtx) {
-    store_ctx_ = storeCtx;
+      WasmEdge_ImportObjectContext *impObj) {
+    imp_obj_ = impObj;
   }
 
 }  // namespace kagome::runtime::wasmedge

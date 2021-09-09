@@ -55,8 +55,6 @@ namespace kagome::host_api {
 
     ~HostApiImpl() override = default;
 
-    void reg(WasmEdge_ImportObjectContext *ImpObj);
-
     void reset() override;
 
     void ext_offchain_index_set_version_1(I64, I64) {}

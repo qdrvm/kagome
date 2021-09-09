@@ -5,13 +5,18 @@
 
 #include "runtime/wasmedge/module_instance_impl.hpp"
 
+#include "host_api/host_api.hpp"
+
 #include <wasmedge.h>
 
 namespace kagome::runtime::wasmedge {
 
-  ModuleInstanceImpl::ModuleInstanceImpl(WasmEdge_ASTModuleContext *parent,
+  ModuleInstanceImpl::ModuleInstanceImpl(InstanceEnvironment &&env,
+                                         WasmEdge_ASTModuleContext *parent,
                                          WasmEdge_ImportObjectContext *rei)
-      : logger_{log::createLogger("ModuleInstance", "wasmedge")} {
+
+      : env_{std::move(env)},
+        logger_{log::createLogger("ModuleInstance", "wasmedge")} {
     interpreter_ = WasmEdge_InterpreterCreate(nullptr, nullptr);
     store_ = WasmEdge_StoreCreate();
     auto ModName = WasmEdge_StringCreateByCString("ext");
@@ -52,6 +57,15 @@ namespace kagome::runtime::wasmedge {
       default:
         return boost::none;
     }
+  }
+
+  InstanceEnvironment const &ModuleInstanceImpl::getEnvironment() const {
+    return env_;
+  }
+
+  outcome::result<void> ModuleInstanceImpl::resetEnvironment() {
+    env_.host_api->reset();
+    return outcome::success();
   }
 
 }  // namespace kagome::runtime::wasmedge

@@ -19,7 +19,8 @@ namespace kagome::runtime::wasmedge {
 
   class ModuleInstanceImpl final : public ModuleInstance {
    public:
-    ModuleInstanceImpl(WasmEdge_ASTModuleContext *parent,
+    ModuleInstanceImpl(InstanceEnvironment &&env,
+                       WasmEdge_ASTModuleContext *parent,
                        WasmEdge_ImportObjectContext *rei);
     outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                 PtrSize args) const override;
@@ -27,7 +28,12 @@ namespace kagome::runtime::wasmedge {
     outcome::result<boost::optional<WasmValue>> getGlobal(
         std::string_view name) const override;
 
+    InstanceEnvironment const &getEnvironment() const override;
+
+    outcome::result<void> resetEnvironment() override;
+
    private:
+    InstanceEnvironment env_;
     WasmEdge_InterpreterContext *interpreter_;
     WasmEdge_StoreContext *store_;
     log::Logger logger_;

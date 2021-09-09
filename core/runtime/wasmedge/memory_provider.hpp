@@ -10,7 +10,7 @@
 
 #include "runtime/wasmedge/memory_factory.hpp"
 
-struct WasmEdge_StoreContext;
+struct WasmEdge_ImportObjectContext;
 
 namespace kagome::runtime::wasmedge {
 
@@ -24,12 +24,12 @@ namespace kagome::runtime::wasmedge {
     [[nodiscard]] outcome::result<void> resetMemory(
         WasmSize heap_base) override;
 
-    void setExternalInterface(WasmEdge_StoreContext *storeCxt);
+    void setExternalInterface(WasmEdge_ImportObjectContext *impObj);
 
    private:
     std::shared_ptr<const WasmedgeMemoryFactory> memory_factory_;
     std::shared_ptr<MemoryImpl> memory_;
-    WasmEdge_StoreContext* store_ctx_;
+    WasmEdge_ImportObjectContext *imp_obj_;
   };
 
 }  // namespace kagome::runtime::wasmedge

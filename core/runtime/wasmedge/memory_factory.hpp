@@ -8,6 +8,8 @@
 
 #include "runtime/wasmedge/memory_impl.hpp"
 
+struct WasmEdge_ImportObjectContext;
+
 namespace kagome::runtime::wasmedge {
 
   class WasmedgeMemoryFactory {
@@ -15,7 +17,7 @@ namespace kagome::runtime::wasmedge {
     virtual ~WasmedgeMemoryFactory() = default;
 
     std::unique_ptr<MemoryImpl> make(
-        WasmEdge_MemoryInstanceContext *memory) const;
+        WasmEdge_ImportObjectContext *obj) const;
   };
 
 }  // namespace kagome::runtime::wasmedge
