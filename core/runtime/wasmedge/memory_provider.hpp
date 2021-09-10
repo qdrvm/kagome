@@ -8,17 +8,15 @@
 
 #include "runtime/memory_provider.hpp"
 
-#include "runtime/wasmedge/memory_factory.hpp"
-
 struct WasmEdge_ImportObjectContext;
+struct WasmEdge_MemoryInstanceContext;
 
 namespace kagome::runtime::wasmedge {
 
+  class MemoryImpl;
+
   class WasmedgeMemoryProvider final : public MemoryProvider {
    public:
-    WasmedgeMemoryProvider(
-        std::shared_ptr<const WasmedgeMemoryFactory> memory_factory);
-
     boost::optional<runtime::Memory &> getCurrentMemory() const override;
 
     [[nodiscard]] outcome::result<void> resetMemory(
@@ -27,9 +25,8 @@ namespace kagome::runtime::wasmedge {
     void setExternalInterface(WasmEdge_ImportObjectContext *impObj);
 
    private:
-    std::shared_ptr<const WasmedgeMemoryFactory> memory_factory_;
     std::shared_ptr<MemoryImpl> memory_;
-    WasmEdge_ImportObjectContext *imp_obj_;
+    WasmEdge_MemoryInstanceContext* mem_ctx_;
   };
 
 }  // namespace kagome::runtime::wasmedge

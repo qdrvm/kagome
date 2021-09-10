@@ -113,6 +113,8 @@
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
+#include "runtime/wasmedge/core_api_factory_impl.hpp"
+#include "runtime/wasmedge/memory_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
@@ -727,7 +729,7 @@ namespace {
   template <typename... Ts>
   auto makeWavmInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
@@ -768,7 +770,7 @@ namespace {
   template <typename... Ts>
   auto makeBinaryenInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::binaryen::RuntimeExternalInterface>.template to(
             [](const auto &injector) {
@@ -789,6 +791,7 @@ namespace {
 
   template <typename CommonType,
             typename BinaryenType,
+            typename WasmEdgeType,
             typename WavmType,
             typename Injector>
   auto choose_runtime_implementation(
@@ -804,6 +807,9 @@ namespace {
         case RuntimeExecutionMethod::Compile:
           return std::static_pointer_cast<CommonType>(
               injector.template create<sptr<WavmType>>());
+        case RuntimeExecutionMethod::WasmEdge:
+          return std::static_pointer_cast<CommonType>(
+              injector.template create<sptr<WasmEdgeType>>());
       }
       throw std::runtime_error("Unknown runtime execution method");
     }();
@@ -839,7 +845,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
@@ -858,12 +864,14 @@ namespace {
               return choose_runtime_implementation<
                   runtime::CoreApiFactory,
                   runtime::binaryen::CoreApiFactoryImpl,
+                runtime::wasmedge::CoreApiFactoryImpl,
                   runtime::wavm::CoreApiFactoryImpl>(injector, method);
             }),
         di::bind<runtime::ModuleFactory>.template to(
             [method](const auto &injector) {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
+                  runtime::binaryen::ModuleFactoryImpl,
                   runtime::binaryen::ModuleFactoryImpl,
                   runtime::wavm::ModuleFactoryImpl>(injector, method);
             }),
@@ -900,7 +908,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1338,7 +1346,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&...args) {
+                              Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(

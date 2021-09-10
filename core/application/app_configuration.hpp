@@ -149,7 +149,11 @@ namespace kagome::application {
      */
     virtual const std::string &nodeVersion() const = 0;
 
-    enum class RuntimeExecutionMethod { Compile, Interpret };
+    enum class RuntimeExecutionMethod {
+      Compile,
+      Interpret,
+      WasmEdge
+    };
     /**
      * @return enum constant of the chosen runtime backend
      */

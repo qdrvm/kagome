@@ -4,7 +4,6 @@
 #
 
 add_library(wasmedge_wasm_memory
-    memory_factory.cpp
     memory_impl.cpp
     memory_provider.cpp
     )

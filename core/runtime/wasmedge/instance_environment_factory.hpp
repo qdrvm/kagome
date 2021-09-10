@@ -28,9 +28,11 @@ struct WasmEdge_VMContext;
 
 namespace kagome::runtime::wasmedge {
 
+  class WasmedgeMemoryProvider;
+
   struct WasmedgeInstanceEnvironment {
     InstanceEnvironment env;
-    WasmEdge_VMContext* vm;
+    WasmEdge_VMContext *vm;
   };
 
   class InstanceEnvironmentFactory final
@@ -49,6 +51,8 @@ namespace kagome::runtime::wasmedge {
     std::shared_ptr<host_api::HostApiFactory> host_api_factory_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
+    std::shared_ptr<WasmedgeMemoryProvider> memory_provider_;
+    WasmEdge_VMContext *vm_;
   };
 
 }  // namespace kagome::runtime::wasmedge

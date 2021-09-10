@@ -117,4 +117,6 @@ target_link_libraries(application_injector
     offchain_worker_api
     offchain_persistent_storage
     offchain_local_storage
+    wasmedge_wasm_memory
+    wasmedge_wasm_runtime
     )

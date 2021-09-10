@@ -29,30 +29,32 @@ namespace kagome::runtime::wasmedge {
     BOOST_ASSERT(host_api_factory_);
     BOOST_ASSERT(block_header_repo_);
     BOOST_ASSERT(changes_tracker_);
-  }
 
-  WasmedgeInstanceEnvironment InstanceEnvironmentFactory::make() const {
-    WasmEdge_VMContext *VMCxt = WasmEdge_VMCreate(NULL, NULL);
+    vm_ = WasmEdge_VMCreate(NULL, NULL);
     WasmEdge_String ExportName = WasmEdge_StringCreateByCString("ext");
     WasmEdge_ImportObjectContext *ImpObj =
         WasmEdge_ImportObjectCreate(ExportName, NULL);
     WasmEdge_StringDelete(ExportName);
     register_host_api(ImpObj);
-    auto memory_factory = std::make_shared<WasmedgeMemoryFactory>();
-    auto new_memory_provider =
-        std::make_shared<WasmedgeMemoryProvider>(memory_factory);
-    new_memory_provider->setExternalInterface(ImpObj);
+    memory_provider_ = std::make_shared<WasmedgeMemoryProvider>();
+    memory_provider_->setExternalInterface(ImpObj);
+    WasmEdge_VMRegisterModuleFromImport(vm_, ImpObj);
+  }
+
+  WasmedgeInstanceEnvironment InstanceEnvironmentFactory::make() const {
+    auto imp_obj = WasmEdge_VMGetImportModuleContext(vm_, WasmEdge_HostRegistration_Wasi);
+    memory_provider_->resetMemory(0);
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_);
     auto core_factory = std::make_shared<CoreApiFactoryImpl>(
-        ImpObj, shared_from_this(), block_header_repo_, changes_tracker_);
+        imp_obj, shared_from_this(), block_header_repo_, changes_tracker_);
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
-        core_factory, new_memory_provider, new_storage_provider));
+        core_factory, memory_provider_, new_storage_provider));
     return WasmedgeInstanceEnvironment{
-        InstanceEnvironment{std::move(new_memory_provider),
+        InstanceEnvironment{memory_provider_,
                             std::move(new_storage_provider),
                             std::move(host_api),
                             [](auto &) {}},
-        VMCxt};
+        vm_};
   }
 }  // namespace kagome::runtime::wasmedge
