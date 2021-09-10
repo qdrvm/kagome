@@ -11,19 +11,17 @@
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/wasmedge/instance_environment_factory.hpp"
 #include "runtime/wasmedge/memory_provider.hpp"
+#include "runtime/wasmedge/module_impl.hpp"
 #include "runtime/wasmedge/module_instance_impl.hpp"
-
-#include <wasmedge.h>
 
 namespace kagome::runtime::wasmedge {
 
   class OneModuleRepository final : public ModuleRepository {
    public:
     OneModuleRepository(
-        WasmEdge_ImportObjectContext *ImpObj,
         const std::vector<uint8_t> &code,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory)
-        : env_factory_{std::move(env_factory)}, code_{code}, imp_obj_{ImpObj} {
+        : env_factory_{std::move(env_factory)}, code_{code} {
       BOOST_ASSERT(env_factory_);
     }
 
@@ -31,14 +29,9 @@ namespace kagome::runtime::wasmedge {
         std::shared_ptr<const RuntimeCodeProvider>,
         const primitives::BlockInfo &b) override {
       if (instance_ == nullptr) {
-        WasmEdge_LoaderContext *LoaderCtx = WasmEdge_LoaderCreate(nullptr);
-        WasmEdge_ASTModuleContext *ASTCtx = nullptr;
-        auto Res = WasmEdge_LoaderParseFromBuffer(
-            LoaderCtx, &ASTCtx, code_.data(), code_.size());
-        auto env = env_factory_->make();
-        instance_ = std::dynamic_pointer_cast<runtime::ModuleInstance>(
-            std::make_shared<ModuleInstanceImpl>(
-                std::move(env.env), ASTCtx, imp_obj_));
+        OUTCOME_TRY(module, ModuleImpl::createFromCode(code_, env_factory_));
+        OUTCOME_TRY(inst, module->instantiate());
+        instance_ = std::move(inst);
       }
       return instance_;
     }
@@ -47,7 +40,6 @@ namespace kagome::runtime::wasmedge {
     std::shared_ptr<runtime::ModuleInstance> instance_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     const std::vector<uint8_t> &code_;
-    WasmEdge_ImportObjectContext *imp_obj_;
   };
 
   class OneCodeProvider final : public RuntimeCodeProvider {
@@ -64,14 +56,12 @@ namespace kagome::runtime::wasmedge {
   };
 
   CoreApiFactoryImpl::CoreApiFactoryImpl(
-      WasmEdge_ImportObjectContext *ImpObj,
       std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : instance_env_factory_{std::move(instance_env_factory)},
         header_repo_{std::move(header_repo)},
-        changes_tracker_{std::move(changes_tracker)},
-        imp_obj_{ImpObj} {
+        changes_tracker_{std::move(changes_tracker)} {
     BOOST_ASSERT(instance_env_factory_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);
     BOOST_ASSERT(changes_tracker_ != nullptr);
@@ -82,8 +72,8 @@ namespace kagome::runtime::wasmedge {
       const std::vector<uint8_t> &runtime_code) const {
     auto env_factory = std::make_shared<runtime::RuntimeEnvironmentFactory>(
         std::make_shared<OneCodeProvider>(runtime_code),
-        std::make_shared<OneModuleRepository>(
-            imp_obj_, runtime_code, instance_env_factory_),
+        std::make_shared<OneModuleRepository>(runtime_code,
+                                              instance_env_factory_),
         header_repo_);
     auto executor = std::make_unique<Executor>(header_repo_, env_factory);
     return std::make_unique<CoreImpl>(

@@ -114,7 +114,9 @@
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wasmedge/core_api_factory_impl.hpp"
+#include "runtime/wasmedge/instance_environment_factory.hpp"
 #include "runtime/wasmedge/memory_provider.hpp"
+#include "runtime/wasmedge/module_factory_impl.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/core_api_factory_impl.hpp"
 #include "runtime/wavm/instance_environment_factory.hpp"
@@ -872,7 +874,7 @@ namespace {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
                   runtime::binaryen::ModuleFactoryImpl,
-                  runtime::binaryen::ModuleFactoryImpl,
+                  runtime::wasmedge::ModuleFactoryImpl,
                   runtime::wavm::ModuleFactoryImpl>(injector, method);
             }),
         di::bind<runtime::Executor>.template to([](const auto &injector) {

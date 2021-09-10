@@ -27,8 +27,6 @@ namespace kagome::runtime {
   class RuntimeEnvironmentFactory;
 }  // namespace kagome::runtime
 
-struct WasmEdge_ImportObjectContext;
-
 namespace kagome::runtime::wasmedge {
 
   class InstanceEnvironmentFactory;
@@ -39,7 +37,6 @@ namespace kagome::runtime::wasmedge {
         public std::enable_shared_from_this<CoreApiFactoryImpl> {
    public:
     CoreApiFactoryImpl(
-        WasmEdge_ImportObjectContext *ImpObj,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
@@ -52,7 +49,6 @@ namespace kagome::runtime::wasmedge {
     std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
-    WasmEdge_ImportObjectContext *imp_obj_;
   };
 
 }  // namespace kagome::runtime::wasmedge

@@ -6,24 +6,21 @@
 #include "runtime/wasmedge/module_instance_impl.hpp"
 
 #include "host_api/host_api.hpp"
+#include "runtime/wasmedge/module_impl.hpp"
 
 #include <wasmedge.h>
 
 namespace kagome::runtime::wasmedge {
 
   ModuleInstanceImpl::ModuleInstanceImpl(InstanceEnvironment &&env,
-                                         WasmEdge_ASTModuleContext *parent,
-                                         WasmEdge_ImportObjectContext *rei)
-
+                                         std::shared_ptr<const ModuleImpl> parent,
+                                         WasmEdge_VMContext *rei)
       : env_{std::move(env)},
+        rei_{rei},
         logger_{log::createLogger("ModuleInstance", "wasmedge")} {
     interpreter_ = WasmEdge_InterpreterCreate(nullptr, nullptr);
-    store_ = WasmEdge_StoreCreate();
-    auto ModName = WasmEdge_StringCreateByCString("ext");
-    auto Res = WasmEdge_InterpreterRegisterModule(
-        interpreter_, store_, parent, ModName);
-    Res = WasmEdge_InterpreterRegisterImport(interpreter_, store_, rei);
-    WasmEdge_StringDelete(ModName);
+    auto store = WasmEdge_VMGetStoreContext(rei_);
+    WasmEdge_InterpreterInstantiate(interpreter_, store, parent->ast());
   }
 
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
@@ -32,8 +29,9 @@ namespace kagome::runtime::wasmedge {
     WasmEdge_Value Params[2] = {WasmEdge_ValueGenI32(args.ptr),
                                 WasmEdge_ValueGenI32(args.size)};
     WasmEdge_Value Returns[1];
+    auto store = WasmEdge_VMGetStoreContext(rei_);
     auto Res = WasmEdge_InterpreterInvoke(
-        interpreter_, store_, FuncName, Params, 2, Returns, 1);
+        interpreter_, store, FuncName, Params, 2, Returns, 1);
     WasmEdge_StringDelete(FuncName);
     return PtrSize{WasmEdge_ValueGetI64(Returns[0])};
   }
@@ -41,7 +39,8 @@ namespace kagome::runtime::wasmedge {
   outcome::result<boost::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
       std::string_view name) const {
     auto GlobalName = WasmEdge_StringCreateByCString(name.data());
-    auto res = WasmEdge_StoreFindGlobal(store_, GlobalName);
+    auto store = WasmEdge_VMGetStoreContext(rei_);
+    auto res = WasmEdge_StoreFindGlobal(store, GlobalName);
     auto type = WasmEdge_GlobalInstanceGetValType(res);
     auto val = WasmEdge_GlobalInstanceGetValue(res);
     WasmEdge_StringDelete(GlobalName);

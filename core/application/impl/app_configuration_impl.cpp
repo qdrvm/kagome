@@ -501,7 +501,7 @@ namespace kagome::application {
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
         ("wasm-execution", po::value<std::string>()->default_value("Interpreted"),
-          "choose the desired wasm execution method (Compiled, Interpreted)")
+          "choose the desired wasm execution method (Compiled, Interpreted, WasmEdge)")
         ;
 
     // clang-format on

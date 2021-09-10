@@ -42,12 +42,11 @@ namespace kagome::runtime::wasmedge {
   }
 
   WasmedgeInstanceEnvironment InstanceEnvironmentFactory::make() const {
-    auto imp_obj = WasmEdge_VMGetImportModuleContext(vm_, WasmEdge_HostRegistration_Wasi);
     memory_provider_->resetMemory(0);
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_);
     auto core_factory = std::make_shared<CoreApiFactoryImpl>(
-        imp_obj, shared_from_this(), block_header_repo_, changes_tracker_);
+        shared_from_this(), block_header_repo_, changes_tracker_);
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
         core_factory, memory_provider_, new_storage_provider));
     return WasmedgeInstanceEnvironment{

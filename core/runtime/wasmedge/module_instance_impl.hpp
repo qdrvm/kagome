@@ -10,18 +10,18 @@
 
 #include "log/logger.hpp"
 
-struct WasmEdge_ASTModuleContext;
-struct WasmEdge_ImportObjectContext;
 struct WasmEdge_InterpreterContext;
-struct WasmEdge_StoreContext;
+struct WasmEdge_VMContext;
 
 namespace kagome::runtime::wasmedge {
+
+  class ModuleImpl;
 
   class ModuleInstanceImpl final : public ModuleInstance {
    public:
     ModuleInstanceImpl(InstanceEnvironment &&env,
-                       WasmEdge_ASTModuleContext *parent,
-                       WasmEdge_ImportObjectContext *rei);
+                       std::shared_ptr<const ModuleImpl> parent,
+                       WasmEdge_VMContext *rei);
     outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                 PtrSize args) const override;
 
@@ -35,7 +35,7 @@ namespace kagome::runtime::wasmedge {
    private:
     InstanceEnvironment env_;
     WasmEdge_InterpreterContext *interpreter_;
-    WasmEdge_StoreContext *store_;
+    WasmEdge_VMContext* rei_;
     log::Logger logger_;
   };
 

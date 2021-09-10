@@ -18,6 +18,8 @@ kagome_install(wasmedge_wasm_memory)
 add_library(wasmedge_wasm_runtime
   core_api_factory_impl.cpp
   instance_environment_factory.cpp
+  module_factory_impl.cpp
+  module_impl.cpp
   module_instance_impl.cpp)
 target_link_libraries(wasmedge_wasm_runtime
   wasmedge_wasm_memory)
