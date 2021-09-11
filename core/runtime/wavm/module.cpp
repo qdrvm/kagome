@@ -27,7 +27,7 @@ namespace kagome::runtime::wavm {
     WAVM::IR::FeatureSpec featureSpec;
 
     log::Logger logger = log::createLogger("WAVM Module", "wavm");
-    logger->verbose(
+    logger->info(
         "Compiling WebAssembly module for Runtime (going to take a few dozens "
         "of seconds)");
     if (!WAVM::Runtime::loadBinaryModule(
