@@ -99,7 +99,6 @@ namespace kagome::runtime::wavm {
         block_header_repo_);
     auto executor =
         std::make_unique<runtime::Executor>(block_header_repo_, env_factory);
-    env_factory->setEnvCleanupCallback([](auto &) { popHostApi(); });
     return std::make_unique<CoreImpl>(
         std::move(executor), changes_tracker_, block_header_repo_);
   }

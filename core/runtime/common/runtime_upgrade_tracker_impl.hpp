@@ -36,6 +36,14 @@ namespace kagome::runtime {
         const primitives::BlockInfo &block) const;
 
    private:
+    bool isStateInChain(const primitives::BlockInfo &state,
+                        const primitives::BlockInfo &chain) const;
+
+    outcome::result<boost::optional<storage::trie::RootHash>> findProperFork(
+        const primitives::BlockInfo &block,
+        std::vector<primitives::BlockInfo>::const_iterator
+            latest_state_update_it) const;
+
     // assumption: insertions in the middle should be extremely rare, if any
     // assumption: runtime upgrades are rare
     mutable std::vector<primitives::BlockInfo> runtime_upgrade_parents_;

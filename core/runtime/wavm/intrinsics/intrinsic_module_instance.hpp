@@ -27,9 +27,15 @@ namespace kagome::runtime::wavm {
    */
   class IntrinsicModuleInstance final {
    public:
+    static size_t Count;
+
     IntrinsicModuleInstance(
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
         std::shared_ptr<const CompartmentWrapper> compartment);
+
+    ~IntrinsicModuleInstance() {
+      Count--;
+    }
 
     WAVM::Runtime::Memory *getExportedMemory() const;
     WAVM::Runtime::Function *getExportedFunction(

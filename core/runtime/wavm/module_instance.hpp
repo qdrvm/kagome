@@ -28,6 +28,8 @@ namespace kagome::runtime::wavm {
 
   class ModuleInstance : public runtime::ModuleInstance {
    public:
+    static size_t Count;
+
     enum class Error {
       FUNC_NOT_FOUND = 1,
       WRONG_ARG_COUNT,

@@ -27,10 +27,16 @@ namespace kagome::runtime::wavm {
 
   class ModuleImpl final : public runtime::Module {
    public:
+    static size_t Count;
+
     static std::unique_ptr<ModuleImpl> compileFrom(
         std::shared_ptr<CompartmentWrapper> compartment,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
         gsl::span<const uint8_t> code);
+
+    ~ModuleImpl() {
+      Count--;
+    }
 
     outcome::result<std::unique_ptr<kagome::runtime::ModuleInstance>>
     instantiate() const override;

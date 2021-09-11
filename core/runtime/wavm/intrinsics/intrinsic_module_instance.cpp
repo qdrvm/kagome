@@ -13,12 +13,15 @@
 
 namespace kagome::runtime::wavm {
 
+  size_t IntrinsicModuleInstance::Count = 0;
+
   IntrinsicModuleInstance::IntrinsicModuleInstance(
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
       std::shared_ptr<const CompartmentWrapper> compartment)
       : module_instance_{std::move(module_instance)},
         compartment_{std::move(compartment)} {
     BOOST_ASSERT(compartment_);
+    Count++;
   }
 
   WAVM::Runtime::Memory *IntrinsicModuleInstance::getExportedMemory() const {

@@ -26,6 +26,8 @@ groups:
         level: off
       - name: kagome
         children:
+          - name: profile
+            level: debug
           - name: injector
           - name: application
           - name: rpc
@@ -70,7 +72,6 @@ groups:
         children:
           - name: testing
           - name: debug
-          - name: profile
 # ----------------
   )");
   }

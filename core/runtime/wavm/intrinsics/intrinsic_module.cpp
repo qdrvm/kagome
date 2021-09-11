@@ -6,5 +6,5 @@
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 
 namespace kagome::runtime::wavm {
-
+  size_t IntrinsicModule::Count = 0;
 }

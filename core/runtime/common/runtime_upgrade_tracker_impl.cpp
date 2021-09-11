@@ -19,6 +19,74 @@ namespace kagome::runtime {
     BOOST_ASSERT(header_repo_);
   }
 
+  bool RuntimeUpgradeTrackerImpl::isStateInChain(
+      const primitives::BlockInfo &state,
+      const primitives::BlockInfo &chain) const {
+    // if the found state is finalized, it is guaranteed to not belong to a
+    // different fork
+    if (block_tree_->getLastFinalized().number >= chain.number) {
+      return true;
+    }
+    // a non-finalized state may belong to a different fork, need to check
+    // explicitly (can be expensive if blocks are far apart)
+    KAGOME_PROFILE_START(has_direct_chain)
+    bool has_direct_chain = block_tree_->hasDirectChain(chain.hash, state.hash);
+    KAGOME_PROFILE_END(has_direct_chain)
+    return has_direct_chain;
+  }
+
+  outcome::result<boost::optional<storage::trie::RootHash>>
+  RuntimeUpgradeTrackerImpl::findProperFork(
+      const primitives::BlockInfo &block,
+      std::vector<primitives::BlockInfo>::const_iterator latest_state_update_it)
+      const {
+    for (;
+         std::next(latest_state_update_it) != runtime_upgrade_parents_.begin();
+         latest_state_update_it--) {
+      if (latest_state_update_it->number == 0) {
+        OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
+        SL_TRACE_FUNC_CALL(
+            logger_, genesis.state_root, block.hash, block.number)
+        SL_DEBUG(logger_,
+                 "Pick runtime state at genesis for block #{} hash {}",
+                 block.number,
+                 block.hash.toHex());
+        return genesis.state_root;
+      }
+
+      if (isStateInChain(*latest_state_update_it, block)) {
+        KAGOME_PROFILE_START(proper_fork_processing)
+        // found the predecessor with the latest runtime upgrade
+        OUTCOME_TRY(children,
+                    block_tree_->getChildren(latest_state_update_it->hash));
+        // temporary; need to find a way to tackle forks here
+        // the runtime upgrades are reported for the state of the parent of the
+        // block with the runtime upgrade, so we need to fetch a child block
+        BOOST_ASSERT(children.size() == 1);
+        OUTCOME_TRY(target_header, header_repo_->getBlockHeader(children[0]));
+
+        BOOST_ASSERT(block_tree_->getLastFinalized().number
+                         >= target_header.number
+                     or block_tree_->hasDirectChain(children[0], block.hash));
+
+        SL_TRACE_FUNC_CALL(
+            logger_, target_header.state_root, block.hash, block.number)
+        SL_DEBUG(
+            logger_,
+            "Pick runtime state at block #{} hash {} for block #{} hash {}",
+            target_header.number,
+            children[0],
+            block.number,
+            block.hash.toHex());
+
+        KAGOME_PROFILE_END(proper_fork_processing)
+
+        return target_header.state_root;
+      }
+    }
+    return boost::none;
+  }
+
   outcome::result<storage::trie::RootHash>
   RuntimeUpgradeTrackerImpl::getLastCodeUpdateState(
       const primitives::BlockInfo &block) const {
@@ -26,9 +94,10 @@ namespace kagome::runtime {
     // genesis block
     if (block_tree_ == nullptr) {
       OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
-      SL_DEBUG(logger_, "Pick runtime state at genesis for block #{} hash {}",
-                     block.number,
-                     block.hash.toHex());
+      SL_DEBUG(logger_,
+               "Pick runtime state at genesis for block #{} hash {}",
+               block.number,
+               block.hash.toHex());
       return genesis.state_root;
     }
 
@@ -45,9 +114,9 @@ namespace kagome::runtime {
                                               header.parent_hash);
       }
       SL_DEBUG(logger_,
-          "Pick runtime state at block #{} hash {} for the same block",
-          block.number,
-          block.hash.toHex());
+               "Pick runtime state at block #{} hash {} for the same block",
+               block.number,
+               block.hash.toHex());
       return header.state_root;
     }
 
@@ -66,9 +135,9 @@ namespace kagome::runtime {
       // state
       OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
       SL_DEBUG(logger_,
-          "Pick runtime state at block #{} hash {} for the same block",
-          block.number,
-          block.hash.toHex());
+               "Pick runtime state at block #{} hash {} for the same block",
+               block.number,
+               block.hash.toHex());
       return block_header.state_root;
     }
 
@@ -77,66 +146,12 @@ namespace kagome::runtime {
     // less or equal to our \arg block number
     // we may have several entries with the same block number, we have to pick
     // one which is the predecessor of our block
-    KAGOME_PROFILE_START(search_for_proper_fork);
-    for (;
-         std::next(latest_state_update_it) != runtime_upgrade_parents_.begin();
-         latest_state_update_it--) {
-      bool state_in_the_same_chain = false;
-
-      // if the found state is finalized, it is guaranteed to not belong to a
-      // different fork
-      if (block_tree_->getLastFinalized().number
-          >= latest_state_update_it->number) {
-        state_in_the_same_chain = true;
-      } else {
-        // a non-finalized state may belong to a different fork, need to check
-        // explicitly (can be expensive if blocks are far apart)
-        KAGOME_PROFILE_START(has_direct_chain);
-        bool has_direct_chain = block_tree_->hasDirectChain(
-            latest_state_update_it->hash, block.hash);
-        KAGOME_PROFILE_END(has_direct_chain);
-        state_in_the_same_chain = has_direct_chain;
-      }
-
-      if (state_in_the_same_chain) {
-        if (latest_state_update_it->number == 0) {
-          OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
-          SL_TRACE_FUNC_CALL(
-              logger_, genesis.state_root, block.hash, block.number);
-          SL_DEBUG(logger_, "Pick runtime state at genesis for block #{} hash {}",
-                         block.number,
-                         block.hash.toHex());
-          return genesis.state_root;
-        }
-
-        // found the predecessor with the latest runtime upgrade
-        auto children_res =
-            block_tree_->getChildren(latest_state_update_it->hash);
-        if (!children_res) {
-          return children_res.error();
-        }
-        auto children = std::move(children_res.value());
-        // temporary; need to find a way to tackle forks here
-        // the runtime upgrades are reported for the state of the parent of the
-        // block with the runtime upgrade, so we need to fetch a child block
-        BOOST_ASSERT(children.size() == 1);
-        OUTCOME_TRY(target_header, header_repo_->getBlockHeader(children[0]));
-        BOOST_ASSERT(block_tree_->getLastFinalized().number
-                         >= target_header.number
-                     or block_tree_->hasDirectChain(children[0], block.hash));
-
-        SL_TRACE_FUNC_CALL(
-            logger_, target_header.state_root, block.hash, block.number);
-        SL_DEBUG(logger_,
-            "Pick runtime state at block #{} hash {} for block #{} hash {}",
-            target_header.number,
-            children[0],
-            block.number,
-            block.hash.toHex());
-        return target_header.state_root;
-      }
+    KAGOME_PROFILE_START(search_for_proper_fork)
+    OUTCOME_TRY(proper_fork, findProperFork(block, latest_state_update_it));
+    KAGOME_PROFILE_END(search_for_proper_fork)
+    if (proper_fork.has_value()) {
+      return proper_fork.value();
     }
-    KAGOME_PROFILE_END(search_for_proper_fork);
     // if this is an orphan block for some reason, just return its state_root
     // (there is no other choice)
     OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
