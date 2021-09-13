@@ -213,7 +213,7 @@ namespace {
         [&](const primitives::Block &genesis_block) {
           auto log = log::createLogger("Injector", "injector");
 
-          auto res = db->get(authority::AuthorityManagerImpl::SCHEDULER_TREE);
+          auto res = db->get(storage::kSchedulerTreeLookupKey);
           if (not res.has_value()
               && res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
             auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
@@ -249,9 +249,8 @@ namespace {
               common::raise(data_res.error());
             }
 
-            auto save_res =
-                db->put(authority::AuthorityManagerImpl::SCHEDULER_TREE,
-                        common::Buffer(data_res.value()));
+            auto save_res = db->put(storage::kSchedulerTreeLookupKey,
+                                    common::Buffer(data_res.value()));
             if (!save_res.has_value()) {
               log->critical("Can't store current state: {}",
                             save_res.error().message());
@@ -966,7 +965,8 @@ namespace {
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
-        di::bind<application::CodeSubstitutes>.to(get_chain_spec(config)->codeSubstitutes()),
+        di::bind<application::CodeSubstitutes>.to(
+            get_chain_spec(config)->codeSubstitutes()),
 
         // compose peer keypair
         di::bind<libp2p::crypto::KeyPair>.to([](auto const &injector) {
