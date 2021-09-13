@@ -24,7 +24,7 @@ namespace kagome::runtime {
      * runtime upgrade happened
      */
     virtual outcome::result<primitives::BlockId>
-    getRuntimeChangeBlock(const primitives::BlockInfo &block) const = 0;
+    getRuntimeChangeBlock(const primitives::BlockInfo &block) = 0;
   };
 
 }  // namespace kagome::runtime

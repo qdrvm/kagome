@@ -26,6 +26,9 @@ namespace kagome::storage {
   inline const common::Buffer kActivePeersKey =
       common::Buffer().put(":kagome:last_active_peers");
 
+  inline const common::Buffer kRuntimeHashesLookupKey =
+      common::Buffer().put(":kagome:runtime_hashes");
+
   inline const common::Buffer kSchedulerTreeLookupKey =
       common::Buffer{}.put(":kagome:authorities:scheduler_tree");
 }  // namespace kagome::storage

@@ -14,6 +14,7 @@
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
+#include "storage/buffer_map_types.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::blockchain {
@@ -27,6 +28,7 @@ namespace kagome::runtime {
    public:
     RuntimeUpgradeTrackerImpl(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+        std::shared_ptr<storage::BufferStorage> storage,
         const application::CodeSubstitutes &code_substitutes);
 
     void subscribeToBlockchainEvents(
@@ -34,18 +36,20 @@ namespace kagome::runtime {
             storage_sub_engine,
         std::shared_ptr<const blockchain::BlockTree> block_tree);
 
-    outcome::result<primitives::BlockId>
-    getRuntimeChangeBlock(const primitives::BlockInfo &block) const;
+    outcome::result<primitives::BlockId> getRuntimeChangeBlock(
+        const primitives::BlockInfo &block);
 
    private:
+    void save();
     // assumption: insertions in the middle should be extremely rare, if any
     // assumption: runtime upgrades are rare
-    mutable std::vector<primitives::BlockInfo> runtime_upgrade_parents_;
+    std::vector<primitives::BlockInfo> runtime_upgrade_parents_;
 
     std::shared_ptr<primitives::events::StorageEventSubscriber>
         storage_subscription_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
+    std::shared_ptr<storage::BufferStorage> storage_;
     const application::CodeSubstitutes &code_substitutes_;
     log::Logger logger_;
   };

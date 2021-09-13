@@ -9,21 +9,35 @@
 #include "blockchain/block_tree.hpp"
 #include "log/profiling_logger.hpp"
 #include "runtime/common/storage_code_provider.hpp"
+#include "storage/predefined_keys.hpp"
 
 namespace kagome::runtime {
 
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+      std::shared_ptr<storage::BufferStorage> storage,
       const application::CodeSubstitutes &code_substitutes)
       : header_repo_{std::move(header_repo)},
+        storage_{std::move(storage)},
         code_substitutes_{code_substitutes},
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {
     BOOST_ASSERT(header_repo_);
+    BOOST_ASSERT(storage_);
+    auto encoded_res = storage_->get(storage::kRuntimeHashesLookupKey);
+    if (encoded_res.has_value()) {
+      auto decoded_res = scale::decode<decltype(runtime_upgrade_parents_)>(
+          encoded_res.value());
+      if (not decoded_res.has_value()) {
+        SL_ERROR(logger_, "Saved runtime hashes data structure is incorrect!");
+      } else {
+        runtime_upgrade_parents_ = decoded_res.value();
+      }
+    }
   }
 
   outcome::result<primitives::BlockId>
   RuntimeUpgradeTrackerImpl::getRuntimeChangeBlock(
-      const primitives::BlockInfo &block) const {
+      const primitives::BlockInfo &block) {
     // if the block tree is not yet initialized, means we can only access the
     // genesis block
     if (block_tree_ == nullptr) {
@@ -46,6 +60,7 @@ namespace kagome::runtime {
         runtime_upgrade_parents_.emplace_back(block.number - 1,
                                               header.parent_hash);
       }
+      save();
       SL_DEBUG(logger_,
                "Pick runtime state at block #{} hash {} for the same block",
                block.number,
@@ -56,6 +71,7 @@ namespace kagome::runtime {
     if (auto it = code_substitutes_.find(block.hash);
         it != code_substitutes_.end()) {
       runtime_upgrade_parents_.emplace_back(block.number, block.hash);
+      save();
     }
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
@@ -79,6 +95,17 @@ namespace kagome::runtime {
     }
 
     --latest_state_update_it;
+    if(latest_state_update_it->number == block.number) {
+      if(latest_state_update_it != runtime_upgrade_parents_.begin()) {
+        --latest_state_update_it;
+      } else {
+        SL_DEBUG(logger_,
+                 "Pick runtime state at block #{} hash {} for the same block",
+                 block.number,
+                 block.hash.toHex());
+        return block.hash;
+      }
+    }
     // we are now at the last element in block_with_runtime_upgrade which is
     // less or equal to our \arg block number
     // we may have several entries with the same block number, we have to pick
@@ -117,6 +144,10 @@ namespace kagome::runtime {
         }
 
         // found the predecessor with the latest runtime upgrade
+        if (auto it = code_substitutes_.find(latest_state_update_it->hash);
+            it != code_substitutes_.end()) {
+          return latest_state_update_it->hash;
+        }
         auto children_res =
             block_tree_->getChildren(latest_state_update_it->hash);
         if (!children_res) {
@@ -186,7 +217,23 @@ namespace kagome::runtime {
                                    return number < block_id.number;
                                  });
       runtime_upgrade_parents_.emplace(it, number, block_hash);
+      save();
     });
+  }
+
+  void RuntimeUpgradeTrackerImpl::save() {
+    auto encoded_res = scale::encode(runtime_upgrade_parents_);
+    if (encoded_res.has_value()) {
+      auto put_res = storage_->put(storage::kRuntimeHashesLookupKey,
+                                   common::Buffer(encoded_res.value()));
+      if (not put_res.has_value()) {
+        SL_ERROR(logger_, "Could put runtime changing block hashes");
+      }
+    } else {
+      SL_ERROR(
+          logger_,
+          "Error occured when trying to load runtime changing block hashes");
+    }
   }
 
 }  // namespace kagome::runtime

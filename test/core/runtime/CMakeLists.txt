@@ -54,6 +54,8 @@ target_link_libraries(runtime_upgrade_tracker_test
     runtime_upgrade_tracker
     blob
     buffer
+    in_memory_storage
     logger
     log_configurator
+    scale
     )

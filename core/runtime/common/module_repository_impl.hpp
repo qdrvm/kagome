@@ -23,7 +23,7 @@ namespace kagome::runtime {
   class ModuleRepositoryImpl final : public ModuleRepository {
    public:
     ModuleRepositoryImpl(
-        std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
+        std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
         std::shared_ptr<const ModuleFactory> module_factory,
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         const application::CodeSubstitutes &code_substitutes);
@@ -82,7 +82,7 @@ namespace kagome::runtime {
 
     static thread_local InstanceCache instances_cache_;
     std::mutex instances_mutex_;
-    std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker_;
+    std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     const application::CodeSubstitutes &code_substitutes_;
