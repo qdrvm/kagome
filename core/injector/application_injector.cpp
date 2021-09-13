@@ -966,6 +966,7 @@ namespace {
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
+        di::bind<application::CodeSubstitutes>.to(get_chain_spec(config)->codeSubstitutes()),
 
         // compose peer keypair
         di::bind<libp2p::crypto::KeyPair>.to([](auto const &injector) {

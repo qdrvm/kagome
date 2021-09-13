@@ -20,11 +20,16 @@ namespace kagome::runtime {
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
-      std::shared_ptr<const ModuleFactory> module_factory)
+      std::shared_ptr<const ModuleFactory> module_factory,
+      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+      const application::CodeSubstitutes &code_substitutes)
       : runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
-        module_factory_{std::move(module_factory)} {
+        module_factory_{std::move(module_factory)},
+        header_repo_{std::move(header_repo)},
+        code_substitutes_{code_substitutes} {
     BOOST_ASSERT(runtime_upgrade_tracker_);
     BOOST_ASSERT(module_factory_);
+    BOOST_ASSERT(header_repo_);
   }
 
   outcome::result<std::shared_ptr<ModuleInstance>>
@@ -32,7 +37,9 @@ namespace kagome::runtime {
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
       const primitives::BlockInfo &block) {
     KAGOME_PROFILE_START(code_retrieval);
-    OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
+    OUTCOME_TRY(res, runtime_upgrade_tracker_->getRuntimeChangeBlock(block));
+    OUTCOME_TRY(res_header, header_repo_->getBlockHeader(res));
+    const auto &state = res_header.state_root;
     KAGOME_PROFILE_END(code_retrieval);
 
     KAGOME_PROFILE_START(module_retrieval);
@@ -40,8 +47,15 @@ namespace kagome::runtime {
     {
       std::lock_guard guard{modules_mutex_};
       if (auto it = modules_.find(state); it == modules_.end()) {
+        auto code_it =
+            0 == res.which()
+                ? code_substitutes_.find(boost::get<primitives::BlockHash>(res))
+                : code_substitutes_.end();
         OUTCOME_TRY(code, code_provider->getCodeAt(state));
-        OUTCOME_TRY(new_module, module_factory_->make(code));
+        OUTCOME_TRY(new_module,
+                    module_factory_->make(code_substitutes_.end() != code_it
+                                              ? code_it->second
+                                              : code));
         module = std::move(new_module);
         modules_[state] = module;
       } else {
