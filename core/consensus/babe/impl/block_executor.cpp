@@ -21,6 +21,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutor::Error, e) {
   switch (e) {
     case E::INVALID_BLOCK:
       return "Invalid block";
+    case E::BLOCK_EXECUTOR_GONE:
+      return "Internal error";
   }
   return "Unknown error";
 }
@@ -31,7 +33,6 @@ namespace kagome::consensus {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
-      std::shared_ptr<BabeSynchronizer> babe_synchronizer,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<grandpa::Environment> grandpa_environment,
       std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
@@ -46,7 +47,6 @@ namespace kagome::consensus {
         block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         babe_configuration_{std::move(configuration)},
-        babe_synchronizer_{std::move(babe_synchronizer)},
         block_validator_{std::move(block_validator)},
         grandpa_environment_{std::move(grandpa_environment)},
         tx_pool_{std::move(tx_pool)},
@@ -58,7 +58,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
-    BOOST_ASSERT(babe_synchronizer_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
     BOOST_ASSERT(grandpa_environment_ != nullptr);
     BOOST_ASSERT(tx_pool_ != nullptr);
@@ -70,174 +69,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(logger_ != nullptr);
   }
 
-  void BlockExecutor::processNextBlock(
-      const libp2p::peer::PeerId &peer_id,
-      const primitives::BlockHeader &header,
-      const std::function<void(const primitives::BlockHeader &)>
-          &new_block_handler) {
-    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
-
-    // insert block_header if it is missing
-    if (not block_tree_->getBlockHeader(block_hash)) {
-      new_block_handler(header);
-      logger_->info("Received block header. Number: {}, Hash: {}",
-                    header.number,
-                    block_hash.toHex());
-
-      if (not block_tree_->getBlockHeader(header.parent_hash)) {
-        if (sync_state_ == kReadyState) {
-          /// We don't have past block, it means we have a gap and must sync
-          sync_state_ = kSyncState;
-          const auto &[last_number, last_hash] =
-              block_tree_->getLastFinalized();
-          // we should request blocks between last finalized one and received
-          // block
-
-          // TODO(xDimon): Move timeout for request into config
-          sync_timer_->expiresAfter(std::chrono::seconds(30));
-          sync_timer_->asyncWait([wp = weak_from_this()](auto e) {
-            if (auto self = wp.lock()) {
-              if (not e) {
-                self->sync_state_ = kReadyState;
-              }
-            }
-          });
-
-          requestBlocks(
-              last_hash, block_hash, peer_id, [wp = weak_from_this()] {
-                if (auto self = wp.lock()) {
-                  ExecutorState state = kSyncState;
-                  if (self->sync_state_.compare_exchange_strong(state,
-                                                                kReadyState)) {
-                    self->sync_timer_.get()->cancel();
-                  }
-                }
-              });
-        }
-      } else {
-        requestBlocks(header.parent_hash, block_hash, peer_id, [] {});
-      }
-    }
-  }
-
-  void BlockExecutor::requestBlocks(const libp2p::peer::PeerId &peer_id,
-                                    const primitives::BlockHeader &new_header,
-                                    std::function<void()> &&next) {
-    const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
-    auto new_block_hash =
-        hasher_->blake2b_256(scale::encode(new_header).value());
-    BOOST_ASSERT(new_header.number >= last_number);
-    return requestBlocks(last_hash, new_block_hash, peer_id, std::move(next));
-  }
-
-  void BlockExecutor::requestBlocks(const primitives::BlockHash &from,
-                                    const primitives::BlockHash &to,
-                                    const libp2p::peer::PeerId &peer_id,
-                                    std::function<void()> &&on_retrieved) {
-    babe_synchronizer_->request(
-        from,
-        to,
-        peer_id,
-        [wp = weak_from_this(),
-         on_retrieved = std::move(on_retrieved),
-         to,
-         from,
-         peer_id](auto blocks_res) mutable {
-          auto self = wp.lock();
-          if (not self) {
-            on_retrieved();
-            return;
-          }
-
-          if (not blocks_res.has_value()) {
-            on_retrieved();
-            return;
-          }
-          auto &blocks = blocks_res->get();
-
-          if (blocks.empty()) {
-            self->logger_->warn("Received empty list of blocks");
-            on_retrieved();
-            return;
-          }
-
-          if (blocks.front().header && blocks.back().header) {
-            self->logger_->info(
-                "Received portion of blocks: {}..{}, #{}..#{}, count {}",
-                blocks.front().hash.toHex(),
-                blocks.back().hash.toHex(),
-                blocks.front().header->number,
-                blocks.back().header->number,
-                blocks.size());
-          }
-
-          auto async_helper = std::make_shared<AsyncHelper>(self->io_context_);
-
-          async_helper->setFunction([wp,
-                                     to,
-                                     peer_id,
-                                     on_retrieved = std::move(on_retrieved),
-                                     next_iteration = async_helper->next(),
-                                     blocks = std::move(blocks),
-                                     i = static_cast<size_t>(0)]() mutable {
-            auto self = wp.lock();
-            if (not self) {
-              return;
-            }
-
-            ExecutorState state = kSyncState;
-            if (self->sync_state_.compare_exchange_strong(state, kSyncState)) {
-              self->sync_timer_->cancel();
-              self->sync_timer_->expiresAfter(std::chrono::seconds(30));
-              self->sync_timer_->asyncWait([wp](auto e) {
-                if (auto self = wp.lock()) {
-                  if (not e) {
-                    self->sync_state_ = kReadyState;
-                  }
-                }
-              });
-            }
-
-            auto block = std::move(blocks[i++]);  // For free memory asap
-
-            auto apply_res = self->applyBlock(block);  // for debug purposes
-
-            // Failed
-            if (not apply_res.has_value()
-                && apply_res
-                       != outcome::failure(
-                           blockchain::BlockTreeError::BLOCK_EXISTS)) {
-              self->logger_->error(
-                  "Could not apply block #{} during synchronizing. Error: {}",
-                  block.header->number,
-                  apply_res.error().message());
-              on_retrieved();
-              return;
-            }
-
-            // Portion of blocks is out
-            if (i == blocks.size()) {
-              // Endian block retrieved
-              if (to == block.hash) {
-                on_retrieved();
-                return;
-              }
-
-              self->logger_->info("Request next page of blocks: {}..{}",
-                                  block.hash.toHex(),
-                                  to.toHex());
-              self->requestBlocks(
-                  block.hash, to, peer_id, std::move(on_retrieved));
-
-              return;
-            }
-
-            next_iteration();
-          });
-
-          async_helper->run();
-        });
-  }
 
   outcome::result<void> BlockExecutor::applyBlock(
       const primitives::BlockData &b) {
@@ -340,10 +171,11 @@ namespace kagome::consensus {
              parent.state_root);
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
     auto exec_end = std::chrono::high_resolution_clock::now();
-    SL_DEBUG(logger_, "Core_execute_block: {} ms",
-                   std::chrono::duration_cast<std::chrono::milliseconds>(
-                       exec_end - exec_start)
-                       .count());
+    SL_DEBUG(logger_,
+             "Core_execute_block: {} ms",
+             std::chrono::duration_cast<std::chrono::milliseconds>(exec_end
+                                                                   - exec_start)
+                 .count());
 
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));

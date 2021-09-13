@@ -42,16 +42,6 @@ target_link_libraries(extrinsic_observer
     logger
     )
 
-add_library(remote_sync_protocol_client
-    remote_sync_protocol_client.cpp
-    remote_sync_protocol_client.hpp
-    )
-target_link_libraries(remote_sync_protocol_client
-    logger
-    node_api_proto
-    adapter_errors
-    )
-
 add_library(sync_protocol_observer
     sync_protocol_observer_impl.hpp
     sync_protocol_observer_impl.cpp

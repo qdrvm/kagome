@@ -24,7 +24,6 @@ namespace kagome::network {
       std::shared_ptr<clock::SteadyClock> clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<network::SyncClientsSet> sync_clients,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<storage::BufferStorage> storage)
       : app_state_manager_(std::move(app_state_manager)),
@@ -37,7 +36,6 @@ namespace kagome::network {
         clock_(std::move(clock)),
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
-        sync_clients_(std::move(sync_clients)),
         router_{std::move(router)},
         storage_{std::move(storage)},
         log_(log::createLogger("PeerManager", "network")) {
@@ -46,7 +44,6 @@ namespace kagome::network {
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
-    BOOST_ASSERT(sync_clients_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
 
@@ -339,7 +336,6 @@ namespace kagome::network {
       active_peers_.erase(it);
       SL_DEBUG(log_, "Remained {} active peers", active_peers_.size());
     }
-    sync_clients_->remove(peer_id);
   }
 
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {

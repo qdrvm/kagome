@@ -130,7 +130,7 @@ namespace kagome::network {
           self->protocol_,
           stream->remotePeerId().value().toBase58(),
           block_request.id,
-          block_request.fields.attributes,
+          (uint8_t)block_request.fields,
           block_request.direction == Direction::ASCENDING ? "anc" : "desc",
           visit_in_place(
               block_request.from,

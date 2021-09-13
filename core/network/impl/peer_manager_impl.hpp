@@ -33,7 +33,6 @@
 #include "network/types/block_announce.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
-#include "network/types/sync_clients_set.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -55,7 +54,6 @@ namespace kagome::network {
         std::shared_ptr<clock::SteadyClock> clock,
         const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_peer_info,
-        std::shared_ptr<network::SyncClientsSet> sync_clients,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage);
 
@@ -226,7 +224,6 @@ namespace kagome::network {
     std::shared_ptr<clock::SteadyClock> clock_;
     const BootstrapNodes &bootstrap_nodes_;
     const OwnPeerInfo &own_peer_info_;
-    std::shared_ptr<network::SyncClientsSet> sync_clients_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<storage::BufferStorage> storage_;
 

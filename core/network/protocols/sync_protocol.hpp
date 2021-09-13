@@ -6,8 +6,9 @@
 #ifndef KAGOME_NETWORK_SYNCPROTOCOL
 #define KAGOME_NETWORK_SYNCPROTOCOL
 
-#include <memory>
 #include "network/protocol_base.hpp"
+
+#include <memory>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>

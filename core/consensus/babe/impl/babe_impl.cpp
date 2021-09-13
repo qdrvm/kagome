@@ -11,6 +11,7 @@
 #include "blockchain/block_tree_error.hpp"
 #include "clock/impl/ticker_impl.hpp"
 #include "common/buffer.hpp"
+#include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
@@ -27,7 +28,6 @@ namespace kagome::consensus::babe {
   BabeImpl::BabeImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<BabeLottery> lottery,
-      std::shared_ptr<BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<authorship::Proposer> proposer,
@@ -41,9 +41,9 @@ namespace kagome::consensus::babe {
       std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
+      std::shared_ptr<BabeSynchronizer> babe_synchronizer,
       std::shared_ptr<BabeUtil> babe_util)
       : lottery_{std::move(lottery)},
-        block_executor_{std::move(block_executor)},
         trie_storage_{std::move(trie_storage)},
         babe_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
@@ -55,6 +55,7 @@ namespace kagome::consensus::babe {
         sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
+        babe_synchronizer_(std::move(babe_synchronizer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
     BOOST_ASSERT(lottery_);
@@ -68,6 +69,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(timer_);
     BOOST_ASSERT(log_);
     BOOST_ASSERT(authority_update_observer_);
+    BOOST_ASSERT(babe_synchronizer_);
     BOOST_ASSERT(babe_util_);
 
     BOOST_ASSERT(app_state_manager);
@@ -179,13 +181,31 @@ namespace kagome::consensus::babe {
         return;
       }
 
-      startCatchUp(
-          peer_id, last_finalized_block, current_best_block, status.best_block);
+      babe_synchronizer_->enqueue(
+          status.best_block,
+          peer_id,
+          [wp = weak_from_this(), bn = status.best_block.number](
+              outcome::result<primitives::BlockInfo> res) {
+            if (auto self = wp.lock()) {
+              if (not res.has_value()) {
+                SL_INFO(self->log_,
+                        "Catching up to block #{} is failed: ",
+                        bn,
+                        res.error().message());
+                self->current_state_ = State::WAIT_BLOCK_ANNOUNCE;
+                return;
+              }
+
+              SL_INFO(self->log_, "Catching up to block #{} is done", bn);
+              self->current_state_ = State::WAIT_BLOCK_ANNOUNCE;
+            }
+          });
     }
   }
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
+    return;
     if (current_state_ == State::WAIT_BLOCK_ANNOUNCE
         or current_state_ == State::SYNCHRONIZED) {
       const auto &last_finalized_block = block_tree_->getLastFinalized();
@@ -211,33 +231,14 @@ namespace kagome::consensus::babe {
             peer_id, last_finalized_block, current_best_block, announced_block);
       }
 
-      // Already has block with same number as ours best block or next of that
-      block_executor_->processNextBlock(
-          peer_id, announce.header, [this](const auto &header) {
-            onSynchronized();
-          });
+//      // Already has block with same number as ours best block or next of that
+//      block_executor_->processNextBlock(
+//          peer_id, announce.header, [this](const auto &header) {
+//            onSynchronized();
+//          });
     }
   }
 
-  void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
-                              const primitives::BlockInfo &finalized_block,
-                              const primitives::BlockInfo &best_block,
-                              const primitives::BlockInfo &target_block) {
-    // synchronize missing blocks with their bodies
-    SL_INFO(log_, "Catching up to block #{} is ran", target_block.number);
-    current_state_ = State::CATCHING_UP;
-
-    block_executor_->requestBlocks(
-        finalized_block.hash,
-        target_block.hash,
-        peer_id,
-        [wp = weak_from_this(), bn = target_block.number] {
-          if (auto self = wp.lock()) {
-            SL_INFO(self->log_, "Catching up to block #{} is done", bn);
-            self->current_state_ = State::WAIT_BLOCK_ANNOUNCE;
-          }
-        });
-  }
 
   void BabeImpl::onSynchronized() {
     // won't start block production without keypair
