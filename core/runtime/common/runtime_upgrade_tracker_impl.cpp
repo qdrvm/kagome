@@ -113,7 +113,7 @@ namespace kagome::runtime {
                    "Pick runtime state at genesis for block #{} hash {}",
                    block.number,
                    block.hash.toHex());
-          return genesis.state_root;
+          return 0;
         }
 
         // found the predecessor with the latest runtime upgrade
@@ -141,7 +141,7 @@ namespace kagome::runtime {
             children[0],
             block.number,
             block.hash.toHex());
-        return target_header.state_root;
+        return children[0];
       }
     }
     KAGOME_PROFILE_END(search_for_proper_fork);
