@@ -53,8 +53,8 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
     header_repo_ =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
     block_tree_ = std::make_shared<kagome::blockchain::BlockTreeMock>();
-    sub_engine_ = std::make_shared<
-        kagome::primitives::events::StorageSubscriptionEngine>();
+    sub_engine_ =
+        std::make_shared<kagome::primitives::events::ChainSubscriptionEngine>();
     tracker_ = std::make_unique<kagome::runtime::RuntimeUpgradeTrackerImpl>(
         header_repo_);
   }
@@ -63,7 +63,7 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
   std::unique_ptr<kagome::runtime::RuntimeUpgradeTrackerImpl> tracker_;
   std::shared_ptr<kagome::blockchain::BlockHeaderRepositoryMock> header_repo_;
   std::shared_ptr<kagome::blockchain::BlockTreeMock> block_tree_;
-  std::shared_ptr<kagome::primitives::events::StorageSubscriptionEngine>
+  std::shared_ptr<kagome::primitives::events::ChainSubscriptionEngine>
       sub_engine_;
 
   kagome::primitives::BlockInfo genesis_block{0, "block_genesis_hash"_hash256};
@@ -125,9 +125,6 @@ TEST_F(RuntimeUpgradeTrackerTest, AutoUpgradeAfterEmpty) {
 
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillRepeatedly(testing::Return(block_42));
-  EXPECT_CALL(*block_tree_, getChildren(block_1.hash))
-      .WillOnce(testing::Return(
-          std::vector<kagome::primitives::BlockHash>{block_2.hash}));
   EXPECT_OUTCOME_TRUE(state42, tracker_->getLastCodeUpdateState(block_42));
   // picking 2 instead of 42 because that's the latest known upgrade
   ASSERT_EQ(state42, "block_2_state_root"_hash256);
@@ -150,16 +147,18 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
   // then we upgrade in block #42
   auto block_41_header = makeBlockHeader(41);
   auto block_41 = makeBlockInfo(41);
-  EXPECT_CALL(*header_repo_,
-              getBlockHeader(kagome::primitives::BlockId{0}))
+  EXPECT_CALL(*header_repo_, getBlockHeader(kagome::primitives::BlockId{0}))
       .WillRepeatedly(testing::Return(genesis_block_header));
-  EXPECT_CALL(*header_repo_, getNumberByHash(block_41.hash))
-      .WillOnce(testing::Return(41));
+  EXPECT_CALL(*header_repo_,
+              getBlockHeader(kagome::primitives::BlockId{block_42.hash}))
+      .WillOnce(testing::Return(block_42_header));
 
   EXPECT_OUTCOME_TRUE(state_for_42, tracker_->getLastCodeUpdateState(block_41));
   ASSERT_EQ(state_for_42, genesis_block_header.state_root);
   // during execution of 42 we upgrade the code
-  sub_engine_->notify(":code"_buf, "12345"_buf, block_41.hash);
+  sub_engine_->notify(
+      kagome::primitives::events::ChainEventType::kRuntimeVersion,
+      kagome::primitives::events::RuntimeVersionEventParams{block_42.hash, {}});
 
   // then we execute block #43
   auto block_43 = makeBlockInfo(43);

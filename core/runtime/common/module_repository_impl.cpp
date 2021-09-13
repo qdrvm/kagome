@@ -43,7 +43,6 @@ namespace kagome::runtime {
     if (cached_instance.has_value()) {
       return cached_instance.value();
     }
-    logger_->warn("Instance cache miss");
 
     KAGOME_PROFILE_START(module_retrieval);
     std::shared_ptr<Module> module;

@@ -329,7 +329,7 @@ namespace {
     for (const auto &[key_, val_] : genesis_raw_configs) {
       auto &key = key_;
       auto &val = val_;
-      SL_DEBUG(
+      SL_TRACE(
           log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
       if (auto res = batch->put(key, val); not res) {
         common::raise(res.error());
@@ -650,7 +650,7 @@ namespace {
                                           std::move(block_id),
                                           std::move(extrinsic_observer),
                                           std::move(hasher),
-                                          std::move(chain_events_engine),
+                                          chain_events_engine,
                                           std::move(ext_events_engine),
                                           std::move(ext_events_key_repo),
                                           std::move(runtime_core),
@@ -671,10 +671,8 @@ namespace {
 
     auto runtime_upgrade_tracker =
         injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
-    auto storage_events_engine = injector.template create<
-        primitives::events::StorageSubscriptionEnginePtr>();
 
-    runtime_upgrade_tracker->subscribeToBlockchainEvents(storage_events_engine,
+    runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
 
     initialized.emplace(std::move(block_tree));

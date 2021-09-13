@@ -575,7 +575,8 @@ namespace kagome::blockchain {
       actual_runtime_version_ = new_runtime_version;
       chain_events_engine_->notify(
           primitives::events::ChainEventType::kRuntimeVersion,
-          new_runtime_version);
+          kagome::primitives::events::RuntimeVersionEventParams{
+              node->block_hash, new_runtime_version});
     }
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
 
@@ -914,7 +915,6 @@ namespace kagome::blockchain {
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChildren(
       const primitives::BlockHash &block) const {
-
     if (auto node = tree_->getByHash(block); node != nullptr) {
       std::vector<primitives::BlockHash> result;
       result.reserve(node->children.size());
@@ -924,6 +924,7 @@ namespace kagome::blockchain {
       return result;
     }
     OUTCOME_TRY(header, storage_->getBlockHeader(block));
+    // if node is not in tree_ it must be finalized and thus have only one child
     OUTCOME_TRY(child_hash, header_repo_->getHashByNumber(header.number + 1));
     return outcome::success(std::vector<primitives::BlockHash>{child_hash});
   }
