@@ -37,8 +37,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
 
 namespace kagome::runtime::wavm {
 
-  size_t ModuleInstance::Count = 0;
-
   ModuleInstance::ModuleInstance(
       InstanceEnvironment &&env,
       WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
@@ -49,26 +47,10 @@ namespace kagome::runtime::wavm {
         logger_{log::createLogger("ModuleInstance", "wavm")} {
     BOOST_ASSERT(instance_ != nullptr);
     BOOST_ASSERT(compartment_ != nullptr);
-    Count++;
-  }
-
-  ModuleInstance::~ModuleInstance() {
-    Count--;
   }
 
   outcome::result<PtrSize> ModuleInstance::callExportFunction(
       std::string_view name, PtrSize args) const {
-    SL_VERBOSE(logger_, "Runtime entities count:");
-    SL_VERBOSE(logger_, "\tModules: {}", ModuleImpl::Count);
-    SL_VERBOSE(logger_, "\tModule instances: {}", ModuleInstance::Count);
-    SL_VERBOSE(logger_, "\tIntrinsic modules: {}", IntrinsicModule::Count);
-    SL_VERBOSE(logger_,
-               "\tIntrinsic module instances: {}",
-               IntrinsicModuleInstance::Count);
-    SL_VERBOSE(logger_, "\tCompartments: {}", CompartmentWrapper::Count);
-    SL_VERBOSE(logger_, "\tMemories: {}", MemoryImpl::Count);
-    SL_VERBOSE(logger_, "\tHost Apis: {}", getHostApisNum());
-
     auto res = [this, name, args]() -> outcome::result<PtrSize> {
       WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
           WAVM::Runtime::createContext(compartment_->getCompartment());

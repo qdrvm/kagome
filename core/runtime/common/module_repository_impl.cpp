@@ -16,7 +16,7 @@
 namespace kagome::runtime {
 
   thread_local SmallLruCache<storage::trie::RootHash,
-                        std::shared_ptr<ModuleInstance>>
+                             std::shared_ptr<ModuleInstance>>
       ModuleRepositoryImpl::instances_cache_{
           ModuleRepositoryImpl::INSTANCES_CACHE_SIZE};
 
@@ -67,6 +67,7 @@ namespace kagome::runtime {
       shared_instance = std::move(instance);
     }
     BOOST_VERIFY(instances_cache_.put(state, shared_instance));
+
     KAGOME_PROFILE_END(module_instantiation)
     return shared_instance;
   }

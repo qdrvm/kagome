@@ -28,8 +28,6 @@ namespace kagome::runtime::wavm {
 
   class MemoryImpl final : public kagome::runtime::Memory {
    public:
-    static size_t Count;
-
     MemoryImpl(WAVM::Runtime::Memory *memory,
                std::unique_ptr<MemoryAllocator> &&allocator);
     MemoryImpl(WAVM::Runtime::Memory *memory,
@@ -38,8 +36,6 @@ namespace kagome::runtime::wavm {
     MemoryImpl &operator=(const MemoryImpl &copy) = delete;
     MemoryImpl(MemoryImpl &&move) = delete;
     MemoryImpl &operator=(MemoryImpl &&move) = delete;
-
-    ~MemoryImpl();
 
     WasmPointer allocate(WasmSize size) override;
     boost::optional<WasmSize> deallocate(WasmPointer ptr) override;

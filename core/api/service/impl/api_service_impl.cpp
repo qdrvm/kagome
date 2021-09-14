@@ -512,7 +512,6 @@ namespace kagome::api {
       primitives::events::ChainEventType event_type,
       const primitives::events::ChainEventParams &event_params) {
     std::string_view name;
-    jsonrpc::Value value;
     switch (event_type) {
       case primitives::events::ChainEventType::kNewHeads: {
         name = kRpcEventNewHeads;

@@ -45,7 +45,7 @@ namespace kagome::storage::changes_trie {
     /**
      * Supposed to be called when a block execution finishes.
      */
-    virtual void onBlockFinish(primitives::BlockHash block_hash) = 0;
+    virtual void onBlockFinish(const primitives::BlockHash &block_hash) = 0;
 
     /**
      * Supposed to be called when clear by prefix called.

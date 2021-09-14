@@ -17,8 +17,6 @@ namespace kagome::runtime::wavm {
 
   class IntrinsicModule final {
    public:
-    static size_t Count;
-
     static inline const WAVM::IR::MemoryType kIntrinsicMemoryType{
         WAVM::IR::MemoryType(
             false, WAVM::IR::IndexType::i32, {20, UINT64_MAX})};
@@ -26,11 +24,6 @@ namespace kagome::runtime::wavm {
 
     explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment)
         : compartment_{compartment} {
-      Count++;
-    }
-
-    ~IntrinsicModule() {
-      Count--;
     }
 
     std::unique_ptr<IntrinsicModuleInstance> instantiate() {

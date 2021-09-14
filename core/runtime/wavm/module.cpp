@@ -16,8 +16,6 @@
 
 namespace kagome::runtime::wavm {
 
-  size_t ModuleImpl::Count = 0;
-
   std::unique_ptr<ModuleImpl> ModuleImpl::compileFrom(
       std::shared_ptr<CompartmentWrapper> compartment,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
@@ -53,7 +51,6 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(compartment_);
     BOOST_ASSERT(env_factory_);
     BOOST_ASSERT(module_);
-    Count++;
   }
 
   outcome::result<std::unique_ptr<kagome::runtime::ModuleInstance>>

@@ -9,8 +9,6 @@
 
 namespace kagome::runtime::wavm {
 
-  size_t MemoryImpl::Count = 0;
-
   MemoryImpl::MemoryImpl(
       WAVM::Runtime::Memory *memory,
       std::unique_ptr<MemoryAllocator> &&allocator)
@@ -19,7 +17,6 @@ namespace kagome::runtime::wavm {
         logger_{log::createLogger("WAVM Memory", "wavm")} {
     BOOST_ASSERT(memory_);
     BOOST_ASSERT(allocator_);
-    Count++;
     resize(kInitialMemorySize);
   }
 
@@ -33,10 +30,6 @@ namespace kagome::runtime::wavm {
                            [this]() { return size(); }},
                        kInitialMemorySize,
                        heap_base)) {}
-
-  MemoryImpl::~MemoryImpl() {
-    Count--;
-  }
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);

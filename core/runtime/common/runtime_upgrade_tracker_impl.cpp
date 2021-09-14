@@ -146,7 +146,7 @@ namespace kagome::runtime {
         chain_subscription_->generateSubscriptionSetId();
     chain_subscription_->subscribe(
         chain_subscription_set_id,
-        primitives::events::ChainEventType::kFinalizedRuntimeVersion);
+        primitives::events::ChainEventType::kNewRuntime);
     chain_subscription_->setCallback(
         [this](auto set_id,
                auto &receiver,

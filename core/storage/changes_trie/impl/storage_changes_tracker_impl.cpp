@@ -54,7 +54,7 @@ namespace kagome::storage::changes_trie {
   }
 
   void StorageChangesTrackerImpl::onBlockFinish(
-      primitives::BlockHash block_hash) {
+      const primitives::BlockHash &block_hash) {
     if (actual_val_.find(runtime::kRuntimeCodeKey) != actual_val_.cend()) {
       chain_subscription_engine_->notify(
           primitives::events::ChainEventType::kNewRuntime, block_hash);

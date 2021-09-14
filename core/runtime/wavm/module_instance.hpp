@@ -28,8 +28,6 @@ namespace kagome::runtime::wavm {
 
   class ModuleInstance : public runtime::ModuleInstance {
    public:
-    static size_t Count;
-
     enum class Error {
       FUNC_NOT_FOUND = 1,
       WRONG_ARG_COUNT,
@@ -39,8 +37,6 @@ namespace kagome::runtime::wavm {
     ModuleInstance(InstanceEnvironment &&env,
                    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
                    std::shared_ptr<const CompartmentWrapper> compartment);
-
-    ~ModuleInstance() override;
 
     outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                 PtrSize args) const override;

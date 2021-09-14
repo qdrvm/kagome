@@ -17,6 +17,7 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
@@ -84,6 +85,7 @@ struct BlockTreeTest : public testing::Test {
                                         ext_events_engine,
                                         extrinsic_event_key_repo,
                                         runtime_core_,
+                                        changes_tracker_,
                                         babe_config_,
                                         babe_util_)
                       .value();
@@ -135,6 +137,9 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<runtime::CoreMock> runtime_core_ =
       std::make_shared<runtime::CoreMock>();
 
+  std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
+      std::make_shared<storage::changes_trie::ChangesTrackerMock>();
+
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;
@@ -172,7 +177,8 @@ TEST_F(BlockTreeTest, GetBody) {
  */
 TEST_F(BlockTreeTest, AddBlock) {
   // GIVEN
-  auto &&[deepest_block_number, deepest_block_hash] = block_tree_->deepestLeaf();
+  auto &&[deepest_block_number, deepest_block_hash] =
+      block_tree_->deepestLeaf();
   ASSERT_EQ(deepest_block_hash, kFinalizedBlockInfo.hash);
 
   auto leaves = block_tree_->getLeaves();

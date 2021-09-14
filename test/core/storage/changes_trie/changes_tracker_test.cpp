@@ -8,6 +8,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "primitives/event_types.hpp"
 #include "scale/scale.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
@@ -34,6 +35,8 @@ using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
 using kagome::subscription::SubscriptionEngine;
+using kagome::primitives::events::StorageSubscriptionEngine;
+using kagome::primitives::events::ChainSubscriptionEngine;
 namespace scale = kagome::scale;
 using testing::_;
 using testing::AnyOf;
@@ -47,10 +50,6 @@ using testing::Return;
 TEST(ChangesTrieTest, IntegrationWithOverlay) {
   testutil::prepareLoggers();
 
-  using SessionPtr = std::shared_ptr<Session>;
-  using SubscriptionEngineType =
-      SubscriptionEngine<Buffer, SessionPtr, Buffer, BlockHash>;
-
   // GIVEN
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
@@ -58,11 +57,15 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       std::make_shared<InMemoryStorage>(), Buffer{});
   auto serializer =
       std::make_shared<TrieSerializerImpl>(factory, codec, backend);
-  auto subscription_engine = std::make_shared<SubscriptionEngineType>();
+  auto storage_subscription_engine =
+      std::make_shared<StorageSubscriptionEngine>();
+  auto chain_subscription_engine = std::make_shared<ChainSubscriptionEngine>();
   std::shared_ptr<ChangesTracker> changes_tracker =
-      std::make_shared<StorageChangesTrackerImpl>(
-          factory, codec, subscription_engine);
-  EXPECT_OUTCOME_TRUE_1(changes_tracker->onBlockChange("aaa"_hash256, 42));
+      std::make_shared<StorageChangesTrackerImpl>(factory,
+                                                  codec,
+                                                  storage_subscription_engine,
+                                                  chain_subscription_engine);
+  EXPECT_OUTCOME_TRUE_1(changes_tracker->onBlockStart("aaa"_hash256, 42));
   auto batch = PersistentTrieBatchImpl::create(
       codec,
       serializer,

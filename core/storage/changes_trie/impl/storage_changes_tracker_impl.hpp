@@ -42,7 +42,7 @@ namespace kagome::storage::changes_trie {
     outcome::result<void> onPut(const common::Buffer &key,
                                 const common::Buffer &value,
                                 bool new_entry) override;
-    void onBlockFinish(primitives::BlockHash block_hash) override;
+    void onBlockFinish(const primitives::BlockHash &block_hash) override;
     void onClearPrefix(const common::Buffer &prefix) override;
     outcome::result<void> onRemove(const common::Buffer &key) override;
 
