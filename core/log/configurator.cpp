@@ -27,7 +27,6 @@ groups:
       - name: kagome
         children:
           - name: profile
-            level: debug
           - name: injector
           - name: application
           - name: rpc

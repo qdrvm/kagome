@@ -767,24 +767,6 @@ namespace {
       application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
     return di::make_injector(
-        /*di::bind<runtime::RuntimeEnvironmentFactory>.template to(
-            [method](auto const &injector)
-                -> std::shared_ptr<runtime::RuntimeEnvironmentFactory> {
-              static boost::optional<
-                  std::shared_ptr<runtime::RuntimeEnvironmentFactory>>
-                  env_factory;
-              if (env_factory.has_value()) return env_factory.value();
-
-              env_factory = boost::make_optional(
-                  std::make_shared<runtime::RuntimeEnvironmentFactory>(
-                      injector.template create<
-                          sptr<const runtime::RuntimeCodeProvider>>(),
-                      injector
-                          .template create<sptr<runtime::ModuleRepository>>(),
-                      injector.template create<
-                          sptr<const blockchain::BlockHeaderRepository>>()));
-              return env_factory.value();
-            })[di::override],*/
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
               static auto compartment =
