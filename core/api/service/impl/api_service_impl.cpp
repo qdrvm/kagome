@@ -378,8 +378,8 @@ namespace kagome::api {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
-        session->subscribe(id,
-                           primitives::events::ChainEventType::kRuntimeVersion);
+        session->subscribe(
+            id, primitives::events::ChainEventType::kFinalizedRuntimeVersion);
 
         auto ver = block_tree_->runtimeVersion();
         if (ver) {
@@ -524,19 +524,21 @@ namespace kagome::api {
         value = api::makeValue(
             boost::get<primitives::events::HeadsEventParams>(event_params));
       } break;
-      case primitives::events::ChainEventType::kRuntimeVersion: {
+      case primitives::events::ChainEventType::kFinalizedRuntimeVersion: {
         name = kRpcEventRuntimeVersion;
         value = api::makeValue(
             boost::get<primitives::events::RuntimeVersionEventParams>(
-                event_params)
-                .version);
+                event_params));
       } break;
+      case primitives::events::ChainEventType::kNewRuntime:
+          return;
       default:
         BOOST_ASSERT(!"Unknown chain event");
         return;
     }
 
-    sendEvent(server_, session, logger_, set_id, name, std::move(value));
+    sendEvent(
+        server_, session, logger_, set_id, name, api::makeValue(event_params));
   }
 
   void ApiServiceImpl::onExtrinsicEvent(

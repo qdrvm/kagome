@@ -45,6 +45,7 @@ namespace kagome::runtime {
     /**
      * @brief Executes the given block
      * @param block block to execute
+     * @param hash hash of the \param block to execute
      */
     virtual outcome::result<void> execute_block(
         const primitives::Block &block) = 0;

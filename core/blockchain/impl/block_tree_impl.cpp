@@ -212,6 +212,7 @@ namespace kagome::blockchain {
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
       std::shared_ptr<consensus::BabeUtil> babe_util) {
     // create meta structures from the retrieved header
@@ -336,6 +337,7 @@ namespace kagome::blockchain {
                                         std::move(extrinsic_events_engine),
                                         std::move(extrinsic_event_key_repo),
                                         std::move(runtime_core),
+                                        std::move(changes_tracker),
                                         std::move(babe_configuration),
                                         std::move(babe_util));
     return std::shared_ptr<BlockTreeImpl>(block_tree);
@@ -354,6 +356,7 @@ namespace kagome::blockchain {
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
           extrinsic_event_key_repo,
       std::shared_ptr<runtime::Core> runtime_core,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
       std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
       std::shared_ptr<consensus::BabeUtil> babe_util)
       : header_repo_{std::move(header_repo)},
@@ -366,6 +369,7 @@ namespace kagome::blockchain {
         extrinsic_events_engine_(std::move(extrinsic_events_engine)),
         extrinsic_event_key_repo_{std::move(extrinsic_event_key_repo)},
         runtime_core_(std::move(runtime_core)),
+        trie_changes_tracker_(std::move(changes_tracker)),
         babe_configuration_(std::move(babe_configuration)),
         babe_util_(std::move(babe_util)) {
     BOOST_ASSERT(header_repo_ != nullptr);
@@ -378,6 +382,7 @@ namespace kagome::blockchain {
     BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
     BOOST_ASSERT(extrinsic_event_key_repo_ != nullptr);
     BOOST_ASSERT(runtime_core_ != nullptr);
+    BOOST_ASSERT(trie_changes_tracker_ != nullptr);
     BOOST_ASSERT(babe_configuration_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
     // initialize metrics
@@ -474,6 +479,7 @@ namespace kagome::blockchain {
     updateMeta(new_node);
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
+    trie_changes_tracker_->onBlockFinish(block_hash);
     for (size_t idx = 0; idx < block.body.size(); idx++) {
       if (auto key = extrinsic_event_key_repo_->get(
               hasher_->blake2b_256(block.body[idx].data))) {
@@ -574,9 +580,8 @@ namespace kagome::blockchain {
         || actual_runtime_version_ != new_runtime_version) {
       actual_runtime_version_ = new_runtime_version;
       chain_events_engine_->notify(
-          primitives::events::ChainEventType::kRuntimeVersion,
-          kagome::primitives::events::RuntimeVersionEventParams{
-              node->block_hash, new_runtime_version});
+          primitives::events::ChainEventType::kFinalizedRuntimeVersion,
+          new_runtime_version);
     }
     OUTCOME_TRY(body, storage_->getBlockBody(node->block_hash));
 

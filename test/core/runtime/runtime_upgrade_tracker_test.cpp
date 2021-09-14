@@ -157,7 +157,7 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
   ASSERT_EQ(state_for_42, genesis_block_header.state_root);
   // during execution of 42 we upgrade the code
   sub_engine_->notify(
-      kagome::primitives::events::ChainEventType::kRuntimeVersion,
+      kagome::primitives::events::ChainEventType::kFinalizedRuntimeVersion,
       kagome::primitives::events::RuntimeVersionEventParams{block_42.hash, {}});
 
   // then we execute block #43

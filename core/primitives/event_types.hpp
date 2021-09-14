@@ -37,18 +37,18 @@ namespace kagome::primitives::events {
     kNewHeads = 1,
     kFinalizedHeads = 2,
     kAllHeads = 3,
-    kRuntimeVersion = 4
+    kFinalizedRuntimeVersion = 4,
+    kNewRuntime = 5
   };
 
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
-  struct RuntimeVersionEventParams {
-    const primitives::BlockHash& block_hash;
-    const primitives::Version& version;
-  };
+  using RuntimeVersionEventParams = ref_t<const primitives::Version>;
+  using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
 
   using ChainEventParams = boost::variant<boost::none_t,
                                           HeadsEventParams,
-                                          RuntimeVersionEventParams>;
+                                          RuntimeVersionEventParams,
+                                          NewRuntimeEventParams>;
 
   /**
    * - "future" - Transaction is part of the future queue.

@@ -146,21 +146,19 @@ namespace kagome::runtime {
         chain_subscription_->generateSubscriptionSetId();
     chain_subscription_->subscribe(
         chain_subscription_set_id,
-        primitives::events::ChainEventType::kRuntimeVersion);
+        primitives::events::ChainEventType::kFinalizedRuntimeVersion);
     chain_subscription_->setCallback(
         [this](auto set_id,
                auto &receiver,
                primitives::events::ChainEventType event_type,
                const primitives::events::ChainEventParams &event_params) {
-          if (event_type
-              != primitives::events::ChainEventType::kRuntimeVersion) {
+          if (event_type != primitives::events::ChainEventType::kNewRuntime) {
             return;
           }
           auto &block_hash =
-              boost::get<primitives::events::RuntimeVersionEventParams>(
-                  event_params)
-                  .block_hash;
-          SL_DEBUG(logger_, "Runtime upgrade at block {}", block_hash.toHex());
+              boost::get<primitives::events::NewRuntimeEventParams>(
+                  event_params).get();
+          SL_INFO(logger_, "Runtime upgrade at block {}", block_hash.toHex());
           auto header = header_repo_->getBlockHeader(block_hash).value();
           auto it =
               std::upper_bound(runtime_upgrades_.begin(),
