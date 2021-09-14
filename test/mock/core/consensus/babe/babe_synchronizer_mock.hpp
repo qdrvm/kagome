@@ -14,11 +14,16 @@ namespace kagome::consensus {
 
   class BabeSynchronizerMock : public BabeSynchronizer {
    public:
-    MOCK_METHOD4(request,
-                 void(const primitives::BlockId &,
-                      const primitives::BlockHash &,
-                      const libp2p::peer::PeerId &peer_id,
-                      const BlocksHandler &));
+    MOCK_METHOD3(enqueue_rv,
+                 void(const primitives::BlockInfo &,
+                      const libp2p::peer::PeerId &,
+                      const SyncResultHandler &));
+
+    void enqueue(const primitives::BlockInfo &block_info,
+                 const libp2p::peer::PeerId &peer_id,
+                 SyncResultHandler &&handler) {
+      enqueue_rv(block_info, peer_id, handler);
+    };
   };
 
 }  // namespace kagome::consensus

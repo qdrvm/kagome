@@ -118,7 +118,6 @@ class BabeTest : public testing::Test {
         block_tree_,
         core_,
         babe_config_,
-        babe_synchronizer_,
         babe_block_validator_,
         grandpa_environment_,
         tx_pool_,
@@ -138,7 +137,6 @@ class BabeTest : public testing::Test {
 
     babe_ = std::make_shared<babe::BabeImpl>(app_state_manager_,
                                              lottery_,
-                                             block_executor,
                                              trie_db_,
                                              babe_config_,
                                              proposer_,
@@ -150,6 +148,7 @@ class BabeTest : public testing::Test {
                                              hasher_,
                                              std::move(timer_mock_),
                                              grandpa_authority_update_observer_,
+                                             babe_synchronizer_,
                                              babe_util_);
 
     epoch_.start_slot = 0;

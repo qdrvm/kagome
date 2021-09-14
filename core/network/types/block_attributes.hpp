@@ -40,8 +40,14 @@ namespace kagome::network {
     constexpr BlockAttributes(const BlockAttributes &other) noexcept = default;
     BlockAttributes(BlockAttributes &&other) noexcept = default;
     ~BlockAttributes() = default;
+
     constexpr BlockAttributes(BlockAttribute attribute) noexcept
         : attributes(static_cast<uint8_t>(attribute)) {}
+
+    template <typename T, typename = std::enable_if<std::is_unsigned_v<T>>>
+    constexpr BlockAttributes(T attribute) noexcept : BlockAttributes() {
+      load(attribute);
+    }
 
     inline constexpr BlockAttributes &operator=(const BlockAttributes &other) =
         default;
