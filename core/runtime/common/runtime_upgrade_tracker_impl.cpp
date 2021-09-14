@@ -232,7 +232,7 @@ namespace kagome::runtime {
     } else {
       SL_ERROR(
           logger_,
-          "Error occured when trying to load runtime changing block hashes");
+          "Could not store hashes of blocks changing runtime: {}", encoded_res.error().message());
     }
   }
 
