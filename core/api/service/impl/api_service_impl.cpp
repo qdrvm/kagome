@@ -516,22 +516,15 @@ namespace kagome::api {
     switch (event_type) {
       case primitives::events::ChainEventType::kNewHeads: {
         name = kRpcEventNewHeads;
-        value = api::makeValue(
-            boost::get<primitives::events::HeadsEventParams>(event_params));
       } break;
       case primitives::events::ChainEventType::kFinalizedHeads: {
         name = kRpcEventFinalizedHeads;
-        value = api::makeValue(
-            boost::get<primitives::events::HeadsEventParams>(event_params));
       } break;
       case primitives::events::ChainEventType::kFinalizedRuntimeVersion: {
         name = kRpcEventRuntimeVersion;
-        value = api::makeValue(
-            boost::get<primitives::events::RuntimeVersionEventParams>(
-                event_params));
       } break;
       case primitives::events::ChainEventType::kNewRuntime:
-          return;
+        return;
       default:
         BOOST_ASSERT(!"Unknown chain event");
         return;
