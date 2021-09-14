@@ -529,6 +529,7 @@ namespace kagome::api {
         return;
     }
 
+    BOOST_ASSERT(!name.empty());
     sendEvent(
         server_, session, logger_, set_id, name, api::makeValue(event_params));
   }
