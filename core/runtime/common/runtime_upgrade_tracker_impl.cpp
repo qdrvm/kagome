@@ -227,7 +227,7 @@ namespace kagome::runtime {
       auto put_res = storage_->put(storage::kRuntimeHashesLookupKey,
                                    common::Buffer(encoded_res.value()));
       if (not put_res.has_value()) {
-        SL_ERROR(logger_, "Could put runtime changing block hashes");
+        SL_ERROR(logger_, "Could not store hashes of blocks changing runtime: {}", put_res.error().message());
       }
     } else {
       SL_ERROR(
