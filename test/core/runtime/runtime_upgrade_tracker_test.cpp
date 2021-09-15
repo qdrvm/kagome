@@ -250,23 +250,20 @@ TEST_F(RuntimeUpgradeTrackerTest, UpgradeAfterCodeSubstitute) {
   sub_engine_->notify(":code"_buf, "5661442"_buf, block2.hash);
 
   auto block3 = makeBlockInfo(5661442);
-  /*
-   * EXPECT_CALL(*block_tree_, getChildren(block2.hash))
-   *     .WillOnce(testing::Return(
-   *         std::vector<kagome::primitives::BlockHash>{block3.hash}));
-   * EXPECT_CALL(*header_repo_,
-   *             getBlockHeader(kagome::primitives::BlockId{block3.hash}))
-   *     .WillOnce(testing::Return(makeBlockHeader(5661442)));
-   */
 
   EXPECT_OUTCOME_TRUE(id3, tracker_->getRuntimeChangeBlock(block3));
   ASSERT_EQ(boost::get<kagome::primitives::BlockHash>(id3), block1.hash);
 
-  /*
-   * auto block4 = makeBlockInfo(5661443);
-   * EXPECT_OUTCOME_TRUE(id4, tracker_->getRuntimeChangeBlock(block4));
-   * ASSERT_EQ(boost::get<kagome::primitives::BlockHash>(id4), block3.hash);
-   */
+  EXPECT_CALL(*header_repo_,
+              getBlockHeader(kagome::primitives::BlockId{block3.hash}))
+      .WillOnce(testing::Return(makeBlockHeader(5661442)));
+  EXPECT_CALL(*block_tree_, getChildren(block2.hash))
+      .WillOnce(testing::Return(
+          std::vector<kagome::primitives::BlockHash>{block3.hash}));
+
+  auto block4 = makeBlockInfo(5661443);
+  EXPECT_OUTCOME_TRUE(id4, tracker_->getRuntimeChangeBlock(block4));
+  ASSERT_EQ(boost::get<kagome::primitives::BlockHash>(id4), block3.hash);
 }
 
 using RuntimeUpgradeTrackerDeathTest = RuntimeUpgradeTrackerTest;
