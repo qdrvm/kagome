@@ -156,8 +156,7 @@ namespace kagome::runtime {
       : code_provider_{std::move(code_provider)},
         module_repo_{std::move(module_repo)},
         header_repo_{std::move(header_repo)},
-        logger_{log::createLogger("RuntimeEnvironmentFactory", "runtime")},
-        env_cleanup_callback_{} {
+        logger_{log::createLogger("RuntimeEnvironmentFactory", "runtime")} {
     BOOST_ASSERT(code_provider_ != nullptr);
     BOOST_ASSERT(module_repo_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);
@@ -192,11 +191,6 @@ namespace kagome::runtime {
       return Error::ABSENT_BLOCK;
     }
     return start(genesis_hash.value());
-  }
-
-  void RuntimeEnvironmentFactory::setEnvCleanupCallback(
-      std::function<void(RuntimeEnvironment &)> &&callback) {
-    env_cleanup_callback_ = std::move(callback);
   }
 
 }  // namespace kagome::runtime
