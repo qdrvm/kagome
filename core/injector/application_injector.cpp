@@ -638,6 +638,8 @@ namespace {
 
     auto runtime_core =
         injector.template create<std::shared_ptr<runtime::Core>>();
+    auto changes_tracker = injector.template create<
+        std::shared_ptr<storage::changes_trie::ChangesTracker>>();
     auto babe_configuration =
         injector
             .template create<std::shared_ptr<primitives::BabeConfiguration>>();
@@ -650,10 +652,11 @@ namespace {
                                           std::move(block_id),
                                           std::move(extrinsic_observer),
                                           std::move(hasher),
-                                          std::move(chain_events_engine),
+                                          chain_events_engine,
                                           std::move(ext_events_engine),
                                           std::move(ext_events_key_repo),
                                           std::move(runtime_core),
+                                          std::move(changes_tracker),
                                           std::move(babe_configuration),
                                           std::move(babe_util));
     if (not block_tree_res.has_value()) {
@@ -674,7 +677,7 @@ namespace {
     auto storage_events_engine = injector.template create<
         primitives::events::StorageSubscriptionEnginePtr>();
 
-    runtime_upgrade_tracker->subscribeToBlockchainEvents(storage_events_engine,
+    runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
 
     initialized.emplace(std::move(block_tree));
