@@ -23,6 +23,8 @@ namespace kagome::runtime::wavm {
    */
   class CompartmentWrapper final {
    public:
+    static size_t Count;
+
     CompartmentWrapper(std::string &&name);
     ~CompartmentWrapper();
 

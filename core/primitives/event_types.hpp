@@ -30,12 +30,25 @@ namespace kagome::primitives {
 
 namespace kagome::primitives::events {
 
+  template <typename T>
+  using ref_t = std::reference_wrapper<const T>;
+
   enum struct ChainEventType : uint32_t {
     kNewHeads = 1,
     kFinalizedHeads = 2,
     kAllHeads = 3,
-    kRuntimeVersion = 4
+    kFinalizedRuntimeVersion = 4,
+    kNewRuntime = 5
   };
+
+  using HeadsEventParams = ref_t<const primitives::BlockHeader>;
+  using RuntimeVersionEventParams = ref_t<const primitives::Version>;
+  using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
+
+  using ChainEventParams = boost::variant<boost::none_t,
+                                          HeadsEventParams,
+                                          RuntimeVersionEventParams,
+                                          NewRuntimeEventParams>;
 
   /**
    * - "future" - Transaction is part of the future queue.
@@ -98,9 +111,6 @@ namespace kagome::primitives::events {
   struct UsurpedEventParams {
     Hash256Span transaction_hash;
   };
-
-  template <typename T>
-  using ref_t = std::reference_wrapper<const T>;
 
   /**
    * ID of an extrinsic being observed
@@ -201,10 +211,6 @@ namespace kagome::primitives::events {
                             Params params)
         : id{id}, type{type}, params{std::move(params)} {}
   };
-
-  using ChainEventParams = boost::variant<boost::none_t,
-                                          ref_t<const primitives::BlockHeader>,
-                                          ref_t<primitives::Version>>;
 
   // SubscriptionEngine for changes in trie storage
   using StorageSubscriptionEngine =

@@ -7,45 +7,52 @@
 
 namespace kagome::consensus::grandpa {
 
-  VoteWeight::VoteWeight(size_t voters_size)
-      : prevotes(voters_size, 0UL), precommits(voters_size, 0UL){};
-
   TotalWeight VoteWeight::totalWeight(
       const std::vector<bool> &prevotes_equivocators,
       const std::vector<bool> &precommits_equivocators,
       const std::shared_ptr<VoterSet> &voter_set) const {
-    std::vector<size_t> prevotes_weight_with_equivocators(prevotes);
-    std::vector<size_t> precommits_weight_with_equivocators(precommits);
+    TotalWeight weight;
 
-    for (size_t i = 0; i < voter_set->size(); i++) {
-      if (prevotes[i] == 0 and prevotes_equivocators[i]) {
-        prevotes_weight_with_equivocators[i] +=
-            voter_set->voterWeight(i).value();
+    for (size_t i = voter_set->size(); i > 0;) {
+      --i;
+
+      if (prevotes.size() > i and prevotes[i] != 0) {
+        weight.prevote += prevotes[i];
+      } else if (prevotes_equivocators.size() > i
+                 and prevotes_equivocators[i]) {
+        weight.prevote += voter_set->voterWeight(i).value();
       }
-      if (precommits[i] == 0 and precommits_equivocators[i]) {
-        precommits_weight_with_equivocators[i] +=
-            voter_set->voterWeight(i).value();
+
+      if (precommits.size() > i and precommits[i] != 0) {
+        weight.precommit += precommits[i];
+      } else if (precommits_equivocators.size() > i
+                 and precommits_equivocators[i]) {
+        weight.precommit += voter_set->voterWeight(i).value();
       }
     }
 
-    TotalWeight weight{
-        .prevote = std::accumulate(prevotes_weight_with_equivocators.begin(),
-                                   prevotes_weight_with_equivocators.end(),
-                                   0UL),
-        .precommit =
-            std::accumulate(precommits_weight_with_equivocators.begin(),
-                            precommits_weight_with_equivocators.end(),
-                            0UL)};
     return weight;
   }
 
   VoteWeight &VoteWeight::operator+=(const VoteWeight &vote) {
-    for (size_t i = 0; i < prevotes.size() and i < vote.prevotes.size(); i++) {
+    for (size_t i = vote.prevotes.size(); i > 0;) {
+      if (prevotes.size() < i) {
+        prevotes.resize(i, 0);
+      }
+      --i;
       prevotes[i] += vote.prevotes[i];
-      precommits[i] += vote.precommits[i];
     }
     prevotes_sum += vote.prevotes_sum;
+
+    for (size_t i = vote.precommits.size(); i > 0;) {
+      if (precommits.size() < i) {
+        precommits.resize(i, 0);
+      }
+      --i;
+      precommits[i] += vote.precommits[i];
+    }
     precommits_sum += vote.precommits_sum;
+
     return *this;
   }
 }  // namespace kagome::consensus::grandpa

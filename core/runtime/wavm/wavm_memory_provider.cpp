@@ -29,7 +29,7 @@ namespace kagome::runtime::wavm {
 
   outcome::result<void> WavmMemoryProvider::resetMemory(WasmSize heap_base) {
     current_memory_ = std::make_unique<MemoryImpl>(
-        compartment_, intrinsic_module_->getExportedMemory(), heap_base);
+        intrinsic_module_->getExportedMemory(), heap_base);
     return outcome::success();
   }
 

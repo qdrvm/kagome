@@ -23,6 +23,7 @@ namespace kagome::runtime::wavm {
   void pushHostApi(std::shared_ptr<host_api::HostApi>);
   void popHostApi();
   std::shared_ptr<host_api::HostApi> peekHostApi();
+  size_t getHostApisNum();
 
   extern log::Logger logger;
 

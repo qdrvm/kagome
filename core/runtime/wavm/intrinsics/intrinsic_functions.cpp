@@ -19,12 +19,17 @@ namespace kagome::runtime::wavm {
   }
 
   void popHostApi() {
+    BOOST_ASSERT(!global_host_apis.empty());
     global_host_apis.pop();
   }
 
   std::shared_ptr<host_api::HostApi> peekHostApi() {
     BOOST_ASSERT(!global_host_apis.empty());
     return global_host_apis.top();
+  }
+
+  size_t getHostApisNum() {
+    return global_host_apis.size();
   }
 
 #undef WAVM_DEFINE_INTRINSIC_FUNCTION
@@ -110,6 +115,15 @@ namespace kagome::runtime::wavm {
                                  WAVM::I64 msg_data) {
     return peekHostApi()->ext_crypto_sr25519_sign_version_1(
         key_type, key, msg_data);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
+                                 ext_crypto_sr25519_verify_version_1,
+                                 WAVM::I32 sig_data,
+                                 WAVM::I64 msg,
+                                 WAVM::I32 pubkey_data) {
+    return peekHostApi()->ext_crypto_sr25519_verify_version_1(
+        sig_data, msg, pubkey_data);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
@@ -435,6 +449,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_ed25519_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_finish_batch_verify_version_1)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_generate_version_1, I32, I64)
+    REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_1, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_crypto_sr25519_verify_version_2, I32, I64, I32)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_128_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32, ext_hashing_blake2_256_version_1, I64)

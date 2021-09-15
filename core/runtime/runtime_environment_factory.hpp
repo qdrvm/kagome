@@ -52,9 +52,6 @@ namespace kagome::runtime {
 
     virtual ~RuntimeEnvironmentFactory() = default;
 
-    void setEnvCleanupCallback(
-        std::function<void(RuntimeEnvironment &)> &&callback);
-
     /**
      * @param blockchain_state - the block to take the runtime code from
      * @param storage_state
@@ -95,7 +92,6 @@ namespace kagome::runtime {
     std::shared_ptr<ModuleRepository> module_repo_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     log::Logger logger_;
-    std::function<void(RuntimeEnvironment &)> env_cleanup_callback_;
   };
 
   struct RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate {

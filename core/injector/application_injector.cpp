@@ -329,7 +329,7 @@ namespace {
     for (const auto &[key_, val_] : genesis_raw_configs) {
       auto &key = key_;
       auto &val = val_;
-      SL_DEBUG(
+      SL_TRACE(
           log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
       if (auto res = batch->put(key, val); not res) {
         common::raise(res.error());
@@ -638,6 +638,8 @@ namespace {
 
     auto runtime_core =
         injector.template create<std::shared_ptr<runtime::Core>>();
+    auto changes_tracker = injector.template create<
+        std::shared_ptr<storage::changes_trie::ChangesTracker>>();
     auto babe_configuration =
         injector
             .template create<std::shared_ptr<primitives::BabeConfiguration>>();
@@ -650,10 +652,11 @@ namespace {
                                           std::move(block_id),
                                           std::move(extrinsic_observer),
                                           std::move(hasher),
-                                          std::move(chain_events_engine),
+                                          chain_events_engine,
                                           std::move(ext_events_engine),
                                           std::move(ext_events_key_repo),
                                           std::move(runtime_core),
+                                          std::move(changes_tracker),
                                           std::move(babe_configuration),
                                           std::move(babe_util));
     if (not block_tree_res.has_value()) {
@@ -671,10 +674,8 @@ namespace {
 
     auto runtime_upgrade_tracker =
         injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
-    auto storage_events_engine = injector.template create<
-        primitives::events::StorageSubscriptionEnginePtr>();
 
-    runtime_upgrade_tracker->subscribeToBlockchainEvents(storage_events_engine,
+    runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
 
     initialized.emplace(std::move(block_tree));
@@ -766,30 +767,6 @@ namespace {
       application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
     return di::make_injector(
-        di::bind<runtime::RuntimeEnvironmentFactory>.template to(
-            [method](auto const &injector)
-                -> std::shared_ptr<runtime::RuntimeEnvironmentFactory> {
-              static boost::optional<
-                  std::shared_ptr<runtime::RuntimeEnvironmentFactory>>
-                  env_factory;
-              if (env_factory.has_value()) return env_factory.value();
-
-              env_factory = boost::make_optional(
-                  std::make_shared<runtime::RuntimeEnvironmentFactory>(
-                      injector.template create<
-                          sptr<const runtime::RuntimeCodeProvider>>(),
-                      injector
-                          .template create<sptr<runtime::ModuleRepository>>(),
-                      injector.template create<
-                          sptr<const blockchain::BlockHeaderRepository>>()));
-              if (method
-                  == application::AppConfiguration::RuntimeExecutionMethod::
-                      Compile) {
-                env_factory.value()->setEnvCleanupCallback(
-                    [](auto &) { runtime::wavm::popHostApi(); });
-              }
-              return env_factory.value();
-            })[di::override],
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
               static auto compartment =

@@ -13,7 +13,6 @@
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/consensus/authority/authority_manager_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/grandpa/grandpa_mock.hpp"
@@ -132,6 +131,18 @@ class VotingRoundTest : public testing::Test {
                          .id = kAlice};
 
     env_ = std::make_shared<EnvironmentMock>();
+    EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
+        .WillRepeatedly(Return(std::vector<BlockHash>{
+            "FC"_H, "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H}));
+    EXPECT_CALL(*env_, getAncestry("C"_H, "ED"_H))
+        .WillRepeatedly(Return(std::vector<BlockHash>{
+            "ED"_H, "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H}));
+    EXPECT_CALL(*env_, hasAncestry("C"_H, "FC"_H)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*env_, hasAncestry("FC"_H, "FC"_H))
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(*env_, bestChainContaining("C"_H))
+        .WillRepeatedly(Return(BlockInfo{9, "FC"_H}));
+
     vote_graph_ = std::make_shared<VoteGraphImpl>(base, env_);
 
     previous_round_ = std::make_shared<VotingRoundMock>();
@@ -271,22 +282,12 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   // when 1.
   // Alice prevotes
   auto alice_vote = preparePrevote(kAlice, kAliceSignature, Prevote{9, "FC"_H});
-
-  EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
-      .WillOnce(Return(std::vector<BlockHash>{
-          "FC"_H, "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H}));
-
   round_->onPrevote(alice_vote, Propagation::NEEDLESS);
   round_->update(true, false);
 
   // when 2.
   // Bob prevotes
   auto bob_vote = preparePrevote(kBob, kBobSignature, Prevote{9, "ED"_H});
-
-  EXPECT_CALL(*env_, getAncestry("C"_H, "ED"_H))
-      .WillOnce(Return(std::vector<BlockHash>{
-          "ED"_H, "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H}));
-
   round_->onPrevote(bob_vote, Propagation::NEEDLESS);
   round_->update(true, false);
 
@@ -338,24 +339,16 @@ TEST_F(VotingRoundTest, Finalization) {
   // given (in fixture)
 
   // when 1.
-  // Alice precommits FC
-  EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
-      .WillRepeatedly(Return(std::vector<BlockHash>{
-          "FC"_H, "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H}));
-
-  auto alice_precommit = preparePrecommit(kAlice, kAliceSignature, {9, "FC"_H});
-  round_->onPrecommit(alice_precommit, Propagation::NEEDLESS);
-  round_->update(false, true);
+  // Alice Prevotes FC
+  auto alice_prevote = preparePrevote(kAlice, kAliceSignature, {9, "FC"_H});
+  round_->onPrevote(alice_prevote, Propagation::NEEDLESS);
+  round_->update(true, false);
 
   // when 2.
-  // Bob precommits ED
-  EXPECT_CALL(*env_, getAncestry("C"_H, "ED"_H))
-      .WillOnce(Return(std::vector<BlockHash>{
-          "ED"_H, "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H}));
-
-  auto bob_precommit = preparePrecommit(kBob, kBobSignature, {9, "ED"_H});
-  round_->onPrecommit(bob_precommit, Propagation::NEEDLESS);
-  round_->update(false, true);
+  // Bob prevotes ED
+  auto bob_prevote = preparePrevote(kBob, kBobSignature, {9, "ED"_H});
+  round_->onPrevote(bob_prevote, Propagation::NEEDLESS);
+  round_->update(true, false);
 
   // then 1.
   ASSERT_FALSE(round_->finalizedBlock().has_value());
@@ -363,16 +356,17 @@ TEST_F(VotingRoundTest, Finalization) {
   // import some prevotes.
 
   // when 3.
-  // Alice Prevotes
-  auto alice_prevote = preparePrevote(kAlice, kAliceSignature, {9, "FC"_H});
-  round_->onPrevote(alice_prevote, Propagation::NEEDLESS);
-  round_->update(true, false);
+  // Alice precommits FC
+  auto alice_precommit = preparePrecommit(kAlice, kAliceSignature, {9, "FC"_H});
+  round_->onPrecommit(alice_precommit, Propagation::NEEDLESS);
+  round_->update(false, true);
 
   // when 4.
-  // Bob prevotes
-  auto bob_prevote = preparePrevote(kBob, kBobSignature, {9, "ED"_H});
-  round_->onPrevote(bob_prevote, Propagation::NEEDLESS);
-  round_->update(true, false);
+  // Bob precommits ED
+  auto bob_precommit = preparePrecommit(kBob, kBobSignature, {9, "ED"_H});
+  round_->onPrecommit(bob_precommit, Propagation::NEEDLESS);
+  round_->update(false, true);
+
   // then 2.
   ASSERT_EQ(round_->finalizedBlock(), BlockInfo(5, "E"_H));
 
@@ -484,28 +478,19 @@ ACTION_P(onFinalize, test_fixture) {
  * and `finalized` equal to the best block that Alice voted for
  */
 TEST_F(VotingRoundTest, SunnyDayScenario) {
-  auto base_block_hash = previous_round_->bestFinalCandidate().hash;
+  auto base_block = previous_round_->bestFinalCandidate();
   auto finalized_block = *previous_round_->finalizedBlock();
 
-  BlockHash best_block_hash = "FC"_H;
-  BlockNumber best_block_number = 9;
+  ASSERT_EQ(base_block, (BlockInfo{3, "C"_H}));
 
-  // needed for Alice to get the best block to vote for
-  EXPECT_CALL(*env_, bestChainContaining(base_block_hash))
-      .WillRepeatedly(Return(BlockInfo{best_block_number, best_block_hash}));
-  EXPECT_CALL(*env_, getAncestry(base_block_hash, best_block_hash))
-      .WillRepeatedly(Return(std::vector<BlockHash>{
-          "FC"_H, "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H}));
-
-  EXPECT_CALL(*env_, hasAncestry("C"_H, "FC"_H)).WillRepeatedly(Return(true));
-  EXPECT_CALL(*env_, hasAncestry("FC"_H, "FC"_H)).WillRepeatedly(Return(true));
+  BlockInfo best_block{9, "FC"_H};
 
   // Voting round is executed by Alice.
   // Alice is also a Primary (alice's voter index % round number is zero)
   {
     auto matcher = [&](const SignedMessage &primary_propose) {
       if (primary_propose.id == kAlice
-          and primary_propose.getBlockHash() == base_block_hash) {
+          and primary_propose.getBlockHash() == base_block.hash) {
         std::cout << "Proposed: " << primary_propose.getBlockHash().data()
                   << std::endl;
         return true;
@@ -519,7 +504,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   // After prevote stage timer is out, Alice is doing prevote
   {
     auto matcher = [&](const SignedMessage &prevote) {
-      if (prevote.id == kAlice and prevote.getBlockHash() == best_block_hash) {
+      if (prevote.id == kAlice and prevote.getBlockHash() == best_block.hash) {
         std::cout << "Prevoted: " << prevote.getBlockHash().data() << std::endl;
         return true;
       }
@@ -534,7 +519,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   {
     auto matcher = [&](const SignedMessage &precommit) {
       if (precommit.id == kAlice
-          and precommit.getBlockHash() == best_block_hash) {
+          and precommit.getBlockHash() == best_block.hash) {
         std::cout << "Precommited: " << precommit.getBlockHash().data()
                   << std::endl;
         return true;
@@ -550,10 +535,10 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
     // check that expected fin message was sent
     auto matcher1 = [&](const BlockInfo &compared) {
       std::cout << "Finalized: " << compared.hash.data() << std::endl;
-      return compared == BlockInfo{best_block_number, best_block_hash};
+      return compared == best_block;
     };
     auto matcher2 = [&](GrandpaJustification just) {
-      Precommit precommit{best_block_number, best_block_hash};
+      Precommit precommit{best_block.number, best_block.hash};
 
       auto alice_precommit =
           preparePrecommit(kAlice, kAliceSignature, precommit);
@@ -572,7 +557,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
         .WillOnce(onFinalize(this));
   }
 
-  EXPECT_CALL(*env_, finalize(best_block_hash, _))
+  EXPECT_CALL(*env_, finalize(best_block.hash, _))
       .WillOnce(Return(outcome::success()));
 
   {
@@ -587,8 +572,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       return state.round_number == round_number_
              and state.last_finalized_block == finalized_block
              and state.finalized.has_value()
-             and state.finalized->number == best_block_number
-             and state.finalized->hash == best_block_hash;
+             and state.finalized.value() == best_block;
     };
 
     EXPECT_CALL(*env_, onCompleted(Truly(matcher))).WillRepeatedly(Return());

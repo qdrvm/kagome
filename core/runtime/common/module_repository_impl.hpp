@@ -8,8 +8,6 @@
 
 #include "runtime/module_repository.hpp"
 
-#include <queue>
-
 #include "log/logger.hpp"
 #include "runtime/instance_environment.hpp"
 
@@ -17,6 +15,69 @@ namespace kagome::runtime {
 
   class RuntimeUpgradeTracker;
   class ModuleFactory;
+
+  template <typename Key, typename Value, typename PriorityType = uint64_t>
+  struct SmallLruCache final {
+   public:
+    static_assert(std::is_unsigned_v<PriorityType>);
+
+    struct CacheEntry {
+      Key key;
+      Value value;
+      PriorityType latest_use_tick_;
+
+      bool operator<(const CacheEntry &rhs) const {
+        return latest_use_tick_ < rhs.latest_use_tick_;
+      }
+    };
+
+    SmallLruCache(size_t max_size) : kMaxSize{max_size} {
+      BOOST_ASSERT(kMaxSize > 0);
+      cache_.reserve(kMaxSize);
+    }
+
+    boost::optional<const Value &> get(const Key &key) {
+      ticks_++;
+      if (ticks_ == 0) {
+        handleTicksOverflow();
+      }
+      for (auto &entry : cache_) {
+        if (entry.key == key) {
+          entry.latest_use_tick_ = ticks_;
+          return entry.value;
+        }
+      }
+      return boost::none;
+    }
+
+    template <typename ValueArg>
+    [[nodiscard]] bool put(const Key &key, ValueArg &&value) {
+      static_assert(std::is_convertible_v<
+                        ValueArg,
+                        Value> || std::is_constructible_v<ValueArg, Value>);
+      ticks_++;
+      if (cache_.size() >= kMaxSize) {
+        auto min = std::min_element(cache_.begin(), cache_.end());
+        cache_.erase(min);
+      }
+      cache_.push_back(CacheEntry{key, std::forward<ValueArg>(value), ticks_});
+      return true;
+    }
+
+   private:
+    void handleTicksOverflow() {
+      // 'compress' timestamps of entries in the cache
+      std::sort(cache_.begin(), cache_.end());
+      for (auto &entry : cache_) {
+        entry.latest_use_tick_ = ticks_;
+        ticks_++;
+      }
+    }
+
+    const size_t kMaxSize;
+    PriorityType ticks_ {};
+    std::vector<CacheEntry> cache_;
+  };
 
   class ModuleRepositoryImpl final : public ModuleRepository {
    public:
@@ -29,57 +90,20 @@ namespace kagome::runtime {
         const primitives::BlockInfo &block) override;
 
    private:
-    std::unordered_map<storage::trie::RootHash, std::shared_ptr<Module>>
-        modules_;
+    static constexpr size_t MODULES_CACHE_SIZE = 2;
+    static constexpr size_t INSTANCES_CACHE_SIZE = 2;
+
+    SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>> modules_;
     std::mutex modules_mutex_;
-    // ring-buffer cache for runtime module instances
-    static constexpr size_t INSTANCES_CACHE_SIZE = 8;
 
-    struct InstanceCache {
-     public:
-      struct InstanceCacheEntry {
-        std::shared_ptr<ModuleInstance> instance;
-        mutable uint8_t priority;
-        storage::trie::RootHash state_hash;
-
-        bool operator<(const InstanceCacheEntry &rhs) const {
-          return priority < rhs.priority;
-        }
-      };
-
-      boost::optional<std::shared_ptr<ModuleInstance>> get(
-          const storage::trie::RootHash &state_hash) const {
-        for (auto &entry : cache_) {
-          if (entry.state_hash == state_hash) {
-            if (entry.priority < UINT8_MAX) {
-              entry.priority++;
-            }
-            return entry.instance;
-          }
-        }
-        return boost::none;
-      }
-
-      [[nodiscard]] bool put(const storage::trie::RootHash &state_hash,
-                             std::shared_ptr<ModuleInstance> instance) {
-        cache_.push_back(
-            InstanceCacheEntry{std::move(instance), 0, std::move(state_hash)});
-        std::push_heap(cache_.begin(), cache_.end());
-        if (cache_.size() > INSTANCES_CACHE_SIZE) {
-          std::pop_heap(cache_.begin(), cache_.end());
-          cache_.pop_back();
-        }
-        return true;
-      }
-
-     private:
-      std::vector<InstanceCacheEntry> cache_;
-    };
-
-    static thread_local InstanceCache instances_cache_;
+    static thread_local SmallLruCache<storage::trie::RootHash,
+                                      std::shared_ptr<ModuleInstance>>
+        instances_cache_;
     std::mutex instances_mutex_;
     std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
+
+    log::Logger logger_;
   };
 
 }  // namespace kagome::runtime

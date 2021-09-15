@@ -22,7 +22,7 @@ namespace kagome::consensus {
     BOOST_ASSERT_MSG(babe_configuration_->epoch_length,
                      "Epoch length must be non zero");
 
-    // If we have any known epoch, calculate from than. Otherwise we assume
+    // If we have any known epoch, calculate from than. Otherwise, we assume
     // that we are in the initial epoch and calculate with its rules.
     if (auto res = getLastEpoch(); res.has_value()) {
       auto epoch = res.value();

@@ -28,7 +28,7 @@ namespace kagome::log {
     BOOST_ASSERT(logging_system != nullptr);
     libp2p::log::setLoggingSystem(logging_system);
     logging_system_ = std::move(logging_system);
-    _profiling_logger = createLogger("Profiler", "profile");
+    profiling_logger = createLogger("Profiler", "profile");
   }
 
   Logger createLogger(const std::string &tag) {

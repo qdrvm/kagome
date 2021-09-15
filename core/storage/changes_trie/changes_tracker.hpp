@@ -27,9 +27,9 @@ namespace kagome::storage::changes_trie {
     virtual void setExtrinsicIdxGetter(GetExtrinsicIndexDelegate f) = 0;
 
     /**
-     * Supposed to be called when the processed block changes
+     * Supposed to be called when a block execution starts
      */
-    virtual outcome::result<void> onBlockChange(
+    virtual outcome::result<void> onBlockStart(
         primitives::BlockHash new_parent_hash,
         primitives::BlockNumber new_parent_number) = 0;
 
@@ -43,9 +43,9 @@ namespace kagome::storage::changes_trie {
                                         bool new_entry) = 0;
 
     /**
-     * Supposed to be called when entry commits.
+     * Supposed to be called when a block execution finishes.
      */
-    virtual void onCommit() = 0;
+    virtual void onBlockFinish(const primitives::BlockHash &block_hash) = 0;
 
     /**
      * Supposed to be called when clear by prefix called.

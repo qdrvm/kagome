@@ -1,5 +1,6 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 
+#include "runtime/common/storage_code_provider.hpp"
 #include "scale/scale.hpp"
 #include "storage/changes_trie/impl/changes_trie.hpp"
 
@@ -22,16 +23,19 @@ namespace kagome::storage::changes_trie {
   StorageChangesTrackerImpl::StorageChangesTrackerImpl(
       std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
       std::shared_ptr<storage::trie::Codec> codec,
-      primitives::events::StorageSubscriptionEnginePtr subscription_engine)
+      primitives::events::StorageSubscriptionEnginePtr
+          storage_subscription_engine,
+      primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine)
       : trie_factory_(std::move(trie_factory)),
         codec_(std::move(codec)),
         parent_number_{std::numeric_limits<primitives::BlockNumber>::max()},
-        subscription_engine_(std::move(subscription_engine)) {
+        storage_subscription_engine_(std::move(storage_subscription_engine)),
+        chain_subscription_engine_(std::move(chain_subscription_engine)) {
     BOOST_ASSERT(trie_factory_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
   }
 
-  outcome::result<void> StorageChangesTrackerImpl::onBlockChange(
+  outcome::result<void> StorageChangesTrackerImpl::onBlockStart(
       primitives::BlockHash new_parent_hash,
       primitives::BlockNumber new_parent_number) {
     parent_hash_ = new_parent_hash;
@@ -49,9 +53,15 @@ namespace kagome::storage::changes_trie {
     get_extrinsic_index_ = std::move(f);
   }
 
-  void StorageChangesTrackerImpl::onCommit() {
-    for (auto &[key, value] : actual_val_)
-      subscription_engine_->notify(key, value, parent_hash_);
+  void StorageChangesTrackerImpl::onBlockFinish(
+      const primitives::BlockHash &block_hash) {
+    if (actual_val_.find(runtime::kRuntimeCodeKey) != actual_val_.cend()) {
+      chain_subscription_engine_->notify(
+          primitives::events::ChainEventType::kNewRuntime, block_hash);
+    }
+    for (auto &[key, value] : actual_val_) {
+      storage_subscription_engine_->notify(key, value, parent_hash_);
+    }
   }
 
   void StorageChangesTrackerImpl::onClearPrefix(const common::Buffer &prefix) {

@@ -15,14 +15,18 @@
 
 namespace kagome::runtime {
 
-  thread_local ModuleRepositoryImpl::InstanceCache
-      ModuleRepositoryImpl::instances_cache_;
+  thread_local SmallLruCache<storage::trie::RootHash,
+                             std::shared_ptr<ModuleInstance>>
+      ModuleRepositoryImpl::instances_cache_{
+          ModuleRepositoryImpl::INSTANCES_CACHE_SIZE};
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
       std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
       std::shared_ptr<const ModuleFactory> module_factory)
-      : runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
-        module_factory_{std::move(module_factory)} {
+      : modules_{MODULES_CACHE_SIZE},
+        runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
+        module_factory_{std::move(module_factory)},
+        logger_{log::createLogger("Module Repository", "runtime")} {
     BOOST_ASSERT(runtime_upgrade_tracker_);
     BOOST_ASSERT(module_factory_);
   }
@@ -35,37 +39,37 @@ namespace kagome::runtime {
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval);
 
+    auto cached_instance = instances_cache_.get(state);
+    if (cached_instance.has_value()) {
+      return cached_instance.value();
+    }
+
     KAGOME_PROFILE_START(module_retrieval);
     std::shared_ptr<Module> module;
     {
       std::lock_guard guard{modules_mutex_};
-      if (auto it = modules_.find(state); it == modules_.end()) {
+      if (auto opt_module = modules_.get(state); !opt_module.has_value()) {
         OUTCOME_TRY(code, code_provider->getCodeAt(state));
         OUTCOME_TRY(new_module, module_factory_->make(state, code));
         module = std::move(new_module);
-        modules_[state] = module;
+        BOOST_VERIFY(modules_.put(state, module));
       } else {
-        module = it->second;
+        module = opt_module.value();
       }
     }
     KAGOME_PROFILE_END(module_retrieval);
 
-    KAGOME_PROFILE_START(module_instantiation);
+    KAGOME_PROFILE_START(module_instantiation)
+    std::shared_ptr<ModuleInstance> shared_instance;
     {
       std::lock_guard guard{instances_mutex_};
-      if (auto cached_instance = instances_cache_.get(state);
-          not cached_instance.has_value()) {
-        OUTCOME_TRY(instance, modules_[state]->instantiate());
-        auto shared_instance =
-            std::shared_ptr<ModuleInstance>(std::move(instance));
-        auto emplaced = instances_cache_.put(state, shared_instance);
-        BOOST_ASSERT(emplaced);
-        KAGOME_PROFILE_END(module_instantiation);
-        return shared_instance;
-      } else {
-        return cached_instance.value();
-      }
+      OUTCOME_TRY(instance, module->instantiate());
+      shared_instance = std::move(instance);
     }
+    BOOST_VERIFY(instances_cache_.put(state, shared_instance));
+
+    KAGOME_PROFILE_END(module_instantiation)
+    return shared_instance;
   }
 
 }  // namespace kagome::runtime

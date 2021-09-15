@@ -29,6 +29,7 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/core.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -129,6 +130,7 @@ namespace kagome::blockchain {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util);
 
@@ -221,6 +223,7 @@ namespace kagome::blockchain {
         std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
             extrinsic_event_key_repo,
         std::shared_ptr<runtime::Core> runtime_core,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util);
 
@@ -273,6 +276,8 @@ namespace kagome::blockchain {
     std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
         extrinsic_event_key_repo_;
     std::shared_ptr<runtime::Core> runtime_core_;
+    std::shared_ptr<storage::changes_trie::ChangesTracker>
+        trie_changes_tracker_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
     boost::optional<primitives::Version> actual_runtime_version_;

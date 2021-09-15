@@ -9,10 +9,10 @@
 #include "log/logger.hpp"
 
 namespace kagome::log {
-  extern Logger _profiling_logger;
+  extern Logger profiling_logger;
 }
 
-#ifndef KAGOME_PROFILING
+#ifdef KAGOME_PROFILING
 
 #include "clock/impl/clock_impl.hpp"
 
@@ -21,7 +21,7 @@ namespace kagome::log {
 
 #define KAGOME_PROFILE_END(scope)                                         \
   auto _profiling_end_##scope = ::kagome::clock::SteadyClockImpl{}.now(); \
-  SL_DEBUG(::kagome::log::_profiling_logger,                              \
+  SL_DEBUG(::kagome::log::profiling_logger,                              \
            "{} took {} ms",                                               \
            #scope,                                                        \
            ::std::chrono::duration_cast<::std::chrono::milliseconds>(     \

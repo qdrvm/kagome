@@ -22,7 +22,10 @@ namespace kagome::storage::changes_trie {
     StorageChangesTrackerImpl(
         std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
         std::shared_ptr<storage::trie::Codec> codec,
-        primitives::events::StorageSubscriptionEnginePtr subscription_engine);
+        primitives::events::StorageSubscriptionEnginePtr
+            storage_subscription_engine,
+        primitives::events::ChainSubscriptionEnginePtr
+            chain_subscription_engine);
 
     /**
      * Functor that returns the current extrinsic index, which is supposed to
@@ -32,14 +35,14 @@ namespace kagome::storage::changes_trie {
 
     void setExtrinsicIdxGetter(GetExtrinsicIndexDelegate f) override;
 
-    outcome::result<void> onBlockChange(
+    outcome::result<void> onBlockStart(
         primitives::BlockHash new_parent_hash,
         primitives::BlockNumber new_parent_number) override;
 
     outcome::result<void> onPut(const common::Buffer &key,
                                 const common::Buffer &value,
                                 bool new_entry) override;
-    void onCommit() override;
+    void onBlockFinish(const primitives::BlockHash &block_hash) override;
     void onClearPrefix(const common::Buffer &prefix) override;
     outcome::result<void> onRemove(const common::Buffer &key) override;
 
@@ -60,7 +63,9 @@ namespace kagome::storage::changes_trie {
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
     GetExtrinsicIndexDelegate get_extrinsic_index_;
-    primitives::events::StorageSubscriptionEnginePtr subscription_engine_;
+    primitives::events::StorageSubscriptionEnginePtr
+        storage_subscription_engine_;
+    primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine_;
   };
 
 }  // namespace kagome::storage::changes_trie

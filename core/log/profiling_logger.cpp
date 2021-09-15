@@ -6,5 +6,5 @@
 #include "log/profiling_logger.hpp"
 
 namespace kagome::log {
-  Logger _profiling_logger = nullptr;
+  Logger profiling_logger = nullptr;
 }
