@@ -35,6 +35,11 @@ namespace kagome::runtime {
     }
   }
 
+  bool RuntimeUpgradeTrackerImpl::hasCodeSubstitute(
+      const kagome::primitives::BlockHash &hash) const {
+    return code_substitutes_.find(hash) != code_substitutes_.end();
+  }
+
   outcome::result<primitives::BlockId>
   RuntimeUpgradeTrackerImpl::getRuntimeChangeBlock(
       const primitives::BlockInfo &block) {
@@ -46,6 +51,11 @@ namespace kagome::runtime {
                block.number,
                block.hash.toHex());
       return 0;
+    }
+
+    if (hasCodeSubstitute(block.hash)) {
+      runtime_upgrade_parents_.emplace_back(block.number, block.hash);
+      save();
     }
 
     // if there are no known blocks with runtime upgrades, we just fall back to
@@ -66,12 +76,6 @@ namespace kagome::runtime {
                block.number,
                block.hash.toHex());
       return block.hash;
-    }
-
-    if (auto it = code_substitutes_.find(block.hash);
-        it != code_substitutes_.end()) {
-      runtime_upgrade_parents_.emplace_back(block.number, block.hash);
-      save();
     }
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
@@ -95,8 +99,10 @@ namespace kagome::runtime {
     }
 
     --latest_state_update_it;
-    if(latest_state_update_it->number == block.number) {
-      if(latest_state_update_it != runtime_upgrade_parents_.begin()) {
+    if (latest_state_update_it->number == block.number
+        || latest_state_update_it->number == block.number - 1
+               && not hasCodeSubstitute(latest_state_update_it->hash)) {
+      if (latest_state_update_it != runtime_upgrade_parents_.begin()) {
         --latest_state_update_it;
       } else {
         SL_DEBUG(logger_,
@@ -144,8 +150,7 @@ namespace kagome::runtime {
         }
 
         // found the predecessor with the latest runtime upgrade
-        if (auto it = code_substitutes_.find(latest_state_update_it->hash);
-            it != code_substitutes_.end()) {
+        if (hasCodeSubstitute(latest_state_update_it->hash)) {
           return latest_state_update_it->hash;
         }
         auto children_res =
@@ -227,12 +232,14 @@ namespace kagome::runtime {
       auto put_res = storage_->put(storage::kRuntimeHashesLookupKey,
                                    common::Buffer(encoded_res.value()));
       if (not put_res.has_value()) {
-        SL_ERROR(logger_, "Could not store hashes of blocks changing runtime: {}", put_res.error().message());
+        SL_ERROR(logger_,
+                 "Could not store hashes of blocks changing runtime: {}",
+                 put_res.error().message());
       }
     } else {
-      SL_ERROR(
-          logger_,
-          "Could not store hashes of blocks changing runtime: {}", encoded_res.error().message());
+      SL_ERROR(logger_,
+               "Could not store hashes of blocks changing runtime: {}",
+               encoded_res.error().message());
     }
   }
 

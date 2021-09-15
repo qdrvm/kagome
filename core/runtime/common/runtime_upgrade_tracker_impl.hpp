@@ -40,6 +40,7 @@ namespace kagome::runtime {
         const primitives::BlockInfo &block);
 
    private:
+    bool hasCodeSubstitute(const kagome::primitives::BlockHash &hash) const;
     void save();
     // assumption: insertions in the middle should be extremely rare, if any
     // assumption: runtime upgrades are rare
