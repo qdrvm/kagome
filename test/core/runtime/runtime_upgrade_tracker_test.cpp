@@ -125,9 +125,6 @@ TEST_F(RuntimeUpgradeTrackerTest, AutoUpgradeAfterEmpty) {
 
   EXPECT_CALL(*block_tree_, getLastFinalized())
       .WillRepeatedly(testing::Return(block_42));
-  EXPECT_CALL(*block_tree_, getChildren(block_1.hash))
-      .WillOnce(testing::Return(
-          std::vector<kagome::primitives::BlockHash>{block_2.hash}));
   EXPECT_OUTCOME_TRUE(state42, tracker_->getLastCodeUpdateState(block_42));
   // picking 2 instead of 42 because that's the latest known upgrade
   ASSERT_EQ(state42, "block_2_state_root"_hash256);

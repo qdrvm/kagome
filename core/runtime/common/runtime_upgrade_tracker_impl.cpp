@@ -98,6 +98,7 @@ namespace kagome::runtime {
                            return block_number < upgrade_data.block.number;
                          });
     KAGOME_PROFILE_END(blocks_with_runtime_upgrade_search)
+
     if (latest_state_update_it == runtime_upgrades_.begin()) {
       // if we have no info on updates before this block, we just return its
       // state
@@ -109,6 +110,9 @@ namespace kagome::runtime {
       return block_header.state_root;
     }
 
+    --latest_state_update_it;
+
+    // we are now at the last element in block_with_runtime_upgrade which is
     // less or equal to our \arg block number
     // we may have several entries with the same block number, we have to pick
     // one which is the predecessor of our block
