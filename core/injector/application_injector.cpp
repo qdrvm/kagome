@@ -329,7 +329,7 @@ namespace {
     for (const auto &[key_, val_] : genesis_raw_configs) {
       auto &key = key_;
       auto &val = val_;
-      SL_T(
+      SL_TRACE(
           log, "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
       if (auto res = batch->put(key, val); not res) {
         common::raise(res.error());
