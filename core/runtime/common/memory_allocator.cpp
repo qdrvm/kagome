@@ -46,7 +46,7 @@ namespace kagome::runtime {
     BOOST_ASSERT(allocated_.find(ptr) == allocated_.end());
     if (Memory::kMaxMemorySize - offset_ < size) {  // overflow
       logger_->error(
-          "overflow occured while trying to allocate {} bytes at offset 0x{:x}",
+          "overflow occurred while trying to allocate {} bytes at offset 0x{:x}",
           size,
           offset_);
       return 0;

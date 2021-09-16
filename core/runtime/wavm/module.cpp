@@ -30,8 +30,7 @@ namespace kagome::runtime::wavm {
         "of seconds)");
     if (!WAVM::Runtime::loadBinaryModule(
             code.data(), code.size(), module, featureSpec, &loadError)) {
-      // TODO(Harrm): Introduce an outcome error
-      logger->error("Error loading WAVM binary module: {}", loadError.message);
+      logger->critical("Error loading WAVM binary module: {}", loadError.message);
       return nullptr;
     }
 

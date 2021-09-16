@@ -24,15 +24,11 @@ namespace kagome::runtime {
 
 namespace kagome::runtime::wavm {
 
-  class CompartmentWrapper;
-
   class MemoryImpl final : public kagome::runtime::Memory {
    public:
-    MemoryImpl(std::shared_ptr<const CompartmentWrapper> const &compartment,
-               WAVM::Runtime::Memory *memory,
+    MemoryImpl(WAVM::Runtime::Memory *memory,
                std::unique_ptr<MemoryAllocator> &&allocator);
-    MemoryImpl(std::shared_ptr<const CompartmentWrapper> const &compartment,
-               WAVM::Runtime::Memory *memory,
+    MemoryImpl(WAVM::Runtime::Memory *memory,
                WasmSize heap_base);
     MemoryImpl(const MemoryImpl &copy) = delete;
     MemoryImpl &operator=(const MemoryImpl &copy) = delete;
@@ -115,7 +111,6 @@ namespace kagome::runtime::wavm {
    private:
     constexpr static uint32_t kPageSize = 4096;
     std::unique_ptr<MemoryAllocator> allocator_;
-    const std::shared_ptr<const CompartmentWrapper> compartment_;
     WAVM::Runtime::Memory *memory_;
     log::Logger logger_;
   };
