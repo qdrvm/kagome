@@ -57,3 +57,12 @@ target_link_libraries(runtime_upgrade_tracker_test
     logger
     log_configurator
     )
+
+addtest(small_lru_cache_test
+        small_lru_cache_test.cpp
+        )
+target_link_libraries(small_lru_cache_test
+        module_repository
+        blob
+        WAVM::libWAVM
+        )
