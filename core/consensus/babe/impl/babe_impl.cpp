@@ -483,7 +483,6 @@ namespace kagome::consensus::babe {
           log_, "cannot put an inherent data: {}", put_res.error().message());
     }
 
-    //    auto &[best_block_number, best_block_hash] = best_block_;
     SL_INFO(log_,
             "Babe builds block on top of block with number {} and hash {}",
             best_block_.number,

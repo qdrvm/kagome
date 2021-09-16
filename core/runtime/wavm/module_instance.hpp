@@ -38,8 +38,6 @@ namespace kagome::runtime::wavm {
                    WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> instance,
                    std::shared_ptr<const CompartmentWrapper> compartment);
 
-    ~ModuleInstance() override;
-
     outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                 PtrSize args) const override;
 
