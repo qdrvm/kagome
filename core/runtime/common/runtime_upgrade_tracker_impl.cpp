@@ -54,7 +54,7 @@ namespace kagome::runtime {
             block.number,
             block.hash.toHex());
 
-        return std::move(latest_upgrade_it->state);
+        return latest_upgrade_it->state;
       }
     }
     return boost::none;
