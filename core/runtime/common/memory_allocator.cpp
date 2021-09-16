@@ -22,8 +22,8 @@ namespace kagome::runtime {
         offset_{heap_base},
         size_{size},
         logger_{log::createLogger("Allocator", "runtime")} {
-    // Heap base (and offset in according) must be non zero to prohibit
-    // allocating memory at 0 in future, as returning 0 from allocate method
+    // Heap base (and offset in according) must be non-zero to prohibit
+    // allocating memory at 0 in the future, as returning 0 from allocate method
     // means that wasm memory was exhausted
     BOOST_ASSERT(offset_ > 0);
     BOOST_ASSERT(memory_.getSize);

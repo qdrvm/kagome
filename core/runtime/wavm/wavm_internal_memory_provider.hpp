@@ -3,28 +3,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_WAVM_MEMORY_PROVIDER_HPP
-#define KAGOME_CORE_RUNTIME_WAVM_IMPL_WAVM_MEMORY_PROVIDER_HPP
+#ifndef KAGOME_CORE_RUNTIME_WAVM_IMPL_WAVM_INTERNAL_MEMORY_PROVIDER_HPP
+#define KAGOME_CORE_RUNTIME_WAVM_IMPL_WAVM_INTERNAL_MEMORY_PROVIDER_HPP
 
 #include "runtime/memory_provider.hpp"
 
+namespace WAVM::Runtime {
+  class Memory;
+}
+
 namespace kagome::runtime::wavm {
 
-  class IntrinsicModuleInstance;
+  class ModuleInstance;
   class MemoryImpl;
-  class CompartmentWrapper;
 
-  class WavmExternalMemoryProvider final : public MemoryProvider {
+  class WavmInternalMemoryProvider final : public MemoryProvider {
    public:
-    WavmExternalMemoryProvider(
-        std::shared_ptr<IntrinsicModuleInstance> intrinsic_module);
+    explicit WavmInternalMemoryProvider(
+        WAVM::Runtime::Memory* memory);
 
     boost::optional<runtime::Memory &> getCurrentMemory() const override;
     outcome::result<void> resetMemory(WasmSize heap_base) override;
 
    private:
-    // it contains the memory itself
-    std::shared_ptr<IntrinsicModuleInstance> intrinsic_module_;
+    WAVM::Runtime::Memory* memory_;
     std::shared_ptr<Memory> current_memory_;
   };
 

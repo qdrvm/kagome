@@ -9,9 +9,9 @@
 #include <WAVM/RuntimeABI/RuntimeABI.h>
 
 #include "host_api/host_api.hpp"
+#include "log/profiling_logger.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
-#include "log/profiling_logger.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm, ModuleInstance::Error, e) {
   using E = kagome::runtime::wavm::ModuleInstance::Error;
@@ -76,11 +76,11 @@ namespace kagome::runtime::wavm {
         untaggedInvokeArgs.push_back(arg);
       }
       // Infer the expected type of the function from the number and type of the
-      // invoke arguments and the function's actual result types.
+      // invocation arguments and the function's actual result types.
       const WAVM::IR::FunctionType invokeSig(
           WAVM::Runtime::getFunctionType(function).results(),
           WAVM::IR::TypeTuple(invokeArgTypes));
-      // Allocate an array to receive the invoke results.
+      // Allocate an array to receive the invocation results.
       std::vector<WAVM::IR::UntaggedValue> untaggedInvokeResults;
       untaggedInvokeResults.resize(invokeSig.results().size());
       try {

@@ -26,7 +26,7 @@ namespace kagome::runtime::wavm {
         : compartment_{compartment} {
     }
 
-    std::unique_ptr<IntrinsicModuleInstance> instantiate() {
+    std::unique_ptr<IntrinsicModuleInstance> instantiate() const {
       BOOST_ASSERT_MSG(
           !functions_.empty(),
           "Host API methods are not registered within IntrinsicModule! See "
