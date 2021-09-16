@@ -136,6 +136,9 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<runtime::CoreMock> runtime_core_ =
       std::make_shared<runtime::CoreMock>();
+  
+  std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
+      std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();

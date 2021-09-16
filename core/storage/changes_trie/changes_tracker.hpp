@@ -29,7 +29,7 @@ namespace kagome::storage::changes_trie {
     /**
      * Supposed to be called when a block execution starts
      */
-    virtual outcome::result<void> onBlockStart(
+    virtual outcome::result<void> onBlockExecutionStart(
         primitives::BlockHash new_parent_hash,
         primitives::BlockNumber new_parent_number) = 0;
 
@@ -43,9 +43,9 @@ namespace kagome::storage::changes_trie {
                                         bool new_entry) = 0;
 
     /**
-     * Supposed to be called when a block execution finishes.
+     * Supposed to be called when a block is added to the block tree.
      */
-    virtual void onBlockFinish(const primitives::BlockHash &block_hash) = 0;
+    virtual void onBlockAdded(const primitives::BlockHash &hash) = 0;
 
     /**
      * Supposed to be called when clear by prefix called.

@@ -35,14 +35,14 @@ namespace kagome::storage::changes_trie {
 
     void setExtrinsicIdxGetter(GetExtrinsicIndexDelegate f) override;
 
-    outcome::result<void> onBlockStart(
+    outcome::result<void> onBlockExecutionStart(
         primitives::BlockHash new_parent_hash,
         primitives::BlockNumber new_parent_number) override;
 
     outcome::result<void> onPut(const common::Buffer &key,
                                 const common::Buffer &value,
                                 bool new_entry) override;
-    void onBlockFinish(const primitives::BlockHash &block_hash) override;
+    void onBlockAdded(const primitives::BlockHash &hash) override;
     void onClearPrefix(const common::Buffer &prefix) override;
     outcome::result<void> onRemove(const common::Buffer &key) override;
 

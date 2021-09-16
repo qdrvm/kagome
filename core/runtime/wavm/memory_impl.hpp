@@ -24,8 +24,6 @@ namespace kagome::runtime {
 
 namespace kagome::runtime::wavm {
 
-  class CompartmentWrapper;
-
   class MemoryImpl final : public kagome::runtime::Memory {
    public:
     MemoryImpl(WAVM::Runtime::Memory *memory,

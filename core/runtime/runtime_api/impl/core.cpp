@@ -35,8 +35,8 @@ namespace kagome::runtime {
       const primitives::Block &block) {
     OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.header.parent_hash));
     BOOST_ASSERT(parent.number == block.header.number - 1);
-    OUTCOME_TRY(changes_tracker_->onBlockStart(block.header.parent_hash,
-                                               parent.number));
+    OUTCOME_TRY(changes_tracker_->onBlockExecutionStart(
+        block.header.parent_hash, parent.number));
     const auto res = executor_->persistentCallAt<void>(
         block.header.parent_hash, "Core_execute_block", block);
     if (res) {
@@ -47,9 +47,9 @@ namespace kagome::runtime {
 
   outcome::result<storage::trie::RootHash> CoreImpl::initialize_block(
       const primitives::BlockHeader &header) {
-    OUTCOME_TRY(
-        changes_tracker_->onBlockStart(header.parent_hash,
-                                       header.number - 1));  // parent's number
+    OUTCOME_TRY(changes_tracker_->onBlockExecutionStart(
+        header.parent_hash,
+        header.number - 1));  // parent's number
     const auto res = executor_->persistentCallAt<void>(
         header.parent_hash, "Core_initialize_block", header);
     if (res.has_value()) {

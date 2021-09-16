@@ -40,7 +40,6 @@ namespace kagome::runtime {
                         const primitives::BlockInfo &chain_end) const;
 
     struct RuntimeUpgradeData {
-
       template <typename BlockInfo, typename RootHash>
       RuntimeUpgradeData(BlockInfo &&block, RootHash &&state)
           : block{std::forward<BlockInfo>(block)},
@@ -52,8 +51,8 @@ namespace kagome::runtime {
 
     outcome::result<boost::optional<storage::trie::RootHash>> findProperFork(
         const primitives::BlockInfo &block,
-        std::vector<RuntimeUpgradeData>::const_iterator latest_state_update_it)
-        const;
+        std::vector<RuntimeUpgradeData>::const_reverse_iterator
+            latest_upgrade_it) const;
 
     // assumption: insertions in the middle should be extremely rare, if any
     // assumption: runtime upgrades are rare

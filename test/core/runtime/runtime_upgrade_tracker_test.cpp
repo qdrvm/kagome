@@ -23,11 +23,14 @@ Hash256 makeHash(std::string_view str) {
 }
 
 kagome::primitives::BlockHeader makeBlockHeader(
-    kagome::primitives::BlockNumber number) {
-  auto str_number = std::to_string(number);
+    kagome::primitives::BlockNumber number, size_t fork = 0) {
+  auto fork_number = (fork > 0 ? "f" + std::to_string(fork) : "");
+  auto str_number = std::to_string(number) + fork_number;
   return kagome::primitives::BlockHeader{
-      makeHash("block_" + (number > 0 ? std::to_string(number - 1) : "genesis")
-               + "_hash"),
+      makeHash(
+          "block_"
+          + (number > 0 ? std::to_string(number - 1) + fork_number : "genesis")
+          + "_hash"),
       number,
       makeHash("block_" + str_number + "_state_root"),
       makeHash("block_" + str_number + "_ext_root"),
@@ -35,12 +38,12 @@ kagome::primitives::BlockHeader makeBlockHeader(
 }
 
 kagome::primitives::BlockInfo makeBlockInfo(
-    kagome::primitives::BlockNumber number) {
-  auto str_number = std::to_string(number);
+    kagome::primitives::BlockNumber number, size_t fork = 0) {
+  auto fork_number = (fork > 0 ? "f" + std::to_string(fork) : "");
+  auto str_number = std::to_string(number) + fork_number;
   return kagome::primitives::BlockInfo{
       number,
-      makeHash("block_" + (number > 0 ? std::to_string(number) : "genesis")
-               + "_hash")};
+      makeHash("block_" + (number > 0 ? str_number : "genesis") + "_hash")};
 }
 
 class RuntimeUpgradeTrackerTest : public testing::Test {
@@ -176,6 +179,60 @@ TEST_F(RuntimeUpgradeTrackerTest, CorrectUpgradeScenario) {
   // then block #44
   EXPECT_OUTCOME_TRUE(state_for_44, tracker_->getLastCodeUpdateState(block_43));
   ASSERT_EQ(state_for_44, block_42_header.state_root);
+}
+
+TEST_F(RuntimeUpgradeTrackerTest, OrphanBlock) {
+  tracker_->subscribeToBlockchainEvents(sub_engine_, block_tree_);
+  // suppose we have two forks
+  //  / - 33f2
+  // 32 - 33f1 - 34f1
+  // with an empty upgrade tracker
+  EXPECT_CALL(*block_tree_, getLastFinalized())
+      .WillRepeatedly(testing::Return(makeBlockInfo(32)));
+
+  // and then we receive 34f2 with a runtime upgrade
+  auto block_34f2 = makeBlockInfo(34, 2);
+  auto block_34f2_header = makeBlockHeader(34, 2);
+  EXPECT_CALL(*header_repo_,
+              getBlockHeader(kagome::primitives::BlockId{block_34f2.hash}))
+      .WillRepeatedly(testing::Return(block_34f2_header));
+  sub_engine_->notify(
+      kagome::primitives::events::ChainEventType::kNewRuntime,
+      kagome::primitives::events::NewRuntimeEventParams{block_34f2.hash});
+
+  // and then we receive 35f1 and query the latest runtime for it
+  auto block_35f1 = makeBlockInfo(35, 1);
+  auto block_35f1_header = makeBlockHeader(35, 1);
+  EXPECT_CALL(*header_repo_,
+              getBlockHeader(kagome::primitives::BlockId{block_35f1.hash}))
+      .WillRepeatedly(testing::Return(block_35f1_header));
+
+  EXPECT_CALL(*block_tree_, hasDirectChain(block_34f2.hash, block_35f1.hash))
+      .WillOnce(testing::Return(false));
+  EXPECT_OUTCOME_TRUE(state_for_35f1,
+                      tracker_->getLastCodeUpdateState(block_35f1));
+
+  // we have no information on upgrades, related to this block, so we fall back
+  // to returning its state root
+  ASSERT_EQ(state_for_35f1, block_35f1_header.state_root);
+
+  auto block_33f1 = makeBlockInfo(33, 1);
+  auto block_33f1_header = makeBlockHeader(33, 1);
+  EXPECT_CALL(*header_repo_,
+              getBlockHeader(kagome::primitives::BlockId{block_33f1.hash}))
+      .WillRepeatedly(testing::Return(block_33f1_header));
+  sub_engine_->notify(
+      kagome::primitives::events::ChainEventType::kNewRuntime,
+      kagome::primitives::events::NewRuntimeEventParams{block_33f1.hash});
+  EXPECT_CALL(*block_tree_, hasDirectChain(block_34f2.hash, block_35f1.hash))
+      .WillOnce(testing::Return(false));
+  EXPECT_CALL(*block_tree_, hasDirectChain(block_33f1.hash, block_35f1.hash))
+      .WillOnce(testing::Return(true));
+  EXPECT_OUTCOME_TRUE(state_for_35f1_again,
+                      tracker_->getLastCodeUpdateState(block_35f1));
+
+  // now we pick the runtime upgrade
+  ASSERT_EQ(state_for_35f1_again, block_33f1_header.state_root);
 }
 
 using RuntimeUpgradeTrackerDeathTest = RuntimeUpgradeTrackerTest;

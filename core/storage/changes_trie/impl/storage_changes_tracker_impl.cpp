@@ -3,6 +3,7 @@
 #include "runtime/common/storage_code_provider.hpp"
 #include "scale/scale.hpp"
 #include "storage/changes_trie/impl/changes_trie.hpp"
+#include "storage/predefined_keys.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
                             StorageChangesTrackerImpl::Error,
@@ -30,12 +31,12 @@ namespace kagome::storage::changes_trie {
         codec_(std::move(codec)),
         parent_number_{std::numeric_limits<primitives::BlockNumber>::max()},
         storage_subscription_engine_(std::move(storage_subscription_engine)),
-        chain_subscription_engine_(std::move(chain_subscription_engine)) {
+        chain_subscription_engine_(std::move(chain_subscription_engine))  {
     BOOST_ASSERT(trie_factory_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
   }
 
-  outcome::result<void> StorageChangesTrackerImpl::onBlockStart(
+  outcome::result<void> StorageChangesTrackerImpl::onBlockExecutionStart(
       primitives::BlockHash new_parent_hash,
       primitives::BlockNumber new_parent_number) {
     parent_hash_ = new_parent_hash;
@@ -53,11 +54,11 @@ namespace kagome::storage::changes_trie {
     get_extrinsic_index_ = std::move(f);
   }
 
-  void StorageChangesTrackerImpl::onBlockFinish(
-      const primitives::BlockHash &block_hash) {
-    if (actual_val_.find(runtime::kRuntimeCodeKey) != actual_val_.cend()) {
+  void StorageChangesTrackerImpl::onBlockAdded(
+      const primitives::BlockHash &hash) {
+    if (actual_val_.find(storage::kRuntimeCodeKey) != actual_val_.cend()) {
       chain_subscription_engine_->notify(
-          primitives::events::ChainEventType::kNewRuntime, block_hash);
+          primitives::events::ChainEventType::kNewRuntime, hash);
     }
     for (auto &[key, value] : actual_val_) {
       storage_subscription_engine_->notify(key, value, parent_hash_);

@@ -31,12 +31,13 @@
 #include "runtime/runtime_api/core.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
-#include "transaction_pool/transaction_pool.hpp"
+
+namespace kagome::storage::changes_trie {
+  class ChangesTracker;
+}
 
 namespace kagome::blockchain {
-  /**
-   * Block tree implementation
-   */
+
   class BlockTreeImpl : public BlockTree {
     /**
      * In-memory light representation of the tree, used for efficiency and usage

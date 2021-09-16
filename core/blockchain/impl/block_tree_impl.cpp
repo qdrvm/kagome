@@ -12,6 +12,7 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "crypto/blake2/blake2b.h"
+#include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/database_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
@@ -479,7 +480,7 @@ namespace kagome::blockchain {
     updateMeta(new_node);
     chain_events_engine_->notify(primitives::events::ChainEventType::kNewHeads,
                                  block.header);
-    trie_changes_tracker_->onBlockFinish(block_hash);
+    trie_changes_tracker_->onBlockAdded(block_hash);
     for (size_t idx = 0; idx < block.body.size(); idx++) {
       if (auto key = extrinsic_event_key_repo_->get(
               hasher_->blake2b_256(block.body[idx].data))) {

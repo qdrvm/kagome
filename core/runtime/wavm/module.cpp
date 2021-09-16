@@ -34,7 +34,6 @@ namespace kagome::runtime::wavm {
             code.data(), code.size(), module, featureSpec, &loadError)) {
       logger->critical("Error loading WAVM binary module: {}",
                        loadError.message);
-
       return nullptr;
     }
 

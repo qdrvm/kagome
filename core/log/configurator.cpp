@@ -71,7 +71,6 @@ groups:
         children:
           - name: testing
           - name: debug
-          - name: profile
 # ----------------
   )");
   }

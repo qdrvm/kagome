@@ -25,6 +25,8 @@ using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::ExtrinsicIndex;
+using kagome::primitives::events::ChainSubscriptionEngine;
+using kagome::primitives::events::StorageSubscriptionEngine;
 using kagome::storage::InMemoryStorage;
 using kagome::storage::changes_trie::ChangesTracker;
 using kagome::storage::changes_trie::StorageChangesTrackerImpl;
@@ -34,9 +36,6 @@ using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
-using kagome::subscription::SubscriptionEngine;
-using kagome::primitives::events::StorageSubscriptionEngine;
-using kagome::primitives::events::ChainSubscriptionEngine;
 namespace scale = kagome::scale;
 using testing::_;
 using testing::AnyOf;
@@ -65,7 +64,7 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
                                                   codec,
                                                   storage_subscription_engine,
                                                   chain_subscription_engine);
-  EXPECT_OUTCOME_TRUE_1(changes_tracker->onBlockStart("aaa"_hash256, 42));
+  EXPECT_OUTCOME_TRUE_1(changes_tracker->onBlockExecutionStart("aaa"_hash256, 42));
   auto batch = PersistentTrieBatchImpl::create(
       codec,
       serializer,

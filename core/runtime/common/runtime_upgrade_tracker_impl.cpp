@@ -39,22 +39,22 @@ namespace kagome::runtime {
   outcome::result<boost::optional<storage::trie::RootHash>>
   RuntimeUpgradeTrackerImpl::findProperFork(
       const primitives::BlockInfo &block,
-      std::vector<RuntimeUpgradeData>::const_iterator latest_state_update_it)
+      std::vector<RuntimeUpgradeData>::const_reverse_iterator latest_upgrade_it)
       const {
-    for (; std::next(latest_state_update_it) != runtime_upgrades_.begin();
-         latest_state_update_it--) {
-      if (isStateInChain(latest_state_update_it->block, block)) {
+    for (; latest_upgrade_it != runtime_upgrades_.rend();
+         latest_upgrade_it++) {
+      if (isStateInChain(latest_upgrade_it->block, block)) {
         SL_TRACE_FUNC_CALL(
-            logger_, latest_state_update_it->state, block.hash, block.number);
+            logger_, latest_upgrade_it->state, block.hash, block.number);
         SL_DEBUG(
             logger_,
             "Pick runtime state at block #{} hash {} for block #{} hash {}",
-            latest_state_update_it->block.number,
-            latest_state_update_it->block.hash,
+            latest_upgrade_it->block.number,
+            latest_upgrade_it->block.hash,
             block.number,
             block.hash.toHex());
 
-        return std::move(latest_state_update_it->state);
+        return latest_upgrade_it->state;
       }
     }
     return boost::none;
@@ -90,7 +90,7 @@ namespace kagome::runtime {
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
     auto block_number = block.number;
-    auto latest_state_update_it =
+    auto latest_upgrade =
         std::upper_bound(runtime_upgrades_.begin(),
                          runtime_upgrades_.end(),
                          block_number,
@@ -98,7 +98,8 @@ namespace kagome::runtime {
                            return block_number < upgrade_data.block.number;
                          });
     KAGOME_PROFILE_END(blocks_with_runtime_upgrade_search)
-    if (latest_state_update_it == runtime_upgrades_.begin()) {
+
+    if (latest_upgrade == runtime_upgrades_.begin()) {
       // if we have no info on updates before this block, we just return its
       // state
       OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
@@ -109,13 +110,15 @@ namespace kagome::runtime {
       return block_header.state_root;
     }
 
-    --latest_state_update_it;
+    // this conversion also steps back on one element
+    auto reverse_latest_upgrade = std::make_reverse_iterator(latest_upgrade);
+
     // we are now at the last element in block_with_runtime_upgrade which is
     // less or equal to our \arg block number
     // we may have several entries with the same block number, we have to pick
     // one which is the predecessor of our block
     KAGOME_PROFILE_START(search_for_proper_fork)
-    OUTCOME_TRY(proper_fork, findProperFork(block, latest_state_update_it));
+    OUTCOME_TRY(proper_fork, findProperFork(block, reverse_latest_upgrade));
     KAGOME_PROFILE_END(search_for_proper_fork)
     if (proper_fork.has_value()) {
       return proper_fork.value();
@@ -157,7 +160,8 @@ namespace kagome::runtime {
           }
           auto &block_hash =
               boost::get<primitives::events::NewRuntimeEventParams>(
-                  event_params).get();
+                  event_params)
+                  .get();
           SL_INFO(logger_, "Runtime upgrade at block {}", block_hash.toHex());
           auto header = header_repo_->getBlockHeader(block_hash).value();
           auto it =
