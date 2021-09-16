@@ -30,8 +30,7 @@ namespace kagome::runtime::wavm {
    public:
     MemoryImpl(WAVM::Runtime::Memory *memory,
                std::unique_ptr<MemoryAllocator> &&allocator);
-    MemoryImpl(WAVM::Runtime::Memory *memory,
-               WasmSize heap_base);
+    MemoryImpl(WAVM::Runtime::Memory *memory, WasmSize heap_base);
     MemoryImpl(const MemoryImpl &copy) = delete;
     MemoryImpl &operator=(const MemoryImpl &copy) = delete;
     MemoryImpl(MemoryImpl &&move) = delete;
@@ -106,7 +105,9 @@ namespace kagome::runtime::wavm {
        */
       if (new_size >= size()) {
         auto new_page_number = (new_size / kPageSize) + 1;
-        WAVM::Runtime::growMemory(memory_, new_page_number);
+        WAVM::Runtime::growMemory(
+            memory_,
+            new_page_number - WAVM::Runtime::getMemoryNumPages(memory_));
       }
     }
 
