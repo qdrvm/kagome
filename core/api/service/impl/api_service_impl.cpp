@@ -20,11 +20,11 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 
-#define UNWRAP_WEAK_PTR(callback)   \
-  [wp](auto &&... params) mutable { \
-    if (auto self = wp.lock()) {    \
-      self->callback(params...);    \
-    }                               \
+#define UNWRAP_WEAK_PTR(callback)  \
+  [wp](auto &&...params) mutable { \
+    if (auto self = wp.lock()) {   \
+      self->callback(params...);   \
+    }                              \
   }
 
 namespace {
@@ -378,8 +378,8 @@ namespace kagome::api {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session = session_context.chain_sub;
         const auto id = session->generateSubscriptionSetId();
-        session->subscribe(id,
-                           primitives::events::ChainEventType::kRuntimeVersion);
+        session->subscribe(
+            id, primitives::events::ChainEventType::kFinalizedRuntimeVersion);
 
         auto ver = block_tree_->runtimeVersion();
         if (ver) {
@@ -417,8 +417,7 @@ namespace kagome::api {
       return withSession(tid, [&](SessionSubscriptions &session_context) {
         auto &session_sub = session_context.ext_sub;
         const auto sub_id = session_sub->generateSubscriptionSetId();
-        const auto key =
-            extrinsic_event_key_repo_->add(tx.hash);
+        const auto key = extrinsic_event_key_repo_->add(tx.hash);
         session_sub->subscribe(sub_id, key);
 
         return static_cast<PubsubSubscriptionId>(sub_id);
@@ -520,11 +519,14 @@ namespace kagome::api {
       case primitives::events::ChainEventType::kFinalizedHeads: {
         name = kRpcEventFinalizedHeads;
       } break;
-      case primitives::events::ChainEventType::kRuntimeVersion: {
+      case primitives::events::ChainEventType::kFinalizedRuntimeVersion: {
         name = kRpcEventRuntimeVersion;
       } break;
+      case primitives::events::ChainEventType::kNewRuntime:
+        return;
       default:
-        break;
+        BOOST_ASSERT(!"Unknown chain event");
+        return;
     }
 
     BOOST_ASSERT(!name.empty());

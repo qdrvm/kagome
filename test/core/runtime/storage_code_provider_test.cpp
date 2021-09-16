@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include "storage/predefined_keys.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "testutil/literals.hpp"
@@ -48,7 +49,7 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
   EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
   EXPECT_CALL(*trie_db, getEphemeralBatch()).WillOnce(Invoke([this]() {
     auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-    EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
+    EXPECT_CALL(*batch, get(storage::kRuntimeCodeKey))
         .WillOnce(Return(state_code_));
     return batch;
   }));
@@ -81,7 +82,7 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   EXPECT_CALL(*trie_db, getRootHashMock()).WillOnce(Return(first_state_root));
   EXPECT_CALL(*trie_db, getEphemeralBatch()).WillOnce(Invoke([this]() {
     auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-    EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
+    EXPECT_CALL(*batch, get(storage::kRuntimeCodeKey))
         .WillOnce(Return(state_code_));
     return batch;
   }));
@@ -91,7 +92,7 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(second_state_root))
       .WillOnce(Invoke([&new_state_code](auto &) {
         auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-        EXPECT_CALL(*batch, get(runtime::kRuntimeCodeKey))
+        EXPECT_CALL(*batch, get(storage::kRuntimeCodeKey))
             .WillOnce(Return(new_state_code));
         return batch;
       }));

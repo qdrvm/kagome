@@ -10,6 +10,7 @@
 #include "log/logger.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "storage/predefined_keys.hpp"
 
 namespace kagome::runtime {
 
@@ -37,7 +38,7 @@ namespace kagome::runtime {
       const outcome::result<std::unique_ptr<storage::trie::EphemeralTrieBatch>>
           &batch) const {
     BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
-    auto state_code_res = batch.value()->get(kRuntimeCodeKey);
+    auto state_code_res = batch.value()->get(storage::kRuntimeCodeKey);
     BOOST_ASSERT_MSG(state_code_res.has_value(),
                      "Runtime code does not exist in the storage");
     uncompressCodeIfNeeded(state_code_res.value(), cached_code_);

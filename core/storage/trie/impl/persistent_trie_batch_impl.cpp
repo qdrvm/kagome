@@ -87,9 +87,6 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
     root_changed_handler_(root);
     SL_TRACE_FUNC_CALL(logger_, root);
-    if (changes_.has_value()) {
-      changes_.value()->onCommit();
-    }
     return std::move(root);
   }
 
