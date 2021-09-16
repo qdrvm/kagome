@@ -42,7 +42,7 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<IntrinsicModuleInstance>(
             intrinsic_module_->instantiate());
     auto new_memory_provider = std::make_shared<WavmMemoryProvider>(
-        new_intrinsic_module_instance, compartment_);
+        new_intrinsic_module_instance);
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_);
     auto core_factory = std::make_shared<CoreApiFactoryImpl>(compartment_,

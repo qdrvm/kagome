@@ -122,7 +122,7 @@ namespace kagome::runtime {
                                    std::string_view name,
                                    Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start(block_hash));
-      OUTCOME_TRY(env, env_template->persistent().make());
+      OUTCOME_TRY(env, env_template->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
     }
 
