@@ -16,6 +16,9 @@ namespace kagome::runtime {
   class RuntimeUpgradeTracker;
   class ModuleFactory;
 
+  /**
+   * LRU cache designed for small amounts of data (as its get() is O(N))
+   */
   template <typename Key, typename Value, typename PriorityType = uint64_t>
   struct SmallLruCache final {
    public:
@@ -66,7 +69,8 @@ namespace kagome::runtime {
 
    private:
     void handleTicksOverflow() {
-      // 'compress' timestamps of entries in the cache
+      // 'compress' timestamps of entries in the cache (works because we care
+      // only about their order, not actual timestamps)
       std::sort(cache_.begin(), cache_.end());
       for (auto &entry : cache_) {
         entry.latest_use_tick_ = ticks_;
@@ -75,7 +79,9 @@ namespace kagome::runtime {
     }
 
     const size_t kMaxSize;
-    PriorityType ticks_ {};
+    // an abstract representation of time to implement 'recency' without
+    // depending on real time. Incremented on each cache access
+    PriorityType ticks_{};
     std::vector<CacheEntry> cache_;
   };
 
