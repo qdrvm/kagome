@@ -23,7 +23,7 @@ namespace kagome::runtime::wavm {
   MemoryImpl::MemoryImpl(
       WAVM::Runtime::Memory *memory,
       WasmSize heap_base)
-      : MemoryImpl(memory,
+      : MemoryImpl{memory,
                    std::make_unique<MemoryAllocator>(
                        MemoryAllocator::MemoryHandle{
                            [this](auto size) { return resize(size); },

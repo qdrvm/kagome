@@ -23,8 +23,7 @@ namespace kagome::runtime::wavm {
     static constexpr std::string_view kIntrinsicMemoryName = "Runtime Memory";
 
     explicit IntrinsicModule(std::shared_ptr<CompartmentWrapper> compartment)
-        : compartment_{compartment} {
-    }
+        : compartment_{compartment} {}
 
     std::unique_ptr<IntrinsicModuleInstance> instantiate() const {
       BOOST_ASSERT_MSG(

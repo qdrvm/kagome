@@ -6,7 +6,6 @@
 #include "runtime/binaryen/instance_environment_factory.hpp"
 
 #include "host_api/host_api_factory.hpp"
-#include "log/logger.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
