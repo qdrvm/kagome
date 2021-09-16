@@ -10,25 +10,20 @@
 namespace kagome::runtime::wavm {
 
   MemoryImpl::MemoryImpl(
-      std::shared_ptr<const CompartmentWrapper> const &compartment,
       WAVM::Runtime::Memory *memory,
       std::unique_ptr<MemoryAllocator> &&allocator)
       : allocator_{std::move(allocator)},
-        compartment_{compartment},
         memory_{memory},
         logger_{log::createLogger("WAVM Memory", "wavm")} {
     BOOST_ASSERT(memory_);
-    BOOST_ASSERT(compartment_);
 
     resize(kInitialMemorySize);
   }
 
   MemoryImpl::MemoryImpl(
-      std::shared_ptr<const CompartmentWrapper> const &compartment,
       WAVM::Runtime::Memory *memory,
       WasmSize heap_base)
-      : MemoryImpl(compartment,
-                   memory,
+      : MemoryImpl(memory,
                    std::make_unique<MemoryAllocator>(
                        MemoryAllocator::MemoryHandle{
                            [this](auto size) { return resize(size); },
