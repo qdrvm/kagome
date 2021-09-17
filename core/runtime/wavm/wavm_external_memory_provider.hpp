@@ -16,14 +16,14 @@ namespace kagome::runtime::wavm {
   class WavmExternalMemoryProvider final : public MemoryProvider {
    public:
     explicit WavmExternalMemoryProvider(
-        std::weak_ptr<IntrinsicModuleInstance> intrinsic_module);
+        std::shared_ptr<IntrinsicModuleInstance> intrinsic_module);
 
     boost::optional<runtime::Memory &> getCurrentMemory() const override;
     outcome::result<void> resetMemory(WasmSize heap_base) override;
 
    private:
     // it contains the memory itself
-    std::weak_ptr<IntrinsicModuleInstance> intrinsic_module_;
+    std::shared_ptr<IntrinsicModuleInstance> intrinsic_module_;
     std::shared_ptr<Memory> current_memory_;
   };
 

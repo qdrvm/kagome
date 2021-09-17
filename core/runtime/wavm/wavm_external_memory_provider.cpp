@@ -12,9 +12,9 @@
 namespace kagome::runtime::wavm {
 
   WavmExternalMemoryProvider::WavmExternalMemoryProvider(
-      std::weak_ptr<IntrinsicModuleInstance> module)
+      std::shared_ptr<IntrinsicModuleInstance> module)
       : intrinsic_module_{std::move(module)} {
-    BOOST_ASSERT(intrinsic_module_.lock() != nullptr);
+    BOOST_ASSERT(intrinsic_module_ != nullptr);
   }
 
   boost::optional<runtime::Memory &>
@@ -26,9 +26,8 @@ namespace kagome::runtime::wavm {
 
   outcome::result<void> WavmExternalMemoryProvider::resetMemory(
       WasmSize heap_base) {
-    BOOST_ASSERT(intrinsic_module_.lock() != nullptr);
     current_memory_ = std::make_unique<MemoryImpl>(
-        intrinsic_module_.lock()->getExportedMemory(), heap_base);
+        intrinsic_module_->getExportedMemory(), heap_base);
     return outcome::success();
   }
 

@@ -140,9 +140,6 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
       std::make_shared<storage::changes_trie::ChangesTrackerMock>();
 
-  std::shared_ptr<storage::changes_trie::ChangesTrackerMock> changes_tracker_ =
-      std::make_shared<storage::changes_trie::ChangesTrackerMock>();
-
   std::shared_ptr<SystemClockMock> clock_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;

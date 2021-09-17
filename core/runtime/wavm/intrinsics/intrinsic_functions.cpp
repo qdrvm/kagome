@@ -28,10 +28,6 @@ namespace kagome::runtime::wavm {
     return global_host_apis.top();
   }
 
-  size_t getHostApisNum() {
-    return global_host_apis.size();
-  }
-
 #undef WAVM_DEFINE_INTRINSIC_FUNCTION
 // ContextRuntimeData is required by WAVM
 #define WAVM_DEFINE_INTRINSIC_FUNCTION(Result, cName, ...)            \
