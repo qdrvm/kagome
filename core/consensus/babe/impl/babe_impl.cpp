@@ -306,7 +306,7 @@ namespace kagome::consensus::babe {
           startNextEpoch();
         }
       } else if (slot < current_slot_) {
-        log_->info("Slots {}..{} was skipped", slot, current_slot_ - 1);
+        log_->verbose("Slots {}..{} was skipped", slot, current_slot_ - 1);
       }
     } while (rewind_slots);
 
@@ -342,13 +342,13 @@ namespace kagome::consensus::babe {
     auto finish_time = babe_util_->slotFinishTime(current_slot_)
                        - babe_util_->slotDuration() / 3;
 
-    log_->info("Starting a slot {} in epoch {} (remains {:.2f} sec.)",
-               current_slot_,
-               current_epoch_.epoch_number,
-               std::chrono::duration_cast<std::chrono::milliseconds>(
-                   babe_util_->remainToFinishOfSlot(current_slot_))
-                       .count()
-                   / 1000.);
+    log_->verbose("Starting a slot {} in epoch {} (remains {:.2f} sec.)",
+                  current_slot_,
+                  current_epoch_.epoch_number,
+                  std::chrono::duration_cast<std::chrono::milliseconds>(
+                      babe_util_->remainToFinishOfSlot(current_slot_))
+                          .count()
+                      / 1000.);
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(finish_time);
@@ -400,13 +400,14 @@ namespace kagome::consensus::babe {
 
     auto start_time = babe_util_->slotStartTime(current_slot_);
 
-    log_->info("Slot {} in epoch {} will start after {:.2f} sec.",
-               current_slot_,
-               current_epoch_.epoch_number,
-               std::chrono::duration_cast<std::chrono::milliseconds>(
-                   babe_util_->remainToStartOfSlot(current_slot_))
-                       .count()
-                   / 1000.);
+    SL_DEBUG(log_,
+             "Slot {} in epoch {} will start after {:.2f} sec.",
+             current_slot_,
+             current_epoch_.epoch_number,
+             std::chrono::duration_cast<std::chrono::milliseconds>(
+                 babe_util_->remainToStartOfSlot(current_slot_))
+                     .count()
+                 / 1000.);
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(start_time);
@@ -463,10 +464,10 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(keypair_ != nullptr);
 
     // build a block to be announced
-    SL_INFO(log_,
-            "Obtained slot leadership in slot {} epoch {}",
-            current_slot_,
-            current_epoch_.epoch_number);
+    SL_VERBOSE(log_,
+               "Obtained slot leadership in slot {} epoch {}",
+               current_slot_,
+               current_epoch_.epoch_number);
 
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -486,7 +487,7 @@ namespace kagome::consensus::babe {
 
     //    auto &[best_block_number, best_block_hash] = best_block_;
     SL_INFO(log_,
-            "Babe builds block on top of block with number {} and hash {}",
+            "Babe builds block on top of block #{} hash={}",
             best_block_.number,
             best_block_.hash);
 
@@ -577,7 +578,7 @@ namespace kagome::consensus::babe {
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
         next_epoch_digest_res) {
       auto &next_epoch_digest = next_epoch_digest_res.value();
-      SL_INFO(log_,
+      SL_VERBOSE(log_,
               "Got next epoch digest in slot {} (block #{}). Randomness: {}",
               current_slot_,
               block.header.number,

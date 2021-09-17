@@ -41,6 +41,45 @@ namespace kagome::consensus {
                   std::shared_ptr<boost::asio::io_context> io_context,
                   std::unique_ptr<clock::Timer> sync_timer);
 
+    //    /**
+    //     * Processes next header: if header is observed first it is added to
+    //     the
+    //     * storage, handler is invoked. Synchronization of blocks between new
+    //     one
+    //     * and the current best one is launched if required
+    //     * @param header new header that we received and trying to process
+    //     * @param new_block_handler invoked on new header if it is observed
+    //     first
+    //     * time
+    //     */
+    //    void processNextBlock(
+    //        const libp2p::peer::PeerId &peer_id,
+    //        const primitives::BlockHeader &header,
+    //        const std::function<void(const primitives::BlockHeader &)>
+    //            &new_block_handler);
+    //
+    //    /**
+    //     * Synchronize all missing blocks between the last finalized and the
+    //     new one
+    //     * @param new_header header defining new block
+    //     * @param next action after the sync is done
+    //     */
+    //    void requestBlocks(const libp2p::peer::PeerId &peer_id,
+    //                       const primitives::BlockHeader &new_header,
+    //                       std::function<void(outcome::result<void>)> &&next);
+    //
+    //    /**
+    //     * Synchronize all missing blocks between provided blocks (from and
+    //     to)
+    //     * @param from starting block of syncing blocks
+    //     * @param to last block of syncing block
+    //     * @param on_retrieved action after the sync is done
+    //     */
+    //    void requestBlocks(const primitives::BlockHash &from,
+    //                       const primitives::BlockHash &to,
+    //                       const libp2p::peer::PeerId &peer_id,
+    //                       std::function<void(outcome::result<void>)>
+    //                       &&on_retrieved);
 
     // should only be invoked when parent of block exists
     outcome::result<void> applyBlock(const primitives::BlockData &block);
@@ -111,7 +150,7 @@ namespace kagome::consensus {
      private:
       std::shared_ptr<boost::asio::io_context> io_context_;
       std::function<void()> func_;
-    };  // namespace kagome::common
+    };
   };
 
 }  // namespace kagome::consensus

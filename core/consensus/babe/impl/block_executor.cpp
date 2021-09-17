@@ -69,7 +69,6 @@ namespace kagome::consensus {
     BOOST_ASSERT(logger_ != nullptr);
   }
 
-
   outcome::result<void> BlockExecutor::applyBlock(
       const primitives::BlockData &b) {
     if (!b.header) {
@@ -102,17 +101,15 @@ namespace kagome::consensus {
 
     const auto &[seal, babe_header] = babe_digests;
 
-    logger_->info("Applying block number: {}, hash: {} (slot #{})",
+    logger_->info("Applying block #{} hash={} (slot #{})",
                   block.header.number,
                   block_hash.toHex(),
                   babe_header.slot_number);
 
-    {
-      // add information about epoch to epoch storage
-      if (block.header.number == 1) {
-        OUTCOME_TRY(babe_util_->setLastEpoch(EpochDescriptor{
-            .epoch_number = 0, .start_slot = babe_header.slot_number}));
-      }
+    // add information about epoch to epoch storage
+    if (block.header.number == 1) {
+      OUTCOME_TRY(babe_util_->setLastEpoch(EpochDescriptor{
+          .epoch_number = 0, .start_slot = babe_header.slot_number}));
     }
 
     EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
@@ -137,11 +134,11 @@ namespace kagome::consensus {
 
     if (auto next_epoch_digest_res = getNextEpochDigest(block.header)) {
       auto &next_epoch_digest = next_epoch_digest_res.value();
-      logger_->info(
-          "Got next epoch digest in slot {} (block #{}). Randomness: {}",
-          babe_header.slot_number,
-          block.header.number,
-          next_epoch_digest.randomness.toHex());
+      SL_VERBOSE(logger_,
+                 "Got next epoch digest in slot {} (block #{}). Randomness: {}",
+                 slot_number,
+                 block.header.number,
+                 next_epoch_digest.randomness.toHex());
     }
 
     OUTCOME_TRY(block_validator_->validateHeader(
