@@ -45,7 +45,7 @@ namespace kagome::network {
         : attributes(static_cast<uint8_t>(attribute)) {}
 
     template <typename T, typename = std::enable_if<std::is_unsigned_v<T>>>
-    constexpr BlockAttributes(T attribute) noexcept : BlockAttributes() {
+    constexpr BlockAttributes(T attribute) noexcept : attributes(0) {
       load(attribute);
     }
 

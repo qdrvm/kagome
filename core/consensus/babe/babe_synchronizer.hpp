@@ -9,6 +9,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "outcome/outcome.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus {
@@ -24,6 +25,10 @@ namespace kagome::consensus {
      * Enqueues new-noticed block for loading
      */
     virtual void enqueue(const primitives::BlockInfo &block_info,
+                         const libp2p::peer::PeerId &peer_id,
+                         SyncResultHandler &&handler) = 0;
+
+    virtual void enqueue(const primitives::BlockHeader &header,
                          const libp2p::peer::PeerId &peer_id,
                          SyncResultHandler &&handler) = 0;
   };

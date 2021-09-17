@@ -28,7 +28,9 @@ namespace kagome::consensus {
       WRONG_CONTENT,
       DISCARDED_BLOCK,
       WRONG_ORDER,
-      INVALID_HASH
+      INVALID_HASH,
+      ALREADY_IN_QUEUE,
+      PEER_BUSY
     };
 
     BabeSynchronizerImpl(
@@ -43,8 +45,12 @@ namespace kagome::consensus {
                  const libp2p::peer::PeerId &peer_id,
                  SyncResultHandler &&handler) override;
 
+    void enqueue(const primitives::BlockHeader &header,
+                 const libp2p::peer::PeerId &peer_id,
+                 SyncResultHandler &&handler) override;
+
    private:
-    bool isInQueue(const primitives::BlockInfo &block_info) const;
+    bool isInQueue(const primitives::BlockHash &hash) const;
 
     void findCommonBlock(const libp2p::peer::PeerId &peer_id,
                          primitives::BlockNumber lower,
@@ -80,6 +86,9 @@ namespace kagome::consensus {
     std::map<primitives::BlockHash, KnownBlock> known_blocks_;
     std::multimap<primitives::BlockNumber, primitives::BlockHash> generations_;
     std::multimap<primitives::BlockHash, primitives::BlockHash> ancestry_;
+
+    primitives::BlockNumber watching_block_number_{};
+    std::multimap<primitives::BlockHash, SyncResultHandler> watching_blocks_;
 
     std::atomic_bool applying_in_progress_ = false;
     std::atomic_bool asking_blocks_portion_in_progress_ = false;

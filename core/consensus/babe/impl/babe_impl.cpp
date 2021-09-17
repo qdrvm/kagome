@@ -162,83 +162,98 @@ namespace kagome::consensus::babe {
 
   void BabeImpl::onRemoteStatus(const libp2p::peer::PeerId &peer_id,
                                 const network::Status &status) {
-    if (current_state_ == State::WAIT_REMOTE_STATUS
-        or current_state_ == State::WAIT_BLOCK_ANNOUNCE) {
-      const auto &last_finalized_block = block_tree_->getLastFinalized();
+    const auto &last_finalized_block = block_tree_->getLastFinalized();
 
-      auto current_best_block_res = block_tree_->getBestContaining(
-          last_finalized_block.hash, boost::none);
-      BOOST_ASSERT(current_best_block_res.has_value());
-      const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, boost::none);
+    BOOST_ASSERT(current_best_block_res.has_value());
+    const auto &current_best_block = current_best_block_res.value();
 
-      if (current_best_block == status.best_block) {
-        onSynchronized();
-        return;
-      }
-
-      // Remote peer is lagged
-      if (current_best_block.number > status.best_block.number) {
-        return;
-      }
-
-      babe_synchronizer_->enqueue(
-          status.best_block,
-          peer_id,
-          [wp = weak_from_this(), bn = status.best_block.number](
-              outcome::result<primitives::BlockInfo> res) {
-            if (auto self = wp.lock()) {
-              if (not res.has_value()) {
-                SL_INFO(self->log_,
-                        "Catching up to block #{} is failed: ",
-                        bn,
-                        res.error().message());
-                self->current_state_ = State::WAIT_BLOCK_ANNOUNCE;
-                return;
-              }
-
-              SL_INFO(self->log_, "Catching up to block #{} is done", bn);
-              self->current_state_ = State::WAIT_BLOCK_ANNOUNCE;
-            }
-          });
+    if (current_best_block == status.best_block) {
+      onSynchronized();
+      return;
     }
+
+    // Remote peer is lagged
+    if (current_best_block.number > status.best_block.number) {
+      return;
+    }
+
+    startCatchUp(peer_id, status.best_block);
   }
 
   void BabeImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                  const network::BlockAnnounce &announce) {
-    return;
-    if (current_state_ == State::WAIT_BLOCK_ANNOUNCE
-        or current_state_ == State::SYNCHRONIZED) {
-      const auto &last_finalized_block = block_tree_->getLastFinalized();
+    const auto &last_finalized_block = block_tree_->getLastFinalized();
 
-      auto current_best_block_res = block_tree_->getBestContaining(
-          last_finalized_block.hash, boost::none);
-      BOOST_ASSERT(current_best_block_res.has_value());
-      const auto &current_best_block = current_best_block_res.value();
+    auto current_best_block_res =
+        block_tree_->getBestContaining(last_finalized_block.hash, boost::none);
+    BOOST_ASSERT(current_best_block_res.has_value());
+    const auto &current_best_block = current_best_block_res.value();
 
+    // Skip obsoleted announce
+    if (announce.header.number < current_best_block.number) {
+      return;
+    }
+
+    // Start catching up if gap recognized
+    if (announce.header.number > current_best_block.number + 1) {
       auto block_hash =
           hasher_->blake2b_256(scale::encode(announce.header).value());
       const primitives::BlockInfo announced_block(announce.header.number,
                                                   block_hash);
-
-      // Skip obsoleted announce
-      if (announced_block.number < current_best_block.number) {
-        return;
-      }
-
-      // Start catching up if gap recognized
-      if (announced_block.number > current_best_block.number + 1) {
-        startCatchUp(
-            peer_id, last_finalized_block, current_best_block, announced_block);
-      }
-
-//      // Already has block with same number as ours best block or next of that
-//      block_executor_->processNextBlock(
-//          peer_id, announce.header, [this](const auto &header) {
-//            onSynchronized();
-//          });
+      startCatchUp(peer_id, announced_block);
+      return;
     }
+
+    // Already has block with same number as ours best block or next of that
+    babe_synchronizer_->enqueue(
+        announce.header,
+        peer_id,
+        [wp = weak_from_this()](
+            outcome::result<primitives::BlockInfo> block_res) {
+          if (auto self = wp.lock()) {
+            if (not block_res.has_value()) {
+              return;
+            }
+
+            if (self->current_state_ == Babe::State::CATCHING_UP) {
+              const auto &block = block_res.value();
+              SL_INFO(self->log_,
+                      "Catching up is finished on block #{} hash={}",
+                      block.number,
+                      block.hash.toHex());
+              self->current_state_ = Babe::State::SYNCHRONIZED;
+            }
+            self->onSynchronized();
+          }
+        });
   }
 
+  void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
+                              const primitives::BlockInfo &target_block) {
+    // synchronize missing blocks with their bodies
+    SL_INFO(log_, "Catching up to block #{} is ran", target_block.number);
+    current_state_ = State::CATCHING_UP;
+
+    babe_synchronizer_->enqueue(
+        target_block,
+        peer_id,
+        [wp = weak_from_this(),
+         bn = target_block.number](outcome::result<primitives::BlockInfo> res) {
+          if (auto self = wp.lock()) {
+            if (not res.has_value()) {
+              SL_INFO(self->log_,
+                      "Catching up to block #{} is failed: ",
+                      bn,
+                      res.error().message());
+              return;
+            }
+
+            SL_INFO(self->log_, "Catching up to block #{} in progress", bn);
+          }
+        });
+  }
 
   void BabeImpl::onSynchronized() {
     // won't start block production without keypair

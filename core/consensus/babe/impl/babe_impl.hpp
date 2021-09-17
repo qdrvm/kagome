@@ -96,6 +96,9 @@ namespace kagome::consensus::babe {
     void doOnSynchronized(std::function<void()> handler) override;
 
    private:
+    void startCatchUp(const libp2p::peer::PeerId &peer_id,
+                      const primitives::BlockInfo &target_block);
+
     void runSlot();
 
     /**
