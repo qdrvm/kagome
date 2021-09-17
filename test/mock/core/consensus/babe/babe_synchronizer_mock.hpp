@@ -24,6 +24,17 @@ namespace kagome::consensus {
                  SyncResultHandler &&handler) {
       enqueue_rv(block_info, peer_id, handler);
     };
+
+    MOCK_METHOD3(enqueue_rv,
+                 void(const primitives::BlockHeader &,
+                      const libp2p::peer::PeerId &,
+                      const SyncResultHandler &));
+
+    void enqueue(const primitives::BlockHeader &block_header,
+                 const libp2p::peer::PeerId &peer_id,
+                 SyncResultHandler &&handler) {
+      enqueue_rv(block_header, peer_id, handler);
+    };
   };
 
 }  // namespace kagome::consensus
