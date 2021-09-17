@@ -29,7 +29,6 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/core.hpp"
-#include "storage/changes_trie/changes_tracker.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 
 namespace kagome::storage::changes_trie {
