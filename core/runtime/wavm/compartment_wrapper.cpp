@@ -21,8 +21,7 @@ namespace kagome::runtime::wavm {
 
   CompartmentWrapper::CompartmentWrapper(std::string &&name)
       : impl_{std::make_unique<CompartmentWrapperImpl>(WAVM::Runtime::GCPointer{
-          WAVM::Runtime::createCompartment(std::move(name))})} {
-  }
+          WAVM::Runtime::createCompartment(std::move(name))})} {}
 
   CompartmentWrapper::~CompartmentWrapper() {
     BOOST_VERIFY(
