@@ -17,8 +17,6 @@ namespace kagome::storage::trie {
 
 namespace kagome::runtime {
 
-  inline const common::Buffer kRuntimeCodeKey = common::Buffer().put(":code");
-
   class StorageCodeProvider final : public RuntimeCodeProvider {
    public:
     ~StorageCodeProvider() override = default;

@@ -12,7 +12,7 @@ namespace kagome::log {
   extern Logger profiling_logger;
 }
 
-#ifndef KAGOME_PROFILING
+#ifdef KAGOME_PROFILING
 
 #include "clock/impl/clock_impl.hpp"
 
