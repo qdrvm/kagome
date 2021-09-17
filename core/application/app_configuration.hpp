@@ -110,7 +110,8 @@ namespace kagome::application {
     /**
      * @return endpoint for OpenMetrics over HTTP protocol.
      */
-    virtual const boost::asio::ip::tcp::endpoint &openmetricsHttpEndpoint() const = 0;
+    virtual const boost::asio::ip::tcp::endpoint &openmetricsHttpEndpoint()
+        const = 0;
 
     /**
      * @return maximum number of WS RPC connections
@@ -118,9 +119,9 @@ namespace kagome::application {
     virtual uint32_t maxWsConnections() const = 0;
 
     /**
-     * @return log level (0-trace, 5-only critical, 6-no logs).
+     * @return logging system tuning config
      */
-    virtual log::Level verbosity() const = 0;
+    virtual const std::string &log() const = 0;
 
     /**
      * @return max blocks count per response while syncing
@@ -143,10 +144,7 @@ namespace kagome::application {
      */
     virtual const std::string &nodeName() const = 0;
 
-    enum class RuntimeExecutionMethod {
-      Compile,
-      Interpret
-    };
+    enum class RuntimeExecutionMethod { Compile, Interpret };
     /**
      * @return enum constant of the chosen runtime backend
      */

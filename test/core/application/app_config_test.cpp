@@ -34,7 +34,7 @@ class AppConfigurationTest : public testing::Test {
       R"({
         "general" : {
           "roles": "full",
-          "verbosity" : 2
+          "log": "debug"
         },
         "blockchain" : {
           "chain" : "%1%"
@@ -58,7 +58,7 @@ class AppConfigurationTest : public testing::Test {
       R"({
         "general" : {
           "roles": "azaza",
-          "verbosity" : 4444
+          "log": "invalid"
         },
         "blockchain" : {
           "chain" : 1
@@ -81,7 +81,7 @@ class AppConfigurationTest : public testing::Test {
       R"({
         "general" : {
           "roles": "full",
-          "verbosity" : 2
+          "log": "debug"
         },
         "blockchain" : {
           "chain" : 1
@@ -150,7 +150,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
+  ASSERT_EQ(app_config_->log(), "");
 }
 
 /**
@@ -258,7 +258,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 456);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
+  ASSERT_EQ(app_config_->log(), "debug");
   ASSERT_EQ(app_config_->nodeName(), "Bob's node");
 }
 
@@ -292,7 +292,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
+  ASSERT_EQ(app_config_->log(), "");
 }
 
 /**
@@ -324,7 +324,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
+  ASSERT_EQ(app_config_->log(), "");
 }
 
 /**
@@ -356,7 +356,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
+  ASSERT_EQ(app_config_->log(), "");
 }
 
 /**
@@ -410,8 +410,8 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
   {
     char const *args[] = {
         "/path/",
-        "--verbosity",
-        "0",
+        "--log",
+        "info",
         "--chain",
         chain_path.native().c_str(),
         "--base-path",
@@ -419,13 +419,13 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
+    ASSERT_EQ(app_config_->log(), "info");
   }
   {
     char const *args[] = {
         "/path/",
-        "--verbosity",
-        "1",
+        "--log",
+        "verbose",
         "--chain",
         chain_path.native().c_str(),
         "--base-path",
@@ -433,13 +433,13 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::VERBOSE);
+    ASSERT_EQ(app_config_->log(), "verbose");
   }
   {
     char const *args[] = {
         "/path/",
-        "--verbosity",
-        "2",
+        "--log",
+        "debug",
         "--chain",
         chain_path.native().c_str(),
         "--base-path",
@@ -447,13 +447,13 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::DEBUG);
+    ASSERT_EQ(app_config_->log(), "debug");
   }
   {
     char const *args[] = {
         "/path/",
-        "--verbosity",
-        "3",
+        "--log",
+        "trace",
         "--chain",
         chain_path.native().c_str(),
         "--base-path",
@@ -461,7 +461,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::TRACE);
+    ASSERT_EQ(app_config_->log(), "trace");
   }
 }
 
@@ -472,15 +472,15 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
  */
 TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
   char const *args[] = {"/path/",
-                        "--verbosity",
-                        "555",
+                        "--log",
+                        "",
                         "--chain",
                         chain_path.native().c_str(),
                         "--base-path",
                         base_path.native().c_str()};
   ASSERT_TRUE(
       app_config_->initialize_from_args(std::size(args), (char **)args));
-  ASSERT_EQ(app_config_->verbosity(), kagome::log::Level::INFO);
+  ASSERT_EQ(app_config_->log(), "");
 }
 
 /**

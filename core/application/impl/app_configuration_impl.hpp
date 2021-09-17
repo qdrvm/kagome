@@ -104,14 +104,15 @@ namespace kagome::application {
     const boost::asio::ip::tcp::endpoint &rpcWsEndpoint() const override {
       return rpc_ws_endpoint_;
     }
-    const boost::asio::ip::tcp::endpoint &openmetricsHttpEndpoint() const override {
+    const boost::asio::ip::tcp::endpoint &openmetricsHttpEndpoint()
+        const override {
       return openmetrics_http_endpoint_;
     }
     uint32_t maxWsConnections() const override {
       return max_ws_connections_;
     }
-    log::Level verbosity() const override {
-      return verbosity_;
+    const std::string &log() const override {
+      return logger_tuning_config_;
     }
     uint32_t maxBlocksInResponse() const override {
       return max_blocks_in_response_;
@@ -188,7 +189,7 @@ namespace kagome::application {
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
     boost::asio::ip::tcp::endpoint openmetrics_http_endpoint_;
-    log::Level verbosity_ = log::Level::INFO;
+    std::string logger_tuning_config_;
     uint32_t max_blocks_in_response_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;
