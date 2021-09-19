@@ -251,7 +251,10 @@ namespace kagome::consensus::babe {
               return;
             }
 
-            SL_INFO(self->log_, "Catching up to block #{} in progress", bn);
+            SL_INFO(self->log_,
+                    "Catching up to block #{} is going (on block #{} now)",
+                    bn,
+                    res.value().number);
           }
         });
   }
@@ -322,7 +325,7 @@ namespace kagome::consensus::babe {
           startNextEpoch();
         }
       } else if (slot < current_slot_) {
-        SL_VERBOSE(log_,"Slots {}..{} was skipped", slot, current_slot_ - 1);
+        SL_VERBOSE(log_, "Slots {}..{} was skipped", slot, current_slot_ - 1);
       }
     } while (rewind_slots);
 
@@ -358,13 +361,14 @@ namespace kagome::consensus::babe {
     auto finish_time = babe_util_->slotFinishTime(current_slot_)
                        - babe_util_->slotDuration() / 3;
 
-    SL_VERBOSE(log_,"Starting a slot {} in epoch {} (remains {:.2f} sec.)",
-                  current_slot_,
-                  current_epoch_.epoch_number,
-                  std::chrono::duration_cast<std::chrono::milliseconds>(
-                      babe_util_->remainToFinishOfSlot(current_slot_))
-                          .count()
-                      / 1000.);
+    SL_VERBOSE(log_,
+               "Starting a slot {} in epoch {} (remains {:.2f} sec.)",
+               current_slot_,
+               current_epoch_.epoch_number,
+               std::chrono::duration_cast<std::chrono::milliseconds>(
+                   babe_util_->remainToFinishOfSlot(current_slot_))
+                       .count()
+                   / 1000.);
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(finish_time);
@@ -594,10 +598,10 @@ namespace kagome::consensus::babe {
         next_epoch_digest_res) {
       auto &next_epoch_digest = next_epoch_digest_res.value();
       SL_VERBOSE(log_,
-              "Got next epoch digest in slot {} (block #{}). Randomness: {}",
-              current_slot_,
-              block.header.number,
-              next_epoch_digest.randomness.toHex());
+                 "Got next epoch digest in slot {} (block #{}). Randomness: {}",
+                 current_slot_,
+                 block.header.number,
+                 next_epoch_digest.randomness.toHex());
     }
 
     // finally, broadcast the sealed block
