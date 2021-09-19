@@ -206,14 +206,15 @@ namespace kagome::consensus::babe {
       return;
     }
 
-    // Already has block with same number as ours best block or next of that
+    // Received announce has the same block number as our best one,
+    // or greater by one. Using of simple way to load block
     babe_synchronizer_->enqueue(
         announce.header,
         peer_id,
         [wp = weak_from_this()](
             outcome::result<primitives::BlockInfo> block_res) {
           if (auto self = wp.lock()) {
-            if (not block_res.has_value()) {
+            if (block_res.has_error()) {
               return;
             }
 
@@ -242,7 +243,7 @@ namespace kagome::consensus::babe {
         [wp = weak_from_this(),
          bn = target_block.number](outcome::result<primitives::BlockInfo> res) {
           if (auto self = wp.lock()) {
-            if (not res.has_value()) {
+            if (res.has_error()) {
               SL_INFO(self->log_,
                       "Catching up to block #{} is failed: ",
                       bn,
@@ -321,7 +322,7 @@ namespace kagome::consensus::babe {
           startNextEpoch();
         }
       } else if (slot < current_slot_) {
-        log_->verbose("Slots {}..{} was skipped", slot, current_slot_ - 1);
+        SL_VERBOSE(log_,"Slots {}..{} was skipped", slot, current_slot_ - 1);
       }
     } while (rewind_slots);
 
@@ -357,7 +358,7 @@ namespace kagome::consensus::babe {
     auto finish_time = babe_util_->slotFinishTime(current_slot_)
                        - babe_util_->slotDuration() / 3;
 
-    log_->verbose("Starting a slot {} in epoch {} (remains {:.2f} sec.)",
+    SL_VERBOSE(log_,"Starting a slot {} in epoch {} (remains {:.2f} sec.)",
                   current_slot_,
                   current_epoch_.epoch_number,
                   std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -731,9 +731,7 @@ namespace {
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<sptr<consensus::BabeUtil>>(),
-        injector.template create<sptr<boost::asio::io_context>>(),
-        injector.template create<uptr<clock::Timer>>());
+        injector.template create<sptr<consensus::BabeUtil>>());
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
@@ -764,7 +762,7 @@ namespace {
   template <typename... Ts>
   auto makeWavmInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
@@ -805,7 +803,7 @@ namespace {
   template <typename... Ts>
   auto makeBinaryenInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::binaryen::RuntimeExternalInterface>.template to(
             [](const auto &injector) {
@@ -850,7 +848,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&...args) {
+      Ts &&... args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTracker>.template to<runtime::RuntimeUpgradeTrackerImpl>(),
@@ -908,7 +906,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&...args) {
+                               Ts &&... args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1306,7 +1304,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&...args) {
+                              Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(

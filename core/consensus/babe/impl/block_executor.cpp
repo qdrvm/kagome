@@ -21,7 +21,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutor::Error, e) {
   switch (e) {
     case E::INVALID_BLOCK:
       return "Invalid block";
-    case E::BLOCK_EXECUTOR_GONE:
+    case E::PARENT_NOT_FOUND:
+      return "Parent not found";
+    case E::INTERNAL_ERROR:
       return "Internal error";
   }
   return "Unknown error";
@@ -39,12 +41,8 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      std::shared_ptr<BabeUtil> babe_util,
-      std::shared_ptr<boost::asio::io_context> io_context,
-      std::unique_ptr<clock::Timer> sync_timer)
-      : sync_state_(kReadyState),
-        sync_timer_(std::move(sync_timer)),
-        block_tree_{std::move(block_tree)},
+      std::shared_ptr<BabeUtil> babe_util)
+      : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         babe_configuration_{std::move(configuration)},
         block_validator_{std::move(block_validator)},
@@ -53,7 +51,6 @@ namespace kagome::consensus {
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
-        io_context_(std::move(io_context)),
         logger_{log::createLogger("BlockExecutor", "block_executor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
@@ -64,38 +61,46 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
-    BOOST_ASSERT(io_context_ != nullptr);
-    BOOST_ASSERT(sync_timer_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
-  outcome::result<void> BlockExecutor::applyBlock(
-      const primitives::BlockData &b) {
-    if (!b.header) {
-      logger_->warn("Skipping a block without header.");
+  outcome::result<void> BlockExecutor::applyBlock(primitives::BlockData &&b) {
+    if (not b.header.has_value()) {
+      logger_->warn("Skipping a block without header");
       return Error::INVALID_BLOCK;
     }
+    auto &header = b.header.value();
 
-    /// TODO(iceseer): remove copy.
-    primitives::Block block;
-    block.header = *b.header;
-    if (b.body) block.body = *b.body;
+    if (not block_tree_->getBlockBody(header.parent_hash)) {
+      logger_->warn("Skipping a block with unknown parent");
+      return Error::PARENT_NOT_FOUND;
+    }
+
     // get current time to measure performance if block execution
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
+    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
 
     // check if block body already exists. If so, do not apply
     if (block_tree_->getBlockBody(block_hash)) {
       SL_DEBUG(logger_,
                "Skipping existed block number: {}, hash: {}",
-               block.header.number,
+               header.number,
                block_hash.toHex());
 
-      OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, block.header));
+      OUTCOME_TRY(block_tree_->addExistingBlock(block_hash, header));
 
       return blockchain::BlockTreeError::BLOCK_EXISTS;
     }
+
+    if (not b.body.has_value()) {
+      logger_->warn("Skipping a block without header.");
+      return Error::INVALID_BLOCK;
+    }
+    auto &body = b.body.value();
+
+    primitives::Block block{.header = std::move(header),
+                            .body = std::move(body)};
 
     OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
@@ -193,8 +198,9 @@ namespace kagome::consensus {
 
     // apply justification if any
     if (b.justification.has_value()) {
-      logger_->verbose("Justification received for block number {}",
-                       block.header.number);
+      SL_VERBOSE(logger_,
+                 "Justification received for block number {}",
+                 block.header.number);
       OUTCOME_TRY(grandpa_environment_->applyJustification(
           primitives::BlockInfo(block.header.number, block_hash),
           b.justification.value()));

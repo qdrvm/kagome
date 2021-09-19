@@ -114,18 +114,16 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*block_tree_, getEpochDescriptor(_, _))
         .WillRepeatedly(Return(expected_epoch_digest));
 
-    auto block_executor = std::make_shared<BlockExecutor>(
-        block_tree_,
-        core_,
-        babe_config_,
-        babe_block_validator_,
-        grandpa_environment_,
-        tx_pool_,
-        hasher_,
-        grandpa_authority_update_observer_,
-        babe_util_,
-        io_context_,
-        std::make_unique<clock::BasicWaitableTimer>(io_context_));
+    auto block_executor =
+        std::make_shared<BlockExecutor>(block_tree_,
+                                        core_,
+                                        babe_config_,
+                                        babe_block_validator_,
+                                        grandpa_environment_,
+                                        tx_pool_,
+                                        hasher_,
+                                        grandpa_authority_update_observer_,
+                                        babe_util_);
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
     EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());
@@ -266,8 +264,7 @@ TEST_F(BabeTest, Success) {
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
-  EXPECT_CALL(*block_tree_, deepestLeaf())
-      .WillRepeatedly(Return(best_leaf));
+  EXPECT_CALL(*block_tree_, deepestLeaf()).WillRepeatedly(Return(best_leaf));
 
   EXPECT_CALL(*block_tree_, getBlockHeader(_))
       .WillRepeatedly(Return(outcome::success(BlockHeader{})));

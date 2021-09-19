@@ -26,7 +26,7 @@ namespace kagome::consensus {
 
   class BlockExecutor : public std::enable_shared_from_this<BlockExecutor> {
    public:
-    enum class Error { INVALID_BLOCK = 1, BLOCK_EXECUTOR_GONE };
+    enum class Error { INVALID_BLOCK = 1, PARENT_NOT_FOUND, INTERNAL_ERROR };
 
     BlockExecutor(std::shared_ptr<blockchain::BlockTree> block_tree,
                   std::shared_ptr<runtime::Core> core,
@@ -37,66 +37,11 @@ namespace kagome::consensus {
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<authority::AuthorityUpdateObserver>
                       authority_update_observer,
-                  std::shared_ptr<BabeUtil> babe_util,
-                  std::shared_ptr<boost::asio::io_context> io_context,
-                  std::unique_ptr<clock::Timer> sync_timer);
+                  std::shared_ptr<BabeUtil> babe_util);
 
-    //    /**
-    //     * Processes next header: if header is observed first it is added to
-    //     the
-    //     * storage, handler is invoked. Synchronization of blocks between new
-    //     one
-    //     * and the current best one is launched if required
-    //     * @param header new header that we received and trying to process
-    //     * @param new_block_handler invoked on new header if it is observed
-    //     first
-    //     * time
-    //     */
-    //    void processNextBlock(
-    //        const libp2p::peer::PeerId &peer_id,
-    //        const primitives::BlockHeader &header,
-    //        const std::function<void(const primitives::BlockHeader &)>
-    //            &new_block_handler);
-    //
-    //    /**
-    //     * Synchronize all missing blocks between the last finalized and the
-    //     new one
-    //     * @param new_header header defining new block
-    //     * @param next action after the sync is done
-    //     */
-    //    void requestBlocks(const libp2p::peer::PeerId &peer_id,
-    //                       const primitives::BlockHeader &new_header,
-    //                       std::function<void(outcome::result<void>)> &&next);
-    //
-    //    /**
-    //     * Synchronize all missing blocks between provided blocks (from and
-    //     to)
-    //     * @param from starting block of syncing blocks
-    //     * @param to last block of syncing block
-    //     * @param on_retrieved action after the sync is done
-    //     */
-    //    void requestBlocks(const primitives::BlockHash &from,
-    //                       const primitives::BlockHash &to,
-    //                       const libp2p::peer::PeerId &peer_id,
-    //                       std::function<void(outcome::result<void>)>
-    //                       &&on_retrieved);
-
-    // should only be invoked when parent of block exists
-    outcome::result<void> applyBlock(const primitives::BlockData &block);
+    outcome::result<void> applyBlock(primitives::BlockData &&block);
 
    private:
-    /// Possible states of the block executor
-    enum ExecutorState {
-      /// Executor had been synced and ready to work.
-      kReadyState = 0,
-
-      /// Executor at the syncing state. It doesn't process blocks from the
-      /// past.
-      kSyncState = 1,
-    };
-    std::atomic<ExecutorState> sync_state_;
-    std::unique_ptr<clock::Timer> sync_timer_;
-
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<runtime::Core> core_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
@@ -107,50 +52,7 @@ namespace kagome::consensus {
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
     std::shared_ptr<BabeUtil> babe_util_;
-    std::shared_ptr<boost::asio::io_context> io_context_;
     log::Logger logger_;
-
-    /**
-     * Aux class for doing iterable action aynchronously (not all iteration as
-     * solid execution)
-     */
-    class AsyncHelper : public std::enable_shared_from_this<AsyncHelper> {
-     public:
-      AsyncHelper() = delete;
-      AsyncHelper(AsyncHelper &&) noexcept = delete;
-      AsyncHelper(const AsyncHelper &) = delete;
-
-      AsyncHelper(std::shared_ptr<boost::asio::io_context> context)
-          : std::enable_shared_from_this<AsyncHelper>(),
-            io_context_(std::move(context)){};
-
-      ~AsyncHelper() = default;
-
-      // Does next iteration
-      std::function<void()> next() {
-        return [self = shared_from_this()] {
-          self->io_context_->post([wp = self->weak_from_this()] {
-            if (auto self = wp.lock()) {
-              self->func_();
-            }
-          });
-        };
-      }
-
-      // Set up iterable function
-      void setFunction(std::function<void()> &&func) {
-        func_ = std::move(func);
-      }
-
-      // Start function (does first iteration)
-      void run() {
-        func_();
-      }
-
-     private:
-      std::shared_ptr<boost::asio::io_context> io_context_;
-      std::function<void()> func_;
-    };
   };
 
 }  // namespace kagome::consensus
