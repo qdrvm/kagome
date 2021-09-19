@@ -578,7 +578,7 @@ namespace kagome::consensus {
                                    from.hash,
                                    boost::none,
                                    network::Direction::ASCENDING,
-                                   128};
+                                   boost::none};
 
     auto protocol = router_->getSyncProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");
@@ -672,7 +672,7 @@ namespace kagome::consensus {
     }
     ancestry_.erase(hash);
 
-    if (known_blocks_.size() < 250) {
+    if (known_blocks_.size() < kMinPreloadedBlockNumber) {
       SL_TRACE(log_,
                "{} blocks in queue: ask next portion of block",
                known_blocks_.size());

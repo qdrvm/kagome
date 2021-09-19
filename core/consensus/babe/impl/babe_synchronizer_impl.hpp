@@ -22,6 +22,8 @@ namespace kagome::consensus {
       : public BabeSynchronizer,
         public std::enable_shared_from_this<BabeSynchronizerImpl> {
    public:
+    static const size_t kMinPreloadedBlockNumber = 250;
+
     enum class Error {
       SHUTTING_DOWN = 1,
       EMPTY_RESPONSE,
