@@ -8,12 +8,12 @@
 
 #include "application/app_configuration.hpp"
 #include "consensus/babe/babe.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/grandpa_protocol.hpp"
+#include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
-#include "network/protocols/block_announce_protocol.hpp"
-#include "network/protocols/grandpa_protocol.hpp"
-#include "network/protocols/propagate_transactions_protocol.hpp"
-#include "network/protocols/sync_protocol.hpp"
 #include "primitives/event_types.hpp"
+#include "propagate_transactions_protocol.hpp"
 
 namespace kagome::network {
 

@@ -58,10 +58,6 @@ namespace kagome::consensus {
                  const libp2p::peer::PeerId &peer_id,
                  SyncResultHandler &&handler) override;
 
-   protected:
-    /// @returns true, if block is already enqueued for loading
-    bool isInQueue(const primitives::BlockHash &hash) const;
-
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
     /// the needed block
@@ -81,6 +77,10 @@ namespace kagome::consensus {
     void loadBlocks(const libp2p::peer::PeerId &peer_id,
                     primitives::BlockInfo from,
                     SyncResultHandler &&handler);
+
+   private:
+    /// @returns true, if block is already enqueued for loading
+    bool isInQueue(const primitives::BlockHash &hash) const;
 
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();

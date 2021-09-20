@@ -26,6 +26,7 @@ target_link_libraries(babe_synchronizer_test
     p2p::p2p_basic_scheduler
     p2p::p2p_message_read_writer
     p2p::p2p_peer_id
+    p2p::p2p_literals
     )
 
 addtest(babe_util_test

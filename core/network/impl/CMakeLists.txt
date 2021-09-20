@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(protocols)
+
 add_library(grandpa_transmitter
     grandpa_transmitter_impl.cpp
     )

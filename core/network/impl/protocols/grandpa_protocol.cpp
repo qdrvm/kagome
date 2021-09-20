@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/protocols/grandpa_protocol.hpp"
+#include "grandpa_protocol.hpp"
 
 #include <libp2p/connection/loopback_stream.hpp>
 
 #include "network/common.hpp"
-#include "network/protocols/protocol_error.hpp"
 #include "network/types/grandpa_message.hpp"
 #include "network/types/roles.hpp"
+#include "protocol_error.hpp"
 
 namespace kagome::network {
   using libp2p::connection::LoopbackStream;

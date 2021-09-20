@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/protocols/protocol_error.hpp"
+#include "protocol_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, ProtocolError, e) {
   using E = kagome::network::ProtocolError;
