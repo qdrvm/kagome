@@ -13,7 +13,7 @@
 #include <libp2p/basic/scheduler.hpp>
 
 #include "application/app_state_manager.hpp"
-#include "consensus/babe/impl/block_executor.hpp"
+#include "consensus/babe/block_executor.hpp"
 #include "network/router.hpp"
 
 namespace kagome::consensus {
@@ -58,7 +58,7 @@ namespace kagome::consensus {
                  const libp2p::peer::PeerId &peer_id,
                  SyncResultHandler &&handler) override;
 
-   private:
+   protected:
     /// @returns true, if block is already enqueued for loading
     bool isInQueue(const primitives::BlockHash &hash) const;
 

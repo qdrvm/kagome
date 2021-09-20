@@ -18,7 +18,7 @@ namespace kagome::network {
       libp2p::Host &host,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
       const application::AppConfiguration &app_config,
       std::shared_ptr<clock::SteadyClock> clock,
@@ -255,13 +255,13 @@ namespace kagome::network {
 
     const auto aligning_period = app_config_.peeringConfig().aligningPeriod;
 
-    align_timer_ = scheduler_->schedule(
-        libp2p::protocol::scheduler::toTicks(aligning_period),
+    align_timer_ = scheduler_->scheduleWithHandle(
         [wp = weak_from_this()] {
           if (auto self = wp.lock()) {
             self->align();
           }
-        });
+        },
+        aligning_period);
     SL_DEBUG(log_, "Active peers = {}", active_peers_.size());
   }
 

@@ -29,7 +29,7 @@ target_link_libraries(babe_digests_util
     )
 
 add_library(block_executor
-    block_executor.cpp
+    block_executor_impl.cpp
     )
 target_link_libraries(block_executor
     logger

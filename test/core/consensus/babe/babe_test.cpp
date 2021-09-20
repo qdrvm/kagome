@@ -21,6 +21,7 @@
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
 #include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
+#include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
@@ -114,16 +115,7 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*block_tree_, getEpochDescriptor(_, _))
         .WillRepeatedly(Return(expected_epoch_digest));
 
-    auto block_executor =
-        std::make_shared<BlockExecutor>(block_tree_,
-                                        core_,
-                                        babe_config_,
-                                        babe_block_validator_,
-                                        grandpa_environment_,
-                                        tx_pool_,
-                                        hasher_,
-                                        grandpa_authority_update_observer_,
-                                        babe_util_);
+    auto block_executor = std::make_shared<BlockExecutorMock>();
 
     EXPECT_CALL(*app_state_manager_, atPrepare(_)).Times(testing::AnyNumber());
     EXPECT_CALL(*app_state_manager_, atLaunch(_)).Times(testing::AnyNumber());

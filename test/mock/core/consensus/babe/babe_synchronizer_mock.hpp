@@ -21,7 +21,7 @@ namespace kagome::consensus {
 
     void enqueue(const primitives::BlockInfo &block_info,
                  const libp2p::peer::PeerId &peer_id,
-                 SyncResultHandler &&handler) {
+                 SyncResultHandler &&handler) override {
       enqueue_rv(block_info, peer_id, handler);
     };
 
@@ -32,7 +32,7 @@ namespace kagome::consensus {
 
     void enqueue(const primitives::BlockHeader &block_header,
                  const libp2p::peer::PeerId &peer_id,
-                 SyncResultHandler &&handler) {
+                 SyncResultHandler &&handler) override {
       enqueue_rv(block_header, peer_id, handler);
     };
   };

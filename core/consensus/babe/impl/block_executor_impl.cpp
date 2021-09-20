@@ -3,21 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/babe/impl/block_executor.hpp"
+#include "consensus/babe/impl/block_executor_impl.hpp"
 
 #include <chrono>
-#include <libp2p/peer/peer_id.hpp>
 
 #include "blockchain/block_tree_error.hpp"
-#include "clock/impl/clock_impl.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "primitives/common.hpp"
 #include "scale/scale.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutor::Error, e) {
-  using E = kagome::consensus::BlockExecutor::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutorImpl::Error, e) {
+  using E = kagome::consensus::BlockExecutorImpl::Error;
   switch (e) {
     case E::INVALID_BLOCK:
       return "Invalid block";
@@ -31,7 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BlockExecutor::Error, e) {
 
 namespace kagome::consensus {
 
-  BlockExecutor::BlockExecutor(
+  BlockExecutorImpl::BlockExecutorImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> core,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
@@ -64,7 +62,8 @@ namespace kagome::consensus {
     BOOST_ASSERT(logger_ != nullptr);
   }
 
-  outcome::result<void> BlockExecutor::applyBlock(primitives::BlockData &&b) {
+  outcome::result<void> BlockExecutorImpl::applyBlock(
+      primitives::BlockData &&b) {
     if (not b.header.has_value()) {
       logger_->warn("Skipping a block without header");
       return Error::INVALID_BLOCK;

@@ -55,7 +55,7 @@
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
-#include "consensus/babe/impl/block_executor.hpp"
+#include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -696,7 +696,7 @@ namespace {
         injector.template create<libp2p::Host &>(),
         injector.template create<sptr<libp2p::protocol::Identify>>(),
         injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>(),
-        injector.template create<sptr<libp2p::protocol::Scheduler>>(),
+        injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<clock::SteadyClock>>(),
@@ -715,14 +715,15 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<consensus::BlockExecutor> get_block_executor(const Injector &injector) {
+  sptr<consensus::BlockExecutorImpl> get_block_executor(
+      const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<consensus::BlockExecutor>>(boost::none);
+        boost::optional<sptr<consensus::BlockExecutorImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
 
-    auto block_executor = std::make_shared<consensus::BlockExecutor>(
+    auto block_executor = std::make_shared<consensus::BlockExecutorImpl>(
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<runtime::Core>>(),
         injector.template create<sptr<primitives::BabeConfiguration>>(),
@@ -762,7 +763,7 @@ namespace {
   template <typename... Ts>
   auto makeWavmInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&... args) {
+      Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::wavm::CompartmentWrapper>.template to(
             [](const auto &injector) {
@@ -803,7 +804,7 @@ namespace {
   template <typename... Ts>
   auto makeBinaryenInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&... args) {
+      Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::binaryen::RuntimeExternalInterface>.template to(
             [](const auto &injector) {
@@ -848,7 +849,7 @@ namespace {
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&... args) {
+      Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<runtime::RuntimeUpgradeTracker>.template to<runtime::RuntimeUpgradeTrackerImpl>(),
@@ -906,7 +907,7 @@ namespace {
 
   template <typename... Ts>
   auto makeApplicationInjector(const application::AppConfiguration &config,
-                               Ts &&... args) {
+                               Ts &&...args) {
     // default values for configurations
     api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
@@ -1304,7 +1305,7 @@ namespace {
 
   template <typename... Ts>
   auto makeKagomeNodeInjector(const application::AppConfiguration &app_config,
-                              Ts &&... args) {
+                              Ts &&...args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
