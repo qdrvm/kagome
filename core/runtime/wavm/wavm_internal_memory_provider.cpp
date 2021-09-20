@@ -13,7 +13,7 @@ namespace kagome::runtime::wavm {
 
   WavmInternalMemoryProvider::WavmInternalMemoryProvider(
       WAVM::Runtime::Memory* memory)
-      : memory_{std::move(memory)} {
+      : memory_{memory} {
     BOOST_ASSERT(memory_ != nullptr);
   }
 
