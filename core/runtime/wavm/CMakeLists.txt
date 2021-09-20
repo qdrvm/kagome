@@ -17,7 +17,8 @@ add_library(runtime_wavm
     module.cpp
     module_factory_impl.cpp
     module_instance.cpp
-    wavm_memory_provider.cpp
+    wavm_external_memory_provider.cpp
+    wavm_internal_memory_provider.cpp
     )
 target_link_libraries(runtime_wavm
     WAVM::libWAVM

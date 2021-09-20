@@ -115,7 +115,6 @@
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
-#include "runtime/wavm/wavm_memory_provider.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
@@ -673,8 +672,6 @@ namespace {
 
     auto runtime_upgrade_tracker =
         injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
-    auto storage_events_engine = injector.template create<
-        primitives::events::StorageSubscriptionEnginePtr>();
 
     runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
@@ -855,13 +852,6 @@ namespace {
         di::bind<runtime::RuntimeUpgradeTracker>.template to<runtime::RuntimeUpgradeTrackerImpl>(),
         makeWavmInjector(method),
         makeBinaryenInjector(method),
-        di::bind<runtime::MemoryProvider>.template to(
-            [method](const auto &injector) {
-              return choose_runtime_implementation<
-                  runtime::MemoryProvider,
-                  runtime::binaryen::BinaryenMemoryProvider,
-                  runtime::wavm::WavmMemoryProvider>(injector, method);
-            }),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to(
             [method](const auto &injector) {
