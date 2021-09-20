@@ -9,6 +9,7 @@
 #include <WAVM/RuntimeABI/RuntimeABI.h>
 
 #include "host_api/host_api.hpp"
+#include "log/profiling_logger.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 
@@ -121,9 +122,9 @@ namespace kagome::runtime::wavm {
       case WAVM::IR::ValueType::f64:
         return WasmValue{static_cast<double>(value.f64)};
       default:
-        logger_->debug(
-            "Runtime function returned result of unsupported type: {}",
-            asString(value));
+        SL_DEBUG(logger_,
+                 "Runtime function returned result of unsupported type: {}",
+                 asString(value));
         return Error::WRONG_RETURN_TYPE;
     }
   }
