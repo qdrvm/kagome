@@ -74,7 +74,7 @@ namespace kagome::network {
   }
 
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {
-    return std::make_shared<SyncProtocolImplSyncProtocolImpl>(
+    return std::make_shared<SyncProtocolImpl>(
         host_, chain_spec_, sync_observer_.lock());
   }
 
