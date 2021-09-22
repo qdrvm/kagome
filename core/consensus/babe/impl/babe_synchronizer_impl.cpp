@@ -329,7 +329,7 @@ namespace kagome::consensus {
       primitives::BlockNumber hint =
           lower + std::min(step, (upper - lower) / 2);
 
-      // Try again in narowed interval
+      // Try again with narrowed interval
       self->findCommonBlock(peer_id, lower, upper, hint, std::move(handler));
     };
 
