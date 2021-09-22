@@ -55,6 +55,7 @@ groups:
                 children:
                   - name: voting_round
           - name: runtime
+            level: trace
             children:
               - name: runtime_api
               - name: host_api
@@ -68,6 +69,7 @@ groups:
                   - name: misc_extension
               - name: binaryen
               - name: wavm
+              - name: wasmedge
           - name: metrics
           - name: network
             children:

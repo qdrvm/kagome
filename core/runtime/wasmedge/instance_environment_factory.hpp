@@ -32,7 +32,6 @@ namespace kagome::runtime::wasmedge {
 
   struct WasmedgeInstanceEnvironment {
     InstanceEnvironment env;
-    WasmEdge_VMContext *vm;
   };
 
   class InstanceEnvironmentFactory final

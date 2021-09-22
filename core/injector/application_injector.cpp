@@ -117,15 +117,15 @@
 #include "runtime/wasmedge/instance_environment_factory.hpp"
 #include "runtime/wasmedge/memory_provider.hpp"
 #include "runtime/wasmedge/module_factory_impl.hpp"
-#include "runtime/wavm/compartment_wrapper.hpp"
-#include "runtime/wavm/core_api_factory_impl.hpp"
-#include "runtime/wavm/instance_environment_factory.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_module.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
-#include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
-#include "runtime/wavm/module.hpp"
-#include "runtime/wavm/module_factory_impl.hpp"
+// #include "runtime/wavm/compartment_wrapper.hpp"
+// #include "runtime/wavm/core_api_factory_impl.hpp"
+// #include "runtime/wavm/instance_environment_factory.hpp"
+// #include "runtime/wavm/intrinsics/intrinsic_functions.hpp"
+// #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
+// #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
+// #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
+// #include "runtime/wavm/module.hpp"
+// #include "runtime/wavm/module_factory_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/database_error.hpp"
 #include "storage/leveldb/leveldb.hpp"
@@ -728,46 +728,46 @@ namespace {
     return initialized.value();
   }
 
-  template <typename... Ts>
-  auto makeWavmInjector(
-      application::AppConfiguration::RuntimeExecutionMethod method,
-      Ts &&... args) {
-    return di::make_injector(
-        di::bind<runtime::wavm::CompartmentWrapper>.template to(
-            [](const auto &injector) {
-              static auto compartment =
-                  std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
-                      "Runtime Compartment");
-              return compartment;
-            }),
-        di::bind<runtime::wavm::IntrinsicModule>.template to(
-            [](const auto &injector) {
-              static std::shared_ptr<runtime::wavm::IntrinsicModule> module =
-                  [&injector]() {
-                    auto compartment = injector.template create<
-                        sptr<runtime::wavm::CompartmentWrapper>>();
-                    auto module =
-                        std::make_unique<runtime::wavm::IntrinsicModule>(
-                            compartment);
-                    runtime::wavm::registerHostApiMethods(*module);
+  // template <typename... Ts>
+  // auto makeWavmInjector(
+  //     application::AppConfiguration::RuntimeExecutionMethod method,
+  //     Ts &&... args) {
+  //   return di::make_injector(
+  //       di::bind<runtime::wavm::CompartmentWrapper>.template to(
+  //           [](const auto &injector) {
+  //             static auto compartment =
+  //                 std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
+  //                     "Runtime Compartment");
+  //             return compartment;
+  //           }),
+  //       di::bind<runtime::wavm::IntrinsicModule>.template to(
+  //           [](const auto &injector) {
+  //             static std::shared_ptr<runtime::wavm::IntrinsicModule> module =
+  //                 [&injector]() {
+  //                   auto compartment = injector.template create<
+  //                       sptr<runtime::wavm::CompartmentWrapper>>();
+  //                   auto module =
+  //                       std::make_unique<runtime::wavm::IntrinsicModule>(
+  //                           compartment);
+  //                   runtime::wavm::registerHostApiMethods(*module);
 
-                    return module;
-                  }();
-              return module;
-            }),
-        di::bind<runtime::wavm::IntrinsicModuleInstance>.template to(
-            [](const auto &injector) {
-              static std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>
-                  instance = [&injector]() {
-                    auto module = injector.template create<
-                        sptr<runtime::wavm::IntrinsicModule>>();
-                    return module->instantiate();
-                  }();
-              return instance;
-            }),
-        di::bind<runtime::wavm::IntrinsicResolver>.template to<runtime::wavm::IntrinsicResolverImpl>(),
-        std::forward<decltype(args)>(args)...);
-  }
+  //                   return module;
+  //                 }();
+  //             return module;
+  //           }),
+  //       di::bind<runtime::wavm::IntrinsicModuleInstance>.template to(
+  //           [](const auto &injector) {
+  //             static std::shared_ptr<runtime::wavm::IntrinsicModuleInstance>
+  //                 instance = [&injector]() {
+  //                   auto module = injector.template create<
+  //                       sptr<runtime::wavm::IntrinsicModule>>();
+  //                   return module->instantiate();
+  //                 }();
+  //             return instance;
+  //           }),
+  //       di::bind<runtime::wavm::IntrinsicResolver>.template to<runtime::wavm::IntrinsicResolverImpl>(),
+  //       std::forward<decltype(args)>(args)...);
+  // }
 
   template <typename... Ts>
   auto makeBinaryenInjector(
@@ -794,7 +794,7 @@ namespace {
   template <typename CommonType,
             typename BinaryenType,
             typename WasmEdgeType,
-            typename WavmType,
+            // typename WavmType,
             typename Injector>
   auto choose_runtime_implementation(
       Injector const &injector,
@@ -806,9 +806,9 @@ namespace {
         case RuntimeExecutionMethod::Interpret:
           return std::static_pointer_cast<CommonType>(
               injector.template create<sptr<BinaryenType>>());
-        case RuntimeExecutionMethod::Compile:
-          return std::static_pointer_cast<CommonType>(
-              injector.template create<sptr<WavmType>>());
+        // case RuntimeExecutionMethod::Compile:
+        //   return std::static_pointer_cast<CommonType>(
+        //       injector.template create<sptr<WavmType>>());
         case RuntimeExecutionMethod::WasmEdge:
           return std::static_pointer_cast<CommonType>(
               injector.template create<sptr<WasmEdgeType>>());
@@ -858,7 +858,7 @@ namespace {
             [](auto const &injector) {
               return get_runtime_upgrade_tracker(injector);
             }),
-        makeWavmInjector(method),
+        // makeWavmInjector(method),
         makeBinaryenInjector(method),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
         di::bind<runtime::CoreApiFactory>.template to(
@@ -866,16 +866,16 @@ namespace {
               return choose_runtime_implementation<
                   runtime::CoreApiFactory,
                   runtime::binaryen::CoreApiFactoryImpl,
-                runtime::wasmedge::CoreApiFactoryImpl,
-                  runtime::wavm::CoreApiFactoryImpl>(injector, method);
+                  runtime::wasmedge::CoreApiFactoryImpl/*,
+                                                         runtime::wavm::CoreApiFactoryImpl*/>(injector, method);
             }),
         di::bind<runtime::ModuleFactory>.template to(
             [method](const auto &injector) {
               return choose_runtime_implementation<
                   runtime::ModuleFactory,
                   runtime::binaryen::ModuleFactoryImpl,
-                  runtime::wasmedge::ModuleFactoryImpl,
-                  runtime::wavm::ModuleFactoryImpl>(injector, method);
+                  runtime::wasmedge::ModuleFactoryImpl/*,
+                                                        runtime::wavm::ModuleFactoryImpl*/>(injector, method);
             }),
         di::bind<runtime::Executor>.template to([](const auto &injector) {
           static std::optional<std::shared_ptr<runtime::Executor>> initialized;

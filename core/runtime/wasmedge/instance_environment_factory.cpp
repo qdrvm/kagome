@@ -12,8 +12,6 @@
 #include "runtime/wasmedge/memory_provider.hpp"
 #include "runtime/wasmedge/register_host_api.hpp"
 
-#include <wasmedge.h>
-
 namespace kagome::runtime::wasmedge {
 
   InstanceEnvironmentFactory::InstanceEnvironmentFactory(
@@ -29,31 +27,36 @@ namespace kagome::runtime::wasmedge {
     BOOST_ASSERT(host_api_factory_);
     BOOST_ASSERT(block_header_repo_);
     BOOST_ASSERT(changes_tracker_);
-
-    vm_ = WasmEdge_VMCreate(NULL, NULL);
-    WasmEdge_String ExportName = WasmEdge_StringCreateByCString("ext");
-    WasmEdge_ImportObjectContext *ImpObj =
-        WasmEdge_ImportObjectCreate(ExportName, NULL);
-    WasmEdge_StringDelete(ExportName);
-    register_host_api(ImpObj);
-    memory_provider_ = std::make_shared<WasmedgeMemoryProvider>();
-    memory_provider_->setExternalInterface(ImpObj);
-    WasmEdge_VMRegisterModuleFromImport(vm_, ImpObj);
   }
 
   WasmedgeInstanceEnvironment InstanceEnvironmentFactory::make() const {
-    memory_provider_->resetMemory(0);
     auto new_storage_provider =
         std::make_shared<TrieStorageProviderImpl>(storage_);
     auto core_factory = std::make_shared<CoreApiFactoryImpl>(
         shared_from_this(), block_header_repo_, changes_tracker_);
+    auto memory_provider = std::make_shared<WasmedgeMemoryProvider>();
     auto host_api = std::shared_ptr<host_api::HostApi>(host_api_factory_->make(
-        core_factory, memory_provider_, new_storage_provider));
+        core_factory, memory_provider, new_storage_provider));
+
+    // WasmEdge_ImportObjectContext *ImpObj =
+    //     WasmEdge_VMGetImportModuleContext(vm_, WasmEdge_HostRegistration_Wasi);
+    // if (ImpObj) {
+    //   register_host_api(ImpObj);
+    //   memory_provider->setExternalInterface(ImpObj);
+    // } else {
+    //   WasmEdge_String ExportName = WasmEdge_StringCreateByCString("env");
+    //   WasmEdge_ImportObjectContext *NewImpObj =
+    //       WasmEdge_ImportObjectCreate(ExportName, host_api.get());
+    //   WasmEdge_StringDelete(ExportName);
+    //   register_host_api(NewImpObj);
+    //   memory_provider->setExternalInterface(NewImpObj);
+    //   WasmEdge_VMRegisterModuleFromImport(vm_, NewImpObj);
+    // }
+
     return WasmedgeInstanceEnvironment{
-        InstanceEnvironment{memory_provider_,
+        InstanceEnvironment{memory_provider,
                             std::move(new_storage_provider),
                             std::move(host_api),
-                            [](auto &) {}},
-        vm_};
+                            [](auto &) {}}};
   }
 }  // namespace kagome::runtime::wasmedge

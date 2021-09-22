@@ -19,7 +19,7 @@ namespace kagome::runtime {
 
   constexpr inline size_t kInitialMemorySize = []() {
     using kagome::common::literals::operator""_MB;
-    return 2_MB;
+    return 5_MB;
   }();
 
   // according to $3.1.2.1 in the Polkadot Host Spec

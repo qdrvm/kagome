@@ -18,11 +18,16 @@
 namespace kagome::runtime::wasmedge {
 
   ModuleImpl::ModuleImpl(
-      WasmEdge_ASTModuleContext *ast_ctx,
+      const WasmEdge_ASTModuleContext *ast_ctx,
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory)
       : env_factory_{std::move(env_factory)}, ast_ctx_{ast_ctx} {
     BOOST_ASSERT(env_factory_ != nullptr);
     BOOST_ASSERT(ast_ctx_ != nullptr);
+    vm_ = WasmEdge_VMCreate(NULL, NULL);
+    WasmEdge_String ModuleName = WasmEdge_StringCreateByCString("env");
+    auto Res = WasmEdge_VMRegisterModuleFromASTModule(vm_, ModuleName, ast_ctx_);
+    WasmEdge_StringDelete(ModuleName);
+    BOOST_ASSERT(vm_ != nullptr);
   }
 
   outcome::result<std::unique_ptr<ModuleImpl>> ModuleImpl::createFromCode(
@@ -44,7 +49,7 @@ namespace kagome::runtime::wasmedge {
       const {
     auto env = env_factory_->make();
     return std::make_unique<ModuleInstanceImpl>(
-        std::move(env.env), shared_from_this(), env.vm);
+        std::move(env.env), this, vm_);
   }
 
 }  // namespace kagome::runtime::wasmedge

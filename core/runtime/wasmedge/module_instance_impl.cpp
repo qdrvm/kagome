@@ -13,14 +13,19 @@
 namespace kagome::runtime::wasmedge {
 
   ModuleInstanceImpl::ModuleInstanceImpl(InstanceEnvironment &&env,
-                                         std::shared_ptr<const ModuleImpl> parent,
+                                         const ModuleImpl* parent,
                                          WasmEdge_VMContext *rei)
       : env_{std::move(env)},
         rei_{rei},
+        parent_{parent},
         logger_{log::createLogger("ModuleInstance", "wasmedge")} {
-    interpreter_ = WasmEdge_InterpreterCreate(nullptr, nullptr);
-    auto store = WasmEdge_VMGetStoreContext(rei_);
-    WasmEdge_InterpreterInstantiate(interpreter_, store, parent->ast());
+    WasmEdge_ImportObjectContext *ImpObj =
+      WasmEdge_VMGetImportModuleContext(vm_, WasmEdge_HostRegistration_Wasi);
+    register_host_api(ImpObj);
+    dynamic_cast<WasmedgeMemoryProvider>(env.memory_provider.get())->setExternalInterface(ImpObj);
+    // interpreter_ = WasmEdge_InterpreterCreate(nullptr, nullptr);
+    // auto store = WasmEdge_VMGetStoreContext(rei_);
+    // WasmEdge_InterpreterInstantiate(interpreter_, store, parent->ast());
   }
 
   outcome::result<PtrSize> ModuleInstanceImpl::callExportFunction(
@@ -29,11 +34,13 @@ namespace kagome::runtime::wasmedge {
     WasmEdge_Value Params[2] = {WasmEdge_ValueGenI32(args.ptr),
                                 WasmEdge_ValueGenI32(args.size)};
     WasmEdge_Value Returns[1];
-    auto store = WasmEdge_VMGetStoreContext(rei_);
-    auto Res = WasmEdge_InterpreterInvoke(
-        interpreter_, store, FuncName, Params, 2, Returns, 1);
+    // auto store = WasmEdge_VMGetStoreContext(rei_);
+    auto Res = WasmEdge_VMRunWasmFromASTModule(rei_, parent_->ast(), FuncName, Params, 2, Returns, 1);
+    // auto Res = WasmEdge_InterpreterInvoke(
+    //     interpreter_, store, FuncName, Params, 2, Returns, 1);
     WasmEdge_StringDelete(FuncName);
-    return PtrSize{WasmEdge_ValueGetI64(Returns[0])};
+    auto i = WasmEdge_ValueGetI64(Returns[0]);
+    return PtrSize{i};
   }
 
   outcome::result<boost::optional<WasmValue>> ModuleInstanceImpl::getGlobal(

@@ -25,7 +25,7 @@ namespace kagome::runtime::wasmedge {
 
   void WasmedgeMemoryProvider::setExternalInterface(
       WasmEdge_ImportObjectContext *imp_obj) {
-    WasmEdge_Limit MemoryLimit = {.HasMax = false, .Min = 40, .Max = 40};
+    WasmEdge_Limit MemoryLimit = {.HasMax = false, .Min = 500, .Max = 500};
     mem_ctx_ = WasmEdge_MemoryInstanceCreate(MemoryLimit);
     WasmEdge_String MemoryName = WasmEdge_StringCreateByCString("memory");
     WasmEdge_ImportObjectAddMemory(imp_obj, MemoryName, mem_ctx_);

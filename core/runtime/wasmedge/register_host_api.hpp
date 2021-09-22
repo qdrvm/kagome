@@ -7,6 +7,44 @@
 #include <utility>
 
 template <typename T>
+struct MakeSigned {
+  using type = typename std::
+      conditional_t<std::is_integral_v<T>, typename std::make_signed_t<T>, T>;
+};
+template <>
+struct MakeSigned<void> {
+  using type = void;
+};
+
+template <unsigned N>
+struct CommonInt {
+  using type = __int128;
+};
+
+template <>
+struct CommonInt<4> {
+  using type = int32_t;
+};
+
+template <>
+struct CommonInt<8> {
+  using type = int64_t;
+};
+
+template <typename T, typename Enable = void>
+struct MakeCommon;
+
+template <typename T>
+struct MakeCommon<T, typename std::enable_if_t<std::is_integral_v<T>>> {
+  using type = typename CommonInt<sizeof(T)>::type;
+};
+
+template <typename T>
+struct MakeCommon<T, typename std::enable_if_t<not std::is_integral_v<T>>> {
+  using type = T;
+};
+
+template <typename T>
 WasmEdge_Value (*fromType())(const T) {
   return nullptr;
 }
@@ -56,16 +94,6 @@ template <>
 __int128 (*toType<__int128>())(const WasmEdge_Value) {
   return WasmEdge_ValueGetV128;
 }
-
-template <typename T>
-struct MakeSigned {
-  using type = typename std::
-      conditional_t<std::is_integral_v<T>, typename std::make_signed_t<T>, T>;
-};
-template <>
-struct MakeSigned<void> {
-  using type = void;
-};
 
 template <typename T>
 WasmEdge_ValType type() {
@@ -119,7 +147,7 @@ WasmEdge_Result fun(void *Data,
                     void,
                     typename HostApiFuncRet<decltype(f), f>::Ret>) {
     auto res = internal_fun<T, f>(static_cast<T *>(Data), In, tup, indices);
-    Out[0] = fromType<decltype(res)>()(res);
+    Out[0] = fromType<typename MakeCommon<decltype(res)>::type>()(res);
   } else {
     internal_fun<T, f>(static_cast<T *>(Data), In, tup, indices);
   }
@@ -205,7 +233,7 @@ void registerHostApiFunc(const std::string &name,
 namespace {
   using kagome::host_api::HostApi;
   using kagome::host_api::HostApiImpl;
-}
+}  // namespace
 
 inline void register_host_api(WasmEdge_ImportObjectContext *ImpObj) {
   REGISTER_HOST_API_FUNC(
@@ -240,6 +268,7 @@ inline void register_host_api(WasmEdge_ImportObjectContext *ImpObj) {
   REGISTER_HOST_API_FUNC(HostApiImpl, ext_allocator_free_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(HostApiImpl, ext_allocator_malloc_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(HostApiImpl, ext_misc_print_hex_version_1, ImpObj);
+  REGISTER_HOST_API_FUNC(HostApiImpl, ext_misc_print_num_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(HostApiImpl, ext_misc_print_utf8_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(
       HostApiImpl, ext_misc_runtime_version_version_1, ImpObj);
@@ -265,6 +294,8 @@ inline void register_host_api(WasmEdge_ImportObjectContext *ImpObj) {
   REGISTER_HOST_API_FUNC(
       HostApiImpl, ext_storage_changes_root_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(HostApiImpl, ext_storage_clear_version_1, ImpObj);
+  REGISTER_HOST_API_FUNC(
+      HostApiImpl, ext_storage_clear_prefix_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(
       HostApiImpl, ext_storage_clear_prefix_version_2, ImpObj);
   REGISTER_HOST_API_FUNC(

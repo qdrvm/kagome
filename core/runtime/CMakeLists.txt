@@ -6,7 +6,7 @@
 add_subdirectory(common)
 add_subdirectory(binaryen)
 add_subdirectory(wasmedge)
-add_subdirectory(wavm)
+# add_subdirectory(wavm)
 
 add_library(executor INTERFACE)
 target_link_libraries(executor INTERFACE Boost::boost blob runtime_environment_factory)

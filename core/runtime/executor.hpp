@@ -194,7 +194,8 @@ namespace kagome::runtime {
       if constexpr (std::is_void_v<Result>) {
         return outcome::success();
       } else {
-        return scale::decode<Result>(memory.loadN(result.ptr, result.size));
+        auto buf = memory.loadN(result.ptr, result.size);
+        return scale::decode<Result>(buf);
       }
     }
 

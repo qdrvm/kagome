@@ -40,7 +40,7 @@ namespace kagome::runtime::wasmedge {
       : memory_{memory},
         size_{kInitialMemorySize},
         allocator_{std::move(allocator)},
-        logger_{log::createLogger("Binaryen Memory", "binaryen")} {
+        logger_{log::createLogger("WasmEdge Memory", "wasmedge")} {
     resize(size_);
   }
 
@@ -51,7 +51,7 @@ namespace kagome::runtime::wasmedge {
                            [this](auto new_size) { return resize(new_size); },
                            [this]() { return size_; }},
                        kInitialMemorySize,
-                       5_MB)} {}
+                       2000000)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);
@@ -178,7 +178,7 @@ namespace kagome::runtime::wasmedge {
                                gsl::span<const uint8_t> value) {
     const auto size = static_cast<size_t>(value.size());
     BOOST_ASSERT((allocator_->checkAddress(addr, size)));
-    WasmEdge_Result Res = WasmEdge_MemoryInstanceGetData(
+    WasmEdge_Result Res = WasmEdge_MemoryInstanceSetData(
         memory_, const_cast<uint8_t *>(value.data()), addr, size);
   }
 
