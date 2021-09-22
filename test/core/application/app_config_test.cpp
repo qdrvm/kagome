@@ -419,6 +419,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
+    auto& log = app_config_->log();
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"info"});
   }
   {
@@ -480,7 +481,7 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
                         base_path.native().c_str()};
   ASSERT_TRUE(
       app_config_->initialize_from_args(std::size(args), (char **)args));
-  ASSERT_EQ(app_config_->log(), std::vector<std::string>());
+  ASSERT_EQ(app_config_->log(), std::vector<std::string>{""});
 }
 
 /**
