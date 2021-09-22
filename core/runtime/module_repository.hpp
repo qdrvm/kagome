@@ -23,8 +23,6 @@ namespace kagome::runtime {
   class Module;
   class Memory;
 
-  struct InstanceEnvironment;
-
   /**
    * Repository for runtime modules
    * Allows loading and compiling a module directly from its web assembly byte

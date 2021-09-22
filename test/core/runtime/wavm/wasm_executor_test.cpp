@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-#include <runtime/wavm/wavm_memory_provider.hpp>
+#include <runtime/wavm/wavm_external_memory_provider.hpp>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"

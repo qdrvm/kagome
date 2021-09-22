@@ -39,7 +39,9 @@ namespace kagome::runtime {
         block.header.parent_hash, parent.number));
     const auto res = executor_->persistentCallAt<void>(
         block.header.parent_hash, "Core_execute_block", block);
-    if (res) return outcome::success();
+    if (res) {
+      return outcome::success();
+    }
     return res.error();
   }
 

@@ -41,7 +41,6 @@ namespace kagome::primitives::events {
     kNewRuntime = 5
   };
 
-
   using HeadsEventParams = ref_t<const primitives::BlockHeader>;
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
   using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
