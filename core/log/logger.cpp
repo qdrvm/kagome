@@ -26,7 +26,7 @@ namespace kagome::log {
     outcome::result<Level> str2lvl(std::string_view str) {
       if (str == "trace") {
         return Level::TRACE;
-      } else if (str == "trace") {
+      } else if (str == "debug") {
         return Level::DEBUG;
       } else if (str == "verbose") {
         return Level::VERBOSE;
