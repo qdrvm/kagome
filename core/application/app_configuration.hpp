@@ -121,7 +121,7 @@ namespace kagome::application {
     /**
      * @return logging system tuning config
      */
-    virtual const std::string &log() const = 0;
+    virtual const std::vector<std::string> &log() const = 0;
 
     /**
      * @return max blocks count per response while syncing

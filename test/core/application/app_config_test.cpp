@@ -150,7 +150,7 @@ TEST_F(AppConfigurationTest, DefaultValuesTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->log(), "");
+  ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
 /**
@@ -258,7 +258,7 @@ TEST_F(AppConfigurationTest, ConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 456);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->log(), "debug");
+  ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   ASSERT_EQ(app_config_->nodeName(), "Bob's node");
 }
 
@@ -292,7 +292,7 @@ TEST_F(AppConfigurationTest, InvalidConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->log(), "");
+  ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
 /**
@@ -324,7 +324,7 @@ TEST_F(AppConfigurationTest, DamagedConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->log(), "");
+  ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
 /**
@@ -356,7 +356,7 @@ TEST_F(AppConfigurationTest, NoConfigFileTest) {
   ASSERT_EQ(app_config_->p2pPort(), 30363);
   ASSERT_EQ(app_config_->rpcHttpEndpoint(), http_endpoint);
   ASSERT_EQ(app_config_->rpcWsEndpoint(), ws_endpoint);
-  ASSERT_EQ(app_config_->log(), "");
+  ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
 /**
@@ -419,7 +419,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    ASSERT_EQ(app_config_->log(), "info");
+    ASSERT_EQ(app_config_->log(), std::vector<std::string>{"info"});
   }
   {
     char const *args[] = {
@@ -433,7 +433,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    ASSERT_EQ(app_config_->log(), "verbose");
+    ASSERT_EQ(app_config_->log(), std::vector<std::string>{"verbose"});
   }
   {
     char const *args[] = {
@@ -447,7 +447,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    ASSERT_EQ(app_config_->log(), "debug");
+    ASSERT_EQ(app_config_->log(), std::vector<std::string>{"debug"});
   }
   {
     char const *args[] = {
@@ -461,7 +461,7 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    ASSERT_EQ(app_config_->log(), "trace");
+    ASSERT_EQ(app_config_->log(), std::vector<std::string>{"trace"});
   }
 }
 
@@ -480,7 +480,7 @@ TEST_F(AppConfigurationTest, UnexpVerbosityCmdLineTest) {
                         base_path.native().c_str()};
   ASSERT_TRUE(
       app_config_->initialize_from_args(std::size(args), (char **)args));
-  ASSERT_EQ(app_config_->log(), "");
+  ASSERT_EQ(app_config_->log(), std::vector<std::string>());
 }
 
 /**

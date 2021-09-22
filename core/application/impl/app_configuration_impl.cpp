@@ -121,6 +121,17 @@ namespace kagome::application {
                                          &std::fclose);
   }
 
+  bool AppConfigurationImpl::load_ms(const rapidjson::Value &val,
+                                     char const *name,
+                                     std::vector<std::string> &target) {
+    for (auto it = val.FindMember(name); it != val.MemberEnd(); ++it) {
+      auto &value = it->value;
+      target.emplace_back(value.GetString(), value.GetStringLength());
+      return true;
+    }
+    return not target.empty();
+  }
+
   bool AppConfigurationImpl::load_ma(
       const rapidjson::Value &val,
       char const *name,
@@ -193,7 +204,7 @@ namespace kagome::application {
       roles_.flags.authority = 1;
     }
 
-    load_str(val, "log", logger_tuning_config_);
+    load_ms(val, "log", logger_tuning_config_);
   }
 
   void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
@@ -640,9 +651,10 @@ namespace kagome::application {
       max_blocks_in_response_ = val;
     });
 
-    find_argument<std::string>(vm, "log", [&](std::string const &val) {
-      logger_tuning_config_ = val;
-    });
+    find_argument<std::vector<std::string>>(
+        vm, "log", [&](const std::vector<std::string> &val) {
+          logger_tuning_config_ = val;
+        });
 
     find_argument<std::string>(
         vm, "rpc-host", [&](std::string const &val) { rpc_http_host_ = val; });

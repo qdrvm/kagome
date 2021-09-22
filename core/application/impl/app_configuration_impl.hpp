@@ -111,7 +111,7 @@ namespace kagome::application {
     uint32_t maxWsConnections() const override {
       return max_ws_connections_;
     }
-    const std::string &log() const override {
+    const std::vector<std::string> &log() const override {
       return logger_tuning_config_;
     }
     uint32_t maxBlocksInResponse() const override {
@@ -159,6 +159,10 @@ namespace kagome::application {
 
     void read_config_from_file(const std::string &filepath);
 
+    bool load_ms(const rapidjson::Value &val,
+                 char const *name,
+                 std::vector<std::string> &target);
+
     bool load_ma(const rapidjson::Value &val,
                  char const *name,
                  std::vector<libp2p::multi::Multiaddress> &target);
@@ -189,7 +193,7 @@ namespace kagome::application {
     boost::asio::ip::tcp::endpoint rpc_http_endpoint_;
     boost::asio::ip::tcp::endpoint rpc_ws_endpoint_;
     boost::asio::ip::tcp::endpoint openmetrics_http_endpoint_;
-    std::string logger_tuning_config_;
+    std::vector<std::string> logger_tuning_config_;
     uint32_t max_blocks_in_response_;
     std::string rpc_http_host_;
     std::string rpc_ws_host_;

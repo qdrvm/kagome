@@ -26,7 +26,7 @@ namespace kagome::log {
     outcome::result<Level> str2lvl(std::string_view str) {
       if (str == "trace") {
         return Level::TRACE;
-      } else if (str == "debug" or str == "warn") {
+      } else if (str == "trace") {
         return Level::DEBUG;
       } else if (str == "verbose") {
         return Level::VERBOSE;
@@ -54,22 +54,20 @@ namespace kagome::log {
     profiling_logger = createLogger("Profiler", "profile");
   }
 
-  void tuneLoggingSystem(const std::string &cfg) {
+  void tuneLoggingSystem(const std::vector<std::string> &cfg) {
     ensure_logger_system_is_initialized();
 
     if (cfg.empty()) {
       return;
     }
 
-    if (auto res = str2lvl(cfg); res.has_value()) {
-      auto level = res.value();
-      setLevelOfGroup(kagome::log::defaultGroupName, level);
-      return;
-    }
+    for (auto &chunk : cfg) {
+      if (auto res = str2lvl(chunk); res.has_value()) {
+        auto level = res.value();
+        setLevelOfGroup(kagome::log::defaultGroupName, level);
+        continue;
+      }
 
-    std::istringstream iss(cfg);
-    std::string chunk;
-    while (std::getline(iss, chunk, ',')) {
       std::istringstream iss2(chunk);
 
       std::string group_name;
