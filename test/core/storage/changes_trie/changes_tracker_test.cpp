@@ -49,8 +49,6 @@ using testing::Return;
 TEST(ChangesTrieTest, IntegrationWithOverlay) {
   testutil::prepareLoggers();
 
-  using SessionPtr = std::shared_ptr<Session>;
-
   // GIVEN
   auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
