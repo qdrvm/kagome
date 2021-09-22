@@ -24,16 +24,19 @@ namespace kagome::consensus {
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}
     /// since best common block up to provided {@param block_info}.
     /// {@param handler} will be called when this process is finished or failed
-    virtual void enqueue(const primitives::BlockInfo &block_info,
-                         const libp2p::peer::PeerId &peer_id,
-                         SyncResultHandler &&handler) = 0;
+    /// @note Is used for start/continue catching up.
+    virtual void syncByBlockInfo(const primitives::BlockInfo &block_info,
+                                 const libp2p::peer::PeerId &peer_id,
+                                 SyncResultHandler &&handler) = 0;
 
-    /// Enqueues loading and applying block {@param block_info} from peer
+    /// Try to load and apply block with header {@param block_header} from peer
     /// {@param peer_id}.
     /// If provided block is the best after applying, {@param handler} be called
-    virtual void enqueue(const primitives::BlockHeader &header,
-                         const libp2p::peer::PeerId &peer_id,
-                         SyncResultHandler &&handler) = 0;
+    /// @note Is used for finish catching up if it possible, and start/continue
+    /// than otherwise
+    virtual void syncByBlockHeader(const primitives::BlockHeader &header,
+                                   const libp2p::peer::PeerId &peer_id,
+                                   SyncResultHandler &&handler) = 0;
   };
 
 }  // namespace kagome::consensus

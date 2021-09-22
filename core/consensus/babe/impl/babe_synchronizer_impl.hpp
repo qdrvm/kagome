@@ -47,16 +47,17 @@ namespace kagome::consensus {
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}
     /// since best common block up to provided {@param block_info}.
     /// {@param handler} will be called when this process is finished or failed
-    void enqueue(const primitives::BlockInfo &block_info,
-                 const libp2p::peer::PeerId &peer_id,
-                 SyncResultHandler &&handler) override;
+    /// @note Is used for start/continue catching up.
+    void syncByBlockInfo(const primitives::BlockInfo &block_info,
+                         const libp2p::peer::PeerId &peer_id,
+                         SyncResultHandler &&handler) override;
 
     /// Enqueues loading and applying block {@param block_info} from peer
     /// {@param peer_id}.
     /// If provided block is the best after applying, {@param handler} be called
-    void enqueue(const primitives::BlockHeader &header,
-                 const libp2p::peer::PeerId &peer_id,
-                 SyncResultHandler &&handler) override;
+    void syncByBlockHeader(const primitives::BlockHeader &header,
+                           const libp2p::peer::PeerId &peer_id,
+                           SyncResultHandler &&handler) override;
 
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is

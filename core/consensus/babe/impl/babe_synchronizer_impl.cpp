@@ -58,7 +58,7 @@ namespace kagome::consensus {
     app_state_manager->atShutdown([this] { node_is_shutting_down_ = true; });
   }
 
-  void BabeSynchronizerImpl::enqueue(
+  void BabeSynchronizerImpl::syncByBlockInfo(
       const primitives::BlockInfo &block_info,
       const libp2p::peer::PeerId &peer_id,
       BabeSynchronizer::SyncResultHandler &&handler) {
@@ -73,7 +73,8 @@ namespace kagome::consensus {
     auto peer_is_busy = not busy_peers_.emplace(peer_id).second;
     if (peer_is_busy) {
       SL_TRACE(log_,
-               "Can't enqueue block #{} hash={} is received from {}: Peer busy",
+               "Can't syncByBlockHeader block #{} hash={} is received from {}: "
+               "Peer busy",
                block_info.number,
                block_info.hash.toHex(),
                peer_id.toBase58());
@@ -157,7 +158,7 @@ namespace kagome::consensus {
     findCommonBlock(peer_id, lower, upper, hint, std::move(find_handler));
   }
 
-  void BabeSynchronizerImpl::enqueue(
+  void BabeSynchronizerImpl::syncByBlockHeader(
       const primitives::BlockHeader &header,
       const libp2p::peer::PeerId &peer_id,
       BabeSynchronizer::SyncResultHandler &&handler) {
@@ -201,7 +202,7 @@ namespace kagome::consensus {
     }
 
     // Otherwise is using base way to enqueue
-    enqueue(block_info, peer_id, [wp = weak_from_this()](auto res) {
+    syncByBlockInfo(block_info, peer_id, [wp = weak_from_this()](auto res) {
       if (auto self = wp.lock()) {
         SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
       }

@@ -14,26 +14,28 @@ namespace kagome::consensus {
 
   class BabeSynchronizerMock : public BabeSynchronizer {
    public:
-    MOCK_METHOD3(enqueue_rv,
+    MOCK_METHOD3(syncByBlockInfo,
                  void(const primitives::BlockInfo &,
                       const libp2p::peer::PeerId &,
                       const SyncResultHandler &));
 
-    void enqueue(const primitives::BlockInfo &block_info,
-                 const libp2p::peer::PeerId &peer_id,
-                 SyncResultHandler &&handler) override {
-      enqueue_rv(block_info, peer_id, handler);
+    void syncByBlockInfo(const primitives::BlockInfo &block_info,
+                         const libp2p::peer::PeerId &peer_id,
+                         SyncResultHandler &&handler) override {
+      const auto &handler_cref = handler;
+      syncByBlockInfo(block_info, peer_id, handler_cref);
     };
 
-    MOCK_METHOD3(enqueue_rv,
+    MOCK_METHOD3(syncByBlockHeader,
                  void(const primitives::BlockHeader &,
                       const libp2p::peer::PeerId &,
                       const SyncResultHandler &));
 
-    void enqueue(const primitives::BlockHeader &block_header,
-                 const libp2p::peer::PeerId &peer_id,
-                 SyncResultHandler &&handler) override {
-      enqueue_rv(block_header, peer_id, handler);
+    void syncByBlockHeader(const primitives::BlockHeader &block_header,
+                           const libp2p::peer::PeerId &peer_id,
+                           SyncResultHandler &&handler) override {
+      const auto &handler_cref = handler;
+      syncByBlockHeader(block_header, peer_id, handler_cref);
     };
   };
 

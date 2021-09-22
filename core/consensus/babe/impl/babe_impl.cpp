@@ -208,7 +208,7 @@ namespace kagome::consensus::babe {
 
     // Received announce has the same block number as our best one,
     // or greater by one. Using of simple way to load block
-    babe_synchronizer_->enqueue(
+    babe_synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,
         [wp = weak_from_this()](
@@ -237,7 +237,7 @@ namespace kagome::consensus::babe {
     SL_INFO(log_, "Catching up to block #{} is ran", target_block.number);
     current_state_ = State::CATCHING_UP;
 
-    babe_synchronizer_->enqueue(
+    babe_synchronizer_->syncByBlockInfo(
         target_block,
         peer_id,
         [wp = weak_from_this(),
