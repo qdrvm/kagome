@@ -22,6 +22,10 @@ namespace kagome::crypto {
                        outcome::result<bool>(const Sr25519Signature &,
                                              gsl::span<const uint8_t>,
                                              const Sr25519PublicKey &));
+     MOCK_CONST_METHOD3(verify_deprecated,
+                       outcome::result<bool>(const Sr25519Signature &,
+                                             gsl::span<const uint8_t>,
+                                             const Sr25519PublicKey &));
   };
 }  // namespace kagome::crypto
 
