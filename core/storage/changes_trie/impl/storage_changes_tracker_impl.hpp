@@ -14,10 +14,7 @@ namespace kagome::storage::changes_trie {
 
   class StorageChangesTrackerImpl : public ChangesTracker {
    public:
-    enum class Error {
-      EXTRINSIC_IDX_GETTER_UNINITIALIZED = 1,
-      INVALID_PARENT_HASH
-    };
+    enum class Error { INVALID_PARENT_HASH };
 
     StorageChangesTrackerImpl(
         std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
@@ -33,18 +30,18 @@ namespace kagome::storage::changes_trie {
      */
     ~StorageChangesTrackerImpl() override = default;
 
-    void setExtrinsicIdxGetter(GetExtrinsicIndexDelegate f) override;
-
     outcome::result<void> onBlockExecutionStart(
         primitives::BlockHash new_parent_hash,
         primitives::BlockNumber new_parent_number) override;
 
-    outcome::result<void> onPut(const common::Buffer &key,
+    outcome::result<void> onPut(const common::Buffer &extrinsic_index,
+                                const common::Buffer &key,
                                 const common::Buffer &value,
                                 bool new_entry) override;
     void onBlockAdded(const primitives::BlockHash &hash) override;
     void onClearPrefix(const common::Buffer &prefix) override;
-    outcome::result<void> onRemove(const common::Buffer &key) override;
+    outcome::result<void> onRemove(const common::Buffer &extrinsic_index,
+                                   const common::Buffer &key) override;
 
     outcome::result<common::Hash256> constructChangesTrie(
         const primitives::BlockHash &parent,
@@ -62,7 +59,6 @@ namespace kagome::storage::changes_trie {
 
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
-    GetExtrinsicIndexDelegate get_extrinsic_index_;
     primitives::events::StorageSubscriptionEnginePtr
         storage_subscription_engine_;
     primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine_;

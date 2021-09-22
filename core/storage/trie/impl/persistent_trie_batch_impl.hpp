@@ -54,7 +54,8 @@ namespace kagome::storage::trie {
         std::shared_ptr<PolkadotTrie> trie,
         RootChangedEventHandler &&handler);
 
-    void init();
+    // retrieves the current extrinsic index from the storage
+    outcome::result<common::Buffer> getExtrinsicIndex() const;
 
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
