@@ -355,7 +355,7 @@ namespace kagome::application {
     desc.add_options()
         ("help,h", "show this help message")
         ("log,l", po::value<std::string>(),
-          "Sets a custom logging filter. Syntax is `<target1>=<level1>,<target2>=<level2>`, e.g. -lkagome=info,libp2p=off.\n"
+          "Sets a custom logging filter. Syntax is `<target>=<level>`, e.g. -llibp2p=off.\n"
           "Log levels (most to least verbose) are trace, debug, verbose, info, warn, error, critical, off. By default, all targets log `info`.\n"
           "The global log level can be set with -l<level>.")
         ("validator", "Enable validator node")
