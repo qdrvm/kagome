@@ -53,7 +53,7 @@ namespace kagome::application {
 
     MOCK_CONST_METHOD0(maxWsConnections, uint32_t());
 
-    MOCK_CONST_METHOD0(verbosity, log::Level());
+    MOCK_CONST_METHOD0(log, const std::vector<std::string> &());
 
     MOCK_CONST_METHOD0(maxBlocksInResponse, uint32_t());
 
