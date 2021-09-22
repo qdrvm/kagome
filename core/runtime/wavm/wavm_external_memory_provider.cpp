@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/wavm/wavm_memory_provider.hpp"
+#include "runtime/wavm/wavm_external_memory_provider.hpp"
 
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
@@ -11,20 +11,21 @@
 
 namespace kagome::runtime::wavm {
 
-  WavmMemoryProvider::WavmMemoryProvider(
+  WavmExternalMemoryProvider::WavmExternalMemoryProvider(
       std::shared_ptr<IntrinsicModuleInstance> module)
       : intrinsic_module_{std::move(module)} {
-    BOOST_ASSERT(intrinsic_module_);
+    BOOST_ASSERT(intrinsic_module_ != nullptr);
   }
 
-  boost::optional<runtime::Memory &> WavmMemoryProvider::getCurrentMemory()
-      const {
+  boost::optional<runtime::Memory &>
+  WavmExternalMemoryProvider::getCurrentMemory() const {
     return current_memory_
                ? boost::optional<runtime::Memory &>(*current_memory_)
                : boost::none;
   }
 
-  outcome::result<void> WavmMemoryProvider::resetMemory(WasmSize heap_base) {
+  outcome::result<void> WavmExternalMemoryProvider::resetMemory(
+      WasmSize heap_base) {
     current_memory_ = std::make_unique<MemoryImpl>(
         intrinsic_module_->getExportedMemory(), heap_base);
     return outcome::success();

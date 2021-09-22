@@ -19,6 +19,7 @@ namespace kagome::runtime::wavm {
   }
 
   void popHostApi() {
+    BOOST_ASSERT(!global_host_apis.empty());
     global_host_apis.pop();
   }
 

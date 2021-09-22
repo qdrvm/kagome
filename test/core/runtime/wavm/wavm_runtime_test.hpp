@@ -15,7 +15,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
-#include "runtime/wavm/wavm_memory_provider.hpp"
+#include "runtime/wavm/wavm_external_memory_provider.hpp"
 
 class WavmRuntimeTest : public RuntimeTestBase {
  public:
