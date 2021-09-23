@@ -62,7 +62,7 @@ namespace kagome::network {
     /** @see AppStateManager::takeControl */
     bool prepare();
 
-    /** @see App../core/injector/CMakeLists.txtStateManager::takeControl */
+    /** @see AppStateManager::takeControl */
     bool start();
 
     /** @see AppStateManager::takeControl */
