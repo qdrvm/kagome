@@ -1,4 +1,5 @@
 #include <chrono>
+#include <fstream>
 #include <thread>
 
 #include <boost/di.hpp>
@@ -47,6 +48,8 @@ class Configurator : public soralog::ConfiguratorFromYAML {
   Configurator() : ConfiguratorFromYAML(embedded_config) {}
 };
 
+enum ArgNum : uint8_t { DB_PATH = 1, STATE_HASH, MODE };
+
 int main(int argc, char *argv[]) {
   auto logging_system = std::make_shared<soralog::LoggingSystem>(
       std::make_shared<Configurator>());
@@ -56,11 +59,12 @@ int main(int argc, char *argv[]) {
   auto log = log::createLogger("main", "kagome-db-editor");
 
   auto prefix = common::Buffer{blockchain::prefix::TRIE_NODE};
+  bool need_additional_compaction = false;
   {
     auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
 
     auto storage =
-        storage::LevelDB::create(argv[1], leveldb::Options()).value();
+        storage::LevelDB::create(argv[DB_PATH], leveldb::Options()).value();
     auto injector = di::make_injector(
         di::bind<TrieSerializer>.template to([](const auto &injector) {
           return std::make_shared<TrieSerializerImpl>(
@@ -78,7 +82,7 @@ int main(int argc, char *argv[]) {
         di::bind<Codec>.template to<PolkadotCodec>(),
         di::bind<PolkadotTrieFactory>.to(factory));
 
-    auto hash = RootHash::fromHexWithPrefix(argv[2]).value();
+    auto hash = RootHash::fromHexWithPrefix(argv[STATE_HASH]).value();
 
     auto trie =
         TrieStorageImpl::createFromStorage(
@@ -89,60 +93,94 @@ int main(int argc, char *argv[]) {
                 .template create<sptr<storage::changes_trie::ChangesTracker>>())
             .value();
 
-    auto batch = trie->getPersistentBatch().value();
-    auto cursor = batch->trieCursor();
-    auto res = cursor->next();
-    int count = 0;
-    {
-      TicToc t1("Process state.", log);
-      while (cursor->key().has_value()) {
-        count++;
-        res = cursor->next();
-      }
-    }
-    log->trace("{} keys were processed at the state.", ++count);
-
-    auto db_cursor = storage->cursor();
-    auto db_batch = storage->batch();
-    auto res2 = db_cursor->seek(prefix);
-    count = 0;
-    {
-      TicToc t2("Process DB.", log);
-      while (db_cursor->isValid() && db_cursor->key().has_value()
-             && db_cursor->key().value()[0] == prefix[0]) {
-        res = db_batch->remove(db_cursor->key().value());
-        count++;
-        if (not(count % 10000000)) {
-          log->trace("{} keys were processed at the db.", count);
-          res = db_batch->commit();
-          dynamic_cast<storage::LevelDB *>(storage.get())
-            ->compact(prefix, db_cursor->key().value());
-          db_cursor = storage->cursor();
-          db_batch = storage->batch();
-          res2 = db_cursor->seek(prefix);
+    if (argc == 3 or not std::strcmp(argv[MODE], "compact")) {
+      auto batch = trie->getPersistentBatch().value();
+      auto cursor = batch->trieCursor();
+      auto res = cursor->next();
+      int count = 0;
+      {
+        TicToc t1("Process state.", log);
+        while (cursor->key().has_value()) {
+          count++;
+          res = cursor->next();
         }
-        res = db_cursor->next();
       }
-      res = db_batch->commit();
-    }
-    log->trace("{} keys were processed at the db.", ++count);
+      log->trace("{} keys were processed at the state.", ++count);
 
-    {
-      TicToc t3("Commit state.", log);
-      auto res3 = batch->commit();
-      log->trace("{}", res3.value().toHex());
-    }
+      auto db_cursor = storage->cursor();
+      auto db_batch = storage->batch();
+      auto res2 = db_cursor->seek(prefix);
+      count = 0;
+      {
+        TicToc t2("Process DB.", log);
+        while (db_cursor->isValid() && db_cursor->key().has_value()
+               && db_cursor->key().value()[0] == prefix[0]) {
+          res = db_batch->remove(db_cursor->key().value());
+          count++;
+          if (not(count % 10000000)) {
+            log->trace("{} keys were processed at the db.", count);
+            res = db_batch->commit();
+            dynamic_cast<storage::LevelDB *>(storage.get())
+                ->compact(prefix, db_cursor->key().value());
+            db_cursor = storage->cursor();
+            db_batch = storage->batch();
+            res2 = db_cursor->seek(prefix);
+          }
+          res = db_cursor->next();
+        }
+        res = db_batch->commit();
+      }
+      log->trace("{} keys were processed at the db.", ++count);
 
-    {
-      TicToc t4("Compaction 1.", log);
-      dynamic_cast<storage::LevelDB *>(storage.get())
-          ->compact(common::Buffer(), common::Buffer());
+      {
+        TicToc t3("Commit state.", log);
+        auto res3 = batch->commit();
+        log->trace("{}", res3.value().toHex());
+      }
+
+      {
+        TicToc t4("Compaction 1.", log);
+        dynamic_cast<storage::LevelDB *>(storage.get())
+            ->compact(common::Buffer(), common::Buffer());
+      }
+      need_additional_compaction = true;
+    } else if (not std::strcmp(argv[MODE], "dump")) {
+      auto batch = trie->getEphemeralBatch().value();
+      auto cursor = batch->trieCursor();
+      auto res = cursor->next();
+      {
+        TicToc t1("Dump full state.", log);
+        int count = 0;
+        std::ofstream ofs;
+        ofs.open("hex_full_state.yaml");
+        ofs << "keys:\n";
+        while (cursor->key().has_value()) {
+          ofs << "  - " << cursor->key().value().toHex() << "\n";
+          if (not(++count % 10000)) {
+            log->trace("{} keys were dumped.", count);
+          }
+          res = cursor->next();
+        }
+        auto cursor = batch->trieCursor();
+        auto res = cursor->next();
+        ofs << "values:\n";
+        count = 0;
+        while (cursor->key().has_value()) {
+          ofs << "  - " << batch->get(cursor->key().value()).value() << "\n";
+          if (not(++count % 50000)) {
+            log->trace("{} values were dumped.", count);
+          }
+          res = cursor->next();
+        }
+        ofs.close();
+      }
     }
   }
 
-  auto storage = storage::LevelDB::create(argv[1], leveldb::Options()).value();
-  {
+  if (need_additional_compaction) {
     TicToc t5("Compaction 2.", log);
+    auto storage =
+        storage::LevelDB::create(argv[1], leveldb::Options()).value();
     dynamic_cast<storage::LevelDB *>(storage.get())
         ->compact(common::Buffer(), common::Buffer());
   }
