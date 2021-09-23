@@ -11,6 +11,7 @@
 #include <memory>
 #include <queue>
 
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/identify/identify.hpp>

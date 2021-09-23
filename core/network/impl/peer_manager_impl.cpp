@@ -8,6 +8,7 @@
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
+
 #include "outcome/outcome.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
@@ -264,8 +265,7 @@ namespace kagome::network {
             self->align();
           }
         },
-        aligning_period);  // automatically converts from seconds to
-                           // milliseconds
+        aligning_period);
     SL_DEBUG(log_, "Active peers = {}", active_peers_.size());
   }
 
