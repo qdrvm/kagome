@@ -58,6 +58,8 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocol> getSyncProtocol() const override;
     std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const override;
 
+    std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const override;
+
    private:
     /**
      * Appends /p2p/<peerid> part to ip4 and ip6 addresses which then passed to
@@ -74,7 +76,7 @@ namespace kagome::network {
     const application::AppConfiguration &app_config_;
     const OwnPeerInfo &own_info_;
     log::Logger log_;
-    std::shared_ptr<libp2p::protocol::Ping> ping_proto_;
+    std::shared_ptr<libp2p::protocol::Ping> ping_protocol_;
     std::shared_ptr<network::ProtocolFactory> protocol_factory_;
 
     std::shared_ptr<BlockAnnounceProtocol> block_announce_protocol_;

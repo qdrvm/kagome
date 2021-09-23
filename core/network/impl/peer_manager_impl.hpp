@@ -88,6 +88,9 @@ namespace kagome::network {
     /** @see PeerManager::forOnePeer */
     void keepAlive(const PeerId &peer_id) override;
 
+    /** @see PeerManager::startPingingPeer */
+    void startPingingPeer(const PeerId &peer_id) override;
+
     /** @see PeerManager::updatePeerStatus */
     void updatePeerStatus(const PeerId &peer_id, const Status &status) override;
 

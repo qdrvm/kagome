@@ -350,6 +350,30 @@ namespace kagome::network {
     }
   }
 
+  void PeerManagerImpl::startPingingPeer(const PeerId &peer_id) {
+    auto ping_protocol = router_->getPingProtocol();
+    BOOST_ASSERT_MSG(ping_protocol, "Router did not provide ping protocol");
+
+    auto conn =
+        host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
+            peer_id);
+
+    ping_protocol->startPinging(
+        conn,
+        [wp = weak_from_this()](
+            outcome::result<std::shared_ptr<
+                libp2p::protocol::PingClientSession>> session_res) {
+          if (auto self = wp.lock()) {
+            if (session_res.has_error()) {
+              self->log_->info("PING SESSION ERROR: {}",
+                               session_res.error().message());
+            } else {
+              self->log_->info("PING SESSION SUCCESS");
+            }
+          }
+        });
+  }
+
   void PeerManagerImpl::updatePeerStatus(const PeerId &peer_id,
                                          const Status &status) {
     auto it = active_peers_.find(peer_id);
