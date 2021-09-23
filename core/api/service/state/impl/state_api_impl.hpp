@@ -33,11 +33,20 @@ namespace kagome::api {
         const boost::optional<primitives::BlockHash> &block_hash_opt)
         const override;
 
-    outcome::result<common::Buffer> getStorage(
+    outcome::result<boost::optional<common::Buffer>> getStorage(
         const common::Buffer &key) const override;
-    outcome::result<common::Buffer> getStorage(
+    outcome::result<boost::optional<common::Buffer>> getStorage(
         const common::Buffer &key,
         const primitives::BlockHash &at) const override;
+
+    outcome::result<std::vector<StorageChangeSet>> queryStorage(
+        gsl::span<const common::Buffer> keys,
+        const primitives::BlockHash &from,
+        boost::optional<primitives::BlockHash> to) const override;
+
+    outcome::result<std::vector<StorageChangeSet>> queryStorageAt(
+        gsl::span<const common::Buffer> keys,
+        boost::optional<primitives::BlockHash> at) const override;
 
     outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) override;

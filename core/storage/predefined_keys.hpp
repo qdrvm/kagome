@@ -12,7 +12,7 @@ namespace kagome::storage {
 
   inline const common::Buffer kRuntimeCodeKey = common::Buffer().put(":code");
 
-  const common::Buffer kExtrinsicIndexKey =
+  inline const common::Buffer kExtrinsicIndexKey =
       common::Buffer{}.put(":extrinsic_index");
 
   inline const common::Buffer kAuthoritySetKey =

@@ -34,6 +34,16 @@ namespace kagome::api {
         outcome::result<common::Buffer>(const common::Buffer &key,
                                         const primitives::BlockHash &at));
 
+    MOCK_CONST_METHOD3(queryStorage,
+                       outcome::result<std::vector<StorageChangeSet>>(
+                           gsl::span<const common::Buffer> keys,
+                           const primitives::BlockHash &from,
+                           boost::optional<primitives::BlockHash> to));
+    MOCK_CONST_METHOD2(queryStorageAt,
+                       outcome::result<std::vector<StorageChangeSet>>(
+                           gsl::span<const common::Buffer> keys,
+                           boost::optional<primitives::BlockHash> at));
+
     MOCK_METHOD1(
         subscribeStorage,
         outcome::result<uint32_t>(std::vector<common::Buffer> const &keys));

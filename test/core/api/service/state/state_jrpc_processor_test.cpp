@@ -104,7 +104,7 @@ class StateJrpcProcessorTest : public testing::Test {
   }
 
   template <typename... Args>
-  auto execute(CallType method, Args &&... args) {
+  auto execute(CallType method, Args &&...args) {
     return call_contexts_[method].handler(std::forward<Args>(args)...);
   }
 

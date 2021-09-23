@@ -6,6 +6,7 @@
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "common/hexutil.hpp"
 
+#include <unordered_map>
 #include <utility>
 
 #include <jsonrpc-lean/fault.h>
@@ -80,22 +81,63 @@ namespace kagome::api {
     return result;
   }
 
-  outcome::result<common::Buffer> StateApiImpl::getStorage(
+  outcome::result<boost::optional<common::Buffer>> StateApiImpl::getStorage(
       const common::Buffer &key) const {
     auto last_finalized = block_tree_->getLastFinalized();
     return getStorage(key, last_finalized.hash);
   }
 
-  outcome::result<common::Buffer> StateApiImpl::getStorage(
+  outcome::result<boost::optional<common::Buffer>> StateApiImpl::getStorage(
       const common::Buffer &key, const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, block_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
-    return trie_reader->get(key);
+    return trie_reader->try_get(key);
+  }
+
+  outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
+  StateApiImpl::queryStorage(
+      gsl::span<const common::Buffer> keys,
+      const primitives::BlockHash &from,
+      boost::optional<primitives::BlockHash> opt_to) const {
+    // TODO(Harrm): Optimize once changes trie is enabled (and an warning/assert
+    // for now that will fire once it is, just not to forget)
+    auto to = opt_to.value_or(block_tree_->deepestLeaf().hash);
+    std::vector<StorageChangeSet> changes;
+    std::map<gsl::span<const uint8_t>, boost::optional<common::Buffer>>
+        last_values;
+    // TODO(Harrm): optimize it to use a lazy iterator instead of returning the
+    // whole vector with block ids
+    OUTCOME_TRY(range, block_tree_->getChainByBlocks(from, to));
+    for (auto &block : range) {
+      OUTCOME_TRY(header, block_repo_->getBlockHeader(block));
+      OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
+      StorageChangeSet change{block, {}};
+      for (auto &key : keys) {
+        OUTCOME_TRY(opt_value, batch->try_get(key));
+        auto it = last_values.find(key);
+        if (it == last_values.end() || it->second != opt_value) {
+          change.changes.push_back({key, opt_value});
+        }
+        last_values[key] = std::move(opt_value);
+      }
+      if (!change.changes.empty()) {
+        changes.emplace_back(std::move(change));
+      }
+    }
+    return changes;
+  }
+
+  outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
+  StateApiImpl::queryStorageAt(
+      gsl::span<const common::Buffer> keys,
+      boost::optional<primitives::BlockHash> opt_at) const {
+    auto at = opt_at.value_or(block_tree_->deepestLeaf().hash);
+    return queryStorage(keys, at, at);
   }
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(
       const boost::optional<primitives::BlockHash> &at) const {
-    if(at) {
+    if (at) {
       return runtime_core_->version(at.value());
     }
     return runtime_core_->version(block_tree_->deepestLeaf().hash);

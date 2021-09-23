@@ -28,6 +28,20 @@ namespace kagome::storage::face {
     virtual outcome::result<V> get(const K &key) const = 0;
 
     /**
+     * @brief Get value by key
+     * @param key K
+     * @return V if contains(K) or boost::none
+     */
+     virtual outcome::result<boost::optional<V>> try_get(const K &key) const {
+       if (contains(key)) {
+         auto res = get(key);
+         if (res.has_value()) return res.value();
+         return res.as_failure();
+       }
+       return boost::none;
+     }
+
+    /**
      * @brief Returns true if given key-value binding exists in the storage.
      * @param key K
      * @return true if key has value, false otherwise.

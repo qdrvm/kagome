@@ -10,7 +10,9 @@
 
 #include <jsonrpc-lean/value.h>
 #include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm_ext/push_back.hpp>
 
+#include "api/service/state/state_api.hpp"
 #include "common/blob.hpp"
 #include "common/hexutil.hpp"
 #include "common/visitor.hpp"
@@ -300,6 +302,20 @@ namespace kagome::api {
 
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &v) {
     return common::hex_lower_0x(scale::encode(v.data).value());
+  }
+
+  inline jsonrpc::Value makeValue(const StateApi::StorageChangeSet &changes) {
+    jsonrpc::Value ret;
+    std::vector<jArray> j_changes;
+    boost::range::push_back(
+        j_changes,
+        changes.changes | boost::adaptors::transformed([](auto &change) {
+          return jArray{makeValue(change.key), makeValue(change.data)};
+        }));
+
+    return jStruct{
+        std::pair{"block", makeValue(common::hex_lower_0x(changes.block))},
+        std::pair{"changes", makeValue(j_changes)}};
   }
 
 }  // namespace kagome::api
