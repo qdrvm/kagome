@@ -694,7 +694,7 @@ namespace {
         injector.template create<libp2p::Host &>(),
         injector.template create<sptr<libp2p::protocol::Identify>>(),
         injector.template create<sptr<libp2p::protocol::kademlia::Kademlia>>(),
-        injector.template create<sptr<libp2p::protocol::Scheduler>>(),
+        injector.template create<sptr<libp2p::basic::Scheduler>>(),
         injector.template create<sptr<network::StreamEngine>>(),
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<clock::SteadyClock>>(),

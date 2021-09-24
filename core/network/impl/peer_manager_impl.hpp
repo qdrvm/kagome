@@ -49,7 +49,7 @@ namespace kagome::network {
         libp2p::Host &host,
         std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<StreamEngine> stream_engine,
         const application::AppConfiguration &app_config,
         std::shared_ptr<clock::SteadyClock> clock,
@@ -220,7 +220,7 @@ namespace kagome::network {
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<clock::SteadyClock> clock_;
@@ -241,7 +241,7 @@ namespace kagome::network {
     };
 
     std::map<PeerId, ActivePeerData> active_peers_;
-    libp2p::protocol::scheduler::Handle align_timer_;
+    libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;
 
     log::Logger log_;
