@@ -198,6 +198,7 @@ namespace kagome::storage::trie {
           last_visited_child_.pop_back();
           OUTCOME_TRY(child_idx, getChildWithMinIdx(parent, idx + 1));
           if (child_idx != -1) {
+            last_visited_child_.emplace_back(parent, child_idx);
             OUTCOME_TRY(child, trie_.retrieveChild(parent, child_idx));
             OUTCOME_TRY(node, seekNodeWithValue(child));
             current_ = node;
