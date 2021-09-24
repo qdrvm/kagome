@@ -79,7 +79,7 @@ namespace kagome::network {
 
     add_peer_handle_ =
         host_.getBus()
-            .getChannel<libp2p::protocol::kademlia::events::PeerAddedChannel>()
+            .getChannel<libp2p::event::protocol::kademlia::PeerAddedChannel>()
             .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
                 self->processDiscoveredPeer(peer_id);
