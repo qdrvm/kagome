@@ -40,7 +40,6 @@ namespace {
   const uint16_t def_openmetrics_http_port = 9615;
   const uint32_t def_ws_max_connections = 500;
   const uint16_t def_p2p_port = 30363;
-  const int def_verbosity = static_cast<int>(kagome::log::Level::INFO);
   const bool def_dev_mode = false;
   const kagome::network::Roles def_roles = [] {
     kagome::network::Roles roles;
@@ -86,7 +85,6 @@ namespace kagome::application {
       : logger_(std::move(logger)),
         roles_(def_roles),
         p2p_port_(def_p2p_port),
-        verbosity_(static_cast<log::Level>(def_verbosity)),
         max_blocks_in_response_(kAbsolutMaxBlocksInResponse),
         rpc_http_host_(def_rpc_http_host),
         rpc_ws_host_(def_rpc_ws_host),
@@ -121,6 +119,17 @@ namespace kagome::application {
     assert(!filepath.empty());
     return AppConfigurationImpl::FilePtr(std::fopen(filepath.c_str(), "r"),
                                          &std::fclose);
+  }
+
+  bool AppConfigurationImpl::load_ms(const rapidjson::Value &val,
+                                     char const *name,
+                                     std::vector<std::string> &target) {
+    for (auto it = val.FindMember(name); it != val.MemberEnd(); ++it) {
+      auto &value = it->value;
+      target.emplace_back(value.GetString(), value.GetStringLength());
+      return true;
+    }
+    return not target.empty();
   }
 
   bool AppConfigurationImpl::load_ma(
@@ -195,14 +204,7 @@ namespace kagome::application {
       roles_.flags.authority = 1;
     }
 
-    uint16_t v{};
-    if (not load_u16(val, "verbosity", v)) {
-      return;
-    }
-    auto level = static_cast<log::Level>(v + def_verbosity);
-    if (level >= log::Level::OFF && level <= log::Level::TRACE) {
-      verbosity_ = level;
-    }
+    load_ms(val, "log", logger_tuning_config_);
   }
 
   void AppConfigurationImpl::parse_blockchain_segment(rapidjson::Value &val) {
@@ -352,7 +354,10 @@ namespace kagome::application {
     po::options_description desc("General options");
     desc.add_options()
         ("help,h", "show this help message")
-        ("verbosity,v", po::value<int>(), "Log level: 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no log")
+        ("log,l", po::value<std::vector<std::string>>(),
+          "Sets a custom logging filter. Syntax is `<target>=<level>`, e.g. -llibp2p=off.\n"
+          "Log levels (most to least verbose) are trace, debug, verbose, info, warn, error, critical, off. By default, all targets log `info`.\n"
+          "The global log level can be set with -l<level>.")
         ("validator", "Enable validator node")
         ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
         ;
@@ -646,11 +651,10 @@ namespace kagome::application {
       max_blocks_in_response_ = val;
     });
 
-    find_argument<int32_t>(vm, "verbosity", [&](int32_t val) {
-      auto level = static_cast<log::Level>(val + def_verbosity);
-      if (level >= log::Level::OFF && level <= log::Level::TRACE)
-        verbosity_ = level;
-    });
+    find_argument<std::vector<std::string>>(
+        vm, "log", [&](const std::vector<std::string> &val) {
+          logger_tuning_config_ = val;
+        });
 
     find_argument<std::string>(
         vm, "rpc-host", [&](std::string const &val) { rpc_http_host_ = val; });

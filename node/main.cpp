@@ -32,14 +32,15 @@ int main(int argc, char **argv) {
     kagome::log::setLoggingSystem(logging_system);
   }
 
-  auto logger = kagome::log::createLogger("AppConfiguration", "main");
+  auto logger = kagome::log::createLogger("AppConfiguration",
+                                          kagome::log::defaultGroupName);
   AppConfigurationImpl configuration{logger};
 
   if (configuration.initialize_from_args(argc, argv)) {
-    kagome::log::setLevelOfGroup(kagome::log::defaultGroupName,
-                                 configuration.verbosity());
-    auto app =
-        std::make_shared<kagome::application::KagomeApplicationImpl>(configuration);
+    kagome::log::tuneLoggingSystem(configuration.log());
+
+    auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(
+        configuration);
     app->run();
   }
 
