@@ -144,8 +144,8 @@ namespace kagome::storage::trie {
         switch (current->getTrieType()) {
           case NodeType::BranchEmptyValue:
           case NodeType::BranchWithValue: {
-            OUTCOME_TRY(node, seekNodeWithValue(current));
-            current_ = node;
+            OUTCOME_TRY(seekNodeWithValue(current));
+            current_ = current;
             return outcome::success();
           }
           case NodeType::Leaf:
@@ -165,17 +165,11 @@ namespace kagome::storage::trie {
         switch (current->getTrieType()) {
           case NodeType::BranchEmptyValue:
           case NodeType::BranchWithValue: {
-            auto current_as_branch =
-                std::dynamic_pointer_cast<BranchNode>(current);
-            OUTCOME_TRY(child_idx,
-                        getChildWithMinIdx(current_as_branch, *left_mismatch));
-            if (child_idx != -1) {
-              last_visited_child_.emplace_back(current_as_branch, child_idx);
-              OUTCOME_TRY(new_current,
-                          trie_.retrieveChild(current_as_branch, child_idx));
-              left_nibbles =
-                  left_nibbles.subspan(current->key_nibbles.size() + 1);
-              current = new_current;
+            auto new_left_nibbles =
+                left_nibbles.subspan(current->key_nibbles.size() + 1);
+            OUTCOME_TRY(ok, setChildWithMinIdx(current, *left_mismatch));
+            if (ok) {
+              left_nibbles = new_left_nibbles;
               continue;
             }
             break;  // go to case3
@@ -193,51 +187,42 @@ namespace kagome::storage::trie {
       bool longer_or_bigger =
           longer or (not part_equal and *left_mismatch > *current_mismatch);
       if (longer_or_bigger) {
-        while (not last_visited_child_.empty()) {
-          auto [parent, idx] = last_visited_child_.back();
-          last_visited_child_.pop_back();
-          OUTCOME_TRY(child_idx, getChildWithMinIdx(parent, idx + 1));
-          if (child_idx != -1) {
-            last_visited_child_.emplace_back(parent, child_idx);
-            OUTCOME_TRY(child, trie_.retrieveChild(parent, child_idx));
-            OUTCOME_TRY(node, seekNodeWithValue(child));
-            current_ = node;
-            return outcome::success();
-          }
+        OUTCOME_TRY(ok, seekNodeWithValueBothDirections());
+        if(not ok) {
+          current_ = nullptr;
         }
-        current_ = nullptr;
         return outcome::success();
       }
     }
     UNREACHABLE
   }
 
-  outcome::result<PolkadotTrieCursorImpl::NodePtr>
-  PolkadotTrieCursorImpl::seekNodeWithValue(NodePtr node) {
-    while (not node->value.has_value()) {
-      if (not node->isBranch()) {
-        return Error::INVALID_NODE_TYPE;  // can't be a leaf without a value
+  outcome::result<bool> PolkadotTrieCursorImpl::seekNodeWithValueBothDirections() {
+    while (not last_visited_child_.empty()) {
+      auto [parent, idx] = last_visited_child_.back();
+      last_visited_child_.pop_back();
+      auto parent_node = std::dynamic_pointer_cast<PolkadotNode>(parent);
+      OUTCOME_TRY(ok, setChildWithMinIdx(parent_node, idx + 1));
+      if (ok) {
+        OUTCOME_TRY(seekNodeWithValue(parent_node));
+        current_ = parent_node;
+        return true;
       }
-      auto node_as_value = std::dynamic_pointer_cast<BranchNode>(node);
-      for (uint8_t i = 0; i < BranchNode::kMaxChildren; i++) {
-        OUTCOME_TRY(child, trie_.retrieveChild(node_as_value, i));
-        if (child != nullptr) {
-          last_visited_child_.emplace_back(node_as_value, i);
-          switch (child->getTrieType()) {
-            case NodeType::BranchEmptyValue:
-              node = std::dynamic_pointer_cast<BranchNode>(child);
-              goto BREAK;
-            case NodeType::BranchWithValue:
-            case NodeType::Leaf:
-              return std::move(child);
-            case NodeType::Special:
-              return Error::INVALID_NODE_TYPE;
-          }
-        }
-      }
-    BREAK:;
     }
-    return node;
+    return false;
+  }
+
+  outcome::result<void> PolkadotTrieCursorImpl::seekNodeWithValue(
+      NodePtr &parent) {
+    if (parent->value.has_value()) {
+      return outcome::success();
+    }
+    if (not parent->isBranch()) {
+      return Error::INVALID_NODE_TYPE;
+    }
+    OUTCOME_TRY(setChildWithMinIdx(parent));
+    OUTCOME_TRY(seekNodeWithValue(parent));
+    return outcome::success();
   }
 
   outcome::result<void> PolkadotTrieCursorImpl::seekUpperBound(
@@ -249,15 +234,18 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<int8_t> PolkadotTrieCursorImpl::getChildWithMinIdx(
-      BranchPtr node, uint8_t min_idx) const {
+  outcome::result<bool> PolkadotTrieCursorImpl::setChildWithMinIdx(
+      NodePtr &parent, uint8_t min_idx) {
+    auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
     for (uint8_t i = min_idx; i < BranchNode::kMaxChildren; i++) {
-      OUTCOME_TRY(child, trie_.retrieveChild(node, i));
-      if (child) {
-        return i;
+      if (branch->children.at(i)) {
+        OUTCOME_TRY(child, trie_.retrieveChild(branch, i));
+        last_visited_child_.emplace_back(branch, i);
+        parent = child;
+        return true;
       }
     }
-    return -1;
+    return false;
   }
 
   bool PolkadotTrieCursorImpl::isValid() const {
@@ -278,50 +266,15 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
     visited_root_ = true;
-    do {
-      if (current_->getTrieType() == NodeType::Leaf) {
-        if (last_visited_child_.empty()) {
-          current_ = nullptr;
-          return outcome::success();
-        }
-        // assert last_visited_child_.back() == current.parent
-        auto p = last_visited_child_.back().parent;  // self.current.parent
-        while (not hasNextChild(p, last_visited_child_.back().child_idx)) {
-          last_visited_child_.pop_back();
-          if (last_visited_child_.empty()) {
-            current_ = nullptr;
-            return outcome::success();
-          }
-          p = last_visited_child_.back().parent;  // p.parent
-        }
-        auto i = getNextChildIdx(p, last_visited_child_.back().child_idx);
-        OUTCOME_TRY(c, trie_.retrieveChild(p, i));
-        current_ = c;
-        updateLastVisitedChild(p, i);
-
-      } else if (current_->getTrieType() == NodeType::BranchEmptyValue
-                 or current_->getTrieType() == NodeType::BranchWithValue) {
-        auto p = std::dynamic_pointer_cast<BranchNode>(current_);
-        if (last_visited_child_.empty()
-            or last_visited_child_.back().parent != p) {
-          // indicate that we're going to descend to some child of the current
-          // node
-          last_visited_child_.emplace_back(p, UINT8_MAX);
-        }
-        while (not hasNextChild(p, last_visited_child_.back().child_idx)) {
-          last_visited_child_.pop_back();
-          if (last_visited_child_.empty()) {
-            current_ = nullptr;
-            return outcome::success();
-          }
-          p = last_visited_child_.back().parent;  // p.parent
-        }
-        auto i = getNextChildIdx(p, last_visited_child_.back().child_idx);
-        OUTCOME_TRY(c, trie_.retrieveChild(p, i));
-        current_ = c;
-        updateLastVisitedChild(p, i);
-      }
-    } while (not current_->value.has_value());
+    if (current_->isBranch()) {
+      OUTCOME_TRY(setChildWithMinIdx(current_));
+      OUTCOME_TRY(seekNodeWithValue(current_));
+      return outcome::success();
+    }
+    OUTCOME_TRY(ok, seekNodeWithValueBothDirections());
+    if (not ok) {
+      current_ = nullptr;
+    }
     return outcome::success();
   }
 
@@ -352,47 +305,6 @@ namespace kagome::storage::trie {
       return current_->value.value();
     }
     return boost::none;
-  }
-
-  uint8_t PolkadotTrieCursorImpl::getNextChildIdx(const BranchPtr &parent,
-                                                  uint8_t child_idx) {
-    // if child_idx is UINT8_MAX then we're gonna return the first child
-    for (uint8_t i = child_idx + 1; i < parent->kMaxChildren; i++) {
-      if (parent->children.at(i) != nullptr) {
-        return i;
-      }
-    }
-    return UINT8_MAX;
-  }
-
-  bool PolkadotTrieCursorImpl::hasNextChild(const BranchPtr &parent,
-                                            uint8_t child_idx) {
-    return getNextChildIdx(parent, child_idx) != UINT8_MAX;
-  }
-
-  uint8_t PolkadotTrieCursorImpl::getPrevChildIdx(const BranchPtr &parent,
-                                                  uint8_t child_idx) {
-    if (child_idx == 0 || child_idx >= BranchNode::kMaxChildren)
-      return UINT8_MAX;
-    for (int8_t i = child_idx - 1; i >= 0; i--) {
-      if (parent->children.at(i) != nullptr) {
-        return i;
-      }
-    }
-    return UINT8_MAX;
-  }
-
-  bool PolkadotTrieCursorImpl::hasPrevChild(const BranchPtr &parent,
-                                            uint8_t child_idx) {
-    return getPrevChildIdx(parent, child_idx) != UINT8_MAX;
-  }
-
-  void PolkadotTrieCursorImpl::updateLastVisitedChild(const BranchPtr &parent,
-                                                      uint8_t child_idx) {
-    if (last_visited_child_.back().parent == parent) {
-      last_visited_child_.pop_back();
-    }
-    last_visited_child_.emplace_back(parent, child_idx);
   }
 
   auto PolkadotTrieCursorImpl::constructLastVisitedChildPath(
