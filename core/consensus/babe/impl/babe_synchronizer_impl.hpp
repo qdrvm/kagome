@@ -125,7 +125,7 @@ namespace kagome::consensus {
     std::unordered_multimap<primitives::BlockHash, primitives::BlockHash>
         ancestry_;
 
-    // Number of blocks that is potentially best now
+    // BlockNumber of blocks (aka height) that is potentially best now
     primitives::BlockNumber watched_blocks_number_{};
 
     // Handlers what will be called when block is apply
