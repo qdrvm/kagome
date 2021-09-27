@@ -24,7 +24,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BabeSynchronizerImpl::Error, e) {
     case E::DISCARDED_BLOCK:
       return "Block is discarded";
     case E::WRONG_ORDER:
-      return "Wrong order";
+      return "Wrong order of blocks/headers in response";
     case E::INVALID_HASH:
       return "Hash does not match";
     case E::ALREADY_IN_QUEUE:
