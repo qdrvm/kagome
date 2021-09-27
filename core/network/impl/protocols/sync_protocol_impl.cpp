@@ -13,7 +13,7 @@
 #include "network/rpc.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
-#include "protocol_error.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 
 namespace kagome::network {
 

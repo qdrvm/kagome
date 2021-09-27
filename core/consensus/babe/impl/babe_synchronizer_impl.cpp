@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "babe_synchronizer_impl.hpp"
-#include <blockchain/block_tree_error.hpp>
+#include "consensus/babe/impl/babe_synchronizer_impl.hpp"
+
 #include <random>
 
+#include "blockchain/block_tree_error.hpp"
 #include "network/types/block_attributes.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BabeSynchronizerImpl::Error, e) {

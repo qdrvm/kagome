@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/propagate_transactions_protocol.hpp"
 
 #include "network/common.hpp"
 #include "network/types/no_data_message.hpp"
-#include "protocol_error.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 
 namespace kagome::network {
 

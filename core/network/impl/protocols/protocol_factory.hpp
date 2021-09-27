@@ -13,7 +13,7 @@
 #include "network/impl/protocols/sync_protocol_impl.hpp"
 #include "network/impl/stream_engine.hpp"
 #include "primitives/event_types.hpp"
-#include "propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/propagate_transactions_protocol.hpp"
 
 namespace kagome::network {
 

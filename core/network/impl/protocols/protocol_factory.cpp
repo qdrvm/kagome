@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "protocol_factory.hpp"
+#include "network/impl/protocols/protocol_factory.hpp"
 
 namespace kagome::network {
 

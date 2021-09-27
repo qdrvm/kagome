@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "block_announce_protocol.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
 
 #include "application/app_configuration.hpp"
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
-#include "protocol_error.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 
 namespace kagome::network {
 
