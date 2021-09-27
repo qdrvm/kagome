@@ -134,6 +134,7 @@ namespace kagome::network {
                  }
 
                  self->peer_manager_->reserveStreams(peer_id);
+                 self->peer_manager_->startPingingPeer(peer_id);
 
                  SL_VERBOSE(self->log_,
                             "Fully established incoming {} stream with {}",

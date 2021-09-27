@@ -358,17 +358,37 @@ namespace kagome::network {
         host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
             peer_id);
 
+    auto [_, is_emplaced] = pinging_connections_.emplace(conn);
+    if (not is_emplaced) {
+      // Pinging is already going
+      return;
+    }
+
+    SL_DEBUG(log_,
+             "Start pinging of {} (conn={})",
+             peer_id.toBase58(),
+             static_cast<void *>(conn.get()));
+
     ping_protocol->startPinging(
         conn,
-        [wp = weak_from_this()](
+        [wp = weak_from_this(), peer_id, conn](
             outcome::result<std::shared_ptr<
                 libp2p::protocol::PingClientSession>> session_res) {
           if (auto self = wp.lock()) {
             if (session_res.has_error()) {
-              self->log_->info("PING SESSION ERROR: {}",
-                               session_res.error().message());
+              SL_DEBUG(self->log_,
+                       "Stop pinging of {} (conn={}): {}",
+                       peer_id.toBase58(),
+                       static_cast<void *>(conn.get()),
+                       session_res.error().message());
+              self->pinging_connections_.erase(conn);
+              self->disconnectFromPeer(peer_id);
             } else {
-              self->log_->info("PING SESSION SUCCESS");
+              SL_DEBUG(self->log_,
+                       "Pinging: {} (conn={}) is alive",
+                       peer_id.toBase58(),
+                       static_cast<void *>(conn.get()));
+              self->keepAlive(peer_id);
             }
           }
         });
@@ -516,6 +536,9 @@ namespace kagome::network {
             }
 
             self->connecting_peers_.erase(peer_id);
+
+            self->reserveStreams(peer_id);
+            self->startPingingPeer(peer_id);
           });
 
     } else {

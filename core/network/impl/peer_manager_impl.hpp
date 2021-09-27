@@ -63,7 +63,7 @@ namespace kagome::network {
     /** @see AppStateManager::takeControl */
     bool prepare();
 
-    /** @see App../core/injector/CMakeLists.txtStateManager::takeControl */
+    /** @see AppStateManager::takeControl */
     bool start();
 
     /** @see AppStateManager::takeControl */
@@ -142,6 +142,8 @@ namespace kagome::network {
     std::unordered_set<PeerId> peers_in_queue_;
     std::deque<std::reference_wrapper<const PeerId>> queue_to_connect_;
     std::unordered_set<PeerId> connecting_peers_;
+    std::unordered_set<libp2p::network::ConnectionManager::ConnectionSPtr>
+        pinging_connections_;
 
     struct ActivePeerData {
       clock::SteadyClock::TimePoint time;
