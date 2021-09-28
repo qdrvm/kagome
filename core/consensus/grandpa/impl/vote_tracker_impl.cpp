@@ -31,7 +31,6 @@ namespace kagome::consensus::grandpa {
 
           // Otherwise, it's another vote of known voter, make it equivocation
           messages_[vote.id] = EquivocatorySignedMessage(known_vote, vote);
-          total_weight_ += weight;
           return PushResult::EQUIVOCATED;
         },
         [](const EquivocatorySignedMessage &) {
