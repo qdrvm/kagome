@@ -75,6 +75,8 @@ namespace kagome::storage::trie {
     // in the top entry is the same as \param parent
     void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
 
+    outcome::result<void> seekLowerBoundInternal(
+        NodePtr current, gsl::span<const uint8_t> left_nibbles);
     outcome::result<bool> seekNodeWithValueBothDirections();
     outcome::result<void> seekNodeWithValue(NodePtr &node);
     outcome::result<bool> setChildWithMinIdx(NodePtr &node,

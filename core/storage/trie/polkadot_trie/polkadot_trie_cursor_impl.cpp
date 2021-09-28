@@ -27,13 +27,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
 
 namespace kagome::storage::trie {
 
-  size_t getCommonLength(gsl::span<const uint8_t> first,
-                         gsl::span<const uint8_t> second) {
-    auto &&[left_nibbles_mismatch, current_nibbles_mismatch] =
-        std::mismatch(first.begin(), first.end(), second.begin(), second.end());
-    return left_nibbles_mismatch - first.begin();
-  }
-
   PolkadotTrieCursorImpl::PolkadotTrieCursorImpl(const PolkadotTrie &trie)
       : trie_{trie},
         current_{nullptr},
@@ -55,7 +48,7 @@ namespace kagome::storage::trie {
 
   outcome::result<bool> PolkadotTrieCursorImpl::seekFirst() {
     visited_root_ = false;
-    current_ = trie_.getRoot();
+    last_visited_child_.clear();
     OUTCOME_TRY(next());
     return isValid();
   }
@@ -66,6 +59,7 @@ namespace kagome::storage::trie {
       current_ = nullptr;
       return false;
     }
+    last_visited_child_.clear();
     visited_root_ = true;  // root is always visited first
     OUTCOME_TRY(last_child_path, constructLastVisitedChildPath(key));
     auto nibbles = PolkadotCodec::keyToNibbles(key);
@@ -114,6 +108,80 @@ namespace kagome::storage::trie {
     return true;
   }
 
+  outcome::result<void> PolkadotTrieCursorImpl::seekLowerBoundInternal(
+      NodePtr current, gsl::span<const uint8_t> left_nibbles) {
+    auto [left_mismatch, current_mismatch] =
+        std::mismatch(left_nibbles.begin(),
+                      left_nibbles.end(),
+                      current->key_nibbles.begin(),
+                      current->key_nibbles.end());
+    // parts of every sequence within their common length (minimum of their
+    // lengths) are equal
+    bool part_equal = left_mismatch == left_nibbles.end()
+                      or current_mismatch == current->key_nibbles.end();
+    // if current choice is lexicographically less or equal to the left part
+    // of the sought key, we just take the closest node with value
+    bool less_or_eq =
+        (part_equal and left_mismatch == left_nibbles.end())
+        or (not part_equal and *left_mismatch < *current_mismatch);
+    if (less_or_eq) {
+      switch (current->getTrieType()) {
+        case NodeType::BranchEmptyValue:
+        case NodeType::BranchWithValue: {
+          OUTCOME_TRY(seekNodeWithValue(current));
+          current_ = current;
+          return outcome::success();
+        }
+        case NodeType::Leaf:
+          current_ = current;
+          return outcome::success();
+        default:
+          return Error::INVALID_NODE_TYPE;
+      }
+    }
+    // if the left part of the sought key exceeds the current node's key,
+    // but its prefix is equal to the key, then we proceed to a child node
+    // that starts with a nibble that is greater of equal to the first
+    // nibble of the left part (if there is no such child, proceed to the
+    // next case)
+    bool longer = (part_equal and left_mismatch != left_nibbles.end()
+                   and current_mismatch == current->key_nibbles.end());
+    if (longer) {
+      switch (current->getTrieType()) {
+        case NodeType::BranchEmptyValue:
+        case NodeType::BranchWithValue: {
+          auto length = left_mismatch - left_nibbles.begin();
+          auto branch = std::dynamic_pointer_cast<BranchNode>(current);
+          OUTCOME_TRY(child, trie_.retrieveChild(branch, left_nibbles[length]));
+          last_visited_child_.emplace_back(branch, left_nibbles[length]);
+          if (child) {
+            return seekLowerBoundInternal(child,
+                                          left_nibbles.subspan(length + 1));
+          }
+          break;  // go to case3
+        }
+        case NodeType::Leaf: {
+          break;  // go to case3
+        }
+        default:
+          return Error::INVALID_NODE_TYPE;
+      }
+    }
+    // if the left part of the key is longer than the current of
+    // lexicographically greater than the current, we must return to its
+    // parent and find a child greater than the current one
+    bool longer_or_bigger =
+        longer or (not part_equal and *left_mismatch > *current_mismatch);
+    if (longer_or_bigger) {
+      OUTCOME_TRY(ok, seekNodeWithValueBothDirections());
+      if (not ok) {
+        current_ = nullptr;
+      }
+      return outcome::success();
+    }
+    UNREACHABLE
+  }
+
   outcome::result<void> PolkadotTrieCursorImpl::seekLowerBound(
       const common::Buffer &key) {
     if (trie_.getRoot() == nullptr) {
@@ -121,83 +189,14 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
     visited_root_ = true;
+    last_visited_child_.clear();
     auto nibbles = PolkadotCodec::keyToNibbles(key);
-    gsl::span<const uint8_t> left_nibbles(nibbles);
-    BOOST_ASSERT(left_nibbles.size() >= 0);
-    NodePtr current = trie_.getRoot();
-    while (true) {
-      auto [left_mismatch, current_mismatch] =
-          std::mismatch(left_nibbles.begin(),
-                        left_nibbles.end(),
-                        current->key_nibbles.begin(),
-                        current->key_nibbles.end());
-      // parts of every sequence within their common length (minimum of their
-      // lengths) are equal
-      bool part_equal = left_mismatch == left_nibbles.end()
-                        or current_mismatch == current->key_nibbles.end();
-      // if current choice is lexicographically less or equal to the left part
-      // of the sought key, we just take the closest node with value
-      bool less_or_eq =
-          (part_equal and left_mismatch == left_nibbles.end())
-          or (not part_equal and *left_mismatch < *current_mismatch);
-      if (less_or_eq) {
-        switch (current->getTrieType()) {
-          case NodeType::BranchEmptyValue:
-          case NodeType::BranchWithValue: {
-            OUTCOME_TRY(seekNodeWithValue(current));
-            current_ = current;
-            return outcome::success();
-          }
-          case NodeType::Leaf:
-            current_ = current;
-            return outcome::success();
-          default:
-            return Error::INVALID_NODE_TYPE;
-        }
-      }
-      // if the left part of the sought key exceeds the current node's key, but
-      // its prefix is equal to the key, then we proceed to a child node that
-      // starts with a nibble that is greater of equal to the first nibble of
-      // the left part (if there is no such child, proceed to the next case)
-      bool longer = (part_equal and left_mismatch != left_nibbles.end()
-                     and current_mismatch == current->key_nibbles.end());
-      if (longer) {
-        switch (current->getTrieType()) {
-          case NodeType::BranchEmptyValue:
-          case NodeType::BranchWithValue: {
-            auto new_left_nibbles =
-                left_nibbles.subspan(current->key_nibbles.size() + 1);
-            OUTCOME_TRY(ok, setChildWithMinIdx(current, *left_mismatch));
-            if (ok) {
-              left_nibbles = new_left_nibbles;
-              continue;
-            }
-            break;  // go to case3
-          }
-          case NodeType::Leaf: {
-            break;  // go to case3
-          }
-          default:
-            return Error::INVALID_NODE_TYPE;
-        }
-      }
-      // if the left part of the key is longer than the current of
-      // lexicographically greater than the current, we must return to its
-      // parent and find a child greater than the current one
-      bool longer_or_bigger =
-          longer or (not part_equal and *left_mismatch > *current_mismatch);
-      if (longer_or_bigger) {
-        OUTCOME_TRY(ok, seekNodeWithValueBothDirections());
-        if(not ok) {
-          current_ = nullptr;
-        }
-        return outcome::success();
-      }
-    }
-    UNREACHABLE
+    OUTCOME_TRY(seekLowerBoundInternal(trie_.getRoot(), nibbles));
+    return outcome::success();
   }
 
-  outcome::result<bool> PolkadotTrieCursorImpl::seekNodeWithValueBothDirections() {
+  outcome::result<bool>
+  PolkadotTrieCursorImpl::seekNodeWithValueBothDirections() {
     while (not last_visited_child_.empty()) {
       auto [parent, idx] = last_visited_child_.back();
       last_visited_child_.pop_back();
