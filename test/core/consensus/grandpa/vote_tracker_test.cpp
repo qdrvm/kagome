@@ -16,11 +16,13 @@ using kagome::common::Hash256;
 class VoteTrackerTest : public testing::Test {
  public:
   using PushResult = VoteTracker::PushResult;
+  using Weight = size_t;
 
   VoteTrackerImpl tracker;
+
   std::vector<Id> ids = {Id{"01"_hash256}, Id{"02"_hash256}, Id{"03"_hash256}};
-  std::vector<Hash256> hashes = {
-      "010203"_hash256, "040506"_hash256, "070809"_hash256};
+  std::vector<Weight> weights = {101, 102, 103};
+  std::vector<Hash256> hashes = {"1"_hash256, "2"_hash256, "3"_hash256};
 
   /**
    * Convenience method that creates a signed message with a minimum of data
@@ -40,13 +42,20 @@ class VoteTrackerTest : public testing::Test {
   }
 
   // tuples (message, weight, expected push result)
-  std::vector<std::tuple<SignedMessage, size_t, PushResult>> test_messages{
-      {createMessage(ids[0], hashes[0]), 3, PushResult::SUCCESS},
-      {createMessage(ids[0], hashes[0]), 7, PushResult::DUPLICATED},
-      {createMessage(ids[0], hashes[1]), 2, PushResult::EQUIVOCATED},
-      {createMessage(ids[0], hashes[2]), 8, PushResult::DUPLICATED},
-      {createMessage(ids[1], hashes[2]), 3, PushResult::SUCCESS},
-      {createMessage(ids[1], hashes[1]), 1, PushResult::EQUIVOCATED}};
+  const std::vector<std::tuple<SignedMessage, Weight, PushResult>> messages{
+      // First vote of each voter is accepting
+      {createMessage(ids[0], hashes[0]), weights[0], PushResult::SUCCESS},
+      // Repeat known vote of voter is duplicate
+      {createMessage(ids[0], hashes[0]), weights[0], PushResult::DUPLICATED},
+      // Another one vote of each known voter is equivocation
+      {createMessage(ids[0], hashes[1]), weights[0], PushResult::EQUIVOCATED},
+      {createMessage(ids[0], hashes[2]), weights[0], PushResult::EQUIVOCATED},
+      {createMessage(ids[0], hashes[3]), weights[0], PushResult::EQUIVOCATED},
+      // Repeat known vote of equivocator is equivocation anyway
+      {createMessage(ids[0], hashes[0]), weights[0], PushResult::EQUIVOCATED},
+
+      {createMessage(ids[1], hashes[2]), weights[1], PushResult::SUCCESS},
+      {createMessage(ids[1], hashes[1]), weights[1], PushResult::EQUIVOCATED}};
 };
 
 /**
@@ -56,8 +65,8 @@ class VoteTrackerTest : public testing::Test {
  * description)
  */
 TEST_F(VoteTrackerTest, Push) {
-  for (auto &[m, w, r] : this->test_messages) {
-    ASSERT_EQ(this->tracker.push(m, w), r);
+  for (auto &[m, w, r] : messages) {
+    ASSERT_EQ(tracker.push(m, w), r);
   }
 }
 
@@ -67,30 +76,36 @@ TEST_F(VoteTrackerTest, Push) {
  * @then the total weight is the weight of all non-duplicate votes
  */
 TEST_F(VoteTrackerTest, Weight) {
-  size_t expected_weight = 0;
-  for (auto &[m, w, r] : this->test_messages) {
-    this->tracker.push(m, w);
-    if (r != VoteTrackerTest::PushResult::DUPLICATED) {
-      expected_weight += w;
+  Weight expected_weight = 0;
+  for (auto &[vote, weight, expected_result] : messages) {
+    auto result = tracker.push(vote, weight);
+    if (result == VoteTrackerTest::PushResult::SUCCESS) {
+      expected_weight += weight;
     }
   }
-  ASSERT_EQ(this->tracker.getTotalWeight(), expected_weight);
+  ASSERT_EQ(tracker.getTotalWeight(), expected_weight);
 }
 
 /**
  * @given an empty vote tracker
  * @when pushing votes to it
- * @then the message set contains all non-duplicate messaged
+ * @then the message set contains vote of each honest voters and two first votes
+ * of each equivocators
  */
 TEST_F(VoteTrackerTest, GetMessages) {
   std::list<SignedMessage> expected;
-  for (auto &[m, w, r] : this->test_messages) {
-    this->tracker.push(m, w);
-    if (r != VoteTrackerTest::PushResult::DUPLICATED) {
+  std::set<Id> equivocators;
+  for (auto &[m, w, r] : messages) {
+    tracker.push(m, w);
+    if (r == VoteTrackerTest::PushResult::SUCCESS) {
       expected.push_back(m);
+    } else if (r == VoteTrackerTest::PushResult::EQUIVOCATED) {
+      if (equivocators.emplace(m.id).second) {
+        expected.push_back(m);
+      }
     }
   }
-  auto messages = this->tracker.getMessages();
+  auto messages = tracker.getMessages();
 
   for (auto &m : expected) {
     ASSERT_TRUE(
@@ -126,22 +141,28 @@ TEST_F(VoteTrackerTest, GetMessages) {
 }
 
 /**
- * @given an empty vote tracker
- * @when pushin three votes for different blocks from one peer
- * @then the first one is SUCCESS and accepted, the second one is EQUIVOCATED
- * and accepted, too, the third one is a DUPLICATE and is not accepted(e. g.
- * does not affect total weight)
+ * Equivocating scenario
  */
 TEST_F(VoteTrackerTest, Equivocated) {
-  using PushResult = typename VoteTrackerTest::PushResult;
-  ASSERT_EQ(
-      this->tracker.push(this->createMessage(this->ids[0], this->hashes[0]), 3),
-      PushResult::SUCCESS);
-  ASSERT_EQ(
-      this->tracker.push(this->createMessage(this->ids[0], this->hashes[1]), 1),
-      PushResult::EQUIVOCATED);
-  ASSERT_EQ(
-      this->tracker.push(this->createMessage(this->ids[0], this->hashes[2]), 5),
-      PushResult::DUPLICATED);
-  ASSERT_EQ(this->tracker.getTotalWeight(), 4);
+  /// @given an empty vote tracker
+
+  /// @when pushing first vote of voter
+  /// @then vote is accepting successful
+  ASSERT_EQ(tracker.push(createMessage(ids[0], hashes[0]), weights[0]),
+            PushResult::SUCCESS);
+
+  /// @when pushing another one vote of known voter
+  /// @then vote is accepting as equivocation, and does not change total weight
+  ASSERT_EQ(tracker.push(createMessage(ids[0], hashes[1]), weights[0]),
+            PushResult::EQUIVOCATED);
+
+  /// @when pushing anyone vote of known equivocator
+  /// @then vote is not accepting, and does not change state
+
+  // Repeat known vote of equivocator is equivocation anyway
+  ASSERT_EQ(tracker.push(createMessage(ids[0], hashes[2]), weights[0]),
+            PushResult::EQUIVOCATED);
+
+  // Weight of equivocator is taken once
+  ASSERT_EQ(tracker.getTotalWeight(), weights[0]);
 }
