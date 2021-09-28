@@ -6,7 +6,6 @@
 #include <soralog/impl/configurator_from_yaml.hpp>
 
 #include "blockchain/impl/storage_util.hpp"
-#include "clock/profiler.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -14,6 +13,7 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
+#include "utils/profiler.hpp"
 
 namespace di = boost::di;
 using namespace std::chrono_literals;
@@ -50,7 +50,30 @@ class Configurator : public soralog::ConfiguratorFromYAML {
 
 enum ArgNum : uint8_t { DB_PATH = 1, STATE_HASH, MODE };
 
+void usage() {
+  std::cout << "\n    Kagome DB Editor\n\n";
+  std::cout << "Usage:\n";
+  std::cout << "    kagome-db-editor <db-path> <root-state> <command>\n\n";
+  std::cout << "    <db-path> full or relative path to kagome database. It is "
+               "usually path "
+               "polkadot/db inside base path set in kagome options.\n";
+  std::cout << "    <root-state> root state hash in 0x prefixed hex format.\n";
+  std::cout << "    <command>\n";
+  std::cout << "        dump: Dumps the state from the DB to file "
+               "hex_full_state.yaml in "
+               "format ready for use in polkadot-test.\n";
+  std::cout
+      << "        compact: Compacts the kagome DB. Leaves only keys of the state "
+         "passed as an arguments. Removes all other keys. [Default]\n\n";
+  std::cout << "Example:\n";
+  std::cout << "    kagome-db-editor base-path/polkadot/db 0x1e22e dump\n";
+};
+
 int main(int argc, char *argv[]) {
+  if (argc < 4) {
+    usage();
+    return 0;
+  }
   auto logging_system = std::make_shared<soralog::LoggingSystem>(
       std::make_shared<Configurator>());
   std::ignore = logging_system->configure();
@@ -144,7 +167,7 @@ int main(int argc, char *argv[]) {
             ->compact(common::Buffer(), common::Buffer());
       }
       need_additional_compaction = true;
-    } else if (not std::strcmp(argv[MODE], "dump")) {
+    } else if (argc == 4 and not std::strcmp(argv[MODE], "dump")) {
       auto batch = trie->getEphemeralBatch().value();
       auto cursor = batch->trieCursor();
       auto res = cursor->next();
