@@ -71,8 +71,4 @@ namespace kagome::consensus::grandpa {
     return total_weight_;
   }
 
-  size_t VoteTrackerImpl::getEquivocatorsWeight() const {
-    return equivocators_weight_;
-  }
-
 }  // namespace kagome::consensus::grandpa
