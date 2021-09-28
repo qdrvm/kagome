@@ -57,13 +57,13 @@ namespace kagome::consensus::grandpa {
   }
 
   std::vector<VoteVariant> VoteTrackerImpl::getMessages() const {
-    std::vector<VoteVariant> prevotes;
+    std::vector<VoteVariant> votes;
     // the actual number may be bigger, but it's a good guess
-    prevotes.reserve(messages_.size());
+    votes.reserve(messages_.size());
     for (const auto &[key, value] : messages_) {
-      prevotes.push_back(value);
+      votes.push_back(value);
     }
-    return prevotes;
+    return votes;
   }
 
   size_t VoteTrackerImpl::getTotalWeight() const {
