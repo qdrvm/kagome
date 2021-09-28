@@ -50,7 +50,6 @@ class VoteTrackerTest : public testing::Test {
       // Another one vote of each known voter is equivocation
       {createMessage(ids[0], hashes[1]), weights[0], PushResult::EQUIVOCATED},
       {createMessage(ids[0], hashes[2]), weights[0], PushResult::EQUIVOCATED},
-      {createMessage(ids[0], hashes[3]), weights[0], PushResult::EQUIVOCATED},
       // Repeat known vote of equivocator is equivocation anyway
       {createMessage(ids[0], hashes[0]), weights[0], PushResult::EQUIVOCATED},
 
