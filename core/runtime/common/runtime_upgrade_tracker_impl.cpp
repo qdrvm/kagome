@@ -41,7 +41,10 @@ namespace kagome::runtime {
       auto decoded_res =
           scale::decode<decltype(runtime_upgrades_)>(encoded_res.value());
       if (not decoded_res.has_value()) {
-        SL_ERROR(logger_, "Saved runtime hashes data structure is incorrect!");
+        SL_ERROR(
+            logger_,
+            "Saved runtime hashes data structure is incorrect! Error is {}",
+            decoded_res.error());
       } else {
         runtime_upgrades_ = decoded_res.value();
       }
@@ -108,7 +111,7 @@ namespace kagome::runtime {
     }
 
     if (hasCodeSubstitute(block.hash)) {
-      push(block.hash);
+      OUTCOME_TRY(push(block.hash));
     }
 
     // if there are no known blocks with runtime upgrades, we just fall back to
@@ -212,7 +215,7 @@ namespace kagome::runtime {
                   event_params)
                   .get();
           SL_INFO(logger_, "Runtime upgrade at block {}", block_hash.toHex());
-          push(block_hash);
+          (void) push(block_hash);
         });
   }
 

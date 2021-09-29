@@ -9,7 +9,7 @@
 #include "runtime/memory_provider.hpp"
 
 namespace WAVM::Runtime {
-  class Memory;
+  struct Memory;
 }
 
 namespace kagome::runtime::wavm {

@@ -161,6 +161,7 @@ namespace kagome::application {
       for(const auto &[hash, code] : code_substitutes_opt.value()) {
         OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(hash));
         OUTCOME_TRY(code_processed, common::unhexWith0x(code.data()));
+        // TODO(sanblch): move this from memory to db
         code_substitutes_.emplace(hash_processed, code_processed);
       }
     }
