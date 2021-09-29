@@ -12,6 +12,19 @@
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::runtime {
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s,
+                     const RuntimeUpgradeTrackerImpl::RuntimeUpgradeData &d) {
+    return s << d.block << d.state;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s,
+                     RuntimeUpgradeTrackerImpl::RuntimeUpgradeData &d) {
+    return s >> d.block >> d.state;
+  }
 
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
@@ -25,12 +38,12 @@ namespace kagome::runtime {
     BOOST_ASSERT(storage_);
     auto encoded_res = storage_->get(storage::kRuntimeHashesLookupKey);
     if (encoded_res.has_value()) {
-      auto decoded_res = scale::decode<decltype(runtime_upgrade_parents_)>(
-          encoded_res.value());
+      auto decoded_res =
+          scale::decode<decltype(runtime_upgrades_)>(encoded_res.value());
       if (not decoded_res.has_value()) {
         SL_ERROR(logger_, "Saved runtime hashes data structure is incorrect!");
       } else {
-        runtime_upgrade_parents_ = decoded_res.value();
+        runtime_upgrades_ = decoded_res.value();
       }
     }
   }
@@ -40,147 +53,112 @@ namespace kagome::runtime {
     return code_substitutes_.find(hash) != code_substitutes_.end();
   }
 
-  outcome::result<primitives::BlockId>
-  RuntimeUpgradeTrackerImpl::getRuntimeChangeBlock(
+  bool RuntimeUpgradeTrackerImpl::isStateInChain(
+      const primitives::BlockInfo &state,
+      const primitives::BlockInfo &chain_end) const {
+    // if the found state is finalized, it is guaranteed to not belong to a
+    // different fork
+    if (block_tree_->getLastFinalized().number >= state.number) {
+      return true;
+    }
+    // a non-finalized state may belong to a different fork, need to check
+    // explicitly (can be expensive if blocks are far apart)
+    KAGOME_PROFILE_START(has_direct_chain)
+    bool has_direct_chain =
+        block_tree_->hasDirectChain(state.hash, chain_end.hash);
+    KAGOME_PROFILE_END(has_direct_chain)
+    return has_direct_chain;
+  }
+
+  outcome::result<boost::optional<storage::trie::RootHash>>
+  RuntimeUpgradeTrackerImpl::findProperFork(
+      const primitives::BlockInfo &block,
+      std::vector<RuntimeUpgradeData>::const_reverse_iterator latest_upgrade_it)
+      const {
+    for (; latest_upgrade_it != runtime_upgrades_.rend(); latest_upgrade_it++) {
+      if (isStateInChain(latest_upgrade_it->block, block)) {
+        SL_TRACE_FUNC_CALL(
+            logger_, latest_upgrade_it->state, block.hash, block.number);
+        SL_DEBUG(
+            logger_,
+            "Pick runtime state at block #{} hash {} for block #{} hash {}",
+            latest_upgrade_it->block.number,
+            latest_upgrade_it->block.hash,
+            block.number,
+            block.hash.toHex());
+
+        return latest_upgrade_it->state;
+      }
+    }
+    return boost::none;
+  }
+
+  outcome::result<storage::trie::RootHash>
+  RuntimeUpgradeTrackerImpl::getLastCodeUpdateState(
       const primitives::BlockInfo &block) {
     // if the block tree is not yet initialized, means we can only access the
     // genesis block
     if (block_tree_ == nullptr) {
+      OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
       SL_DEBUG(logger_,
                "Pick runtime state at genesis for block #{} hash {}",
                block.number,
                block.hash.toHex());
-      return 0;
+      return genesis.state_root;
     }
 
     if (hasCodeSubstitute(block.hash)) {
-      runtime_upgrade_parents_.emplace_back(block.number, block.hash);
-      save();
+      push(block.hash);
     }
 
     // if there are no known blocks with runtime upgrades, we just fall back to
     // returning the state of the current block
-    if (runtime_upgrade_parents_.empty()) {
+    if (runtime_upgrades_.empty()) {
       // even if it doesn't actually upgrade runtime, still a solid source of
       // runtime code
-      OUTCOME_TRY(header, header_repo_->getBlockHeader(block.hash));
-      if (block.number == 0) {
-        runtime_upgrade_parents_.emplace_back(0, block.hash);
-      } else {
-        runtime_upgrade_parents_.emplace_back(block.number - 1,
-                                              header.parent_hash);
-      }
-      save();
+      OUTCOME_TRY(state, push(block.hash));
       SL_DEBUG(logger_,
                "Pick runtime state at block #{} hash {} for the same block",
                block.number,
                block.hash.toHex());
-      return block.hash;
+      return state;
     }
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
     auto block_number = block.number;
-    auto latest_state_update_it =
-        std::upper_bound(runtime_upgrade_parents_.begin(),
-                         runtime_upgrade_parents_.end(),
+    auto latest_upgrade =
+        std::upper_bound(runtime_upgrades_.begin(),
+                         runtime_upgrades_.end(),
                          block_number,
-                         [](auto block_number, auto const &block_info) {
-                           return block_number < block_info.number;
+                         [](auto block_number, auto const &upgrade_data) {
+                           return block_number < upgrade_data.block.number;
                          });
     KAGOME_PROFILE_END(blocks_with_runtime_upgrade_search)
-    if (latest_state_update_it == runtime_upgrade_parents_.begin()) {
+
+    if (latest_upgrade == runtime_upgrades_.begin()) {
       // if we have no info on updates before this block, we just return its
       // state
+      OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
       SL_DEBUG(logger_,
                "Pick runtime state at block #{} hash {} for the same block",
                block.number,
                block.hash.toHex());
-      return block.hash;
+      return block_header.state_root;
     }
 
-    --latest_state_update_it;
-    if (latest_state_update_it->number == block.number
-        || latest_state_update_it->number == block.number - 1
-               && not hasCodeSubstitute(latest_state_update_it->hash)) {
-      if (latest_state_update_it != runtime_upgrade_parents_.begin()) {
-        --latest_state_update_it;
-      } else {
-        SL_DEBUG(logger_,
-                 "Pick runtime state at block #{} hash {} for the same block",
-                 block.number,
-                 block.hash.toHex());
-        return block.hash;
-      }
-    }
+    // this conversion also steps back on one element
+    auto reverse_latest_upgrade = std::make_reverse_iterator(latest_upgrade);
+
     // we are now at the last element in block_with_runtime_upgrade which is
     // less or equal to our \arg block number
     // we may have several entries with the same block number, we have to pick
     // one which is the predecessor of our block
-    KAGOME_PROFILE_START(search_for_proper_fork);
-    for (;
-         std::next(latest_state_update_it) != runtime_upgrade_parents_.begin();
-         latest_state_update_it--) {
-      bool state_in_the_same_chain = false;
-
-      // if the found state is finalized, it is guaranteed to not belong to a
-      // different fork
-      if (block_tree_->getLastFinalized().number
-          >= latest_state_update_it->number) {
-        state_in_the_same_chain = true;
-      } else {
-        // a non-finalized state may belong to a different fork, need to check
-        // explicitly (can be expensive if blocks are far apart)
-        KAGOME_PROFILE_START(has_direct_chain);
-        bool has_direct_chain = block_tree_->hasDirectChain(
-            latest_state_update_it->hash, block.hash);
-        KAGOME_PROFILE_END(has_direct_chain);
-        state_in_the_same_chain = has_direct_chain;
-      }
-
-      if (state_in_the_same_chain) {
-        if (latest_state_update_it->number == 0) {
-          OUTCOME_TRY(genesis, header_repo_->getBlockHeader(0));
-          SL_TRACE_FUNC_CALL(
-              logger_, genesis.state_root, block.hash, block.number);
-          SL_DEBUG(logger_,
-                   "Pick runtime state at genesis for block #{} hash {}",
-                   block.number,
-                   block.hash.toHex());
-          return 0;
-        }
-
-        // found the predecessor with the latest runtime upgrade
-        if (hasCodeSubstitute(latest_state_update_it->hash)) {
-          return latest_state_update_it->hash;
-        }
-        auto children_res =
-            block_tree_->getChildren(latest_state_update_it->hash);
-        if (!children_res) {
-          return children_res.error();
-        }
-        auto children = std::move(children_res.value());
-        // temporary; need to find a way to tackle forks here
-        // the runtime upgrades are reported for the state of the parent of the
-        // block with the runtime upgrade, so we need to fetch a child block
-        BOOST_ASSERT(children.size() == 1);
-        OUTCOME_TRY(target_header, header_repo_->getBlockHeader(children[0]));
-        BOOST_ASSERT(block_tree_->getLastFinalized().number
-                         >= target_header.number
-                     or block_tree_->hasDirectChain(children[0], block.hash));
-
-        SL_TRACE_FUNC_CALL(
-            logger_, target_header.state_root, block.hash, block.number);
-        SL_DEBUG(
-            logger_,
-            "Pick runtime state at block #{} hash {} for block #{} hash {}",
-            target_header.number,
-            children[0],
-            block.number,
-            block.hash.toHex());
-        return children[0];
-      }
+    KAGOME_PROFILE_START(search_for_proper_fork)
+    OUTCOME_TRY(proper_fork, findProperFork(block, reverse_latest_upgrade));
+    KAGOME_PROFILE_END(search_for_proper_fork)
+    if (proper_fork.has_value()) {
+      return proper_fork.value();
     }
-    KAGOME_PROFILE_END(search_for_proper_fork);
     // if this is an orphan block for some reason, just return its state_root
     // (there is no other choice)
     OUTCOME_TRY(block_header, header_repo_->getBlockHeader(block.hash));
@@ -188,46 +166,72 @@ namespace kagome::runtime {
                   block.number,
                   block.hash.toHex(),
                   block_header.parent_hash.toHex());
-    return block.hash;
+    return block_header.state_root;
+  }
+
+  outcome::result<primitives::BlockHash>
+  RuntimeUpgradeTrackerImpl::getLastCodeUpdateHash(
+      const storage::trie::RootHash &state) const {
+    auto it = std::find_if(
+        runtime_upgrades_.begin(),
+        runtime_upgrades_.end(),
+        [&state](const auto &item) { return state == item.state; });
+    if (it != runtime_upgrades_.end()) {
+      return it->block.hash;
+    }
+    return outcome::failure(RuntimeUpgradeTrackerError::NOT_FOUND);
   }
 
   void RuntimeUpgradeTrackerImpl::subscribeToBlockchainEvents(
-      std::shared_ptr<primitives::events::StorageSubscriptionEngine>
-          storage_sub_engine,
+      std::shared_ptr<primitives::events::ChainSubscriptionEngine>
+          chain_sub_engine,
       std::shared_ptr<const blockchain::BlockTree> block_tree) {
-    storage_subscription_ =
-        std::make_shared<primitives::events::StorageEventSubscriber>(
-            storage_sub_engine);
     block_tree_ = std::move(block_tree);
     BOOST_ASSERT(block_tree_ != nullptr);
-    BOOST_ASSERT(storage_subscription_ != nullptr);
 
-    auto storage_subscription_set_id =
-        storage_subscription_->generateSubscriptionSetId();
-    storage_subscription_->subscribe(storage_subscription_set_id,
-                                     kRuntimeCodeKey);
-    // might need to capture a weak pointer to this which might be painful in
-    // constructor
-    storage_subscription_->setCallback([this](auto set_id,
-                                              auto &receiver,
-                                              auto &type,
-                                              auto &new_value,
-                                              auto &block_hash) {
-      SL_DEBUG(logger_, "Runtime upgrade at block {}", block_hash.toHex());
-      auto number = header_repo_->getNumberByHash(block_hash).value();
-      auto it = std::upper_bound(runtime_upgrade_parents_.begin(),
-                                 runtime_upgrade_parents_.end(),
-                                 number,
-                                 [](auto &number, auto &block_id) {
-                                   return number < block_id.number;
-                                 });
-      runtime_upgrade_parents_.emplace(it, number, block_hash);
-      save();
-    });
+    chain_subscription_ =
+        std::make_shared<primitives::events::ChainEventSubscriber>(
+            chain_sub_engine);
+    BOOST_ASSERT(chain_subscription_ != nullptr);
+
+    auto chain_subscription_set_id =
+        chain_subscription_->generateSubscriptionSetId();
+    chain_subscription_->subscribe(
+        chain_subscription_set_id,
+        primitives::events::ChainEventType::kNewRuntime);
+    chain_subscription_->setCallback(
+        [this](auto set_id,
+               auto &receiver,
+               primitives::events::ChainEventType event_type,
+               const primitives::events::ChainEventParams &event_params) {
+          if (event_type != primitives::events::ChainEventType::kNewRuntime) {
+            return;
+          }
+          auto &block_hash =
+              boost::get<primitives::events::NewRuntimeEventParams>(
+                  event_params)
+                  .get();
+          SL_INFO(logger_, "Runtime upgrade at block {}", block_hash.toHex());
+          push(block_hash);
+        });
+  }
+
+  outcome::result<storage::trie::RootHash> RuntimeUpgradeTrackerImpl::push(
+      const primitives::BlockHash &hash) {
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(hash));
+    runtime_upgrades_.emplace_back(primitives::BlockInfo{header.number, hash},
+                                   std::move(header.state_root));
+    std::sort(runtime_upgrades_.begin(),
+              runtime_upgrades_.end(),
+              [](const auto &lhs, const auto &rhs) {
+                return lhs.block.number < rhs.block.number;
+              });
+    save();
+    return header.state_root;
   }
 
   void RuntimeUpgradeTrackerImpl::save() {
-    auto encoded_res = scale::encode(runtime_upgrade_parents_);
+    auto encoded_res = scale::encode(runtime_upgrades_);
     if (encoded_res.has_value()) {
       auto put_res = storage_->put(storage::kRuntimeHashesLookupKey,
                                    common::Buffer(encoded_res.value()));
@@ -242,5 +246,13 @@ namespace kagome::runtime {
                encoded_res.error().message());
     }
   }
-
 }  // namespace kagome::runtime
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, RuntimeUpgradeTrackerError, e) {
+  using E = kagome::runtime::RuntimeUpgradeTrackerError;
+  switch (e) {
+    case E::NOT_FOUND:
+      return "Block hash for the given state not found among runtime upgrades.";
+  }
+  return "unknown error";
+}

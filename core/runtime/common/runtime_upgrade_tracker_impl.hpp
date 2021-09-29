@@ -31,23 +31,59 @@ namespace kagome::runtime {
         std::shared_ptr<storage::BufferStorage> storage,
         const application::CodeSubstitutes &code_substitutes);
 
+    struct RuntimeUpgradeData {
+      RuntimeUpgradeData() = default;
+
+      template <typename BlockInfo, typename RootHash>
+      RuntimeUpgradeData(BlockInfo &&block, RootHash &&state)
+          : block{std::forward<BlockInfo>(block)},
+            state{std::forward<RootHash>(state)} {}
+
+      bool operator==(const RuntimeUpgradeData &rhs) const {
+        return block == rhs.block and state == rhs.state;
+      }
+
+      bool operator!=(const RuntimeUpgradeData &rhs) const {
+        return not operator==(rhs);
+      }
+
+      primitives::BlockInfo block;
+      storage::trie::RootHash state;
+    };
+
     void subscribeToBlockchainEvents(
-        std::shared_ptr<primitives::events::StorageSubscriptionEngine>
-            storage_sub_engine,
+        std::shared_ptr<primitives::events::ChainSubscriptionEngine>
+            chain_sub_engine,
         std::shared_ptr<const blockchain::BlockTree> block_tree);
 
-    outcome::result<primitives::BlockId> getRuntimeChangeBlock(
-        const primitives::BlockInfo &block);
+    outcome::result<storage::trie::RootHash> getLastCodeUpdateState(
+        const primitives::BlockInfo &block) override;
+
+    outcome::result<primitives::BlockHash> getLastCodeUpdateHash(
+        const storage::trie::RootHash &state) const override;
 
    private:
+    bool isStateInChain(const primitives::BlockInfo &state,
+                        const primitives::BlockInfo &chain_end) const;
+
+    outcome::result<boost::optional<storage::trie::RootHash>> findProperFork(
+        const primitives::BlockInfo &block,
+        std::vector<RuntimeUpgradeData>::const_reverse_iterator
+            latest_upgrade_it) const;
+
     bool hasCodeSubstitute(const kagome::primitives::BlockHash &hash) const;
+
+    outcome::result<storage::trie::RootHash> push(
+        const primitives::BlockHash &hash);
+
     void save();
+
     // assumption: insertions in the middle should be extremely rare, if any
     // assumption: runtime upgrades are rare
-    std::vector<primitives::BlockInfo> runtime_upgrade_parents_;
+    std::vector<RuntimeUpgradeData> runtime_upgrades_;
 
-    std::shared_ptr<primitives::events::StorageEventSubscriber>
-        storage_subscription_;
+    std::shared_ptr<primitives::events::ChainEventSubscriber>
+        chain_subscription_;
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<storage::BufferStorage> storage_;
