@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
               injector.template create<sptr<TrieStorageBackend>>());
         }),
         di::bind<TrieStorageBackend>.template to(
-            [&storage, &prefix, &argv](const auto &) {
+            [&storage, &prefix](const auto &) {
               auto backend =
                   std::make_shared<TrieStorageBackendImpl>(storage, prefix);
               return backend;
