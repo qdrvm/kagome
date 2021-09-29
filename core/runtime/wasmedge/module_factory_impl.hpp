@@ -38,7 +38,6 @@ namespace kagome::runtime::wasmedge {
                       std::shared_ptr<storage::trie::TrieStorage> storage);
 
     outcome::result<std::unique_ptr<Module>> make(
-        storage::trie::RootHash const &state,
         gsl::span<const uint8_t> code) const override;
 
    private:

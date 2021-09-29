@@ -5,6 +5,7 @@
 
 #include "runtime/wasmedge/module_impl.hpp"
 
+#include <fstream>
 #include <memory>
 
 #include <wasmedge.h>
@@ -23,11 +24,11 @@ namespace kagome::runtime::wasmedge {
       : env_factory_{std::move(env_factory)}, ast_ctx_{ast_ctx} {
     BOOST_ASSERT(env_factory_ != nullptr);
     BOOST_ASSERT(ast_ctx_ != nullptr);
-    vm_ = WasmEdge_VMCreate(NULL, NULL);
-    WasmEdge_String ModuleName = WasmEdge_StringCreateByCString("env");
-    auto Res = WasmEdge_VMRegisterModuleFromASTModule(vm_, ModuleName, ast_ctx_);
-    WasmEdge_StringDelete(ModuleName);
-    BOOST_ASSERT(vm_ != nullptr);
+    // vm_ = WasmEdge_VMCreate(NULL, NULL);
+    // WasmEdge_String ModuleName = WasmEdge_StringCreateByCString("env");
+    // auto Res = WasmEdge_VMRegisterModuleFromASTModule(vm_, ModuleName,
+    // ast_ctx_); WasmEdge_StringDelete(ModuleName); BOOST_ASSERT(vm_ !=
+    // nullptr);
   }
 
   outcome::result<std::unique_ptr<ModuleImpl>> ModuleImpl::createFromCode(
@@ -35,21 +36,32 @@ namespace kagome::runtime::wasmedge {
       std::shared_ptr<const InstanceEnvironmentFactory> env_factory) {
     auto log = log::createLogger("wasm_module", "wasmedge");
 
-    auto *LoaderCtx = WasmEdge_LoaderCreate(nullptr);
+    auto ConfCtx = WasmEdge_ConfigureCreate();
+    WasmEdge_ConfigureCompilerSetOptimizationLevel(
+        ConfCtx, WasmEdge_CompilerOptimizationLevel_O3);
+    auto CompilerCtx = WasmEdge_CompilerCreate(ConfCtx);
+
+    std::ofstream ofs;
+    ofs.open("source.wasm");
+    ofs.write(reinterpret_cast<const char *>(code.data()), code.size());
+    ofs.close();
+
+    WasmEdge_CompilerCompile(CompilerCtx, "source.wasm", "result.wasm.so");
+
+    auto *LoaderCtx = WasmEdge_LoaderCreate(ConfCtx);
     WasmEdge_ASTModuleContext *ASTCtx = nullptr;
-    auto Res = WasmEdge_LoaderParseFromBuffer(
-        LoaderCtx, &ASTCtx, code.data(), code.size());
+    auto Res =
+        WasmEdge_LoaderParseFromFile(LoaderCtx, &ASTCtx, "result.wasm.so");
 
     std::unique_ptr<ModuleImpl> wasm_module_impl(
         new ModuleImpl(ASTCtx, std::move(env_factory)));
     return wasm_module_impl;
   }
 
-  outcome::result<std::unique_ptr<ModuleInstance>> ModuleImpl::instantiate()
+  outcome::result<std::shared_ptr<ModuleInstance>> ModuleImpl::instantiate()
       const {
     auto env = env_factory_->make();
-    return std::make_unique<ModuleInstanceImpl>(
-        std::move(env.env), this, vm_);
+    return std::make_shared<ModuleInstanceImpl>(std::move(env.env), this);
   }
 
 }  // namespace kagome::runtime::wasmedge

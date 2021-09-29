@@ -43,7 +43,7 @@ namespace kagome::runtime::wasmedge {
         const std::vector<uint8_t> &code,
         std::shared_ptr<const InstanceEnvironmentFactory> env_factory_);
 
-    outcome::result<std::unique_ptr<ModuleInstance>> instantiate()
+    outcome::result<std::shared_ptr<ModuleInstance>> instantiate()
         const override;
 
     const WasmEdge_ASTModuleContext* ast() const {
@@ -56,7 +56,6 @@ namespace kagome::runtime::wasmedge {
 
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
     const WasmEdge_ASTModuleContext *ast_ctx_;
-    WasmEdge_VMContext* vm_;
   };
 
 }  // namespace kagome::runtime::wasmedge

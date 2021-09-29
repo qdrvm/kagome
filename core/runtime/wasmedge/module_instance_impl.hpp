@@ -19,9 +19,7 @@ namespace kagome::runtime::wasmedge {
 
   class ModuleInstanceImpl final : public ModuleInstance {
    public:
-    ModuleInstanceImpl(InstanceEnvironment &&env,
-                       const ModuleImpl* parent,
-                       WasmEdge_VMContext *rei);
+    ModuleInstanceImpl(InstanceEnvironment &&env, const ModuleImpl *parent);
     outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                 PtrSize args) const override;
 
@@ -35,8 +33,8 @@ namespace kagome::runtime::wasmedge {
    private:
     InstanceEnvironment env_;
     WasmEdge_InterpreterContext *interpreter_;
-    WasmEdge_VMContext* rei_;
-    const ModuleImpl* parent_;
+    WasmEdge_VMContext *rei_;
+    const ModuleImpl *parent_;
     log::Logger logger_;
   };
 

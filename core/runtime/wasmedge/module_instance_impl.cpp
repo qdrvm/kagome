@@ -5,24 +5,33 @@
 
 #include "runtime/wasmedge/module_instance_impl.hpp"
 
-#include "host_api/host_api.hpp"
+#include "host_api/impl/host_api_impl.hpp"
+#include "runtime/wasmedge/memory_provider.hpp"
 #include "runtime/wasmedge/module_impl.hpp"
+#include "runtime/wasmedge/register_host_api.hpp"
 
 #include <wasmedge.h>
 
 namespace kagome::runtime::wasmedge {
 
   ModuleInstanceImpl::ModuleInstanceImpl(InstanceEnvironment &&env,
-                                         const ModuleImpl* parent,
-                                         WasmEdge_VMContext *rei)
+                                         const ModuleImpl *parent)
       : env_{std::move(env)},
-        rei_{rei},
         parent_{parent},
         logger_{log::createLogger("ModuleInstance", "wasmedge")} {
+    rei_ = WasmEdge_VMCreate(NULL, NULL);
+    WasmEdge_String ModuleName = WasmEdge_StringCreateByCString("env");
+//    auto Res = WasmEdge_VMRegisterModuleFromASTModule(
+//        rei_, ModuleName, parent_->ast());
     WasmEdge_ImportObjectContext *ImpObj =
-      WasmEdge_VMGetImportModuleContext(vm_, WasmEdge_HostRegistration_Wasi);
+        WasmEdge_ImportObjectCreate(ModuleName, env_.host_api.get());
+//    WasmEdge_ImportObjectContext *ImpObj =
+//        WasmEdge_VMGetImportModuleContext(rei_, WasmEdge_HostRegistration_WasmEdge_Process);
+    WasmEdge_StringDelete(ModuleName);
     register_host_api(ImpObj);
-    dynamic_cast<WasmedgeMemoryProvider>(env.memory_provider.get())->setExternalInterface(ImpObj);
+    dynamic_cast<WasmedgeMemoryProvider*>(env_.memory_provider.get())
+        ->setExternalInterface(ImpObj);
+    auto Res = WasmEdge_VMRegisterModuleFromImport(rei_, ImpObj);
     // interpreter_ = WasmEdge_InterpreterCreate(nullptr, nullptr);
     // auto store = WasmEdge_VMGetStoreContext(rei_);
     // WasmEdge_InterpreterInstantiate(interpreter_, store, parent->ast());
@@ -35,7 +44,8 @@ namespace kagome::runtime::wasmedge {
                                 WasmEdge_ValueGenI32(args.size)};
     WasmEdge_Value Returns[1];
     // auto store = WasmEdge_VMGetStoreContext(rei_);
-    auto Res = WasmEdge_VMRunWasmFromASTModule(rei_, parent_->ast(), FuncName, Params, 2, Returns, 1);
+    auto Res = WasmEdge_VMRunWasmFromASTModule(
+        rei_, parent_->ast(), FuncName, Params, 2, Returns, 1);
     // auto Res = WasmEdge_InterpreterInvoke(
     //     interpreter_, store, FuncName, Params, 2, Returns, 1);
     WasmEdge_StringDelete(FuncName);
