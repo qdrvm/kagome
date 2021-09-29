@@ -14,12 +14,14 @@ namespace kagome::runtime::wavm {
 
   class CompartmentWrapper;
   class InstanceEnvironmentFactory;
+  class IntrinsicModule;
 
   class ModuleFactoryImpl final : public ModuleFactory {
    public:
     ModuleFactoryImpl(
         std::shared_ptr<CompartmentWrapper> compartment,
-        std::shared_ptr<const InstanceEnvironmentFactory> env_factory);
+        std::shared_ptr<const InstanceEnvironmentFactory> env_factory,
+        std::shared_ptr<const IntrinsicModule> intrinsic_module);
 
     outcome::result<std::unique_ptr<Module>> make(
         gsl::span<const uint8_t> code) const override;
@@ -27,6 +29,7 @@ namespace kagome::runtime::wavm {
    private:
     std::shared_ptr<CompartmentWrapper> compartment_;
     std::shared_ptr<const InstanceEnvironmentFactory> env_factory_;
+    std::shared_ptr<const IntrinsicModule> intrinsic_module_;
   };
 
 }  // namespace kagome::runtime::wavm

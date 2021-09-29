@@ -25,21 +25,24 @@ namespace kagome::runtime::wavm {
    public:
     OneModuleRepository(
         std::shared_ptr<CompartmentWrapper> compartment,
+        std::shared_ptr<const IntrinsicModule> intrinsic_module,
         std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
         gsl::span<const uint8_t> code)
         : instance_env_factory_{std::move(instance_env_factory)},
           compartment_{compartment},
+          intrinsic_module_{std::move(intrinsic_module)},
           code_{code} {
       BOOST_ASSERT(instance_env_factory_);
       BOOST_ASSERT(compartment_);
+      BOOST_ASSERT(intrinsic_module_);
     }
 
     outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider>,
         const primitives::BlockInfo &) override {
       if (instance_ == nullptr) {
-        auto module =
-            ModuleImpl::compileFrom(compartment_, instance_env_factory_, code_);
+        auto module = ModuleImpl::compileFrom(
+            compartment_, intrinsic_module_, instance_env_factory_, code_);
         OUTCOME_TRY(inst, module->instantiate());
         instance_ = std::move(inst);
       }
@@ -50,6 +53,7 @@ namespace kagome::runtime::wavm {
     std::shared_ptr<runtime::ModuleInstance> instance_;
     std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory_;
     std::shared_ptr<CompartmentWrapper> compartment_;
+    std::shared_ptr<const IntrinsicModule> intrinsic_module_;
     gsl::span<const uint8_t> code_;
   };
 
@@ -68,16 +72,19 @@ namespace kagome::runtime::wavm {
 
   CoreApiFactoryImpl::CoreApiFactoryImpl(
       std::shared_ptr<CompartmentWrapper> compartment,
+      std::shared_ptr<const IntrinsicModule> intrinsic_module,
       std::shared_ptr<storage::trie::TrieStorage> storage,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<const InstanceEnvironmentFactory> instance_env_factory,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : instance_env_factory_{std::move(instance_env_factory)},
         compartment_{compartment},
+        intrinsic_module_{std::move(intrinsic_module)},
         storage_{std::move(storage)},
         block_header_repo_{std::move(block_header_repo)},
         changes_tracker_{std::move(changes_tracker)} {
     BOOST_ASSERT(compartment_);
+    BOOST_ASSERT(intrinsic_module_);
     BOOST_ASSERT(storage_);
     BOOST_ASSERT(block_header_repo_);
     BOOST_ASSERT(instance_env_factory_);
@@ -91,6 +98,7 @@ namespace kagome::runtime::wavm {
         std::make_shared<OneCodeProvider>(runtime_code),
         std::make_shared<OneModuleRepository>(
             compartment_,
+            intrinsic_module_,
             instance_env_factory_,
             gsl::span<const uint8_t>{
                 runtime_code.data(),
