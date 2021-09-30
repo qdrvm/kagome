@@ -36,6 +36,8 @@ namespace kagome::storage::trie {
     std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<boost::optional<Buffer>> tryGet(
+        const Buffer &key) const override;
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;
@@ -63,8 +65,7 @@ namespace kagome::storage::trie {
     std::shared_ptr<PolkadotTrie> trie_;
     RootChangedEventHandler root_changed_handler_;
 
-    log::Logger logger_ =
-        log::createLogger("PersistentTrieBatch", "storage");
+    log::Logger logger_ = log::createLogger("PersistentTrieBatch", "storage");
   };
 
 }  // namespace kagome::storage::trie

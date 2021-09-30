@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_STATEAPI
-#define KAGOME_API_STATEAPI
+#ifndef KAGOME_API_SERVICE_STATE_API
+#define KAGOME_API_SERVICE_STATE_API
 
-#include <boost/optional.hpp>
 #include <vector>
+#include <boost/optional.hpp>
 
 #include "api/service/api_service.hpp"
 #include "common/buffer.hpp"
@@ -73,4 +73,4 @@ namespace kagome::api {
 
 }  // namespace kagome::api
 
-#endif  // KAGOME_API_STATEAPI
+#endif  // KAGOME_API_SERVICE_STATE_API

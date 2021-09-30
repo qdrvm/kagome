@@ -4,6 +4,7 @@
 #include "storage/changes_trie/changes_tracker.hpp"
 
 #include "primitives/event_types.hpp"
+#include "log/logger.hpp"
 
 namespace kagome::storage::trie {
   class Codec;
@@ -62,6 +63,7 @@ namespace kagome::storage::changes_trie {
     primitives::events::StorageSubscriptionEnginePtr
         storage_subscription_engine_;
     primitives::events::ChainSubscriptionEnginePtr chain_subscription_engine_;
+    log::Logger logger_;
   };
 
 }  // namespace kagome::storage::changes_trie

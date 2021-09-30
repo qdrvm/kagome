@@ -21,8 +21,8 @@ namespace kagome::runtime {
     virtual ~RuntimeUpgradeTracker() = default;
 
     /**
-     * @return the latest state earlier than the state of \param block, where
-     * runtime upgrade happened
+     * @return the storage state root, which contains the most recent runtime
+     * code at the blockchain state of \param block (inclusively)
      */
     virtual outcome::result<storage::trie::RootHash> getLastCodeUpdateState(
         const primitives::BlockInfo &block) const = 0;

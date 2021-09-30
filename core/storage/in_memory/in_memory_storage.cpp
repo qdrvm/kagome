@@ -20,6 +20,15 @@ namespace kagome::storage {
     return DatabaseError::NOT_FOUND;
   }
 
+  outcome::result<boost::optional<common::Buffer>> InMemoryStorage::tryGet(
+      const common::Buffer &key) const {
+    if (storage.find(key.toHex()) != storage.end()) {
+      return storage.at(key.toHex());
+    }
+
+    return boost::none;
+  }
+
   outcome::result<void> InMemoryStorage::put(const Buffer &key,
                                              const Buffer &value) {
     storage[key.toHex()] = value;

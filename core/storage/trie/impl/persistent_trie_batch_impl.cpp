@@ -87,6 +87,11 @@ namespace kagome::storage::trie {
     return trie_->get(key);
   }
 
+  outcome::result<boost::optional<Buffer>> PersistentTrieBatchImpl::tryGet(
+      const Buffer &key) const {
+    return trie_->tryGet(key);
+  }
+
   std::unique_ptr<PolkadotTrieCursor> PersistentTrieBatchImpl::trieCursor() {
     return std::make_unique<PolkadotTrieCursorImpl>(*trie_);
   }

@@ -26,6 +26,9 @@ namespace kagome::storage {
     outcome::result<common::Buffer> get(
         const common::Buffer &key) const override;
 
+    outcome::result<boost::optional<common::Buffer>> tryGet(
+        const common::Buffer &key) const override;
+
     outcome::result<void> put(const common::Buffer &key,
                               const common::Buffer &value) override;
 

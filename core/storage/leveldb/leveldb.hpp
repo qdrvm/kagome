@@ -54,6 +54,9 @@ namespace kagome::storage {
 
     outcome::result<Buffer> get(const Buffer &key) const override;
 
+    outcome::result<boost::optional<Buffer>> tryGet(
+        const Buffer &key) const override;
+
     bool contains(const Buffer &key) const override;
 
     bool empty() const override;

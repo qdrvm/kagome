@@ -27,17 +27,26 @@ namespace kagome::storage::trie {
       : parent_(parent) {}
 
   outcome::result<Buffer> TopperTrieBatchImpl::get(const Buffer &key) const {
+    OUTCOME_TRY(opt_value, tryGet(key));
+    if (opt_value) {
+      return opt_value.value();
+    }
+    return TrieError::NO_VALUE;
+  }
+
+  outcome::result<boost::optional<Buffer>> TopperTrieBatchImpl::tryGet(
+      const Buffer &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       if (it->second.has_value()) {
         return it->second.value();
       }
-      return TrieError::NO_VALUE;
+      return boost::none;
     }
     if (wasClearedByPrefix(key)) {
-      return TrieError::NO_VALUE;
+      return boost::none;
     }
     if (auto p = parent_.lock(); p != nullptr) {
-      return p->get(key);
+      return p->tryGet(key);
     }
     return Error::PARENT_EXPIRED;
   }

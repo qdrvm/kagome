@@ -20,6 +20,11 @@ namespace kagome::storage::trie {
     return trie_->get(key);
   }
 
+  outcome::result<boost::optional<Buffer>> EphemeralTrieBatchImpl::tryGet(
+      const Buffer &key) const {
+    return trie_->tryGet(key);
+  }
+
   std::unique_ptr<PolkadotTrieCursor> EphemeralTrieBatchImpl::trieCursor() {
     return std::make_unique<PolkadotTrieCursorImpl>(*trie_);
   }
