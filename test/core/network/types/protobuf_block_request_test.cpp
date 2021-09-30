@@ -8,6 +8,7 @@
 
 #include "testutil/outcome.hpp"
 
+using kagome::network::BlockAttribute;
 using kagome::network::BlockAttributes;
 using kagome::network::BlocksRequest;
 using kagome::network::Direction;
