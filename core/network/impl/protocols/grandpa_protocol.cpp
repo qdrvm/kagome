@@ -3,41 +3,44 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/grandpa_protocol.hpp"
+
+#include <libp2p/connection/loopback_stream.hpp>
 
 #include "network/common.hpp"
-#include "network/protocols/protocol_error.hpp"
-#include "network/types/no_data_message.hpp"
+#include "network/types/grandpa_message.hpp"
+#include "network/types/roles.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 
 namespace kagome::network {
+  using libp2p::connection::LoopbackStream;
 
-  KAGOME_DEFINE_CACHE(PropagateTransactionsProtocol);
+  KAGOME_DEFINE_CACHE(GrandpaProtocol);
 
-  PropagateTransactionsProtocol::PropagateTransactionsProtocol(
+  GrandpaProtocol::GrandpaProtocol(
       libp2p::Host &host,
-      const application::ChainSpec &chain_spec,
-      std::shared_ptr<consensus::babe::Babe> babe,
-      std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
-      std::shared_ptr<StreamEngine> stream_engine,
-      std::shared_ptr<primitives::events::ExtrinsicSubscriptionEngine>
-          extrinsic_events_engine,
-      std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
-          ext_event_key_repo)
+      std::shared_ptr<boost::asio::io_context> io_context,
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<consensus::grandpa::GrandpaObserver> grandpa_observer,
+      const OwnPeerInfo &own_info,
+      std::shared_ptr<StreamEngine> stream_engine)
       : host_(host),
-        babe_(std::move(babe)),
-        extrinsic_observer_(std::move(extrinsic_observer)),
-        stream_engine_(std::move(stream_engine)),
-        extrinsic_events_engine_{std::move(extrinsic_events_engine)},
-        ext_event_key_repo_{std::move(ext_event_key_repo)} {
-    BOOST_ASSERT(extrinsic_observer_ != nullptr);
-    BOOST_ASSERT(stream_engine_ != nullptr);
-    BOOST_ASSERT(extrinsic_events_engine_ != nullptr);
-    BOOST_ASSERT(ext_event_key_repo_ != nullptr);
-    const_cast<Protocol &>(protocol_) = fmt::format(
-        kPropagateTransactionsProtocol.data(), chain_spec.protocolId());
+        io_context_(std::move(io_context)),
+        app_config_(app_config),
+        grandpa_observer_(std::move(grandpa_observer)),
+        own_info_(own_info),
+        stream_engine_(std::move(stream_engine)) {
+    const_cast<Protocol &>(protocol_) = kGrandpaProtocol;
   }
 
-  bool PropagateTransactionsProtocol::start() {
+  bool GrandpaProtocol::start() {
+    auto stream = std::make_shared<LoopbackStream>(own_info_, io_context_);
+    auto res = stream_engine_->add(stream, shared_from_this());
+    if (not res.has_value()) {
+      return false;
+    }
+    read(std::move(stream));
+
     host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
@@ -50,18 +53,16 @@ namespace kagome::network {
         }
         self->log_->warn("Handled {} protocol stream from unknown peer",
                          self->protocol_);
-        stream->reset();
       }
     });
     return true;
   }
 
-  bool PropagateTransactionsProtocol::stop() {
+  bool GrandpaProtocol::stop() {
     return true;
   }
 
-  void PropagateTransactionsProtocol::onIncomingStream(
-      std::shared_ptr<Stream> stream) {
+  void GrandpaProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
     readHandshake(
@@ -104,7 +105,7 @@ namespace kagome::network {
         });
   }
 
-  void PropagateTransactionsProtocol::newOutgoingStream(
+  void GrandpaProtocol::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     host_.newStream(
@@ -172,15 +173,15 @@ namespace kagome::network {
         });
   }
 
-  void PropagateTransactionsProtocol::readHandshake(
+  void GrandpaProtocol::readHandshake(
       std::shared_ptr<Stream> stream,
       Direction direction,
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->read<NoData>(
+    read_writer->read<Roles>(
         [stream, direction, wp = weak_from_this(), cb = std::move(cb)](
-            auto &&remote_handshake_res) mutable {
+            auto &&remote_roles_res) mutable {
           auto self = wp.lock();
           if (not self) {
             stream->reset();
@@ -188,15 +189,16 @@ namespace kagome::network {
             return;
           }
 
-          if (not remote_handshake_res.has_value()) {
+          if (not remote_roles_res.has_value()) {
             SL_VERBOSE(self->log_,
                        "Can't read handshake from {}: {}",
                        stream->remotePeerId().value().toBase58(),
-                       remote_handshake_res.error().message());
+                       remote_roles_res.error().message());
             stream->reset();
-            cb(remote_handshake_res.as_failure());
+            cb(remote_roles_res.as_failure());
             return;
           }
+          // auto &remote_roles = remote_roles_res.value();
 
           SL_TRACE(self->log_,
                    "Handshake has received from {}",
@@ -207,27 +209,22 @@ namespace kagome::network {
               cb(outcome::success());
               break;
             case Direction::INCOMING:
-              if (self->babe_->getCurrentState()
-                  == consensus::babe::Babe::State::SYNCHRONIZED) {
-                self->writeHandshake(
-                    std::move(stream), Direction::INCOMING, std::move(cb));
-                return;
-              }
-
-              stream->close([](auto &&...) {});
-              cb(ProtocolError::NODE_NOT_SYNCHRONIZED_YET);
+              self->writeHandshake(
+                  std::move(stream), Direction::INCOMING, std::move(cb));
               break;
           }
         });
   }
 
-  void PropagateTransactionsProtocol::writeHandshake(
+  void GrandpaProtocol::writeHandshake(
       std::shared_ptr<Stream> stream,
       Direction direction,
       std::function<void(outcome::result<void>)> &&cb) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->write(NoData{},
+    Roles roles = app_config_.roles();
+
+    read_writer->write(roles,
                        [stream = std::move(stream),
                         direction,
                         wp = weak_from_this(),
@@ -255,94 +252,116 @@ namespace kagome::network {
 
                          switch (direction) {
                            case Direction::OUTGOING:
-                             self->readHandshake(std::move(stream),
-                                                 Direction::OUTGOING,
-                                                 std::move(cb));
+                             self->readHandshake(
+                                 std::move(stream), direction, std::move(cb));
                              break;
                            case Direction::INCOMING:
                              cb(outcome::success());
-                             self->readPropagatedExtrinsics(std::move(stream));
+                             self->read(std::move(stream));
                              break;
                          }
                        });
   }
 
-  void PropagateTransactionsProtocol::readPropagatedExtrinsics(
-      std::shared_ptr<Stream> stream) {
+  void GrandpaProtocol::read(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
 
-    read_writer->read<PropagatedExtrinsics>([stream = std::move(stream),
-                                             wp = weak_from_this()](
-                                                auto &&message_res) mutable {
-      auto self = wp.lock();
-      if (not self) {
-        stream->reset();
-        return;
-      }
+    read_writer->read<GrandpaMessage>(
+        [stream = std::move(stream),
+         wp = weak_from_this()](auto &&grandpa_message_res) mutable {
+          auto self = wp.lock();
+          if (not self) {
+            stream->reset();
+            return;
+          }
 
-      if (not message_res.has_value()) {
-        SL_VERBOSE(self->log_,
-                   "Can't read grandpa message from {}: {}",
-                   stream->remotePeerId().value().toBase58(),
-                   message_res.error().message());
-        stream->reset();
-        return;
-      }
+          if (not grandpa_message_res.has_value()) {
+            SL_VERBOSE(self->log_,
+                       "Can't read grandpa message from {}: {}",
+                       stream->remotePeerId().value().toBase58(),
+                       grandpa_message_res.error().message());
+            stream->reset();
+            return;
+          }
 
-      auto peer_id = stream->remotePeerId().value();
-      auto &message = message_res.value();
+          auto peer_id = stream->remotePeerId().value();
+          auto &grandpa_message = grandpa_message_res.value();
 
-      SL_VERBOSE(self->log_,
-                 "Received {} propagated transactions from {}",
-                 message.extrinsics.size(),
-                 peer_id.toBase58());
+          SL_VERBOSE(
+              self->log_, "Message has received from {}", peer_id.toBase58());
 
-      for (auto &ext : message.extrinsics) {
-        auto result = self->extrinsic_observer_->onTxMessage(ext);
-        if (result) {
-          SL_DEBUG(self->log_, "  Received tx {}", result.value());
-        } else {
-          SL_DEBUG(self->log_, "  Rejected tx: {}", result.error().message());
-        }
-      }
-
-      self->readPropagatedExtrinsics(std::move(stream));
-    });
+          visit_in_place(
+              grandpa_message,
+              [&](const network::GrandpaVote &vote_message) {
+                self->grandpa_observer_->onVoteMessage(peer_id, vote_message);
+              },
+              [&](const FullCommitMessage &fin_message) {
+                self->grandpa_observer_->onFinalize(peer_id, fin_message);
+              },
+              [&](const GrandpaNeighborMessage &neighbor_message) {
+                self->grandpa_observer_->onNeighborMessage(peer_id,
+                                                           neighbor_message);
+              },
+              [&](const network::CatchUpRequest &catch_up_request) {
+                self->grandpa_observer_->onCatchUpRequest(peer_id,
+                                                          catch_up_request);
+              },
+              [&](const network::CatchUpResponse &catch_up_response) {
+                self->grandpa_observer_->onCatchUpResponse(peer_id,
+                                                           catch_up_response);
+              });
+          self->read(std::move(stream));
+        });
   }
 
-  void PropagateTransactionsProtocol::propagateTransactions(
-      gsl::span<const primitives::Transaction> txs) {
-    SL_DEBUG(log_, "Propagate transactions : {} extrinsics", txs.size());
+  void GrandpaProtocol::vote(network::GrandpaVote &&vote_message) {
+    SL_DEBUG(log_,
+             "Send vote message: grandpa round number {}",
+             vote_message.round_number);
 
-    std::vector<libp2p::peer::PeerId> peers;
-    stream_engine_->forEachPeer(
-        [&peers](const libp2p::peer::PeerId &peer_id, const auto &) {
-          peers.push_back(peer_id);
-        });
-    if (peers.size() > 1) {  // One of peers is current node itself
-      for (const auto &tx : txs) {
-        if (auto key = ext_event_key_repo_->get(tx.hash); key.has_value()) {
-          extrinsic_events_engine_->notify(
-              key.value(),
-              primitives::events::ExtrinsicLifecycleEvent::Broadcast(
-                  key.value(), peers));
-        }
-      }
-    }
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(vote_message));
 
-    PropagatedExtrinsics exts;
-    exts.extrinsics.resize(txs.size());
-    std::transform(
-        txs.begin(), txs.end(), exts.extrinsics.begin(), [](auto &tx) {
-          return tx.ext;
-        });
+    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
+                                              std::move(shared_msg));
+  }
 
-    auto shared_msg = KAGOME_EXTRACT_SHARED_CACHE(PropagateTransactionsProtocol,
-                                                  PropagatedExtrinsics);
-    (*shared_msg) = std::move(exts);
+  void GrandpaProtocol::finalize(FullCommitMessage &&msg) {
+    SL_DEBUG(log_, "Send fin message: grandpa round number {}", msg.round);
 
-    stream_engine_->broadcast<PropagatedExtrinsics>(shared_from_this(),
-                                                    std::move(shared_msg));
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(msg));
+
+    stream_engine_->broadcast<GrandpaMessage>(shared_from_this(),
+                                              std::move(shared_msg));
+  }
+
+  void GrandpaProtocol::catchUpRequest(const libp2p::peer::PeerId &peer_id,
+                                       CatchUpRequest &&catch_up_request) {
+    SL_DEBUG(log_,
+             "Send catch-up request: grandpa round number {}",
+             catch_up_request.round_number);
+
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(catch_up_request));
+
+    stream_engine_->send(peer_id, shared_from_this(), std::move(shared_msg));
+  }
+
+  void GrandpaProtocol::catchUpResponse(const libp2p::peer::PeerId &peer_id,
+                                        CatchUpResponse &&catch_up_response) {
+    SL_DEBUG(log_,
+             "Send catch-up response: grandpa round number {}",
+             catch_up_response.round_number);
+
+    auto shared_msg =
+        KAGOME_EXTRACT_SHARED_CACHE(GrandpaProtocol, GrandpaMessage);
+    (*shared_msg) = GrandpaMessage(std::move(catch_up_response));
+
+    stream_engine_->send(peer_id, shared_from_this(), std::move(shared_msg));
   }
 
 }  // namespace kagome::network

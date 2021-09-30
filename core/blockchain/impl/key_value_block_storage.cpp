@@ -230,7 +230,7 @@ namespace kagome::blockchain {
     block_data.body = block.body;
 
     OUTCOME_TRY(putBlockData(block.header.number, block_data));
-    logger_->info("Added block. Number: {}. Hash: {}. State root: {}",
+    logger_->info("Added block #{} hash={}. State root: {}",
                   block.header.number,
                   block_hash.toHex(),
                   block.header.state_root.toHex());

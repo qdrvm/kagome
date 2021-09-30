@@ -15,10 +15,11 @@
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
 #include "clock/ticker.hpp"
+#include "clock/timer.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/babe_util.hpp"
-#include "consensus/babe/impl/block_executor.hpp"
+#include "consensus/babe/block_executor.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/sr25519_types.hpp"
@@ -30,6 +31,10 @@
 
 namespace kagome::network {
   class BlockAnnounceTransmitter;
+}
+
+namespace kagome::consensus {
+  class BabeSynchronizer;
 }
 
 namespace kagome::consensus::babe {
@@ -50,7 +55,6 @@ namespace kagome::consensus::babe {
      */
     BabeImpl(std::shared_ptr<application::AppStateManager> app_state_manager,
              std::shared_ptr<BabeLottery> lottery,
-             std::shared_ptr<BlockExecutor> block_executor,
              std::shared_ptr<storage::trie::TrieStorage> trie_db,
              std::shared_ptr<primitives::BabeConfiguration> configuration,
              std::shared_ptr<authorship::Proposer> proposer,
@@ -64,6 +68,7 @@ namespace kagome::consensus::babe {
              std::unique_ptr<clock::Timer> timer,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
+             std::shared_ptr<BabeSynchronizer> babe_synchronizer,
              std::shared_ptr<BabeUtil> babe_util);
 
     ~BabeImpl() override = default;
@@ -93,8 +98,6 @@ namespace kagome::consensus::babe {
 
    private:
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
-                      const primitives::BlockInfo &finalized_block,
-                      const primitives::BlockInfo &best_block,
                       const primitives::BlockInfo &target_block);
 
     void runSlot();
@@ -128,7 +131,6 @@ namespace kagome::consensus::babe {
 
    private:
     std::shared_ptr<BabeLottery> lottery_;
-    std::shared_ptr<BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
@@ -142,6 +144,7 @@ namespace kagome::consensus::babe {
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
+    std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
