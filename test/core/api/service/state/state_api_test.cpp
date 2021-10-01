@@ -347,7 +347,7 @@ namespace kagome::api {
       EXPECT_CALL(*block_header_repo_,
                   getBlockHeader(primitives::BlockId{block_hash}))
           .WillOnce(testing::Return(
-              primitives::BlockHeader{.state_root{state_root}}));
+              primitives::BlockHeader{.state_root = state_root}));
       EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root))
           .WillOnce(testing::Invoke([&keys](auto &root) {
             auto batch =
