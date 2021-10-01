@@ -14,7 +14,7 @@
 #include "libp2p/host/host.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/protocol/ping.hpp"
-#include "network/protocols/protocol_factory.hpp"
+#include "network/impl/protocols/protocol_factory.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
