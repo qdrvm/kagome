@@ -18,7 +18,7 @@ namespace kagome::network {
    * Masks of bits, combination of which shows, which fields are to be presented
    * in the BlockResponse
    */
-  enum class BlockAttributesBits : uint8_t {
+  enum class BlockAttribute : uint8_t {
     /// Include block header.
     HEADER = 1u,
     /// Include block body.
@@ -32,60 +32,121 @@ namespace kagome::network {
   };
 
   /**
-   * Block attributes as set of bits
+   * Block attributes
    */
-  struct BlockAttributes {
-    enum { kBitCount = 8 };
-    std::bitset<kBitCount> attributes;
+  class BlockAttributes {
+   public:
+    BlockAttributes() = default;
+    constexpr BlockAttributes(const BlockAttributes &other) noexcept = default;
+    BlockAttributes(BlockAttributes &&other) noexcept = default;
+    ~BlockAttributes() = default;
 
-    template<typename T> void load(T t) {
-      static_assert(std::is_integral<T>::value, "Must be integral type.");
-      static_assert(sizeof(T) * 8 >= kBitCount, "Size of T must be more than bit count.");
+    constexpr BlockAttributes(BlockAttribute attribute) noexcept
+        : attributes(static_cast<uint8_t>(attribute)) {}
 
-      attributes.reset();
-      attributes |= t;
+    template <typename T, typename = std::enable_if<std::is_unsigned_v<T>>>
+    constexpr BlockAttributes(T attribute) noexcept : attributes(0) {
+      load(attribute);
     }
+
+    inline constexpr BlockAttributes &operator=(const BlockAttributes &other) =
+        default;
+    inline constexpr BlockAttributes &operator=(BlockAttributes &&other) =
+        default;
+
+    template <typename T, typename = std::enable_if<std::is_unsigned_v<T>>>
+    constexpr void load(T value) {
+      attributes = mask_ & value;
+    }
+
+    inline BlockAttributes &operator=(BlockAttribute attribute) {
+      attributes = static_cast<uint8_t>(attribute);
+      return *this;
+    }
+
+    inline constexpr BlockAttributes operator|(
+        const BlockAttributes &other) const {
+      BlockAttributes result;
+      result.attributes = attributes | static_cast<uint8_t>(other.attributes);
+      return result;
+    }
+
+    inline constexpr BlockAttributes operator|(
+        const BlockAttribute &attribute) const {
+      BlockAttributes result;
+      result.attributes = attributes | static_cast<uint8_t>(attribute);
+      return result;
+    }
+
+    inline BlockAttributes &operator|=(const BlockAttributes &other) {
+      attributes |= other.attributes;
+      return *this;
+    }
+
+    inline BlockAttributes &operator|=(const BlockAttribute &attribute) {
+      attributes |= static_cast<uint8_t>(attribute);
+      return *this;
+    }
+
+    inline constexpr BlockAttributes operator&(
+        const BlockAttributes &other) const {
+      BlockAttributes result;
+      result.attributes = attributes & static_cast<uint8_t>(other.attributes);
+      return result;
+    }
+
+    inline constexpr BlockAttributes operator&(
+        const BlockAttribute &attribute) const {
+      BlockAttributes result;
+      result.attributes = attributes & static_cast<uint8_t>(attribute);
+      return result;
+    }
+
+    inline BlockAttributes &operator&=(const BlockAttributes &other) {
+      attributes &= other.attributes;
+      return *this;
+    }
+
+    inline BlockAttributes &operator&=(BlockAttribute attribute) {
+      attributes &= static_cast<uint8_t>(attribute);
+      return *this;
+    }
+
+    inline BlockAttributes operator~() const {
+      BlockAttributes result;
+      result.attributes = ~attributes & mask_;
+      return result;
+    }
+
+    inline bool operator==(const BlockAttributes &other) const {
+      return attributes == other.attributes;
+    }
+
+    inline operator bool() const {
+      return attributes != 0;
+    }
+
+    template <typename T, typename = std::enable_if<std::is_unsigned_v<T>>>
+    inline operator T() const {
+      return attributes;
+    }
+
+   private:
+    static constexpr uint8_t mask_ = 0b00011111;
+    uint8_t attributes = 0;
   };
 
-  /**
-   * @brief compares two BlockAttributes instances
-   * @param lhs first BlockAttributes instance
-   * @param rhs second BlockAttributes instance
-   * @return true if equal false otherwise
-   */
-  inline bool operator==(const BlockAttributes &lhs,
-                         const BlockAttributes &rhs) {
-    return lhs.attributes == rhs.attributes;
+  inline constexpr BlockAttributes operator|(const BlockAttribute &lhs,
+                                             const BlockAttribute &rhs) {
+    BlockAttributes result;
+    result.load(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+    return result;
   }
 
-  /**
-   * @brief combines block attributes bits
-   * @param lhs first BlockAttributesBits value
-   * @param rhs second BlockAttributesBits value
-   * @return logical `or` operation applied to the values as uint8_t
-   */
-  inline uint8_t operator|(BlockAttributesBits lhs, BlockAttributesBits rhs) {
-    return static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs);
-  }
-
-  /**
-   * @brief combines block attributes bits
-   * @param lhs first BlockAttributesBits value as uint8_t
-   * @param rhs second BlockAttributesBits value
-   * @return logical `or` operation applied to the values as uint8_t
-   */
-  inline uint8_t operator|(uint8_t lhs, BlockAttributesBits rhs) {
-    return lhs | static_cast<uint8_t>(rhs);
-  }
-
-  /**
-   * @brief combines block attributes bits
-   * @param lhs first BlockAttributesBits value
-   * @param rhs second BlockAttributesBits value as uint8_t
-   * @return logical `or` operation applied to the values as uint8_t
-   */
-  inline uint8_t operator|(BlockAttributesBits lhs, uint8_t rhs) {
-    return static_cast<uint8_t>(lhs) | rhs;
+  inline constexpr BlockAttributes operator~(const BlockAttribute &attribute) {
+    BlockAttributes result;
+    result.load(~static_cast<uint8_t>(attribute));
+    return result;
   }
 
   /**
@@ -98,7 +159,7 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BlockAttributes &v) {
-    return s << static_cast<uint8_t>(v.attributes.to_ulong());
+    return s << static_cast<uint8_t>(v);
   }
 
   /**
@@ -110,14 +171,14 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, BlockAttributes &v) {
+  Stream &operator>>(Stream &s, BlockAttributes &attributes) {
     uint8_t value = 0u;
     s >> value;
-    constexpr uint8_t unused_bits = 0b11100000;
-    if ((value & unused_bits) != 0u) {
+
+    attributes.load(value);
+    if ((uint8_t)attributes != value) {
       common::raise(scale::DecodeError::UNEXPECTED_VALUE);
     }
-    v = BlockAttributes{value};
     return s;
   }
 
