@@ -156,6 +156,17 @@ namespace kagome::application {
       }
     }
 
+    auto code_substitutes_opt = tree.get_child_optional("codeSubstitutes");
+    if(code_substitutes_opt.has_value()) {
+      for(const auto &[hash, code] : code_substitutes_opt.value()) {
+        OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(hash));
+        OUTCOME_TRY(code_processed, common::unhexWith0x(code.data()));
+        // TODO(sanblch): move this from memory to db
+        // https://github.com/soramitsu/kagome/issues/935
+        code_substitutes_.emplace(hash_processed, code_processed);
+      }
+    }
+
     return outcome::success();
   }
 

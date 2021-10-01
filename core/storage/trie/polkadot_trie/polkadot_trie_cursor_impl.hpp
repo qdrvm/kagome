@@ -71,24 +71,16 @@ namespace kagome::storage::trie {
       uint8_t child_idx;
     };
 
-    static uint8_t getNextChildIdx(const BranchPtr &parent, uint8_t child_idx);
-
-    static bool hasNextChild(const BranchPtr &parent, uint8_t child_idx);
-
-    static uint8_t getPrevChildIdx(const BranchPtr &parent, uint8_t child_idx);
-
-    static bool hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
-
     // will either put a new entry or update the top entry (in case that parent
     // in the top entry is the same as \param parent
     void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
 
-    outcome::result<NodePtr> seekNodeWithValue(
-        NodePtr node);
-    // -1 if none
-    outcome::result<int8_t> getChildWithMinIdx(
-        BranchPtr node, uint8_t min_idx) const;
-
+    outcome::result<void> seekLowerBoundInternal(
+        NodePtr current, gsl::span<const uint8_t> left_nibbles);
+    outcome::result<bool> seekNodeWithValueBothDirections();
+    outcome::result<void> seekNodeWithValue(NodePtr &node);
+    outcome::result<bool> setChildWithMinIdx(NodePtr &node,
+                                             uint8_t min_idx = 0);
     /**
      * Constructs a list of branch nodes on the path from the root to the node
      * with the given \arg key
