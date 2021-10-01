@@ -7,6 +7,7 @@
 #define KAGOME_ROUTER_HPP
 
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/protocol/ping.hpp>
 
 #include "network/impl/protocols/block_announce_protocol.hpp"
 #include "network/impl/protocols/grandpa_protocol.hpp"
@@ -28,6 +29,8 @@ namespace kagome::network {
     getPropagateTransactionsProtocol() const = 0;
     virtual std::shared_ptr<SyncProtocol> getSyncProtocol() const = 0;
     virtual std::shared_ptr<GrandpaProtocol> getGrandpaProtocol() const = 0;
+
+    virtual std::shared_ptr<libp2p::protocol::Ping> getPingProtocol() const = 0;
   };
 }  // namespace kagome::network
 
