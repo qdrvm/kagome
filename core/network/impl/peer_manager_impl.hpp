@@ -11,6 +11,7 @@
 #include <memory>
 #include <queue>
 
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/identify/identify.hpp>
@@ -60,7 +61,7 @@ namespace kagome::network {
     /** @see AppStateManager::takeControl */
     bool prepare();
 
-    /** @see App../core/injector/CMakeLists.txtStateManager::takeControl */
+    /** @see AppStateManager::takeControl */
     bool start();
 
     /** @see AppStateManager::takeControl */
@@ -85,6 +86,9 @@ namespace kagome::network {
     /** @see PeerManager::forOnePeer */
     void keepAlive(const PeerId &peer_id) override;
 
+    /** @see PeerManager::startPingingPeer */
+    void startPingingPeer(const PeerId &peer_id) override;
+
     /** @see PeerManager::updatePeerStatus */
     void updatePeerStatus(const PeerId &peer_id, const Status &status) override;
 
@@ -96,102 +100,6 @@ namespace kagome::network {
     boost::optional<Status> getPeerStatus(const PeerId &peer_id) override;
 
    private:
-    template <typename Message, typename MessageHandler>
-    void readAsyncMsg(std::shared_ptr<libp2p::connection::Stream> stream,
-                      MessageHandler &&mh) {
-      auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-      read_writer->read<Message>([wp = weak_from_this(),
-                                  stream = std::move(stream),
-                                  mh = std::forward<MessageHandler>(mh)](
-                                     auto &&msg_res) mutable {
-        auto self = wp.lock();
-        if (not self) {
-          return;
-        }
-
-        if (not msg_res) {
-          self->log_->error("error while reading message: {}",
-                            msg_res.error().message());
-          return stream->reset();
-        }
-
-        auto peer_id_res = stream->remotePeerId();
-        if (not peer_id_res.has_value()) {
-          self->log_->error("can't get peer_id: {}", msg_res.error().message());
-          return stream->reset();
-        }
-
-        if (!std::forward<MessageHandler>(mh)(
-                self, peer_id_res.value(), msg_res.value())) {
-          stream->reset();
-          return;
-        }
-
-        self->readAsyncMsg<Message>(stream, std::forward<MessageHandler>(mh));
-      });
-    }
-
-    template <typename Message,
-              typename Handshake,
-              typename HandshakeHandler,
-              typename MessageHandler>
-    void writeAsyncMsgWithHandshake(
-        std::shared_ptr<libp2p::connection::Stream> stream,
-        Handshake &&handshake,
-        HandshakeHandler &&hh,
-        MessageHandler &&mh) {
-      auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
-
-      read_writer->write(
-          handshake,
-          [stream,
-           read_writer,
-           wp = weak_from_this(),
-           hh = std::forward<HandshakeHandler>(hh),
-           mh = std::forward<MessageHandler>(mh)](auto &&write_res) mutable {
-            auto self = wp.lock();
-            if (not self) {
-              return;
-            }
-
-            if (not write_res.has_value()) {
-              self->log_->error("Error while writting handshake: {}",
-                                write_res.error().message());
-              return stream->reset();
-            }
-
-            read_writer->read<std::decay_t<Handshake>>(
-                [stream,
-                 wp,
-                 hh = std::forward<HandshakeHandler>(hh),
-                 mh = std::forward<MessageHandler>(mh)](
-                    auto &&read_res) mutable {
-                  auto self = wp.lock();
-                  if (not self) {
-                    return stream->reset();
-                  }
-
-                  if (not read_res.has_value()) {
-                    self->log_->error("Error while reading handshake: {}",
-                                      read_res.error().message());
-                    return stream->reset();
-                  }
-
-                  auto res = hh(self,
-                                stream->remotePeerId().value(),
-                                std::move(read_res.value()));
-                  if (not res.has_value()) {
-                    self->log_->error("Error while processing handshake: {}",
-                                      read_res.error().message());
-                    return stream->reset();
-                  }
-
-                  self->readAsyncMsg<std::decay_t<Message>>(
-                      std::move(stream), std::forward<MessageHandler>(mh));
-                });
-          });
-    }
-
     /// Right way to check self peer as it takes into account dev mode
     bool isSelfPeer(const PeerId &peer_id) const;
 
@@ -231,6 +139,8 @@ namespace kagome::network {
     std::unordered_set<PeerId> peers_in_queue_;
     std::deque<std::reference_wrapper<const PeerId>> queue_to_connect_;
     std::unordered_set<PeerId> connecting_peers_;
+    std::unordered_set<libp2p::network::ConnectionManager::ConnectionSPtr>
+        pinging_connections_;
 
     struct ActivePeerData {
       clock::SteadyClock::TimePoint time;
