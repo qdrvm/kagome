@@ -119,11 +119,11 @@ namespace kagome::network {
       BlocksResponse &response,
       const std::vector<primitives::BlockHash> &hash_chain) const {
     auto header_needed =
-        request.attributeIsSet(network::BlockAttributesBits::HEADER);
+        request.attributeIsSet(network::BlockAttribute::HEADER);
     auto body_needed =
-        request.attributeIsSet(network::BlockAttributesBits::BODY);
+        request.attributeIsSet(network::BlockAttribute::BODY);
     auto justification_needed =
-        request.attributeIsSet(network::BlockAttributesBits::JUSTIFICATION);
+        request.attributeIsSet(network::BlockAttribute::JUSTIFICATION);
 
     for (const auto &hash : hash_chain) {
       auto &new_block =
