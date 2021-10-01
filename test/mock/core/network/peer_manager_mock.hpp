@@ -14,14 +14,14 @@ namespace kagome::network {
 
   class PeerManagerMock final : public PeerManager {
    public:
-    MOCK_METHOD1(connectToPeer, void(const PeerInfo &peer_info));
-    MOCK_CONST_METHOD1(reserveStreams, void(const PeerId &peer_id));
-    MOCK_METHOD1(keepAlive, void(const PeerId &peer_id));
-    MOCK_METHOD2(updatePeerStatus,
-                 void(const PeerId &peer_id, const Status &status));
-    MOCK_METHOD2(updatePeerStatus,
-                 void(const PeerId &peer_id, const BlockInfo &best_block));
-    MOCK_METHOD1(getPeerStatus, boost::optional<Status>(const PeerId &peer_id));
+    MOCK_METHOD1(connectToPeer, void(const PeerInfo &));
+    MOCK_CONST_METHOD1(reserveStreams, void(const PeerId &));
+    MOCK_METHOD1(keepAlive, void(const PeerId &));
+    MOCK_METHOD1(startPingingPeer, void(const PeerId &));
+
+    MOCK_METHOD2(updatePeerStatus, void(const PeerId &, const Status &));
+    MOCK_METHOD2(updatePeerStatus, void(const PeerId &, const BlockInfo &));
+    MOCK_METHOD1(getPeerStatus, boost::optional<Status>(const PeerId &));
     MOCK_CONST_METHOD0(activePeersNumber, size_t());
     MOCK_CONST_METHOD1(forEachPeer,
                        void(std::function<void(const PeerId &)> func));
