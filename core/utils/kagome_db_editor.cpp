@@ -49,6 +49,7 @@ class Configurator : public soralog::ConfiguratorFromYAML {
 };
 
 enum ArgNum : uint8_t { DB_PATH = 1, STATE_HASH, MODE };
+enum Command : uint8_t { COMPACT, DUMP };
 
 void usage() {
   std::cout << "\n    Kagome DB Editor\n\n";
@@ -62,18 +63,24 @@ void usage() {
   std::cout << "        dump: Dumps the state from the DB to file "
                "hex_full_state.yaml in "
                "format ready for use in polkadot-test.\n";
-  std::cout
-      << "        compact: Compacts the kagome DB. Leaves only keys of the state "
-         "passed as an arguments. Removes all other keys. [Default]\n\n";
+  std::cout << "        compact: Compacts the kagome DB. Leaves only keys of "
+               "the state "
+               "passed as an arguments. Removes all other keys. [Default]\n\n";
   std::cout << "Example:\n";
   std::cout << "    kagome-db-editor base-path/polkadot/db 0x1e22e dump\n";
 };
 
 int main(int argc, char *argv[]) {
-  if (argc < 4) {
+  Command cmd;
+  if (argc == 3 or (argc == 4 and not std::strcmp(argv[MODE], "compact"))) {
+    cmd = COMPACT;
+  } else if (argc == 4 and not std::strcmp(argv[MODE], "dump")) {
+    cmd = DUMP;
+  } else {
     usage();
     return 0;
   }
+
   auto logging_system = std::make_shared<soralog::LoggingSystem>(
       std::make_shared<Configurator>());
   std::ignore = logging_system->configure();
@@ -116,7 +123,7 @@ int main(int argc, char *argv[]) {
                 .template create<sptr<storage::changes_trie::ChangesTracker>>())
             .value();
 
-    if (argc == 3 or not std::strcmp(argv[MODE], "compact")) {
+    if (COMPACT == cmd) {
       auto batch = trie->getPersistentBatch().value();
       auto cursor = batch->trieCursor();
       auto res = cursor->next();
@@ -167,7 +174,7 @@ int main(int argc, char *argv[]) {
             ->compact(common::Buffer(), common::Buffer());
       }
       need_additional_compaction = true;
-    } else if (argc == 4 and not std::strcmp(argv[MODE], "dump")) {
+    } else if (DUMP == cmd) {
       auto batch = trie->getEphemeralBatch().value();
       auto cursor = batch->trieCursor();
       auto res = cursor->next();
