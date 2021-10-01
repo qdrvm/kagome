@@ -113,13 +113,16 @@ namespace kagome::consensus::babe {
 
     if (auto epoch_res = block_tree_->getEpochDescriptor(
             last_epoch_descriptor.epoch_number, best_block_.hash);
-        epoch_res.has_value() and epoch_res.value().authorities.size() == 1
-        and epoch_res.value().authorities[0].id.id == keypair_->public_key) {
-      SL_INFO(log_, "Starting single validating node.");
-      onSynchronized();
-    } else {
-      current_state_ = State::WAIT_REMOTE_STATUS;
+        epoch_res.has_value()) {
+      const auto &authorities = epoch_res.value().authorities;
+      if (authorities.size() == 1
+          and authorities[0].id.id == keypair_->public_key) {
+        SL_INFO(log_, "Starting single validating node.");
+        onSynchronized();
+        return true;
+      }
     }
+    current_state_ = State::WAIT_REMOTE_STATUS;
     return true;
   }
 
@@ -311,9 +314,9 @@ namespace kagome::consensus::babe {
     bool rewind_slots;  // NOLINT
     auto slot = current_slot_;
     do {
-      // check that we are really in the middle of the slot, as expected; we can
-      // cooperate with a relatively little (kMaxLatency) latency, as our node
-      // will be able to retrieve
+      // check that we are really in the middle of the slot, as expected; we
+      // can cooperate with a relatively little (kMaxLatency) latency, as our
+      // node will be able to retrieve
       auto now = clock_->now();
 
       auto finish_time = babe_util_->slotFinishTime(current_slot_);
@@ -574,12 +577,12 @@ namespace kagome::consensus::babe {
     if (babe_util_->remainToFinishOfSlot(current_slot_ + kMaxBlockSlotsOvertime)
             .count()
         == 0) {
-      SL_WARN(
-          log_,
-          "Block was not built in time. "
-          "Allowed slots ({}) have passed. "
-          "If you are executing in debug mode, consider to rebuild in release",
-          kMaxBlockSlotsOvertime);
+      SL_WARN(log_,
+              "Block was not built in time. "
+              "Allowed slots ({}) have passed. "
+              "If you are executing in debug mode, consider to rebuild in "
+              "release",
+              kMaxBlockSlotsOvertime);
       return;
     }
 

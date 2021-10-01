@@ -73,6 +73,7 @@ namespace kagome::consensus::grandpa {
           }
         });
 
+    // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
       logger_->critical(
@@ -150,8 +151,6 @@ namespace kagome::consensus::grandpa {
   }
 
   bool GrandpaImpl::start() {
-    // Obtain last completed round
-
     executeNextRound();
 
     if (not current_round_) {
