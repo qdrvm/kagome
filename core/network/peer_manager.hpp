@@ -45,6 +45,11 @@ namespace kagome::network {
     virtual void keepAlive(const PeerId &peer_id) = 0;
 
     /**
+     * Starts outgoing pinging to peer with {@param peer_id}
+     */
+    virtual void startPingingPeer(const PeerId &peer_id) = 0;
+
+    /**
      * Updates status of peer with {@param peer_id} by {@param status}
      */
     virtual void updatePeerStatus(const PeerId &peer_id,
