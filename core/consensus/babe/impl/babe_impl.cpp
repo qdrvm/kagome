@@ -121,6 +121,11 @@ namespace kagome::consensus::babe {
         onSynchronized();
         return true;
       }
+    } else {
+      SL_CRITICAL(log_,
+                  "Epoch couldn't be obtained from epoch #{}, block hash {}",
+                  last_epoch_descriptor.epoch_number,
+                  best_block_.hash.toHex());
     }
     current_state_ = State::WAIT_REMOTE_STATUS;
     return true;
