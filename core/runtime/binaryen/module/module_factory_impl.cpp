@@ -24,7 +24,6 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<std::unique_ptr<Module>> ModuleFactoryImpl::make(
-      storage::trie::RootHash const &state,
       gsl::span<const uint8_t> code) const {
     std::vector<uint8_t> code_vec{code.begin(), code.end()};
     auto res = ModuleImpl::createFromCode(code_vec, env_factory_);

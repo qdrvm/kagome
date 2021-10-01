@@ -32,8 +32,6 @@ namespace kagome::authority {
    public:
     inline static const std::vector<primitives::ConsensusEngineId>
         known_engines{primitives::kBabeEngineId, primitives::kGrandpaEngineId};
-    inline static const common::Buffer SCHEDULER_TREE =
-        common::Buffer{}.put(":kagome:authorities:scheduler_tree");
 
     AuthorityManagerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
