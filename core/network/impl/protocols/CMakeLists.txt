@@ -36,7 +36,7 @@ target_link_libraries(propagate_transactions_protocol
     )
 
 add_library(sync_protocol
-    sync_protocol.cpp
+    sync_protocol_impl.cpp
     )
 target_link_libraries(sync_protocol
     logger

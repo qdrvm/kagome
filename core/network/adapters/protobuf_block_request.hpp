@@ -29,7 +29,7 @@ namespace kagome::network {
         std::vector<uint8_t>::iterator loaded) {
       ::api::v1::BlockRequest msg;
 
-      msg.set_fields(LE_BE_SWAP32(t.fields.attributes.to_ulong()));
+      msg.set_fields(htobe32(t.fields));
 
       kagome::visit_in_place(
           t.from,
@@ -74,7 +74,7 @@ namespace kagome::network {
       if (!msg.ParseFromArray(from.base(), remains))
         return AdaptersError::PARSE_FAILED;
 
-      out.fields.load(LE_BE_SWAP32(msg.fields()));
+      out.fields.load(be32toh(msg.fields()));
       out.direction = static_cast<decltype(out.direction)>(msg.direction());
 
       switch (msg.from_block_case()) {
@@ -85,7 +85,9 @@ namespace kagome::network {
 
         case msg.kNumber: {
           uint32_t n = 0;
-          memcpy(&n, msg.number().data(), std::min(sizeof(n), msg.number().size()));
+          memcpy(&n,
+                 msg.number().data(),
+                 std::min(sizeof(n), msg.number().size()));
           primitives::BlockNumber bn(le32toh(n));
           out.from = bn;
         } break;
