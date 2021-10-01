@@ -21,7 +21,7 @@ namespace kagome::runtime {
           ModuleRepositoryImpl::INSTANCES_CACHE_SIZE};
 
   ModuleRepositoryImpl::ModuleRepositoryImpl(
-      std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
+      std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
       std::shared_ptr<const ModuleFactory> module_factory)
       : modules_{MODULES_CACHE_SIZE},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
@@ -50,7 +50,7 @@ namespace kagome::runtime {
       std::lock_guard guard{modules_mutex_};
       if (auto opt_module = modules_.get(state); !opt_module.has_value()) {
         OUTCOME_TRY(code, code_provider->getCodeAt(state));
-        OUTCOME_TRY(new_module, module_factory_->make(state, code));
+        OUTCOME_TRY(new_module, module_factory_->make(code));
         module = std::move(new_module);
         BOOST_VERIFY(modules_.put(state, module));
       } else {
