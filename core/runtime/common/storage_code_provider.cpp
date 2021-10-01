@@ -43,6 +43,10 @@ namespace kagome::runtime {
         }
       }
       auto batch = storage_->getEphemeralBatchAt(state);
+      // avoids failure in case when the state was pruned
+      if(not batch.has_value()) {
+        batch = storage_->getEphemeralBatch();
+      }
       setStateCodeFromBatch(batch);
     }
     return cached_code_;
