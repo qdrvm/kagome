@@ -24,16 +24,15 @@
 #include "clock/clock.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/protocol_factory.hpp"
 #include "network/impl/stream_engine.hpp"
-#include "network/protocols/block_announce_protocol.hpp"
-#include "network/protocols/propagate_transactions_protocol.hpp"
-#include "network/protocols/protocol_factory.hpp"
 #include "network/protocols/sync_protocol.hpp"
 #include "network/router.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/bootstrap_nodes.hpp"
 #include "network/types/own_peer_info.hpp"
-#include "network/types/sync_clients_set.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/buffer_map_types.hpp"
 
@@ -49,13 +48,12 @@ namespace kagome::network {
         libp2p::Host &host,
         std::shared_ptr<libp2p::protocol::Identify> identify,
         std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<StreamEngine> stream_engine,
         const application::AppConfiguration &app_config,
         std::shared_ptr<clock::SteadyClock> clock,
         const BootstrapNodes &bootstrap_nodes,
         const OwnPeerInfo &own_peer_info,
-        std::shared_ptr<network::SyncClientsSet> sync_clients,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<storage::BufferStorage> storage);
 
@@ -220,13 +218,12 @@ namespace kagome::network {
     libp2p::Host &host_;
     std::shared_ptr<libp2p::protocol::Identify> identify_;
     std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia_;
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<StreamEngine> stream_engine_;
     const application::AppConfiguration &app_config_;
     std::shared_ptr<clock::SteadyClock> clock_;
     const BootstrapNodes &bootstrap_nodes_;
     const OwnPeerInfo &own_peer_info_;
-    std::shared_ptr<network::SyncClientsSet> sync_clients_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<storage::BufferStorage> storage_;
 
@@ -241,7 +238,7 @@ namespace kagome::network {
     };
 
     std::map<PeerId, ActivePeerData> active_peers_;
-    libp2p::protocol::scheduler::Handle align_timer_;
+    libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;
 
     log::Logger log_;

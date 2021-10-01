@@ -18,13 +18,12 @@ namespace kagome::network {
       libp2p::Host &host,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
       const application::AppConfiguration &app_config,
       std::shared_ptr<clock::SteadyClock> clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<network::SyncClientsSet> sync_clients,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<storage::BufferStorage> storage)
       : app_state_manager_(std::move(app_state_manager)),
@@ -37,7 +36,6 @@ namespace kagome::network {
         clock_(std::move(clock)),
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
-        sync_clients_(std::move(sync_clients)),
         router_{std::move(router)},
         storage_{std::move(storage)},
         log_(log::createLogger("PeerManager", "network")) {
@@ -46,7 +44,6 @@ namespace kagome::network {
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
-    BOOST_ASSERT(sync_clients_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
 
@@ -79,7 +76,7 @@ namespace kagome::network {
 
     add_peer_handle_ =
         host_.getBus()
-            .getChannel<libp2p::protocol::kademlia::events::PeerAddedChannel>()
+            .getChannel<libp2p::event::protocol::kademlia::PeerAddedChannel>()
             .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
                 self->processDiscoveredPeer(peer_id);
@@ -258,13 +255,13 @@ namespace kagome::network {
 
     const auto aligning_period = app_config_.peeringConfig().aligningPeriod;
 
-    align_timer_ = scheduler_->schedule(
-        libp2p::protocol::scheduler::toTicks(aligning_period),
+    align_timer_ = scheduler_->scheduleWithHandle(
         [wp = weak_from_this()] {
           if (auto self = wp.lock()) {
             self->align();
           }
-        });
+        },
+        aligning_period);
     SL_DEBUG(log_, "Active peers = {}", active_peers_.size());
   }
 
@@ -339,7 +336,6 @@ namespace kagome::network {
       active_peers_.erase(it);
       SL_DEBUG(log_, "Remained {} active peers", active_peers_.size());
     }
-    sync_clients_->remove(peer_id);
   }
 
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {

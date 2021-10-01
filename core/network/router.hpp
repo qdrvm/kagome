@@ -8,9 +8,9 @@
 
 #include <libp2p/connection/stream.hpp>
 
-#include "network/protocols/block_announce_protocol.hpp"
-#include "network/protocols/grandpa_protocol.hpp"
-#include "network/protocols/propagate_transactions_protocol.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/grandpa_protocol.hpp"
+#include "network/impl/protocols/propagate_transactions_protocol.hpp"
 #include "network/protocols/sync_protocol.hpp"
 
 namespace kagome::network {

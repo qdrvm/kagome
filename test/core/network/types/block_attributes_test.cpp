@@ -10,8 +10,8 @@
 #include "testutil/outcome.hpp"
 #include "testutil/testparam.hpp"
 
+using kagome::network::BlockAttribute;
 using kagome::network::BlockAttributes;
-using kagome::network::BlockAttributesBits;
 
 using kagome::scale::decode;
 using kagome::scale::encode;
@@ -43,26 +43,24 @@ TEST_P(BlockAttributesTest, DecodeBlockAttributes) {
   }
 }
 
-using Bits = BlockAttributesBits;
-using Attr = BlockAttributes;
+using Attr = BlockAttribute;
 
-using testutil::make_param;
+auto P = testutil::make_param<BlockAttributes>;
 
 INSTANTIATE_TEST_CASE_P(
     BlockAttributesTestCases,
     BlockAttributesTest,
-    ::testing::Values(
-        make_param<Attr>({0}, false, {0}),
-        make_param<Attr>({1}, false, {Bits::HEADER | 0}),
-        make_param<Attr>({3}, false, {Bits::HEADER | Bits::BODY}),
-        make_param<Attr>({5}, false, {Bits::HEADER | Bits::RECEIPT}),
-        make_param<Attr>({8}, false, {Bits::MESSAGE_QUEUE | 0}),
-        make_param<Attr>({16}, false, {Bits::JUSTIFICATION | 0}),
-        make_param<Attr>({31},
-                         false,
-                         {Bits::HEADER | Bits::BODY | Bits::RECEIPT
-                          | Bits::MESSAGE_QUEUE | Bits::JUSTIFICATION}),
-        make_param<Attr>({64}, true, {64}),
-        make_param<Attr>({65}, true, {65}),
-        make_param<Attr>({128}, true, {128}),
-        make_param<Attr>({255}, true, {255})));
+    ::testing::Values(P({0}, false, {}),
+                      P({1}, false, {Attr::HEADER}),
+                      P({3}, false, {Attr::HEADER | Attr::BODY}),
+                      P({5}, false, {Attr::HEADER | Attr::RECEIPT}),
+                      P({8}, false, {Attr::MESSAGE_QUEUE}),
+                      P({16}, false, {Attr::JUSTIFICATION}),
+                      P({31},
+                        false,
+                        {Attr::HEADER | Attr::BODY | Attr::RECEIPT
+                         | Attr::MESSAGE_QUEUE | Attr::JUSTIFICATION}),
+                      P({64}, true, BlockAttributes(64)),
+                      P({65}, true, BlockAttributes(65)),
+                      P({128}, true, BlockAttributes(128)),
+                      P({255}, true, BlockAttributes(255))));
