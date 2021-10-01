@@ -19,10 +19,10 @@ namespace kagome::network {
         app_config_(app_config),
         own_info_{own_info},
         log_{log::createLogger("RouterLibp2p", "network")},
-        ping_proto_{std::move(ping_proto)},
+        ping_protocol_{std::move(ping_proto)},
         protocol_factory_{std::move(protocol_factory)} {
     BOOST_ASSERT(app_state_manager_ != nullptr);
-    BOOST_ASSERT(ping_proto_ != nullptr);
+    BOOST_ASSERT(ping_protocol_ != nullptr);
     BOOST_ASSERT(protocol_factory_ != nullptr);
 
     SL_DEBUG(log_, "Own peer id: {}", own_info.id.toBase58());
@@ -43,13 +43,13 @@ namespace kagome::network {
 
   bool RouterLibp2p::prepare() {
     host_.setProtocolHandler(
-        ping_proto_->getProtocolId(), [wp = weak_from_this()](auto &&stream) {
+        ping_protocol_->getProtocolId(), [wp = weak_from_this()](auto &&stream) {
           if (auto self = wp.lock()) {
             if (auto peer_id = stream->remotePeerId()) {
               self->log_->info("Handled {} protocol stream from: {}",
-                               self->ping_proto_->getProtocolId(),
+                               self->ping_protocol_->getProtocolId(),
                                peer_id.value().toBase58());
-              self->ping_proto_->handle(std::forward<decltype(stream)>(stream));
+              self->ping_protocol_->handle(std::forward<decltype(stream)>(stream));
             }
           }
         });
@@ -150,6 +150,10 @@ namespace kagome::network {
 
   std::shared_ptr<GrandpaProtocol> RouterLibp2p::getGrandpaProtocol() const {
     return grandpa_protocol_;
+  }
+
+  std::shared_ptr<libp2p::protocol::Ping> RouterLibp2p::getPingProtocol() const {
+    return ping_protocol_;
   }
 
   outcome::result<void> RouterLibp2p::appendPeerIdToAddress(
