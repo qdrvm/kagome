@@ -109,7 +109,15 @@ namespace kagome::consensus::babe {
                last_epoch_descriptor.start_slot);
     }
 
-    current_state_ = State::WAIT_REMOTE_STATUS;
+    if (auto epoch_res = block_tree_->getEpochDescriptor(
+            last_epoch_descriptor.epoch_number, best_block_.hash);
+        epoch_res.has_value() and epoch_res.value().authorities.size() == 1
+        and epoch_res.value().authorities[0].id.id == keypair_->public_key) {
+      SL_INFO(log_, "Starting single validating node.");
+      onSynchronized();
+    } else {
+      current_state_ = State::WAIT_REMOTE_STATUS;
+    }
     return true;
   }
 
