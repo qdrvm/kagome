@@ -34,8 +34,7 @@ namespace kagome::runtime {
 
    private:
     void setStateCodeFromBatch(
-        const outcome::result<
-            std::unique_ptr<storage::trie::EphemeralTrieBatch>> &batch) const;
+        const storage::trie::EphemeralTrieBatch &batch) const;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     const application::CodeSubstitutes &code_substitutes_;

@@ -34,7 +34,8 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<ModuleInstance>>
   ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
-      const primitives::BlockInfo &block) {
+      const primitives::BlockInfo &block,
+      const primitives::BlockHeader &header) {
     KAGOME_PROFILE_START(code_retrieval)
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval)
@@ -49,8 +50,14 @@ namespace kagome::runtime {
     {
       std::lock_guard guard{modules_mutex_};
       if (auto opt_module = modules_.get(state); !opt_module.has_value()) {
-        OUTCOME_TRY(code, code_provider->getCodeAt(state));
-        OUTCOME_TRY(new_module, module_factory_->make(code));
+        auto code = code_provider->getCodeAt(state);
+        if (not code.has_value()) {
+          code = code_provider->getCodeAt(header.state_root);
+        }
+        if (not code.has_value()) {
+          return code.as_failure();
+        }
+        OUTCOME_TRY(new_module, module_factory_->make(code.value()));
         module = std::move(new_module);
         BOOST_VERIFY(modules_.put(state, module));
       } else {

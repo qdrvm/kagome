@@ -24,9 +24,10 @@ namespace kagome::runtime::binaryen {
       BOOST_ASSERT(env_factory_);
     }
 
-    outcome::result<std::shared_ptr<runtime::ModuleInstance>>
-    getInstanceAt(std::shared_ptr<const RuntimeCodeProvider>,
-                  const primitives::BlockInfo &b) override {
+    outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
+        std::shared_ptr<const RuntimeCodeProvider>,
+        const primitives::BlockInfo &,
+        const primitives::BlockHeader &) override {
       if (instance_ == nullptr) {
         OUTCOME_TRY(module, ModuleImpl::createFromCode(code_, env_factory_));
         OUTCOME_TRY(inst, module->instantiate());

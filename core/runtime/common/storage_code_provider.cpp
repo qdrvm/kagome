@@ -26,7 +26,8 @@ namespace kagome::runtime {
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
     last_state_root_ = storage_->getRootHash();
     auto batch = storage_->getEphemeralBatch();
-    setStateCodeFromBatch(batch);
+    BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
+    setStateCodeFromBatch(*batch.value().get());
   }
 
   outcome::result<gsl::span<const uint8_t>> StorageCodeProvider::getCodeAt(
@@ -42,21 +43,15 @@ namespace kagome::runtime {
           return cached_code_;
         }
       }
-      auto batch = storage_->getEphemeralBatchAt(state);
-      // avoids failure in case when the state was pruned
-      if(not batch.has_value()) {
-        batch = storage_->getEphemeralBatch();
-      }
-      setStateCodeFromBatch(batch);
+      OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
+      setStateCodeFromBatch(*batch.get());
     }
     return cached_code_;
   }
 
   void StorageCodeProvider::setStateCodeFromBatch(
-      const outcome::result<std::unique_ptr<storage::trie::EphemeralTrieBatch>>
-          &batch) const {
-    BOOST_ASSERT_MSG(batch.has_value(), "Error getting a batch of the storage");
-    auto state_code_res = batch.value()->get(storage::kRuntimeCodeKey);
+      const storage::trie::EphemeralTrieBatch &batch) const {
+    auto state_code_res = batch.get(storage::kRuntimeCodeKey);
     BOOST_ASSERT_MSG(state_code_res.has_value(),
                      "Runtime code does not exist in the storage");
     uncompressCodeIfNeeded(state_code_res.value(), cached_code_);

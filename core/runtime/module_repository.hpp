@@ -40,9 +40,10 @@ namespace kagome::runtime {
      * @param block info of the block at which the runtime code should be
      * extracted
      */
-    virtual outcome::result<std::shared_ptr<ModuleInstance>>
-    getInstanceAt(std::shared_ptr<const RuntimeCodeProvider> code_provider,
-                  const primitives::BlockInfo &block) = 0;
+    virtual outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
+        std::shared_ptr<const RuntimeCodeProvider> code_provider,
+        const primitives::BlockInfo &block,
+        const primitives::BlockHeader &header) = 0;
   };
 
 }  // namespace kagome::runtime
