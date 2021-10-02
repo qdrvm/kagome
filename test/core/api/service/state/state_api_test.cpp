@@ -72,7 +72,7 @@ namespace kagome::api {
     EXPECT_CALL(*storage_, getEphemeralBatchAt(_))
         .WillRepeatedly(testing::Invoke([](auto &root) {
           auto batch = std::make_unique<EphemeralTrieBatchMock>();
-          EXPECT_CALL(*batch, get("a"_buf))
+          EXPECT_CALL(*batch, tryGet("a"_buf))
               .WillRepeatedly(testing::Return("1"_buf));
           return batch;
         }));
@@ -338,6 +338,12 @@ namespace kagome::api {
     std::vector block_range{from, "block2"_hash256, "block3"_hash256, to};
     EXPECT_CALL(*block_tree_, getChainByBlocks(from, to))
         .WillOnce(testing::Return(block_range));
+    EXPECT_CALL(*block_header_repo_,
+                getNumberByHash(from))
+        .WillOnce(testing::Return(1));
+    EXPECT_CALL(*block_header_repo_,
+                getNumberByHash(to))
+        .WillOnce(testing::Return(4));
     for (auto &block_hash : block_range) {
       primitives::BlockHash state_root;
       auto s = block_hash.toString() + "_etats";

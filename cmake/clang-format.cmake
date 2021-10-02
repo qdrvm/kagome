@@ -35,18 +35,18 @@ if(NOT CLANG_FORMAT_BIN)
   endif()
 endif()
 
-execute_process(
+if(CLANG_FORMAT_BIN)
+  execute_process(
     COMMAND ${CLANG_FORMAT_BIN} --version
     COMMAND sed -r "s/.*version \([[:digit:]]+\).*/\\1/"
     OUTPUT_VARIABLE CLANG_FORMAT_VERSION
-)
-math(EXPR CLANG_FORMAT_VERSION "0 + 0${CLANG_FORMAT_VERSION}")
-if(NOT ${CLANG_FORMAT_VERSION} EQUAL ${RECOMMENDED_CLANG_FORMAT_VERSION})
-  message(WARNING "Found clang-format version ${CLANG_FORMAT_VERSION}, "
-      "but version ${RECOMMENDED_CLANG_FORMAT_VERSION} is recommended")
-endif()
+  )
+  math(EXPR CLANG_FORMAT_VERSION "0 + 0${CLANG_FORMAT_VERSION}")
+  if(NOT ${CLANG_FORMAT_VERSION} EQUAL ${RECOMMENDED_CLANG_FORMAT_VERSION})
+    message(WARNING "Found clang-format version ${CLANG_FORMAT_VERSION}, "
+       "but version ${RECOMMENDED_CLANG_FORMAT_VERSION} is recommended")
+  endif()
 
-if(CLANG_FORMAT_BIN)
   message(STATUS "Target clang-format is enabled")
   add_custom_target(
       clang-format
@@ -54,4 +54,7 @@ if(CLANG_FORMAT_BIN)
       -i
       ${ALL_CXX_SOURCE_FILES}
   )
+
+else()
+  message(WARNING "clang-format is not found")
 endif()
