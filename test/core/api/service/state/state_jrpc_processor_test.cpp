@@ -29,6 +29,8 @@ class StateJrpcProcessorTest : public testing::Test {
     kCallType_UnsubscribeRuntimeVersion,
     kCallType_GetKeysPaged,
     kCallType_GetStorage,
+    kCallType_QueryStorage,
+    kCallType_QueryStorageAt,
     kCallType_StorageSubscribe,
     kCallType_StorageUnsubscribe,
     kCallType_GetMetadata,
@@ -83,6 +85,16 @@ class StateJrpcProcessorTest : public testing::Test {
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
+        }));
+    EXPECT_CALL(*server, registerHandler("state_queryStorage", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_QueryStorage, CallContext{.handler = f}));
+        }));
+    EXPECT_CALL(*server, registerHandler("state_queryStorageAt", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_QueryStorageAt, CallContext{.handler = f}));
         }));
     EXPECT_CALL(*server, registerHandler("state_subscribeStorage", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {

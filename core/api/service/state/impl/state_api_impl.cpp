@@ -126,7 +126,7 @@ namespace kagome::api {
       return Error::MAX_KEY_SET_SIZE_EXCEEDED;
     }
 
-    {
+    if (from != to) {
       OUTCOME_TRY(from_number, header_repo_->getNumberByHash(from));
       OUTCOME_TRY(to_number, header_repo_->getNumberByHash(to));
       if (to_number < from_number) {
@@ -136,6 +136,7 @@ namespace kagome::api {
         return Error::MAX_BLOCK_RANGE_EXCEEDED;
       }
     }
+
     std::vector<StorageChangeSet> changes;
     std::map<gsl::span<const uint8_t>, boost::optional<common::Buffer>>
         last_values;
@@ -166,7 +167,8 @@ namespace kagome::api {
   StateApiImpl::queryStorageAt(
       gsl::span<const common::Buffer> keys,
       boost::optional<primitives::BlockHash> opt_at) const {
-    auto at = opt_at.value_or(block_tree_->deepestLeaf().hash);
+    auto at =
+        opt_at.has_value() ? opt_at.value() : block_tree_->deepestLeaf().hash;
     return queryStorage(keys, at, at);
   }
 

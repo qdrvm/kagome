@@ -393,4 +393,37 @@ namespace kagome::api {
     ASSERT_EQ(error, StateApiImpl::Error::MAX_KEY_SET_SIZE_EXCEEDED);
   }
 
+  TEST_F(StateApiTest, QueryStorageAtSucceeds) {
+    std::vector<common::Buffer> keys{"key1"_buf, "key2"_buf, "key3"_buf};
+    primitives::BlockHash at{"at"_hash256};
+    std::vector block_range{at};
+
+    EXPECT_CALL(*block_tree_, getChainByBlocks(at, at))
+        .WillOnce(testing::Return(block_range));
+
+    primitives::BlockHash state_root = "at_state"_hash256;
+    EXPECT_CALL(*block_header_repo_,
+                getBlockHeader(primitives::BlockId{at}))
+        .WillOnce(testing::Return(
+            primitives::BlockHeader{.state_root = state_root}));
+    EXPECT_CALL(*storage_, getEphemeralBatchAt(state_root))
+        .WillOnce(testing::Invoke([&keys](auto &root) {
+          auto batch =
+              std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+          for (auto &key : keys) {
+            EXPECT_CALL(*batch, tryGet(key))
+                .WillOnce(testing::Return(common::Buffer(root)));
+          }
+          return batch;
+        }));
+
+    EXPECT_OUTCOME_TRUE(changes, api_->queryStorageAt(keys, at))
+    ASSERT_EQ(changes.size(), 1);
+    ASSERT_EQ(changes[0].block, at);
+    ASSERT_THAT(changes[0].changes,
+                ::testing::Each(::testing::Field(
+                    &StateApiImpl::StorageChangeSet::Change::key,
+                    ContainedIn(keys))));
+  }
+
 }  // namespace kagome::api
