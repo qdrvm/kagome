@@ -36,11 +36,12 @@ namespace kagome::network {
     boost::optional<uint32_t> max{};
 
     /// includes HEADER, BODY and JUSTIFICATION
-    static constexpr BlockAttributes kBasicAttributes{19};
+    static constexpr BlockAttributes kBasicAttributes =
+        BlockAttribute::HEADER | BlockAttribute::BODY
+        | BlockAttribute::JUSTIFICATION;
 
-    bool attributeIsSet(BlockAttributesBits attribute) const {
-      return (fields.attributes.to_ulong() & static_cast<uint8_t>(attribute))
-             != 0;
+    bool attributeIsSet(const BlockAttribute &attribute) const {
+      return fields & attribute;
     }
   };
 }  // namespace kagome::network

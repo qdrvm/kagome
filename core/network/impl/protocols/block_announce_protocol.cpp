@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/protocols/block_announce_protocol.hpp"
+#include "network/impl/protocols/block_announce_protocol.hpp"
 
 #include "application/app_configuration.hpp"
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
-#include "network/protocols/protocol_error.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 
 namespace kagome::network {
 
@@ -134,6 +134,7 @@ namespace kagome::network {
                  }
 
                  self->peer_manager_->reserveStreams(peer_id);
+                 self->peer_manager_->startPingingPeer(peer_id);
 
                  SL_VERBOSE(self->log_,
                             "Fully established incoming {} stream with {}",

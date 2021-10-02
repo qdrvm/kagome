@@ -251,6 +251,11 @@ namespace kagome::host_api {
     }
     auto &&next_key_opt = res.value();
     if (auto enc_res = scale::encode(next_key_opt); enc_res.has_value()) {
+      SL_TRACE_FUNC_CALL(logger_,
+                         res.value().has_value()
+                             ? res.value().value()
+                             : common::Buffer().put("no value"),
+                         key_bytes);
       return memory.storeBuffer(enc_res.value());
     } else {  // NOLINT(readability-else-after-return)
       logger_->error(

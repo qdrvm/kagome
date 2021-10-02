@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/protocols/sync_protocol.hpp"
+#include "network/impl/protocols/sync_protocol_impl.hpp"
 
 #include "common/visitor.hpp"
 #include "network/adapters/protobuf_block_request.hpp"
 #include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
-#include "network/protocols/protocol_error.hpp"
 #include "network/rpc.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 
 namespace kagome::network {
 
-  SyncProtocol::SyncProtocol(
+  SyncProtocolImpl::SyncProtocolImpl(
       libp2p::Host &host,
       const application::ChainSpec &chain_spec,
       std::shared_ptr<SyncProtocolObserver> sync_observer)
@@ -27,7 +27,7 @@ namespace kagome::network {
         fmt::format(kSyncProtocol.data(), chain_spec.protocolId());
   }
 
-  bool SyncProtocol::start() {
+  bool SyncProtocolImpl::start() {
     host_.setProtocolHandler(protocol_, [wp = weak_from_this()](auto &&stream) {
       if (auto self = wp.lock()) {
         if (auto peer_id = stream->remotePeerId()) {
@@ -45,17 +45,17 @@ namespace kagome::network {
     return true;
   }
 
-  bool SyncProtocol::stop() {
+  bool SyncProtocolImpl::stop() {
     return true;
   }
 
-  void SyncProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {
+  void SyncProtocolImpl::onIncomingStream(std::shared_ptr<Stream> stream) {
     BOOST_ASSERT(stream->remotePeerId().has_value());
 
     readRequest(stream);
   }
 
-  void SyncProtocol::newOutgoingStream(
+  void SyncProtocolImpl::newOutgoingStream(
       const PeerInfo &peer_info,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb) {
     SL_DEBUG(log_,
@@ -95,7 +95,7 @@ namespace kagome::network {
         });
   }
 
-  void SyncProtocol::readRequest(std::shared_ptr<Stream> stream) {
+  void SyncProtocolImpl::readRequest(std::shared_ptr<Stream> stream) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
     SL_DEBUG(log_,
@@ -130,7 +130,7 @@ namespace kagome::network {
           self->protocol_,
           stream->remotePeerId().value().toBase58(),
           block_request.id,
-          block_request.fields.attributes,
+          (uint8_t)block_request.fields,
           block_request.direction == Direction::ASCENDING ? "anc" : "desc",
           visit_in_place(
               block_request.from,
@@ -164,8 +164,8 @@ namespace kagome::network {
     });
   }
 
-  void SyncProtocol::writeResponse(std::shared_ptr<Stream> stream,
-                                   const BlocksResponse &block_response) {
+  void SyncProtocolImpl::writeResponse(std::shared_ptr<Stream> stream,
+                                       const BlocksResponse &block_response) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
     read_writer->write(
@@ -193,7 +193,7 @@ namespace kagome::network {
         });
   }
 
-  void SyncProtocol::writeRequest(
+  void SyncProtocolImpl::writeRequest(
       std::shared_ptr<Stream> stream,
       BlocksRequest block_request,
       std::function<void(outcome::result<void>)> &&cb) {
@@ -239,7 +239,7 @@ namespace kagome::network {
         });
   }
 
-  void SyncProtocol::readResponse(
+  void SyncProtocolImpl::readResponse(
       std::shared_ptr<Stream> stream,
       std::function<void(outcome::result<BlocksResponse>)> &&response_handler) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
@@ -284,7 +284,7 @@ namespace kagome::network {
     });
   }
 
-  void SyncProtocol::request(
+  void SyncProtocolImpl::request(
       const PeerId &peer_id,
       BlocksRequest block_request,
       std::function<void(outcome::result<BlocksResponse>)> &&response_handler) {

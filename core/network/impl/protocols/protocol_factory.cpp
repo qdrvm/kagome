@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "protocol_factory.hpp"
+#include "network/impl/protocols/protocol_factory.hpp"
 
 namespace kagome::network {
 
@@ -74,7 +74,7 @@ namespace kagome::network {
   }
 
   std::shared_ptr<SyncProtocol> ProtocolFactory::makeSyncProtocol() const {
-    return std::make_shared<SyncProtocol>(
+    return std::make_shared<SyncProtocolImpl>(
         host_, chain_spec_, sync_observer_.lock());
   }
 

@@ -55,7 +55,7 @@
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
-#include "consensus/babe/impl/block_executor.hpp"
+#include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
@@ -85,7 +85,6 @@
 #include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
 #include "network/sync_protocol_observer.hpp"
-#include "network/types/sync_clients_set.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
@@ -212,7 +211,7 @@ namespace {
         [&](const primitives::Block &genesis_block) {
           auto log = log::createLogger("Injector", "injector");
 
-          auto res = db->get(authority::AuthorityManagerImpl::SCHEDULER_TREE);
+          auto res = db->get(storage::kSchedulerTreeLookupKey);
           if (not res.has_value()
               && res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
             auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
@@ -248,9 +247,8 @@ namespace {
               common::raise(data_res.error());
             }
 
-            auto save_res =
-                db->put(authority::AuthorityManagerImpl::SCHEDULER_TREE,
-                        common::Buffer(data_res.value()));
+            auto save_res = db->put(storage::kSchedulerTreeLookupKey,
+                                    common::Buffer(data_res.value()));
             if (!save_res.has_value()) {
               log->critical("Can't store current state: {}",
                             save_res.error().message());
@@ -700,7 +698,6 @@ namespace {
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<const network::BootstrapNodes &>(),
         injector.template create<const network::OwnPeerInfo &>(),
-        injector.template create<sptr<network::SyncClientsSet>>(),
         injector.template create<sptr<network::Router>>(),
         injector.template create<sptr<storage::BufferStorage>>());
 
@@ -714,26 +711,24 @@ namespace {
   }
 
   template <typename Injector>
-  sptr<consensus::BlockExecutor> get_block_executor(const Injector &injector) {
+  sptr<consensus::BlockExecutorImpl> get_block_executor(
+      const Injector &injector) {
     static auto initialized =
-        boost::optional<sptr<consensus::BlockExecutor>>(boost::none);
+        boost::optional<sptr<consensus::BlockExecutorImpl>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
 
-    auto block_executor = std::make_shared<consensus::BlockExecutor>(
+    auto block_executor = std::make_shared<consensus::BlockExecutorImpl>(
         injector.template create<sptr<blockchain::BlockTree>>(),
         injector.template create<sptr<runtime::Core>>(),
         injector.template create<sptr<primitives::BabeConfiguration>>(),
-        injector.template create<sptr<consensus::BabeSynchronizer>>(),
         injector.template create<sptr<consensus::BlockValidator>>(),
         injector.template create<sptr<consensus::grandpa::Environment>>(),
         injector.template create<sptr<transaction_pool::TransactionPool>>(),
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<sptr<consensus::BabeUtil>>(),
-        injector.template create<sptr<boost::asio::io_context>>(),
-        injector.template create<uptr<clock::Timer>>());
+        injector.template create<sptr<consensus::BabeUtil>>());
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
@@ -935,6 +930,8 @@ namespace {
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
+        di::bind<application::CodeSubstitutes>.to(
+            get_chain_spec(config)->codeSubstitutes()),
 
         // compose peer keypair
         di::bind<libp2p::crypto::KeyPair>.to([](auto const &injector) {
@@ -1224,7 +1221,6 @@ namespace {
     initialized = std::make_shared<consensus::babe::BabeImpl>(
         injector.template create<sptr<application::AppStateManager>>(),
         injector.template create<sptr<consensus::BabeLottery>>(),
-        injector.template create<sptr<consensus::BlockExecutor>>(),
         injector.template create<sptr<storage::trie::TrieStorage>>(),
         injector.template create<sptr<primitives::BabeConfiguration>>(),
         injector.template create<sptr<authorship::Proposer>>(),
@@ -1236,6 +1232,7 @@ namespace {
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
+        injector.template create<sptr<consensus::BabeSynchronizer>>(),
         injector.template create<sptr<consensus::BabeUtil>>());
 
     auto protocol_factory =

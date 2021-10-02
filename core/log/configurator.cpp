@@ -66,6 +66,8 @@ groups:
               - name: kagome_protocols
           - name: changes_trie
           - name: storage
+            children:
+              - name: trie
           - name: pubsub
       - name: others
         children:
