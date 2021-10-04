@@ -22,8 +22,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
       "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
       bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
-    add-apt-repository -y "deb http://apt.llvm.org/bullseye/ llvm-toolchain-buster main" && \
-    add-apt-repository -y "deb http://deb.debian.org/debian stable main" && \
+    add-apt-repository -y "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-12 main" && \
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
         docker-ce-cli \
@@ -46,7 +45,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     rm -rf /var/lib/apt/lists/*
 
 # install rustc
-ENV RUST_VERSION=nightly-2020-09-24
+ENV RUST_VERSION=nightly-2021-10-04
 ENV RUSTUP_HOME=/root/.rustup
 ENV CARGO_HOME=/root/.cargo
 ENV PATH="${CARGO_HOME}/bin:${PATH}"
@@ -69,7 +68,6 @@ RUN set -e; \
 
 # set env
 ENV LLVM_ROOT=/usr/lib/llvm-9
-ENV LLVM_DIR=/usr/lib/llvm-9/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
 ENV CC=gcc-9
 ENV CXX=g++-9
