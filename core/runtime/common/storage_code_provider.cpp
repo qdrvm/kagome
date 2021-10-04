@@ -61,5 +61,6 @@ namespace kagome::runtime {
       const storage::trie::EphemeralTrieBatch &batch) const {
     OUTCOME_TRY(code, batch.get(storage::kRuntimeCodeKey));
     OUTCOME_TRY(uncompressCodeIfNeeded(code, cached_code_));
+    return outcome::success();
   }
 }  // namespace kagome::runtime
