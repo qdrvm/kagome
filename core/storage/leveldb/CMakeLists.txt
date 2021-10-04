@@ -7,6 +7,7 @@ add_library(leveldb
     leveldb_cursor.cpp
     )
 target_link_libraries(leveldb
+    Boost::filesystem
     leveldb::leveldb
     buffer
     database_error

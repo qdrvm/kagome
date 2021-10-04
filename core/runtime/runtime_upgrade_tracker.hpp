@@ -21,13 +21,20 @@ namespace kagome::runtime {
     virtual ~RuntimeUpgradeTracker() = default;
 
     /**
-     * @return the latest state earlier than the state of \param block, where
+     * @return the latest block earlier than \param block, where
      * runtime upgrade happened
      */
     virtual outcome::result<storage::trie::RootHash> getLastCodeUpdateState(
-        const primitives::BlockInfo &block) const = 0;
+        const primitives::BlockInfo &block) = 0;
+
+    virtual outcome::result<primitives::BlockHash> getLastCodeUpdateHash(
+        const storage::trie::RootHash &state) const = 0;
   };
 
+  enum class RuntimeUpgradeTrackerError { NOT_FOUND = 1 };
+
 }  // namespace kagome::runtime
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, RuntimeUpgradeTrackerError)
 
 #endif  // KAGOME_CORE_RUNTIME_RUNTIME_UPGRADE_TRACKER_HPP

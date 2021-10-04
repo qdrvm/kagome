@@ -99,10 +99,10 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
   PolkadotTrieCursorImpl cursor{*trie};
   for (auto &p : vals) {
     EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
-    ASSERT_TRUE(cursor.value());
     ASSERT_TRUE(cursor.key());
+    ASSERT_TRUE(cursor.value());
+    ASSERT_EQ(cursor.key().value(), p.first);
     ASSERT_EQ(cursor.value(), p.second);
-    ASSERT_EQ(cursor.key(), p.first);
   }
   EXPECT_OUTCOME_SUCCESS(r1, cursor.next());
   ASSERT_FALSE(cursor.isValid());

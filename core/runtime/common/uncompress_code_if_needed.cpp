@@ -7,7 +7,14 @@
 
 #include <zstd.h>
 
-#include "log/logger.hpp"
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, UncompressError, e) {
+  using E = kagome::runtime::UncompressError;
+  switch (e) {
+    case E::ZSTD_ERROR:
+      return "WASM code not compressed by zstd!";
+  }
+  return "Unknown error";
+}
 
 namespace kagome::runtime {
 
@@ -20,23 +27,20 @@ namespace kagome::runtime {
   // https://github.com/paritytech/substrate/blob/polkadot-v0.9.8/primitives/maybe-compressed-blob/src/lib.rs#L35
   constexpr size_t kCodeBlobBombLimit = 50 * 1024 * 1024;
 
-  void uncompressCodeIfNeeded(const common::Buffer &buf, common::Buffer &res) {
+  outcome::result<void> uncompressCodeIfNeeded(const common::Buffer &buf,
+                                               common::Buffer &res) {
     if (buf.size() > kZstdPrefixSize
         && std::equal(buf.begin(),
                       buf.begin() + kZstdPrefixSize,
                       std::begin(kZstdPrefix),
                       std::end(kZstdPrefix))) {
-      auto logger = log::createLogger("UncompressCodeIfNeeded", "wasm");
       // here we can check that blob is really ZSTD compressed
       // but we don't use the result size, it's unknown for the WASM blob
       // @see ZSTD_CONTENTSIZE_UNKNOWN
       auto check_size = ZSTD_getFrameContentSize(buf.data() + kZstdPrefixSize,
                                                  buf.size() - kZstdPrefixSize);
-      // error here would mean an update of codebase
-      // so we leave it to try the previous runtime if any
       if (check_size == ZSTD_CONTENTSIZE_ERROR) {
-        logger->error("WASM code not compressed by zstd!");
-        return;
+        return UncompressError::ZSTD_ERROR;
       }
       res.resize(kCodeBlobBombLimit);
       auto size = ZSTD_decompress(res.data(),
@@ -47,6 +51,7 @@ namespace kagome::runtime {
     } else {
       res = buf;
     }
+    return outcome::success();
   }
 
 }  // namespace kagome::runtime

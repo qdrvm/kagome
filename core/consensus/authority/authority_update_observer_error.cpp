@@ -15,7 +15,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authority,
     case E::WRONG_AUTHORITY_INDEX:
       return "wrong authority index (out of bound)";
     case E::NO_SCHEDULED_CHANGE_APPLIED_YET:
-      return "no previous change (sheduled) applied yet";
+      return "no previous change (scheduled) applied yet";
     case E::NO_FORCED_CHANGE_APPLIED_YET:
       return "no previous change (forced) applied yet";
     case E::NO_PAUSE_APPLIED_YET:

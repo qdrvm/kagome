@@ -8,6 +8,8 @@
 
 #include "runtime/module_repository.hpp"
 
+#include <unordered_map>
+
 #include "log/logger.hpp"
 #include "runtime/instance_environment.hpp"
 
@@ -88,12 +90,13 @@ namespace kagome::runtime {
   class ModuleRepositoryImpl final : public ModuleRepository {
    public:
     ModuleRepositoryImpl(
-        std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
+        std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
         std::shared_ptr<const ModuleFactory> module_factory);
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider> code_provider,
-        const primitives::BlockInfo &block) override;
+        const primitives::BlockInfo &block,
+        const primitives::BlockHeader &header) override;
 
    private:
     static constexpr size_t MODULES_CACHE_SIZE = 2;
@@ -107,9 +110,8 @@ namespace kagome::runtime {
         instances_cache_;
 
     std::mutex instances_mutex_;
-    std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker_;
+    std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
-
     log::Logger logger_;
   };
 

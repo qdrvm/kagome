@@ -124,4 +124,18 @@ namespace kagome::storage {
     return error_as_result<void>(status, logger_);
   }
 
+  void LevelDB::compact(const Buffer &first, const Buffer &last) {
+    if (db_) {
+      auto *begin = db_->NewIterator(ro_);
+      first.empty() ? begin->SeekToFirst() : begin->Seek(make_slice(first));
+      auto bk = begin->key();
+      auto *end = db_->NewIterator(ro_);
+      last.empty() ? end->SeekToLast() : end->Seek(make_slice(last));
+      auto ek = end->key();
+      db_->CompactRange(&bk, &ek);
+      delete begin;
+      delete end;
+    }
+  }
+
 }  // namespace kagome::storage

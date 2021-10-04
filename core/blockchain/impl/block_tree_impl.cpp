@@ -596,7 +596,7 @@ namespace kagome::blockchain {
       }
     }
 
-    log_->info("Finalized block. Number: {}, Hash: {}",
+    log_->info("Finalized block #{} hash={}",
                node->depth,
                block_hash.toHex());
     block_height_finalized_->set(node->depth);
