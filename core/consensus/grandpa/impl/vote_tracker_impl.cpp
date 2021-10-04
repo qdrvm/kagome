@@ -18,37 +18,25 @@ namespace kagome::consensus::grandpa {
       total_weight_ += weight;
       return PushResult::SUCCESS;
     }
-    auto &equivotes = vote_it->second;
-    bool isDuplicate = visit_in_place(
-        equivotes,
-        [&vote](const SignedMessage &voting_message) {
-          return voting_message.getBlockHash() == vote.getBlockHash();
-        },
-        [&vote](const EquivocatorySignedMessage &equivocatory_vote) {
-          return equivocatory_vote.first.getBlockHash() == vote.getBlockHash()
-                 or equivocatory_vote.second.getBlockHash()
-                        == vote.getBlockHash();
-        });
-    if (not isDuplicate) {
-      return visit_in_place(
-          equivotes,
-          // if there is only single vote for that id, make it equivocatory vote
-          [&](const SignedMessage &voting_message) {
-            EquivocatorySignedMessage v;
-            v.first = boost::get<SignedMessage>(equivotes);
-            v.second = vote;
 
-            messages_[vote.id] = v;
-            total_weight_ += weight;
-            equivocators_weight_ += weight;
-            return PushResult::EQUIVOCATED;
-          },
-          // otherwise return duplicated
-          [&](const EquivocatorySignedMessage &) {
+    auto &known_vote_variant = vote_it->second;
+
+    return visit_in_place(
+        known_vote_variant,
+        [&](const SignedMessage &known_vote) {
+          // If it is known vote, it means duplicate
+          if (vote == known_vote) {
             return PushResult::DUPLICATED;
-          });
-    }
-    return PushResult::DUPLICATED;
+          }
+
+          // Otherwise, it's another vote of known voter, make it equivocation
+          messages_[vote.id] = EquivocatorySignedMessage(known_vote, vote);
+          return PushResult::EQUIVOCATED;
+        },
+        [](const EquivocatorySignedMessage &) {
+          // This is vote of known equivocator
+          return PushResult::EQUIVOCATED;
+        });
   }
 
   void VoteTrackerImpl::unpush(const SignedMessage &vote, size_t weight) {
@@ -69,21 +57,17 @@ namespace kagome::consensus::grandpa {
   }
 
   std::vector<VoteVariant> VoteTrackerImpl::getMessages() const {
-    std::vector<VoteVariant> prevotes;
+    std::vector<VoteVariant> votes;
     // the actual number may be bigger, but it's a good guess
-    prevotes.reserve(messages_.size());
+    votes.reserve(messages_.size());
     for (const auto &[key, value] : messages_) {
-      prevotes.push_back(value);
+      votes.push_back(value);
     }
-    return prevotes;
+    return votes;
   }
 
   size_t VoteTrackerImpl::getTotalWeight() const {
     return total_weight_;
-  }
-
-  size_t VoteTrackerImpl::getEquivocatorsWeight() const {
-    return equivocators_weight_;
   }
 
 }  // namespace kagome::consensus::grandpa
