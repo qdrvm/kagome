@@ -37,14 +37,14 @@ endif()
 
 if(CLANG_FORMAT_BIN)
   execute_process(
-    COMMAND ${CLANG_FORMAT_BIN} --version
-    COMMAND sed -r "s/.*version \([[:digit:]]+\).*/\\1/"
-    OUTPUT_VARIABLE CLANG_FORMAT_VERSION
+      COMMAND ${CLANG_FORMAT_BIN} --version
+      COMMAND sed -r "s/.*version \([[:digit:]]+\).*/\\1/"
+      OUTPUT_VARIABLE CLANG_FORMAT_VERSION
   )
   math(EXPR CLANG_FORMAT_VERSION "0 + 0${CLANG_FORMAT_VERSION}")
   if(NOT ${CLANG_FORMAT_VERSION} EQUAL ${RECOMMENDED_CLANG_FORMAT_VERSION})
     message(WARNING "Found clang-format version ${CLANG_FORMAT_VERSION}, "
-       "but version ${RECOMMENDED_CLANG_FORMAT_VERSION} is recommended")
+        "but version ${RECOMMENDED_CLANG_FORMAT_VERSION} is recommended")
   endif()
 
   message(STATUS "Target clang-format is enabled")
