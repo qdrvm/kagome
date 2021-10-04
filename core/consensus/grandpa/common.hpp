@@ -29,7 +29,6 @@ namespace kagome::consensus::grandpa {
   using Duration = Clock::Duration;
   using TimePoint = Clock::TimePoint;
 
-  enum class State { START, PROPOSED, PREVOTED, PRECOMMITTED };
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CORE_CONSENSUS_GRANDPA_COMMON_HPP
