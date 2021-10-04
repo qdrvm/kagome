@@ -32,7 +32,7 @@ namespace kagome::authority {
   }
 
   bool AuthorityManagerImpl::prepare() {
-    auto encoded_root_res = storage_->get(SCHEDULER_TREE);
+    auto encoded_root_res = storage_->get(storage::kSchedulerTreeLookupKey);
     if (not encoded_root_res.has_value()) {
       log_->critical("Can't restore authority manager state");
       return false;
@@ -69,8 +69,8 @@ namespace kagome::authority {
       return AuthorityManagerError::CAN_NOT_SAVE_STATE;
     }
 
-    auto save_res =
-        storage_->put(SCHEDULER_TREE, common::Buffer(data_res.value()));
+    auto save_res = storage_->put(storage::kSchedulerTreeLookupKey,
+                                  common::Buffer(data_res.value()));
     if (!save_res.has_value()) {
       log_->critical("Can't store current state");
       return AuthorityManagerError::CAN_NOT_SAVE_STATE;
