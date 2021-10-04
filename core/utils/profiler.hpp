@@ -22,10 +22,10 @@ class TicToc {
     if (line != -1) {
       str += "at line " + std::to_string(line);
     }
-    log_->warn("{} lasted for {} sec",
-               str,
-               std::chrono::duration_cast<std::chrono::seconds>(t_ - prev)
-                   .count());
+    log_->info(
+        "{} lasted for {} sec",
+        str,
+        std::chrono::duration_cast<std::chrono::seconds>(t_ - prev).count());
   }
 
   ~TicToc() {
