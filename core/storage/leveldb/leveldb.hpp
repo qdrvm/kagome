@@ -68,6 +68,8 @@ namespace kagome::storage {
 
     outcome::result<void> remove(const Buffer &key) override;
 
+    void compact(const Buffer& first, const Buffer& last);
+
    private:
     std::unique_ptr<leveldb::DB> db_;
     leveldb::ReadOptions ro_;
