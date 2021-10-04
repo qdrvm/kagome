@@ -52,22 +52,24 @@ enum ArgNum : uint8_t { DB_PATH = 1, STATE_HASH, MODE };
 enum Command : uint8_t { COMPACT, DUMP };
 
 void usage() {
-  std::cout << "\n    Kagome DB Editor\n\n";
-  std::cout << "Usage:\n";
-  std::cout << "    kagome-db-editor <db-path> <root-state> <command>\n\n";
-  std::cout << "    <db-path> full or relative path to kagome database. It is "
-               "usually path "
-               "polkadot/db inside base path set in kagome options.\n";
-  std::cout << "    <root-state> root state hash in 0x prefixed hex format.\n";
-  std::cout << "    <command>\n";
-  std::cout << "        dump: Dumps the state from the DB to file "
-               "hex_full_state.yaml in "
-               "format ready for use in polkadot-test.\n";
-  std::cout << "        compact: Compacts the kagome DB. Leaves only keys of "
-               "the state "
-               "passed as an arguments. Removes all other keys. [Default]\n\n";
-  std::cout << "Example:\n";
-  std::cout << "    kagome-db-editor base-path/polkadot/db 0x1e22e dump\n";
+  std::string help(R"(
+Kagome DB Editor
+Usage:
+    kagome-db-editor <db-path> <root-state> <command>
+
+    <db-path>     full or relative path to kagome database. It is usually path
+                    polkadot/db inside base path set in kagome options.
+    <root-state>  root state hash in 0x prefixed hex format.
+    <command>
+         dump:    dumps the state from the DB to file hex_full_state.yaml in
+                    format ready for use in polkadot-test.
+         compact: compacts the kagome DB. Leaves only keys of the state passed
+                    as an arguments. Removes all other keys. [Default]
+
+Example:
+    kagome-db-editor base-path/polkadot/db 0x1e22e dump
+)");
+  std::cout << help;
 };
 
 int main(int argc, char *argv[]) {
