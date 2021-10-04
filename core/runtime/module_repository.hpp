@@ -39,6 +39,7 @@ namespace kagome::runtime {
      * from the given block
      * @param block info of the block at which the runtime code should be
      * extracted
+     * @param header of the block at which the runtime code should be extracted
      */
     virtual outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider> code_provider,
