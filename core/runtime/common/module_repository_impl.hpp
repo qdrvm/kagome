@@ -95,7 +95,8 @@ namespace kagome::runtime {
 
     outcome::result<std::shared_ptr<ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider> code_provider,
-        const primitives::BlockInfo &block) override;
+        const primitives::BlockInfo &block,
+        const primitives::BlockHeader &header) override;
 
    private:
     static constexpr size_t MODULES_CACHE_SIZE = 2;

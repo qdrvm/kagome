@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-
 add_library(storage_code_provider
     storage_code_provider.cpp
     uncompress_code_if_needed.cpp
