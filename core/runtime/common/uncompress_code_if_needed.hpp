@@ -9,7 +9,12 @@
 #include "common/buffer.hpp"
 
 namespace kagome::runtime {
-  void uncompressCodeIfNeeded(const common::Buffer &buf, common::Buffer &res);
+  enum class UncompressError : uint8_t { ZSTD_ERROR };
+
+  outcome::result<void> uncompressCodeIfNeeded(const common::Buffer &buf,
+                                               common::Buffer &res);
 }  // namespace kagome::runtime
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, UncompressError);
 
 #endif  // KAGOME_CORE_RUNTIME_UNCOMPRESS_IF_NEEDED_HPP
