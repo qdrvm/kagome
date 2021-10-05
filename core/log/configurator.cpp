@@ -48,7 +48,6 @@ groups:
               - name: babe
                 children:
                   - name: babe_lottery
-                  - name: babe_synchronizer
                   - name: block_executor
                   - name: block_validator
               - name: grandpa
@@ -63,6 +62,7 @@ groups:
           - name: metrics
           - name: network
             children:
+              - name: synchronizer
               - name: kagome_protocols
           - name: changes_trie
           - name: storage

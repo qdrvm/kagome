@@ -11,12 +11,12 @@
 #include "blockchain/block_tree_error.hpp"
 #include "clock/impl/ticker_impl.hpp"
 #include "common/buffer.hpp"
-#include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "network/block_announce_transmitter.hpp"
+#include "network/synchronizer.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
@@ -41,7 +41,7 @@ namespace kagome::consensus::babe {
       std::unique_ptr<clock::Timer> timer,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      std::shared_ptr<BabeSynchronizer> babe_synchronizer,
+      std::shared_ptr<network::Synchronizer> synchronizer,
       std::shared_ptr<BabeUtil> babe_util)
       : lottery_{std::move(lottery)},
         trie_storage_{std::move(trie_storage)},
@@ -55,7 +55,7 @@ namespace kagome::consensus::babe {
         sr25519_provider_{std::move(sr25519_provider)},
         timer_{std::move(timer)},
         authority_update_observer_(std::move(authority_update_observer)),
-        babe_synchronizer_(std::move(babe_synchronizer)),
+        synchronizer_(std::move(synchronizer)),
         babe_util_(std::move(babe_util)),
         log_{log::createLogger("Babe", "babe")} {
     BOOST_ASSERT(lottery_);
@@ -69,7 +69,7 @@ namespace kagome::consensus::babe {
     BOOST_ASSERT(timer_);
     BOOST_ASSERT(log_);
     BOOST_ASSERT(authority_update_observer_);
-    BOOST_ASSERT(babe_synchronizer_);
+    BOOST_ASSERT(synchronizer_);
     BOOST_ASSERT(babe_util_);
 
     BOOST_ASSERT(app_state_manager);
@@ -229,7 +229,7 @@ namespace kagome::consensus::babe {
 
     // Received announce has the same block number as our best one,
     // or greater by one. Using of simple way to load block
-    babe_synchronizer_->syncByBlockHeader(
+    synchronizer_->syncByBlockHeader(
         announce.header,
         peer_id,
         [wp = weak_from_this()](
@@ -256,7 +256,7 @@ namespace kagome::consensus::babe {
                               const primitives::BlockInfo &target_block) {
     // synchronize missing blocks with their bodies
 
-    auto is_ran = babe_synchronizer_->syncByBlockInfo(
+    auto is_ran = synchronizer_->syncByBlockInfo(
         target_block,
         peer_id,
         [wp = weak_from_this(),

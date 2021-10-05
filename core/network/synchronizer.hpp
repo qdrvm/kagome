@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_SYNCHRONIZER
-#define KAGOME_CONSENSUS_BABE_SYNCHRONIZER
+#ifndef KAGOME_NETWORK_SYNCHRONIZER
+#define KAGOME_NETWORK_SYNCHRONIZER
 
 #include <libp2p/peer/peer_id.hpp>
 
@@ -12,14 +12,14 @@
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 
-namespace kagome::consensus {
+namespace kagome::network {
 
-  class BabeSynchronizer {
+  class Synchronizer {
    public:
     using SyncResultHandler =
         std::function<void(outcome::result<primitives::BlockInfo>)>;
 
-    virtual ~BabeSynchronizer() = default;
+    virtual ~Synchronizer() = default;
 
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}
     /// since best common block up to provided {@param block_info}.
@@ -41,6 +41,6 @@ namespace kagome::consensus {
                                    SyncResultHandler &&handler) = 0;
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::network
 
-#endif  // KAGOME_CONSENSUS_BABE_SYNCHRONIZER
+#endif  // KAGOME_NETWORK_SYNCHRONIZER

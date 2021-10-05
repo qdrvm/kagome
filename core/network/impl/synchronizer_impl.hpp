@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_SYNCHRONIZERIMPL2
-#define KAGOME_CONSENSUS_BABE_SYNCHRONIZERIMPL2
+#ifndef KAGOME_NETWORK_SYNCHRONIZERIMPL
+#define KAGOME_NETWORK_SYNCHRONIZERIMPL
 
-#include "consensus/babe/babe_synchronizer.hpp"
+#include "network/synchronizer.hpp"
 
 #include <queue>
 
@@ -16,11 +16,11 @@
 #include "consensus/babe/block_executor.hpp"
 #include "network/router.hpp"
 
-namespace kagome::consensus {
+namespace kagome::network {
 
-  class BabeSynchronizerImpl
-      : public BabeSynchronizer,
-        public std::enable_shared_from_this<BabeSynchronizerImpl> {
+  class SynchronizerImpl
+      : public Synchronizer,
+        public std::enable_shared_from_this<SynchronizerImpl> {
    public:
     static const size_t kMinPreloadedBlockNumber = 250;
 
@@ -36,10 +36,10 @@ namespace kagome::consensus {
       PEER_BUSY
     };
 
-    BabeSynchronizerImpl(
+    SynchronizerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<BlockExecutor> block_executor,
+        std::shared_ptr<consensus::BlockExecutor> block_executor,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher);
@@ -97,13 +97,12 @@ namespace kagome::consensus {
     void prune(const primitives::BlockInfo &finalized_block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<BlockExecutor> block_executor_;
+    std::shared_ptr<consensus::BlockExecutor> block_executor_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
-    log::Logger log_ =
-        log::createLogger("BabeSynchronizer", "babe_synchronizer");
+    log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
 
     bool node_is_shutting_down_ = false;
 
@@ -136,8 +135,8 @@ namespace kagome::consensus {
     std::set<libp2p::peer::PeerId> busy_peers_;
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::network
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BabeSynchronizerImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR(kagome::network, SynchronizerImpl::Error)
 
-#endif  //  KAGOME_CONSENSUS_BABE_SYNCHRONIZERIMPL2
+#endif  //  KAGOME_NETWORK_SYNCHRONIZERIMPL
