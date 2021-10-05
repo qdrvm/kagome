@@ -106,7 +106,7 @@ namespace kagome::api {
     return getStorage(key, last_finalized.hash);
   }
 
-  outcome::result<boost::optional<common::Buffer>> StateApiImpl::getStorage(
+  outcome::result<boost::optional<common::Buffer>> StateApiImpl::getStorageAt(
       const common::Buffer &key, const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));

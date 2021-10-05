@@ -42,7 +42,7 @@ namespace kagome::api::state::request {
   }
 
   outcome::result<boost::optional<common::Buffer>> GetStorage::execute() {
-    return at_ ? api_->getStorage(key_, at_.value()) : api_->getStorage(key_);
+    return at_ ? api_->getStorageAt(key_, at_.value()) : api_->getStorage(key_);
   }
 
 }  // namespace kagome::api::state::request

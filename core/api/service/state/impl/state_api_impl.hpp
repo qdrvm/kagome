@@ -44,7 +44,7 @@ namespace kagome::api {
 
     outcome::result<boost::optional<common::Buffer>> getStorage(
         const common::Buffer &key) const override;
-    outcome::result<boost::optional<common::Buffer>> getStorage(
+    outcome::result<boost::optional<common::Buffer>> getStorageAt(
         const common::Buffer &key,
         const primitives::BlockHash &at) const override;
 

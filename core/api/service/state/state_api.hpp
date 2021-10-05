@@ -33,7 +33,7 @@ namespace kagome::api {
 
     virtual outcome::result<boost::optional<common::Buffer>> getStorage(
         const common::Buffer &key) const = 0;
-    virtual outcome::result<boost::optional<common::Buffer>> getStorage(
+    virtual outcome::result<boost::optional<common::Buffer>> getStorageAt(
         const common::Buffer &key, const primitives::BlockHash &at) const = 0;
 
     struct StorageChangeSet {
