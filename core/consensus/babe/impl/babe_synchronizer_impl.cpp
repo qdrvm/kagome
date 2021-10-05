@@ -59,14 +59,17 @@ namespace kagome::consensus {
     app_state_manager->atShutdown([this] { node_is_shutting_down_ = true; });
   }
 
-  void BabeSynchronizerImpl::syncByBlockInfo(
+  bool BabeSynchronizerImpl::syncByBlockInfo(
       const primitives::BlockInfo &block_info,
       const libp2p::peer::PeerId &peer_id,
       BabeSynchronizer::SyncResultHandler &&handler) {
-    // If provided block is already enqueued, nothing to do additional
-    if (isInQueue(block_info.hash)) {
+    // If provided block is already enqueued, just remember peed
+    if (auto it = known_blocks_.find(block_info.hash);
+        it != known_blocks_.end()) {
+      auto &block_in_queue = it->second;
+      block_in_queue.peers.emplace(peer_id);
       handler(block_info);
-      return;
+      return false;
     }
 
     // We are communicating with one peer only for one issue.
@@ -79,8 +82,7 @@ namespace kagome::consensus {
                block_info.number,
                block_info.hash.toHex(),
                peer_id.toBase58());
-      handler(Error::PEER_BUSY);
-      return;
+      return false;
     }
     SL_TRACE(log_, "Peer {} marked as busy", peer_id.toBase58());
 
@@ -94,7 +96,7 @@ namespace kagome::consensus {
     // Provided block is equal our best one. Nothing needs to do.
     if (block_info == best_block) {
       handler(block_info);
-      return;
+      return false;
     }
 
     // First we need to find the best common block to avoid manipulations with
@@ -133,9 +135,12 @@ namespace kagome::consensus {
               return;
             }
 
-            // If provided block is already enqueued, nothing to do additional
+            // If provided block is already enqueued, just remember peed
             auto &block_info = res.value();
-            if (self->isInQueue(block_info.hash)) {
+            if (auto it = self->known_blocks_.find(block_info.hash);
+                it != self->known_blocks_.end()) {
+              auto &block_in_queue = it->second;
+              block_in_queue.peers.emplace(peer_id);
               handler(std::move(block_info));
               return;
             }
@@ -157,9 +162,10 @@ namespace kagome::consensus {
              lower,
              upper);
     findCommonBlock(peer_id, lower, upper, hint, std::move(find_handler));
+    return true;
   }
 
-  void BabeSynchronizerImpl::syncByBlockHeader(
+  bool BabeSynchronizerImpl::syncByBlockHeader(
       const primitives::BlockHeader &header,
       const libp2p::peer::PeerId &peer_id,
       BabeSynchronizer::SyncResultHandler &&handler) {
@@ -168,12 +174,15 @@ namespace kagome::consensus {
 
     // Block was applied before
     if (block_tree_->getBlockHeader(block_hash).has_value()) {
-      return;
+      return false;
     }
 
     // Block is already enqueued
-    if (isInQueue(block_info.hash)) {
-      return;
+    if (auto it = known_blocks_.find(block_info.hash);
+        it != known_blocks_.end()) {
+      auto &block_in_queue = it->second;
+      block_in_queue.peers.emplace(peer_id);
+      return false;
     }
 
     // Number of provided block header greater currently watched.
@@ -199,20 +208,16 @@ namespace kagome::consensus {
           SL_TRACE(self->log_, "Block(s) enqueued to apply by announce");
         }
       });
-      return;
+      return true;
     }
 
-    // Otherwise is using base way to enqueue
-    syncByBlockInfo(block_info, peer_id, [wp = weak_from_this()](auto res) {
-      if (auto self = wp.lock()) {
-        SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
-      }
-    });
-  }
-
-  bool BabeSynchronizerImpl::isInQueue(
-      const primitives::BlockHash &hash) const {
-    return known_blocks_.find(hash) != known_blocks_.end();
+    // Otherwise, is using base way to enqueue
+    return syncByBlockInfo(
+        block_info, peer_id, [wp = weak_from_this()](auto res) {
+          if (auto self = wp.lock()) {
+            SL_TRACE(self->log_, "Block(s) enqueued to load by announce");
+          }
+        });
   }
 
   void BabeSynchronizerImpl::findCommonBlock(

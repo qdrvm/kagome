@@ -47,15 +47,17 @@ namespace kagome::consensus {
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}
     /// since best common block up to provided {@param block_info}.
     /// {@param handler} will be called when this process is finished or failed
+    /// @returns true if sync is ran (peer is not busy)
     /// @note Is used for start/continue catching up.
-    void syncByBlockInfo(const primitives::BlockInfo &block_info,
+    bool syncByBlockInfo(const primitives::BlockInfo &block_info,
                          const libp2p::peer::PeerId &peer_id,
                          SyncResultHandler &&handler) override;
 
     /// Enqueues loading and applying block {@param block_info} from peer
     /// {@param peer_id}.
+    /// @returns true if sync is ran (peer is not busy)
     /// If provided block is the best after applying, {@param handler} be called
-    void syncByBlockHeader(const primitives::BlockHeader &header,
+    bool syncByBlockHeader(const primitives::BlockHeader &header,
                            const libp2p::peer::PeerId &peer_id,
                            SyncResultHandler &&handler) override;
 
@@ -80,9 +82,6 @@ namespace kagome::consensus {
                     SyncResultHandler &&handler);
 
    private:
-    /// @returns true, if block is already enqueued for loading
-    bool isInQueue(const primitives::BlockHash &hash) const;
-
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();
 

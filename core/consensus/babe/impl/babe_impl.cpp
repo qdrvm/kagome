@@ -255,10 +255,8 @@ namespace kagome::consensus::babe {
   void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
                               const primitives::BlockInfo &target_block) {
     // synchronize missing blocks with their bodies
-    SL_INFO(log_, "Catching up to block #{} is ran", target_block.number);
-    current_state_ = State::CATCHING_UP;
 
-    babe_synchronizer_->syncByBlockInfo(
+    auto is_ran = babe_synchronizer_->syncByBlockInfo(
         target_block,
         peer_id,
         [wp = weak_from_this(),
@@ -266,7 +264,7 @@ namespace kagome::consensus::babe {
           if (auto self = wp.lock()) {
             if (res.has_error()) {
               SL_INFO(self->log_,
-                      "Catching up to block #{} is failed: ",
+                      "Catching up to block #{} is failed: {}",
                       bn,
                       res.error().message());
               return;
@@ -278,6 +276,11 @@ namespace kagome::consensus::babe {
                     res.value().number);
           }
         });
+
+    if (is_ran) {
+      SL_INFO(log_, "Catching up to block #{} is ran", target_block.number);
+      current_state_ = State::CATCHING_UP;
+    }
   }
 
   void BabeImpl::onSynchronized() {
