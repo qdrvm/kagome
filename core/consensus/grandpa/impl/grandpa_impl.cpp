@@ -564,12 +564,12 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onFinalize(const libp2p::peer::PeerId &peer_id,
                                const network::FullCommitMessage &fin) {
     SL_DEBUG(logger_,
-             "Finalization has received from peer #{} with identity {} for "
-             "block #{} with hash {}",
-             fin.set_id,
-             peer_id.toBase58(),
+             "Finalization of block #{} hash={} and voter set #{} has received "
+             "from peer_id={}",
              fin.message.target_number,
-             fin.message.target_hash.toHex());
+             fin.message.target_hash.toHex(),
+             fin.set_id,
+             peer_id.toBase58());
 
     GrandpaJustification justification{
         .round_number = fin.round,
@@ -580,20 +580,7 @@ namespace kagome::consensus::grandpa {
       commit.message = fin.message.precommits[i];
       commit.signature = fin.message.auth_data[i].first;
       commit.id = fin.message.auth_data[i].second;
-      justification.items.push_back(commit);
-    }
-
-    // TODO (xdimon) create check for votes to block correspondence
-
-    if (not is_ready_) {
-      // grandpa not initialized, we just finalize block then
-      auto res =
-          environment_->finalize(justification.block_info.hash, justification);
-      if (not res.has_value()) {
-        logger_->warn("Can't make simple block finalization: {}",
-                      res.error().message());
-      }
-      return;
+      justification.items.emplace_back(std::move(commit));
     }
 
     auto res = applyJustification(justification.block_info, justification);
