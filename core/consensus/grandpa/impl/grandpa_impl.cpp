@@ -90,8 +90,9 @@ namespace kagome::consensus::grandpa {
     auto authorities_res =
         authority_manager_->authorities(round_state.last_finalized_block, true);
     if (not authorities_res.has_value()) {
-      logger_->critical("Can't get authorities: {}. Stopping grandpa execution",
-                        authorities_res.error().message());
+      logger_->critical(
+          "Can't retrieve authorities: {}. Stopping grandpa execution",
+          authorities_res.error().message());
       return false;
     }
     auto &authorities = authorities_res.value();
@@ -201,10 +202,13 @@ namespace kagome::consensus::grandpa {
     BlockInfo best_block = round->finalizedBlock().value();
 
     auto authorities_res = authority_manager_->authorities(best_block, true);
-    if (not authorities_res.has_value()) {
-      BOOST_ASSERT(authorities_res.error().message().empty());
-    }
+    SL_CRITICAL(logger_,
+                "Can't retrieve authorities for finalized block: {}",
+                authorities_res.error().message());
+    BOOST_ASSERT(authorities_res.has_value());
+
     auto &authorities = authorities_res.value();
+    BOOST_ASSERT(not authorities->empty());
 
     auto voters = std::make_shared<VoterSet>(authorities->id);
     for (const auto &authority : *authorities) {
@@ -444,8 +448,11 @@ namespace kagome::consensus::grandpa {
 
     auto authorities_res =
         authority_manager_->authorities(round_state.finalized.value(), false);
-    if (not authorities_res.has_value()) {
-      BOOST_ASSERT(authorities_res.error().message().empty());
+    if (authorities_res.has_value()) {
+      SL_WARN(logger_,
+              "Can't retrieve authorities for finalized block: {}",
+              authorities_res.error().message());
+      return;
     }
     auto &authorities = authorities_res.value();
 
@@ -622,8 +629,14 @@ namespace kagome::consensus::grandpa {
 
       auto authorities_res = authority_manager_->authorities(
           round_state.last_finalized_block, true);
-      if (not authorities_res.has_value()) {
-        BOOST_ASSERT(authorities_res.error().message().empty());
+      if (authorities_res.has_error()) {
+        SL_WARN(logger_,
+                "Can't retrieve authorities for applying justification "
+                "of block #{} hash={}: {}",
+                block_info.number,
+                block_info.hash,
+                authorities_res.error().message());
+        return authorities_res.as_failure();
       }
       auto &authorities = authorities_res.value();
 
@@ -634,7 +647,7 @@ namespace kagome::consensus::grandpa {
       }
 
       round = makeInitialRound(round_state, std::move(voters));
-      assert(round);
+      BOOST_ASSERT(round);
 
       SL_DEBUG(logger_,
                "Rewind grandpa till round #{} by received justification",
