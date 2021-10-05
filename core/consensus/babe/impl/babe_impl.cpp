@@ -111,23 +111,26 @@ namespace kagome::consensus::babe {
                last_epoch_descriptor.start_slot);
     }
 
-    if (auto epoch_res = block_tree_->getEpochDescriptor(
-            last_epoch_descriptor.epoch_number, best_block_.hash);
-        epoch_res.has_value()) {
-      const auto &authorities = epoch_res.value().authorities;
-      if (authorities.size() == 1
-          and authorities[0].id.id == keypair_->public_key) {
-        SL_INFO(log_, "Starting single validating node.");
-        onSynchronized();
-        return true;
+    if (keypair_) {
+      if (auto epoch_res = block_tree_->getEpochDescriptor(
+              last_epoch_descriptor.epoch_number, best_block_.hash);
+          epoch_res.has_value()) {
+        const auto &authorities = epoch_res.value().authorities;
+        if (authorities.size() == 1
+            and authorities[0].id.id == keypair_->public_key) {
+          SL_INFO(log_, "Starting single validating node.");
+          onSynchronized();
+          return true;
+        }
+      } else {
+        SL_CRITICAL(
+            log_,
+            "Epoch couldn't be obtained from epoch #{}, block hash {}: {}",
+            last_epoch_descriptor.epoch_number,
+            best_block_.hash.toHex(),
+            epoch_res.error().message());
+        return false;
       }
-    } else {
-      SL_CRITICAL(log_,
-                  "Epoch couldn't be obtained from epoch #{}, block hash {}: {}",
-                  last_epoch_descriptor.epoch_number,
-                  best_block_.hash.toHex(),
-                  epoch_res.error().message());
-      return false;
     }
     current_state_ = State::WAIT_REMOTE_STATUS;
     return true;
