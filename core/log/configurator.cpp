@@ -68,6 +68,7 @@ groups:
           - name: storage
             children:
               - name: trie
+          - name: transactions
           - name: pubsub
       - name: others
         children:
