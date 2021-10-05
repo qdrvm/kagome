@@ -16,9 +16,11 @@
 
 using kagome::api::JRpcServer;
 using kagome::api::JRpcServerMock;
+using kagome::api::StateApi;
 using kagome::api::StateApiMock;
 using kagome::api::state::StateJrpcProcessor;
 using kagome::common::Buffer;
+using kagome::primitives::BlockHash;
 using testing::_;
 
 class StateJrpcProcessorTest : public testing::Test {
@@ -162,6 +164,17 @@ TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
   auto result_hex = execute(CallType::kCallType_GetStorage, params).AsString();
   EXPECT_OUTCOME_TRUE(result_vec, kagome::common::unhexWith0x(result_hex));
   ASSERT_EQ(expected_result.asVector(), result_vec);
+}
+
+TEST_F(StateJrpcProcessorTest, ProcessQueryStorage) {
+  std::vector<Buffer> keys{"key1"_buf, "key2"_buf, "key3"_buf};
+  BlockHash from{"from"_hash256};
+  EXPECT_CALL(
+      *state_api,
+      queryStorage(
+          gsl::span<const Buffer>(keys), from, boost::optional<BlockHash>{}))
+      .WillOnce(
+          testing::Return(outcome::success(std::vector<StateApi::StorageChangeSet>{})));
 }
 
 /**
