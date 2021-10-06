@@ -103,7 +103,7 @@ namespace kagome::api {
   outcome::result<boost::optional<common::Buffer>> StateApiImpl::getStorage(
       const common::Buffer &key) const {
     auto last_finalized = block_tree_->getLastFinalized();
-    return getStorage(key, last_finalized.hash);
+    return getStorageAt(key, last_finalized.hash);
   }
 
   outcome::result<boost::optional<common::Buffer>> StateApiImpl::getStorageAt(

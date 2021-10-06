@@ -8,7 +8,29 @@
 
 #include "api/service/base_request.hpp"
 
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm_ext/push_back.hpp>
+
 #include "api/service/state/state_api.hpp"
+#include "api/jrpc/value_converter.hpp"
+
+namespace kagome::api {
+
+  inline jsonrpc::Value makeValue(const StateApi::StorageChangeSet &changes) {
+    jsonrpc::Value ret;
+    std::vector<jsonrpc::Value::Array> j_changes;
+    boost::range::push_back(
+        j_changes,
+        changes.changes | boost::adaptors::transformed([](auto &change) {
+          return jsonrpc::Value::Array{makeValue(change.key), makeValue(change.data)};
+        }));
+
+    return jsonrpc::Value::Struct{
+        std::pair{"block", makeValue(common::hex_lower_0x(changes.block))},
+        std::pair{"changes", makeValue(j_changes)}};
+  }
+
+}
 
 namespace kagome::api::state::request {
 

@@ -30,7 +30,7 @@ namespace kagome::api {
     MOCK_CONST_METHOD1(getStorage,
                        outcome::result<boost::optional<common::Buffer>>(
                            const common::Buffer &key));
-    MOCK_CONST_METHOD2(getStorage,
+    MOCK_CONST_METHOD2(getStorageAt,
                        outcome::result<boost::optional<common::Buffer>>(
                            const common::Buffer &key,
                            const primitives::BlockHash &at));

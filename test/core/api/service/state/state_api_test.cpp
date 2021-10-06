@@ -84,7 +84,7 @@ namespace kagome::api {
     EXPECT_CALL(*block_header_repo_, getBlockHeader(bid))
         .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
 
-    EXPECT_OUTCOME_TRUE(r1, api_->getStorage("a"_buf, "B"_hash256));
+    EXPECT_OUTCOME_TRUE(r1, api_->getStorageAt("a"_buf, "B"_hash256));
     ASSERT_EQ(r1.value(), "1"_buf);
   }
 
@@ -330,7 +330,13 @@ namespace kagome::api {
         ::testing::Contains(arg), container, result_listener);
   }
 
+  /**
+   * @given that every queried key changed in every queired block
+   * @when querying these changes through queryStorage
+   * @then all changes are reported for every block
+   */
   TEST_F(StateApiTest, QueryStorageSucceeds) {
+    // GIVEN
     std::vector<common::Buffer> keys{"key1"_buf, "key2"_buf, "key3"_buf};
     primitives::BlockHash from{"from"_hash256};
     primitives::BlockHash to{"to"_hash256};
@@ -365,7 +371,10 @@ namespace kagome::api {
             return batch;
           }));
     }
+    // WHEN
     EXPECT_OUTCOME_TRUE(changes, api_->queryStorage(keys, from, to))
+
+    //THEN
     auto current_block = block_range.begin();
     for (auto &block_changes : changes) {
       ASSERT_EQ(*current_block, block_changes.block);
@@ -377,6 +386,11 @@ namespace kagome::api {
     }
   }
 
+  /**
+   * @given Block range longer than the maximum allowed block range of State API
+   * @when querying storage changes for this range via queryStorage
+   * @then MAX_BLOCK_RANGE_EXCEEDED error is returned
+   */
   TEST_F(StateApiTest, HitsBlockRangeLimits) {
     primitives::BlockHash from{"from"_hash256}, to{"to"_hash256};
     EXPECT_CALL(*block_header_repo_, getNumberByHash(from)).WillOnce(Return(42));
@@ -386,6 +400,11 @@ namespace kagome::api {
     ASSERT_EQ(error, StateApiImpl::Error::MAX_BLOCK_RANGE_EXCEEDED);
   }
 
+  /**
+   * @given Key set larger than the maximum allowed key set of State API
+   * @when querying storage changes for this set via queryStorage
+   * @then MAX_KEY_SET_SIZE_EXCEEDED error is returned
+   */
   TEST_F(StateApiTest, HitsKeyRangeLimits) {
     std::vector<common::Buffer> keys(StateApiImpl::kMaxKeySetSize + 1);
     primitives::BlockHash from{"from"_hash256}, to{"to"_hash256};
@@ -393,7 +412,13 @@ namespace kagome::api {
     ASSERT_EQ(error, StateApiImpl::Error::MAX_KEY_SET_SIZE_EXCEEDED);
   }
 
+  /**
+   * @given that every queried key changed in the given block
+   * @when querying these changes through queryStorageAt
+   * @then all changes are reported for the given block
+   */
   TEST_F(StateApiTest, QueryStorageAtSucceeds) {
+    // GIVEN
     std::vector<common::Buffer> keys{"key1"_buf, "key2"_buf, "key3"_buf};
     primitives::BlockHash at{"at"_hash256};
     std::vector block_range{at};
@@ -417,7 +442,10 @@ namespace kagome::api {
           return batch;
         }));
 
+    // WHEN
     EXPECT_OUTCOME_TRUE(changes, api_->queryStorageAt(keys, at))
+
+    // THEN
     ASSERT_EQ(changes.size(), 1);
     ASSERT_EQ(changes[0].block, at);
     ASSERT_THAT(changes[0].changes,
