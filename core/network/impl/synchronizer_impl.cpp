@@ -63,7 +63,7 @@ namespace kagome::network {
       const primitives::BlockInfo &block_info,
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler) {
-    // If provided block is already enqueued, just remember peed
+    // If provided block is already enqueued, just remember peer
     if (auto it = known_blocks_.find(block_info.hash);
         it != known_blocks_.end()) {
       auto &block_in_queue = it->second;
@@ -135,7 +135,7 @@ namespace kagome::network {
               return;
             }
 
-            // If provided block is already enqueued, just remember peed
+            // If provided block is already enqueued, just remember peer
             auto &block_info = res.value();
             if (auto it = self->known_blocks_.find(block_info.hash);
                 it != self->known_blocks_.end()) {
