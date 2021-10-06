@@ -202,9 +202,11 @@ namespace kagome::consensus::grandpa {
     BlockInfo best_block = round->finalizedBlock().value();
 
     auto authorities_res = authority_manager_->authorities(best_block, true);
-    SL_CRITICAL(logger_,
-                "Can't retrieve authorities for finalized block: {}",
-                authorities_res.error().message());
+    if (authorities_res.has_error()) {
+      SL_CRITICAL(logger_,
+                  "Can't retrieve authorities for finalized block: {}",
+                  authorities_res.error().message());
+    }
     BOOST_ASSERT(authorities_res.has_value());
 
     auto &authorities = authorities_res.value();
