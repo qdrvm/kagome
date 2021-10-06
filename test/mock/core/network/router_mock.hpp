@@ -25,6 +25,8 @@ namespace kagome::network {
                        std::shared_ptr<PropagateTransactionsProtocol>());
     MOCK_CONST_METHOD0(getSyncProtocol, std::shared_ptr<SyncProtocol>());
     MOCK_CONST_METHOD0(getGrandpaProtocol, std::shared_ptr<GrandpaProtocol>());
+    MOCK_CONST_METHOD0(getPingProtocol,
+                       std::shared_ptr<libp2p::protocol::Ping>());
   };
 }  // namespace kagome::network
 

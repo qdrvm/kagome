@@ -24,7 +24,6 @@ namespace kagome::runtime::wavm {
         std::shared_ptr<const IntrinsicModule> intrinsic_module);
 
     outcome::result<std::unique_ptr<Module>> make(
-        const storage::trie::RootHash &state,
         gsl::span<const uint8_t> code) const override;
 
    private:

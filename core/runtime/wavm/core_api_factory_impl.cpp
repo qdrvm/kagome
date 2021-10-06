@@ -39,7 +39,8 @@ namespace kagome::runtime::wavm {
 
     outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider>,
-        const primitives::BlockInfo &) override {
+        const primitives::BlockInfo &,
+        const primitives::BlockHeader &) override {
       if (instance_ == nullptr) {
         auto module = ModuleImpl::compileFrom(
             compartment_, intrinsic_module_, instance_env_factory_, code_);

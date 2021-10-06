@@ -78,9 +78,11 @@ namespace kagome::runtime {
 
     OUTCOME_TRY(instance,
                 parent_factory->module_repo_->getInstanceAt(
-                    parent_factory->code_provider_, blockchain_state_));
+                    parent_factory->code_provider_,
+                    blockchain_state_,
+                    header_res.value()));
 
-    auto& env = instance->getEnvironment();
+    auto &env = instance->getEnvironment();
     if (persistent_) {
       if (auto res = env.storage_provider->setToPersistentAt(storage_state_);
           !res) {

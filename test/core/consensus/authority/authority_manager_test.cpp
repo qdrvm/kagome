@@ -114,7 +114,7 @@ class AuthorityManagerTest : public testing::Test {
       storage::face::GenericStorageMock<common::Buffer, common::Buffer>;
 
   static inline const auto schedulerLookupKey =
-      authority::AuthorityManagerImpl::SCHEDULER_TREE;
+      storage::kSchedulerTreeLookupKey;
   std::shared_ptr<application::AppStateManagerMock> app_state_manager;
   std::shared_ptr<blockchain::BlockTreeMock> block_tree;
   std::shared_ptr<StorageMock> storage;
@@ -217,7 +217,7 @@ TEST_F(AuthorityManagerTest, Prune) {
 
   ON_CALL(*storage, put_rv(schedulerLookupKey, _))
       .WillByDefault(testing::Invoke([&encoded_data](auto &key, auto &val) {
-        EXPECT_EQ(key, authority::AuthorityManagerImpl::SCHEDULER_TREE);
+        EXPECT_EQ(key, storage::kSchedulerTreeLookupKey);
         EXPECT_EQ(val, encoded_data);
         return outcome::success();
       }));

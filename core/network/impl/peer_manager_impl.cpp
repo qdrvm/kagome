@@ -8,6 +8,7 @@
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
+
 #include "outcome/outcome.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
@@ -345,6 +346,50 @@ namespace kagome::network {
     }
   }
 
+  void PeerManagerImpl::startPingingPeer(const PeerId &peer_id) {
+    auto ping_protocol = router_->getPingProtocol();
+    BOOST_ASSERT_MSG(ping_protocol, "Router did not provide ping protocol");
+
+    auto conn =
+        host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
+            peer_id);
+
+    auto [_, is_emplaced] = pinging_connections_.emplace(conn);
+    if (not is_emplaced) {
+      // Pinging is already going
+      return;
+    }
+
+    SL_DEBUG(log_,
+             "Start pinging of {} (conn={})",
+             peer_id.toBase58(),
+             static_cast<void *>(conn.get()));
+
+    ping_protocol->startPinging(
+        conn,
+        [wp = weak_from_this(), peer_id, conn](
+            outcome::result<std::shared_ptr<
+                libp2p::protocol::PingClientSession>> session_res) {
+          if (auto self = wp.lock()) {
+            if (session_res.has_error()) {
+              SL_DEBUG(self->log_,
+                       "Stop pinging of {} (conn={}): {}",
+                       peer_id.toBase58(),
+                       static_cast<void *>(conn.get()),
+                       session_res.error().message());
+              self->pinging_connections_.erase(conn);
+              self->disconnectFromPeer(peer_id);
+            } else {
+              SL_DEBUG(self->log_,
+                       "Pinging: {} (conn={}) is alive",
+                       peer_id.toBase58(),
+                       static_cast<void *>(conn.get()));
+              self->keepAlive(peer_id);
+            }
+          }
+        });
+  }
+
   void PeerManagerImpl::updatePeerStatus(const PeerId &peer_id,
                                          const Status &status) {
     auto it = active_peers_.find(peer_id);
@@ -487,6 +532,9 @@ namespace kagome::network {
             }
 
             self->connecting_peers_.erase(peer_id);
+
+            self->reserveStreams(peer_id);
+            self->startPingingPeer(peer_id);
           });
 
     } else {
@@ -520,10 +568,8 @@ namespace kagome::network {
     stream_engine_->add(peer_id, transaction_protocol);
   }
 
-  // always false in dev mode
   bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {
-    return own_peer_info_.id == peer_id ? not app_config_.isRunInDevMode()
-                                        : false;
+    return own_peer_info_.id == peer_id;
   }
 
   std::vector<scale::PeerInfoSerializable>
