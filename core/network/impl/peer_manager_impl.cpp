@@ -568,10 +568,8 @@ namespace kagome::network {
     stream_engine_->add(peer_id, transaction_protocol);
   }
 
-  // always false in dev mode
   bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {
-    return own_peer_info_.id == peer_id ? not app_config_.isRunInDevMode()
-                                        : false;
+    return own_peer_info_.id == peer_id;
   }
 
   std::vector<scale::PeerInfoSerializable>
