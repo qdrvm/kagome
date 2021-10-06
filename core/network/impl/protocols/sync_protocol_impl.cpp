@@ -273,7 +273,7 @@ namespace kagome::network {
       auto &blocks_response = block_response_res.value();
 
       SL_DEBUG(self->log_,
-               "Response read successful from outgoing {} stream with {}",
+               "Successful response read from outgoing {} stream with {}",
                self->protocol_,
                stream->remotePeerId().value().toBase58());
 
