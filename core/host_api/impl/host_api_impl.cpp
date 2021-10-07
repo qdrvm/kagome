@@ -12,6 +12,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "host_api/impl/offchain_extension.hpp"
 
 namespace kagome::host_api {
 
@@ -25,7 +26,8 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<const crypto::Bip39Provider> bip39_provider)
+      std::shared_ptr<const crypto::Bip39Provider> bip39_provider,
+      std::shared_ptr<OffchainExtension> offchain_extension)
       : memory_provider_(memory_provider),
         storage_provider_(std::move(storage_provider)),
         crypto_ext_{
@@ -38,8 +40,12 @@ namespace kagome::host_api {
                                               std::move(bip39_provider))},
         io_ext_(memory_provider_),
         memory_ext_(memory_provider_),
-        misc_ext_{DEFAULT_CHAIN_ID, hasher, memory_provider_, std::move(core_provider)},
-        storage_ext_(storage_provider_, memory_provider_, std::move(tracker)) {
+        misc_ext_{DEFAULT_CHAIN_ID,
+                  hasher,
+                  memory_provider_,
+                  std::move(core_provider)},
+        storage_ext_(storage_provider_, memory_provider_, std::move(tracker)),
+        offchain_ext_(std::move(offchain_extension)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_provider_ != nullptr);
   }
@@ -281,4 +287,116 @@ namespace kagome::host_api {
     return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
         sig, msg);
   }
+
+  // --------------------------- Offchain extension ----------------------------
+
+  runtime::WasmI8 HostApiImpl::ext_offchain_is_validator_version_1() {
+    return offchain_ext_->ext_offchain_is_validator_version_1();
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_submit_transaction_version_1(
+      runtime::WasmSpan data) {
+    return offchain_ext_->ext_offchain_submit_transaction_version_1(data);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_network_state_version_1() {
+    return offchain_ext_->ext_offchain_network_state_version_1();
+  }
+
+  runtime::WasmU64 HostApiImpl::ext_offchain_timestamp_version_1() {
+    return offchain_ext_->ext_offchain_timestamp_version_1();
+  }
+
+  void HostApiImpl::ext_offchain_sleep_until_version_1(
+      runtime::WasmU64 deadline) {
+    return offchain_ext_->ext_offchain_sleep_until_version_1(deadline);
+  }
+
+  runtime::WasmPointer HostApiImpl::ext_offchain_random_seed_version_1() {
+    return offchain_ext_->ext_offchain_random_seed_version_1();
+  }
+
+  void HostApiImpl::ext_offchain_local_storage_set_version_1(
+      runtime::WasmI32 kind, runtime::WasmSpan key, runtime::WasmSpan value) {
+    return offchain_ext_->ext_offchain_local_storage_set_version_1(
+        kind, key, value);
+  }
+
+  void HostApiImpl::ext_offchain_local_storage_clear_version_1(
+      runtime::WasmI32 kind, runtime::WasmSpan key) {
+    return offchain_ext_->ext_offchain_local_storage_clear_version_1(kind, key);
+  }
+
+  runtime::WasmI8
+  HostApiImpl::ext_offchain_local_storage_compare_and_set_version_1(
+      runtime::WasmI32 kind,
+      runtime::WasmSpan key,
+      runtime::WasmSpan expected,
+      runtime::WasmSpan value) {
+    return offchain_ext_->ext_offchain_local_storage_compare_and_set_version_1(
+        kind, key, expected, value);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_local_storage_get_version_1(
+      runtime::WasmI32 kind, runtime::WasmSpan key) {
+    return offchain_ext_->ext_offchain_local_storage_get_version_1(kind, key);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_http_request_start_version_1(
+      runtime::WasmSpan method, runtime::WasmSpan uri, runtime::WasmSpan meta) {
+    return offchain_ext_->ext_offchain_http_request_start_version_1(
+        method, uri, meta);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_http_request_add_header_version_1(
+      runtime::WasmI32 request_id,
+      runtime::WasmSpan name,
+      runtime::WasmSpan value) {
+    return offchain_ext_->ext_offchain_http_request_add_header_version_1(
+        request_id, name, value);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_http_request_write_body_version_1(
+      runtime::WasmI32 request_id,
+      runtime::WasmSpan chunk,
+      runtime::WasmSpan deadline) {
+    return offchain_ext_->ext_offchain_http_request_write_body_version_1(
+        request_id, chunk, deadline);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_http_response_wait_version_1(
+      runtime::WasmSpan ids, runtime::WasmSpan deadline) {
+    return offchain_ext_->ext_offchain_http_response_wait_version_1(ids,
+                                                                    deadline);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_http_response_headers_version_1(
+      runtime::WasmI32 request_id) {
+    return offchain_ext_->ext_offchain_http_response_headers_version_1(
+        request_id);
+  }
+
+  runtime::WasmSpan HostApiImpl::ext_offchain_http_response_read_body_version_1(
+      runtime::WasmI32 request_id,
+      runtime::WasmSpan buffer,
+      runtime::WasmSpan deadline) {
+    return offchain_ext_->ext_offchain_http_response_read_body_version_1(
+        request_id, buffer, deadline);
+  }
+
+  void HostApiImpl::ext_offchain_set_authorized_nodes_version_1(
+      runtime::WasmSpan nodes, runtime::WasmI32 authorized_only) {
+    return offchain_ext_->ext_offchain_set_authorized_nodes_version_1(
+        nodes, authorized_only);
+  }
+
+  void HostApiImpl::ext_offchain_index_set_version_1(runtime::WasmSpan key,
+                                                     runtime::WasmSpan value) {
+    return offchain_ext_->ext_offchain_index_set_version_1(key, value);
+  }
+
+  void HostApiImpl::ext_offchain_index_clear_version_1(runtime::WasmSpan key) {
+    return offchain_ext_->ext_offchain_index_clear_version_1(key);
+  }
+
 }  // namespace kagome::host_api

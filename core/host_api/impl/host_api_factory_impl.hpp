@@ -14,11 +14,12 @@
 #include "crypto/hasher.hpp"
 #include "crypto/secp256k1_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "host_api/impl/offchain_extension.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::host_api {
 
-  class HostApiFactoryImpl final: public HostApiFactory {
+  class HostApiFactoryImpl final : public HostApiFactory {
    public:
     ~HostApiFactoryImpl() override = default;
 
@@ -29,7 +30,8 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
+        std::shared_ptr<crypto::Bip39Provider> bip39_provider,
+        std::shared_ptr<OffchainExtension> offchain_extension);
 
     std::unique_ptr<HostApi> make(
         std::shared_ptr<const runtime::CoreApiFactory> core_factory,
@@ -45,6 +47,7 @@ namespace kagome::host_api {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
+    std::shared_ptr<OffchainExtension> offchain_extension_;
   };
 
 }  // namespace kagome::host_api

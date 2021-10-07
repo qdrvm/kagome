@@ -122,6 +122,47 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_trie_blake2_256_ordered_root_version_1 =
       "ext_trie_blake2_256_ordered_root_version_1";
 
+  // --------------------------- Offchain extension ----------------------------
+
+  const static wasm::Name ext_offchain_is_validator_version_1 =
+      "ext_offchain_is_validator_version_1";
+  const static wasm::Name ext_offchain_submit_transaction_version_1 =
+      "ext_offchain_submit_transaction_version_1";
+  const static wasm::Name ext_offchain_network_state_version_1 =
+      "ext_offchain_network_state_version_1";
+  const static wasm::Name ext_offchain_timestamp_version_1 =
+      "ext_offchain_timestamp_version_1";
+  const static wasm::Name ext_offchain_sleep_until_version_1 =
+      "ext_offchain_sleep_until_version_1";
+  const static wasm::Name ext_offchain_random_seed_version_1 =
+      "ext_offchain_random_seed_version_1";
+  const static wasm::Name ext_offchain_local_storage_set_version_1 =
+      "ext_offchain_local_storage_set_version_1";
+  const static wasm::Name ext_offchain_local_storage_clear_version_1 =
+      "ext_offchain_local_storage_clear_version_1";
+  const static wasm::Name ext_offchain_local_storage_compare_and_set_version_1 =
+      "ext_offchain_local_storage_compare_and_set_version_1";
+  const static wasm::Name ext_offchain_local_storage_get_version_1 =
+      "ext_offchain_local_storage_get_version_1";
+  const static wasm::Name ext_offchain_http_request_start_version_1 =
+      "ext_offchain_http_request_start_version_1";
+  const static wasm::Name ext_offchain_http_request_add_header_version_1 =
+      "ext_offchain_http_request_add_header_version_1";
+  const static wasm::Name ext_offchain_http_request_write_body_version_1 =
+      "ext_offchain_http_request_write_body_version_1";
+  const static wasm::Name ext_offchain_http_response_wait_version_1 =
+      "ext_offchain_http_response_wait_version_1";
+  const static wasm::Name ext_offchain_http_response_headers_version_1 =
+      "ext_offchain_http_response_headers_version_1";
+  const static wasm::Name ext_offchain_http_response_read_body_version_1 =
+      "ext_offchain_http_response_read_body_version_1";
+  const static wasm::Name ext_offchain_set_authorized_nodes_version_1 =
+      "ext_offchain_set_authorized_nodes_version_1";
+  const static wasm::Name ext_offchain_index_set_version_1 =
+      "ext_offchain_index_set_version_1";
+  const static wasm::Name ext_offchain_index_clear_version_1 =
+      "ext_offchain_index_clear_version_1";
+
   /**
    * @note: some implementation details were taken from
    * https://github.com/WebAssembly/binaryen/blob/master/src/shell-interface.h
@@ -531,16 +572,173 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      // TODO(xDimon): It is temporary suppress fails at calling of
-      //  callImport(ext_offchain_index_set_version_1)
-      if (import->base == "ext_offchain_index_set_version_1") {
+      // ------------------------- Offchain extension --------------------------
+
+      /// ext_offchain_is_validator_version_1
+      if (import->base == ext_offchain_is_validator_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        auto res = host_api_->ext_offchain_is_validator_version_1();
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_submit_transaction_version_1
+      if (import->base == ext_offchain_submit_transaction_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = host_api_->ext_offchain_submit_transaction_version_1(
+            arguments.at(0).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_network_state_version_1
+      if (import->base == ext_offchain_network_state_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        auto res = host_api_->ext_offchain_network_state_version_1();
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_timestamp_version_1
+      if (import->base == ext_offchain_timestamp_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        auto res = host_api_->ext_offchain_timestamp_version_1();
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_sleep_until_version_1
+      if (import->base == ext_offchain_sleep_until_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        host_api_->ext_offchain_sleep_until_version_1(arguments.at(0).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_offchain_random_seed_version_1
+      if (import->base == ext_offchain_random_seed_version_1) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
+        auto res = host_api_->ext_offchain_random_seed_version_1();
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_local_storage_set_version_1
+      if (import->base == ext_offchain_local_storage_set_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        host_api_->ext_offchain_local_storage_set_version_1(
+            arguments.at(0).geti32(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_offchain_local_storage_clear_version_1
+      if (import->base == ext_offchain_local_storage_clear_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        host_api_->ext_offchain_local_storage_clear_version_1(
+            arguments.at(0).geti32(), arguments.at(1).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_offchain_local_storage_compare_and_set_version_1
+      if (import->base
+          == ext_offchain_local_storage_compare_and_set_version_1) {
+        checkArguments(import->base.c_str(), 4, arguments.size());
+        auto res =
+            host_api_->ext_offchain_local_storage_compare_and_set_version_1(
+                arguments.at(0).geti32(),
+                arguments.at(1).geti64(),
+                arguments.at(2).geti64(),
+                arguments.at(3).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_local_storage_get_version_1
+      if (import->base == ext_offchain_local_storage_get_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_offchain_local_storage_get_version_1(
+            arguments.at(0).geti32(), arguments.at(1).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_http_request_start_version_1
+      if (import->base == ext_offchain_http_request_start_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = host_api_->ext_offchain_http_request_start_version_1(
+            arguments.at(0).geti64(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_http_request_add_header_version_1
+      if (import->base == ext_offchain_http_request_add_header_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = host_api_->ext_offchain_http_request_add_header_version_1(
+            arguments.at(0).geti32(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_http_request_write_body_version_1
+      if (import->base == ext_offchain_http_request_write_body_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = host_api_->ext_offchain_http_request_write_body_version_1(
+            arguments.at(0).geti32(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_http_response_wait_version_1
+      if (import->base == ext_offchain_http_response_wait_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = host_api_->ext_offchain_http_response_wait_version_1(
+            arguments.at(0).geti64(), arguments.at(1).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_http_response_headers_version_1
+      if (import->base == ext_offchain_http_response_headers_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        auto res = host_api_->ext_offchain_http_response_headers_version_1(
+            arguments.at(0).geti32());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_http_response_read_body_version_1
+      if (import->base == ext_offchain_http_response_read_body_version_1) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        auto res = host_api_->ext_offchain_http_response_read_body_version_1(
+            arguments.at(0).geti64(),
+            arguments.at(1).geti64(),
+            arguments.at(2).geti64());
+        return wasm::Literal(res);
+      }
+
+      /// ext_offchain_set_authorized_nodes_version_1
+      if (import->base == ext_offchain_set_authorized_nodes_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        host_api_->ext_offchain_set_authorized_nodes_version_1(
+            arguments.at(0).geti64(), arguments.at(1).geti32());
+        return wasm::Literal();
+      }
+
+      /// ext_offchain_index_set_version_1
+      if (import->base == ext_offchain_index_set_version_1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        host_api_->ext_offchain_index_set_version_1(arguments.at(0).geti64(),
+                                                    arguments.at(1).geti64());
+        return wasm::Literal();
+      }
+
+      /// ext_offchain_index_clear_version_1
+      if (import->base == ext_offchain_index_clear_version_1) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
+        host_api_->ext_offchain_index_clear_version_1(arguments.at(0).geti64());
         return wasm::Literal();
       }
     }
 
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
                   << import->name.str;
-  }  // namespace kagome::runtime::binaryen
+  }
 
   void RuntimeExternalInterface::checkArguments(std::string_view extern_name,
                                                 size_t expected,
