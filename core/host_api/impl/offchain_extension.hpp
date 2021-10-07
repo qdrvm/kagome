@@ -7,8 +7,11 @@
 #define KAGOME_HOSTAPI_OFFCHAINEXTENSION
 
 #include "log/logger.hpp"
-#include "runtime/runtime_api/offchain_api.hpp"
 #include "runtime/types.hpp"
+
+namespace kagome::runtime {
+  class OffchainApi;
+}
 
 namespace kagome::host_api {
 
