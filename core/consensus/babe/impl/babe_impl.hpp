@@ -14,7 +14,6 @@
 #include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
-#include "clock/ticker.hpp"
 #include "clock/timer.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_lottery.hpp"

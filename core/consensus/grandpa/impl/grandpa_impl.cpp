@@ -5,7 +5,6 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
-#include "clock/impl/ticker_impl.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
@@ -55,9 +54,6 @@ namespace kagome::consensus::grandpa {
 
     app_state_manager_->takeControl(*this);
     catch_up_request_suppressed_until_ = clock_->now();
-
-    key_wait_ticker_ =
-        std::make_unique<clock::TickerImpl>(io_context_, kKeyWaitTimerDuration);
   }
 
   bool GrandpaImpl::prepare() {
@@ -429,7 +425,7 @@ namespace kagome::consensus::grandpa {
 
     auto authorities_res =
         authority_manager_->authorities(round_state.finalized.value(), false);
-    if (authorities_res.has_value()) {
+    if (not authorities_res.has_value()) {
       SL_WARN(logger_,
               "Can't retrieve authorities for finalized block: {}",
               authorities_res.error().message());

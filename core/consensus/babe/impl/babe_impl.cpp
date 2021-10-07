@@ -9,7 +9,6 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_tree_error.hpp"
-#include "clock/impl/ticker_impl.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/babe_synchronizer.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
