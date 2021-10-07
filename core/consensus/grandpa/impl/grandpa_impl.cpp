@@ -117,34 +117,9 @@ namespace kagome::consensus::grandpa {
     babe_->doOnSynchronized([wp = weak_from_this()] {
       if (auto self = wp.lock()) {
         // Planning play next round
+        self->is_ready_ = true;
         if (self->keypair_) {
-          self->is_ready_ = true;
           self->current_round_->play();
-        } else {
-          self->key_wait_ticker_->asyncCallRepeatedly(
-              [wp = self->weak_from_this()](auto &&ec) {
-                if (auto self = wp.lock()) {
-                  if (ec) {
-                    if (ec.value() == boost::system::errc::operation_canceled) {
-                      SL_INFO(
-                          self->logger_, "key_wait_ticker {}", ec.message());
-                      return;
-                    }
-                    SL_ERROR(self->logger_,
-                             "error happened while waiting on the "
-                             "key_wait_ticker: {}",
-                             ec.message());
-                    return;
-                  }
-                  SL_INFO(self->logger_, "Check if grandpa key appeared...");
-                  if (self->keypair_) {
-                    self->is_ready_ = true;
-                    self->current_round_->play();
-                    self->key_wait_ticker_->stop();
-                  }
-                }
-              });
-          self->key_wait_ticker_->start(self->key_wait_ticker_->interval());
         }
       }
     });
@@ -298,7 +273,7 @@ namespace kagome::consensus::grandpa {
     previous_round_.swap(current_round_);
     previous_round_->end();
     current_round_ = makeNextRound(previous_round_);
-    if (is_ready_) {
+    if (is_ready_ && keypair_) {
       current_round_->play();
     }
   }
@@ -319,6 +294,10 @@ namespace kagome::consensus::grandpa {
         catch_up_request_suppressed_until_ =
             clock_->now() + catch_up_request_suppression_duration_;
         current_round_->doCatchUpRequest(peer_id);
+        /*
+         * environment_->onCatchUpRequested(
+         *     peer_id, msg.voter_set_id, msg.round_number - 1);
+         */
       }
     }
   }

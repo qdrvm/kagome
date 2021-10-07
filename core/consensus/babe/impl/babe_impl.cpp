@@ -284,6 +284,7 @@ namespace kagome::consensus::babe {
     // won't start block production without keypair
     if (not keypair_) {
       current_state_ = State::WAIT_BLOCK_ANNOUNCE;
+      on_synchronized_();
       return;
     }
 
