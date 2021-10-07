@@ -67,11 +67,3 @@ target_link_libraries(babe
     block_executor
     polkadot_trie
     )
-
-add_library(babe_synchronizer
-    babe_synchronizer_impl.cpp
-    )
-target_link_libraries(babe_synchronizer
-    logger
-    primitives
-    )

@@ -20,7 +20,7 @@ target_link_libraries(application_injector
     babe
     babe_api
     babe_lottery
-    babe_synchronizer
+    synchronizer
     babe_util
     binaryen_executor_factory
     binaryen_runtime_external_interface

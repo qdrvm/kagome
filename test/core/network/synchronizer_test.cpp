@@ -9,13 +9,13 @@
 #include <mock/libp2p/basic/scheduler_mock.hpp>
 #include <stdexcept>
 
-#include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
+#include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -26,6 +26,7 @@ using namespace consensus;
 using namespace storage;
 
 using std::chrono_literals::operator""ms;
+using network::Synchronizer;
 using primitives::BlockData;
 using primitives::BlockHash;
 using primitives::BlockHeader;
@@ -47,7 +48,7 @@ class SyncResultHandlerMock {
   }
 };
 
-class BabeSynchronizerTest
+class SynchronizerTest
     : public ::testing::TestWithParam<
           std::tuple<BlockNumber, BlockNumber, BlockNumber, BlockNumber>> {
  public:
@@ -61,12 +62,13 @@ class BabeSynchronizerTest
     EXPECT_CALL(*router, getSyncProtocol())
         .WillRepeatedly(Return(sync_protocol));
 
-    synchronizer = std::make_shared<BabeSynchronizerImpl>(app_state_manager,
-                                                          block_tree,
-                                                          block_executor,
-                                                          router,
-                                                          scheduler,
-                                                          hasher);
+    synchronizer =
+        std::make_shared<network::SynchronizerImpl>(app_state_manager,
+                                                    block_tree,
+                                                    block_executor,
+                                                    router,
+                                                    scheduler,
+                                                    hasher);
   }
 
   std::shared_ptr<application::AppStateManagerMock> app_state_manager =
@@ -84,7 +86,7 @@ class BabeSynchronizerTest
   std::shared_ptr<crypto::HasherMock> hasher =
       std::make_shared<crypto::HasherMock>();
 
-  std::shared_ptr<BabeSynchronizerImpl> synchronizer;
+  std::shared_ptr<network::SynchronizerImpl> synchronizer;
 
   libp2p::peer::PeerId peer_id = ""_peerid;
 
@@ -180,10 +182,10 @@ ACTION_P(syncProtocol_request, remote_blocks) {
  * @return
  */
 std::tuple<std::vector<BlockInfo>, std::vector<BlockInfo>>
-BabeSynchronizerTest::generateChains(BlockNumber finalized,
-                                     BlockNumber common,
-                                     BlockNumber local_best,
-                                     BlockNumber remote_best) {
+SynchronizerTest::generateChains(BlockNumber finalized,
+                                 BlockNumber common,
+                                 BlockNumber local_best,
+                                 BlockNumber remote_best) {
   if (local_best < finalized) {
     throw std::invalid_argument(
         "Local best block must not be before finalized");
@@ -246,7 +248,7 @@ BabeSynchronizerTest::generateChains(BlockNumber finalized,
   return result;
 }
 
-TEST_P(BabeSynchronizerTest, findCommonBlock) {
+TEST_P(SynchronizerTest, findCommonBlock) {
   /// @given variants existing blockchain - local and remote
   auto &&[finalized, common, local_best, remote_best] = GetParam();
 
@@ -282,8 +284,8 @@ TEST_P(BabeSynchronizerTest, findCommonBlock) {
 }
 
 INSTANTIATE_TEST_CASE_P(
-    BabeSynchronizerTest_Success,
-    BabeSynchronizerTest,
+    SynchronizerTest_Success,
+    SynchronizerTest,
     Values(  // clang-format off
 
 // common block is not finalized
