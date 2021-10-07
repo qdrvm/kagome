@@ -124,6 +124,8 @@ class RuntimeTestBase : public ::testing::Test {
         kagome::crypto::KeyFileStorage::createAt(keystore_path).value());
     changes_tracker_ =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
+    offchain_extension_ =
+        std::make_shared<kagome::host_api::OffchainExtensionMock>();
 
     host_api_factory_ = std::make_shared<kagome::host_api::HostApiFactoryImpl>(
         changes_tracker_,
@@ -263,6 +265,8 @@ class RuntimeTestBase : public ::testing::Test {
   std::shared_ptr<kagome::runtime::Executor> executor_;
   std::shared_ptr<kagome::storage::changes_trie::ChangesTrackerMock>
       changes_tracker_;
+  std::shared_ptr<kagome::host_api::OffchainExtensionMock>()
+      offchain_extension_;
   std::shared_ptr<kagome::crypto::Hasher> hasher_;
   std::shared_ptr<kagome::host_api::HostApiFactory> host_api_factory_;
 };
