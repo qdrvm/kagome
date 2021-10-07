@@ -12,7 +12,6 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/authority/authority_manager.hpp"
-#include "consensus/babe/babe.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
@@ -39,8 +38,7 @@ namespace kagome::consensus::grandpa {
                 const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
-                std::shared_ptr<authority::AuthorityManager> authority_manager,
-                std::shared_ptr<consensus::babe::Babe> babe);
+                std::shared_ptr<authority::AuthorityManager> authority_manager);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -109,9 +107,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
-
-    bool is_ready_ = false;
-    std::shared_ptr<consensus::babe::Babe> babe_;
 
     const Clock::Duration catch_up_request_suppression_duration_ =
         std::chrono::seconds(15);

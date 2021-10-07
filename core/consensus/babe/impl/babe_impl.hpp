@@ -92,9 +92,6 @@ namespace kagome::consensus::babe {
                          const network::BlockAnnounce &announce) override;
 
     void onSynchronized() override;
-
-    void doOnSynchronized(std::function<void()> handler) override;
-
    private:
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
@@ -155,8 +152,6 @@ namespace kagome::consensus::babe {
     BabeSlotNumber current_slot_{};
 
     primitives::BlockInfo best_block_{};
-
-    std::function<void()> on_synchronized_;
 
     log::Logger log_;
   };

@@ -283,7 +283,6 @@ namespace kagome::consensus::babe {
     // won't start block production without keypair
     if (not keypair_) {
       current_state_ = State::WAIT_BLOCK_ANNOUNCE;
-      on_synchronized_();
       return;
     }
 
@@ -306,15 +305,6 @@ namespace kagome::consensus::babe {
                best_block_.hash);
 
       runEpoch(last_epoch_descriptor);
-      on_synchronized_();
-    }
-  }
-
-  void BabeImpl::doOnSynchronized(std::function<void()> handler) {
-    if (current_state_ == State::SYNCHRONIZED) {
-      handler();
-    } else {
-      on_synchronized_ = std::move(handler);
     }
   }
 
