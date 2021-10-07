@@ -53,7 +53,6 @@
 #include "consensus/authority/impl/schedule_node.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
-#include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/babe_util_impl.hpp"
 #include "consensus/babe/impl/block_executor_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -83,6 +82,7 @@
 #include "network/impl/peer_manager_impl.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/impl/sync_protocol_observer_impl.hpp"
+#include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "outcome/outcome.hpp"
@@ -1066,7 +1066,7 @@ namespace {
           return get_babe_configuration(
               block_storage->getGenesisBlockHash().value(), babe_api);
         }),
-        di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
+        di::bind<network::Synchronizer>.template to<network::SynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::Ed25519Provider>.template to<crypto::Ed25519ProviderImpl>(),
@@ -1234,7 +1234,7 @@ namespace {
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<uptr<clock::Timer>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
-        injector.template create<sptr<consensus::BabeSynchronizer>>(),
+        injector.template create<sptr<network::Synchronizer>>(),
         injector.template create<sptr<consensus::BabeUtil>>());
 
     auto protocol_factory =

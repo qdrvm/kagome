@@ -28,4 +28,16 @@ target_link_libraries(sync_protocol_observer_test
     logger_for_tests
     )
 
-# TODO(xDimon): would be good to make test for sync_protocol_client
+addtest(synchronizer_test
+    synchronizer_test.cpp
+    )
+target_link_libraries(synchronizer_test
+    synchronizer
+    logger_for_tests
+    sync_protocol
+    block_tree_error
+    p2p::p2p_basic_scheduler
+    p2p::p2p_message_read_writer
+    p2p::p2p_peer_id
+    p2p::p2p_literals
+    )
