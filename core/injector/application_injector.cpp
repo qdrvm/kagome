@@ -102,6 +102,7 @@
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "runtime/runtime_api/impl/metadata.hpp"
+#include "runtime/runtime_api/impl/offchain_api_impl.hpp"
 #include "runtime/runtime_api/impl/offchain_worker.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
@@ -891,6 +892,7 @@ namespace {
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
+        di::bind<runtime::OffchainApi>.template to<runtime::OffchainApiImpl>(),
         std::forward<Ts>(args)...);
   }
 
