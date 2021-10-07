@@ -30,12 +30,9 @@
 #include "storage/trie/trie_storage.hpp"
 
 namespace kagome::network {
+  class Synchronizer;
   class BlockAnnounceTransmitter;
-}
-
-namespace kagome::consensus {
-  class BabeSynchronizer;
-}
+}  // namespace kagome::network
 
 namespace kagome::consensus::babe {
 
@@ -68,7 +65,7 @@ namespace kagome::consensus::babe {
              std::unique_ptr<clock::Timer> timer,
              std::shared_ptr<authority::AuthorityUpdateObserver>
                  authority_update_observer,
-             std::shared_ptr<BabeSynchronizer> babe_synchronizer,
+             std::shared_ptr<network::Synchronizer> synchronizer,
              std::shared_ptr<BabeUtil> babe_util);
 
     ~BabeImpl() override = default;
@@ -144,7 +141,7 @@ namespace kagome::consensus::babe {
     std::unique_ptr<clock::Timer> timer_;
     std::shared_ptr<authority::AuthorityUpdateObserver>
         authority_update_observer_;
-    std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
+    std::shared_ptr<network::Synchronizer> synchronizer_;
     std::shared_ptr<BabeUtil> babe_util_;
 
     State current_state_{State::WAIT_REMOTE_STATUS};
