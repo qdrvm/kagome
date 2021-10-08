@@ -12,6 +12,7 @@
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/wavm/memory_impl.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -21,6 +22,7 @@ using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
+using kagome::primitives::BlockHash;
 using kagome::primitives::Extrinsic;
 using kagome::runtime::CoreImpl;
 using kagome::runtime::Memory;
@@ -69,8 +71,9 @@ TEST_F(CoreTest, DISABLED_VersionTest) {
  */
 TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
   auto block = createBlock();
-  EXPECT_CALL(*changes_tracker_,
-              onBlockChange(block.header.parent_hash, block.header.number - 1))
+  EXPECT_CALL(
+      *changes_tracker_,
+      onBlockExecutionStart(block.header.parent_hash, block.header.number - 1))
       .WillOnce(Return(outcome::success()));
 
   ASSERT_TRUE(core_->execute_block(block));
@@ -84,7 +87,7 @@ TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
 TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
   auto header = createBlockHeader();
   EXPECT_CALL(*changes_tracker_,
-              onBlockChange(header.parent_hash, header.number - 1))
+              onBlockExecutionStart(header.parent_hash, header.number - 1))
       .WillOnce(Return(outcome::success()));
 
   ASSERT_TRUE(core_->initialize_block(header));
@@ -96,6 +99,6 @@ TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_AuthoritiesTest) {
-  BlockId block_id = 0;
-  ASSERT_TRUE(core_->authorities(block_id));
+  BlockHash block_hash= "block_hash"_hash256;
+  ASSERT_TRUE(core_->authorities(block_hash));
 }

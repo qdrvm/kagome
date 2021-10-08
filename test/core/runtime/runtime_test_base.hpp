@@ -26,6 +26,7 @@
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
@@ -35,6 +36,7 @@
 #include "runtime/core_api_factory.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/runtime_environment_factory.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
@@ -153,7 +155,7 @@ class RuntimeTestBase : public ::testing::Test {
 
   struct ImplementationSpecificRuntimeClasses {
     std::shared_ptr<kagome::runtime::ModuleFactory> module_factory_;
-    std::shared_ptr<kagome::runtime::ExecutorFactory> core_api_factory_;
+    std::shared_ptr<kagome::runtime::CoreApiFactory> core_api_factory_;
     std::shared_ptr<kagome::runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<kagome::host_api::HostApi> host_api_;
   };
@@ -171,18 +173,19 @@ class RuntimeTestBase : public ::testing::Test {
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
+    auto trie_storage =
+        std::make_shared<kagome::storage::trie::TrieStorageMock>();
     auto upgrade_tracker =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerImpl>(
-            header_repo_);
+            header_repo_,
+            std::make_shared<kagome::storage::InMemoryStorage>(),
+            kagome::application::CodeSubstitutes{});
 
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         upgrade_tracker, module_factory);
 
     runtime_env_factory_ =
         std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
-            storage_provider_,
-            host_api,
-            std::move(memory_provider),
             std::move(wasm_provider_),
             std::move(module_repo),
             header_repo_);

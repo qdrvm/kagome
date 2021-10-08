@@ -6,7 +6,7 @@
 #include "host_api/impl/misc_extension.hpp"
 
 #include "primitives/version.hpp"
-#include "runtime/core_api_factory_impl.hpp"
+#include "runtime/core_api_factory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/core.hpp"

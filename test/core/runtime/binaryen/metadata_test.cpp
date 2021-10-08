@@ -49,5 +49,5 @@ class MetadataTest : public BinaryenRuntimeTest {
  */
 TEST_F(MetadataTest, metadata) {
   EXPECT_CALL(*storage_provider_, rollbackTransaction());
-  ASSERT_TRUE(api_->metadata(boost::none));
+  ASSERT_TRUE(api_->metadata("block_hash"_hash256));
 }

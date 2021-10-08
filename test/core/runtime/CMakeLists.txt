@@ -3,6 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(wavm)
+add_subdirectory(binaryen)
+
 addtest(wasm_result_test
     wasm_result_test.cpp
     )

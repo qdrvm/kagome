@@ -16,6 +16,7 @@ target_link_libraries(binaryen_runtime_test INTERFACE
     binaryen_wasm_memory_factory
     module_repository
     runtime_upgrade_tracker
+    in_memory_storage
     )
 
 addtest(tagged_transaction_queue_test
