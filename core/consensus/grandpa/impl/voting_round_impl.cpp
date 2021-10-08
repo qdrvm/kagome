@@ -606,9 +606,10 @@ namespace kagome::consensus::grandpa {
 
     if (need_to_notice_at_finalizing_) {
       sendFinalize(block, std::move(justification));
+    } else {
+      env_->finalize(block.hash, justification);
     }
 
-    env_->finalize(block.hash, justification);
     env_->onCompleted(state());
   }
 
@@ -766,10 +767,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::attemptToFinalizeRound() {
-//    if (stage_ != Stage::WAITING_RUNS) {
-//      return;
-//    }
-
     if (finalizable()) {
       doFinalize();
       if (on_complete_handler_) {
