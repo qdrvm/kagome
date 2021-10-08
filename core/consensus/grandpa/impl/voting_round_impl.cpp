@@ -1362,8 +1362,8 @@ namespace kagome::consensus::grandpa {
   BlockInfo VotingRoundImpl::bestFinalCandidate() {
     auto current_precommits = precommits_->getTotalWeight();
 
-    const auto &best_prevote_candidate = prevote_ghost_.get_value_or(
-        finalized_.get_value_or(last_finalized_block_));
+    const auto &best_prevote_candidate = finalized_.get_value_or(
+        prevote_ghost_.get_value_or(last_finalized_block_));
 
     if (current_precommits >= threshold_) {
       auto possible_to_finalize = [this](const VoteWeight &vote_weight) {
@@ -1453,12 +1453,13 @@ namespace kagome::consensus::grandpa {
     // the round-estimate is the highest block in the chain with head
     // `prevote_ghost` that could have supermajority-commits.
     if (precommits_->getTotalWeight() >= threshold_) {
-      auto current_best = prevote_ghost_.has_value() ? prevote_ghost_.value()
-                                                     : last_finalized_block_;
+      auto current_best =
+          finalized_.value_or(prevote_ghost_.value_or(last_finalized_block_));
 
       auto best_final_candidate = graph_->findAncestor(
           current_best, possible_to_precommit, VoteWeight::precommitComparator);
-      if (best_final_candidate.has_value()) {
+      if (best_final_candidate.has_value()
+          and best_final_candidate != best_final_candidate_) {
         best_final_candidate_ = best_final_candidate;
         SL_TRACE(
             logger_,

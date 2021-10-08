@@ -15,20 +15,6 @@ target_link_libraries(babe_test
     logger_for_tests
     )
 
-addtest(babe_synchronizer_test
-    babe_synchronizer_test.cpp
-    )
-target_link_libraries(babe_synchronizer_test
-    babe_synchronizer
-    logger_for_tests
-    sync_protocol
-    block_tree_error
-    p2p::p2p_basic_scheduler
-    p2p::p2p_message_read_writer
-    p2p::p2p_peer_id
-    p2p::p2p_literals
-    )
-
 addtest(babe_util_test
     babe_util_test.cpp
     )

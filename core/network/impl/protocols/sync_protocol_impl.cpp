@@ -10,10 +10,10 @@
 #include "network/adapters/protobuf_block_response.hpp"
 #include "network/common.hpp"
 #include "network/helpers/protobuf_message_read_writer.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 #include "network/rpc.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
-#include "network/impl/protocols/protocol_error.hpp"
 
 namespace kagome::network {
 
@@ -181,7 +181,7 @@ namespace kagome::network {
           if (not write_res.has_value()) {
             SL_VERBOSE(
                 self->log_,
-                "Error at writting response to incoming {} stream with {}: {}",
+                "Error at writing response to incoming {} stream with {}: {}",
                 self->protocol_,
                 stream->remotePeerId().value().toBase58(),
                 write_res.error().message());
@@ -228,13 +228,11 @@ namespace kagome::network {
             return;
           }
 
-          SL_DEBUG(
-              self->log_,
-              "Request written successfuly into outgoing {} stream with {}",
-              self->protocol_,
-              stream->remotePeerId().value().toBase58());
+          SL_DEBUG(self->log_,
+                   "Request written successful into outgoing {} stream with {}",
+                   self->protocol_,
+                   stream->remotePeerId().value().toBase58());
 
-          stream->close([](auto &&...) {});
           cb(outcome::success());
         });
   }
@@ -275,7 +273,7 @@ namespace kagome::network {
       auto &blocks_response = block_response_res.value();
 
       SL_DEBUG(self->log_,
-               "Response read successfuly from outgoing {} stream with {}",
+               "Successful response read from outgoing {} stream with {}",
                self->protocol_,
                stream->remotePeerId().value().toBase58());
 
@@ -348,6 +346,7 @@ namespace kagome::network {
                                }
 
                                if (not write_res.has_value()) {
+                                 stream->reset();
                                  response_handler(write_res.as_failure());
                                  return;
                                }
