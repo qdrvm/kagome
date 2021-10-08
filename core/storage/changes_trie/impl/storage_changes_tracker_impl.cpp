@@ -54,9 +54,13 @@ namespace kagome::storage::changes_trie {
       chain_subscription_engine_->notify(
           primitives::events::ChainEventType::kNewRuntime, hash);
     }
-    for (auto &[key, value] : actual_val_) {
-      SL_DEBUG(logger_, "Key: 0x{}; Value 0x{};", key.toHex(), value.toHex());
-      storage_subscription_engine_->notify(key, value, parent_hash_);
+    for (auto &pair : actual_val_) {
+      SL_DEBUG(logger_,
+               "Key: 0x{}; Value 0x{};",
+               pair.first.toHex(),
+               pair.second.toHex());
+      storage_subscription_engine_->notify(
+          pair.first, pair.second, parent_hash_);
     }
   }
 
