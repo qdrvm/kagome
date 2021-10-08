@@ -8,9 +8,9 @@
 #include <libp2p/connection/loopback_stream.hpp>
 
 #include "network/common.hpp"
+#include "network/impl/protocols/protocol_error.hpp"
 #include "network/types/grandpa_message.hpp"
 #include "network/types/roles.hpp"
-#include "network/impl/protocols/protocol_error.hpp"
 
 namespace kagome::network {
   using libp2p::connection::LoopbackStream;
@@ -341,7 +341,7 @@ namespace kagome::network {
   void GrandpaProtocol::catchUpRequest(const libp2p::peer::PeerId &peer_id,
                                        CatchUpRequest &&catch_up_request) {
     SL_DEBUG(log_,
-             "Send catch-up request: grandpa round number {}",
+             "Send catch-up request: beginning with grandpa round number {}",
              catch_up_request.round_number);
 
     auto shared_msg =
@@ -354,7 +354,7 @@ namespace kagome::network {
   void GrandpaProtocol::catchUpResponse(const libp2p::peer::PeerId &peer_id,
                                         CatchUpResponse &&catch_up_response) {
     SL_DEBUG(log_,
-             "Send catch-up response: grandpa round number {}",
+             "Send catch-up response: beginning with grandpa round number {}",
              catch_up_response.round_number);
 
     auto shared_msg =
