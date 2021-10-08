@@ -21,6 +21,14 @@ constexpr auto kKeyWaitTimerDuration = 60s;
 
 namespace kagome::consensus::grandpa {
 
+  bool operator<(const std::tuple<MembershipCounter, RoundNumber> &lhs,
+                 const std::shared_ptr<const VotingRound> &rhs) {
+    const auto &l_voter_set = std::get<0>(lhs);
+    const auto &l_round = std::get<1>(lhs);
+    return l_voter_set == rhs->voterSetId() ? (l_round < rhs->roundNumber())
+                                            : (l_voter_set < rhs->voterSetId());
+  }
+
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<Environment> environment,
@@ -65,7 +73,10 @@ namespace kagome::consensus::grandpa {
             self->onCompletedRound(std::move(completed_round_res));
           }
         });
+    return true;
+  }
 
+  bool GrandpaImpl::start() {
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
@@ -106,10 +117,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(current_round_->finalizable());
     BOOST_ASSERT(current_round_->finalizedBlock() == round_state.finalized);
 
-    return true;
-  }
-
-  bool GrandpaImpl::start() {
     executeNextRound();
 
     if (not current_round_) {
@@ -271,8 +278,7 @@ namespace kagome::consensus::grandpa {
              msg.voter_set_id,
              msg.round_number,
              msg.last_finalized);
-    if (current_round_->voterSetId() != msg.voter_set_id
-        || current_round_->roundNumber() < msg.round_number) {
+    if (not(std::tie(msg.voter_set_id, msg.round_number) < current_round_)) {
       if (catch_up_request_suppressed_until_ < clock_->now()) {
         catch_up_request_suppressed_until_ =
             clock_->now() + catch_up_request_suppression_duration_;
@@ -292,22 +298,12 @@ namespace kagome::consensus::grandpa {
           peer_id.toBase58());
       return;
     }
-    if (previous_round_->voterSetId() != msg.voter_set_id) {
-      // Catching up of different set
-      SL_DEBUG(
-          logger_,
-          "Catch-up request (since round #{}) received from {} was rejected: "
-          "voter set is different",
-          msg.round_number,
-          peer_id.toBase58());
-      return;
-    }
-    if (previous_round_->roundNumber() < msg.round_number) {
+    if (std::tie(msg.voter_set_id, msg.round_number) < current_round_) {
       // Catching up in to the past
       SL_DEBUG(
           logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
-          "catching up in to the past",
+          "catching up into the past",
           msg.round_number,
           peer_id.toBase58());
       return;
@@ -349,22 +345,12 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
     BOOST_ASSERT(current_round_ != nullptr);
-    if (current_round_->roundNumber() > msg.round_number) {
+    if (std::tie(msg.voter_set_id, msg.round_number) < current_round_) {
       // Catching up in to the past
       SL_DEBUG(
           logger_,
           "Catch-up response (till round #{}) received from {} was rejected: "
-          "catching up in to the past",
-          msg.round_number,
-          peer_id.toBase58());
-      return;
-    }
-    if (current_round_->voterSetId() != msg.voter_set_id) {
-      // Catching up of different set
-      SL_DEBUG(
-          logger_,
-          "Catch-up response (till round #{}) received from {} was rejected: "
-          "voter set is different",
+          "catching up into the past",
           msg.round_number,
           peer_id.toBase58());
       return;
