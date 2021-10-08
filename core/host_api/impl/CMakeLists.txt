@@ -10,6 +10,7 @@ target_link_libraries(host_api_factory
     buffer
     host_api
     )
+kagome_install(host_api_factory)
 
 add_library(crypto_extension
     crypto_extension.cpp

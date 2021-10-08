@@ -45,6 +45,7 @@ set(kagome_LIBRARIES
         kagome::hasher
         kagome::hexutil
         kagome::host_api
+        kagome::host_api_factory
         kagome::in_memory_storage
         kagome::io_extension
         kagome::keccak
