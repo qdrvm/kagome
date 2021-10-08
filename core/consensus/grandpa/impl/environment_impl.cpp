@@ -81,7 +81,8 @@ namespace kagome::consensus::grandpa {
       const libp2p::peer::PeerId &peer_id,
       MembershipCounter set_id,
       RoundNumber round_number) {
-    SL_DEBUG(logger_, "Send Catch-Up-Request upto round {}", round_number);
+    SL_DEBUG(
+        logger_, "Send Catch-Up-Request beginning with round {}", round_number);
     network::CatchUpRequest message{.round_number = round_number,
                                     .voter_set_id = set_id};
     transmitter_->catchUpRequest(peer_id, std::move(message));
@@ -166,7 +167,6 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
-
     SL_DEBUG(logger_,
              "Round #{}: Send commit of block #{} with hash {}",
              round,

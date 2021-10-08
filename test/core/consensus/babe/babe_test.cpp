@@ -19,7 +19,6 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/timer_mock.hpp"
 #include "mock/core/consensus/authority/authority_update_observer_mock.hpp"
-#include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
 #include "mock/core/consensus/babe/babe_util_mock.hpp"
 #include "mock/core/consensus/babe/block_executor_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
@@ -28,6 +27,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
+#include "mock/core/network/synchronizer_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
@@ -76,7 +76,7 @@ class BabeTest : public testing::Test {
   void SetUp() override {
     app_state_manager_ = std::make_shared<AppStateManagerMock>();
     lottery_ = std::make_shared<BabeLotteryMock>();
-    babe_synchronizer_ = std::make_shared<BabeSynchronizerMock>();
+    synchronizer_ = std::make_shared<network::SynchronizerMock>();
     trie_db_ = std::make_shared<storage::trie::TrieStorageMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
     grandpa_environment_ = std::make_shared<grandpa::EnvironmentMock>();
@@ -138,7 +138,7 @@ class BabeTest : public testing::Test {
                                              hasher_,
                                              std::move(timer_mock_),
                                              grandpa_authority_update_observer_,
-                                             babe_synchronizer_,
+                                             synchronizer_,
                                              babe_util_);
 
     epoch_.start_slot = 0;
@@ -157,7 +157,7 @@ class BabeTest : public testing::Test {
 
   std::shared_ptr<AppStateManagerMock> app_state_manager_;
   std::shared_ptr<BabeLotteryMock> lottery_;
-  std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
+  std::shared_ptr<Synchronizer> synchronizer_;
   std::shared_ptr<storage::trie::TrieStorageMock> trie_db_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
   std::shared_ptr<grandpa::EnvironmentMock> grandpa_environment_;

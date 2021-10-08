@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CONSENSUS_BABE_SYNCHRONIZERIMPL2
-#define KAGOME_CONSENSUS_BABE_SYNCHRONIZERIMPL2
+#ifndef KAGOME_NETWORK_SYNCHRONIZERIMPL
+#define KAGOME_NETWORK_SYNCHRONIZERIMPL
 
-#include "consensus/babe/babe_synchronizer.hpp"
+#include "network/synchronizer.hpp"
 
 #include <queue>
 
@@ -16,11 +16,11 @@
 #include "consensus/babe/block_executor.hpp"
 #include "network/router.hpp"
 
-namespace kagome::consensus {
+namespace kagome::network {
 
-  class BabeSynchronizerImpl
-      : public BabeSynchronizer,
-        public std::enable_shared_from_this<BabeSynchronizerImpl> {
+  class SynchronizerImpl
+      : public Synchronizer,
+        public std::enable_shared_from_this<SynchronizerImpl> {
    public:
     static const size_t kMinPreloadedBlockNumber = 250;
 
@@ -36,10 +36,10 @@ namespace kagome::consensus {
       PEER_BUSY
     };
 
-    BabeSynchronizerImpl(
+    SynchronizerImpl(
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<BlockExecutor> block_executor,
+        std::shared_ptr<consensus::BlockExecutor> block_executor,
         std::shared_ptr<network::Router> router,
         std::shared_ptr<libp2p::basic::Scheduler> scheduler,
         std::shared_ptr<crypto::Hasher> hasher);
@@ -47,15 +47,17 @@ namespace kagome::consensus {
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}
     /// since best common block up to provided {@param block_info}.
     /// {@param handler} will be called when this process is finished or failed
+    /// @returns true if sync is ran (peer is not busy)
     /// @note Is used for start/continue catching up.
-    void syncByBlockInfo(const primitives::BlockInfo &block_info,
+    bool syncByBlockInfo(const primitives::BlockInfo &block_info,
                          const libp2p::peer::PeerId &peer_id,
                          SyncResultHandler &&handler) override;
 
     /// Enqueues loading and applying block {@param block_info} from peer
     /// {@param peer_id}.
+    /// @returns true if sync is ran (peer is not busy)
     /// If provided block is the best after applying, {@param handler} be called
-    void syncByBlockHeader(const primitives::BlockHeader &header,
+    bool syncByBlockHeader(const primitives::BlockHeader &header,
                            const libp2p::peer::PeerId &peer_id,
                            SyncResultHandler &&handler) override;
 
@@ -80,9 +82,6 @@ namespace kagome::consensus {
                     SyncResultHandler &&handler);
 
    private:
-    /// @returns true, if block is already enqueued for loading
-    bool isInQueue(const primitives::BlockHash &hash) const;
-
     /// Tries to request another portion of block
     void askNextPortionOfBlocks();
 
@@ -98,13 +97,12 @@ namespace kagome::consensus {
     void prune(const primitives::BlockInfo &finalized_block);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<BlockExecutor> block_executor_;
+    std::shared_ptr<consensus::BlockExecutor> block_executor_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
-    log::Logger log_ =
-        log::createLogger("BabeSynchronizer", "babe_synchronizer");
+    log::Logger log_ = log::createLogger("Synchronizer", "synchronizer");
 
     bool node_is_shutting_down_ = false;
 
@@ -137,8 +135,8 @@ namespace kagome::consensus {
     std::set<libp2p::peer::PeerId> busy_peers_;
   };
 
-}  // namespace kagome::consensus
+}  // namespace kagome::network
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BabeSynchronizerImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR(kagome::network, SynchronizerImpl::Error)
 
-#endif  //  KAGOME_CONSENSUS_BABE_SYNCHRONIZERIMPL2
+#endif  //  KAGOME_NETWORK_SYNCHRONIZERIMPL
