@@ -39,7 +39,8 @@ namespace kagome::consensus {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<authority::AuthorityUpdateObserver>
           authority_update_observer,
-      std::shared_ptr<BabeUtil> babe_util)
+      std::shared_ptr<BabeUtil> babe_util,
+      std::shared_ptr<runtime::OffchainApi> offchain_api)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         babe_configuration_{std::move(configuration)},
@@ -49,6 +50,7 @@ namespace kagome::consensus {
         hasher_{std::move(hasher)},
         authority_update_observer_{std::move(authority_update_observer)},
         babe_util_(std::move(babe_util)),
+        offchain_api_(std::move(offchain_api)),
         logger_{log::createLogger("BlockExecutor", "block_executor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(core_ != nullptr);
@@ -59,6 +61,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(authority_update_observer_ != nullptr);
     BOOST_ASSERT(babe_util_ != nullptr);
+    BOOST_ASSERT(offchain_api_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -170,6 +173,12 @@ namespace kagome::consensus {
              parent.number,
              block.header.parent_hash,
              parent.state_root);
+
+    // Create new offchain worker for block
+    offchain_api_->spawnWorker(
+        primitives::BlockInfo(block.header.number, block_hash));
+    auto cleanup = gsl::finally([this] { offchain_api_->dropWorker(); });
+
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
     auto exec_end = std::chrono::high_resolution_clock::now();
     SL_DEBUG(logger_,
@@ -224,6 +233,9 @@ namespace kagome::consensus {
         block_hash.toHex(),
         std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start)
             .count());
+
+    offchain_api_->detachWorker();
+
     return outcome::success();
   }
 

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_HPP
-#define KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_HPP
+#ifndef KAGOME_RUNTIME_OFFCHAINWORKERIMPL
+#define KAGOME_RUNTIME_OFFCHAINWORKERIMPL
 
 #include "runtime/runtime_api/offchain_worker.hpp"
 
@@ -12,17 +12,70 @@ namespace kagome::runtime {
 
   class Executor;
 
-  class OffchainWorkerImpl final : public OffchainWorker {
+  class OffchainWorkerImpl final
+      : public OffchainWorker,
+        public std::enable_shared_from_this<OffchainWorkerImpl> {
    public:
-    explicit OffchainWorkerImpl(std::shared_ptr<Executor> executor);
+    OffchainWorkerImpl(primitives::BlockInfo block_info);
 
-    outcome::result<void> offchain_worker(
-        primitives::BlockInfo block_info) override;
+    void detach();
+    void drop();
+
+    bool isValidator() const override;
+
+    common::Buffer submitTransaction(const primitives::Extrinsic &ext) override;
+
+    outcome::result<OpaqueNetworkState, Failure> networkState() override;
+
+    Timestamp offchainTimestamp() override;
+
+    void sleepUntil(Timestamp) override;
+
+    RandomSeed randomSeed() override;
+
+    void localStorageSet(KindStorage kind,
+                         common::Buffer key,
+                         common::Buffer value) override;
+
+    void localStorageClear(KindStorage kind, common::Buffer key) override;
+
+    bool localStorageCompareAndSet(KindStorage kind,
+                                   common::Buffer key,
+                                   boost::optional<common::Buffer> expected,
+                                   common::Buffer value) override;
+
+    common::Buffer localStorageGet(KindStorage kind,
+                                   common::Buffer key) override;
+
+    outcome::result<RequestId, Failure> httpRequestStart(
+        Method method, common::Buffer uri, common::Buffer meta) override;
+
+    outcome::result<Success, Failure> httpRequestAddHeader(
+        RequestId id, common::Buffer name, common::Buffer value) override;
+
+    outcome::result<Success, HttpError> httpRequestWriteBody(
+        RequestId id,
+        common::Buffer chunk,
+        boost::optional<Timestamp> deadline) override;
+
+    outcome::result<Success, Failure> httpResponseWait(
+        RequestId id, boost::optional<Timestamp> deadline) override;
+
+    std::vector<std::pair<std::string, std::string>> httpResponseHeaders(
+        RequestId id) override;
+
+    outcome::result<uint32_t, HttpError> httpResponseReadBody(
+        RequestId id,
+        common::Buffer &chunk,
+        boost::optional<Timestamp> deadline) override;
+
+    void setAuthorizedNodes(std::vector<libp2p::peer::PeerId>,
+                            bool authorized_only) override;
 
    private:
-    std::shared_ptr<Executor> executor_;
+    primitives::BlockInfo associated_block_;
   };
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_CORE_RUNTIME_OFFCHAIN_WORKER_HPP
+#endif  // KAGOME_RUNTIME_OFFCHAINWORKERIMPL

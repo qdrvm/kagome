@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_HOST_API_IMPL_HPP
-#define KAGOME_HOST_API_IMPL_HPP
+#ifndef KAGOME_RUNTIME_HOSTAPIIMPL
+#define KAGOME_RUNTIME_HOSTAPIIMPL
 
 #include "host_api/host_api.hpp"
 #include "host_api/impl/crypto_extension.hpp"
@@ -266,4 +266,4 @@ namespace kagome::host_api {
   };
 }  // namespace kagome::host_api
 
-#endif  // KAGOME_HOST_API_IMPL_HPP
+#endif  // KAGOME_RUNTIME_HOSTAPIIMPL

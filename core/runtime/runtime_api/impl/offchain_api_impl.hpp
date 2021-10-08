@@ -8,11 +8,23 @@
 
 #include "runtime/runtime_api/offchain_api.hpp"
 
+#include "runtime/runtime_api/impl/offchain_worker.hpp"
+
 namespace kagome::runtime {
 
   class OffchainApiImpl final : public OffchainApi {
    public:
     OffchainApiImpl();
+
+    // ---------------------- Manage of Off-Chain workers ----------------------
+
+    void spawnWorker(primitives::BlockInfo block_info) override;
+
+    void detachWorker() override;
+
+    void dropWorker() override;
+
+    // ------------------------- Off-Chain API methods -------------------------
 
     bool isValidator() const override;
 
@@ -65,9 +77,14 @@ namespace kagome::runtime {
     void setAuthorizedNodes(std::vector<libp2p::peer::PeerId>,
                             bool authorized_only) override;
 
+    // ------------------------ Off-Chain Index methods ------------------------
+
     void indexSet(common::Buffer key, common::Buffer value) override;
 
     void indexClear(common::Buffer key) override;
+
+   private:
+    boost::optional<std::shared_ptr<OffchainWorkerImpl>> worker_;
   };
 
 }  // namespace kagome::runtime
