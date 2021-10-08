@@ -1,6 +1,6 @@
 ## Template for a custom hunter configuration
 # Useful when there is a need for a non-default version or arguments of a dependency,
-# or when a project not registered in soramistu-hunter should be added.
+# or when a project not registered in soramitsu-hunter should be added.
 #
 # hunter_config(
 #     package-name
@@ -25,8 +25,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/9e3d90f3fe43c23ba8980e3498584a7b15507c5d.tar.gz
-    SHA1 ca417cbe83acf056a70445cf521b5b9421cc9644
+    URL https://github.com/libp2p/cpp-libp2p/archive/c904db6c5fd4925082b9139776b3a87914393fa7.tar.gz
+    SHA1 f00e8359464fdbc274b8f5b505fd6bd629fd8fce
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
     KEEP_PACKAGE_SOURCES
 )
