@@ -35,7 +35,7 @@ namespace kagome::network {
     // The round this message is from.
     RoundNumber round{0};
     // The voter set ID this message is from.
-    uint64_t set_id;
+    MembershipCounter set_id;
     // The compact commit message.
     CompactCommit message;
   };

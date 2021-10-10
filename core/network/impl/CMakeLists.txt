@@ -5,6 +5,14 @@
 
 add_subdirectory(protocols)
 
+add_library(synchronizer
+    synchronizer_impl.cpp
+    )
+target_link_libraries(synchronizer
+    logger
+    primitives
+    )
+
 add_library(grandpa_transmitter
     grandpa_transmitter_impl.cpp
     )
