@@ -153,20 +153,13 @@ class RuntimeTestBase : public ::testing::Test {
             .digest = {}}));
   }
 
-  struct ImplementationSpecificRuntimeClasses {
-    std::shared_ptr<kagome::runtime::ModuleFactory> module_factory_;
-    std::shared_ptr<kagome::runtime::CoreApiFactory> core_api_factory_;
-    std::shared_ptr<kagome::runtime::MemoryProvider> memory_provider_;
-    std::shared_ptr<kagome::host_api::HostApi> host_api_;
-  };
-
-  virtual ImplementationSpecificRuntimeClasses getImplementationSpecific() = 0;
+  virtual std::shared_ptr<kagome::runtime::ModuleFactory>
+  createModuleFactory() = 0;
 
   void SetUp() override {
     initStorage();
 
-    auto &&[module_factory, core_api_factory, memory_provider, host_api] =
-        getImplementationSpecific();
+    auto module_factory = createModuleFactory();
 
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/sub2dev.wasm";
@@ -186,9 +179,7 @@ class RuntimeTestBase : public ::testing::Test {
 
     runtime_env_factory_ =
         std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
-            std::move(wasm_provider_),
-            std::move(module_repo),
-            header_repo_);
+            std::move(wasm_provider_), std::move(module_repo), header_repo_);
 
     executor_ = std::make_shared<kagome::runtime::Executor>(
         header_repo_, runtime_env_factory_);

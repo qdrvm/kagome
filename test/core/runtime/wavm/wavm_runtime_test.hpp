@@ -19,7 +19,8 @@
 
 class WavmRuntimeTest : public RuntimeTestBase {
  public:
-  virtual ImplementationSpecificRuntimeClasses getImplementationSpecific() {
+  virtual std::shared_ptr<kagome::runtime::ModuleFactory> createModuleFactory()
+      override {
     auto compartment =
         std::make_shared<kagome::runtime::wavm::CompartmentWrapper>(
             "Test Compartment");
@@ -34,18 +35,18 @@ class WavmRuntimeTest : public RuntimeTestBase {
     auto changes_tracker =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
 
-    auto instance_env_factory = std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
-        trie_db,
-        compartment,
-        intrinsic_module,
-        host_api_factory_,
-        header_repo_,
-        changes_tracker);
+    auto instance_env_factory =
+        std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
+            trie_db,
+            compartment,
+            intrinsic_module,
+            host_api_factory_,
+            header_repo_,
+            changes_tracker);
 
     auto module_factory =
-        std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(compartment,
-                                                                   instance_env_factory,
-                                                                   intrinsic_module);
+        std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
+            compartment, instance_env_factory, intrinsic_module);
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmExternalMemoryProvider>(
@@ -66,8 +67,7 @@ class WavmRuntimeTest : public RuntimeTestBase {
 
     kagome::runtime::wavm::pushHostApi(host_api);
 
-    return ImplementationSpecificRuntimeClasses{
-        module_factory, core_api_factory, memory_provider, host_api};
+    return module_factory;
   }
 
  private:

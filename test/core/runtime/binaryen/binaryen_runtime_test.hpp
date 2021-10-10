@@ -12,13 +12,14 @@
 #include "runtime/binaryen/binaryen_memory_factory.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
-#include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
+#include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/binaryen/module/module_factory_impl.hpp"
 
 class BinaryenRuntimeTest : public RuntimeTestBase {
  public:
-  virtual ImplementationSpecificRuntimeClasses getImplementationSpecific() {
+  virtual std::shared_ptr<kagome::runtime::ModuleFactory> createModuleFactory()
+      override {
     auto memory_factory =
         std::make_shared<kagome::runtime::binaryen::BinaryenMemoryFactory>();
     auto memory_provider =
@@ -45,8 +46,7 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
     auto module_factory =
         std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(
             instance_env_factory, trie_db);
-    return ImplementationSpecificRuntimeClasses{
-        module_factory, core_api_factory, memory_provider, host_api};
+    return module_factory;
   }
 
  private:

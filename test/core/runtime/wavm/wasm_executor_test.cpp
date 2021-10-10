@@ -140,15 +140,10 @@ class WasmExecutorTest : public ::testing::Test {
     auto intrinsic_module =
         std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
             compartment_wrapper);
-    std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance>
-        intrinsic_module_instance = intrinsic_module->instantiate();
 
     auto memory_provider =
         std::make_shared<kagome::runtime::wavm::WavmExternalMemoryProvider>(
-            intrinsic_module_instance);
-    auto intrinsic_resolver =
-        std::make_shared<kagome::runtime::wavm::IntrinsicResolverImpl>(
-            intrinsic_module_instance);
+            intrinsic_module->instantiate());
     runtime_upgrade_tracker_ =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerMock>();
     auto instance_env_factory = std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
