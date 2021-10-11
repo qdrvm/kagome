@@ -11,6 +11,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "log/logger.hpp"
+#include "primitives/code_substitutes.hpp"
 
 namespace kagome::application {
 
@@ -78,7 +79,7 @@ namespace kagome::application {
       return consensus_engine_;
     }
 
-    const CodeSubstitutes& codeSubstitutes() const override {
+    const primitives::CodeSubstitutes& codeSubstitutes() const override {
       return code_substitutes_;
     }
 
@@ -116,7 +117,7 @@ namespace kagome::application {
     std::set<primitives::BlockHash> fork_blocks_;
     std::set<primitives::BlockHash> bad_blocks_;
     boost::optional<std::string> consensus_engine_;
-    CodeSubstitutes code_substitutes_;
+    primitives::CodeSubstitutes code_substitutes_;
     GenesisRawData genesis_;
     log::Logger log_ = log::createLogger("chain_spec", "kagome");
   };

@@ -7,13 +7,14 @@
 #define KAGOME_CHAIN_SPEC_HPP
 
 #include <libp2p/peer/peer_info.hpp>
+
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/block.hpp"
+#include "primitives/code_substitutes.hpp"
 
 namespace kagome::application {
 
-  using CodeSubstitutes = std::map<primitives::BlockHash, common::Buffer>;
   using GenesisRawData = std::vector<std::pair<common::Buffer, common::Buffer>>;
 
   /**
@@ -53,7 +54,7 @@ namespace kagome::application {
     /**
      * @return runtime code substitution map
      */
-    virtual const CodeSubstitutes &codeSubstitutes() const = 0;
+    virtual const primitives::CodeSubstitutes &codeSubstitutes() const = 0;
 
     /**
      * @return genesis block of the chain
