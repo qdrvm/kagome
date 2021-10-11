@@ -171,7 +171,7 @@ TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
 }
 
 /**
- * @given   set of keys and a block
+ * @given set of keys and a block
  * @when querying storage changes for the given key set on a block range from
  * the given to the latest by queryStorage in State API
  * @then method call returns a JSON object, which data matches the expected call
@@ -218,6 +218,46 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorage) {
              | boost::adaptors::transformed(json_tuple_to_pair);
     ASSERT_EQ(e, r);
   }
+}
+
+TEST_F(StateJrpcProcessorTest, ProcessQueryStorageAt) {
+  // GIVEN
+  std::vector<Buffer> keys{"key1"_buf, "key2"_buf, "key3"_buf};
+  BlockHash at{"at"_hash256};
+  std::vector<StateApi::StorageChangeSet> res{StateApi::StorageChangeSet{
+      at, {StateApi::StorageChangeSet::Change{"key1"_buf, "42"_buf}}}};
+  EXPECT_CALL(
+      *state_api,
+      queryStorageAt(
+          gsl::span<const Buffer>(keys), boost::make_optional(at)))
+      .WillOnce(testing::Return(outcome::success(res)));
+
+  registerHandlers();
+
+  jsonrpc::Value::Array keys_json;
+  std::transform(keys.begin(),
+                 keys.end(),
+                 std::back_inserter(keys_json),
+                 [](auto &buffer) { return "0x" + buffer.toHex(); });
+  jsonrpc::Request::Parameters params{keys_json, "0x" + at.toHex()};
+  // WHEN
+  auto result = execute(CallType::kCallType_QueryStorageAt, params);
+  auto expected_json = makeValue(res).AsArray();
+  // THEN
+  ASSERT_EQ(expected_json.size(), result.AsArray().size());
+  ASSERT_EQ(expected_json.size(), 1);
+
+  ASSERT_EQ(expected_json[0].AsStruct().at("block").AsString(),
+            result.AsArray()[0].AsStruct().at("block").AsString());
+  auto json_tuple_to_pair = [](auto &value) {
+    auto &tuple = value.AsArray();
+    return std::pair(tuple[0].AsString(), tuple[1].AsString());
+  };
+  auto e = expected_json[0].AsStruct().at("changes").AsArray()
+           | boost::adaptors::transformed(json_tuple_to_pair);
+  auto r = result.AsArray()[0].AsStruct().at("changes").AsArray()
+           | boost::adaptors::transformed(json_tuple_to_pair);
+  ASSERT_EQ(e, r);
 }
 
 /**
