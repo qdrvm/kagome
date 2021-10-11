@@ -21,6 +21,9 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     echo \
       "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
       bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
+    add-apt-repository -y "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-12 main" && \
+    #add-apt-repository -y "deb-src http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-12 main" && \
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
         docker-ce-cli \
@@ -34,6 +37,10 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         clang-9 \
         clang-tidy-9 \
         clang-format-9 \
+        llvm-12-dev \
+        clang-12 \
+        clang-tidy-12 \
+        clang-format-12 \
         make \
         git \
         ccache \
@@ -65,17 +72,18 @@ RUN set -e; \
     rm -rf /tmp/sonar*
 
 # set env
-ENV LLVM_ROOT=/usr/lib/llvm-9
+ENV LLVM_ROOT=/usr/lib/llvm-12
+ENV LLVM_DIR=/usr/lib/llvm-12/lib/cmake/llvm/
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
 ENV CC=gcc-9
 ENV CXX=g++-9
 
 # set default compilers and tools
 RUN update-alternatives --install /usr/bin/python       python       /usr/bin/python3              90 && \
-    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-9         90 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-9       90 && \
-    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-9/bin/clang-9   90 && \
-    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-9            90 && \
+    update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-12         90 && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-12       90 && \
+    update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-12/bin/clang-12   90 && \
+    update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-12            90 && \
     update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-9                90 && \
     update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-9                90 && \
     update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9               90
