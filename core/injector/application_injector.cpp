@@ -103,7 +103,7 @@
 #include "runtime/runtime_api/impl/grandpa_api.hpp"
 #include "runtime/runtime_api/impl/metadata.hpp"
 #include "runtime/runtime_api/impl/offchain_api_impl.hpp"
-#include "runtime/runtime_api/impl/offchain_worker.hpp"
+#include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 #include "runtime/runtime_api/impl/tagged_transaction_queue.hpp"
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
@@ -730,7 +730,7 @@ namespace {
         injector.template create<sptr<crypto::Hasher>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<consensus::BabeUtil>>(),
-        injector.template create<sptr<runtime::OffchainApi>>());
+        injector.template create<sptr<runtime::OffchainWorkerApi>>());
 
     initialized.emplace(std::move(block_executor));
     return initialized.value();
@@ -885,6 +885,7 @@ namespace {
         }),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
+        di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::OffchainWorkerImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
@@ -1236,7 +1237,8 @@ namespace {
         injector.template create<uptr<clock::Timer>>(),
         injector.template create<sptr<authority::AuthorityUpdateObserver>>(),
         injector.template create<sptr<network::Synchronizer>>(),
-        injector.template create<sptr<consensus::BabeUtil>>());
+        injector.template create<sptr<consensus::BabeUtil>>(),
+        injector.template create<sptr<runtime::OffchainWorkerApi>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();

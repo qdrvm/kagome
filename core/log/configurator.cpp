@@ -57,6 +57,7 @@ groups:
             children:
               - name: runtime_api
               - name: host_api
+              - name: offchain_worker_api
               - name: binaryen
               - name: wavm
           - name: metrics
