@@ -144,7 +144,15 @@ namespace kagome::host_api {
                  runtime::WasmSpan(runtime::WasmPointer sig,
                                    runtime::WasmPointer msg));
 
+    MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_version_2,
+                 runtime::WasmSpan(runtime::WasmPointer sig,
+                                   runtime::WasmPointer msg));
+
     MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1,
+                 runtime::WasmSpan(runtime::WasmPointer sig,
+                                   runtime::WasmPointer msg));
+
+    MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_compressed_version_2,
                  runtime::WasmSpan(runtime::WasmPointer sig,
                                    runtime::WasmPointer msg));
 
