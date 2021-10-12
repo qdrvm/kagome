@@ -15,7 +15,7 @@ namespace kagome::storage::trie {
   class TrieStorageBackendImpl : public TrieStorageBackend {
    public:
     TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage,
-                      common::Buffer node_prefix);
+                           common::Buffer node_prefix);
 
     ~TrieStorageBackendImpl() override = default;
 
@@ -23,6 +23,8 @@ namespace kagome::storage::trie {
     std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<boost::optional<Buffer>> tryGet(
+        const Buffer &key) const override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;
 

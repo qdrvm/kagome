@@ -33,7 +33,7 @@ namespace kagome::storage {
       return outcome::success();
     }
 
-    return error_as_result<void>(status, db_.logger_);
+    return status_as_error(status, db_.logger_);
   }
 
   void LevelDB::Batch::clear() {
