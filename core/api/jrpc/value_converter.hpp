@@ -10,7 +10,6 @@
 
 #include <jsonrpc-lean/value.h>
 #include <boost/range/adaptor/transformed.hpp>
-#include <boost/range/algorithm_ext/push_back.hpp>
 
 #include "api/service/state/state_api.hpp"
 #include "common/blob.hpp"
