@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
@@ -24,10 +25,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
 }
 
 namespace kagome::storage::trie {
-
-  const common::Buffer EXTRINSIC_INDEX_KEY =
-      common::Buffer{}.put(":extrinsic_index");
-
   // sometimes there is no extrinsic index for a runtime call
   const common::Buffer NO_EXTRINSIC_INDEX_VALUE{
       scale::encode(0xffffffff).value()};
@@ -44,7 +41,6 @@ namespace kagome::storage::trie {
                                     std::move(changes),
                                     std::move(trie),
                                     std::move(handler)));
-    ptr->init();
     return ptr;
   }
 
@@ -66,21 +62,13 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(trie_ != nullptr);
   }
 
-  void PersistentTrieBatchImpl::init() {
-    if (changes_) {
-      std::weak_ptr<PolkadotTrie> wptr = trie_;
-      changes_.value()->setExtrinsicIdxGetter(
-          [wptr{std::move(wptr)}]() -> outcome::result<Buffer> {
-            if (auto trie = wptr.lock()) {
-              auto res = trie->get(EXTRINSIC_INDEX_KEY);
-              if (res.has_error() and res.error() == TrieError::NO_VALUE) {
-                return NO_EXTRINSIC_INDEX_VALUE;
-              }
-              return res;
-            }
-            return Error::NO_TRIE;
-          });
+  outcome::result<common::Buffer> PersistentTrieBatchImpl::getExtrinsicIndex()
+      const {
+    auto res = trie_->get(kExtrinsicIndexKey);
+    if (res.has_error() and res.error() == TrieError::NO_VALUE) {
+      return NO_EXTRINSIC_INDEX_VALUE;
     }
+    return res;
   }
 
   outcome::result<RootHash> PersistentTrieBatchImpl::commit() {
@@ -97,6 +85,11 @@ namespace kagome::storage::trie {
   outcome::result<Buffer> PersistentTrieBatchImpl::get(
       const Buffer &key) const {
     return trie_->get(key);
+  }
+
+  outcome::result<boost::optional<Buffer>> PersistentTrieBatchImpl::tryGet(
+      const Buffer &key) const {
+    return trie_->tryGet(key);
   }
 
   std::unique_ptr<PolkadotTrieCursor> PersistentTrieBatchImpl::trieCursor() {
@@ -116,10 +109,11 @@ namespace kagome::storage::trie {
                                        boost::optional<uint64_t> limit) {
     if (changes_.has_value()) changes_.value()->onClearPrefix(prefix);
     SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
+    OUTCOME_TRY(ext_idx, getExtrinsicIndex());
     return trie_->clearPrefix(
         prefix, limit, [&](const auto &key, auto &&) -> outcome::result<void> {
           if (changes_.has_value()) {
-            OUTCOME_TRY(changes_.value()->onRemove(key));
+            OUTCOME_TRY(changes_.value()->onRemove(ext_idx, key));
           }
           return outcome::success();
         });
@@ -130,8 +124,9 @@ namespace kagome::storage::trie {
     bool is_new_entry = not trie_->contains(key);
     auto res = trie_->put(key, value);
     if (res and changes_.has_value()) {
+      OUTCOME_TRY(ext_idx, getExtrinsicIndex());
       SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
-      OUTCOME_TRY(changes_.value()->onPut(key, value, is_new_entry));
+      OUTCOME_TRY(changes_.value()->onPut(ext_idx, key, value, is_new_entry));
     }
     return res;
   }
@@ -146,7 +141,8 @@ namespace kagome::storage::trie {
     auto res = trie_->remove(key);
     if (res and changes_.has_value()) {
       SL_TRACE_VOID_FUNC_CALL(logger_, key);
-      OUTCOME_TRY(changes_.value()->onRemove(key));
+      OUTCOME_TRY(ext_idx, getExtrinsicIndex());
+      OUTCOME_TRY(changes_.value()->onRemove(ext_idx, key));
     }
     return res;
   }
