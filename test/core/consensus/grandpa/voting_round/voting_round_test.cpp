@@ -138,6 +138,8 @@ class VotingRoundTest : public testing::Test {
         .WillRepeatedly(Return(std::vector<BlockHash>{
             "ED"_H, "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H}));
     EXPECT_CALL(*env_, hasAncestry("C"_H, "FC"_H)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*env_, hasAncestry("E"_H, "ED"_H)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*env_, hasAncestry("E"_H, "FC"_H)).WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, hasAncestry("FC"_H, "FC"_H))
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, bestChainContaining("C"_H))

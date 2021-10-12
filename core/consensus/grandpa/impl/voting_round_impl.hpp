@@ -161,7 +161,6 @@ namespace kagome::consensus::grandpa {
 
     // Catch-up actions
 
-    void doCatchUpRequest(const libp2p::peer::PeerId &peer_id) override;
     void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) override;
 
     // Getters

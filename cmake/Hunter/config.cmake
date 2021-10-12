@@ -32,6 +32,14 @@ hunter_config(
 )
 
 hunter_config(
+    backward-cpp
+    URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
+    SHA1 93c4c843fc9308e62ac462459077d87dc6dd9885
+    CMAKE_ARGS BACKWARD_TESTS=OFF
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
     wavm
     URL https://github.com/soramitsu/WAVM/archive/9b914111910e9ece1a9243923059d16c153f4c9f.zip
     SHA1 519484aec89f6e2debdddd1ce0ab68d900c19ff4

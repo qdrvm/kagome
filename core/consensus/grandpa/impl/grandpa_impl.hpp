@@ -108,9 +108,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
 
-    const Clock::Duration catch_up_request_suppression_duration_ =
-        std::chrono::seconds(15);
-    Clock::TimePoint catch_up_request_suppressed_until_;
+    network::CatchUpRequest prev_msg_{};
 
     log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };

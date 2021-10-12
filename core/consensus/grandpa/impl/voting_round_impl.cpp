@@ -1605,14 +1605,6 @@ namespace kagome::consensus::grandpa {
     return result;
   }
 
-  void VotingRoundImpl::doCatchUpRequest(const libp2p::peer::PeerId &peer_id) {
-    auto res =
-        env_->onCatchUpRequested(peer_id, voter_set_->id(), round_number_);
-    if (not res) {
-      logger_->warn("Catch-Up-Request was not sent: {}", res.error().message());
-    }
-  }
-
   void VotingRoundImpl::doCatchUpResponse(const libp2p::peer::PeerId &peer_id) {
     BOOST_ASSERT(finalized_.has_value());
     const auto &finalised_block = finalized_.value();

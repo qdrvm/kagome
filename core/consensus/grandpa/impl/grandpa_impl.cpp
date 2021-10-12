@@ -5,6 +5,8 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
+#include <boost/operators.hpp>
+
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
@@ -14,20 +16,37 @@
 #include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
 
-using namespace std::literals::chrono_literals;
-
-// a period of time to check key appearance when absent
-constexpr auto kKeyWaitTimerDuration = 60s;
-
 namespace kagome::consensus::grandpa {
 
-  bool operator<(const std::tuple<MembershipCounter, RoundNumber> &lhs,
-                 const std::shared_ptr<const VotingRound> &rhs) {
-    const auto &l_voter_set = std::get<0>(lhs);
-    const auto &l_round = std::get<1>(lhs);
-    return l_voter_set == rhs->voterSetId() ? (l_round < rhs->roundNumber())
-                                            : (l_voter_set < rhs->voterSetId());
-  }
+  // help struct to correctly compare rounds in different voter sets
+  // TODO(a.krutikov): refactor using concepts
+  struct FullRound : boost::less_than_comparable<FullRound>,
+                     boost::equality_comparable<FullRound> {
+    MembershipCounter v_id;
+    RoundNumber r_no;
+    explicit FullRound(const std::shared_ptr<const VotingRound> &round)
+        : v_id(round->voterSetId()), r_no(round->roundNumber()) {}
+    explicit FullRound(const network::GrandpaNeighborMessage &msg)
+        : v_id(msg.voter_set_id), r_no(msg.round_number) {}
+    explicit FullRound(const network::CatchUpRequest &msg)
+        : v_id(msg.voter_set_id), r_no(msg.round_number) {}
+    explicit FullRound(const network::CatchUpResponse &msg)
+        : v_id(msg.voter_set_id), r_no(msg.round_number) {}
+    explicit FullRound(const VoteMessage &msg)
+        : v_id(msg.counter), r_no(msg.round_number) {}
+
+    operator network::CatchUpRequest() const {
+      return network::CatchUpRequest{r_no, v_id};
+    }
+
+    bool operator<(const FullRound &round) const {
+      return v_id == round.v_id ? r_no < round.r_no : v_id < round.v_id;
+    }
+
+    bool operator==(const FullRound &round) const {
+      return v_id == round.v_id && r_no == round.r_no;
+    }
+  };
 
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -58,7 +77,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(authority_manager_ != nullptr);
 
     app_state_manager_->takeControl(*this);
-    catch_up_request_suppressed_until_ = clock_->now();
   }
 
   bool GrandpaImpl::prepare() {
@@ -278,11 +296,13 @@ namespace kagome::consensus::grandpa {
              msg.voter_set_id,
              msg.round_number,
              msg.last_finalized);
-    if (not(std::tie(msg.voter_set_id, msg.round_number) < current_round_)) {
-      if (catch_up_request_suppressed_until_ < clock_->now()) {
-        catch_up_request_suppressed_until_ =
-            clock_->now() + catch_up_request_suppression_duration_;
-        current_round_->doCatchUpRequest(peer_id);
+    if (FullRound{msg} >= FullRound{current_round_}) {
+      if (FullRound{prev_msg_} < FullRound{msg}) {
+        auto res = environment_->onCatchUpRequested(
+            peer_id, msg.voter_set_id, msg.round_number - 1);
+        if (res) {
+          prev_msg_ = FullRound{msg};
+        }
       }
     }
   }
@@ -298,7 +318,7 @@ namespace kagome::consensus::grandpa {
           peer_id.toBase58());
       return;
     }
-    if (std::tie(msg.voter_set_id, msg.round_number) < current_round_) {
+    if (FullRound{msg} < FullRound{current_round_}) {
       // Catching up in to the past
       SL_DEBUG(
           logger_,
@@ -306,14 +326,6 @@ namespace kagome::consensus::grandpa {
           "catching up into the past",
           msg.round_number,
           peer_id.toBase58());
-      return;
-    }
-    if (current_round_->roundNumber() + 2 <= msg.round_number) {
-      if (catch_up_request_suppressed_until_ < clock_->now()) {
-        catch_up_request_suppressed_until_ =
-            clock_->now() + catch_up_request_suppression_duration_;
-        current_round_->doCatchUpRequest(peer_id);
-      }
       return;
     }
     if (not previous_round_->completable()) {
@@ -345,7 +357,7 @@ namespace kagome::consensus::grandpa {
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
     BOOST_ASSERT(current_round_ != nullptr);
-    if (std::tie(msg.voter_set_id, msg.round_number) < current_round_) {
+    if (FullRound{msg} < FullRound{current_round_}) {
       // Catching up in to the past
       SL_DEBUG(
           logger_,
@@ -425,8 +437,6 @@ namespace kagome::consensus::grandpa {
     current_round_ = std::move(round);
 
     executeNextRound();
-
-    catch_up_request_suppressed_until_ = clock_->now();
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -445,11 +455,13 @@ namespace kagome::consensus::grandpa {
 
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
-      if (current_round_->roundNumber() + 2 <= msg.round_number) {
-        if (catch_up_request_suppressed_until_ < clock_->now()) {
-          catch_up_request_suppressed_until_ =
-              clock_->now() + catch_up_request_suppression_duration_;
-          current_round_->doCatchUpRequest(peer_id);
+      if (FullRound{current_round_} < FullRound{msg}) {
+        if (FullRound{prev_msg_} < FullRound{msg}) {
+          auto res = environment_->onCatchUpRequested(
+              peer_id, msg.counter, msg.round_number);
+          if (res) {
+            prev_msg_ = FullRound{msg};
+          }
         }
       }
       return;
