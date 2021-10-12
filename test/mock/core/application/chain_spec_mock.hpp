@@ -42,7 +42,7 @@ namespace kagome::application {
 
     MOCK_CONST_METHOD0(consensusEngine, boost::optional<std::string>());
 
-    MOCK_CONST_METHOD0(codeSubstitutes, const CodeSubstitutes &());
+    MOCK_CONST_METHOD0(codeSubstitutes, const primitives::CodeSubstitutes &());
 
     MOCK_CONST_METHOD0(getGenesis, GenesisRawData());
   };
