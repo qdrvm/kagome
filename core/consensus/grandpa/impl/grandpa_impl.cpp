@@ -19,32 +19,35 @@
 namespace kagome::consensus::grandpa {
 
   // help struct to correctly compare rounds in different voter sets
-  // TODO(a.krutikov): refactor using concepts
   struct FullRound : boost::less_than_comparable<FullRound>,
                      boost::equality_comparable<FullRound> {
-    MembershipCounter v_id;
-    RoundNumber r_no;
+    MembershipCounter voter_set_id;
+    RoundNumber round_number;
     explicit FullRound(const std::shared_ptr<const VotingRound> &round)
-        : v_id(round->voterSetId()), r_no(round->roundNumber()) {}
+        : voter_set_id(round->voterSetId()),
+          round_number(round->roundNumber()) {}
     explicit FullRound(const network::GrandpaNeighborMessage &msg)
-        : v_id(msg.voter_set_id), r_no(msg.round_number) {}
+        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
     explicit FullRound(const network::CatchUpRequest &msg)
-        : v_id(msg.voter_set_id), r_no(msg.round_number) {}
+        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
     explicit FullRound(const network::CatchUpResponse &msg)
-        : v_id(msg.voter_set_id), r_no(msg.round_number) {}
+        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
     explicit FullRound(const VoteMessage &msg)
-        : v_id(msg.counter), r_no(msg.round_number) {}
+        : voter_set_id(msg.counter), round_number(msg.round_number) {}
 
     operator network::CatchUpRequest() const {
-      return network::CatchUpRequest{r_no, v_id};
+      return network::CatchUpRequest{round_number, voter_set_id};
     }
 
     bool operator<(const FullRound &round) const {
-      return v_id == round.v_id ? r_no < round.r_no : v_id < round.v_id;
+      return voter_set_id == round.voter_set_id
+                 ? round_number < round.round_number
+                 : voter_set_id < round.voter_set_id;
     }
 
     bool operator==(const FullRound &round) const {
-      return v_id == round.v_id && r_no == round.r_no;
+      return voter_set_id == round.voter_set_id
+             && round_number == round.round_number;
     }
   };
 
@@ -400,7 +403,7 @@ namespace kagome::consensus::grandpa {
 
     auto authorities_res =
         authority_manager_->authorities(round_state.finalized.value(), false);
-    if (not authorities_res.has_value()) {
+    if (authorities_res.has_error()) {
       SL_WARN(logger_,
               "Can't retrieve authorities for finalized block: {}",
               authorities_res.error().message());

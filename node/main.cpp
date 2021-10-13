@@ -3,13 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <exception>
 #include <iostream>
 
-#include <backward.hpp>
-#undef TRUE
-#undef FALSE
-#include <boost/stacktrace.hpp>
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
@@ -21,8 +16,6 @@ using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
 int main(int argc, char **argv) {
-  backward::SignalHandling sh;
-
   {
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
