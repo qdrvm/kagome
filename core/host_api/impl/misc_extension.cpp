@@ -36,14 +36,22 @@ namespace kagome::host_api {
 
     auto code = memory.loadN(ptr, len);
     common::Buffer uncompressed_code;
-    std::ignore = runtime::uncompressCodeIfNeeded(code, uncompressed_code);
-    auto core_api = core_factory_->make(hasher_, uncompressed_code.asVector());
-    auto version_res = core_api->version();
-    SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
+    auto uncompress_res =
+        runtime::uncompressCodeIfNeeded(code, uncompressed_code);
 
     static const auto kErrorRes =
         scale::encode<boost::optional<primitives::Version>>(boost::none)
             .value();
+
+    if (uncompress_res.has_error()) {
+      SL_ERROR(logger_, "Error uncompressing code: {}",
+               uncompress_res.error().message());
+      return memory.storeBuffer(kErrorRes);
+    }
+
+    auto core_api = core_factory_->make(hasher_, uncompressed_code.asVector());
+    auto version_res = core_api->version();
+    SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
 
     if (version_res.has_value()) {
       auto enc_version_res = scale::encode(
