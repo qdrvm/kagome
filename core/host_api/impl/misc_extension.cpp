@@ -6,6 +6,7 @@
 #include "host_api/impl/misc_extension.hpp"
 
 #include "primitives/version.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/core_api_factory_impl.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
@@ -33,10 +34,11 @@ namespace kagome::host_api {
     auto [ptr, len] = runtime::splitSpan(data);
     auto &memory = memory_provider_->getCurrentMemory().value();
 
-    auto code = memory.loadN(ptr, len).asVector();
-    auto core_api = core_factory_->make(hasher_, code);
-    auto version_res =
-        core_api->version();
+    auto code = memory.loadN(ptr, len);
+    common::Buffer uncompressed_code;
+    std::ignore = runtime::uncompressCodeIfNeeded(code, uncompressed_code);
+    auto core_api = core_factory_->make(hasher_, uncompressed_code.asVector());
+    auto version_res = core_api->version();
     SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
 
     static const auto kErrorRes =
