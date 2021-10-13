@@ -38,7 +38,10 @@ namespace kagome::host_api {
                                               std::move(bip39_provider))},
         io_ext_(memory_provider_),
         memory_ext_(memory_provider_),
-        misc_ext_{DEFAULT_CHAIN_ID, hasher, memory_provider_, std::move(core_provider)},
+        misc_ext_{DEFAULT_CHAIN_ID,
+                  hasher,
+                  memory_provider_,
+                  std::move(core_provider)},
         storage_ext_(storage_provider_, memory_provider_, std::move(tracker)) {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_provider_ != nullptr);
@@ -275,8 +278,20 @@ namespace kagome::host_api {
     return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
   }
 
+  runtime::WasmSpan HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_version_2(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
+  }
+
   runtime::WasmSpan
   HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+        sig, msg);
+  }
+
+  runtime::WasmSpan
+  HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
     return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
         sig, msg);

@@ -4,11 +4,31 @@
  */
 
 #include "api/service/state/impl/state_api_impl.hpp"
-#include "common/hexutil.hpp"
 
+#include <unordered_map>
 #include <utility>
 
 #include <jsonrpc-lean/fault.h>
+
+#include "common/hexutil.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, StateApiImpl::Error, e) {
+  using E = kagome::api::StateApiImpl::Error;
+  switch (e) {
+    case E::MAX_BLOCK_RANGE_EXCEEDED:
+      return "Maximum block range size ("
+             + std::to_string(kagome::api::StateApiImpl::kMaxBlockRange)
+             + " blocks) exceeded";
+    case E::MAX_KEY_SET_SIZE_EXCEEDED:
+      return "Maximum key set size ("
+             + std::to_string(kagome::api::StateApiImpl::kMaxKeySetSize)
+             + " keys) exceeded";
+    case E::END_BLOCK_LOWER_THAN_BEGIN_BLOCK:
+      return "End block is lower (is an ancestor of) the begin block "
+             "(should be the other way)";
+  }
+  return "Unknown State API error";
+}
 
 namespace kagome::api {
 
@@ -18,12 +38,12 @@ namespace kagome::api {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::Core> runtime_core,
       std::shared_ptr<runtime::Metadata> metadata)
-      : block_repo_{std::move(block_repo)},
+      : header_repo_{std::move(block_repo)},
         storage_{std::move(trie_storage)},
         block_tree_{std::move(block_tree)},
         runtime_core_{std::move(runtime_core)},
         metadata_{std::move(metadata)} {
-    BOOST_ASSERT(nullptr != block_repo_);
+    BOOST_ASSERT(nullptr != header_repo_);
     BOOST_ASSERT(nullptr != storage_);
     BOOST_ASSERT(nullptr != block_tree_);
     BOOST_ASSERT(nullptr != runtime_core_);
@@ -46,7 +66,7 @@ namespace kagome::api {
     const auto &block_hash =
         block_hash_opt.value_or(block_tree_->getLastFinalized().hash);
 
-    OUTCOME_TRY(header, block_repo_->getBlockHeader(block_hash));
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(block_hash));
     OUTCOME_TRY(initial_trie_reader,
                 storage_->getEphemeralBatchAt(header.state_root));
     auto cursor = initial_trie_reader->trieCursor();
@@ -80,22 +100,81 @@ namespace kagome::api {
     return result;
   }
 
-  outcome::result<common::Buffer> StateApiImpl::getStorage(
+  outcome::result<boost::optional<common::Buffer>> StateApiImpl::getStorage(
       const common::Buffer &key) const {
     auto last_finalized = block_tree_->getLastFinalized();
-    return getStorage(key, last_finalized.hash);
+    return getStorageAt(key, last_finalized.hash);
   }
 
-  outcome::result<common::Buffer> StateApiImpl::getStorage(
+  outcome::result<boost::optional<common::Buffer>> StateApiImpl::getStorageAt(
       const common::Buffer &key, const primitives::BlockHash &at) const {
-    OUTCOME_TRY(header, block_repo_->getBlockHeader(at));
+    OUTCOME_TRY(header, header_repo_->getBlockHeader(at));
     OUTCOME_TRY(trie_reader, storage_->getEphemeralBatchAt(header.state_root));
-    return trie_reader->get(key);
+    return trie_reader->tryGet(key);
+  }
+
+  outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
+  StateApiImpl::queryStorage(
+      gsl::span<const common::Buffer> keys,
+      const primitives::BlockHash &from,
+      boost::optional<primitives::BlockHash> opt_to) const {
+    // TODO(Harrm): Optimize once changes trie is enabled (and a warning/assert
+    // for now that will fire once it is, just not to forget)
+    auto to =
+        opt_to.has_value() ? opt_to.value() : block_tree_->deepestLeaf().hash;
+    if (keys.size() > static_cast<ssize_t>(kMaxKeySetSize)) {
+      return Error::MAX_KEY_SET_SIZE_EXCEEDED;
+    }
+
+    if (from != to) {
+      OUTCOME_TRY(from_number, header_repo_->getNumberByHash(from));
+      OUTCOME_TRY(to_number, header_repo_->getNumberByHash(to));
+      if (to_number < from_number) {
+        return Error::END_BLOCK_LOWER_THAN_BEGIN_BLOCK;
+      }
+      if (to_number - from_number > kMaxBlockRange) {
+        return Error::MAX_BLOCK_RANGE_EXCEEDED;
+      }
+    }
+
+    std::vector<StorageChangeSet> changes;
+    std::map<gsl::span<const uint8_t>, boost::optional<common::Buffer>>
+        last_values;
+
+    // TODO(Harrm): optimize it to use a lazy generator instead of returning the
+    // whole vector with block ids
+    OUTCOME_TRY(range, block_tree_->getChainByBlocks(from, to));
+    for (auto &block : range) {
+      OUTCOME_TRY(header, header_repo_->getBlockHeader(block));
+      OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(header.state_root));
+      StorageChangeSet change{block, {}};
+      for (auto &key : keys) {
+        OUTCOME_TRY(opt_value, batch->tryGet(key));
+        auto it = last_values.find(key);
+        if (it == last_values.end() || it->second != opt_value) {
+          change.changes.push_back({key, opt_value});
+        }
+        last_values[key] = std::move(opt_value);
+      }
+      if (!change.changes.empty()) {
+        changes.emplace_back(std::move(change));
+      }
+    }
+    return changes;
+  }
+
+  outcome::result<std::vector<StateApiImpl::StorageChangeSet>>
+  StateApiImpl::queryStorageAt(
+      gsl::span<const common::Buffer> keys,
+      boost::optional<primitives::BlockHash> opt_at) const {
+    auto at =
+        opt_at.has_value() ? opt_at.value() : block_tree_->deepestLeaf().hash;
+    return queryStorage(keys, at, at);
   }
 
   outcome::result<primitives::Version> StateApiImpl::getRuntimeVersion(
       const boost::optional<primitives::BlockHash> &at) const {
-    if(at) {
+    if (at) {
       return runtime_core_->version(at.value());
     }
     return runtime_core_->version(block_tree_->deepestLeaf().hash);

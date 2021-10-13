@@ -349,15 +349,24 @@ namespace kagome::storage::trie {
 
   outcome::result<common::Buffer> PolkadotTrieImpl::get(
       const common::Buffer &key) const {
+    OUTCOME_TRY(opt_value, tryGet(key));
+    if(opt_value.has_value()) {
+      return opt_value.value();
+    }
+    return TrieError::NO_VALUE;
+  }
+
+  outcome::result<boost::optional<common::Buffer>> PolkadotTrieImpl::tryGet(
+      const common::Buffer &key) const {
     if (not root_) {
-      return TrieError::NO_VALUE;
+      return boost::none;
     }
     auto nibbles = PolkadotCodec::keyToNibbles(key);
     OUTCOME_TRY(node, getNode(root_, nibbles));
     if (node && node->value) {
       return node->value.get();
     }
-    return TrieError::NO_VALUE;
+    return boost::none;
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::getNode(

@@ -16,15 +16,7 @@ namespace kagome::storage::changes_trie {
    */
   class ChangesTracker {
    public:
-    using GetExtrinsicIndexDelegate =
-        std::function<outcome::result<common::Buffer>()>;
-
     virtual ~ChangesTracker() = default;
-
-    /**
-     * @param f is a functor that returns the current extrinsic index
-     */
-    virtual void setExtrinsicIdxGetter(GetExtrinsicIndexDelegate f) = 0;
 
     /**
      * Supposed to be called when a block execution starts
@@ -38,7 +30,8 @@ namespace kagome::storage::changes_trie {
      * @arg new_entry states whether the entry is new, or just an update of a
      * present value
      */
-    virtual outcome::result<void> onPut(const common::Buffer &key,
+    virtual outcome::result<void> onPut(const common::Buffer &extrinsic_index,
+                                        const common::Buffer &key,
                                         const common::Buffer &value,
                                         bool new_entry) = 0;
 
@@ -55,7 +48,8 @@ namespace kagome::storage::changes_trie {
     /**
      * Supposed to be called when an entry is removed from the tracked storage
      */
-    virtual outcome::result<void> onRemove(const common::Buffer &key) = 0;
+    virtual outcome::result<void> onRemove(
+        const common::Buffer &extrinsic_index, const common::Buffer &key) = 0;
 
     /**
      * Sinks accumulated changes for the latest registered block to the changes

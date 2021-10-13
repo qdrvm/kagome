@@ -9,6 +9,9 @@
 
 #include <unordered_map>
 
+#include <boost/range/adaptor/transformed.hpp>
+
+#include "api/service/state/requests/query_storage.hpp"  // for makeValue
 #include "mock/core/api/jrpc/jrpc_server_mock.hpp"
 #include "mock/core/api/service/state/state_api_mock.hpp"
 #include "testutil/literals.hpp"
@@ -16,9 +19,12 @@
 
 using kagome::api::JRpcServer;
 using kagome::api::JRpcServerMock;
+using kagome::api::makeValue;
+using kagome::api::StateApi;
 using kagome::api::StateApiMock;
 using kagome::api::state::StateJrpcProcessor;
 using kagome::common::Buffer;
+using kagome::primitives::BlockHash;
 using testing::_;
 
 class StateJrpcProcessorTest : public testing::Test {
@@ -29,6 +35,8 @@ class StateJrpcProcessorTest : public testing::Test {
     kCallType_UnsubscribeRuntimeVersion,
     kCallType_GetKeysPaged,
     kCallType_GetStorage,
+    kCallType_QueryStorage,
+    kCallType_QueryStorageAt,
     kCallType_StorageSubscribe,
     kCallType_StorageUnsubscribe,
     kCallType_GetMetadata,
@@ -84,6 +92,16 @@ class StateJrpcProcessorTest : public testing::Test {
           call_contexts_.emplace(std::make_pair(CallType::kCallType_GetStorage,
                                                 CallContext{.handler = f}));
         }));
+    EXPECT_CALL(*server, registerHandler("state_queryStorage", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_QueryStorage, CallContext{.handler = f}));
+        }));
+    EXPECT_CALL(*server, registerHandler("state_queryStorageAt", _))
+        .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
+          call_contexts_.emplace(std::make_pair(
+              CallType::kCallType_QueryStorageAt, CallContext{.handler = f}));
+        }));
     EXPECT_CALL(*server, registerHandler("state_subscribeStorage", _))
         .WillOnce(testing::Invoke([&](auto &name, auto &&f) {
           call_contexts_.emplace(std::make_pair(
@@ -104,7 +122,7 @@ class StateJrpcProcessorTest : public testing::Test {
   }
 
   template <typename... Args>
-  auto execute(CallType method, Args &&... args) {
+  auto execute(CallType method, Args &&...args) {
     return call_contexts_[method].handler(std::forward<Args>(args)...);
   }
 
@@ -140,7 +158,7 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
 TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
   auto expected_result = "ABCDEF"_hex2buf;
 
-  EXPECT_CALL(*state_api, getStorage("01234567"_hex2buf, "010203"_hash256))
+  EXPECT_CALL(*state_api, getStorageAt("01234567"_hex2buf, "010203"_hash256))
       .WillOnce(testing::Return(expected_result));
 
   registerHandlers();
@@ -150,6 +168,96 @@ TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
   auto result_hex = execute(CallType::kCallType_GetStorage, params).AsString();
   EXPECT_OUTCOME_TRUE(result_vec, kagome::common::unhexWith0x(result_hex));
   ASSERT_EQ(expected_result.asVector(), result_vec);
+}
+
+/**
+ * @given set of keys and a block
+ * @when querying storage changes for the given key set on a block range from
+ * the given to the latest by queryStorage in State API
+ * @then method call returns a JSON object, which data matches the expected call
+ * result
+ */
+TEST_F(StateJrpcProcessorTest, ProcessQueryStorage) {
+  // GIVEN
+  std::vector<Buffer> keys{"key1"_buf, "key2"_buf, "key3"_buf};
+  BlockHash from{"from"_hash256};
+  std::vector<StateApi::StorageChangeSet> res{StateApi::StorageChangeSet{
+      from, {StateApi::StorageChangeSet::Change{"key1"_buf, "42"_buf}}}};
+  EXPECT_CALL(
+      *state_api,
+      queryStorage(
+          gsl::span<const Buffer>(keys), from, boost::optional<BlockHash>{}))
+      .WillOnce(testing::Return(outcome::success(res)));
+
+  registerHandlers();
+
+  jsonrpc::Value::Array keys_json;
+  std::transform(keys.begin(),
+                 keys.end(),
+                 std::back_inserter(keys_json),
+                 [](auto &buffer) { return "0x" + buffer.toHex(); });
+  jsonrpc::Request::Parameters params{keys_json, "0x" + from.toHex()};
+  // WHEN
+  auto result = execute(CallType::kCallType_QueryStorage, params);
+  auto expected_json = makeValue(res).AsArray();
+  // THEN
+  ASSERT_EQ(expected_json.size(), result.AsArray().size());
+  for (auto expected = expected_json.cbegin(),
+            received = result.AsArray().begin();
+       expected != expected_json.end();
+       expected++, received++) {
+    ASSERT_EQ(expected->AsStruct().at("block").AsString(),
+              received->AsStruct().at("block").AsString());
+    auto json_tuple_to_pair = [](auto &value) {
+      auto &tuple = value.AsArray();
+      return std::pair(tuple[0].AsString(), tuple[1].AsString());
+    };
+    auto e = expected->AsStruct().at("changes").AsArray()
+             | boost::adaptors::transformed(json_tuple_to_pair);
+    auto r = received->AsStruct().at("changes").AsArray()
+             | boost::adaptors::transformed(json_tuple_to_pair);
+    ASSERT_EQ(e, r);
+  }
+}
+
+TEST_F(StateJrpcProcessorTest, ProcessQueryStorageAt) {
+  // GIVEN
+  std::vector<Buffer> keys{"key1"_buf, "key2"_buf, "key3"_buf};
+  BlockHash at{"at"_hash256};
+  std::vector<StateApi::StorageChangeSet> res{StateApi::StorageChangeSet{
+      at, {StateApi::StorageChangeSet::Change{"key1"_buf, "42"_buf}}}};
+  EXPECT_CALL(
+      *state_api,
+      queryStorageAt(
+          gsl::span<const Buffer>(keys), boost::make_optional(at)))
+      .WillOnce(testing::Return(outcome::success(res)));
+
+  registerHandlers();
+
+  jsonrpc::Value::Array keys_json;
+  std::transform(keys.begin(),
+                 keys.end(),
+                 std::back_inserter(keys_json),
+                 [](auto &buffer) { return "0x" + buffer.toHex(); });
+  jsonrpc::Request::Parameters params{keys_json, "0x" + at.toHex()};
+  // WHEN
+  auto result = execute(CallType::kCallType_QueryStorageAt, params);
+  auto expected_json = makeValue(res).AsArray();
+  // THEN
+  ASSERT_EQ(expected_json.size(), result.AsArray().size());
+  ASSERT_EQ(expected_json.size(), 1);
+
+  ASSERT_EQ(expected_json[0].AsStruct().at("block").AsString(),
+            result.AsArray()[0].AsStruct().at("block").AsString());
+  auto json_tuple_to_pair = [](auto &value) {
+    auto &tuple = value.AsArray();
+    return std::pair(tuple[0].AsString(), tuple[1].AsString());
+  };
+  auto e = expected_json[0].AsStruct().at("changes").AsArray()
+           | boost::adaptors::transformed(json_tuple_to_pair);
+  auto r = result.AsArray()[0].AsStruct().at("changes").AsArray()
+           | boost::adaptors::transformed(json_tuple_to_pair);
+  ASSERT_EQ(e, r);
 }
 
 /**

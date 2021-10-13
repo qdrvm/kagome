@@ -25,6 +25,8 @@ namespace kagome::storage::trie {
     explicit TopperTrieBatchImpl(const std::shared_ptr<TrieBatch> &parent);
 
     outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<boost::optional<Buffer>> tryGet(
+        const Buffer &key) const override;
 
     /**
      * Won't consider changes not written back to the parent batch

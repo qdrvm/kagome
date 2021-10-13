@@ -16,8 +16,6 @@ namespace kagome::storage::changes_trie {
    public:
     MOCK_METHOD1(setBlockHash, void(const primitives::BlockHash &hash));
 
-    MOCK_METHOD1(setExtrinsicIdxGetter, void(GetExtrinsicIndexDelegate f));
-
     MOCK_METHOD1(setConfig, void(const ChangesTrieConfig &conf));
 
     MOCK_METHOD2(
@@ -27,11 +25,14 @@ namespace kagome::storage::changes_trie {
 
     MOCK_METHOD1(onBlockAdded, void(const primitives::BlockHash &block_hash));
     MOCK_METHOD1(onClearPrefix, void(const common::Buffer &));
-    MOCK_METHOD3(onPut,
-                 outcome::result<void>(const common::Buffer &key,
+    MOCK_METHOD4(onPut,
+                 outcome::result<void>(const common::Buffer &ext_idx,
+                                       const common::Buffer &key,
                                        const common::Buffer &value,
                                        bool is_new_entry));
-    MOCK_METHOD1(onRemove, outcome::result<void>(const common::Buffer &key));
+    MOCK_METHOD2(onRemove,
+                 outcome::result<void>(const common::Buffer &ext_idx,
+                                       const common::Buffer &key));
 
     MOCK_METHOD2(
         constructChangesTrie,
