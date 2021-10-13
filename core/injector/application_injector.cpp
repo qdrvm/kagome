@@ -85,6 +85,7 @@
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
 #include "network/sync_protocol_observer.hpp"
+#include "offchain/impl/offchain_storage_impl.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
@@ -887,6 +888,7 @@ namespace {
         di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::OffchainWorkerImpl>(),
+        di::bind<offchain::OffchainStorage>.template to<offchain::OffchainStorageImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
