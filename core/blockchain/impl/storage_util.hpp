@@ -75,7 +75,7 @@ namespace kagome::blockchain {
    * @param block_id - id of the block to get entry for
    * @return encoded entry or error
    */
-  outcome::result<common::Buffer> getWithPrefix(
+  outcome::result<boost::optional<common::Buffer>> getWithPrefix(
       const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id);
@@ -101,12 +101,6 @@ namespace kagome::blockchain {
    */
   outcome::result<primitives::BlockNumber> lookupKeyToNumber(
       const common::Buffer &key);
-
-  /**
-   * For a persistant map based storage checks
-   * whether result should be considered as `NOT FOUND` error
-   */
-  bool isNotFoundError(outcome::result<void> result);
 
 }  // namespace kagome::blockchain
 

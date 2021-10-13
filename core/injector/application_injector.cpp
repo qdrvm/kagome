@@ -211,9 +211,9 @@ namespace {
         [&](const primitives::Block &genesis_block) {
           auto log = log::createLogger("Injector", "injector");
 
-          auto res = db->get(storage::kSchedulerTreeLookupKey);
-          if (not res.has_value()
-              && res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
+          auto res = db->tryGet(storage::kSchedulerTreeLookupKey);
+          if (res.has_value()
+              && !res.value().has_value()) {
             auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
             if (not hash_res.has_value()) {
               log->critical("Can't decode genesis block hash: {}",

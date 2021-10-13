@@ -36,11 +36,18 @@ namespace kagome::runtime {
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {
     BOOST_ASSERT(header_repo_);
     BOOST_ASSERT(storage_);
-    auto encoded_res = storage_->get(storage::kRuntimeHashesLookupKey);
-    if (encoded_res.has_value()) {
+    auto encoded_res = storage_->tryGet(storage::kRuntimeHashesLookupKey);
+    if (encoded_res.has_error()) {
+      SL_ERROR(
+          logger_,
+          "Storage error while retrieving saved runtime hashes: {}",
+          encoded_res.error());
+    }
+    auto& encoded_opt = encoded_res.value();
+    if (encoded_opt.has_value()) {
       auto decoded_res =
-          scale::decode<decltype(runtime_upgrades_)>(encoded_res.value());
-      if (not decoded_res.has_value()) {
+          scale::decode<decltype(runtime_upgrades_)>(encoded_opt.value());
+      if (decoded_res.has_error()) {
         SL_ERROR(
             logger_,
             "Saved runtime hashes data structure is incorrect! Error is {}",
@@ -124,7 +131,7 @@ namespace kagome::runtime {
                "Pick runtime state at block #{} hash {} for the same block",
                block.number,
                block.hash.toHex());
-      return state;
+      return std::move(state);
     }
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
@@ -215,7 +222,7 @@ namespace kagome::runtime {
                   event_params)
                   .get();
           SL_INFO(logger_, "Runtime upgrade at block {}", block_hash.toHex());
-          (void) push(block_hash);
+          (void)push(block_hash);
         });
   }
 

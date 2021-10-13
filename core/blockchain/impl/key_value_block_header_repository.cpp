@@ -46,13 +46,11 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHeader>
   KeyValueBlockHeaderRepository::getBlockHeader(const BlockId &id) const {
-    auto header_res = getWithPrefix(*map_, Prefix::HEADER, id);
-    if (!header_res) {
-      return (isNotFoundError(header_res.error())) ? Error::BLOCK_NOT_FOUND
-                                                   : header_res.error();
+    OUTCOME_TRY(header_opt, getWithPrefix(*map_, Prefix::HEADER, id));
+    if(header_opt.has_value()) {
+      return scale::decode<primitives::BlockHeader>(header_opt.value());
     }
-
-    return scale::decode<primitives::BlockHeader>(header_res.value());
+    return Error::BLOCK_NOT_FOUND;
   }
 
   outcome::result<BlockStatus> KeyValueBlockHeaderRepository::getBlockStatus(

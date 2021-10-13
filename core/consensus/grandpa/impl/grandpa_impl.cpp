@@ -262,17 +262,12 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<MovableRoundState> GrandpaImpl::getLastCompletedRound()
       const {
-    auto last_round_encoded_res = storage_->get(storage::kSetStateKey);
+    OUTCOME_TRY(last_round_encoded_opt,
+                storage_->tryGet(storage::kSetStateKey));
 
     // Saved data exists
-    if (last_round_encoded_res.has_value()) {
-      return scale::decode<MovableRoundState>(last_round_encoded_res.value());
-    }
-
-    // Fail at retrieve data
-    if (last_round_encoded_res
-        != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
-      return last_round_encoded_res.as_failure();
+    if (last_round_encoded_opt.has_value()) {
+      return scale::decode<MovableRoundState>(last_round_encoded_opt.value());
     }
 
     // No saved data - make from genesis
