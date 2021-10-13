@@ -31,7 +31,10 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<crypto::Bip39Provider> bip39_provider,
-        std::shared_ptr<OffchainExtension> offchain_extension);
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<clock::SystemClock> system_clock,
+        std::shared_ptr<offchain::OffchainStorage> offchain_storage,
+        std::shared_ptr<crypto::CSPRNG> random_generator);
 
     std::unique_ptr<HostApi> make(
         std::shared_ptr<const runtime::CoreApiFactory> core_factory,
@@ -47,7 +50,10 @@ namespace kagome::host_api {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CryptoStore> crypto_store_;
     std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
-    std::shared_ptr<OffchainExtension> offchain_extension_;
+    const application::AppConfiguration &app_config_;
+    std::shared_ptr<clock::SystemClock> system_clock_;
+    std::shared_ptr<offchain::OffchainStorage> offchain_storage_;
+    std::shared_ptr<crypto::CSPRNG> random_generator_;
   };
 
 }  // namespace kagome::host_api

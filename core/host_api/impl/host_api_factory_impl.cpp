@@ -17,7 +17,10 @@ namespace kagome::host_api {
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
       std::shared_ptr<crypto::Bip39Provider> bip39_provider,
-      std::shared_ptr<OffchainExtension> offchain_extension)
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<clock::SystemClock> system_clock,
+      std::shared_ptr<offchain::OffchainStorage> offchain_storage,
+      std::shared_ptr<crypto::CSPRNG> random_generator)
       : changes_tracker_{std::move(tracker)},
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
@@ -25,7 +28,10 @@ namespace kagome::host_api {
         hasher_(std::move(hasher)),
         crypto_store_(std::move(crypto_store)),
         bip39_provider_(std::move(bip39_provider)),
-        offchain_extension_(std::move(offchain_extension)) {
+        app_config_(app_config),
+        system_clock_(std::move(system_clock)),
+        offchain_storage_(std::move(offchain_storage)),
+        random_generator_(std::move(random_generator)) {
     BOOST_ASSERT(changes_tracker_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
@@ -33,7 +39,9 @@ namespace kagome::host_api {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(crypto_store_ != nullptr);
     BOOST_ASSERT(bip39_provider_ != nullptr);
-    BOOST_ASSERT(offchain_extension_ != nullptr);
+    BOOST_ASSERT(system_clock_ != nullptr);
+    BOOST_ASSERT(offchain_storage_ != nullptr);
+    BOOST_ASSERT(random_generator_ != nullptr);
   }
 
   std::unique_ptr<HostApi> HostApiFactoryImpl::make(
@@ -50,7 +58,10 @@ namespace kagome::host_api {
                                          hasher_,
                                          crypto_store_,
                                          bip39_provider_,
-                                         offchain_extension_);
+                                         app_config_,
+                                         system_clock_,
+                                         offchain_storage_,
+                                         random_generator_);
   }
 
 }  // namespace kagome::host_api

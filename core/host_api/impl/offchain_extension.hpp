@@ -6,18 +6,27 @@
 #ifndef KAGOME_HOSTAPI_OFFCHAINEXTENSION
 #define KAGOME_HOSTAPI_OFFCHAINEXTENSION
 
+#include "application/app_configuration.hpp"
+#include "clock/clock.hpp"
+#include "crypto/random_generator.hpp"
 #include "log/logger.hpp"
+#include "offchain/offchain_storage.hpp"
 #include "runtime/types.hpp"
 
 namespace kagome::runtime {
-  class OffchainApi;
+  class MemoryProvider;
 }
 
 namespace kagome::host_api {
 
   class OffchainExtension final {
    public:
-    OffchainExtension(std::shared_ptr<runtime::OffchainApi> offchain_api);
+    OffchainExtension(
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<clock::SystemClock> system_clock,
+        std::shared_ptr<offchain::OffchainStorage> storage,
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
+        std::shared_ptr<crypto::CSPRNG> random_generator);
 
     /**
      * @brief Check whether the local node is a potential validator. Even if
@@ -358,8 +367,16 @@ namespace kagome::host_api {
     void ext_offchain_index_clear_version_1(runtime::WasmSpan key);
 
    private:
-    std::shared_ptr<runtime::OffchainApi> offchain_api_;
-    log::Logger logger_;
+    boost::optional<offchain::OffchainStorage &> getStorage(
+        runtime::WasmI32 kind);
+
+    const application::AppConfiguration &app_config_;
+    std::shared_ptr<clock::SystemClock> system_clock_;
+    std::shared_ptr<offchain::OffchainStorage> storage_;
+    std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
+    std::shared_ptr<crypto::CSPRNG> random_generator_;
+
+    log::Logger log_;
   };
 
 }  // namespace kagome::host_api

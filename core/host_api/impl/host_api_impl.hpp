@@ -11,6 +11,7 @@
 #include "host_api/impl/io_extension.hpp"
 #include "host_api/impl/memory_extension.hpp"
 #include "host_api/impl/misc_extension.hpp"
+#include "host_api/impl/offchain_extension.hpp"
 #include "host_api/impl/storage_extension.hpp"
 
 namespace kagome::runtime {
@@ -40,7 +41,10 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
         std::shared_ptr<const crypto::Bip39Provider> bip39_provider,
-        std::shared_ptr<OffchainExtension> offchain_extension);
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<clock::SystemClock> system_clock,
+        std::shared_ptr<offchain::OffchainStorage> offchain_storage,
+      std::shared_ptr<crypto::CSPRNG> random_generator);
 
     ~HostApiImpl() override = default;
 
@@ -262,7 +266,7 @@ namespace kagome::host_api {
     MemoryExtension memory_ext_;
     MiscExtension misc_ext_;
     StorageExtension storage_ext_;
-    std::shared_ptr<OffchainExtension> offchain_ext_;
+    OffchainExtension offchain_ext_;
   };
 }  // namespace kagome::host_api
 
