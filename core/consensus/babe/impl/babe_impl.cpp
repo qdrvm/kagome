@@ -655,16 +655,15 @@ namespace kagome::consensus::babe {
         babe_util_->slotToEpoch(current_slot_),
         now);
 
-    const auto &block_number = block.header.number;
     const auto block_hash =
         hasher_->blake2b_256(scale::encode(block.header).value());
 
     // Create new offchain worker for block
-    auto ocw_res =
-        offchain_worker_api_->offchain_worker(block_hash, block_number);
+    auto ocw_res = offchain_worker_api_->offchain_worker(
+        block.header.parent_hash, block.header);
     if (ocw_res.has_failure()) {
       log_->error("Can't spawn offchain worker for block #{} hash={}: {}",
-                  block_number,
+                  block.header.number,
                   block_hash.toHex(),
                   ocw_res.error().message());
     }

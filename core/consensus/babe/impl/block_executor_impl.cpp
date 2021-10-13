@@ -239,8 +239,8 @@ namespace kagome::consensus {
             .count());
 
     // Create new offchain worker for block
-    auto ocw_res =
-        offchain_worker_api_->offchain_worker(block_hash, block.header.number);
+    auto ocw_res = offchain_worker_api_->offchain_worker(
+        block.header.parent_hash, block.header);
     if (ocw_res.has_failure()) {
       logger_->error("Can't spawn offchain worker for block #{} hash={}: {}",
                      block.header.number,

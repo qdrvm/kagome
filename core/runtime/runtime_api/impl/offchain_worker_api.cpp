@@ -5,6 +5,7 @@
 
 #include "runtime/runtime_api/impl/offchain_worker_api.hpp"
 
+#include <soralog/util.hpp>
 #include <thread>
 
 #include "log/logger.hpp"
@@ -19,27 +20,36 @@ namespace kagome::runtime {
   }
 
   outcome::result<void> OffchainWorkerApiImpl::offchain_worker(
-      const primitives::BlockHash &block, primitives::BlockNumber number) {
-    log::Logger log = log::createLogger("OCW#" + std::to_string(number),
-                                        "offchain_worker_api");
+      const primitives::BlockHash &block,
+      const primitives::BlockHeader &header) {
+    auto worker = [executor = executor_, hash = block, header]() {
+      auto number = header.number;
 
-    auto worker =
-        [executor = executor_, block, number, log = std::move(log)]() {
-          auto res = executor->callAt<void>(
-              block, "OffchainWorkerApi_offchain_worker", number);
-          if (res.has_failure()) {
-            log->error(
-                "Can't execute offchain worker for block #{} hash={}: {}",
-                number,
-                block.toHex(),
-                res.error().message());
-            return;
-          }
-          SL_DEBUG(log,
-                   "Offchain worker for block #{} hash={} executed successful",
+      soralog::util::setThreadName("ocw." + std::to_string(number));
+      log::Logger log = log::createLogger(
+          "OffchainWorker#" + std::to_string(number), "offchain_worker_api");
+
+      SL_TRACE(log,
+               "Offchain worker is started for block #{} hash={}",
+               number,
+               hash.toHex());
+
+
+      auto res = executor->callAt<void>(
+          header.parent_hash, "OffchainWorkerApi_offchain_worker", header);
+      if (res.has_failure()) {
+        log->error("Can't execute offchain worker for block #{} hash={}: {}",
                    number,
-                   block.toHex());
-        };
+                   hash.toHex(),
+                   res.error().message());
+        return;
+      }
+
+      SL_DEBUG(log,
+               "Offchain worker is successfully executed for block #{} hash={}",
+               number,
+               hash.toHex());
+    };
 
     try {
       std::thread(std::move(worker)).detach();

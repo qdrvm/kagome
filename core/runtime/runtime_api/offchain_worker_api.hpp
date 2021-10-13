@@ -7,6 +7,7 @@
 #define KAGOME_RUNTIME_OFFCHAINWORKERAPI
 
 #include "outcome/outcome.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::runtime {
@@ -20,11 +21,12 @@ namespace kagome::runtime {
 
     /**
      * @brief calls offchain_worker method of OffchainWorker runtime api
-     * @param block_info block number
+     * @param header header of related block
      * @return success or error
      */
     virtual outcome::result<void> offchain_worker(
-        const primitives::BlockHash &block, primitives::BlockNumber number) = 0;
+        const primitives::BlockHash &block,
+        const primitives::BlockHeader &header) = 0;
   };
 
 }  // namespace kagome::runtime

@@ -18,7 +18,7 @@ namespace kagome::runtime {
 
     outcome::result<void> offchain_worker(
         const primitives::BlockHash &block,
-        primitives::BlockNumber number) override;
+        const primitives::BlockHeader &header) override;
 
    private:
     std::shared_ptr<Executor> executor_;
