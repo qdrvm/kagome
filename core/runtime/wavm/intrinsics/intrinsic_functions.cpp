@@ -82,6 +82,14 @@ namespace kagome::runtime::wavm {
                                                                        msg);
   }
 
+  WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I64,
+                                 ext_crypto_secp256k1_ecdsa_recover_version_2,
+                                 WAVM::I32 sig,
+                                 WAVM::I32 msg) {
+    return peekHostApi()->ext_crypto_secp256k1_ecdsa_recover_version_2(sig,
+                                                                       msg);
+  }
+
   WAVM_DEFINE_INTRINSIC_FUNCTION(
       WAVM::I64,
       ext_crypto_secp256k1_ecdsa_recover_compressed_version_1,
@@ -89,6 +97,15 @@ namespace kagome::runtime::wavm {
       WAVM::I32 msg) {
     return peekHostApi()
         ->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(sig, msg);
+  }
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION(
+      WAVM::I64,
+      ext_crypto_secp256k1_ecdsa_recover_compressed_version_2,
+      WAVM::I32 sig,
+      WAVM::I32 msg) {
+    return peekHostApi()
+        ->ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(sig, msg);
   }
 
   WAVM_DEFINE_INTRINSIC_FUNCTION(WAVM::I32,
@@ -465,7 +482,9 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I32, ext_trie_blake2_256_ordered_root_version_1, I64)
     REGISTER_HOST_INTRINSIC(I32,ext_hashing_twox_64_version_1,  I64)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, I32, I32)
+    REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_compressed_version_2, I32, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_version_1, I32, I32)
+    REGISTER_HOST_INTRINSIC(I64, ext_crypto_secp256k1_ecdsa_recover_version_2, I32, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_sr25519_public_keys_version_1, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_sr25519_sign_version_1, I32, I32, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_get_version_1, I64, I64)
