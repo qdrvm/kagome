@@ -13,7 +13,7 @@ namespace kagome::log {
 sinks:
   - name: console
     type: console
-    thread: none
+    thread: name
     color: false
     latency: 0
 groups:

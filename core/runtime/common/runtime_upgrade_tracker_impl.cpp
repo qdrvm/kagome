@@ -124,7 +124,7 @@ namespace kagome::runtime {
                "Pick runtime state at block #{} hash {} for the same block",
                block.number,
                block.hash.toHex());
-      return state;
+      return std::move(state);
     }
 
     KAGOME_PROFILE_START(blocks_with_runtime_upgrade_search)
@@ -215,7 +215,7 @@ namespace kagome::runtime {
                   event_params)
                   .get();
           SL_INFO(logger_, "Runtime upgrade at block {}", block_hash.toHex());
-          (void) push(block_hash);
+          (void)push(block_hash);
         });
   }
 

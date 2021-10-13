@@ -17,9 +17,7 @@ namespace kagome::runtime {
     constexpr PtrSize() : ptr{0}, size{0} {}
 
     explicit constexpr PtrSize(WasmSpan v) {
-      auto [addr, len] = splitSpan(v);
-      ptr = addr;
-      size = len;
+      std::tie(ptr, size) = splitSpan(v);
     }
 
     constexpr PtrSize(WasmPointer ptr, WasmSize size) : ptr{ptr}, size{size} {}
