@@ -5,8 +5,6 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
-#include <boost/operators.hpp>
-
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
@@ -17,39 +15,6 @@
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::consensus::grandpa {
-
-  // help struct to correctly compare rounds in different voter sets
-  struct FullRound : boost::less_than_comparable<FullRound>,
-                     boost::equality_comparable<FullRound> {
-    MembershipCounter voter_set_id;
-    RoundNumber round_number;
-    explicit FullRound(const std::shared_ptr<const VotingRound> &round)
-        : voter_set_id(round->voterSetId()),
-          round_number(round->roundNumber()) {}
-    explicit FullRound(const network::GrandpaNeighborMessage &msg)
-        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
-    explicit FullRound(const network::CatchUpRequest &msg)
-        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
-    explicit FullRound(const network::CatchUpResponse &msg)
-        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
-    explicit FullRound(const VoteMessage &msg)
-        : voter_set_id(msg.counter), round_number(msg.round_number) {}
-
-    operator network::CatchUpRequest() const {
-      return network::CatchUpRequest{round_number, voter_set_id};
-    }
-
-    bool operator<(const FullRound &round) const {
-      return voter_set_id == round.voter_set_id
-                 ? round_number < round.round_number
-                 : voter_set_id < round.voter_set_id;
-    }
-
-    bool operator==(const FullRound &round) const {
-      return voter_set_id == round.voter_set_id
-             && round_number == round.round_number;
-    }
-  };
 
   GrandpaImpl::GrandpaImpl(
       std::shared_ptr<application::AppStateManager> app_state_manager,
@@ -300,11 +265,13 @@ namespace kagome::consensus::grandpa {
              msg.round_number,
              msg.last_finalized);
     if (FullRound{msg} >= FullRound{current_round_}) {
-      if (FullRound{prev_msg_} < FullRound{msg}) {
+      if (std::find(
+              neighbor_msgs_.begin(), neighbor_msgs_.end(), FullRound{msg})
+          != neighbor_msgs_.end()) {
         auto res = environment_->onCatchUpRequested(
             peer_id, msg.voter_set_id, msg.round_number - 1);
         if (res) {
-          prev_msg_ = FullRound{msg};
+          neighbor_msgs_.push_back(FullRound{msg});
         }
       }
     }
@@ -439,6 +406,11 @@ namespace kagome::consensus::grandpa {
     previous_round_->end();
     current_round_ = std::move(round);
 
+    FullRound current(current_round_);
+    std::remove_if(neighbor_msgs_.begin(),
+                   neighbor_msgs_.end(),
+                   [&current](const auto &msg) { return msg < current; });
+
     executeNextRound();
   }
 
@@ -459,11 +431,13 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
       if (FullRound{current_round_} < FullRound{msg}) {
-        if (FullRound{prev_msg_} < FullRound{msg}) {
+        if (std::find(
+            neighbor_msgs_.begin(), neighbor_msgs_.end(), FullRound{msg})
+            != neighbor_msgs_.end()) {
           auto res = environment_->onCatchUpRequested(
               peer_id, msg.counter, msg.round_number);
           if (res) {
-            prev_msg_ = FullRound{msg};
+            neighbor_msgs_.push_back(FullRound{msg});
           }
         }
       }
