@@ -896,7 +896,6 @@ namespace {
         di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderImpl>(),
         di::bind<runtime::TransactionPaymentApi>.template to<runtime::TransactionPaymentApiImpl>(),
         di::bind<runtime::AccountNonceApi>.template to<runtime::AccountNonceApiImpl>(),
-        di::bind<runtime::OffchainApi>.template to<runtime::OffchainApiImpl>(),
         std::forward<Ts>(args)...);
   }
 

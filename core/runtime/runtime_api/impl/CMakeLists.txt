@@ -25,6 +25,3 @@ target_link_libraries(offchain_worker_api executor)
 
 add_library(offchain_worker offchain_worker.cpp)
 target_link_libraries(offchain_worker Boost::boost)
-
-add_library(offchain_api offchain_api_impl.cpp)
-target_link_libraries(offchain_api offchain_worker)

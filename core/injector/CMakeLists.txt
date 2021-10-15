@@ -115,6 +115,5 @@ target_link_libraries(application_injector
     transactions_transmitter
     ticker
     offchain_worker_api
-    offchain_api
     offchain_storage
     )
