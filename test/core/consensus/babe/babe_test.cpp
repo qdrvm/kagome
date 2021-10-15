@@ -29,6 +29,7 @@
 #include "mock/core/network/block_announce_transmitter_mock.hpp"
 #include "mock/core/network/synchronizer_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block.hpp"
@@ -106,6 +107,10 @@ class BabeTest : public testing::Test {
     babe_util_ = std::make_shared<BabeUtilMock>();
     EXPECT_CALL(*babe_util_, slotToEpoch(_)).WillRepeatedly(Return(0));
 
+    offchain_worker_api_ = std::make_shared<runtime::OffchainWorkerApiMock>();
+    EXPECT_CALL(*offchain_worker_api_, offchain_worker(_, _))
+        .WillRepeatedly(Return(outcome::success()));
+
     consensus::EpochDigest expected_epoch_digest{
         .authorities = babe_config_->genesis_authorities,
         .randomness = babe_config_->randomness};
@@ -139,7 +144,8 @@ class BabeTest : public testing::Test {
                                              std::move(timer_mock_),
                                              grandpa_authority_update_observer_,
                                              synchronizer_,
-                                             babe_util_);
+                                             babe_util_,
+                                             offchain_worker_api_);
 
     epoch_.start_slot = 0;
     epoch_.epoch_number = 0;
@@ -176,6 +182,7 @@ class BabeTest : public testing::Test {
       grandpa_authority_update_observer_;
   std::shared_ptr<primitives::BabeConfiguration> babe_config_;
   std::shared_ptr<BabeUtilMock> babe_util_;
+  std::shared_ptr<runtime::OffchainWorkerApiMock> offchain_worker_api_;
   std::shared_ptr<boost::asio::io_context> io_context_;
 
   std::shared_ptr<babe::BabeImpl> babe_;
@@ -264,7 +271,8 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*proposer_, propose(best_block_number_, _, _))
       .WillOnce(Return(created_block_));
 
-  EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
+  EXPECT_CALL(*hasher_, blake2b_256(_))
+      .WillRepeatedly(Return(created_block_hash_));
   EXPECT_CALL(*block_tree_, addBlock(_)).WillOnce(Return(outcome::success()));
 
   EXPECT_CALL(*block_announce_transmitter_, blockAnnounce_rv(_))

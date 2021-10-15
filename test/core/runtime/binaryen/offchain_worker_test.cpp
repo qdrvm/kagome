@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/runtime_api/impl/offchain_worker.hpp"
+#include "offchain/impl/offchain_worker_impl.hpp"
 
 #include <gtest/gtest.h>
 
