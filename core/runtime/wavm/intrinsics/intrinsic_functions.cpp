@@ -195,6 +195,11 @@ namespace kagome::runtime::wavm {
                                       WAVM::I64)
 
   WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
+                                      ext_default_child_storage_next_key_version_1,
+                                      WAVM::I64,
+                                      WAVM::I64)
+
+  WAVM_DEFINE_INTRINSIC_FUNCTION_STUB(WAVM::I64,
                                       ext_default_child_storage_root_version_1,
                                       WAVM::I64)
 
@@ -488,6 +493,7 @@ namespace kagome::runtime::wavm {
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_sr25519_public_keys_version_1, I32)
     REGISTER_HOST_INTRINSIC(I64, ext_crypto_sr25519_sign_version_1, I32, I32, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_get_version_1, I64, I64)
+    REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_next_key_version_1, I64, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_default_child_storage_root_version_1, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_misc_runtime_version_version_1, I64)
     REGISTER_HOST_INTRINSIC(I64, ext_offchain_local_storage_get_version_1, I32, I64)

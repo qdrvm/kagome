@@ -97,7 +97,6 @@ target_link_libraries(application_injector
     system_api_service
     payment_api_service
     rpc_api_service
-    p2p::p2p_kademlia
     kademlia_storage_backend
     peer_manager
     babe_util

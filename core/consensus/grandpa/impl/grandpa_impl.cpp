@@ -267,7 +267,7 @@ namespace kagome::consensus::grandpa {
     if (FullRound{msg} >= FullRound{current_round_}) {
       if (std::find(
               neighbor_msgs_.begin(), neighbor_msgs_.end(), FullRound{msg})
-          != neighbor_msgs_.end()) {
+          == neighbor_msgs_.end()) {
         auto res = environment_->onCatchUpRequested(
             peer_id, msg.voter_set_id, msg.round_number - 1);
         if (res) {
@@ -432,8 +432,8 @@ namespace kagome::consensus::grandpa {
     if (not target_round) {
       if (FullRound{current_round_} < FullRound{msg}) {
         if (std::find(
-            neighbor_msgs_.begin(), neighbor_msgs_.end(), FullRound{msg})
-            != neighbor_msgs_.end()) {
+                neighbor_msgs_.begin(), neighbor_msgs_.end(), FullRound{msg})
+            == neighbor_msgs_.end()) {
           auto res = environment_->onCatchUpRequested(
               peer_id, msg.counter, msg.round_number);
           if (res) {
