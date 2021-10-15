@@ -41,5 +41,5 @@ TEST_F(WsListenerTest, EchoSuccess) {
   client_thread.join();
 
   ASSERT_NO_THROW(service->stop());
-  ASSERT_NO_THROW(listener->start());
+  ASSERT_NO_THROW(listener->stop());
 }
