@@ -19,3 +19,12 @@ add_library(http_request
 target_link_libraries(http_request
     Boost::boost
     )
+
+add_library(offchain_worker
+    offchain_worker_impl.cpp
+    )
+target_link_libraries(offchain_worker
+    http_request
+    )
+
+

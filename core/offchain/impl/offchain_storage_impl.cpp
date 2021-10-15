@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "offchain_storage_impl.hpp"
+#include "offchain/impl/offchain_storage_impl.hpp"
 #include "storage/database_error.hpp"
 
 namespace kagome::offchain {

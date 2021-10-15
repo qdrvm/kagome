@@ -12,7 +12,9 @@ namespace kagome::runtime {
 
   class Executor;
 
-  class OffchainWorkerApiImpl final : public OffchainWorkerApi {
+  class OffchainWorkerApiImpl final
+      : public OffchainWorkerApi,
+        std::enable_shared_from_this<OffchainWorkerApiImpl> {
    public:
     explicit OffchainWorkerApiImpl(std::shared_ptr<Executor> executor);
 

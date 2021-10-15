@@ -3,23 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_OFFCHAINWORKER
-#define KAGOME_RUNTIME_OFFCHAINWORKER
+#ifndef KAGOME_OFFCHAIN_OFFCHAINWORKER
+#define KAGOME_OFFCHAIN_OFFCHAINWORKER
 
 #include <boost/optional.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
 #include "common/buffer.hpp"
+#include "offchain/types.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/common.hpp"
 #include "primitives/extrinsic.hpp"
-#include "runtime/runtime_api/types.hpp"
 
-namespace kagome::runtime {
+namespace kagome::offchain {
 
   class OffchainWorker {
    public:
+    static const boost::optional<OffchainWorker &> &current() {
+      return current_opt();
+    }
+
     virtual ~OffchainWorker() = default;
 
     // ------------------------- Off-Chain API methods -------------------------
@@ -29,7 +33,7 @@ namespace kagome::runtime {
     virtual common::Buffer submitTransaction(
         const primitives::Extrinsic &ext) = 0;
 
-    virtual outcome::result<OpaqueNetworkState, Failure> networkState() = 0;
+    virtual Result<OpaqueNetworkState, Failure> networkState() = 0;
 
     virtual Timestamp offchainTimestamp() = 0;
 
@@ -52,32 +56,45 @@ namespace kagome::runtime {
     virtual common::Buffer localStorageGet(KindStorage kind,
                                            common::Buffer key) = 0;
 
-    virtual outcome::result<RequestId, Failure> httpRequestStart(
-        Method method, common::Buffer uri, common::Buffer meta) = 0;
+    virtual Result<RequestId, Failure> httpRequestStart(
+        Method method, std::string_view uri, common::Buffer meta) = 0;
 
-    virtual outcome::result<Success, Failure> httpRequestAddHeader(
-        RequestId id, common::Buffer name, common::Buffer value) = 0;
+    virtual Result<Success, Failure> httpRequestAddHeader(
+        RequestId id, std::string_view name, std::string_view value) = 0;
 
-    virtual outcome::result<Success, HttpError> httpRequestWriteBody(
+    virtual Result<Success, HttpError> httpRequestWriteBody(
         RequestId id,
         common::Buffer chunk,
         boost::optional<Timestamp> deadline) = 0;
 
-    virtual outcome::result<Success, Failure> httpResponseWait(
-        RequestId id, boost::optional<Timestamp> deadline) = 0;
+    virtual std::vector<HttpStatus> httpResponseWait(
+        const std::vector<RequestId> &ids,
+        boost::optional<Timestamp> deadline) = 0;
 
     virtual std::vector<std::pair<std::string, std::string>>
     httpResponseHeaders(RequestId id) = 0;
 
-    virtual outcome::result<uint32_t, HttpError> httpResponseReadBody(
+    virtual Result<uint32_t, HttpError> httpResponseReadBody(
         RequestId id,
         common::Buffer &chunk,
         boost::optional<Timestamp> deadline) = 0;
 
     virtual void setAuthorizedNodes(std::vector<libp2p::peer::PeerId>,
                                     bool authorized_only) = 0;
+
+   protected:
+    static void current(boost::optional<OffchainWorker &> worker) {
+      current_opt() = std::move(worker);
+    }
+
+   private:
+    static boost::optional<OffchainWorker &> &current_opt() {
+      static thread_local boost::optional<OffchainWorker &> current_opt =
+          boost::none;
+      return current_opt;
+    }
   };
 
-}  // namespace kagome::runtime
+}  // namespace kagome::offchain
 
-#endif  // KAGOME_RUNTIME_OFFCHAINWORKER
+#endif  // KAGOME_OFFCHAIN_OFFCHAINWORKER

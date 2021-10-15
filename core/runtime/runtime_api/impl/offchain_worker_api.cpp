@@ -9,7 +9,8 @@
 #include <thread>
 
 #include "log/logger.hpp"
-#include "runtime/executor.hpp"
+#include "offchain/impl/offchain_worker_impl.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::runtime {
 
@@ -22,44 +23,12 @@ namespace kagome::runtime {
   outcome::result<void> OffchainWorkerApiImpl::offchain_worker(
       const primitives::BlockHash &block,
       const primitives::BlockHeader &header) {
-    auto worker = [executor = executor_, hash = block, header]() {
-      auto number = header.number;
+    auto worker = std::make_shared<offchain::OffchainWorkerImpl>(
+        executor_, block, header);
 
-      soralog::util::setThreadName("ocw." + std::to_string(number));
-      log::Logger log = log::createLogger(
-          "OffchainWorker#" + std::to_string(number), "offchain_worker_api");
+    auto res = offchain::OffchainWorkerImpl::run(std::move(worker));
 
-      SL_TRACE(log,
-               "Offchain worker is started for block #{} hash={}",
-               number,
-               hash.toHex());
-
-
-      auto res = executor->callAt<void>(
-          header.parent_hash, "OffchainWorkerApi_offchain_worker", header);
-      if (res.has_failure()) {
-        log->error("Can't execute offchain worker for block #{} hash={}: {}",
-                   number,
-                   hash.toHex(),
-                   res.error().message());
-        return;
-      }
-
-      SL_DEBUG(log,
-               "Offchain worker is successfully executed for block #{} hash={}",
-               number,
-               hash.toHex());
-    };
-
-    try {
-      std::thread(std::move(worker)).detach();
-    } catch (const std::system_error &exception) {
-      return outcome::failure(exception.code());
-    } catch (...) {
-      return outcome::failure(boost::system::error_code{});
-    }
-
-    return outcome::success();
+    return res;
   }
 
 }  // namespace kagome::runtime

@@ -20,8 +20,6 @@ target_link_libraries(tagged_transaction_queue_api executor)
 add_library(transaction_payment_api transaction_payment_api.cpp)
 target_link_libraries(transaction_payment_api executor)
 add_library(offchain_worker_api offchain_worker_api.cpp)
-target_link_libraries(offchain_worker_api executor)
+target_link_libraries(offchain_worker_api offchain_worker)
 
 
-add_library(offchain_worker offchain_worker.cpp)
-target_link_libraries(offchain_worker Boost::boost)
