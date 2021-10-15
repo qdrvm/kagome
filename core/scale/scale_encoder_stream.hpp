@@ -143,7 +143,7 @@ namespace kagome::scale {
       // optional bool is a special case of optional values
       // it should be encoded using one byte instead of two
       // as described in specification
-      if constexpr (std::is_same<T, bool>::value) {
+      if constexpr (std::is_same_v<T, bool>) {
         return encodeOptionalBool(v);
       }
       if (!v.has_value()) {
@@ -178,16 +178,6 @@ namespace kagome::scale {
     }
 
     /**
-     * @brief scale-encodes uint256_t to stream
-     * @param i value to decode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(const boost::multiprecision::uint256_t &i) {
-      // TODO(akvinikym) PRE-285: maybe move to another file and implement it
-      return *this;
-    }
-
-    /**
      * @brief scale-encodes std::reference_wrapper of a type
      * @tparam T underlying type
      * @param v value to encode
@@ -215,10 +205,10 @@ namespace kagome::scale {
      */
     template <typename T,
               typename I = std::decay_t<T>,
-              typename = std::enable_if_t<std::is_integral<I>::value>>
-    ScaleEncoderStream &operator<<(T &&v) {
+              typename = std::enable_if_t<std::is_integral_v<I>>>
+    ScaleEncoderStream &operator<<(const T &v) {
       // encode bool
-      if constexpr (std::is_same<I, bool>::value) {
+      if constexpr (std::is_same_v<I, bool>) {
         uint8_t byte = (v ? 1u : 0u);
         return putByte(byte);
       }
@@ -230,6 +220,19 @@ namespace kagome::scale {
       // encode any other integer
       detail::encodeInteger<I>(v, *this);
       return *this;
+    }
+
+    /**
+     * @brief scale-encodes any integral type including bool
+     * @tparam T integral type
+     * @param v value of integral type
+     * @return reference to stream
+     */
+    template <typename T,
+              typename E = std::decay_t<T>,
+              typename = std::enable_if_t<std::is_enum_v<E>>>
+    ScaleEncoderStream &operator<<(const E &v) {
+      return *this << static_cast<const std::underlying_type_t<E> &>(v);
     }
 
     /**

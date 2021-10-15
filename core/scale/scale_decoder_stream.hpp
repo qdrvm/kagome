@@ -106,17 +106,17 @@ namespace kagome::scale {
     }
 
     /**
-     * @brief scale-encodes any integral type including bool
+     * @brief scale-decodes any integral type including bool
      * @tparam T integral type
      * @param v value of integral type
      * @return reference to stream
      */
     template <typename T,
               typename I = std::decay_t<T>,
-              typename = std::enable_if_t<std::is_integral<I>::value>>
+              typename = std::enable_if_t<std::is_integral_v<I>>>
     ScaleDecoderStream &operator>>(T &v) {
       // check bool
-      if constexpr (std::is_same<I, bool>::value) {
+      if constexpr (std::is_same_v<I, bool>) {
         v = decodeBool();
         return *this;
       }
@@ -128,6 +128,19 @@ namespace kagome::scale {
       // decode any other integer
       v = detail::decodeInteger<I>(*this);
       return *this;
+    }
+
+    /**
+     * @brief scale-decodes any enum type as underlying type
+     * @tparam T enum type
+     * @param v value of enum type
+     * @return reference to stream
+     */
+    template <typename T,
+              typename E = std::decay_t<T>,
+              typename = std::enable_if_t<std::is_enum_v<E>>>
+    ScaleDecoderStream &operator>>(E &v) {
+      return *this >> static_cast<std::underlying_type_t<E> &>(v);
     }
 
     /**
@@ -145,7 +158,7 @@ namespace kagome::scale {
       // optional bool is special case of optional values
       // it is encoded as one byte instead of two
       // as described in specification
-      if constexpr (std::is_same<mutableT, bool>::value) {
+      if constexpr (std::is_same_v<mutableT, bool>) {
         v = decodeOptionalBool();
         return *this;
       }
@@ -251,16 +264,6 @@ namespace kagome::scale {
       for (size_t i = 0u; i < size; ++i) {
         *this >> const_cast<mutableT &>(a[i]);  // NOLINT
       }
-      return *this;
-    }
-
-    /**
-     * @brief decodes uint256_t from stream
-     * @param i value to decode
-     * @return reference to stream
-     */
-    ScaleDecoderStream &operator>>(boost::multiprecision::uint256_t &i) {
-      // TODO(akvinikym) PRE-285: maybe move to another file and implement it
       return *this;
     }
 
