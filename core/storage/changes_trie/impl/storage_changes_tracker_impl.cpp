@@ -10,8 +10,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
                             e) {
   using E = kagome::storage::changes_trie::StorageChangesTrackerImpl::Error;
   switch (e) {
-    case E::EXTRINSIC_IDX_GETTER_UNINITIALIZED:
-      return "The delegate that returns extrinsic index is uninitialized";
     case E::INVALID_PARENT_HASH:
       return "The supplied parent hash doesn't match the one of the current "
              "block";
@@ -31,7 +29,8 @@ namespace kagome::storage::changes_trie {
         codec_(std::move(codec)),
         parent_number_{std::numeric_limits<primitives::BlockNumber>::max()},
         storage_subscription_engine_(std::move(storage_subscription_engine)),
-        chain_subscription_engine_(std::move(chain_subscription_engine))  {
+        chain_subscription_engine_(std::move(chain_subscription_engine)),
+        logger_{log::createLogger("Storage Changes Tracker", "changes_trie")} {
     BOOST_ASSERT(trie_factory_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
   }
@@ -49,19 +48,19 @@ namespace kagome::storage::changes_trie {
     return outcome::success();
   }
 
-  void StorageChangesTrackerImpl::setExtrinsicIdxGetter(
-      GetExtrinsicIndexDelegate f) {
-    get_extrinsic_index_ = std::move(f);
-  }
-
   void StorageChangesTrackerImpl::onBlockAdded(
       const primitives::BlockHash &hash) {
     if (actual_val_.find(storage::kRuntimeCodeKey) != actual_val_.cend()) {
       chain_subscription_engine_->notify(
           primitives::events::ChainEventType::kNewRuntime, hash);
     }
-    for (auto &[key, value] : actual_val_) {
-      storage_subscription_engine_->notify(key, value, parent_hash_);
+    for (auto &pair : actual_val_) {
+      SL_DEBUG(logger_,
+               "Key: 0x{}; Value 0x{};",
+               pair.first.toHex(),
+               pair.second.toHex());
+      storage_subscription_engine_->notify(
+          pair.first, pair.second, parent_hash_);
     }
   }
 
@@ -69,17 +68,19 @@ namespace kagome::storage::changes_trie {
     for (auto it = actual_val_.lower_bound(prefix);
          it != actual_val_.end() && prefix.size() <= it->first.size()
          && it->first.subbuffer(0, prefix.size()) == prefix;
-         ++it)
+         ++it) {
       it->second.clear();
+    }
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onPut(
+      const common::Buffer &extrinsic_index,
       const common::Buffer &key,
       const common::Buffer &value,
       bool is_new_entry) {
     auto change_it = extrinsics_changes_.find(key);
-    OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
-    OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));
+    OUTCOME_TRY(idx,
+                scale::decode<primitives::ExtrinsicIndex>(extrinsic_index));
 
     // if key was already changed in the same block, just add extrinsic to
     // the changers list
@@ -96,12 +97,12 @@ namespace kagome::storage::changes_trie {
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onRemove(
-      const common::Buffer &key) {
+      const common::Buffer &extrinsic_index, const common::Buffer &key) {
     actual_val_[key].clear();
 
     auto change_it = extrinsics_changes_.find(key);
-    OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
-    OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));
+    OUTCOME_TRY(idx,
+                scale::decode<primitives::ExtrinsicIndex>(extrinsic_index));
 
     // if key was already changed in the same block, just add extrinsic to
     // the changers list

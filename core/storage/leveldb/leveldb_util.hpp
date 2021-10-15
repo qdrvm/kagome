@@ -15,8 +15,7 @@
 
 namespace kagome::storage {
 
-  template <typename T>
-  inline outcome::result<T> error_as_result(const leveldb::Status &s) {
+  inline DatabaseError status_as_error(const leveldb::Status &s) {
     if (s.IsNotFound()) {
       return DatabaseError::NOT_FOUND;
     }
@@ -40,11 +39,10 @@ namespace kagome::storage {
     return DatabaseError::UNKNOWN;
   }
 
-  template <typename T>
-  inline outcome::result<T> error_as_result(const leveldb::Status &s,
+  inline DatabaseError status_as_error(const leveldb::Status &s,
                                             const log::Logger &logger) {
     logger->error(s.ToString());
-    return error_as_result<T>(s);
+    return status_as_error(s);
   }
 
   inline leveldb::Slice make_slice(const common::Buffer &buf) {

@@ -29,7 +29,7 @@ namespace kagome::runtime {
     RuntimeUpgradeTrackerImpl(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::BufferStorage> storage,
-        const application::CodeSubstitutes &code_substitutes);
+        const primitives::CodeSubstitutes &code_substitutes);
 
     struct RuntimeUpgradeData {
       RuntimeUpgradeData() = default;
@@ -87,7 +87,7 @@ namespace kagome::runtime {
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<storage::BufferStorage> storage_;
-    const application::CodeSubstitutes &code_substitutes_;
+    const primitives::CodeSubstitutes &code_substitutes_;
     log::Logger logger_;
   };
 

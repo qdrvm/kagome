@@ -18,7 +18,7 @@ namespace kagome::runtime {
   StorageCodeProvider::StorageCodeProvider(
       std::shared_ptr<const storage::trie::TrieStorage> storage,
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
-      const application::CodeSubstitutes &code_substitutes)
+      const primitives::CodeSubstitutes &code_substitutes)
       : storage_{std::move(storage)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         code_substitutes_{code_substitutes} {

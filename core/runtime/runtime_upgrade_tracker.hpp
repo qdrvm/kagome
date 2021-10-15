@@ -21,7 +21,7 @@ namespace kagome::runtime {
     virtual ~RuntimeUpgradeTracker() = default;
 
     /**
-     * @return the latest block earlier than \param block, where
+     * @return the latest block earlier or equal to \param block, where
      * runtime upgrade happened
      */
     virtual outcome::result<storage::trie::RootHash> getLastCodeUpdateState(

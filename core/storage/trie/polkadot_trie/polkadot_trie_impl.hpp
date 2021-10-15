@@ -58,6 +58,9 @@ namespace kagome::storage::trie {
     outcome::result<common::Buffer> get(
         const common::Buffer &key) const override;
 
+    outcome::result<boost::optional<common::Buffer>> tryGet(
+        const common::Buffer &key) const override;
+
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
 
     bool contains(const common::Buffer &key) const override;

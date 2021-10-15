@@ -227,6 +227,9 @@ namespace kagome::host_api {
     [[nodiscard]] virtual runtime::WasmSpan
     ext_crypto_secp256k1_ecdsa_recover_version_1(runtime::WasmPointer sig,
                                                  runtime::WasmPointer msg) = 0;
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_secp256k1_ecdsa_recover_version_2(runtime::WasmPointer sig,
+                                                 runtime::WasmPointer msg) = 0;
 
     /**
      * Recover secp256k1 public key
@@ -237,6 +240,9 @@ namespace kagome::host_api {
      */
     [[nodiscard]] virtual runtime::WasmSpan
     ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
+    [[nodiscard]] virtual runtime::WasmSpan
+    ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
         runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
 
     // ------------------------- Hashing extension/crypto ----------------------

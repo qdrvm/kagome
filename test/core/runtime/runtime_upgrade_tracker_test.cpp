@@ -72,7 +72,7 @@ class RuntimeUpgradeTrackerTest : public testing::Test {
       sub_engine_;
   std::shared_ptr<kagome::storage::BufferStorage> storage_;
 
-  kagome::application::CodeSubstitutes code_substitutes_{};
+  kagome::primitives::CodeSubstitutes code_substitutes_{};
   kagome::primitives::BlockInfo genesis_block{0, "block_genesis_hash"_hash256};
   kagome::primitives::BlockHeader genesis_block_header{
       ""_hash256,

@@ -29,7 +29,7 @@ namespace kagome::runtime {
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::BufferStorage> storage,
-      const application::CodeSubstitutes &code_substitutes)
+      const primitives::CodeSubstitutes &code_substitutes)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         code_substitutes_{code_substitutes},

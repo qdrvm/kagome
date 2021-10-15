@@ -81,8 +81,24 @@ namespace kagome::api::details {
       }
     }
 
-    template <typename T, typename = std::enable_if<std::is_integral_v<T>>>
-    void loadValue(T &dst, const jsonrpc::Value &src) {
+    template <typename SequenceContainer,
+              typename = typename SequenceContainer::value_type,
+              typename = typename SequenceContainer::iterator>
+    void loadValue(SequenceContainer &dst, const jsonrpc::Value &src) {
+      if (!src.IsNil() && src.IsArray()) {
+        for (auto &v : src.AsArray()) {
+          typename SequenceContainer::value_type t;
+          loadValue(t, v);
+          dst.insert(dst.end(), std::move(t));
+        }
+      } else {
+        throw jsonrpc::InvalidParametersFault("invalid argument type");
+      }
+    }
+
+    template <typename T>
+    std::enable_if_t<std::is_integral_v<T>, void> loadValue(
+        T &dst, const jsonrpc::Value &src) {
       if (not src.IsInteger32() and not src.IsInteger64()) {
         throw jsonrpc::InvalidParametersFault("invalid argument type");
       }

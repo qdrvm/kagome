@@ -291,8 +291,20 @@ namespace kagome::host_api {
     return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
   }
 
+  runtime::WasmSpan HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_version_2(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_version_1(sig, msg);
+  }
+
   runtime::WasmSpan
   HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
+        sig, msg);
+  }
+
+  runtime::WasmSpan
+  HostApiImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
     return crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(
         sig, msg);

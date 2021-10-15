@@ -8,6 +8,8 @@
 
 #include "runtime/types.hpp"
 
+#include <tuple>
+
 namespace kagome::runtime {
   /**
    * Result of a call to a Runtime API wasm function is an i64 where first 32

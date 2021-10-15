@@ -936,7 +936,7 @@ namespace {
 
         di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
         di::bind<application::AppConfiguration>.to(config),
-        di::bind<application::CodeSubstitutes>.to(
+        di::bind<primitives::CodeSubstitutes>.to(
             get_chain_spec(config)->codeSubstitutes()),
 
         // compose peer keypair
