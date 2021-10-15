@@ -267,7 +267,7 @@ namespace kagome::host_api {
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 
-    std::shared_ptr<CryptoExtension> crypto_ext_;
+    CryptoExtension crypto_ext_;
     IOExtension io_ext_;
     MemoryExtension memory_ext_;
     MiscExtension misc_ext_;

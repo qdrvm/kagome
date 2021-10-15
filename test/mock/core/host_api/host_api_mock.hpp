@@ -45,7 +45,7 @@ namespace kagome::host_api {
     MOCK_CONST_METHOD1(ext_misc_print_num_version_1, void(uint64_t));
     MOCK_CONST_METHOD1(ext_misc_print_utf8_version_1, void(runtime::WasmSpan));
 
-    // ------------------------ Storage extensions v1 ------------------------
+    // ------------------------- Storage extensions v1 -------------------------
 
     MOCK_METHOD2(ext_storage_set_version_1,
                  void(runtime::WasmSpan, runtime::WasmSpan));
@@ -83,7 +83,7 @@ namespace kagome::host_api {
     MOCK_METHOD1(ext_trie_blake2_256_ordered_root_version_1,
                  runtime::WasmPointer(runtime::WasmSpan));
 
-    // -------------------- hashing methods v1 --------------------
+    // -------------------------- hashing methods v1 ---------------------------
 
     MOCK_METHOD1(ext_hashing_keccak_256_version_1,
                  runtime::WasmPointer(runtime::WasmSpan));
@@ -106,7 +106,7 @@ namespace kagome::host_api {
     MOCK_METHOD1(ext_hashing_twox_256_version_1,
                  runtime::WasmPointer(runtime::WasmSpan));
 
-    // -------------------------Crypto extensions v1---------------------
+    // ------------------------- Crypto extensions v1 --------------------------
 
     MOCK_METHOD1(ext_crypto_ed25519_public_keys_version_1,
                  runtime::WasmSpan(runtime::WasmSize key_type));
@@ -156,7 +156,7 @@ namespace kagome::host_api {
                  runtime::WasmSpan(runtime::WasmPointer sig,
                                    runtime::WasmPointer msg));
 
-    // ---------------------------- memory api v1 ----------------------------
+    // ----------------------------- memory api v1 -----------------------------
 
     MOCK_METHOD1(ext_allocator_malloc_version_1,
                  runtime::WasmPointer(runtime::WasmSize));
@@ -166,4 +166,4 @@ namespace kagome::host_api {
 
 }  // namespace kagome::host_api
 
-#endif  // KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_
+#endif  // KAGOME_TEST_CORE_RUNTIME_MOCK_HOST_API_HPP_
