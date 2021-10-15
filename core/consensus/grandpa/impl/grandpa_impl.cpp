@@ -254,6 +254,21 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  void GrandpaImpl::tryCatchUp(const libp2p::peer::PeerId &peer_id,
+                               const FullRound &next,
+                               const FullRound &curr) {
+    if (next > curr) {
+      if (std::find(neighbor_msgs_.begin(), neighbor_msgs_.end(), next)
+          == neighbor_msgs_.end()) {
+        auto res = environment_->onCatchUpRequested(
+            peer_id, next.voter_set_id, next.round_number - 1);
+        if (res) {
+          neighbor_msgs_.push_back(next);
+        }
+      }
+    }
+  }
+
   void GrandpaImpl::onNeighborMessage(
       const libp2p::peer::PeerId &peer_id,
       const network::GrandpaNeighborMessage &msg) {
@@ -264,17 +279,7 @@ namespace kagome::consensus::grandpa {
              msg.voter_set_id,
              msg.round_number,
              msg.last_finalized);
-    if (FullRound{msg} >= FullRound{current_round_}) {
-      if (std::find(
-              neighbor_msgs_.begin(), neighbor_msgs_.end(), FullRound{msg})
-          != neighbor_msgs_.end()) {
-        auto res = environment_->onCatchUpRequested(
-            peer_id, msg.voter_set_id, msg.round_number - 1);
-        if (res) {
-          neighbor_msgs_.push_back(FullRound{msg});
-        }
-      }
-    }
+    tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
   }
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
@@ -378,7 +383,7 @@ namespace kagome::consensus::grandpa {
     }
     auto &authorities = authorities_res.value();
 
-    auto voters = std::make_shared<VoterSet>(authorities->id);
+    auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
     for (const auto &authority : *authorities) {
       voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                      authority.weight);
@@ -430,17 +435,7 @@ namespace kagome::consensus::grandpa {
 
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
-      if (FullRound{current_round_} < FullRound{msg}) {
-        if (std::find(
-            neighbor_msgs_.begin(), neighbor_msgs_.end(), FullRound{msg})
-            != neighbor_msgs_.end()) {
-          auto res = environment_->onCatchUpRequested(
-              peer_id, msg.counter, msg.round_number);
-          if (res) {
-            neighbor_msgs_.push_back(FullRound{msg});
-          }
-        }
-      }
+      tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
       return;
     }
 

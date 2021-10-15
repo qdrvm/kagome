@@ -26,7 +26,6 @@
 
 namespace kagome::consensus::grandpa {
 
-
   // help struct to correctly compare rounds in different voter sets
   struct FullRound : boost::less_than_comparable<FullRound>,
                      boost::equality_comparable<FullRound> {
@@ -43,12 +42,12 @@ namespace kagome::consensus::grandpa {
         : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
     explicit FullRound(const VoteMessage &msg)
         : voter_set_id(msg.counter), round_number(msg.round_number) {}
-    FullRound& operator=(const FullRound&) = default;
+    FullRound &operator=(const FullRound &) = default;
 
     bool operator<(const FullRound &round) const {
       return voter_set_id == round.voter_set_id
-             ? round_number < round.round_number
-             : voter_set_id < round.voter_set_id;
+                 ? round_number < round.round_number
+                 : voter_set_id < round.voter_set_id;
     }
 
     bool operator==(const FullRound &round) const {
@@ -122,6 +121,10 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VotingRound> &previous_round);
 
     void onCompletedRound(outcome::result<MovableRoundState> round_state_res);
+
+    void tryCatchUp(const libp2p::peer::PeerId &peer_id,
+                    const FullRound &next,
+                    const FullRound &curr);
 
     // Note: Duration value was gotten from substrate
     // https://github.com/paritytech/substrate/blob/efbac7be80c6e8988a25339061078d3e300f132d/bin/node-template/node/src/service.rs#L166
