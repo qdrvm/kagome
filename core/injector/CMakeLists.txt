@@ -113,5 +113,4 @@ target_link_libraries(application_injector
     grandpa_transmitter
     block_announce_transmitter
     transactions_transmitter
-    ticker
     )

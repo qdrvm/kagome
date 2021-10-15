@@ -9,7 +9,6 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "blockchain/block_tree_error.hpp"
-#include "clock/impl/ticker_impl.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
@@ -309,15 +308,6 @@ namespace kagome::consensus::babe {
                best_block_.hash);
 
       runEpoch(last_epoch_descriptor);
-      on_synchronized_();
-    }
-  }
-
-  void BabeImpl::doOnSynchronized(std::function<void()> handler) {
-    if (current_state_ == State::SYNCHRONIZED) {
-      handler();
-    } else {
-      on_synchronized_ = std::move(handler);
     }
   }
 

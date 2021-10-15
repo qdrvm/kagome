@@ -9,11 +9,11 @@
 #include "consensus/grandpa/grandpa.hpp"
 #include "consensus/grandpa/grandpa_observer.hpp"
 
+#include <boost/operators.hpp>
+
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
-#include "clock/ticker.hpp"
 #include "consensus/authority/authority_manager.hpp"
-#include "consensus/babe/babe.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/movable_round_state.hpp"
@@ -25,6 +25,37 @@
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus::grandpa {
+
+
+  // help struct to correctly compare rounds in different voter sets
+  struct FullRound : boost::less_than_comparable<FullRound>,
+                     boost::equality_comparable<FullRound> {
+    MembershipCounter voter_set_id;
+    RoundNumber round_number;
+    explicit FullRound(const std::shared_ptr<const VotingRound> &round)
+        : voter_set_id(round->voterSetId()),
+          round_number(round->roundNumber()) {}
+    explicit FullRound(const network::GrandpaNeighborMessage &msg)
+        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
+    explicit FullRound(const network::CatchUpRequest &msg)
+        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
+    explicit FullRound(const network::CatchUpResponse &msg)
+        : voter_set_id(msg.voter_set_id), round_number(msg.round_number) {}
+    explicit FullRound(const VoteMessage &msg)
+        : voter_set_id(msg.counter), round_number(msg.round_number) {}
+    FullRound& operator=(const FullRound&) = default;
+
+    bool operator<(const FullRound &round) const {
+      return voter_set_id == round.voter_set_id
+             ? round_number < round.round_number
+             : voter_set_id < round.voter_set_id;
+    }
+
+    bool operator==(const FullRound &round) const {
+      return voter_set_id == round.voter_set_id
+             && round_number == round.round_number;
+    }
+  };
 
   class GrandpaImpl : public Grandpa,
                       public GrandpaObserver,
@@ -40,8 +71,7 @@ namespace kagome::consensus::grandpa {
                 const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
                 std::shared_ptr<Clock> clock,
                 std::shared_ptr<boost::asio::io_context> io_context,
-                std::shared_ptr<authority::AuthorityManager> authority_manager,
-                std::shared_ptr<consensus::babe::Babe> babe);
+                std::shared_ptr<authority::AuthorityManager> authority_manager);
 
     /** @see AppStateManager::takeControl */
     bool prepare();
@@ -108,16 +138,10 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<runtime::GrandpaApi> grandpa_api_;
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;
     std::shared_ptr<Clock> clock_;
-    std::unique_ptr<clock::Ticker> key_wait_ticker_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     std::shared_ptr<authority::AuthorityManager> authority_manager_;
 
-    bool is_ready_ = false;
-    std::shared_ptr<consensus::babe::Babe> babe_;
-
-    const Clock::Duration catch_up_request_suppression_duration_ =
-        std::chrono::seconds(15);
-    Clock::TimePoint catch_up_request_suppressed_until_;
+    std::vector<FullRound> neighbor_msgs_{};
 
     log::Logger logger_ = log::createLogger("Grandpa", "grandpa");
   };
