@@ -162,6 +162,71 @@ namespace kagome::host_api {
                  runtime::WasmPointer(runtime::WasmSize));
 
     MOCK_METHOD1(ext_allocator_free_version_1, void(runtime::WasmPointer));
+
+    // -------------------------- Offchain extension ---------------------------
+
+    MOCK_METHOD0(ext_offchain_is_validator_version_1, runtime::WasmI8());
+
+    MOCK_METHOD1(ext_offchain_submit_transaction_version_1,
+                 runtime::WasmSpan(runtime::WasmSpan));
+
+    MOCK_METHOD0(ext_offchain_network_state_version_1, runtime::WasmSpan());
+
+    MOCK_METHOD0(ext_offchain_timestamp_version_1, runtime::WasmU64());
+
+    MOCK_METHOD1(ext_offchain_sleep_until_version_1,
+                 void(runtime::WasmU64 deadline));
+
+    MOCK_METHOD0(ext_offchain_random_seed_version_1, runtime::WasmPointer());
+
+    MOCK_METHOD3(ext_offchain_local_storage_set_version_1,
+                 void(runtime::WasmI32, runtime::WasmSpan, runtime::WasmSpan));
+
+    MOCK_METHOD2(ext_offchain_local_storage_clear_version_1,
+                 void(runtime::WasmI32, runtime::WasmSpan));
+
+    MOCK_METHOD4(ext_offchain_local_storage_compare_and_set_version_1,
+                 runtime::WasmI8(runtime::WasmI32,
+                                 runtime::WasmSpan,
+                                 runtime::WasmSpan,
+                                 runtime::WasmSpan));
+
+    MOCK_METHOD2(ext_offchain_local_storage_get_version_1,
+                 runtime::WasmSpan(runtime::WasmI32, runtime::WasmSpan));
+
+    MOCK_METHOD3(ext_offchain_http_request_start_version_1,
+                 runtime::WasmSpan(runtime::WasmSpan,
+                                   runtime::WasmSpan,
+                                   runtime::WasmSpan));
+
+    MOCK_METHOD3(ext_offchain_http_request_add_header_version_1,
+                 runtime::WasmSpan(runtime::WasmI32,
+                                   runtime::WasmSpan,
+                                   runtime::WasmSpan));
+
+    MOCK_METHOD3(ext_offchain_http_request_write_body_version_1,
+                 runtime::WasmSpan(runtime::WasmI32,
+                                   runtime::WasmSpan,
+                                   runtime::WasmSpan));
+
+    MOCK_METHOD2(ext_offchain_http_response_wait_version_1,
+                 runtime::WasmSpan(runtime::WasmSpan, runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_offchain_http_response_headers_version_1,
+                 runtime::WasmSpan(runtime::WasmI32));
+
+    MOCK_METHOD3(ext_offchain_http_response_read_body_version_1,
+                 runtime::WasmSpan(runtime::WasmI32,
+                                   runtime::WasmSpan,
+                                   runtime::WasmSpan));
+
+    MOCK_METHOD2(ext_offchain_set_authorized_nodes_version_1,
+                 void(runtime::WasmSpan, runtime::WasmI32));
+
+    MOCK_METHOD2(ext_offchain_index_set_version_1,
+                 void(runtime::WasmSpan, runtime::WasmSpan));
+
+    MOCK_METHOD1(ext_offchain_index_clear_version_1, void(runtime::WasmSpan));
   };
 
 }  // namespace kagome::host_api
