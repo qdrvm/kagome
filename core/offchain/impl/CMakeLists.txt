@@ -12,3 +12,10 @@ target_link_libraries(offchain_storage
     leveldb
     )
 kagome_install(offchain_storage)
+
+add_library(http_request
+    http_request.cpp
+    )
+target_link_libraries(http_request
+    Boost::boost
+    )
