@@ -15,11 +15,3 @@ add_library(waitable_timer
 target_link_libraries(waitable_timer
     Boost::boost
     )
-
-add_library(ticker
-    impl/ticker_impl.cpp
-    impl/ticker_impl.hpp
-    )
-target_link_libraries(ticker
-    Boost::boost
-    )

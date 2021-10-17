@@ -88,10 +88,6 @@ namespace kagome::consensus::grandpa {
     /// Broadcast Fin message
     virtual void doFinalize() = 0;
 
-    /// Make a Cathc-Up-Request and send to the peer that has been overtaken by
-    ///  the current round
-    virtual void doCatchUpRequest(const libp2p::peer::PeerId &peer_id) = 0;
-
     /// Make Cathc-Up-Response based on current round and send to requesting
     /// peer
     virtual void doCatchUpResponse(const libp2p::peer::PeerId &peer_id) = 0;

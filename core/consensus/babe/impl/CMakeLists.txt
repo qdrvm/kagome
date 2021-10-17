@@ -59,7 +59,6 @@ target_link_libraries(babe
     buffer
     logger
     scale
-    ticker
     blob
     outcome
     p2p::p2p_peer_id

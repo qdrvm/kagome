@@ -606,6 +606,8 @@ namespace kagome::consensus::grandpa {
 
     if (need_to_notice_at_finalizing_) {
       sendFinalize(block, std::move(justification));
+    } else {
+      env_->finalize(block.hash, justification);
     }
 
     env_->onCompleted(state());
@@ -765,10 +767,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::attemptToFinalizeRound() {
-    if (stage_ != Stage::WAITING_RUNS) {
-      return;
-    }
-
     if (finalizable()) {
       doFinalize();
       if (on_complete_handler_) {
@@ -1605,14 +1603,6 @@ namespace kagome::consensus::grandpa {
           return precommits;
         });
     return result;
-  }
-
-  void VotingRoundImpl::doCatchUpRequest(const libp2p::peer::PeerId &peer_id) {
-    auto res =
-        env_->onCatchUpRequested(peer_id, voter_set_->id(), round_number_);
-    if (not res) {
-      logger_->warn("Catch-Up-Request was not sent: {}", res.error().message());
-    }
   }
 
   void VotingRoundImpl::doCatchUpResponse(const libp2p::peer::PeerId &peer_id) {
