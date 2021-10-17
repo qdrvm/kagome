@@ -5,7 +5,6 @@
 
 #include "consensus/grandpa/impl/grandpa_impl.hpp"
 
-#include "clock/impl/ticker_impl.hpp"
 #include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_error.hpp"
@@ -14,11 +13,6 @@
 #include "scale/scale.hpp"
 #include "storage/database_error.hpp"
 #include "storage/predefined_keys.hpp"
-
-using namespace std::literals::chrono_literals;
-
-// a period of time to check key appearance when absent
-constexpr auto kKeyWaitTimerDuration = 60s;
 
 namespace kagome::consensus::grandpa {
 
@@ -31,8 +25,7 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<crypto::Ed25519Keypair> &keypair,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context,
-      std::shared_ptr<authority::AuthorityManager> authority_manager,
-      std::shared_ptr<consensus::babe::Babe> babe)
+      std::shared_ptr<authority::AuthorityManager> authority_manager)
       : app_state_manager_(std::move(app_state_manager)),
         environment_{std::move(environment)},
         storage_{std::move(storage)},
@@ -41,8 +34,7 @@ namespace kagome::consensus::grandpa {
         keypair_{keypair},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
-        authority_manager_(std::move(authority_manager)),
-        babe_(babe) {
+        authority_manager_(std::move(authority_manager)) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
@@ -51,13 +43,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(io_context_ != nullptr);
     BOOST_ASSERT(authority_manager_ != nullptr);
-    BOOST_ASSERT(babe_ != nullptr);
 
     app_state_manager_->takeControl(*this);
-    catch_up_request_suppressed_until_ = clock_->now();
-
-    key_wait_ticker_ =
-        std::make_unique<clock::TickerImpl>(io_context_, kKeyWaitTimerDuration);
   }
 
   bool GrandpaImpl::prepare() {
@@ -72,7 +59,10 @@ namespace kagome::consensus::grandpa {
             self->onCompletedRound(std::move(completed_round_res));
           }
         });
+    return true;
+  }
 
+  bool GrandpaImpl::start() {
     // Obtain last completed round
     auto round_state_res = getLastCompletedRound();
     if (not round_state_res.has_value()) {
@@ -113,45 +103,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(current_round_->finalizable());
     BOOST_ASSERT(current_round_->finalizedBlock() == round_state.finalized);
 
-    // Lambda which is executed when voting round is completed.
-    babe_->doOnSynchronized([wp = weak_from_this()] {
-      if (auto self = wp.lock()) {
-        // Planning play next round
-        if (self->keypair_) {
-          self->is_ready_ = true;
-          self->current_round_->play();
-        } else {
-          self->key_wait_ticker_->asyncCallRepeatedly(
-              [wp = self->weak_from_this()](auto &&ec) {
-                if (auto self = wp.lock()) {
-                  if (ec) {
-                    if (ec.value() == boost::system::errc::operation_canceled) {
-                      SL_INFO(
-                          self->logger_, "key_wait_ticker {}", ec.message());
-                      return;
-                    }
-                    SL_ERROR(self->logger_,
-                             "error happened while waiting on the "
-                             "key_wait_ticker: {}",
-                             ec.message());
-                    return;
-                  }
-                  SL_INFO(self->logger_, "Check if grandpa key appeared...");
-                  if (self->keypair_) {
-                    self->is_ready_ = true;
-                    self->current_round_->play();
-                    self->key_wait_ticker_->stop();
-                  }
-                }
-              });
-          self->key_wait_ticker_->start(self->key_wait_ticker_->interval());
-        }
-      }
-    });
-    return true;
-  }
-
-  bool GrandpaImpl::start() {
     executeNextRound();
 
     if (not current_round_) {
@@ -293,8 +244,23 @@ namespace kagome::consensus::grandpa {
     previous_round_.swap(current_round_);
     previous_round_->end();
     current_round_ = makeNextRound(previous_round_);
-    if (is_ready_) {
+    if (keypair_) {
       current_round_->play();
+    }
+  }
+
+  void GrandpaImpl::tryCatchUp(const libp2p::peer::PeerId &peer_id,
+                               const FullRound &next,
+                               const FullRound &curr) {
+    if (next > curr) {
+      if (std::find(neighbor_msgs_.begin(), neighbor_msgs_.end(), next)
+          == neighbor_msgs_.end()) {
+        auto res = environment_->onCatchUpRequested(
+            peer_id, next.voter_set_id, next.round_number - 1);
+        if (res) {
+          neighbor_msgs_.push_back(next);
+        }
+      }
     }
   }
 
@@ -308,21 +274,11 @@ namespace kagome::consensus::grandpa {
              msg.voter_set_id,
              msg.round_number,
              msg.last_finalized);
-    if (current_round_->voterSetId() != msg.voter_set_id
-        || current_round_->roundNumber() < msg.round_number) {
-      if (catch_up_request_suppressed_until_ < clock_->now()) {
-        catch_up_request_suppressed_until_ =
-            clock_->now() + catch_up_request_suppression_duration_;
-        current_round_->doCatchUpRequest(peer_id);
-      }
-    }
+    tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
   }
 
   void GrandpaImpl::onCatchUpRequest(const libp2p::peer::PeerId &peer_id,
                                      const network::CatchUpRequest &msg) {
-    if (not is_ready_) {
-      return;
-    }
     if (previous_round_ == nullptr) {
       SL_DEBUG(
           logger_,
@@ -332,32 +288,14 @@ namespace kagome::consensus::grandpa {
           peer_id.toBase58());
       return;
     }
-    if (previous_round_->voterSetId() != msg.voter_set_id) {
-      // Catching up of different set
-      SL_DEBUG(
-          logger_,
-          "Catch-up request (since round #{}) received from {} was rejected: "
-          "voter set is different",
-          msg.round_number,
-          peer_id.toBase58());
-      return;
-    }
-    if (previous_round_->roundNumber() < msg.round_number) {
+    if (FullRound{msg} < FullRound{current_round_}) {
       // Catching up in to the past
       SL_DEBUG(
           logger_,
           "Catch-up request (since round #{}) received from {} was rejected: "
-          "catching up in to the past",
+          "catching up into the past",
           msg.round_number,
           peer_id.toBase58());
-      return;
-    }
-    if (current_round_->roundNumber() + 2 <= msg.round_number) {
-      if (catch_up_request_suppressed_until_ < clock_->now()) {
-        catch_up_request_suppressed_until_ =
-            clock_->now() + catch_up_request_suppression_duration_;
-        current_round_->doCatchUpRequest(peer_id);
-      }
       return;
     }
     if (not previous_round_->completable()) {
@@ -388,26 +326,13 @@ namespace kagome::consensus::grandpa {
 
   void GrandpaImpl::onCatchUpResponse(const libp2p::peer::PeerId &peer_id,
                                       const network::CatchUpResponse &msg) {
-    if (not is_ready_) {
-      return;
-    }
     BOOST_ASSERT(current_round_ != nullptr);
-    if (current_round_->roundNumber() > msg.round_number) {
+    if (FullRound{msg} < FullRound{current_round_}) {
       // Catching up in to the past
       SL_DEBUG(
           logger_,
           "Catch-up response (till round #{}) received from {} was rejected: "
-          "catching up in to the past",
-          msg.round_number,
-          peer_id.toBase58());
-      return;
-    }
-    if (current_round_->voterSetId() != msg.voter_set_id) {
-      // Catching up of different set
-      SL_DEBUG(
-          logger_,
-          "Catch-up response (till round #{}) received from {} was rejected: "
-          "voter set is different",
+          "catching up into the past",
           msg.round_number,
           peer_id.toBase58());
       return;
@@ -445,7 +370,7 @@ namespace kagome::consensus::grandpa {
 
     auto authorities_res =
         authority_manager_->authorities(round_state.finalized.value(), false);
-    if (authorities_res.has_value()) {
+    if (authorities_res.has_error()) {
       SL_WARN(logger_,
               "Can't retrieve authorities for finalized block: {}",
               authorities_res.error().message());
@@ -453,7 +378,7 @@ namespace kagome::consensus::grandpa {
     }
     auto &authorities = authorities_res.value();
 
-    auto voters = std::make_shared<VoterSet>(authorities->id);
+    auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
     for (const auto &authority : *authorities) {
       voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                      authority.weight);
@@ -481,9 +406,12 @@ namespace kagome::consensus::grandpa {
     previous_round_->end();
     current_round_ = std::move(round);
 
-    executeNextRound();
+    FullRound current(current_round_);
+    std::remove_if(neighbor_msgs_.begin(),
+                   neighbor_msgs_.end(),
+                   [&current](const auto &msg) { return msg < current; });
 
-    catch_up_request_suppressed_until_ = clock_->now();
+    executeNextRound();
   }
 
   void GrandpaImpl::onVoteMessage(const libp2p::peer::PeerId &peer_id,
@@ -500,19 +428,9 @@ namespace kagome::consensus::grandpa {
              msg.vote.getBlockNumber(),
              msg.vote.getBlockHash());
 
-    if (not is_ready_) {
-      return;
-    }
-
     std::shared_ptr<VotingRound> target_round = selectRound(msg.round_number);
     if (not target_round) {
-      if (current_round_->roundNumber() + 2 <= msg.round_number) {
-        if (catch_up_request_suppressed_until_ < clock_->now()) {
-          catch_up_request_suppressed_until_ =
-              clock_->now() + catch_up_request_suppression_duration_;
-          current_round_->doCatchUpRequest(peer_id);
-        }
-      }
+      tryCatchUp(peer_id, FullRound{msg}, FullRound{current_round_});
       return;
     }
 

@@ -1283,8 +1283,7 @@ namespace {
         session_keys->getGranKeyPair(),
         injector.template create<sptr<clock::SteadyClock>>(),
         injector.template create<sptr<boost::asio::io_context>>(),
-        injector.template create<sptr<authority::AuthorityManager>>(),
-        injector.template create<sptr<consensus::babe::Babe>>());
+        injector.template create<sptr<authority::AuthorityManager>>());
 
     auto protocol_factory =
         injector.template create<std::shared_ptr<network::ProtocolFactory>>();
