@@ -26,10 +26,14 @@ namespace kagome::runtime {
 
   class RuntimeUpgradeTrackerImpl final : public RuntimeUpgradeTracker {
    public:
-    RuntimeUpgradeTrackerImpl(
+    /**
+     * Performs a storage read to fetch saved upgrade states on initialization,
+     * which may fail, thus construction only from a factory method
+     */
+    static outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>> create(
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::BufferStorage> storage,
-        const primitives::CodeSubstitutes &code_substitutes);
+        std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes);
 
     struct RuntimeUpgradeData {
       RuntimeUpgradeData() = default;
@@ -63,6 +67,12 @@ namespace kagome::runtime {
         const storage::trie::RootHash &state) const override;
 
    private:
+    RuntimeUpgradeTrackerImpl(
+        std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+        std::shared_ptr<storage::BufferStorage> storage,
+        std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes,
+        std::vector<RuntimeUpgradeData>&& saved_data);
+
     bool isStateInChain(const primitives::BlockInfo &state,
                         const primitives::BlockInfo &chain_end) const;
 
@@ -87,7 +97,7 @@ namespace kagome::runtime {
     std::shared_ptr<const blockchain::BlockTree> block_tree_;
     std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo_;
     std::shared_ptr<storage::BufferStorage> storage_;
-    const primitives::CodeSubstitutes &code_substitutes_;
+    std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes_;
     log::Logger logger_;
   };
 

@@ -304,12 +304,8 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash>
   KeyValueBlockStorage::getLastFinalizedBlockHash() const {
-    auto hash_opt_res =
-        storage_->tryGet(storage::kLastFinalizedBlockHashLookupKey);
-    if (hash_opt_res.has_error()) {
-      return hash_opt_res.as_failure();
-    }
-    auto &hash_opt = hash_opt_res.value();
+    OUTCOME_TRY(hash_opt,
+                storage_->tryGet(storage::kLastFinalizedBlockHashLookupKey));
     if (not hash_opt.has_value()) {
       return Error::FINALIZED_BLOCK_NOT_FOUND;
     }

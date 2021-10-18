@@ -163,7 +163,7 @@ namespace kagome::application {
         OUTCOME_TRY(code_processed, common::unhexWith0x(code.data()));
         // TODO(sanblch): move this from memory to db
         // https://github.com/soramitsu/kagome/issues/935
-        code_substitutes_.emplace(hash_processed, code_processed);
+        code_substitutes_->emplace(hash_processed, code_processed);
       }
     }
 

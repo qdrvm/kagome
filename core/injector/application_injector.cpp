@@ -212,8 +212,7 @@ namespace {
           auto log = log::createLogger("Injector", "injector");
 
           auto res = db->tryGet(storage::kSchedulerTreeLookupKey);
-          if (res.has_value()
-              && !res.value().has_value()) {
+          if (res.has_value() && !res.value().has_value()) {
             auto hash_res = db->get(storage::kGenesisBlockHashLookupKey);
             if (not hash_res.has_value()) {
               log->critical("Can't decode genesis block hash: {}",
@@ -848,6 +847,29 @@ namespace {
       Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
+        di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
+            [](const auto &injector)
+                -> std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> {
+              static auto instance = [&injector]() {
+                auto header_repo = injector.template create<
+                    sptr<const blockchain::BlockHeaderRepository>>();
+                auto storage =
+                    injector.template create<sptr<storage::LevelDB>>();
+                auto substitutes = injector.template create<
+                    sptr<const primitives::CodeSubstitutes>>();
+                auto res = runtime::RuntimeUpgradeTrackerImpl::create(
+                    std::move(header_repo),
+                    std::move(storage),
+                    std::move(substitutes));
+                if (res.has_error()) {
+                  throw std::runtime_error(
+                      "Error creating RuntimeUpgradeTrackerImpl: "
+                      + res.error().message());
+                }
+                return std::shared_ptr(std::move(res.value()));
+              }();
+              return instance;
+            }),
         di::bind<runtime::RuntimeUpgradeTracker>.template to<runtime::RuntimeUpgradeTrackerImpl>(),
         makeWavmInjector(method),
         makeBinaryenInjector(method),
