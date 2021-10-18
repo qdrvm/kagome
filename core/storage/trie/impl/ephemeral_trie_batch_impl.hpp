@@ -19,6 +19,8 @@ namespace kagome::storage::trie {
     ~EphemeralTrieBatchImpl() override = default;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<boost::optional<Buffer>> tryGet(
+        const Buffer &key) const override;
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;

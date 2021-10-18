@@ -11,6 +11,7 @@
 #include <jsonrpc-lean/value.h>
 #include <boost/range/adaptor/transformed.hpp>
 
+#include "api/service/state/state_api.hpp"
 #include "common/blob.hpp"
 #include "common/hexutil.hpp"
 #include "common/visitor.hpp"

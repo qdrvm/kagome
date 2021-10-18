@@ -56,7 +56,7 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
     return batch;
   }));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
-      trie_db, tracker, application::CodeSubstitutes{});
+      trie_db, tracker, primitives::CodeSubstitutes{});
 
   // when
   EXPECT_OUTCOME_TRUE(obtained_state_code,
@@ -91,7 +91,7 @@ TEST_F(StorageCodeProviderTest, DISABLED_GetCodeWhenStorageUpdates) {
     return batch;
   }));
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
-      trie_db, tracker, application::CodeSubstitutes{});
+      trie_db, tracker, primitives::CodeSubstitutes{});
 
   common::Buffer new_state_code{{1, 3, 3, 8}};
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(second_state_root))

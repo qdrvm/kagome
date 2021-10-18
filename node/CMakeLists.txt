@@ -7,6 +7,7 @@ add_executable(kagome
     main.cpp
     )
 target_link_libraries(kagome
+    Backward::Backward
     Boost::boost
     Boost::program_options
     kagome_application
