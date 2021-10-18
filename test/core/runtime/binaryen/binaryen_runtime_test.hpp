@@ -25,33 +25,16 @@ class BinaryenRuntimeTest : public RuntimeTestBase {
     auto memory_provider =
         std::make_shared<kagome::runtime::binaryen::BinaryenMemoryProvider>(
             memory_factory);
-    auto trie_db = std::make_shared<kagome::storage::trie::TrieStorageMock>();
 
     auto instance_env_factory =
         std::make_shared<kagome::runtime::binaryen::InstanceEnvironmentFactory>(
-            trie_db, host_api_factory_, header_repo_, changes_tracker_);
-
-    auto core_api_factory =
-        std::make_shared<kagome::runtime::binaryen::CoreApiFactoryImpl>(
-            instance_env_factory, header_repo_, changes_tracker_);
-    std::shared_ptr<kagome::host_api::HostApi> host_api =
-        host_api_factory_->make(
-            core_api_factory, memory_provider, storage_provider_);
-
-    rei_ =
-        std::make_shared<kagome::runtime::binaryen::RuntimeExternalInterface>(
-            host_api);
-    memory_provider->setExternalInterface(rei_);
+            trie_storage_, host_api_factory_, header_repo_, changes_tracker_);
 
     auto module_factory =
         std::make_shared<kagome::runtime::binaryen::ModuleFactoryImpl>(
-            instance_env_factory, trie_db);
+            instance_env_factory, trie_storage_);
     return module_factory;
   }
-
- private:
-  // need to keep it alive as it's not owned by executor
-  std::shared_ptr<kagome::runtime::binaryen::RuntimeExternalInterface> rei_;
 };
 
 #endif  // KAGOME_RUNTIME_TEST_HPP

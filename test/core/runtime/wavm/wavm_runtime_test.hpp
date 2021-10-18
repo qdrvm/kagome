@@ -31,13 +31,12 @@ class WavmRuntimeTest : public RuntimeTestBase {
         intrinsic_module_instance = intrinsic_module->instantiate();
     resolver_ = std::make_shared<kagome::runtime::wavm::IntrinsicResolverImpl>(
         intrinsic_module_instance);
-    auto trie_db = std::make_shared<kagome::storage::trie::TrieStorageMock>();
     auto changes_tracker =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
 
     auto instance_env_factory =
         std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
-            trie_db,
+            trie_storage_,
             compartment,
             intrinsic_module,
             host_api_factory_,
@@ -47,25 +46,6 @@ class WavmRuntimeTest : public RuntimeTestBase {
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
             compartment, instance_env_factory, intrinsic_module);
-
-    auto memory_provider =
-        std::make_shared<kagome::runtime::wavm::WavmExternalMemoryProvider>(
-            intrinsic_module_instance);
-
-    auto core_api_factory =
-        std::make_shared<kagome::runtime::wavm::CoreApiFactoryImpl>(
-            compartment,
-            intrinsic_module,
-            trie_db,
-            header_repo_,
-            instance_env_factory,
-            changes_tracker_);
-
-    std::shared_ptr<kagome::host_api::HostApi> host_api =
-        host_api_factory_->make(
-            core_api_factory, memory_provider, storage_provider_);
-
-    kagome::runtime::wavm::pushHostApi(host_api);
 
     return module_factory;
   }

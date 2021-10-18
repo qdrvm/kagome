@@ -42,13 +42,8 @@ class CoreTest : public WavmRuntimeTest {
   void SetUp() override {
     WavmRuntimeTest::SetUp();
 
-    auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
-    EXPECT_CALL(*header_repo, getBlockHeader(_))
-        .WillRepeatedly(Return(kagome::primitives::BlockHeader{}));
-    EXPECT_CALL(*storage_provider_, rollbackTransaction());
-
     core_ =
-        std::make_shared<CoreImpl>(executor_, changes_tracker_, header_repo);
+        std::make_shared<CoreImpl>(executor_, changes_tracker_, header_repo_);
   }
 
  protected:
@@ -70,7 +65,7 @@ TEST_F(CoreTest, DISABLED_VersionTest) {
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
-  auto block = createBlock();
+  auto block = createBlock("block_hash"_hash256, 42);
   EXPECT_CALL(
       *changes_tracker_,
       onBlockExecutionStart(block.header.parent_hash, block.header.number - 1))
@@ -85,7 +80,7 @@ TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
-  auto header = createBlockHeader();
+  auto header = createBlockHeader("block_hash"_hash256, 42);
   EXPECT_CALL(*changes_tracker_,
               onBlockExecutionStart(header.parent_hash, header.number - 1))
       .WillOnce(Return(outcome::success()));
