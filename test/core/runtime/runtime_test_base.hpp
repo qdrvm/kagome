@@ -94,15 +94,15 @@ class RuntimeTestBase : public ::testing::Test {
         crypto_store,
         bip39_provider);
 
-    header_repo_ =
-        std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
+    header_repo_ = std::make_shared<
+        testing::NiceMock<kagome::blockchain::BlockHeaderRepositoryMock>>();
 
-    EXPECT_CALL(*header_repo_, getHashByNumber(0))
-        .WillRepeatedly(testing::Return("genesis hash"_hash256));
+    ON_CALL(*header_repo_, getHashByNumber(0))
+        .WillByDefault(testing::Return("genesis_hash"_hash256));
     EXPECT_CALL(*header_repo_,
-                getBlockHeader(testing::AnyOf(
-                    kagome::primitives::BlockId{0},
-                    kagome::primitives::BlockId{"genesis hash"_hash256})))
+            getBlockHeader(testing::AnyOf(
+                kagome::primitives::BlockId{0},
+                kagome::primitives::BlockId{"genesis_hash"_hash256})))
         .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
             .parent_hash = {},
             .number = 0,
@@ -200,8 +200,8 @@ class RuntimeTestBase : public ::testing::Test {
 
     BlockHeader header{
         parent_hash, number, state_root, extrinsics_root, digest};
-    ON_CALL(*header_repo_, getBlockHeader(testing::AnyOf(hash, number)))
-        .WillByDefault(testing::Return(header));
+    EXPECT_CALL(*header_repo_, getBlockHeader(testing::AnyOf(hash, number)))
+        .WillRepeatedly(testing::Return(header));
     return header;
   }
 
@@ -216,7 +216,9 @@ class RuntimeTestBase : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::blockchain::BlockHeaderRepositoryMock> header_repo_;
+  std::shared_ptr<
+      testing::NiceMock<kagome::blockchain::BlockHeaderRepositoryMock>>
+      header_repo_;
   std::shared_ptr<kagome::runtime::RuntimeCodeProvider> wasm_provider_;
   std::shared_ptr<kagome::storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<kagome::runtime::RuntimeEnvironmentFactory>
