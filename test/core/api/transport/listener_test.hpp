@@ -52,6 +52,10 @@ struct ListenerTest : public ::testing::Test {
     testutil::prepareLoggers();
   }
 
+  static void TearDownTestCase() {
+    kagome::log::setLoggingSystem(nullptr);
+  }
+
   template <class T>
   using sptr = std::shared_ptr<T>;
 
@@ -80,6 +84,8 @@ struct ListenerTest : public ::testing::Test {
   void TearDown() override {
     request.clear();
     response.clear();
+
+    service.reset();
   }
 
   typename ListenerImpl::Configuration listener_config = [] {
