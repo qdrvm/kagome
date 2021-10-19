@@ -138,6 +138,12 @@ class VotingRoundTest : public testing::Test {
         .WillRepeatedly(Return(std::vector<BlockHash>{
             "ED"_H, "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H}));
     EXPECT_CALL(*env_, hasAncestry("C"_H, "FC"_H)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*env_, hasAncestry("E"_H, "ED"_H)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*env_, hasAncestry("E"_H, "FC"_H)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*env_, hasAncestry("EA"_H, "FC"_H))
+        .WillRepeatedly(Return(false));
+    EXPECT_CALL(*env_, hasAncestry("EA"_H, "ED"_H))
+        .WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, hasAncestry("FC"_H, "FC"_H))
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*env_, bestChainContaining("C"_H))
@@ -336,6 +342,10 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
  * "EA"_H) (as this will become the highest block with supermajority)
  */
 TEST_F(VotingRoundTest, Finalization) {
+  EXPECT_CALL(*env_, onCommitted(_, _, _))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*env_, onCompleted(_)).WillRepeatedly(Return());
+  EXPECT_CALL(*env_, finalize(_, _)).WillRepeatedly(Return(outcome::success()));
   // given (in fixture)
 
   // when 1.
@@ -478,6 +488,9 @@ ACTION_P(onFinalize, test_fixture) {
  * and `finalized` equal to the best block that Alice voted for
  */
 TEST_F(VotingRoundTest, SunnyDayScenario) {
+  EXPECT_CALL(*env_, finalize(_, _))
+      .Times(AnyNumber())
+      .WillRepeatedly(Return(outcome::success()));
   auto base_block = previous_round_->bestFinalCandidate();
   auto finalized_block = *previous_round_->finalizedBlock();
 
@@ -556,9 +569,6 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
                 onCommitted(round_number_, Truly(matcher1), Truly(matcher2)))
         .WillOnce(onFinalize(this));
   }
-
-  EXPECT_CALL(*env_, finalize(best_block.hash, _))
-      .WillOnce(Return(outcome::success()));
 
   {
     // check that expected fin message was sent

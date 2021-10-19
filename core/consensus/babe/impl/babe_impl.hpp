@@ -14,7 +14,6 @@
 #include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
-#include "clock/ticker.hpp"
 #include "clock/timer.hpp"
 #include "consensus/authority/authority_update_observer.hpp"
 #include "consensus/babe/babe_lottery.hpp"
@@ -95,9 +94,6 @@ namespace kagome::consensus::babe {
                          const network::BlockAnnounce &announce) override;
 
     void onSynchronized() override;
-
-    void doOnSynchronized(std::function<void()> handler) override;
-
    private:
     void startCatchUp(const libp2p::peer::PeerId &peer_id,
                       const primitives::BlockInfo &target_block);
@@ -159,8 +155,6 @@ namespace kagome::consensus::babe {
     BabeSlotNumber current_slot_{};
 
     primitives::BlockInfo best_block_{};
-
-    std::function<void()> on_synchronized_;
 
     log::Logger log_;
   };
