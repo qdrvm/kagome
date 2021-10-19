@@ -14,10 +14,14 @@ target_link_libraries(offchain_storage
 kagome_install(offchain_storage)
 
 add_library(http_request
+    uri.cpp
     http_request.cpp
     )
 target_link_libraries(http_request
     Boost::boost
+    crypto
+    ssl
+    buffer
     )
 
 add_library(offchain_worker

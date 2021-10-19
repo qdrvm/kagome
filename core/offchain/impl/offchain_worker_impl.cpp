@@ -156,8 +156,11 @@ namespace kagome::offchain {
       Method method, std::string_view uri, common::Buffer meta) {
     auto request_id = ++request_id_;
 
-    auto request = std::make_shared<HttpRequest>(
-        io_context_, request_id, method, uri, meta);
+    auto request = std::make_shared<HttpRequest>(io_context_, request_id);
+
+    if (not request->init(method, uri, meta)) {
+      return Failure();
+    }
 
     auto is_emplaced = requests_.emplace(request_id, std::move(request)).second;
 

@@ -18,14 +18,24 @@ namespace kagome::offchain {
 
   using Timestamp = uint64_t;
   using RandomSeed = common::Blob<32>;
-  enum class KindStorage : uint32_t { Persistent = 1, Local = 2 };
+  enum class KindStorage : int32_t { Persistent = 1, Local = 2 };
   enum class Method { UNDEFINED = 0, GET = 1, POST = 2 };
   using RequestId = int16_t;
-  enum class HttpError {
+  enum class HttpError : int32_t {
     Timeout = 0,   //!< The deadline was reached
     IoError = 1,   //!< There was an IO error while processing the request
     InvalidId = 2  //!< The ID of the request is invalid
   };
+
+  /**
+   * @brief HTTP status codes that can get returned by certain Offchain funcs.
+   * 0:  the specified request identifier is invalid.
+   * 10: the deadline for the started request was reached.
+   * 20: an error has occurred during the request, e.g. a timeout or the remote
+   *     server has closed the connection. On returning this error code, the
+   *     request is considered destroyed and must be reconstructed again.
+   * 100-999: the request has finished with the given HTTP status code.
+   */
   using HttpStatus = uint16_t;
 
   struct NoPayload {};
