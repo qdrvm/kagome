@@ -53,7 +53,7 @@ struct ListenerTest : public ::testing::Test {
   }
 
   static void TearDownTestCase() {
-    kagome::log::setLoggingSystem(nullptr);
+    //kagome::log::setLoggingSystem(nullptr);
   }
 
   template <class T>
