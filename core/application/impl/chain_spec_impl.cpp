@@ -157,6 +157,7 @@ namespace kagome::application {
     }
 
     auto code_substitutes_opt = tree.get_child_optional("codeSubstitutes");
+    code_substitutes_ = std::make_unique<primitives::CodeSubstitutes>();
     if(code_substitutes_opt.has_value()) {
       for(const auto &[hash, code] : code_substitutes_opt.value()) {
         OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(hash));
