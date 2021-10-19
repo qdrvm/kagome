@@ -863,7 +863,8 @@ namespace {
                 "Error creating RuntimeUpgradeTrackerImpl: "
                 + res.error().message());
           }
-          return std::shared_ptr(std::move(res.value()));
+          return std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>(
+              std::move(res.value()));
         }();
     return instance;
   }
