@@ -669,7 +669,8 @@ namespace {
     protocol_factory->setBlockTree(block_tree);
 
     auto runtime_upgrade_tracker =
-        injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
+        std::dynamic_pointer_cast<runtime::RuntimeUpgradeTrackerImpl>(
+            injector.template create<sptr<runtime::RuntimeUpgradeTracker>>());
 
     runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
@@ -847,30 +848,31 @@ namespace {
       Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
-        di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
+        di::bind<runtime::RuntimeUpgradeTracker>.template to(
             [](const auto &injector)
                 -> std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> {
-              static auto instance = [&injector]() {
-                auto header_repo = injector.template create<
-                    sptr<const blockchain::BlockHeaderRepository>>();
-                auto storage =
-                    injector.template create<sptr<storage::LevelDB>>();
-                auto substitutes = injector.template create<
-                    sptr<const primitives::CodeSubstitutes>>();
-                auto res = runtime::RuntimeUpgradeTrackerImpl::create(
-                    std::move(header_repo),
-                    std::move(storage),
-                    std::move(substitutes));
-                if (res.has_error()) {
-                  throw std::runtime_error(
-                      "Error creating RuntimeUpgradeTrackerImpl: "
-                      + res.error().message());
-                }
-                return std::shared_ptr(std::move(res.value()));
-              }();
+              static std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>
+                  instance = [&injector]() {
+                    auto header_repo = injector.template create<
+                        sptr<const blockchain::BlockHeaderRepository>>();
+                    auto storage =
+                        injector
+                            .template create<sptr<storage::BufferStorage>>();
+                    auto substitutes = injector.template create<
+                        sptr<const primitives::CodeSubstitutes>>();
+                    auto res = runtime::RuntimeUpgradeTrackerImpl::create(
+                        std::move(header_repo),
+                        std::move(storage),
+                        std::move(substitutes));
+                    if (res.has_error()) {
+                      throw std::runtime_error(
+                          "Error creating RuntimeUpgradeTrackerImpl: "
+                          + res.error().message());
+                    }
+                    return std::shared_ptr(std::move(res.value()));
+                  }();
               return instance;
             }),
-        di::bind<runtime::RuntimeUpgradeTracker>.template to<runtime::RuntimeUpgradeTrackerImpl>(),
         makeWavmInjector(method),
         makeBinaryenInjector(method),
         di::bind<runtime::ModuleRepository>.template to<runtime::ModuleRepositoryImpl>(),
