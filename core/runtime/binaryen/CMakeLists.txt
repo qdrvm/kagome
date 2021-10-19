@@ -66,6 +66,7 @@ add_library(binaryen_instance_environment_factory
     )
 target_link_libraries(binaryen_instance_environment_factory
     binaryen_executor_factory
+    trie_storage_provider
     )
 kagome_install(binaryen_instance_environment_factory)
 
