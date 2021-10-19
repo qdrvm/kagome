@@ -52,10 +52,6 @@ struct ListenerTest : public ::testing::Test {
     testutil::prepareLoggers();
   }
 
-  static void TearDownTestCase() {
-    //kagome::log::setLoggingSystem(nullptr);
-  }
-
   template <class T>
   using sptr = std::shared_ptr<T>;
 
@@ -81,6 +77,7 @@ struct ListenerTest : public ::testing::Test {
     response =
         R"({"jsonrpc":"2.0","id":0,"result":)" + std::to_string(payload) + "}";
   }
+
   void TearDown() override {
     request.clear();
     response.clear();
