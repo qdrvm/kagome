@@ -842,36 +842,45 @@ namespace {
     return impl;
   }
 
+  template <typename Injector>
+  std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>
+  get_runtime_upgrade_tracker(const Injector &injector) {
+    static std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> instance =
+        [&injector]() {
+          auto header_repo = injector.template create<
+              sptr<const blockchain::BlockHeaderRepository>>();
+          auto storage =
+              injector.template create<sptr<storage::BufferStorage>>();
+          auto substitutes =
+              injector
+                  .template create<sptr<const primitives::CodeSubstitutes>>();
+          auto res = runtime::RuntimeUpgradeTrackerImpl::create(
+              std::move(header_repo),
+              std::move(storage),
+              std::move(substitutes));
+          if (res.has_error()) {
+            throw std::runtime_error(
+                "Error creating RuntimeUpgradeTrackerImpl: "
+                + res.error().message());
+          }
+          return std::shared_ptr(std::move(res.value()));
+        }();
+    return instance;
+  }
+
   template <typename... Ts>
   auto makeRuntimeInjector(
       application::AppConfiguration::RuntimeExecutionMethod method,
       Ts &&...args) {
     return di::make_injector(
         di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
+        di::bind<runtime::RuntimeUpgradeTrackerImpl>.template to(
+            [](auto const &injector) {
+              return get_runtime_upgrade_tracker(injector);
+            }),
         di::bind<runtime::RuntimeUpgradeTracker>.template to(
-            [](const auto &injector)
-                -> std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl> {
-              static std::shared_ptr<runtime::RuntimeUpgradeTrackerImpl>
-                  instance = [&injector]() {
-                    auto header_repo = injector.template create<
-                        sptr<const blockchain::BlockHeaderRepository>>();
-                    auto storage =
-                        injector
-                            .template create<sptr<storage::BufferStorage>>();
-                    auto substitutes = injector.template create<
-                        sptr<const primitives::CodeSubstitutes>>();
-                    auto res = runtime::RuntimeUpgradeTrackerImpl::create(
-                        std::move(header_repo),
-                        std::move(storage),
-                        std::move(substitutes));
-                    if (res.has_error()) {
-                      throw std::runtime_error(
-                          "Error creating RuntimeUpgradeTrackerImpl: "
-                          + res.error().message());
-                    }
-                    return std::shared_ptr(std::move(res.value()));
-                  }();
-              return instance;
+            [](auto const &injector) {
+              return get_runtime_upgrade_tracker(injector);
             }),
         makeWavmInjector(method),
         makeBinaryenInjector(method),
