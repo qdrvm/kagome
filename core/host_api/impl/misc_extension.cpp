@@ -10,6 +10,7 @@
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/core.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::host_api {
