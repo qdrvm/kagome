@@ -8,12 +8,15 @@
 #include <stdexcept>
 #include <thread>
 
+#include "offchain/offchain_worker.hpp"
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::host_api {
+
+  using namespace offchain;
 
   OffchainExtension::OffchainExtension(
       const application::AppConfiguration &app_config,
@@ -101,7 +104,7 @@ namespace kagome::host_api {
     if (kind == 2) {  // Local
       return *storage_;
     }
-    return boost::none;
+    return *storage_;  // boost::none;
   }
 
   void OffchainExtension::ext_offchain_local_storage_set_version_1(
@@ -219,83 +222,267 @@ namespace kagome::host_api {
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_request_start_version_1(
-      runtime::WasmSpan method, runtime::WasmSpan uri, runtime::WasmSpan meta) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(log_,
-             "Called "
-             "OffchainExtension::ext_offchain_http_request_start_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
-    return 0;
+      runtime::WasmSpan method_pos,
+      runtime::WasmSpan uri_pos,
+      runtime::WasmSpan meta_pos) {
+    auto worker_opt = OffchainWorker::current();
+    if (not worker_opt.has_value()) {
+      std::runtime_error("Method was called not in offchain worker context");
+    }
+    auto &worker = worker_opt.value();
+
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto [method_ptr, method_size] = runtime::PtrSize(method_pos);
+    auto method_buffer = memory.loadN(method_ptr, method_size);
+
+    auto [uri_ptr, uri_size] = runtime::PtrSize(uri_pos);
+    auto uri_buffer = memory.loadN(uri_ptr, uri_size);
+    auto uri = uri_buffer.toString();
+
+    auto [meta_ptr, meta_size] = runtime::PtrSize(meta_pos);
+    [[maybe_unused]]  // It is future-reserved field, is not used now
+    auto meta_buffer = memory.loadN(meta_ptr, meta_size);
+
+    Method method = Method::UNDEFINED;
+    if (method_buffer.toString() == "GET") {
+      method = Method::GET;
+    } else if (method_buffer.toString() == "POST") {
+      method = Method::POST;
+    } else {
+      SL_TRACE(
+          log_,
+          "ext_offchain_http_request_start_version_1( {}, {}, {} ) failed: "
+          "Reason: unknown method",
+          method_buffer.toString(),
+          uri,
+          meta_buffer.toString());
+      std::runtime_error("Unknown method '" + method_buffer.asString() + "'");
+    }
+
+    auto result = worker.httpRequestStart(method, uri, meta_buffer);
+
+    if (result.isSuccess()) {
+      SL_TRACE_FUNC_CALL(
+          log_, result.value(), method_buffer.toString(), uri, meta_buffer);
+
+    } else {
+      SL_TRACE(log_,
+               "ext_offchain_http_request_start_version_1( {}, {}, {} ) failed "
+               "during execution",
+               method_buffer.toString(),
+               uri,
+               meta_buffer.toString());
+    }
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_request_add_header_version_1(
       runtime::WasmI32 request_id,
-      runtime::WasmSpan name,
-      runtime::WasmSpan value) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(
-        log_,
-        "Called "
-        "OffchainExtension::ext_offchain_http_request_add_header_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
-    return 0;
+      runtime::WasmSpan name_pos,
+      runtime::WasmSpan value_pos) {
+    auto worker_opt = OffchainWorker::current();
+    if (not worker_opt.has_value()) {
+      std::runtime_error("Method was called not in offchain worker context");
+    }
+    auto &worker = worker_opt.value();
+
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto [name_ptr, name_size] = runtime::PtrSize(name_pos);
+    auto name_buffer = memory.loadN(name_ptr, name_size);
+    auto name = name_buffer.toString();
+
+    auto [value_ptr, value_size] = runtime::PtrSize(value_pos);
+    auto value_buffer = memory.loadN(value_ptr, value_size);
+    auto value = value_buffer.toString();
+
+    auto result = worker.httpRequestAddHeader(request_id, name, value);
+
+    if (result.isSuccess()) {
+      SL_TRACE_FUNC_CALL(log_, "Success", name, value);
+
+    } else {
+      SL_TRACE(
+          log_,
+          "ext_offchain_http_request_add_header_version_1( {}, {}, {} ) failed "
+          "during execution",
+          request_id,
+          name,
+          value);
+    }
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_request_write_body_version_1(
       runtime::WasmI32 request_id,
-      runtime::WasmSpan chunk,
-      runtime::WasmSpan deadline) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(
-        log_,
-        "Called "
-        "OffchainExtension::ext_offchain_http_request_write_body_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
-    return 0;
+      runtime::WasmSpan chunk_pos,
+      runtime::WasmSpan deadline_pos) {
+    auto worker_opt = OffchainWorker::current();
+    if (not worker_opt.has_value()) {
+      std::runtime_error("Method was called not in offchain worker context");
+    }
+    auto &worker = worker_opt.value();
+
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto [chunk_ptr, chunk_size] = runtime::PtrSize(chunk_pos);
+    auto chunk_buffer = memory.loadN(chunk_ptr, chunk_size);
+
+    auto [deadline_ptr, deadline_size] = runtime::PtrSize(deadline_pos);
+    auto deadline_buffer = memory.loadN(deadline_ptr, deadline_size);
+    auto deadline_res =
+        scale::decode<boost::optional<Timestamp>>(deadline_buffer);
+    if (deadline_res.has_error()) {
+      std::runtime_error("Invalid encoded data for deadline arg");
+    }
+    auto &deadline = deadline_res.value();
+
+    boost::optional<std::chrono::milliseconds> timeout = boost::none;
+    if (deadline.has_value()) {
+      timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::milliseconds(deadline.value())
+          - system_clock_->now().time_since_epoch());
+    }
+
+    auto result =
+        worker.httpRequestWriteBody(request_id, chunk_buffer, timeout);
+
+    if (result.isSuccess()) {
+      SL_TRACE_FUNC_CALL(log_, "Success", chunk_buffer, deadline_buffer);
+
+    } else {
+      SL_TRACE(log_,
+               "ext_offchain_http_request_write_body_version_1( {}, <{}bytes>, "
+               "{} ) failed "
+               "during execution",
+               request_id,
+               chunk_buffer.size(),
+               deadline_buffer);
+    }
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
+
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_response_wait_version_1(
-      runtime::WasmSpan ids, runtime::WasmSpan deadline) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(log_,
-             "Called "
-             "OffchainExtension::ext_offchain_http_response_wait_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
-    return 0;
+      runtime::WasmSpan ids_pos, runtime::WasmSpan deadline_pos) {
+    auto worker_opt = OffchainWorker::current();
+    if (not worker_opt.has_value()) {
+      std::runtime_error("Method was called not in offchain worker context");
+    }
+    auto &worker = worker_opt.value();
+
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto [ids_ptr, ids_size] = runtime::PtrSize(ids_pos);
+    auto ids_buffer = memory.loadN(ids_ptr, ids_size);
+    auto ids_res = scale::decode<std::vector<RequestId>>(ids_buffer);
+    if (ids_res.has_error()) {
+      std::runtime_error("Invalid encoded data for IDs arg");
+    }
+    auto &ids = ids_res.value();
+
+    auto [deadline_ptr, deadline_size] = runtime::PtrSize(deadline_pos);
+    auto deadline_buffer = memory.loadN(deadline_ptr, deadline_size);
+    auto deadline_res =
+        scale::decode<boost::optional<Timestamp>>(deadline_buffer);
+    if (deadline_res.has_error()) {
+      std::runtime_error("Invalid encoded data for deadline arg");
+    }
+    auto &deadline = deadline_res.value();
+
+    boost::optional<std::chrono::milliseconds> timeout = boost::none;
+    if (deadline.has_value()) {
+      timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::milliseconds(deadline.value())
+          - system_clock_->now().time_since_epoch());
+    }
+
+    auto result = worker.httpResponseWait(ids, timeout);
+
+    SL_TRACE_FUNC_CALL(log_, result.size(), ids_buffer, deadline_buffer);
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_response_headers_version_1(
       runtime::WasmI32 request_id) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(
-        log_,
-        "Called "
-        "OffchainExtension::ext_offchain_http_response_headers_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
-    return 0;
+    auto worker_opt = OffchainWorker::current();
+    if (not worker_opt.has_value()) {
+      std::runtime_error("Method was called not in offchain worker context");
+    }
+    auto &worker = worker_opt.value();
+
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto result = worker.httpResponseHeaders(request_id);
+
+    SL_TRACE_FUNC_CALL(
+        log_, fmt::format("<{} headers>", result.size()), request_id);
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   runtime::WasmSpan
   OffchainExtension::ext_offchain_http_response_read_body_version_1(
       runtime::WasmI32 request_id,
-      runtime::WasmSpan buffer,
-      runtime::WasmSpan deadline) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(
-        log_,
-        "Called "
-        "OffchainExtension::ext_offchain_http_response_read_body_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
-    return 0;
+      runtime::WasmSpan buffer_pos,
+      runtime::WasmSpan deadline_pos) {
+    auto worker_opt = OffchainWorker::current();
+    if (not worker_opt.has_value()) {
+      std::runtime_error("Method was called not in offchain worker context");
+    }
+    auto &worker = worker_opt.value();
+
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto dst_buffer = runtime::PtrSize(buffer_pos);
+
+    auto [deadline_ptr, deadline_size] = runtime::PtrSize(deadline_pos);
+    auto deadline_buffer = memory.loadN(deadline_ptr, deadline_size);
+    auto deadline_res =
+        scale::decode<boost::optional<Timestamp>>(deadline_buffer);
+    if (deadline_res.has_error()) {
+      std::runtime_error("Invalid encoded data for deadline arg");
+    }
+    auto &deadline = deadline_res.value();
+
+    boost::optional<std::chrono::milliseconds> timeout = boost::none;
+    if (deadline.has_value()) {
+      timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::milliseconds(deadline.value())
+          - system_clock_->now().time_since_epoch());
+    }
+
+    common::Buffer buffer;
+    buffer.resize(dst_buffer.size);
+
+    auto result = worker.httpResponseReadBody(request_id, buffer, timeout);
+
+    if (result.isSuccess()) {
+      SL_TRACE_FUNC_CALL(log_,
+                         result.value(),
+                         request_id,
+                         fmt::format("<{} bytes buffer>", dst_buffer.size),
+                         deadline_buffer);
+
+      memory.storeBuffer(dst_buffer.ptr, buffer);
+    } else {
+      SL_TRACE(log_,
+               "ext_offchain_http_response_read_body_version_1( {}, <{} bytes "
+               "buffer>, {} ) failed during execution",
+               request_id,
+               fmt::format("<{} bytes buffer>", dst_buffer.size),
+               deadline_buffer);
+    }
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   void OffchainExtension::ext_offchain_set_authorized_nodes_version_1(

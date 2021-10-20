@@ -65,11 +65,11 @@ namespace kagome::offchain {
     virtual Result<Success, HttpError> httpRequestWriteBody(
         RequestId id,
         common::Buffer chunk,
-        boost::optional<Timestamp> deadline) = 0;
+        boost::optional<std::chrono::milliseconds> timeout) = 0;
 
     virtual std::vector<HttpStatus> httpResponseWait(
         const std::vector<RequestId> &ids,
-        boost::optional<Timestamp> deadline) = 0;
+        boost::optional<std::chrono::milliseconds> timeout) = 0;
 
     virtual std::vector<std::pair<std::string, std::string>>
     httpResponseHeaders(RequestId id) = 0;
@@ -77,7 +77,7 @@ namespace kagome::offchain {
     virtual Result<uint32_t, HttpError> httpResponseReadBody(
         RequestId id,
         common::Buffer &chunk,
-        boost::optional<Timestamp> deadline) = 0;
+        boost::optional<std::chrono::milliseconds> timeout) = 0;
 
     virtual void setAuthorizedNodes(std::vector<libp2p::peer::PeerId>,
                                     bool authorized_only) = 0;

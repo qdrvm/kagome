@@ -185,20 +185,23 @@ namespace kagome::offchain {
   }
 
   Result<Success, HttpError> OffchainWorkerImpl::httpRequestWriteBody(
-      RequestId id, common::Buffer chunk, boost::optional<Timestamp> deadline) {
+      RequestId id,
+      common::Buffer chunk,
+      boost::optional<std::chrono::milliseconds> timeout) {
     auto it = requests_.find(id);
     if (it == requests_.end()) {
       return HttpError::InvalidId;
     }
     auto &request = it->second;
 
-    auto result = request->writeRequestBody(chunk, deadline);
+    auto result = request->writeRequestBody(chunk, timeout);
 
     return result;
   }
 
   std::vector<HttpStatus> OffchainWorkerImpl::httpResponseWait(
-      const std::vector<RequestId> &ids, boost::optional<Timestamp> deadline) {
+      const std::vector<RequestId> &ids,
+      boost::optional<std::chrono::milliseconds> timeout) {
     std::vector<HttpStatus> result;
     result.reserve(ids.size());
 
@@ -232,14 +235,14 @@ namespace kagome::offchain {
   Result<uint32_t, HttpError> OffchainWorkerImpl::httpResponseReadBody(
       RequestId id,
       common::Buffer &chunk,
-      boost::optional<Timestamp> deadline) {
+      boost::optional<std::chrono::milliseconds> timeout) {
     auto it = requests_.find(id);
     if (it == requests_.end()) {
       return HttpError::InvalidId;
     }
     auto &request = it->second;
 
-    auto result = request->readResponseBody(chunk, deadline);
+    auto result = request->readResponseBody(chunk, timeout);
 
     return result;
   }
