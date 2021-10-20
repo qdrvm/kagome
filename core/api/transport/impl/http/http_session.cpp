@@ -74,8 +74,8 @@ namespace kagome::api {
 
     // write response
     boost::beast::http::async_write(
-        stream_, *m, [self = shared_from_this(), m](auto ec, auto size) {
-          self->onWrite(ec, size, m->need_eof());
+        stream_, *m, [self = weak_from_this(), m](auto ec, auto size) {
+          self.lock()->onWrite(ec, size, m->need_eof());
         });
   }
 
