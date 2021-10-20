@@ -156,7 +156,7 @@ namespace kagome::offchain {
       Method method, std::string_view uri, common::Buffer meta) {
     auto request_id = ++request_id_;
 
-    auto request = std::make_shared<HttpRequest>(io_context_, request_id);
+    auto request = std::make_shared<HttpRequest>(request_id);
 
     if (not request->init(method, uri, meta)) {
       return Failure();

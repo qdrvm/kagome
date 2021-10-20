@@ -12,7 +12,6 @@
 #include <boost/asio/ssl/error.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/beast/http.hpp>
-#include <iostream>
 #include <string>
 #include <string_view>
 
@@ -124,7 +123,6 @@ namespace kagome::offchain {
 
     auto resolve_handler = [wp = weak_from_this()](const auto &ec, auto it) {
       if (auto self = wp.lock()) {
-        std::cerr << "RESOLVE HANDLER" << std::endl;
         if (self->status_ != 0) {
           SL_TRACE(
               self->log_, "Result of resilving is ignored: {}", self->status_);
@@ -137,8 +135,6 @@ namespace kagome::offchain {
           self->connect();
           return;
         }
-
-        std::cerr << "Can't resolve hostname: " << ec.message() << std::endl;
 
         SL_ERROR(self->log_,
                  "Can't resolve hostname {}: {}",
@@ -169,7 +165,6 @@ namespace kagome::offchain {
 
     auto connect_handler = [wp = weak_from_this()](const auto &ec, auto it) {
       if (auto self = wp.lock()) {
-        std::cerr << "CONNECT HANDLER" << std::endl;
         if (self->status_ != 0) {
           SL_TRACE(
               self->log_, "Result of connecting is ignored: {}", self->status_);
@@ -186,8 +181,6 @@ namespace kagome::offchain {
           }
           return;
         }
-
-        std::cerr << "Connection failed: " << ec.message() << std::endl;
 
         SL_ERROR(self->log_, "Connection failed: {}", ec.message());
 
@@ -216,7 +209,6 @@ namespace kagome::offchain {
 
     auto handshake_handler = [wp = weak_from_this()](const auto &ec) {
       if (auto self = wp.lock()) {
-        std::cerr << "HANDSHAKE HANDLER" << std::endl;
         if (self->status_ != 0) {
           SL_TRACE(
               self->log_, "Result of handshake is ignored: {}", self->status_);
@@ -229,8 +221,6 @@ namespace kagome::offchain {
           self->sendRequest();
           return;
         }
-
-        std::cerr << "Handshake failed: " << ec.message() << std::endl;
 
         SL_ERROR(self->log_, "Handshake failed: {}", ec.message());
         self->status_ = HttpStatus(20);
@@ -260,32 +250,12 @@ namespace kagome::offchain {
                    std::to_string(request_.body().size()));
     }
 
-    std::cerr << "Method> " << request_.method_string() << "\n";
-    std::cerr << "Path> " << request_.target() << "\n";
-    std::cerr << "Version> " << request_.version() << "\n";
-
-    for (auto it = request_.cbegin(); it != request_.cend(); ++it) {
-      std::cerr << "Header> " << it->name_string() << ": " << it->value()
-                << "\n";
-    }
-
-    if (request_.method() == boost::beast::http::verb::post) {
-      std::cerr << "BeginBody>\n";
-      std::cerr.write(static_cast<char *>(request_.body().data()),
-                      request_.body().size());
-      std::cerr << "\nEndBody>\n" << std::endl;
-    } else {
-      std::cerr << std::endl;
-    }
-
     auto serializer = std::make_shared<boost::beast::http::request_serializer<
         boost::beast::http::string_body>>(request_);
 
     auto write_handler = [wp = weak_from_this(), serializer](const auto &ec,
                                                              auto written) {
       if (auto self = wp.lock()) {
-        std::cerr << "WRITE HANDLER" << std::endl;
-        self->resetDeadline();
         if (self->status_ != 0) {
           SL_TRACE(self->log_,
                    "Result of request sending is ignored: {}",
@@ -298,8 +268,6 @@ namespace kagome::offchain {
           self->recvResponse();
           return;
         }
-
-        std::cerr << "Request failed: " << ec.message() << std::endl;
 
         SL_ERROR(self->log_, "Request send was fail: {}", ec.message());
         self->status_ = HttpStatus(20);
@@ -327,8 +295,6 @@ namespace kagome::offchain {
 
     auto read_handler = [wp = weak_from_this()](const auto &ec, auto received) {
       if (auto self = wp.lock()) {
-        std::cerr << "READ HANDLER" << std::endl;
-        self->resetDeadline();
         if (self->status_ != 0) {
           SL_TRACE(self->log_,
                    "Result of response receiving is ignored: {}",
@@ -341,8 +307,6 @@ namespace kagome::offchain {
           self->done();
           return;
         }
-
-        std::cerr << "Response receive was fail: " << ec.message() << std::endl;
 
         SL_ERROR(self->log_, "Response receive was fail: {}", ec.message());
         self->status_ = HttpStatus(20);
@@ -386,27 +350,12 @@ namespace kagome::offchain {
     response_ = parser_.release();
 
     status_ = response_.result_int();
-
-    std::cerr << "Status> " << response_.result_int() << " "
-              << obsolete_reason(response_.result()).to_string() << "\n";
-
-    for (auto it = response_.cbegin(); it != response_.cend(); ++it) {
-      std::cerr << "Header> " << it->name_string() << ": " << it->value()
-                << "\n";
-    }
-
-    std::cerr << "BeginBody>\n";
-    std::cerr.write(static_cast<char *>(response_.body().data()),
-                    response_.body().size());
-    std::cerr << "\nEndBody>\n" << std::endl;
   }
 
   void HttpRequest::setDeadline(std::chrono::milliseconds delay) {
     if (status_ != 0) {
       return;
     }
-    std::cerr << "SET DEADLINE FOR " << delay.count() << std::endl;
-
     boost::system::error_code ec;
     deadline_timer_.cancel(ec);
     deadline_timer_.async_wait([wp = weak_from_this()](const auto &ec) {
@@ -420,7 +369,6 @@ namespace kagome::offchain {
   }
 
   void HttpRequest::resetDeadline() {
-    std::cerr << "RESET DEADLINE" << std::endl;
     boost::system::error_code ec;
     deadline_timer_.cancel(ec);
   }
