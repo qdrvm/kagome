@@ -10,8 +10,10 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/stream.hpp>
+#include <boost/beast/core.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/beast/ssl/ssl_stream.hpp>
 
 #include "log/logger.hpp"
 #include "offchain/impl/uri.hpp"
@@ -36,38 +38,53 @@ namespace kagome::offchain {
                                               std::string_view value);
 
     Result<Success, HttpError> writeRequestBody(
-        const common::Buffer &chunk, boost::optional<Timestamp> deadline);
+        const common::Buffer &chunk,
+        boost::optional<std::chrono::milliseconds> deadline);
 
     std::vector<std::pair<std::string, std::string>> getResponseHeaders() const;
 
     Result<uint32_t, HttpError> readResponseBody(
-        common::Buffer &chunk, boost::optional<Timestamp> deadline);
+        common::Buffer &chunk,
+        boost::optional<std::chrono::milliseconds> deadline);
 
    private:
-    void doResolving();
-    void onResolved();
-    void doConnect();
-    void onConnected();
-    void doWriting();
-    void onWritten(size_t size);
+    void resolve();
+    void connect();
+    void handshake();
+    void sendRequest();
+    void recvResponse();
+    void done();
+
+    void setDeadline(std::chrono::milliseconds delay);
+    void resetDeadline();
 
     boost::asio::io_context &io_context_;
     int16_t id_;
 
     boost::asio::ip::tcp::resolver resolver_;
     boost::asio::ssl::context ssl_ctx_;
-    boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket_;
-    boost::beast::tcp_stream socket2_;
-    Method method_ = Method::UNDEFINED;
+
+    using TcpStream = boost::beast::tcp_stream;
+    using SslStream = boost::beast::ssl_stream<TcpStream>;
+    using TcpStreamPtr = std::unique_ptr<TcpStream>;
+    using SslStreamPtr = std::unique_ptr<SslStream>;
+    boost::variant<TcpStreamPtr, SslStreamPtr> stream_;
+
     Uri uri_;
-    boost::beast::flat_buffer send_buffer_;
-    std::vector<std::pair<std::string, std::string>> headers_;
-    bool adding_headers_is_allowed_ = false;
-    bool body_sent_ = false;
-    uint16_t status_ = 0;
+    bool adding_headers_is_allowed_ = true;
+    bool request_has_sent_ = false;
     bool secure_;
+    uint16_t status_ = 0;
+    boost::beast::flat_buffer buffer_;
+    boost::asio::steady_timer deadline_timer_;
     boost::asio::ip::tcp::resolver::iterator resolver_iterator_;
-    bool writing_in_progress_ = false;
+    boost::beast::http::request<boost::beast::http::string_body> request_;
+    boost::beast::http::response_parser<boost::beast::http::string_body>
+        parser_;
+    boost::beast::http::response<boost::beast::http::string_body> response_;
+    bool request_is_ready_ = false;
+    bool connected_ = false;
+
     log::Logger log_;
   };
 
