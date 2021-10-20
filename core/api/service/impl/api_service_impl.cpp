@@ -20,13 +20,6 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 
-#define UNWRAP_WEAK_PTR(callback)  \
-  [wp](auto &&...params) mutable { \
-    if (auto self = wp.lock()) {   \
-      self->callback(params...);   \
-    }                              \
-  }
-
 namespace {
   thread_local class {
    private:
@@ -194,6 +187,13 @@ namespace kagome::api {
               return;
             }
 
+#define UNWRAP_WEAK_PTR(callback)  \
+  [wp](auto &&...params) mutable { \
+    if (auto self = wp.lock()) {   \
+      self->callback(params...);   \
+    }                              \
+  }
+
             if (SessionType::kWs == session->type()) {
               auto session_context =
                   self->storeSessionWithId(session->id(), session);
@@ -207,8 +207,13 @@ namespace kagome::api {
             }
 
             session->connectOnRequest(UNWRAP_WEAK_PTR(onSessionRequest));
-            session->connectOnCloseHandler(UNWRAP_WEAK_PTR(onSessionClose));
+            session->connectOnCloseHandler([wp](auto &&...params) __attribute__((no_sanitize("thread"))) mutable {
+              if (auto self = wp.lock()) {
+                self->onSessionClose(params...);
+              }
+            });
           };
+#undef UNWRAP_WEAK_PTR
 
       listener->setHandlerForNewSession(std::move(on_new_session));
     }

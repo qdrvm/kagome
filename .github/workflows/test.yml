@@ -23,32 +23,32 @@ env:
     ~/.rustup
 
 jobs:
-  MacOS:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: ${{ env.CACHE_PATHS }}
-        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-    - name: install
-      run: ./housekeeping/macos/dependency.sh
-    - name: build
-      env:
-        DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
-      run: ./housekeeping/make_build.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+#  MacOS:
+#    runs-on: macos-latest
+#    steps:
+#    - uses: actions/checkout@v2
+#    - uses: actions/cache@v2
+#      with:
+#        path: ${{ env.CACHE_PATHS }}
+#        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+#    - name: install
+#      run: ./housekeeping/macos/dependency.sh
+#    - name: build
+#      env:
+#        DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
+#      run: ./housekeeping/make_build.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
     strategy:
       fail-fast: false
       matrix:
         options:
-         - name: "Linux: gcc-9 ASAN No Toolchain"
-           run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON
+   #      - name: "Linux: gcc-9 ASAN No Toolchain"
+   #        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON
          - name: "Linux: clang-9 TSAN"
            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-9_cxx17.cmake -DTSAN=ON
-         - name: "Linux: clang-9 UBSAN"
-           run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-9_cxx17.cmake -DUBSAN=ON
+    #     - name: "Linux: clang-9 UBSAN"
+    #       run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-9_cxx17.cmake -DUBSAN=ON
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
     container: harrm/kagome-dev:3.1-minideb
@@ -80,57 +80,57 @@ jobs:
         run: |
           ./housekeeping/make_build.sh
           ./housekeeping/clang-tidy-diff.sh
-
-  coverage:
-    name: "Linux: gcc-9 coverage/sonar"
-    runs-on: ubuntu-latest
-    container: harrm/kagome-dev:3.1-minideb
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
-      - name: makeBuild
-        env:
-          BUILD_FINAL_TARGET: ctest_coverage
-        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DCOVERAGE=ON
-      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        name: Submit Coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
-      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        name: Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH_NAME: ${{ github.ref }}
-        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
-
-  Minideb:
-    strategy:
-      fail-fast: false
-      matrix:
-        options:
-          - name: "Minideb: Build Debug"
-            build-type: "Debug"
-          - name: "Minideb: Build Release"
-            build-type: "Release"
-    name: "${{ matrix.options.name }}"
-    runs-on: ubuntu-latest
-    container: harrm/kagome-dev:3.1-minideb
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
-      - name: "${{ matrix.options.name }}"
-        env:
-          BUILD_TYPE: "${{ matrix.options.build-type }}"
-        run: ./housekeeping/docker/kagome-dev/make.sh
+#
+#  coverage:
+#    name: "Linux: gcc-9 coverage/sonar"
+#    runs-on: ubuntu-latest
+#    container: harrm/kagome-dev:3.1-minideb
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions/cache@v2
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+#      - name: makeBuild
+#        env:
+#          BUILD_FINAL_TARGET: ctest_coverage
+#        run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DCOVERAGE=ON
+#      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+#        name: Submit Coverage
+#        env:
+#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+#        run: if [ "CODECOV_TOKEN" != "null" ]; then ./housekeeping/codecov.sh; else echo "Some secret undefined. Step passed..."; fi
+#      - if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+#        name: Sonar
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          BRANCH_NAME: ${{ github.ref }}
+#        run: if [ "$SONAR_TOKEN" != "null" -a "$GITHUB_USERNAME" != "null" -a "$GITHUB_TOKEN" != "null" ]; then ./housekeeping/sonar.sh; else echo "Some secret undefined. Step passed..."; fi
+#
+#  Minideb:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        options:
+#          - name: "Minideb: Build Debug"
+#            build-type: "Debug"
+#          - name: "Minideb: Build Release"
+#            build-type: "Release"
+#    name: "${{ matrix.options.name }}"
+#    runs-on: ubuntu-latest
+#    container: harrm/kagome-dev:3.1-minideb
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: actions/cache@v2
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ github.job }}-${{ matrix.options.name }}-${{ env.CACHE_VERSION }}
+#      - name: "${{ matrix.options.name }}"
+#        env:
+#          BUILD_TYPE: "${{ matrix.options.build-type }}"
+#        run: ./housekeeping/docker/kagome-dev/make.sh
 
   Push:
     if: ${{ github.ref == 'refs/heads/master' || startsWith( github.ref, 'refs/tags/' ) }}
