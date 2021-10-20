@@ -86,7 +86,8 @@ namespace kagome::host_api {
   runtime::WasmPointer OffchainExtension::ext_offchain_random_seed_version_1() {
     auto &memory = memory_provider_->getCurrentMemory().value();
 
-    auto seed_bytes = random_generator_->randomBytes(32);
+    std::array<uint8_t, 32> seed_bytes;
+    random_generator_->fillRandomly(seed_bytes);
 
     return memory.storeBuffer(scale::encode(seed_bytes).value());
   }
