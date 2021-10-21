@@ -26,7 +26,7 @@ namespace kagome::offchain {
     HttpRequest(HttpRequest &&) noexcept = delete;
     HttpRequest(const HttpRequest &) = delete;
 
-    HttpRequest(boost::asio::io_context &io_context, RequestId id);
+    HttpRequest(RequestId id);
 
     RequestId id() const;
 
@@ -39,7 +39,7 @@ namespace kagome::offchain {
 
     Result<Success, HttpError> writeRequestBody(
         const common::Buffer &chunk,
-        boost::optional<std::chrono::milliseconds> deadline);
+        boost::optional<std::chrono::milliseconds> deadline_opt);
 
     std::vector<std::pair<std::string, std::string>> getResponseHeaders() const;
 
@@ -55,10 +55,7 @@ namespace kagome::offchain {
     void recvResponse();
     void done();
 
-    void setDeadline(std::chrono::milliseconds delay);
-    void resetDeadline();
-
-    boost::asio::io_context &io_context_;
+    boost::asio::io_context io_context_;
     int16_t id_;
 
     boost::asio::ip::tcp::resolver resolver_;

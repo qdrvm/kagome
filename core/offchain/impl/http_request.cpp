@@ -14,12 +14,12 @@
 #include <boost/beast/http.hpp>
 #include <string>
 #include <string_view>
+#include <thread>
 
 namespace kagome::offchain {
 
-  HttpRequest::HttpRequest(boost::asio::io_context &io_context, RequestId id)
-      : io_context_(io_context),
-        id_(id),
+  HttpRequest::HttpRequest(RequestId id)
+      : id_(id),
         resolver_(io_context_),
         ssl_ctx_(boost::asio::ssl::context::sslv23),
         deadline_timer_(io_context_),
@@ -352,27 +352,6 @@ namespace kagome::offchain {
     status_ = response_.result_int();
   }
 
-  void HttpRequest::setDeadline(std::chrono::milliseconds delay) {
-    if (status_ != 0) {
-      return;
-    }
-    boost::system::error_code ec;
-    deadline_timer_.cancel(ec);
-    deadline_timer_.async_wait([wp = weak_from_this()](const auto &ec) {
-      if (auto self = wp.lock()) {
-        if (!ec) {
-          self->status_ = HttpStatus(10);  // Deadline was reached
-        }
-      }
-    });
-    deadline_timer_.expires_from_now(delay);
-  }
-
-  void HttpRequest::resetDeadline() {
-    boost::system::error_code ec;
-    deadline_timer_.cancel(ec);
-  }
-
   RequestId HttpRequest::id() const {
     return id_;
   }
@@ -395,7 +374,7 @@ namespace kagome::offchain {
 
   Result<Success, HttpError> HttpRequest::writeRequestBody(
       const common::Buffer &chunk,
-      boost::optional<std::chrono::milliseconds> deadline) {
+      boost::optional<std::chrono::milliseconds> deadline_opt) {
     if (request_has_sent_) {
       SL_ERROR(log_, "Trying to write body into ready request");
       return HttpError::IoError;
@@ -406,12 +385,19 @@ namespace kagome::offchain {
     }
 
     if (chunk.empty()) {
-      if (deadline.has_value()) {
-        setDeadline(deadline.value());
-      }
       request_has_sent_ = true;
       request_is_ready_ = true;
       sendRequest();
+      if (deadline_opt.has_value()) {
+        auto& deadline = deadline_opt.value();
+        io_context_.run_for(deadline);
+        if (status_ == 0) {
+          status_ = HttpStatus(10);  // Deadline was reached
+        }
+      } else {
+        io_context_.run();
+      }
+
     } else {
       request_.body().append(reinterpret_cast<const char *>(chunk.data()),
                              chunk.size());
