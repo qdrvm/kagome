@@ -56,7 +56,7 @@ namespace kagome::offchain {
     common::Buffer localStorageGet(KindStorage kind,
                                    common::Buffer key) override;
 
-    Result<RequestId, Failure> httpRequestStart(Method method,
+    Result<RequestId, Failure> httpRequestStart(HttpMethod method,
                                                 std::string_view uri,
                                                 common::Buffer meta) override;
 

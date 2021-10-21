@@ -57,7 +57,7 @@ namespace kagome::offchain {
                                            common::Buffer key) = 0;
 
     virtual Result<RequestId, Failure> httpRequestStart(
-        Method method, std::string_view uri, common::Buffer meta) = 0;
+        HttpMethod method, std::string_view uri, common::Buffer meta) = 0;
 
     virtual Result<Success, Failure> httpRequestAddHeader(
         RequestId id, std::string_view name, std::string_view value) = 0;

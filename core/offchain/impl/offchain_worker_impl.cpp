@@ -153,7 +153,7 @@ namespace kagome::offchain {
   }
 
   Result<RequestId, Failure> OffchainWorkerImpl::httpRequestStart(
-      Method method, std::string_view uri, common::Buffer meta) {
+      HttpMethod method, std::string_view uri, common::Buffer meta) {
     auto request_id = ++request_id_;
 
     auto request = std::make_shared<HttpRequest>(request_id);

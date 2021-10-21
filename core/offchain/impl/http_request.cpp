@@ -46,7 +46,7 @@ namespace kagome::offchain {
         });
   }
 
-  bool HttpRequest::init(Method method,
+  bool HttpRequest::init(HttpMethod method,
                          std::string_view uri_arg,
                          common::Buffer meta) {
     uri_ = Uri::Parse(uri_arg);
@@ -84,9 +84,9 @@ namespace kagome::offchain {
 
     SL_DEBUG(log_, "Initialized for URL: {}", uri_.toString());
 
-    if (method == Method::POST) {
+    if (method == HttpMethod::Post) {
       request_.method(boost::beast::http::verb::post);
-    } else if (method == Method::GET) {
+    } else if (method == HttpMethod::Get) {
       request_.method(boost::beast::http::verb::get);
     }
     request_.target(uri_.Path);

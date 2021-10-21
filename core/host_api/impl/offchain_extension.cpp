@@ -244,11 +244,11 @@ namespace kagome::host_api {
     [[maybe_unused]]  // It is future-reserved field, is not used now
     auto meta_buffer = memory.loadN(meta_ptr, meta_size);
 
-    Method method = Method::UNDEFINED;
-    if (method_buffer.toString() == "GET") {
-      method = Method::GET;
-    } else if (method_buffer.toString() == "POST") {
-      method = Method::POST;
+    HttpMethod method = HttpMethod::Undefined;
+    if (method_buffer.toString() == "Get") {
+      method = HttpMethod::Get;
+    } else if (method_buffer.toString() == "Post") {
+      method = HttpMethod::Post;
     } else {
       SL_TRACE(
           log_,
