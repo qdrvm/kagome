@@ -17,16 +17,17 @@ namespace kagome::offchain {
    public:
     OffchainStorageImpl(std::shared_ptr<storage::BufferStorage> storage);
 
-    outcome::result<void> set(common::Buffer key,
+    outcome::result<void> set(const common::Buffer &key,
                               common::Buffer value) override;
 
-    outcome::result<void> clear(common::Buffer key) override;
+    outcome::result<void> clear(const common::Buffer &key) override;
 
-    outcome::result<bool> compare_and_set(common::Buffer key,
-                                          common::Buffer expected,
-                                          common::Buffer value) override;
+    outcome::result<bool> compare_and_set(
+        const common::Buffer &key,
+        boost::optional<const common::Buffer &> expected,
+        common::Buffer value) override;
 
-    outcome::result<common::Buffer> get(common::Buffer key) override;
+    outcome::result<common::Buffer> get(const common::Buffer &key) override;
 
    private:
     std::shared_ptr<storage::BufferStorage> storage_;

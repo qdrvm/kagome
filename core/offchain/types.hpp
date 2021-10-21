@@ -18,7 +18,7 @@ namespace kagome::offchain {
 
   using Timestamp = uint64_t;
   using RandomSeed = common::Blob<32>;
-  enum class KindStorage : int32_t { Persistent = 1, Local = 2 };
+  enum class StorageType : int32_t { Undefined = 0, Persistent = 1, Local = 2 };
   enum class HttpMethod { Undefined = 0, Get = 1, Post = 2 };
   using RequestId = int16_t;
   enum class HttpError : int32_t {

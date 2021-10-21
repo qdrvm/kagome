@@ -41,20 +41,21 @@ namespace kagome::offchain {
 
     virtual RandomSeed randomSeed() = 0;
 
-    virtual void localStorageSet(KindStorage kind,
-                                 common::Buffer key,
+    virtual void localStorageSet(StorageType storage_type,
+                                 const common::Buffer &key,
                                  common::Buffer value) = 0;
 
-    virtual void localStorageClear(KindStorage kind, common::Buffer key) = 0;
+    virtual void localStorageClear(StorageType storage_type,
+                                   const common::Buffer &key) = 0;
 
     virtual bool localStorageCompareAndSet(
-        KindStorage kind,
-        common::Buffer key,
-        boost::optional<common::Buffer> expected,
+        StorageType storage_type,
+        const common::Buffer &key,
+        boost::optional<const common::Buffer &> expected,
         common::Buffer value) = 0;
 
-    virtual common::Buffer localStorageGet(KindStorage kind,
-                                           common::Buffer key) = 0;
+    virtual outcome::result<common::Buffer> localStorageGet(
+        StorageType storage_type, const common::Buffer &key) = 0;
 
     virtual Result<RequestId, Failure> httpRequestStart(
         HttpMethod method, std::string_view uri, common::Buffer meta) = 0;

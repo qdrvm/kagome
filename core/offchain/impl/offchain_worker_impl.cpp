@@ -116,40 +116,63 @@ namespace kagome::offchain {
     return {};
   }
 
-  void OffchainWorkerImpl::localStorageSet(KindStorage kind,
-                                           common::Buffer key,
-                                           common::Buffer value) {
-    // TODO(xDimon): Need to implement it
-    throw std::runtime_error(
-        "This method of OffchainWorkerImpl is not implemented yet");
-    return;
+  offchain::OffchainStorage &OffchainWorkerImpl::getStorage(
+      StorageType storage_type) {
+    switch (storage_type) {
+      case StorageType::Persistent:
+        return *persistent_storage_;
+      case StorageType::Local:
+        return *local_storage_;
+      case StorageType::Undefined:
+      default:
+        BOOST_UNREACHABLE_RETURN({});
+    }
   }
 
-  void OffchainWorkerImpl::localStorageClear(KindStorage kind,
-                                             common::Buffer key) {
-    // TODO(xDimon): Need to implement it
-    throw std::runtime_error(
-        "This method of OffchainWorkerImpl is not implemented yet");
-    return;
+  void OffchainWorkerImpl::localStorageSet(StorageType storage_type,
+                                           const common::Buffer &key,
+                                           common::Buffer value) {
+    auto &storage = getStorage(storage_type);
+    auto result = storage.set(key, std::move(value));
+    if (result.has_error()) {
+      SL_WARN(log_, "Can't set value in storage: {}", result.error().message());
+    }
+  }
+
+  void OffchainWorkerImpl::localStorageClear(StorageType storage_type,
+                                             const common::Buffer &key) {
+    auto &storage = getStorage(storage_type);
+    auto result = storage.clear(key);
+    if (result.has_error()) {
+      SL_WARN(
+          log_, "Can't clear value in storage: {}", result.error().message());
+    }
   }
 
   bool OffchainWorkerImpl::localStorageCompareAndSet(
-      KindStorage kind,
-      common::Buffer key,
-      boost::optional<common::Buffer> expected,
+      StorageType storage_type,
+      const common::Buffer &key,
+      boost::optional<const common::Buffer &> expected,
       common::Buffer value) {
-    // TODO(xDimon): Need to implement it
-    throw std::runtime_error(
-        "This method of OffchainWorkerImpl is not implemented yet");
-    return false;
+    auto &storage = getStorage(storage_type);
+    auto result = storage.compare_and_set(key, expected, std::move(value));
+    if (result.has_error()) {
+      SL_WARN(log_,
+              "Can't compare-and-set value in storage: {}",
+              result.error().message());
+    }
+    return result.value();
   }
 
-  common::Buffer OffchainWorkerImpl::localStorageGet(KindStorage kind,
-                                                     common::Buffer key) {
-    // TODO(xDimon): Need to implement it
-    throw std::runtime_error(
-        "This method of OffchainWorkerImpl is not implemented yet");
-    return {};
+  outcome::result<common::Buffer> OffchainWorkerImpl::localStorageGet(
+      StorageType storage_type, const common::Buffer &key) {
+    auto &storage = getStorage(storage_type);
+    auto result = storage.get(key);
+    if (result.has_error()) {
+      SL_WARN(log_, "Can't get value in storage: {}", result.error().message());
+      return result.as_failure();
+    }
+    return std::move(result.value());
   }
 
   Result<RequestId, Failure> OffchainWorkerImpl::httpRequestStart(

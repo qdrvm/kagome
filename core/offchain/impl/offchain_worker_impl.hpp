@@ -11,6 +11,7 @@
 #include <boost/asio/io_context.hpp>
 
 #include "offchain/impl/http_request.hpp"
+#include "offchain/offchain_storage.hpp"
 #include "primitives/block_header.hpp"
 
 namespace kagome::runtime {
@@ -42,19 +43,21 @@ namespace kagome::offchain {
 
     RandomSeed randomSeed() override;
 
-    void localStorageSet(KindStorage kind,
-                         common::Buffer key,
+    void localStorageSet(StorageType storage_type,
+                         const common::Buffer &key,
                          common::Buffer value) override;
 
-    void localStorageClear(KindStorage kind, common::Buffer key) override;
+    void localStorageClear(StorageType storage_type,
+                           const common::Buffer &key) override;
 
-    bool localStorageCompareAndSet(KindStorage kind,
-                                   common::Buffer key,
-                                   boost::optional<common::Buffer> expected,
-                                   common::Buffer value) override;
+    bool localStorageCompareAndSet(
+        StorageType storage_type,
+        const common::Buffer &key,
+        boost::optional<const common::Buffer &> expected,
+        common::Buffer value) override;
 
-    common::Buffer localStorageGet(KindStorage kind,
-                                   common::Buffer key) override;
+    outcome::result<common::Buffer> localStorageGet(StorageType storage_type,
+                                   const common::Buffer &key) override;
 
     Result<RequestId, Failure> httpRequestStart(HttpMethod method,
                                                 std::string_view uri,
@@ -84,6 +87,8 @@ namespace kagome::offchain {
                             bool authorized_only) override;
 
    private:
+    OffchainStorage &getStorage(StorageType storage_type);
+
     std::shared_ptr<runtime::Executor> executor_;
     const primitives::BlockInfo associated_block_;
     const primitives::BlockHeader header_;
