@@ -1,0 +1,45 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "offchain/impl/offchain_worker_factory_impl.hpp"
+
+#include "offchain/impl/offchain_worker_impl.hpp"
+
+namespace kagome::offchain {
+
+  OffchainWorkerFactoryImpl::OffchainWorkerFactoryImpl(
+      const application::AppConfiguration &app_config,
+      std::shared_ptr<clock::SystemClock> clock,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<OffchainStorage> storage,
+      std::shared_ptr<crypto::CSPRNG> random_generator,
+      std::shared_ptr<api::AuthorApi> author_api)
+      : app_config_(app_config),
+        clock_(std::move(clock)),
+        hasher_(std::move(hasher)),
+        storage_(std::move(storage)),
+        random_generator_(std::move(random_generator)),
+        author_api_(std::move(author_api)) {
+    BOOST_ASSERT(clock_);
+    BOOST_ASSERT(hasher_);
+    BOOST_ASSERT(storage_);
+    BOOST_ASSERT(random_generator_);
+    BOOST_ASSERT(author_api_);
+  }
+
+  std::shared_ptr<OffchainWorker> OffchainWorkerFactoryImpl::make(
+      std::shared_ptr<runtime::Executor> executor,
+      const primitives::BlockHeader &header) {
+    return std::make_shared<OffchainWorkerImpl>(app_config_,
+                                                clock_,
+                                                hasher_,
+                                                storage_,
+                                                random_generator_,
+                                                author_api_,
+                                                executor,
+                                                header);
+  }
+
+}  // namespace kagome::offchain

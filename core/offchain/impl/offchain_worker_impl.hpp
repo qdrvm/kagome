@@ -10,10 +10,21 @@
 
 #include <boost/asio/io_context.hpp>
 
+#include "crypto/random_generator.hpp"
+#include "log/logger.hpp"
 #include "offchain/impl/http_request.hpp"
 #include "offchain/offchain_storage.hpp"
 #include "primitives/block_header.hpp"
 
+namespace kagome::api {
+  class AuthorApi;
+}
+namespace kagome::application {
+  class AppConfiguration;
+}
+namespace kagome::crypto {
+  class Hasher;
+}
 namespace kagome::runtime {
   class Executor;
 }
@@ -24,12 +35,16 @@ namespace kagome::offchain {
       : public OffchainWorker,
         public std::enable_shared_from_this<OffchainWorkerImpl> {
    public:
-    OffchainWorkerImpl(std::shared_ptr<runtime::Executor> executor,
-                       const primitives::BlockHash &block,
+    OffchainWorkerImpl(const application::AppConfiguration &app_config,
+                       std::shared_ptr<clock::SystemClock> clock,
+                       std::shared_ptr<crypto::Hasher> hasher,
+                       std::shared_ptr<OffchainStorage> storage,
+                       std::shared_ptr<crypto::CSPRNG> random_generator,
+                       std::shared_ptr<api::AuthorApi> author_api,
+                       std::shared_ptr<runtime::Executor> executor,
                        const primitives::BlockHeader &header);
 
-    static outcome::result<void> run(
-        std::shared_ptr<OffchainWorkerImpl> worker);
+    outcome::result<void> run() override;
 
     bool isValidator() const override;
 
@@ -37,9 +52,9 @@ namespace kagome::offchain {
 
     Result<OpaqueNetworkState, Failure> networkState() override;
 
-    Timestamp offchainTimestamp() override;
+    Timestamp timestamp() override;
 
-    void sleepUntil(Timestamp) override;
+    void sleepUntil(Timestamp timestamp) override;
 
     RandomSeed randomSeed() override;
 
@@ -69,11 +84,11 @@ namespace kagome::offchain {
     Result<Success, HttpError> httpRequestWriteBody(
         RequestId id,
         common::Buffer chunk,
-        boost::optional<std::chrono::milliseconds> timeout) override;
+        boost::optional<Timestamp> deadline) override;
 
     std::vector<HttpStatus> httpResponseWait(
         const std::vector<RequestId> &ids,
-        boost::optional<std::chrono::milliseconds> timeout) override;
+        boost::optional<Timestamp> deadline) override;
 
     std::vector<std::pair<std::string, std::string>> httpResponseHeaders(
         RequestId id) override;
@@ -81,7 +96,7 @@ namespace kagome::offchain {
     Result<uint32_t, HttpError> httpResponseReadBody(
         RequestId id,
         common::Buffer &chunk,
-        boost::optional<std::chrono::milliseconds> timeout) override;
+        boost::optional<Timestamp> deadline) override;
 
     void setAuthorizedNodes(std::vector<libp2p::peer::PeerId>,
                             bool authorized_only) override;
@@ -89,11 +104,19 @@ namespace kagome::offchain {
    private:
     OffchainStorage &getStorage(StorageType storage_type);
 
+    const application::AppConfiguration &app_config_;
+    std::shared_ptr<clock::SystemClock> clock_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<offchain::OffchainStorage> storage_;
+    std::shared_ptr<offchain::OffchainStorage> &persistent_storage_{storage_};
+    std::shared_ptr<offchain::OffchainStorage> &local_storage_{storage_};
+    std::shared_ptr<crypto::CSPRNG> random_generator_;
+    std::shared_ptr<api::AuthorApi> author_api_;
     std::shared_ptr<runtime::Executor> executor_;
-    const primitives::BlockInfo associated_block_;
     const primitives::BlockHeader header_;
+    const primitives::BlockInfo block_;
+    log::Logger log_;
 
-    boost::asio::io_context io_context_;
     int16_t request_id_ = 0;
     std::map<RequestId, std::shared_ptr<HttpRequest>> requests_;
   };

@@ -13,9 +13,6 @@
 namespace kagome::runtime {
 
   class OffchainWorkerApi {
-   protected:
-    using BlockNumber = kagome::primitives::BlockNumber;
-
    public:
     virtual ~OffchainWorkerApi() = default;
 

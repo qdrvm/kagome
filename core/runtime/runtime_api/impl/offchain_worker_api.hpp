@@ -8,6 +8,10 @@
 
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 
+namespace kagome::offchain {
+  class OffchainWorkerFactory;
+}
+
 namespace kagome::runtime {
 
   class Executor;
@@ -16,13 +20,16 @@ namespace kagome::runtime {
       : public OffchainWorkerApi,
         std::enable_shared_from_this<OffchainWorkerApiImpl> {
    public:
-    explicit OffchainWorkerApiImpl(std::shared_ptr<Executor> executor);
+    OffchainWorkerApiImpl(
+        std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory,
+        std::shared_ptr<Executor> executor);
 
     outcome::result<void> offchain_worker(
         const primitives::BlockHash &block,
         const primitives::BlockHeader &header) override;
 
    private:
+    std::shared_ptr<offchain::OffchainWorkerFactory> ocw_factory_;
     std::shared_ptr<Executor> executor_;
   };
 

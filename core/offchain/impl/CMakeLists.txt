@@ -31,4 +31,11 @@ target_link_libraries(offchain_worker
     http_request
     )
 
+add_library(offchain_worker_factory
+    offchain_worker_factory_impl.cpp
+    )
+target_link_libraries(offchain_worker_factory
+    offchain_worker
+    )
+
 

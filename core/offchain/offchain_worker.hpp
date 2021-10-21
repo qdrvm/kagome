@@ -26,6 +26,8 @@ namespace kagome::offchain {
 
     virtual ~OffchainWorker() = default;
 
+    virtual outcome::result<void> run() = 0;
+
     // ------------------------- Off-Chain API methods -------------------------
 
     virtual bool isValidator() const = 0;
@@ -35,7 +37,7 @@ namespace kagome::offchain {
 
     virtual Result<OpaqueNetworkState, Failure> networkState() = 0;
 
-    virtual Timestamp offchainTimestamp() = 0;
+    virtual Timestamp timestamp() = 0;
 
     virtual void sleepUntil(Timestamp) = 0;
 
@@ -66,11 +68,11 @@ namespace kagome::offchain {
     virtual Result<Success, HttpError> httpRequestWriteBody(
         RequestId id,
         common::Buffer chunk,
-        boost::optional<std::chrono::milliseconds> timeout) = 0;
+        boost::optional<Timestamp> deadline) = 0;
 
     virtual std::vector<HttpStatus> httpResponseWait(
         const std::vector<RequestId> &ids,
-        boost::optional<std::chrono::milliseconds> timeout) = 0;
+        boost::optional<Timestamp> deadline) = 0;
 
     virtual std::vector<std::pair<std::string, std::string>>
     httpResponseHeaders(RequestId id) = 0;
@@ -78,7 +80,7 @@ namespace kagome::offchain {
     virtual Result<uint32_t, HttpError> httpResponseReadBody(
         RequestId id,
         common::Buffer &chunk,
-        boost::optional<std::chrono::milliseconds> timeout) = 0;
+        boost::optional<Timestamp> deadline) = 0;
 
     virtual void setAuthorizedNodes(std::vector<libp2p::peer::PeerId>,
                                     bool authorized_only) = 0;
