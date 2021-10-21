@@ -14,7 +14,7 @@ namespace kagome::authorship {
 
   class BlockBuilderFactoryMock : public BlockBuilderFactory {
    public:
-    MOCK_CONST_METHOD2(create,
+    MOCK_CONST_METHOD2(make,
                        outcome::result<std::unique_ptr<BlockBuilder>>(
                            const primitives::BlockId &, primitives::Digest));
   };
