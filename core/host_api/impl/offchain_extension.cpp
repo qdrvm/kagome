@@ -380,14 +380,29 @@ namespace kagome::host_api {
   }
 
   void OffchainExtension::ext_offchain_set_authorized_nodes_version_1(
-      runtime::WasmSpan nodes, runtime::WasmI32 authorized_only) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(
-        log_,
-        "Called "
-        "OffchainExtension::ext_offchain_set_authorized_nodes_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
+      runtime::WasmSpan nodes_pos, runtime::WasmI32 authorized_only) {
+    auto &worker = getWorker();
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto [nodes_ptr, nodes_size] = runtime::PtrSize(nodes_pos);
+    auto nodes_buffer = memory.loadN(nodes_ptr, nodes_size);
+    auto nodes_res = scale::decode<std::vector<common::Buffer>>(nodes_buffer);
+    if (nodes_res.has_error()) {
+      std::runtime_error("Invalid encoded data for nodes arg");
+    }
+    auto &nodes_as_buffers = nodes_res.value();
+
+    std::vector<libp2p::peer::PeerId> nodes;
+    for (auto buff : nodes_as_buffers) {
+      auto peer_id_res = libp2p::peer::PeerId::fromBytes(buff);
+      if (peer_id_res.has_error()) {
+        std::runtime_error("Invalid encoded data for nodes arg");
+      }
+      auto &peer_id = peer_id_res.value();
+      nodes.emplace_back(std::move(peer_id));
+    }
+
+    worker.setAuthorizedNodes(std::move(nodes), authorized_only == 1);
   }
 
   void OffchainExtension::ext_offchain_index_set_version_1(

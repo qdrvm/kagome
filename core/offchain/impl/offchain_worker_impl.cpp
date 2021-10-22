@@ -324,8 +324,8 @@ namespace kagome::offchain {
     return result;
   }
 
-  void OffchainWorkerImpl::setAuthorizedNodes(std::vector<libp2p::peer::PeerId>,
-                                              bool authorized_only) {
+  void OffchainWorkerImpl::setAuthorizedNodes(
+      std::vector<libp2p::peer::PeerId> nodes, bool authorized_only) {
     // TODO(xDimon): Need to implement it
     throw std::runtime_error(
         "This method of OffchainWorkerImpl is not implemented yet");
