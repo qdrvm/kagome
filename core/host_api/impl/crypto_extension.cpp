@@ -310,22 +310,10 @@ namespace kagome::host_api {
     }
     auto pubkey = pubkey_res.value();
 
-    auto verifier = [self_weak = weak_from_this(),
-                     signature = std::move(signature),
-                     msg = std::move(msg),
-                     pubkey = std::move(pubkey)]() mutable {
-      auto self = self_weak.lock();
-      if (not self) {
-        BOOST_UNREACHABLE_RETURN(kVerifyFail);
-      }
+    auto verify_res = ed25519_provider_->verify(signature, msg, pubkey);
 
-      const auto result =
-          self->ed25519_provider_->verify(signature, msg, pubkey);
-      const auto is_succeeded = result && result.value();
-      return is_succeeded ? kVerifySuccess : kVerifyFail;
-    };
+    auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
-    auto res = verifier();
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey);
     return res;
   }
@@ -462,22 +450,10 @@ namespace kagome::host_api {
                 sr25519_constants::SIGNATURE_SIZE,
                 signature.begin());
 
-    auto verifier = [self_weak = weak_from_this(),
-                     signature = std::move(signature),
-                     msg = std::move(msg),
-                     pubkey = std::move(key)]() mutable {
-      auto self = self_weak.lock();
-      if (not self) {
-        BOOST_ASSERT(!"This is unreachable");
-      }
+    auto verify_res = sr25519_provider_->verify(signature, msg, key);
 
-      auto res = self->sr25519_provider_->verify(signature, msg, pubkey);
+    auto res = verify_res && verify_res.value() ? kVerifySuccess : kVerifyFail;
 
-      bool is_succeeded = res && res.value();
-      return is_succeeded ? kVerifySuccess : kVerifyFail;
-    };
-
-    auto res = verifier();
     SL_TRACE_FUNC_CALL(logger_, res, signature, msg, pubkey_buffer);
     return res;
   }
