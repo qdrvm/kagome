@@ -6,11 +6,11 @@
 #include "host_api/impl/misc_extension.hpp"
 
 #include "primitives/version.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "runtime/core_api_factory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/core.hpp"
-#include "runtime/common/uncompress_code_if_needed.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::host_api {
@@ -44,7 +44,8 @@ namespace kagome::host_api {
             .value();
 
     if (uncompress_res.has_error()) {
-      SL_ERROR(logger_, "Error uncompressing code: {}",
+      SL_ERROR(logger_,
+               "Error uncompressing code: {}",
                uncompress_res.error().message());
       return memory.storeBuffer(kErrorRes);
     }
