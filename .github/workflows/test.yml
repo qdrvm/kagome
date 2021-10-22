@@ -38,7 +38,7 @@ jobs:
     - name: build
       env:
         DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
-      run: ./housekeeping/make_build.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+      run: ./housekeeping/make_build.sh  -DLLVM_DIR=${{ env.LLVM_DIR }} -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
     strategy:
