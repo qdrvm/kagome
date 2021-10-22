@@ -7,12 +7,14 @@
 #define KAGOME_RUNTIME_HOSTAPIIMPL
 
 #include "host_api/host_api.hpp"
+
 #include "host_api/impl/crypto_extension.hpp"
 #include "host_api/impl/io_extension.hpp"
 #include "host_api/impl/memory_extension.hpp"
 #include "host_api/impl/misc_extension.hpp"
 #include "host_api/impl/offchain_extension.hpp"
 #include "host_api/impl/storage_extension.hpp"
+#include "offchain/impl/offchain_persistent_storage.hpp"
 
 namespace kagome::runtime {
   class Core;
@@ -40,7 +42,9 @@ namespace kagome::host_api {
         std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<const crypto::Hasher> hasher,
         std::shared_ptr<crypto::CryptoStore> crypto_store,
-        std::shared_ptr<const crypto::Bip39Provider> bip39_provider);
+        std::shared_ptr<const crypto::Bip39Provider> bip39_provider,
+        std::shared_ptr<offchain::OffchainPersistentStorage>
+            offchain_persistent_storage);
 
     ~HostApiImpl() override = default;
 

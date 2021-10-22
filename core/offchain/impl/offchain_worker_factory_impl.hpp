@@ -9,7 +9,7 @@
 #include "offchain/offchain_worker_factory.hpp"
 
 #include "crypto/random_generator.hpp"
-#include "offchain/offchain_storage.hpp"
+#include "offchain/offchain_persistent_storage.hpp"
 
 namespace kagome::api {
   class AuthorApi;
@@ -27,12 +27,15 @@ namespace kagome::runtime {
 namespace kagome::offchain {
   class OffchainWorkerFactoryImpl final : public OffchainWorkerFactory {
    public:
-    OffchainWorkerFactoryImpl(const application::AppConfiguration &app_config,
-                              std::shared_ptr<clock::SystemClock> clock,
-                              std::shared_ptr<crypto::Hasher> hasher,
-                              std::shared_ptr<OffchainStorage> storage,
-                              std::shared_ptr<crypto::CSPRNG> random_generator,
-                              std::shared_ptr<api::AuthorApi> author_api);
+    OffchainWorkerFactoryImpl(
+        const application::AppConfiguration &app_config,
+        std::shared_ptr<clock::SystemClock> clock,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<storage::BufferStorage> storage,
+        std::shared_ptr<crypto::CSPRNG> random_generator,
+        std::shared_ptr<api::AuthorApi> author_api,
+        std::shared_ptr<offchain::OffchainPersistentStorage>
+            persistent_storage);
 
     std::shared_ptr<OffchainWorker> make(
         std::shared_ptr<runtime::Executor> executor,
@@ -42,9 +45,10 @@ namespace kagome::offchain {
     const application::AppConfiguration &app_config_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<OffchainStorage> storage_;
+    std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
+    std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage_;
   };
 
 }  // namespace kagome::offchain

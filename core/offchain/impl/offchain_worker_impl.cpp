@@ -7,8 +7,10 @@
 
 #include <thread>
 
+#include "api/service/author/author_api.hpp"
 #include "application/app_configuration.hpp"
 #include "crypto/hasher.hpp"
+#include "offchain/impl/offchain_local_storage.hpp"
 #include "runtime/executor.hpp"
 
 namespace kagome::offchain {
@@ -17,17 +19,18 @@ namespace kagome::offchain {
       const application::AppConfiguration &app_config,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<OffchainStorage> storage,
+      std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::CSPRNG> random_generator,
       std::shared_ptr<api::AuthorApi> author_api,
+      std::shared_ptr<OffchainPersistentStorage> persistent_storage,
       std::shared_ptr<runtime::Executor> executor,
       const primitives::BlockHeader &header)
       : app_config_(app_config),
         clock_(std::move(clock)),
         hasher_(std::move(hasher)),
-        storage_(std::move(storage)),
         random_generator_(std::move(random_generator)),
         author_api_(std::move(author_api)),
+        persistent_storage_(std::move(persistent_storage)),
         executor_(std::move(executor)),
         header_(header),
         log_(log::createLogger(
@@ -35,14 +38,18 @@ namespace kagome::offchain {
             "offchain_worker_api")) {
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(storage_);
+    BOOST_ASSERT(storage);
     BOOST_ASSERT(random_generator_);
     BOOST_ASSERT(author_api_);
+    BOOST_ASSERT(persistent_storage_);
     BOOST_ASSERT(executor_);
 
     auto hash = hasher_->blake2b_256(scale::encode(header_).value());
     const_cast<primitives::BlockInfo &>(block_) =
         primitives::BlockInfo(header_.number, hash);
+
+    local_storage_ =
+        std::make_shared<OffchainLocalStorageImpl>(std::move(storage));
   }
 
   outcome::result<void> OffchainWorkerImpl::run() {

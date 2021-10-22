@@ -19,10 +19,13 @@ namespace kagome::host_api {
   using namespace offchain;
 
   OffchainExtension::OffchainExtension(
-      std::shared_ptr<const runtime::MemoryProvider> memory_provider)
+      std::shared_ptr<const runtime::MemoryProvider> memory_provider,
+      std::shared_ptr<offchain::OffchainStorage> offchain_storage)
       : memory_provider_(std::move(memory_provider)),
+        offchain_storage_(std::move(offchain_storage)),
         log_(log::createLogger("OffchainExtension", "host_api")) {
     BOOST_ASSERT(memory_provider_);
+    BOOST_ASSERT(offchain_storage_);
   }
 
   offchain::OffchainWorker &OffchainExtension::getWorker() {
@@ -182,7 +185,6 @@ namespace kagome::host_api {
 
     auto result = worker.localStorageGet(storage_type, key_buffer);
 
-
     auto option = result ? boost::make_optional(result.value()) : boost::none;
 
     return memory.storeBuffer(scale::encode(option).value());
@@ -329,7 +331,6 @@ namespace kagome::host_api {
 
     auto result = worker.httpResponseWait(ids, deadline);
 
-
     return memory.storeBuffer(scale::encode(result).value());
   }
 
@@ -354,7 +355,6 @@ namespace kagome::host_api {
       runtime::WasmSpan buffer_pos,
       runtime::WasmSpan deadline_pos) {
     auto &worker = getWorker();
-
     auto &memory = memory_provider_->getCurrentMemory().value();
 
     auto dst_buffer = runtime::PtrSize(buffer_pos);
@@ -374,7 +374,6 @@ namespace kagome::host_api {
     auto result = worker.httpResponseReadBody(request_id, buffer, deadline);
 
     if (result.isSuccess()) {
-
       memory.storeBuffer(dst_buffer.ptr, buffer);
     }
 
@@ -394,20 +393,31 @@ namespace kagome::host_api {
 
   void OffchainExtension::ext_offchain_index_set_version_1(
       runtime::WasmSpan key, runtime::WasmSpan value) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(log_,
-             "Called OffchainExtension::ext_offchain_index_set_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto [key_ptr, key_size] = runtime::PtrSize(key);
+    auto key_buffer = memory.loadN(key_ptr, key_size);
+    auto [value_ptr, value_size] = runtime::PtrSize(value);
+    auto value_buffer = memory.loadN(value_ptr, value_size);
+
+    auto result = offchain_storage_->set(key_buffer, std::move(value_buffer));
+    if (result.has_error()) {
+      SL_WARN(log_, "Can't set value in storage: {}", result.error().message());
+    }
   }
 
   void OffchainExtension::ext_offchain_index_clear_version_1(
       runtime::WasmSpan key) {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(log_,
-             "Called OffchainExtension::ext_offchain_index_clear_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto [key_ptr, key_size] = runtime::PtrSize(key);
+    auto key_buffer = memory.loadN(key_ptr, key_size);
+
+    auto result = offchain_storage_->clear(key_buffer);
+    if (result.has_error()) {
+      SL_WARN(
+          log_, "Can't clear value in storage: {}", result.error().message());
+    }
   }
 
 }  // namespace kagome::host_api

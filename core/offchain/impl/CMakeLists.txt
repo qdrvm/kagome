@@ -13,6 +13,22 @@ target_link_libraries(offchain_storage
     )
 kagome_install(offchain_storage)
 
+add_library(offchain_persistent_storage
+    offchain_storage_impl.cpp
+    )
+target_link_libraries(offchain_persistent_storage
+    offchain_storage
+    )
+kagome_install(offchain_persistent_storage)
+
+add_library(offchain_local_storage
+    offchain_local_storage.cpp
+    )
+target_link_libraries(offchain_local_storage
+    offchain_storage
+    )
+kagome_install(offchain_local_storage)
+
 add_library(http_request
     uri.cpp
     http_request.cpp

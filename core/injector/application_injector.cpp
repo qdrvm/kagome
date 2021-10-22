@@ -85,9 +85,10 @@
 #include "network/impl/synchronizer_impl.hpp"
 #include "network/impl/transactions_transmitter_impl.hpp"
 #include "network/sync_protocol_observer.hpp"
-#include "offchain/impl/offchain_storage_impl.hpp"
-#include "offchain/impl/offchain_worker_impl.hpp"
+#include "offchain/impl/offchain_local_storage.hpp"
+#include "offchain/impl/offchain_persistent_storage.hpp"
 #include "offchain/impl/offchain_worker_factory_impl.hpp"
+#include "offchain/impl/offchain_worker_impl.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/core_api_factory_impl.hpp"
@@ -890,7 +891,8 @@ namespace {
         di::bind<runtime::OffchainWorkerApi>.template to<runtime::OffchainWorkerApiImpl>(),
         di::bind<offchain::OffchainWorkerFactory>.template to<offchain::OffchainWorkerFactoryImpl>(),
         di::bind<offchain::OffchainWorker>.template to<offchain::OffchainWorkerImpl>(),
-        di::bind<offchain::OffchainStorage>.template to<offchain::OffchainStorageImpl>(),
+        di::bind<offchain::OffchainPersistentStorage>.template to<offchain::OffchainPersistentStorageImpl>(),
+        di::bind<offchain::OffchainLocalStorage>.template to<offchain::OffchainLocalStorageImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
         di::bind<runtime::GrandpaApi>.template to<runtime::GrandpaApiImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),

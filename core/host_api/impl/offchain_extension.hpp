@@ -26,7 +26,8 @@ namespace kagome::host_api {
   class OffchainExtension final {
    public:
     OffchainExtension(
-        std::shared_ptr<const runtime::MemoryProvider> memory_provider);
+        std::shared_ptr<const runtime::MemoryProvider> memory_provider,
+        std::shared_ptr<offchain::OffchainStorage> offchain_storage);
 
     /**
      * @brief Check whether the local node is a potential validator. Even if
@@ -370,6 +371,7 @@ namespace kagome::host_api {
     offchain::OffchainWorker &getWorker();
 
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
+    std::shared_ptr<offchain::OffchainStorage> offchain_storage_;
 
     log::Logger log_;
   };

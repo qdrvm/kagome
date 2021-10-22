@@ -26,7 +26,9 @@ namespace kagome::host_api {
       std::shared_ptr<const crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<const crypto::Hasher> hasher,
       std::shared_ptr<crypto::CryptoStore> crypto_store,
-      std::shared_ptr<const crypto::Bip39Provider> bip39_provider)
+      std::shared_ptr<const crypto::Bip39Provider> bip39_provider,
+      std::shared_ptr<offchain::OffchainPersistentStorage>
+          offchain_persistent_storage)
       : memory_provider_([&] {
           BOOST_ASSERT(memory_provider);
           return std::move(memory_provider);
@@ -49,7 +51,8 @@ namespace kagome::host_api {
                   memory_provider_,
                   std::move(core_provider)},
         storage_ext_(storage_provider_, memory_provider_, std::move(tracker)),
-        offchain_ext_(memory_provider_) {}
+        offchain_ext_(memory_provider_,
+                      std::move(offchain_persistent_storage)) {}
 
   void HostApiImpl::reset() {
     storage_ext_.reset();

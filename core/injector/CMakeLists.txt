@@ -114,5 +114,6 @@ target_link_libraries(application_injector
     transactions_transmitter
     offchain_worker_factory
     offchain_worker_api
-    offchain_storage
+    offchain_persistent_storage
+    offchain_local_storage
     )

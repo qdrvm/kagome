@@ -13,9 +13,14 @@
 
 namespace kagome::offchain {
 
-  class OffchainStorageImpl final : public OffchainStorage {
+  class OffchainStorageImpl : public virtual OffchainStorage {
    public:
-    OffchainStorageImpl(std::shared_ptr<storage::BufferStorage> storage);
+    OffchainStorageImpl() = delete;
+    OffchainStorageImpl(const OffchainStorageImpl &) = delete;
+    OffchainStorageImpl(OffchainStorageImpl &&) noexcept = delete;
+
+    explicit OffchainStorageImpl(
+        std::shared_ptr<storage::BufferStorage> storage);
 
     outcome::result<void> set(const common::Buffer &key,
                               common::Buffer value) override;
