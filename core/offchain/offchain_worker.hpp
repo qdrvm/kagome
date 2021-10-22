@@ -82,7 +82,7 @@ namespace kagome::offchain {
         common::Buffer &chunk,
         boost::optional<Timestamp> deadline) = 0;
 
-    virtual void setAuthorizedNodes(std::vector<libp2p::peer::PeerId>,
+    virtual void setAuthorizedNodes(std::vector<libp2p::peer::PeerId> nodes,
                                     bool authorized_only) = 0;
 
    protected:
