@@ -32,7 +32,7 @@ namespace kagome::offchain {
 
     virtual bool isValidator() const = 0;
 
-    virtual common::Buffer submitTransaction(
+    virtual Result<Success, Failure> submitTransaction(
         const primitives::Extrinsic &ext) = 0;
 
     virtual Result<OpaqueNetworkState, Failure> networkState() = 0;

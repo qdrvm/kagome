@@ -49,7 +49,8 @@ namespace kagome::offchain {
 
     bool isValidator() const override;
 
-    common::Buffer submitTransaction(const primitives::Extrinsic &ext) override;
+    Result<Success, Failure> submitTransaction(
+        const primitives::Extrinsic &ext) override;
 
     Result<OpaqueNetworkState, Failure> networkState() override;
 

@@ -94,12 +94,13 @@ namespace kagome::offchain {
     return isValidator;
   }
 
-  common::Buffer OffchainWorkerImpl::submitTransaction(
+  Result<Success, Failure> OffchainWorkerImpl::submitTransaction(
       const primitives::Extrinsic &ext) {
-    // TODO(xDimon): Need to implement it
-    throw std::runtime_error(
-        "This method of OffchainWorkerImpl is not implemented yet");
-    return {};
+    auto result = author_api_->submitExtrinsic(ext);
+    if (result.has_value()) {
+      return Success();
+    }
+    return Failure();
   }
 
   Result<OpaqueNetworkState, Failure> OffchainWorkerImpl::networkState() {
