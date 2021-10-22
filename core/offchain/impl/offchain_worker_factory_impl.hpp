@@ -8,6 +8,8 @@
 
 #include "offchain/offchain_worker_factory.hpp"
 
+#include <libp2p/host/host.hpp>
+
 #include "crypto/random_generator.hpp"
 #include "offchain/offchain_persistent_storage.hpp"
 
@@ -34,6 +36,7 @@ namespace kagome::offchain {
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<api::AuthorApi> author_api,
+        libp2p::Host &host,
         std::shared_ptr<offchain::OffchainPersistentStorage>
             persistent_storage);
 
@@ -48,6 +51,7 @@ namespace kagome::offchain {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
+    libp2p::Host &host_;
     std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage_;
   };
 

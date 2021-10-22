@@ -24,6 +24,7 @@ namespace kagome::offchain {
         storage_(std::move(storage)),
         random_generator_(std::move(random_generator)),
         author_api_(std::move(author_api)),
+        host_(host),
         persistent_storage_(std::move(persistent_storage)) {
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
@@ -42,6 +43,7 @@ namespace kagome::offchain {
                                                 storage_,
                                                 random_generator_,
                                                 author_api_,
+                                                host_,
                                                 persistent_storage_,
                                                 executor,
                                                 header);

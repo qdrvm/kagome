@@ -44,6 +44,7 @@ namespace kagome::offchain {
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<crypto::CSPRNG> random_generator,
         std::shared_ptr<api::AuthorApi> author_api,
+        libp2p::Host &host,
         std::shared_ptr<OffchainPersistentStorage> persistent_storage,
         std::shared_ptr<runtime::Executor> executor,
         const primitives::BlockHeader &header);
@@ -114,7 +115,7 @@ namespace kagome::offchain {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
-    libp2p::Host& host_;
+    libp2p::Host &host_;
     std::shared_ptr<offchain::OffchainPersistentStorage> persistent_storage_;
     std::shared_ptr<offchain::OffchainLocalStorage> local_storage_;
     std::shared_ptr<runtime::Executor> executor_;

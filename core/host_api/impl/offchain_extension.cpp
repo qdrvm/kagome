@@ -62,13 +62,12 @@ namespace kagome::host_api {
   }
 
   runtime::WasmSpan OffchainExtension::ext_offchain_network_state_version_1() {
-    // TODO(xDimon): Need to implement it
-    SL_DEBUG(
-        log_,
-        "Called OffchainExtension::ext_offchain_network_state_version_1()");
-    throw std::runtime_error(
-        "This method of OffchainExtension is not implemented yet");
-    return 0;
+    auto &worker = getWorker();
+    auto &memory = memory_provider_->getCurrentMemory().value();
+
+    auto result = worker.networkState();
+
+    return memory.storeBuffer(scale::encode(result).value());
   }
 
   runtime::WasmU64 OffchainExtension::ext_offchain_timestamp_version_1() {

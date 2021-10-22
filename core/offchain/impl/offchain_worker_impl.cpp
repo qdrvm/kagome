@@ -5,6 +5,7 @@
 
 #include "offchain/impl/offchain_worker_impl.hpp"
 
+#include <libp2p/host/host.hpp>
 #include <thread>
 
 #include "api/service/author/author_api.hpp"
@@ -22,6 +23,7 @@ namespace kagome::offchain {
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::CSPRNG> random_generator,
       std::shared_ptr<api::AuthorApi> author_api,
+      libp2p::Host &host,
       std::shared_ptr<OffchainPersistentStorage> persistent_storage,
       std::shared_ptr<runtime::Executor> executor,
       const primitives::BlockHeader &header)
@@ -30,6 +32,7 @@ namespace kagome::offchain {
         hasher_(std::move(hasher)),
         random_generator_(std::move(random_generator)),
         author_api_(std::move(author_api)),
+        host_(host),
         persistent_storage_(std::move(persistent_storage)),
         executor_(std::move(executor)),
         header_(header),
@@ -112,10 +115,12 @@ namespace kagome::offchain {
 
   Result<OpaqueNetworkState, Failure> OffchainWorkerImpl::networkState() {
     auto peer_info = host_.getPeerInfo();
+    OpaqueNetworkState result{.peer_id = peer_info.id};
 
-    return OpaqueNetworkState{
-        .peer_id = peer_info.id,
-        .address(peer_info.addresses.begin(), peer_info.addresses.end())};
+    std::list<libp2p::multi::Multiaddress> address(peer_info.addresses.begin(),
+                                                   peer_info.addresses.end());
+
+    return result;
   }
 
   Timestamp OffchainWorkerImpl::timestamp() {
