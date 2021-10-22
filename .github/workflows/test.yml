@@ -34,7 +34,7 @@ jobs:
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: Set env
-      run: echo "LLVM_DIR=\"$(find  -E '/usr/local/Cellar' -type f -regex '.*/llvm[^/]*/[^/]*/lib/cmake/llvm/LLVMConfig.cmake')\"" >> $GITHUB_ENV
+      run: echo "LLVM_DIR=$(find  -E '/usr/local/Cellar' -type f -regex '.*/llvm[^/]*/[^/]*/lib/cmake/llvm/LLVMConfig.cmake')" >> $GITHUB_ENV
     - name: build
       env:
         DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
