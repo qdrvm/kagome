@@ -669,8 +669,7 @@ namespace {
     protocol_factory->setBlockTree(block_tree);
 
     auto runtime_upgrade_tracker =
-        std::dynamic_pointer_cast<runtime::RuntimeUpgradeTrackerImpl>(
-            injector.template create<sptr<runtime::RuntimeUpgradeTracker>>());
+        injector.template create<sptr<runtime::RuntimeUpgradeTrackerImpl>>();
 
     runtime_upgrade_tracker->subscribeToBlockchainEvents(chain_events_engine,
                                                          block_tree);
