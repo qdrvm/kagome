@@ -103,10 +103,11 @@ namespace kagome::offchain {
   }
 
   Result<OpaqueNetworkState, Failure> OffchainWorkerImpl::networkState() {
-    // TODO(xDimon): Need to implement it
-    throw std::runtime_error(
-        "This method of OffchainWorkerImpl is not implemented yet");
-    return Failure();
+    auto peer_info = host_.getPeerInfo();
+
+    return OpaqueNetworkState{
+        .peer_id = peer_info.id,
+        .address(peer_info.addresses.begin(), peer_info.addresses.end())};
   }
 
   Timestamp OffchainWorkerImpl::timestamp() {

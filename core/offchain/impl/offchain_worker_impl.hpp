@@ -9,6 +9,7 @@
 #include "offchain/offchain_worker.hpp"
 
 #include <boost/asio/io_context.hpp>
+#include <libp2p/host/host.hpp>
 
 #include "crypto/random_generator.hpp"
 #include "log/logger.hpp"
@@ -112,6 +113,7 @@ namespace kagome::offchain {
     std::shared_ptr<offchain::OffchainStorage> &local_storage_{storage_};
     std::shared_ptr<crypto::CSPRNG> random_generator_;
     std::shared_ptr<api::AuthorApi> author_api_;
+    libp2p::Host& host_;
     std::shared_ptr<runtime::Executor> executor_;
     const primitives::BlockHeader header_;
     const primitives::BlockInfo block_;

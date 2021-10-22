@@ -13,6 +13,7 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::offchain {
 
@@ -76,6 +77,48 @@ namespace kagome::offchain {
     libp2p::peer::PeerId peer_id;
     std::list<libp2p::multi::Multiaddress> address;
   };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const OpaqueNetworkState &v) {
+    s << v.peer_id.toVector();
+
+    s << scale::CompactInteger(v.address.size());
+
+    for (auto &address : v.address) {
+      s << address.getBytesAddress();
+    }
+
+    return s;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, OpaqueNetworkState &v) {
+    common::Buffer buff;
+
+    s >> buff;
+    auto peer_id_res = libp2p::peer::PeerId::fromBytes(buff);
+    if (peer_id_res.has_error()) {
+      std::runtime_error(peer_id_res.error().message());
+    }
+    v.peer_id = std::move(peer_id_res.value());
+
+    scale::CompactInteger size;
+    s >> size;
+    v.address.resize(size.convert_to<uint64_t>());
+
+    for (auto& address : v.address){
+      s >> buff;
+      auto ma_res = libp2p::multi::Multiaddress::create(buff);
+      if (ma_res.has_error()) {
+        std::runtime_error(ma_res.error().message());
+        address = std::move(ma_res.value());
+      }
+    }
+
+    return s;
+  }
 
 }  // namespace kagome::offchain
 
