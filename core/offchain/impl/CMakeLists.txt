@@ -35,8 +35,8 @@ add_library(http_request
     )
 target_link_libraries(http_request
     Boost::boost
-    crypto
-    ssl
+    OpenSSL::Crypto
+    OpenSSL::SSL
     buffer
     )
 
