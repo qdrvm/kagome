@@ -33,6 +33,8 @@ jobs:
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
     - name: install
       run: ./housekeeping/macos/dependency.sh
+    - name: Show LLVM dir
+      run: echo "$(find  -E '/usr/local/Cellar/llvm@11' -type f -name 'LLVMConfig.cmake' | xargs echo)"
     - name: Set LLVM dir
       run: echo "LLVM_DIR=$(dirname $(find  -E '/usr/local/Cellar/llvm@11' -type f -name 'LLVMConfig.cmake' | xargs echo))" >> $GITHUB_ENV
     - name: build
