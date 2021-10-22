@@ -34,7 +34,7 @@ jobs:
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: Set LLVM dir
-      run: echo "LLVM_DIR=$(dirname $(find  -E '/usr/local/Cellar' -type f -regex '.*/llvm[^/]*/[^/]*/lib/cmake/llvm/LLVMConfig.cmake' | xargs echo))" >> $GITHUB_ENV
+      run: echo "LLVM_DIR=$(dirname $(find  -E '/usr/local/Cellar' -type f -regex '.*/llvm@11[^/]*/[^/]*/lib/cmake/llvm/LLVMConfig.cmake' | xargs echo))" >> $GITHUB_ENV
     - name: Find LLVM config
       run: find  -E '/usr/local/Cellar' -type f -regex '.*/llvm@11[^/]*/[^/]*/lib/cmake/llvm/LLVMConfig.cmake' | xargs echo
     - name: Find LLVM dir
