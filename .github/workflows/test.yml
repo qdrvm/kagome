@@ -33,11 +33,12 @@ jobs:
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
     - name: install
       run: ./housekeeping/macos/dependency.sh
+    - name: Set LLVM dir
+      run: echo "LLVM_DIR=$(dirname $(find  -E '/usr/local/Cellar' -type f -regex '.*/llvm@11[^/]*/[^/]*/lib/cmake/llvm/LLVMConfig.cmake' | xargs echo))" >> $GITHUB_ENV
     - name: build
       env:
         DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
-        LLVM_DIR: /usr/local/Cellar/llvm@11/11.1.0_2/lib/cmake/
-      run: ./housekeeping/make_build.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+      run: ./housekeeping/make_build.sh  -DLLVM_DIR=${{ env.LLVM_DIR }} -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
     strategy:
