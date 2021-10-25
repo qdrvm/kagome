@@ -79,7 +79,8 @@ namespace kagome::application {
       return consensus_engine_;
     }
 
-    const primitives::CodeSubstitutes& codeSubstitutes() const override {
+    std::shared_ptr<const primitives::CodeSubstitutes> codeSubstitutes()
+        const override {
       return code_substitutes_;
     }
 
@@ -117,7 +118,7 @@ namespace kagome::application {
     std::set<primitives::BlockHash> fork_blocks_;
     std::set<primitives::BlockHash> bad_blocks_;
     boost::optional<std::string> consensus_engine_;
-    primitives::CodeSubstitutes code_substitutes_;
+    std::shared_ptr<primitives::CodeSubstitutes> code_substitutes_;
     GenesisRawData genesis_;
     log::Logger log_ = log::createLogger("chain_spec", "kagome");
   };

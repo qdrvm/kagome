@@ -39,12 +39,6 @@ namespace kagome::storage {
     return DatabaseError::UNKNOWN;
   }
 
-  inline DatabaseError status_as_error(const leveldb::Status &s,
-                                            const log::Logger &logger) {
-    logger->error(s.ToString());
-    return status_as_error(s);
-  }
-
   inline leveldb::Slice make_slice(const common::Buffer &buf) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const char *>(buf.data());

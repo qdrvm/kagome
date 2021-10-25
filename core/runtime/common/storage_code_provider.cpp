@@ -18,10 +18,10 @@ namespace kagome::runtime {
   StorageCodeProvider::StorageCodeProvider(
       std::shared_ptr<const storage::trie::TrieStorage> storage,
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
-      const primitives::CodeSubstitutes &code_substitutes)
+      std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes)
       : storage_{std::move(storage)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
-        code_substitutes_{code_substitutes} {
+        code_substitutes_{std::move(code_substitutes)} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
     last_state_root_ = storage_->getRootHash();
@@ -45,8 +45,8 @@ namespace kagome::runtime {
 
       auto hash = runtime_upgrade_tracker_->getLastCodeUpdateHash(state);
       if (hash.has_value()) {
-        if (auto code_it = code_substitutes_.find(hash.value());
-            code_it != code_substitutes_.end()) {
+        if (auto code_it = code_substitutes_->find(hash.value());
+            code_it != code_substitutes_->end()) {
           OUTCOME_TRY(uncompressCodeIfNeeded(code_it->second, cached_code_));
           return cached_code_;
         }

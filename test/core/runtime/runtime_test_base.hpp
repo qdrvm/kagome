@@ -100,9 +100,9 @@ class RuntimeTestBase : public ::testing::Test {
     ON_CALL(*header_repo_, getHashByNumber(0))
         .WillByDefault(testing::Return("genesis_hash"_hash256));
     EXPECT_CALL(*header_repo_,
-            getBlockHeader(testing::AnyOf(
-                kagome::primitives::BlockId{0},
-                kagome::primitives::BlockId{"genesis_hash"_hash256})))
+                getBlockHeader(testing::AnyOf(
+                    kagome::primitives::BlockId{0},
+                    kagome::primitives::BlockId{"genesis_hash"_hash256})))
         .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
             .parent_hash = {},
             .number = 0,
@@ -125,11 +125,13 @@ class RuntimeTestBase : public ::testing::Test {
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
-    auto upgrade_tracker =
-        std::make_shared<kagome::runtime::RuntimeUpgradeTrackerImpl>(
-            header_repo_,
-            std::make_shared<kagome::storage::InMemoryStorage>(),
-            kagome::primitives::CodeSubstitutes{});
+    std::shared_ptr<kagome::runtime::RuntimeUpgradeTrackerImpl>
+        upgrade_tracker =
+            kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+                header_repo_,
+                std::make_shared<kagome::storage::InMemoryStorage>(),
+                std::make_shared<kagome::primitives::CodeSubstitutes>())
+                .value();
 
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         upgrade_tracker, module_factory);

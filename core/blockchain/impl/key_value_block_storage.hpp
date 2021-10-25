@@ -21,7 +21,9 @@ namespace kagome::blockchain {
 
     enum class Error {
       BLOCK_EXISTS = 1,
+      HEADER_DOES_NOT_EXIST,
       BODY_DOES_NOT_EXIST,
+      BLOCK_DATA_DOES_NOT_EXIST,
       JUSTIFICATION_DOES_NOT_EXIST,
       GENESIS_BLOCK_ALREADY_EXISTS,
       GENESIS_BLOCK_NOT_FOUND,

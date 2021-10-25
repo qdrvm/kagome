@@ -32,7 +32,9 @@ namespace kagome::application {
   outcome::result<std::shared_ptr<ChainSpecImpl>> ChainSpecImpl::loadFrom(
       const std::string &path) {
     // done so because of private constructor
-    auto config_storage = std::shared_ptr<ChainSpecImpl>(new ChainSpecImpl);
+    std::shared_ptr<ChainSpecImpl> config_storage{new ChainSpecImpl};
+    config_storage->code_substitutes_ =
+        std::make_shared<primitives::CodeSubstitutes>();
     OUTCOME_TRY(config_storage->loadFromJson(path));
 
     return config_storage;
@@ -157,13 +159,13 @@ namespace kagome::application {
     }
 
     auto code_substitutes_opt = tree.get_child_optional("codeSubstitutes");
-    if(code_substitutes_opt.has_value()) {
-      for(const auto &[hash, code] : code_substitutes_opt.value()) {
+    if (code_substitutes_opt.has_value()) {
+      for (const auto &[hash, code] : code_substitutes_opt.value()) {
         OUTCOME_TRY(hash_processed, common::Hash256::fromHexWithPrefix(hash));
         OUTCOME_TRY(code_processed, common::unhexWith0x(code.data()));
         // TODO(sanblch): move this from memory to db
         // https://github.com/soramitsu/kagome/issues/935
-        code_substitutes_.emplace(hash_processed, code_processed);
+        code_substitutes_->emplace(hash_processed, code_processed);
       }
     }
 

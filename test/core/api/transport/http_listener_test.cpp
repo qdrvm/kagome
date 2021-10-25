@@ -14,7 +14,7 @@ using test::HttpClient;
 using HttpListenerTest = ListenerTest<HttpListenerImpl>;
 
 /**
- * @given runing HTTP transport based RPC service
+ * @given running HTTP transport based RPC service
  * @when do simple request to RPC
  * @then response contains expected value
  */
