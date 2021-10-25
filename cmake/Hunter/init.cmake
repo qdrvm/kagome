@@ -32,6 +32,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/HunterGate.cmake)
 
 HunterGate(
     URL  https://github.com/soramitsu/soramitsu-hunter/archive/update/wavm.tar.gz
-    SHA1 39113c56b1d6be190b13995348816710dc1715f7
+    SHA1 b94232f734334f0a727e1996c9eae40353fa5897
     LOCAL
 )
