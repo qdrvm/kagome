@@ -7,7 +7,7 @@
 
 #include "primitives/version.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
-#include "runtime/core_api_factory_impl.hpp"
+#include "runtime/core_api_factory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -44,7 +44,8 @@ namespace kagome::host_api {
             .value();
 
     if (uncompress_res.has_error()) {
-      SL_ERROR(logger_, "Error uncompressing code: {}",
+      SL_ERROR(logger_,
+               "Error uncompressing code: {}",
                uncompress_res.error().message());
       return memory.storeBuffer(kErrorRes);
     }

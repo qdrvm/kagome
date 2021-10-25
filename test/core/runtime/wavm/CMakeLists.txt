@@ -33,6 +33,7 @@ target_link_libraries(core_integration_test
     wavm_runtime_test
     core_api
     basic_code_provider
+    in_memory_storage
     logger_for_tests
     )
 

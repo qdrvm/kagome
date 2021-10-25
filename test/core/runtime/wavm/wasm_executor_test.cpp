@@ -29,6 +29,7 @@
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
@@ -99,7 +100,7 @@ class WasmExecutorTest : public ::testing::Test {
             .value();
 
     storage_provider_ =
-        std::make_shared<TrieStorageProviderImpl>(std::move(trie_db));
+        std::make_shared<TrieStorageProviderImpl>(trie_db);
 
     auto random_generator = std::make_shared<BoostRandomGenerator>();
     auto sr25519_provider =
@@ -120,7 +121,7 @@ class WasmExecutorTest : public ::testing::Test {
         KeyFileStorage::createAt(keystore_path).value());
     auto changes_tracker =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
-    auto extension_factory =
+    auto host_api_factory =
         std::make_shared<kagome::host_api::HostApiFactoryImpl>(
             std::make_shared<ChangesTrackerMock>(),
             sr25519_provider,
@@ -139,40 +140,40 @@ class WasmExecutorTest : public ::testing::Test {
     auto intrinsic_module =
         std::make_shared<kagome::runtime::wavm::IntrinsicModule>(
             compartment_wrapper);
-    std::shared_ptr<kagome::runtime::wavm::IntrinsicModuleInstance>
-        intrinsic_module_instance = intrinsic_module->instantiate();
 
     auto memory_provider =
-        std::make_shared<kagome::runtime::wavm::WavmMemoryProvider>(
-            intrinsic_module_instance, compartment_wrapper);
-    auto intrinsic_resolver =
-        std::make_shared<kagome::runtime::wavm::IntrinsicResolverImpl>(
-            intrinsic_module_instance);
+        std::make_shared<kagome::runtime::wavm::WavmExternalMemoryProvider>(
+            intrinsic_module->instantiate());
     runtime_upgrade_tracker_ =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerMock>();
+    auto instance_env_factory = std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
+        trie_db,
+        compartment_wrapper,
+        intrinsic_module,
+        host_api_factory,
+        header_repo_,
+        changes_tracker);
+
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
-            compartment_wrapper, intrinsic_resolver);
+            compartment_wrapper, instance_env_factory, intrinsic_module);
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         runtime_upgrade_tracker_, module_factory);
 
     auto core_provider =
-        std::make_shared<kagome::runtime::wavm::ExecutorFactory>(
+        std::make_shared<kagome::runtime::wavm::CoreApiFactoryImpl>(
             compartment_wrapper,
             intrinsic_module,
             trie_db,
             header_repo_,
-            changes_tracker,
-            extension_factory);
+            instance_env_factory,
+            changes_tracker);
     auto host_api =
-        std::shared_ptr<kagome::host_api::HostApi>{extension_factory->make(
+        std::shared_ptr<kagome::host_api::HostApi>{host_api_factory->make(
             core_provider, memory_provider, storage_provider_)};
 
     auto env_factory =
-        std::make_shared<RuntimeEnvironmentFactory>(storage_provider_,
-                                                    host_api,
-                                                    memory_provider,
-                                                    wasm_provider_,
+        std::make_shared<RuntimeEnvironmentFactory>(wasm_provider_,
                                                     module_repo,
                                                     header_repo_);
     executor_ = std::make_shared<Executor>(header_repo_, env_factory);
@@ -207,7 +208,7 @@ TEST_F(WasmExecutorTest, DISABLED_ExecuteCode) {
                   kagome::primitives::BlockInfo{0, "blockhash0"_hash256}))
       .WillOnce(Return(outcome::success("stateroot0"_hash256)));
 
-  auto res = executor_->callAtLatest<int32_t>("addTwo", 1, 2);
+  auto res = executor_->callAtGenesis<int32_t>("addTwo", 1, 2);
 
   ASSERT_TRUE(res) << res.error().message();
   ASSERT_EQ(res.value(), 3);

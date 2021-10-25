@@ -55,7 +55,7 @@ class GrandpaTest : public BinaryenRuntimeTest {
  */
 TEST_F(GrandpaTest, DISABLED_PendingChange) {
   auto &&digest = createDigest();
-  ASSERT_TRUE(api_->pending_change(digest));
+  ASSERT_TRUE(api_->pending_change("block_hash"_hash256, digest));
 }
 
 /**
@@ -65,7 +65,7 @@ TEST_F(GrandpaTest, DISABLED_PendingChange) {
  */
 TEST_F(GrandpaTest, DISABLED_ForcedChange) {
   auto &&digest = createDigest();
-  ASSERT_TRUE(api_->forced_change(digest));
+  ASSERT_TRUE(api_->forced_change("block_hash"_hash256, digest));
 }
 
 /**

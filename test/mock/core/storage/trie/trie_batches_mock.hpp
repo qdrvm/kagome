@@ -56,12 +56,7 @@ namespace kagome::storage::trie {
                        outcome::result<boost::optional<common::Buffer>>(
                            const common::Buffer &));
 
-    // issue with gmock when mocks cannot return unique_ptr. Resolved as in
-    // https://stackoverflow.com/a/11548191
-    MOCK_METHOD0(trieCursorProxy, PolkadotTrieCursor *());
-    virtual std::unique_ptr<PolkadotTrieCursor> trieCursor() {
-      return std::unique_ptr<PolkadotTrieCursor>(trieCursorProxy());
-    }
+    MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
 
     MOCK_CONST_METHOD1(contains, bool(const common::Buffer &));
 
