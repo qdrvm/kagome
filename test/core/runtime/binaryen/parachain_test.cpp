@@ -51,7 +51,7 @@ class ParachainHostTest : public BinaryenRuntimeTest {
  * @then successful result is returned
  */
 TEST_F(ParachainHostTest, DISABLED_DutyRosterTest) {
-  ASSERT_TRUE(api_->duty_roster());
+  ASSERT_TRUE(api_->duty_roster("block_hash"_hash256));
 }
 
 /**
@@ -60,7 +60,7 @@ TEST_F(ParachainHostTest, DISABLED_DutyRosterTest) {
  * @then successful result is returned
  */
 TEST_F(ParachainHostTest, DISABLED_ActiveParachainsTest) {
-  ASSERT_TRUE(api_->active_parachains());
+  ASSERT_TRUE(api_->active_parachains("block_hash"_hash256));
 }
 
 /**
@@ -70,7 +70,7 @@ TEST_F(ParachainHostTest, DISABLED_ActiveParachainsTest) {
  */
 TEST_F(ParachainHostTest, DISABLED_ParachainHeadTest) {
   auto id = createParachainId();
-  ASSERT_TRUE(api_->parachain_head(id));
+  ASSERT_TRUE(api_->parachain_head("block_hash"_hash256, id));
 }
 
 /**
@@ -80,7 +80,7 @@ TEST_F(ParachainHostTest, DISABLED_ParachainHeadTest) {
  */
 TEST_F(ParachainHostTest, DISABLED_ParachainCodeTest) {
   auto id = createParachainId();
-  ASSERT_TRUE(api_->parachain_code(id));
+  ASSERT_TRUE(api_->parachain_code("block_hash"_hash256, id));
 }
 
 /**
@@ -89,5 +89,5 @@ TEST_F(ParachainHostTest, DISABLED_ParachainCodeTest) {
  * @then successful result is returned
  */
 TEST_F(ParachainHostTest, DISABLED_ValidatorsTest) {
-  ASSERT_TRUE(api_->validators());
+  ASSERT_TRUE(api_->validators("block_hash"_hash256));
 }

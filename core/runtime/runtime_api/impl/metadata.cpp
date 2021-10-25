@@ -20,10 +20,6 @@ namespace kagome::runtime {
 
   outcome::result<Metadata::OpaqueMetadata> MetadataImpl::metadata(
       const primitives::BlockHash &block_hash) {
-    auto header_res = block_header_repo_->getBlockHeader(block_hash);
-    if (not header_res.has_value()) {
-      return header_res.as_failure();
-    }
     return executor_->callAt<OpaqueMetadata>(block_hash,
                                              "Metadata_metadata");
   }

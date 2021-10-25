@@ -110,10 +110,11 @@ namespace kagome::api {
       EXPECT_CALL(*storage, getEphemeralBatchAt(_))
           .WillRepeatedly(testing::Invoke([this](auto &root) {
             auto batch = std::make_unique<EphemeralTrieBatchMock>();
-            EXPECT_CALL(*batch, trieCursorProxy())
-                .WillRepeatedly(
-                    Return(new storage::trie::PolkadotTrieCursorDummy(
-                        lex_sorted_vals)));
+            EXPECT_CALL(*batch, trieCursor())
+                .WillRepeatedly(testing::Invoke([this]() {
+                  return std::make_unique<
+                      storage::trie::PolkadotTrieCursorDummy>(lex_sorted_vals);
+                }));
             return batch;
           }));
     }
