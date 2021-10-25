@@ -30,14 +30,15 @@ TEST_F(HttpRequestTest, SunnyDayScenario) {
   ASSERT_NO_THROW(request = std::make_shared<HttpRequest>(++id));
 
   common::Buffer meta;
-  EXPECT_TRUE(request->init(HttpMethod::Get, "https://www.google.com/", meta));
+  EXPECT_TRUE(request->init(HttpMethod::Get, "http://www.google.com/", meta));
 
   {  // Add header
     auto r = request->addRequestHeader("X-Header", "ValueXHeader");
     EXPECT_TRUE(r.isSuccess());
   }
   {  // Add body
-    auto r = request->writeRequestBody(common::Buffer().put("ThisIsBody"), 1ms);
+    auto r =
+        request->writeRequestBody(common::Buffer().put("ThisIsBody"), 1000ms);
     EXPECT_TRUE(r.isSuccess());
   }
   {  // Finalize
