@@ -41,12 +41,12 @@ namespace kagome::blockchain {
     return map.put(value_lookup_key, value);
   }
 
-  outcome::result<common::Buffer> getWithPrefix(
+  outcome::result<boost::optional<common::Buffer>> getWithPrefix(
       const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(map, block_id));
-    return map.get(prependPrefix(key, prefix));
+    return map.tryGet(prependPrefix(key, prefix));
   }
 
   common::Buffer numberToIndexKey(primitives::BlockNumber n) {
@@ -81,15 +81,6 @@ namespace kagome::blockchain {
         .reserve(key.size() + 1)
         .putUint8(key_column)
         .put(key);
-  }
-
-  bool isNotFoundError(outcome::result<void> result) {
-    if (result) {
-      return false;
-    }
-
-    auto &&error = result.error();
-    return (error == storage::DatabaseError::NOT_FOUND);
   }
 
 }  // namespace kagome::blockchain

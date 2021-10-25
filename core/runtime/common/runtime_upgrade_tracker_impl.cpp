@@ -26,34 +26,45 @@ namespace kagome::runtime {
     return s >> d.block >> d.state;
   }
 
+  outcome::result<std::unique_ptr<RuntimeUpgradeTrackerImpl>>
+  RuntimeUpgradeTrackerImpl::create(
+      std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
+      std::shared_ptr<storage::BufferStorage> storage,
+      std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes) {
+    BOOST_ASSERT(header_repo);
+    BOOST_ASSERT(storage);
+    BOOST_ASSERT(code_substitutes);
+
+    OUTCOME_TRY(encoded_opt, storage->tryGet(storage::kRuntimeHashesLookupKey));
+
+    std::vector<RuntimeUpgradeData> saved_data {};
+    if (encoded_opt.has_value()) {
+      OUTCOME_TRY(
+          decoded,
+          scale::decode<std::vector<RuntimeUpgradeData>>(encoded_opt.value()));
+      saved_data = std::move(decoded);
+    }
+    return std::unique_ptr<RuntimeUpgradeTrackerImpl>{
+        new RuntimeUpgradeTrackerImpl(std::move(header_repo),
+                                      std::move(storage),
+                                      std::move(code_substitutes),
+                                      std::move(saved_data))};
+  }
+
   RuntimeUpgradeTrackerImpl::RuntimeUpgradeTrackerImpl(
       std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
       std::shared_ptr<storage::BufferStorage> storage,
-      const primitives::CodeSubstitutes &code_substitutes)
-      : header_repo_{std::move(header_repo)},
+      std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes,
+      std::vector<RuntimeUpgradeData> &&saved_data)
+      : runtime_upgrades_{std::move(saved_data)},
+        header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
-        code_substitutes_{code_substitutes},
-        logger_{log::createLogger("StorageCodeProvider", "runtime")} {
-    BOOST_ASSERT(header_repo_);
-    BOOST_ASSERT(storage_);
-    auto encoded_res = storage_->get(storage::kRuntimeHashesLookupKey);
-    if (encoded_res.has_value()) {
-      auto decoded_res =
-          scale::decode<decltype(runtime_upgrades_)>(encoded_res.value());
-      if (not decoded_res.has_value()) {
-        SL_ERROR(
-            logger_,
-            "Saved runtime hashes data structure is incorrect! Error is {}",
-            decoded_res.error());
-      } else {
-        runtime_upgrades_ = decoded_res.value();
-      }
-    }
-  }
+        code_substitutes_{std::move(code_substitutes)},
+        logger_{log::createLogger("StorageCodeProvider", "runtime")} {}
 
   bool RuntimeUpgradeTrackerImpl::hasCodeSubstitute(
       const kagome::primitives::BlockHash &hash) const {
-    return code_substitutes_.find(hash) != code_substitutes_.end();
+    return code_substitutes_->find(hash) != code_substitutes_->end();
   }
 
   bool RuntimeUpgradeTrackerImpl::isStateInChain(

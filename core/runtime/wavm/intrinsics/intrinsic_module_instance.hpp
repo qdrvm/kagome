@@ -31,6 +31,12 @@ namespace kagome::runtime::wavm {
         WAVM::Runtime::GCPointer<WAVM::Runtime::Instance> module_instance,
         std::shared_ptr<const CompartmentWrapper> compartment);
 
+    ~IntrinsicModuleInstance() {
+      // to free the instance before compartment and thus
+      // allow the compartment to clean up everything on its destruction
+      module_instance_ = nullptr;
+    }
+
     WAVM::Runtime::Memory *getExportedMemory() const;
     WAVM::Runtime::Function *getExportedFunction(
         const std::string &name, WAVM::IR::FunctionType const &type) const;

@@ -26,6 +26,7 @@
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
@@ -35,6 +36,7 @@
 #include "runtime/core_api_factory.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/runtime_environment_factory.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
@@ -50,56 +52,14 @@ class RuntimeTestBase : public ::testing::Test {
   using BlockHeader = kagome::primitives::BlockHeader;
   using Extrinsic = kagome::primitives::Extrinsic;
   using Digest = kagome::primitives::Digest;
+  using PersistentTrieBatchMock =
+      kagome::storage::trie::PersistentTrieBatchMock;
+  using EphemeralTrieBatchMock = kagome::storage::trie::EphemeralTrieBatchMock;
+  using TopperTrieBatchMock = kagome::storage::trie::TopperTrieBatchMock;
 
   void initStorage() {
-    using kagome::storage::trie::EphemeralTrieBatchMock;
     using kagome::storage::trie::PersistentTrieBatch;
-    using kagome::storage::trie::PersistentTrieBatchMock;
     using kagome::storage::trie::TopperTrieBatchMock;
-
-    batch_mock_ = std::make_shared<PersistentTrieBatchMock>();
-    ON_CALL(*batch_mock_, get(_)).WillByDefault(testing::Invoke([](auto &key) {
-      return kagome::common::Buffer();
-    }));
-    ON_CALL(*batch_mock_, put(_, _))
-        .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*batch_mock_, remove(_))
-        .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*batch_mock_, clearPrefix(_, _))
-        .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*batch_mock_, batchOnTop()).WillByDefault(testing::Invoke([] {
-      return std::make_unique<TopperTrieBatchMock>();
-    }));
-    ON_CALL(*batch_mock_, trieCursor()).WillByDefault(testing::Invoke([] {
-      auto cursor =
-          std::make_unique<kagome::storage::trie::PolkadotTrieCursorMock>();
-      ON_CALL(*cursor, seekUpperBound(_))
-          .WillByDefault(Return(outcome::success()));
-      return cursor;
-    }));
-    storage_provider_ =
-        std::make_shared<kagome::runtime::TrieStorageProviderMock>();
-    ON_CALL(*storage_provider_, getCurrentBatch())
-        .WillByDefault(testing::Return(batch_mock_));
-    ON_CALL(*storage_provider_, tryGetPersistentBatch())
-        .WillByDefault(testing::Invoke(
-            [&]() -> boost::optional<std::shared_ptr<PersistentTrieBatch>> {
-              return std::shared_ptr<PersistentTrieBatch>(batch_mock_);
-            }));
-    ON_CALL(*storage_provider_, setToPersistent())
-        .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*storage_provider_, setToPersistentAt("genesis state root"_hash256))
-        .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*storage_provider_, setToEphemeral())
-        .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*storage_provider_, setToEphemeralAt("genesis state root"_hash256))
-        .WillByDefault(testing::Return(outcome::success()));
-    ON_CALL(*storage_provider_, rollbackTransaction())
-        .WillByDefault(testing::Return(
-            outcome::failure(kagome::runtime::RuntimeTransactionError::
-                                 NO_TRANSACTIONS_WERE_STARTED)));
-    ON_CALL(*storage_provider_, getLatestRootMock())
-        .WillByDefault(testing::Return("42"_hash256));
 
     auto random_generator =
         std::make_shared<kagome::crypto::BoostRandomGenerator>();
@@ -136,15 +96,15 @@ class RuntimeTestBase : public ::testing::Test {
         crypto_store,
         bip39_provider);
 
-    header_repo_ =
-        std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
+    header_repo_ = std::make_shared<
+        testing::NiceMock<kagome::blockchain::BlockHeaderRepositoryMock>>();
 
-    EXPECT_CALL(*header_repo_, getHashByNumber(0))
-        .WillRepeatedly(testing::Return("genesis hash"_hash256));
+    ON_CALL(*header_repo_, getHashByNumber(0))
+        .WillByDefault(testing::Return("genesis_hash"_hash256));
     EXPECT_CALL(*header_repo_,
                 getBlockHeader(testing::AnyOf(
                     kagome::primitives::BlockId{0},
-                    kagome::primitives::BlockId{"genesis hash"_hash256})))
+                    kagome::primitives::BlockId{"genesis_hash"_hash256})))
         .WillRepeatedly(testing::Return(kagome::primitives::BlockHeader{
             .parent_hash = {},
             .number = 0,
@@ -153,113 +113,118 @@ class RuntimeTestBase : public ::testing::Test {
             .digest = {}}));
   }
 
-  struct ImplementationSpecificRuntimeClasses {
-    std::shared_ptr<kagome::runtime::ModuleFactory> module_factory_;
-    std::shared_ptr<kagome::runtime::ExecutorFactory> core_api_factory_;
-    std::shared_ptr<kagome::runtime::MemoryProvider> memory_provider_;
-    std::shared_ptr<kagome::host_api::HostApi> host_api_;
-  };
-
-  virtual ImplementationSpecificRuntimeClasses getImplementationSpecific() = 0;
+  virtual std::shared_ptr<kagome::runtime::ModuleFactory>
+  createModuleFactory() = 0;
 
   void SetUp() override {
     initStorage();
+    trie_storage_ = std::make_shared<kagome::storage::trie::TrieStorageMock>();
 
-    auto &&[module_factory, core_api_factory, memory_provider, host_api] =
-        getImplementationSpecific();
+    auto module_factory = createModuleFactory();
 
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/sub2dev.wasm";
     wasm_provider_ =
         std::make_shared<kagome::runtime::BasicCodeProvider>(wasm_path);
 
-    auto upgrade_tracker =
-        std::make_shared<kagome::runtime::RuntimeUpgradeTrackerImpl>(
-            header_repo_);
+    std::shared_ptr<kagome::runtime::RuntimeUpgradeTrackerImpl>
+        upgrade_tracker =
+            kagome::runtime::RuntimeUpgradeTrackerImpl::create(
+                header_repo_,
+                std::make_shared<kagome::storage::InMemoryStorage>(),
+                std::make_shared<kagome::primitives::CodeSubstitutes>())
+                .value();
 
     auto module_repo = std::make_shared<kagome::runtime::ModuleRepositoryImpl>(
         upgrade_tracker, module_factory);
 
     runtime_env_factory_ =
         std::make_shared<kagome::runtime::RuntimeEnvironmentFactory>(
-            storage_provider_,
-            host_api,
-            std::move(memory_provider),
-            std::move(wasm_provider_),
-            std::move(module_repo),
-            header_repo_);
+            std::move(wasm_provider_), std::move(module_repo), header_repo_);
 
     executor_ = std::make_shared<kagome::runtime::Executor>(
         header_repo_, runtime_env_factory_);
   }
 
   void preparePersistentStorageExpects() {
-    EXPECT_CALL(*storage_provider_, setToPersistentAt(_));
-    EXPECT_CALL(*storage_provider_, tryGetPersistentBatch());
-    prepareCommonStorageExpects();
+    EXPECT_CALL(*trie_storage_, getPersistentBatchAt(_))
+        .WillOnce(testing::Invoke([this](auto &root) {
+          auto batch = std::make_unique<PersistentTrieBatchMock>();
+          prepareStorageBatchExpectations(*batch);
+          return batch;
+        }));
   }
 
   void prepareEphemeralStorageExpects() {
-    EXPECT_CALL(*storage_provider_, setToEphemeralAt(_));
-    prepareCommonStorageExpects();
+    EXPECT_CALL(*trie_storage_, getEphemeralBatchAt(_))
+        .WillOnce(testing::Invoke([this](auto &root) {
+          auto batch = std::make_unique<EphemeralTrieBatchMock>();
+          prepareStorageBatchExpectations(*batch);
+          return batch;
+        }));
   }
 
-  kagome::primitives::BlockHeader createBlockHeader() {
-    kagome::common::Hash256 parent_hash = "genesis hash"_hash256;
+  template <typename BatchMock>
+  void prepareStorageBatchExpectations(BatchMock &batch) {
+    ON_CALL(batch, get(_)).WillByDefault(testing::Invoke([](auto &key) {
+      return kagome::common::Buffer();
+    }));
+    ON_CALL(batch, put(_, _))
+        .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(batch, remove(_))
+        .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(batch, clearPrefix(_, _))
+        .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(batch, trieCursor()).WillByDefault(testing::Invoke([] {
+      auto cursor =
+          std::make_unique<kagome::storage::trie::PolkadotTrieCursorMock>();
+      ON_CALL(*cursor, seekUpperBound(_))
+          .WillByDefault(Return(outcome::success()));
+      return cursor;
+    }));
+    auto heappages_key = ":heappages"_buf;
+    EXPECT_CALL(batch, get(heappages_key));
+  }
 
-    kagome::primitives::BlockNumber number = 1;
+  kagome::primitives::BlockHeader createBlockHeader(
+      kagome::primitives::BlockHash const &hash,
+      kagome::primitives::BlockNumber number) {
+    kagome::common::Hash256 parent_hash = "genesis_hash"_hash256;
 
-    kagome::common::Hash256 state_root;
-    state_root.fill('s');
+    kagome::common::Hash256 state_root = "state_root"_hash256;
 
-    kagome::common::Hash256 extrinsics_root;
-    extrinsics_root.fill('e');
+    kagome::common::Hash256 extrinsics_root = "extrinsics_root"_hash256;
 
     Digest digest{};
 
-    // runtime checks the correctness of the parent hash
-    auto parent_number_enc = kagome::scale::encode(number - 1).value();
-    ON_CALL(
-        *batch_mock_,
-        get(Buffer{hasher_->twox_64(parent_number_enc)}.putUint32(number - 1)))
-        .WillByDefault(testing::Invoke([parent_hash](auto &) {
-          std::cerr << "Get the parent root";
-          return Buffer{parent_hash};
-        }));
     ON_CALL(*header_repo_, getHashByNumber(number))
-        .WillByDefault(testing::Return(parent_hash));
-    ON_CALL(*header_repo_, getNumberByHash(parent_hash))
+        .WillByDefault(testing::Return(hash));
+    ON_CALL(*header_repo_, getNumberByHash(hash))
         .WillByDefault(testing::Return(number));
 
-    return BlockHeader{
+    BlockHeader header{
         parent_hash, number, state_root, extrinsics_root, digest};
+    EXPECT_CALL(*header_repo_, getBlockHeader(testing::AnyOf(hash, number)))
+        .WillRepeatedly(testing::Return(header));
+    return header;
   }
 
-  kagome::primitives::Block createBlock() {
-    auto header = createBlockHeader();
+  kagome::primitives::Block createBlock(
+      kagome::primitives::BlockHash const &hash,
+      kagome::primitives::BlockNumber number) {
+    auto header = createBlockHeader(hash, number);
 
     std::vector<Extrinsic> xts;
 
     return Block{header, xts};
   }
 
- private:
-  void prepareCommonStorageExpects() {
-    auto heappages_key_res =
-        kagome::common::Buffer::fromString(std::string(":heappages"));
-    if (not heappages_key_res.has_value()) {
-      GTEST_FAIL() << heappages_key_res.error().message();
-    }
-    auto &&heappages_key = heappages_key_res.value();
-    EXPECT_CALL(*storage_provider_, getCurrentBatch());
-    EXPECT_CALL(*batch_mock_, get(heappages_key));
-  }
-
  protected:
-  std::shared_ptr<kagome::blockchain::BlockHeaderRepositoryMock> header_repo_;
-  std::shared_ptr<kagome::runtime::TrieStorageProviderMock> storage_provider_;
-  std::shared_ptr<kagome::storage::trie::PersistentTrieBatchMock> batch_mock_;
+  std::shared_ptr<
+      testing::NiceMock<kagome::blockchain::BlockHeaderRepositoryMock>>
+      header_repo_;
   std::shared_ptr<kagome::runtime::RuntimeCodeProvider> wasm_provider_;
+  std::shared_ptr<kagome::storage::trie::TrieStorageMock> trie_storage_;
   std::shared_ptr<kagome::runtime::RuntimeEnvironmentFactory>
       runtime_env_factory_;
   std::shared_ptr<kagome::runtime::Executor> executor_;

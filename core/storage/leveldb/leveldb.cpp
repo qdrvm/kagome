@@ -81,7 +81,7 @@ namespace kagome::storage {
       return Buffer{}.put(value);
     }
 
-    return status_as_error(status, logger_);
+    return status_as_error(status);
   }
 
   outcome::result<boost::optional<Buffer>> LevelDB::tryGet(
@@ -97,12 +97,10 @@ namespace kagome::storage {
       return boost::none;
     }
 
-    return status_as_error(status, logger_);
+    return status_as_error(status);
   }
 
   bool LevelDB::contains(const Buffer &key) const {
-    // here we interpret all kinds of errors as "not found".
-    // TODO(Harrm): for review: might it be better to throw?
     return get(key).has_value();
   }
 
@@ -118,7 +116,7 @@ namespace kagome::storage {
       return outcome::success();
     }
 
-    return status_as_error(status, logger_);
+    return status_as_error(status);
   }
 
   outcome::result<void> LevelDB::put(const Buffer &key, Buffer &&value) {
@@ -132,7 +130,7 @@ namespace kagome::storage {
       return outcome::success();
     }
 
-    return status_as_error(status, logger_);
+    return status_as_error(status);
   }
 
   void LevelDB::compact(const Buffer &first, const Buffer &last) {
