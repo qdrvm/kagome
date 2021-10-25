@@ -21,9 +21,6 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     echo \
       "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
       bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
-    add-apt-repository -y "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-12 main" && \
-    #add-apt-repository -y "deb-src http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-12 main" && \
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
         docker-ce-cli \
@@ -31,8 +28,6 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         build-essential \
         gcc-9 \
         g++-9 \
-        gcc-10 \
-        g++-10 \
         llvm-9-dev \
         clang-9 \
         clang-tidy-9 \
