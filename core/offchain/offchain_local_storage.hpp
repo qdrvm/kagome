@@ -10,7 +10,7 @@
 
 namespace kagome::offchain {
 
-  class OffchainLocalStorage : public virtual OffchainStorage {};
+  class OffchainLocalStorage : public OffchainStorage {};
 
 }  // namespace kagome::offchain
 

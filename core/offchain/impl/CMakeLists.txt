@@ -3,21 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(offchain_storage
-    offchain_storage_impl.cpp
+add_library(offchain_persistent_storage
+    offchain_persistent_storage.cpp
     )
-target_link_libraries(offchain_storage
+target_link_libraries(offchain_persistent_storage
     hasher
     scale
     leveldb
-    )
-kagome_install(offchain_storage)
-
-add_library(offchain_persistent_storage
-    offchain_storage_impl.cpp
-    )
-target_link_libraries(offchain_persistent_storage
-    offchain_storage
     )
 kagome_install(offchain_persistent_storage)
 
@@ -25,7 +17,9 @@ add_library(offchain_local_storage
     offchain_local_storage.cpp
     )
 target_link_libraries(offchain_local_storage
-    offchain_storage
+    hasher
+    scale
+    leveldb
     )
 kagome_install(offchain_local_storage)
 

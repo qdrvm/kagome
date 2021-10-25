@@ -38,7 +38,7 @@ namespace kagome::offchain {
         header_(header),
         log_(log::createLogger(
             "OffchainWorker#" + std::to_string(header_.number),
-            "offchain_worker_api")) {
+            "offchain")) {
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(storage);
