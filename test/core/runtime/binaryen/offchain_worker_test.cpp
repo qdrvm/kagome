@@ -21,7 +21,7 @@ namespace fs = boost::filesystem;
 class OffchainWorkerTest : public BinaryenRuntimeTest {
   using OffchainWorker = kagome::runtime::OffchainWorker;
   using OffchainWorkerImpl = kagome::runtime::OffchainWorkerImpl;
-  using BlockNumber = kagome::primitives::BlockNumber;
+  using BlockInfo = kagome::primitives::BlockInfo;
 
  public:
   void SetUp() override {
@@ -30,8 +30,8 @@ class OffchainWorkerTest : public BinaryenRuntimeTest {
     api_ = std::make_shared<OffchainWorkerImpl>(executor_);
   }
 
-  BlockNumber createBlockNumber() const {
-    return BlockNumber{0u};
+  BlockInfo createBlockInfo() const {
+    return BlockInfo{0u, "block_hash"_hash256};
   }
 
  protected:
@@ -44,5 +44,5 @@ class OffchainWorkerTest : public BinaryenRuntimeTest {
  * @then successful result is returned
  */
 TEST_F(OffchainWorkerTest, DISABLED_OffchainWorkerCallSuccess) {
-  ASSERT_TRUE(api_->offchain_worker(createBlockNumber()));
+  ASSERT_TRUE(api_->offchain_worker(createBlockInfo()));
 }

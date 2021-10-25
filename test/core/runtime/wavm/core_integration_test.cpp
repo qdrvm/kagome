@@ -12,6 +12,7 @@
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
 #include "runtime/wavm/memory_impl.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
@@ -21,6 +22,7 @@ using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
+using kagome::primitives::BlockHash;
 using kagome::primitives::Extrinsic;
 using kagome::runtime::CoreImpl;
 using kagome::runtime::Memory;
@@ -40,13 +42,8 @@ class CoreTest : public WavmRuntimeTest {
   void SetUp() override {
     WavmRuntimeTest::SetUp();
 
-    auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
-    EXPECT_CALL(*header_repo, getBlockHeader(_))
-        .WillRepeatedly(Return(kagome::primitives::BlockHeader{}));
-    EXPECT_CALL(*storage_provider_, rollbackTransaction());
-
     core_ =
-        std::make_shared<CoreImpl>(executor_, changes_tracker_, header_repo);
+        std::make_shared<CoreImpl>(executor_, changes_tracker_, header_repo_);
   }
 
  protected:
@@ -68,9 +65,10 @@ TEST_F(CoreTest, DISABLED_VersionTest) {
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
-  auto block = createBlock();
-  EXPECT_CALL(*changes_tracker_,
-              onBlockChange(block.header.parent_hash, block.header.number - 1))
+  auto block = createBlock("block_hash"_hash256, 42);
+  EXPECT_CALL(
+      *changes_tracker_,
+      onBlockExecutionStart(block.header.parent_hash, block.header.number - 1))
       .WillOnce(Return(outcome::success()));
 
   ASSERT_TRUE(core_->execute_block(block));
@@ -82,9 +80,9 @@ TEST_F(CoreTest, DISABLED_ExecuteBlockTest) {
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
-  auto header = createBlockHeader();
+  auto header = createBlockHeader("block_hash"_hash256, 42);
   EXPECT_CALL(*changes_tracker_,
-              onBlockChange(header.parent_hash, header.number - 1))
+              onBlockExecutionStart(header.parent_hash, header.number - 1))
       .WillOnce(Return(outcome::success()));
 
   ASSERT_TRUE(core_->initialize_block(header));
@@ -96,6 +94,6 @@ TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_AuthoritiesTest) {
-  BlockId block_id = 0;
-  ASSERT_TRUE(core_->authorities(block_id));
+  BlockHash block_hash= "block_hash"_hash256;
+  ASSERT_TRUE(core_->authorities(block_hash));
 }

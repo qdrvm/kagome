@@ -13,8 +13,7 @@
 #include "mock/core/host_api/host_api_factory_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/binaryen_wasm_memory_factory_mock.hpp"
-#include "mock/core/runtime/core_api_provider_mock.hpp"
-#include "mock/core/runtime/core_factory_mock.hpp"
+#include "mock/core/runtime/core_api_factory_mock.hpp"
 #include "mock/core/runtime/memory_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/module_repository_mock.hpp"
@@ -35,7 +34,7 @@ using kagome::host_api::HostApi;
 using kagome::host_api::HostApiFactoryMock;
 using kagome::host_api::HostApiMock;
 using kagome::runtime::ConstantCodeProvider;
-using kagome::runtime::CoreApiProviderMock;
+using kagome::runtime::CoreApiFactoryMock;
 using kagome::runtime::MemoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::ModuleRepositoryMock;
@@ -49,7 +48,6 @@ using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
 using kagome::runtime::binaryen::BinaryenWasmMemoryFactoryMock;
-using kagome::runtime::binaryen::CoreFactoryMock;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using wasm::Element;
 using wasm::Module;
@@ -91,17 +89,14 @@ class REITest : public ::testing::Test {
     host_api_ = std::make_unique<HostApiMock>();
     host_api_factory_ = std::make_shared<HostApiFactoryMock>();
     storage_provider_ = std::make_shared<TrieStorageProviderMock>();
-    core_api_provider_ = std::make_shared<CoreApiProviderMock>();
+    core_api_factory_ = std::make_shared<CoreApiFactoryMock>();
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     auto code_provider =
         std::make_shared<ConstantCodeProvider>(kagome::common::Buffer{});
     auto module_repo = std::make_shared<ModuleRepositoryMock>();
     auto header_repo = std::make_shared<BlockHeaderRepositoryMock>();
     runtime_env_factory_ =
-        std::make_shared<RuntimeEnvironmentFactoryMock>(storage_provider_,
-                                                        host_api_,
-                                                        memory_provider_,
-                                                        code_provider,
+        std::make_shared<RuntimeEnvironmentFactoryMock>(code_provider,
                                                         module_repo,
                                                         header_repo);
   }
@@ -130,7 +125,7 @@ class REITest : public ::testing::Test {
 
  protected:
   std::shared_ptr<MemoryMock> memory_;
-  std::shared_ptr<CoreApiProviderMock> core_api_provider_;
+  std::shared_ptr<CoreApiFactoryMock> core_api_factory_;
   std::shared_ptr<RuntimeEnvironmentFactoryMock> runtime_env_factory_;
   std::shared_ptr<HostApiMock> host_api_;
   std::shared_ptr<HostApiFactoryMock> host_api_factory_;

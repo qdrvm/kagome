@@ -6,11 +6,12 @@
 #ifndef KAGOME_TEST_MOCK_CORE_RUNTIME_CORE_API_FACTORY_MOCK_HPP
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_CORE_API_FACTORY_MOCK_HPP
 
-#include "runtime/core_api_factory_impl.hpp"
+#include "runtime/core_api_factory.hpp"
 
 #include <gmock/gmock.h>
 
 #include "runtime/executor.hpp"
+#include "runtime/runtime_api/core.hpp"
 
 namespace kagome::runtime {
 

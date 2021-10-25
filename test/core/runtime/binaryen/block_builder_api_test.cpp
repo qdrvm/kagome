@@ -16,6 +16,7 @@
 
 using kagome::common::Buffer;
 using kagome::host_api::HostApiImpl;
+using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilder;
@@ -49,8 +50,9 @@ class BlockBuilderApiTest : public BinaryenRuntimeTest {
  */
 TEST_F(BlockBuilderApiTest, CheckInherents) {
   prepareEphemeralStorageExpects();
-  EXPECT_OUTCOME_TRUE_1(
-      builder_->check_inherents(createBlock(), InherentData{}))
+  SCOPED_TRACE("CheckInherents");
+  EXPECT_OUTCOME_TRUE_1(builder_->check_inherents(
+      createBlock("block_42"_hash256, 42), InherentData{}))
 }
 
 /**
@@ -61,7 +63,10 @@ TEST_F(BlockBuilderApiTest, CheckInherents) {
  */
 TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   preparePersistentStorageExpects();
-  EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}))
+  createBlock("block_hash_43"_hash256, 43);
+  EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(BlockInfo{43, "block_hash_43"_hash256},
+                                "state_root"_hash256,
+                                Extrinsic{Buffer{1, 2, 3}}));
 }
 
 /**
@@ -70,8 +75,8 @@ TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderApiTest,
-       DISABLED_RandomSeed){EXPECT_OUTCOME_FALSE_1(builder_->random_seed())}
+TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed){
+    EXPECT_OUTCOME_FALSE_1(builder_->random_seed("block_hash"_hash256))}
 
 /**
  * @given block builder
@@ -81,7 +86,11 @@ TEST_F(BlockBuilderApiTest,
  */
 TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
   prepareEphemeralStorageExpects();
-  EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(InherentData{}))
+  createBlock("block_hash_44"_hash256, 44);
+  EXPECT_OUTCOME_FALSE_1(
+      builder_->inherent_extrinsics(BlockInfo{44, "block_hash_44"_hash256},
+                                    "state_root"_hash256,
+                                    InherentData{}))
 }
 
 /**
@@ -91,5 +100,8 @@ TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
  * were valid
  */
 TEST_F(BlockBuilderApiTest, DISABLED_FinalizeBlock) {
-  EXPECT_OUTCOME_FALSE_1(builder_->finalize_block())
+  preparePersistentStorageExpects();
+  createBlock("block_hash"_hash256, 42);
+  EXPECT_OUTCOME_FALSE_1(builder_->finalize_block(
+      BlockInfo{42, "block_hash"_hash256}, "state_root"_hash256))
 }

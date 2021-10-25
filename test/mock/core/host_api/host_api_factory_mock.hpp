@@ -19,7 +19,7 @@ namespace kagome::host_api {
     MOCK_CONST_METHOD3(
         make,
         std::unique_ptr<HostApi>(
-            std::shared_ptr<const runtime::ExecutorFactory> core_provider,
+            std::shared_ptr<const runtime::CoreApiFactory> core_provider,
             std::shared_ptr<const runtime::MemoryProvider> memory_provider,
             std::shared_ptr<runtime::TrieStorageProvider> storage));
   };

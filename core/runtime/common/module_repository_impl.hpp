@@ -8,6 +8,7 @@
 
 #include "runtime/module_repository.hpp"
 
+#include <thread>
 #include <unordered_map>
 
 #include "log/logger.hpp"
@@ -101,15 +102,17 @@ namespace kagome::runtime {
    private:
     static constexpr size_t MODULES_CACHE_SIZE = 2;
     static constexpr size_t INSTANCES_CACHE_SIZE = 2;
+    using ModuleCache =
+        SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>>;
+    using InstanceCache =
+        SmallLruCache<storage::trie::RootHash, std::shared_ptr<ModuleInstance>>;
 
-    SmallLruCache<storage::trie::RootHash, std::shared_ptr<Module>> modules_;
+    ModuleCache modules_;
     std::mutex modules_mutex_;
 
-    static thread_local SmallLruCache<storage::trie::RootHash,
-                                      std::shared_ptr<ModuleInstance>>
-        instances_cache_;
-
     std::mutex instances_mutex_;
+    std::unordered_map<std::thread::id, InstanceCache> instances_cache_;
+
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const ModuleFactory> module_factory_;
     log::Logger logger_;

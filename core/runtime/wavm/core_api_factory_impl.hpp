@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WAVM_CORE_API_PROVIDER_HPP
 #define KAGOME_CORE_RUNTIME_WAVM_CORE_API_PROVIDER_HPP
 
-#include "runtime/core_api_factory_impl.hpp"
+#include "runtime/core_api_factory.hpp"
 
 #include <memory>
 
