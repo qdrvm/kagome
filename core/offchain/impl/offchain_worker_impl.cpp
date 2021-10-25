@@ -37,8 +37,7 @@ namespace kagome::offchain {
         executor_(std::move(executor)),
         header_(header),
         log_(log::createLogger(
-            "OffchainWorker#" + std::to_string(header_.number),
-            "offchain")) {
+            "OffchainWorker#" + std::to_string(header_.number), "offchain")) {
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(storage);
@@ -154,8 +153,16 @@ namespace kagome::offchain {
     switch (storage_type) {
       case StorageType::Persistent:
         return *persistent_storage_;
+
       case StorageType::Local:
+        // TODO(xDimon):
+        //  Need to implemented as soon as it will implemented in Substrate.
+        //  Specification in not enough to implement it now.
+        SL_WARN(
+            log_,
+            "Attempt to use off-chain local storage which unavailable yet.");
         return *local_storage_;
+
       case StorageType::Undefined:
       default:
         BOOST_UNREACHABLE_RETURN({});

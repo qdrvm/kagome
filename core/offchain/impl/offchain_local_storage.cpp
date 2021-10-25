@@ -19,15 +19,23 @@ namespace kagome::offchain {
 
   outcome::result<void> OffchainLocalStorageImpl::set(const common::Buffer &key,
                                                       common::Buffer value) {
-    std::lock_guard lg(mutex_);
+    // TODO(xDimon):
+    //  Need to implemented as soon as it will implemented in Substrate.
+    //  Specification in not enough to implement it now.
+    throw std::invalid_argument("Off-chain local storage is unavailable yet");
 
+    std::lock_guard lg(mutex_);
     return storage_->put(key, std::move(value));
   }
 
   outcome::result<void> OffchainLocalStorageImpl::clear(
       const common::Buffer &key) {
-    std::lock_guard lg(mutex_);
+    // TODO(xDimon):
+    //  Need to implemented as soon as it will implemented in Substrate.
+    //  Specification in not enough to implement it now.
+    throw std::invalid_argument("Off-chain local storage is unavailable yet");
 
+    std::lock_guard lg(mutex_);
     return storage_->remove(key);
   }
 
@@ -35,8 +43,12 @@ namespace kagome::offchain {
       const common::Buffer &key,
       boost::optional<const common::Buffer &> expected,
       common::Buffer value) {
-    std::lock_guard lg(mutex_);
+    // TODO(xDimon):
+    //  Need to implemented as soon as it will implemented in Substrate.
+    //  Specification in not enough to implement it now.
+    throw std::invalid_argument("Off-chain local storage is unavailable yet");
 
+    std::lock_guard lg(mutex_);
     auto get_res = storage_->get(key);
     if (get_res.has_error()) {
       if (get_res != outcome::failure(storage::DatabaseError::NOT_FOUND)) {
@@ -61,6 +73,11 @@ namespace kagome::offchain {
 
   outcome::result<common::Buffer> OffchainLocalStorageImpl::get(
       const common::Buffer &key) {
+    // TODO(xDimon):
+    //  Need to implemented as soon as it will implemented in Substrate.
+    //  Specification in not enough to implement it now.
+    throw std::invalid_argument("Off-chain local storage is unavailable yet");
+
     return storage_->get(key);
   }
 }  // namespace kagome::offchain
