@@ -79,5 +79,7 @@ target_link_libraries(offchain_extension
     buffer
     blob
     logger
+    p2p::p2p_peer_id
+    p2p::p2p_multiaddress
     )
 kagome_install(offchain_extension)

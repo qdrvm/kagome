@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-#include <runtime/wavm/wavm_external_memory_provider.hpp>
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/crypto_store/crypto_store_impl.hpp"
@@ -18,6 +17,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/offchain/offchain_persistent_storage_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "runtime/common/module_repository_impl.hpp"
@@ -25,11 +25,12 @@
 #include "runtime/executor.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/core_api_factory_impl.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
-#include "runtime/wavm/instance_environment_factory.hpp"
+#include "runtime/wavm/wavm_external_memory_provider.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
@@ -99,8 +100,7 @@ class WasmExecutorTest : public ::testing::Test {
             trie_factory, codec, serializer, boost::none)
             .value();
 
-    storage_provider_ =
-        std::make_shared<TrieStorageProviderImpl>(trie_db);
+    storage_provider_ = std::make_shared<TrieStorageProviderImpl>(trie_db);
 
     auto random_generator = std::make_shared<BoostRandomGenerator>();
     auto sr25519_provider =
@@ -121,6 +121,8 @@ class WasmExecutorTest : public ::testing::Test {
         KeyFileStorage::createAt(keystore_path).value());
     auto changes_tracker =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
+    auto offchain_persistent_storage =
+        std::make_shared<kagome::offchain::OffchainPersistentStorageMock>();
     auto host_api_factory =
         std::make_shared<kagome::host_api::HostApiFactoryImpl>(
             std::make_shared<ChangesTrackerMock>(),
@@ -129,7 +131,8 @@ class WasmExecutorTest : public ::testing::Test {
             secp256k1_provider,
             hasher,
             crypto_store,
-            bip39_provider);
+            bip39_provider,
+            offchain_persistent_storage);
 
     header_repo_ =
         std::make_shared<kagome::blockchain::BlockHeaderRepositoryMock>();
@@ -146,13 +149,14 @@ class WasmExecutorTest : public ::testing::Test {
             intrinsic_module->instantiate());
     runtime_upgrade_tracker_ =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerMock>();
-    auto instance_env_factory = std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
-        trie_db,
-        compartment_wrapper,
-        intrinsic_module,
-        host_api_factory,
-        header_repo_,
-        changes_tracker);
+    auto instance_env_factory =
+        std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
+            trie_db,
+            compartment_wrapper,
+            intrinsic_module,
+            host_api_factory,
+            header_repo_,
+            changes_tracker);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
@@ -172,10 +176,8 @@ class WasmExecutorTest : public ::testing::Test {
         std::shared_ptr<kagome::host_api::HostApi>{host_api_factory->make(
             core_provider, memory_provider, storage_provider_)};
 
-    auto env_factory =
-        std::make_shared<RuntimeEnvironmentFactory>(wasm_provider_,
-                                                    module_repo,
-                                                    header_repo_);
+    auto env_factory = std::make_shared<RuntimeEnvironmentFactory>(
+        wasm_provider_, module_repo, header_repo_);
     executor_ = std::make_shared<Executor>(header_repo_, env_factory);
   }
 
