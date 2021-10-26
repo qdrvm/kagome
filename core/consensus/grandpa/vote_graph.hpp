@@ -90,6 +90,12 @@ namespace kagome::consensus::grandpa {
     virtual outcome::result<void> insert(const BlockInfo &block,
                                          const VoteWeight &vote) = 0;
 
+    /// Remove a prevote of voter presented by {@param index}
+    virtual void removePrevote(size_t index) = 0;
+
+    /// Remove a precommit of voter presented by {@param index}
+    virtual void removePrecommit(size_t index) = 0;
+
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
     virtual boost::optional<BlockInfo> findAncestor(

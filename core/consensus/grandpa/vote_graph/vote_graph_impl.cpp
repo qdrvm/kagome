@@ -111,6 +111,26 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
+  void VoteGraphImpl::removePrevote(size_t index) {
+    for (auto &[_, entry] : entries_) {
+      auto &votes = entry.cumulative_vote;
+      if (votes.prevotes.size() > index) {
+        votes.prevotes_sum -= votes.prevotes[index];
+        votes.prevotes[index] = 0;
+      }
+    }
+  }
+
+  void VoteGraphImpl::removePrecommit(size_t index) {
+    for (auto &[_, entry] : entries_) {
+      auto &votes = entry.cumulative_vote;
+      if (votes.precommits.size() > index) {
+        votes.precommits_sum -= votes.precommits[index];
+        votes.precommits[index] = 0;
+      }
+    }
+  }
+
   outcome::result<void> VoteGraphImpl::append(const BlockInfo &block) {
     if (base_.hash == block.hash) {
       return outcome::success();
@@ -181,7 +201,7 @@ namespace kagome::consensus::grandpa {
       BOOST_ASSERT(entry.ancestors.begin() + offset_size
                    < entry.ancestors.end());
 
-      if (!filled) {
+      if (not filled) {
         // `[offset_size..end)` elements
         new_entry.ancestors = std::vector<BlockHash>{
             entry.ancestors.begin() + offset_size, entry.ancestors.end()};
@@ -250,7 +270,7 @@ namespace kagome::consensus::grandpa {
     }
 
     Entry active_node = entries_.at(node_key);
-    if (!condition(active_node.cumulative_vote)) {
+    if (not condition(active_node.cumulative_vote)) {
       return boost::none;
     }
 
@@ -313,7 +333,7 @@ namespace kagome::consensus::grandpa {
       const Comparator &comparator) const {
     auto descendants = active_node.descendants;
     filter_if(descendants, [&](const BlockHash &hash) {
-      if (!force_constrain) {
+      if (not force_constrain) {
         return true;
       }
       return inDirectAncestry(
@@ -360,7 +380,7 @@ namespace kagome::consensus::grandpa {
         }
       }
 
-      if (!new_best) {
+      if (not new_best) {
         break;
       }
 
@@ -450,7 +470,7 @@ namespace kagome::consensus::grandpa {
     // search backwards until we find the first vote-node that
     // meets the condition.
     Entry active_node = entries_.at(node_key);
-    while (!condition(active_node.cumulative_vote)) {
+    while (not condition(active_node.cumulative_vote)) {
       auto ancestorIt = active_node.ancestors.rbegin();
       if (ancestorIt == active_node.ancestors.rend()) {
         return boost::none;

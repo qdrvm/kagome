@@ -22,19 +22,11 @@ namespace kagome::consensus::grandpa {
   class VoteWeight : public boost::equality_comparable<VoteWeight>,
                      public boost::less_than_comparable<VoteWeight> {
    public:
-    /**
-     * Get total weight of current vote's weight
-     * @param prevotes_equivocators describes peers which equivocated (voted
-     * twice for different block) during prevote. Index in vector corresponds to
-     * the authority index of the peer. Bool is true if peer equivocated, false
-     * otherwise
-     * @param precommits_equivocators same for precommits
-     * @param voter_set list of peers with their weight
-     * @return totol weight of current vote's weight
-     */
-    TotalWeight totalWeight(const std::vector<bool> &prevotes_equivocators,
-                            const std::vector<bool> &precommits_equivocators,
-                            const std::shared_ptr<VoterSet> &voter_set) const;
+    using Weight = size_t;
+
+    template <typename T>
+    Weight total(const std::vector<bool> &equivocators,
+                 const VoterSet &voter_set) const;
 
     VoteWeight &operator+=(const VoteWeight &vote);
 

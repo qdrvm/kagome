@@ -20,6 +20,7 @@
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "primitives/authority.hpp"
+#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -399,13 +400,13 @@ TEST_F(VotingRoundTest, Finalization) {
 }
 
 ACTION_P(onProposed, test_fixture) {
-  // immitating primary proposed is received from network
+  // imitating primary proposed is received from network
   test_fixture->round_->onProposal(arg2, Propagation::NEEDLESS);
   return outcome::success();
 }
 
 ACTION_P(onPrevoted, test_fixture) {
-  // immitate receiving prevotes from other peers
+  // imitate receiving prevotes from other peers
   auto signed_prevote = arg2;
 
   // send Alice's prevote
@@ -427,7 +428,7 @@ ACTION_P(onPrevoted, test_fixture) {
 }
 
 ACTION_P(onPrecommitted, test_fixture) {
-  // immitate receiving precommit from other peers
+  // imitate receiving precommit from other peers
   auto signed_precommit = arg2;
 
   // send Alice's precommit

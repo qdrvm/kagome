@@ -29,6 +29,12 @@ namespace kagome::consensus::grandpa {
     outcome::result<void> insert(const BlockInfo &block,
                                  const VoteWeight &vote_weight) override;
 
+    /// Remove a prevote of voter presented by {@param index}
+    void removePrevote(size_t voter_index) override;
+
+    /// Remove a precommit of voter presented by {@param index}
+    void removePrecommit(size_t voter_index) override;
+
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
     boost::optional<BlockInfo> findAncestor(

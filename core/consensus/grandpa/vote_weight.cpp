@@ -7,32 +7,37 @@
 
 namespace kagome::consensus::grandpa {
 
-  TotalWeight VoteWeight::totalWeight(
-      const std::vector<bool> &prevotes_equivocators,
-      const std::vector<bool> &precommits_equivocators,
-      const std::shared_ptr<VoterSet> &voter_set) const {
-    TotalWeight weight;
+  template <typename T>
+  VoteWeight::Weight VoteWeight::total(const std::vector<bool> &equivocators,
+                                       const VoterSet &voter_set) const {
+    Weight result = 0;
 
-    for (size_t i = voter_set->size(); i > 0;) {
+    const auto &votes = [&]() {
+      if constexpr (std::is_same_v<T, Prevote>) {
+        return prevotes;
+      } else if constexpr (std::is_same_v<T, Precommit>) {
+        return precommits;
+      }
+    }();
+
+    for (size_t i = voter_set.size(); i > 0;) {
       --i;
 
-      if (prevotes.size() > i and prevotes[i] != 0) {
-        weight.prevote += prevotes[i];
-      } else if (prevotes_equivocators.size() > i
-                 and prevotes_equivocators[i]) {
-        weight.prevote += voter_set->voterWeight(i).value();
-      }
-
-      if (precommits.size() > i and precommits[i] != 0) {
-        weight.precommit += precommits[i];
-      } else if (precommits_equivocators.size() > i
-                 and precommits_equivocators[i]) {
-        weight.precommit += voter_set->voterWeight(i).value();
+      if (equivocators.size() > i and equivocators[i]) {
+        result += voter_set.voterWeight(i).value();
+      } else if (votes.size() > i and votes[i] != 0) {
+        result += votes[i];
       }
     }
 
-    return weight;
+    return result;
   }
+
+  template VoteWeight::Weight VoteWeight::total<Prevote>(
+      const std::vector<bool> &, const VoterSet &) const;
+
+  template VoteWeight::Weight VoteWeight::total<Precommit>(
+      const std::vector<bool> &, const VoterSet &) const;
 
   VoteWeight &VoteWeight::operator+=(const VoteWeight &vote) {
     for (size_t i = vote.prevotes.size(); i > 0;) {
@@ -55,4 +60,5 @@ namespace kagome::consensus::grandpa {
 
     return *this;
   }
+
 }  // namespace kagome::consensus::grandpa

@@ -74,7 +74,7 @@ namespace kagome::consensus::grandpa {
     }();
 
     auto index = round_number_ % voter_set_->size();
-    isPrimary_ = voter_set_->voters().at(index) == id_;
+    isPrimary_ = voter_set_->voterId(index) == id_;
 
     prevote_equivocators_.resize(voter_set_->size(), false);
     precommit_equivocators_.resize(voter_set_->size(), false);
@@ -634,7 +634,7 @@ namespace kagome::consensus::grandpa {
 
   bool VotingRoundImpl::isPrimary(const Id &id) const {
     auto index = round_number_ % voter_set_->size();
-    return voter_set_->voters().at(index) == id;
+    return voter_set_->voterId(index) == id;
   }
 
   outcome::result<void> VotingRoundImpl::applyJustification(
@@ -852,11 +852,11 @@ namespace kagome::consensus::grandpa {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
-      logger_->warn("Round #{}: Prevote received from {} was rejected: {}",
-                    round_number_,
-                    prevote.id.toHex(),
-                    result.error().message());
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
+        logger_->warn("Round #{}: Prevote received from {} was rejected: {}",
+                      round_number_,
+                      prevote.id.toHex(),
+                      result.error().message());
         return false;
       }
     }
@@ -896,12 +896,12 @@ namespace kagome::consensus::grandpa {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
-      logger_->warn("Round #{}: Precommit received from {} was rejected: {}",
-                    round_number_,
-                    precommit.id.toHex(),
-                    result.error().message());
       env_->onCompleted(result.as_failure());
       if (result != outcome::failure(VotingRoundError::EQUIVOCATED_VOTE)) {
+        logger_->warn("Round #{}: Precommit received from {} was rejected: {}",
+                      round_number_,
+                      precommit.id.toHex(),
+                      result.error().message());
         return false;
       }
     }
@@ -943,29 +943,42 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> VotingRoundImpl::onSignedPrevote(
       const SignedMessage &vote) {
     BOOST_ASSERT(vote.is<Prevote>());
-    auto weight = voter_set_->voterWeight(vote.id);
-    if (not weight.has_value()) {
+
+    // Check if voter is contained in current voter set
+    auto index_opt = voter_set_->voterIndex(vote.id);
+    if (not index_opt.has_value()) {
       logger_->warn("Voter {} is not known", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
-    auto index = voter_set_->voterIndex(vote.id);
-    if (not index) {
-      BOOST_ASSERT_MSG(false, "Can't be none after voterWeight() was succeed");
-      return VotingRoundError::UNKNOWN_VOTER;
+    const auto &index = index_opt.value();
+
+    // Ignore known equivocators
+    if (prevote_equivocators_[index]) {
+      return VotingRoundError::EQUIVOCATED_VOTE;
     }
 
-    switch (prevotes_->push(vote, weight.value())) {
+    auto weight_opt = voter_set_->voterWeight(vote.id);
+    if (not weight_opt.has_value()) {
+      // Can't be none after voterWeight() was success
+      BOOST_UNREACHABLE_RETURN(VotingRoundError::UNKNOWN_VOTER);
+    }
+
+    const auto &weight = weight_opt.value();
+    if (weight == 0) {
+      return VotingRoundError::ZERO_WEIGHT_VOTER;
+    }
+
+    switch (prevotes_->push(vote, weight)) {
       case VoteTracker::PushResult::SUCCESS: {
         // prepare VoteWeight which contains index of who has voted and what
         // kind of vote it was
         VoteWeight voteWeight;
 
-        voteWeight.setPrevote(index.value(),
-                              voter_set_->voterWeight(vote.id).value());
+        voteWeight.setPrevote(index, weight);
 
         auto result = graph_->insert(vote.message, voteWeight);
         if (not result.has_value()) {
-          prevotes_->unpush(vote, weight.value());
+          prevotes_->unpush(vote, weight);
           logger_->warn(
               "Prevote for block #{} hash={} was not inserted with error: {}",
               vote.getBlockNumber(),
@@ -979,7 +992,8 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::DUPLICATED_VOTE;
       }
       case VoteTracker::PushResult::EQUIVOCATED: {
-        prevote_equivocators_[index.value()] = true;
+        prevote_equivocators_[index] = true;
+        graph_->removePrevote(index);
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
     }
@@ -989,32 +1003,38 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> VotingRoundImpl::onSignedPrecommit(
       const SignedMessage &vote) {
     BOOST_ASSERT(vote.is<Precommit>());
-    auto weight = voter_set_->voterWeight(vote.id);
-    if (not weight.has_value()) {
+    auto weight_opt = voter_set_->voterWeight(vote.id);
+    if (not weight_opt.has_value()) {
       logger_->warn("Voter {} is not known", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
-    auto index = voter_set_->voterIndex(vote.id);
-    if (not index.has_value()) {
-      // Can't be none after voterWeight() succeeded
-      BOOST_UNREACHABLE_RETURN(VotingRoundError::UNKNOWN_VOTER);
-    }
-    if (voter_set_->voterWeight(vote.id).value() == 0) {
+    const auto &weight = weight_opt.value();
+    if (weight == 0) {
       return VotingRoundError::ZERO_WEIGHT_VOTER;
     }
+    auto index_opt = voter_set_->voterIndex(vote.id);
+    if (not index_opt.has_value()) {
+      // Can't be none after voterWeight() was success
+      BOOST_UNREACHABLE_RETURN(VotingRoundError::UNKNOWN_VOTER);
+    }
+    const auto &index = index_opt.value();
 
-    switch (precommits_->push(vote, weight.value())) {
+    // Ignore known equivocators
+    if (precommit_equivocators_[index]) {
+      return VotingRoundError::EQUIVOCATED_VOTE;
+    }
+
+    switch (precommits_->push(vote, weight)) {
       case VoteTracker::PushResult::SUCCESS: {
         // prepare VoteWeight which contains index of who has voted and what
         // kind of vote it was
         VoteWeight voteWeight;
 
-        voteWeight.setPrecommit(index.value(),
-                                voter_set_->voterWeight(vote.id).value());
+        voteWeight.setPrecommit(index, weight);
 
         auto result = graph_->insert(vote.message, voteWeight);
         if (not result.has_value()) {
-          precommits_->unpush(vote, weight.value());
+          precommits_->unpush(vote, weight);
           logger_->warn(
               "Precommit for block #{} hash={} was not inserted with error: {}",
               vote.getBlockNumber(),
@@ -1028,7 +1048,8 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::DUPLICATED_VOTE;
       }
       case VoteTracker::PushResult::EQUIVOCATED: {
-        precommit_equivocators_[index.value()] = true;
+        precommit_equivocators_[index] = true;
+        graph_->removePrecommit(index);
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
     }
@@ -1051,17 +1072,14 @@ namespace kagome::consensus::grandpa {
     auto current_best = previous_round ? previous_round->bestFinalCandidate()
                                        : last_finalized_block_;
 
-    auto posible_to_prevote = [this](const VoteWeight &vote_weight) {
-      return vote_weight
-                 .totalWeight(
-                     prevote_equivocators_, precommit_equivocators_, voter_set_)
-                 .prevote
+    auto possible_to_prevote = [this](const VoteWeight &weight) {
+      return weight.total<Prevote>(prevote_equivocators_, *voter_set_)
              >= threshold_;
     };
 
     /// @see spec: Grandpa-Ghost
     auto new_prevote_ghost = graph_->findGhost(
-        current_best, posible_to_prevote, VoteWeight::prevoteComparator);
+        current_best, possible_to_prevote, VoteWeight::prevoteComparator);
 
     if (new_prevote_ghost.has_value()) {
       bool changed = new_prevote_ghost != prevote_ghost_;
@@ -1101,11 +1119,8 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    auto posible_to_finalize = [this](const VoteWeight &vote_weight) {
-      return vote_weight
-                 .totalWeight(
-                     prevote_equivocators_, precommit_equivocators_, voter_set_)
-                 .precommit
+    auto possible_to_finalize = [this](const VoteWeight &weight) {
+      return weight.total<Precommit>(precommit_equivocators_, *voter_set_)
              >= threshold_;
     };
 
@@ -1118,7 +1133,7 @@ namespace kagome::consensus::grandpa {
 
     /// @see spec: Grandpa-Ghost
     auto new_precommit_ghost = graph_->findGhost(
-        current_best, posible_to_finalize, VoteWeight::precommitComparator);
+        current_best, possible_to_finalize, VoteWeight::precommitComparator);
 
     if (not new_precommit_ghost.has_value()) {
       new_precommit_ghost = current_best;
@@ -1189,10 +1204,7 @@ namespace kagome::consensus::grandpa {
     auto possible_to_precommit = [&](const VoteWeight &weight) {
       // total precommits for this block, including equivocations.
       auto precommited_for =
-          weight
-              .totalWeight(
-                  prevote_equivocators_, precommit_equivocators_, voter_set_)
-              .precommit;
+          weight.total<Precommit>(precommit_equivocators_, *voter_set_);
 
       // equivocations we could still get are out of those who
       // have already voted, but not on this block.
@@ -1364,12 +1376,8 @@ namespace kagome::consensus::grandpa {
         prevote_ghost_.get_value_or(last_finalized_block_));
 
     if (current_precommits >= threshold_) {
-      auto possible_to_finalize = [this](const VoteWeight &vote_weight) {
-        return vote_weight
-                   .totalWeight(prevote_equivocators_,
-                                precommit_equivocators_,
-                                voter_set_)
-                   .precommit
+      auto possible_to_finalize = [this](const VoteWeight &weight) {
+        return weight.total<Precommit>(precommit_equivocators_, *voter_set_)
                >= threshold_;
       };
 
@@ -1404,24 +1412,23 @@ namespace kagome::consensus::grandpa {
     // haven't seen will target this block.
 
     // get total weight of all equivocators
-    using namespace boost::adaptors;  // NOLINT
-    auto current_equivocations = boost::accumulate(
-        voter_set_->voters() | indexed(0)
-            | transformed([this](const auto &element) {
-                return precommit_equivocators_[element.index()]
-                           ? voter_set_->voterWeight(element.index()).value()
-                           : 0UL;
-              }),
-        0UL);
+    auto current_equivocations = [&] {
+      size_t sum = 0;
+      for (size_t i = 0; i < precommit_equivocators_.size(); ++i) {
+        if (precommit_equivocators_[i]) {
+          if (auto weight = voter_set_->voterWeight(i); weight.has_value()) {
+            sum += weight.value();
+          }
+        }
+      }
+      return sum;
+    }();
 
     auto additional_equiv = tolerated_equivocations - current_equivocations;
     auto possible_to_precommit = [&](const VoteWeight &weight) {
       // total precommits for this block, including equivocations.
       auto precommited_for =
-          weight
-              .totalWeight(
-                  prevote_equivocators_, precommit_equivocators_, voter_set_)
-              .precommit;
+          weight.total<Precommit>(precommit_equivocators_, *voter_set_);
 
       // equivocations we could still get are out of those who
       // have already voted, but not on this block.
