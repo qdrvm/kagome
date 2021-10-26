@@ -54,7 +54,8 @@ namespace kagome::application {
     /**
      * @return runtime code substitution map
      */
-    virtual const primitives::CodeSubstitutes &codeSubstitutes() const = 0;
+    virtual std::shared_ptr<const primitives::CodeSubstitutes> codeSubstitutes()
+        const = 0;
 
     /**
      * @return genesis block of the chain
