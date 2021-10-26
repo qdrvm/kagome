@@ -206,16 +206,8 @@ namespace kagome::api {
                   UNWRAP_WEAK_PTR(onExtrinsicEvent));
             }
 
-            session->connectOnRequest([wp](auto &&...params) mutable {
-              if (auto self = wp.lock()) {
-                self->onSessionRequest(params...);
-              }
-            });
-            session->connectOnCloseHandler([wp](auto &&...params) mutable {
-              if (auto self = wp.lock()) {
-                self->onSessionClose(params...);
-              }
-            });
+            session->connectOnRequest(UNWRAP_WEAK_PTR(onSessionRequest));
+            session->connectOnCloseHandler(UNWRAP_WEAK_PTR(onSessionClose));
           };
 #undef UNWRAP_WEAK_PTR
 
