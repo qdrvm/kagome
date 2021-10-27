@@ -273,7 +273,7 @@ INSTANTIATE_TEST_CASE_P(VoteGraph,
                         WalkBackFromBlockNodeBelow,
                         testing::ValuesIn(test_cases));
 
-TEST_F(WalkBackFromBlockNodeBelow, GhostFindMergePoint_NoConstrainё) {
+TEST_F(WalkBackFromBlockNodeBelow, GhostFindMergePoint_NoConstrain) {
   BlockHash node_key = "B"_H;
   auto &entries = graph->getEntries();
   auto &active_node = entries[node_key];
