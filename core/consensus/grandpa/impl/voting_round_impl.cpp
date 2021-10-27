@@ -71,11 +71,10 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(clock_ != nullptr);
 
     // calculate supermajority
-    threshold_ = [this] {
-      auto faulty = (voter_set_->totalWeight() - 1) / 3;
-      return voter_set_->totalWeight() - faulty;
-    }();
+    auto faulty = (voter_set_->totalWeight() - 1) / 3;
+    threshold_ = voter_set_->totalWeight() - faulty;
 
+    // Check if node is primary
     auto index = round_number_ % voter_set_->size();
     isPrimary_ = voter_set_->voterId(index) == id_;
 
@@ -614,7 +613,14 @@ namespace kagome::consensus::grandpa {
     if (need_to_notice_at_finalizing_) {
       sendFinalize(block, std::move(justification));
     } else {
-      env_->finalize(block.hash, justification);
+      auto res = env_->finalize(block.hash, justification);
+      if (res.has_error()) {
+        SL_WARN(logger_,
+                "Round #{}: Finalizing on block #{} hash={} is failed",
+                round_number_,
+                block.number,
+                block.hash.toHex());
+      }
     }
 
     env_->onCompleted(state());
@@ -855,7 +861,7 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    if (auto result = onSignedPrevote(prevote); result.has_failure()) {
+    if (auto result = onSigned<Prevote>(prevote); result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
@@ -899,7 +905,7 @@ namespace kagome::consensus::grandpa {
       return false;
     }
 
-    if (auto result = onSignedPrecommit(precommit); result.has_failure()) {
+    if (auto result = onSigned<Precommit>(precommit); result.has_failure()) {
       if (result == outcome::failure(VotingRoundError::DUPLICATED_VOTE)) {
         return false;
       }
@@ -947,9 +953,9 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  outcome::result<void> VotingRoundImpl::onSignedPrevote(
-      const SignedMessage &vote) {
-    BOOST_ASSERT(vote.is<Prevote>());
+  template <typename T>
+  outcome::result<void> VotingRoundImpl::onSigned(const SignedMessage &vote) {
+    BOOST_ASSERT(vote.is<T>());
 
     // Check if voter is contained in current voter set
     auto inw_opt = voter_set_->indexAndWeight(vote.id);
@@ -959,8 +965,24 @@ namespace kagome::consensus::grandpa {
     }
     const auto &[index, weight] = inw_opt.value();
 
+    auto [type_str, equivocators, tracker, graph] =
+        [&]() -> std::tuple<const char *const,
+                            std::vector<bool> &,
+                            VoteTracker &,
+                            VoteGraph &> {
+      if constexpr (std::is_same_v<T, Prevote>) {
+        return {"Prevote", prevote_equivocators_, *prevotes_, *prevote_graph_};
+      }
+      if constexpr (std::is_same_v<T, Precommit>) {
+        return {"Precommit",
+                precommit_equivocators_,
+                *precommits_,
+                *precommit_graph_};
+      }
+    }();
+
     // Ignore known equivocators
-    if (prevote_equivocators_[index]) {
+    if (equivocators[index]) {
       return VotingRoundError::EQUIVOCATED_VOTE;
     }
 
@@ -969,13 +991,14 @@ namespace kagome::consensus::grandpa {
       return VotingRoundError::ZERO_WEIGHT_VOTER;
     }
 
-    switch (prevotes_->push(vote, weight)) {
+    switch (tracker.push(vote, weight)) {
       case VoteTracker::PushResult::SUCCESS: {
-        auto result = prevote_graph_->insert(vote.getBlockInfo(), vote.id);
+        auto result = graph.insert(vote.getBlockInfo(), vote.id);
         if (not result.has_value()) {
-          prevotes_->unpush(vote, weight);
+          tracker.unpush(vote, weight);
           logger_->warn(
-              "Prevote for block #{} hash={} was not inserted with error: {}",
+              "{} for block #{} hash={} was not inserted with error: {}",
+              type_str,
               vote.getBlockNumber(),
               vote.getBlockHash().toHex(),
               result.error().message());
@@ -987,61 +1010,19 @@ namespace kagome::consensus::grandpa {
         return VotingRoundError::DUPLICATED_VOTE;
       }
       case VoteTracker::PushResult::EQUIVOCATED: {
-        prevote_equivocators_[index] = true;
-        prevote_graph_->remove(vote.id);
+        equivocators[index] = true;
+        graph.remove(vote.id);
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
     }
     BOOST_UNREACHABLE_RETURN({});
   }
 
-  outcome::result<void> VotingRoundImpl::onSignedPrecommit(
-      const SignedMessage &vote) {
-    BOOST_ASSERT(vote.is<Precommit>());
+  template outcome::result<void> VotingRoundImpl::onSigned<Prevote>(
+      const SignedMessage &vote);
 
-    // Check if voter is contained in current voter set
-    auto inw_opt = voter_set_->indexAndWeight(vote.id);
-    if (not inw_opt.has_value()) {
-      logger_->warn("Voter {} is not known", vote.id.toHex());
-      return VotingRoundError::UNKNOWN_VOTER;
-    }
-    const auto &[index, weight] = inw_opt.value();
-
-    // Ignore known equivocators
-    if (precommit_equivocators_[index]) {
-      return VotingRoundError::EQUIVOCATED_VOTE;
-    }
-
-    // Ignore zero-weight voter
-    if (weight == 0) {
-      return VotingRoundError::ZERO_WEIGHT_VOTER;
-    }
-
-    switch (precommits_->push(vote, weight)) {
-      case VoteTracker::PushResult::SUCCESS: {
-        auto result = precommit_graph_->insert(vote.getBlockInfo(), vote.id);
-        if (not result.has_value()) {
-          precommits_->unpush(vote, weight);
-          logger_->warn(
-              "Precommit for block #{} hash={} was not inserted with error: {}",
-              vote.getBlockNumber(),
-              vote.getBlockHash().toHex(),
-              result.error().message());
-          return result.as_failure();
-        }
-        return outcome::success();
-      }
-      case VoteTracker::PushResult::DUPLICATED: {
-        return VotingRoundError::DUPLICATED_VOTE;
-      }
-      case VoteTracker::PushResult::EQUIVOCATED: {
-        precommit_equivocators_[index] = true;
-        precommit_graph_->remove(vote.id);
-        return VotingRoundError::EQUIVOCATED_VOTE;
-      }
-    }
-    return outcome::success();
-  }
+  template outcome::result<void> VotingRoundImpl::onSigned<Precommit>(
+      const SignedMessage &vote);
 
   bool VotingRoundImpl::updatePrevoteGhost() {
     if (prevotes_->getTotalWeight() < threshold_) {
