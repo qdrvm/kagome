@@ -8,6 +8,7 @@
 #include <memory>
 
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
+
 #include "outcome/outcome.hpp"
 #include "scale/scale.hpp"
 #include "storage/predefined_keys.hpp"
@@ -18,13 +19,12 @@ namespace kagome::network {
       libp2p::Host &host,
       std::shared_ptr<libp2p::protocol::Identify> identify,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
       std::shared_ptr<StreamEngine> stream_engine,
       const application::AppConfiguration &app_config,
       std::shared_ptr<clock::SteadyClock> clock,
       const BootstrapNodes &bootstrap_nodes,
       const OwnPeerInfo &own_peer_info,
-      std::shared_ptr<network::SyncClientsSet> sync_clients,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<storage::BufferStorage> storage)
       : app_state_manager_(std::move(app_state_manager)),
@@ -37,7 +37,6 @@ namespace kagome::network {
         clock_(std::move(clock)),
         bootstrap_nodes_(bootstrap_nodes),
         own_peer_info_(own_peer_info),
-        sync_clients_(std::move(sync_clients)),
         router_{std::move(router)},
         storage_{std::move(storage)},
         log_(log::createLogger("PeerManager", "network")) {
@@ -46,7 +45,6 @@ namespace kagome::network {
     BOOST_ASSERT(kademlia_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
     BOOST_ASSERT(stream_engine_ != nullptr);
-    BOOST_ASSERT(sync_clients_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
 
@@ -79,7 +77,7 @@ namespace kagome::network {
 
     add_peer_handle_ =
         host_.getBus()
-            .getChannel<libp2p::protocol::kademlia::events::PeerAddedChannel>()
+            .getChannel<libp2p::event::protocol::kademlia::PeerAddedChannel>()
             .subscribe([wp = weak_from_this()](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
                 self->processDiscoveredPeer(peer_id);
@@ -258,13 +256,13 @@ namespace kagome::network {
 
     const auto aligning_period = app_config_.peeringConfig().aligningPeriod;
 
-    align_timer_ = scheduler_->schedule(
-        libp2p::protocol::scheduler::toTicks(aligning_period),
+    align_timer_ = scheduler_->scheduleWithHandle(
         [wp = weak_from_this()] {
           if (auto self = wp.lock()) {
             self->align();
           }
-        });
+        },
+        aligning_period);
     SL_DEBUG(log_, "Active peers = {}", active_peers_.size());
   }
 
@@ -339,7 +337,6 @@ namespace kagome::network {
       active_peers_.erase(it);
       SL_DEBUG(log_, "Remained {} active peers", active_peers_.size());
     }
-    sync_clients_->remove(peer_id);
   }
 
   void PeerManagerImpl::keepAlive(const PeerId &peer_id) {
@@ -347,6 +344,50 @@ namespace kagome::network {
     if (it != active_peers_.end()) {
       it->second.time = clock_->now();
     }
+  }
+
+  void PeerManagerImpl::startPingingPeer(const PeerId &peer_id) {
+    auto ping_protocol = router_->getPingProtocol();
+    BOOST_ASSERT_MSG(ping_protocol, "Router did not provide ping protocol");
+
+    auto conn =
+        host_.getNetwork().getConnectionManager().getBestConnectionForPeer(
+            peer_id);
+
+    auto [_, is_emplaced] = pinging_connections_.emplace(conn);
+    if (not is_emplaced) {
+      // Pinging is already going
+      return;
+    }
+
+    SL_DEBUG(log_,
+             "Start pinging of {} (conn={})",
+             peer_id.toBase58(),
+             static_cast<void *>(conn.get()));
+
+    ping_protocol->startPinging(
+        conn,
+        [wp = weak_from_this(), peer_id, conn](
+            outcome::result<std::shared_ptr<
+                libp2p::protocol::PingClientSession>> session_res) {
+          if (auto self = wp.lock()) {
+            if (session_res.has_error()) {
+              SL_DEBUG(self->log_,
+                       "Stop pinging of {} (conn={}): {}",
+                       peer_id.toBase58(),
+                       static_cast<void *>(conn.get()),
+                       session_res.error().message());
+              self->pinging_connections_.erase(conn);
+              self->disconnectFromPeer(peer_id);
+            } else {
+              SL_DEBUG(self->log_,
+                       "Pinging: {} (conn={}) is alive",
+                       peer_id.toBase58(),
+                       static_cast<void *>(conn.get()));
+              self->keepAlive(peer_id);
+            }
+          }
+        });
   }
 
   void PeerManagerImpl::updatePeerStatus(const PeerId &peer_id,
@@ -491,6 +532,9 @@ namespace kagome::network {
             }
 
             self->connecting_peers_.erase(peer_id);
+
+            self->reserveStreams(peer_id);
+            self->startPingingPeer(peer_id);
           });
 
     } else {
@@ -524,10 +568,8 @@ namespace kagome::network {
     stream_engine_->add(peer_id, transaction_protocol);
   }
 
-  // always false in dev mode
   bool PeerManagerImpl::isSelfPeer(const PeerId &peer_id) const {
-    return own_peer_info_.id == peer_id ? not app_config_.isRunInDevMode()
-                                        : false;
+    return own_peer_info_.id == peer_id;
   }
 
   std::vector<scale::PeerInfoSerializable>

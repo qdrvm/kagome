@@ -30,7 +30,7 @@ namespace kagome::api::state::request {
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
 
-    outcome::result<common::Buffer> execute();
+    outcome::result<boost::optional<common::Buffer>> execute();
 
    private:
     std::shared_ptr<StateApi> api_;

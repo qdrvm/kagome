@@ -21,7 +21,7 @@ namespace kagome::network {
 #ifdef NDEBUG
     size_t targetPeerAmount = 4;
 #else
-    size_t targetPeerAmount = 1;
+    size_t targetPeerAmount = 2;
 #endif
 
     /// Max peers count before start to disconnect of innactive ones

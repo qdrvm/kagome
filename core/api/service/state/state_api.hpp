@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_API_STATEAPI
-#define KAGOME_API_STATEAPI
+#ifndef KAGOME_API_SERVICE_STATE_API
+#define KAGOME_API_SERVICE_STATE_API
 
+#include <vector>
 #include <boost/optional.hpp>
 
 #include "api/service/api_service.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
+#include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/version.hpp"
 
@@ -29,10 +31,28 @@ namespace kagome::api {
         const boost::optional<common::Buffer> &prev_key,
         const boost::optional<primitives::BlockHash> &block_hash_opt) const = 0;
 
-    virtual outcome::result<common::Buffer> getStorage(
+    virtual outcome::result<boost::optional<common::Buffer>> getStorage(
         const common::Buffer &key) const = 0;
-    virtual outcome::result<common::Buffer> getStorage(
+    virtual outcome::result<boost::optional<common::Buffer>> getStorageAt(
         const common::Buffer &key, const primitives::BlockHash &at) const = 0;
+
+    struct StorageChangeSet {
+      primitives::BlockHash block;
+      struct Change {
+        common::Buffer key;
+        boost::optional<common::Buffer> data;
+      };
+      std::vector<Change> changes;
+    };
+
+    virtual outcome::result<std::vector<StorageChangeSet>> queryStorage(
+        gsl::span<const common::Buffer> keys,
+        const primitives::BlockHash &from,
+        boost::optional<primitives::BlockHash> to) const = 0;
+
+    virtual outcome::result<std::vector<StorageChangeSet>> queryStorageAt(
+        gsl::span<const common::Buffer> keys,
+        boost::optional<primitives::BlockHash> at) const = 0;
 
     virtual outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) = 0;
@@ -53,4 +73,4 @@ namespace kagome::api {
 
 }  // namespace kagome::api
 
-#endif  // KAGOME_API_STATEAPI
+#endif  // KAGOME_API_SERVICE_STATE_API

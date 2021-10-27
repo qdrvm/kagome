@@ -49,7 +49,7 @@ class WavmMemoryHeapTest : public ::testing::Test {
             [this] { return memory_->size(); }},
         kInitialMemorySize, kDefaultHeapBase);
     allocator_ = allocator.get();
-    memory_ = std::make_unique<MemoryImpl>(compartment_wrapper,
+    memory_ = std::make_unique<MemoryImpl>(
         instance_->getExportedMemory(), std::move(allocator));
   }
 

@@ -53,7 +53,7 @@ namespace kagome::storage {
     log->error("Can't open database in {}: {}",
                absolute_path.native(),
                status.ToString());
-    return error_as_result<std::shared_ptr<LevelDB>>(status);
+    return status_as_error(status);
   }
 
   std::unique_ptr<BufferMapCursor> LevelDB::cursor() {
@@ -77,21 +77,30 @@ namespace kagome::storage {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
-      // FIXME: is it possible to avoid copying string -> Buffer?
+      // cannot move string content to a buffer
       return Buffer{}.put(value);
     }
 
-    // not always an actual error so don't log it
-    if (status.IsNotFound()) {
-      return error_as_result<Buffer>(status);
+    return status_as_error(status);
+  }
+
+  outcome::result<boost::optional<Buffer>> LevelDB::tryGet(
+      const Buffer &key) const {
+    std::string value;
+    auto status = db_->Get(ro_, make_slice(key), &value);
+    if (status.ok()) {
+      // cannot move string content to a buffer
+      return boost::make_optional(Buffer{}.put(value));
     }
 
-    return error_as_result<Buffer>(status, logger_);
+    if (status.IsNotFound()) {
+      return boost::none;
+    }
+
+    return status_as_error(status);
   }
 
   bool LevelDB::contains(const Buffer &key) const {
-    // here we interpret all kinds of errors as "not found".
-    // is there a better way?
     return get(key).has_value();
   }
 
@@ -107,7 +116,7 @@ namespace kagome::storage {
       return outcome::success();
     }
 
-    return error_as_result<void>(status, logger_);
+    return status_as_error(status);
   }
 
   outcome::result<void> LevelDB::put(const Buffer &key, Buffer &&value) {
@@ -121,7 +130,21 @@ namespace kagome::storage {
       return outcome::success();
     }
 
-    return error_as_result<void>(status, logger_);
+    return status_as_error(status);
+  }
+
+  void LevelDB::compact(const Buffer &first, const Buffer &last) {
+    if (db_) {
+      auto *begin = db_->NewIterator(ro_);
+      first.empty() ? begin->SeekToFirst() : begin->Seek(make_slice(first));
+      auto bk = begin->key();
+      auto *end = db_->NewIterator(ro_);
+      last.empty() ? end->SeekToLast() : end->Seek(make_slice(last));
+      auto ek = end->key();
+      db_->CompactRange(&bk, &ek);
+      delete begin;
+      delete end;
+    }
   }
 
 }  // namespace kagome::storage

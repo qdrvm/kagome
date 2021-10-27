@@ -15,58 +15,78 @@ set(kagome_INCLUDE_DIRS
 )
 
 set(kagome_LIBRARIES
-        kagome::scale
-        kagome::buffer
-        kagome::outcome
-        kagome::hexutil
-        kagome::mp_utils
+        kagome::binaryen_executor_factory
+        kagome::binaryen_instance_environment_factory
+        kagome::binaryen_memory_provider
+        kagome::binaryen_module_factory
+        kagome::binaryen_runtime_external_interface
+        kagome::binaryen_wasm_memory
+        kagome::binaryen_wasm_memory_factory
+        kagome::binaryen_wasm_module
+        kagome::bip39_provider
+        kagome::blake2
         kagome::blob
-        kagome::primitives
+        kagome::blockchain_common
+        kagome::block_header_repository
+        kagome::buffer
+        kagome::changes_tracker
+        kagome::clock
+        kagome::compartment_wrapper
+        kagome::constant_code_provider
+        kagome::core_api
+        kagome::crypto_extension
+        kagome::crypto_store
+        kagome::crypto_store_key_type
         kagome::database_error
+        kagome::ed25519_provider
+        kagome::ed25519_types
+        kagome::ephemeral_trie_batch
+        kagome::executor
+        kagome::hasher
+        kagome::hexutil
+        kagome::host_api
+        kagome::host_api_factory
+        kagome::in_memory_storage
+        kagome::io_extension
+        kagome::keccak
+        kagome::key_file_storage
+        kagome::leveldb
+        kagome::log_configurator
+        kagome::logger
+        kagome::memory_allocator
+        kagome::memory_extension
+        kagome::misc_extension
+        kagome::module_repository
+        kagome::mp_utils
+        kagome::ordered_trie_hash
+        kagome::outcome
+        kagome::pbkdf2_provider
+        kagome::persistent_trie_batch
+        kagome::polkadot_codec
+        kagome::polkadot_node
+        kagome::polkadot_trie
+        kagome::polkadot_trie_cursor
+        kagome::polkadot_trie_factory
+        kagome::primitives
+        kagome::runtime_environment_factory
+        kagome::runtime_transaction_error
+        kagome::runtime_upgrade_tracker
+        kagome::runtime_wavm
+        kagome::scale
+        kagome::scale_encode_append
+        kagome::secp256k1_provider
+        kagome::sha
+        kagome::sr25519_provider
+        kagome::sr25519_types
+        kagome::ss58_codec
+        kagome::storage_code_provider
+        kagome::storage_extension
+        kagome::topper_trie_batch
         kagome::trie_error
         kagome::trie_serializer
         kagome::trie_storage
         kagome::trie_storage_backend
-        kagome::polkadot_codec
-        kagome::polkadot_node
-        kagome::polkadot_trie
-        kagome::polkadot_trie_factory
-        kagome::polkadot_trie_cursor
-        kagome::ephemeral_trie_batch
-        kagome::persistent_trie_batch
-        kagome::topper_trie_batch
-        kagome::changes_tracker
-        kagome::blockchain_common
-        kagome::block_header_repository
-        kagome::blake2
-        kagome::keccak
-        kagome::hasher
-        kagome::twox
-        kagome::sha
-        kagome::leveldb
-        kagome::logger
-        kagome::in_memory_storage
-        kagome::host_api
-        kagome::ordered_trie_hash
-        kagome::crypto_store
-        kagome::crypto_store_key_type
-        kagome::crypto_extension
-        kagome::io_extension
-        kagome::memory_extension
-        kagome::misc_extension
         kagome::trie_storage_provider
-        kagome::storage_extension
-        kagome::sr25519_types
-        kagome::ed25519_types
-        kagome::sr25519_provider
-        kagome::ed25519_provider
-        kagome::pbkdf2_provider
-        kagome::secp256k1_provider
-        kagome::bip39_provider
-        kagome::host_api_factory
-        kagome::core_api
-        kagome::binaryen_runtime_external_interface
-        kagome::runtime_environment_factory
-        kagome::binaryen_wasm_memory
-        kagome::binaryen_wasm_module
+        kagome::twox
+        kagome::wavm_memory
     )

@@ -5,6 +5,9 @@
 
 #include <iostream>
 
+#include <backward.hpp>
+#undef TRUE
+#undef FALSE
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
@@ -16,6 +19,8 @@ using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
 int main(int argc, char **argv) {
+  backward::SignalHandling sh;
+
   {
     auto logging_system = std::make_shared<soralog::LoggingSystem>(
         std::make_shared<kagome::log::Configurator>(
@@ -32,14 +37,15 @@ int main(int argc, char **argv) {
     kagome::log::setLoggingSystem(logging_system);
   }
 
-  auto logger = kagome::log::createLogger("AppConfiguration", "main");
+  auto logger = kagome::log::createLogger("AppConfiguration",
+                                          kagome::log::defaultGroupName);
   AppConfigurationImpl configuration{logger};
 
   if (configuration.initialize_from_args(argc, argv)) {
-    kagome::log::setLevelOfGroup(kagome::log::defaultGroupName,
-                                 configuration.verbosity());
-    auto app =
-        std::make_shared<kagome::application::KagomeApplicationImpl>(configuration);
+    kagome::log::tuneLoggingSystem(configuration.log());
+
+    auto app = std::make_shared<kagome::application::KagomeApplicationImpl>(
+        configuration);
     app->run();
   }
 

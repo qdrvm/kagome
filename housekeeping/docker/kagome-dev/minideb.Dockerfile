@@ -1,4 +1,4 @@
-FROM bitnami/minideb:buster
+FROM bitnami/minideb:bullseye
 
 MAINTAINER Vladimir Shcherba <abrehchs@gmail.com>
 
@@ -20,10 +20,7 @@ RUN apt-get update && \
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo \
       "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
-      buster stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
-    add-apt-repository -y "deb http://apt.llvm.org/buster/ llvm-toolchain-buster main" && \
-    add-apt-repository -y "deb http://deb.debian.org/debian testing main" && \
+      bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && apt-get install --no-install-recommends -y \
         docker-ce \
         docker-ce-cli \
@@ -31,8 +28,6 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
         build-essential \
         gcc-9 \
         g++-9 \
-        gcc-10 \
-        g++-10 \
         llvm-9-dev \
         clang-9 \
         clang-tidy-9 \
@@ -46,7 +41,7 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     rm -rf /var/lib/apt/lists/*
 
 # install rustc
-ENV RUST_VERSION=nightly-2020-09-24
+ENV RUST_VERSION=nightly-2021-10-04
 ENV RUSTUP_HOME=/root/.rustup
 ENV CARGO_HOME=/root/.cargo
 ENV PATH="${CARGO_HOME}/bin:${PATH}"

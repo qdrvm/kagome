@@ -6,7 +6,8 @@
 #include "host_api/impl/misc_extension.hpp"
 
 #include "primitives/version.hpp"
-#include "runtime/core_api_factory_impl.hpp"
+#include "runtime/common/uncompress_code_if_needed.hpp"
+#include "runtime/core_api_factory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_api/core.hpp"
@@ -33,15 +34,25 @@ namespace kagome::host_api {
     auto [ptr, len] = runtime::splitSpan(data);
     auto &memory = memory_provider_->getCurrentMemory().value();
 
-    auto code = memory.loadN(ptr, len).asVector();
-    auto core_api = core_factory_->make(hasher_, code);
-    auto version_res =
-        core_api->version();
-    SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
+    auto code = memory.loadN(ptr, len);
+    common::Buffer uncompressed_code;
+    auto uncompress_res =
+        runtime::uncompressCodeIfNeeded(code, uncompressed_code);
 
     static const auto kErrorRes =
         scale::encode<boost::optional<primitives::Version>>(boost::none)
             .value();
+
+    if (uncompress_res.has_error()) {
+      SL_ERROR(logger_,
+               "Error uncompressing code: {}",
+               uncompress_res.error().message());
+      return memory.storeBuffer(kErrorRes);
+    }
+
+    auto core_api = core_factory_->make(hasher_, uncompressed_code.asVector());
+    auto version_res = core_api->version();
+    SL_TRACE_FUNC_CALL(logger_, version_res.has_value(), data);
 
     if (version_res.has_value()) {
       auto enc_version_res = scale::encode(

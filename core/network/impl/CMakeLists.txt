@@ -3,6 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(protocols)
+
+add_library(synchronizer
+    synchronizer_impl.cpp
+    )
+target_link_libraries(synchronizer
+    logger
+    primitives
+    )
+
 add_library(grandpa_transmitter
     grandpa_transmitter_impl.cpp
     )
@@ -40,16 +50,6 @@ add_library(extrinsic_observer
     )
 target_link_libraries(extrinsic_observer
     logger
-    )
-
-add_library(remote_sync_protocol_client
-    remote_sync_protocol_client.cpp
-    remote_sync_protocol_client.hpp
-    )
-target_link_libraries(remote_sync_protocol_client
-    logger
-    node_api_proto
-    adapter_errors
     )
 
 add_library(sync_protocol_observer

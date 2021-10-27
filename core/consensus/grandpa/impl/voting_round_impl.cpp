@@ -606,6 +606,8 @@ namespace kagome::consensus::grandpa {
 
     if (need_to_notice_at_finalizing_) {
       sendFinalize(block, std::move(justification));
+    } else {
+      env_->finalize(block.hash, justification);
     }
 
     env_->onCompleted(state());
@@ -727,7 +729,8 @@ namespace kagome::consensus::grandpa {
           total_weight += voter_set_->voterWeight(signed_precommit.id).value();
         } else {
           SL_DEBUG(logger_,
-                   "Vote does not have ancestry with target block: vote={} target={}",
+                   "Vote does not have ancestry with target block: "
+                   "vote={} target={}",
                    vote.hash.toHex(),
                    signed_precommit.getBlockHash());
         }
@@ -740,7 +743,8 @@ namespace kagome::consensus::grandpa {
           threshold -= weight;
         } else {
           SL_DEBUG(logger_,
-                   "Vote does not have ancestry with target block: vote={} target={}",
+                   "Vote does not have ancestry with target block: "
+                   "vote={} target={}",
                    vote.hash.toHex(),
                    signed_precommit.getBlockHash());
         }
@@ -763,10 +767,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::attemptToFinalizeRound() {
-    if (stage_ != Stage::WAITING_RUNS) {
-      return;
-    }
-
     if (finalizable()) {
       doFinalize();
       if (on_complete_handler_) {
@@ -1360,8 +1360,8 @@ namespace kagome::consensus::grandpa {
   BlockInfo VotingRoundImpl::bestFinalCandidate() {
     auto current_precommits = precommits_->getTotalWeight();
 
-    const auto &best_prevote_candidate = prevote_ghost_.get_value_or(
-        finalized_.get_value_or(last_finalized_block_));
+    const auto &best_prevote_candidate = finalized_.get_value_or(
+        prevote_ghost_.get_value_or(last_finalized_block_));
 
     if (current_precommits >= threshold_) {
       auto possible_to_finalize = [this](const VoteWeight &vote_weight) {
@@ -1451,12 +1451,13 @@ namespace kagome::consensus::grandpa {
     // the round-estimate is the highest block in the chain with head
     // `prevote_ghost` that could have supermajority-commits.
     if (precommits_->getTotalWeight() >= threshold_) {
-      auto current_best = prevote_ghost_.has_value() ? prevote_ghost_.value()
-                                                     : last_finalized_block_;
+      auto current_best =
+          finalized_.value_or(prevote_ghost_.value_or(last_finalized_block_));
 
       auto best_final_candidate = graph_->findAncestor(
           current_best, possible_to_precommit, VoteWeight::precommitComparator);
-      if (best_final_candidate.has_value()) {
+      if (best_final_candidate.has_value()
+          and best_final_candidate != best_final_candidate_) {
         best_final_candidate_ = best_final_candidate;
         SL_TRACE(
             logger_,
@@ -1602,14 +1603,6 @@ namespace kagome::consensus::grandpa {
           return precommits;
         });
     return result;
-  }
-
-  void VotingRoundImpl::doCatchUpRequest(const libp2p::peer::PeerId &peer_id) {
-    auto res =
-        env_->onCatchUpRequested(peer_id, voter_set_->id(), round_number_);
-    if (not res) {
-      logger_->warn("Catch-Up-Request was not sent: {}", res.error().message());
-    }
   }
 
   void VotingRoundImpl::doCatchUpResponse(const libp2p::peer::PeerId &peer_id) {

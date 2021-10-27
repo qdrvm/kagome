@@ -4,6 +4,7 @@
  */
 
 #include <boost/assert.hpp>
+#include <iostream>
 #include <libp2p/log/logger.hpp>
 
 #include "log/logger.hpp"
@@ -21,6 +22,28 @@ namespace kagome::log {
           "Logging system is not ready. "
           "kagome::log::setLoggingSystem() must be executed once before");
     }
+
+    outcome::result<Level> str2lvl(std::string_view str) {
+      if (str == "trace") {
+        return Level::TRACE;
+      } else if (str == "debug") {
+        return Level::DEBUG;
+      } else if (str == "verbose") {
+        return Level::VERBOSE;
+      } else if (str == "info" or str == "inf") {
+        return Level::INFO;
+      } else if (str == "warning" or str == "warn") {
+        return Level::WARN;
+      } else if (str == "error" or str == "err") {
+        return Level::ERROR;
+      } else if (str == "critical" or str == "crit") {
+        return Level::CRITICAL;
+      } else if (str == "off" or str == "no") {
+        return Level::OFF;
+      } else {
+        return boost::system::error_code{};
+      }
+    }
   }  // namespace
 
   void setLoggingSystem(
@@ -29,6 +52,47 @@ namespace kagome::log {
     libp2p::log::setLoggingSystem(logging_system);
     logging_system_ = std::move(logging_system);
     profiling_logger = createLogger("Profiler", "profile");
+  }
+
+  void tuneLoggingSystem(const std::vector<std::string> &cfg) {
+    ensure_logger_system_is_initialized();
+
+    if (cfg.empty()) {
+      return;
+    }
+
+    for (auto &chunk : cfg) {
+      if (auto res = str2lvl(chunk); res.has_value()) {
+        auto level = res.value();
+        setLevelOfGroup(kagome::log::defaultGroupName, level);
+        continue;
+      }
+
+      std::istringstream iss2(chunk);
+
+      std::string group_name;
+      if (not std::getline(iss2, group_name, '=')) {
+        std::cerr << "Can't read group";
+      }
+      if (not logging_system_->getGroup(group_name)) {
+        std::cerr << "Unknown group: " << group_name << std::endl;
+        continue;
+      }
+
+      std::string level_string;
+      if (not std::getline(iss2, level_string)) {
+        std::cerr << "Can't read level for group '" << group_name << "'";
+        continue;
+      }
+      auto res = str2lvl(level_string);
+      if (not res.has_value()) {
+        std::cerr << "Invalid level: " << level_string << std::endl;
+        continue;
+      }
+      auto level = res.value();
+
+      logging_system_->setLevelOfGroup(group_name, level);
+    }
   }
 
   Logger createLogger(const std::string &tag) {

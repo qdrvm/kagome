@@ -29,7 +29,7 @@ target_link_libraries(babe_digests_util
     )
 
 add_library(block_executor
-    block_executor.cpp
+    block_executor_impl.cpp
     )
 target_link_libraries(block_executor
     logger
@@ -59,7 +59,6 @@ target_link_libraries(babe
     buffer
     logger
     scale
-    ticker
     blob
     outcome
     p2p::p2p_peer_id
@@ -67,12 +66,4 @@ target_link_libraries(babe
     threshold_util
     block_executor
     polkadot_trie
-    )
-
-add_library(babe_synchronizer
-    babe_synchronizer_impl.cpp
-    )
-target_link_libraries(babe_synchronizer
-    logger
-    primitives
     )

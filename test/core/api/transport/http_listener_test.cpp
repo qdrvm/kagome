@@ -5,6 +5,8 @@
 
 #include "core/api/transport/listener_test.hpp"
 
+#include <backward.hpp>
+
 #include "api/transport/impl/http/http_listener_impl.hpp"
 #include "core/api/client/http_client.hpp"
 
@@ -14,12 +16,14 @@ using test::HttpClient;
 using HttpListenerTest = ListenerTest<HttpListenerImpl>;
 
 /**
- * @given runing HTTP transport based RPC service
+ * @given running HTTP transport based RPC service
  * @when do simple request to RPC
  * @then response contains expected value
  */
 
 TEST_F(HttpListenerTest, EchoSuccess) {
+  backward::SignalHandling sh;
+
   auto client = std::make_shared<HttpClient>(*client_context);
 
   ASSERT_NO_THROW(listener->prepare());
@@ -41,5 +45,5 @@ TEST_F(HttpListenerTest, EchoSuccess) {
   client_thread.join();
 
   ASSERT_NO_THROW(service->stop());
-  ASSERT_NO_THROW(listener->start());
+  ASSERT_NO_THROW(listener->stop());
 }

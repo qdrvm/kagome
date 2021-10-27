@@ -3,6 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(wavm)
+add_subdirectory(binaryen)
+
 addtest(wasm_result_test
     wasm_result_test.cpp
     )
@@ -54,8 +57,10 @@ target_link_libraries(runtime_upgrade_tracker_test
     runtime_upgrade_tracker
     blob
     buffer
+    in_memory_storage
     logger
     log_configurator
+    scale
     )
 
 addtest(small_lru_cache_test

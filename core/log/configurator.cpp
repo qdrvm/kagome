@@ -19,7 +19,7 @@ sinks:
 groups:
   - name: main
     sink: console
-    level: off
+    level: info
     is_fallback: true
     children:
       - name: libp2p
@@ -48,7 +48,6 @@ groups:
               - name: babe
                 children:
                   - name: babe_lottery
-                  - name: babe_synchronizer
                   - name: block_executor
                   - name: block_validator
               - name: grandpa
@@ -63,9 +62,13 @@ groups:
           - name: metrics
           - name: network
             children:
+              - name: synchronizer
               - name: kagome_protocols
           - name: changes_trie
           - name: storage
+            children:
+              - name: trie
+          - name: transactions
           - name: pubsub
       - name: others
         children:

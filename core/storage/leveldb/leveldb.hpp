@@ -54,6 +54,9 @@ namespace kagome::storage {
 
     outcome::result<Buffer> get(const Buffer &key) const override;
 
+    outcome::result<boost::optional<Buffer>> tryGet(
+        const Buffer &key) const override;
+
     bool contains(const Buffer &key) const override;
 
     bool empty() const override;
@@ -64,6 +67,8 @@ namespace kagome::storage {
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
 
     outcome::result<void> remove(const Buffer &key) override;
+
+    void compact(const Buffer& first, const Buffer& last);
 
    private:
     std::unique_ptr<leveldb::DB> db_;

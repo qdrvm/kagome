@@ -12,6 +12,9 @@ namespace kagome::storage {
 
   inline const common::Buffer kRuntimeCodeKey = common::Buffer().put(":code");
 
+  inline const common::Buffer kExtrinsicIndexKey =
+      common::Buffer{}.put(":extrinsic_index");
+
   inline const common::Buffer kAuthoritySetKey =
       common::Buffer().put("grandpa_voters");
   inline const common::Buffer kSetStateKey =
@@ -27,6 +30,12 @@ namespace kagome::storage {
 
   inline const common::Buffer kActivePeersKey =
       common::Buffer().put(":kagome:last_active_peers");
+
+  inline const common::Buffer kRuntimeHashesLookupKey =
+      common::Buffer().put(":kagome:runtime_hashes");
+
+  inline const common::Buffer kSchedulerTreeLookupKey =
+      common::Buffer{}.put(":kagome:authorities:scheduler_tree");
 }  // namespace kagome::storage
 
 #endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP

@@ -15,13 +15,8 @@
 
 namespace kagome::runtime {
 
-  thread_local SmallLruCache<storage::trie::RootHash,
-                             std::shared_ptr<ModuleInstance>>
-      ModuleRepositoryImpl::instances_cache_{
-          ModuleRepositoryImpl::INSTANCES_CACHE_SIZE};
-
   ModuleRepositoryImpl::ModuleRepositoryImpl(
-      std::shared_ptr<const RuntimeUpgradeTracker> runtime_upgrade_tracker,
+      std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
       std::shared_ptr<const ModuleFactory> module_factory)
       : modules_{MODULES_CACHE_SIZE},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
@@ -34,23 +29,49 @@ namespace kagome::runtime {
   outcome::result<std::shared_ptr<ModuleInstance>>
   ModuleRepositoryImpl::getInstanceAt(
       std::shared_ptr<const RuntimeCodeProvider> code_provider,
-      const primitives::BlockInfo &block) {
+      const primitives::BlockInfo &block,
+      const primitives::BlockHeader &header) {
     KAGOME_PROFILE_START(code_retrieval)
     OUTCOME_TRY(state, runtime_upgrade_tracker_->getLastCodeUpdateState(block));
     KAGOME_PROFILE_END(code_retrieval)
 
-    auto cached_instance = instances_cache_.get(state);
-    if (cached_instance.has_value()) {
-      return cached_instance.value();
+    auto thread_local_cache = instances_cache_.end();
+    {
+      std::unique_lock lock{instances_mutex_};
+      auto tid = std::this_thread::get_id();
+      auto thread_cache = instances_cache_.find(tid);
+      if (thread_cache == instances_cache_.end()) {
+        // no cache was created for this thread
+        auto insert_res =
+            instances_cache_.emplace(tid, InstanceCache{INSTANCES_CACHE_SIZE});
+        BOOST_ASSERT(insert_res.second);
+        thread_local_cache = insert_res.first;
+      } else if (auto opt_instance = thread_cache->second.get(block.hash);
+                 opt_instance.has_value()) {
+        // there is a cache for this thread and it contains the sought instance
+        return opt_instance.value();
+      } else {
+        // there is a cache for this thread, but it doesn't have the required
+        // instance
+        thread_local_cache = thread_cache;
+      }
     }
+    // either found existed or emplaced a new one
+    BOOST_ASSERT(thread_local_cache != instances_cache_.end());
 
     KAGOME_PROFILE_START(module_retrieval)
     std::shared_ptr<Module> module;
     {
       std::lock_guard guard{modules_mutex_};
       if (auto opt_module = modules_.get(state); !opt_module.has_value()) {
-        OUTCOME_TRY(code, code_provider->getCodeAt(state));
-        OUTCOME_TRY(new_module, module_factory_->make(state, code));
+        auto code = code_provider->getCodeAt(state);
+        if (not code.has_value()) {
+          code = code_provider->getCodeAt(header.state_root);
+        }
+        if (not code.has_value()) {
+          return code.as_failure();
+        }
+        OUTCOME_TRY(new_module, module_factory_->make(code.value()));
         module = std::move(new_module);
         BOOST_VERIFY(modules_.put(state, module));
       } else {
@@ -66,7 +87,8 @@ namespace kagome::runtime {
       OUTCOME_TRY(instance, module->instantiate());
       shared_instance = std::move(instance);
     }
-    BOOST_VERIFY(instances_cache_.put(state, shared_instance));
+    // thread_local_cache is an iterator into instances_cache_
+    BOOST_VERIFY(thread_local_cache->second.put(state, shared_instance));
 
     KAGOME_PROFILE_END(module_instantiation)
     return shared_instance;

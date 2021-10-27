@@ -13,8 +13,8 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   # Change all container: values to this variable once this feature is available
   # https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
-  INDOCKER_IMAGE: soramitsu/kagome-dev:2-minideb
-  CACHE_VERSION: v05
+  INDOCKER_IMAGE: soramitsu/kagome-dev:3-minideb
+  CACHE_VERSION: v06
   CACHE_PATHS: |
     ~/Library/Caches/pip
     ~/.cargo
@@ -33,11 +33,12 @@ jobs:
         key: ${{ github.job }}-${{ env.CACHE_VERSION }}
     - name: install
       run: ./housekeeping/macos/dependency.sh
+    - name: Set LLVM dir
+      run: echo "LLVM_DIR=$(dirname $(find  -E '/usr/local/Cellar' -type f -regex '.*/llvm@11/[^/]*/lib/cmake/llvm/LLVMConfig.cmake' | xargs echo))" >> $GITHUB_ENV
     - name: build
       env:
         DEVELOPER_DIR: /Applications/Xcode_11.7.app/Contents/Developer
-        LLVM_DIR: /usr/local/Cellar/llvm@11/11.1.0_2/lib/cmake/
-      run: ./housekeeping/make_build.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
+      run: ./housekeeping/make_build.sh  -DLLVM_DIR=${{ env.LLVM_DIR }} -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
     strategy:
@@ -47,12 +48,12 @@ jobs:
          - name: "Linux: gcc-9 ASAN No Toolchain"
            run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON
          - name: "Linux: clang-9 TSAN"
-           run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-9_cxx17_tsan.cmake
+           run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-9_cxx17.cmake -DTSAN=ON
          - name: "Linux: clang-9 UBSAN"
-           run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-9_cxx17_ubsan.cmake
+           run: ./housekeeping/make_build.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-9_cxx17.cmake -DUBSAN=ON
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:2-minideb
+    container: soramitsu/kagome-dev:3-minideb
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -65,7 +66,7 @@ jobs:
   clang-tidy:
     name: "Linux: clang-tidy"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:2-minideb
+    container: soramitsu/kagome-dev:3-minideb
     steps:
       - uses: actions/checkout@v2
         with:
@@ -85,7 +86,7 @@ jobs:
   coverage:
     name: "Linux: gcc-9 coverage/sonar"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:2-minideb
+    container: soramitsu/kagome-dev:3-minideb
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -121,7 +122,7 @@ jobs:
             build-type: "Release"
     name: "${{ matrix.options.name }}"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:2-minideb
+    container: soramitsu/kagome-dev:3-minideb
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -145,7 +146,7 @@ jobs:
           - name: "Push Release Docker image"
             build-type: "Release"
     runs-on: ubuntu-latest
-    container: soramitsu/kagome-dev:2-minideb
+    container: soramitsu/kagome-dev:3-minideb
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2

@@ -63,7 +63,7 @@ namespace kagome::network {
         : logger_{log::createLogger("StreamEngine", "network")} {}
 
     template <typename... Args>
-    static StreamEnginePtr create(Args &&... args) {
+    static StreamEnginePtr create(Args &&...args) {
       return std::make_shared<StreamEngine>(std::forward<Args>(args)...);
     }
 
@@ -119,14 +119,13 @@ namespace kagome::network {
                                       is_incoming ? stream : nullptr,
                                       is_outgoing ? stream : nullptr,
                                       {}});
-      SL_DEBUG(
-          logger_,
-          "Added {} {} stream with peer_id={}",
-          direction == Direction::INCOMING
-              ? "incoming"
-              : direction == Direction::OUTGOING ? "outgoing" : "bidirectional",
-          protocol->protocol(),
-          peer_id.toBase58());
+      SL_DEBUG(logger_,
+               "Added {} {} stream with peer_id={}",
+               direction == Direction::INCOMING   ? "incoming"
+               : direction == Direction::OUTGOING ? "outgoing"
+                                                  : "bidirectional",
+               protocol->protocol(),
+               peer_id.toBase58());
       return outcome::success();
     }
 
@@ -203,19 +202,32 @@ namespace kagome::network {
     }
 
     template <typename T>
-    void send(std::shared_ptr<Stream> stream, const T &msg) {
+    void send(const PeerId &peer_id,
+              const std::shared_ptr<ProtocolBase> &protocol,
+              std::shared_ptr<Stream> stream,
+              const T &msg) {
       BOOST_ASSERT(stream != nullptr);
 
       auto read_writer =
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
-      read_writer->write(msg, [wp = weak_from_this()](auto &&res) {
-        if (not res) {
-          if (auto self = wp.lock()) {
-            self->logger_->error("Could not send message, reason: {}",
-                                 res.error().message());
-          }
-        }
-      });
+      read_writer->write(
+          msg, [wp = weak_from_this(), peer_id, protocol](auto &&res) {
+            if (auto self = wp.lock()) {
+              if (res.has_value()) {
+                SL_TRACE(self->logger_,
+                         "Message sent to {} stream with peer_id={}",
+                         protocol->protocol(),
+                         peer_id.toBase58());
+              } else {
+                SL_ERROR(
+                    self->logger_,
+                    "Could not send message to {} stream with peer_id={}: {}",
+                    protocol->protocol(),
+                    peer_id.toBase58(),
+                    res.error().message());
+              }
+            }
+          });
     }
 
     template <typename T>
@@ -228,7 +240,7 @@ namespace kagome::network {
       std::shared_lock cs(streams_cs_);
       forSubscriber(peer_id, protocol, [&](auto type, auto &descr) {
         if (descr.outgoing and not descr.outgoing->isClosed()) {
-          send(descr.outgoing, *msg);
+          send(peer_id, protocol, descr.outgoing, *msg);
           return;
         }
 
@@ -246,7 +258,7 @@ namespace kagome::network {
       forEachPeer([&](const auto &peer_id, auto &proto_map) {
         forProtocol(proto_map, protocol, [&](auto &descr) {
           if (descr.outgoing and not descr.outgoing->isClosed()) {
-            send(descr.outgoing, *msg);
+            send(peer_id, protocol, descr.outgoing, *msg);
             return;
           }
           updateStream(peer_id, protocol, msg);
@@ -387,8 +399,11 @@ namespace kagome::network {
       forSubscriber(peer_id, protocol, [&](auto, auto &subscriber) {
         need_to_create_new_stream = subscriber.deffered_messages.empty();
         subscriber.deffered_messages.push(
-            [this, msg = std::move(msg)](std::shared_ptr<Stream> stream) {
-              send(stream, *msg);
+            [wp = weak_from_this(), peer_id, protocol, msg = std::move(msg)](
+                std::shared_ptr<Stream> stream) {
+              if (auto self = wp.lock()) {
+                self->send(peer_id, protocol, stream, *msg);
+              }
             });
       });
 

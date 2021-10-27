@@ -20,7 +20,7 @@ target_link_libraries(application_injector
     babe
     babe_api
     babe_lottery
-    babe_synchronizer
+    synchronizer
     babe_util
     binaryen_executor_factory
     binaryen_runtime_external_interface
@@ -70,7 +70,6 @@ target_link_libraries(application_injector
     propagate_transactions_protocol
     proposer
     protocol_factory
-    remote_sync_protocol_client
     rpc_api_service
     rpc_thread_pool
     runtime_upgrade_tracker
@@ -82,7 +81,6 @@ target_link_libraries(application_injector
     sr25519_provider
     state_api_service
     storage_code_provider
-    sync_protocol
     sync_protocol_observer
     system_api_service
     system_api_service
@@ -99,7 +97,6 @@ target_link_libraries(application_injector
     system_api_service
     payment_api_service
     rpc_api_service
-    p2p::p2p_kademlia
     kademlia_storage_backend
     peer_manager
     babe_util
@@ -115,5 +112,4 @@ target_link_libraries(application_injector
     grandpa_transmitter
     block_announce_transmitter
     transactions_transmitter
-    ticker
     )
