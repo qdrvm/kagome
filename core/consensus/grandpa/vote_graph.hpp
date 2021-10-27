@@ -68,40 +68,16 @@ namespace kagome::consensus::grandpa {
     /// should be in reverse order from the old base's parent.
     virtual void adjustBase(const std::vector<BlockHash> &ancestry_proof) = 0;
 
-    inline outcome::result<void> insert(const Vote &vote,
-                                        const VoteWeight &weigth) {
-      return visit_in_place(
-          vote, [this, &weigth](const auto &vote) -> outcome::result<void> {
-            return insert(BlockInfo{vote.number, vote.hash}, weigth);
-          });
-    }
+    /// Insert a {@param vote} of {@param voter}
+    virtual outcome::result<void> insert(const BlockInfo &vote, Id voter) = 0;
 
-    inline outcome::result<void> insert(const Prevote &prevote,
-                                        const VoteWeight &vote) {
-      return insert(BlockInfo{prevote.number, prevote.hash}, vote);
-    }
-
-    inline outcome::result<void> insert(const Precommit &precommit,
-                                        const VoteWeight &vote) {
-      return insert(BlockInfo{precommit.number, precommit.hash}, vote);
-    }
-
-    /// Insert a vote with given value into the graph at given hash and number.
-    virtual outcome::result<void> insert(const BlockInfo &block,
-                                         const VoteWeight &vote) = 0;
-
-    /// Remove a prevote of voter presented by {@param index}
-    virtual void removePrevote(size_t index) = 0;
-
-    /// Remove a precommit of voter presented by {@param index}
-    virtual void removePrecommit(size_t index) = 0;
+    /// Remove a {@param vote} of {@param voter}
+    virtual void remove(Id voter) = 0;
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
     virtual boost::optional<BlockInfo> findAncestor(
-        const BlockInfo &block,
-        const Condition &condition,
-        const Comparator &comparator) const = 0;
+        const BlockInfo &block, const Condition &condition) const = 0;
 
     /// Find the best GHOST descendant of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
@@ -118,8 +94,7 @@ namespace kagome::consensus::grandpa {
     /// condition.
     virtual boost::optional<BlockInfo> findGhost(
         const boost::optional<BlockInfo> &current_best,
-        const Condition &condition,
-        const Comparator &comparator) const = 0;
+        const Condition &condition) const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

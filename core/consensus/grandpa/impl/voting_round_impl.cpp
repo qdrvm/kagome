@@ -40,7 +40,8 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker> prevotes,
       std::shared_ptr<VoteTracker> precommits,
-      std::shared_ptr<VoteGraph> graph,
+      std::shared_ptr<VoteGraph> prevote_graph,
+      std::shared_ptr<VoteGraph> precommit_graph,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context)
       : voter_set_{std::move(config.voters)},
@@ -51,7 +52,8 @@ namespace kagome::consensus::grandpa {
         authority_manager_{std::move(authority_manager)},
         env_{std::move(env)},
         vote_crypto_provider_{std::move(vote_crypto_provider)},
-        graph_{std::move(graph)},
+        prevote_graph_{std::move(prevote_graph)},
+        precommit_graph_{std::move(precommit_graph)},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
         prevotes_{std::move(prevotes)},
@@ -64,7 +66,8 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(prevotes_ != nullptr);
     BOOST_ASSERT(precommits_ != nullptr);
     BOOST_ASSERT(env_ != nullptr);
-    BOOST_ASSERT(graph_ != nullptr);
+    BOOST_ASSERT(prevote_graph_ != nullptr);
+    BOOST_ASSERT(precommit_graph_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
 
     // calculate supermajority
@@ -93,7 +96,8 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
-      const std::shared_ptr<VoteGraph> &graph,
+      const std::shared_ptr<VoteGraph> &prevote_graph,
+      const std::shared_ptr<VoteGraph> &precommit_graph,
       const std::shared_ptr<Clock> &clock,
       const std::shared_ptr<boost::asio::io_context> &io_context,
       const std::shared_ptr<VotingRound> &previous_round)
@@ -104,7 +108,8 @@ namespace kagome::consensus::grandpa {
                         vote_crypto_provider,
                         prevotes,
                         precommits,
-                        graph,
+                        prevote_graph,
+                        precommit_graph,
                         clock,
                         io_context) {
     BOOST_ASSERT(previous_round != nullptr);
@@ -122,7 +127,8 @@ namespace kagome::consensus::grandpa {
       const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
       const std::shared_ptr<VoteTracker> &prevotes,
       const std::shared_ptr<VoteTracker> &precommits,
-      const std::shared_ptr<VoteGraph> &graph,
+      const std::shared_ptr<VoteGraph> &prevote_graph,
+      const std::shared_ptr<VoteGraph> &precommit_graph,
       const std::shared_ptr<Clock> &clock,
       const std::shared_ptr<boost::asio::io_context> &io_context,
       const MovableRoundState &round_state)
@@ -133,7 +139,8 @@ namespace kagome::consensus::grandpa {
                         vote_crypto_provider,
                         prevotes,
                         precommits,
-                        graph,
+                        prevote_graph,
+                        precommit_graph,
                         clock,
                         io_context) {
     last_finalized_block_ = round_state.last_finalized_block;
@@ -945,38 +952,26 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(vote.is<Prevote>());
 
     // Check if voter is contained in current voter set
-    auto index_opt = voter_set_->voterIndex(vote.id);
-    if (not index_opt.has_value()) {
+    auto inw_opt = voter_set_->indexAndWeight(vote.id);
+    if (not inw_opt.has_value()) {
       logger_->warn("Voter {} is not known", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
-    const auto &index = index_opt.value();
+    const auto &[index, weight] = inw_opt.value();
 
     // Ignore known equivocators
     if (prevote_equivocators_[index]) {
       return VotingRoundError::EQUIVOCATED_VOTE;
     }
 
-    auto weight_opt = voter_set_->voterWeight(vote.id);
-    if (not weight_opt.has_value()) {
-      // Can't be none after voterWeight() was success
-      BOOST_UNREACHABLE_RETURN(VotingRoundError::UNKNOWN_VOTER);
-    }
-
-    const auto &weight = weight_opt.value();
+    // Ignore zero-weight voter
     if (weight == 0) {
       return VotingRoundError::ZERO_WEIGHT_VOTER;
     }
 
     switch (prevotes_->push(vote, weight)) {
       case VoteTracker::PushResult::SUCCESS: {
-        // prepare VoteWeight which contains index of who has voted and what
-        // kind of vote it was
-        VoteWeight voteWeight;
-
-        voteWeight.setPrevote(index, weight);
-
-        auto result = graph_->insert(vote.message, voteWeight);
+        auto result = prevote_graph_->insert(vote.getBlockInfo(), vote.id);
         if (not result.has_value()) {
           prevotes_->unpush(vote, weight);
           logger_->warn(
@@ -993,7 +988,7 @@ namespace kagome::consensus::grandpa {
       }
       case VoteTracker::PushResult::EQUIVOCATED: {
         prevote_equivocators_[index] = true;
-        graph_->removePrevote(index);
+        prevote_graph_->remove(vote.id);
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
     }
@@ -1003,36 +998,28 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> VotingRoundImpl::onSignedPrecommit(
       const SignedMessage &vote) {
     BOOST_ASSERT(vote.is<Precommit>());
-    auto weight_opt = voter_set_->voterWeight(vote.id);
-    if (not weight_opt.has_value()) {
+
+    // Check if voter is contained in current voter set
+    auto inw_opt = voter_set_->indexAndWeight(vote.id);
+    if (not inw_opt.has_value()) {
       logger_->warn("Voter {} is not known", vote.id.toHex());
       return VotingRoundError::UNKNOWN_VOTER;
     }
-    const auto &weight = weight_opt.value();
-    if (weight == 0) {
-      return VotingRoundError::ZERO_WEIGHT_VOTER;
-    }
-    auto index_opt = voter_set_->voterIndex(vote.id);
-    if (not index_opt.has_value()) {
-      // Can't be none after voterWeight() was success
-      BOOST_UNREACHABLE_RETURN(VotingRoundError::UNKNOWN_VOTER);
-    }
-    const auto &index = index_opt.value();
+    const auto &[index, weight] = inw_opt.value();
 
     // Ignore known equivocators
     if (precommit_equivocators_[index]) {
       return VotingRoundError::EQUIVOCATED_VOTE;
     }
 
+    // Ignore zero-weight voter
+    if (weight == 0) {
+      return VotingRoundError::ZERO_WEIGHT_VOTER;
+    }
+
     switch (precommits_->push(vote, weight)) {
       case VoteTracker::PushResult::SUCCESS: {
-        // prepare VoteWeight which contains index of who has voted and what
-        // kind of vote it was
-        VoteWeight voteWeight;
-
-        voteWeight.setPrecommit(index, weight);
-
-        auto result = graph_->insert(vote.message, voteWeight);
+        auto result = precommit_graph_->insert(vote.getBlockInfo(), vote.id);
         if (not result.has_value()) {
           precommits_->unpush(vote, weight);
           logger_->warn(
@@ -1049,7 +1036,7 @@ namespace kagome::consensus::grandpa {
       }
       case VoteTracker::PushResult::EQUIVOCATED: {
         precommit_equivocators_[index] = true;
-        graph_->removePrecommit(index);
+        precommit_graph_->remove(vote.id);
         return VotingRoundError::EQUIVOCATED_VOTE;
       }
     }
@@ -1073,13 +1060,12 @@ namespace kagome::consensus::grandpa {
                                        : last_finalized_block_;
 
     auto possible_to_prevote = [this](const VoteWeight &weight) {
-      return weight.total<Prevote>(prevote_equivocators_, *voter_set_)
-             >= threshold_;
+      return weight.total(prevote_equivocators_, *voter_set_) >= threshold_;
     };
 
     /// @see spec: Grandpa-Ghost
-    auto new_prevote_ghost = graph_->findGhost(
-        current_best, possible_to_prevote, VoteWeight::prevoteComparator);
+    auto new_prevote_ghost =
+        prevote_graph_->findGhost(current_best, possible_to_prevote);
 
     if (new_prevote_ghost.has_value()) {
       bool changed = new_prevote_ghost != prevote_ghost_;
@@ -1120,8 +1106,7 @@ namespace kagome::consensus::grandpa {
     }
 
     auto possible_to_finalize = [this](const VoteWeight &weight) {
-      return weight.total<Precommit>(precommit_equivocators_, *voter_set_)
-             >= threshold_;
+      return weight.total(precommit_equivocators_, *voter_set_) >= threshold_;
     };
 
     auto current_best =
@@ -1132,8 +1117,8 @@ namespace kagome::consensus::grandpa {
         }()));
 
     /// @see spec: Grandpa-Ghost
-    auto new_precommit_ghost = graph_->findGhost(
-        current_best, possible_to_finalize, VoteWeight::precommitComparator);
+    auto new_precommit_ghost =
+        precommit_graph_->findGhost(current_best, possible_to_finalize);
 
     if (not new_precommit_ghost.has_value()) {
       new_precommit_ghost = current_best;
@@ -1203,8 +1188,7 @@ namespace kagome::consensus::grandpa {
 
     auto possible_to_precommit = [&](const VoteWeight &weight) {
       // total precommits for this block, including equivocations.
-      auto precommited_for =
-          weight.total<Precommit>(precommit_equivocators_, *voter_set_);
+      auto precommited_for = weight.total(precommit_equivocators_, *voter_set_);
 
       // equivocations we could still get are out of those who
       // have already voted, but not on this block.
@@ -1239,8 +1223,8 @@ namespace kagome::consensus::grandpa {
                               ? precommit_ghost_.value()
                               : last_finalized_block_;
 
-      auto best_final_candidate = graph_->findAncestor(
-          current_best, possible_to_precommit, VoteWeight::precommitComparator);
+      auto best_final_candidate =
+          precommit_graph_->findAncestor(current_best, possible_to_precommit);
       if (best_final_candidate.has_value()) {
         best_final_candidate_ = best_final_candidate;
         SL_TRACE(
@@ -1276,9 +1260,8 @@ namespace kagome::consensus::grandpa {
       if (best_final_candidate_ != bestPrevoteCandidate()) {
         completable_ = true;
       } else {
-        auto ghost = graph_->findGhost(best_final_candidate_,
-                                       possible_to_precommit,
-                                       VoteWeight::precommitComparator);
+        auto ghost = precommit_graph_->findGhost(best_final_candidate_,
+                                                 possible_to_precommit);
         if (ghost.has_value()
             && best_final_candidate_ == bestPrevoteCandidate()) {
           completable_ = true;
@@ -1377,14 +1360,11 @@ namespace kagome::consensus::grandpa {
 
     if (current_precommits >= threshold_) {
       auto possible_to_finalize = [this](const VoteWeight &weight) {
-        return weight.total<Precommit>(precommit_equivocators_, *voter_set_)
-               >= threshold_;
+        return weight.total(precommit_equivocators_, *voter_set_) >= threshold_;
       };
 
-      auto finalized_opt =
-          graph_->findAncestor(best_prevote_candidate,
-                               possible_to_finalize,
-                               VoteWeight::precommitComparator);
+      auto finalized_opt = precommit_graph_->findAncestor(
+          best_prevote_candidate, possible_to_finalize);
       if (finalized_opt.has_value()) {
         const auto &finalized = finalized_opt.value();
         if (not finalized_.has_value()) {
@@ -1427,8 +1407,7 @@ namespace kagome::consensus::grandpa {
     auto additional_equiv = tolerated_equivocations - current_equivocations;
     auto possible_to_precommit = [&](const VoteWeight &weight) {
       // total precommits for this block, including equivocations.
-      auto precommited_for =
-          weight.total<Precommit>(precommit_equivocators_, *voter_set_);
+      auto precommited_for = weight.total(precommit_equivocators_, *voter_set_);
 
       // equivocations we could still get are out of those who
       // have already voted, but not on this block.
@@ -1461,8 +1440,8 @@ namespace kagome::consensus::grandpa {
       auto current_best =
           finalized_.value_or(prevote_ghost_.value_or(last_finalized_block_));
 
-      auto best_final_candidate = graph_->findAncestor(
-          current_best, possible_to_precommit, VoteWeight::precommitComparator);
+      auto best_final_candidate =
+          precommit_graph_->findAncestor(current_best, possible_to_precommit);
       if (best_final_candidate.has_value()
           and best_final_candidate != best_final_candidate_) {
         best_final_candidate_ = best_final_candidate;
@@ -1499,9 +1478,8 @@ namespace kagome::consensus::grandpa {
       if (best_final_candidate_ != bestPrevoteCandidate()) {
         completable_ = true;
       } else {
-        auto ghost = graph_->findGhost(best_final_candidate_,
-                                       possible_to_precommit,
-                                       VoteWeight::precommitComparator);
+        auto ghost = precommit_graph_->findGhost(best_final_candidate_,
+                                                 possible_to_precommit);
         if (ghost.has_value()
             && best_final_candidate_ == bestPrevoteCandidate()) {
           completable_ = true;

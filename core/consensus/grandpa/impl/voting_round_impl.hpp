@@ -35,7 +35,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
         std::shared_ptr<VoteTracker> prevotes,
         std::shared_ptr<VoteTracker> precommits,
-        std::shared_ptr<VoteGraph> graph,
+        std::shared_ptr<VoteGraph> prevote_graph,
+        std::shared_ptr<VoteGraph> precommit_graph,
         std::shared_ptr<Clock> clock,
         std::shared_ptr<boost::asio::io_context> io_context);
 
@@ -48,7 +49,8 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
-        const std::shared_ptr<VoteGraph> &graph,
+        const std::shared_ptr<VoteGraph> &prevote_graph,
+        const std::shared_ptr<VoteGraph> &precommit_graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<boost::asio::io_context> &io_context,
         const MovableRoundState &round_state);
@@ -61,7 +63,8 @@ namespace kagome::consensus::grandpa {
         const std::shared_ptr<VoteCryptoProvider> &vote_crypto_provider,
         const std::shared_ptr<VoteTracker> &prevotes,
         const std::shared_ptr<VoteTracker> &precommits,
-        const std::shared_ptr<VoteGraph> &graph,
+        const std::shared_ptr<VoteGraph> &prevote_graph,
+        const std::shared_ptr<VoteGraph> &precommit_graph,
         const std::shared_ptr<Clock> &clock,
         const std::shared_ptr<boost::asio::io_context> &io_context,
         const std::shared_ptr<VotingRound> &previous_round);
@@ -250,7 +253,8 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<const primitives::AuthorityList> authorities_;
     std::shared_ptr<Environment> env_;
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
-    std::shared_ptr<VoteGraph> graph_;
+    std::shared_ptr<VoteGraph> prevote_graph_;
+    std::shared_ptr<VoteGraph> precommit_graph_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
 

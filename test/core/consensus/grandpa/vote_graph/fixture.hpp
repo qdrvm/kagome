@@ -11,6 +11,7 @@
 #include <rapidjson/document.h>
 
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
+#include "consensus/grandpa/voter_set.hpp"
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/consensus/grandpa/chain_mock.hpp"
 #include "testutil/outcome.hpp"
@@ -25,11 +26,39 @@ using testing::Return;
 struct VoteGraphFixture : public testing::Test {
   const BlockHash GENESIS_HASH = "genesis"_H;
 
+  std::shared_ptr<VoterSet> voter_set = [] {
+    auto vs = std::make_shared<VoterSet>();
+
+    vs->insert("w0_a"_ID, 0);
+
+    vs->insert("w1_a"_ID, 1);
+    vs->insert("w1_b"_ID, 1);
+    vs->insert("w1_c"_ID, 1);
+
+    vs->insert("w3_a"_ID, 3);
+    vs->insert("w3_b"_ID, 3);
+    vs->insert("w3_c"_ID, 3);
+
+    vs->insert("w5_a"_ID, 5);
+    vs->insert("w5_b"_ID, 5);
+    vs->insert("w5_c"_ID, 5);
+
+    vs->insert("w7_a"_ID, 7);
+    vs->insert("w7_b"_ID, 7);
+    vs->insert("w7_c"_ID, 7);
+
+    vs->insert("w10_a"_ID, 10);
+    vs->insert("w10_b"_ID, 10);
+    vs->insert("w10_c"_ID, 10);
+
+    return vs;
+  }();
+
   std::shared_ptr<ChainMock> chain = std::make_shared<ChainMock>();
   std::shared_ptr<VoteGraphImpl> graph;
 
   template <typename... T>
-  static std::vector<BlockHash> vec(T &&... t) {
+  static std::vector<BlockHash> vec(T &&...t) {
     return std::vector<BlockHash>{t...};
   }
 
@@ -38,9 +67,6 @@ struct VoteGraphFixture : public testing::Test {
                           const std::vector<BlockHash> &ancestry) {
     EXPECT_CALL(*chain, getAncestry(base, block)).WillOnce(Return(ancestry));
   }
-
-  const std::function<bool(const VoteWeight &, const VoteWeight &)> comparator =
-      VoteWeight::prevoteComparator;
 };
 
 /// JSON utils to parse graph state
@@ -135,10 +161,59 @@ inline BlockInfo jsonToBlockInfo(rapidjson::Document &document) {
 inline void AssertGraphCorrect(VoteGraphImpl &graph, std::string json) {
   rapidjson::Document document;
   document.Parse(json.c_str(), json.size());
+
+  auto gb = graph.getBase();
+  auto jb = jsonToBlockInfo(document);
   ASSERT_EQ(graph.getBase(), jsonToBlockInfo(document)) << "base is incorrect";
-  ASSERT_EQ(graph.getHeads(), jsonToHeads(document)) << "heads are incorrect";
-  EXPECT_EQ(graph.getEntries(), jsonToEntries(document))
-      << "entries are incorrect";
+
+  auto gh_ = graph.getHeads();
+  auto jh_ = jsonToHeads(document);
+  std::set<BlockHash> gh(gh_.begin(), gh_.end());
+  std::set<BlockHash> jh(jh_.begin(), jh_.end());
+  auto heads_is_equal = std::equal(
+      gh.begin(), gh.end(), jh.begin(), jh.end(), [](auto &g, auto &j) {
+        if (g != j) {
+          std::cerr << "difference in hash" << std::endl;
+          return false;
+        }
+        return true;
+      });
+  EXPECT_TRUE(heads_is_equal) << "head are incorrect";
+
+  auto &ge_ = graph.getEntries();
+  auto je_ = jsonToEntries(document);
+  std::map<BlockHash, VoteGraph::Entry> ge(ge_.begin(), ge_.end());
+  std::map<BlockHash, VoteGraph::Entry> je(je_.begin(), je_.end());
+  auto is_equal = std::equal(
+      ge.begin(), ge.end(), je.begin(), je.end(), [](auto &g, auto &j) {
+        if (g.first != j.first) {
+          std::cerr << "difference in hash" << std::endl;
+          return false;
+        }
+        if (g.second.number != j.second.number) {
+          std::cerr << "difference in number" << std::endl;
+          return false;
+        }
+        if (g.second.ancestors != j.second.ancestors) {
+          std::cerr << "difference in ancestors" << std::endl;
+          return false;
+        }
+        if (g.second.descendants != j.second.descendants) {
+          std::cerr << "difference in descendants" << std::endl;
+          return false;
+        }
+        if (g.second.cumulative_vote.sum != j.second.cumulative_vote.sum) {
+          std::cerr << "difference in prevotes_sum" << std::endl;
+          return false;
+        }
+
+        return g.first == j.first && g.second.number == j.second.number
+               && g.second.ancestors == j.second.ancestors
+               && g.second.descendants == j.second.descendants
+               && g.second.cumulative_vote.sum == j.second.cumulative_vote.sum;
+      });
+
+  EXPECT_TRUE(is_equal) << "entries are incorrect";
 }
 
 /// Custom GTest Printers for custom types
@@ -164,7 +239,7 @@ namespace std {
       *os << a << ", ";
     }
     *os << "], ";
-    *os << "cumulative_vote=" << e.cumulative_vote.prevotes_sum << "}";
+    *os << "cumulative_vote=" << e.cumulative_vote.sum << "}";
   }
 }  // namespace std
 #endif  // KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP

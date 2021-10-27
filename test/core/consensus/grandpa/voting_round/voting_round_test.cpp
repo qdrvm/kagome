@@ -20,7 +20,6 @@
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "primitives/authority.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -150,7 +149,9 @@ class VotingRoundTest : public testing::Test {
     EXPECT_CALL(*env_, bestChainContaining("C"_H))
         .WillRepeatedly(Return(BlockInfo{9, "FC"_H}));
 
-    vote_graph_ = std::make_shared<VoteGraphImpl>(base, env_);
+    prevote_graph_ = std::make_shared<VoteGraphImpl>(base, config.voters, env_);
+    precommit_graph_ =
+        std::make_shared<VoteGraphImpl>(base, config.voters, env_);
 
     previous_round_ = std::make_shared<VotingRoundMock>();
     ON_CALL(*previous_round_, lastFinalizedBlock())
@@ -176,7 +177,8 @@ class VotingRoundTest : public testing::Test {
                                                vote_crypto_provider_,
                                                prevotes_,
                                                precommits_,
-                                               vote_graph_,
+                                               prevote_graph_,
+                                               precommit_graph_,
                                                clock_,
                                                io_context_,
                                                previous_round_);
@@ -234,7 +236,8 @@ class VotingRoundTest : public testing::Test {
   std::shared_ptr<GrandpaMock> grandpa_;
   std::shared_ptr<AuthorityManagerMock> authority_manager_;
   std::shared_ptr<EnvironmentMock> env_;
-  std::shared_ptr<VoteGraphImpl> vote_graph_;
+  std::shared_ptr<VoteGraphImpl> prevote_graph_;
+  std::shared_ptr<VoteGraphImpl> precommit_graph_;
   std::shared_ptr<Clock> clock_ = std::make_shared<SteadyClockImpl>();
 
   std::shared_ptr<boost::asio::io_context> io_context_ =

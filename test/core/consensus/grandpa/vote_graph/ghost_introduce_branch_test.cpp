@@ -6,7 +6,7 @@
 
 TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   BlockInfo base{0, GENESIS_HASH};
-  graph = std::make_shared<VoteGraphImpl>(base, chain);
+  graph = std::make_shared<VoteGraphImpl>(base, voter_set, chain);
 
   {  // insert nodes
     AssertGraphCorrect(*graph,
@@ -38,7 +38,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
                            "B"_H,
                            "A"_H,
                            GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "FC"_H}, 5_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({9, "FC"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -87,7 +87,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
                            "B"_H,
                            "A"_H,
                            GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "ED"_H}, 7_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({9, "ED"_H}, "w7_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -144,20 +144,16 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   }
 
   {
-    auto ghostOpt = graph->findGhost(
-        boost::none,
-        [](auto &&x) { return x.prevotes_sum >= (5_W).prevotes_sum; },
-        comparator);
+    auto ghostOpt =
+        graph->findGhost(boost::none, [](auto &&x) { return x.sum >= 5; });
     ASSERT_TRUE(ghostOpt);
     ASSERT_EQ(*ghostOpt, BlockInfo(9, "ED"_H))
         << "The best block of blocks with enough weight should be selected";
   }
 
   {
-    auto ghostOpt = graph->findGhost(
-        boost::none,
-        [](auto &&x) { return x.prevotes_sum >= (10_W).prevotes_sum; },
-        comparator);
+    auto ghostOpt =
+        graph->findGhost(boost::none, [](auto &&x) { return x.sum >= 10; });
     ASSERT_TRUE(ghostOpt);
     ASSERT_EQ(*ghostOpt, BlockInfo(5, "E"_H))
         << "A highest-weighted of blocks with enough weight should be selected";
@@ -165,7 +161,7 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
 
   {  // introduce branch in the middle
     // do not expect that insert is calling getAncestry
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{5, "E"_H}, 3_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({5, "E"_H}, "w3_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -226,13 +222,11 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   }
 
   auto check = [&](const boost::optional<BlockInfo> &block,
-                   const VoteWeight &v,
+                   size_t weight,
                    const boost::optional<BlockInfo> &expected,
                    std::string_view comment) {
     auto ghostOpt = graph->findGhost(
-        block,
-        [&v](auto &&x) { return x.prevotes_sum >= v.prevotes_sum; },
-        comparator);
+        block, [&weight](auto &&x) { return x.sum >= weight; });
     ASSERT_TRUE(ghostOpt) << comment;
     ASSERT_EQ(*ghostOpt, *expected) << comment;
   };
@@ -251,18 +245,18 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   //                              =7   =7   =7   =7
 
   //    Reviewing block      Weight  Expecting block      Comment
-  check(boost::none,         10_W, BlockInfo(5, "E"_H),  "From base with weight 10");
-  check(BlockInfo(4, "D"_H), 10_W, BlockInfo(5, "E"_H),  "From D with weight 10");
-  check(BlockInfo(5, "E"_H), 10_W, BlockInfo(5, "E"_H),  "From E with weight 10");
-  check(BlockInfo(6, "F"_H), 10_W, BlockInfo(5, "E"_H),  "From F with weight 10");
+  check(boost::none,         10, BlockInfo(5, "E"_H),  "From base with weight 10");
+  check(BlockInfo(4, "D"_H), 10, BlockInfo(5, "E"_H),  "From D with weight 10");
+  check(BlockInfo(5, "E"_H), 10, BlockInfo(5, "E"_H),  "From E with weight 10");
+  check(BlockInfo(6, "F"_H), 10, BlockInfo(5, "E"_H),  "From F with weight 10");
 
-  check(boost::none,         7_W, BlockInfo(9, "ED"_H), "From base with weight 7");
-  check(BlockInfo(4, "D"_H), 7_W, BlockInfo(9, "ED"_H), "From D with weight 7");
-  check(BlockInfo(5, "E"_H), 7_W, BlockInfo(9, "ED"_H), "From E with weight 7");
-  check(BlockInfo(6, "F"_H), 7_W, BlockInfo(5, "E"_H),   "From F with weight 7");
+  check(boost::none,         7, BlockInfo(9, "ED"_H), "From base with weight 7");
+  check(BlockInfo(4, "D"_H), 7, BlockInfo(9, "ED"_H), "From D with weight 7");
+  check(BlockInfo(5, "E"_H), 7, BlockInfo(9, "ED"_H), "From E with weight 7");
+  check(BlockInfo(6, "F"_H), 7, BlockInfo(5, "E"_H),   "From F with weight 7");
 
-  check(boost::none,         5_W, BlockInfo(9, "ED"_H), "From base with weight 5");
-  check(BlockInfo(4, "D"_H), 5_W, BlockInfo(9, "ED"_H), "From D with weight 5");
-  check(BlockInfo(5, "E"_H), 5_W, BlockInfo(9, "ED"_H), "From E with weight 5");
-  check(BlockInfo(6, "F"_H), 5_W, BlockInfo(9, "FC"_H), "From F with weight 5");
+  check(boost::none,         5, BlockInfo(9, "ED"_H), "From base with weight 5");
+  check(BlockInfo(4, "D"_H), 5, BlockInfo(9, "ED"_H), "From D with weight 5");
+  check(BlockInfo(5, "E"_H), 5, BlockInfo(9, "ED"_H), "From E with weight 5");
+  check(BlockInfo(6, "F"_H), 5, BlockInfo(9, "FC"_H), "From F with weight 5");
 }

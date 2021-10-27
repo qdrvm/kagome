@@ -10,8 +10,7 @@
 
 inline kagome::consensus::grandpa::VoteWeight makeVoteWeight(uint64_t s) {
   kagome::consensus::grandpa::VoteWeight v;
-  v.prevotes_sum = s;
-  v.precommits_sum = s;
+  v.sum = s;
   return v;
 }
 
