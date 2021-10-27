@@ -42,10 +42,3 @@ hunter_config(
     WAVM_ENABLE_STATIC_LINKING=ON
     KEEP_PACKAGE_SOURCES
 )
-
-hunter_config(
-        schnorrkel_crust
-        URL https://github.com/Harrm/sr25519-crust/archive/refs/heads/feature/deprecated_signatures.zip
-        SHA1 e5ca5a7306785e598b2dd8bca91d92e26f8609bd
-        KEEP_PACKAGE_SOURCES
-)
