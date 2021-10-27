@@ -16,6 +16,7 @@ namespace kagome::network {
     GrandpaTransmitterImpl(std::shared_ptr<Router> router);
 
     void vote(GrandpaVote &&message) override;
+    void neighbor(GrandpaNeighborMessage &&message) override;
     void finalize(FullCommitMessage &&message) override;
     void catchUpRequest(const libp2p::peer::PeerId &peer_id,
                         CatchUpRequest &&message) override;
