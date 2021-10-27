@@ -9,6 +9,7 @@
 #include <boost/optional.hpp>
 
 #include "consensus/grandpa/common.hpp"
+#include "common/outcome_throw.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -17,6 +18,12 @@ namespace kagome::consensus::grandpa {
    */
   struct VoterSet final {
    public:
+    enum class Error {
+      VOTER_ALREADY_EXISTS = 1,
+      VOTER_NOT_FOUND,
+      INDEX_OUTBOUND
+    };
+
     using Index = size_t;
     using Weight = size_t;
 
@@ -27,7 +34,7 @@ namespace kagome::consensus::grandpa {
     /**
      * Insert voter \param voter with \param weight
      */
-    void insert(Id voter, Weight weight);
+    outcome::result<void> insert(Id voter, Weight weight);
 
     /**
      * \return uniqie voter set membership
@@ -36,25 +43,25 @@ namespace kagome::consensus::grandpa {
       return id_;
     }
 
-    boost::optional<std::tuple<Index, Weight>> indexAndWeight(
+    outcome::result<std::tuple<Index, Weight>> indexAndWeight(
         const Id &voter) const;
 
-    boost::optional<Id> voterId(Index index) const;
+    outcome::result<Id> voterId(Index index) const;
 
     /**
      * \return index of \param voter
      */
-    boost::optional<Index> voterIndex(const Id &voter) const;
+    outcome::result<Index> voterIndex(const Id &voter) const;
 
     /**
      * \return weight of \param voter
      */
-    boost::optional<Weight> voterWeight(const Id &voter) const;
+    outcome::result<Weight> voterWeight(const Id &voter) const;
 
     /**
      * \return weight of voter by index \param voter_index
      */
-    boost::optional<Weight> voterWeight(size_t voter_index) const;
+    outcome::result<Weight> voterWeight(size_t voter_index) const;
 
     inline size_t size() const {
       return list_.size();
@@ -99,11 +106,16 @@ namespace kagome::consensus::grandpa {
     std::vector<std::tuple<Id, VoterSet::Weight>> list;
     s >> list >> voters.id_;
     for (const auto &[id, weight] : list) {
-      voters.insert(id, weight);
+      auto r = voters.insert(id, weight);
+      if (r.has_error()) {
+        common::raise(r.as_failure());
+      }
     }
     return s;
   }
 
 }  // namespace kagome::consensus::grandpa
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::grandpa, VoterSet::Error);
 
 #endif  // KAGOME_CORE_CONSENSUS_GRANDPA_VOTER_SET_HPP

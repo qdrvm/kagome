@@ -89,8 +89,13 @@ namespace kagome::consensus::grandpa {
 
     auto voters = std::make_shared<VoterSet>(authorities->id);
     for (const auto &authority : *authorities) {
-      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                     authority.weight);
+      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+                                authority.weight);
+      if (res.has_error()) {
+        logger_->critical(
+            "Can't make voter set: {}. Stopping grandpa execution",
+            res.error().message());
+      }
     }
 
     current_round_ = makeInitialRound(round_state, std::move(voters));
@@ -160,6 +165,7 @@ namespace kagome::consensus::grandpa {
       SL_CRITICAL(logger_,
                   "Can't retrieve authorities for finalized block: {}",
                   authorities_res.error().message());
+      std::abort();
     }
     BOOST_ASSERT(authorities_res.has_value());
 
@@ -168,8 +174,10 @@ namespace kagome::consensus::grandpa {
 
     auto voters = std::make_shared<VoterSet>(authorities->id);
     for (const auto &authority : *authorities) {
-      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                     authority.weight);
+      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+                                authority.weight);
+      SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
+      std::abort();
     }
 
     const auto new_round_number =
@@ -387,8 +395,10 @@ namespace kagome::consensus::grandpa {
 
     auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
     for (const auto &authority : *authorities) {
-      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                      authority.weight);
+      SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
+      std::abort();
     }
 
     auto round = makeInitialRound(round_state, std::move(voters));
@@ -551,8 +561,10 @@ namespace kagome::consensus::grandpa {
 
       auto voters = std::make_shared<VoterSet>(authorities->id);
       for (const auto &authority : *authorities) {
-        voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+        auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                        authority.weight);
+        SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
+        std::abort();
       }
 
       round = makeInitialRound(round_state, std::move(voters));

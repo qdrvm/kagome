@@ -76,7 +76,7 @@ namespace kagome::consensus::grandpa {
 
     // Check if node is primary
     auto index = round_number_ % voter_set_->size();
-    isPrimary_ = voter_set_->voterId(index) == id_;
+    isPrimary_ = voter_set_->voterId(index) == outcome::success(id_);
 
     prevote_equivocators_.resize(voter_set_->size(), false);
     precommit_equivocators_.resize(voter_set_->size(), false);
@@ -647,7 +647,7 @@ namespace kagome::consensus::grandpa {
 
   bool VotingRoundImpl::isPrimary(const Id &id) const {
     auto index = round_number_ % voter_set_->size();
-    return voter_set_->voterId(index) == id;
+    return voter_set_->voterId(index) == outcome::success(id);
   }
 
   outcome::result<void> VotingRoundImpl::applyJustification(

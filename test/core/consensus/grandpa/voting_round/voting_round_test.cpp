@@ -20,6 +20,7 @@
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "primitives/authority.hpp"
+#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -121,8 +122,9 @@ class VotingRoundTest : public testing::Test {
 
     auto voters = std::make_shared<VoterSet>(authorities->id);
     for (const auto &authority : *authorities) {
-      voters->insert(kagome::primitives::GrandpaSessionKey(authority.id.id),
-                     authority.weight);
+      ASSERT_OUTCOME_SUCCESS_TRY(
+          voters->insert(kagome::primitives::GrandpaSessionKey(authority.id.id),
+                         authority.weight));
     }
 
     GrandpaConfig config{.voters = std::move(voters),

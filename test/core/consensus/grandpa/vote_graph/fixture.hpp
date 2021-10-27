@@ -29,27 +29,27 @@ struct VoteGraphFixture : public testing::Test {
   std::shared_ptr<VoterSet> voter_set = [] {
     auto vs = std::make_shared<VoterSet>();
 
-    vs->insert("w0_a"_ID, 0);
+    std::ignore = vs->insert("w0_a"_ID, 0);
 
-    vs->insert("w1_a"_ID, 1);
-    vs->insert("w1_b"_ID, 1);
-    vs->insert("w1_c"_ID, 1);
+    std::ignore = vs->insert("w1_a"_ID, 1);
+    std::ignore = vs->insert("w1_b"_ID, 1);
+    std::ignore = vs->insert("w1_c"_ID, 1);
 
-    vs->insert("w3_a"_ID, 3);
-    vs->insert("w3_b"_ID, 3);
-    vs->insert("w3_c"_ID, 3);
+    std::ignore = vs->insert("w3_a"_ID, 3);
+    std::ignore = vs->insert("w3_b"_ID, 3);
+    std::ignore = vs->insert("w3_c"_ID, 3);
 
-    vs->insert("w5_a"_ID, 5);
-    vs->insert("w5_b"_ID, 5);
-    vs->insert("w5_c"_ID, 5);
+    std::ignore = vs->insert("w5_a"_ID, 5);
+    std::ignore = vs->insert("w5_b"_ID, 5);
+    std::ignore = vs->insert("w5_c"_ID, 5);
 
-    vs->insert("w7_a"_ID, 7);
-    vs->insert("w7_b"_ID, 7);
-    vs->insert("w7_c"_ID, 7);
+    std::ignore = vs->insert("w7_a"_ID, 7);
+    std::ignore = vs->insert("w7_b"_ID, 7);
+    std::ignore = vs->insert("w7_c"_ID, 7);
 
-    vs->insert("w10_a"_ID, 10);
-    vs->insert("w10_b"_ID, 10);
-    vs->insert("w10_c"_ID, 10);
+    std::ignore = vs->insert("w10_a"_ID, 10);
+    std::ignore = vs->insert("w10_b"_ID, 10);
+    std::ignore = vs->insert("w10_c"_ID, 10);
 
     return vs;
   }();

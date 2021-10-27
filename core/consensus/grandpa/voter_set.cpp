@@ -5,54 +5,68 @@
 
 #include "consensus/grandpa/voter_set.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VoterSet::Error, e) {
+  using E = kagome::consensus::grandpa::VoterSet::Error;
+  switch (e) {
+    case E::VOTER_ALREADY_EXISTS:
+      return "Voter already exists";
+    case E::VOTER_NOT_FOUND:
+      return "Voter not found";
+    case E::INDEX_OUTBOUND:
+      return "Index outbound";
+  }
+  return "Unknown error (invalid VoterSet::Error)";
+}
+
 namespace kagome::consensus::grandpa {
 
   VoterSet::VoterSet(MembershipCounter id_of_set) : id_{id_of_set} {}
 
-  void VoterSet::insert(Id voter, size_t weight) {
+  outcome::result<void> VoterSet::insert(Id voter, size_t weight) {
     auto r = map_.emplace(voter, map_.size());
     if (r.second) {
       list_.emplace_back(r.first->first, weight);
       total_weight_ += weight;
+      return outcome::success();
     } else {
-      BOOST_UNREACHABLE_RETURN();
+      return Error::VOTER_ALREADY_EXISTS;
     }
   }
 
-  boost::optional<Id> VoterSet::voterId(Index index) const {
+  outcome::result<Id> VoterSet::voterId(Index index) const {
     if (index >= list_.size()) {
-      return boost::none;
+      return Error::INDEX_OUTBOUND;
     }
     auto voter = std::get<0>(list_[index]);
     return voter;
   }
 
-  boost::optional<std::tuple<VoterSet::Index, VoterSet::Weight>>
+  outcome::result<std::tuple<VoterSet::Index, VoterSet::Weight>>
   VoterSet::indexAndWeight(const Id &voter) const {
     auto it = map_.find(voter);
     if (it == map_.end()) {
-      return boost::none;
+      return Error::VOTER_NOT_FOUND;
     }
     auto index = it->second;
     BOOST_ASSERT(index < list_.size());
     auto weight = std::get<1>(list_[index]);
-    return {{index, weight}};
+    return std::tuple(index, weight);
   }
 
-  boost::optional<VoterSet::Index> VoterSet::voterIndex(const Id &voter) const {
+  outcome::result<VoterSet::Index> VoterSet::voterIndex(const Id &voter) const {
     auto it = map_.find(voter);
     if (it == map_.end()) {
-      return boost::none;
+      return Error::VOTER_NOT_FOUND;
     }
     auto index = it->second;
     return index;
   }
 
-  boost::optional<VoterSet::Weight> VoterSet::voterWeight(
+  outcome::result<VoterSet::Weight> VoterSet::voterWeight(
       const Id &voter) const {
     auto it = map_.find(voter);
     if (it == map_.end()) {
-      return boost::none;
+      return Error::VOTER_NOT_FOUND;
     }
     auto index = it->second;
     BOOST_ASSERT(index < list_.size());
@@ -60,9 +74,9 @@ namespace kagome::consensus::grandpa {
     return weight;
   }
 
-  boost::optional<VoterSet::Weight> VoterSet::voterWeight(Index index) const {
+  outcome::result<VoterSet::Weight> VoterSet::voterWeight(Index index) const {
     if (index >= list_.size()) {
-      return boost::none;
+      return Error::INDEX_OUTBOUND;
     }
     auto weight = std::get<1>(list_.at(index));
     return weight;

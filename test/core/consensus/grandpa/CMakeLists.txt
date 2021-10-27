@@ -20,6 +20,13 @@ target_link_libraries(vote_tracker_test
     vote_tracker
     )
 
+addtest(voter_set_test
+    voter_set_test.cpp
+    )
+target_link_libraries(voter_set_test
+    voter_set
+    )
+
 addtest(vote_weight_test
     vote_weight_test.cpp
     )
