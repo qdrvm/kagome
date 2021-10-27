@@ -39,7 +39,7 @@ Example:
 ```sh
 mkdir build
 cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain/gcc-8_cxx17.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain/gcc-9_cxx17.cmake
 ```
 
 All dependencies will be built with gcc-8 and cxx17 standard.
