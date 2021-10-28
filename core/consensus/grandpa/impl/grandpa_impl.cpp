@@ -95,6 +95,7 @@ namespace kagome::consensus::grandpa {
         logger_->critical(
             "Can't make voter set: {}. Stopping grandpa execution",
             res.error().message());
+        return false;
       }
     }
 
@@ -176,8 +177,10 @@ namespace kagome::consensus::grandpa {
     for (const auto &authority : *authorities) {
       auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                                 authority.weight);
-      SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
-      std::abort();
+      if (res.has_error()) {
+        SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
+        std::abort();
+      }
     }
 
     const auto new_round_number =
@@ -396,9 +399,11 @@ namespace kagome::consensus::grandpa {
     auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
     for (const auto &authority : *authorities) {
       auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                     authority.weight);
-      SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
-      std::abort();
+                                authority.weight);
+      if (res.has_error()) {
+        SL_WARN(logger_, "Can't make voter set: {}", res.error().message());
+        return;
+      }
     }
 
     auto round = makeInitialRound(round_state, std::move(voters));
@@ -561,10 +566,13 @@ namespace kagome::consensus::grandpa {
 
       auto voters = std::make_shared<VoterSet>(authorities->id);
       for (const auto &authority : *authorities) {
-        auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                       authority.weight);
-        SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
-        std::abort();
+        auto res = voters->insert(
+            primitives::GrandpaSessionKey(authority.id.id), authority.weight);
+        if (res.has_error()) {
+          SL_CRITICAL(
+              logger_, "Can't make voter set: {}", res.error().message());
+          return res.as_failure();
+        }
       }
 
       round = makeInitialRound(round_state, std::move(voters));
