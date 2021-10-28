@@ -23,23 +23,28 @@ using WsListenerTest = ListenerTest<WsListenerImpl>;
 TEST_F(WsListenerTest, EchoSuccess) {
   backward::SignalHandling sh;
 
-  auto client = std::make_shared<WsClient>(*client_context);
-
   ASSERT_NO_THROW(listener->prepare());
   ASSERT_NO_THROW(service->prepare());
 
   ASSERT_NO_THROW(listener->start());
   ASSERT_NO_THROW(service->start());
 
-  std::thread client_thread([this, client] {
-    ASSERT_TRUE(client->connect(listener_config.endpoint));
-    client->query(request, [this, client](outcome::result<std::string> res) {
-      ASSERT_TRUE(res);
-      ASSERT_EQ(res.value(), response);
-      client->disconnect();
-      main_context->stop();
-    });
-  });
+  std::thread client_thread(
+      [mc = main_context, cc = client_context](
+          Endpoint endpoint, std::string request, std::string response) {
+        auto client = std::make_shared<WsClient>(*cc);
+        ASSERT_TRUE(client->connect(endpoint));
+        client->query(request,
+                      [mc, client, response](outcome::result<std::string> res) {
+                        ASSERT_TRUE(res);
+                        ASSERT_EQ(res.value(), response);
+                        client->disconnect();
+                        mc->stop();
+                      });
+      },
+      listener_config.endpoint,
+      request,
+      response);
 
   main_context->run_for(std::chrono::seconds(2));
   client_thread.join();
