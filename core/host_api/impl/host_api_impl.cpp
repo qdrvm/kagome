@@ -14,7 +14,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "host_api/impl/offchain_extension.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "host_api/impl/wasmedge/reg.h"
+#include "runtime/wasmedge/register_host_api.hpp"
 
 namespace kagome::host_api {
 
@@ -311,7 +311,7 @@ namespace kagome::host_api {
 
   // --------------------------- Offchain extension ----------------------------
 
-  runtime::WasmI8 HostApiImpl::ext_offchain_is_validator_version_1() {
+  runtime::WasmI32 HostApiImpl::ext_offchain_is_validator_version_1() {
     return offchain_ext_.ext_offchain_is_validator_version_1();
   }
 

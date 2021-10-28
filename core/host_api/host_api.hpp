@@ -370,7 +370,7 @@ namespace kagome::host_api {
     // -------------------------- Offchain extension ---------------------------
 
     /// @copydoc OffchainExtension::ext_offchain_is_validator_version_1
-    [[nodiscard]] virtual runtime::WasmI8
+    [[nodiscard]] virtual runtime::WasmI32
     ext_offchain_is_validator_version_1() = 0;
 
     /// @copydoc OffchainExtension::ext_offchain_submit_transaction_version_1

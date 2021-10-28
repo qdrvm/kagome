@@ -57,34 +57,6 @@ namespace kagome::host_api {
 
     void reset() override;
 
-    void ext_offchain_index_set_version_1(I64, I64) {}
-    I32 ext_offchain_is_validator_version_1() {
-      return 0;
-    }
-    void ext_offchain_local_storage_clear_version_1(I32, I64) {}
-    I32 ext_offchain_local_storage_compare_and_set_version_1(I32,
-                                                             I64,
-                                                             I64,
-                                                             I64) {
-      return 0;
-    }
-    I64 ext_offchain_local_storage_get_version_1(I32, I64) {
-      return 0;
-    }
-    void ext_offchain_local_storage_set_version_1(I32, I64, I64) {}
-    I64 ext_offchain_network_state_version_1() {
-      return 0;
-    }
-    I32 ext_offchain_random_seed_version_1() {
-      return 0;
-    }
-    I64 ext_offchain_submit_transaction_version_1(I64) {
-      return 0;
-    }
-    I64 ext_offchain_timestamp_version_1() {
-      return 0;
-    }
-
     // ------------------------ Storage extensions v1 ------------------------
 
     runtime::WasmSpan ext_storage_read_version_1(
@@ -123,6 +95,18 @@ namespace kagome::host_api {
 
     void ext_storage_append_version_1(runtime::WasmSpan key,
                                       runtime::WasmSpan value) const override;
+
+    void ext_default_child_storage_clear_version_1(runtime::WasmSpan,
+                                                   runtime::WasmSpan) const {}
+    runtime::WasmSpan ext_default_child_storage_next_key_version_1(
+        runtime::WasmSpan, runtime::WasmSpan) const {
+      return 0;
+    }
+    void ext_default_child_storage_set_version_1(runtime::WasmSpan,
+                                                 runtime::WasmSpan,
+                                                 runtime::WasmSpan) const {}
+    void ext_default_child_storage_storage_kill_version_1(
+        runtime::WasmSpan) const {}
 
     runtime::WasmPointer ext_trie_blake2_256_root_version_1(
         runtime::WasmSpan values_data) override;
@@ -232,7 +216,7 @@ namespace kagome::host_api {
 
     // -------------------------- Offchain extension ---------------------------
 
-    runtime::WasmI8 ext_offchain_is_validator_version_1() override;
+    runtime::WasmI32 ext_offchain_is_validator_version_1() override;
 
     runtime::WasmSpan ext_offchain_submit_transaction_version_1(
         runtime::WasmSpan data) override;

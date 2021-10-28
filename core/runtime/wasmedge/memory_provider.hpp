@@ -17,7 +17,8 @@ namespace kagome::runtime::wasmedge {
 
   class WasmedgeMemoryProvider final : public MemoryProvider {
    public:
-    boost::optional<runtime::Memory &> getCurrentMemory() const override;
+    std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
+        const override;
 
     [[nodiscard]] outcome::result<void> resetMemory(
         WasmSize heap_base) override;
@@ -26,7 +27,7 @@ namespace kagome::runtime::wasmedge {
 
    private:
     std::shared_ptr<MemoryImpl> memory_;
-    WasmEdge_MemoryInstanceContext* mem_ctx_;
+    WasmEdge_MemoryInstanceContext *mem_ctx_;
   };
 
 }  // namespace kagome::runtime::wasmedge

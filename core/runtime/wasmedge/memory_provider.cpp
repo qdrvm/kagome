@@ -9,13 +9,15 @@
 #include "runtime/wasmedge/memory_impl.hpp"
 
 #include <wasmedge.h>
+#include <functional>
 
 namespace kagome::runtime::wasmedge {
 
-  boost::optional<runtime::Memory &> WasmedgeMemoryProvider::getCurrentMemory()
-      const {
-    return memory_ == nullptr ? boost::none
-                              : boost::optional<Memory &>{*memory_};
+  std::optional<std::reference_wrapper<runtime::Memory>>
+  WasmedgeMemoryProvider::getCurrentMemory() const {
+    return memory_ == nullptr
+               ? std::nullopt
+               : std::optional<std::reference_wrapper<Memory>>{*memory_};
   }
 
   outcome::result<void> WasmedgeMemoryProvider::resetMemory(WasmSize) {

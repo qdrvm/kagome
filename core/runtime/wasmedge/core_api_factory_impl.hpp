@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WASMEDGE_CORE_API_FACTORY_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_WASMEDGE_CORE_API_FACTORY_IMPL_HPP
 
-#include "runtime/core_api_factory_impl.hpp"
+#include "runtime/core_api_factory.hpp"
 #include "runtime/runtime_api/core.hpp"
 
 namespace kagome::storage::changes_trie {

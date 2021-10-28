@@ -57,7 +57,7 @@ namespace kagome::runtime::wasmedge {
     return allocator_->allocate(size);
   }
 
-  boost::optional<WasmSize> MemoryImpl::deallocate(WasmPointer ptr) {
+  std::optional<WasmSize> MemoryImpl::deallocate(WasmPointer ptr) {
     return allocator_->deallocate(ptr);
   }
 

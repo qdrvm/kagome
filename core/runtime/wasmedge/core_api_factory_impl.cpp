@@ -27,7 +27,8 @@ namespace kagome::runtime::wasmedge {
 
     outcome::result<std::shared_ptr<runtime::ModuleInstance>> getInstanceAt(
         std::shared_ptr<const RuntimeCodeProvider>,
-        const primitives::BlockInfo &b) override {
+        const primitives::BlockInfo &,
+        const primitives::BlockHeader &) override {
       if (instance_ == nullptr) {
         OUTCOME_TRY(module, ModuleImpl::createFromCode(code_, env_factory_));
         OUTCOME_TRY(inst, module->instantiate());

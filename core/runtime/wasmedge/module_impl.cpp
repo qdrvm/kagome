@@ -5,12 +5,14 @@
 
 #include "runtime/wasmedge/module_impl.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <memory>
 
 #include <wasmedge.h>
 
 #include "common/mp_utils.hpp"
+#include "crypto/sha/sha256.hpp"
 #include "runtime/wasmedge/instance_environment_factory.hpp"
 #include "runtime/wasmedge/memory_provider.hpp"
 #include "runtime/wasmedge/module_instance_impl.hpp"
@@ -41,17 +43,24 @@ namespace kagome::runtime::wasmedge {
         ConfCtx, WasmEdge_CompilerOptimizationLevel_O3);
     auto CompilerCtx = WasmEdge_CompilerCreate(ConfCtx);
 
-    std::ofstream ofs;
-    ofs.open("source.wasm");
-    ofs.write(reinterpret_cast<const char *>(code.data()), code.size());
-    ofs.close();
+    auto hash = crypto::sha256(code);
+    std::string source = "source-" + hash.toHex() + ".wasm";
+    std::string result = "result-" + hash.toHex() + ".wasm.so";
 
-    WasmEdge_CompilerCompile(CompilerCtx, "source.wasm", "result.wasm.so");
+    if (not std::filesystem::exists(source)) {
+      std::ofstream ofs;
+      ofs.open(source);
+      ofs.write(reinterpret_cast<const char *>(code.data()), code.size());
+      ofs.close();
+    }
+
+    if (not std::filesystem::exists(result)) {
+      WasmEdge_CompilerCompile(CompilerCtx, source.c_str(), result.c_str());
+    }
 
     auto *LoaderCtx = WasmEdge_LoaderCreate(ConfCtx);
     WasmEdge_ASTModuleContext *ASTCtx = nullptr;
-    auto Res =
-        WasmEdge_LoaderParseFromFile(LoaderCtx, &ASTCtx, "result.wasm.so");
+    auto Res = WasmEdge_LoaderParseFromFile(LoaderCtx, &ASTCtx, result.c_str());
 
     std::unique_ptr<ModuleImpl> wasm_module_impl(
         new ModuleImpl(ASTCtx, std::move(env_factory)));

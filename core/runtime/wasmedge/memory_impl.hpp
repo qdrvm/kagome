@@ -38,7 +38,7 @@ namespace kagome::runtime::wasmedge {
     ~MemoryImpl() override = default;
 
     WasmPointer allocate(WasmSize size) override;
-    boost::optional<WasmSize> deallocate(WasmPointer ptr) override;
+    std::optional<WasmSize> deallocate(WasmPointer ptr) override;
 
     int8_t load8s(WasmPointer addr) const override;
     uint8_t load8u(WasmPointer addr) const override;

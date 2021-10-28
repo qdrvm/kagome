@@ -84,7 +84,7 @@ namespace {
     if (str == "WasmEdge") {
       return REM::WasmEdge;
     }
-    return std::nullopt_t;
+    return std::nullopt;
   }
 
   std::optional<kagome::application::AppConfiguration::OffchainWorkerMode>

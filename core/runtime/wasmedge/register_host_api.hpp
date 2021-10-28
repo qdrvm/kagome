@@ -251,7 +251,11 @@ inline void register_host_api(WasmEdge_ImportObjectContext *ImpObj) {
   REGISTER_HOST_API_FUNC(
       HostApiImpl, ext_crypto_secp256k1_ecdsa_recover_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(
+      HostApiImpl, ext_crypto_secp256k1_ecdsa_recover_version_2, ImpObj);
+  REGISTER_HOST_API_FUNC(
       HostApi, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, ImpObj);
+  REGISTER_HOST_API_FUNC(
+      HostApi, ext_crypto_secp256k1_ecdsa_recover_compressed_version_2, ImpObj);
   REGISTER_HOST_API_FUNC(
       HostApiImpl, ext_crypto_sr25519_generate_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(
@@ -312,4 +316,14 @@ inline void register_host_api(WasmEdge_ImportObjectContext *ImpObj) {
   REGISTER_HOST_API_FUNC(HostApiImpl, ext_storage_set_version_1, ImpObj);
   REGISTER_HOST_API_FUNC(
       HostApiImpl, ext_storage_start_transaction_version_1, ImpObj);
+  REGISTER_HOST_API_FUNC(
+      HostApiImpl, ext_default_child_storage_clear_version_1, ImpObj);
+  REGISTER_HOST_API_FUNC(
+      HostApiImpl, ext_default_child_storage_get_version_1, ImpObj);
+  REGISTER_HOST_API_FUNC(
+      HostApiImpl, ext_default_child_storage_next_key_version_1, ImpObj);
+  REGISTER_HOST_API_FUNC(
+      HostApiImpl, ext_default_child_storage_set_version_1, ImpObj);
+  REGISTER_HOST_API_FUNC(
+      HostApiImpl, ext_default_child_storage_storage_kill_version_1, ImpObj);
 }

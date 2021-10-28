@@ -21,15 +21,16 @@ namespace kagome::runtime::wasmedge {
         logger_{log::createLogger("ModuleInstance", "wasmedge")} {
     rei_ = WasmEdge_VMCreate(NULL, NULL);
     WasmEdge_String ModuleName = WasmEdge_StringCreateByCString("env");
-//    auto Res = WasmEdge_VMRegisterModuleFromASTModule(
-//        rei_, ModuleName, parent_->ast());
+    //    auto Res = WasmEdge_VMRegisterModuleFromASTModule(
+    //        rei_, ModuleName, parent_->ast());
     WasmEdge_ImportObjectContext *ImpObj =
         WasmEdge_ImportObjectCreate(ModuleName, env_.host_api.get());
-//    WasmEdge_ImportObjectContext *ImpObj =
-//        WasmEdge_VMGetImportModuleContext(rei_, WasmEdge_HostRegistration_WasmEdge_Process);
+    //    WasmEdge_ImportObjectContext *ImpObj =
+    //        WasmEdge_VMGetImportModuleContext(rei_,
+    //        WasmEdge_HostRegistration_WasmEdge_Process);
     WasmEdge_StringDelete(ModuleName);
     register_host_api(ImpObj);
-    dynamic_cast<WasmedgeMemoryProvider*>(env_.memory_provider.get())
+    dynamic_cast<WasmedgeMemoryProvider *>(env_.memory_provider.get())
         ->setExternalInterface(ImpObj);
     auto Res = WasmEdge_VMRegisterModuleFromImport(rei_, ImpObj);
     // interpreter_ = WasmEdge_InterpreterCreate(nullptr, nullptr);
@@ -53,7 +54,7 @@ namespace kagome::runtime::wasmedge {
     return PtrSize{i};
   }
 
-  outcome::result<boost::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
+  outcome::result<std::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
       std::string_view name) const {
     auto GlobalName = WasmEdge_StringCreateByCString(name.data());
     auto store = WasmEdge_VMGetStoreContext(rei_);
@@ -71,7 +72,7 @@ namespace kagome::runtime::wasmedge {
       case WasmEdge_ValType_F64:
         return WasmValue{WasmEdge_ValueGetF64(val)};
       default:
-        return boost::none;
+        return std::nullopt;
     }
   }
 
