@@ -11,7 +11,7 @@ struct WalkBackFromBlockInEdgeForkBelow
 
   void SetUp() override {
     BlockInfo base{0, GENESIS_HASH};
-    graph = std::make_shared<VoteGraphImpl>(base, chain);
+    graph = std::make_shared<VoteGraphImpl>(base, voter_set, chain);
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -31,7 +31,7 @@ struct WalkBackFromBlockInEdgeForkBelow
 })");
 
     expect_getAncestry(GENESIS_HASH, "B"_H, vec("B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{2, "B"_H}, 10_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({2, "B"_H}, "w10_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -65,7 +65,7 @@ struct WalkBackFromBlockInEdgeForkBelow
         GENESIS_HASH,
         "F1"_H,
         vec("F1"_H, "E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "F1"_H}, 5_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({6, "F1"_H}, "w5_a"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -112,7 +112,7 @@ struct WalkBackFromBlockInEdgeForkBelow
         GENESIS_HASH,
         "G2"_H,
         vec("G2"_H, "F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-    EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "G2"_H}, 5_W));
+    EXPECT_OUTCOME_TRUE_1(graph->insert({7, "G2"_H}, "w5_b"_ID));
 
     AssertGraphCorrect(*graph,
                        R"({
@@ -173,10 +173,8 @@ struct WalkBackFromBlockInEdgeForkBelow
 
 TEST_P(WalkBackFromBlockInEdgeForkBelow, FindAncestor) {
   BlockInfo block = GetParam();
-  auto ancestorOpt = graph->findAncestor(
-      block,
-      [](auto &&x) { return x.prevotes_sum > (5_W).prevotes_sum; },
-      comparator);
+  auto ancestorOpt =
+      graph->findAncestor(block, [](auto &&x) { return x.sum > 5; });
 
   ASSERT_TRUE(ancestorOpt) << "number: " << block.number << " "
                            << "hash: " << block.hash.toHex();

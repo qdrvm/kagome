@@ -89,8 +89,13 @@ namespace kagome::consensus::grandpa {
 
     auto voters = std::make_shared<VoterSet>(authorities->id);
     for (const auto &authority : *authorities) {
-      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                     authority.weight);
+      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+                                authority.weight);
+      if (res.has_error()) {
+        logger_->critical(
+            "Can't make voter set: {}. Stopping grandpa execution",
+            res.error().message());
+      }
     }
 
     current_round_ = makeInitialRound(round_state, std::move(voters));
@@ -116,8 +121,10 @@ namespace kagome::consensus::grandpa {
 
   std::shared_ptr<VotingRound> GrandpaImpl::makeInitialRound(
       const MovableRoundState &round_state, std::shared_ptr<VoterSet> voters) {
-    auto vote_graph = std::make_shared<VoteGraphImpl>(
-        round_state.last_finalized_block, environment_);
+    auto prevote_graph = std::make_shared<VoteGraphImpl>(
+        round_state.last_finalized_block, voters, environment_);
+    auto precommit_graph = std::make_shared<VoteGraphImpl>(
+        round_state.last_finalized_block, voters, environment_);
 
     GrandpaConfig config{.voters = std::move(voters),
                          .round_number = round_state.round_number,
@@ -137,7 +144,8 @@ namespace kagome::consensus::grandpa {
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
-        std::move(vote_graph),
+        std::move(prevote_graph),
+        std::move(precommit_graph),
         clock_,
         io_context_,
         round_state);
@@ -157,6 +165,7 @@ namespace kagome::consensus::grandpa {
       SL_CRITICAL(logger_,
                   "Can't retrieve authorities for finalized block: {}",
                   authorities_res.error().message());
+      std::abort();
     }
     BOOST_ASSERT(authorities_res.has_value());
 
@@ -165,14 +174,19 @@ namespace kagome::consensus::grandpa {
 
     auto voters = std::make_shared<VoterSet>(authorities->id);
     for (const auto &authority : *authorities) {
-      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
-                     authority.weight);
+      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+                                authority.weight);
+      SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
+      std::abort();
     }
 
     const auto new_round_number =
         round->voterSetId() == voters->id() ? (round->roundNumber() + 1) : 1;
 
-    auto vote_graph = std::make_shared<VoteGraphImpl>(best_block, environment_);
+    auto prevote_graph =
+        std::make_shared<VoteGraphImpl>(best_block, voters, environment_);
+    auto precommit_graph =
+        std::make_shared<VoteGraphImpl>(best_block, voters, environment_);
 
     GrandpaConfig config{.voters = std::move(voters),
                          .round_number = new_round_number,
@@ -192,7 +206,8 @@ namespace kagome::consensus::grandpa {
         std::move(vote_crypto_provider),
         std::make_shared<VoteTrackerImpl>(),  // Prevote tracker
         std::make_shared<VoteTrackerImpl>(),  // Precommit tracker
-        std::move(vote_graph),
+        std::move(prevote_graph),
+        std::move(precommit_graph),
         clock_,
         io_context_,
         round);
@@ -380,8 +395,10 @@ namespace kagome::consensus::grandpa {
 
     auto voters = std::make_shared<VoterSet>(msg.voter_set_id);
     for (const auto &authority : *authorities) {
-      voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+      auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                      authority.weight);
+      SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
+      std::abort();
     }
 
     auto round = makeInitialRound(round_state, std::move(voters));
@@ -544,8 +561,10 @@ namespace kagome::consensus::grandpa {
 
       auto voters = std::make_shared<VoterSet>(authorities->id);
       for (const auto &authority : *authorities) {
-        voters->insert(primitives::GrandpaSessionKey(authority.id.id),
+        auto res = voters->insert(primitives::GrandpaSessionKey(authority.id.id),
                        authority.weight);
+        SL_CRITICAL(logger_, "Can't make voter set: {}", res.error().message());
+        std::abort();
       }
 
       round = makeInitialRound(round_state, std::move(voters));

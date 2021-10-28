@@ -7,7 +7,7 @@
 
 TEST_F(VoteGraphFixture, AdjustBase) {
   BlockInfo base{5, "E"_H};
-  graph = std::make_shared<VoteGraphImpl>(base, chain);
+  graph = std::make_shared<VoteGraphImpl>(base, voter_set, chain);
   auto &entries = graph->getEntries();
 
   SCOPED_TRACE(1);
@@ -29,7 +29,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
 })");
 
   expect_getAncestry("E"_H, "FC"_H, vec("FC"_H, "FB"_H, "FA"_H, "F"_H, "E"_H));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "FC"_H}, 5_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({9, "FC"_H}, "w5_a"_ID));
   SCOPED_TRACE(2);
   AssertGraphCorrect(*graph,
                      R"({
@@ -62,7 +62,7 @@ TEST_F(VoteGraphFixture, AdjustBase) {
 })");
 
   expect_getAncestry("E"_H, "ED"_H, vec("ED"_H, "EC"_H, "EB"_H, "EA"_H, "E"_H));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "ED"_H}, 7_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({9, "ED"_H}, "w7_a"_ID));
   SCOPED_TRACE(3);
   AssertGraphCorrect(*graph,
                      R"({
@@ -237,11 +237,11 @@ TEST_F(VoteGraphFixture, AdjustBase) {
   "base_number": 0
 })");
 
-  ASSERT_EQ(entries[GENESIS_HASH].cumulative_vote, 12_W);
+  ASSERT_EQ(entries[GENESIS_HASH].cumulative_vote.sum, 12);
 
   expect_getAncestry(
       GENESIS_HASH, "4"_H, vec("4"_H, "3"_H, "2"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo(4, "4"_H), 3_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({4, "4"_H}, "w3_a"_ID));
 
   SCOPED_TRACE(6);
   AssertGraphCorrect(*graph,
