@@ -92,11 +92,11 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> VoteGraphImpl::insert(const BlockInfo &block,
                                               Id voter) {
-    auto inw_opt = voter_set_->indexAndWeight(voter);
-    if (not inw_opt.has_value()) {
-      return outcome::success();
+    auto inw_res = voter_set_->indexAndWeight(voter);
+    if (inw_res.has_error()) {
+      return inw_res.as_failure();
     }
-    const auto [index, weight] = inw_opt.value();
+    const auto [index, weight] = inw_res.value();
 
     if (auto containing_opt = findContainingNodes(block);
         containing_opt.has_value()) {
