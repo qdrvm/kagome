@@ -21,41 +21,45 @@ using WsListenerTest = ListenerTest<WsListenerImpl>;
  * @then response contains expected value
  */
 TEST_F(WsListenerTest, EchoSuccess) {
-  backward::SignalHandling sh;
+  app_state_manager->atLaunch([ctx{main_context}] {
+    std::thread([ctx] { ctx->run_for(3s); }).detach();
+    return true;
+  });
 
-  ASSERT_TRUE(listener->prepare());
-  ASSERT_TRUE(service->prepare());
+  main_context->post([&] {
+    std::thread(
+        [&](Endpoint endpoint, std::string request, std::string response) {
+          auto local_context = std::make_shared<Context>();
 
-  ASSERT_TRUE(listener->start());
-  ASSERT_TRUE(service->start());
+          bool time_is_out;
 
-  std::thread client_thread(
-      [&](Endpoint endpoint, std::string request, std::string response) {
-        auto local_context = std::make_shared<Context>();
+          local_context->post([&] {
+            auto client = std::make_shared<WsClient>(*local_context);
 
-        auto client = std::make_shared<WsClient>(*local_context);
+            ASSERT_OUTCOME_SUCCESS_TRY(client->connect(endpoint));
 
-        local_context->post([&] {
-          ASSERT_OUTCOME_SUCCESS_TRY(client->connect(endpoint));
-
-          client->query(request, [&](outcome::result<std::string> res) {
-            ASSERT_OUTCOME_SUCCESS_TRY(res);
-            ASSERT_EQ(res.value(), response);
-            client->disconnect();
-            local_context->stop();
+            client->query(request, [&](outcome::result<std::string> res) {
+              ASSERT_OUTCOME_SUCCESS_TRY(res);
+              EXPECT_EQ(res.value(), response);
+              client->disconnect();
+              time_is_out = false;
+              local_context->stop();
+            });
           });
-        });
 
-        local_context->run_for(2s);
-        main_context->stop();
-      },
-      listener_config.endpoint,
-      request,
-      response);
+          time_is_out = true;
+          local_context->run_for(2s);
+          EXPECT_FALSE(time_is_out);
 
-  main_context->run_for(2s);
-  client_thread.join();
+          EXPECT_TRUE(app_state_manager->state()
+                      == AppStateManager::State::Works);
+          app_state_manager->shutdown();
+        },
+        listener_config.endpoint,
+        request,
+        response)
+        .detach();
+  });
 
-  ASSERT_NO_THROW(service->stop());
-  ASSERT_NO_THROW(listener->stop());
+  app_state_manager->run();
 }
