@@ -523,6 +523,7 @@ namespace kagome::consensus::grandpa {
     if (not signed_prevote_opt.has_value()) {
       logger_->error("Round #{}: Prevote was not sent: Can't sign message",
                      round_number_);
+      return;
     }
     auto &signed_prevote = signed_prevote_opt.value();
 
@@ -579,6 +580,7 @@ namespace kagome::consensus::grandpa {
     if (not signed_precommit_opt.has_value()) {
       logger_->error("Round #{}: Precommit was not sent: Can't sign message",
                      round_number_);
+      return;
     }
     auto &signed_precommit = signed_precommit_opt.value();
 
@@ -613,7 +615,7 @@ namespace kagome::consensus::grandpa {
     if (need_to_notice_at_finalizing_) {
       sendFinalize(block, std::move(justification));
     } else {
-      auto res = env_->finalize(block.hash, justification);
+      auto res = env_->finalize(voter_set_->id(), justification);
       if (res.has_error()) {
         SL_WARN(logger_,
                 "Round #{}: Finalizing on block #{} hash={} is failed",
@@ -692,7 +694,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(
         env_->isEqualOrDescendOf(block_info.hash, finalized_.value().hash));
 
-    auto finalized = env_->finalize(block_info.hash, justification);
+    auto finalized = env_->finalize(voter_set_->id(), justification);
     if (not finalized) {
       return finalized.as_failure();
     }

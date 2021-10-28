@@ -49,7 +49,7 @@ namespace kagome::consensus::grandpa {
 
     MOCK_METHOD2(
         finalize,
-        outcome::result<void>(const BlockHash &block,
+        outcome::result<void>(MembershipCounter id,
                               const GrandpaJustification &justification));
 
     MOCK_METHOD1(

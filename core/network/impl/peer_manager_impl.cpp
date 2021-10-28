@@ -560,7 +560,7 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(grandpa_protocol,
                      "Router did not provide grandpa protocol");
 
-    auto transaction_protocol = router_->getGrandpaProtocol();
+    auto transaction_protocol = router_->getPropagateTransactionsProtocol();
     BOOST_ASSERT_MSG(transaction_protocol,
                      "Router did not provide propogate transaction protocol");
 

@@ -226,11 +226,19 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<void> EnvironmentImpl::finalize(
-      const primitives::BlockHash &block_hash,
-      const GrandpaJustification &grandpa_jusitification) {
+      MembershipCounter id, const GrandpaJustification &grandpa_justification) {
     primitives::Justification justification;
-    justification.data.put(scale::encode(grandpa_jusitification).value());
-    return block_tree_->finalize(block_hash, justification);
+    OUTCOME_TRY(enc, scale::encode(grandpa_justification));
+    justification.data.put(enc);
+    auto res = block_tree_->finalize(grandpa_justification.block_info.hash,
+                                     justification);
+    if (res.has_value()) {
+      transmitter_->neighbor(network::GrandpaNeighborMessage{
+          .round_number = grandpa_justification.round_number,
+          .voter_set_id = id,
+          .last_finalized = grandpa_justification.block_info.number});
+    }
+    return res;
   }
 
   outcome::result<GrandpaJustification> EnvironmentImpl::getJustification(
@@ -239,10 +247,10 @@ namespace kagome::consensus::grandpa {
                 block_tree_->getBlockJustification(block_hash));
 
     OUTCOME_TRY(
-        grandpa_jusitification,
+        grandpa_justification,
         scale::decode<GrandpaJustification>(encoded_justification.data));
 
-    return outcome::success(std::move(grandpa_jusitification));
+    return outcome::success(std::move(grandpa_justification));
   }
 
 }  // namespace kagome::consensus::grandpa
