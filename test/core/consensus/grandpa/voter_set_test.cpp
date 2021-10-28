@@ -99,13 +99,13 @@ TEST_F(VoterSetTest, GetWeight) {
   }
 
   {
-    // WHEN+THEN.2
+    // WHEN+THEN.3
     EXPECT_OUTCOME_ERROR(res,
                          testee->voterWeight("Unknown"_ID),
                          VoterSet::Error::VOTER_NOT_FOUND);
   }
   {
-    // WHEN+THEN.2
+    // WHEN+THEN.4
     EXPECT_OUTCOME_ERROR(res,
                          testee->voterWeight(voters.size()),
                          VoterSet::Error::INDEX_OUTBOUND);

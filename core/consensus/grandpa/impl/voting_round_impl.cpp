@@ -960,12 +960,14 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(vote.is<T>());
 
     // Check if voter is contained in current voter set
-    auto inw_opt = voter_set_->indexAndWeight(vote.id);
-    if (not inw_opt.has_value()) {
-      logger_->warn("Voter {} is not known", vote.id.toHex());
-      return VotingRoundError::UNKNOWN_VOTER;
+    auto inw_res = voter_set_->indexAndWeight(vote.id);
+    if (inw_res.has_error()) {
+      logger_->warn("Can't get weight for voter {}: {}",
+                    vote.id.toHex(),
+                    inw_res.error().message());
+      return inw_res.as_failure();
     }
-    const auto &[index, weight] = inw_opt.value();
+    const auto &[index, weight] = inw_res.value();
 
     auto [type_str, equivocators, tracker, graph] =
         [&]() -> std::tuple<const char *const,

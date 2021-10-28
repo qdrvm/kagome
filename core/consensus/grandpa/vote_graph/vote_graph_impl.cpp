@@ -128,9 +128,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void VoteGraphImpl::remove(Id voter) {
-    auto inw_opt = voter_set_->indexAndWeight(voter);
-    if (inw_opt.has_value()) {
-      const auto [index, weight] = inw_opt.value();
+    auto inw_res = voter_set_->indexAndWeight(voter);
+    if (inw_res.has_value()) {
+      const auto [index, weight] = inw_res.value();
       for (auto &[_, entry] : entries_) {
         entry.cumulative_vote.unset(index, weight);
       }
