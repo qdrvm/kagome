@@ -419,7 +419,6 @@ TEST_F(AppConfigurationTest, VerbosityCmdLineTest) {
     };
     ASSERT_TRUE(
         app_config_->initialize_from_args(std::size(args), (char **)args));
-    auto& log = app_config_->log();
     ASSERT_EQ(app_config_->log(), std::vector<std::string>{"info"});
   }
   {

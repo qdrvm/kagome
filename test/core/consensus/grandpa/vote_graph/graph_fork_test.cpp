@@ -6,7 +6,7 @@
 
 TEST_F(VoteGraphFixture, GraphForkAtNode) {
   BlockInfo base{0, GENESIS_HASH};
-  graph = std::make_shared<VoteGraphImpl>(base, chain);
+  graph = std::make_shared<VoteGraphImpl>(base, voter_set, chain);
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -27,7 +27,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
 
   expect_getAncestry(
       GENESIS_HASH, "C"_H, vec("C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{3, "C"_H}, 100_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({3, "C"_H}, "w5_a"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -40,7 +40,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "genesis"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
@@ -48,7 +48,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
       "descendants": [
         "C"
       ],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     }
   },
   "heads": [
@@ -61,7 +61,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
   expect_getAncestry(GENESIS_HASH,
                      "E1"_H,
                      vec("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{5, "E1"_H}, 100_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({5, "E1"_H}, "w5_b"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -76,7 +76,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
       "descendants": [
         "E1"
       ],
-      "cumulative_vote": 200
+      "cumulative_vote": 10
     },
     "genesis": {
       "number": 0,
@@ -84,7 +84,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
       "descendants": [
         "C"
       ],
-      "cumulative_vote": 200
+      "cumulative_vote": 10
     },
     "E1": {
       "number": 5,
@@ -93,7 +93,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "C"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     }
   },
   "heads": [
@@ -107,7 +107,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
       GENESIS_HASH,
       "F2"_H,
       vec("F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "F2"_H}, 100_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({6, "F2"_H}, "w5_c"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -123,7 +123,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "E1",
         "F2"
       ],
-      "cumulative_vote": 300
+      "cumulative_vote": 15
     },
     "E1": {
       "number": 5,
@@ -132,7 +132,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "C"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
@@ -140,7 +140,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
       "descendants": [
         "C"
       ],
-      "cumulative_vote": 300
+      "cumulative_vote": 15
     },
     "F2": {
       "number": 6,
@@ -150,7 +150,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
         "C"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     }
   },
   "heads": [
@@ -164,7 +164,7 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
 
 TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
   BlockInfo base{0, GENESIS_HASH};
-  graph = std::make_shared<VoteGraphImpl>(base, chain);
+  graph = std::make_shared<VoteGraphImpl>(base, voter_set, chain);
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -184,7 +184,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
 })");
 
   expect_getAncestry(GENESIS_HASH, "A"_H, vec("A"_H, GENESIS_HASH) /* empty */);
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{1, "A"_H}, 100_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({1, "A"_H}, "w5_a"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -195,7 +195,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
         "genesis"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     },
     "genesis": {
       "number": 0,
@@ -203,7 +203,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       "descendants": [
         "A"
       ],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     }
   },
   "heads": [
@@ -216,7 +216,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
   expect_getAncestry(GENESIS_HASH,
                      "E1"_H,
                      vec("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{5, "E1"_H}, 100_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({5, "E1"_H}, "w5_b"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -230,7 +230,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
         "A"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     },
     "A": {
       "number": 1,
@@ -240,7 +240,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       "descendants": [
         "E1"
       ],
-      "cumulative_vote": 200
+      "cumulative_vote": 10
     },
     "genesis": {
       "number": 0,
@@ -248,7 +248,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       "descendants": [
         "A"
       ],
-      "cumulative_vote": 200
+      "cumulative_vote": 10
     }
   },
   "heads": [
@@ -262,7 +262,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       GENESIS_HASH,
       "F2"_H,
       vec("F2"_H, "E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "F2"_H}, 100_W));
+  EXPECT_OUTCOME_TRUE_1(graph->insert({6, "F2"_H}, "w5_c"_ID));
 
   AssertGraphCorrect(*graph,
                      R"({
@@ -276,7 +276,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
         "A"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     },
     "A": {
       "number": 1,
@@ -287,7 +287,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
         "E1",
         "F2"
       ],
-      "cumulative_vote": 300
+      "cumulative_vote": 15
     },
     "genesis": {
       "number": 0,
@@ -295,7 +295,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
       "descendants": [
         "A"
       ],
-      "cumulative_vote": 300
+      "cumulative_vote": 15
     },
     "F2": {
       "number": 6,
@@ -307,7 +307,7 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
         "A"
       ],
       "descendants": [],
-      "cumulative_vote": 100
+      "cumulative_vote": 5
     }
   },
   "heads": [

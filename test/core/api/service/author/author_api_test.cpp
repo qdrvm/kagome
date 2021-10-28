@@ -138,10 +138,10 @@ struct AuthorApiTest : public ::testing::Test {
     store = std::make_shared<CryptoStoreMock>();
     key_store = KeyFileStorage::createAt("test_chain_43/keystore").value();
     key_pair = generateSr25519Keypair();
-    key_store->saveKeyPair(
+    ASSERT_OUTCOME_SUCCESS_TRY(key_store->saveKeyPair(
         KEY_TYPE_BABE,
         gsl::make_span(key_pair.public_key.data(), 32),
-        gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1));
+        gsl::make_span(std::array<uint8_t, 1>({1}).begin(), 1)));
     role.flags.authority = 1;
     keys = std::make_shared<SessionKeys>(store, role);
     hasher = std::make_shared<HasherMock>();

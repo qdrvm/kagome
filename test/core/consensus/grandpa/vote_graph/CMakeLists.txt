@@ -11,10 +11,13 @@ addtest(vote_graph_test
     ghost_merge_not_at_node_one_side_weighted_test.cpp
     ghost_merge_at_node_test.cpp
     graph_fork_test.cpp
+    duplicate_vote_test.cpp
+    remove_vote_test.cpp
     )
 target_link_libraries(vote_graph_test
     vote_graph
     vote_tracker
+    voter_set
     blob
     block_tree
     )
