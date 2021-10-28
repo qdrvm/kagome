@@ -232,7 +232,7 @@ namespace kagome::consensus::grandpa {
     justification.data.put(enc);
     auto res = block_tree_->finalize(grandpa_justification.block_info.hash,
                                      justification);
-    if (res) {
+    if (res.has_value()) {
       transmitter_->neighbor(network::GrandpaNeighborMessage{
           .round_number = grandpa_justification.round_number,
           .voter_set_id = id,
