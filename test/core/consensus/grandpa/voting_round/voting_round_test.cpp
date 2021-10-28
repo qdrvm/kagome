@@ -448,7 +448,7 @@ ACTION_P(onPrecommitted, test_fixture) {
 }
 
 ACTION_P(onFinalize, test_fixture) {
-  (void)test_fixture->env_->finalize(arg1.hash, arg2);
+  (void)test_fixture->env_->finalize(0, arg2);
   return outcome::success();
 }
 
