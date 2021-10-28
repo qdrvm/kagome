@@ -25,9 +25,11 @@
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
+#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
+using namespace std::chrono_literals;
 using namespace kagome::api;
 using namespace kagome::common;
 using namespace kagome::subscription;
@@ -63,7 +65,6 @@ struct ListenerTest : public ::testing::Test {
   using Duration = boost::asio::steady_timer::duration;
 
   std::shared_ptr<Context> main_context = std::make_shared<Context>(1);
-  std::shared_ptr<Context> client_context = std::make_shared<Context>(1);
 
   int64_t payload;
   std::string request;

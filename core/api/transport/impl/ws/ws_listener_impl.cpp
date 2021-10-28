@@ -62,6 +62,7 @@ namespace kagome::api {
   void WsListenerImpl::stop() {
     if (acceptor_) {
       acceptor_->cancel();
+      acceptor_.reset();
     }
   }
 

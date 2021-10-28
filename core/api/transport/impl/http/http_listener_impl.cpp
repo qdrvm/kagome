@@ -61,6 +61,7 @@ namespace kagome::api {
   void HttpListenerImpl::stop() {
     if (acceptor_) {
       acceptor_->cancel();
+//      acceptor_.reset();
     }
   }
 
