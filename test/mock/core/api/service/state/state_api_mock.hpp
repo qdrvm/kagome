@@ -22,16 +22,16 @@ namespace kagome::api {
 
     MOCK_CONST_METHOD4(getKeysPaged,
                        outcome::result<std::vector<common::Buffer>>(
-                           const boost::optional<common::Buffer> &,
+                           const std::optional<common::Buffer> &,
                            uint32_t,
-                           const boost::optional<common::Buffer> &,
-                           const boost::optional<primitives::BlockHash> &));
+                           const std::optional<common::Buffer> &,
+                           const std::optional<primitives::BlockHash> &));
 
     MOCK_CONST_METHOD1(getStorage,
-                       outcome::result<boost::optional<common::Buffer>>(
+                       outcome::result<std::optional<common::Buffer>>(
                            const common::Buffer &key));
     MOCK_CONST_METHOD2(getStorageAt,
-                       outcome::result<boost::optional<common::Buffer>>(
+                       outcome::result<std::optional<common::Buffer>>(
                            const common::Buffer &key,
                            const primitives::BlockHash &at));
 
@@ -39,11 +39,11 @@ namespace kagome::api {
                        outcome::result<std::vector<StorageChangeSet>>(
                            gsl::span<const common::Buffer> keys,
                            const primitives::BlockHash &from,
-                           boost::optional<primitives::BlockHash> to));
+                           std::optional<primitives::BlockHash> to));
     MOCK_CONST_METHOD2(queryStorageAt,
                        outcome::result<std::vector<StorageChangeSet>>(
                            gsl::span<const common::Buffer> keys,
-                           boost::optional<primitives::BlockHash> at));
+                           std::optional<primitives::BlockHash> at));
 
     MOCK_METHOD1(
         subscribeStorage,
@@ -54,7 +54,7 @@ namespace kagome::api {
 
     MOCK_CONST_METHOD1(getRuntimeVersion,
                        outcome::result<primitives::Version>(
-                           boost::optional<primitives::BlockHash> const &at));
+                           std::optional<primitives::BlockHash> const &at));
     MOCK_METHOD0(subscribeRuntimeVersion, outcome::result<uint32_t>());
     MOCK_METHOD1(unsubscribeRuntimeVersion,
                  outcome::result<void>(uint32_t subscription_id));

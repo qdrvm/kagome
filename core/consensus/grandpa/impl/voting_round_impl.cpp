@@ -1094,12 +1094,11 @@ namespace kagome::consensus::grandpa {
       return weight.total(precommit_equivocators_, *voter_set_) >= threshold_;
     };
 
-    auto current_best =
-        precommit_ghost_.get_value_or(prevote_ghost_.get_value_or([&] {
-          auto previous_round = previous_round_.lock();
-          return previous_round ? previous_round->bestFinalCandidate()
-                                : last_finalized_block_;
-        }()));
+    auto current_best = precommit_ghost_.value_or(prevote_ghost_.value_or([&] {
+      auto previous_round = previous_round_.lock();
+      return previous_round ? previous_round->bestFinalCandidate()
+                            : last_finalized_block_;
+    }()));
 
     /// @see spec: Grandpa-Ghost
     auto new_precommit_ghost =
@@ -1340,8 +1339,8 @@ namespace kagome::consensus::grandpa {
   BlockInfo VotingRoundImpl::bestFinalCandidate() {
     auto current_precommits = precommits_->getTotalWeight();
 
-    const auto &best_prevote_candidate = finalized_.get_value_or(
-        prevote_ghost_.get_value_or(last_finalized_block_));
+    const auto &best_prevote_candidate =
+        finalized_.value_or(prevote_ghost_.value_or(last_finalized_block_));
 
     if (current_precommits >= threshold_) {
       auto possible_to_finalize = [this](const VoteWeight &weight) {

@@ -16,10 +16,11 @@
 namespace kagome::api::payment::request {
 
   class QueryInfo final
-      : public details::RequestType<primitives::RuntimeDispatchInfo, std::string, std::string> {
+      : public details::RequestType<primitives::RuntimeDispatchInfo,
+                                    std::string,
+                                    std::string> {
    public:
-    explicit QueryInfo(std::shared_ptr<PaymentApi> api)
-        : api_(std::move(api)) {
+    explicit QueryInfo(std::shared_ptr<PaymentApi> api) : api_(std::move(api)) {
       BOOST_ASSERT(api_);
     };
 
@@ -31,7 +32,7 @@ namespace kagome::api::payment::request {
 
       auto at_hex = getParam<1>();
       if (at_hex.empty()) {
-        return api_->queryInfo(extrinsic, len, boost::none);
+        return api_->queryInfo(extrinsic, len, std::nullopt);
       }
       common::Hash256 at_hash;
       OUTCOME_TRY(at, common::unhexWith0x(at_hex));

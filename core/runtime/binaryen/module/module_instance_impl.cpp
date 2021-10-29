@@ -8,8 +8,8 @@
 #include <binaryen/wasm-interpreter.h>
 #include <binaryen/wasm.h>
 
-#include "runtime/binaryen/runtime_external_interface.hpp"
 #include "host_api/host_api.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
                             ModuleInstanceImpl::Error,
@@ -59,7 +59,7 @@ namespace kagome::runtime::binaryen {
     }
   }
 
-  outcome::result<boost::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
+  outcome::result<std::optional<WasmValue>> ModuleInstanceImpl::getGlobal(
       std::string_view name) const {
     try {
       auto val = module_instance_->getExport(name.data());
@@ -76,7 +76,7 @@ namespace kagome::runtime::binaryen {
           logger_->debug(
               "Runtime function returned result of unsupported type: {}",
               wasm::printType(val.type));
-          return boost::none;
+          return std::nullopt;
       }
     } catch (wasm::TrapException &e) {
       return Error::CAN_NOT_OBTAIN_GLOBAL;

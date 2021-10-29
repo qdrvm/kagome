@@ -8,8 +8,8 @@
 
 #include <cstdint>
 
-#include <boost/optional.hpp>
 #include <gsl/span>
+#include <optional>
 #include "network/types/block_attributes.hpp"
 #include "network/types/block_direction.hpp"
 #include "primitives/block_id.hpp"
@@ -28,12 +28,12 @@ namespace kagome::network {
     primitives::BlockId from{};
     /// end at this block; an implementation defined maximum is used when
     /// unspecified
-    boost::optional<primitives::BlockHash> to{};
+    std::optional<primitives::BlockHash> to{};
     /// sequence direction
     Direction direction{};
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
-    boost::optional<uint32_t> max{};
+    std::optional<uint32_t> max{};
 
     /// includes HEADER, BODY and JUSTIFICATION
     static constexpr BlockAttributes kBasicAttributes =

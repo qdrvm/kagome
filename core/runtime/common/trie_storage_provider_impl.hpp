@@ -33,7 +33,7 @@ namespace kagome::runtime {
         const common::Hash256 &state_root) override;
 
     std::shared_ptr<Batch> getCurrentBatch() const override;
-    boost::optional<std::shared_ptr<PersistentBatch>> tryGetPersistentBatch()
+    std::optional<std::shared_ptr<PersistentBatch>> tryGetPersistentBatch()
         const override;
     bool isCurrentlyPersistent() const override;
 

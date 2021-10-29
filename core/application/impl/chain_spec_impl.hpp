@@ -58,13 +58,13 @@ namespace kagome::application {
       return properties_;
     }
 
-    boost::optional<std::reference_wrapper<const std::string>> getProperty(
+    std::optional<std::reference_wrapper<const std::string>> getProperty(
         const std::string &property) const override {
       auto it = properties_.find(property);
       if (it != properties_.end()) {
         return {{it->second}};
       }
-      return boost::none;
+      return std::nullopt;
     }
 
     const std::set<primitives::BlockHash> &forkBlocks() const override {
@@ -75,7 +75,7 @@ namespace kagome::application {
       return bad_blocks_;
     }
 
-    boost::optional<std::string> consensusEngine() const override {
+    std::optional<std::string> consensusEngine() const override {
       return consensus_engine_;
     }
 
@@ -117,7 +117,7 @@ namespace kagome::application {
     std::map<std::string, std::string> properties_;
     std::set<primitives::BlockHash> fork_blocks_;
     std::set<primitives::BlockHash> bad_blocks_;
-    boost::optional<std::string> consensus_engine_;
+    std::optional<std::string> consensus_engine_;
     std::shared_ptr<primitives::CodeSubstitutes> code_substitutes_;
     GenesisRawData genesis_;
     log::Logger log_ = log::createLogger("chain_spec", "kagome");

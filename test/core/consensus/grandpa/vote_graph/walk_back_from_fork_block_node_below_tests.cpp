@@ -278,7 +278,7 @@ TEST_F(WalkBackFromBlockNodeBelow, GhostFindMergePoint_NoConstrain) {
   auto &entries = graph->getEntries();
   auto &active_node = entries[node_key];
   auto subchain = graph->ghostFindMergePoint(
-      node_key, active_node, boost::none, [](auto &&x) -> bool {
+      node_key, active_node, std::nullopt, [](auto &&x) -> bool {
         return x.sum > 5;
       });
 

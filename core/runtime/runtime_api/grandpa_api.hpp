@@ -6,7 +6,7 @@
 #ifndef KAGOME_RUNTIME_GRANDPAAPI
 #define KAGOME_RUNTIME_GRANDPAAPI
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
@@ -41,9 +41,8 @@ namespace kagome::runtime {
      * @return nullopt if there are no pending changes,
      * scheduled change item if exists or error if error occured
      */
-    virtual outcome::result<boost::optional<ScheduledChange>> pending_change(
-        primitives::BlockHash const& block,
-        const Digest &digest) = 0;
+    virtual outcome::result<std::optional<ScheduledChange>> pending_change(
+        primitives::BlockHash const &block, const Digest &digest) = 0;
 
     /**
      * @brief calls Grandpa_forced_change runtime api function
@@ -53,9 +52,8 @@ namespace kagome::runtime {
      * forced change item if exists or error if error occured
      *
      */
-    virtual outcome::result<boost::optional<ForcedChange>> forced_change(
-        primitives::BlockHash const& block,
-        const Digest &digest) = 0;
+    virtual outcome::result<std::optional<ForcedChange>> forced_change(
+        primitives::BlockHash const &block, const Digest &digest) = 0;
 
     /**
      * @brief calls Grandpa_authorities runtime api function

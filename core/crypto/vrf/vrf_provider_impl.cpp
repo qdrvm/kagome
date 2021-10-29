@@ -32,7 +32,7 @@ namespace kagome::crypto {
     return keypair;
   }
 
-  boost::optional<VRFOutput> VRFProviderImpl::signTranscript(
+  std::optional<VRFOutput> VRFProviderImpl::signTranscript(
       const primitives::Transcript &msg,
       const Sr25519Keypair &keypair,
       const VRFThreshold &threshold) const {
@@ -49,7 +49,7 @@ namespace kagome::crypto {
         threshold_bytes.data());
     if (not sign_res.is_less
         or not(sign_res.result == SR25519_SIGNATURE_RESULT_OK)) {
-      return boost::none;
+      return std::nullopt;
     }
 
     VRFOutput res;
@@ -78,7 +78,7 @@ namespace kagome::crypto {
         .is_less = res.is_less};
   }
 
-  boost::optional<VRFOutput> VRFProviderImpl::sign(
+  std::optional<VRFOutput> VRFProviderImpl::sign(
       const common::Buffer &msg,
       const Sr25519Keypair &keypair,
       const VRFThreshold &threshold) const {
@@ -95,7 +95,7 @@ namespace kagome::crypto {
                                              threshold_bytes.data());
     if (not sign_res.is_less
         or not(sign_res.result == SR25519_SIGNATURE_RESULT_OK)) {
-      return boost::none;
+      return std::nullopt;
     }
 
     VRFOutput res;

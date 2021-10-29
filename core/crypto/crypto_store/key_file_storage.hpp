@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <boost/filesystem.hpp>
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "common/buffer.hpp"
 #include "crypto/crypto_store/key_type.hpp"
@@ -55,7 +55,7 @@ namespace kagome::crypto {
      * Searches for a key file for the corresponding type and public key and
      * returns its content if it's a valid hex number
      */
-    outcome::result<boost::optional<Buffer>> searchForSeed(
+    outcome::result<std::optional<Buffer>> searchForSeed(
         KeyTypeId type, gsl::span<const uint8_t> public_key_bytes) const;
 
     /**
@@ -82,8 +82,8 @@ namespace kagome::crypto {
      * @param file_path - user-provided path to create the file
      * @return an error if any
      */
-    outcome::result<void> saveKeyHexAtPath(
-        gsl::span<const uint8_t> private_key, const Path &path) const;
+    outcome::result<void> saveKeyHexAtPath(gsl::span<const uint8_t> private_key,
+                                           const Path &path) const;
 
    private:
     explicit KeyFileStorage(Path keystore_path);

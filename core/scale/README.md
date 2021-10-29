@@ -9,8 +9,8 @@ It allows encoding and decoding following data types:
 * bool values
 * pairs of types represented by ```std::pair<T1, T2>```
 * compact integers represented by CompactInteger type
-* optional values represented by ```boost::optional<T>```
-    * as special case of optional values ```boost::optional<bool>``` is encoded using one byte following specification.
+* optional values represented by ```std::optional<T>```
+    * as special case of optional values ```std::optional<bool>``` is encoded using one byte following specification.
 * collections of items represented by ```std::vector<T>```
 * variants represented by ```boost::variant<T...>```
 
@@ -26,8 +26,8 @@ auto * raw_str = "zxczxczx";
 bool b = true;
 CompactInteger ci = 123456789;
 boost::variant<uint8_t, uint32_t, CompactInteger> vint = CompactInteger(12345);
-boost::optional<std::string> opt_str = "asdfghjkl";
-boost::optional<bool> opt_bool = false;
+std::optional<std::string> opt_str = "asdfghjkl";
+std::optional<bool> opt_bool = false;
 std::pair<uint8_t, uint32_t> pair{1u, 2u};
 std::vector<uint32_t> coll_ui32 = {1u, 2u, 3u, 4u};
 std::vector<std::string> coll_str = {"asd", "fgh", "jkl"};
@@ -58,8 +58,8 @@ std::string str;
 bool b = true;
 CompactInteger ci;
 boost::variant<uint8_t, uint32_t, CompactInteger> vint;
-boost::optional<std::string> opt_str;
-boost::optional<bool> opt_bool;
+std::optional<std::string> opt_str;
+std::optional<bool> opt_bool;
 std::pair<uint8_t, uint32_t> pair{};
 std::vector<uint32_t> coll_ui32;
 std::vector<std::string> coll_str;

@@ -84,17 +84,17 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
-  outcome::result<boost::optional<Buffer>> LevelDB::tryGet(
+  outcome::result<std::optional<Buffer>> LevelDB::tryGet(
       const Buffer &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
       // cannot move string content to a buffer
-      return boost::make_optional(Buffer{}.put(value));
+      return std::make_optional(Buffer{}.put(value));
     }
 
     if (status.IsNotFound()) {
-      return boost::none;
+      return std::nullopt;
     }
 
     return status_as_error(status);

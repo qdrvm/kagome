@@ -59,7 +59,8 @@ TEST_F(MiscExtensionTest, Init) {
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
+      .WillRepeatedly(
+          Return(std::optional<std::reference_wrapper<Memory>>(*memory)));
   auto core_factory = std::make_shared<CoreApiFactoryMock>();
   MiscExtension m{
       42, std::make_shared<HasherMock>(), memory_provider, core_factory};
@@ -80,16 +81,17 @@ TEST_F(MiscExtensionTest, CoreVersion) {
 
   kagome::primitives::Version v1{};
   v1.authoring_version = 42;
-  Buffer v1_enc{encode(boost::make_optional(encode(v1).value())).value()};
+  Buffer v1_enc{encode(std::make_optional(encode(v1).value())).value()};
 
   kagome::primitives::Version v2{};
   v2.authoring_version = 24;
-  Buffer v2_enc{encode(boost::make_optional(encode(v2).value())).value()};
+  Buffer v2_enc{encode(std::make_optional(encode(v2).value())).value()};
 
   auto memory_provider = std::make_shared<MemoryProviderMock>();
   auto memory = std::make_shared<MemoryMock>();
   EXPECT_CALL(*memory_provider, getCurrentMemory())
-      .WillRepeatedly(Return(boost::optional<Memory &>(*memory)));
+      .WillRepeatedly(
+          Return(std::optional<std::reference_wrapper<Memory>>(*memory)));
   auto core_factory = std::make_shared<CoreApiFactoryMock>();
 
   EXPECT_CALL(*core_factory, make(_, _)).WillOnce(Invoke([v1](auto &, auto &) {

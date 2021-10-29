@@ -71,12 +71,12 @@ namespace kagome::runtime {
         std::shared_ptr<const blockchain::BlockHeaderRepository> header_repo,
         std::shared_ptr<storage::BufferStorage> storage,
         std::shared_ptr<const primitives::CodeSubstitutes> code_substitutes,
-        std::vector<RuntimeUpgradeData>&& saved_data);
+        std::vector<RuntimeUpgradeData> &&saved_data);
 
     bool isStateInChain(const primitives::BlockInfo &state,
                         const primitives::BlockInfo &chain_end) const;
 
-    outcome::result<boost::optional<storage::trie::RootHash>> findProperFork(
+    outcome::result<std::optional<storage::trie::RootHash>> findProperFork(
         const primitives::BlockInfo &block,
         std::vector<RuntimeUpgradeData>::const_reverse_iterator
             latest_upgrade_it) const;

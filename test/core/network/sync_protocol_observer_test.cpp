@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/optional.hpp>
 #include <functional>
+#include <optional>
 
 #include "application/app_configuration.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
@@ -72,9 +72,9 @@ TEST_F(SynchronizerTest, ProcessRequest) {
   BlocksRequest received_request{1,
                                  BlocksRequest::kBasicAttributes,
                                  block3_hash_,
-                                 boost::none,
+                                 std::nullopt,
                                  Direction::ASCENDING,
-                                 boost::none};
+                                 std::nullopt};
 
   EXPECT_CALL(*tree_,
               getChainByBlock(block3_hash_,

@@ -32,7 +32,8 @@ namespace kagome::primitives {
   // TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
   // after gtest update use `data` type directly
   struct ChangesTrieSignal {
-    boost::variant<boost::optional<storage::changes_trie::ChangesTrieConfig>> data;
+    boost::variant<std::optional<storage::changes_trie::ChangesTrieConfig>>
+        data;
 
     bool operator==(const ChangesTrieSignal &rhs) const {
       return data == rhs.data;

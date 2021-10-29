@@ -43,7 +43,7 @@ namespace kagome::primitives {
       /// Module specific error value.
       uint8_t error;
       /// Optional error message.
-      boost::optional<std::string>
+      std::optional<std::string>
           message;  // not currently used in rust impl, thus not scale encoded
     };
 

@@ -7,7 +7,7 @@
 
 #include <string_view>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "blockchain/impl/storage_util.hpp"
 #include "common/hexutil.hpp"
@@ -47,7 +47,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockHeader>
   KeyValueBlockHeaderRepository::getBlockHeader(const BlockId &id) const {
     OUTCOME_TRY(header_opt, getWithPrefix(*map_, Prefix::HEADER, id));
-    if(header_opt.has_value()) {
+    if (header_opt.has_value()) {
       return scale::decode<primitives::BlockHeader>(header_opt.value());
     }
     return Error::BLOCK_NOT_FOUND;

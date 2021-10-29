@@ -36,13 +36,13 @@ namespace kagome::consensus::grandpa {
 
       // Get ancestor block by number. Returns `None` if there is no block
       // by that number in the direct ancestry.
-      boost::optional<BlockHash> getAncestorBlockBy(BlockNumber n) const {
+      std::optional<BlockHash> getAncestorBlockBy(BlockNumber n) const {
         if (n >= number) {
-          return boost::none;
+          return std::nullopt;
         }
         const auto offset = number - n - 1u;
         if (offset >= ancestors.size()) {
-          return boost::none;
+          return std::nullopt;
         }
         return ancestors[offset];
       }
@@ -76,7 +76,7 @@ namespace kagome::consensus::grandpa {
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
-    virtual boost::optional<BlockInfo> findAncestor(
+    virtual std::optional<BlockInfo> findAncestor(
         const BlockInfo &block, const Condition &condition) const = 0;
 
     /// Find the best GHOST descendant of the given block.
@@ -92,8 +92,8 @@ namespace kagome::consensus::grandpa {
     ///
     /// Returns `None` when the given `current_best` does not fulfill the
     /// condition.
-    virtual boost::optional<BlockInfo> findGhost(
-        const boost::optional<BlockInfo> &current_best,
+    virtual std::optional<BlockInfo> findGhost(
+        const std::optional<BlockInfo> &current_best,
         const Condition &condition) const = 0;
   };
 

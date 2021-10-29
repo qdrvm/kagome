@@ -35,9 +35,8 @@ namespace kagome::consensus::grandpa {
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
-    boost::optional<BlockInfo> findAncestor(
-        const BlockInfo &block,
-        const Condition &condition) const override;
+    std::optional<BlockInfo> findAncestor(
+        const BlockInfo &block, const Condition &condition) const override;
 
     /// Find the best GHOST descendant of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
@@ -52,8 +51,8 @@ namespace kagome::consensus::grandpa {
     ///
     /// Returns `None` when the given `current_best` does not fulfill the
     /// condition.
-    boost::optional<BlockInfo> findGhost(
-        const boost::optional<BlockInfo> &current_best,
+    std::optional<BlockInfo> findGhost(
+        const std::optional<BlockInfo> &current_best,
         const Condition &condition) const override;
 
     // introduce a branch to given vote-nodes.
@@ -77,7 +76,7 @@ namespace kagome::consensus::grandpa {
     Subchain ghostFindMergePoint(
         const BlockHash &active_node_hash,
         const Entry &active_node,
-        const boost::optional<BlockInfo> &force_constrain,
+        const std::optional<BlockInfo> &force_constrain,
         const Condition &condition) const;
 
     // attempts to find the containing node keys for the given hash and number.
@@ -85,7 +84,7 @@ namespace kagome::consensus::grandpa {
     // returns `None` if there is a node by that key already, and a vector
     // (potentially empty) of nodes with the given block in its ancestor-edge
     // otherwise.
-    boost::optional<std::vector<primitives::BlockHash>> findContainingNodes(
+    std::optional<std::vector<primitives::BlockHash>> findContainingNodes(
         const BlockInfo &block) const;
 
     const BlockInfo &getBase() const override {

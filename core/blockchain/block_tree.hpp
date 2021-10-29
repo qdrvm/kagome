@@ -6,8 +6,8 @@
 #ifndef KAGOME_BLOCK_TREE_HPP
 #define KAGOME_BLOCK_TREE_HPP
 
-#include <boost/optional.hpp>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "consensus/babe/types/epoch_digest.hpp"
@@ -63,7 +63,7 @@ namespace kagome::blockchain {
      * Method to get actual runtime version.
      * @return runtime version.
      */
-    virtual boost::optional<primitives::Version> runtimeVersion() const = 0;
+    virtual std::optional<primitives::Version> runtimeVersion() const = 0;
 
     /**
      * Adds header to the storage
@@ -206,7 +206,7 @@ namespace kagome::blockchain {
      */
     virtual outcome::result<primitives::BlockInfo> getBestContaining(
         const primitives::BlockHash &target_hash,
-        const boost::optional<primitives::BlockNumber> &max_number) const = 0;
+        const std::optional<primitives::BlockNumber> &max_number) const = 0;
 
     /**
      * Get all leaves of our tree

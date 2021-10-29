@@ -142,17 +142,17 @@ namespace kagome::crypto {
         key_type, getCache(sr_suite_, sr_caches_, key_type), *sr_suite_);
   }
 
-  boost::optional<libp2p::crypto::KeyPair> CryptoStoreImpl::getLibp2pKeypair()
+  std::optional<libp2p::crypto::KeyPair> CryptoStoreImpl::getLibp2pKeypair()
       const {
     auto keys = getEd25519PublicKeys(KEY_TYPE_LP2P);
     if (not keys or keys.value().empty()) {
-      return boost::none;
+      return std::nullopt;
     }
     auto kp = findEd25519Keypair(KEY_TYPE_LP2P, keys.value().at(0));
     if (kp) {
       return ed25519KeyToLibp2pKeypair(kp.value());
     }
-    return boost::none;
+    return std::nullopt;
   }
 
   outcome::result<libp2p::crypto::KeyPair> CryptoStoreImpl::loadLibp2pKeypair(
@@ -173,7 +173,7 @@ namespace kagome::crypto {
     const auto &contents = lookup_res.value();
     BOOST_ASSERT(ED25519_SEED_LENGTH == contents.size()
                  or 2 * ED25519_SEED_LENGTH == contents.size());  // hex
-    boost::optional<Ed25519Keypair> kp;
+    std::optional<Ed25519Keypair> kp;
     if (ED25519_SEED_LENGTH == contents.size()) {
       OUTCOME_TRY(
           seed,
@@ -186,7 +186,7 @@ namespace kagome::crypto {
       kp = ed_suite_->generateKeypair(seed);
     }
 
-    if (boost::none == kp) {
+    if (std::nullopt == kp) {
       return CryptoStoreError::UNSUPPORTED_CRYPTO_TYPE;
     }
     getCache(ed_suite_, ed_caches_, KEY_TYPE_LP2P)

@@ -18,17 +18,17 @@ namespace kagome::runtime {
     BOOST_ASSERT(executor_);
   }
 
-  outcome::result<boost::optional<GrandpaApi::ScheduledChange>>
+  outcome::result<std::optional<GrandpaApi::ScheduledChange>>
   GrandpaApiImpl::pending_change(primitives::BlockHash const &block,
                                  const Digest &digest) {
-    return executor_->callAt<boost::optional<ScheduledChange>>(
+    return executor_->callAt<std::optional<ScheduledChange>>(
         block, "GrandpaApi_pending_change", digest);
   }
 
-  outcome::result<boost::optional<GrandpaApi::ForcedChange>>
+  outcome::result<std::optional<GrandpaApi::ForcedChange>>
   GrandpaApiImpl::forced_change(primitives::BlockHash const &block,
                                 const Digest &digest) {
-    return executor_->callAt<boost::optional<ForcedChange>>(
+    return executor_->callAt<std::optional<ForcedChange>>(
         block, "GrandpaApi_forced_change", digest);
   }
 

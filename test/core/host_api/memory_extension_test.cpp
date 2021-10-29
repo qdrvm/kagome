@@ -33,7 +33,8 @@ class MemoryExtensionsTest : public ::testing::Test {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
+        .WillRepeatedly(
+            Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
     memory_extension_ = std::make_shared<MemoryExtension>(memory_provider_);
   }
 
@@ -67,7 +68,7 @@ TEST_F(MemoryExtensionsTest, MallocIsCalled) {
 TEST_F(MemoryExtensionsTest, FreeIsCalled) {
   int32_t ptr = 0;
   // result of deallocate method, could be basically anything
-  boost::optional<uint32_t> deallocate_result{42};
+  std::optional<uint32_t> deallocate_result{42};
   EXPECT_CALL(*memory_, deallocate(ptr)).WillOnce(Return(deallocate_result));
 
   memory_extension_->ext_allocator_free_version_1(ptr);
@@ -97,7 +98,7 @@ TEST_F(MemoryExtensionsTest, MallocV1IsCalled) {
 TEST_F(MemoryExtensionsTest, FreeV1IsCalled) {
   int32_t ptr = 0;
   // result of deallocate method, could be basically anything
-  boost::optional<uint32_t> deallocate_result{42};
+  std::optional<uint32_t> deallocate_result{42};
   EXPECT_CALL(*memory_, deallocate(ptr)).WillOnce(Return(deallocate_result));
 
   memory_extension_->ext_allocator_free_version_1(ptr);

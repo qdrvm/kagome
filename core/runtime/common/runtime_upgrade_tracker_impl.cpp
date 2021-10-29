@@ -37,7 +37,7 @@ namespace kagome::runtime {
 
     OUTCOME_TRY(encoded_opt, storage->tryGet(storage::kRuntimeHashesLookupKey));
 
-    std::vector<RuntimeUpgradeData> saved_data {};
+    std::vector<RuntimeUpgradeData> saved_data{};
     if (encoded_opt.has_value()) {
       OUTCOME_TRY(
           decoded,
@@ -84,7 +84,7 @@ namespace kagome::runtime {
     return has_direct_chain;
   }
 
-  outcome::result<boost::optional<storage::trie::RootHash>>
+  outcome::result<std::optional<storage::trie::RootHash>>
   RuntimeUpgradeTrackerImpl::findProperFork(
       const primitives::BlockInfo &block,
       std::vector<RuntimeUpgradeData>::const_reverse_iterator latest_upgrade_it)
@@ -104,7 +104,7 @@ namespace kagome::runtime {
         return latest_upgrade_it->state;
       }
     }
-    return boost::none;
+    return std::nullopt;
   }
 
   outcome::result<storage::trie::RootHash>

@@ -8,8 +8,8 @@
 
 #include <memory>
 
-#include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <optional>
 
 /**
  * Authoring api primitives
@@ -32,7 +32,7 @@ namespace kagome::primitives {
   /**
    * @brief Metadata primitive
    */
-  using Metadata = boost::optional<std::shared_ptr<Session>>;
+  using Metadata = std::optional<std::shared_ptr<Session>>;
 
   /**
    * @brief ExtrinsicKey is used as a key to search extrinsic
@@ -41,4 +41,4 @@ namespace kagome::primitives {
 
 }  // namespace kagome::primitives
 
-#endif  //KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP
+#endif  // KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP

@@ -112,8 +112,8 @@ class ExecutorTest : public testing::Test {
                         std::make_shared<kagome::runtime::MemoryProviderMock>();
                     EXPECT_CALL(*memory_provider, getCurrentMemory())
                         .WillOnce(
-                            Return(boost::optional<kagome::runtime::Memory &>(
-                                *memory_)));
+                            Return(std::optional<std::reference_wrapper<
+                                       kagome::runtime::Memory>>(*memory_)));
 
                     auto storage_provider = std::make_shared<
                         kagome::runtime::TrieStorageProviderMock>();
@@ -123,7 +123,7 @@ class ExecutorTest : public testing::Test {
                         .WillOnce(Return(next_storage_state));
                     EXPECT_CALL(*storage_provider, tryGetPersistentBatch())
                         .WillRepeatedly(Return(
-                            boost::make_optional<std::shared_ptr<
+                            std::make_optional<std::shared_ptr<
                                 kagome::storage::trie::PersistentTrieBatch>>(
                                 std::move(batch))));
 
@@ -173,8 +173,8 @@ class ExecutorTest : public testing::Test {
                         std::make_shared<kagome::runtime::MemoryProviderMock>();
                     EXPECT_CALL(*memory_provider, getCurrentMemory())
                         .WillOnce(
-                            Return(boost::optional<kagome::runtime::Memory &>(
-                                *memory_)));
+                            Return(std::optional<std::reference_wrapper<
+                                       kagome::runtime::Memory>>(*memory_)));
 
                     auto storage_provider = std::make_shared<
                         kagome::runtime::TrieStorageProviderMock>();

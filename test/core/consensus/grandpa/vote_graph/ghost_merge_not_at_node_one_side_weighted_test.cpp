@@ -176,7 +176,7 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
 })");
   }
 
-  auto check = [&](const boost::optional<BlockInfo> &block) {
+  auto check = [&](const std::optional<BlockInfo> &block) {
     auto ghostOpt =
         graph->findGhost(block, [](auto &&x) { return x.sum >= 12; });
     ASSERT_TRUE(ghostOpt);
@@ -185,7 +185,7 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
   };
 
   SCOPED_TRACE("None");
-  check(boost::none);
+  check(std::nullopt);
   SCOPED_TRACE("F");
   check(BlockInfo(6, "F"_H));
   SCOPED_TRACE("C");

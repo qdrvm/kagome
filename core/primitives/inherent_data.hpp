@@ -10,7 +10,7 @@
 #include <vector>
 
 #include <boost/iterator_adaptors.hpp>
-#include <boost/optional.hpp>
+#include <optional>
 #include <outcome/outcome.hpp>
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
