@@ -25,11 +25,11 @@
 #include "runtime/executor.hpp"
 #include "runtime/wavm/compartment_wrapper.hpp"
 #include "runtime/wavm/core_api_factory_impl.hpp"
+#include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_module_instance.hpp"
 #include "runtime/wavm/intrinsics/intrinsic_resolver_impl.hpp"
 #include "runtime/wavm/module_factory_impl.hpp"
-#include "runtime/wavm/instance_environment_factory.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
@@ -96,11 +96,10 @@ class WasmExecutorTest : public ::testing::Test {
 
     std::shared_ptr<TrieStorageImpl> trie_db =
         kagome::storage::trie::TrieStorageImpl::createEmpty(
-            trie_factory, codec, serializer, boost::none)
+            trie_factory, codec, serializer, std::nullopt)
             .value();
 
-    storage_provider_ =
-        std::make_shared<TrieStorageProviderImpl>(trie_db);
+    storage_provider_ = std::make_shared<TrieStorageProviderImpl>(trie_db);
 
     auto random_generator = std::make_shared<BoostRandomGenerator>();
     auto sr25519_provider =
@@ -146,13 +145,14 @@ class WasmExecutorTest : public ::testing::Test {
             intrinsic_module->instantiate());
     runtime_upgrade_tracker_ =
         std::make_shared<kagome::runtime::RuntimeUpgradeTrackerMock>();
-    auto instance_env_factory = std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
-        trie_db,
-        compartment_wrapper,
-        intrinsic_module,
-        host_api_factory,
-        header_repo_,
-        changes_tracker);
+    auto instance_env_factory =
+        std::make_shared<kagome::runtime::wavm::InstanceEnvironmentFactory>(
+            trie_db,
+            compartment_wrapper,
+            intrinsic_module,
+            host_api_factory,
+            header_repo_,
+            changes_tracker);
 
     auto module_factory =
         std::make_shared<kagome::runtime::wavm::ModuleFactoryImpl>(
@@ -172,10 +172,8 @@ class WasmExecutorTest : public ::testing::Test {
         std::shared_ptr<kagome::host_api::HostApi>{host_api_factory->make(
             core_provider, memory_provider, storage_provider_)};
 
-    auto env_factory =
-        std::make_shared<RuntimeEnvironmentFactory>(wasm_provider_,
-                                                    module_repo,
-                                                    header_repo_);
+    auto env_factory = std::make_shared<RuntimeEnvironmentFactory>(
+        wasm_provider_, module_repo, header_repo_);
     executor_ = std::make_shared<Executor>(header_repo_, env_factory);
   }
 

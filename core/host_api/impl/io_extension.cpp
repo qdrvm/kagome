@@ -25,8 +25,8 @@ namespace kagome::host_api {
     using runtime::WasmLogLevel;
 
     auto read_str_from_position = [&](runtime::PtrSize location) {
-      return memory_provider_->getCurrentMemory().value().loadStr(
-          location.ptr, location.size);
+      return memory_provider_->getCurrentMemory()->get().loadStr(location.ptr,
+                                                                 location.size);
     };
 
     const auto target_str = read_str_from_position(runtime::PtrSize(target));

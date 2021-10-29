@@ -31,18 +31,18 @@ namespace kagome::application {
     MOCK_CONST_METHOD0(properties,
                        const std::map<std::string, std::string> &());
 
-    MOCK_CONST_METHOD1(
-        getProperty,
-        boost::optional<std::reference_wrapper<const std::string>>(
-            const std::string &property));
+    MOCK_CONST_METHOD1(getProperty,
+                       std::optional<std::reference_wrapper<const std::string>>(
+                           const std::string &property));
 
     MOCK_CONST_METHOD0(forkBlocks, const std::set<primitives::BlockHash> &());
 
     MOCK_CONST_METHOD0(badBlocks, const std::set<primitives::BlockHash> &());
 
-    MOCK_CONST_METHOD0(consensusEngine, boost::optional<std::string>());
+    MOCK_CONST_METHOD0(consensusEngine, std::optional<std::string>());
 
-    MOCK_CONST_METHOD0(codeSubstitutes, std::shared_ptr<const primitives::CodeSubstitutes>());
+    MOCK_CONST_METHOD0(codeSubstitutes,
+                       std::shared_ptr<const primitives::CodeSubstitutes>());
 
     MOCK_CONST_METHOD0(getGenesis, GenesisRawData());
   };

@@ -102,7 +102,7 @@ namespace kagome::blockchain {
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     log::Logger logger_;
-    boost::optional<primitives::BlockHash>  genesis_block_hash_;
+    std::optional<primitives::BlockHash> genesis_block_hash_;
   };
 }  // namespace kagome::blockchain
 

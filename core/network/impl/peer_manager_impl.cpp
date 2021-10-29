@@ -167,7 +167,7 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(block_announce_protocol,
                      "Router did not provide block announce protocol");
 
-    boost::optional<PeerId> disconnected_peer;
+    std::optional<PeerId> disconnected_peer;
     for (auto it = active_peers_.begin(); it != active_peers_.end();) {
       auto [peer_id, data] = *it++;
       // TODO(d.khaustov) consider better alive check logic
@@ -433,11 +433,10 @@ namespace kagome::network {
     }
   }
 
-  boost::optional<Status> PeerManagerImpl::getPeerStatus(
-      const PeerId &peer_id) {
+  std::optional<Status> PeerManagerImpl::getPeerStatus(const PeerId &peer_id) {
     auto it = active_peers_.find(peer_id);
     if (it == active_peers_.end()) {
-      return boost::none;
+      return std::nullopt;
     }
     return it->second.status;
   }

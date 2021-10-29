@@ -8,7 +8,7 @@
 
 #include <jsonrpc-lean/request.h>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "api/service/state/state_api.hpp"
 #include "common/buffer.hpp"
@@ -30,12 +30,12 @@ namespace kagome::api::state::request {
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
 
-    outcome::result<boost::optional<common::Buffer>> execute();
+    outcome::result<std::optional<common::Buffer>> execute();
 
    private:
     std::shared_ptr<StateApi> api_;
     common::Buffer key_;
-    boost::optional<kagome::primitives::BlockHash> at_;
+    std::optional<kagome::primitives::BlockHash> at_;
   };
 
 }  // namespace kagome::api::state::request

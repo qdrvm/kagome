@@ -11,7 +11,7 @@
 namespace kagome::api::chain::request {
 
   struct GetHeader final : details::RequestType<primitives::BlockHeader,
-                                                boost::optional<std::string>> {
+                                                std::optional<std::string>> {
     explicit GetHeader(std::shared_ptr<ChainApi> &api) : api_(api) {}
 
     outcome::result<primitives::BlockHeader> execute() override {

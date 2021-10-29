@@ -97,7 +97,7 @@ namespace kagome::network {
                           const BlockInfo &best_block) override;
 
     /** @see PeerManager::getStatus */
-    boost::optional<Status> getPeerStatus(const PeerId &peer_id) override;
+    std::optional<Status> getPeerStatus(const PeerId &peer_id) override;
 
    private:
     /// Right way to check self peer as it takes into account dev mode

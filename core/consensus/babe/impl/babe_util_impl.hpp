@@ -46,10 +46,10 @@ namespace kagome::consensus {
     std::shared_ptr<kagome::storage::BufferStorage> storage_;
     const BabeClock &clock_;
 
-    boost::optional<BabeSlotNumber> genesis_slot_number_;
+    std::optional<BabeSlotNumber> genesis_slot_number_;
 
     // optimization for storing in memory last epoch
-    boost::optional<EpochDescriptor> last_epoch_;
+    std::optional<EpochDescriptor> last_epoch_;
   };
 }  // namespace kagome::consensus
 #endif  // KAGOME_CONSENSUS_BABEUTILIMPL

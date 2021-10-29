@@ -11,8 +11,8 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm_ext/push_back.hpp>
 
-#include "api/service/state/state_api.hpp"
 #include "api/jrpc/value_converter.hpp"
+#include "api/service/state/state_api.hpp"
 
 namespace kagome::api {
 
@@ -22,7 +22,8 @@ namespace kagome::api {
     boost::range::push_back(
         j_changes,
         changes.changes | boost::adaptors::transformed([](auto &change) {
-          return jsonrpc::Value::Array{makeValue(change.key), makeValue(change.data)};
+          return jsonrpc::Value::Array{makeValue(change.key),
+                                       makeValue(change.data)};
         }));
 
     return jsonrpc::Value::Struct{
@@ -30,7 +31,7 @@ namespace kagome::api {
         std::pair{"changes", makeValue(j_changes)}};
   }
 
-}
+}  // namespace kagome::api
 
 namespace kagome::api::state::request {
 
@@ -38,7 +39,7 @@ namespace kagome::api::state::request {
       : public details::RequestType<std::vector<StateApi::StorageChangeSet>,
                                     std::vector<std::string>,
                                     std::string,
-                                    boost::optional<std::string>> {
+                                    std::optional<std::string>> {
    public:
     explicit QueryStorage(std::shared_ptr<StateApi> api)
         : api_(std::move(api)) {
@@ -55,7 +56,7 @@ namespace kagome::api::state::request {
       }
       OUTCOME_TRY(from,
                   primitives::BlockHash::fromHexWithPrefix(getParam<1>()));
-      boost::optional<primitives::BlockHash> to{};
+      std::optional<primitives::BlockHash> to{};
       if (auto opt_to = getParam<2>(); opt_to.has_value()) {
         OUTCOME_TRY(to_,
                     primitives::BlockHash::fromHexWithPrefix(opt_to.value()));
@@ -71,7 +72,7 @@ namespace kagome::api::state::request {
   class QueryStorageAt final
       : public details::RequestType<std::vector<StateApi::StorageChangeSet>,
                                     std::vector<std::string>,
-                                    boost::optional<std::string>> {
+                                    std::optional<std::string>> {
    public:
     explicit QueryStorageAt(std::shared_ptr<StateApi> api)
         : api_(std::move(api)) {
@@ -86,7 +87,7 @@ namespace kagome::api::state::request {
         OUTCOME_TRY(key, common::unhexWith0x(str_key));
         keys.emplace_back(std::move(key));
       }
-      boost::optional<primitives::BlockHash> at{};
+      std::optional<primitives::BlockHash> at{};
       if (auto opt_at = getParam<1>(); opt_at.has_value()) {
         OUTCOME_TRY(at_,
                     primitives::BlockHash::fromHexWithPrefix(opt_at.value()));

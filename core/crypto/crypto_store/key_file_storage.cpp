@@ -198,14 +198,14 @@ namespace kagome::crypto {
     return keys;
   }
 
-  outcome::result<boost::optional<Buffer>> KeyFileStorage::searchForSeed(
+  outcome::result<std::optional<Buffer>> KeyFileStorage::searchForSeed(
       KeyTypeId type, gsl::span<const uint8_t> public_key_bytes) const {
     auto key_path = composeKeyPath(type, public_key_bytes);
     namespace fs = boost::filesystem;
     boost::system::error_code ec{};
 
     if (not fs::exists(key_path, ec)) {
-      return boost::none;
+      return std::nullopt;
     }
     OUTCOME_TRY(content, loadFileContent(key_path));
     OUTCOME_TRY(seed_bytes, common::unhexWith0x(content));

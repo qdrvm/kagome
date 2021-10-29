@@ -138,14 +138,14 @@ namespace kagome::host_api {
      * @return error if any, a key if the next key exists
      * none otherwise
      */
-    outcome::result<boost::optional<common::Buffer>> getStorageNextKey(
+    outcome::result<std::optional<common::Buffer>> getStorageNextKey(
         const common::Buffer &key) const;
 
-    boost::optional<common::Buffer> calcStorageChangesRoot(
+    std::optional<common::Buffer> calcStorageChangesRoot(
         common::Hash256 parent) const;
 
     runtime::WasmSpan clearPrefix(const common::Buffer &prefix,
-                                     boost::optional<uint32_t> limit);
+                                  std::optional<uint32_t> limit);
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;

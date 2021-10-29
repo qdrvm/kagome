@@ -27,15 +27,15 @@ namespace kagome::consensus::grandpa {
     bool verifyPrevote(const SignedMessage &prevote) const override;
     bool verifyPrecommit(const SignedMessage &precommit) const override;
 
-    boost::optional<SignedMessage> signPrimaryPropose(
+    std::optional<SignedMessage> signPrimaryPropose(
         const PrimaryPropose &primary_propose) const override;
-    boost::optional<SignedMessage> signPrevote(
+    std::optional<SignedMessage> signPrevote(
         const Prevote &prevote) const override;
-    boost::optional<SignedMessage> signPrecommit(
+    std::optional<SignedMessage> signPrecommit(
         const Precommit &precommit) const override;
 
    private:
-    boost::optional<SignedMessage> sign(Vote vote) const;
+    std::optional<SignedMessage> sign(Vote vote) const;
     bool verify(const SignedMessage &vote, RoundNumber number) const;
 
     const std::shared_ptr<crypto::Ed25519Keypair> &keypair_;

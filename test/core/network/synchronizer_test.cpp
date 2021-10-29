@@ -103,7 +103,7 @@ ACTION_P(blockTree_getBlockHeader, local_blocks) {
 
   auto block_info = visit_in_place(
       block_id,
-      [&](const BlockNumber &n) -> boost::optional<BlockInfo> {
+      [&](const BlockNumber &n) -> std::optional<BlockInfo> {
         std::cout << "GetHeader: #" << n << ", ";
         if (local_blocks.size() >= n) {
           auto &bi = local_blocks[n];
@@ -111,9 +111,9 @@ ACTION_P(blockTree_getBlockHeader, local_blocks) {
           return bi;
         }
         std::cout << "Result: not found" << std::endl;
-        return boost::none;
+        return std::nullopt;
       },
-      [&](const BlockHash &h) -> boost::optional<BlockInfo> {
+      [&](const BlockHash &h) -> std::optional<BlockInfo> {
         std::cout << "GetHeader: " << h.data() << ", ";
         for (BlockNumber n = 0; n < local_blocks.size(); ++n) {
           if (local_blocks[n].hash == h) {
@@ -123,7 +123,7 @@ ACTION_P(blockTree_getBlockHeader, local_blocks) {
           }
         }
         std::cout << "Result: not found" << std::endl;
-        return boost::none;
+        return std::nullopt;
       });
 
   if (not block_info.has_value()) {
@@ -140,7 +140,7 @@ ACTION_P(syncProtocol_request, remote_blocks) {
 
   auto bi = visit_in_place(
       request.from,
-      [&](const BlockNumber &n) -> boost::optional<BlockInfo> {
+      [&](const BlockNumber &n) -> std::optional<BlockInfo> {
         std::cout << "Requested: #" << n << ", ";
         if (remote_blocks.size() >= n) {
           auto &bi = remote_blocks[n];
@@ -148,9 +148,9 @@ ACTION_P(syncProtocol_request, remote_blocks) {
           return bi;
         }
         std::cout << "Result: not found" << std::endl;
-        return boost::none;
+        return std::nullopt;
       },
-      [&](const BlockHash &h) -> boost::optional<BlockInfo> {
+      [&](const BlockHash &h) -> std::optional<BlockInfo> {
         std::cout << "Requested: " << h.data() << ", ";
         for (BlockNumber n = 0; n < remote_blocks.size(); ++n) {
           if (remote_blocks[n].hash == h) {
@@ -160,7 +160,7 @@ ACTION_P(syncProtocol_request, remote_blocks) {
           }
         }
         std::cout << "Result: not found" << std::endl;
-        return boost::none;
+        return std::nullopt;
       });
 
   network::BlocksResponse response;

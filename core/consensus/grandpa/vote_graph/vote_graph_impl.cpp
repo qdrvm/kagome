@@ -44,10 +44,10 @@ namespace kagome::consensus::grandpa {
     heads_.insert(base.hash);
   }
 
-  boost::optional<std::vector<primitives::BlockHash>>
+  std::optional<std::vector<primitives::BlockHash>>
   VoteGraphImpl::findContainingNodes(const BlockInfo &block) const {
     if (contains(entries_, block.hash)) {
-      return boost::none;
+      return std::nullopt;
     }
 
     std::vector<BlockHash> containing;
@@ -192,7 +192,7 @@ namespace kagome::consensus::grandpa {
     Entry new_entry;
     new_entry.number = ancestor.number;
     bool filled = false;  // is newEntry.ancestors filled
-    boost::optional<BlockHash> prev_ancestor_opt;
+    std::optional<BlockHash> prev_ancestor_opt;
 
     for (const auto &descendant : descendants) {
       Entry &entry = entries_.at(descendant);
@@ -216,7 +216,7 @@ namespace kagome::consensus::grandpa {
         if (last_it != entry.ancestors.rend()) {
           prev_ancestor_opt = *last_it;
         } else {
-          prev_ancestor_opt = boost::none;
+          prev_ancestor_opt = std::nullopt;
         }
         filled = true;
       }
@@ -252,8 +252,8 @@ namespace kagome::consensus::grandpa {
     entries_.insert({ancestor.hash, std::move(new_entry)});
   }
 
-  boost::optional<BlockInfo> VoteGraphImpl::findGhost(
-      const boost::optional<BlockInfo> &current_best,
+  std::optional<BlockInfo> VoteGraphImpl::findGhost(
+      const std::optional<BlockInfo> &current_best,
       const VoteGraph::Condition &condition) const {
     bool force_constrain = false;
     BlockHash node_key = base_.hash;
@@ -263,7 +263,7 @@ namespace kagome::consensus::grandpa {
       if (containing_opt.has_value()) {
         auto &containing = containing_opt.value();
         if (containing.empty()) {
-          return boost::none;
+          return std::nullopt;
         }
 
         const Entry &entry = entries_.at(containing[0]);
@@ -281,7 +281,7 @@ namespace kagome::consensus::grandpa {
 
     Entry active_node = entries_.at(node_key);
     if (not condition(active_node.cumulative_vote)) {
-      return boost::none;
+      return std::nullopt;
     }
 
     std::deque<std::reference_wrapper<const Entry>> observing_entries;
@@ -319,15 +319,15 @@ namespace kagome::consensus::grandpa {
       force_constrain = false;
     }
 
-    boost::optional<BlockInfo> info =
-        force_constrain ? current_best : boost::none;
+    std::optional<BlockInfo> info =
+        force_constrain ? current_best : std::nullopt;
 
     Subchain subchain =
         ghostFindMergePoint(node_key, active_node, info, condition);
     auto &hashes = subchain.hashes;
 
     if (hashes.empty()) {
-      return boost::none;
+      return std::nullopt;
     }
 
     // return last hash with best number
@@ -337,7 +337,7 @@ namespace kagome::consensus::grandpa {
   VoteGraph::Subchain VoteGraphImpl::ghostFindMergePoint(
       const BlockHash &active_node_hash,
       const VoteGraph::Entry &active_node,
-      const boost::optional<BlockInfo> &force_constrain,
+      const std::optional<BlockInfo> &force_constrain,
       const VoteGraph::Condition &condition) const {
     auto descendants = active_node.descendants;
     filter_if(descendants, [&](const BlockHash &hash) {
@@ -356,8 +356,8 @@ namespace kagome::consensus::grandpa {
 
     size_t offset = 0;
     while (true) {
-      boost::optional<BlockHash> new_best;
-      boost::optional<VoteWeight> new_best_vote_weight;
+      std::optional<BlockHash> new_best;
+      std::optional<VoteWeight> new_best_vote_weight;
 
       ++offset;
       for (const auto &d_node : descendants) {
@@ -438,14 +438,13 @@ namespace kagome::consensus::grandpa {
     base_ = BlockInfo{new_number, new_hash};
   }
 
-  boost::optional<BlockInfo> VoteGraphImpl::findAncestor(
-      const BlockInfo &block,
-      const VoteGraph::Condition &condition) const {
+  std::optional<BlockInfo> VoteGraphImpl::findAncestor(
+      const BlockInfo &block, const VoteGraph::Condition &condition) const {
     // we store two nodes with an edge between them that is the canonical
     // chain.
     // the `node_key` always points to the ancestor node, and the
     // `canonical_node` points to the higher node.
-    boost::optional<Entry> canonical_node = boost::none;
+    std::optional<Entry> canonical_node = std::nullopt;
     BlockHash node_key;
 
     auto nodes_opt = findContainingNodes(block);
@@ -457,7 +456,7 @@ namespace kagome::consensus::grandpa {
 
       auto ancestor_it = std::rbegin(entry.ancestors);
       if (ancestor_it == std::rend(entry.ancestors)) {
-        return boost::none;
+        return std::nullopt;
       }
 
       canonical_node = entry;
@@ -465,7 +464,7 @@ namespace kagome::consensus::grandpa {
     } else {
       auto &nodes = nodes_opt.value();
       if (nodes.empty()) {
-        return boost::none;
+        return std::nullopt;
       }
 
       const Entry entry = entries_.at(nodes[0]);
@@ -478,7 +477,7 @@ namespace kagome::consensus::grandpa {
       node_key = *ancIt;
     }
 
-    BOOST_ASSERT(canonical_node != boost::none);
+    BOOST_ASSERT(canonical_node != std::nullopt);
 
     // search backwards until we find the first vote-node that
     // meets the condition.
@@ -486,7 +485,7 @@ namespace kagome::consensus::grandpa {
     while (not condition(active_node.cumulative_vote)) {
       auto ancestorIt = active_node.ancestors.rbegin();
       if (ancestorIt == active_node.ancestors.rend()) {
-        return boost::none;
+        return std::nullopt;
       }
 
       node_key = *ancestorIt;
@@ -496,8 +495,8 @@ namespace kagome::consensus::grandpa {
 
     // find the GHOST merge-point after the active_node.
     // constrain it to be within the canonical chain.
-    auto good_subchain = ghostFindMergePoint(
-        node_key, active_node, boost::none, condition);
+    auto good_subchain =
+        ghostFindMergePoint(node_key, active_node, std::nullopt, condition);
 
     BOOST_ASSERT(canonical_node);
     // search in reverse order
@@ -511,7 +510,7 @@ namespace kagome::consensus::grandpa {
                      });
     if (best_hash_it == hashes.rend()) {
       // not found
-      return boost::none;
+      return std::nullopt;
     }
 
     return BlockInfo{good_subchain.best_number, *best_hash_it};

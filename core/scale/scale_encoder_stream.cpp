@@ -140,7 +140,7 @@ namespace kagome::scale {
   }
 
   ScaleEncoderStream &ScaleEncoderStream::encodeOptionalBool(
-      const boost::optional<bool> &v) {
+      const std::optional<bool> &v) {
     auto result = OptionalBool::TRUE;
 
     if (!v.has_value()) {

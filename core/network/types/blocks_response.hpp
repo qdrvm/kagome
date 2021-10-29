@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include <boost/optional.hpp>
+#include <optional>
 #include "common/buffer.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_data.hpp"

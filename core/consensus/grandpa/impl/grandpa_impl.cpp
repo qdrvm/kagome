@@ -131,8 +131,8 @@ namespace kagome::consensus::grandpa {
                          .round_number = round_state.round_number,
                          .duration = round_time_factor_,
                          .id = keypair_
-                                   ? boost::make_optional(keypair_->public_key)
-                                   : boost::none};
+                                   ? std::make_optional(keypair_->public_key)
+                                   : std::nullopt};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, round_state.round_number, config.voters);
@@ -195,8 +195,8 @@ namespace kagome::consensus::grandpa {
                          .round_number = new_round_number,
                          .duration = round_time_factor_,
                          .id = keypair_
-                                   ? boost::make_optional(keypair_->public_key)
-                                   : boost::none};
+                                   ? std::make_optional(keypair_->public_key)
+                                   : std::nullopt};
 
     auto vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
         keypair_, crypto_provider_, new_round_number, config.voters);

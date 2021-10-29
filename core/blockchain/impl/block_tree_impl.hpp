@@ -13,7 +13,7 @@
 #include <queue>
 #include <unordered_set>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
@@ -55,7 +55,7 @@ namespace kagome::blockchain {
                primitives::BlockNumber depth,
                const std::shared_ptr<TreeNode> &parent,
                consensus::EpochNumber epoch_number,
-               boost::optional<consensus::EpochDigest> next_epoch_digest,
+               std::optional<consensus::EpochDigest> next_epoch_digest,
                bool finalized = false);
 
       primitives::BlockHash block_hash;
@@ -74,7 +74,7 @@ namespace kagome::blockchain {
        */
       std::shared_ptr<TreeNode> getByHash(const primitives::BlockHash &hash);
 
-      boost::optional<std::vector<std::shared_ptr<TreeNode>>> getPathTo(
+      std::optional<std::vector<std::shared_ptr<TreeNode>>> getPathTo(
           const primitives::BlockHash &hash);
 
       bool operator==(const TreeNode &other) const;
@@ -178,7 +178,7 @@ namespace kagome::blockchain {
         const primitives::BlockHash &top_block,
         const primitives::BlockHash &bottom_block) const override;
 
-    boost::optional<primitives::Version> runtimeVersion() const override {
+    std::optional<primitives::Version> runtimeVersion() const override {
       return actual_runtime_version_;
     }
 
@@ -191,7 +191,7 @@ namespace kagome::blockchain {
 
     outcome::result<primitives::BlockInfo> getBestContaining(
         const primitives::BlockHash &target_hash,
-        const boost::optional<primitives::BlockNumber> &max_number)
+        const std::optional<primitives::BlockNumber> &max_number)
         const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
@@ -240,14 +240,14 @@ namespace kagome::blockchain {
         const primitives::BlockHash &start,
         const primitives::BlockNumber &limit) const;
 
-    boost::optional<std::vector<primitives::BlockHash>>
+    std::optional<std::vector<primitives::BlockHash>>
     tryGetChainByBlocksFromCache(const primitives::BlockHash &top_block,
                                  const primitives::BlockHash &bottom_block,
-                                 boost::optional<uint32_t> max_count) const;
+                                 std::optional<uint32_t> max_count) const;
 
     BlockHashVecRes getChainByBlocks(const primitives::BlockHash &top_block,
                                      const primitives::BlockHash &bottom_block,
-                                     boost::optional<uint32_t> max_count) const;
+                                     std::optional<uint32_t> max_count) const;
 
     /**
      * @returns the tree leaves sorted by their depth
@@ -280,7 +280,7 @@ namespace kagome::blockchain {
         trie_changes_tracker_;
     std::shared_ptr<primitives::BabeConfiguration> babe_configuration_;
     std::shared_ptr<const consensus::BabeUtil> babe_util_;
-    boost::optional<primitives::Version> actual_runtime_version_;
+    std::optional<primitives::Version> actual_runtime_version_;
     log::Logger log_ = log::createLogger("BlockTree", "blockchain");
     // metrics
     metrics::RegistryPtr registry_ = metrics::createRegistry();

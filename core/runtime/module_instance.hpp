@@ -8,8 +8,8 @@
 
 #include <string_view>
 
-#include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <optional>
 
 #include "outcome/outcome.hpp"
 #include "runtime/instance_environment.hpp"
@@ -39,7 +39,7 @@ namespace kagome::runtime {
     virtual outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                         PtrSize args) const = 0;
 
-    virtual outcome::result<boost::optional<WasmValue>> getGlobal(
+    virtual outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const = 0;
 
     virtual InstanceEnvironment const &getEnvironment() const = 0;

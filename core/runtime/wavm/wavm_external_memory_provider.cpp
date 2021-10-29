@@ -17,11 +17,12 @@ namespace kagome::runtime::wavm {
     BOOST_ASSERT(intrinsic_module_ != nullptr);
   }
 
-  boost::optional<runtime::Memory &>
+  std::optional<std::reference_wrapper<runtime::Memory>>
   WavmExternalMemoryProvider::getCurrentMemory() const {
     return current_memory_
-               ? boost::optional<runtime::Memory &>(*current_memory_)
-               : boost::none;
+               ? std::optional<std::reference_wrapper<runtime::Memory>>(
+                   *current_memory_)
+               : std::nullopt;
   }
 
   outcome::result<void> WavmExternalMemoryProvider::resetMemory(

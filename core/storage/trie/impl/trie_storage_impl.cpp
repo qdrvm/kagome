@@ -18,7 +18,7 @@ namespace kagome::storage::trie {
       const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
+      std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
     // will never be used, so content of the callback doesn't matter
     auto empty_trie =
         trie_factory->createEmpty([](auto &) { return outcome::success(); });
@@ -36,7 +36,7 @@ namespace kagome::storage::trie {
       const RootHash &root_hash,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
+      std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
     return std::unique_ptr<TrieStorageImpl>(
         new TrieStorageImpl(root_hash,
                             std::move(codec),
@@ -48,7 +48,7 @@ namespace kagome::storage::trie {
       RootHash root_hash,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes)
+      std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes)
       : root_hash_{std::move(root_hash)},
         codec_{std::move(codec)},
         serializer_{std::move(serializer)},

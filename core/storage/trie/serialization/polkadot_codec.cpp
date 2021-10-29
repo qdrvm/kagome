@@ -91,11 +91,11 @@ namespace kagome::storage::trie {
     common::Hash256 out;
 
     BOOST_VERIFY(crypto::blake2b(out.data(),
-                         common::Hash256::size(),
-                         nullptr,
-                         0,
-                         buf.data(),
-                         buf.size())
+                                 common::Hash256::size(),
+                                 nullptr,
+                                 0,
+                                 buf.data(),
+                                 buf.size())
                  == EXIT_SUCCESS);
     return out;
   }
@@ -173,7 +173,7 @@ namespace kagome::storage::trie {
 
     if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
       // scale encoded value
-      OUTCOME_TRY(encNodeValue, scale::encode(node.value.get()));
+      OUTCOME_TRY(encNodeValue, scale::encode(node.value.value()));
       encoding += Buffer(std::move(encNodeValue));
     }
 
@@ -205,7 +205,7 @@ namespace kagome::storage::trie {
 
     if (!node.value) return Error::NO_NODE_VALUE;
     // scale encoded value
-    OUTCOME_TRY(encNodeValue, scale::encode(node.value.get()));
+    OUTCOME_TRY(encNodeValue, scale::encode(node.value.value()));
     encoding += Buffer(std::move(encNodeValue));
 
     return outcome::success(std::move(encoding));
