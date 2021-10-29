@@ -39,9 +39,9 @@ namespace kagome::crypto {
                        outcome::result<Sr25519Keys>(KeyTypeId));
 
     MOCK_CONST_METHOD0(getLibp2pKeypair,
-                       boost::optional<libp2p::crypto::KeyPair>());
+                       std::optional<libp2p::crypto::KeyPair>());
     MOCK_CONST_METHOD1(loadLibp2pKeypair,
-                 outcome::result<libp2p::crypto::KeyPair>(const Path &));
+                       outcome::result<libp2p::crypto::KeyPair>(const Path &));
   };
 }  // namespace kagome::crypto
 

@@ -23,7 +23,7 @@ namespace kagome::storage::trie {
     std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
-    outcome::result<boost::optional<Buffer>> tryGet(
+    outcome::result<std::optional<Buffer>> tryGet(
         const Buffer &key) const override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;

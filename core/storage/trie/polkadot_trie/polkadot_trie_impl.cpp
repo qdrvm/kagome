@@ -84,7 +84,7 @@ namespace {
 
     if (parent->isBranch()) {
       if (parent->key_nibbles == key) {
-        parent->value = boost::none;
+        parent->value = std::nullopt;
       } else {
         auto length = getCommonPrefixLength(parent->key_nibbles, key);
         auto &child =
@@ -115,7 +115,7 @@ namespace {
   outcome::result<void> detachNode(
       PolkadotTrie::NodePtr &parent,
       const KeyNibbles &prefix,
-      boost::optional<uint64_t> limit,
+      std::optional<uint64_t> limit,
       bool &finished,
       uint32_t &count,
       const PolkadotTrie::OnDetachCallback &callback,
@@ -235,7 +235,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::tuple<bool, uint32_t>> PolkadotTrieImpl::clearPrefix(
       const common::Buffer &prefix,
-      boost::optional<uint64_t> limit,
+      std::optional<uint64_t> limit,
       const OnDetachCallback &callback) {
     bool finished = true;
     uint32_t count = 0;
@@ -350,23 +350,23 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotTrieImpl::get(
       const common::Buffer &key) const {
     OUTCOME_TRY(opt_value, tryGet(key));
-    if(opt_value.has_value()) {
+    if (opt_value.has_value()) {
       return opt_value.value();
     }
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<boost::optional<common::Buffer>> PolkadotTrieImpl::tryGet(
+  outcome::result<std::optional<common::Buffer>> PolkadotTrieImpl::tryGet(
       const common::Buffer &key) const {
     if (not root_) {
-      return boost::none;
+      return std::nullopt;
     }
     auto nibbles = PolkadotCodec::keyToNibbles(key);
     OUTCOME_TRY(node, getNode(root_, nibbles));
     if (node && node->value) {
-      return node->value.get();
+      return node->value.value();
     }
-    return boost::none;
+    return std::nullopt;
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::getNode(

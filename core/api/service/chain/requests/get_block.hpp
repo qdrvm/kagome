@@ -11,7 +11,7 @@
 namespace kagome::api::chain::request {
 
   struct GetBlock final : details::RequestType<primitives::BlockData,
-                                               boost::optional<std::string>> {
+                                               std::optional<std::string>> {
     explicit GetBlock(std::shared_ptr<ChainApi> &api) : api_(api) {}
 
     outcome::result<primitives::BlockData> execute() override {

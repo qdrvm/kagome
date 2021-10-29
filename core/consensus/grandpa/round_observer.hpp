@@ -6,12 +6,12 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_OBSERVER_HPP
 
-#include <boost/optional.hpp>
 #include <libp2p/peer/peer_id.hpp>
+#include <optional>
 
 #include "consensus/grandpa/structs.hpp"
-#include "primitives/justification.hpp"
 #include "network/types/grandpa_message.hpp"
+#include "primitives/justification.hpp"
 
 namespace kagome::consensus::grandpa {
 

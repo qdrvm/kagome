@@ -98,8 +98,8 @@ namespace kagome::api {
       using AdditionMessageType =
           decltype(KAGOME_EXTRACT_UNIQUE_CACHE(api_service, std::string));
       using AdditionMessagesList = std::vector<AdditionMessageType>;
-      using CachedAdditionMessagesList = decltype(
-          KAGOME_EXTRACT_SHARED_CACHE(api_service, AdditionMessagesList));
+      using CachedAdditionMessagesList = decltype(KAGOME_EXTRACT_SHARED_CACHE(
+          api_service, AdditionMessagesList));
 
       StorageEventSubscriberPtr storage_sub;
       ChainEventSubscriberPtr chain_sub;
@@ -177,14 +177,14 @@ namespace kagome::api {
                                            const common::Buffer &value,
                                            const primitives::BlockHash &block);
 
-    boost::optional<std::shared_ptr<SessionSubscriptions>> findSessionById(
+    std::optional<std::shared_ptr<SessionSubscriptions>> findSessionById(
         Session::SessionId id) {
       std::lock_guard guard(subscribed_sessions_cs_);
       if (auto it = subscribed_sessions_.find(id);
           subscribed_sessions_.end() != it)
         return it->second;
 
-      return boost::none;
+      return std::nullopt;
     }
     void removeSessionById(Session::SessionId id);
     std::shared_ptr<SessionSubscriptions> storeSessionWithId(

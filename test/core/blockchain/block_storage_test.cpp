@@ -59,8 +59,8 @@ class BlockStorageTest : public testing::Test {
         // trying to get last finalized block hash which not exists yet
         .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND))
         // check of block data during block insertion
-        .WillOnce(Return(boost::none))
-        .WillOnce(Return(boost::none));
+        .WillOnce(Return(std::nullopt))
+        .WillOnce(Return(std::nullopt));
 
     EXPECT_CALL(*storage, put(_, _))
         // put key-value for lookup data

@@ -45,7 +45,7 @@ class TrieStorageProviderTest : public ::testing::Test {
             trie_factory, codec, backend);
 
     auto trieDb = kagome::storage::trie::TrieStorageImpl::createEmpty(
-                      trie_factory, codec, serializer, boost::none)
+                      trie_factory, codec, serializer, std::nullopt)
                       .value();
 
     storage_provider_ =

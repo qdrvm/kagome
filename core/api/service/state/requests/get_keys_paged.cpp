@@ -22,7 +22,8 @@ namespace kagome::api::state::request {
     }
 
     if (param0.IsNil()) {
-      prefix_ = boost::none;    // I suppose none here is better than empty Buffer
+      prefix_ =
+          std::nullopt;  // I suppose none here is better than empty Buffer
     } else if (param0.IsString()) {
       OUTCOME_TRY(key, common::unhexWith0x(param0.AsString()));
       prefix_ = common::Buffer(std::move(key));

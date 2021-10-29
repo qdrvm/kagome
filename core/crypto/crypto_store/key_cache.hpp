@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "crypto/crypto_store/key_type.hpp"
 
@@ -47,7 +47,7 @@ namespace kagome::crypto {
     /**
      * Session keys are short-living keys used by the node
      */
-    boost::optional<Keypair> const &getSessionKey() const noexcept {
+    std::optional<Keypair> const &getSessionKey() const noexcept {
       return session_key_;
     }
 
@@ -59,17 +59,17 @@ namespace kagome::crypto {
       return keys;
     }
 
-    boost::optional<Keypair> searchKeypair(const PublicKey &key) const {
+    std::optional<Keypair> searchKeypair(const PublicKey &key) const {
       auto it = cache_.find(key);
       if (it != cache_.end()) {
         return suite_->composeKeypair(it->first, it->second);
       }
-      return boost::none;
+      return std::nullopt;
     }
 
    private:
     KeyTypeId type_;
-    boost::optional<Keypair> session_key_;
+    std::optional<Keypair> session_key_;
     std::unordered_map<PublicKey, PrivateKey> cache_;
     std::shared_ptr<CryptoSuite> suite_;
   };

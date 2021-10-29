@@ -34,16 +34,16 @@ namespace kagome::storage::trie {
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<boost::optional<Buffer>> TopperTrieBatchImpl::tryGet(
+  outcome::result<std::optional<Buffer>> TopperTrieBatchImpl::tryGet(
       const Buffer &key) const {
     if (auto it = cache_.find(key); it != cache_.end()) {
       if (it->second.has_value()) {
         return it->second.value();
       }
-      return boost::none;
+      return std::nullopt;
     }
     if (wasClearedByPrefix(key)) {
-      return boost::none;
+      return std::nullopt;
     }
     if (auto p = parent_.lock(); p != nullptr) {
       return p->tryGet(key);
@@ -98,16 +98,16 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::remove(const Buffer &key) {
-    cache_[key] = boost::none;
+    cache_[key] = std::nullopt;
     return outcome::success();
   }
 
   outcome::result<std::tuple<bool, uint32_t>> TopperTrieBatchImpl::clearPrefix(
-      const Buffer &prefix, boost::optional<uint64_t>) {
+      const Buffer &prefix, std::optional<uint64_t>) {
     for (auto it = cache_.lower_bound(prefix);
          it != cache_.end() && it->first.subbuffer(0, prefix.size()) == prefix;
          ++it)
-      it->second = boost::none;
+      it->second = std::nullopt;
 
     cleared_prefixes_.push_back(prefix);
     if (parent_.lock() != nullptr) {

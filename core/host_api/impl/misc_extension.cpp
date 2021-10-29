@@ -32,7 +32,7 @@ namespace kagome::host_api {
   runtime::WasmSpan MiscExtension::ext_misc_runtime_version_version_1(
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto code = memory.loadN(ptr, len);
     common::Buffer uncompressed_code;
@@ -40,8 +40,7 @@ namespace kagome::host_api {
         runtime::uncompressCodeIfNeeded(code, uncompressed_code);
 
     static const auto kErrorRes =
-        scale::encode<boost::optional<primitives::Version>>(boost::none)
-            .value();
+        scale::encode<std::optional<primitives::Version>>(std::nullopt).value();
 
     if (uncompress_res.has_error()) {
       SL_ERROR(logger_,
@@ -56,7 +55,7 @@ namespace kagome::host_api {
 
     if (version_res.has_value()) {
       auto enc_version_res = scale::encode(
-          boost::make_optional(scale::encode(version_res.value()).value()));
+          std::make_optional(scale::encode(version_res.value()).value()));
       if (enc_version_res.has_error()) {
         logger_->error(
             "Error encoding ext_misc_runtime_version_version_1 result: {}",
@@ -74,7 +73,7 @@ namespace kagome::host_api {
   void MiscExtension::ext_misc_print_hex_version_1(
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
-    auto buf = memory_provider_->getCurrentMemory().value().loadN(ptr, len);
+    auto buf = memory_provider_->getCurrentMemory()->get().loadN(ptr, len);
     logger_->info("hex: {}", buf.toHex());
   }
 
@@ -85,7 +84,7 @@ namespace kagome::host_api {
   void MiscExtension::ext_misc_print_utf8_version_1(
       runtime::WasmSpan data) const {
     auto [ptr, len] = runtime::splitSpan(data);
-    auto buf = memory_provider_->getCurrentMemory().value().loadN(ptr, len);
+    auto buf = memory_provider_->getCurrentMemory()->get().loadN(ptr, len);
     logger_->info("utf8: {}", buf.toString());
   }
 

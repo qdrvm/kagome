@@ -42,7 +42,7 @@ namespace kagome::runtime {
       cache_.reserve(kMaxSize);
     }
 
-    boost::optional<const Value &> get(const Key &key) {
+    std::optional<std::reference_wrapper<const Value>> get(const Key &key) {
       ticks_++;
       if (ticks_ == 0) {
         handleTicksOverflow();
@@ -53,7 +53,7 @@ namespace kagome::runtime {
           return entry.value;
         }
       }
-      return boost::none;
+      return std::nullopt;
     }
 
     template <typename ValueArg>

@@ -53,7 +53,7 @@ namespace kagome::consensus::grandpa {
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
       const BlockHash &base) const {
     SL_DEBUG(logger_, "Finding best chain containing block {}", base.toHex());
-    OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, boost::none));
+    OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, std::nullopt));
     auto best_hash = best_info.hash;
 
     auto target = best_info.number;

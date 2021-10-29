@@ -8,7 +8,7 @@
 
 #include <jsonrpc-lean/request.h>
 
-#include <boost/optional.hpp>
+#include <optional>
 #include <vector>
 
 #include "api/service/base_request.hpp"
@@ -20,7 +20,7 @@
 namespace kagome::api::state::request {
 
   struct GetMetadata final
-      : details::RequestType<std::string, boost::optional<std::string>> {
+      : details::RequestType<std::string, std::optional<std::string>> {
    public:
     explicit GetMetadata(std::shared_ptr<StateApi> api)
         : api_(std::move(api)){};

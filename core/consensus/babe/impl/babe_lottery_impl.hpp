@@ -30,7 +30,7 @@ namespace kagome::consensus {
 
     EpochDescriptor getEpoch() const override;
 
-    boost::optional<crypto::VRFOutput> getSlotLeadership(
+    std::optional<crypto::VRFOutput> getSlotLeadership(
         primitives::BabeSlotNumber i) const override;
 
     Randomness computeRandomness(const Randomness &last_epoch_randomness,

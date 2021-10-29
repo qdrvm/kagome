@@ -59,7 +59,7 @@ namespace kagome::blockchain {
       primitives::BlockNumber depth,
       const std::shared_ptr<TreeNode> &parent,
       consensus::EpochNumber epoch_number,
-      boost::optional<consensus::EpochDigest> next_epoch_digest_opt,
+      std::optional<consensus::EpochDigest> next_epoch_digest_opt,
       bool finalized)
       : block_hash{hash},
         depth{depth},
@@ -90,7 +90,7 @@ namespace kagome::blockchain {
     }
   }
 
-  boost::optional<std::vector<std::shared_ptr<BlockTreeImpl::TreeNode>>>
+  std::optional<std::vector<std::shared_ptr<BlockTreeImpl::TreeNode>>>
   BlockTreeImpl::TreeNode::getPathTo(const primitives::BlockHash &hash) {
     std::vector<std::shared_ptr<TreeNode>> stack{shared_from_this()};
     std::unordered_map<primitives::BlockNumber, size_t> forks;
@@ -131,7 +131,7 @@ namespace kagome::blockchain {
       stack.pop_back();
       came_back = true;
     }
-    return boost::none;
+    return std::nullopt;
   }
 
   std::shared_ptr<BlockTreeImpl::TreeNode> BlockTreeImpl::TreeNode::getByHash(
@@ -222,9 +222,9 @@ namespace kagome::blockchain {
 
     log::Logger log = log::createLogger("BlockTree", "blockchain");
 
-    boost::optional<consensus::EpochNumber> curr_epoch_number;
-    boost::optional<consensus::EpochDigest> curr_epoch;
-    boost::optional<consensus::EpochDigest> next_epoch;
+    std::optional<consensus::EpochNumber> curr_epoch_number;
+    std::optional<consensus::EpochDigest> curr_epoch;
+    std::optional<consensus::EpochDigest> next_epoch;
     auto hash_tmp = hash;
 
     // We are going block by block to genesis direction and observes them for
@@ -412,7 +412,7 @@ namespace kagome::blockchain {
           babe_util_->slotToEpoch(babe_digests_res.value().second.slot_number);
     }
 
-    boost::optional<consensus::EpochDigest> next_epoch;
+    std::optional<consensus::EpochDigest> next_epoch;
     if (auto digest = consensus::getNextEpochDigest(header);
         digest.has_value()) {
       next_epoch.emplace(std::move(digest.value()));
@@ -464,7 +464,7 @@ namespace kagome::blockchain {
       epoch_number = babe_util_->slotToEpoch(babe_slot);
     }
 
-    boost::optional<consensus::EpochDigest> next_epoch;
+    std::optional<consensus::EpochDigest> next_epoch;
     if (auto digest = consensus::getNextEpochDigest(block.header);
         digest.has_value()) {
       next_epoch.emplace(std::move(digest.value()));
@@ -517,7 +517,7 @@ namespace kagome::blockchain {
       epoch_number = babe_util_->slotToEpoch(babe_slot);
     }
 
-    boost::optional<consensus::EpochDigest> next_epoch;
+    std::optional<consensus::EpochDigest> next_epoch;
     if (auto digest = consensus::getNextEpochDigest(block_header);
         digest.has_value()) {
       next_epoch.emplace(std::move(digest.value()));
@@ -596,9 +596,7 @@ namespace kagome::blockchain {
       }
     }
 
-    log_->info("Finalized block #{} hash={}",
-               node->depth,
-               block_hash.toHex());
+    log_->info("Finalized block #{} hash={}", node->depth, block_hash.toHex());
     block_height_finalized_->set(node->depth);
     return outcome::success();
   }
@@ -679,13 +677,13 @@ namespace kagome::blockchain {
       const primitives::BlockHash &bottom_block,
       const uint32_t max_count) const {
     return getChainByBlocks(
-        top_block, bottom_block, boost::make_optional(max_count));
+        top_block, bottom_block, std::make_optional(max_count));
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block,
-      boost::optional<uint32_t> max_count) const {
+      std::optional<uint32_t> max_count) const {
     if (auto chain_res =
             tryGetChainByBlocksFromCache(top_block, bottom_block, max_count)) {
       auto &chain = chain_res.value();
@@ -735,11 +733,11 @@ namespace kagome::blockchain {
     return result;
   }
 
-  boost::optional<std::vector<primitives::BlockHash>>
+  std::optional<std::vector<primitives::BlockHash>>
   BlockTreeImpl::tryGetChainByBlocksFromCache(
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block,
-      boost::optional<uint32_t> max_count) const {
+      std::optional<uint32_t> max_count) const {
     if (auto from = tree_->getByHash(top_block)) {
       if (auto way_opt = from->getPathTo(bottom_block)) {
         auto &way = way_opt.value();
@@ -764,13 +762,13 @@ namespace kagome::blockchain {
         return result;
       }
     }
-    return boost::none;
+    return std::nullopt;
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block) const {
-    return getChainByBlocks(top_block, bottom_block, boost::none);
+    return getChainByBlocks(top_block, bottom_block, std::nullopt);
   }
 
   bool BlockTreeImpl::hasDirectChain(
@@ -854,7 +852,7 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockInfo> BlockTreeImpl::getBestContaining(
       const primitives::BlockHash &target_hash,
-      const boost::optional<primitives::BlockNumber> &max_number) const {
+      const std::optional<primitives::BlockNumber> &max_number) const {
     OUTCOME_TRY(target_header, header_repo_->getBlockHeader(target_hash));
     if (max_number.has_value() && target_header.number > max_number.value()) {
       return Error::TARGET_IS_PAST_MAX;

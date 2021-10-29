@@ -35,7 +35,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<PtrSize> callExportFunction(std::string_view name,
                                                 PtrSize args) const override;
 
-    outcome::result<boost::optional<WasmValue>> getGlobal(
+    outcome::result<std::optional<WasmValue>> getGlobal(
         std::string_view name) const override;
 
     InstanceEnvironment const &getEnvironment() const override;

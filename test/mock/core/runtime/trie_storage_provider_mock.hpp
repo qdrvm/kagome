@@ -22,7 +22,7 @@ namespace kagome::runtime {
                  outcome::result<void>(const storage::trie::RootHash &));
     MOCK_CONST_METHOD0(getCurrentBatch, std::shared_ptr<Batch>());
     MOCK_CONST_METHOD0(tryGetPersistentBatch,
-                       boost::optional<std::shared_ptr<PersistentBatch>>());
+                       std::optional<std::shared_ptr<PersistentBatch>>());
     MOCK_CONST_METHOD0(isCurrentlyPersistent, bool());
     MOCK_METHOD0(forceCommit, outcome::result<storage::trie::RootHash>());
     MOCK_METHOD0(startTransaction, outcome::result<void>());

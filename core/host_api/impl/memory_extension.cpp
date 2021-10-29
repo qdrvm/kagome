@@ -20,11 +20,11 @@ namespace kagome::host_api {
 
   runtime::WasmPointer MemoryExtension::ext_allocator_malloc_version_1(
       runtime::WasmSize size) {
-    return memory_provider_->getCurrentMemory().value().allocate(size);
+    return memory_provider_->getCurrentMemory()->get().allocate(size);
   }
 
   void MemoryExtension::ext_allocator_free_version_1(runtime::WasmPointer ptr) {
-    auto opt_size = memory_provider_->getCurrentMemory().value().deallocate(ptr);
+    auto opt_size = memory_provider_->getCurrentMemory()->get().deallocate(ptr);
     if (not opt_size) {
       logger_->warn(
           "Ptr {} does not point to any memory chunk in wasm memory. Nothing "

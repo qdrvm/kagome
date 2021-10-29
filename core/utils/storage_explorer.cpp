@@ -7,11 +7,11 @@
 #include <libp2p/log/configurator.hpp>
 
 #include "application/impl/app_configuration_impl.hpp"
-#include "blockchain/block_tree.hpp"
 #include "blockchain/block_storage.hpp"
-#include "storage/trie/trie_storage.hpp"
+#include "blockchain/block_tree.hpp"
 #include "injector/application_injector.hpp"
 #include "log/configurator.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 class CommandParser {
  public:
@@ -49,7 +49,7 @@ class CommandParser {
   std::unordered_map<std::string, std::string> command_descriptions_;
 };
 
-boost::optional<kagome::primitives::BlockId> parseBlockId(char *string) {
+std::optional<kagome::primitives::BlockId> parseBlockId(char *string) {
   kagome::primitives::BlockId id;
   if (strlen(string) == 2 * kagome::primitives::BlockHash::size()) {
     kagome::primitives::BlockHash id_hash{};
@@ -59,7 +59,7 @@ boost::optional<kagome::primitives::BlockId> parseBlockId(char *string) {
                   id_hash.begin());
     } else {
       std::cerr << "Invalid block hash!\n";
-      return boost::none;
+      return std::nullopt;
     }
     id = std::move(id_hash);
   } else {
@@ -67,7 +67,7 @@ boost::optional<kagome::primitives::BlockId> parseBlockId(char *string) {
       id = std::stoi(string);
     } catch (std::invalid_argument &) {
       std::cerr << "Block number must be a hex hash or a number!\n";
-      return boost::none;
+      return std::nullopt;
     }
   }
   return id;
@@ -142,26 +142,26 @@ int main(int argc, char **argv) {
                       }
                     });
 
-  parser.addCommand("query-state",
-                    "[state_hash, [key]] - remove the block from the block tree",
-                    [&trie_storage](int argc, char **argv) {
-                      kagome::storage::trie::RootHash state_root{};
-                      if (auto id_bytes = kagome::common::unhex(argv[1]); id_bytes) {
-                        std::copy_n(id_bytes.value().begin(),
-                                    kagome::primitives::BlockHash::size(),
-                                    state_root.begin());
-                      } else {
-                        std::cerr << "Invalid block hash!\n";
-                        return;
-                      }
-                      auto batch = trie_storage->getEphemeralBatchAt(state_root);
-                      if (!batch) {
-                        std::cerr << "Error: " << batch.error().message()
-                                  << "\n";
-                        return;
-                      }
-                      std::cout << "Storage hash is correct\n";
-                    });
+  parser.addCommand(
+      "query-state",
+      "[state_hash, [key]] - remove the block from the block tree",
+      [&trie_storage](int argc, char **argv) {
+        kagome::storage::trie::RootHash state_root{};
+        if (auto id_bytes = kagome::common::unhex(argv[1]); id_bytes) {
+          std::copy_n(id_bytes.value().begin(),
+                      kagome::primitives::BlockHash::size(),
+                      state_root.begin());
+        } else {
+          std::cerr << "Invalid block hash!\n";
+          return;
+        }
+        auto batch = trie_storage->getEphemeralBatchAt(state_root);
+        if (!batch) {
+          std::cerr << "Error: " << batch.error().message() << "\n";
+          return;
+        }
+        std::cout << "Storage hash is correct\n";
+      });
 
   parser.invoke(argc, argv);
 }

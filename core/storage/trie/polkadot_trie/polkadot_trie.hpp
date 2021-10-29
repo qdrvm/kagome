@@ -28,12 +28,12 @@ namespace kagome::storage::trie {
      * for each leaf from the detached node subtree
      */
     using OnDetachCallback = std::function<outcome::result<void>(
-        const common::Buffer &key, boost::optional<common::Buffer> &&value)>;
+        const common::Buffer &key, std::optional<common::Buffer> &&value)>;
 
     /**
      * Remove all trie entries which key begins with the supplied prefix
      * @param prefix key prefix for nodes to be removed
-     * @param limit number of elements to remove, boost::none if no limit
+     * @param limit number of elements to remove, std::nullopt if no limit
      * @param callback function that will be called for each node removal
      * @returns tuple first element true if removed all nodes to be removed,
      * second tuple element is a number of removed elements
@@ -41,7 +41,7 @@ namespace kagome::storage::trie {
 
     virtual outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const common::Buffer &prefix,
-        boost::optional<uint64_t> limit,
+        std::optional<uint64_t> limit,
         const OnDetachCallback &callback) = 0;
 
     /**

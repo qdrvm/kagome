@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include <boost/optional.hpp>
+#include <optional>
 #include <outcome/outcome.hpp>
 #include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/structs.hpp"

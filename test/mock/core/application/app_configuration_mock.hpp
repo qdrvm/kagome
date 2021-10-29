@@ -28,9 +28,9 @@ namespace kagome::application {
                        boost::filesystem::path(std::string chain_id));
 
     MOCK_CONST_METHOD0(nodeKey,
-                       const boost::optional<crypto::Ed25519PrivateKey> &());
+                       const std::optional<crypto::Ed25519PrivateKey> &());
 
-    MOCK_CONST_METHOD0(nodeKeyFile, const boost::optional<std::string> &());
+    MOCK_CONST_METHOD0(nodeKeyFile, const std::optional<std::string> &());
 
     MOCK_CONST_METHOD0(listenAddresses,
                        const std::vector<libp2p::multi::Multiaddress> &());

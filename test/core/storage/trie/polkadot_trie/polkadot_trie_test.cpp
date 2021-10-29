@@ -25,7 +25,7 @@ enum class Command { PUT, REMOVE, GET, CONTAINS };
 
 struct TrieCommand {
   Buffer key;
-  boost::optional<Buffer> value;
+  std::optional<Buffer> value;
   Command command;
 };
 
@@ -70,7 +70,7 @@ TEST_P(TrieTest, RunCommand) {
       case Command::GET: {
         if (command.value) {
           EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
-          ASSERT_EQ(val, command.value.get());
+          ASSERT_EQ(val, command.value.value());
         } else {
           EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
           ASSERT_EQ(
@@ -80,7 +80,7 @@ TEST_P(TrieTest, RunCommand) {
         break;
       }
       case Command::PUT: {
-        EXPECT_OUTCOME_TRUE_1(trie->put(command.key, command.value.get()));
+        EXPECT_OUTCOME_TRUE_1(trie->put(command.key, command.value.value()));
         break;
       }
       case Command::REMOVE: {
@@ -118,8 +118,8 @@ std::vector<TrieCommand> PutAndGetBranch = {
     {"013579"_hex2buf, ("gnocchi"_buf), Command::PUT},
     {"07"_hex2buf, ("ramen"_buf), Command::PUT},
     {"f2"_hex2buf, ("pho"_buf), Command::PUT},
-    {"noot"_buf, boost::none, Command::GET},
-    {"00"_hex2buf, boost::none, Command::GET},
+    {"noot"_buf, std::nullopt, Command::GET},
+    {"00"_hex2buf, std::nullopt, Command::GET},
     {"0135"_hex2buf, ("spaghetti"_buf), Command::GET},
     {"013579"_hex2buf, ("gnocchi"_buf), Command::GET},
     {"07"_hex2buf, ("ramen"_buf), Command::GET},
@@ -144,34 +144,34 @@ std::vector<TrieCommand> PutAndGetOddKeyLengths = {
  */
 std::vector<TrieCommand> DeleteSmall = {
     {{}, "floof"_buf, Command::REMOVE},
-    {{}, boost::none, Command::GET},
+    {{}, std::nullopt, Command::GET},
     {{}, "floof"_buf, Command::PUT},
 
     {"09d3"_hex2buf, "noot"_buf, Command::REMOVE},
-    {"09d3"_hex2buf, boost::none, Command::GET},
+    {"09d3"_hex2buf, std::nullopt, Command::GET},
     {"0135"_hex2buf, "pen"_buf, Command::GET},
     {"013579"_hex2buf, "penguin"_buf, Command::GET},
     {"09d3"_hex2buf, "noot"_buf, Command::PUT},
 
     {"f2"_hex2buf, "feather"_buf, Command::REMOVE},
-    {"f2"_hex2buf, boost::none, Command::GET},
+    {"f2"_hex2buf, std::nullopt, Command::GET},
     {"f2"_hex2buf, "feather"_buf, Command::PUT},
 
     {{}, "floof"_buf, Command::REMOVE},
     {"f2"_hex2buf, "feather"_buf, Command::REMOVE},
-    {{}, boost::none, Command::GET},
+    {{}, std::nullopt, Command::GET},
     {"0135"_hex2buf, "pen"_buf, Command::GET},
     {"013579"_hex2buf, "penguin"_buf, Command::GET},
     {{}, "floof"_buf, Command::PUT},
     {"f2"_hex2buf, "feather"_buf, Command::PUT},
 
     {"013579"_hex2buf, "penguin"_buf, Command::REMOVE},
-    {"013579"_hex2buf, boost::none, Command::GET},
+    {"013579"_hex2buf, std::nullopt, Command::GET},
     {"0135"_hex2buf, "pen"_buf, Command::GET},
     {"013579"_hex2buf, "penguin"_buf, Command::PUT},
 
     {"0135"_hex2buf, "pen"_buf, Command::REMOVE},
-    {"0135"_hex2buf, boost::none, Command::GET},
+    {"0135"_hex2buf, std::nullopt, Command::GET},
     {"013579"_hex2buf, "penguin"_buf, Command::GET},
     {"0135"_hex2buf, "pen"_buf, Command::PUT},
 
@@ -187,7 +187,7 @@ std::vector<TrieCommand> DeleteCombineBranch = {
     {"013546"_hex2buf, "raccoon"_buf, Command::PUT},
     {"01354677"_hex2buf, "rat"_buf, Command::PUT},
     {"09d3"_hex2buf, "noot"_buf, Command::REMOVE},
-    {"09d3"_hex2buf, boost::none, Command::GET},
+    {"09d3"_hex2buf, std::nullopt, Command::GET},
 };
 /**
  * Deletion from a branch
@@ -201,7 +201,7 @@ std::vector<TrieCommand> DeleteFromBranch = {
     {"0615fc"_hex2buf, "noot"_buf, Command::GET},
     {"062ba9"_hex2buf, "nootagain"_buf, Command::GET},
     {"0615fc"_hex2buf, "noot"_buf, Command::REMOVE},
-    {"0615fc"_hex2buf, boost::none, Command::GET},
+    {"0615fc"_hex2buf, std::nullopt, Command::GET},
     {"062ba9"_hex2buf, "nootagain"_buf, Command::GET},
     {"06afb1"_hex2buf, "odd"_buf, Command::GET},
     {"06afb1"_hex2buf, "odd"_buf, Command::REMOVE},
@@ -223,7 +223,7 @@ std::vector<TrieCommand> DeleteOddKeyLengths = {
     {"4f4d"_hex2buf, "stuff"_buf, Command::PUT},
     {"4f4d"_hex2buf, "stuff"_buf, Command::GET},
     {"430c"_hex2buf, "odd"_buf, Command::REMOVE},
-    {"430c"_hex2buf, boost::none, Command::GET},
+    {"430c"_hex2buf, std::nullopt, Command::GET},
     {"f4bc"_hex2buf, "spaghetti"_buf, Command::PUT},
     {"f4bc"_hex2buf, "spaghetti"_buf, Command::GET},
     {"4f4d"_hex2buf, "stuff"_buf, Command::GET},
@@ -310,7 +310,7 @@ TEST_F(TrieTest, ClearPrefix) {
     EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
   }
   EXPECT_OUTCOME_TRUE_1(
-      trie->clearPrefix("bar"_buf, boost::none, [](const auto &, auto &&) {
+      trie->clearPrefix("bar"_buf, std::nullopt, [](const auto &, auto &&) {
         return outcome::success();
       }));
   ASSERT_TRUE(trie->contains("bat"_buf));
@@ -319,14 +319,14 @@ TEST_F(TrieTest, ClearPrefix) {
   ASSERT_FALSE(trie->contains("barnacle"_buf));
 
   EXPECT_OUTCOME_TRUE_1(
-      trie->clearPrefix("batc"_buf, boost::none, [](const auto &, auto &&) {
+      trie->clearPrefix("batc"_buf, std::nullopt, [](const auto &, auto &&) {
         return outcome::success();
       }));
   ASSERT_TRUE(trie->contains("bat"_buf));
   ASSERT_FALSE(trie->contains("batch"_buf));
 
   EXPECT_OUTCOME_TRUE_1(
-      trie->clearPrefix("b"_buf, boost::none, [](const auto &, auto &&) {
+      trie->clearPrefix("b"_buf, std::nullopt, [](const auto &, auto &&) {
         return outcome::success();
       }));
   ASSERT_FALSE(trie->contains("bat"_buf));
@@ -394,7 +394,7 @@ INSTANTIATE_TEST_CASE_P(
 struct ClearPrefixData {
   std::vector<Buffer> data;
   Buffer prefix;
-  boost::optional<uint64_t> limit;
+  std::optional<uint64_t> limit;
   std::vector<Buffer> res;
   std::tuple<bool, uint32_t> ret;
   size_t size;
@@ -441,34 +441,34 @@ INSTANTIATE_TEST_CASE_P(
     ClearPrefixTest,
     testing::ValuesIn(
         /* empty tree */
-        {ClearPrefixData{{}, "bar"_buf, boost::none, {}, {true, 0}, 0},
+        {ClearPrefixData{{}, "bar"_buf, std::nullopt, {}, {true, 0}, 0},
          /* miss */
          ClearPrefixData{
-             {"bo"_buf}, "agu"_buf, boost::none, {"bo"_buf}, {true, 0}, 1},
+             {"bo"_buf}, "agu"_buf, std::nullopt, {"bo"_buf}, {true, 0}, 1},
          /* equal start but no children */
          ClearPrefixData{
-             {"bo"_buf}, "boo"_buf, boost::none, {"bo"_buf}, {true, 0}, 1},
+             {"bo"_buf}, "boo"_buf, std::nullopt, {"bo"_buf}, {true, 0}, 1},
          /* prefix matches leaf */
          ClearPrefixData{{"bar"_buf, "foo"_buf},
                          "bar"_buf,
-                         boost::none,
+                         std::nullopt,
                          {"foo"_buf},
                          {true, 1},
                          1},
          /* empty prefix */
          ClearPrefixData{
-             {"bar"_buf, "foo"_buf}, ""_buf, boost::none, {}, {true, 2}, 0},
+             {"bar"_buf, "foo"_buf}, ""_buf, std::nullopt, {}, {true, 2}, 0},
          /* "b"-node converts to leaf */
          ClearPrefixData{{"a"_buf, "b"_buf, "boa"_buf, "bob"_buf},
                          "bo"_buf,
-                         boost::none,
+                         std::nullopt,
                          {"a"_buf, "b"_buf},
                          {true, 2},
                          3},
          /* "b"-node becomes "ba"-node */
          ClearPrefixData{{"a"_buf, "baa"_buf, "bab"_buf, "boa"_buf, "bob"_buf},
                          "bo"_buf,
-                         boost::none,
+                         std::nullopt,
                          {"a"_buf, "baa"_buf, "bab"_buf},
                          {true, 2},
                          5},
