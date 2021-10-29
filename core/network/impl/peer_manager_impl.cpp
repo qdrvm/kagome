@@ -10,7 +10,7 @@
 #include <libp2p/protocol/kademlia/impl/peer_routing_table.hpp>
 
 #include "outcome/outcome.hpp"
-#include "scale/scale.hpp"
+#include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
 
 namespace kagome::network {

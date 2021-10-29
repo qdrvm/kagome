@@ -74,8 +74,7 @@ target_link_libraries(secp256k1_provider PUBLIC
     blob
     buffer
     secp256k1::secp256k1
-    scale
-    )
+    scale::scale   )
 kagome_install(
     secp256k1_provider
 )

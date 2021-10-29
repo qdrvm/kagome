@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <exception>
 
-namespace kagome::scale {
+namespace scale {
 
   PeerInfoSerializable::PeerInfoSerializable() : PeerInfo{dummyPeerId(), {}} {}
 
@@ -53,4 +53,4 @@ namespace kagome::scale {
     peer_info.addresses = std::move(multi_addrs);
     return s;
   }
-}  // namespace kagome::scale
+}  // namespace scale

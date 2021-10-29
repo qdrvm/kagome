@@ -72,8 +72,6 @@ set(kagome_LIBRARIES
         kagome::runtime_transaction_error
         kagome::runtime_upgrade_tracker
         kagome::runtime_wavm
-        kagome::scale
-        kagome::scale_encode_append
         kagome::secp256k1_provider
         kagome::sha
         kagome::sr25519_provider

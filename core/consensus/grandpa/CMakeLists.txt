@@ -10,8 +10,7 @@ add_library(environment
     )
 
 target_link_libraries(environment
-    scale
-    logger
+    scale::scale   logger
     blob
     )
 
@@ -26,7 +25,7 @@ add_library(vote_crypto_provider
     impl/vote_crypto_provider_impl.cpp
     )
 target_link_libraries(vote_crypto_provider
-    scale
+    scale::scale
     )
 
 add_library(voter_set
