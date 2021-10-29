@@ -14,16 +14,28 @@ namespace kagome::consensus::grandpa {
 
   class VoteTrackerMock : public VoteTracker {
    public:
-    MOCK_METHOD2(push, PushResult(const SignedPrevote &, size_t));
-    MOCK_METHOD2(push, PushResult(const SignedPrecommit &, size_t));
+    MOCK_METHOD(PushResult, push, (const SignedPrevote &, size_t), (override));
 
-    MOCK_CONST_METHOD0(getPrevotes, std::vector<SignedPrevote>());
-    MOCK_CONST_METHOD0(getPrecommits, std::vector<SignedPrecommit>());
+    MOCK_METHOD(PushResult,
+                push,
+                (const SignedPrecommit &, size_t),
+                (override));
 
-    MOCK_CONST_METHOD0(prevoteWeight, size_t());
-    MOCK_CONST_METHOD0(precommitWeight, size_t());
+    MOCK_METHOD(std::vector<SignedPrevote>, getPrevotes, (), (const, override));
 
-    MOCK_CONST_METHOD1(getJustification, Justification(const BlockInfo &));
+    MOCK_METHOD(std::vector<SignedPrecommit>,
+                getPrecommits,
+                (),
+                (const, override));
+
+    MOCK_METHOD(size_t, prevoteWeight, (), (const, override));
+
+    MOCK_METHOD(size_t, precommitWeight, (), (const, override));
+
+    MOCK_METHOD(Justification,
+                getJustification,
+                (const BlockInfo &),
+                (const, override));
   };
 
 }  // namespace kagome::consensus::grandpa

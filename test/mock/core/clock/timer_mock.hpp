@@ -11,14 +11,21 @@
 
 namespace testutil {
   struct TimerMock : public kagome::clock::Timer {
-    MOCK_METHOD1(expiresAt, void(kagome::clock::SystemClock::TimePoint));
+    MOCK_METHOD(void,
+                expiresAt,
+                (kagome::clock::SystemClock::TimePoint),
+                (override));
 
-    MOCK_METHOD1(expiresAfter, void(kagome::clock::SystemClock::Duration));
+    MOCK_METHOD(void,
+                expiresAfter,
+                (kagome::clock::SystemClock::Duration),
+                (override));
 
-    MOCK_METHOD0(cancel, void());
+    MOCK_METHOD(void, cancel, (), (override));
 
-    MOCK_METHOD1(asyncWait,
-                 void(const std::function<void(const std::error_code &)> &h));
+    MOCK_METHOD(void,
+                asyncWait,
+                (const std::function<void(const std::error_code &)> &h));
   };
 }  // namespace testutil
 

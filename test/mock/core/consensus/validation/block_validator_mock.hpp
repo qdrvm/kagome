@@ -14,20 +14,22 @@ namespace kagome::consensus {
 
   class BlockValidatorMock : public BlockValidator {
    public:
-    MOCK_CONST_METHOD4(
-        validateBlock,
-        outcome::result<void>(const primitives::Block &block,
-                              const primitives::AuthorityId &authority_id,
-                              const Threshold &threshold,
-                              const Randomness &randomness));
+    MOCK_METHOD(outcome::result<void>,
+                validateBlock,
+                (const primitives::Block &block,
+                 const primitives::AuthorityId &authority_id,
+                 const Threshold &threshold,
+                 const Randomness &randomness),
+                (const));
 
-    MOCK_CONST_METHOD5(
-        validateHeader,
-        outcome::result<void>(const primitives::BlockHeader &header,
-                              const EpochNumber epoch_number,
-                              const primitives::AuthorityId &authority_id,
-                              const Threshold &threshold,
-                              const Randomness &randomness));
+    MOCK_METHOD(outcome::result<void>,
+                validateHeader,
+                (const primitives::BlockHeader &header,
+                 const EpochNumber epoch_number,
+                 const primitives::AuthorityId &authority_id,
+                 const Threshold &threshold,
+                 const Randomness &randomness),
+                (const, override));
   };
 
 }  // namespace kagome::consensus

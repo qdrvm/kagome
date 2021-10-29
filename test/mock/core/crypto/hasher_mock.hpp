@@ -15,23 +15,47 @@ namespace kagome::crypto {
    public:
     ~HasherMock() override = default;
 
-    MOCK_CONST_METHOD1(twox_64, Hash64(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash64, twox_64, (gsl::span<const uint8_t>), (const, override));
 
-    MOCK_CONST_METHOD1(blake2b_128, Hash128(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash128,
+                blake2b_128,
+                (gsl::span<const uint8_t>),
+                (const, override));
 
-    MOCK_CONST_METHOD1(twox_128, Hash128(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash128,
+                twox_128,
+                (gsl::span<const uint8_t>),
+                (const, override));
 
-    MOCK_CONST_METHOD1(twox_256, Hash256(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash256,
+                twox_256,
+                (gsl::span<const uint8_t>),
+                (const, override));
 
-    MOCK_CONST_METHOD1(blake2b_256, Hash256(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash256,
+                blake2b_256,
+                (gsl::span<const uint8_t>),
+                (const, override));
 
-    MOCK_CONST_METHOD1(blake2s_256, Hash256(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash256,
+                blake2s_256,
+                (gsl::span<const uint8_t>),
+                (const, override));
 
-    MOCK_CONST_METHOD1(keccak_256, Hash256(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash256,
+                keccak_256,
+                (gsl::span<const uint8_t>),
+                (const, override));
 
-    MOCK_CONST_METHOD1(sha2_256, Hash256(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash256,
+                sha2_256,
+                (gsl::span<const uint8_t>),
+                (const, override));
 
-    MOCK_CONST_METHOD1(blake2b_512, Hash512(gsl::span<const uint8_t>));
+    MOCK_METHOD(Hash512,
+                blake2b_512,
+                (gsl::span<const uint8_t>),
+                (const, override));
   };
 }  // namespace kagome::crypto
 

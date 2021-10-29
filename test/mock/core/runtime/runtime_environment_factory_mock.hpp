@@ -22,16 +22,21 @@ namespace kagome::runtime {
         : RuntimeEnvironmentFactory::RuntimeEnvironmentTemplate{
             std::move(parent), blockchain_state, storage_state} {}
 
-    MOCK_METHOD1(
-        setState,
-        RuntimeEnvironmentTemplate &(const primitives::BlockInfo &state));
+    MOCK_METHOD(RuntimeEnvironmentTemplate &,
+                setState,
+                (const primitives::BlockInfo &state),
+                ());
 
-    MOCK_METHOD0(persistent, RuntimeEnvironmentTemplate &());
+    MOCK_METHOD(RuntimeEnvironmentTemplate &, persistent, (), (override));
 
-    MOCK_METHOD1(on_state_destruction,
-                 RuntimeEnvironmentTemplate &(std::function<void()> callback));
+    MOCK_METHOD(RuntimeEnvironmentTemplate &,
+                on_state_destruction,
+                (std::function<void()> callback));
 
-    MOCK_METHOD0(make, outcome::result<std::unique_ptr<RuntimeEnvironment>>());
+    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironment>>,
+                make,
+                (),
+                (override));
   };
 
   class RuntimeEnvironmentFactoryMock : public RuntimeEnvironmentFactory {
@@ -44,16 +49,20 @@ namespace kagome::runtime {
                                     std::move(module_repo),
                                     std::move(header_repo)} {}
 
-    MOCK_CONST_METHOD2(start,
-                       std::unique_ptr<RuntimeEnvironmentTemplate>(
-                           const primitives::BlockInfo &blockchain_state,
-                           const storage::trie::RootHash &storage_state));
-    MOCK_CONST_METHOD1(
-        start,
-        outcome::result<std::unique_ptr<RuntimeEnvironmentTemplate>>(
-            const primitives::BlockHash &blockchain_state));
-    MOCK_CONST_METHOD0(
-        start, outcome::result<std::unique_ptr<RuntimeEnvironmentTemplate>>());
+    MOCK_METHOD(std::unique_ptr<RuntimeEnvironmentTemplate>,
+                start,
+                (const primitives::BlockInfo &blockchain_state,
+                 const storage::trie::RootHash &storage_state),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironmentTemplate>>,
+                start,
+                (const primitives::BlockHash &blockchain_state),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironmentTemplate>>,
+                start,
+                (const, override));
   };
 
 }  // namespace kagome::runtime

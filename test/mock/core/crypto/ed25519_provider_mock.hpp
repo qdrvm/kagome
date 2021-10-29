@@ -16,14 +16,18 @@ namespace kagome::crypto {
    public:
     Ed25519Keypair;
     Ed25519Keypair;
-    MOCK_CONST_METHOD2(sign,
-                       outcome::result<Ed25519Signature>(const Ed25519Keypair &,
-                                                         gsl::span<uint8_t>));
-    MOCK_CONST_METHOD3(
-        verify,
-        outcome::result<bool>(const Ed25519Signature &signature,
-                              gsl::span<uint8_t> message,
-                              const Ed25519PublicKey &public_key));
+
+    MOCK_METHOD(outcome::result<Ed25519Signature>,
+                sign,
+                (const Ed25519Keypair &, gsl::span<uint8_t>),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                verify,
+                (const Ed25519Signature &signature,
+                 gsl::span<uint8_t> message,
+                 const Ed25519PublicKey &public_key),
+                (const, override));
   };
 
 }  // namespace kagome::crypto

@@ -14,31 +14,34 @@ namespace kagome::application {
 
   class AppStateManagerMock : public AppStateManager {
    public:
-    void atPrepare(OnPrepare &&cb) {
+    MOCK_METHOD(void, atPrepare, (OnPrepare), ());
+    void atPrepare(OnPrepare &&cb) override {
       atPrepare(cb);
     }
-    MOCK_METHOD1(atPrepare, void(OnPrepare));
 
-    void atLaunch(OnLaunch &&cb) {
+    MOCK_METHOD(void, atLaunch, (OnLaunch), ());
+    void atLaunch(OnLaunch &&cb) override {
       atLaunch(cb);
     }
-    MOCK_METHOD1(atLaunch, void(OnLaunch));
 
-    void atShutdown(OnShutdown &&cb) {
+    MOCK_METHOD(void, atShutdown, (OnShutdown), ());
+    void atShutdown(OnShutdown &&cb) override {
       atShutdown(cb);
     }
-    MOCK_METHOD1(atShutdown, void(OnShutdown));
 
-    MOCK_METHOD0(run, void());
-    MOCK_METHOD0(shutdown, void());
+    MOCK_METHOD(void, run, (), (override));
 
-    MOCK_METHOD0(doPrepare, void());
-    MOCK_METHOD0(doLaunch, void());
-    MOCK_METHOD0(doShutdown, void());
+    MOCK_METHOD(void, shutdown, (), (override));
 
-    MOCK_CONST_METHOD0(state, State());
+    MOCK_METHOD(void, doPrepare, (), (override));
+
+    MOCK_METHOD(void, doLaunch, (), (override));
+
+    MOCK_METHOD(void, doShutdown, (), (override));
+
+    MOCK_METHOD(State, state, (), (const, override));
   };
 
-}  // namespace kagome
+}  // namespace kagome::application
 
 #endif  // KAGOME_APP_STATE_MANAGER_MOCK

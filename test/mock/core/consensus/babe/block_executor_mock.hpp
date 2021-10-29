@@ -14,11 +14,12 @@ namespace kagome::consensus {
 
   class BlockExecutorMock : public BlockExecutor {
    public:
-    MOCK_METHOD1(applyBlock_rv,
-                 outcome::result<void>(const primitives::BlockData &block));
-
+    MOCK_METHOD(outcome::result<void>,
+                applyBlock,
+                (const primitives::BlockData &block),
+                ());
     outcome::result<void> applyBlock(primitives::BlockData &&block) override {
-      return applyBlock_rv(block);
+      return applyBlock(block);
     }
   };
 

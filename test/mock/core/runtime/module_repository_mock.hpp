@@ -16,11 +16,12 @@ namespace kagome::runtime {
 
   class ModuleRepositoryMock final : public ModuleRepository {
    public:
-    MOCK_METHOD3(getInstanceAt,
-                 outcome::result<std::shared_ptr<ModuleInstance>>(
-                     std::shared_ptr<const RuntimeCodeProvider> code_provider,
-                     const primitives::BlockInfo &block,
-                     const primitives::BlockHeader &header));
+    MOCK_METHOD(outcome::result<std::shared_ptr<ModuleInstance>>,
+                getInstanceAt,
+                (std::shared_ptr<const RuntimeCodeProvider> code_provider,
+                 const primitives::BlockInfo &block,
+                 const primitives::BlockHeader &header),
+                (override));
   };
 
 }  // namespace kagome::runtime
