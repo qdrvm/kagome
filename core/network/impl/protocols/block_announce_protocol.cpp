@@ -73,7 +73,7 @@ namespace kagome::network {
     BlockInfo best_block;
     const auto &last_finalized = block_tree_->getLastFinalized().hash;
     if (auto best_res =
-            block_tree_->getBestContaining(last_finalized, boost::none);
+            block_tree_->getBestContaining(last_finalized, std::nullopt);
         best_res.has_value()) {
       best_block = best_res.value();
     } else {
@@ -272,7 +272,6 @@ namespace kagome::network {
                    peer_id.toBase58(),
                    remote_status.best_block.number);
           self->peer_manager_->updatePeerStatus(peer_id, remote_status);
-
 
           switch (direction) {
             case Direction::OUTGOING:

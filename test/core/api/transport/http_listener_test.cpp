@@ -5,6 +5,8 @@
 
 #include "core/api/transport/listener_test.hpp"
 
+#include <backward.hpp>
+
 #include "api/transport/impl/http/http_listener_impl.hpp"
 #include "core/api/client/http_client.hpp"
 
@@ -20,6 +22,8 @@ using HttpListenerTest = ListenerTest<HttpListenerImpl>;
  */
 
 TEST_F(HttpListenerTest, EchoSuccess) {
+  backward::SignalHandling sh;
+
   auto client = std::make_shared<HttpClient>(*client_context);
 
   ASSERT_NO_THROW(listener->prepare());

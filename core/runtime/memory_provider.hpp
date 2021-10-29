@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_MEMORY_PROVIDER_HPP
 #define KAGOME_CORE_RUNTIME_MEMORY_PROVIDER_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "runtime/memory.hpp"
 
@@ -18,7 +18,8 @@ namespace kagome::runtime {
    public:
     virtual ~MemoryProvider() = default;
 
-    virtual boost::optional<runtime::Memory &> getCurrentMemory() const = 0;
+    virtual std::optional<std::reference_wrapper<runtime::Memory>>
+    getCurrentMemory() const = 0;
     [[nodiscard]] virtual outcome::result<void> resetMemory(
         WasmSize heap_base) = 0;
   };

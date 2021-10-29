@@ -16,7 +16,9 @@ namespace kagome::consensus::grandpa {
 
   class VoteGraphImpl : public VoteGraph {
    public:
-    VoteGraphImpl(const BlockInfo &base, std::shared_ptr<Chain> chain);
+    VoteGraphImpl(const BlockInfo &base,
+                  std::shared_ptr<VoterSet> voter_set,
+                  std::shared_ptr<Chain> chain);
 
     /// Adjust the base of the graph. The new base must be an ancestor of the
     /// old base.
@@ -25,16 +27,16 @@ namespace kagome::consensus::grandpa {
     /// should be in reverse order from the old base's parent.
     void adjustBase(const std::vector<BlockHash> &ancestry_proof) override;
 
-    /// Insert a vote with given value into the graph at given hash and number.
-    outcome::result<void> insert(const BlockInfo &block,
-                                 const VoteWeight &vote_weight) override;
+    /// Insert a {@param vote} of {@param voter}
+    outcome::result<void> insert(const BlockInfo &vote, Id voter) override;
+
+    /// Remove a vote of {@param voter}
+    void remove(Id voter) override;
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
-    boost::optional<BlockInfo> findAncestor(
-        const BlockInfo &block,
-        const Condition &condition,
-        const Comparator &comparator) const override;
+    std::optional<BlockInfo> findAncestor(
+        const BlockInfo &block, const Condition &condition) const override;
 
     /// Find the best GHOST descendant of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
@@ -49,10 +51,9 @@ namespace kagome::consensus::grandpa {
     ///
     /// Returns `None` when the given `current_best` does not fulfill the
     /// condition.
-    boost::optional<BlockInfo> findGhost(
-        const boost::optional<BlockInfo> &current_best,
-        const Condition &condition,
-        const Comparator &comparator) const override;
+    std::optional<BlockInfo> findGhost(
+        const std::optional<BlockInfo> &current_best,
+        const Condition &condition) const override;
 
     // introduce a branch to given vote-nodes.
     //
@@ -75,16 +76,15 @@ namespace kagome::consensus::grandpa {
     Subchain ghostFindMergePoint(
         const BlockHash &active_node_hash,
         const Entry &active_node,
-        const boost::optional<BlockInfo> &force_constrain,
-        const Condition &condition,
-        const Comparator &comparator) const;
+        const std::optional<BlockInfo> &force_constrain,
+        const Condition &condition) const;
 
     // attempts to find the containing node keys for the given hash and number.
     //
     // returns `None` if there is a node by that key already, and a vector
     // (potentially empty) of nodes with the given block in its ancestor-edge
     // otherwise.
-    boost::optional<std::vector<primitives::BlockHash>> findContainingNodes(
+    std::optional<std::vector<primitives::BlockHash>> findContainingNodes(
         const BlockInfo &block) const;
 
     const BlockInfo &getBase() const override {
@@ -101,8 +101,10 @@ namespace kagome::consensus::grandpa {
     }
 
    private:
-    std::shared_ptr<Chain> chain_;
     BlockInfo base_;
+    std::shared_ptr<VoterSet> voter_set_;
+    std::shared_ptr<Chain> chain_;
+
     std::unordered_map<BlockHash, Entry> entries_;
     std::unordered_set<BlockHash> heads_;
   };

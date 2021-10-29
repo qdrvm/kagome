@@ -8,8 +8,8 @@
 
 #include <memory>
 
-#include "outcome/outcome.hpp"
 #include "common/buffer.hpp"
+#include "outcome/outcome.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::storage {
@@ -26,7 +26,7 @@ namespace kagome::storage {
     outcome::result<common::Buffer> get(
         const common::Buffer &key) const override;
 
-    outcome::result<boost::optional<common::Buffer>> tryGet(
+    outcome::result<std::optional<common::Buffer>> tryGet(
         const common::Buffer &key) const override;
 
     outcome::result<void> put(const common::Buffer &key,

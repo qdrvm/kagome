@@ -6,8 +6,8 @@
 #ifndef KAGOME_API_SERVICE_STATE_API
 #define KAGOME_API_SERVICE_STATE_API
 
+#include <optional>
 #include <vector>
-#include <boost/optional.hpp>
 
 #include "api/service/api_service.hpp"
 #include "common/buffer.hpp"
@@ -26,21 +26,21 @@ namespace kagome::api {
         const std::shared_ptr<api::ApiService> &api_service) = 0;
 
     virtual outcome::result<std::vector<common::Buffer>> getKeysPaged(
-        const boost::optional<common::Buffer> &prefix,
+        const std::optional<common::Buffer> &prefix,
         uint32_t keys_amount,
-        const boost::optional<common::Buffer> &prev_key,
-        const boost::optional<primitives::BlockHash> &block_hash_opt) const = 0;
+        const std::optional<common::Buffer> &prev_key,
+        const std::optional<primitives::BlockHash> &block_hash_opt) const = 0;
 
-    virtual outcome::result<boost::optional<common::Buffer>> getStorage(
+    virtual outcome::result<std::optional<common::Buffer>> getStorage(
         const common::Buffer &key) const = 0;
-    virtual outcome::result<boost::optional<common::Buffer>> getStorageAt(
+    virtual outcome::result<std::optional<common::Buffer>> getStorageAt(
         const common::Buffer &key, const primitives::BlockHash &at) const = 0;
 
     struct StorageChangeSet {
       primitives::BlockHash block;
       struct Change {
         common::Buffer key;
-        boost::optional<common::Buffer> data;
+        std::optional<common::Buffer> data;
       };
       std::vector<Change> changes;
     };
@@ -48,11 +48,11 @@ namespace kagome::api {
     virtual outcome::result<std::vector<StorageChangeSet>> queryStorage(
         gsl::span<const common::Buffer> keys,
         const primitives::BlockHash &from,
-        boost::optional<primitives::BlockHash> to) const = 0;
+        std::optional<primitives::BlockHash> to) const = 0;
 
     virtual outcome::result<std::vector<StorageChangeSet>> queryStorageAt(
         gsl::span<const common::Buffer> keys,
-        boost::optional<primitives::BlockHash> at) const = 0;
+        std::optional<primitives::BlockHash> at) const = 0;
 
     virtual outcome::result<uint32_t> subscribeStorage(
         const std::vector<common::Buffer> &keys) = 0;
@@ -60,7 +60,7 @@ namespace kagome::api {
         const std::vector<uint32_t> &subscription_id) = 0;
 
     virtual outcome::result<primitives::Version> getRuntimeVersion(
-        const boost::optional<primitives::BlockHash> &at) const = 0;
+        const std::optional<primitives::BlockHash> &at) const = 0;
 
     virtual outcome::result<uint32_t> subscribeRuntimeVersion() = 0;
     virtual outcome::result<void> unsubscribeRuntimeVersion(

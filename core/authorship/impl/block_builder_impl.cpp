@@ -118,7 +118,7 @@ namespace kagome::authorship {
   }
 
   size_t BlockBuilderImpl::estimatedBlockHeaderSize() const {
-    static boost::optional<size_t> size = boost::none;
+    static std::optional<size_t> size = std::nullopt;
     if (not size) {
       scale::ScaleEncoderStream s(true);
       s << block_header_;

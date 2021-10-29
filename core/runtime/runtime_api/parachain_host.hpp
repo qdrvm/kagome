@@ -40,7 +40,7 @@ namespace kagome::runtime {
      * @param id parachain id
      * @return parachain head or error if fails
      */
-    virtual outcome::result<boost::optional<Buffer>> parachain_head(
+    virtual outcome::result<std::optional<Buffer>> parachain_head(
         const primitives::BlockHash &block, ParachainId id) = 0;
 
     /**
@@ -48,7 +48,7 @@ namespace kagome::runtime {
      * @param id parachain id
      * @return parachain code or error if fails
      */
-    virtual outcome::result<boost::optional<kagome::common::Buffer>>
+    virtual outcome::result<std::optional<kagome::common::Buffer>>
     parachain_code(const primitives::BlockHash &block, ParachainId id) = 0;
 
     /**

@@ -23,7 +23,7 @@ namespace kagome::consensus::grandpa {
     Duration duration;
 
     /// Key of the peer, do not confuse with libp2p peerid
-    boost::optional<Id> id;
+    std::optional<Id> id;
   };
 
 }  // namespace kagome::consensus::grandpa

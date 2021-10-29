@@ -27,7 +27,7 @@ namespace kagome::storage::trie {
     static std::unique_ptr<PersistentTrieBatchImpl> create(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
         std::shared_ptr<PolkadotTrie> trie,
         RootChangedEventHandler &&handler);
     ~PersistentTrieBatchImpl() override = default;
@@ -36,14 +36,14 @@ namespace kagome::storage::trie {
     std::unique_ptr<TopperTrieBatch> batchOnTop() override;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
-    outcome::result<boost::optional<Buffer>> tryGet(
+    outcome::result<std::optional<Buffer>> tryGet(
         const Buffer &key) const override;
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const Buffer &prefix,
-        boost::optional<uint64_t> limit = boost::none) override;
+        std::optional<uint64_t> limit = std::nullopt) override;
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
     outcome::result<void> remove(const Buffer &key) override;
@@ -52,7 +52,7 @@ namespace kagome::storage::trie {
     PersistentTrieBatchImpl(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
+        std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
         std::shared_ptr<PolkadotTrie> trie,
         RootChangedEventHandler &&handler);
 
@@ -61,7 +61,7 @@ namespace kagome::storage::trie {
 
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
-    boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
+    std::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
     std::shared_ptr<PolkadotTrie> trie_;
     RootChangedEventHandler root_changed_handler_;
 

@@ -15,20 +15,19 @@ namespace kagome::crypto {
     MOCK_CONST_METHOD0(generateKeypair, Sr25519Keypair());
 
     MOCK_CONST_METHOD3(sign,
-                       boost::optional<VRFOutput>(const common::Buffer &,
-                                                  const Sr25519Keypair &,
-                                                  const VRFThreshold &));
+                       std::optional<VRFOutput>(const common::Buffer &,
+                                                const Sr25519Keypair &,
+                                                const VRFThreshold &));
     MOCK_CONST_METHOD4(verify,
                        VRFVerifyOutput(const common::Buffer &,
                                        const VRFOutput &,
                                        const Sr25519PublicKey &,
                                        const VRFThreshold &));
 
-    MOCK_CONST_METHOD3(
-        signTranscript,
-        boost::optional<VRFOutput>(const primitives::Transcript &,
-                                   const Sr25519Keypair &,
-                                   const VRFThreshold &));
+    MOCK_CONST_METHOD3(signTranscript,
+                       std::optional<VRFOutput>(const primitives::Transcript &,
+                                                const Sr25519Keypair &,
+                                                const VRFThreshold &));
     MOCK_CONST_METHOD4(verifyTranscript,
                        VRFVerifyOutput(const primitives::Transcript &,
                                        const VRFOutput &,

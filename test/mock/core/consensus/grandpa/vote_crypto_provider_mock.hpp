@@ -21,12 +21,12 @@ namespace kagome::consensus::grandpa {
 
     MOCK_CONST_METHOD1(
         signPrimaryPropose,
-        boost::optional<SignedMessage>(const PrimaryPropose &primary_propose));
+        std::optional<SignedMessage>(const PrimaryPropose &primary_propose));
     MOCK_CONST_METHOD1(signPrevote,
-                       boost::optional<SignedMessage>(const Prevote &prevote));
+                       std::optional<SignedMessage>(const Prevote &prevote));
     MOCK_CONST_METHOD1(
         signPrecommit,
-        boost::optional<SignedMessage>(const Precommit &precommit));
+        std::optional<SignedMessage>(const Precommit &precommit));
   };
 
 }  // namespace kagome::consensus::grandpa

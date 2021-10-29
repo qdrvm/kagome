@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_CRYPTO_VRF_VRF_PROVIDER_HPP
 #define KAGOME_CORE_CRYPTO_VRF_VRF_PROVIDER_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "common/buffer.hpp"
 #include "crypto/sr25519_types.hpp"
@@ -31,7 +31,7 @@ namespace kagome::crypto {
      * than \param threshold then return optional containing this value and
      * proof. Otherwise none returned
      */
-    virtual boost::optional<VRFOutput> sign(
+    virtual std::optional<VRFOutput> sign(
         const common::Buffer &msg,
         const Sr25519Keypair &keypair,
         const VRFThreshold &threshold) const = 0;
@@ -50,7 +50,7 @@ namespace kagome::crypto {
      * value is less than \param threshold then return optional containing this
      * value and proof. Otherwise none returned
      */
-    virtual boost::optional<VRFOutput> signTranscript(
+    virtual std::optional<VRFOutput> signTranscript(
         const primitives::Transcript &msg,
         const Sr25519Keypair &keypair,
         const VRFThreshold &threshold) const = 0;

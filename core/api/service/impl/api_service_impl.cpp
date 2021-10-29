@@ -20,27 +20,20 @@
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
 
-#define UNWRAP_WEAK_PTR(callback)  \
-  [wp](auto &&...params) mutable { \
-    if (auto self = wp.lock()) {   \
-      self->callback(params...);   \
-    }                              \
-  }
-
 namespace {
   thread_local class {
    private:
-    boost::optional<kagome::api::Session::SessionId> bound_session_id_ =
-        boost::none;
+    std::optional<kagome::api::Session::SessionId> bound_session_id_ =
+        std::nullopt;
 
    public:
     void storeSessionId(kagome::api::Session::SessionId id) {
       bound_session_id_ = id;
     }
     void releaseSessionId() {
-      bound_session_id_ = boost::none;
+      bound_session_id_ = std::nullopt;
     }
-    boost::optional<kagome::api::Session::SessionId> fetchSessionId() {
+    std::optional<kagome::api::Session::SessionId> fetchSessionId() {
       return bound_session_id_;
     }
   } threaded_info;
@@ -194,6 +187,13 @@ namespace kagome::api {
               return;
             }
 
+#define UNWRAP_WEAK_PTR(callback)  \
+  [wp](auto &&...params) mutable { \
+    if (auto self = wp.lock()) {   \
+      self->callback(params...);   \
+    }                              \
+  }
+
             if (SessionType::kWs == session->type()) {
               auto session_context =
                   self->storeSessionWithId(session->id(), session);
@@ -209,6 +209,7 @@ namespace kagome::api {
             session->connectOnRequest(UNWRAP_WEAK_PTR(onSessionRequest));
             session->connectOnCloseHandler(UNWRAP_WEAK_PTR(onSessionClose));
           };
+#undef UNWRAP_WEAK_PTR
 
       listener->setHandlerForNewSession(std::move(on_new_session));
     }

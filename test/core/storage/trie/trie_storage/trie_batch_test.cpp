@@ -47,8 +47,9 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
         codec,
         std::make_shared<TrieStorageBackendImpl>(std::move(db_), kNodePrefix));
 
-    trie = TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
-               .value();
+    trie =
+        TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
+            .value();
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
@@ -75,9 +76,9 @@ void FillSmallTrieWithBatch(TrieBatch &batch) {
 
 class MockTrieStorageImpl : public TrieStorageImpl {
  public:
-  MockTrieStorageImpl() : TrieStorageImpl({}, nullptr, nullptr, boost::none) {}
+  MockTrieStorageImpl() : TrieStorageImpl({}, nullptr, nullptr, std::nullopt) {}
 
-  MOCK_CONST_METHOD0(getRootHashMock, RootHash ());
+  MOCK_CONST_METHOD0(getRootHashMock, RootHash());
   RootHash getRootHash() const noexcept override {
     return getRootHashMock();
   }
@@ -190,7 +191,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       codec,
       std::make_shared<TrieStorageBackendImpl>(std::move(db), kNodePrefix));
   auto trie =
-      TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
+      TrieStorageImpl::createEmpty(factory, codec, serializer, std::nullopt)
           .value();
   auto batch = trie->getPersistentBatch().value();
 

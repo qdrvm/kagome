@@ -8,7 +8,7 @@
 
 #include "crypto/vrf_provider.hpp"
 
-#include <boost/optional.hpp>
+#include <optional>
 #include "common/buffer.hpp"
 #include "crypto/random_generator.hpp"
 
@@ -22,17 +22,16 @@ namespace kagome::crypto {
 
     Sr25519Keypair generateKeypair() const override;
 
-    boost::optional<VRFOutput> sign(
-        const common::Buffer &msg,
-        const Sr25519Keypair &keypair,
-        const VRFThreshold &threshold) const override;
+    std::optional<VRFOutput> sign(const common::Buffer &msg,
+                                  const Sr25519Keypair &keypair,
+                                  const VRFThreshold &threshold) const override;
 
     VRFVerifyOutput verify(const common::Buffer &msg,
                            const VRFOutput &output,
                            const Sr25519PublicKey &public_key,
                            const VRFThreshold &threshold) const override;
 
-    boost::optional<VRFOutput> signTranscript(
+    std::optional<VRFOutput> signTranscript(
         const primitives::Transcript &msg,
         const Sr25519Keypair &keypair,
         const VRFThreshold &threshold) const override;

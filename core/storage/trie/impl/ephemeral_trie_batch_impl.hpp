@@ -19,14 +19,14 @@ namespace kagome::storage::trie {
     ~EphemeralTrieBatchImpl() override = default;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
-    outcome::result<boost::optional<Buffer>> tryGet(
+    outcome::result<std::optional<Buffer>> tryGet(
         const Buffer &key) const override;
     std::unique_ptr<PolkadotTrieCursor> trieCursor() override;
     bool contains(const Buffer &key) const override;
     bool empty() const override;
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(
         const Buffer &prefix,
-        boost::optional<uint64_t> limit = boost::none) override;
+        std::optional<uint64_t> limit = std::nullopt) override;
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
     outcome::result<void> remove(const Buffer &key) override;

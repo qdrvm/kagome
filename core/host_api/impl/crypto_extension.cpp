@@ -221,7 +221,7 @@ namespace kagome::host_api {
 
     auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
-    auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
+    auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
       throw std::runtime_error("failed to decode bip39 seed");
@@ -250,7 +250,7 @@ namespace kagome::host_api {
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg) {
-    using ResultType = boost::optional<crypto::Ed25519Signature>;
+    using ResultType = std::optional<crypto::Ed25519Signature>;
 
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
@@ -270,7 +270,7 @@ namespace kagome::host_api {
     auto key_pair = crypto_store_->findEd25519Keypair(key_type_id, pk.value());
     if (!key_pair) {
       logger_->error("failed to find required key");
-      auto error_result = scale::encode(ResultType(boost::none)).value();
+      auto error_result = scale::encode(ResultType(std::nullopt)).value();
       return getMemory().storeBuffer(error_result);
     }
 
@@ -353,7 +353,7 @@ namespace kagome::host_api {
 
     auto [seed_ptr, seed_len] = runtime::PtrSize(seed);
     auto seed_buffer = getMemory().loadN(seed_ptr, seed_len);
-    auto seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
+    auto seed_res = scale::decode<std::optional<std::string>>(seed_buffer);
     if (!seed_res) {
       logger_->error("failed to decode seed");
       std::terminate();
@@ -386,9 +386,9 @@ namespace kagome::host_api {
       runtime::WasmSize key_type,
       runtime::WasmPointer key,
       runtime::WasmSpan msg) {
-    using ResultType = boost::optional<crypto::Sr25519Signature>;
+    using ResultType = std::optional<crypto::Sr25519Signature>;
     static const auto error_result =
-        scale::encode(ResultType(boost::none)).value();
+        scale::encode(ResultType(std::nullopt)).value();
     auto key_type_id =
         static_cast<crypto::KeyTypeId>(getMemory().load32u(key_type));
 

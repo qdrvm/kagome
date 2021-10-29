@@ -73,11 +73,11 @@ namespace kagome::application {
     boost::filesystem::path databasePath(std::string chain_id) const override;
     boost::filesystem::path keystorePath(std::string chain_id) const override;
 
-    const boost::optional<crypto::Ed25519PrivateKey> &nodeKey() const override {
+    const std::optional<crypto::Ed25519PrivateKey> &nodeKey() const override {
       return node_key_;
     }
 
-    const boost::optional<std::string> &nodeKeyFile() const override {
+    const std::optional<std::string> &nodeKeyFile() const override {
       return node_key_file_;
     };
 
@@ -184,8 +184,8 @@ namespace kagome::application {
     log::Logger logger_;
 
     network::Roles roles_;
-    boost::optional<crypto::Ed25519PrivateKey> node_key_;
-    boost::optional<std::string> node_key_file_;
+    std::optional<crypto::Ed25519PrivateKey> node_key_;
+    std::optional<std::string> node_key_file_;
     std::vector<libp2p::multi::Multiaddress> listen_addresses_;
     std::vector<libp2p::multi::Multiaddress> public_addresses_;
     std::vector<libp2p::multi::Multiaddress> boot_nodes_;

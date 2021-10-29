@@ -7,7 +7,7 @@
 #define KAGOME_CORE_RUNTIME_RUNTIME_CODE_PROVIDER_HPP
 
 #include <gsl/span>
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "primitives/block_id.hpp"
 #include "storage/trie/types.hpp"

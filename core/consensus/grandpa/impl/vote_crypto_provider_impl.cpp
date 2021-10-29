@@ -20,9 +20,9 @@ namespace kagome::consensus::grandpa {
         round_number_{round_number},
         voter_set_{std::move(voter_set)} {}
 
-  boost::optional<SignedMessage> VoteCryptoProviderImpl::sign(Vote vote) const {
+  std::optional<SignedMessage> VoteCryptoProviderImpl::sign(Vote vote) const {
     if (not keypair_) {
-      return boost::none;
+      return std::nullopt;
     }
     auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
     auto signature = ed_provider_->sign(*keypair_.get(), payload).value();
@@ -54,17 +54,17 @@ namespace kagome::consensus::grandpa {
     return vote.is<Precommit>() and verify(vote, round_number_);
   }
 
-  boost::optional<SignedMessage> VoteCryptoProviderImpl::signPrimaryPropose(
+  std::optional<SignedMessage> VoteCryptoProviderImpl::signPrimaryPropose(
       const PrimaryPropose &primary_propose) const {
     return sign(primary_propose);
   }
 
-  boost::optional<SignedMessage> VoteCryptoProviderImpl::signPrevote(
+  std::optional<SignedMessage> VoteCryptoProviderImpl::signPrevote(
       const Prevote &prevote) const {
     return sign(prevote);
   }
 
-  boost::optional<SignedMessage> VoteCryptoProviderImpl::signPrecommit(
+  std::optional<SignedMessage> VoteCryptoProviderImpl::signPrecommit(
       const Precommit &precommit) const {
     return sign(precommit);
   }

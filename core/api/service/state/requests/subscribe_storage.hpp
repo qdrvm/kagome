@@ -8,7 +8,7 @@
 
 #include <jsonrpc-lean/request.h>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "api/service/state/state_api.hpp"
 #include "common/buffer.hpp"

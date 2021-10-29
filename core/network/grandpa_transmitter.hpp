@@ -19,6 +19,7 @@ namespace kagome::network {
    public:
     virtual ~GrandpaTransmitter() = default;
 
+    virtual void neighbor(network::GrandpaNeighborMessage &&message) = 0;
     virtual void vote(network::GrandpaVote &&message) = 0;
     virtual void finalize(network::FullCommitMessage &&message) = 0;
     virtual void catchUpRequest(const libp2p::peer::PeerId &peer_id,

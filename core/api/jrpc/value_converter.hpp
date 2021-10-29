@@ -37,13 +37,13 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const uint64_t &);
   inline jsonrpc::Value makeValue(const std::nullptr_t &);
   inline jsonrpc::Value makeValue(const std::nullopt_t &);
-  inline jsonrpc::Value makeValue(const boost::none_t &);
+  inline jsonrpc::Value makeValue(const std::nullopt_t &);
 
   template <typename T>
   inline jsonrpc::Value makeValue(const std::reference_wrapper<T> &v);
 
   template <typename T>
-  inline jsonrpc::Value makeValue(const boost::optional<T> &val);
+  inline jsonrpc::Value makeValue(const std::optional<T> &val);
 
   template <typename... Ts>
   inline jsonrpc::Value makeValue(const boost::variant<Ts...> &v);
@@ -83,10 +83,6 @@ namespace kagome::api {
     return {};
   }
 
-  inline jsonrpc::Value makeValue(const boost::none_t &) {
-    return {};
-  }
-
   template <typename T>
   inline jsonrpc::Value makeValue(const T &val) {
     jsonrpc::Value ret(val);
@@ -104,7 +100,7 @@ namespace kagome::api {
   }
 
   template <typename T>
-  inline jsonrpc::Value makeValue(const boost::optional<T> &val) {
+  inline jsonrpc::Value makeValue(const std::optional<T> &val) {
     if (!val) return {};
     return makeValue(*val);
   }
@@ -249,7 +245,7 @@ namespace kagome::api {
       const primitives::events::ExtrinsicLifecycleEvent &event) {
     return visit_in_place(
         event.params,
-        [&event](boost::none_t) -> jsonrpc::Value {
+        [&event](std::nullopt_t) -> jsonrpc::Value {
           switch (event.type) {
             case primitives::events::ExtrinsicEventType::FUTURE:
               return "future";

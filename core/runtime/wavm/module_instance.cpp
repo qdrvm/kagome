@@ -104,11 +104,11 @@ namespace kagome::runtime::wavm {
     return res;
   }
 
-  outcome::result<boost::optional<WasmValue>> ModuleInstance::getGlobal(
+  outcome::result<std::optional<WasmValue>> ModuleInstance::getGlobal(
       std::string_view name) const {
     auto global = WAVM::Runtime::asGlobalNullable(
         WAVM::Runtime::getInstanceExport(instance_, name.data()));
-    if (global == nullptr) return boost::none;
+    if (global == nullptr) return std::nullopt;
     WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
         WAVM::Runtime::createContext(compartment_->getCompartment());
     auto value = WAVM::Runtime::getGlobalValue(context, global);

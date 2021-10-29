@@ -5,6 +5,8 @@
 
 #include "core/api/transport/listener_test.hpp"
 
+#include <backward.hpp>
+
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "core/api/client/ws_client.hpp"
 
@@ -19,6 +21,8 @@ using WsListenerTest = ListenerTest<WsListenerImpl>;
  * @then response contains expected value
  */
 TEST_F(WsListenerTest, EchoSuccess) {
+  backward::SignalHandling sh;
+
   auto client = std::make_shared<WsClient>(*client_context);
 
   ASSERT_NO_THROW(listener->prepare());

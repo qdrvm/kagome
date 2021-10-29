@@ -27,10 +27,11 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(memory_factory_);
   }
 
-  boost::optional<runtime::Memory &> BinaryenMemoryProvider::getCurrentMemory()
-      const {
-    return memory_ == nullptr ? boost::none
-                              : boost::optional<Memory &>{*memory_};
+  std::optional<std::reference_wrapper<runtime::Memory>>
+  BinaryenMemoryProvider::getCurrentMemory() const {
+    return memory_ == nullptr
+               ? std::nullopt
+               : std::optional<std::reference_wrapper<Memory>>{*memory_};
   }
 
   outcome::result<void> BinaryenMemoryProvider::resetMemory(

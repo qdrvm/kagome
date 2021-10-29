@@ -5,8 +5,8 @@
 
 #include "runtime/binaryen/memory_impl.hpp"
 
-#include "runtime/ptr_size.hpp"
 #include "runtime/common/memory_allocator.hpp"
+#include "runtime/ptr_size.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -26,13 +26,14 @@ namespace kagome::runtime::binaryen {
                        MemoryAllocator::MemoryHandle{
                            [this](auto new_size) { return resize(new_size); },
                            [this]() { return size_; }},
-                       kInitialMemorySize, heap_base)} {}
+                       kInitialMemorySize,
+                       heap_base)} {}
 
   WasmPointer MemoryImpl::allocate(WasmSize size) {
     return allocator_->allocate(size);
   }
 
-  boost::optional<WasmSize> MemoryImpl::deallocate(WasmPointer ptr) {
+  std::optional<WasmSize> MemoryImpl::deallocate(WasmPointer ptr) {
     return allocator_->deallocate(ptr);
   }
 

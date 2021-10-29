@@ -147,7 +147,7 @@ namespace kagome::consensus::babe {
    * @param authority_key authority
    * @return index of authority in list of authorities
    */
-  boost::optional<uint64_t> getAuthorityIndex(
+  std::optional<uint64_t> getAuthorityIndex(
       const primitives::AuthorityList &authorities,
       const primitives::BabeSessionKey &authority_key) {
     uint64_t n = 0;
@@ -157,7 +157,7 @@ namespace kagome::consensus::babe {
       }
       ++n;
     }
-    return boost::none;
+    return std::nullopt;
   }
 
   void BabeImpl::runEpoch(EpochDescriptor epoch) {
@@ -189,7 +189,7 @@ namespace kagome::consensus::babe {
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
     auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, boost::none);
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(current_best_block_res.has_value());
     const auto &current_best_block = current_best_block_res.value();
 
@@ -211,7 +211,7 @@ namespace kagome::consensus::babe {
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
     auto current_best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, boost::none);
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(current_best_block_res.has_value());
     const auto &current_best_block = current_best_block_res.value();
 

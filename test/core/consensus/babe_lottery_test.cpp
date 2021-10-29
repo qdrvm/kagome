@@ -80,7 +80,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
       // just random case for testing
       EXPECT_CALL(*vrf_provider_,
                   signTranscript(transcript, keypair_, threshold_))
-          .WillOnce(Return(boost::none));
+          .WillOnce(Return(std::nullopt));
       continue;
     }
     EXPECT_CALL(*vrf_provider_,
@@ -91,7 +91,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   // WHEN
   lottery_.changeEpoch(current_epoch_, randomness_, threshold_, keypair_);
 
-  std::array<boost::optional<VRFOutput>, 3> leadership = {
+  std::array<std::optional<VRFOutput>, 3> leadership = {
       lottery_.getSlotLeadership(0),
       lottery_.getSlotLeadership(1),
       lottery_.getSlotLeadership(2)};

@@ -77,9 +77,12 @@ struct ListenerTest : public ::testing::Test {
     response =
         R"({"jsonrpc":"2.0","id":0,"result":)" + std::to_string(payload) + "}";
   }
+
   void TearDown() override {
     request.clear();
     response.clear();
+
+    service.reset();
   }
 
   typename ListenerImpl::Configuration listener_config = [] {

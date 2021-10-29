@@ -8,8 +8,8 @@
 
 #include "runtime/memory.hpp"
 
-#include <boost/optional.hpp>
 #include <gsl/span>
+#include <optional>
 
 #include "common/buffer.hpp"
 #include "common/literals.hpp"
@@ -35,7 +35,7 @@ namespace kagome::runtime::wavm {
     MemoryImpl &operator=(MemoryImpl &&move) = delete;
 
     WasmPointer allocate(WasmSize size) override;
-    boost::optional<WasmSize> deallocate(WasmPointer ptr) override;
+    std::optional<WasmSize> deallocate(WasmPointer ptr) override;
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     T load(WasmPointer addr) const {

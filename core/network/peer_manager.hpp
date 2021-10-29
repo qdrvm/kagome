@@ -64,7 +64,7 @@ namespace kagome::network {
     /**
      * @returns status of peer with {@param peer_id} or error
      */
-    virtual boost::optional<Status> getPeerStatus(const PeerId &peer_id) = 0;
+    virtual std::optional<Status> getPeerStatus(const PeerId &peer_id) = 0;
 
     /**
      * @returns number of active peers

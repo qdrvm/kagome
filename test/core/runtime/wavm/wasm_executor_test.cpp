@@ -97,7 +97,7 @@ class WasmExecutorTest : public ::testing::Test {
 
     std::shared_ptr<TrieStorageImpl> trie_db =
         kagome::storage::trie::TrieStorageImpl::createEmpty(
-            trie_factory, codec, serializer, boost::none)
+            trie_factory, codec, serializer, std::nullopt)
             .value();
 
     storage_provider_ = std::make_shared<TrieStorageProviderImpl>(trie_db);
