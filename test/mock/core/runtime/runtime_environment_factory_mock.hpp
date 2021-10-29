@@ -62,6 +62,7 @@ namespace kagome::runtime {
 
     MOCK_METHOD(outcome::result<std::unique_ptr<RuntimeEnvironmentTemplate>>,
                 start,
+                (),
                 (const, override));
   };
 
