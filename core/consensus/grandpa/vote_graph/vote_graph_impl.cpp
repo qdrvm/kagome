@@ -144,13 +144,15 @@ namespace kagome::consensus::grandpa {
 
     OUTCOME_TRY(ancestry, chain_->getAncestry(base_.hash, block.hash));
 
-    BOOST_ASSERT_MSG(not ancestry.empty(),
-                     "ancestry always contains at least 1 element - base");
-    BOOST_ASSERT_MSG(
-        ancestry.front() == block.hash,
-        "ancestry always contains provided block as the first element");
-    BOOST_ASSERT_MSG(ancestry.back() == base_.hash,
-                     "ancestry always contains base block as the last element");
+    /*
+     * BOOST_ASSERT_MSG(not ancestry.empty(),
+     *                  "ancestry always contains at least 1 element - base");
+     * BOOST_ASSERT_MSG(
+     *     ancestry.front() == block.hash,
+     *     "ancestry always contains provided block as the first element");
+     * BOOST_ASSERT_MSG(ancestry.back() == base_.hash,
+     *                  "ancestry always contains base block as the last element");
+     */
 
     auto entry_it = entries_.end();
 
@@ -162,7 +164,9 @@ namespace kagome::consensus::grandpa {
                                       return entry_it = entries_.find(ancestor),
                                              entry_it != entries_.end();
                                     });
-    BOOST_ASSERT(ancectry_it != ancestry.end());
+    /*
+     * BOOST_ASSERT(ancectry_it != ancestry.end());
+     */
 
     // Found entry is got block as descendant
     if(entry_it != entries_.end()) {

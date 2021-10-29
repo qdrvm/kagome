@@ -20,3 +20,19 @@ target_link_libraries(kagome-db-editor
   trie_storage_backend
   )
 kagome_install(kagome-db-editor)
+
+add_executable(peering-utility
+  grandpa_protocol.cpp
+  peering.cpp)
+target_link_libraries(peering-utility
+  app_state_manager
+  Backward::Backward
+  Boost::Boost.DI
+  ed25519_provider
+  p2p::p2p
+  p2p::p2p_identify
+  p2p::p2p_kademlia
+  p2p::p2p_ping
+  protocol_error
+  scale_message_read_writer
+  )

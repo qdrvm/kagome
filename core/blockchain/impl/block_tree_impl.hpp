@@ -229,6 +229,7 @@ namespace kagome::blockchain {
         std::shared_ptr<primitives::BabeConfiguration> babe_configuration,
         std::shared_ptr<consensus::BabeUtil> babe_util);
 
+
     /**
      * Update local meta with the provided node
      */

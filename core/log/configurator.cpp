@@ -51,6 +51,7 @@ groups:
                   - name: block_executor
                   - name: block_validator
               - name: grandpa
+                level: debug
                 children:
                   - name: voting_round
           - name: runtime
@@ -65,6 +66,8 @@ groups:
             children:
               - name: synchronizer
               - name: kagome_protocols
+              - name: peer_manager
+                level: debug
           - name: changes_trie
           - name: storage
             children:

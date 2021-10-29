@@ -253,6 +253,8 @@ namespace kagome::consensus::babe {
             self->onSynchronized();
           }
         });
+    block_announce_transmitter_->blockAnnounce(
+        network::BlockAnnounce{announce.header});
   }
 
   void BabeImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,

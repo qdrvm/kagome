@@ -39,7 +39,7 @@ namespace kagome::network {
         own_peer_info_(own_peer_info),
         router_{std::move(router)},
         storage_{std::move(storage)},
-        log_(log::createLogger("PeerManager", "network")) {
+        log_(log::createLogger("PeerManager", "peer_manager")) {
     BOOST_ASSERT(app_state_manager_ != nullptr);
     BOOST_ASSERT(identify_ != nullptr);
     BOOST_ASSERT(kademlia_ != nullptr);
@@ -385,6 +385,77 @@ namespace kagome::network {
                        peer_id.toBase58(),
                        static_cast<void *>(conn.get()));
               self->keepAlive(peer_id);
+              PeerInfo peer_info{.id = peer_id, .addresses = {}};
+
+              auto block_announce_protocol =
+                  self->router_->getBlockAnnounceProtocol();
+              BOOST_ASSERT_MSG(
+                  block_announce_protocol,
+                  "Router did not provide block announce protocol");
+
+              if (not self->stream_engine_->isAlive(peer_info.id,
+                                                    block_announce_protocol)) {
+                block_announce_protocol->newOutgoingStream(
+                    peer_info,
+                    [wp = self->weak_from_this(),
+                     peer_id = peer_info.id,
+                     protocol = block_announce_protocol](auto &&stream_res) {
+                      auto self = wp.lock();
+                      if (not self) {
+                        return;
+                      }
+
+                      if (not stream_res.has_value()) {
+                        self->log_->warn(
+                            "Unable to create stream {} with {}: {}",
+                            protocol->protocol(),
+                            peer_id.toBase58(),
+                            stream_res.error().message());
+                        self->connecting_peers_.erase(peer_id);
+                        self->disconnectFromPeer(peer_id);
+                        return;
+                      }
+
+                      // Add to active peer list
+                      if (auto [ap_it, added] = self->active_peers_.emplace(
+                              peer_id,
+                              ActivePeerData{.time = self->clock_->now(),
+                                             .status = Status{}});
+                          added) {
+                        self->recently_active_peers_.insert(peer_id);
+
+                        // And remove from queue
+                        if (auto piq_it = self->peers_in_queue_.find(peer_id);
+                            piq_it != self->peers_in_queue_.end()) {
+                          auto qtc_it = std::find_if(
+                              self->queue_to_connect_.cbegin(),
+                              self->queue_to_connect_.cend(),
+                              [&peer_id = peer_id](const auto &item) {
+                                return peer_id == item.get();
+                              });
+                          self->queue_to_connect_.erase(qtc_it);
+                          self->peers_in_queue_.erase(piq_it);
+                          BOOST_ASSERT(self->queue_to_connect_.size()
+                                       == self->peers_in_queue_.size());
+
+                          SL_DEBUG(self->log_,
+                                   "Remained peers in queue for connect: {}",
+                                   self->peers_in_queue_.size());
+                        }
+                      }
+
+                      self->connecting_peers_.erase(peer_id);
+
+                      self->reserveStreams(peer_id);
+                    });
+
+              } else {
+                SL_DEBUG(self->log_,
+                         "Stream {} with {} is alive",
+                         block_announce_protocol->protocol(),
+                         peer_id.toBase58());
+                self->connecting_peers_.erase(peer_id);
+              }
             }
           }
         });
@@ -475,74 +546,7 @@ namespace kagome::network {
       return;
     }
 
-    PeerInfo peer_info{.id = peer_id, .addresses = {}};
-
-    auto block_announce_protocol = router_->getBlockAnnounceProtocol();
-    BOOST_ASSERT_MSG(block_announce_protocol,
-                     "Router did not provide block announce protocol");
-
-    if (not stream_engine_->isAlive(peer_info.id, block_announce_protocol)) {
-      block_announce_protocol->newOutgoingStream(
-          peer_info,
-          [wp = weak_from_this(),
-           peer_id = peer_info.id,
-           protocol = block_announce_protocol](auto &&stream_res) {
-            auto self = wp.lock();
-            if (not self) {
-              return;
-            }
-
-            if (not stream_res.has_value()) {
-              self->log_->warn("Unable to create stream {} with {}: {}",
-                               protocol->protocol(),
-                               peer_id.toBase58(),
-                               stream_res.error().message());
-              self->connecting_peers_.erase(peer_id);
-              self->disconnectFromPeer(peer_id);
-              return;
-            }
-
-            // Add to active peer list
-            if (auto [ap_it, added] = self->active_peers_.emplace(
-                    peer_id,
-                    ActivePeerData{.time = self->clock_->now(),
-                                   .status = Status{}});
-                added) {
-              self->recently_active_peers_.insert(peer_id);
-
-              // And remove from queue
-              if (auto piq_it = self->peers_in_queue_.find(peer_id);
-                  piq_it != self->peers_in_queue_.end()) {
-                auto qtc_it =
-                    std::find_if(self->queue_to_connect_.cbegin(),
-                                 self->queue_to_connect_.cend(),
-                                 [&peer_id = peer_id](const auto &item) {
-                                   return peer_id == item.get();
-                                 });
-                self->queue_to_connect_.erase(qtc_it);
-                self->peers_in_queue_.erase(piq_it);
-                BOOST_ASSERT(self->queue_to_connect_.size()
-                             == self->peers_in_queue_.size());
-
-                SL_DEBUG(self->log_,
-                         "Remained peers in queue for connect: {}",
-                         self->peers_in_queue_.size());
-              }
-            }
-
-            self->connecting_peers_.erase(peer_id);
-
-            self->reserveStreams(peer_id);
-            self->startPingingPeer(peer_id);
-          });
-
-    } else {
-      SL_DEBUG(log_,
-               "Stream {} with {} is alive",
-               block_announce_protocol->protocol(),
-               peer_id.toBase58());
-      connecting_peers_.erase(peer_id);
-    }
+    startPingingPeer(peer_id);
 
     auto addresses_res =
         host_.getPeerRepository().getAddressRepository().getAddresses(peer_id);
