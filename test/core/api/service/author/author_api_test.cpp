@@ -82,12 +82,13 @@ class ExtrinsicEventReceiver {
 
 class ExtrinsicEventReceiverMock : public ExtrinsicEventReceiver {
  public:
-  MOCK_CONST_METHOD4(
-      receive,
-      void(kagome::subscription::SubscriptionSetId,
-           std::shared_ptr<kagome::api::Session>,
-           const kagome::primitives::events::SubscribedExtrinsicId &id,
-           const ExtrinsicLifecycleEvent &));
+  MOCK_METHOD(void,
+              receive,
+              (kagome::subscription::SubscriptionSetId,
+               std::shared_ptr<kagome::api::Session>,
+               const kagome::primitives::events::SubscribedExtrinsicId &id,
+               const ExtrinsicLifecycleEvent &),
+              (const, override));
 };
 
 struct AuthorApiTest : public ::testing::Test {
@@ -477,7 +478,7 @@ TEST_F(AuthorApiTest, SubmitAndWatchExtrinsicSubmitsAndWatches) {
           Return(outcome::success())));
 
   EXPECT_CALL(*transactions_transmitter, propagateTransactions(_))
-      .WillOnce(testing::Invoke([this](auto &) {
+      .WillOnce(testing::Invoke([this](auto &&) {
         sub_engine->notify(ext_id,
                            ExtrinsicLifecycleEvent::Broadcast(ext_id, {}));
       }));

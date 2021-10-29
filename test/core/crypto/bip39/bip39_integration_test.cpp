@@ -47,7 +47,7 @@ TEST_P(Bip39IntegrationTest, DeriveEntropyAndSeedSuccess) {
   ASSERT_EQ(seed.toHex(), item.seed);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     SubstrateTestCases,
     Bip39IntegrationTest,
     ::testing::Values(

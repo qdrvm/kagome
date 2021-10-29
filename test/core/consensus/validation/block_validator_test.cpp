@@ -246,11 +246,11 @@ TEST_F(BlockValidatorTest, NoAuthority) {
       .WillOnce(Return(false));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
+  EXPECT_OUTCOME_ERROR(
       err,
       validator_.validateHeader(
-          valid_block_.header, 0ull, authority.id, threshold_, randomness_));
-  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
+          valid_block_.header, 0ull, authority.id, threshold_, randomness_),
+      BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
 /**

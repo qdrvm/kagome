@@ -10,12 +10,12 @@
 #include "crypto/crypto_store/key_type.hpp"
 
 using kagome::crypto::KEY_TYPE_ACCO;
+using kagome::crypto::KEY_TYPE_ASGN;
 using kagome::crypto::KEY_TYPE_AUDI;
 using kagome::crypto::KEY_TYPE_BABE;
 using kagome::crypto::KEY_TYPE_GRAN;
-using kagome::crypto::KEY_TYPE_LP2P;
 using kagome::crypto::KEY_TYPE_IMON;
-using kagome::crypto::KEY_TYPE_ASGN;
+using kagome::crypto::KEY_TYPE_LP2P;
 using kagome::crypto::KEY_TYPE_PARA;
 
 using kagome::crypto::decodeKeyTypeId;
@@ -60,15 +60,15 @@ TEST_P(KeyTypeTest, EncodeSuccess) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(KeyTypeTestCases,
-                        KeyTypeTest,
-                        ::testing::Values(good(KEY_TYPE_BABE, "babe"),
-                                          good(KEY_TYPE_GRAN, "gran"),
-                                          good(KEY_TYPE_ACCO, "acco"),
-                                          good(KEY_TYPE_IMON, "imon"),
-                                          good(KEY_TYPE_AUDI, "audi"),
-                                          good(KEY_TYPE_LP2P, "lp2p"),
-                                          good(KEY_TYPE_ASGN, "asgn"),
-                                          good(KEY_TYPE_PARA, "para"),
-                                          bad(KEY_TYPE_BABE - 5, "babe"),
-                                          bad(KEY_TYPE_BABE + 1000, "babe")));
+INSTANTIATE_TEST_SUITE_P(KeyTypeTestCases,
+                         KeyTypeTest,
+                         ::testing::Values(good(KEY_TYPE_BABE, "babe"),
+                                           good(KEY_TYPE_GRAN, "gran"),
+                                           good(KEY_TYPE_ACCO, "acco"),
+                                           good(KEY_TYPE_IMON, "imon"),
+                                           good(KEY_TYPE_AUDI, "audi"),
+                                           good(KEY_TYPE_LP2P, "lp2p"),
+                                           good(KEY_TYPE_ASGN, "asgn"),
+                                           good(KEY_TYPE_PARA, "para"),
+                                           bad(KEY_TYPE_BABE - 5, "babe"),
+                                           bad(KEY_TYPE_BABE + 1000, "babe")));
