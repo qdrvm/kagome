@@ -43,6 +43,9 @@ hunter_config(
     GTest
     URL https://github.com/google/googletest/archive/refs/tags/release-1.11.0.tar.gz
     SHA1 7b100bb68db8df1060e178c495f3cbe941c9b058
-    CMAKE_ARGS HUNTER_INSTALL_LICENSE_FILES=LICENSE gtest_force_shared_crt=TRUE
+    CMAKE_ARGS
+      HUNTER_INSTALL_LICENSE_FILES=LICENSE
+      CMAKE_CXX_FLAGS=-Wno-unknown-warning-option
+      gtest_force_shared_crt=TRUE
     KEEP_PACKAGE_SOURCES
 )
