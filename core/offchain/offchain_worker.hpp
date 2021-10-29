@@ -20,7 +20,8 @@ namespace kagome::offchain {
 
   class OffchainWorker {
    public:
-    static const boost::optional<OffchainWorker &> &current() {
+    static const std::optional<std::reference_wrapper<OffchainWorker>>
+        &current() {
       return current_opt();
     }
 
@@ -53,7 +54,7 @@ namespace kagome::offchain {
     virtual bool localStorageCompareAndSet(
         StorageType storage_type,
         const common::Buffer &key,
-        boost::optional<const common::Buffer &> expected,
+        std::optional<std::reference_wrapper<const common::Buffer>> expected,
         common::Buffer value) = 0;
 
     virtual outcome::result<common::Buffer> localStorageGet(
@@ -68,11 +69,11 @@ namespace kagome::offchain {
     virtual Result<Success, HttpError> httpRequestWriteBody(
         RequestId id,
         common::Buffer chunk,
-        boost::optional<Timestamp> deadline) = 0;
+        std::optional<Timestamp> deadline) = 0;
 
     virtual std::vector<HttpStatus> httpResponseWait(
         const std::vector<RequestId> &ids,
-        boost::optional<Timestamp> deadline) = 0;
+        std::optional<Timestamp> deadline) = 0;
 
     virtual std::vector<std::pair<std::string, std::string>>
     httpResponseHeaders(RequestId id) = 0;
@@ -80,20 +81,22 @@ namespace kagome::offchain {
     virtual Result<uint32_t, HttpError> httpResponseReadBody(
         RequestId id,
         common::Buffer &chunk,
-        boost::optional<Timestamp> deadline) = 0;
+        std::optional<Timestamp> deadline) = 0;
 
     virtual void setAuthorizedNodes(std::vector<libp2p::peer::PeerId> nodes,
                                     bool authorized_only) = 0;
 
    protected:
-    static void current(boost::optional<OffchainWorker &> worker) {
+    static void current(
+        std::optional<std::reference_wrapper<OffchainWorker>> worker) {
       current_opt() = std::move(worker);
     }
 
    private:
-    static boost::optional<OffchainWorker &> &current_opt() {
-      static thread_local boost::optional<OffchainWorker &> current_opt =
-          boost::none;
+    static std::optional<std::reference_wrapper<OffchainWorker>>
+        &current_opt() {
+      static thread_local std::optional<std::reference_wrapper<OffchainWorker>>
+          current_opt = std::nullopt;
       return current_opt;
     }
   };

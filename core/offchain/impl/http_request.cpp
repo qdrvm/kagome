@@ -371,7 +371,7 @@ namespace kagome::offchain {
 
   Result<Success, HttpError> HttpRequest::writeRequestBody(
       const common::Buffer &chunk,
-      boost::optional<std::chrono::milliseconds> deadline_opt) {
+      std::optional<std::chrono::milliseconds> deadline_opt) {
     if (request_has_sent_) {
       SL_ERROR(log_, "Trying to write body into ready request");
       return HttpError::IoError;
@@ -414,7 +414,7 @@ namespace kagome::offchain {
 
   Result<uint32_t, HttpError> HttpRequest::readResponseBody(
       common::Buffer &chunk,
-      boost::optional<std::chrono::milliseconds> deadline) {
+      std::optional<std::chrono::milliseconds> deadline) {
     switch (status_) {
       case 0:
         return HttpError::InvalidId;

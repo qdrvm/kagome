@@ -41,7 +41,7 @@ namespace kagome::offchain {
 
   outcome::result<bool> OffchainLocalStorageImpl::compare_and_set(
       const common::Buffer &key,
-      boost::optional<const common::Buffer &> expected,
+      std::optional<std::reference_wrapper<const common::Buffer>> expected,
       common::Buffer value) {
     // TODO(xDimon):
     //  Need to implemented as soon as it will implemented in Substrate.
@@ -56,12 +56,14 @@ namespace kagome::offchain {
       }
     }
 
-    boost::optional<const common::Buffer &> existing;
+    std::optional<std::reference_wrapper<const common::Buffer>> existing;
     if (get_res.has_value()) {
       existing = get_res.value();
     }
 
-    if (existing == expected) {
+    if ((not existing.has_value() and not expected.has_value())
+        or (existing.has_value() and expected.has_value()
+               and existing->get() == expected->get())) {
       auto put_res = storage_->put(key, std::move(value));
       if (put_res.has_failure()) {
         return put_res.as_failure();

@@ -70,7 +70,7 @@ namespace kagome::offchain {
       auto res = ocw->executor_->callAt<void>(
           ocw->block_.hash, "OffchainWorkerApi_offchain_worker", ocw->header_);
 
-      current(boost::none);
+      current(std::nullopt);
 
       if (res.has_failure()) {
         SL_ERROR(ocw->log_,
@@ -192,7 +192,7 @@ namespace kagome::offchain {
   bool OffchainWorkerImpl::localStorageCompareAndSet(
       StorageType storage_type,
       const common::Buffer &key,
-      boost::optional<const common::Buffer &> expected,
+      std::optional<std::reference_wrapper<const common::Buffer>> expected,
       common::Buffer value) {
     auto &storage = getStorage(storage_type);
     auto result = storage.compare_and_set(key, expected, std::move(value));
@@ -248,8 +248,8 @@ namespace kagome::offchain {
   }
 
   Result<Success, HttpError> OffchainWorkerImpl::httpRequestWriteBody(
-      RequestId id, common::Buffer chunk, boost::optional<Timestamp> deadline) {
-    boost::optional<std::chrono::milliseconds> timeout = boost::none;
+      RequestId id, common::Buffer chunk, std::optional<Timestamp> deadline) {
+    std::optional<std::chrono::milliseconds> timeout = std::nullopt;
     if (deadline.has_value()) {
       timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::milliseconds(deadline.value())
@@ -268,7 +268,7 @@ namespace kagome::offchain {
   }
 
   std::vector<HttpStatus> OffchainWorkerImpl::httpResponseWait(
-      const std::vector<RequestId> &ids, boost::optional<Timestamp> deadline) {
+      const std::vector<RequestId> &ids, std::optional<Timestamp> deadline) {
     std::vector<HttpStatus> result;
     result.reserve(ids.size());
 
@@ -310,16 +310,14 @@ namespace kagome::offchain {
   }
 
   Result<uint32_t, HttpError> OffchainWorkerImpl::httpResponseReadBody(
-      RequestId id,
-      common::Buffer &chunk,
-      boost::optional<Timestamp> deadline) {
+      RequestId id, common::Buffer &chunk, std::optional<Timestamp> deadline) {
     auto it = requests_.find(id);
     if (it == requests_.end()) {
       return HttpError::InvalidId;
     }
     auto &request = it->second;
 
-    boost::optional<std::chrono::milliseconds> timeout = boost::none;
+    std::optional<std::chrono::milliseconds> timeout = std::nullopt;
     if (deadline.has_value()) {
       timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::milliseconds(deadline.value())

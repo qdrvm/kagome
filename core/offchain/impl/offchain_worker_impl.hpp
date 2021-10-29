@@ -74,7 +74,7 @@ namespace kagome::offchain {
     bool localStorageCompareAndSet(
         StorageType storage_type,
         const common::Buffer &key,
-        boost::optional<const common::Buffer &> expected,
+        std::optional<std::reference_wrapper<const common::Buffer>> expected,
         common::Buffer value) override;
 
     outcome::result<common::Buffer> localStorageGet(
@@ -90,11 +90,11 @@ namespace kagome::offchain {
     Result<Success, HttpError> httpRequestWriteBody(
         RequestId id,
         common::Buffer chunk,
-        boost::optional<Timestamp> deadline) override;
+        std::optional<Timestamp> deadline) override;
 
     std::vector<HttpStatus> httpResponseWait(
         const std::vector<RequestId> &ids,
-        boost::optional<Timestamp> deadline) override;
+        std::optional<Timestamp> deadline) override;
 
     std::vector<std::pair<std::string, std::string>> httpResponseHeaders(
         RequestId id) override;
@@ -102,7 +102,7 @@ namespace kagome::offchain {
     Result<uint32_t, HttpError> httpResponseReadBody(
         RequestId id,
         common::Buffer &chunk,
-        boost::optional<Timestamp> deadline) override;
+        std::optional<Timestamp> deadline) override;
 
     void setAuthorizedNodes(std::vector<libp2p::peer::PeerId> nodes,
                             bool authorized_only) override;

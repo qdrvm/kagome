@@ -46,7 +46,7 @@ namespace kagome::host_api {
   OffchainExtension::ext_offchain_submit_transaction_version_1(
       runtime::WasmSpan data_pos) {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [data_ptr, data_size] = runtime::PtrSize(data_pos);
     auto data_buffer = memory.loadN(data_ptr, data_size);
@@ -63,7 +63,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan OffchainExtension::ext_offchain_network_state_version_1() {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto result = worker.networkState();
 
@@ -84,7 +84,7 @@ namespace kagome::host_api {
 
   runtime::WasmPointer OffchainExtension::ext_offchain_random_seed_version_1() {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
     auto result = worker.timestamp();
     return memory.storeBuffer(scale::encode(result).value());
   }
@@ -92,7 +92,7 @@ namespace kagome::host_api {
   void OffchainExtension::ext_offchain_local_storage_set_version_1(
       runtime::WasmI32 kind, runtime::WasmSpan key, runtime::WasmSpan value) {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
     if (kind == 1) {
@@ -114,7 +114,7 @@ namespace kagome::host_api {
   void OffchainExtension::ext_offchain_local_storage_clear_version_1(
       runtime::WasmI32 kind, runtime::WasmSpan key) {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
     if (kind == 1) {
@@ -139,7 +139,7 @@ namespace kagome::host_api {
       runtime::WasmSpan expected,
       runtime::WasmSpan value) {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
     if (kind == 1) {
@@ -167,7 +167,7 @@ namespace kagome::host_api {
   runtime::WasmSpan OffchainExtension::ext_offchain_local_storage_get_version_1(
       runtime::WasmI32 kind, runtime::WasmSpan key) {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     StorageType storage_type = StorageType::Undefined;
     if (kind == 1) {
@@ -184,7 +184,7 @@ namespace kagome::host_api {
 
     auto result = worker.localStorageGet(storage_type, key_buffer);
 
-    auto option = result ? boost::make_optional(result.value()) : boost::none;
+    auto option = result ? std::make_optional(result.value()) : std::nullopt;
 
     return memory.storeBuffer(scale::encode(option).value());
   }
@@ -195,7 +195,7 @@ namespace kagome::host_api {
       runtime::WasmSpan uri_pos,
       runtime::WasmSpan meta_pos) {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [method_ptr, method_size] = runtime::PtrSize(method_pos);
     auto method_buffer = memory.loadN(method_ptr, method_size);
@@ -249,7 +249,7 @@ namespace kagome::host_api {
       runtime::WasmSpan value_pos) {
     auto &worker = getWorker();
 
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [name_ptr, name_size] = runtime::PtrSize(name_pos);
     auto name_buffer = memory.loadN(name_ptr, name_size);
@@ -284,7 +284,7 @@ namespace kagome::host_api {
       runtime::WasmSpan deadline_pos) {
     auto &worker = getWorker();
 
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [chunk_ptr, chunk_size] = runtime::PtrSize(chunk_pos);
     auto chunk_buffer = memory.loadN(chunk_ptr, chunk_size);
@@ -292,7 +292,7 @@ namespace kagome::host_api {
     auto [deadline_ptr, deadline_size] = runtime::PtrSize(deadline_pos);
     auto deadline_buffer = memory.loadN(deadline_ptr, deadline_size);
     auto deadline_res =
-        scale::decode<boost::optional<Timestamp>>(deadline_buffer);
+        scale::decode<std::optional<Timestamp>>(deadline_buffer);
     if (deadline_res.has_error()) {
       std::runtime_error("Invalid encoded data for deadline arg");
     }
@@ -309,7 +309,7 @@ namespace kagome::host_api {
       runtime::WasmSpan ids_pos, runtime::WasmSpan deadline_pos) {
     auto &worker = getWorker();
 
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [ids_ptr, ids_size] = runtime::PtrSize(ids_pos);
     auto ids_buffer = memory.loadN(ids_ptr, ids_size);
@@ -322,7 +322,7 @@ namespace kagome::host_api {
     auto [deadline_ptr, deadline_size] = runtime::PtrSize(deadline_pos);
     auto deadline_buffer = memory.loadN(deadline_ptr, deadline_size);
     auto deadline_res =
-        scale::decode<boost::optional<Timestamp>>(deadline_buffer);
+        scale::decode<std::optional<Timestamp>>(deadline_buffer);
     if (deadline_res.has_error()) {
       std::runtime_error("Invalid encoded data for deadline arg");
     }
@@ -338,7 +338,7 @@ namespace kagome::host_api {
       runtime::WasmI32 request_id) {
     auto &worker = getWorker();
 
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto result = worker.httpResponseHeaders(request_id);
 
@@ -354,14 +354,14 @@ namespace kagome::host_api {
       runtime::WasmSpan buffer_pos,
       runtime::WasmSpan deadline_pos) {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto dst_buffer = runtime::PtrSize(buffer_pos);
 
     auto [deadline_ptr, deadline_size] = runtime::PtrSize(deadline_pos);
     auto deadline_buffer = memory.loadN(deadline_ptr, deadline_size);
     auto deadline_res =
-        scale::decode<boost::optional<Timestamp>>(deadline_buffer);
+        scale::decode<std::optional<Timestamp>>(deadline_buffer);
     if (deadline_res.has_error()) {
       std::runtime_error("Invalid encoded data for deadline arg");
     }
@@ -382,7 +382,7 @@ namespace kagome::host_api {
   void OffchainExtension::ext_offchain_set_authorized_nodes_version_1(
       runtime::WasmSpan nodes_pos, runtime::WasmI32 authorized_only) {
     auto &worker = getWorker();
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [nodes_ptr, nodes_size] = runtime::PtrSize(nodes_pos);
     auto nodes_buffer = memory.loadN(nodes_ptr, nodes_size);
@@ -407,7 +407,7 @@ namespace kagome::host_api {
 
   void OffchainExtension::ext_offchain_index_set_version_1(
       runtime::WasmSpan key, runtime::WasmSpan value) {
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto key_buffer = memory.loadN(key_ptr, key_size);
@@ -422,7 +422,7 @@ namespace kagome::host_api {
 
   void OffchainExtension::ext_offchain_index_clear_version_1(
       runtime::WasmSpan key) {
-    auto &memory = memory_provider_->getCurrentMemory().value();
+    auto &memory = memory_provider_->getCurrentMemory()->get();
 
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto key_buffer = memory.loadN(key_ptr, key_size);

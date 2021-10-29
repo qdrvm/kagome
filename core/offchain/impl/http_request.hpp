@@ -39,13 +39,13 @@ namespace kagome::offchain {
 
     Result<Success, HttpError> writeRequestBody(
         const common::Buffer &chunk,
-        boost::optional<std::chrono::milliseconds> deadline_opt);
+        std::optional<std::chrono::milliseconds> deadline_opt);
 
     std::vector<std::pair<std::string, std::string>> getResponseHeaders() const;
 
     Result<uint32_t, HttpError> readResponseBody(
         common::Buffer &chunk,
-        boost::optional<std::chrono::milliseconds> deadline);
+        std::optional<std::chrono::milliseconds> deadline);
 
    private:
     void resolve();

@@ -19,10 +19,12 @@ namespace kagome::offchain {
 
     MOCK_METHOD1(clear, outcome::result<void>(const common::Buffer &));
 
-    MOCK_METHOD3(compare_and_set,
-                 outcome::result<bool>(const common::Buffer &,
-                                       boost::optional<const common::Buffer &>,
-                                       common::Buffer));
+    MOCK_METHOD3(
+        compare_and_set,
+        outcome::result<bool>(
+            const common::Buffer &,
+            std::optional<std::reference_wrapper<const common::Buffer>>,
+            common::Buffer));
 
     MOCK_METHOD1(get, outcome::result<common::Buffer>(const common::Buffer &));
   };

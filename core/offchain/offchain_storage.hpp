@@ -47,7 +47,7 @@ namespace kagome::offchain {
      */
     virtual outcome::result<bool> compare_and_set(
         const common::Buffer &key,
-        boost::optional<const common::Buffer &> expected,
+        std::optional<std::reference_wrapper<const common::Buffer>> expected,
         common::Buffer value) = 0;
 
     /**
