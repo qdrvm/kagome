@@ -93,7 +93,7 @@ namespace kagome::consensus::grandpa {
         const primitives::Justification &justification) override;
 
     outcome::result<void> finalize(
-        const primitives::BlockHash &block_hash,
+        MembershipCounter id,
         const GrandpaJustification &justification) override;
 
     // Getters

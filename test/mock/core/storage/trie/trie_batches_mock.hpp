@@ -16,9 +16,9 @@ namespace kagome::storage::trie {
    public:
     MOCK_CONST_METHOD1(get,
                        outcome::result<common::Buffer>(const common::Buffer &));
-    MOCK_CONST_METHOD1(tryGet,
-                       outcome::result<boost::optional<common::Buffer>>(
-                           const common::Buffer &));
+    MOCK_CONST_METHOD1(
+        tryGet,
+        outcome::result<std::optional<common::Buffer>>(const common::Buffer &));
 
     MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
 
@@ -38,8 +38,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD2(clearPrefix,
                  outcome::result<std::tuple<bool, uint32_t>>(
-                     const common::Buffer &buf,
-                     boost::optional<uint64_t> limit));
+                     const common::Buffer &buf, std::optional<uint64_t> limit));
 
     MOCK_CONST_METHOD0(empty, bool());
 
@@ -52,9 +51,9 @@ namespace kagome::storage::trie {
    public:
     MOCK_CONST_METHOD1(get,
                        outcome::result<common::Buffer>(const common::Buffer &));
-    MOCK_CONST_METHOD1(tryGet,
-                       outcome::result<boost::optional<common::Buffer>>(
-                           const common::Buffer &));
+    MOCK_CONST_METHOD1(
+        tryGet,
+        outcome::result<std::optional<common::Buffer>>(const common::Buffer &));
 
     MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
 
@@ -74,8 +73,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD2(clearPrefix,
                  outcome::result<std::tuple<bool, uint32_t>>(
-                     const common::Buffer &buf,
-                     boost::optional<uint64_t> limit));
+                     const common::Buffer &buf, std::optional<uint64_t> limit));
 
     MOCK_CONST_METHOD0(empty, bool());
   };
@@ -107,8 +105,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD2(clearPrefix,
                  outcome::result<std::tuple<bool, uint32_t>>(
-                     const common::Buffer &buf,
-                     boost::optional<uint64_t> limit));
+                     const common::Buffer &buf, std::optional<uint64_t> limit));
   };
 
 }  // namespace kagome::storage::trie

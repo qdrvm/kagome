@@ -41,7 +41,7 @@ namespace kagome::blockchain {
     return map.put(value_lookup_key, value);
   }
 
-  outcome::result<boost::optional<common::Buffer>> getWithPrefix(
+  outcome::result<std::optional<common::Buffer>> getWithPrefix(
       const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {

@@ -89,7 +89,7 @@ namespace kagome::network {
     const auto &last_finalized_block = block_tree_->getLastFinalized();
 
     auto best_block_res =
-        block_tree_->getBestContaining(last_finalized_block.hash, boost::none);
+        block_tree_->getBestContaining(last_finalized_block.hash, std::nullopt);
     BOOST_ASSERT(best_block_res.has_value());
     const auto &best_block = best_block_res.value();
 
@@ -350,7 +350,7 @@ namespace kagome::network {
                                    // TODO: perhaps hash would be enough
                                    network::BlockAttribute::HEADER,
                                    hint,
-                                   boost::none,
+                                   std::nullopt,
                                    network::Direction::ASCENDING,
                                    1};
 
@@ -582,9 +582,9 @@ namespace kagome::network {
                                        | network::BlockAttribute::BODY
                                        | network::BlockAttribute::JUSTIFICATION,
                                    from.hash,
-                                   boost::none,
+                                   std::nullopt,
                                    network::Direction::ASCENDING,
-                                   boost::none};
+                                   std::nullopt};
 
     auto protocol = router_->getSyncProtocol();
     BOOST_ASSERT_MSG(protocol, "Router did not provide sync protocol");

@@ -42,14 +42,15 @@ namespace kagome::storage::trie {
         switch (node->getTrieType()) {
           case T::BranchWithValue:
           case T::BranchEmptyValue: {
-            printBranch(std::static_pointer_cast<BranchNode>(node), trie, nest_level);
+            printBranch(
+                std::static_pointer_cast<BranchNode>(node), trie, nest_level);
             break;
           }
           case T::Leaf: {
             stream_ << std::setfill('-') << std::setw(nest_level) << ""
                     << std::setw(0) << "(leaf) key: <"
                     << hex_lower(codec_.nibblesToKey(node->key_nibbles))
-                    << "> value: " << node->value.get().toHex() << "\n";
+                    << "> value: " << node->value.value().toHex() << "\n";
             break;
           }
           default:
@@ -64,7 +65,7 @@ namespace kagome::storage::trie {
                        size_t nest_level) {
         std::string indent(nest_level, '\t');
         auto value =
-            (node->value ? "\"" + node->value.get().toHex() + "\"" : "NONE");
+            (node->value ? "\"" + node->value.value().toHex() + "\"" : "NONE");
         auto branch = std::dynamic_pointer_cast<BranchNode>(node);
         stream_ << std::setfill('-') << std::setw(nest_level) << ""
                 << std::setw(0) << "(branch) key: <"

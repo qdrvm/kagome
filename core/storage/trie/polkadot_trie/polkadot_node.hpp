@@ -6,7 +6,7 @@
 #ifndef KAGOME_STORAGE_TRIE_POLKADOT_NODE
 #define KAGOME_STORAGE_TRIE_POLKADOT_NODE
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -38,7 +38,7 @@ namespace kagome::storage::trie {
 
   struct PolkadotNode : public Node {
     PolkadotNode() = default;
-    PolkadotNode(KeyNibbles key_nibbles, boost::optional<common::Buffer> value)
+    PolkadotNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
         : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
 
     ~PolkadotNode() override = default;
@@ -64,7 +64,7 @@ namespace kagome::storage::trie {
     }
 
     KeyNibbles key_nibbles;
-    boost::optional<common::Buffer> value;
+    std::optional<common::Buffer> value;
   };
 
   struct BranchNode : public PolkadotNode {
@@ -72,7 +72,7 @@ namespace kagome::storage::trie {
 
     BranchNode() = default;
     explicit BranchNode(KeyNibbles key_nibbles,
-                        boost::optional<common::Buffer> value = boost::none)
+                        std::optional<common::Buffer> value = std::nullopt)
         : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
 
     ~BranchNode() override = default;
@@ -93,7 +93,7 @@ namespace kagome::storage::trie {
 
   struct LeafNode : public PolkadotNode {
     LeafNode() = default;
-    LeafNode(KeyNibbles key_nibbles, boost::optional<common::Buffer> value)
+    LeafNode(KeyNibbles key_nibbles, std::optional<common::Buffer> value)
         : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
 
     ~LeafNode() override = default;

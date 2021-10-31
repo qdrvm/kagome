@@ -6,12 +6,13 @@
 #ifndef KAGOME_CORE_RUNTIME_EXECUTOR_HPP
 #define KAGOME_CORE_RUNTIME_EXECUTOR_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "blockchain/block_header_repository.hpp"
 #include "common/buffer.hpp"
 #include "host_api/host_api.hpp"
 #include "log/logger.hpp"
+#include "log/profiling_logger.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/version.hpp"
 #include "runtime/memory_provider.hpp"
@@ -23,7 +24,6 @@
 #include "scale/scale.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
-#include "log/profiling_logger.hpp"
 
 namespace kagome::runtime {
 
@@ -133,7 +133,7 @@ namespace kagome::runtime {
      */
     template <typename Result, typename... Args>
     outcome::result<Result> callAtGenesis(std::string_view name,
-                                   Args &&...args) {
+                                          Args &&...args) {
       OUTCOME_TRY(env_template, env_factory_->start());
       OUTCOME_TRY(env, env_template->make());
       return callInternal<Result>(*env, name, std::forward<Args>(args)...);
@@ -151,7 +151,7 @@ namespace kagome::runtime {
     outcome::result<Result> callInternal(RuntimeEnvironment &env,
                                          std::string_view name,
                                          Args &&...args) {
-      auto &memory = env.memory_provider->getCurrentMemory().value();
+      auto &memory = env.memory_provider->getCurrentMemory()->get();
 
       Buffer encoded_args{};
       if constexpr (sizeof...(args) > 0) {

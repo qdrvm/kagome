@@ -19,6 +19,11 @@ namespace kagome::network {
     }
     MOCK_METHOD1(vote_rv, void(network::GrandpaVote &));
 
+    void neighbor(network::GrandpaNeighborMessage &&msg) {
+      neighbor_rv(msg);
+    }
+    MOCK_METHOD1(neighbor_rv, void(network::GrandpaNeighborMessage &));
+
     void finalize(network::FullCommitMessage &&msg) {
       finalize_rv(msg);
     }

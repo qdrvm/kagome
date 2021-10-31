@@ -22,11 +22,11 @@ namespace kagome::consensus::grandpa {
     virtual bool verifyPrevote(const SignedMessage &prevote) const = 0;
     virtual bool verifyPrecommit(const SignedMessage &precommit) const = 0;
 
-    virtual boost::optional<SignedMessage> signPrimaryPropose(
+    virtual std::optional<SignedMessage> signPrimaryPropose(
         const PrimaryPropose &primary_propose) const = 0;
-    virtual boost::optional<SignedMessage> signPrevote(
+    virtual std::optional<SignedMessage> signPrevote(
         const Prevote &prevote) const = 0;
-    virtual boost::optional<SignedMessage> signPrecommit(
+    virtual std::optional<SignedMessage> signPrecommit(
         const Precommit &precommit) const = 0;
   };
 

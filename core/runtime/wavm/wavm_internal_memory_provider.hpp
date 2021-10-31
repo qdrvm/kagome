@@ -19,14 +19,14 @@ namespace kagome::runtime::wavm {
 
   class WavmInternalMemoryProvider final : public MemoryProvider {
    public:
-    explicit WavmInternalMemoryProvider(
-        WAVM::Runtime::Memory* memory);
+    explicit WavmInternalMemoryProvider(WAVM::Runtime::Memory *memory);
 
-    boost::optional<runtime::Memory &> getCurrentMemory() const override;
+    std::optional<std::reference_wrapper<runtime::Memory>> getCurrentMemory()
+        const override;
     outcome::result<void> resetMemory(WasmSize heap_base) override;
 
    private:
-    WAVM::Runtime::Memory* memory_;
+    WAVM::Runtime::Memory *memory_;
     std::shared_ptr<Memory> current_memory_;
   };
 

@@ -8,8 +8,8 @@
 
 #include <array>
 
-#include <boost/optional.hpp>
 #include <gsl/span>
+#include <optional>
 
 #include "common/buffer.hpp"
 #include "common/literals.hpp"
@@ -68,7 +68,7 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    virtual boost::optional<WasmSize> deallocate(WasmPointer ptr) = 0;
+    virtual std::optional<WasmSize> deallocate(WasmPointer ptr) = 0;
 
     /**
      * Load integers from provided address

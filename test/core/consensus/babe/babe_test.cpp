@@ -183,8 +183,8 @@ class BabeTest : public testing::Test {
   EpochDescriptor epoch_;
 
   VRFOutput leader_vrf_output_{uint256_t_to_bytes(50), {}};
-  std::array<boost::optional<VRFOutput>, 2> leadership_{boost::none,
-                                                        leader_vrf_output_};
+  std::array<std::optional<VRFOutput>, 2> leadership_{std::nullopt,
+                                                      leader_vrf_output_};
 
   BlockHash best_block_hash_ = "block#0"_hash256;
   BlockNumber best_block_number_ = 0u;

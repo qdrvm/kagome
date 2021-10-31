@@ -45,7 +45,7 @@ namespace kagome::consensus {
     return epoch_;
   }
 
-  boost::optional<crypto::VRFOutput> BabeLotteryImpl::getSlotLeadership(
+  std::optional<crypto::VRFOutput> BabeLotteryImpl::getSlotLeadership(
       primitives::BabeSlotNumber slot) const {
     primitives::Transcript transcript;
     prepareTranscript(transcript, randomness_, slot, epoch_.epoch_number);

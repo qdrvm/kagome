@@ -42,14 +42,14 @@ namespace kagome::application {
 
     virtual const std::map<std::string, std::string> &properties() const = 0;
 
-    virtual boost::optional<std::reference_wrapper<const std::string>>
+    virtual std::optional<std::reference_wrapper<const std::string>>
     getProperty(const std::string &property) const = 0;
 
     virtual const std::set<primitives::BlockHash> &forkBlocks() const = 0;
 
     virtual const std::set<primitives::BlockHash> &badBlocks() const = 0;
 
-    virtual boost::optional<std::string> consensusEngine() const = 0;
+    virtual std::optional<std::string> consensusEngine() const = 0;
 
     /**
      * @return runtime code substitution map

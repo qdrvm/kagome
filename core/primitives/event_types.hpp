@@ -45,7 +45,7 @@ namespace kagome::primitives::events {
   using RuntimeVersionEventParams = ref_t<const primitives::Version>;
   using NewRuntimeEventParams = ref_t<const primitives::BlockHash>;
 
-  using ChainEventParams = boost::variant<boost::none_t,
+  using ChainEventParams = boost::variant<std::nullopt_t,
                                           HeadsEventParams,
                                           RuntimeVersionEventParams,
                                           NewRuntimeEventParams>;
@@ -119,10 +119,10 @@ namespace kagome::primitives::events {
   using SubscribedExtrinsicId = uint32_t;
 
   struct ExtrinsicLifecycleEvent {
-    // mind that although sometimes boost::none is used in variants to skip a
+    // mind that although sometimes std::nullopt is used in variants to skip a
     // parameter, here it literally represents the type of event parameters when
     // there are none
-    using Params = boost::variant<boost::none_t,
+    using Params = boost::variant<std::nullopt_t,
                                   BroadcastEventParams,
                                   InBlockEventParams,
                                   RetractedEventParams,
@@ -132,12 +132,12 @@ namespace kagome::primitives::events {
 
     static ExtrinsicLifecycleEvent Future(SubscribedExtrinsicId id) {
       return ExtrinsicLifecycleEvent{
-          id, ExtrinsicEventType::FUTURE, Params{boost::none}};
+          id, ExtrinsicEventType::FUTURE, Params{std::nullopt}};
     }
 
     static ExtrinsicLifecycleEvent Ready(SubscribedExtrinsicId id) {
       return ExtrinsicLifecycleEvent{
-          id, ExtrinsicEventType::READY, Params{boost::none}};
+          id, ExtrinsicEventType::READY, Params{std::nullopt}};
     }
 
     static ExtrinsicLifecycleEvent Broadcast(
@@ -192,12 +192,12 @@ namespace kagome::primitives::events {
 
     static ExtrinsicLifecycleEvent Dropped(SubscribedExtrinsicId id) {
       return ExtrinsicLifecycleEvent{
-          id, ExtrinsicEventType::DROPPED, Params{boost::none}};
+          id, ExtrinsicEventType::DROPPED, Params{std::nullopt}};
     }
 
     static ExtrinsicLifecycleEvent Invalid(SubscribedExtrinsicId id) {
       return ExtrinsicLifecycleEvent{
-          id, ExtrinsicEventType::INVALID, Params{boost::none}};
+          id, ExtrinsicEventType::INVALID, Params{std::nullopt}};
     }
 
     SubscribedExtrinsicId id;

@@ -30,10 +30,9 @@ namespace kagome::storage::face {
     /**
      * @brief Get value by key
      * @param key K
-     * @return V if contains(K) or boost::none
+     * @return V if contains(K) or std::nullopt
      */
-    virtual outcome::result<boost::optional<V>> tryGet(
-        const K &key) const = 0;
+    virtual outcome::result<std::optional<V>> tryGet(const K &key) const = 0;
 
     /**
      * @brief Returns true if given key-value binding exists in the storage.

@@ -26,42 +26,42 @@ TEST(Scale, encodeOptional) {
   // most simple case
   {
     ScaleEncoderStream s;
-    ASSERT_NO_THROW((s << boost::optional<uint8_t>{boost::none}));
+    ASSERT_NO_THROW((s << std::optional<uint8_t>{std::nullopt}));
     ASSERT_EQ(s.data(), (ByteArray{0}));
   }
 
   // encode existing uint8_t
   {
     ScaleEncoderStream s;
-    ASSERT_NO_THROW((s << boost::optional<uint8_t>{1}));
+    ASSERT_NO_THROW((s << std::optional<uint8_t>{1}));
     ASSERT_EQ(s.data(), (ByteArray{1, 1}));
   }
 
   // encode negative int8_t
   {
     ScaleEncoderStream s;
-    ASSERT_NO_THROW((s << boost::optional<int8_t>{-1}));
+    ASSERT_NO_THROW((s << std::optional<int8_t>{-1}));
     ASSERT_EQ(s.data(), (ByteArray{1, 255}));
   }
 
   // encode non-existing uint16_t
   {
     ScaleEncoderStream s;
-    ASSERT_NO_THROW((s << boost::optional<uint16_t>{boost::none}));
+    ASSERT_NO_THROW((s << std::optional<uint16_t>{std::nullopt}));
     ASSERT_EQ(s.data(), (ByteArray{0}));
   }
 
   // encode existing uint16_t
   {
     ScaleEncoderStream s;
-    ASSERT_NO_THROW((s << boost::optional<uint16_t>{511}));
+    ASSERT_NO_THROW((s << std::optional<uint16_t>{511}));
     ASSERT_EQ(s.data(), (ByteArray{1, 255, 1}));
   }
 
   // encode existing uint32_t
   {
     ScaleEncoderStream s;
-    ASSERT_NO_THROW((s << boost::optional<uint32_t>{67305985}));
+    ASSERT_NO_THROW((s << std::optional<uint32_t>{67305985}));
     ASSERT_EQ(s.data(), (ByteArray{1, 1, 2, 3, 4}));
   }
 }
@@ -86,14 +86,14 @@ TEST(ScaleTest, DecodeOptionalSuccess) {
 
   // decode nullopt uint8_t
   {
-    boost::optional<uint8_t> opt;
+    std::optional<uint8_t> opt;
     ASSERT_NO_THROW((stream >> opt));
     ASSERT_FALSE(opt.has_value());
   }
 
   // decode optional uint8_t
   {
-    boost::optional<uint8_t> opt;
+    std::optional<uint8_t> opt;
     ASSERT_NO_THROW((stream >> opt));
     ASSERT_TRUE(opt.has_value());
     ASSERT_EQ(*opt, 1);
@@ -101,7 +101,7 @@ TEST(ScaleTest, DecodeOptionalSuccess) {
 
   // decode optional negative int8_t
   {
-    boost::optional<int8_t> opt;
+    std::optional<int8_t> opt;
     ASSERT_NO_THROW((stream >> opt));
     ASSERT_TRUE(opt.has_value());
     ASSERT_EQ(*opt, -1);
@@ -110,14 +110,14 @@ TEST(ScaleTest, DecodeOptionalSuccess) {
   // decode nullopt uint16_t
   // it requires 1 zero byte just like any other nullopt
   {
-    boost::optional<uint16_t> opt;
+    std::optional<uint16_t> opt;
     ASSERT_NO_THROW((stream >> opt));
     ASSERT_FALSE(opt.has_value());
   }
 
   // decode optional uint16_t
   {
-    boost::optional<uint16_t> opt;
+    std::optional<uint16_t> opt;
     ASSERT_NO_THROW((stream >> opt));
     ASSERT_TRUE(opt.has_value());
     ASSERT_EQ(*opt, 511);
@@ -125,7 +125,7 @@ TEST(ScaleTest, DecodeOptionalSuccess) {
 
   // decode optional uint32_t
   {
-    boost::optional<uint32_t> opt;
+    std::optional<uint32_t> opt;
     ASSERT_NO_THROW((stream >> opt));
     ASSERT_TRUE(opt.has_value());
     ASSERT_EQ(*opt, 67305985);
@@ -142,7 +142,7 @@ TEST(ScaleTest, DecodeOptionalSuccess) {
  * @then expected result obtained
  */
 TEST(ScaleTest, EncodeOptionalBoolSuccess) {
-  std::vector<boost::optional<bool>> values = {true, false, boost::none};
+  std::vector<std::optional<bool>> values = {true, false, std::nullopt};
   ScaleEncoderStream s;
   for (auto &&v : values) {
     ASSERT_NO_THROW((s << v));
@@ -154,10 +154,10 @@ TEST(ScaleTest, EncodeOptionalBoolSuccess) {
  * @brief helper struct for testing decode optional bool
  */
 struct FourOptBools {
-  boost::optional<bool> b1;
-  boost::optional<bool> b2;
-  boost::optional<bool> b3;
-  boost::optional<bool> b4;
+  std::optional<bool> b1;
+  std::optional<bool> b2;
+  std::optional<bool> b3;
+  std::optional<bool> b4;
 };
 
 template <class Stream, typename = std::enable_if_t<Stream::is_decoder_stream>>
@@ -185,11 +185,11 @@ TEST(Scale, DecodeOptionalBoolFail) {
  */
 TEST(Scale, DecodeOptionalBoolSuccess) {
   auto bytes = ByteArray{0, 1, 2, 1};
-  using optbool = boost::optional<bool>;
+  using optbool = std::optional<bool>;
 
   EXPECT_OUTCOME_TRUE(res, decode<FourOptBools>(bytes))
-  ASSERT_EQ(res.b1, boost::none);
+  ASSERT_EQ(res.b1, std::nullopt);
   ASSERT_EQ(res.b2, optbool(true));
   ASSERT_EQ(res.b3, optbool(false));
-  ASSERT_EQ(res.b4 , optbool(true));
+  ASSERT_EQ(res.b4, optbool(true));
 }

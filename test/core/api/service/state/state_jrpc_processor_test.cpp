@@ -186,7 +186,7 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorage) {
   EXPECT_CALL(
       *state_api,
       queryStorage(
-          gsl::span<const Buffer>(keys), from, boost::optional<BlockHash>{}))
+          gsl::span<const Buffer>(keys), from, std::optional<BlockHash>{}))
       .WillOnce(testing::Return(outcome::success(res)));
 
   registerHandlers();
@@ -228,8 +228,7 @@ TEST_F(StateJrpcProcessorTest, ProcessQueryStorageAt) {
       at, {StateApi::StorageChangeSet::Change{"key1"_buf, "42"_buf}}}};
   EXPECT_CALL(
       *state_api,
-      queryStorageAt(
-          gsl::span<const Buffer>(keys), boost::make_optional(at)))
+      queryStorageAt(gsl::span<const Buffer>(keys), std::make_optional(at)))
       .WillOnce(testing::Return(outcome::success(res)));
 
   registerHandlers();
@@ -288,7 +287,7 @@ TEST_F(StateJrpcProcessorTest, ProcessGetVersionRequest) {
                                            .spec_version = 0x111,
                                            .impl_version = 0x202};
 
-  boost::optional<kagome::primitives::BlockHash> hash = boost::none;
+  std::optional<kagome::primitives::BlockHash> hash = std::nullopt;
   EXPECT_CALL(*state_api, getRuntimeVersion(hash))
       .WillOnce(testing::Return(test_version));
 

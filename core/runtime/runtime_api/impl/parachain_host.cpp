@@ -25,17 +25,17 @@ namespace kagome::runtime {
         block, "ParachainHost_active_parachains");
   }
 
-  outcome::result<boost::optional<common::Buffer>>
+  outcome::result<std::optional<common::Buffer>>
   ParachainHostImpl::parachain_head(const primitives::BlockHash &block,
                                     ParachainId id) {
-    return executor_->callAt<boost::optional<Buffer>>(
+    return executor_->callAt<std::optional<Buffer>>(
         block, "ParachainHost_parachain_head", id);
   }
 
-  outcome::result<boost::optional<common::Buffer>>
+  outcome::result<std::optional<common::Buffer>>
   ParachainHostImpl::parachain_code(const primitives::BlockHash &block,
                                     ParachainId id) {
-    return executor_->callAt<boost::optional<common::Buffer>>(
+    return executor_->callAt<std::optional<common::Buffer>>(
         block, "ParachainHost_parachain_code", id);
   }
 

@@ -6,7 +6,7 @@
 #ifndef KAGOME_PRIMITIVES_EXTRINSIC_HPP
 #define KAGOME_PRIMITIVES_EXTRINSIC_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "common/buffer.hpp"
 

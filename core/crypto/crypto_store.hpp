@@ -9,8 +9,8 @@
 #include <memory>
 
 #include <boost/filesystem.hpp>
-#include <boost/optional.hpp>
 #include <libp2p/crypto/key.hpp>
+#include <optional>
 
 #include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/crypto_store/key_type.hpp"
@@ -121,8 +121,7 @@ namespace kagome::crypto {
     /**
      * @return current LibP2P keypair
      */
-    virtual boost::optional<libp2p::crypto::KeyPair> getLibp2pKeypair()
-        const = 0;
+    virtual std::optional<libp2p::crypto::KeyPair> getLibp2pKeypair() const = 0;
 
     /**
      * Acquires the key from user-provided path or generates and saves the

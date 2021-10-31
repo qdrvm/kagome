@@ -32,12 +32,12 @@ namespace kagome::subscription {
       return keys_.erase(hash) > 0;
     }
 
-    boost::optional<ExtrinsicKey> get(
+    std::optional<ExtrinsicKey> get(
         const primitives::Transaction::Hash &hash) const noexcept {
       if (auto it = keys_.find(hash); it != keys_.end()) {
         return it->second;
       }
-      return boost::none;
+      return std::nullopt;
     }
 
    private:

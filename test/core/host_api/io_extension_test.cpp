@@ -19,17 +19,15 @@ using namespace kagome::host_api;
 using ::testing::Return;
 
 using kagome::common::Buffer;
+using kagome::runtime::Memory;
+using kagome::runtime::MemoryMock;
+using kagome::runtime::MemoryProviderMock;
+using kagome::runtime::PtrSize;
 using kagome::runtime::WasmEnum;
-using kagome::runtime::WasmLogLevel;
 using kagome::runtime::WasmLogLevel;
 using kagome::runtime::WasmPointer;
-using kagome::runtime::WasmEnum;
 using kagome::runtime::WasmSize;
 using kagome::runtime::WasmSpan;
-using kagome::runtime::PtrSize;
-using kagome::runtime::MemoryMock;
-using kagome::runtime::Memory;
-using kagome::runtime::MemoryProviderMock;
 
 /**
  * It is impossible to test the console output, but at least we can check, that
@@ -45,7 +43,8 @@ class IOExtensionTest : public ::testing::Test {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
+        .WillRepeatedly(
+            Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
     io_extension_ = std::make_shared<IOExtension>(memory_provider_);
   }
 
@@ -72,11 +71,10 @@ TEST_F(IOExtensionTest, PrintHex) {
   std::string msg_buf{hex_bytes_.begin(), hex_bytes_.end()};
 
   PtrSize target{static_cast<WasmPointer>(hex_bytes_.size()),
-                    static_cast<WasmSize>(hex_bytes_.size())};
+                 static_cast<WasmSize>(hex_bytes_.size())};
   std::string target_buf{'T', 'e', 's', 't'};
 
-  EXPECT_CALL(*memory_, loadStr(msg.ptr, msg.size))
-      .WillOnce(Return(msg_buf));
+  EXPECT_CALL(*memory_, loadStr(msg.ptr, msg.size)).WillOnce(Return(msg_buf));
   EXPECT_CALL(*memory_, loadStr(target.ptr, target.size))
       .WillOnce(Return(target_buf));
 
@@ -117,7 +115,7 @@ TEST_F(IOExtensionTest, GetMaxLogLevel) {
  * @then given number is printed
  */
 TEST_F(IOExtensionTest, DISABLED_PrintNum) {
-  //io_extension_->ext_print_num(number_);
+  // io_extension_->ext_print_num(number_);
 }
 
 /**
@@ -131,5 +129,5 @@ TEST_F(IOExtensionTest, DISABLED_PrintUTF8) {
   std::string buf(utf8_bytes_.begin(), utf8_bytes_.end());
 
   EXPECT_CALL(*memory_, loadStr(data, size)).WillOnce(Return(buf));
-  //io_extension_->ext_print_utf8(data, size);
+  // io_extension_->ext_print_utf8(data, size);
 }

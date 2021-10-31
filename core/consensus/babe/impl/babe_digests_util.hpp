@@ -6,7 +6,8 @@
 #ifndef KAGOME_CORE_CONSENSUS_BABE_IMPL_BABE_DIGESTS_UTIL_HPP
 #define KAGOME_CORE_CONSENSUS_BABE_IMPL_BABE_DIGESTS_UTIL_HPP
 
-#include <boost/optional.hpp>
+#include <memory>
+#include <optional>
 
 #include "common/visitor.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
@@ -24,13 +25,15 @@ namespace kagome::consensus {
   };
 
   template <typename T, typename VarT>
-  boost::optional<T> getFromVariant(VarT &&v) {
+  std::optional<std::reference_wrapper<const std::decay_t<T>>> getFromVariant(
+      VarT &&v) {
     return visit_in_place(
-        v,
-        [](const T &expected_val) -> boost::optional<T> {
-          return boost::get<T>(expected_val);
+        std::forward<VarT>(v),
+        [](const T &expected_val)
+            -> std::optional<std::reference_wrapper<const std::decay_t<T>>> {
+          return expected_val;
         },
-        [](const auto &) -> boost::optional<T> { return boost::none; });
+        [](const auto &) { return std::nullopt; });
   }
 
   outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(

@@ -66,7 +66,7 @@ namespace {
     return name;
   }
 
-  boost::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
+  std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
     if (str == "Interpreted") {
@@ -75,7 +75,7 @@ namespace {
     if (str == "Compiled") {
       return REM::Compile;
     }
-    return boost::none;
+    return std::nullopt;
   }
 }  // namespace
 
@@ -545,13 +545,13 @@ namespace kagome::application {
       }
     }
 
-    boost::optional<std::string> node_key;
+    std::optional<std::string> node_key;
     find_argument<std::string>(
         vm, "node-key", [&](const std::string &val) { node_key.emplace(val); });
     if (node_key.has_value()) {
-      auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.get());
+      auto key_res = crypto::Ed25519PrivateKey::fromHex(node_key.value());
       if (not key_res.has_value()) {
-        auto err_msg = "Node key '" + node_key.get()
+        auto err_msg = "Node key '" + node_key.value()
                        + "' is invalid: " + key_res.error().message();
         logger_->error(err_msg);
         std::cout << err_msg << std::endl;
@@ -689,7 +689,7 @@ namespace kagome::application {
     find_argument<std::string>(
         vm, "name", [&](std::string const &val) { node_name_ = val; });
 
-    boost::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
+    std::optional<RuntimeExecutionMethod> runtime_exec_method_opt;
     find_argument<std::string>(
         vm,
         "wasm-execution",

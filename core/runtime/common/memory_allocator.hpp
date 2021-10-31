@@ -9,7 +9,7 @@
 #include <map>
 #include <unordered_map>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include "common/literals.hpp"
 #include "log/logger.hpp"
@@ -51,7 +51,7 @@ namespace kagome::runtime {
     MemoryAllocator(MemoryHandle memory, size_t size, WasmPointer heap_base);
 
     WasmPointer allocate(WasmSize size);
-    boost::optional<WasmSize> deallocate(WasmPointer ptr);
+    std::optional<WasmSize> deallocate(WasmPointer ptr);
 
     template <typename T>
     bool checkAddress(WasmPointer addr) noexcept {
@@ -63,8 +63,8 @@ namespace kagome::runtime {
     }
 
     /// following methods are needed mostly for testing purposes
-    boost::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
-    boost::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
+    std::optional<WasmSize> getDeallocatedChunkSize(WasmPointer ptr) const;
+    std::optional<WasmSize> getAllocatedChunkSize(WasmPointer ptr) const;
     size_t getAllocatedChunksNum() const;
     size_t getDeallocatedChunksNum() const;
 

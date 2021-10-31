@@ -20,6 +20,7 @@
 #include "mock/core/consensus/grandpa/voting_round_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "primitives/authority.hpp"
+#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -121,8 +122,9 @@ class VotingRoundTest : public testing::Test {
 
     auto voters = std::make_shared<VoterSet>(authorities->id);
     for (const auto &authority : *authorities) {
-      voters->insert(kagome::primitives::GrandpaSessionKey(authority.id.id),
-                     authority.weight);
+      ASSERT_OUTCOME_SUCCESS_TRY(
+          voters->insert(kagome::primitives::GrandpaSessionKey(authority.id.id),
+                         authority.weight));
     }
 
     GrandpaConfig config{.voters = std::move(voters),
@@ -149,7 +151,9 @@ class VotingRoundTest : public testing::Test {
     EXPECT_CALL(*env_, bestChainContaining("C"_H))
         .WillRepeatedly(Return(BlockInfo{9, "FC"_H}));
 
-    vote_graph_ = std::make_shared<VoteGraphImpl>(base, env_);
+    prevote_graph_ = std::make_shared<VoteGraphImpl>(base, config.voters, env_);
+    precommit_graph_ =
+        std::make_shared<VoteGraphImpl>(base, config.voters, env_);
 
     previous_round_ = std::make_shared<VotingRoundMock>();
     ON_CALL(*previous_round_, lastFinalizedBlock())
@@ -175,7 +179,8 @@ class VotingRoundTest : public testing::Test {
                                                vote_crypto_provider_,
                                                prevotes_,
                                                precommits_,
-                                               vote_graph_,
+                                               prevote_graph_,
+                                               precommit_graph_,
                                                clock_,
                                                io_context_,
                                                previous_round_);
@@ -233,7 +238,8 @@ class VotingRoundTest : public testing::Test {
   std::shared_ptr<GrandpaMock> grandpa_;
   std::shared_ptr<AuthorityManagerMock> authority_manager_;
   std::shared_ptr<EnvironmentMock> env_;
-  std::shared_ptr<VoteGraphImpl> vote_graph_;
+  std::shared_ptr<VoteGraphImpl> prevote_graph_;
+  std::shared_ptr<VoteGraphImpl> precommit_graph_;
   std::shared_ptr<Clock> clock_ = std::make_shared<SteadyClockImpl>();
 
   std::shared_ptr<boost::asio::io_context> io_context_ =
@@ -399,13 +405,13 @@ TEST_F(VotingRoundTest, Finalization) {
 }
 
 ACTION_P(onProposed, test_fixture) {
-  // immitating primary proposed is received from network
+  // imitating primary proposed is received from network
   test_fixture->round_->onProposal(arg2, Propagation::NEEDLESS);
   return outcome::success();
 }
 
 ACTION_P(onPrevoted, test_fixture) {
-  // immitate receiving prevotes from other peers
+  // imitate receiving prevotes from other peers
   auto signed_prevote = arg2;
 
   // send Alice's prevote
@@ -427,7 +433,7 @@ ACTION_P(onPrevoted, test_fixture) {
 }
 
 ACTION_P(onPrecommitted, test_fixture) {
-  // immitate receiving precommit from other peers
+  // imitate receiving precommit from other peers
   auto signed_precommit = arg2;
 
   // send Alice's precommit
@@ -448,7 +454,7 @@ ACTION_P(onPrecommitted, test_fixture) {
 }
 
 ACTION_P(onFinalize, test_fixture) {
-  (void)test_fixture->env_->finalize(arg1.hash, arg2);
+  (void)test_fixture->env_->finalize(0, arg2);
   return outcome::success();
 }
 

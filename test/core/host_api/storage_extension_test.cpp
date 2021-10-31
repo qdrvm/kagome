@@ -5,8 +5,8 @@
 
 #include "host_api/impl/storage_extension.hpp"
 
-#include <boost/optional.hpp>
 #include <gtest/gtest.h>
+#include <optional>
 #include <scale/scale.hpp>
 
 #include "mock/core/runtime/memory_mock.hpp"
@@ -27,8 +27,11 @@
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::host_api::StorageExtension;
-using kagome::runtime::TrieStorageProviderMock;
+using kagome::runtime::Memory;
+using kagome::runtime::MemoryMock;
+using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::PtrSize;
+using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmOffset;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmSize;
@@ -37,9 +40,6 @@ using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using kagome::storage::trie::PolkadotTrieCursorMock;
-using kagome::runtime::MemoryMock;
-using kagome::runtime::Memory;
-using kagome::runtime::MemoryProviderMock;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -59,13 +59,14 @@ class StorageExtensionTest : public ::testing::Test {
     EXPECT_CALL(*storage_provider_, isCurrentlyPersistent())
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*storage_provider_, tryGetPersistentBatch())
-        .WillRepeatedly(Return(boost::make_optional(
+        .WillRepeatedly(Return(std::make_optional(
             std::static_pointer_cast<
                 kagome::storage::trie::PersistentTrieBatch>(trie_batch_))));
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     memory_ = std::make_shared<MemoryMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
-        .WillRepeatedly(Return(boost::optional<Memory&>(*memory_)));
+        .WillRepeatedly(
+            Return(std::optional<std::reference_wrapper<Memory>>(*memory_)));
     changes_tracker_ = std::make_shared<ChangesTrackerMock>();
     storage_extension_ = std::make_shared<StorageExtension>(
         storage_provider_, memory_provider_, changes_tracker_);
@@ -185,14 +186,14 @@ TEST_F(StorageExtensionTest, NextKey) {
 
   auto expected_key_span = PtrSize{next_key_pointer, next_key_size}.combine();
   EXPECT_CALL(*memory_, storeBuffer(_))
-      .WillOnce(Invoke([&expected_next_key,
-                        &expected_key_span](auto &&buffer) -> WasmSpan {
-        EXPECT_OUTCOME_TRUE(
-            key_opt, kagome::scale::decode<boost::optional<Buffer>>(buffer));
-        EXPECT_TRUE(key_opt.has_value());
-        EXPECT_EQ(key_opt.value(), expected_next_key);
-        return expected_key_span;
-      }));
+      .WillOnce(Invoke(
+          [&expected_next_key, &expected_key_span](auto &&buffer) -> WasmSpan {
+            EXPECT_OUTCOME_TRUE(
+                key_opt, kagome::scale::decode<std::optional<Buffer>>(buffer));
+            EXPECT_TRUE(key_opt.has_value());
+            EXPECT_EQ(key_opt.value(), expected_next_key);
+            return expected_key_span;
+          }));
 
   auto next_key_span = storage_extension_->ext_storage_next_key_version_1(
       PtrSize{key_pointer, key_size}.combine());
@@ -216,15 +217,15 @@ TEST_F(StorageExtensionTest, NextKeyLastKey) {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
     EXPECT_CALL(*cursor, seekUpperBound(key))
         .WillOnce(Return(outcome::success()));
-    EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
+    EXPECT_CALL(*cursor, key()).WillOnce(Return(std::nullopt));
     return cursor;
   }));
 
   EXPECT_CALL(*memory_, storeBuffer(_))
       .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
         EXPECT_OUTCOME_TRUE(
-            key_opt, kagome::scale::decode<boost::optional<Buffer>>(buffer));
-        EXPECT_EQ(key_opt, boost::none);
+            key_opt, kagome::scale::decode<std::optional<Buffer>>(buffer));
+        EXPECT_EQ(key_opt, std::nullopt);
         return 0;  // don't need the result
       }));
 
@@ -248,15 +249,15 @@ TEST_F(StorageExtensionTest, NextKeyEmptyTrie) {
     auto cursor = std::make_unique<PolkadotTrieCursorMock>();
     EXPECT_CALL(*cursor, seekUpperBound(key))
         .WillOnce(Return(outcome::success()));
-    EXPECT_CALL(*cursor, key()).WillOnce(Return(boost::none));
+    EXPECT_CALL(*cursor, key()).WillOnce(Return(std::nullopt));
     return cursor;
   }));
 
   EXPECT_CALL(*memory_, storeBuffer(_))
       .WillOnce(Invoke([](auto &&buffer) -> WasmSpan {
         EXPECT_OUTCOME_TRUE(
-            key_opt, kagome::scale::decode<boost::optional<Buffer>>(buffer));
-        EXPECT_EQ(key_opt, boost::none);
+            key_opt, kagome::scale::decode<std::optional<Buffer>>(buffer));
+        EXPECT_EQ(key_opt, std::nullopt);
         return 0;
       }));
 
@@ -332,13 +333,12 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
   Buffer offset_value_data = value_data.subbuffer(offset);
   ASSERT_EQ(offset_value_data.size(), value_data.size() - offset);
   EXPECT_OUTCOME_TRUE(encoded_opt_offset_val_size,
-                      kagome::scale::encode(boost::make_optional<uint32_t>(
+                      kagome::scale::encode(std::make_optional<uint32_t>(
                           offset_value_data.size())));
   WasmSpan res_wasm_span = 1337;
 
   // expect key loaded, than data stored
-  EXPECT_CALL(*memory_, loadN(key.ptr, key.size))
-      .WillOnce(Return(key_data));
+  EXPECT_CALL(*memory_, loadN(key.ptr, key.size)).WillOnce(Return(key_data));
   EXPECT_CALL(*storage_provider_, getCurrentBatch())
       .WillOnce(Return(trie_batch_));
   EXPECT_CALL(*trie_batch_, get(key_data)).WillOnce(Return(value_data));
@@ -478,13 +478,12 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto values_enc = kagome::scale::encode(values).value();
 
   using testing::_;
-  PtrSize values_span {42, static_cast<WasmSize>(values_enc.size())};
+  PtrSize values_span{42, static_cast<WasmSize>(values_enc.size())};
 
   EXPECT_CALL(*memory_, loadN(values_span.ptr, values_span.size))
-      .WillOnce(Return(Buffer {values_enc}));
+      .WillOnce(Return(Buffer{values_enc}));
   WasmPointer result = 1984;
-  EXPECT_CALL(*memory_,
-              storeBuffer(gsl::span<const uint8_t>(hash_array)))
+  EXPECT_CALL(*memory_, storeBuffer(gsl::span<const uint8_t>(hash_array)))
       .WillOnce(Return(result));
 
   storage_extension_->ext_trie_blake2_256_ordered_root_version_1(
@@ -552,7 +551,7 @@ TEST_F(StorageExtensionTest, StorageGetV1Test) {
 
   Buffer value(8, 'v');
   auto encoded_opt_value =
-      kagome::scale::encode<boost::optional<Buffer>>(value).value();
+      kagome::scale::encode<std::optional<Buffer>>(value).value();
 
   // expect key and value were loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
@@ -709,7 +708,7 @@ TEST_F(StorageExtensionTest, ChangesRootNotEmpty) {
   auto trie_hash = "deadbeef"_hash256;
   auto enc_trie_hash =
       kagome::scale::encode(
-          boost::make_optional((gsl::span(trie_hash.data(), Hash256::size()))))
+          std::make_optional((gsl::span(trie_hash.data(), Hash256::size()))))
           .value();
   EXPECT_CALL(*changes_tracker_,
               constructChangesTrie(parent_hash, configsAreEqual(config)))
