@@ -14,32 +14,71 @@ namespace kagome::consensus::grandpa {
 
   class VotingRoundMock : public VotingRound {
    public:
-    MOCK_CONST_METHOD0(roundNumber, RoundNumber());
-    MOCK_CONST_METHOD0(voterSetId, MembershipCounter());
-    MOCK_CONST_METHOD0(completable, bool());
-    MOCK_CONST_METHOD0(finalizable, bool());
-    MOCK_CONST_METHOD0(lastFinalizedBlock, BlockInfo());
-    MOCK_METHOD0(bestPrevoteCandidate, BlockInfo());
-    MOCK_METHOD0(bestPrecommitCandidate, BlockInfo());
-    MOCK_METHOD0(bestFinalCandidate, BlockInfo());
-    MOCK_CONST_METHOD0(finalizedBlock, std::optional<BlockInfo>());
-    MOCK_CONST_METHOD0(state, MovableRoundState());
-    MOCK_METHOD0(play, void());
-    MOCK_METHOD0(end, void());
-    MOCK_METHOD0(doProposal, void());
-    MOCK_METHOD0(doPrevote, void());
-    MOCK_METHOD0(doPrecommit, void());
-    MOCK_METHOD0(doFinalize, void());
-    MOCK_METHOD1(doCatchUpRequest, void(const libp2p::peer::PeerId &));
-    MOCK_METHOD1(doCatchUpResponse, void(const libp2p::peer::PeerId &));
-    MOCK_METHOD2(onProposal, void(const SignedMessage &, Propagation));
-    MOCK_METHOD2(onPrevote, bool(const SignedMessage &, Propagation));
-    MOCK_METHOD2(onPrecommit, bool(const SignedMessage &, Propagation));
-    MOCK_METHOD2(update, void(bool, bool));
-    MOCK_METHOD2(applyJustification,
-                 outcome::result<void>(const BlockInfo &,
-                                       const GrandpaJustification &));
-    MOCK_METHOD0(attemptToFinalizeRound, void());
+    MOCK_METHOD(RoundNumber, roundNumber, (), (const, override));
+
+    MOCK_METHOD(MembershipCounter, voterSetId, (), (const, override));
+
+    MOCK_METHOD(bool, completable, (), (const, override));
+
+    MOCK_METHOD(bool, finalizable, (), (const, override));
+
+    MOCK_METHOD(BlockInfo, lastFinalizedBlock, (), (const, override));
+
+    MOCK_METHOD(BlockInfo, bestPrevoteCandidate, (), (override));
+
+    MOCK_METHOD(BlockInfo, bestPrecommitCandidate, (), (override));
+
+    MOCK_METHOD(BlockInfo, bestFinalCandidate, (), (override));
+
+    MOCK_METHOD(std::optional<BlockInfo>,
+                finalizedBlock,
+                (),
+                (const, override));
+
+    MOCK_METHOD(MovableRoundState, state, (), (const, override));
+
+    MOCK_METHOD(void, play, (), (override));
+
+    MOCK_METHOD(void, end, (), (override));
+
+    MOCK_METHOD(void, doProposal, (), (override));
+
+    MOCK_METHOD(void, doPrevote, (), (override));
+
+    MOCK_METHOD(void, doPrecommit, (), (override));
+
+    MOCK_METHOD(void, doFinalize, (), (override));
+
+    MOCK_METHOD(void, doCatchUpRequest, (const libp2p::peer::PeerId &), ());
+
+    MOCK_METHOD(void,
+                doCatchUpResponse,
+                (const libp2p::peer::PeerId &),
+                (override));
+
+    MOCK_METHOD(void,
+                onProposal,
+                (const SignedMessage &, Propagation),
+                (override));
+
+    MOCK_METHOD(bool,
+                onPrevote,
+                (const SignedMessage &, Propagation),
+                (override));
+
+    MOCK_METHOD(bool,
+                onPrecommit,
+                (const SignedMessage &, Propagation),
+                (override));
+
+    MOCK_METHOD(void, update, (bool, bool), (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                applyJustification,
+                (const BlockInfo &, const GrandpaJustification &),
+                (override));
+
+    MOCK_METHOD(void, attemptToFinalizeRound, (), (override));
   };
 
 }  // namespace kagome::consensus::grandpa

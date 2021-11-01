@@ -13,35 +13,45 @@
 
 namespace kagome::authority {
   struct AuthorityManagerMock : public AuthorityManager {
-    MOCK_METHOD2(
+    MOCK_METHOD(
+        outcome::result<std::shared_ptr<const primitives::AuthorityList>>,
         authorities,
-        outcome::result<std::shared_ptr<const primitives::AuthorityList>>(
-            const primitives::BlockInfo &, bool));
+        (const primitives::BlockInfo &, bool),
+        (override));
 
-    MOCK_METHOD3(applyScheduledChange,
-                 outcome::result<void>(const primitives::BlockInfo &,
-                                       const primitives::AuthorityList &,
-                                       primitives::BlockNumber));
+    MOCK_METHOD(outcome::result<void>,
+                applyScheduledChange,
+                (const primitives::BlockInfo &,
+                 const primitives::AuthorityList &,
+                 primitives::BlockNumber),
+                (override));
 
-    MOCK_METHOD3(applyForcedChange,
-                 outcome::result<void>(const primitives::BlockInfo &,
-                                       const primitives::AuthorityList &,
-                                       primitives::BlockNumber));
+    MOCK_METHOD(outcome::result<void>,
+                applyForcedChange,
+                (const primitives::BlockInfo &,
+                 const primitives::AuthorityList &,
+                 primitives::BlockNumber),
+                (override));
 
-    MOCK_METHOD2(applyOnDisabled,
-                 outcome::result<void>(const primitives::BlockInfo &,
-                                       uint64_t));
+    MOCK_METHOD(outcome::result<void>,
+                applyOnDisabled,
+                (const primitives::BlockInfo &, uint64_t),
+                (override));
 
-    MOCK_METHOD2(applyPause,
-                 outcome::result<void>(const primitives::BlockInfo &,
-                                       primitives::BlockNumber));
+    MOCK_METHOD(outcome::result<void>,
+                applyPause,
+                (const primitives::BlockInfo &, primitives::BlockNumber),
+                (override));
 
-    MOCK_METHOD2(applyResume,
-                 outcome::result<void>(const primitives::BlockInfo &,
-                                       primitives::BlockNumber));
+    MOCK_METHOD(outcome::result<void>,
+                applyResume,
+                (const primitives::BlockInfo &, primitives::BlockNumber),
+                (override));
 
-    MOCK_METHOD1(prune,
-                 outcome::result<void>(const primitives::BlockInfo &block));
+    MOCK_METHOD(outcome::result<void>,
+                prune,
+                (const primitives::BlockInfo &block),
+                (override));
   };
 }  // namespace kagome::authority
 

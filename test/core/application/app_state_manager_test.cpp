@@ -22,21 +22,21 @@ using testing::Sequence;
 
 class OnPrepareMock {
  public:
-  MOCK_METHOD0(call, bool());
+  MOCK_METHOD(bool, call, ());
   bool operator()() {
     return call();
   }
 };
 class OnLaunchMock {
  public:
-  MOCK_METHOD0(call, bool());
+  MOCK_METHOD(bool, call, ());
   bool operator()() {
     return call();
   }
 };
 class OnShutdownMock {
  public:
-  MOCK_METHOD0(call, void());
+  MOCK_METHOD(void, call, ());
   void operator()() {
     return call();
   }

@@ -78,7 +78,7 @@ class MockTrieStorageImpl : public TrieStorageImpl {
  public:
   MockTrieStorageImpl() : TrieStorageImpl({}, nullptr, nullptr, std::nullopt) {}
 
-  MOCK_CONST_METHOD0(getRootHashMock, RootHash());
+  MOCK_METHOD(RootHash, getRootHashMock, (), (const));
   RootHash getRootHash() const noexcept override {
     return getRootHashMock();
   }
@@ -86,7 +86,10 @@ class MockTrieStorageImpl : public TrieStorageImpl {
 
 class MockDb : public kagome::storage::InMemoryStorage {
  public:
-  MOCK_METHOD2(put, outcome::result<void>(const Buffer &, const Buffer &));
+  MOCK_METHOD(outcome::result<void>,
+              put,
+              (const Buffer &, const Buffer &),
+              (override));
 
   // to retain the ability to call the actual implementation of put from the
   // superclass

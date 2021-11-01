@@ -15,15 +15,16 @@ namespace kagome::storage::face {
   template <typename K, typename V>
   class WriteBatchMock : public WriteBatch<K, V> {
    public:
-    MOCK_METHOD0(commit, outcome::result<void> ());
-    MOCK_METHOD0(clear, void ());
-    MOCK_METHOD2_T(put, outcome::result<void>(const K &key, const V &value));
-    outcome::result<void> put(const K &key, V &&value) {
-      return put_rvalue(key, std::move(value));
-    }
-    MOCK_METHOD2_T(put_rvalue, outcome::result<void>(const K &key, V value));
+    MOCK_METHOD(outcome::result<void>, commit, (), (override));
 
-    MOCK_METHOD1_T(remove, outcome::result<void> (const K &key));
+    MOCK_METHOD(void, clear, (), (override));
+
+    MOCK_METHOD2_T(put, outcome::result<void>(const K &key, const V &value));
+    outcome::result<void> put(const K &key, V &&value) override {
+      return put(key, value);
+    }
+
+    MOCK_METHOD1_T(remove, outcome::result<void>(const K &key));
   };
 
 }  // namespace kagome::storage::face

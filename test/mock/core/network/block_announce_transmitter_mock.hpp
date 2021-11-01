@@ -14,10 +14,10 @@ namespace kagome::network {
 
   class BlockAnnounceTransmitterMock : public BlockAnnounceTransmitter {
    public:
-    void blockAnnounce(network::BlockAnnounce &&msg) {
-      blockAnnounce_rv(msg);
+    MOCK_METHOD(void, blockAnnounce, (const network::BlockAnnounce &), ());
+    void blockAnnounce(network::BlockAnnounce &&msg) override {
+      blockAnnounce(msg);
     }
-    MOCK_METHOD1(blockAnnounce_rv, void(const network::BlockAnnounce &));
   };
 
 }  // namespace kagome::network

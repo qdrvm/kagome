@@ -272,6 +272,6 @@ const std::vector<BlockInfo> test_cases = {{
     // clang-format onS
 }};
 
-INSTANTIATE_TEST_CASE_P(VoteGraph,
+INSTANTIATE_TEST_SUITE_P(VoteGraph,
                         WalkBackAtNode,
                         testing::ValuesIn(test_cases));

@@ -14,28 +14,37 @@ namespace kagome::transaction_pool {
 
   class TransactionPoolMock : public TransactionPool {
    public:
-    MOCK_CONST_METHOD0(getPendingTransactions,
-                       std::unordered_map<Transaction::Hash,
-                                          std::shared_ptr<Transaction>> &());
+    MOCK_METHOD(
+        (std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>> &),
+        getPendingTransactions,
+        (),
+        (const));
 
-    outcome::result<void> submitOne(Transaction &&tx) {
+    MOCK_METHOD(outcome::result<void>, submitOne, (Transaction), ());
+    outcome::result<void> submitOne(Transaction &&tx) override {
       return submitOne(tx);
     }
-    MOCK_METHOD1(submitOne, outcome::result<void>(Transaction));
-    MOCK_METHOD1(submit, outcome::result<void>(std::vector<Transaction>));
 
-    MOCK_METHOD1(removeOne, outcome::result<Transaction>(const Transaction::Hash &));
-    MOCK_METHOD1(remove, void(const std::vector<Transaction::Hash> &));
+    MOCK_METHOD(outcome::result<void>, submit, (std::vector<Transaction>), ());
 
-    MOCK_CONST_METHOD0(
-        getReadyTransactions,
-        std::map<Transaction::Hash, std::shared_ptr<Transaction>>());
+    MOCK_METHOD(outcome::result<Transaction>,
+                removeOne,
+                (const Transaction::Hash &),
+                (override));
 
-    MOCK_METHOD1(
-        removeStale,
-        outcome::result<std::vector<Transaction>>(const primitives::BlockId &));
+    MOCK_METHOD(void, remove, (const std::vector<Transaction::Hash> &), ());
 
-    MOCK_CONST_METHOD0(getStatus, Status());
+    MOCK_METHOD((std::map<Transaction::Hash, std::shared_ptr<Transaction>>),
+                getReadyTransactions,
+                (),
+                (const));
+
+    MOCK_METHOD(outcome::result<std::vector<Transaction>>,
+                removeStale,
+                (const primitives::BlockId &),
+                (override));
+
+    MOCK_METHOD(Status, getStatus, (), (const, override));
   };
 
 }  // namespace kagome::transaction_pool

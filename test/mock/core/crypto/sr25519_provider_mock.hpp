@@ -11,17 +11,24 @@
 
 namespace kagome::crypto {
   struct Sr25519ProviderMock : public Sr25519Provider {
-    MOCK_CONST_METHOD0(generateKeypair, Sr25519Keypair());
-    MOCK_CONST_METHOD1(generateKeypair, Sr25519Keypair(const Sr25519Seed &seed));
+    MOCK_METHOD(Sr25519Keypair, generateKeypair, (), (const, override));
 
-    MOCK_CONST_METHOD2(sign,
-                       outcome::result<Sr25519Signature>(const Sr25519Keypair &,
-                                                         gsl::span<const uint8_t>));
+    MOCK_METHOD(Sr25519Keypair,
+                generateKeypair,
+                (const Sr25519Seed &seed),
+                (const, override));
 
-    MOCK_CONST_METHOD3(verify,
-                       outcome::result<bool>(const Sr25519Signature &,
-                                             gsl::span<const uint8_t>,
-                                             const Sr25519PublicKey &));
+    MOCK_METHOD(outcome::result<Sr25519Signature>,
+                sign,
+                (const Sr25519Keypair &, gsl::span<const uint8_t>),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<bool>,
+                verify,
+                (const Sr25519Signature &,
+                 gsl::span<const uint8_t>,
+                 const Sr25519PublicKey &),
+                (const, override));
   };
 }  // namespace kagome::crypto
 

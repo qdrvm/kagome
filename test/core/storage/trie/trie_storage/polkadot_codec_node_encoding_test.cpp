@@ -85,4 +85,4 @@ static const std::vector<Case> CASES = {
      {BRANCH_VAL | 63u, 255, 255, 0}},  // 22
 };
 
-INSTANTIATE_TEST_CASE_P(PolkadotCodec, NodeEncodingTest, ValuesIn(CASES));
+INSTANTIATE_TEST_SUITE_P(PolkadotCodec, NodeEncodingTest, ValuesIn(CASES));

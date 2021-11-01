@@ -14,10 +14,11 @@ namespace kagome::runtime {
 
   class AccountNonceApiMock : public AccountNonceApi {
    public:
-    MOCK_METHOD2(account_nonce,
-                 outcome::result<primitives::AccountNonce>(
-                     const primitives::BlockHash &block,
-                     const primitives::AccountId &));
+    MOCK_METHOD(outcome::result<primitives::AccountNonce>,
+                account_nonce,
+                (const primitives::BlockHash &block,
+                 const primitives::AccountId &),
+                (override));
   };
 
 }  // namespace kagome::runtime

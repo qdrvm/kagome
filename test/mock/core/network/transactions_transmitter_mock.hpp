@@ -14,8 +14,10 @@ namespace kagome::network {
 
   class TransactionsTransmitterMock : public TransactionsTransmitter {
    public:
-    MOCK_METHOD1(propagateTransactions,
-                 void(gsl::span<const primitives::Transaction>));
+    MOCK_METHOD(void,
+                propagateTransactions,
+                (gsl::span<const primitives::Transaction>),
+                (override));
   };
 
 }  // namespace kagome::network

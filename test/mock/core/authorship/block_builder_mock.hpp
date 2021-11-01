@@ -14,16 +14,22 @@ namespace kagome::authorship {
 
   class BlockBuilderMock : public BlockBuilder {
    public:
-    MOCK_CONST_METHOD1(getInherentExtrinsics,
-                       outcome::result<std::vector<primitives::Extrinsic>>(
-                           const primitives::InherentData &data));
+    MOCK_METHOD(outcome::result<std::vector<primitives::Extrinsic>>,
+                getInherentExtrinsics,
+                (const primitives::InherentData &data),
+                (const, override));
 
-    MOCK_METHOD1(pushExtrinsic,
-                 outcome::result<primitives::ExtrinsicIndex>(
-                     const primitives::Extrinsic &extrinsic));
-    MOCK_CONST_METHOD0(bake, outcome::result<primitives::Block>());
+    MOCK_METHOD(outcome::result<primitives::ExtrinsicIndex>,
+                pushExtrinsic,
+                (const primitives::Extrinsic &extrinsic),
+                (override));
 
-    MOCK_CONST_METHOD0(estimateBlockSize, size_t());
+    MOCK_METHOD(outcome::result<primitives::Block>,
+                bake,
+                (),
+                (const, override));
+
+    MOCK_METHOD(size_t, estimateBlockSize, (), (const, override));
   };
 
 }  // namespace kagome::authorship

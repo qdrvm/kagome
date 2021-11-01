@@ -26,12 +26,10 @@ namespace kagome::storage::face {
 
     MOCK_CONST_METHOD0_T(empty, bool());
 
-    MOCK_METHOD2_T(put, outcome::result<void>(const K &, const V &));
-
-    outcome::result<void> put(const K &k, V &&v) {
-      return put_rv(k, std::move(v));
+    MOCK_METHOD(outcome::result<void>, put, (const K &, const V &), (override));
+    outcome::result<void> put(const K &k, V &&v) override {
+      return put(k, v);
     }
-    MOCK_METHOD2_T(put_rv, outcome::result<void>(const K &, V));
 
     MOCK_METHOD1_T(remove, outcome::result<void>(const K &));
   };

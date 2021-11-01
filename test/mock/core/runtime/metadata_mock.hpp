@@ -14,9 +14,10 @@ namespace kagome::runtime {
 
   class MetadataMock : public Metadata {
    public:
-    MOCK_METHOD1(metadata,
-                 outcome::result<Metadata::OpaqueMetadata>(
-                     const primitives::BlockHash &));
+    MOCK_METHOD(outcome::result<Metadata::OpaqueMetadata>,
+                metadata,
+                (const primitives::BlockHash &),
+                (override));
   };
 
 }  // namespace kagome::runtime

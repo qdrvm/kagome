@@ -56,7 +56,7 @@ TEST_P(CompactTest, DecodeSuccess) {
   ASSERT_EQ(v, value_match);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     CompactTestCases,
     CompactTest,
     ::testing::Values(

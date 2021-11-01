@@ -229,15 +229,15 @@ std::vector<TrieCommand> DeleteOddKeyLengths = {
     {"4f4d"_hex2buf, "stuff"_buf, Command::GET},
     {"43c1"_hex2buf, "noot"_buf, Command::GET}};
 
-INSTANTIATE_TEST_CASE_P(GolkadotSuite,
-                        TrieTest,
-                        testing::ValuesIn({PutAndGetBranch,
-                                           PutAndGetOddKeyLengths,
-                                           concat(BuildSmallTrie, DeleteSmall),
-                                           concat(BuildSmallTrie,
-                                                  DeleteCombineBranch),
-                                           DeleteFromBranch,
-                                           DeleteOddKeyLengths}));
+INSTANTIATE_TEST_SUITE_P(GolkadotSuite,
+                         TrieTest,
+                         testing::ValuesIn({PutAndGetBranch,
+                                            PutAndGetOddKeyLengths,
+                                            concat(BuildSmallTrie, DeleteSmall),
+                                            concat(BuildSmallTrie,
+                                                   DeleteCombineBranch),
+                                            DeleteFromBranch,
+                                            DeleteOddKeyLengths}));
 
 /**
  * @given an empty trie
@@ -379,7 +379,7 @@ TEST_P(DeleteTest, DeleteData) {
   ASSERT_EQ(size(trie->getRoot()), GetParam().size);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     DeleteSuite,
     DeleteTest,
     testing::ValuesIn(
@@ -436,7 +436,7 @@ TEST_P(ClearPrefixTest, ManyCases) {
   ASSERT_EQ(size(trie->getRoot()), GetParam().size);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ClearPrefixSuite,
     ClearPrefixTest,
     testing::ValuesIn(
