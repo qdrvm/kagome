@@ -26,9 +26,11 @@ namespace kagome::network {
 
     ~AdapterMock() = default;
 
-    MOCK_METHOD1(m_size, size_t(const Dummy &));
-    MOCK_METHOD3(m_write, BufferIt(const Dummy &, Buffer &, BufferIt));
-    MOCK_METHOD3(m_read, Result(Dummy &, const Buffer &, BufferCIt));
+    MOCK_METHOD(size_t, m_size, (const Dummy &), ());
+
+    MOCK_METHOD(BufferIt, m_write, (const Dummy &, Buffer &, BufferIt), ());
+
+    MOCK_METHOD(Result, m_read, (Dummy &, const Buffer &, BufferCIt), ());
   };
 
 }  // namespace kagome::network

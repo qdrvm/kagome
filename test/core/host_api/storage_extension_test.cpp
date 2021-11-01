@@ -355,14 +355,14 @@ TEST_P(OutcomeParameterizedTest, StorageReadTest) {
                 key.combine(), value.combine(), offset));
 }
 
-INSTANTIATE_TEST_CASE_P(Instance,
-                        OutcomeParameterizedTest,
-                        ::testing::Values<outcome::result<void>>(
-                            /// success case
-                            outcome::success(),
-                            /// failure with arbitrary error code
-                            outcome::failure(testutil::DummyError::ERROR)),
-                        // empty argument for the macro
+INSTANTIATE_TEST_SUITE_P(Instance,
+                         OutcomeParameterizedTest,
+                         ::testing::Values<outcome::result<void>>(
+                             /// success case
+                             outcome::success(),
+                             /// failure with arbitrary error code
+                             outcome::failure(testutil::DummyError::ERROR))
+                         // empty argument for the macro
 );
 
 TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
@@ -398,7 +398,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     vals.push_back(
         kagome::scale::EncodeOpaqueValue{value_data1_encoded.asVector()});
     vals_encoded = Buffer(kagome::scale::encode(vals).value());
-    EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
+    EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
 
     storage_extension_->ext_storage_append_version_1(key.combine(),
@@ -414,7 +414,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTest) {
     vals.push_back(
         kagome::scale::EncodeOpaqueValue{value_data2_encoded.asVector()});
     vals_encoded = Buffer(kagome::scale::encode(vals).value());
-    EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
+    EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
 
     storage_extension_->ext_storage_append_version_1(key.combine(),
@@ -458,7 +458,7 @@ TEST_F(StorageExtensionTest, ExtStorageAppendTestCompactLenChanged) {
     vals_encoded = Buffer(kagome::scale::encode(vals).value());
 
     // @then everything fine: storage is inserted with vals with new value
-    EXPECT_CALL(*trie_batch_, put_rvalueHack(key_data, vals_encoded))
+    EXPECT_CALL(*trie_batch_, put(key_data, vals_encoded))
         .WillOnce(Return(outcome::success()));
 
     storage_extension_->ext_storage_append_version_1(key.combine(),
@@ -519,7 +519,7 @@ TEST_P(BuffersParametrizedTest, Blake2_256_OrderedTrieRootV1) {
                 values_data));
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Instance,
     BuffersParametrizedTest,
     testing::Values(

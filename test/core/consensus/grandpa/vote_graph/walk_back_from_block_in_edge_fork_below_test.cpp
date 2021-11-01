@@ -193,6 +193,6 @@ const std::vector<BlockInfo> test_cases = {{
     // clang-format on
 }};
 
-INSTANTIATE_TEST_CASE_P(VoteGraph,
-                        WalkBackFromBlockInEdgeForkBelow,
-                        testing::ValuesIn(test_cases));
+INSTANTIATE_TEST_SUITE_P(VoteGraph,
+                         WalkBackFromBlockInEdgeForkBelow,
+                         testing::ValuesIn(test_cases));

@@ -14,19 +14,27 @@ namespace kagome::runtime {
 
   class CoreMock : public Core {
    public:
-    MOCK_METHOD0(version,
-                 outcome::result<primitives::Version>());
-    MOCK_METHOD1(version,
-                 outcome::result<primitives::Version>(
-                     primitives::BlockHash const &block));
-    MOCK_METHOD1(execute_block,
-                 outcome::result<void>(const primitives::Block &));
-    MOCK_METHOD1(initialize_block,
-                 outcome::result<storage::trie::RootHash>(
-                     const primitives::BlockHeader &));
-    MOCK_METHOD1(authorities,
-                 outcome::result<std::vector<primitives::AuthorityId>>(
-                     const primitives::BlockHash &));
+    MOCK_METHOD(outcome::result<primitives::Version>, version, (), (override));
+
+    MOCK_METHOD(outcome::result<primitives::Version>,
+                version,
+                (primitives::BlockHash const &block),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                execute_block,
+                (const primitives::Block &),
+                (override));
+
+    MOCK_METHOD(outcome::result<storage::trie::RootHash>,
+                initialize_block,
+                (const primitives::BlockHeader &),
+                (override));
+
+    MOCK_METHOD(outcome::result<std::vector<primitives::AuthorityId>>,
+                authorities,
+                (const primitives::BlockHash &),
+                (override));
   };
 }  // namespace kagome::runtime
 

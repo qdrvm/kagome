@@ -73,7 +73,7 @@ class ProposerTest : public ::testing::Test {
         .WillOnce(Return(inherent_xts));
     EXPECT_CALL(*block_builder_factory_,
                 make(expected_block_id_, inherent_digests_))
-        .WillOnce(Invoke([this](auto &, auto &) {
+        .WillOnce(Invoke([this](auto &&, auto &&) {
           return std::unique_ptr<BlockBuilderMock>{block_builder_};
         }));
   }

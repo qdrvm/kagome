@@ -52,7 +52,7 @@ namespace kagome::application {
 
     log::Logger logger_;
 
-    State state_ = State::Init;
+    std::atomic<State> state_ = State::Init;
 
     std::recursive_mutex mutex_;
 
