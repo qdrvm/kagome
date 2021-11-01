@@ -46,7 +46,7 @@ namespace kagome::runtime {
             instances_cache_.emplace(tid, InstanceCache{INSTANCES_CACHE_SIZE});
         BOOST_ASSERT(insert_res.second);
         thread_local_cache = insert_res.first;
-      } else if (auto opt_instance = thread_cache->second.get(block.hash);
+      } else if (auto opt_instance = thread_cache->second.get(state);
                  opt_instance.has_value()) {
         // there is a cache for this thread and it contains the sought instance
         return opt_instance.value();
