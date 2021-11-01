@@ -25,13 +25,16 @@
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "subscription/subscriber.hpp"
+#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
+using namespace std::chrono_literals;
 using namespace kagome::api;
 using namespace kagome::common;
 using namespace kagome::subscription;
 using namespace kagome::primitives;
+using kagome::application::AppStateManager;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::primitives::events::ChainSubscriptionEngine;
@@ -62,8 +65,8 @@ struct ListenerTest : public ::testing::Test {
   using Timer = boost::asio::steady_timer;
   using Duration = boost::asio::steady_timer::duration;
 
+  std::shared_ptr<RpcContext> rpc_context = std::make_shared<RpcContext>(1);
   std::shared_ptr<Context> main_context = std::make_shared<Context>(1);
-  std::shared_ptr<Context> client_context = std::make_shared<Context>(1);
 
   int64_t payload;
   std::string request;
@@ -101,7 +104,7 @@ struct ListenerTest : public ::testing::Test {
   kagome::api::RpcThreadPool::Configuration config = {1, 1};
 
   sptr<kagome::api::RpcThreadPool> thread_pool =
-      std::make_shared<kagome::api::RpcThreadPool>(main_context, config);
+      std::make_shared<kagome::api::RpcThreadPool>(rpc_context, config);
 
   sptr<ApiStub> api = std::make_shared<ApiStub>();
 
@@ -113,7 +116,6 @@ struct ListenerTest : public ::testing::Test {
   std::shared_ptr<Listener> listener = std::make_shared<ListenerImpl>(
       app_state_manager, main_context, listener_config, session_config);
 
-  using SessionPtr = std::shared_ptr<Session>;
   StorageSubscriptionEnginePtr storage_events_engine =
       std::make_shared<StorageSubscriptionEngine>();
   ChainSubscriptionEnginePtr chain_events_engine =

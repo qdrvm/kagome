@@ -13,9 +13,12 @@ namespace kagome::runtime {
 
   class MemoryProviderMock final : public MemoryProvider {
    public:
-    MOCK_CONST_METHOD0(getCurrentMemory,
-                       std::optional<std::reference_wrapper<Memory>>());
-    MOCK_METHOD1(resetMemory, outcome::result<void>(WasmSize));
+    MOCK_METHOD(std::optional<std::reference_wrapper<Memory>>,
+                getCurrentMemory,
+                (),
+                (const, override));
+
+    MOCK_METHOD(outcome::result<void>, resetMemory, (WasmSize), (override));
   };
 
 }  // namespace kagome::runtime

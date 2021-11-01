@@ -9,8 +9,7 @@ function(addtest test_name)
   add_executable(${test_name} ${ARGN})
   addtest_part(${test_name} ${ARGN})
   target_link_libraries(${test_name}
-      GTest::main
-      GMock::main
+      GTest::gmock_main
       )
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/xunit)
   set(xml_output "--gtest_output=xml:${CMAKE_BINARY_DIR}/xunit/xunit-${test_name}.xml")
@@ -27,9 +26,9 @@ function(addtest test_name)
 endfunction()
 
 function(addtest_part test_name)
-  if (POLICY CMP0076)
+  if(POLICY CMP0076)
     cmake_policy(SET CMP0076 NEW)
-  endif ()
+  endif()
   target_sources(${test_name} PUBLIC
       ${ARGN}
       )
@@ -41,26 +40,26 @@ endfunction()
 # conditionally applies flag. If flag is supported by current compiler, it will be added to compile options.
 function(add_flag flag)
   check_cxx_compiler_flag(${flag} FLAG_${flag})
-  if (FLAG_${flag} EQUAL 1)
+  if(FLAG_${flag} EQUAL 1)
     add_compile_options(${flag})
-  endif ()
+  endif()
 endfunction()
 
 function(compile_proto_to_cpp PROTO_LIBRARY_NAME PB_H PB_CC PROTO)
-  if (NOT Protobuf_INCLUDE_DIR)
+  if(NOT Protobuf_INCLUDE_DIR)
     get_target_property(Protobuf_INCLUDE_DIR protobuf::libprotobuf INTERFACE_INCLUDE_DIRECTORIES)
   endif()
-  if (NOT Protobuf_PROTOC_EXECUTABLE)
+  if(NOT Protobuf_PROTOC_EXECUTABLE)
     get_target_property(Protobuf_PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION_RELEASE)
     set(PROTOBUF_DEPENDS protobuf::protoc)
   endif()
 
-  if (NOT Protobuf_PROTOC_EXECUTABLE)
+  if(NOT Protobuf_PROTOC_EXECUTABLE)
     message(FATAL_ERROR "Protobuf_PROTOC_EXECUTABLE is empty")
-  endif ()
-  if (NOT Protobuf_INCLUDE_DIR)
+  endif()
+  if(NOT Protobuf_INCLUDE_DIR)
     message(FATAL_ERROR "Protobuf_INCLUDE_DIR is empty")
-  endif ()
+  endif()
 
   get_filename_component(PROTO_ABS "${PROTO}" REALPATH)
   # get relative (to CMAKE_BINARY_DIR) path of current proto file
@@ -99,10 +98,10 @@ add_custom_target(generated
 
 function(add_proto_library NAME)
   set(SOURCES "")
-  foreach (PROTO IN ITEMS ${ARGN})
+  foreach(PROTO IN ITEMS ${ARGN})
     compile_proto_to_cpp(${NAME} H C ${PROTO})
     list(APPEND SOURCES ${H} ${C})
-  endforeach ()
+  endforeach()
 
   add_library(${NAME}
       ${SOURCES}

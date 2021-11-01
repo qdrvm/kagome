@@ -14,20 +14,25 @@ namespace kagome::consensus::babe {
 
   class BabeMock final : public Babe {
    public:
-    MOCK_METHOD1(runEpoch, void(EpochDescriptor epoch));
-    MOCK_CONST_METHOD0(getCurrentState, State());
+    MOCK_METHOD(void, runEpoch, (EpochDescriptor epoch), (override));
 
-    MOCK_METHOD1(doOnSynchronized, void(std::function<void()> handler));
+    MOCK_METHOD(State, getCurrentState, (), (const, override));
 
-    MOCK_METHOD2(onRemoteStatus,
-                 void(const libp2p::peer::PeerId &peer_id,
-                      const network::Status &status));
+    MOCK_METHOD(void, doOnSynchronized, (std::function<void()> handler));
 
-    MOCK_METHOD2(onBlockAnnounce,
-                 void(const libp2p::peer::PeerId &peer_id,
-                      const network::BlockAnnounce &announce));
+    MOCK_METHOD(void,
+                onRemoteStatus,
+                (const libp2p::peer::PeerId &peer_id,
+                 const network::Status &status),
+                (override));
 
-    MOCK_METHOD0(onSynchronized, void());
+    MOCK_METHOD(void,
+                onBlockAnnounce,
+                (const libp2p::peer::PeerId &peer_id,
+                 const network::BlockAnnounce &announce),
+                (override));
+
+    MOCK_METHOD(void, onSynchronized, (), (override));
   };
 
 }  // namespace kagome::consensus::babe

@@ -13,11 +13,12 @@
 namespace kagome::authorship {
   class ProposerMock : public Proposer {
    public:
-    MOCK_METHOD3(
-        propose,
-        outcome::result<primitives::Block>(const primitives::BlockNumber &,
-                                           const primitives::InherentData &,
-                                           const primitives::Digest &));
+    MOCK_METHOD(outcome::result<primitives::Block>,
+                propose,
+                (const primitives::BlockNumber &,
+                 const primitives::InherentData &,
+                 const primitives::Digest &),
+                (override));
   };
 }  // namespace kagome::authorship
 

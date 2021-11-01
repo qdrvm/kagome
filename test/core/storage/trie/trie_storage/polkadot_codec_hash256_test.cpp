@@ -34,10 +34,8 @@ Buffer getBlake2b(const Buffer &in) {
 const std::vector<std::pair<Buffer, Buffer>> cases = {
     // pair{in, out}
     {{0}, {0}},  // if length < 32, do not hash, pad to 32 and return
-    {{1, 3, 3, 7},
-     {
-         1, 3, 3, 7}},
+    {{1, 3, 3, 7}, {1, 3, 3, 7}},
     // buffer of size 32, consists of ones
     {Buffer(32, 1), getBlake2b(Buffer(32, 1))}};
 
-INSTANTIATE_TEST_CASE_P(PolkadotCodec, Hash256Test, ValuesIn(cases));
+INSTANTIATE_TEST_SUITE_P(PolkadotCodec, Hash256Test, ValuesIn(cases));

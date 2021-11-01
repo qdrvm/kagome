@@ -269,9 +269,9 @@ const std::vector<std::tuple<BlockInfo, BlockInfo>> test_cases{{
     // clang-format on
 }};
 
-INSTANTIATE_TEST_CASE_P(VoteGraph,
-                        WalkBackFromBlockNodeBelow,
-                        testing::ValuesIn(test_cases));
+INSTANTIATE_TEST_SUITE_P(VoteGraph,
+                         WalkBackFromBlockNodeBelow,
+                         testing::ValuesIn(test_cases));
 
 TEST_F(WalkBackFromBlockNodeBelow, GhostFindMergePoint_NoConstrain) {
   BlockHash node_key = "B"_H;

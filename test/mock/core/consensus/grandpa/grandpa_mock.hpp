@@ -19,27 +19,39 @@ namespace kagome::consensus::grandpa {
     using CatchUpResponse = network::CatchUpResponse;
 
    public:
-    MOCK_METHOD2(onNeighborMessage,
-                 void(const libp2p::peer::PeerId &peer_id,
-                      const network::GrandpaNeighborMessage &msg));
+    MOCK_METHOD(void,
+                onNeighborMessage,
+                (const libp2p::peer::PeerId &peer_id,
+                 const network::GrandpaNeighborMessage &msg),
+                (override));
 
-    MOCK_METHOD2(onVoteMessage,
-                 void(const PeerId &peer_id, const VoteMessage &));
-    MOCK_METHOD2(onFinalize,
-                 void(const PeerId &peer_id,
-                      const network::FullCommitMessage &));
+    MOCK_METHOD(void,
+                onVoteMessage,
+                (const PeerId &peer_id, const VoteMessage &),
+                (override));
 
-    MOCK_METHOD2(
-        applyJustification,
-        outcome::result<void>(const primitives::BlockInfo &block_info,
-                              const GrandpaJustification &justification));
+    MOCK_METHOD(void,
+                onFinalize,
+                (const PeerId &peer_id, const network::FullCommitMessage &),
+                (override));
 
-    MOCK_METHOD2(onCatchUpRequest,
-                 void(const PeerId &peer_id, const CatchUpRequest &));
-    MOCK_METHOD2(onCatchUpResponse,
-                 void(const PeerId &peer_id, const CatchUpResponse &));
+    MOCK_METHOD(outcome::result<void>,
+                applyJustification,
+                (const primitives::BlockInfo &block_info,
+                 const GrandpaJustification &justification),
+                (override));
 
-    MOCK_METHOD0(executeNextRound, void());
+    MOCK_METHOD(void,
+                onCatchUpRequest,
+                (const PeerId &peer_id, const CatchUpRequest &),
+                (override));
+
+    MOCK_METHOD(void,
+                onCatchUpResponse,
+                (const PeerId &peer_id, const CatchUpResponse &),
+                (override));
+
+    MOCK_METHOD(void, executeNextRound, (), (override));
   };
 
 }  // namespace kagome::consensus::grandpa

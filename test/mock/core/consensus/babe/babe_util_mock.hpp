@@ -14,26 +14,46 @@ namespace kagome::consensus {
 
   class BabeUtilMock : public BabeUtil {
    public:
-    MOCK_CONST_METHOD0(getCurrentSlot, BabeSlotNumber());
+    MOCK_METHOD(BabeSlotNumber, getCurrentSlot, (), (const, override));
 
-    MOCK_CONST_METHOD1(slotStartTime, BabeTimePoint(BabeSlotNumber slot));
+    MOCK_METHOD(BabeTimePoint,
+                slotStartTime,
+                (BabeSlotNumber slot),
+                (const, override));
 
-    MOCK_CONST_METHOD1(remainToStartOfSlot, BabeDuration(BabeSlotNumber slot));
+    MOCK_METHOD(BabeDuration,
+                remainToStartOfSlot,
+                (BabeSlotNumber slot),
+                (const, override));
 
-    MOCK_CONST_METHOD1(slotFinishTime, BabeTimePoint(BabeSlotNumber slot));
+    MOCK_METHOD(BabeTimePoint,
+                slotFinishTime,
+                (BabeSlotNumber slot),
+                (const, override));
 
-    MOCK_CONST_METHOD1(remainToFinishOfSlot, BabeDuration(BabeSlotNumber slot));
+    MOCK_METHOD(BabeDuration,
+                remainToFinishOfSlot,
+                (BabeSlotNumber slot),
+                (const, override));
 
-    MOCK_CONST_METHOD0(slotDuration, BabeDuration());
+    MOCK_METHOD(BabeDuration, slotDuration, (), (const, override));
 
-    MOCK_CONST_METHOD1(slotToEpoch, EpochNumber(BabeSlotNumber));
+    MOCK_METHOD(EpochNumber, slotToEpoch, (BabeSlotNumber), (const, override));
 
-    MOCK_CONST_METHOD1(slotInEpoch, BabeSlotNumber(BabeSlotNumber));
+    MOCK_METHOD(BabeSlotNumber,
+                slotInEpoch,
+                (BabeSlotNumber),
+                (const, override));
 
-    MOCK_METHOD1(setLastEpoch,
-                 outcome::result<void>(const EpochDescriptor &led));
+    MOCK_METHOD(outcome::result<void>,
+                setLastEpoch,
+                (const EpochDescriptor &led),
+                (override));
 
-    MOCK_CONST_METHOD0(getLastEpoch, outcome::result<EpochDescriptor>());
+    MOCK_METHOD(outcome::result<EpochDescriptor>,
+                getLastEpoch,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::consensus

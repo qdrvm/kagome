@@ -14,98 +14,129 @@ namespace kagome::storage::trie {
 
   class PersistentTrieBatchMock : public PersistentTrieBatch {
    public:
-    MOCK_CONST_METHOD1(get,
-                       outcome::result<common::Buffer>(const common::Buffer &));
-    MOCK_CONST_METHOD1(
-        tryGet,
-        outcome::result<std::optional<common::Buffer>>(const common::Buffer &));
+    MOCK_METHOD(outcome::result<common::Buffer>,
+                get,
+                (const common::Buffer &),
+                (const, override));
 
-    MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
+                tryGet,
+                (const common::Buffer &),
+                (const, override));
 
-    MOCK_CONST_METHOD1(contains, bool(const common::Buffer &));
+    MOCK_METHOD(std::unique_ptr<PolkadotTrieCursor>,
+                trieCursor,
+                (),
+                (override));
 
-    MOCK_METHOD2(put,
-                 outcome::result<void>(const common::Buffer &,
-                                       const common::Buffer &));
+    MOCK_METHOD(bool, contains, (const common::Buffer &), (const, override));
 
-    outcome::result<void> put(const common::Buffer &k, common::Buffer &&v) {
-      return put_rvalueHack(k, std::move(v));
+    MOCK_METHOD(outcome::result<void>,
+                put,
+                (const common::Buffer &, const common::Buffer &),
+                (override));
+    outcome::result<void> put(const common::Buffer &k,
+                              common::Buffer &&v) override {
+      return put(k, v);
     }
-    MOCK_METHOD2(put_rvalueHack,
-                 outcome::result<void>(const common::Buffer &, common::Buffer));
 
-    MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));
+    MOCK_METHOD(outcome::result<void>,
+                remove,
+                (const common::Buffer &),
+                (override));
 
-    MOCK_METHOD2(clearPrefix,
-                 outcome::result<std::tuple<bool, uint32_t>>(
-                     const common::Buffer &buf, std::optional<uint64_t> limit));
+    MOCK_METHOD((outcome::result<std::tuple<bool, uint32_t>>),
+                clearPrefix,
+                (const common::Buffer &buf, std::optional<uint64_t> limit),
+                (override));
 
-    MOCK_CONST_METHOD0(empty, bool());
+    MOCK_METHOD(bool, empty, (), (const, override));
 
-    MOCK_METHOD0(commit, outcome::result<storage::trie::RootHash>());
+    MOCK_METHOD(outcome::result<storage::trie::RootHash>,
+                commit,
+                (),
+                (override));
 
-    MOCK_METHOD0(batchOnTop, std::unique_ptr<TopperTrieBatch>());
+    MOCK_METHOD(std::unique_ptr<TopperTrieBatch>, batchOnTop, (), (override));
   };
 
   class EphemeralTrieBatchMock : public EphemeralTrieBatch {
    public:
-    MOCK_CONST_METHOD1(get,
-                       outcome::result<common::Buffer>(const common::Buffer &));
-    MOCK_CONST_METHOD1(
-        tryGet,
-        outcome::result<std::optional<common::Buffer>>(const common::Buffer &));
+    MOCK_METHOD(outcome::result<common::Buffer>,
+                get,
+                (const common::Buffer &),
+                (const, override));
 
-    MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
+    MOCK_METHOD(outcome::result<std::optional<common::Buffer>>,
+                tryGet,
+                (const common::Buffer &),
+                (const, override));
 
-    MOCK_CONST_METHOD1(contains, bool(const common::Buffer &));
+    MOCK_METHOD(std::unique_ptr<PolkadotTrieCursor>,
+                trieCursor,
+                (),
+                (override));
 
-    MOCK_METHOD2(put,
-                 outcome::result<void>(const common::Buffer &,
-                                       const common::Buffer &));
+    MOCK_METHOD(bool, contains, (const common::Buffer &), (const, override));
 
-    outcome::result<void> put(const common::Buffer &k, common::Buffer &&v) {
-      return put_rvalueHack(k, std::move(v));
+    MOCK_METHOD(outcome::result<void>,
+                put,
+                (const common::Buffer &, const common::Buffer &),
+                (override));
+    outcome::result<void> put(const common::Buffer &k,
+                              common::Buffer &&v) override {
+      return put(k, v);
     }
-    MOCK_METHOD2(put_rvalueHack,
-                 outcome::result<void>(const common::Buffer &, common::Buffer));
 
-    MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));
+    MOCK_METHOD(outcome::result<void>,
+                remove,
+                (const common::Buffer &),
+                (override));
 
-    MOCK_METHOD2(clearPrefix,
-                 outcome::result<std::tuple<bool, uint32_t>>(
-                     const common::Buffer &buf, std::optional<uint64_t> limit));
+    MOCK_METHOD((outcome::result<std::tuple<bool, uint32_t>>),
+                clearPrefix,
+                (const common::Buffer &buf, std::optional<uint64_t> limit),
+                (override));
 
-    MOCK_CONST_METHOD0(empty, bool());
+    MOCK_METHOD(bool, empty, (), (const, override));
   };
 
   class TopperTrieBatchMock : public TopperTrieBatch {
    public:
-    MOCK_METHOD0(writeBack, outcome::result<void>());
+    MOCK_METHOD(outcome::result<void>, writeBack, (), (override));
 
-    MOCK_CONST_METHOD1(get,
-                       outcome::result<common::Buffer>(const common::Buffer &));
+    MOCK_METHOD(outcome::result<common::Buffer>,
+                get,
+                (const common::Buffer &),
+                (const, override));
 
-    MOCK_CONST_METHOD1(contains, bool(const common::Buffer &));
+    MOCK_METHOD(bool, contains, (const common::Buffer &), (const, override));
 
-    MOCK_CONST_METHOD0(empty, bool());
+    MOCK_METHOD(bool, empty, (), (const, override));
 
-    MOCK_METHOD2(put,
-                 outcome::result<void>(const common::Buffer &,
-                                       const common::Buffer &));
-
-    outcome::result<void> put(const common::Buffer &k, common::Buffer &&v) {
-      return put_rvalueHack(k, std::move(v));
+    MOCK_METHOD(outcome::result<void>,
+                put,
+                (const common::Buffer &, const common::Buffer &),
+                (override));
+    outcome::result<void> put(const common::Buffer &k,
+                              common::Buffer &&v) override {
+      return put(k, v);
     }
-    MOCK_METHOD2(put_rvalueHack,
-                 outcome::result<void>(const common::Buffer &, common::Buffer));
 
-    MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));
+    MOCK_METHOD(outcome::result<void>,
+                remove,
+                (const common::Buffer &),
+                (override));
 
-    MOCK_METHOD0(trieCursor, std::unique_ptr<PolkadotTrieCursor>());
+    MOCK_METHOD(std::unique_ptr<PolkadotTrieCursor>,
+                trieCursor,
+                (),
+                (override));
 
-    MOCK_METHOD2(clearPrefix,
-                 outcome::result<std::tuple<bool, uint32_t>>(
-                     const common::Buffer &buf, std::optional<uint64_t> limit));
+    MOCK_METHOD((outcome::result<std::tuple<bool, uint32_t>>),
+                clearPrefix,
+                (const common::Buffer &buf, std::optional<uint64_t> limit),
+                (override));
   };
 
 }  // namespace kagome::storage::trie

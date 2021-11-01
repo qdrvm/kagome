@@ -14,57 +14,86 @@ namespace kagome::application {
 
   class AppConfigurationMock : public AppConfiguration {
    public:
-    MOCK_CONST_METHOD0(roles, network::Roles());
+    MOCK_METHOD(network::Roles, roles, (), (const, override));
 
-    MOCK_CONST_METHOD0(chainSpecPath, boost::filesystem::path());
+    MOCK_METHOD(boost::filesystem::path, chainSpecPath, (), (const, override));
 
-    MOCK_CONST_METHOD1(chainPath,
-                       boost::filesystem::path(std::string chain_id));
+    MOCK_METHOD(boost::filesystem::path,
+                chainPath,
+                (std::string chain_id),
+                (const, override));
 
-    MOCK_CONST_METHOD1(databasePath,
-                       boost::filesystem::path(std::string chain_id));
+    MOCK_METHOD(boost::filesystem::path,
+                databasePath,
+                (std::string chain_id),
+                (const, override));
 
-    MOCK_CONST_METHOD1(keystorePath,
-                       boost::filesystem::path(std::string chain_id));
+    MOCK_METHOD(boost::filesystem::path,
+                keystorePath,
+                (std::string chain_id),
+                (const, override));
 
-    MOCK_CONST_METHOD0(nodeKey,
-                       const std::optional<crypto::Ed25519PrivateKey> &());
+    MOCK_METHOD(const std::optional<crypto::Ed25519PrivateKey> &,
+                nodeKey,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(nodeKeyFile, const std::optional<std::string> &());
+    MOCK_METHOD(const std::optional<std::string> &,
+                nodeKeyFile,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(listenAddresses,
-                       const std::vector<libp2p::multi::Multiaddress> &());
+    MOCK_METHOD(const std::vector<libp2p::multi::Multiaddress> &,
+                listenAddresses,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(publicAddresses,
-                       const std::vector<libp2p::multi::Multiaddress> &());
+    MOCK_METHOD(const std::vector<libp2p::multi::Multiaddress> &,
+                publicAddresses,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(bootNodes,
-                       const std::vector<libp2p::multi::Multiaddress> &());
+    MOCK_METHOD(const std::vector<libp2p::multi::Multiaddress> &,
+                bootNodes,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(p2pPort, uint16_t());
+    MOCK_METHOD(uint16_t, p2pPort, (), (const, override));
 
-    MOCK_CONST_METHOD0(rpcHttpEndpoint,
-                       const boost::asio::ip::tcp::endpoint &());
+    MOCK_METHOD(const boost::asio::ip::tcp::endpoint &,
+                rpcHttpEndpoint,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(rpcWsEndpoint, const boost::asio::ip::tcp::endpoint &());
+    MOCK_METHOD(const boost::asio::ip::tcp::endpoint &,
+                rpcWsEndpoint,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(openmetricsHttpEndpoint,
-                       const boost::asio::ip::tcp::endpoint &());
+    MOCK_METHOD(const boost::asio::ip::tcp::endpoint &,
+                openmetricsHttpEndpoint,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(maxWsConnections, uint32_t());
+    MOCK_METHOD(uint32_t, maxWsConnections, (), (const, override));
 
-    MOCK_CONST_METHOD0(log, const std::vector<std::string> &());
+    MOCK_METHOD(const std::vector<std::string> &, log, (), (const, override));
 
-    MOCK_CONST_METHOD0(maxBlocksInResponse, uint32_t());
+    MOCK_METHOD(uint32_t, maxBlocksInResponse, (), (const, override));
 
-    MOCK_CONST_METHOD0(peeringConfig, const network::PeeringConfig &());
+    MOCK_METHOD(const network::PeeringConfig &,
+                peeringConfig,
+                (),
+                (const, override));
 
-    MOCK_CONST_METHOD0(isRunInDevMode, bool());
+    MOCK_METHOD(bool, isRunInDevMode, (), (const, override));
 
-    MOCK_CONST_METHOD0(nodeName, const std::string &());
+    MOCK_METHOD(const std::string &, nodeName, (), (const, override));
 
-    MOCK_CONST_METHOD0(runtimeExecMethod,
-                       AppConfiguration::RuntimeExecutionMethod());
+    MOCK_METHOD(AppConfiguration::RuntimeExecutionMethod,
+                runtimeExecMethod,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application

@@ -75,11 +75,11 @@ TEST_P(UnhexNumber32Test, Unhex32Success) {
   EXPECT_EQ(decimal, val);
 }
 
-INSTANTIATE_TEST_CASE_P(UnhexNumberTestCases,
-                        UnhexNumber32Test,
-                        ::testing::Values(makePair("0x64", 100),
-                                          makePair("0x01", 1),
-                                          makePair("0xbc614e", 12345678)));
+INSTANTIATE_TEST_SUITE_P(UnhexNumberTestCases,
+                         UnhexNumber32Test,
+                         ::testing::Values(makePair("0x64", 100),
+                                           makePair("0x01", 1),
+                                           makePair("0xbc614e", 12345678)));
 TEST(UnhexNumberTest, Overflow) {
   std::string encoded = "0x01FF";
   EXPECT_OUTCOME_ERROR(res,

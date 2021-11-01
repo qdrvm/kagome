@@ -41,7 +41,7 @@ using ::testing::Values;
 
 class SyncResultHandlerMock {
  public:
-  MOCK_METHOD1(call, void(outcome::result<primitives::BlockInfo>));
+  MOCK_METHOD(void, call, (outcome::result<primitives::BlockInfo>), ());
 
   void operator()(outcome::result<primitives::BlockInfo> res) {
     call(res);
@@ -283,7 +283,7 @@ TEST_P(SynchronizerTest, findCommonBlock) {
   synchronizer->findCommonBlock(peer_id, lower, upper, hint, std::move(cb));
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     SynchronizerTest_Success,
     SynchronizerTest,
     Values(  // clang-format off

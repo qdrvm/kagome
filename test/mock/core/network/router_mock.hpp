@@ -19,14 +19,30 @@ namespace kagome::network {
    public:
     virtual ~RouterMock() = default;
 
-    MOCK_CONST_METHOD0(getBlockAnnounceProtocol,
-                       std::shared_ptr<BlockAnnounceProtocol>());
-    MOCK_CONST_METHOD0(getPropagateTransactionsProtocol,
-                       std::shared_ptr<PropagateTransactionsProtocol>());
-    MOCK_CONST_METHOD0(getSyncProtocol, std::shared_ptr<SyncProtocol>());
-    MOCK_CONST_METHOD0(getGrandpaProtocol, std::shared_ptr<GrandpaProtocol>());
-    MOCK_CONST_METHOD0(getPingProtocol,
-                       std::shared_ptr<libp2p::protocol::Ping>());
+    MOCK_METHOD(std::shared_ptr<BlockAnnounceProtocol>,
+                getBlockAnnounceProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<PropagateTransactionsProtocol>,
+                getPropagateTransactionsProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<SyncProtocol>,
+                getSyncProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<GrandpaProtocol>,
+                getGrandpaProtocol,
+                (),
+                (const, override));
+
+    MOCK_METHOD(std::shared_ptr<libp2p::protocol::Ping>,
+                getPingProtocol,
+                (),
+                (const, override));
   };
 }  // namespace kagome::network
 

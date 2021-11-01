@@ -14,12 +14,15 @@ namespace kagome::runtime {
 
   class RuntimeUpgradeTrackerMock : public RuntimeUpgradeTracker {
    public:
-    MOCK_METHOD1(getLastCodeUpdateState,
-                 outcome::result<storage::trie::RootHash>(
-                     const primitives::BlockInfo &block));
-    MOCK_CONST_METHOD1(getLastCodeUpdateHash,
-                       outcome::result<primitives::BlockHash>(
-                           const storage::trie::RootHash &state));
+    MOCK_METHOD(outcome::result<storage::trie::RootHash>,
+                getLastCodeUpdateState,
+                (const primitives::BlockInfo &block),
+                (override));
+
+    MOCK_METHOD(outcome::result<primitives::BlockHash>,
+                getLastCodeUpdateHash,
+                (const storage::trie::RootHash &state),
+                (const, override));
   };
 
 }  // namespace kagome::runtime

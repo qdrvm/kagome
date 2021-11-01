@@ -16,34 +16,53 @@ namespace kagome::api {
    public:
     ~AuthorApiMock() override = default;
 
-    MOCK_METHOD1(setApiService, void(const std::shared_ptr<api::ApiService> &));
+    MOCK_METHOD(void,
+                setApiService,
+                (const std::shared_ptr<api::ApiService> &),
+                (override));
 
-    MOCK_METHOD1(submitExtrinsic,
-                 outcome::result<common::Hash256>(const Extrinsic &));
+    MOCK_METHOD(outcome::result<common::Hash256>,
+                submitExtrinsic,
+                (const Extrinsic &),
+                (override));
 
-    MOCK_METHOD3(insertKey,
-                 outcome::result<void>(crypto::KeyTypeId,
-                                       const gsl::span<const uint8_t> &,
-                                       const gsl::span<const uint8_t> &));
+    MOCK_METHOD(outcome::result<void>,
+                insertKey,
+                (crypto::KeyTypeId,
+                 const gsl::span<const uint8_t> &,
+                 const gsl::span<const uint8_t> &),
+                (override));
 
-    MOCK_METHOD1(hasSessionKeys,
-                 outcome::result<bool>(const gsl::span<const uint8_t> &));
+    MOCK_METHOD(outcome::result<bool>,
+                hasSessionKeys,
+                (const gsl::span<const uint8_t> &),
+                (override));
 
-    MOCK_METHOD2(
-        hasKey,
-        outcome::result<bool>(const gsl::span<const uint8_t> &public_key,
-                              crypto::KeyTypeId key_type));
+    MOCK_METHOD(outcome::result<bool>,
+                hasKey,
+                (const gsl::span<const uint8_t> &public_key,
+                 crypto::KeyTypeId key_type),
+                (override));
 
-    MOCK_METHOD1(submitAndWatchExtrinsic,
-                 outcome::result<SubscriptionId>(Extrinsic));
+    MOCK_METHOD(outcome::result<SubscriptionId>,
+                submitAndWatchExtrinsic,
+                (Extrinsic),
+                (override));
 
-    MOCK_METHOD1(unwatchExtrinsic, outcome::result<bool>(SubscriptionId));
+    MOCK_METHOD(outcome::result<bool>,
+                unwatchExtrinsic,
+                (SubscriptionId),
+                (override));
 
-    MOCK_METHOD0(pendingExtrinsics, outcome::result<std::vector<Extrinsic>>());
+    MOCK_METHOD(outcome::result<std::vector<Extrinsic>>,
+                pendingExtrinsics,
+                (),
+                (override));
 
-    MOCK_METHOD1(removeExtrinsic,
-                 outcome::result<std::vector<Extrinsic>>(
-                     const std::vector<ExtrinsicKey> &));
+    MOCK_METHOD(outcome::result<std::vector<Extrinsic>>,
+                removeExtrinsic,
+                (const std::vector<ExtrinsicKey> &),
+                (override));
   };
 
 }  // namespace kagome::api
